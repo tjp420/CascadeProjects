@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, showToast } from '../utils.js';
+import { isIdeDashboardSurface } from '../utils-lib/dom.js';
 import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, listStockpiled, stockpileCount, tokenHint, } from '../services/tokenStockpileService.js';
 function loadProfile() {
@@ -118,11 +119,16 @@ export class ProfileView {
             <button type="button" class="btn btn-secondary btn-sm profile-stockpile-load" data-stockpile-load="${index}">Load</button>
           </div>`;
         }).join('');
+        const isIde = (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface());
+        const avatarHtml = (user && (user.avatarUrl || user.picture))
+            ? `<img class="profile-avatar-img" src="${escapeHtml((user.avatarUrl || user.picture) || '')}" alt="Avatar" />`
+            : (email ? escapeHtml(email[0].toUpperCase()) : '?');
+
         const fragment = document.createRange().createContextualFragment(`
       <div class="profile-page">
         <div class="profile-hero-card">
           <div class="profile-hero-main">
-            <div class="profile-avatar" aria-hidden="true">${email ? escapeHtml(email[0].toUpperCase()) : '?'}</div>
+            <div class="profile-avatar" aria-hidden="true">${avatarHtml}</div>
             <div class="profile-hero-text">
               <h1 class="page-title">Account Profile</h1>
               <p class="page-subtitle">Manage your credentials, license token, and session settings.</p>
@@ -280,10 +286,23 @@ export class ProfileView {
         </div>
       </div>
     `);
-container.innerHTML = '';
+if (typeof window.setSafeHTML === 'function') {
+  window.setSafeHTML(container, '');
+} else {
+  container.textContent = '';
+}
         container.appendChild(fragment);
+        if (isIde) {
+          const root = container.querySelector('.profile-page');
+          if (root)
+            root.classList.add('ide-embed');
+          container.classList.add('ide-embed');
+        }
         if (typeof window.lucide !== 'undefined')
-            window.lucide.createIcons();
+          window.lucide.createIcons();
+        if (isIde) {
+          setTimeout(function () { if (typeof window.lucide !== 'undefined') window.lucide.createIcons(); }, 50);
+        }
         // Style active login method
         const updateLoginMethodStyles = () => {
             container.querySelectorAll('.login-method-card').forEach((card) => {
@@ -369,14 +388,30 @@ container.innerHTML = '';
                     if (!input)
                         return;
                     if (input.type === 'password') {
-                        input.type = 'text';
-toggleBtn.innerHTML = '<i data-lucide="eye-off" class="icon-16"></i>';
+                      input.type = 'text';
+                      if (typeof window.setSafeHTML === 'function') {
+                        window.setSafeHTML(toggleBtn, '<i data-lucide="eye-off" class="icon-16"></i>');
+                      } else {
+                        while (toggleBtn.firstChild) toggleBtn.removeChild(toggleBtn.firstChild);
+                        const ic = document.createElement('i');
+                        ic.setAttribute('data-lucide', 'eye-off');
+                        ic.className = 'icon-16';
+                        toggleBtn.appendChild(ic);
+                      }
                         toggleBtn.title = 'Hide token';
                         toggleBtn.setAttribute('aria-label', 'Hide token');
                     }
                     else {
                         input.type = 'password';
-toggleBtn.innerHTML = '<i data-lucide="eye" class="icon-16"></i>';
+                        if (typeof window.setSafeHTML === 'function') {
+                          window.setSafeHTML(toggleBtn, '<i data-lucide="eye" class="icon-16"></i>');
+                        } else {
+                          while (toggleBtn.firstChild) toggleBtn.removeChild(toggleBtn.firstChild);
+                          const ic = document.createElement('i');
+                          ic.setAttribute('data-lucide', 'eye');
+                          ic.className = 'icon-16';
+                          toggleBtn.appendChild(ic);
+                        }
                         toggleBtn.title = 'Show token';
                         toggleBtn.setAttribute('aria-label', 'Show token');
                     }
@@ -424,15 +459,34 @@ toggleBtn.innerHTML = '<i data-lucide="eye" class="icon-16"></i>';
                     }
                 }
                 if (copied) {
-const original = copyBtn.innerHTML;
-copyBtn.innerHTML = '<i data-lucide="check" class="icon-16"></i>';
+                  const iconEl = copyBtn.querySelector('i[data-lucide]');
+                  const originalIcon = iconEl ? iconEl.getAttribute('data-lucide') : null;
+                  if (typeof window.setSafeHTML === 'function') {
+                    window.setSafeHTML(copyBtn, '<i data-lucide="check" class="icon-16"></i>');
+                  } else {
+                    while (copyBtn.firstChild) copyBtn.removeChild(copyBtn.firstChild);
+                    const ic = document.createElement('i');
+                    ic.setAttribute('data-lucide', 'check');
+                    ic.className = 'icon-16';
+                    copyBtn.appendChild(ic);
+                  }
+                  if (typeof window.lucide !== 'undefined')
+                    window.lucide.createIcons();
+                  setTimeout(() => {
+                    if (originalIcon) {
+                      if (typeof window.setSafeHTML === 'function') {
+                        window.setSafeHTML(copyBtn, `<i data-lucide="${originalIcon}" class="icon-16"></i>`);
+                      } else {
+                        while (copyBtn.firstChild) copyBtn.removeChild(copyBtn.firstChild);
+                        const ic = document.createElement('i');
+                        ic.setAttribute('data-lucide', originalIcon);
+                        ic.className = 'icon-16';
+                        copyBtn.appendChild(ic);
+                      }
+                    }
                     if (typeof window.lucide !== 'undefined')
-                        window.lucide.createIcons();
-                    setTimeout(() => {
-copyBtn.innerHTML = original;
-                        if (typeof window.lucide !== 'undefined')
-                            window.lucide.createIcons();
-                    }, 1500);
+                      window.lucide.createIcons();
+                  }, 1500);
                     (_d = (_c = this.app).showToast) === null || _d === void 0 ? void 0 : _d.call(_c, 'Token copied', 'success');
                 }
                 else {
