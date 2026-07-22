@@ -20,7 +20,7 @@ function loadLogger(env = {}) {
 
 describe('production-logger', () => {
   beforeEach(() => {
-    logger = loadLogger({ NODE_ENV: 'development' });
+    logger = loadLogger({ NODE_ENV: 'test' });
   });
 
   afterEach(() => {
@@ -54,7 +54,7 @@ describe('production-logger', () => {
     prodLogger.debug('debug message');
     prodLogger.info('info message');
     delete global.window;
-    process.env.NODE_ENV = 'development';
+    process.env.NODE_ENV = 'test';
     assert.strictEqual(calls.length, 0);
   });
 });

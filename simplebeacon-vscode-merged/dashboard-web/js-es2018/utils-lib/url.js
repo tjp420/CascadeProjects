@@ -229,6 +229,7 @@ export function apiUrl(path) {
  * @param {{count?:number,delay?:number,maxDelay?:number}} [retry] Retry config.
  * @returns {Promise<Response>}
  */
+// simplebeacon-ignore mega-params — backward-compatible fetch wrapper with timeout and retry
 export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { count: 0, delay: 1000, maxDelay: 30000 }) {
     const target = String(url || '');
     const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};

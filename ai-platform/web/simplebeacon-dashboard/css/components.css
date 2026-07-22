@@ -343,6 +343,109 @@ html[data-ide-embed="1"] .results-sidebar {
   overflow: visible;
 }
 
+/* Analyze page redesign for IDE/webview */
+html[data-ide-embed="1"] .analyze-page-v2 {
+  max-width: none;
+  width: 100%;
+  padding: var(--space-3);
+  gap: var(--space-3);
+}
+
+html[data-ide-embed="1"] .analyze-page-hero,
+html[data-ide-embed="1"] .analyze-page-hero-compact {
+  grid-template-columns: 1fr;
+  padding: var(--space-3);
+  gap: var(--space-3);
+}
+
+html[data-ide-embed="1"] .analyze-page-title {
+  font-size: var(--font-size-xl);
+  margin: 0 0 var(--space-1);
+}
+
+html[data-ide-embed="1"] .analyze-page-subtitle {
+  font-size: var(--font-size-xs);
+}
+
+html[data-ide-embed="1"] .analyze-step-rail {
+  min-width: 0;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+html[data-ide-embed="1"] .analyze-step-rail-item {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+html[data-ide-embed="1"] .target-card,
+html[data-ide-embed="1"] .analyze-target-redesign {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+html[data-ide-embed="1"] .target-header {
+  padding: var(--space-3) var(--space-4);
+}
+
+html[data-ide-embed="1"] .target-header .target-title {
+  font-size: var(--font-size-xs);
+}
+
+html[data-ide-embed="1"] .sb-dropzone {
+  padding: var(--space-3);
+}
+
+html[data-ide-embed="1"] .analyze-dropzone-primary-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+html[data-ide-embed="1"] .sb-dropzone-pitch {
+  text-align: left;
+  align-items: flex-start;
+}
+
+html[data-ide-embed="1"] .sb-dropzone-actions.analyze-dropzone-cta-row {
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+html[data-ide-embed="1"] .sb-dropzone-actions.analyze-dropzone-cta-row .btn {
+  width: 100%;
+  justify-content: center;
+  padding: 8px 12px;
+  font-size: var(--font-size-xs);
+}
+
+html[data-ide-embed="1"] .analyze-scan-type-grid {
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+}
+
+html[data-ide-embed="1"] .analyze-scan-type-card {
+  padding: var(--space-3);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: left;
+}
+
+html[data-ide-embed="1"] .analyze-scan-type-card .scan-type-icon {
+  margin-bottom: 0;
+}
+
+html[data-ide-embed="1"] .sb-dropzone-terminal {
+  font-size: 10px;
+}
+
+html[data-ide-embed="1"] .analyze-hero-path-chip {
+  max-width: 100%;
+}
+
 html[data-ide-embed="1"] .results-table-scroll {
   max-height: none;
   flex: 1 1 auto;
