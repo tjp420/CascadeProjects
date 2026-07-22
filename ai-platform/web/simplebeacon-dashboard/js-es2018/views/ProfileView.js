@@ -576,9 +576,9 @@ export class ProfileView {
                     if (typeof window.lucide !== 'undefined')
                         window.lucide.createIcons();
                     setTimeout(() => {
-                        copyBtn.innerHTML = original;
-                        if (typeof window.lucide !== 'undefined')
-                            window.lucide.createIcons();
+                      window.setSafeHTML(copyBtn, original);
+                      if (typeof window.lucide !== 'undefined')
+                        window.lucide.createIcons();
                     }, 1500);
                     (_d = (_c = this.app).showToast) === null || _d === void 0 ? void 0 : _d.call(_c, 'Token copied', 'success');
                 }
@@ -681,7 +681,7 @@ export class ProfileView {
                     );;
                     return;
                 }
-                securityKeysList.innerHTML = keys.map((key) => `
+                setHtml(securityKeysList, keys.map((key) => `
             <div class="profile-security-key-row" data-credential-id="${escapeHtml(key.id)}">
               <div class="profile-security-key-meta">
                 <strong>${escapeHtml(key.label || 'Security key')}</strong>
@@ -691,7 +691,7 @@ export class ProfileView {
                 <button type="button" class="btn btn-secondary btn-sm profile-security-key-test" data-test-key="${escapeHtml(key.id)}">Test</button>
                 <button type="button" class="btn btn-secondary btn-sm profile-security-key-remove" data-remove-key="${escapeHtml(key.id)}">Remove</button>
               </div>
-            </div>`).join('');
+            </div>`).join(''));
                 securityKeysList.querySelectorAll('[data-remove-key]').forEach((btn) => {
                     btn.addEventListener('click', async () => {
                         const credentialId = btn.getAttribute('data-remove-key');
@@ -744,7 +744,7 @@ export class ProfileView {
                 });
             }
             catch (err) {
-                securityKeysList.innerHTML = `<p class="profile-help">${escapeHtml(describeWebAuthnError(err))}</p>`;
+              setHtml(securityKeysList, `<p class="profile-help">${escapeHtml(describeWebAuthnError(err))}</p>`);
             }
         };
 
@@ -780,12 +780,12 @@ export class ProfileView {
                     // Update instructions
                     const instructions = container.querySelector('#security-key-enroll-instructions');
                     if (instructions) {
-                        const labels = {
+                      const labels = {
                             hardware: 'Insert your hardware key (YubiKey, Titan, etc.), then click Activate. Tap the key when your browser prompts you.',
                             platform: 'Click Activate, then confirm with Windows Hello, Touch ID, or Face ID when your browser prompts you.',
                             usb: 'Make sure your USB drive is enrolled as a security key in Windows Settings first. Then click Activate and tap it when prompted.'
                         };
-                        instructions.innerHTML = `<p class="profile-help">${labels[selectedKeyType] || labels.hardware}</p>`;
+                      setHtml(instructions, `<p class="profile-help">${labels[selectedKeyType] || labels.hardware}</p>`);
                     }
                 });
             });
