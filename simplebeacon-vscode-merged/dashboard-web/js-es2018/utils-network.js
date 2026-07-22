@@ -6,11 +6,11 @@
  * @param {{count?:number,delay?:number,maxDelay?:number}} [retry]
  * @returns {Promise<Response>}
  */
-export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { count: 0, delay: 1000, maxDelay: 30000 }) {
+export async function fetchWithTimeout(url, ...args) {
     const target = String(url || '');
-    const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
-    const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 10000;
-    const retryCfg = { count: 0, delay: 1000, maxDelay: 30000, ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {}) };
+    const opts = (args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) ? args[0] : {};
+    const timeoutMs = Number.isFinite(args[1]) && args[1] > 0 ? args[1] : 10000;
+    const retryCfg = { count: 0, delay: 1000, maxDelay: 30000, ...(args[2] && typeof args[2] === 'object' && !Array.isArray(args[2]) ? args[2] : {}) };
     const attempt = async (attemptNum) => {
         const controller = new AbortController();
         let cleanup = null;
