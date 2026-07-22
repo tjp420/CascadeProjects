@@ -150,7 +150,8 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   /** Return the active dashboard host: explicit website/localhost override, then local fallback. */
   private static resolveDashboardHost(): string | null {
-    if (ModernSidebarProvider._dashboardMode === 'website') { return 'https://simplebeacon.ai'; }
+    // TODO: Revert to simplebeacon.ai once CDN cache is purged.
+    if (ModernSidebarProvider._dashboardMode === 'website') { return 'https://simplebeacon.pages.dev'; }
     if (ModernSidebarProvider._dashboardMode === 'localhost') { return `http://127.0.0.1:${getDataServerPort()}`; }
     return null;
   }
@@ -167,7 +168,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   /** Async helper that builds a remote dashboard URL and optionally injects the current token. */
   private static async _openRemoteRouteInBrowserAsync(route: string, host: string | null): Promise<void> {
-    const base = (host || 'https://simplebeacon.ai').replace(/\/$/, '');
+    const base = (host || 'https://simplebeacon.pages.dev').replace(/\/$/, '');
     const isRemote = !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(base);
     let normalizedRoute = route.startsWith('/') ? route : '/' + route;
     if (isRemote) {
@@ -433,7 +434,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private static _openSigninInPreview(route: '/signin' | '/register' = '/signin'): void {
     const websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
     const localBase = `http://127.0.0.1:${getDataServerPort()}`;
-    const dashboardBase = websiteMode ? 'https://simplebeacon.ai' : localBase;
+    const dashboardBase = websiteMode ? 'https://simplebeacon.pages.dev' : localBase;
     const notifyBase = `${localBase}/api`;
     const callbackUri = `${vscode.env.uriScheme}://simplebeacon.simplebeacon-vscode/relay/auth`;
     const extraParts = [
@@ -5613,7 +5614,7 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
     const extUri = this._extensionUri;
     const localDashboardBase = `http://127.0.0.1:${getDataServerPort()}`;
     const websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
-    const dashboardBaseUrl = websiteMode ? 'https://simplebeacon.ai' : localDashboardBase;
+    const dashboardBaseUrl = websiteMode ? 'https://simplebeacon.pages.dev' : localDashboardBase;
     const initialDashboardSrc = websiteMode
       ? `${dashboardBaseUrl}/dashboard`
       : `${localDashboardBase}/dashboard`;
@@ -5828,6 +5829,7 @@ body.tabs-open #browserTabBar{display:flex !important;}
     try {
       const host = new URL(url).hostname.toLowerCase();
       if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) return true;
+      if (host === 'simplebeacon.pages.dev' || host.endsWith('.simplebeacon.pages.dev')) return true;
       if (host === 'localhost' || host === '127.0.0.1') return true;
       if (host.endsWith('.onrender.com')) return true;
       return false;
