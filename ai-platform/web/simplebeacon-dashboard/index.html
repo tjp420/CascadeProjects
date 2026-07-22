@@ -1116,5 +1116,39 @@
       }, 1500);
     })();
   </script>
+  <!-- IDE runtime shim: force container-relative heights for older/quirky webview hosts -->
+  <script>
+  (function() {
+    try {
+      const isIdeWebview = (typeof navigator !== 'undefined' && (navigator.userAgent || '').includes('Electron')) ||
+                           (window.location && window.location.search && window.location.search.includes('sb_parent_urlbar=1')) ||
+                           (window.top !== window.self);
+
+      if (!isIdeWebview) return;
+      console.debug('[SimpleBeacon IDE Shim] Restricting layout engine bounds.');
+
+      const applyIdeSizing = () => {
+        try {
+          const containerHeight = window.innerHeight + 'px';
+          document.documentElement.style.setProperty('height', containerHeight, 'important');
+          document.body.style.setProperty('height', containerHeight, 'important');
+          const appShell = document.querySelector('.app-shell');
+          if (appShell) {
+            appShell.style.setProperty('height', containerHeight, 'important');
+            appShell.style.setProperty('min-height', '100%', 'important');
+            appShell.style.setProperty('overflow', 'hidden', 'important');
+          }
+        } catch (e) {
+          console.warn('[SimpleBeacon IDE Shim] sizing failed', e);
+        }
+      };
+
+      applyIdeSizing();
+      window.addEventListener('resize', applyIdeSizing, { passive: true });
+    } catch (err) {
+      console.warn('[SimpleBeacon IDE Shim] init failed', err);
+    }
+  })();
+  </script>
 </body>
 </html>
