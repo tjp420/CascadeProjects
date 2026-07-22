@@ -369,6 +369,20 @@
       window.__SB_STANDALONE_DASHBOARD__ = !inIframe && !explicitEmbedUrl;
       window.__SB_IDE_EMBED__ = ideSurface;
       window.__SB_PARENT_URL_BAR__ = parentOwnsUrlBar;
+      // If this looks like a real IDE webview, prefer IDE embed behavior
+      // over the `sb_website_mode` query param. This prevents the dashboard
+      // from rendering its header/sidebar inside the IDE, which causes
+      // duplicate navigation chrome and layout issues.
+      try {
+        var idePreviewDetected = false;
+        if (inIframe) {
+          idePreviewDetected = detectIdePreview();
+        }
+      } catch (_d) { idePreviewDetected = false; }
+      if (idePreviewDetected) {
+        websiteMode = false;
+      }
+
       if (ideSurface && !websiteMode) {
         // IDE iframe: extension sidebar owns navigation, hide all dashboard chrome.
         document.documentElement.setAttribute('data-ide-embed', '1');

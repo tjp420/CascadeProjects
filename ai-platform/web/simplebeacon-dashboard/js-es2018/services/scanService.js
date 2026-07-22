@@ -91,7 +91,20 @@ function simplebeaconApiBase() {
             const normalized = embedBase.startsWith('http') ? embedBase : `http://${embedBase}`;
             const parsed = new URL(normalized);
             const host = parsed.hostname.toLowerCase();
-            if ((host === '127.0.0.1' || host === 'localhost') && !_isUnreachableLoopbackHost(parsed.origin)) {
+            // Allow a developer-provided embed bridge (query param or session flag)
+            // to be used even from an HTTPS-hosted page. This is required when the
+            // dashboard is opened from the IDE and the extension passes a local
+            // loopback API base via query params (sb_api_base) or session storage.
+            const isEmbedOverride = (typeof window !== 'undefined') && (function() {
+                try {
+                    const params = new URLSearchParams(window.location.search || '');
+                    if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
+                    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('sb_website_mode')) return true;
+                }
+                catch (_b) { /* ignore */ }
+                return false;
+            })();
+            if ((host === '127.0.0.1' || host === 'localhost') && (!_isUnreachableLoopbackHost(parsed.origin) || isEmbedOverride)) {
                 return `${parsed.origin}/api/simplebeacon`;
             }
         }
