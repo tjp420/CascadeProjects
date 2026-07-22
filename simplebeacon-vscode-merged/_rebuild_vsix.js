@@ -2,7 +2,7 @@
 const fs = require('fs');
 
 const sourceDir = 'C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\.vsix-patch-temp';
-const vsixPath = 'C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\simplebeacon-3.0.388-patched.vsix';
+const vsixPath = 'C:\\Users\\Trevor\\CascadeProjects\\simplebeacon-vscode-merged\\releases\\simplebeacon-3.0.388-patched.vsix';
 
 if (fs.existsSync(vsixPath)) {
     fs.unlinkSync(vsixPath);
