@@ -33,6 +33,31 @@ import { showToast } from './utils.js';
 import { LocalScanService } from './services/localScanService.js?v=20260725local1';
 import { fetchAnalyzeProviders } from './services/analyzeService.js';
 
+// Embed shim fallback: when loaded inside an IDE/webview that marks the document
+// as embedded, ensure a top padding is applied so host chrome doesn't clip content.
+(function applyEmbedShim() {
+  try {
+    const run = () => {
+      if (typeof isEmbeddedDashboardFrame === 'function' && isEmbeddedDashboardFrame()) {
+        const root = document.documentElement;
+        root.setAttribute('data-embed-mode', '1');
+        // IDE mode already hides chrome and #app-main scrolls; do not add body padding here.
+        if (root.hasAttribute('data-ide-embed') || window.__SB_IDE_EMBED__) {
+          return;
+        }
+        const cssVar = getComputedStyle(root).getPropertyValue('--embed-top-shim') || '';
+        const shimPx = parseInt(cssVar) || 48;
+        const bodyPad = parseInt(getComputedStyle(document.body).paddingTop) || 0;
+        if (!document.body.style.paddingTop || bodyPad === 0) {
+          document.body.style.paddingTop = shimPx + 'px';
+        }
+      }
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+  }
+  catch (e) { /* no-op */ }
+})();
+
 /**
  * Vault unlock url.
  * @param {string} returnPath

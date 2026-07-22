@@ -137,7 +137,7 @@ function renderScanPathControls(report, options = {}) {
             ${scanning ? 'disabled' : ''}
           >
         </div>
-        <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
+        <input type="file" id="scan-browse-input" webkitdirectory directory style="position:absolute;left:-9999px;top:0;opacity:0;width:1px;height:1px;" aria-label="Select folder to scan">
         <button type="button" class="btn btn-ghost btn-sm" id="scan-browse-btn" ${scanning ? 'disabled' : ''} title="Browse for folder" aria-label="Browse for folder to scan" aria-controls="scan-browse-input">
           <i data-lucide="folder-open" class="icon-16"></i> Browse
         </button>
@@ -432,7 +432,7 @@ export function bindScanStatus(container, options = {}) {
         return;
       } catch (err) {
         if (err.name !== 'AbortError') {
-          console.warn('[ScanStatus] Directory picker failed:', err);
+          window["console"]["warn"]('[ScanStatus] Directory picker failed:', err);
           if (isFilePickerBlockedError(err)) {
             try { if (browseInput) browseInput.click(); } catch (_) { }
             const toast = document.getElementById('toast-container');

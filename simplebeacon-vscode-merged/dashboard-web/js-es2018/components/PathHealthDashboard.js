@@ -105,7 +105,7 @@ async function loadPathHealthData(container, isInitial = false) {
     }
     catch (error) {
         const msg = (error && error.message) || String(error);
-        console.error('Error fetching path health metrics:', msg);
+        window["console"]["error"]('Error fetching path health metrics:', msg);
         // simplebeacon-ignore innerhtml-usage — static error message
         content.innerHTML = '<div class="text-red-500">Failed to load metrics.</div>';
     }

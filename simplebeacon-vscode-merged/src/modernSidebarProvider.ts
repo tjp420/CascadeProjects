@@ -416,6 +416,11 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  public static updateSidebarReport(report: Record<string, unknown> | null) {
+    const inst = ModernSidebarProvider._instance;
+    if (inst) { inst.updateReport(report); }
+  }
+
   public static openSigninPanel() {
     ModernSidebarProvider._openSigninPanelAsync().catch(() => {});
   }
@@ -3381,16 +3386,13 @@ ${buildSidebarThemeStyles(ideTheme)}
 </div>
 </div>
 <div class="tab-pane" id="tabTeam" data-sidebar-tab="team">
-<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
-  <div class="db-title">Team Dashboard</div>
-</div>
 <div class="tab-section">Quick Links</div>
 <div class="tc-list" style="gap:8px;">
   <div class="tc-list-item" id="tdRoadmapSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F5FA;</span><span class="tc-list-name">Roadmap</span></div></div>
   <div class="tc-list-item" id="tdAuditSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4CB;</span><span class="tc-list-name">Audit</span></div></div>
   <div class="tc-list-item" id="tdOfflineToggleSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F3E0;</span><span class="tc-list-name">Local host</span></div></div>
-  <div class="tc-list-item" id="tdPricingSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4B0;</span><span class="tc-list-name">Pricing</span></div></div>
   <div class="tc-list-item" id="tdSignInSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F512;</span><span class="tc-list-name">Sign In</span></div></div>
+  <div class="tc-list-item" id="tdPricingSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F4B0;</span><span class="tc-list-name">Pricing</span></div></div>
   <div class="tc-list-item" id="tdSignOutSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></span><span class="tc-list-name">Sign Out</span></div></div>
 </div>
 <div class="tab-section" style="margin-top:16px;">Navigation</div>
@@ -3407,7 +3409,6 @@ ${buildSidebarThemeStyles(ideTheme)}
   <div class="tc-list-item" id="tdRemediationSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F6E4;</span><span class="tc-list-name">Remediation</span></div></div>
   <div class="tc-list-item" id="tdPlatformSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F680;</span><span class="tc-list-name">Platform</span></div></div>
   <div class="tc-list-item" id="tdProfileSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F464;</span><span class="tc-list-name">Profile</span></div></div>
-  <div class="tc-list-item admin-only" id="tdAdminPanelSidebar" style="display:none;"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F6E1;</span><span class="tc-list-name">Admin Panel</span></div></div>
   <div class="tc-list-item" id="tdToolsSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x1F6E0;</span><span class="tc-list-name">Tools</span></div></div>
   <div class="tc-list-item" id="tdSettingsSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x2699;</span><span class="tc-list-name">Settings</span></div></div>
   <div class="tc-list-item" id="tdHelpSidebar"><div class="tc-list-item-left"><span class="icon" style="margin-right:8px;">&#x2753;</span><span class="tc-list-name">Help</span></div></div>
@@ -3519,7 +3520,6 @@ ${buildSidebarThemeStyles(ideTheme)}
   <button type="button" id="openUploadBtn" class="menu-list-item">Upload &amp; Validate</button>
   <button type="button" id="openPlatformBtnMain" class="menu-list-item">Platform</button>
   <button type="button" id="openAuditBtnMain" class="menu-list-item">Audit</button>
-  <button type="button" id="openTeamBtnMain" class="menu-list-item">Team</button>
 </div>
 </div>
 <div class="tab-pane" id="tabAudit" data-sidebar-tab="audit">
@@ -4870,77 +4870,6 @@ ${buildSidebarThemeStyles(ideTheme)}
   </div>
 </div>
 <div id="teamDetailPanel" data-sidebar-tab="team" style="display:none;">
-  <div class="diag-back-bar" id="teamDetailBackBtn" role="button" tabindex="0">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    <span>Back</span>
-  </div>
-  <div class="settings-header">
-    <div class="settings-title">Team</div>
-    <div class="settings-badge" id="teamStatusBadge" style="background:rgba(34,197,94,0.18);color:#4ade80;">Active</div>
-  </div>
-  <div class="settings-kpi-grid">
-    <div class="settings-kpi-card">
-      <div class="settings-kpi-value blue" id="teamMembers">1</div>
-      <div class="settings-kpi-label">Members</div>
-    </div>
-    <div class="settings-kpi-card">
-      <div class="settings-kpi-value blue" id="teamScans">0</div>
-      <div class="settings-kpi-label">Team Scans</div>
-    </div>
-    <div class="settings-kpi-card">
-      <div class="settings-kpi-value green" id="teamResolved">0</div>
-      <div class="settings-kpi-label">Resolved</div>
-    </div>
-    <div class="settings-kpi-card">
-      <div class="settings-kpi-value green" id="teamScore">100</div>
-      <div class="settings-kpi-label">Team Score</div>
-    </div>
-  </div>
-  <div class="profile-severity-bar">
-    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot red"></div><span id="teamCritical">0 Critical</span></div>
-    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot amber"></div><span id="teamHigh">0 High</span></div>
-    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot blue"></div><span id="teamMedium">0 Med</span></div>
-    <div style="display:flex;align-items:center;gap:6px;"><div class="profile-severity-dot green"></div><span id="teamLow">0 Low</span></div>
-  </div>
-  <div class="settings-section-card">
-    <div class="settings-section-title">Actions</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <button type="button" id="teamInviteBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-button-background,#0e639c);color:var(--vscode-button-foreground,#fff);border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-        Invite
-      </button>
-      <button type="button" id="teamExportBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export
-      </button>
-      <button type="button" id="teamViewReportBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        View Report
-      </button>
-      <button type="button" id="teamSettingsBtn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;background:var(--vscode-input-background,rgba(255,255,255,0.03));color:var(--vscode-foreground,#ccc);border:1px solid var(--vscode-panel-border,rgba(255,255,255,0.06));font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Settings
-      </button>
-    </div>
-  </div>
-  <div class="settings-section-card">
-    <div class="settings-section-title">Quality Summary</div>
-    <div class="tc-list" style="gap:10px;">
-      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-name">Quality Score</span></div><span class="tc-list-meta" id="teamQualityScore">100</span></div>
-      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-name">Total Issues</span></div><span class="tc-list-meta" id="teamTotalIssues">0</span></div>
-      <div class="tc-list-item"><div class="tc-list-item-left"><span class="tc-list-name">Gate Status</span></div><span class="tc-list-meta" id="teamGateStatus">PASS</span></div>
-    </div>
-  </div>
-  <div class="settings-section-card">
-    <div class="settings-section-title">Team Members</div>
-    <div class="tc-list" id="teamMembersList" style="gap:8px;">
-      <div class="tc-list-item">
-        <div class="tc-list-avatar" style="width:32px;height:32px;border-radius:50%;background:#0ea5e9;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px;">A</div>
-        <div class="tc-list-item-left"><span class="tc-list-name">Admin</span><span class="tc-list-sub" style="color:var(--vscode-descriptionForeground);">Project Owner</span></div>
-        <span class="tc-list-meta" style="color:#4ade80;">Active</span>
-      </div>
-    </div>
-  </div>
 </div>
 <button type="button" id="scanDropdownHeader" data-sidebar-tab="scan" class="menu-list-item ${displayMode === 'sidebar' ? '' : 'hidden'}">Scan</button>
 <div id="scanDetailPanel" data-sidebar-tab="scan" style="display:none;">

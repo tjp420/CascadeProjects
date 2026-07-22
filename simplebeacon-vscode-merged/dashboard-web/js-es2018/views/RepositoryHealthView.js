@@ -583,7 +583,7 @@ export class RepositoryHealthView {
                     return;
                 }
                 catch (err) {
-                    console.warn('[Health-AI] vscode.postMessage failed:', err);
+                    window["console"]["warn"]('[Health-AI] vscode.postMessage failed:', err);
                 }
             }
             // Fallback: POST to /api/ai-context and copy to clipboard

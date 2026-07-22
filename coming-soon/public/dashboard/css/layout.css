@@ -15,6 +15,8 @@
   padding: 0 var(--space-5);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  backdrop-filter: blur(12px);
 }
 
 .app-brand {
@@ -183,6 +185,7 @@
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
+  scrollbar-width: thin;
 }
 
 .nav-group {
@@ -259,6 +262,7 @@
 .nav-link.active {
   background: var(--primary-subtle);
   color: var(--primary);
+  font-weight: 600;
 }
 
 .nav-link.active::before {
@@ -326,7 +330,9 @@
   min-width: 0;
   padding: var(--space-6);
   overflow-x: hidden;
+  overflow-y: auto;
   background: var(--background);
+  scrollbar-width: thin;
 }
 
 @media (max-width: 640px) {

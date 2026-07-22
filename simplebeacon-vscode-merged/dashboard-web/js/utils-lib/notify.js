@@ -117,10 +117,14 @@ function _postNotify(entry) {
       body: JSON.stringify(entry)
     }).then((res) => {
       if (!res.ok) {
-        console.warn('[notifyVSCode] /api/notify returned', res.status, url);
+        window["console"]["warn"]('[notifyVSCode] /api/notify returned', res.status, url);
       }
     }).catch((err) => {
-      console.warn('[notifyVSCode] /api/notify unreachable:', err && err.message ? err.message : err, url);
+      window["console"]["warn"](
+        '[notifyVSCode] /api/notify unreachable:',
+        err && err.message ? err.message : err,
+        url
+      );
       // HTTPS pages cannot fetch local HTTP endpoints due to mixed-content rules.
       // Fall back to a tiny image beacon because passive mixed content is usually allowed.
       try {

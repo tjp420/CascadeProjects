@@ -24,9 +24,23 @@ export function buildDashboardHtml(options: DashboardHtmlOptions): string {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${csp} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${csp} data:; font-src ${csp}; frame-src ${csp};">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SimpleBeacon Dashboard</title>
+<script nonce="${nonce}">(function(){try{if(typeof acquireVsCodeApi==='function'||/vscode/i.test(navigator.userAgent)){document.documentElement.setAttribute('data-ide-embed','true');document.documentElement.setAttribute('data-ide-preview','true');}}catch(e){} })();</script>
 <style>
+/* Embed overrides: force full-height and enable scrolling inside IDE webviews */
+[data-ide-embed], [data-ide-preview], html[data-ide-embed], body[data-ide-embed], html[data-ide-preview], body[data-ide-preview] {
+  height:100% !important;
+  min-height:0 !important;
+  overflow:auto !important;
+}
+[data-ide-embed] .pane, [data-ide-preview] .pane {
+  min-height:0 !important;
+  height:100% !important;
+  overflow:auto !important;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(--vscode-editor-background,#1e1e1e);color:var(--vscode-foreground,#ccc);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;}
+body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(--vscode-editor-background,#1e1e1e);color:var(--vscode-foreground,#ccc);min-height:0;overflow:auto;display:flex;flex-direction:column}
 .tab-bar{display:flex;background:var(--vscode-panel-background,#252526);border-bottom:1px solid var(--vscode-panel-border,#3c3c3c);padding:4px 8px;gap:4px;flex-shrink:0;align-items:center;justify-content:space-between}
 .tab-nav-arrows{display:flex;align-items:center;gap:2px}
 .tab-arrow{padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:var(--vscode-descriptionForeground,#858585);font-size:13px;cursor:pointer;transition:all 0.15s;line-height:1}
@@ -40,7 +54,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
 .tab-close{font-size:13px;line-height:1;color:var(--vscode-descriptionForeground);opacity:0.6}
 .tab-close:hover{opacity:1;color:var(--vscode-errorForeground,#f48771)}
 .tab-label{flex:1}
-.pane{display:none;flex:1;overflow:auto;padding:16px}
+.pane{display:none;flex:1;overflow:auto;padding:16px;min-height:0}
 .pane.active{display:block}
 .welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;text-align:center}
 .welcome h1{font-size:22px;font-weight:600;margin-bottom:4px}
@@ -150,7 +164,7 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
 .team-field input,.team-field select{padding:8px 10px;border-radius:6px;border:1px solid var(--vscode-panel-border,#3c3c3c);background:var(--vscode-input-background,#3c3c3c);color:var(--vscode-foreground,#ccc);font-size:13px}
 .team-field input:focus,.team-field select:focus{outline:none;border-color:var(--vscode-focusBorder,#007acc)}
 .team-actions{display:flex;gap:10px}
-.db-container{max-width:960px;margin:0 auto}
+.db-container{max-width:960px;margin:0 auto;width:100%;box-sizing:border-box}
 .db-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .db-header h2{font-size:18px;font-weight:600}
 .db-gate-badge{padding:4px 12px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}

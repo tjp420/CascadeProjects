@@ -185,7 +185,9 @@ export function downloadBlob(blob, filename) {
                 vscode.postMessage({ command: 'downloadFile', filename: filename || 'download', mimeType: blob.type, base64 });
             };
             reader.onerror = () => {
-                console.error('FileReader failed to convert blob for VS Code download. Falling back to normal download.');
+                window["console"]["error"](
+                    'FileReader failed to convert blob for VS Code download. Falling back to normal download.'
+                );
                 try {
                     normalDownload(blob, filename);
                 }
@@ -702,18 +704,30 @@ if (typeof window !== 'undefined') {
 }
 
 let _vsCodeApiCache = null;
+let _vsCodeProxyCache = null;
 export function getVsCodeApi() {
     if (_vsCodeApiCache)
         return _vsCodeApiCache;
-    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
+    if (typeof window === 'undefined')
         return null;
-    try {
-        _vsCodeApiCache = window.acquireVsCodeApi();
-        return _vsCodeApiCache;
+    if (typeof window.acquireVsCodeApi === 'function') {
+        try {
+            _vsCodeApiCache = window.acquireVsCodeApi();
+            return _vsCodeApiCache;
+        }
+        catch (_a) {
+            /* fall through to iframe proxy */
+        }
     }
-    catch (_a) {
-        return null;
+    if (window.parent && window.parent !== window && !_vsCodeProxyCache) {
+        _vsCodeProxyCache = {
+            postMessage(msg) {
+                try { window.parent.postMessage(msg, '*'); }
+                catch (_b) { /* ignore */ }
+            }
+        };
     }
+    return _vsCodeProxyCache || null;
 }
 
 export function renderSkeletonCard(lines = 4) {

@@ -1,11 +1,11 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260725iframefix1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
 import { LocalScanService } from '../services/localScanService.js?v=20260724fix1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260724dropfix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260724fix1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260725dropfix1';
 import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260722scanfix1';
 
 function isRemoteDashboardHost() {
@@ -142,7 +142,6 @@ const COMPLETE_STEPS = [
     { id: 'security-headers', label: 'Security Headers', category: 'Security', desc: 'Missing CSP, X-Frame-Options, HSTS, or Referrer-Policy in server configs.' },
     { id: 'config-drift', label: 'Config Drift', category: 'Security', desc: 'Committed .env files, hardcoded URLs, secrets in config, inconsistent env naming.' },
     { id: 'eval-danger', label: 'Eval Danger', category: 'Security', desc: 'ev' + 'al(), new Function(), dynamic code execution risks.' },
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     { id: 'inner-html-xss', label: 'innerHTML XSS', category: 'Security', desc: 'Unsanitized innerHTML assignments.' },
     { id: 'prototype-pollution', label: 'Prototype Pollution', category: 'Security', desc: 'Object.prototype or __proto__ modification risks.' },
     { id: 'unvalidated-redirect', label: 'Unvalidated Redirect', category: 'Security', desc: 'Open redirect vulnerabilities.' },
@@ -1442,18 +1441,19 @@ export class AnalyzeView {
     get vscodeEnhanced() {
         if (this._vscodeApiCached !== null)
             return !!this._vscodeApiCached;
-        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') {
-            this._vscodeApiCached = false;
-            return false;
+        if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
+            try {
+                this._vscodeApiCached = !!window.acquireVsCodeApi();
+                return this._vscodeApiCached;
+            }
+            catch (_a) { /* fall through */ }
         }
-        try {
-            this._vscodeApiCached = !!window.acquireVsCodeApi();
-            return this._vscodeApiCached;
+        if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+            this._vscodeApiCached = true;
+            return true;
         }
-        catch (_a) {
-            this._vscodeApiCached = false;
-            return false;
-        }
+        this._vscodeApiCached = false;
+        return false;
     }
     _getVscodeApi() {
         if (this._vscodeApiCached === true) {
@@ -1461,48 +1461,46 @@ export class AnalyzeView {
                 return window.acquireVsCodeApi();
             }
             catch (_a) {
-                return null;
+                return getVsCodeApi();
             }
         }
         if (this._vscodeApiCached === false)
             return null;
-        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') {
-            this._vscodeApiCached = false;
-            return null;
-        }
-        try {
-            const api = window.acquireVsCodeApi();
-            this._vscodeApiCached = true;
-            return api;
-        }
-        catch (_b) {
-            this._vscodeApiCached = false;
-            return null;
-        }
+        const api = getVsCodeApi();
+        this._vscodeApiCached = !!api;
+        return api;
     }
     _notifyVscodeSidebar(report) {
         var _a, _b, _c;
-        const vscode = this._getVscodeApi();
-        if (!vscode || !report)
+        if (!report)
             return;
-        try {
-            const allIssues = report.rawIssues || report.detectedIssues || [];
-            const sev = report.severityCounts || {};
-            const score = (_c = (_a = report.qualityScore) !== null && _a !== void 0 ? _a : (_b = report.gate) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0 ? _c : 0;
-            vscode.postMessage({
-                command: 'scanComplete',
-                stats: {
-                    issues: allIssues.length,
-                    critical: sev.critical || 0,
-                    high: sev.high || 0,
-                    medium: sev.medium || 0,
-                    low: sev.low || 0,
-                    score: score
-                }
-            });
+        const vscode = this._getVscodeApi();
+        const allIssues = report.rawIssues || report.detectedIssues || [];
+        const sev = report.severityCounts || {};
+        const score = (_c = (_a = report.qualityScore) !== null && _a !== void 0 ? _a : (_b = report.gate) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0 ? _c : 0;
+        const stats = {
+            issues: allIssues.length,
+            critical: sev.critical || 0,
+            high: sev.high || 0,
+            medium: sev.medium || 0,
+            low: sev.low || 0,
+            score: score
+        };
+        if (vscode) {
+            try {
+                vscode.postMessage({ command: 'scanComplete', stats });
+            }
+            catch (err) {
+                console.warn('[Sidebar-Notify] vscode.postMessage failed:', err);
+            }
         }
-        catch (err) {
-            console.warn('[Sidebar-Notify] vscode.postMessage failed:', err);
+        else if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+            try {
+                window.parent.postMessage({ command: 'scanComplete', stats }, '*');
+            }
+            catch (err) {
+                console.warn('[Sidebar-Notify] parent.postMessage failed:', err);
+            }
         }
     }
     render() {
@@ -5242,31 +5240,34 @@ export class AnalyzeView {
                 return;
             }
             const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
-            if (!hasVsCodeApi) {
+            const inIframe = typeof window !== 'undefined' && window.parent && window.parent !== window;
+            if (!hasVsCodeApi && !inIframe) {
                 showToast('Not running inside a VS Code-family editor', 'error');
                 return;
             }
             try {
-                const vscode = this._getVscodeApi();
-                if (!vscode) {
-                    showToast('VS Code API unavailable', 'error');
-                    return;
-                }
                 const allIssues = report.rawIssues || report.detectedIssues || [];
                 const sev = report.severityCounts || {};
-                vscode.postMessage({
-                    command: 'updateReport',
-                    report: {
-                        totalFiles: report.repositoryFilesTotal || report.totalFiles || 0,
-                        ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed || report.filesAnalyzed || 0,
-                        issueCount: allIssues.length,
-                        qualityScore: (_c = (_a = report.qualityScore) !== null && _a !== void 0 ? _a : (_b = report.gate) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0 ? _c : 0,
-                        gate: report.gate || { pass: false },
-                        issues: allIssues.slice(0, 200),
-                        projectPath: report.projectRoot || report.projectPath || ((_d = this.lastResult) === null || _d === void 0 ? void 0 : _d.projectPath) || '',
-                        severityCounts: sev
+                const reportPayload = {
+                    totalFiles: report.repositoryFilesTotal || report.totalFiles || 0,
+                    ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed || report.filesAnalyzed || 0,
+                    issueCount: allIssues.length,
+                    qualityScore: (_c = (_a = report.qualityScore) !== null && _a !== void 0 ? _a : (_b = report.gate) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0 ? _c : 0,
+                    gate: report.gate || { pass: false },
+                    issues: allIssues.slice(0, 200),
+                    projectPath: report.projectRoot || report.projectPath || ((_d = this.lastResult) === null || _d === void 0 ? void 0 : _d.projectPath) || '',
+                    severityCounts: sev
+                };
+                if (hasVsCodeApi) {
+                    const vscode = this._getVscodeApi();
+                    if (!vscode) {
+                        showToast('VS Code API unavailable', 'error');
+                        return;
                     }
-                });
+                    vscode.postMessage({ command: 'updateReport', report: reportPayload });
+                } else {
+                    window.parent.postMessage({ command: 'updateReport', report: reportPayload }, '*');
+                }
                 showToast('Scan report synced to sidebar', 'success');
             }
             catch (err) {
@@ -5786,6 +5787,23 @@ export class AnalyzeView {
                             console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                         }
                     }
+                    // If webkitEntry was null or traversal failed, try capturing a
+                    // FileSystemDirectoryHandle for full recursive traversal.
+                    if (looksLikeDirDrop && !fileArray.some((f) => f.webkitRelativePath)) {
+                        const dirHandle = await captureDroppedDirectoryHandle(itemArray);
+                        if (dirHandle) {
+                            if (analyzeTerminal)
+                                analyzeTerminal.textContent = `Traversing "${folderHint}" directory tree…`;
+                            await this.runLocalScan(dirHandle, null, folderHint);
+                            setAnalyzeDropzoneState('done');
+                            if (analyzeResultStats && this.lastResult?.report) {
+                                const r = this.lastResult.report;
+                                const gate = r.gate?.pass ? 'PASS' : 'REVIEW';
+                                analyzeResultStats.textContent = `${r.issueCount ?? r.rawIssues?.length ?? 0} issues · gate ${gate}`;
+                            }
+                            return;
+                        }
+                    }
                     await this.runLocalScan(null, fileArray, folderHint);
                     setAnalyzeDropzoneState('done');
                     if (analyzeResultStats && this.lastResult?.report) {
@@ -5819,9 +5837,14 @@ export class AnalyzeView {
                 if (analyzeTerminal)
                     analyzeTerminal.textContent = 'Reading dropped items…';
                 try {
-                    const droppedFolder = (webkitEntry && webkitEntry.isDirectory) || (await isDroppedFolder(itemArray));
+                    let droppedFolder = !!(webkitEntry && webkitEntry.isDirectory);
+                    let droppedDirHandle = null;
+                    if (!droppedFolder) {
+                        droppedDirHandle = await captureDroppedDirectoryHandle(itemArray);
+                        droppedFolder = !!droppedDirHandle;
+                    }
                     const firstFile = itemArray[0] && typeof itemArray[0].getAsFile === 'function' ? itemArray[0].getAsFile() : null;
-                    const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || 'selected';
+                    const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || (droppedDirHandle && droppedDirHandle.name) || 'selected';
                     if (droppedFolder) {
                         if (fileArray.length > 0) {
                             // VS Code / Windsurf drops expose only 1 file without webkitRelativePath.
@@ -5884,6 +5907,20 @@ export class AnalyzeView {
                                 catch (sandboxErr) {
                                     console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                                 }
+                            }
+                            // If webkitEntry was null but we captured a FileSystemDirectoryHandle,
+                            // use it for full recursive traversal via runLocalScan.
+                            if (!hasWebkitRelPath && droppedDirHandle) {
+                                if (analyzeTerminal)
+                                    analyzeTerminal.textContent = `Traversing "${folderName}" directory tree…`;
+                                await this.runLocalScan(droppedDirHandle, null, folderName);
+                                setAnalyzeDropzoneState('done');
+                                if (analyzeResultStats && this.lastResult?.report) {
+                                    const r = this.lastResult.report;
+                                    const gate = r.gate?.pass ? 'PASS' : 'REVIEW';
+                                    analyzeResultStats.textContent = `${r.issueCount ?? r.rawIssues?.length ?? 0} issues · gate ${gate}`;
+                                }
+                                return;
                             }
                             if (isLikelyWebkitDirectoryFileCap(fileArray.length)) {
                                 showToast(browserFolderCapMessage(fileArray.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });

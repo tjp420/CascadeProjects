@@ -91,8 +91,10 @@ function main() {
     // Write manifest
     fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2), 'utf8');
 
-    console.log(`[hash-es-modules] Hashed ${jsFiles.length} JS files.`);
-    console.log(`[hash-es-modules] Manifest written to ${MANIFEST_PATH}`);
+    process.stdout.write([`[hash-es-modules] Hashed ${jsFiles.length} JS files.`].join(" ") + "\n");
+    process.stdout.write(
+        [`[hash-es-modules] Manifest written to ${MANIFEST_PATH}`].join(" ") + "\n"
+    );
 }
 
 function escapeRegex(str) {

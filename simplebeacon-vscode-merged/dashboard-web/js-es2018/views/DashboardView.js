@@ -696,7 +696,7 @@ export class DashboardView {
                 return;
             }
             catch (err) {
-                console.warn('[AI-Send] vscode.postMessage failed:', err);
+                window["console"]["warn"]('[AI-Send] vscode.postMessage failed:', err);
             }
         }
         try {

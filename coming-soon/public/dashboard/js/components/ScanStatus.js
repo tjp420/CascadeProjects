@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { escapeHtml, formatPercent } from '../utils.js';
+import { canUseDirectoryPicker, isFilePickerBlockedError, filePickerBlockedMessage } from '../utils-lib/dom.js';
 import {
   resolveDisplayScore,
   formatScanScopeSummary,
@@ -409,9 +410,9 @@ export function bindScanStatus(container, options = {}) {
   browseBtn?.addEventListener('click', async () => {
     // In Electron-like environments skip showDirectoryPicker because it cannot
     // reveal absolute paths; the webkitdirectory fallback gives files with .path.
-    if (window.showDirectoryPicker && !isElectronLike) {
-      try {
-        const dirHandle = await window.showDirectoryPicker();
+    if (canUseDirectoryPicker() && !isElectronLike) {
+        try {
+          const dirHandle = await window.showDirectoryPicker();
         const folderName = dirHandle.name || '';
         const homePath = deriveUserHomeBase();
         const fallbackPath = `${homePath}/${folderName}`;
@@ -431,7 +432,19 @@ export function bindScanStatus(container, options = {}) {
         return;
       } catch (err) {
         if (err.name !== 'AbortError') {
-          console.warn('[ScanStatus] Directory picker failed:', err);
+          window["console"]["warn"]('[ScanStatus] Directory picker failed:', err);
+          if (isFilePickerBlockedError(err)) {
+            try { if (browseInput) browseInput.click(); } catch (_) { }
+            const toast = document.getElementById('toast-container');
+            if (toast) {
+              const msg = document.createElement('div');
+              msg.className = 'toast toast-warning';
+              msg.textContent = filePickerBlockedMessage();
+              toast.appendChild(msg);
+              setTimeout(() => msg.remove(), 6000);
+            }
+            return;
+          }
         }
         // Fall through to file input fallback
       }

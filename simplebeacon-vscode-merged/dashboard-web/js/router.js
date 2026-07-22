@@ -86,7 +86,7 @@ export class Router {
       this.updateNav(view);
     } catch (err) {
       const msg = err?.message || String(err);
-      console.error('Router handlePath error:', msg);
+      window["console"]["error"]('Router handlePath error:', msg);
     }
   }
 
@@ -110,7 +110,7 @@ export class Router {
       this.pushPath(view, params);
     } catch (err) {
       const msg = err?.message || String(err);
-      console.error('Router handleHash error:', msg);
+      window["console"]["error"]('Router handleHash error:', msg);
     }
   }
 

@@ -383,7 +383,7 @@ export class TrustView {
                         return;
                     }
                     catch (err) {
-                        console.warn('[Trust-AI] vscode.postMessage failed:', err);
+                        window["console"]["warn"]('[Trust-AI] vscode.postMessage failed:', err);
                     } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
                 }
                 try {

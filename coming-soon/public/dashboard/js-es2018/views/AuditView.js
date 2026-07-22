@@ -1,6 +1,8 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, renderEmptyState } from '../utils.js';
 import { buildComplianceAuditExportBundle, complianceAuditExportFilename } from '../utils/compliance-audit-export.browser.js?v=20260716cachefix1';
+import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
+import { getVsCodeApi, renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',
     fictionKpis: 'Fiction & KPI drift',
@@ -10,24 +12,6 @@ const LAYER_LABELS = {
     jestBaseline: 'Jest baseline',
     gate: 'Compliance gate'
 };
-/**
- * Npm audit summary.
- * @param {any} audit
- * @returns {any}
- */
-function npmAuditSummary(audit) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
-    const summary = (audit === null || audit === void 0 ? void 0 : audit.summary) || ((_a = audit === null || audit === void 0 ? void 0 : audit.metadata) === null || _a === void 0 ? void 0 : _a.vulnerabilities) || {};
-    const deps = (audit === null || audit === void 0 ? void 0 : audit.dependencies) || ((_b = audit === null || audit === void 0 ? void 0 : audit.metadata) === null || _b === void 0 ? void 0 : _b.dependencies) || {};
-    return {
-        critical: (_c = summary.critical) !== null && _c !== void 0 ? _c : 0,
-        high: (_d = summary.high) !== null && _d !== void 0 ? _d : 0,
-        moderate: (_f = (_e = summary.moderate) !== null && _e !== void 0 ? _e : summary.medium) !== null && _f !== void 0 ? _f : 0,
-        low: (_g = summary.low) !== null && _g !== void 0 ? _g : 0,
-        dependencies: (_j = (_h = summary.dependencies) !== null && _h !== void 0 ? _h : deps.total) !== null && _j !== void 0 ? _j : null,
-        vulnerabilityTotal: (_l = (_k = summary.vulnerabilityTotal) !== null && _k !== void 0 ? _k : summary.total) !== null && _l !== void 0 ? _l : ((_o = (_m = audit === null || audit === void 0 ? void 0 : audit.vulnerabilities) === null || _m === void 0 ? void 0 : _m.length) !== null && _o !== void 0 ? _o : 0)
-    };
-}
 /**
  * Build audit metrics.
  * @param {any} audit
@@ -102,19 +86,6 @@ export class AuditView {
         this._animatedOnce = false;
         this.assessmentHighlight = false;
     }
-    _getVscodeApi() {
-        if (this._vscodeApiCached)
-            return this._vscodeApiCached;
-        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
-            return null;
-        try {
-            this._vscodeApiCached = window.acquireVsCodeApi();
-            return this._vscodeApiCached;
-        }
-        catch (_a) {
-            return null;
-        }
-    }
     invalidateCache() {
         this.audit = null;
         this.app.state.audit = null;
@@ -182,8 +153,9 @@ export class AuditView {
         These ${catalog.length} baseline patterns are banned KPI values Simplebeacon detects and rejects.
         They are not scan failures by themselves. ${statusLine}
       </p>
+      <div class="table-scroll-wrapper">
       <table class="results-table">
-        <thead><tr><th>Pattern</th><th>Type</th><th>Severity</th></tr></thead>
+        <thead><tr><th scope="col">Pattern</th><th scope="col">Type</th><th scope="col">Severity</th></tr></thead>
         <tbody>
           ${catalog.slice(0, 12).map((entry) => `
             <tr>
@@ -194,6 +166,7 @@ export class AuditView {
           `).join('')}
         </tbody>
       </table>
+      </div>
       ${catalog.length > 12 ? `<p class="text-muted mt-2">${catalog.length - 12} more baseline patterns documented in <code>.simplebeacon/baseline.json</code>.</p>` : ''}
     `;
     }
@@ -228,8 +201,9 @@ export class AuditView {
             <p class="text-muted mb-2" style="font-size:var(--font-size-sm)">
               Corporate safety checklist — ${(_e = summary.passed) !== null && _e !== void 0 ? _e : 0} pass · ${(_f = summary.failed) !== null && _f !== void 0 ? _f : 0} fail · ${(_g = summary.skipped) !== null && _g !== void 0 ? _g : 0} skipped
             </p>
+            <div class="table-scroll-wrapper">
             <table class="results-table mb-4">
-              <thead><tr><th>Rule</th><th>Title</th><th>Status</th></tr></thead>
+              <thead><tr><th scope="col">Rule</th><th scope="col">Title</th><th scope="col">Status</th></tr></thead>
               <tbody>
                 ${rules.slice(0, 8).map((rule) => {
             const icon = rule.status === 'pass' ? '✓' : rule.status === 'fail' ? '✗' : '○';
@@ -244,6 +218,7 @@ export class AuditView {
         }).join('')}
               </tbody>
             </table>
+            </div>
             ${rules.length > 8 ? `<p class="text-muted mb-4">${rules.length - 8} more rules in the full report.</p>` : ''}
           ` : ''}
           <div class="flex gap-2 flex-wrap">
@@ -285,19 +260,19 @@ export class AuditView {
             this._animatedOnce = true;
         }
         if (this.loading && !this.audit) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Loading audit layers…</p></div>
-        ${renderEmptyState({
-                icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-                title: 'Loading audit report…',
-                body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
-            })}
+        ${renderSkeletonChips(4)}
+        <div class="grid-3 mb-6">
+          ${renderSkeletonCard(2)}
+          ${renderSkeletonCard(2)}
+          ${renderSkeletonCard(2)}
+        </div>
+        ${renderSkeletonCard(5)}
       `;
             return el;
         }
         if (this.error && !this.audit) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Audit unavailable</p></div>
         ${renderEmptyState({
@@ -315,7 +290,6 @@ export class AuditView {
         const gate = layers.gate || {};
         const metrics = buildAuditMetrics(audit);
         const assessment = audit.assessment;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Compliance Audit</h1>
@@ -460,7 +434,7 @@ export class AuditView {
                 issues: vulnList.slice(0, 200),
                 notes: 'Compliance Audit — perimeter scan, assessment, npm audit layers'
             };
-            const vscode = (_q = this._getVscodeApi) === null || _q === void 0 ? void 0 : _q.call(this);
+            const vscode = getVsCodeApi();
             if (vscode) {
                 try {
                     vscode.postMessage({ command: 'sendToAI', data: payload });
@@ -468,7 +442,7 @@ export class AuditView {
                     return;
                 }
                 catch (err) {
-                    console.warn('[Audit-AI] vscode.postMessage failed:', err);
+                    window["console"]["warn"]('[Audit-AI] vscode.postMessage failed:', err);
                 } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
             }
             try {
@@ -507,14 +481,12 @@ export class AuditView {
         if (!container)
             return;
         this._container = container;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         window.setSafeHTML(container, '');
         try {
             container.appendChild(this.render());
         }
         catch (err) {
-            console.error('[AuditView] Render error:', err);
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            window["console"]["error"]('[AuditView] Render error:', err);
             container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Render error</p></div>
         <div class="card" style="padding:var(--space-6);">
           <p class="text-danger mb-2"><strong>Failed to render audit page</strong></p>

@@ -3,16 +3,17 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
+  box-shadow: var(--shadow);
   transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
 }
 
 .card:hover {
   box-shadow: var(--shadow-md);
-  border-color: var(--border-subtle);
+  border-color: var(--border);
 }
 
 .card-interactive:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
 
@@ -70,6 +71,8 @@
   box-sizing: border-box;
 }
 
+html[data-ide-preview="true"] .signin-page,
+html[data-ide-embed="1"] .signin-page,
 html[data-embed-mode="1"] .signin-page,
 html[data-embed-full-nav="1"] .signin-page,
 html[data-auth-page="1"] .signin-page {
@@ -109,21 +112,21 @@ html[data-embed-full-nav="1"] body {
 html[data-ide-embed="1"],
 html[data-ide-embed="1"] body {
   height: 100%;
+  min-height: 0;
   margin: 0;
   padding: 0;
   overflow: hidden;
 }
 
-html[data-ide-embed="1"] .embed-quick-nav,
-html[data-ide-embed="1"] .app-header,
-html[data-ide-embed="1"] .app-nav,
+html[data-ide-embed="1"]:not([data-embed-full-nav="1"]) .embed-quick-nav,
+html[data-ide-embed="1"]:not([data-embed-full-nav="1"]) .app-header,
+html[data-ide-embed="1"]:not([data-embed-full-nav="1"]) .app-nav,
 html[data-ide-embed="1"] .bridge-notice-banner {
   display: none !important;
 }
 
 html[data-ide-embed="1"] .app-shell {
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -131,9 +134,9 @@ html[data-ide-embed="1"] .app-shell {
 /* Also apply the same embed layout rules when other embed-related attributes are present
    (some hosts set data-parent-urlbar, data-ide-preview or data-embed-mode).
    Skip when data-embed-full-nav is set — that mode keeps header + sidebar and has its own layout. */
-html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-shell,
-html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-shell,
-html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .app-shell {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell {
   height: 100vh;
   height: 100dvh;
   min-height: 0;
@@ -147,9 +150,9 @@ html[data-ide-embed="1"] .app-body {
   min-width: 0;
 }
 
-html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-body,
-html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-body,
-html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .app-body {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-body,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-body,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-body {
   flex: 1;
   flex-direction: column;
   min-height: 0;
@@ -162,13 +165,38 @@ html[data-ide-embed="1"] #app-main {
   min-width: 0;
   min-height: 0;
   width: 100%;
+  box-sizing: border-box;
+  padding-top: max(20px, env(safe-area-inset-top, 0px), var(--embed-top-shim, 0px));
   overflow-x: hidden;
   overflow-y: auto;
 }
 
-html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) #app-main,
-html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) #app-main,
-html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) #app-main {
+html[data-ide-embed="1"] .profile-page,
+html[data-ide-embed="1"] .settings-grid {
+  max-width: none;
+  width: 100%;
+}
+
+html[data-ide-embed="1"] .results-layout {
+  min-height: 0;
+  align-items: start;
+}
+
+html[data-ide-embed="1"] .results-sidebar {
+  position: relative;
+  max-height: none;
+  height: auto;
+  overflow: visible;
+}
+
+html[data-ide-embed="1"] .results-table-scroll {
+  max-height: none;
+  flex: 1 1 auto;
+}
+
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) #app-main,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) #app-main,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) #app-main {
   flex: 1;
   height: 100% !important;
   min-width: 0;
@@ -181,42 +209,33 @@ html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) #app-main {
 /* Shim for stubborn hosts that clip the top of embedded webviews. Uses inset positioning
    and safe-area padding plus a small configurable top shim to avoid overlapping the host chrome.
    Only apply in compact embed mode (not data-embed-full-nav, which has its own layout). */
-html[data-ide-embed="1"],
-html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]),
-html[data-ide-preview="true"]:not([data-embed-full-nav="1"]),
-html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]),
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]),
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) {
   --embed-top-shim: 48px; /* tweakable shim for IDE titlebars */
   height: 100% !important;
   min-height: 0 !important;
   box-sizing: border-box;
 }
-html[data-ide-embed="1"] body,
-html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) body,
-html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) body,
-html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) body {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) body,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) body,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) body {
   position: absolute !important;
   inset: 0 !important;
   margin: 0 !important;
-  padding-top: calc(env(safe-area-inset-top, 0px) + var(--embed-top-shim, 48px)) !important;
+  padding-top: max(20px, env(safe-area-inset-top, 0px), var(--embed-top-shim, 0px)) !important;
   height: 100% !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
 }
-html[data-ide-embed="1"] .app-shell,
-html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-shell,
-html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-shell,
-html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .app-shell {
+html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell,
+html[data-ide-preview="true"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell,
+html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell {
   position: absolute !important;
   inset: 0 !important;
   height: 100% !important;
   min-height: 0 !important;
   overflow: hidden !important;
-}
-html[data-ide-embed="1"] #app-main,
-html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) #app-main,
-html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) #app-main,
-html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) #app-main {
-  padding-top: calc(env(safe-area-inset-top, 0px) + var(--embed-top-shim, 48px)) !important;
 }
 
 html[data-embed-full-nav="1"] .embed-quick-nav {
@@ -288,7 +307,7 @@ html[data-ide-embed="1"] #app-main:has(.chatbot-container) .view-content {
 
 html[data-embed-full-nav="1"][data-auth-page="1"] #app-main:has(.signin-page) {
   display: flex !important;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
 }
 
@@ -326,7 +345,7 @@ html[data-auth-page="1"] .embed-quick-nav {
 
 html[data-auth-page="1"] #app-main {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   flex: 1 1 auto;
   width: 100%;
@@ -334,6 +353,13 @@ html[data-auth-page="1"] #app-main {
   padding: var(--space-4);
   box-sizing: border-box;
   overflow-y: auto;
+}
+
+@media (min-height: 700px) {
+  html[data-auth-page="1"] #app-main,
+  html[data-embed-full-nav="1"][data-auth-page="1"] #app-main:has(.signin-page) {
+    align-items: center;
+  }
 }
 
 html[data-embed-full-nav="1"]:not([data-auth-page="1"]) #app-main,
@@ -346,7 +372,9 @@ html[data-embed-full-nav="1"][data-auth-page="1"] #app-main:not(:has(.signin-pag
 html[data-embed-full-nav="1"] .lock-screen,
 html[data-embed-full-nav="1"] .ide-auth-pending,
 html[data-embed-mode="1"] .lock-screen,
-html[data-embed-mode="1"] .ide-auth-pending {
+html[data-embed-mode="1"] .ide-auth-pending,
+html[data-ide-embed="1"] .lock-screen,
+html[data-ide-embed="1"] .ide-auth-pending {
   min-height: 0 !important;
   flex: 1 1 auto;
   width: 100%;
@@ -426,6 +454,8 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
 }
 .signin-tab {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.5rem 0.75rem;
   border: none;
   border-radius: calc(var(--radius-md) - 2px);
@@ -465,6 +495,8 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
 }
 .signin-subtab {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.35rem 0.5rem;
   border: none;
   background: transparent;
@@ -761,14 +793,16 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
   padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--background);
+  background: var(--surface);
+  box-shadow: var(--shadow);
   cursor: pointer;
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .issue-card:hover {
   border-color: var(--primary);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .issue-card[data-severity='high'] {
@@ -1327,13 +1361,13 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--font-size-sm);
   line-height: var(--leading-tight);
-  transition: background var(--transition), color var(--transition), border-color var(--transition), transform 100ms ease, box-shadow var(--transition);
+  transition: all var(--transition);
   cursor: pointer;
-  border: none;
   white-space: nowrap;
 }
 
@@ -1350,10 +1384,12 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
 .btn-primary {
   background: var(--primary);
   color: var(--text-inverse);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .btn-primary:hover {
   background: var(--primary-hover);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-accent {
@@ -1452,6 +1488,7 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
 }
 
 .skeleton-line {
@@ -2679,9 +2716,9 @@ button.tool-card.help-page-card:hover {
 }
 
 .analyze-progress-bar {
-  height: 8px;
-  border-radius: 999px;
-  background: var(--border);
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--surface-hover);
   overflow: hidden;
   margin-bottom: var(--space-3);
 }
@@ -2689,8 +2726,8 @@ button.tool-card.help-page-card:hover {
 .analyze-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--primary), var(--accent));
-  border-radius: 999px;
-  transition: width 300ms ease;
+  border-radius: var(--radius-full);
+  transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .analyze-step-list {
@@ -2888,7 +2925,7 @@ button.tool-card.help-page-card:hover {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
 }
 
@@ -2929,12 +2966,14 @@ button.tool-card.help-page-card:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  box-shadow: var(--shadow);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .dashboard-stat-card:hover {
-  border-color: var(--border-hover, var(--border));
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border-color: var(--border);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .dashboard-stat-icon-wrapper {
@@ -2944,7 +2983,7 @@ button.tool-card.help-page-card:hover {
   width: 44px;
   height: 44px;
   border-radius: var(--radius-md);
-  background: var(--surface-elevated, rgba(255,255,255,0.04));
+  background: var(--surface-hover);
   color: var(--text-muted);
   flex-shrink: 0;
 }
@@ -4551,7 +4590,8 @@ button.tool-card.help-page-card:hover {
 }
 
 html[data-embed-mode="1"] .view-container,
-html[data-embed-full-nav="1"] .view-container {
+html[data-embed-full-nav="1"] .view-container,
+html[data-ide-embed="1"] .view-container {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -4560,7 +4600,8 @@ html[data-embed-full-nav="1"] .view-container {
 }
 
 html[data-embed-mode="1"] .view-content,
-html[data-embed-full-nav="1"] .view-content {
+html[data-embed-full-nav="1"] .view-content,
+html[data-ide-embed="1"] .view-content {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -4568,7 +4609,8 @@ html[data-embed-full-nav="1"] .view-content {
 }
 
 html[data-embed-mode="1"] .chatbot-container,
-html[data-embed-full-nav="1"] .chatbot-container {
+html[data-embed-full-nav="1"] .chatbot-container,
+html[data-ide-embed="1"] .chatbot-container {
   height: auto;
   flex: 1;
   min-height: 0;
@@ -4583,7 +4625,8 @@ html[data-embed-full-nav="1"] .chatbot-container {
   }
 
   html[data-embed-mode="1"] .chatbot-container,
-  html[data-embed-full-nav="1"] .chatbot-container {
+  html[data-embed-full-nav="1"] .chatbot-container,
+  html[data-ide-embed="1"] .chatbot-container {
     height: auto;
     max-height: none;
   }
@@ -5096,9 +5139,17 @@ html[data-embed-full-nav="1"] .chatbot-container {
 }
 
 .metric-card {
-  padding: 1rem;
+  padding: 1.25rem;
   background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.metric-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
   border: 1px solid var(--border);
   border-left: 4px solid var(--primary);
 }
@@ -5127,6 +5178,8 @@ html[data-embed-full-nav="1"] .chatbot-container {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
 .data-table th {
@@ -5134,14 +5187,22 @@ html[data-embed-full-nav="1"] .chatbot-container {
   border-bottom: 2px solid var(--border);
   font-weight: 600;
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  color: var(--text-muted);
   background: var(--surface-elevated);
 }
 
 .data-table td {
   padding: 0.75rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-subtle);
   font-size: var(--font-size-sm);
+}
+
+.data-table tbody tr {
+  transition: background var(--transition);
+}
+
+.data-table tbody tr:hover {
+  background: var(--surface-hover);
 }
 
 .data-table tr:last-child td {
@@ -5168,10 +5229,10 @@ html[data-embed-full-nav="1"] .chatbot-container {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: 0.15rem 0.5rem;
+  padding: 0.2rem 0.6rem;
   border-radius: var(--radius-full);
   font-size: var(--font-size-xs);
-  font-weight: 500;
+  font-weight: 600;
   line-height: var(--leading-tight);
   letter-spacing: 0.01em;
 }
@@ -5513,7 +5574,12 @@ html[data-embed-full-nav="1"] .chatbot-container {
 
 /* Redesigned analyzer page layout */
 .analyze-hero {
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-6);
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
 }
 .analyze-hero-main {
   display: flex;
@@ -5536,6 +5602,24 @@ html[data-embed-full-nav="1"] .chatbot-container {
 .analyze-hero-sub {
   font-size: var(--font-size-sm);
   margin: 0;
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+}
+.analyze-hero .page-title,
+.page-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: var(--leading-tight);
+}
+.analyze-hero .page-subtitle,
+.page-subtitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
 }
 
 .analyze-main-grid {
@@ -7312,7 +7396,7 @@ html[data-embed-full-nav="1"] .chatbot-container {
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-5);
   margin-bottom: var(--space-6);
 }
 
@@ -7323,12 +7407,12 @@ html[data-embed-full-nav="1"] .chatbot-container {
 .bento-summary { grid-column: span 5; }
 
 .bento-card-interactive {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform var(--transition), box-shadow var(--transition);
   cursor: pointer;
 }
 .bento-card-interactive:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
 }
 
 @media (max-width: 992px) {
@@ -7742,7 +7826,8 @@ fieldset.analyze-mode-detail {
   max-width: 1100px;
   margin: 0 auto;
   width: calc(100% - var(--space-8));
-  padding: var(--space-4);
+  padding: var(--space-5);
+  box-shadow: var(--shadow);
 }
 
 .dashboard-scan-progress-header {
@@ -7767,6 +7852,7 @@ fieldset.analyze-mode-detail {
   max-width: 1100px;
   margin: 0 auto;
   width: calc(100% - var(--space-8));
+  box-shadow: var(--shadow);
 }
 
 .dashboard-quickstart-steps {
@@ -9529,7 +9615,7 @@ fieldset.analyze-mode-detail {
    Feature Discovery Cards
    ═══════════════════════════════════════════════════════════════ */
 .feature-discovery {
-  margin-top: var(--space-6);
+  margin-top: var(--space-8);
 }
 
 .feature-discovery-header {
@@ -9540,9 +9626,10 @@ fieldset.analyze-mode-detail {
 }
 
 .feature-discovery-title {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .feature-discovery-dismiss {
@@ -9552,11 +9639,13 @@ fieldset.analyze-mode-detail {
   cursor: pointer;
   font-size: 1rem;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), color var(--transition);
 }
 
 .feature-discovery-dismiss:hover {
-  background: var(--surface-hover, rgba(255,255,255,0.05));
+  background: var(--surface-hover);
+  color: var(--text-secondary);
 }
 
 .feature-discovery-grid {
@@ -9573,14 +9662,15 @@ fieldset.analyze-mode-detail {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow);
   cursor: pointer;
-  transition: border-color 200ms, box-shadow 200ms, transform 100ms;
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .feature-discovery-card:hover {
-  border-color: var(--primary, #6366f1);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
-  transform: translateY(-1px);
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+  transform: translateY(-2px);
 }
 
 .feature-discovery-card:focus-visible {
@@ -9593,10 +9683,10 @@ fieldset.analyze-mode-detail {
 }
 
 .feature-discovery-card-icon {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
-  background: rgba(99, 102, 241, 0.1);
+  background: var(--primary-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9604,9 +9694,9 @@ fieldset.analyze-mode-detail {
 }
 
 .feature-discovery-card-icon i {
-  width: 18px;
-  height: 18px;
-  color: var(--primary, #6366f1);
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
 }
 
 .feature-discovery-card-body {
@@ -9615,9 +9705,10 @@ fieldset.analyze-mode-detail {
 }
 
 .feature-discovery-card-title {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   margin-bottom: 2px;
+  color: var(--text-primary);
 }
 
 .fd-badge {
@@ -9633,9 +9724,9 @@ fieldset.analyze-mode-detail {
 }
 
 .feature-discovery-card-desc {
-  font-size: 0.78rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted);
-  line-height: 1.4;
+  line-height: var(--leading-relaxed);
 }
 
 @media (max-width: 640px) {

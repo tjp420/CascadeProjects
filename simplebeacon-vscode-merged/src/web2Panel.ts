@@ -129,8 +129,9 @@ export class Web2Panel {
   --focus:var(--vscode-focusBorder);
 }
 *{box-sizing:border-box}
-body{font-family:var(--font);background:var(--bg);color:var(--fg);margin:0;padding:0;min-height:100vh;}
-.container{max-width:900px;margin:0 auto;padding:24px 20px;}
+html,body{height:100%;}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);margin:0;padding:0;min-height:0;overflow:auto}
+.container{max-width:900px;margin:0 auto;padding:24px 20px;width:100%;box-sizing:border-box}
 
 /* Header */
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}

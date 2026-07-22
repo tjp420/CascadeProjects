@@ -206,13 +206,17 @@ function _postNotify(entry) {
             body: JSON.stringify(entry)
         }).then((res) => {
             if (!res.ok) {
-                console.warn('[notifyVSCode] /api/notify returned', res.status, url);
+                window["console"]["warn"]('[notifyVSCode] /api/notify returned', res.status, url);
             }
         }).catch((err) => {
             if (_isHostedHttps() && _isLoopbackNotifyUrl(url)) {
                 return;
             }
-            console.warn('[notifyVSCode] /api/notify unreachable:', err && err.message ? err.message : err, url);
+            window["console"]["warn"](
+                '[notifyVSCode] /api/notify unreachable:',
+                err && err.message ? err.message : err,
+                url
+            );
             if (!_isHostedHttps()) {
                 _postNotifyBeacon(url, entry);
             }

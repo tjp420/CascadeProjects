@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260725iframefix1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
 import { LocalScanService } from '../services/localScanService.js?v=20260724fix1';
 import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
@@ -1441,18 +1441,19 @@ export class AnalyzeView {
     get vscodeEnhanced() {
         if (this._vscodeApiCached !== null)
             return !!this._vscodeApiCached;
-        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') {
-            this._vscodeApiCached = false;
-            return false;
+        if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
+            try {
+                this._vscodeApiCached = !!window.acquireVsCodeApi();
+                return this._vscodeApiCached;
+            }
+            catch (_a) { /* fall through */ }
         }
-        try {
-            this._vscodeApiCached = !!window.acquireVsCodeApi();
-            return this._vscodeApiCached;
+        if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+            this._vscodeApiCached = true;
+            return true;
         }
-        catch (_a) {
-            this._vscodeApiCached = false;
-            return false;
-        }
+        this._vscodeApiCached = false;
+        return false;
     }
     _getVscodeApi() {
         if (this._vscodeApiCached === true) {
@@ -1460,48 +1461,46 @@ export class AnalyzeView {
                 return window.acquireVsCodeApi();
             }
             catch (_a) {
-                return null;
+                return getVsCodeApi();
             }
         }
         if (this._vscodeApiCached === false)
             return null;
-        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') {
-            this._vscodeApiCached = false;
-            return null;
-        }
-        try {
-            const api = window.acquireVsCodeApi();
-            this._vscodeApiCached = true;
-            return api;
-        }
-        catch (_b) {
-            this._vscodeApiCached = false;
-            return null;
-        }
+        const api = getVsCodeApi();
+        this._vscodeApiCached = !!api;
+        return api;
     }
     _notifyVscodeSidebar(report) {
         var _a, _b, _c;
-        const vscode = this._getVscodeApi();
-        if (!vscode || !report)
+        if (!report)
             return;
-        try {
-            const allIssues = report.rawIssues || report.detectedIssues || [];
-            const sev = report.severityCounts || {};
-            const score = (_c = (_a = report.qualityScore) !== null && _a !== void 0 ? _a : (_b = report.gate) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0 ? _c : 0;
-            vscode.postMessage({
-                command: 'scanComplete',
-                stats: {
-                    issues: allIssues.length,
-                    critical: sev.critical || 0,
-                    high: sev.high || 0,
-                    medium: sev.medium || 0,
-                    low: sev.low || 0,
-                    score: score
-                }
-            });
+        const vscode = this._getVscodeApi();
+        const allIssues = report.rawIssues || report.detectedIssues || [];
+        const sev = report.severityCounts || {};
+        const score = (_c = (_a = report.qualityScore) !== null && _a !== void 0 ? _a : (_b = report.gate) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0 ? _c : 0;
+        const stats = {
+            issues: allIssues.length,
+            critical: sev.critical || 0,
+            high: sev.high || 0,
+            medium: sev.medium || 0,
+            low: sev.low || 0,
+            score: score
+        };
+        if (vscode) {
+            try {
+                vscode.postMessage({ command: 'scanComplete', stats });
+            }
+            catch (err) {
+                console.warn('[Sidebar-Notify] vscode.postMessage failed:', err);
+            }
         }
-        catch (err) {
-            console.warn('[Sidebar-Notify] vscode.postMessage failed:', err);
+        else if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+            try {
+                window.parent.postMessage({ command: 'scanComplete', stats }, '*');
+            }
+            catch (err) {
+                console.warn('[Sidebar-Notify] parent.postMessage failed:', err);
+            }
         }
     }
     render() {
@@ -5241,31 +5240,34 @@ export class AnalyzeView {
                 return;
             }
             const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
-            if (!hasVsCodeApi) {
+            const inIframe = typeof window !== 'undefined' && window.parent && window.parent !== window;
+            if (!hasVsCodeApi && !inIframe) {
                 showToast('Not running inside a VS Code-family editor', 'error');
                 return;
             }
             try {
-                const vscode = this._getVscodeApi();
-                if (!vscode) {
-                    showToast('VS Code API unavailable', 'error');
-                    return;
-                }
                 const allIssues = report.rawIssues || report.detectedIssues || [];
                 const sev = report.severityCounts || {};
-                vscode.postMessage({
-                    command: 'updateReport',
-                    report: {
-                        totalFiles: report.repositoryFilesTotal || report.totalFiles || 0,
-                        ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed || report.filesAnalyzed || 0,
-                        issueCount: allIssues.length,
-                        qualityScore: (_c = (_a = report.qualityScore) !== null && _a !== void 0 ? _a : (_b = report.gate) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0 ? _c : 0,
-                        gate: report.gate || { pass: false },
-                        issues: allIssues.slice(0, 200),
-                        projectPath: report.projectRoot || report.projectPath || ((_d = this.lastResult) === null || _d === void 0 ? void 0 : _d.projectPath) || '',
-                        severityCounts: sev
+                const reportPayload = {
+                    totalFiles: report.repositoryFilesTotal || report.totalFiles || 0,
+                    ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed || report.filesAnalyzed || 0,
+                    issueCount: allIssues.length,
+                    qualityScore: (_c = (_a = report.qualityScore) !== null && _a !== void 0 ? _a : (_b = report.gate) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0 ? _c : 0,
+                    gate: report.gate || { pass: false },
+                    issues: allIssues.slice(0, 200),
+                    projectPath: report.projectRoot || report.projectPath || ((_d = this.lastResult) === null || _d === void 0 ? void 0 : _d.projectPath) || '',
+                    severityCounts: sev
+                };
+                if (hasVsCodeApi) {
+                    const vscode = this._getVscodeApi();
+                    if (!vscode) {
+                        showToast('VS Code API unavailable', 'error');
+                        return;
                     }
-                });
+                    vscode.postMessage({ command: 'updateReport', report: reportPayload });
+                } else {
+                    window.parent.postMessage({ command: 'updateReport', report: reportPayload }, '*');
+                }
                 showToast('Scan report synced to sidebar', 'success');
             }
             catch (err) {

@@ -30,6 +30,7 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from './demoMode.js';
 import { showToast } from './utils.js';
+import { LocalScanService } from './services/localScanService.js?v=20260725local1';
 import { fetchAnalyzeProviders } from './services/analyzeService.js';
 
 /**
@@ -1122,6 +1123,41 @@ class SimplebeaconDashboard {
       return;
     }
     const resolvedPath = String(projectPath || this.state.lastProjectPath || this.state.defaultProjectPath || '').trim() || undefined;
+    // Auto-redirect local paths to browser local scan on deployed site
+    const isWindowsLocalPath = /^[a-zA-Z]:[\\/]/.test(resolvedPath || '');
+    if (isWindowsLocalPath && (window.location.protocol === 'https:' || !isLocalDevHost()) && !new URLSearchParams(window.location.search).get('sb_api_base')) {
+      if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function') {
+        showToast('Local paths can\'t be scanned from the deployed site. Use Chrome/Edge with Privacy mode, or run the dashboard locally.', 'error');
+        return;
+      }
+      showToast('Scanning local folder in your browser — no upload to server', 'info');
+      this.state.scanning = true;
+      this.refreshCurrentView();
+      try {
+        const localService = new LocalScanService();
+        const report = await localService.runScan({
+          projectPath: resolvedPath,
+          onProgress: (processed, total, meta = {}) => {
+            this.state.scanProgress = {
+              active: true, processed, total, phase: 'local-browser',
+              label: 'Local browser scan', currentFile: meta.currentFile || '',
+              percent: Math.round((processed / Math.max(1, total)) * 100)
+            };
+            this.refreshCurrentView();
+          }
+        });
+        this.state.lastProjectPath = resolvedPath;
+        Object.assign(this.state, { report, scanning: false, audit: null, scanProgress: null });
+        this.refreshCurrentView();
+        showToast('Local scan complete', 'success');
+      } catch (err) {
+        this.state.scanning = false;
+        this.state.scanProgress = null;
+        this.refreshCurrentView();
+        showToast(err.message || 'Local scan failed', 'error');
+      }
+      return;
+    }
     this.state.scanning = true;
     this.refreshCurrentView();
     showToast('Running SimpleBeacon scan…', 'info');

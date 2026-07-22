@@ -17,7 +17,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260724analyze1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260725iframefix1';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
@@ -35,10 +35,34 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
-import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker } from './utils-lib/dom.js?v=20260721corsfix1';
-import { hasExtensionBridgeConfigured } from './services/localAgentService.js?v=20260722scanfix1';
+import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260725iframefix1';
+import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260722scanfix1';
 import { LocalScanService } from './services/localScanService.js?v=20260725local1';
 import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
+// Embed shim fallback: when loaded inside an IDE/webview that marks the document
+// as embedded, ensure a top padding is applied so host chrome doesn't clip content.
+(function applyEmbedShim() {
+    try {
+        const run = () => {
+            if (typeof isEmbeddedDashboardFrame === 'function' && isEmbeddedDashboardFrame()) {
+                const root = document.documentElement;
+                root.setAttribute('data-embed-mode', '1');
+                // IDE mode already hides chrome and #app-main scrolls; do not add body padding here.
+                if (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface()) {
+                    return;
+                }
+                const cssVar = getComputedStyle(root).getPropertyValue('--embed-top-shim') || '';
+                const shimPx = parseInt(cssVar) || 48;
+                const bodyPad = parseInt(getComputedStyle(document.body).paddingTop) || 0;
+                if (!document.body.style.paddingTop || bodyPad === 0) {
+                    document.body.style.paddingTop = shimPx + 'px';
+                }
+            }
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+    }
+    catch (e) { /* no-op */ }
+})();
 /**
  * Vault unlock url.
  * @param {string} returnPath
@@ -270,14 +294,19 @@ class SimplebeaconDashboard {
         this._currentViewName = initialView;
         this.updateAuthPageShell(initialView);
         // IDE surface: extension sidebar owns navigation — content pane only.
+        // Keep data-embed-full-nav if the host requested website mode (header + sidebar visible).
         if (isIdeDashboardSurface()) {
             document.documentElement.setAttribute('data-ide-embed', '1');
-            document.documentElement.removeAttribute('data-embed-full-nav');
+            if (!document.documentElement.hasAttribute('data-embed-full-nav')) {
+                document.documentElement.removeAttribute('data-embed-full-nav');
+            }
             return;
         }
         if (typeof window !== 'undefined' && window.self !== window.top) {
             document.documentElement.setAttribute('data-ide-embed', '1');
-            document.documentElement.removeAttribute('data-embed-full-nav');
+            if (!document.documentElement.hasAttribute('data-embed-full-nav')) {
+                document.documentElement.removeAttribute('data-embed-full-nav');
+            }
             return;
         }
         if (document.documentElement.hasAttribute('data-embed-full-nav')
@@ -440,6 +469,18 @@ class SimplebeaconDashboard {
             this.updateNavVisibility(false);
             if (this.router) {
                 this.router.navigate('signin');
+            }
+        });
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.command === 'setWorkspacePath' && event.data.path) {
+                this.state.defaultProjectPath = String(event.data.path);
+                if (!this.state.lastProjectPath) {
+                    this.state.lastProjectPath = String(event.data.path);
+                }
+                const pathInput = document.getElementById('project-path-input');
+                if (pathInput) {
+                    pathInput.value = event.data.path;
+                }
             }
         });
         if (isDemoMode()) {
@@ -1558,6 +1599,20 @@ class SimplebeaconDashboard {
             history: (_d = data.history) !== null && _d !== void 0 ? _d : this.state.history,
             reAttestation
         });
+        if (this.state.report && !this.state.report.projectRoot && hasExtensionBridgeConfigured()) {
+            try {
+                const bridge = getExtensionBridgeOrigin();
+                if (bridge) {
+                    const wsRes = await fetch(`${bridge}/api/workspace`);
+                    if (wsRes.ok) {
+                        const wsInfo = await wsRes.json();
+                        if (wsInfo.path) {
+                            this.state.report.projectRoot = wsInfo.path;
+                        }
+                    }
+                }
+            } catch { /* ignore — non-critical fallback */ }
+        }
         if (!this.state.lastProjectPath && !this.state.defaultProjectPath) {
             const reportRoot = data.report && data.report.projectRoot;
             if (reportRoot && (!isRemote || hasExtensionBridgeConfigured()) && !shouldClearHostedServerDefaultPath(reportRoot)) {
@@ -1565,6 +1620,9 @@ class SimplebeaconDashboard {
             }
         }
         await this.ensureDefaultProjectPath();
+        if (this.state.report) {
+            this._notifyExtensionReport(this.state.report);
+        }
     }
     async ensureDefaultProjectPath() {
         if (this.state.defaultProjectPath)
@@ -1799,32 +1857,7 @@ class SimplebeaconDashboard {
             });
             (_b = (_a = this.views.audit) === null || _a === void 0 ? void 0 : _a.invalidateCache) === null || _b === void 0 ? void 0 : _b.call(_a);
             showToast('Scan complete', 'success');
-            // If inside VS Code webview, update sidebar with scan stats
-            const report = this.scanService.report;
-            if (report && typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
-                try {
-                    const vscode = window.acquireVsCodeApi();
-                    const allIssues = report.rawIssues || report.detectedIssues || [];
-                    const sevCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
-                    for (const issue of allIssues) {
-                        const band = String(issue.severity || 'low').toLowerCase();
-                        if (sevCounts[band] !== undefined)
-                            sevCounts[band]++;
-                    }
-                    vscode.postMessage({
-                        command: 'updateStats',
-                        issues: allIssues.length,
-                        critical: sevCounts.critical,
-                        high: sevCounts.high,
-                        medium: sevCounts.medium,
-                        low: sevCounts.low,
-                        score: (_e = (_d = (_c = report.gate) === null || _c === void 0 ? void 0 : _c.score) !== null && _d !== void 0 ? _d : report.qualityScore) !== null && _e !== void 0 ? _e : 0
-                    });
-                }
-                catch (err) {
-                    window["console"]["warn"]('[VSCodeBridge] Failed to post scan stats:', err);
-                }
-            }
+            this._notifyExtensionReport(this.scanService.report);
         }
         catch (err) {
             this.state.scanning = false;
@@ -1832,6 +1865,37 @@ class SimplebeaconDashboard {
         }
         this.refreshCurrentView();
         this.startBackgroundScanWatcher();
+    }
+    _notifyExtensionReport(report) {
+        if (!report)
+            return;
+        const vscode = getVsCodeApi();
+        if (!vscode)
+            return;
+        try {
+            const allIssues = report.rawIssues || report.detectedIssues || [];
+            const sevCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+            for (const issue of allIssues) {
+                const band = String(issue.severity || 'low').toLowerCase();
+                if (sevCounts[band] !== undefined)
+                    sevCounts[band]++;
+            }
+            vscode.postMessage({ command: 'updateReport', report });
+            vscode.postMessage({
+                command: 'scanComplete',
+                stats: {
+                    issues: allIssues.length,
+                    critical: sevCounts.critical,
+                    high: sevCounts.high,
+                    medium: sevCounts.medium,
+                    low: sevCounts.low,
+                    score: report.qualityScore || (report.gate && report.gate.score) || 0
+                }
+            });
+        }
+        catch (err) {
+            window["console"]["warn"]('[VSCodeBridge] Failed to post report to extension:', err);
+        }
     }
     refreshCurrentView() {
         if (this._refreshScheduled)

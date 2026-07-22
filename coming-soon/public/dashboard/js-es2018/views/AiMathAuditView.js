@@ -22,7 +22,6 @@ export class AiMathAuditView {
         if (!this.container) return;
         const report = this.data?.report || this.data;
         if (!report) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             window.setSafeHTML(
                 this.container,
                 '<div class="empty-state">No AI Math Audit data available.</div>'
@@ -79,8 +78,6 @@ export class AiMathAuditView {
                 </tr>
             `;
         }).join('');
-
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         this.container.innerHTML = `
             <div class="section-block" style="margin-top:var(--space-6);">
                 <div class="section-heading" style="margin-bottom:var(--space-3);">

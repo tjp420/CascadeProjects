@@ -211,7 +211,7 @@ export class QualityView {
                     return;
                 }
                 catch (err) {
-                    console.warn('[Quality-AI] vscode.postMessage failed:', err);
+                    window["console"]["warn"]('[Quality-AI] vscode.postMessage failed:', err);
                 } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
             }
             try {

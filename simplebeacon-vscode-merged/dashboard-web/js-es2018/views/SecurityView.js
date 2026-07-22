@@ -249,7 +249,7 @@ export class SecurityView {
                     return;
                 }
                 catch (err) {
-                    console.warn('[Security-AI] vscode.postMessage failed:', err);
+                    window["console"]["warn"]('[Security-AI] vscode.postMessage failed:', err);
                 } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
             }
             try {

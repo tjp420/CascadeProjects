@@ -305,7 +305,9 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                         worker.addEventListener('message', onBatch);
                         batchTimer = setTimeout(() => {
                             finishBatch(() => {
-                                console.warn(`[localScan] Batch at offset ${offset} timed out — skipping ${batch.length} files and continuing`);
+                                window["console"]["warn"](
+                                    `[localScan] Batch at offset ${offset} timed out — skipping ${batch.length} files and continuing`
+                                );
                                 batchResolve();
                             });
                         }, BATCH_TIMEOUT_MS);

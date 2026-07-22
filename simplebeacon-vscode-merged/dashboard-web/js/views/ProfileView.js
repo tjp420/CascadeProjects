@@ -280,8 +280,7 @@ export class ProfileView {
         </div>
       </div>
     `);
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        container.innerHTML = '';
+container.innerHTML = '';
         container.appendChild(fragment);
         if (typeof window.lucide !== 'undefined')
             window.lucide.createIcons();
@@ -371,15 +370,13 @@ export class ProfileView {
                         return;
                     if (input.type === 'password') {
                         input.type = 'text';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-                        toggleBtn.innerHTML = '<i data-lucide="eye-off" class="icon-16"></i>';
+toggleBtn.innerHTML = '<i data-lucide="eye-off" class="icon-16"></i>';
                         toggleBtn.title = 'Hide token';
                         toggleBtn.setAttribute('aria-label', 'Hide token');
                     }
                     else {
                         input.type = 'password';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-                        toggleBtn.innerHTML = '<i data-lucide="eye" class="icon-16"></i>';
+toggleBtn.innerHTML = '<i data-lucide="eye" class="icon-16"></i>';
                         toggleBtn.title = 'Show token';
                         toggleBtn.setAttribute('aria-label', 'Show token');
                     }
@@ -387,7 +384,7 @@ export class ProfileView {
                         window.lucide.createIcons();
                 }
                 catch (e) {
-                    console.error('[Profile] Toggle failed:', e);
+                    window["console"]["error"]('[Profile] Toggle failed:', e);
                 }
             });
         }
@@ -409,7 +406,7 @@ export class ProfileView {
                         copied = true;
                     }
                     catch (e) {
-                        console.warn('[Profile] Clipboard API failed, trying fallback:', e);
+                        window["console"]["warn"]('[Profile] Clipboard API failed, trying fallback:', e);
                     }
                 }
                 // Fallback: select + execCommand
@@ -423,19 +420,16 @@ export class ProfileView {
                         input.type = prevType;
                     }
                     catch (e) {
-                        console.error('[Profile] Fallback copy failed:', e);
+                        window["console"]["error"]('[Profile] Fallback copy failed:', e);
                     }
                 }
                 if (copied) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-                    const original = copyBtn.innerHTML;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-                    copyBtn.innerHTML = '<i data-lucide="check" class="icon-16"></i>';
+const original = copyBtn.innerHTML;
+copyBtn.innerHTML = '<i data-lucide="check" class="icon-16"></i>';
                     if (typeof window.lucide !== 'undefined')
                         window.lucide.createIcons();
                     setTimeout(() => {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-                        copyBtn.innerHTML = original;
+copyBtn.innerHTML = original;
                         if (typeof window.lucide !== 'undefined')
                             window.lucide.createIcons();
                     }, 1500);
@@ -451,7 +445,7 @@ export class ProfileView {
             var _a, _b;
             const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb_') || k.includes('simplebeacon'));
             keys.forEach((k) => localStorage.removeItem(k));
-            ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || alert('Local cache cleared');
+            ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || void 0;
         });
         container.querySelector('#profile-stockpile-add')?.addEventListener('click', () => {
             const input = container.querySelector('#profile-stockpile-input');

@@ -199,12 +199,14 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
             --text-muted: #64748b;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
-            font-family: var(--vscode-font-family, 'Segoe UI', system-ui, sans-serif);
-            background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-            color: var(--text);
-            padding: 16px;
-            min-height: 100vh;
+          font-family: var(--vscode-font-family, 'Segoe UI', system-ui, sans-serif);
+          background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+          color: var(--text);
+          padding: 16px;
+          min-height: 0;
+          overflow: auto;
         }
         .header {
             display: flex;
@@ -232,6 +234,7 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
             padding: 14px;
             margin-bottom: 12px;
             transition: all 0.2s ease;
+          min-height: 0;
         }
         .card:hover {
             border-color: var(--accent);

@@ -360,6 +360,10 @@ function _pushThemeAndAuth(panel: vscode.WebviewPanel) {
   setTimeout(() => {
     if (_activeWebsiteDashboardPanel === panel) {
       panel.webview.postMessage({ command: 'setTheme', theme: getTheme() });
+      const ws = vscode.workspace.workspaceFolders;
+      if (ws && ws.length > 0) {
+        panel.webview.postMessage({ command: 'setWorkspacePath', path: ws[0].uri.fsPath });
+      }
       import('./modernSidebarProvider').then(({ ModernSidebarProvider }) => {
         ModernSidebarProvider.refreshAuthState();
       }).catch(() => {});
@@ -470,6 +474,17 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
         const { ModernSidebarProvider } = await import('./modernSidebarProvider');
         ModernSidebarProvider.addDownloadedFile(filename, filePath);
       }
+    }
+    if (message.command === 'updateReport' && message.report) {
+      postSidebarMessage({ command: 'updateReport', report: message.report });
+      const { ModernSidebarProvider } = await import('./modernSidebarProvider');
+      ModernSidebarProvider.updateSidebarReport(message.report);
+    }
+    if (message.command === 'scanComplete' && message.stats) {
+      postSidebarMessage({ command: 'scanComplete', stats: message.stats });
+    }
+    if (message.command === 'sendToAI' && message.data) {
+      postSidebarMessage({ command: 'sendToAI', data: message.data });
     }
     if (message.command === 'openInSimpleBrowser' && typeof message.url === 'string' && message.url) {
       Promise.resolve(openUrlInIdeBrowser(message.url)).catch(() => {});

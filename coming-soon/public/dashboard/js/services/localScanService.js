@@ -1,5 +1,6 @@
 // simplebeacon-ignore documentation
 import { showToast } from '../utils.js';
+import { canUseDirectoryPicker, filePickerBlockedMessage } from '../utils-lib/dom.js';
 
 const WORKER_URL = new URL('../workers/scan-worker.js?v=20260716cachefix1', import.meta.url);
 
@@ -36,7 +37,7 @@ async function collectFiles(dirHandle, pathPrefix = '', files = []) {
  * @param {number} analyzedFiles
  * @returns {Object}
  */
-function buildReport(projectName, findings, totalFiles, analyzedFiles) {
+function buildReport(projectName, findings, totalFiles, analyzedFiles, filePaths = []) {
   const categories = {};
   const findingsList = [];
   const rawIssues = [];
@@ -58,6 +59,17 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles) {
 
   const totalFindings = rawIssues.reduce((sum, i) => sum + (i.count || 1), 0);
   const issueCount = totalFindings;
+  const blockingCount = rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high').reduce((sum, i) => sum + (Number(i.count) || 1), 0);
+  const gateScore = blockingCount === 0 && totalFiles > 0 ? 100 : 0;
+  const mockSampleFiles = filePaths.filter((p) => /sample|mock|fixture|test.*data/i.test(String(p))).length;
+  const folderSet = new Set();
+  for (const p of filePaths) {
+    const parts = String(p).replace(/\\/g, '/').split('/');
+    parts.pop();
+    let acc = '';
+    for (const part of parts) { acc = acc ? `${acc}/${part}` : part; if (acc) folderSet.add(acc); }
+  }
+  const totalFolders = folderSet.size;
 
   return {
     type: 'simplebeacon-report',
@@ -79,8 +91,41 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles) {
     rawIssues,
     detectedIssues: rawIssues,
     issueCount,
-    inventory: { totalFiles, totalFolders: 0, scannedFiles: analyzedFiles },
-    gate: { pass: rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high').length === 0 && totalFiles > 0, score: rawIssues.length === 0 && totalFiles > 0 ? 100 : 0 }
+    severityCounts,
+    repositoryFilesTotal: totalFiles,
+    ruleScopedFilesAnalyzed: analyzedFiles,
+    mockSampleFiles,
+    qualityScore: gateScore,
+    consistencyScore: gateScore,
+    inventory: { totalFiles, totalFolders, scannedFiles: analyzedFiles },
+    repositoryInventory: { totalFiles, totalFolders, projectRoot: projectName },
+    repositoryFoldersTotal: totalFolders,
+    scanScope: {
+      profile: 'standard',
+      rulesEnabled: ['credential-patterns', 'production-leak-patterns'],
+      gatePolicy: { failOn: ['high'], warnOn: ['medium', 'low'] },
+      mockSampleFilesInScanPaths: mockSampleFiles,
+      productionDirsScanned: null,
+      productionPaths: [],
+      ruleScopedFilesAnalyzed: analyzedFiles,
+      repositoryFilesTotal: totalFiles,
+      repositoryFoldersTotal: totalFolders,
+      fictionJsonFilesScanned: null,
+      fictionSampleFilesScanned: null,
+      fictionScope: 'repository-json',
+      jestExecutedDuringScan: false,
+      pageSpecCatalogSize: null,
+      pageSpecsValidated: null,
+      pageSpecsFromScanPaths: 0,
+      pageSpecsFromAliasPaths: 0,
+      fullDirectoryScan: true,
+      limitations: [
+        `Repository inventory: ${totalFiles} files, ${totalFolders} folders — gate rules checked ${analyzedFiles} files.`,
+        'Pattern matching on file contents — not LLM semantic review.',
+        'Jest not executed during scan — use npm test separately.'
+      ]
+    },
+    gate: { pass: blockingCount === 0 && totalFiles > 0, blockingCount, warningCount: totalFindings - blockingCount, score: gateScore }
   };
 }
 
@@ -93,8 +138,8 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles) {
  * @returns {Promise<Object>}
  */
 export async function runLocalScan(options = {}) {
-  if (!window.showDirectoryPicker) {
-    throw new Error('Your browser does not support the local directory picker. Use Chrome/Edge or run the server locally.');
+  if (!canUseDirectoryPicker()) {
+    throw new Error(filePickerBlockedMessage());
   }
   const dirHandle = await window.showDirectoryPicker();
   const projectName = dirHandle.name || 'local-project';
@@ -131,7 +176,7 @@ export async function runLocalScan(options = {}) {
       if (type === 'complete') {
         cleanup();
         const analyzedFiles = files.filter((f) => /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|php|rb|cs|vb)$/i.test(f.path)).length;
-        resolve(buildReport(projectName, issues, total, analyzedFiles));
+        resolve(buildReport(projectName, issues, total, analyzedFiles, files.map((f) => f.path)));
       }
       if (type === 'error') {
         cleanup();

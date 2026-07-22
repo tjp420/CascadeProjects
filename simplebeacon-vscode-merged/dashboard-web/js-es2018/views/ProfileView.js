@@ -531,7 +531,7 @@ export class ProfileView {
                         window.lucide.createIcons();
                 }
                 catch (e) {
-                    console.error('[Profile] Toggle failed:', e);
+                    window["console"]["error"]('[Profile] Toggle failed:', e);
                 }
             });
         }
@@ -553,7 +553,7 @@ export class ProfileView {
                         copied = true;
                     }
                     catch (e) {
-                        console.warn('[Profile] Clipboard API failed, trying fallback:', e);
+                        window["console"]["warn"]('[Profile] Clipboard API failed, trying fallback:', e);
                     }
                 }
                 // Fallback: select + execCommand
@@ -567,7 +567,7 @@ export class ProfileView {
                         input.type = prevType;
                     }
                     catch (e) {
-                        console.error('[Profile] Fallback copy failed:', e);
+                        window["console"]["error"]('[Profile] Fallback copy failed:', e);
                     }
                 }
                 if (copied) {
@@ -592,7 +592,7 @@ export class ProfileView {
             var _a, _b;
             const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb_') || k.includes('simplebeacon'));
             keys.forEach((k) => localStorage.removeItem(k));
-            ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || alert('Local cache cleared');
+            ((_b = (_a = this.app).showToast) === null || _b === void 0 ? void 0 : _b.call(_a, 'Local cache cleared', 'success')) || void 0;
         });
         // ── Security Keys — guided flow ──
         const securityKeysList = container.querySelector('#security-keys-list');

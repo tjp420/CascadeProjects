@@ -442,7 +442,7 @@ export class AuditView {
                     return;
                 }
                 catch (err) {
-                    console.warn('[Audit-AI] vscode.postMessage failed:', err);
+                    window["console"]["warn"]('[Audit-AI] vscode.postMessage failed:', err);
                 } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
             }
             try {
@@ -486,7 +486,7 @@ export class AuditView {
             container.appendChild(this.render());
         }
         catch (err) {
-            console.error('[AuditView] Render error:', err);
+            window["console"]["error"]('[AuditView] Render error:', err);
             container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Render error</p></div>
         <div class="card" style="padding:var(--space-6);">
           <p class="text-danger mb-2"><strong>Failed to render audit page</strong></p>

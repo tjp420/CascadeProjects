@@ -342,7 +342,7 @@ function renderScanPathControls(report, options = {}) {
         return `
         <div class="scan-status-scope" id="scan-status-scope">
             <div class="sb-dropzone is-idle" id="scan-dropzone" role="region" aria-label="Dashboard scan drop zone">
-                <input type="file" id="scan-browse-input" webkitdirectory directory hidden aria-label="Select folder to scan">
+                <input type="file" id="scan-browse-input" webkitdirectory directory style="position:absolute;left:-9999px;top:0;opacity:0;width:1px;height:1px;" aria-label="Select folder to scan">
                 <div class="sb-dropzone-idle">
                     <div class="sb-dropzone-pitch">
                         <div class="sb-dropzone-icon"><i data-lucide="folder-up" class="icon-32"></i></div>

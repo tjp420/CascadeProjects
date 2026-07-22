@@ -165,9 +165,18 @@ export function injectPreviewScripts(html: string, origin: string, hashRoute: st
 })();
 <\/script>`;
 
+  // Embed shim: apply a default top padding inside VS Code webview previews
+  const embedShimStyle = `<style>
+    :root { --embed-top-shim: 48px; }
+    /* Apply safe top shim for embedded preview panels to avoid host chrome clipping */
+    body { padding-top: var(--embed-top-shim) !important; }
+    /* Optional debug overlay (disabled by default). To enable, add #__embed_shim_debug__ element. */
+    #__embed_shim_debug__ { position: fixed; top: 0; left: 0; right: 0; height: var(--embed-top-shim); background: rgba(255,0,0,0.08); pointer-events: none; z-index: 99999; }
+  </style>`;
+
   const headClose = html.indexOf('</head>');
   if (headClose > 0) {
-    return html.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + html.slice(headClose);
+    return html.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + embedShimStyle + html.slice(headClose);
   }
   return cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + html;
 }

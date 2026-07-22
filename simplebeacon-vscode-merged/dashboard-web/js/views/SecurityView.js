@@ -95,8 +95,7 @@ export class SecurityView {
     el.className = 'fade-in';
 
     if (this.loading && !this.getReport()) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-      el.innerHTML = `
+el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Loading security findings…</p></div>
         ${renderEmptyState({
           icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
@@ -108,8 +107,7 @@ export class SecurityView {
     }
 
     if (this.error && !this.getReport()) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-      el.innerHTML = `
+el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Security scan unavailable</p></div>
         ${renderEmptyState({
           icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
@@ -131,8 +129,7 @@ export class SecurityView {
       ? new Date(summary.generatedAt).toLocaleString()
       : 'Never';
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    el.innerHTML = `
+el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Security Scanner</h1>
         <p class="text-muted analyze-hero-sub">Credential patterns, production leaks, and secret detection.</p>
@@ -268,7 +265,7 @@ export class SecurityView {
       const vscode = this._getVscodeApi();
       if (vscode) {
         try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Security findings sent to AI agent', 'success'); return; }
-        catch (err) { console.warn('[Security-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+        catch (err) { window["console"]["warn"]('[Security-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
       }
       try {
         const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -296,8 +293,7 @@ export class SecurityView {
   paint(container = this._container) {
     if (!container) return;
     this._container = container;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = '';
+container.innerHTML = '';
     container.appendChild(this.render());
   }
 

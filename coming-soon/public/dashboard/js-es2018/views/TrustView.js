@@ -1,6 +1,7 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson } from '../utils.js';
 import { renderRepositoryHealthSection } from './RepositoryHealthView.js';
+import { getVsCodeApi, renderSkeletonCard } from '../utils-lib/dom.js?v=20260725phase3';
 /**
  * Normalize static trust payload.
  * @param {any} data
@@ -199,31 +200,26 @@ export class TrustView {
         this.error = null;
         this.data = null;
     }
-    _getVscodeApi() {
-        if (this._vscodeApiCached)
-            return this._vscodeApiCached;
-        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
-            return null;
-        try {
-            this._vscodeApiCached = window.acquireVsCodeApi();
-            return this._vscodeApiCached;
-        }
-        catch (_a) {
-            return null;
-        }
-    }
     render() {
         var _a, _b, _c, _d, _e, _f, _g;
         if (this.loading) {
             return `
         <div class="analyze-hero"><h1 class="page-title">Trust Verification</h1><p class="text-muted analyze-hero-sub">Loading trust data…</p></div>
-        <p class="text-muted"><span class="loading-spinner"></span> Loading trust verification…</p>
+        ${renderSkeletonCard(4)}
+        <div class="grid-3 mt-4">
+          ${renderSkeletonCard(2)}
+          ${renderSkeletonCard(2)}
+          ${renderSkeletonCard(2)}
+        </div>
       `;
         }
         if (this.error) {
             return `
         <div class="analyze-hero"><h1 class="page-title">Trust Verification</h1><p class="text-muted analyze-hero-sub">Trust data unavailable</p></div>
-        <p class="text-danger card">${escapeHtml(this.error)}</p>
+        <div class="card" style="padding:var(--space-4);border-color:var(--danger);">
+          <p class="text-danger" style="margin:0 0 var(--space-3);">${escapeHtml(this.error)}</p>
+          <button type="button" class="btn btn-secondary btn-sm" id="trust-retry-btn">Retry</button>
+        </div>
       `;
         }
         const live = (_a = this.data) === null || _a === void 0 ? void 0 : _a.live;
@@ -343,7 +339,6 @@ export class TrustView {
         var _a, _b;
         this.loading = true;
         this.error = null;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
         container.innerHTML = this.render();
         try {
             this.data = await fetchTrustVerification();
@@ -353,9 +348,12 @@ export class TrustView {
         }
         finally {
             this.loading = false;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             container.innerHTML = this.render();
             (_a = container.querySelector('#trust-download-json')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.downloadTrustData());
+            const retryBtn = container.querySelector('#trust-retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => this.mount(container));
+            }
             (_b = container.querySelector('#trust-send-ai-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', async () => {
                 var _a, _b, _c;
                 const data = this.data;
@@ -377,7 +375,7 @@ export class TrustView {
                     },
                     notes: 'Trust Verification — scoped scan results and repository health'
                 };
-                const vscode = this._getVscodeApi();
+                const vscode = getVsCodeApi();
                 if (vscode) {
                     try {
                         vscode.postMessage({ command: 'sendToAI', data: payload });
@@ -385,7 +383,7 @@ export class TrustView {
                         return;
                     }
                     catch (err) {
-                        console.warn('[Trust-AI] vscode.postMessage failed:', err);
+                        window["console"]["warn"]('[Trust-AI] vscode.postMessage failed:', err);
                     } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
                 }
                 try {

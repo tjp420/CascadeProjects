@@ -106,7 +106,7 @@ export class SignInView {
             }
         }
         catch (err) {
-            console.error('Token ingestion fault:', err);
+            window["console"]["error"]('Token ingestion fault:', err);
         }
         return false;
     }
@@ -436,7 +436,7 @@ export class SignInView {
             if (err && err.name === 'TypeError' && /fetch|network/i.test(String(err.message || ''))) {
                 message = 'Unable to reach the account server. Check your connection and try again.';
             }
-            console.error('[SignInView] submit error:', { mode: this._emailMode, error: err });
+            window["console"]["error"]('[SignInView] submit error:', { mode: this._emailMode, error: err });
             if (errorEl) {
                 errorEl.textContent = message;
                 errorEl.hidden = false;

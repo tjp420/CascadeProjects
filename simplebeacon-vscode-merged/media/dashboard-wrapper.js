@@ -13,10 +13,10 @@
 
   const browserHistory = { urls: [], index: -1, pendingUrl: null };
 
-  var SITE_PATHS = ['/roadmap', '/audit', '/pricing', '/contact', '/team', '/security', '/terms', '/privacy', '/refund', '/faq'];
+  const SITE_PATHS = ['/roadmap', '/audit', '/pricing', '/contact', '/team', '/security', '/terms', '/privacy', '/refund', '/faq'];
 
   function getIframeOrigin() {
-    var src = iframe ? (iframe.getAttribute('src') || iframe.src || '') : '';
+    const src = iframe ? (iframe.getAttribute('src') || iframe.src || '') : '';
     try {
       return new URL(src).origin;
     } catch (e) {
@@ -42,10 +42,10 @@
 
   function resolveUrlInput(raw) {
     if (!raw) return '';
-    var trimmed = raw.trim();
+    const trimmed = raw.trim();
     if (!trimmed) return '';
     if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    var origin = getDisplayOrigin();
+    const origin = getDisplayOrigin();
     if (trimmed.charAt(0) === '/') {
       if (trimmed.indexOf('/dashboard/') === 0 || trimmed === '/dashboard') return origin + trimmed;
       if (isSitePath(trimmed)) return origin + trimmed;
@@ -58,7 +58,7 @@
   function stripEmbedParams(url) {
     if (!url) return url;
     try {
-      var parsed = new URL(url);
+      const parsed = new URL(url);
       ['sb_parent_urlbar', 'sb_notify_base', 'sb_api_base', 'sb_website_mode'].forEach(function (k) {
         parsed.searchParams.delete(k);
       });
@@ -68,14 +68,14 @@
     }
   }
 
-  var _embedContext = { notifyBase: '', apiBase: '', websiteMode: window.__SB_WEBSITE_MODE__ === '1' };
+  let _embedContext = { notifyBase: '', apiBase: '', websiteMode: window.__SB_WEBSITE_MODE__ === '1' };
 
   function captureEmbedContext(url) {
     if (!url) return;
     try {
-      var parsed = new URL(url);
-      var notify = parsed.searchParams.get('sb_notify_base') || '';
-      var api = parsed.searchParams.get('sb_api_base') || notify;
+      const parsed = new URL(url);
+      const notify = parsed.searchParams.get('sb_notify_base') || '';
+      let api = parsed.searchParams.get('sb_api_base') || notify;
       if (notify) _embedContext.notifyBase = notify;
       if (api) {
         if (api.indexOf('/api') === -1 && notify && notify.indexOf('/api') !== -1) {
@@ -85,7 +85,7 @@
         }
         _embedContext.apiBase = api;
       }
-      var websiteParam = parsed.searchParams.get('sb_website_mode');
+      const websiteParam = parsed.searchParams.get('sb_website_mode');
       if (websiteParam === '1') {
         _embedContext.websiteMode = true;
         window.__SB_WEBSITE_MODE__ = '1';
@@ -102,15 +102,15 @@
     if (!url || !canEmbed(url)) return url;
     captureEmbedContext(url);
     try {
-      var parsed = new URL(url);
+      const parsed = new URL(url);
       if (!parsed.searchParams.has('sb_parent_urlbar')) {
         parsed.searchParams.set('sb_parent_urlbar', '1');
       }
       if (_embedContext.notifyBase && !parsed.searchParams.has('sb_notify_base')) {
         parsed.searchParams.set('sb_notify_base', _embedContext.notifyBase);
       }
-      var path = parsed.pathname || '';
-      var isDashboard = path === '/dashboard' || path.indexOf('/dashboard/') === 0;
+      const path = parsed.pathname || '';
+      const isDashboard = path === '/dashboard' || path.indexOf('/dashboard/') === 0;
       if (isDashboard && _embedContext.apiBase && !parsed.searchParams.has('sb_api_base')) {
         parsed.searchParams.set('sb_api_base', _embedContext.apiBase);
       }
@@ -119,7 +119,7 @@
       }
       return parsed.toString();
     } catch (e) {
-      var out = url;
+      let out = url;
       if (out.indexOf('sb_parent_urlbar=') === -1) {
         out += (out.indexOf('?') === -1 ? '?' : '&') + 'sb_parent_urlbar=1';
       }
@@ -136,9 +136,9 @@
   function isWebsiteModeUrl(url) {
     if (!url) return false;
     try {
-      var parsed = new URL(url);
+      const parsed = new URL(url);
       if (parsed.searchParams.get('sb_website_mode') === '1') return true;
-      var host = parsed.hostname.toLowerCase();
+      const host = parsed.hostname.toLowerCase();
       return host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai');
     } catch (e) {
       return false;
@@ -146,13 +146,13 @@
   }
 
   function toLocalDashboardIframeUrl(url) {
-    var localBase = window.__SB_LOCAL_DASHBOARD_BASE__ || '';
+    const localBase = window.__SB_LOCAL_DASHBOARD_BASE__ || '';
     if (!localBase) return url;
     try {
-      var parsed = new URL(url);
-      var host = parsed.hostname.toLowerCase();
-      var path = parsed.pathname || '';
-      var isDashboard = path === '/dashboard' || path.indexOf('/dashboard/') === 0;
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
+      const path = parsed.pathname || '';
+      const isDashboard = path === '/dashboard' || path.indexOf('/dashboard/') === 0;
       if (!isDashboard) return url;
       if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) {
         return localBase.replace(/\/$/, '') + path + parsed.search + parsed.hash;
@@ -164,10 +164,10 @@
   function toWebsiteDisplayUrl(url) {
     if (!isWebsiteModeActive()) return url;
     try {
-      var parsed = new URL(url);
-      var host = parsed.hostname.toLowerCase();
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
       if (/^(localhost|127\.0\.0\.1)$/i.test(host)) {
-        var path = parsed.pathname || '';
+        const path = parsed.pathname || '';
         if (path === '/dashboard' || path.indexOf('/dashboard/') === 0) {
           return 'https://simplebeacon.ai' + path + parsed.search + parsed.hash;
         }
@@ -182,15 +182,15 @@
   /** Rewrite simplebeacon.ai dashboard routes to localhost (CSP blocks iframe embedding on the hosted site). */
   function preferLocalDashboardUrl(url) {
     if (!url) return url;
-    var localBase = window.__SB_LOCAL_DASHBOARD_BASE__ || '';
+    const localBase = window.__SB_LOCAL_DASHBOARD_BASE__ || '';
     try {
-      var parsed = new URL(url);
-      var host = parsed.hostname.toLowerCase();
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
       if ((host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) && parsed.pathname.indexOf('/dashboard') === 0) {
         if (localBase) {
           return localBase.replace(/\/$/, '') + parsed.pathname + parsed.search + parsed.hash;
         }
-        var localOrigin = getIframeOrigin();
+        const localOrigin = getIframeOrigin();
         if (localOrigin && (localOrigin.indexOf('127.0.0.1') >= 0 || localOrigin.indexOf('localhost') >= 0)) {
           return localOrigin + parsed.pathname + parsed.search + parsed.hash;
         }
@@ -201,18 +201,18 @@
 
   function applyWrapperTheme(theme) {
     if (!theme) return;
-    var isLight = theme === 'light';
+    const isLight = theme === 'light';
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
-    var barBg = isLight ? '#f3f3f3' : '#252526';
-    var barBorder = isLight ? '#e0e0e0' : '#1e1e1e';
-    var btnColor = isLight ? '#424242' : '#cccccc';
-    var inputBg = isLight ? '#ffffff' : '#3c3c3c';
-    var inputBorder = isLight ? '#cecece' : '#3c3c3c';
-    var inputFg = isLight ? '#333333' : '#cccccc';
-    var pageBg = isLight ? '#f3f3f3' : '#1e1e1e';
+    const barBg = isLight ? '#f3f3f3' : '#252526';
+    const barBorder = isLight ? '#e0e0e0' : '#1e1e1e';
+    const btnColor = isLight ? '#424242' : '#cccccc';
+    const inputBg = isLight ? '#ffffff' : '#3c3c3c';
+    const inputBorder = isLight ? '#cecece' : '#3c3c3c';
+    const inputFg = isLight ? '#333333' : '#cccccc';
+    const pageBg = isLight ? '#f3f3f3' : '#1e1e1e';
     document.body.style.background = pageBg;
-    var bar = document.querySelector('.sb-url-bar');
+    const bar = document.querySelector('.sb-url-bar');
     if (bar) {
       bar.style.background = barBg;
       bar.style.borderBottomColor = barBorder;
@@ -257,12 +257,12 @@
 
   function canEmbed(url) {
     try {
-      var parsed = new URL(url);
-      var host = parsed.hostname.toLowerCase();
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
       if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) {
         // Only dashboard routes can be embedded (they get rewritten to localhost).
         // Marketing pages have CSP frame-ancestors 'none' and must use simple browser.
-        var p = parsed.pathname || '';
+        const p = parsed.pathname || '';
         return p === '/dashboard' || p.indexOf('/dashboard/') === 0;
       }
       if (host === 'localhost' || host === '127.0.0.1') return true;
@@ -275,11 +275,11 @@
 
   function navigateToUrl(url, push, explicitDisplayUrl) {
     if (!url || !iframe) return;
-    var resolved = resolveUrlInput(url) || url;
-    var displayUrl = explicitDisplayUrl || toWebsiteDisplayUrl(ensureEmbedParams(resolved));
-    var iframeUrl = preferLocalDashboardUrl(displayUrl);
+    const resolved = resolveUrlInput(url) || url;
+    let displayUrl = explicitDisplayUrl || toWebsiteDisplayUrl(ensureEmbedParams(resolved));
+    let iframeUrl = preferLocalDashboardUrl(displayUrl);
     if (!canEmbed(iframeUrl)) {
-      var clean = stripEmbedParams(displayUrl);
+      const clean = stripEmbedParams(displayUrl);
       vscode.postMessage({ command: 'openInSimpleBrowser', url: clean });
       if (urlInput) urlInput.value = clean;
       if (push) pushHistory(clean);
@@ -318,9 +318,9 @@
   if (iframe) {
     const initialUrl = iframe.getAttribute('src') || iframe.src;
     if (initialUrl) {
-      var iframeSrc = preferLocalDashboardUrl(initialUrl);
+      let iframeSrc = preferLocalDashboardUrl(initialUrl);
       iframeSrc = ensureEmbedParams(iframeSrc);
-      var displayUrl = window.__SB_DISPLAY_URL__ || toWebsiteDisplayUrl(iframeSrc);
+      let displayUrl = window.__SB_DISPLAY_URL__ || toWebsiteDisplayUrl(iframeSrc);
       displayUrl = ensureEmbedParams(displayUrl);
       if (iframeSrc !== initialUrl) {
         iframe.src = iframeSrc;
@@ -346,7 +346,7 @@
   if (urlInput) {
     urlInput.addEventListener('keydown', function (e) {
       if (e.key !== 'Enter') return;
-      var raw = urlInput.value.trim();
+      const raw = urlInput.value.trim();
       if (!raw) return;
       navigateToUrl(raw, true);
     });
@@ -358,7 +358,7 @@
 
     if (fromIframe) {
       if (ev.data.command === 'bridgeFetch' && ev.data.requestId && ev.data.url) {
-        var bridgeInit = ev.data.init || {};
+        const bridgeInit = ev.data.init || {};
         fetch(ev.data.url, {
           method: bridgeInit.method || 'GET',
           headers: bridgeInit.headers || undefined,
@@ -392,8 +392,8 @@
         return;
       }
       if (ev.data.command === 'dashboardRouteChanged' && ev.data.url) {
-        var iframeUrl = ensureEmbedParams(ev.data.url || '');
-        var displayUrl = toWebsiteDisplayUrl(iframeUrl);
+        const iframeUrl = ensureEmbedParams(ev.data.url || '');
+        let displayUrl = toWebsiteDisplayUrl(iframeUrl);
         displayUrl = ensureEmbedParams(displayUrl);
         if (browserHistory.pendingUrl === iframeUrl) {
           browserHistory.pendingUrl = null;
@@ -402,7 +402,7 @@
           pushHistory(displayUrl);
         }
       }
-      if (ev.data.command === 'setAuthState' || ev.data.command === 'getAuthState' || ev.data.command === 'dashboardRouteChanged' || ev.data.command === 'scanWorkspace' || ev.data.command === 'downloadComplete' || ev.data.command === 'downloadFile' || ev.data.command === 'openFile' || ev.data.command === 'openFileAtLine') {
+      if (ev.data.command === 'setAuthState' || ev.data.command === 'getAuthState' || ev.data.command === 'dashboardRouteChanged' || ev.data.command === 'scanWorkspace' || ev.data.command === 'downloadComplete' || ev.data.command === 'downloadFile' || ev.data.command === 'openFile' || ev.data.command === 'openFileAtLine' || ev.data.command === 'updateReport' || ev.data.command === 'scanComplete' || ev.data.command === 'sendToAI') {
         vscode.postMessage(ev.data);
       }
       return;
@@ -415,10 +415,10 @@
     }
 
     if (ev.data.command === 'dashboardModeChanged') {
-      var isWebsite = ev.data.mode === 'website';
+      const isWebsite = ev.data.mode === 'website';
       window.__SB_WEBSITE_MODE__ = isWebsite ? '1' : '0';
       _embedContext.websiteMode = isWebsite;
-      var current = browserHistory.urls[browserHistory.index] || (urlInput && urlInput.value) || '';
+      const current = browserHistory.urls[browserHistory.index] || (urlInput && urlInput.value) || '';
       if (!current && iframe) {
         current = iframe.getAttribute('src') || iframe.src || '';
       }
@@ -428,7 +428,7 @@
       return;
     }
 
-    if (ev.data.command === 'setAuthState' || ev.data.command === 'setTheme' || ev.data.command === 'getAuthState') {
+    if (ev.data.command === 'setAuthState' || ev.data.command === 'setTheme' || ev.data.command === 'getAuthState' || ev.data.command === 'setWorkspacePath') {
       if (ev.data.command === 'setTheme' && ev.data.theme) {
         applyWrapperTheme(ev.data.theme);
       }
@@ -445,34 +445,34 @@
   }
 
   if (iframe) {
-    var iframeLoaded = false;
-    var iframeLoadTimer = null;
+    let iframeLoaded = false;
+    let iframeLoadTimer = null;
     iframe.addEventListener('load', function () {
       iframeLoaded = true;
-      if (iframeLoadTimer) { clearTimeout(iframeLoadTimer); iframeLoadTimer = null; }
+        if (iframeLoadTimer) { clearTimeout(iframeLoadTimer); iframeLoadTimer = null; }
       notifyIframeHideUrlBar();
       requestDashboardAuthState();
     });
     // Fallback: if iframe doesn't load within 3s (CSP frame-ancestors block), switch to localhost.
     iframeLoadTimer = setTimeout(function () {
       if (iframeLoaded) return;
-      var currentSrc = iframe.getAttribute('src') || iframe.src || '';
+      const currentSrc = iframe.getAttribute('src') || iframe.src || '';
       try {
-        var parsed = new URL(currentSrc);
+        const parsed = new URL(currentSrc);
         if (parsed.hostname === 'simplebeacon.ai' || parsed.hostname.endsWith('.simplebeacon.ai')) {
-          var pagePath = parsed.pathname || '';
-          var isDashboard = pagePath === '/dashboard' || pagePath.indexOf('/dashboard/') === 0;
+          const pagePath = parsed.pathname || '';
+          const isDashboard = pagePath === '/dashboard' || pagePath.indexOf('/dashboard/') === 0;
           if (isDashboard) {
             // Dashboard routes: fall back to local data server
-            var localBase = (window.__SB_LOCAL_DASHBOARD_BASE__ || '').replace(/\/$/, '');
+            const localBase = (window.__SB_LOCAL_DASHBOARD_BASE__ || '').replace(/\/$/, '');
             if (localBase) {
-              var localUrl = localBase + pagePath + parsed.search + parsed.hash;
+              const localUrl = localBase + pagePath + parsed.search + parsed.hash;
               iframe.src = ensureEmbedParams(localUrl);
               if (urlInput) urlInput.value = toWebsiteDisplayUrl(ensureEmbedParams(currentSrc));
             }
           } else {
             // Non-dashboard pages (marketing, roadmap, etc.): open in simple browser
-            var cleanUrl = stripEmbedParams(currentSrc);
+            const cleanUrl = stripEmbedParams(currentSrc);
             vscode.postMessage({ command: 'openInSimpleBrowser', url: cleanUrl });
             if (urlInput) urlInput.value = cleanUrl;
           }

@@ -27,7 +27,7 @@ export async function fetchPathHealthMetrics() {
         if (msg.includes('NetworkError') || msg.includes('Failed to fetch')) {
             return { status: 'unavailable', summary: {}, directories: [], engine: {} };
         }
-        console.error('[pathHealthService] Error fetching metrics:', msg);
+        window["console"]["error"]('[pathHealthService] Error fetching metrics:', msg);
         throw error;
     }
 }

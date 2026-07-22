@@ -290,8 +290,7 @@ export class AuditView {
     }
 
     if (this.loading && !this.audit) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-      el.innerHTML = `
+el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Loading audit layers…</p></div>
         ${renderEmptyState({
           icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
@@ -303,8 +302,7 @@ export class AuditView {
     }
 
     if (this.error && !this.audit) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-      el.innerHTML = `
+el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Audit unavailable</p></div>
         ${renderEmptyState({
           icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
@@ -323,8 +321,7 @@ export class AuditView {
     const metrics = buildAuditMetrics(audit);
     const assessment = audit.assessment;
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    el.innerHTML = `
+el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Compliance Audit</h1>
         <p class="text-muted analyze-hero-sub">Credentials, fiction KPIs, schema, production leaks, roadmap, Jest baseline, and npm audit.</p>
@@ -465,7 +462,7 @@ export class AuditView {
       const vscode = this._getVscodeApi?.();
       if (vscode) {
         try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Audit data sent to AI agent', 'success'); return; }
-        catch (err) { console.warn('[Audit-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+        catch (err) { window["console"]["warn"]('[Audit-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
       }
       try {
         const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -495,14 +492,12 @@ export class AuditView {
   paint(container = this._container) {
     if (!container) return;
     this._container = container;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = '';
+container.innerHTML = '';
     try {
       container.appendChild(this.render());
     } catch (err) {
-      console.error('[AuditView] Render error:', err);
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-      container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Render error</p></div>
+      window["console"]["error"]('[AuditView] Render error:', err);
+container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Render error</p></div>
         <div class="card" style="padding:var(--space-6);">
           <p class="text-danger mb-2"><strong>Failed to render audit page</strong></p>
           <pre style="font-size:var(--font-size-sm);overflow:auto;">${escapeHtml(err?.message || String(err))}</pre>

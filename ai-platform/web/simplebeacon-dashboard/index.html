@@ -93,6 +93,7 @@
     html[data-ide-embed="1"],
     html[data-ide-embed="1"] body {
       height: 100%;
+      min-height: 0;
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -103,8 +104,7 @@
     html[data-ide-embed="1"] .bridge-notice-banner,
     html[data-ide-embed="1"] .sandbox-banner { display: none !important; }
     html[data-ide-embed="1"] .app-shell {
-      height: 100vh;
-      height: 100dvh;
+      height: 100%;
       min-height: 0;
       overflow: hidden;
     }
@@ -368,18 +368,20 @@
       window.__SB_STANDALONE_DASHBOARD__ = !inIframe && !explicitEmbedUrl;
       window.__SB_IDE_EMBED__ = ideSurface;
       window.__SB_PARENT_URL_BAR__ = parentOwnsUrlBar;
-      if (ideSurface || parentOwnsUrlBar) {
-        // IDE surface or parent owns URL bar: extension/sidebar owns navigation.
+      if (ideSurface && !websiteMode) {
+        // IDE iframe: extension sidebar owns navigation, hide all dashboard chrome.
         document.documentElement.setAttribute('data-ide-embed', '1');
         document.documentElement.removeAttribute('data-embed-full-nav');
-      } else if (!inIframe && websiteMode) {
-        // Website mode without parent URL bar: keep header + sidebar beside content.
+      } else if (websiteMode) {
+        // Website mode: keep header + sidebar beside content (even inside an IDE iframe).
         document.documentElement.setAttribute('data-embed-full-nav', '1');
+        if (ideSurface) {
+          document.documentElement.setAttribute('data-ide-embed', '1');
+        }
       }
       if (parentOwnsUrlBar) {
         document.documentElement.setAttribute('data-parent-urlbar', '1');
-        document.documentElement.setAttribute('data-ide-preview', 'true');
-        document.documentElement.setAttribute('data-embed-mode', '1');
+        document.documentElement.style.setProperty('--embed-top-shim', '0px');
       }
       var path = window.location.pathname || '';
       if (/\/dashboard\/(signin|register)\/?$/i.test(path)) {
@@ -494,11 +496,11 @@
   <title>Simplebeacon Dashboard</title>
   <base href="/dashboard/">
   <!-- System fonts only: VS Code webviews block external fonts.googleapis.com -->
-  <link rel="stylesheet" href="css/variables.css?v=20260722clean1">
+  <link rel="stylesheet" href="css/variables.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/reset.css?v=20260722clean1">
-  <link rel="stylesheet" href="css/layout.css?v=20260718pricing1">
-  <link rel="stylesheet" href="css/components.css?v=20260725phase3to9">
-  <link rel="stylesheet" href="css/utilities.css?v=20260718pricing1">
+  <link rel="stylesheet" href="css/layout.css?v=20260725redesign2">
+  <link rel="stylesheet" href="css/components.css?v=20260725websitefix1">
+  <link rel="stylesheet" href="css/utilities.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/disable-elements.css?v=20260722clean1">
   <script src="js/vendor/lucide.min.js?v=20260722clean1" defer onerror="window._lucideFailed=true"></script>
   <script>
@@ -961,7 +963,7 @@
       document.addEventListener('DOMContentLoaded', function() {
         var main = document.getElementById('app-main');
         if (main) {
-          main.innerHTML = '<div style="max-width:640px;margin:80px auto;padding:32px;text-align:center;font-family:system-ui,sans-serif;color:#e2e8f0;">' +
+          main.insertAdjacentHTML('beforeend', '<div style="max-width:640px;margin:80px auto;padding:32px;text-align:center;font-family:system-ui,sans-serif;color:#e2e8f0;">' +
             '<h1 style="font-size:24px;margin-bottom:12px;">Dashboard requires an HTTP server</h1>' +
             '<p style="font-size:14px;color:#94a3b8;margin-bottom:16px;">This page uses ES modules and a base href that only work over HTTP. It cannot be opened directly via <code>file://</code>.</p>' +
             '<p style="font-size:14px;color:#94a3b8;margin-bottom:16px;">To view the dashboard:</p>' +
@@ -969,13 +971,13 @@
             '<li style="margin-bottom:6px;">In VS Code: use the SimpleBeacon sidebar or run the extension</li>' +
             '<li style="margin-bottom:6px;">In a browser: start the data server first (<code>node serve.cjs</code> or the extension)</li>' +
             '<li style="margin-bottom:6px;">Then navigate to <code>http://127.0.0.1:57622/dashboard</code></li>' +
-            '</ul></div>';
+            '</ul></div>');
         }
       });
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725dropfix1" defer></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725websitefix2" defer></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

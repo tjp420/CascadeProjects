@@ -15,8 +15,12 @@ export function handleScanReportRoutes(
 ): boolean {
   // Full report
   if (parsed.pathname === '/api/report') {
+    const report = serverState.currentReport || {};
+    if (!(report as any).projectRoot && serverState.workspacePath) {
+      (report as any).projectRoot = serverState.workspacePath;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(serverState.currentReport || {}));
+    res.end(JSON.stringify(report));
     return true;
   }
 
@@ -78,8 +82,12 @@ export function handleScanReportRoutes(
 
   // SimpleBeacon report endpoint (dashboard compatibility)
   if (parsed.pathname === '/api/simplebeacon/report') {
+    const report = serverState.currentReport || { success: true, rawIssues: [], findings: [] };
+    if (!(report as any).projectRoot && serverState.workspacePath) {
+      (report as any).projectRoot = serverState.workspacePath;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(serverState.currentReport || { success: true, rawIssues: [], findings: [] }));
+    res.end(JSON.stringify(report));
     return true;
   }
 
