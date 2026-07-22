@@ -34,5 +34,13 @@ export async function onRequest(context) {
   headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   headers.set('CDN-Cache-Control', 'no-store');
   headers.set('Surrogate-Control', 'no-store');
+  // When embedded in VS Code (detect via sb_parent_urlbar or sb_website_mode),
+  // override frame-ancestors so the webview iframe can load the page.
+  if (url.searchParams.has('sb_parent_urlbar') || url.searchParams.has('sb_website_mode')) {
+    const csp = headers.get('Content-Security-Policy');
+    if (csp) {
+      headers.set('Content-Security-Policy', csp.replace(/frame-ancestors\s+'none'\s*;/, "frame-ancestors *;"));
+    }
+  }
   return new Response(response.body, { status: response.status, headers });
 }

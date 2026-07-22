@@ -38,5 +38,11 @@ export const onRequest = async (context: any) => {
   headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   headers.set('CDN-Cache-Control', 'no-store');
   headers.set('Surrogate-Control', 'no-store');
+  if (url.searchParams.has('sb_parent_urlbar') || url.searchParams.has('sb_website_mode')) {
+    const csp = headers.get('Content-Security-Policy');
+    if (csp) {
+      headers.set('Content-Security-Policy', csp.replace(/frame-ancestors\s+'none'\s*;/, "frame-ancestors *;"));
+    }
+  }
   return new Response(response.body, { status: response.status, headers });
 };
