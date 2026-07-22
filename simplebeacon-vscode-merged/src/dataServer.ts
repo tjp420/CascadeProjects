@@ -1602,7 +1602,14 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     // Analyze progress polling — mirrors /api/simplebeacon/scan/progress for dashboard compatibility
     if (parsed.pathname === '/api/analyze/progress') {
       const projectPath = parsed.searchParams.get('projectPath') || serverState.workspacePath || '';
-      const scanning = serverState.scanStatus === 'scanning';
+      let scanning = serverState.scanStatus === 'scanning';
+      // Auto-recover from stale scan state: if last scan activity was more than 5 minutes ago, treat as idle.
+      if (scanning && serverState.lastScanTime > 0) {
+        const staleMs = Date.now() - serverState.lastScanTime;
+        if (staleMs > 5 * 60 * 1000) {
+          scanning = false;
+        }
+      }
       let progress: Record<string, unknown> = {
         active: scanning,
         label: serverState.scanMessage || (scanning ? 'Scanning…' : 'Idle'),

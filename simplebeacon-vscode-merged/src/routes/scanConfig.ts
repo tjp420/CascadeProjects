@@ -37,7 +37,15 @@ function buildScanProgressPayload(projectPath: string, serverState: ServerState)
     };
   }
 
-  const scanning = serverState.scanStatus === 'scanning';
+  let scanning = serverState.scanStatus === 'scanning';
+  // Auto-recover from stale scan state: if no progress file exists and the last
+  // scan activity was more than 5 minutes ago, treat the scan as idle.
+  if (scanning && serverState.lastScanTime > 0) {
+    const staleMs = Date.now() - serverState.lastScanTime;
+    if (staleMs > 5 * 60 * 1000) {
+      scanning = false;
+    }
+  }
   const processed = serverState.scanProgressProcessed ?? (scanning ? 0 : 100);
   const total = serverState.scanProgressTotal ?? 100;
   return {
