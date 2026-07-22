@@ -177,9 +177,80 @@ html[data-ide-embed="1"] .settings-grid {
   width: 100%;
 }
 
-html[data-ide-embed="1"] .results-layout {
-  min-height: 0;
-  align-items: start;
+/* Profile page redesign for IDE/webview */
+html[data-ide-embed="1"] .profile-page {
+  padding: var(--space-3);
+}
+
+html[data-ide-embed="1"] .profile-hero-card {
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+html[data-ide-embed="1"] .profile-avatar {
+  width: 48px;
+  height: 48px;
+  font-size: var(--font-size-xl);
+}
+
+html[data-ide-embed="1"] .profile-hero-text .page-title {
+  font-size: var(--font-size-xl);
+}
+
+html[data-ide-embed="1"] .profile-hero-badges {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+html[data-ide-embed="1"] .profile-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+html[data-ide-embed="1"] .profile-main,
+html[data-ide-embed="1"] .profile-aside {
+  width: 100%;
+  min-width: 0;
+}
+
+html[data-ide-embed="1"] .profile-card {
+  margin-bottom: var(--space-4);
+}
+
+html[data-ide-embed="1"] .profile-card-body {
+  padding: var(--space-4);
+}
+
+html[data-ide-embed="1"] .login-method-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+html[data-ide-embed="1"] .security-key-step-cards {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+html[data-ide-embed="1"] .profile-input-group {
+  flex-wrap: wrap;
+}
+
+html[data-ide-embed="1"] .profile-input-group .input-action {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 600px) {
+  html[data-ide-embed="1"] .login-method-grid,
+  html[data-ide-embed="1"] .security-key-step-cards {
+    grid-template-columns: 1fr;
+  }
+  html[data-ide-embed="1"] .profile-hero-card {
+    padding: var(--space-3);
+  }
+  html[data-ide-embed="1"] .profile-card-body {
+    padding: var(--space-3);
+  }
 }
 
 html[data-ide-embed="1"] .results-sidebar {

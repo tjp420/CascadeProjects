@@ -333,8 +333,9 @@
           var value = params.get(key) || sessionStorage.getItem(key);
           if (value) {
             if (key === 'sb_api_base' || key === 'sb_notify_base') {
+              // Store canonical host root (no trailing `/api`) to keep behavior consistent.
               value = String(value).replace(/\/+$/, '');
-              if (!/\/api$/i.test(value)) value += '/api';
+              value = value.replace(/\/api\/?$/i, '');
             }
             sessionStorage.setItem(key, value);
           }
@@ -499,7 +500,7 @@
   <link rel="stylesheet" href="css/variables.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/reset.css?v=20260722clean1">
   <link rel="stylesheet" href="css/layout.css?v=20260725redesign2">
-  <link rel="stylesheet" href="css/components.css?v=20260725websitefix1">
+  <link rel="stylesheet" href="css/components.css?v=20260725profilefix1">
   <link rel="stylesheet" href="css/utilities.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/disable-elements.css?v=20260722clean1">
   <script src="js/vendor/lucide.min.js?v=20260722clean1" defer onerror="window._lucideFailed=true"></script>

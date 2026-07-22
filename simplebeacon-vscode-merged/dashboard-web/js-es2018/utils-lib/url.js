@@ -52,7 +52,9 @@ export function persistExtensionBridge(apiBase, options = {}) {
     if (typeof window === 'undefined' || !apiBase)
         return false;
     const raw = String(apiBase).replace(/\/+$/, '');
-    const apiUrl = raw.endsWith('/api') ? raw : `${raw}/api`;
+    // Normalize to host root without trailing `/api`
+    const hostRoot = raw.replace(/\/api\/?$/i, '');
+    const apiUrl = hostRoot.endsWith('/') ? `${hostRoot}api` : `${hostRoot}/api`;
     if (!_isAllowedApiBase(apiUrl))
         return false;
     if (_isLocalDevHost() && typeof location !== 'undefined' && location.protocol === 'http:') {
@@ -62,9 +64,9 @@ export function persistExtensionBridge(apiBase, options = {}) {
         }
         catch (_port) { /* ignore */ }
     }
-    _storeApiBase(apiUrl);
-    _storeNotifyBase(apiUrl);
-    const hostRoot = apiUrl.replace(/\/api\/?$/, '');
+    // Store canonical host root (no trailing `/api`)
+    _storeApiBase(hostRoot);
+    _storeNotifyBase(hostRoot);
     window.__SB_BRIDGE_HOST__ = hostRoot;
     if (options.websiteMode !== false && typeof sessionStorage !== 'undefined') {
         try {
@@ -75,8 +77,9 @@ export function persistExtensionBridge(apiBase, options = {}) {
     if (options.updateUrl !== false) {
         try {
             const url = new URL(window.location.href);
-            url.searchParams.set(SB_API_BASE_KEY, apiUrl);
-            url.searchParams.set(SB_NOTIFY_BASE_KEY, apiUrl);
+            // Persist the host root (no trailing `/api`) in the URL to keep storage consistent.
+            url.searchParams.set(SB_API_BASE_KEY, hostRoot);
+            url.searchParams.set(SB_NOTIFY_BASE_KEY, hostRoot);
             url.searchParams.set('sb_website_mode', '1');
             if (!url.searchParams.has('sb_parent_urlbar'))
                 url.searchParams.set('sb_parent_urlbar', '1');
@@ -148,13 +151,18 @@ function _readEmbedApiBaseFromQuery() {
     try {
         const params = new URLSearchParams(window.location.search);
         const override = params.get(SB_API_BASE_KEY) || params.get(SB_NOTIFY_BASE_KEY);
-        if (override && _isAllowedApiBase(override)) {
-            const normalized = _normalizeApiBase(override);
-            _storeApiBase(normalized);
-            if (params.get(SB_NOTIFY_BASE_KEY)) {
-                _storeNotifyBase(String(params.get(SB_NOTIFY_BASE_KEY)).replace(/\/+$/, ''));
+        if (override) {
+            // Normalize into host root without trailing `/api`
+            const raw = String(override).replace(/\/+$/, '');
+            const hostRoot = raw.replace(/\/api\/?$/i, '');
+            const apiUrl = hostRoot.endsWith('/') ? `${hostRoot}api` : `${hostRoot}/api`;
+            if (_isAllowedApiBase(apiUrl)) {
+                _storeApiBase(hostRoot);
+                if (params.get(SB_NOTIFY_BASE_KEY)) {
+                    _storeNotifyBase(String(params.get(SB_NOTIFY_BASE_KEY)).replace(/\/+$/, '').replace(/\/api\/?$/i, ''));
+                }
+                return hostRoot;
             }
-            return normalized;
         }
     }
     catch (_a) {
