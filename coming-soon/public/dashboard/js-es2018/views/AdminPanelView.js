@@ -87,7 +87,15 @@ export class AdminPanelView {
     adminFetch(path, options = {}) {
         const url = `${apiBase()}${path.startsWith('/') ? path : `/${path}`}`;
         const headers = { ...(options.headers || {}), ...authService.getAuthHeaders() };
-        return fetch(url, { ...options, headers, credentials: 'include' });
+        try {
+            const apiOrigin = new URL(apiBase(), typeof location !== 'undefined' ? location.href : undefined).origin;
+            const sameOrigin = typeof location !== 'undefined' ? apiOrigin === location.origin : true;
+            const creds = sameOrigin ? 'include' : 'omit';
+            return fetch(url, { ...options, headers, credentials: creds });
+        }
+        catch (_a) {
+            return fetch(url, { ...options, headers, credentials: 'omit' });
+        }
     }
 
     buildUsersQuery() {

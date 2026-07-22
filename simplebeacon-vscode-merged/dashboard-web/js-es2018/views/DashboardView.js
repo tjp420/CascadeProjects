@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
-import { isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
+import { isEmbeddedDashboardFrame, setSafeHTML } from '../utils-lib/dom.js?v=20260721corsfix1';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260716cachefix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js?v=20260724trend1';
@@ -204,7 +204,7 @@ export class DashboardView {
 
         const workflowStep = resolveAnalysisWorkflowStep(this.app.state);
         const workflowEl = document.createElement('div');
-        workflowEl.innerHTML = renderAnalysisWorkflow(workflowStep, { pageLabel: 'Analysis workflow' });
+        setSafeHTML(workflowEl, renderAnalysisWorkflow(workflowStep, { pageLabel: 'Analysis workflow' }));
         container.appendChild(workflowEl.firstElementChild);
 
         const metricsSlot = document.createElement('div');
@@ -214,14 +214,14 @@ export class DashboardView {
         const reviewMode = Boolean(report) && !scanning;
         const scanSlot = document.createElement('div');
         scanSlot.id = 'dashboard-scan-slot';
-        scanSlot.innerHTML = renderScanStatus(report, {
+        setSafeHTML(scanSlot, renderScanStatus(report, {
             redesign: true,
             reviewMode,
             scanning,
             config: this.app.state.config,
             lastProjectPath: this.app.state.lastProjectPath,
             defaultProjectPath: this.app.state.defaultProjectPath
-        });
+        }));
         container.appendChild(scanSlot);
 
         if (scanning) {
@@ -263,7 +263,7 @@ export class DashboardView {
         const section = document.createElement('div');
         section.className = 'feature-discovery';
         // content where applicable.
-        section.innerHTML = `
+        setSafeHTML(section, `
             <div class="feature-discovery-header">
                 <h3 class="feature-discovery-title">Explore SimpleBeacon</h3>
                 <button class="feature-discovery-dismiss" id="fd-dismiss" aria-label="Dismiss">✕</button>
@@ -281,7 +281,7 @@ export class DashboardView {
                     </div>
                 `).join('')}
             </div>
-        `;
+        `);
         return section;
     }
 
@@ -296,7 +296,7 @@ export class DashboardView {
             ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
             : '';
         // content where applicable.
-        header.innerHTML = `
+        setSafeHTML(header, `
             <div>
                 <h1 class="h2 mb-1">Dashboard</h1>
                 <div class="d-flex align-items-center gap-2">
@@ -307,7 +307,7 @@ export class DashboardView {
             <div class="header-actions d-flex gap-2">
                 <button class="btn btn-ghost btn-sm" data-action="open-analyze">Advanced analyze</button>
             </div>
-        `;
+        `);
         return header;
     }
 
@@ -327,7 +327,7 @@ export class DashboardView {
         card.className = 'card dashboard-scan-progress-card';
         card.id = 'dashboard-scan-progress';
         // content where applicable.
-        card.innerHTML = `
+        setSafeHTML(card, `
             <div class="dashboard-scan-progress-header">
                 <span class="loading-spinner dashboard-scan-progress-spinner"></span>
                 <div>
@@ -337,7 +337,7 @@ export class DashboardView {
                 <button class="btn btn-secondary btn-sm" data-action="open-analyze">Live log</button>
             </div>
             <div class="analyze-progress-bar"><div class="analyze-progress-fill" style="width:${pct}%"></div></div>
-        `;
+        `);
         return card;
     }
 
@@ -430,7 +430,7 @@ export class DashboardView {
         const rawFilesAnalyzed = metrics.filesAnalyzed || filesEvaluated;
         const displayFilesAnalyzed = (repoTotal > 0 && rawFilesAnalyzed > repoTotal) ? repoTotal : rawFilesAnalyzed;
         // content where applicable.
-        grid.innerHTML = `
+        setSafeHTML(grid, `
             <div class="card bento-hero p-4 justify-content-between">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
@@ -498,7 +498,7 @@ export class DashboardView {
                     <button class="btn btn-link text-xs text-primary p-0" data-action="system-health">Platform details →</button>
                 </div>
             </div>
-        `;
+        `);
 
         const issueSlot = grid.querySelector('#dashboard-issue-list-slot');
         issueSlot.appendChild(renderIssueList(categories, {
@@ -506,7 +506,7 @@ export class DashboardView {
         }));
 
         const trendSlot = grid.querySelector('#slot-trend');
-        trendSlot.innerHTML = renderTrendSection(this.app.state.history);
+        setSafeHTML(trendSlot, renderTrendSection(this.app.state.history));
 
         return grid;
     }

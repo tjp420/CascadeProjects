@@ -249,6 +249,13 @@ export async function fetchWithTimeout(url, ...args) {
                 cleanup = () => opts.signal.removeEventListener('abort', onAbort);
             }
             timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const targetUrl = new URL(target, typeof location !== 'undefined' ? location.href : undefined);
+                if (typeof location !== 'undefined' && opts && opts.credentials === 'include' && targetUrl.origin !== location.origin) {
+                    opts = { ...opts, credentials: 'omit' };
+                }
+            }
+            catch (_c) { /* ignore */ }
             const res = await fetch(target, { ...opts, signal: controller.signal });
             if (!res.ok) {
                 const shouldRetry = retryCfg.count > 0 && attemptNum < retryCfg.count && res.status >= 500;

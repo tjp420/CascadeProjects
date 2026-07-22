@@ -76,8 +76,7 @@ export class SignInView {
   }
 
   async mount(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
+container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
 
     const authed = authService.isAuthenticated();
     const email = authService.getUser()?.email || decodeEmailFromToken(authService.getToken()) || '';
@@ -101,7 +100,6 @@ export class SignInView {
       return;
     }
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = `
       <div class="signin-page" style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:var(--background);box-sizing:border-box;">
         <div class="signin-card card" style="width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.35);box-sizing:border-box;color:var(--text-primary);">
@@ -231,8 +229,7 @@ export class SignInView {
           t.style.cssText = isActive ? tabActive : tabBase;
         });
         if (submitBtn) submitBtn.textContent = mode === 'login' ? 'Sign In' : 'Create Account';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-        if (note) note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
+if (note) note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
         if (forgotBtn) forgotBtn.style.display = mode === 'login' ? 'block' : 'none';
       });
     });
@@ -291,8 +288,7 @@ export class SignInView {
     const overlay = document.createElement('div');
     overlay.id = 'recovery-modal-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    overlay.innerHTML = `
+overlay.innerHTML = `
       <div style="position:relative;z-index:1;background:var(--surface);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
         <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-primary);">&#128273; Account Recovery</h3>
         <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we'll send you instructions to reset your password.</p>

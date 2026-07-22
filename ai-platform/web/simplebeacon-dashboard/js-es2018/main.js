@@ -9,7 +9,7 @@ import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260716cachefix1';
-import { DashboardView } from './views/DashboardView.js?v=20260724trend1';
+import { DashboardView } from './views/DashboardView.js?v=20260725dashfix1';
 import { ResultsView } from './views/ResultsView.js?v=20260716cachefix1';
 import { SettingsView } from './views/SettingsView.js?v=20260720ollama6';
 import { ToolsView } from './views/ToolsView.js';

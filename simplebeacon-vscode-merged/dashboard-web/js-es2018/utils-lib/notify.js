@@ -10,6 +10,7 @@ import { apiBaseUrl, apiUrl } from './url.js';
 let _notifyQueue = [];
 let _notifyTimer = null;
 let _downloadNotifyId = 0;
+let _vscodeApiCache = null;
 
 /**
  * Best-effort POST a generic event to the local data-server /api/notify bridge.
@@ -138,35 +139,75 @@ function _isIdeIframe() {
         return false;
     return window.self !== window.top;
 }
-function _postNotifyViaParent(entry) {
-    if (!_isIdeIframe() || !window.parent)
-        return false;
+function _getVsCodeApi() {
+    if (_vscodeApiCache)
+        return _vscodeApiCache;
+    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
+        return null;
     try {
-        if (entry.type === 'setAuthState') {
-            const payload = entry.payload || {};
-            window.parent.postMessage({
-                command: 'setAuthState',
-                signedIn: payload.signedIn === true,
-                tier: payload.tier || '',
-                isAdmin: payload.isAdmin === true
-            }, '*');
+        _vscodeApiCache = window.acquireVsCodeApi();
+        return _vscodeApiCache;
+    }
+    catch (_a) {
+        return null;
+    }
+}
+function _postMessageToHost(msg) {
+    const vscode = _getVsCodeApi();
+    if (vscode) {
+        try {
+            vscode.postMessage(msg);
             return true;
         }
-        if (entry.type === 'downloadComplete') {
-            const payload = entry.payload || {};
-            window.parent.postMessage({
-                command: 'downloadComplete',
-                filename: payload.filename,
-                filePath: payload.filePath
-            }, '*');
-            return true;
+        catch (_a) {
+            return false;
         }
-        window.parent.postMessage({
+    }
+    if (typeof window === 'undefined' || !window.parent || window.parent === window) {
+        return false;
+    }
+    try {
+        window.parent.postMessage(msg, '*');
+        return true;
+    }
+    catch (_b) {
+        return false;
+    }
+}
+function _postNotifyViaParent(entry) {
+    const payload = entry.payload || {};
+    let msg;
+    if (entry.type === 'setAuthState') {
+        msg = {
+            command: 'setAuthState',
+            signedIn: payload.signedIn === true,
+            tier: payload.tier || '',
+            isAdmin: payload.isAdmin === true
+        };
+    }
+    else if (entry.type === 'downloadComplete') {
+        msg = {
+            command: 'downloadComplete',
+            filename: payload.filename || '',
+            filePath: payload.filePath || ''
+        };
+    }
+    else {
+        msg = {
             command: 'notifyBridge',
             type: entry.type,
-            payload: _redactPayload(entry.payload || {})
-        }, '*');
-        return true;
+            payload: _redactPayload(payload)
+        };
+    }
+    return _postMessageToHost(msg);
+}
+function _isNotifyUrlReachable(url) {
+    if (_isLoopbackNotifyUrl(url))
+        return !_isHostedHttps();
+    try {
+        const urlObj = new URL(String(url || ''), window.location.href);
+        const pageObj = new URL(window.location.href);
+        return urlObj.origin === pageObj.origin;
     }
     catch (_a) {
         return false;
@@ -195,8 +236,7 @@ function _postNotify(entry) {
     if (!notifyBase && apiBaseUrl() === '/') {
         return;
     }
-    // Public HTTPS sites cannot reach loopback bridges (Local Network Access). IDE iframes use postMessage.
-    if (_isHostedHttps() && _isLoopbackNotifyUrl(url)) {
+    if (!_isNotifyUrlReachable(url)) {
         return;
     }
     try {

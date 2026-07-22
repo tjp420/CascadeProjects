@@ -190,7 +190,6 @@ export class HelpView {
       { icon: '🚀', title: 'Ship', desc: 'Gate green, code deploys to production' }
     ];
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     el.innerHTML = `
       <style>
         .help-hero { text-align:center; padding: var(--space-10) var(--space-6); }
@@ -390,7 +389,6 @@ npm test -- --testPathPattern=page-samples</pre>
   }
 
   mount(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     container.appendChild(this.render());
   }
@@ -431,8 +429,7 @@ export class FeaturesView {
     const analyzeModes = allItems.filter((i) => i.analyzeMode).length;
     const routes = new Set(allItems.map((i) => i.route)).size;
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    el.innerHTML = `
+el.innerHTML = `
       <h1 class="page-title">All Features</h1>
       <p class="text-muted mb-4">
         ${allItems.length} destinations across ${FEATURE_CATALOG.length} groups —
@@ -535,7 +532,6 @@ export class FeaturesView {
   }
 
   mount(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     container.appendChild(this.render());
   }

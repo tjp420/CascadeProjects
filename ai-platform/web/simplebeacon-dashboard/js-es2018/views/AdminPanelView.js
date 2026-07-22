@@ -87,7 +87,18 @@ export class AdminPanelView {
     adminFetch(path, options = {}) {
         const url = `${apiBase()}${path.startsWith('/') ? path : `/${path}`}`;
         const headers = { ...(options.headers || {}), ...authService.getAuthHeaders() };
-        return fetch(url, { ...options, headers, credentials: 'include' });
+        // If calling a remote API origin, avoid sending credentials (cookies) because
+        // many production APIs reply with Access-Control-Allow-Origin: '*' which
+        // is incompatible with credentialed CORS requests and will fail in browsers.
+        try {
+            const apiOrigin = new URL(apiBase(), typeof location !== 'undefined' ? location.href : undefined).origin;
+            const sameOrigin = typeof location !== 'undefined' ? apiOrigin === location.origin : true;
+            const creds = sameOrigin ? 'include' : 'omit';
+            return fetch(url, { ...options, headers, credentials: creds });
+        }
+        catch (_a) {
+            return fetch(url, { ...options, headers, credentials: 'omit' });
+        }
     }
 
     buildUsersQuery() {

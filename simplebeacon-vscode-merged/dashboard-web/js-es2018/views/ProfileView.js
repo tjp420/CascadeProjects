@@ -576,9 +576,9 @@ export class ProfileView {
                     if (typeof window.lucide !== 'undefined')
                         window.lucide.createIcons();
                     setTimeout(() => {
-                        copyBtn.innerHTML = original;
-                        if (typeof window.lucide !== 'undefined')
-                            window.lucide.createIcons();
+                      window.setSafeHTML(copyBtn, original);
+                      if (typeof window.lucide !== 'undefined')
+                        window.lucide.createIcons();
                     }, 1500);
                     (_d = (_c = this.app).showToast) === null || _d === void 0 ? void 0 : _d.call(_c, 'Token copied', 'success');
                 }
