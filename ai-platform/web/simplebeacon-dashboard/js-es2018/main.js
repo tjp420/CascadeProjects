@@ -1,4 +1,5 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
+// cache-bust: 20260725dashfix2
 // DOMPurify is loaded via a script tag in the HTML (or provided by the bundler).
 // The HTML includes a CDN fallback so `window.DOMPurify` should be available.
 import { scanService } from './services/scanService.js?v=20260716cachefix1';

@@ -224,6 +224,11 @@ export function appendDashboardEmbedParams(url: string, notifyBase?: string, web
     const sep = result.includes('?') ? '&' : '?';
     result = `${result}${sep}sb_website_mode=1`;
   }
+  // Cache-bust remote dashboard URLs to bypass stale Cloudflare CDN edge cache.
+  if (remote && !result.includes('sb_cb=')) {
+    const sep = result.includes('?') ? '&' : '?';
+    result = `${result}${sep}sb_cb=20260725dashfix2`;
+  }
   return result;
 }
 

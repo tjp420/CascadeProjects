@@ -35,5 +35,8 @@ export const onRequest = async (context: any) => {
   }
   const headers = new Headers(response.headers);
   headers.set('Content-Type', 'text/html; charset=utf-8');
+  headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  headers.set('CDN-Cache-Control', 'no-store');
+  headers.set('Surrogate-Control', 'no-store');
   return new Response(response.body, { status: response.status, headers });
 };

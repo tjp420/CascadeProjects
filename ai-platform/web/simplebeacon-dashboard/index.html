@@ -978,7 +978,22 @@
     }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725dashfix1" defer></script>
+  <script>
+    (function() {
+      var path = (typeof location !== 'undefined' && location.pathname) || '';
+      if (path === '/dashboard/analyze' || path.indexOf('/dashboard/analyze/') === 0) {
+        function preload(href) {
+          var link = document.createElement('link');
+          link.rel = 'modulepreload';
+          link.href = href;
+          document.head.appendChild(link);
+        }
+        preload('/dashboard/js-es2018/views/AnalyzeView.js?v=20260725iframefix1');
+        preload('/dashboard/js-es2018/services/aiProblemAnalyzerSuite.mjs');
+      }
+    })();
+  </script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725dashfix2" defer></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];
