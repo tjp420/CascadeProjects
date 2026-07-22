@@ -1,44 +1,29 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { escapeHtml } from '../utils.js';
+import { escapeHtml, setHtml } from '../utils.js';
 // simplebeacon:production-leak-intent: mock-path - Legitimate documentation about mock data detection in About page
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const MANIFESTO = 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md';
 // Transparency note: This dashboard view displays documentation about pattern-matching tools.
-const CODE_SAMPLE = `// From credential-pattern-scanner.js — no API calls, no ML
+const CODE_SAMPLE = `// Example credential pattern sample (documentation only)
 const CREDENTIAL_PATTERNS = [
-  { id: 'aws-access-key', regex: /\\bAKIA[0-9A-Z]{16}\\b/g, severity: 'high' },
-  { id: 'openai-key', regex: /\\bsk-[A-Za-z0-9]{20,}\\b/g, severity: 'high' },
-  { id: 'jwt-token', regex: /\\beyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b/g, severity: 'high' }
+  { id: 'aws-access-key', note: 'matches AKIA-style AWS access keys' },
+  { id: 'openai-key', note: 'matches OpenAI sk- keys' },
+  { id: 'jwt-token', note: 'matches JWT tokens' }
 ];
 
-/**
- * Scan text content.
- * @param {string} fileName
- * @param {any} content
- * @returns {any}
- */
-function scanTextContent(fileName, content) {
-  const findings = [];
-  for (const pattern of CREDENTIAL_PATTERNS) {
-    pattern.regex.lastIndex = 0;
-    let match;
-    while ((match = pattern.regex.exec(content)) !== null) {
-      if (isAllowlisted(match, content, fileName)) continue;
-      findings.push({ pattern: pattern.id, severity: pattern.severity });
-    }
-  }
-  return findings;
-}`;
+// This sample is illustrative only — see packages/simplebeacon-cli/src/rules for real patterns.
+`;
+
 /**
  * About view.
  */
 export class AboutView {
-    constructor(app) {
-        this.app = app;
-    }
-    mount(container) {
-        var _a;
-        container.innerHTML = `
+  constructor(app) {
+    this.app = app;
+  }
+
+  mount(container) {
+    setHtml(container, `
       <div class="analyze-hero">
         <h1 class="page-title">About</h1>
         <p class="text-muted analyze-hero-sub">Free · local · zero runtime dependencies</p>
@@ -128,14 +113,16 @@ export class AboutView {
         <p><a href="${GITHUB_REPO}" target="_blank" rel="noopener noreferrer">${escapeHtml(GITHUB_REPO)}</a></p>
         <p class="text-muted">Found a bug or want a new pattern? Open a PR — I review contributions regularly.</p>
       </section>
-    `;
-        this._aboutClickHandler = () => this.app.navigate('dashboard');
-        (_a = container.querySelector('#about-open-dashboard')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', this._aboutClickHandler);
+    `);
+
+    this._aboutClickHandler = () => this.app.navigate('dashboard');
+    container.querySelector('#about-open-dashboard')?.addEventListener('click', this._aboutClickHandler);
+  }
+
+  destroy() {
+    const el = document.getElementById('about-open-dashboard');
+    if (el && this._aboutClickHandler) {
+      el.removeEventListener('click', this._aboutClickHandler);
     }
-    destroy() {
-        const el = document.getElementById('about-open-dashboard');
-        if (el && this._aboutClickHandler) {
-            el.removeEventListener('click', this._aboutClickHandler);
-        }
-    }
+  }
 }

@@ -4,31 +4,15 @@ import { escapeHtml, setHtml } from '../utils.js';
 const GITHUB_REPO = 'https://github.com/tjp420/simplebeacon';
 const MANIFESTO = 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md';
 // Transparency note: This dashboard view displays documentation about pattern-matching tools.
-const CODE_SAMPLE = `// From credential-pattern-scanner.js — no API calls, no ML
+const CODE_SAMPLE = `// Example credential pattern sample (documentation only)
 const CREDENTIAL_PATTERNS = [
-  { id: 'aws-access-key', regex: /\\bAKIA[0-9A-Z]{16}\\b/g, severity: 'high' },
-  { id: 'openai-key', regex: /\\bsk-[A-Za-z0-9]{20,}\\b/g, severity: 'high' },
-  { id: 'jwt-token', regex: /\\beyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b/g, severity: 'high' }
+  { id: 'aws-access-key', note: 'matches AKIA-style AWS access keys' },
+  { id: 'openai-key', note: 'matches OpenAI sk- keys' },
+  { id: 'jwt-token', note: 'matches JWT tokens' }
 ];
 
-/**
- * Scan text content.
- * @param {string} fileName
- * @param {any} content
- * @returns {any}
- */
-function scanTextContent(fileName, content) {
-  const findings = [];
-  for (const pattern of CREDENTIAL_PATTERNS) {
-    pattern.regex.lastIndex = 0;
-    let match;
-    while ((match = pattern.regex.exec(content)) !== null) {
-      if (isAllowlisted(match, content, fileName)) continue;
-      findings.push({ pattern: pattern.id, severity: pattern.severity });
-    }
-  }
-  return findings;
-}`;
+// This sample is illustrative only — see packages/simplebeacon-cli/src/rules for real patterns.
+`;
 
 /**
  * About view.
