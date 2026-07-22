@@ -1164,6 +1164,31 @@
       window.addEventListener('load', ensureTop);
       window.addEventListener('resize', applyIdeSizing, { passive: true });
       window.addEventListener('focus', ensureTop);
+
+      // Watch for asynchronous DOM changes (late-loading components, graphs)
+      // and re-apply sizing. Use a small debounce to avoid layout thrash.
+      (function() {
+        var mutationDebounceMs = 50;
+        var mutationDebounceTimer = null;
+        try {
+          var contentObserver = new MutationObserver(function(mutations) {
+            if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
+            mutationDebounceTimer = setTimeout(function() {
+              try { if (typeof applyIdeSizing === 'function') applyIdeSizing(); } catch (e) {}
+              mutationDebounceTimer = null;
+            }, mutationDebounceMs);
+          });
+          if (document && document.body) {
+            contentObserver.observe(document.body, { childList: true, subtree: true });
+          } else {
+            window.addEventListener('DOMContentLoaded', function() {
+              try { contentObserver.observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+            });
+          }
+        } catch (e) {
+          console.warn('[SimpleBeacon IDE Shim] mutation observer init failed', e);
+        }
+      })();
     } catch (err) {
       console.warn('[SimpleBeacon IDE Shim] init failed', err);
     }
