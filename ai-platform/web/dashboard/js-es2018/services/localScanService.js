@@ -8,7 +8,7 @@ import {
   filterQueueByIgnore,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260728dropfix2';
 const WORKER_URL = new URL('../workers/scan-worker.js?v=20260728dropfix2', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;

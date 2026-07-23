@@ -14,7 +14,7 @@ import {
   loadIgnorePatternsFromDirHandle,
   shouldSkipSandboxComplianceDrift,
   shouldSkipSandboxScanFile
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260728dropfix2';
 
 /**
  * Local copy of `detectSimplebeaconMonorepo` to avoid runtime mismatches

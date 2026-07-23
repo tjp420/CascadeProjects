@@ -4785,21 +4785,33 @@ button.tool-card.help-page-card:hover {
 }
 
 /* Chatbot Styles — clean flex layout; only chat messages scroll, input stays pinned */
-.app-shell:has(.chatbot-page) {
+/* Embed modes: constrain to viewport so chat messages scroll internally */
+html[data-ide-embed="1"] .app-shell:has(.chatbot-page),
+html[data-embed-full-nav="1"] .app-shell:has(.chatbot-page),
+html[data-embed-mode="1"] .app-shell:has(.chatbot-page) {
   height: 100%;
   max-height: 100%;
   min-height: 0;
 }
 
-.app-body:has(.chatbot-page) {
+html[data-ide-embed="1"] .app-body:has(.chatbot-page),
+html[data-embed-full-nav="1"] .app-body:has(.chatbot-page),
+html[data-embed-mode="1"] .app-body:has(.chatbot-page) {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 
-#app-main:has(.chatbot-page),
-.app-main:has(.chatbot-page),
-.app-main:has(.chatbot-container) {
+html[data-ide-embed="1"] #app-main:has(.chatbot-page),
+html[data-ide-embed="1"] .app-main:has(.chatbot-page),
+html[data-ide-embed="1"] .app-main:has(.chatbot-container),
+html[data-embed-full-nav="1"] #app-main:has(.chatbot-page),
+html[data-embed-full-nav="1"] .app-main:has(.chatbot-page),
+html[data-embed-full-nav="1"] .app-main:has(.chatbot-container),
+html[data-embed-mode="1"] #app-main:has(.chatbot-page),
+html[data-embed-mode="1"] .app-main:has(.chatbot-page),
+html[data-embed-mode="1"] .app-main:has(.chatbot-container) {
   display: flex !important;
   flex-direction: column;
   flex: 1 1 auto;
@@ -4809,11 +4821,21 @@ button.tool-card.help-page-card:hover {
   min-width: 0;
   height: auto;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
-/* Standalone (non-embed): allow page to scroll if content overflows */
-html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) #app-main:has(.chatbot-container) {
-  overflow-y: auto;
+/* Standalone (non-embed): natural document flow, page scrolls normally */
+#app-main:has(.chatbot-page),
+.app-main:has(.chatbot-page),
+.app-main:has(.chatbot-container) {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  height: auto;
+  box-sizing: border-box;
 }
 
 /* Chatbot page: flex column, fills available space */
@@ -5056,6 +5078,26 @@ html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mo
   border-radius: var(--radius-lg);
   overflow: hidden;
   margin: 0 var(--space-4) var(--space-4);
+}
+
+/* Embed modes: container fills available space, messages scroll internally */
+html[data-ide-embed="1"] .chatbot-container,
+html[data-embed-full-nav="1"] .chatbot-container,
+html[data-embed-mode="1"] .chatbot-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Standalone: container grows with content, page scrolls naturally */
+html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .chatbot-container {
+  flex: 0 1 auto;
+  min-height: 400px;
+  overflow: visible;
+}
+
+html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .chatbot-messages {
+  max-height: 60vh;
 }
 
 /* Toolbar: provider select + buttons, flex-shrink: 0 */
