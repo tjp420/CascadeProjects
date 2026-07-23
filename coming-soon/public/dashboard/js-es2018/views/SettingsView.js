@@ -6,7 +6,7 @@ import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
 import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels, userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260720ollama6';
-import { authService } from '../services/authService.js?v=20260725apifix1';
+import { authService } from '../services/authService.js?v=20260722bridgefix1';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 import { isHostedDashboard } from '../demoMode.js';
 import { hasExtensionBridgeConfigured } from '../services/localAgentService.js?v=20260720ollama3';

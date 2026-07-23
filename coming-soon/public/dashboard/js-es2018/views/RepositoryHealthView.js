@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson, setHtml } from '../utils.js';
-import { authService } from '../services/authService.js?v=20260725apifix1';
+import { authService } from '../services/authService.js?v=20260722bridgefix1';
 import { getVsCodeApi, renderSkeletonCard } from '../utils-lib/dom.js?v=20260725phase3';
 /**
  * Auth headers.

@@ -297,6 +297,9 @@ export class DashboardView {
             ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
             : '';
         // content where applicable.
+        const adminBtnHtml = this.app && typeof this.app.isCurrentUserAdmin === 'function' && this.app.isCurrentUserAdmin()
+            ? '<button class="btn btn-primary btn-sm" id="team-admin-btn">Team Admin</button>'
+            : '';
         setSafeHTML(header, `
             <div>
                 <h1 class="h2 mb-1">Dashboard</h1>
@@ -307,6 +310,7 @@ export class DashboardView {
             </div>
             <div class="header-actions d-flex gap-2">
                 <button class="btn btn-ghost btn-sm" data-action="open-analyze">Advanced analyze</button>
+                ${adminBtnHtml}
             </div>
         `);
         return header;

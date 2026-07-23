@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { billingService } from '../services/billingService.js';
-import { authService } from '../services/authService.js?v=20260725apifix1';
+import { authService } from '../services/authService.js?v=20260722bridgefix1';
 import { showToast } from '../utils.js';
 
 // Marketplace listing is not live yet — link to the public action repo (see github-action/MARKETPLACE-CHECKLIST.md).

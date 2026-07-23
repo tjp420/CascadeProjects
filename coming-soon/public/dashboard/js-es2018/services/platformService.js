@@ -1,5 +1,5 @@
 import { fetchWithTimeout } from '../utils.js';
-import { authService } from './authService.js?v=20260725apifix1';
+import { authService } from './authService.js?v=20260722bridgefix1';
 import { billingService } from './billingService.js';
 import { fetchDataCleanupScan as fetchDataCleanupAnalysis } from './analyzeService.js';
 import { spaUrl } from '../platformRoutes.js';

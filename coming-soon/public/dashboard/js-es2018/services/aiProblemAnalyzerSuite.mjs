@@ -9,14 +9,10 @@ let createExtendedAnalyzers = function () {
             if (mod && typeof mod.createExtendedAnalyzers === 'function')
                 createExtendedAnalyzers = mod.createExtendedAnalyzers;
         }).catch((e) => {
-            // Keep stub — log for telemetry/debugging
-            if (typeof console !== 'undefined')
-                console.warn('[aiProblemAnalyzerSuite] extendedAnalyzers not available; using stubbed analyzers.', e);
+            // Keep stub — extended analyzers not available; use stub silently in production.
         });
     }
     catch (e) {
-        if (typeof console !== 'undefined')
-            console.warn('[aiProblemAnalyzerSuite] error starting dynamic import for extendedAnalyzers', e);
     }
 })();
 const CATEGORY_DEFINITIONS = [

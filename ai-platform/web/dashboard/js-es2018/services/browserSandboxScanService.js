@@ -460,7 +460,7 @@ function yieldToBrowser() {
 function createScanWorker() {
   if (typeof window === 'undefined' || typeof Worker === 'undefined') return null;
   try {
-    return new Worker(new URL('./scanWorker.js?v=20260728dropfix2', import.meta.url));
+    return new Worker(new URL('../workers/scan-worker.js?v=20260728dropfix2', import.meta.url));
   }
   catch (err) {
     window["console"]["warn"](

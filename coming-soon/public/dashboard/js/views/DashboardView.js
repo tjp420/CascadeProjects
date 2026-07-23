@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260716cachefix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js';
@@ -223,6 +224,9 @@ export class DashboardView {
             : '';
 
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+        const adminBtn = (typeof authService !== 'undefined' && authService.isAdmin && authService.isAdmin())
+            ? '<button class="btn btn-primary btn-sm" id="team-admin-btn">Team Admin</button>'
+            : '';
         header.innerHTML = `
             <div>
                 <h1 class="h2 mb-1">Dashboard</h1>
@@ -231,7 +235,10 @@ export class DashboardView {
                     ${statusChip}
                 </div>
             </div>
-            <div class="header-actions"></div>
+            <div class="header-actions d-flex gap-2">
+                <button class="btn btn-ghost btn-sm" data-action="open-analyze">Advanced analyze</button>
+                ${adminBtn}
+            </div>
         `;
         return header;
     }

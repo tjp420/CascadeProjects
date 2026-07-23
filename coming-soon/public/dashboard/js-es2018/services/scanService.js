@@ -1,6 +1,6 @@
 import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
 import { billingService } from './billingService.js';
-import { authService } from './authService.js?v=20260725apifix1';
+import { authService } from './authService.js?v=20260722bridgefix1';
 import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260716cachefix1';

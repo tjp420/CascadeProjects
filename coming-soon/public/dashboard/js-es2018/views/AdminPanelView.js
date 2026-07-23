@@ -1,6 +1,6 @@
 // @ts-nocheck
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService, apiBase } from '../services/authService.js?v=20260725apifix1';
+import { authService, apiBase } from '../services/authService.js?v=20260722bridgefix1';
 import { escapeHtml, showToast, downloadJson, setHtml } from '../utils.js?v=20260720adminfix1';
 
 function normalizeTrustLevel(value) {

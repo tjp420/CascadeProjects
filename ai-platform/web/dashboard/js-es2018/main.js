@@ -18,7 +18,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260726auditfix3';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260726embedfix1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260728dropfix2';
 import { SecurityView } from './views/SecurityView.js?v=20260725secredesign1';
 import { AboutView } from './views/AboutView.js?v=20260726cachefix1';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
@@ -38,8 +38,8 @@ import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoRea
 import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
 import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260726embedfix1';
 import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260726browserdrop2';
-import { LocalScanService } from './services/localScanService.js?v=20260725local1';
-import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
+import { LocalScanService } from './services/localScanService.js?v=20260728dropfix2';
+import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260728dropfix2';
 // Embed shim fallback: when loaded inside an IDE/webview that marks the document
 // as embedded, ensure a top padding is applied so host chrome doesn't clip content.
 (function applyEmbedShim() {
@@ -1906,7 +1906,11 @@ class SimplebeaconDashboard {
                 this.state.scanning = false;
                 this.state.scanProgress = null;
                 this.refreshCurrentView();
-                showToast(err.message || 'Local scan failed', 'error');
+                if (err && err.name === 'AbortError') {
+                    showToast('Folder picker cancelled.', 'info');
+                } else {
+                    showToast(err.message || 'Local scan failed', 'error');
+                }
             }
             return;
         }

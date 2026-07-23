@@ -1,5 +1,5 @@
 // simplebeacon-ignore governance-marker, i18n
-import { authService } from '../services/authService.js?v=20260725apifix1';
+import { authService } from '../services/authService.js?v=20260722bridgefix1';
 import { showToast } from '../utils.js';
 /**
  * Show login modal.

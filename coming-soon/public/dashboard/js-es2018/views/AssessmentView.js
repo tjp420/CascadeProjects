@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, showToast } from '../utils.js';
 import { assessmentService } from '../services/assessmentService.js';
-import { authService } from '../services/authService.js?v=20260725apifix1';
+import { authService } from '../services/authService.js?v=20260722bridgefix1';
 import { showLoginModal } from '../components/LoginModal.js';
 /**
  * Assessment view.

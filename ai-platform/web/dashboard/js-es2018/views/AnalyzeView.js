@@ -7808,10 +7808,15 @@ export class AnalyzeView {
             showToast('Local scan complete — no data sent to server', 'success');
         }
         catch (err) {
-            const msg = isFilePickerBlockedError(err)
-                ? filePickerBlockedMessage()
-                : (err.message || 'Local scan failed');
-            showToast(msg, isFilePickerBlockedError(err) ? 'warning' : 'error', { duration: isFilePickerBlockedError(err) ? 12000 : undefined });
+            if (err && err.name === 'AbortError') {
+                showToast('Folder picker cancelled.', 'info');
+            }
+            else {
+                const msg = isFilePickerBlockedError(err)
+                    ? filePickerBlockedMessage()
+                    : (err.message || 'Local scan failed');
+                showToast(msg, isFilePickerBlockedError(err) ? 'warning' : 'error', { duration: isFilePickerBlockedError(err) ? 12000 : undefined });
+            }
         }
         finally {
             this._browserLocalScanActive = false;

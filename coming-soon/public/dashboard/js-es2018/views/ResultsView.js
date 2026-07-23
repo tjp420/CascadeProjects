@@ -226,7 +226,6 @@ export class ResultsView {
             }
         } catch (e) {
             // ignore attach errors
-            console.warn('[ResultsView] emptyState attach failed', e);
         }
 
         this.bindFilters(el);

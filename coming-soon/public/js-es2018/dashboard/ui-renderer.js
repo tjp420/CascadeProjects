@@ -172,7 +172,7 @@ function renderPreview(data) {
     const gateStatus = gatePass === true ? 'pass' : gatePass === false ? 'fail' : 'review';
     const rawIssues = Array.isArray(data.rawIssues) ? data.rawIssues : detectedIssues;
     const quality = data.qualityScore ?? data.results?.simplebeacon?.qualityScore ?? (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : 0);
-    const files = data.repositoryInventory?.totalFiles ?? data.totalFiles ?? data.repositoryFilesTotal ?? data.filesAnalyzed ?? data.summary?.files ?? data.summary?.repositoryFiles ?? 0;
+    const files = data.totalFiles ?? data.repositoryFilesTotal ?? data.filesAnalyzed ?? data.summary?.files ?? data.summary?.repositoryFiles ?? 0;
     const issues = data.issueCount ?? gate.blockingCount ?? detectedIssues.length ?? 0;
     const project = data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || 'Unknown Project';
     const grade = quality >= 90 ? 'A' : quality >= 80 ? 'B' : quality >= 70 ? 'C' : quality >= 60 ? 'D' : 'F';
@@ -777,10 +777,6 @@ function renderPreview(data) {
                 <div class="meta-item">
                     <div class="value">${files}</div>
                     <div class="label">Files</div>
-                </div>
-                <div class="meta-item" title="${data.excludedSummary || 'No exclusions'}">
-                    <div class="value">${data.excludedCount ?? 0}</div>
-                    <div class="label">Skipped</div>
                 </div>
                 <div class="meta-item" title="${data.excludedSummary || 'No exclusions'}">
                     <div class="value">${data.filesAnalyzed ?? ((files || 0) - (data.excludedCount || 0))}</div>

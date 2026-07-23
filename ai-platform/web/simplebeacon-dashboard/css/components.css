@@ -169,6 +169,11 @@ html[data-ide-embed="1"] #app-main {
   overflow-x: hidden;
   overflow-y: auto;
 }
+/* Ensure embedded hosts reserve bottom inset so fixed chat inputs or host chrome
+   don't obscure the last content. Uses safe-area inset when available. */
+html[data-ide-embed="1"] #app-main {
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
 
 html[data-ide-embed="1"] .settings-grid {
   max-width: none;

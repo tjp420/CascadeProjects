@@ -25,45 +25,100 @@ const SCANABLE_EXTENSIONS = new Set([
     '.gitignore', '.dockerignore', '.editorconfig', '.babelrc', '.eslintrc', '.prettierrc',
     '.npmrc', '.nvmrc', '.lock', '.feature', '.story'
 ]);
+async function* listDirEntries(dirHandle) {
+    if (typeof dirHandle.entries === 'function') {
+        for await (const [name, handle] of dirHandle.entries()) {
+            yield { name, kind: handle.kind, handle, getFile: null };
+        }
+    }
+    else if (typeof dirHandle.createReader === 'function') {
+        const reader = dirHandle.createReader();
+        let batch = [];
+        do {
+            batch = await new Promise((resolve, reject) => {
+                reader.readEntries(resolve, (err) => reject(err || new Error('readEntries failed')));
+            });
+            for (const entry of batch) {
+                if (entry.isDirectory) {
+                    yield { name: entry.name, kind: 'directory', handle: entry, getFile: null };
+                }
+                else if (entry.isFile) {
+                    yield {
+                        name: entry.name,
+                        kind: 'file',
+                        handle: entry,
+                        getFile: () => new Promise((resolve, reject) => entry.file(resolve, reject))
+                    };
+                }
+            }
+        } while (batch.length > 0);
+    }
+    else {
+        throw new Error(`Directory handle does not support entries() or createReader(): ${dirHandle.name || ''}`);
+    }
+}
 /**
- * Recursively collect FileSystemFileHandle entries from a directory handle.
- * @param {FileSystemDirectoryHandle} dirHandle
- * @param {string} pathPrefix
- * @param {Array<{path:string, handle:FileSystemFileHandle}>} files
- * @returns {Promise<Array<{path:string, handle:FileSystemFileHandle}>>}
+ * Recursively collect FileSystemFileHandle/File entries from a directory handle.
+ * @param {FileSystemDirectoryHandle|FileSystemDirectoryEntry} dirHandle
+ * @param {Object} [options]
+ * @param {string} [options.pathPrefix]
+ * @param {Array<{path:string, handle:any}>} [options.files]
+ * @param {Object} [options.ignoreCtx]
+ * @param {{folders:number}} [options.stats]
+ * @returns {Promise<Array<{path:string, handle:any}>>}
  */
-async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = null) {
+async function collectFiles(dirHandle, options = {}) {
+    const pathPrefix = options.pathPrefix || '';
+    const files = options.files || [];
+    const ignoreCtx = options.ignoreCtx || null;
+    const stats = options.stats || { folders: 0 };
     if (files.length >= MAX_FILES)
         return files;
     if (ignoreCtx && pathPrefix && isIgnoredVirtualPath(pathPrefix, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
         return files;
     }
+    if (SKIP_DIRS.test(pathPrefix))
+        return files;
     let entryCount = 0;
-    for await (const [name, handle] of dirHandle.entries()) {
+    for await (const { name, kind, handle, getFile } of listDirEntries(dirHandle)) {
+        if (files.length >= MAX_FILES)
+            break;
         const fullPath = pathPrefix ? `${pathPrefix}/${name}` : name;
         if (ignoreCtx && isIgnoredVirtualPath(fullPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
             continue;
         }
         if (SKIP_DIRS.test(fullPath))
             continue;
-        if (handle.kind === 'directory') {
-            await collectFiles(handle, fullPath, files, ignoreCtx);
+        if (kind === 'directory') {
+            stats.folders += 1;
+            await collectFiles(handle, { pathPrefix: fullPath, files, ignoreCtx, stats });
         }
-        else if (handle.kind === 'file') {
+        else if (kind === 'file') {
             if (name === '.simplebeaconignore')
                 continue;
             const dotIdx = name.lastIndexOf('.');
             const ext = dotIdx >= 0 ? name.substring(dotIdx).toLowerCase() : '';
             if (ext && !SCANABLE_EXTENSIONS.has(ext))
                 continue;
-            files.push({ path: fullPath, handle });
+            let fileHandle = handle;
+            if (getFile) {
+                try {
+                    fileHandle = await getFile();
+                }
+                catch (err) {
+                    window["console"]["warn"](`[localScan] Could not read legacy file ${fullPath}: ${err && err.message}`);
+                    continue;
+                }
+            }
+            files.push({ path: fullPath, handle: fileHandle });
         }
-        if (files.length >= MAX_FILES)
-            break;
         entryCount += 1;
         if (entryCount % 500 === 0) {
             await new Promise((resolve) => setTimeout(resolve, 0));
         }
+    }
+    if (typeof window !== 'undefined') {
+        window["console"]["log"](`[localScan] dir "${dirHandle.name || pathPrefix || '?'}" entries=${entryCount} runningFiles=${files.length} folders=${stats.folders}`);
     }
     return files;
 }
@@ -256,8 +311,12 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 cleanup();
                 const resolvedTotal = completeTotal || totalFiles;
                 const analyzedFiles = Math.max(0, (processed || 0) - (binarySkipped || 0) - (textErrors || 0) - (ignoredDir || 0) - (ignoredByPattern || 0) - (heavyVendor || 0));
-                const folderCount = countFoldersFromPaths(workerFiles.map((f) => f.path));
+                const computedFolderCount = countFoldersFromPaths(workerFiles.map((f) => f.path));
+                const folderCount = options.folderCount || computedFolderCount;
                 const filePaths = workerFiles.map((f) => f.path);
+                if (typeof window !== 'undefined') {
+                    window["console"]["log"](`[localScan] worker complete: total=${resolvedTotal}, processed=${processed || 0}, analyzed=${analyzedFiles}, folders=${folderCount}, binarySkipped=${binarySkipped || 0}, textErrors=${textErrors || 0}, ignoredDir=${ignoredDir || 0}, ignoredByPattern=${ignoredByPattern || 0}, heavyVendor=${heavyVendor || 0}`);
+                }
                 resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
                     issuesTruncated,
                     folderCount,
@@ -355,6 +414,11 @@ export async function runLocalScan(options = {}) {
     let projectName = options.projectPath || 'local-project';
     let files = [];
     let ignoreCtx = null;
+    let folderStats = { folders: 0 };
+    let folderCount = 0;
+    if (typeof window !== 'undefined') {
+        window["console"]["log"](`[localScan] start: projectPath=${options.projectPath || ''}, dirHandleName=${options.dirHandle?.name || ''}, droppedFiles=${options.files?.length || 0}`);
+    }
     if (options.files && options.files.length) {
         const fileArray = Array.from(options.files);
         const firstRel = fileArray[0]._virtualPath || fileArray[0].webkitRelativePath || fileArray[0].name || '';
@@ -387,21 +451,34 @@ export async function runLocalScan(options = {}) {
             const picked = await window.showDirectoryPicker();
             const scanRootName = picked.name || 'local-project';
             projectName = options.projectPath || scanRootName;
+            if (options.projectPath && picked.name) {
+                const expectedBasename = String(options.projectPath).replace(/\\/g, '/').split('/').filter(Boolean).pop() || '';
+                if (expectedBasename && picked.name.toLowerCase() !== expectedBasename.toLowerCase()) {
+                    window["console"]["warn"](`[localScan] folder picker name "${picked.name}" does not match typed path basename "${expectedBasename}". The selected folder may not be the intended one.`);
+                }
+            }
             const ignoreLoad = await loadIgnorePatternsFromDirHandle(picked);
             ignoreCtx = createIgnoreContext(ignoreLoad.patterns, scanRootName, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
-            files = await collectFiles(picked, '', [], ignoreCtx);
+            files = await collectFiles(picked, { files: [], ignoreCtx, stats: folderStats });
         }
         else {
             const scanRootName = dirHandle.name || 'local-project';
             projectName = options.projectPath || scanRootName;
             const ignoreLoad = await loadIgnorePatternsFromDirHandle(dirHandle);
             ignoreCtx = createIgnoreContext(ignoreLoad.patterns, scanRootName, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
-            files = await collectFiles(dirHandle, '', [], ignoreCtx);
+            files = await collectFiles(dirHandle, { files: [], ignoreCtx, stats: folderStats });
         }
+        folderCount = folderStats.folders;
+    }
+    if (typeof window !== 'undefined') {
+        window["console"]["log"](`[localScan] files before ignore filter: ${files.length}${folderCount ? `, folders=${folderCount}` : ''}`);
     }
     const beforeIgnoreCount = files.length;
     files = filterQueueByIgnore(files.map((f) => ({ ...f, virtualPath: f.path })), ignoreCtx)
         .map((f) => ({ path: f.path || f.virtualPath, handle: f.handle }));
+    if (typeof window !== 'undefined') {
+        window["console"]["log"](`[localScan] files after ignore filter: ${files.length}`);
+    }
     if (ignoreCtx && files.length < beforeIgnoreCount) {
         showToast(`Excluded ${beforeIgnoreCount - files.length} paths via ${ignoreCtx.source || 'ignore'} rules.`, 'info', { duration: 5000 });
     }
@@ -422,10 +499,13 @@ export async function runLocalScan(options = {}) {
     if (options.signal) {
         options.signal.addEventListener('abort', () => worker.terminate(), { once: true });
     }
+    const computedFolderCount = countFoldersFromPaths(workerFiles.map((f) => f.path));
+    const finalFolderCount = Math.max(folderCount, computedFolderCount);
     const report = await runBatchedWorkerScan(worker, workerFiles, {
         onProgress: options.onProgress,
         projectName,
-        ignoreCtx
+        ignoreCtx,
+        folderCount: finalFolderCount
     });
     return normalizeSimplebeaconReport(report);
 }

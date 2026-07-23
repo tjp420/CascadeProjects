@@ -207,14 +207,13 @@ const BROWSER_BUILTIN_IGNORE_SIMPLEBEACON = Object.freeze([
 /** Detect whether the scan target is the SimpleBeacon monorepo. */
 export function detectSimplebeaconMonorepo(scanRootName, fileQueue) {
   const root = String(scanRootName || '').replace(/\\/g, '/');
-  if (/^(coming-soon|ai-platform|simplebeacon-vscode-merged|CascadeProjects(?:_BACKUP_\d+)?)$/i.test(root)) {
+  if (/^(coming-soon|ai-platform|simplebeacon-vscode-merged)$/i.test(root)) {
     return true;
   }
   if (Array.isArray(fileQueue)) {
     for (let i = 0; i < Math.min(fileQueue.length, 500); i++) {
       const p = String((fileQueue[i] && (fileQueue[i].virtualPath || fileQueue[i].path || fileQueue[i].webkitRelativePath || fileQueue[i].name)) || '').replace(/\\/g, '/');
-      if (/\/(coming-soon|ai-platform|simplebeacon-vscode-merged|packages\/simplebeacon-cli|simplebeacon-frameworkless)\//i.test(p)
-          || /^CascadeProjects(?:_BACKUP_\d+)?\//i.test(p)) {
+      if (/\/(coming-soon|ai-platform|simplebeacon-vscode-merged|packages\/simplebeacon-cli|simplebeacon-frameworkless)\//i.test(p)) {
         return true;
       }
     }
@@ -383,8 +382,33 @@ export function filterQueueByIgnore(fileQueue, ignoreCtx) {
   });
 }
 
+/**
+ * Async monorepo detection that verifies actual subdirectory contents.
+ * Used by loadIgnorePatternsFromDirHandle where a dirHandle is available.
+ * @param {FileSystemDirectoryHandle} dirHandle
+ * @returns {Promise<boolean>}
+ */
+export async function detectSimplebeaconMonorepoAsync(dirHandle) {
+  if (!dirHandle || !dirHandle.name) return false;
+  const name = String(dirHandle.name).replace(/\\/g, '/');
+  if (/^CascadeProjects(?:_BACKUP_\d+)?$/i.test(name)) {
+    const markers = ['ai-platform', 'packages', 'coming-soon'];
+    for (const marker of markers) {
+      try {
+        await dirHandle.getDirectoryHandle(marker);
+        return true;
+      }
+      catch {
+        // marker not found — try next
+      }
+    }
+    return false;
+  }
+  return detectSimplebeaconMonorepo(dirHandle.name, null);
+}
+
 export async function loadIgnorePatternsFromDirHandle(dirHandle) {
-  const isSimplebeaconMonorepo = detectSimplebeaconMonorepo(dirHandle && dirHandle.name, null);
+  const isSimplebeaconMonorepo = await detectSimplebeaconMonorepoAsync(dirHandle);
   if (!dirHandle || typeof dirHandle.getFileHandle !== 'function') {
     return { patterns: getBrowserBuiltinIgnorePatterns(isSimplebeaconMonorepo), source: 'builtin', isSimplebeaconMonorepo };
   }

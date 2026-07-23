@@ -642,6 +642,56 @@
       }
     })();
   </script>
+  <style id="chatbot-scroll-fix">
+    /* OVERRIDE: Fix chatbot page scroll — overrides broken external components.css */
+    /* Remove height:100% and overflow:hidden from standalone mode */
+    .app-shell:has(.chatbot-page) { height: auto !important; max-height: none !important; }
+    .chatbot-page { overflow: visible !important; }
+    .view-content:has(.chatbot-container) { overflow: visible !important; }
+    #app-main:has(.chatbot-page) { overflow-y: auto !important; overflow-x: hidden !important; }
+    .app-main:has(.chatbot-container) { overflow-y: auto !important; overflow-x: hidden !important; }
+
+    /* Standalone: container grows with content, page scrolls naturally */
+    html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .chatbot-container {
+      flex: 0 1 auto !important;
+      min-height: 400px;
+      overflow: visible !important;
+    }
+    html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .chatbot-messages {
+      max-height: 60vh;
+    }
+
+    /* Embed modes: lock overflow so only chat messages scroll */
+    html[data-ide-embed="1"] .app-shell:has(.chatbot-page),
+    html[data-embed-full-nav="1"] .app-shell:has(.chatbot-page),
+    html[data-embed-mode="1"] .app-shell:has(.chatbot-page) {
+      height: 100% !important;
+      max-height: 100% !important;
+      min-height: 0;
+    }
+    html[data-ide-embed="1"] .app-body:has(.chatbot-page),
+    html[data-embed-full-nav="1"] .app-body:has(.chatbot-page),
+    html[data-embed-mode="1"] .app-body:has(.chatbot-page) {
+      overflow: hidden;
+    }
+    html[data-ide-embed="1"] #app-main:has(.chatbot-page),
+    html[data-embed-full-nav="1"] #app-main:has(.chatbot-page),
+    html[data-embed-mode="1"] #app-main:has(.chatbot-page) {
+      overflow: hidden !important;
+    }
+    html[data-ide-embed="1"] .chatbot-page,
+    html[data-embed-full-nav="1"] .chatbot-page,
+    html[data-embed-mode="1"] .chatbot-page {
+      overflow: hidden !important;
+    }
+    html[data-ide-embed="1"] .chatbot-container,
+    html[data-embed-full-nav="1"] .chatbot-container,
+    html[data-embed-mode="1"] .chatbot-container {
+      flex: 1 !important;
+      min-height: 0;
+      overflow: hidden !important;
+    }
+  </style>
 </head>
 <body>
   <script>

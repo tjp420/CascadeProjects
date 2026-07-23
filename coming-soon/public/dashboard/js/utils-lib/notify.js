@@ -119,19 +119,16 @@ function _postNotify(entry) {
       const resp = await fetchApi(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
       if (resp === null) {
         _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
-        window.console.warn('[notifyVSCode] /api/notify network failure', url);
         if (!_isHostedHttps()) _postNotifyBeacon(url, entry);
         return;
       }
       if (!resp.ok) {
-        window.console.warn('[notifyVSCode] /api/notify returned', resp.status, url);
         if (resp.status === 404) {
           _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
         }
       }
     }
     catch (err) {
-      window.console.warn('[notifyVSCode] /api/notify unexpected error', err, url);
     }
   })();
 }

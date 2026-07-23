@@ -209,12 +209,10 @@ function _postNotify(entry) {
             if (resp === null) {
                 // network failure — mark disabled briefly to avoid tight retry loops
                 _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
-                window.console.warn('[notifyVSCode] /api/notify network failure', url);
                 if (!_isHostedHttps()) _postNotifyBeacon(url, entry);
                 return;
             }
             if (!resp.ok) {
-                window.console.warn('[notifyVSCode] /api/notify returned', resp.status, url);
                 if (resp.status === 404) {
                     // Not found — disable further attempts for a while
                     _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
@@ -222,7 +220,6 @@ function _postNotify(entry) {
             }
         }
         catch (err) {
-            window.console.warn('[notifyVSCode] /api/notify unexpected error', err, url);
         }
     })();
 }
