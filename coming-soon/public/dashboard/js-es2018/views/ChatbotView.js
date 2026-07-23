@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, sanitizePrivacyData, copyToClipboard } from '../utils.js';
-import { authService, apiBase } from '../services/authService.js?v=20260725apifix1';
+import { authService, apiBase } from '../services/authService.js?v=20260722bridgefix1';
 import { fetchUserAiKeys, userHasJwtForAiKeys, fetchOllamaModels, saveUserAiKeys } from '../services/aiKeysService.js?v=20260720ollama6';
 import { canUseBrowserOllama, isHostedDashboard } from '../demoMode.js';
 import { isIdeDashboardSurface } from '../utils-lib/dom.js?v=20260726embedfix1';
@@ -473,6 +473,7 @@ export class ChatbotView {
         this.ollamaModelsError = null;
         this.ollamaModel = localStorage.getItem(OLLAMA_MODEL_KEY) || '';
         this._ollamaModelsLoadAttempted = false;
+        this._refreshInFlight = null;
         this.loadConversationHistory();
         this.loadSettings();
     }
@@ -635,6 +636,15 @@ export class ChatbotView {
             statusEl.textContent = 'Extension bridge online — Ollama not connected yet.';
     }
     async refreshProviders() {
+        if (this._refreshInFlight) {
+            return this._refreshInFlight;
+        }
+        this._refreshInFlight = this._refreshProvidersInner().finally(() => {
+            this._refreshInFlight = null;
+        });
+        return this._refreshInFlight;
+    }
+    async _refreshProvidersInner() {
         if (typeof authService.ensureAuthenticated === 'function') {
             try {
                 await authService.ensureAuthenticated();

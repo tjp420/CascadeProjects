@@ -473,6 +473,7 @@ export class ChatbotView {
         this.ollamaModelsError = null;
         this.ollamaModel = localStorage.getItem(OLLAMA_MODEL_KEY) || '';
         this._ollamaModelsLoadAttempted = false;
+        this._refreshInFlight = null;
         this.loadConversationHistory();
         this.loadSettings();
     }
@@ -635,6 +636,15 @@ export class ChatbotView {
             statusEl.textContent = 'Extension bridge online — Ollama not connected yet.';
     }
     async refreshProviders() {
+        if (this._refreshInFlight) {
+            return this._refreshInFlight;
+        }
+        this._refreshInFlight = this._refreshProvidersInner().finally(() => {
+            this._refreshInFlight = null;
+        });
+        return this._refreshInFlight;
+    }
+    async _refreshProvidersInner() {
         if (typeof authService.ensureAuthenticated === 'function') {
             try {
                 await authService.ensureAuthenticated();

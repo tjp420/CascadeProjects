@@ -23,7 +23,7 @@ import { SecurityView } from './views/SecurityView.js?v=20260725secredesign1';
 import { AboutView } from './views/AboutView.js?v=20260726cachefix1';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
 import { SignInView } from './views/SignInView.js?v=20260722signin3';
-import { ChatbotView } from './views/ChatbotView.js?v=20260726embedfix1';
+import { ChatbotView } from './views/ChatbotView.js?v=20260725chatbot1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js?v=20260726embedfix1';
