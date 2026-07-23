@@ -28,6 +28,7 @@ import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js?v=20260726embedfix1';
 import { AdminPanelView } from './views/AdminPanelView.js?v=20260720adminfix1';
+import { EUAIActChecklistView } from './views/EUAIActChecklistView.js?v=20260726embedfix1';
 import { GettingStartedView } from './views/GettingStartedView.js?v=20260718onboard1';
 import { GuidedTour } from './components/GuidedTour.js?v=20260718onboard1';
 import { COMING_SOON_URL } from './config.js';
@@ -207,6 +208,7 @@ class SimplebeaconDashboard {
             profile: new ProfileView(this),
             admin: new AdminPanelView(this),
             'getting-started': new GettingStartedView(this)
+            ,compliance: new EUAIActChecklistView(this)
         };
         this.currentView = null;
         this.guidedTour = new GuidedTour(this);
@@ -1594,6 +1596,18 @@ class SimplebeaconDashboard {
         var _a, _b;
         (_a = document.getElementById('app-nav')) === null || _a === void 0 ? void 0 : _a.classList.remove('open');
         (_b = document.getElementById('mobile-nav-overlay')) === null || _b === void 0 ? void 0 : _b.classList.remove('open');
+
+        // Inject compliance nav link if missing
+        try {
+            if (document.getElementById('app-nav') && !document.querySelector('.nav-link[data-view="compliance"]')) {
+                const link = document.createElement('a');
+                link.href = '#/compliance';
+                link.className = 'nav-link';
+                link.dataset.view = 'compliance';
+                link.innerHTML = '<span class="nav-label">Compliance</span>';
+                document.getElementById('app-nav').appendChild(link);
+            }
+        } catch (_e) { /* ignore */ }
     }
     cleanupDisabledElements() {
         const selectors = [

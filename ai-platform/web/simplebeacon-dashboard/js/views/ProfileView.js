@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, showToast } from '../utils.js';
-import { isIdeDashboardSurface } from '../utils-lib/dom.js';
+import { isIdeDashboardSurface, isExtensionHostedTab } from '../utils-lib/dom.js';
 import { authService } from '../services/authService.js?v=20260716cachefix1';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, listStockpiled, stockpileCount, tokenHint, } from '../services/tokenStockpileService.js';
 
@@ -89,6 +89,24 @@ export class ProfileView {
         }).join('');
 
         var isIde = (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface());
+
+        // Detect IDE/embed query params and expose lightweight flags for host integration.
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const sbParent = params.get('sb_parent_urlbar') === '1';
+            const sbWebsite = params.get('sb_website_mode') === '1';
+            const sbApi = params.get('sb_api_base') || params.get('sb_api');
+            if (sbParent || sbWebsite) {
+                try { document.documentElement.setAttribute('data-parent-urlbar', '1'); } catch (e) { /* ignore */ }
+                try { document.documentElement.setAttribute('data-ide-embed', '1'); } catch (e) { /* ignore */ }
+                window.__SB_PARENT_URL_BAR__ = true;
+                window.__SB_IDE_EMBED__ = true;
+            }
+            // If extension bridge provided an API base, surface host for debugging in the profile page
+            if (sbApi && isExtensionHostedTab()) {
+                try { window.__SB_BRIDGE_HOST__ = sbApi; } catch (e) { /* ignore */ }
+            }
+        } catch (_e) { /* ignore */ }
         var avatarHtml = (user && (user.avatarUrl || user.picture))
             ? '<img class="profile-avatar-img" src="' + escapeHtml((user.avatarUrl || user.picture) || '') + '" alt="Avatar" />'
             : (email ? escapeHtml(email[0].toUpperCase()) : '?');
@@ -175,6 +193,19 @@ export class ProfileView {
             if (root) root.classList.add('ide-embed');
             container.classList.add('ide-embed');
         }
+        // If running inside an IDE or extension-hosted tab, render a small connection banner
+        try {
+            const isExt = typeof isExtensionHostedTab === 'function' && isExtensionHostedTab();
+            const apiHost = window.__SB_BRIDGE_HOST__ || (new URLSearchParams(window.location.search || '')).get('sb_api_base');
+            if (isExt && apiHost) {
+                const banner = document.createElement('div');
+                banner.className = 'profile-ide-banner';
+                banner.style.cssText = 'margin-top:12px;padding:8px;border-radius:6px;background:var(--card-bg);border:1px solid rgba(0,0,0,0.06);font-size:0.95rem;';
+                banner.innerHTML = `Connected to IDE bridge · API: <code style="background:transparent;padding:0;border-radius:3px;">${escapeHtml(apiHost)}</code>`;
+                const hero = container.querySelector('.profile-hero-card');
+                if (hero && hero.parentNode) hero.parentNode.insertBefore(banner, hero.nextSibling);
+            }
+        } catch (_e) { /* ignore */ }
         if (typeof window.lucide !== 'undefined') window.lucide.createIcons();
         if (isIde) setTimeout(function () { if (typeof window.lucide !== 'undefined') window.lucide.createIcons(); }, 50);
 

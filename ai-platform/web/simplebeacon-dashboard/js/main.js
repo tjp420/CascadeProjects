@@ -24,6 +24,7 @@ import { ChatbotView } from './views/ChatbotView.js';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js';
+import { EUAIActChecklistView } from './views/EUAIActChecklistView.js';
 import { COMING_SOON_URL } from './config.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
 import { showUpgradeModal } from './components/UpgradeModal.js';
@@ -153,6 +154,7 @@ class SimplebeaconDashboard {
       upload: new UploadView(this),
       remediation: new RemediationRoadmapView(this),
       profile: new ProfileView(this)
+      ,compliance: new EUAIActChecklistView(this)
     };
 
     this.currentView = null;
@@ -914,6 +916,18 @@ class SimplebeaconDashboard {
         console.error('Sidebar delegation navigate error:', navErr);
       }
     });
+
+    // Inject compliance nav link if missing
+    try {
+      if (document.getElementById('app-nav') && !document.querySelector('.nav-link[data-view="compliance"]')) {
+        const link = document.createElement('a');
+        link.href = '#/compliance';
+        link.className = 'nav-link';
+        link.dataset.view = 'compliance';
+        link.innerHTML = '<span class="nav-label">Compliance</span>';
+        document.getElementById('app-nav').appendChild(link);
+      }
+    } catch (_e) { /* ignore */ }
 
     const searchInput = document.getElementById('global-search');
     searchInput?.addEventListener('keydown', (e) => {
