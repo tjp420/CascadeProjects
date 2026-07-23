@@ -1377,19 +1377,30 @@ export function buildPathInventoryProvenance(app, projectPath, report = null) {
  * @returns {any}
  */
 export function mergeReportInventory(report, inventory) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     if (!report || typeof report !== 'object')
         return report;
     if (!(inventory === null || inventory === void 0 ? void 0 : inventory.totalFiles))
         return report;
+    const repoFiles = (_b = report.repositoryFilesTotal) !== null && _b !== void 0 ? _b : inventory.totalFiles;
+    const repoFolders = (_c = report.repositoryFoldersTotal) !== null && _c !== void 0 ? _c : inventory.totalFolders;
+    const normalizedTotalFiles = (report.totalFiles === 0 || report.totalFiles === 1) ? inventory.totalFiles : report.totalFiles;
+    const normalizedFilesAnalyzed = (report.filesAnalyzed === 0 || report.filesAnalyzed === 1)
+        ? repoFiles
+        : report.filesAnalyzed;
+    const normalizedRuleScoped = (report.ruleScopedFilesAnalyzed === 0 || report.ruleScopedFilesAnalyzed === 1)
+        ? (normalizedFilesAnalyzed || repoFiles)
+        : report.ruleScopedFilesAnalyzed;
     return {
         ...report,
+        totalFiles: normalizedTotalFiles,
         repositoryInventory: ((_a = report.repositoryInventory) === null || _a === void 0 ? void 0 : _a.totalFiles) != null
             ? report.repositoryInventory
             : inventory,
-        repositoryFilesTotal: (_b = report.repositoryFilesTotal) !== null && _b !== void 0 ? _b : inventory.totalFiles,
-        repositoryFoldersTotal: (_c = report.repositoryFoldersTotal) !== null && _c !== void 0 ? _c : inventory.totalFolders,
-        filesAnalyzed: (_e = (_d = report.repositoryFilesTotal) !== null && _d !== void 0 ? _d : report.filesAnalyzed) !== null && _e !== void 0 ? _e : inventory.totalFiles
+        repositoryFilesTotal: repoFiles,
+        repositoryFoldersTotal: repoFolders,
+        filesAnalyzed: normalizedFilesAnalyzed,
+        ruleScopedFilesAnalyzed: normalizedRuleScoped
     };
 }
 /**
@@ -1529,8 +1540,12 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
     }));
     const blockingCount = rawIssues.filter((issue) => issue.severity === 'high' || issue.severity === 'critical').length;
     const warningCount = rawIssues.filter((issue) => issue.severity === 'medium' || issue.severity === 'low').length;
-    const severityCounts = { critical: 0, high, medium, low, info: 0 };
-    const gatePass = blockingCount === 0 && high === 0 && cert.letterGrade !== 'F';
+    const severityCounts = rawIssues.reduce((acc, issue) => {
+        const sev = issue.severity || 'medium';
+        acc[sev] = (acc[sev] || 0) + 1;
+        return acc;
+    }, { critical: 0, high: 0, medium: 0, low: 0, info: 0 });
+    const gatePass = blockingCount === 0 && (severityCounts.high || 0) === 0 && cert.letterGrade !== 'F';
     const sampleFiles = (report.files || [])
         .slice(0, 96)
         .map((f) => (typeof f === 'string' ? f : f.path || f.name || f.relativePath || ''))
