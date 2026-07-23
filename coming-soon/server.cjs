@@ -193,6 +193,34 @@ app.use((req, res, next) => {
     next();
 });
 
+// Local-dev auth/platform stubs so the dashboard/audit page can load without the VS Code: data server
+if (process.env.NODE_ENV === 'development') {
+    app.get('/api/platform/status', (_req, res) => {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.json({ success: true, online: true, authRequired: false, mode: 'local-dev', user: { id: 'local', email: 'local@simplebeacon.ai' } });
+    });
+    app.get('/api/auth/me', (req, res) => {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        const bearer = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+        if (!bearer) return res.json({ success: true, authenticated: false, user: null });
+        try {
+            const secret = process.env.JWT_SECRET || 'simplebeacon-insecure-dev-jwt-secret-do-not-use-in-production';
+            const user = jwt.verify(bearer, secret);
+            return res.json({ success: true, authenticated: true, user });
+        } catch (e) {
+            return res.json({ success: true, authenticated: false, user: null });
+        }
+    });
+    app.post('/api/auth/login', express.json({ limit: '1mb' }), (req, res) => {
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        const { email } = req.body || {};
+        if (!email || !email.includes('@')) return res.status(400).json({ success: false, error: 'Valid email required' });
+        const secret = process.env.JWT_SECRET || 'simplebeacon-insecure-dev-jwt-secret-do-not-use-in-production';
+        const token = jwt.sign({ email: email.toLowerCase(), tier: 'community', features: [], clientName: 'Local Dev User', projectName: 'Local Dev' }, secret, { expiresIn: '7d' });
+        res.json({ success: true, token, user: { email: email.toLowerCase(), tier: 'community' } });
+    });
+}
+
 // Billing webhook must use raw body before JSON parser
 let billingApiAvailable = false;
 try {

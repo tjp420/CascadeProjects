@@ -256,17 +256,7 @@ export function slimReportForSummary(report) {
         filePath: f.filePath
       })),
       scanScope: report.scanScope,
-      repositoryInventory: report.repositoryInventory
-        ? {
-            totalFiles: report.repositoryInventory.totalFiles,
-            totalFolders: report.repositoryInventory.totalFolders
-          }
-        : null
-    };
-  }
-  if (type === 'simplebeacon-report') {
-    return {
-      type: report.type,
+      repositoryInventory: report.repositoryInventory,
       projectRoot: report.projectRoot,
       platformRoot: report.platformRoot,
       gate: report.gate,
@@ -957,11 +947,27 @@ export function openAuditReportPrintWindow(html, filename = 'simplebeacon-audit.
 
   const previewWindow = window.open('', '_blank');
   if (previewWindow) {
-    previewWindow.document.open();
-    previewWindow.document.write(html);
-    previewWindow.document.close();
-    previewWindow.focus();
-    return { mode: 'html-download', filename: savedAs, preview: true };
+    try {
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      previewWindow.location.href = url;
+      previewWindow.addEventListener('load', () => {
+        try { URL.revokeObjectURL(url); } catch (e) { }
+      }, { once: true });
+      previewWindow.focus();
+      return { mode: 'html-download', filename: savedAs, preview: true };
+    }
+    catch (e) {
+      try {
+        const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+        previewWindow.location.href = dataUrl;
+        previewWindow.focus();
+        return { mode: 'html-download', filename: savedAs, preview: true };
+      }
+      catch (err) {
+        return { mode: 'html-download', filename: savedAs, preview: false };
+      }
+    }
   }
 
   return { mode: 'html-download', filename: savedAs, preview: false };

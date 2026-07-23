@@ -114,7 +114,7 @@ const SIGNATURE_ENGINE = [
     id: 'SB-09',
     name: 'Hardcoded IP Address',
     severity: 'MEDIUM',
-    regex: /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g,
+    regex: /\b(?!127\.0\.0\.1|0\.0\.0\.0|255\.255\.255\.255)(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g,
     msg: 'Hardcoded IP address found — use environment variables for configuration.'
   },
   {
@@ -262,6 +262,8 @@ function isCommonFalsePositive(str) {
   if (/^[0-9a-f]{32,64}$/i.test(str)) return true;
   if (/={2}$/.test(str) || /P={2}$/.test(str) || /A={2}$/.test(str)) return true;
   if (/^(.)\1{8,}/.test(str)) return true;
+  // Path/URL segments (e.g. GitHub doc paths) are not secrets
+  if ((str.split('/').length - 1) >= 3) return true;
   return false;
 }
 

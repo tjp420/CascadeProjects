@@ -3,6 +3,17 @@ import { escapeHtml } from './string.js';
 import { notifyDownloadComplete } from './notify.js';
 
 let _toastId = 0;
+const _rectCache = new WeakMap();
+
+function _getCachedRect(el, maxAge = 100) {
+  if (!el || typeof el.getBoundingClientRect !== 'function') return null;
+  const now = Date.now();
+  const cached = _rectCache.get(el);
+  if (cached && (now - cached.ts) < maxAge) return cached.rect;
+  const rect = el.getBoundingClientRect();
+  _rectCache.set(el, { rect, ts: now });
+  return rect;
+}
 
 function _renderToast(container, message, type, duration) {
   const id = `toast-${++_toastId}`;
@@ -321,7 +332,7 @@ export function scrollToElement(selector, behavior = 'smooth') {
   if (typeof document === 'undefined') return false;
   const el = document.querySelector(selector);
   if (el && typeof el.scrollIntoView === 'function') {
-    el.scrollIntoView({ behavior, block: 'start' });
+    requestAnimationFrame(() => el.scrollIntoView({ behavior, block: 'start' }));
     return true;
   }
   return false;
@@ -334,7 +345,8 @@ export function scrollToElement(selector, behavior = 'smooth') {
  */
 export function elementInViewport(el) {
   if (!el || typeof el.getBoundingClientRect !== 'function') return false;
-  const rect = el.getBoundingClientRect();
+  const rect = _getCachedRect(el) || el.getBoundingClientRect();
+  if (!rect) return false;
   return rect.top >= 0 && rect.left >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && rect.right <= (window.innerWidth || document.documentElement.clientWidth);
 }
 

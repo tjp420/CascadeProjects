@@ -65,6 +65,7 @@ export class ResultsView {
     const metrics = getScanFileMetrics(report);
     const gateLabel = report.gate?.pass ? 'PASS' : report.gate ? 'REVIEW' : '—';
     const gateClass = report.gate?.pass ? 'pass' : 'warn';
+    const telemetry = report.telemetry || null;
     return `
       <div class="metrics-row mb-4">
         <div class="metric-chip gate-badge ${gateClass}">${gateLabel}</div>
@@ -75,6 +76,17 @@ export class ResultsView {
         <div class="metric-chip"><strong>${formatPercent(report.schemaCompliance)}</strong> schema</div>
         <div class="metric-chip"><strong>${report.issueCount ?? 0}</strong> issue groups</div>
       </div>
+      ${telemetry ? `
+        <div class="card mb-4" style="padding:var(--space-3);">
+          <h4 style="margin:0 0 8px;">Scan breakdown</h4>
+          <div class="metrics-row">
+            <div class="metric-chip">Ignored dirs: <strong>${formatNumber(telemetry.ignoredDir || 0)}</strong></div>
+            <div class="metric-chip">Binary/skipped: <strong>${formatNumber(telemetry.binarySkipped || 0)}</strong></div>
+            <div class="metric-chip">Large vendor files skipped: <strong>${formatNumber(telemetry.heavyVendor || 0)}</strong></div>
+            <div class="metric-chip">Ignored by pattern: <strong>${formatNumber(telemetry.ignoredByPattern || 0)}</strong></div>
+          </div>
+        </div>
+      ` : ''}
     `;
   }
 
@@ -193,7 +205,6 @@ export class ResultsView {
         if (c2) _issuesEmptyState.attach(c2);
       }
     } catch (e) {
-      console.warn('[ResultsView] emptyState attach failed', e);
     }
 
     this.bindFilters(el);

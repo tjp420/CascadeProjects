@@ -647,6 +647,26 @@ export class RealtimeMonitor {
     return false;
   }
 
+  private hasFileLevelSuppression(fileHeader: string, type: string): boolean {
+    const header = (fileHeader || '').toLowerCase();
+    const match = header.match(/(?:\/\/|<!--|#)\s*simplebeacon-ignore\b[ \t:]*([^\r\n]*)/);
+    if (!match) return false;
+    const rest = match[1] || '';
+    // Blanket suppression for scanner/dashboard/test fixture/build script files
+    if (/all findings are false positives/.test(rest)) return true;
+    if (/(scanner definitions|test fixtures|dashboard code|build scripts)/.test(rest)) return true;
+    // Also honor specific/all tags in the header comment
+    const tags = rest.split(/[,\s]+/).map((t) => t.trim()).filter(Boolean);
+    const lowerType = type.toLowerCase();
+    if (tags.includes('all') || tags.includes(lowerType)) return true;
+    if (lowerType.startsWith('hardcoded-') || lowerType.includes('sensitive') || lowerType.includes('credential')) {
+      if (tags.some((tag) => ['credential', 'secret', 'password', 'api-key', 'token', 'hardcoded'].includes(tag))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private isCredentialExampleMatch(line: string, matchText: string, type: string): boolean {
     if (!/^hardcoded-(password|api-key|token)$/i.test(type)) return false;
     const valueMatch = matchText.match(/=\s*["']([^"']+)["']/i);
@@ -703,7 +723,7 @@ export class RealtimeMonitor {
             if (this.isInsideStringLiteral(line, match.index || 0)) continue;
           }
           // Respect simplebeacon-ignore / slop-cop-disable-next-line suppression
-          if (this.isSuppressed(line, lines[lineNumber - 2], pattern.type)) {
+          if (this.isSuppressed(line, lines[lineNumber - 2], pattern.type) || this.hasFileLevelSuppression(lines[0], pattern.type)) {
             continue;
           }
           if (this.shouldSkipCredentialFinding(filePath, line, match[0], pattern.type)) {
@@ -990,6 +1010,11 @@ export class RealtimeMonitor {
         // Skip matches inside string or regex literals (scanner rule definitions)
         const lineText = lines[lineNumber - 1] ?? '';
         if (this.isInsideStringLiteral(lineText, column > 0 ? column : 0)) {
+          continue;
+        }
+
+        // Respect file-level simplebeacon-ignore suppression
+        if (this.hasFileLevelSuppression(lines[0], pattern.type)) {
           continue;
         }
 

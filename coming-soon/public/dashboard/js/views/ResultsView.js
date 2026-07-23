@@ -65,6 +65,7 @@ export class ResultsView {
     const metrics = getScanFileMetrics(report);
     const gateLabel = report.gate?.pass ? 'PASS' : report.gate ? 'REVIEW' : '—';
     const gateClass = report.gate?.pass ? 'pass' : 'warn';
+    const telemetry = report.telemetry || null;
     return `
       <div class="metrics-row mb-4">
         <div class="metric-chip gate-badge ${gateClass}">${gateLabel}</div>
@@ -75,6 +76,17 @@ export class ResultsView {
         <div class="metric-chip"><strong>${formatPercent(report.schemaCompliance)}</strong> schema</div>
         <div class="metric-chip"><strong>${report.issueCount ?? 0}</strong> issue groups</div>
       </div>
+      ${telemetry ? `
+        <div class="card mb-4" style="padding:var(--space-3);">
+          <h4 style="margin:0 0 8px;">Scan breakdown</h4>
+          <div class="metrics-row">
+            <div class="metric-chip">Ignored dirs: <strong>${formatNumber(telemetry.ignoredDir || 0)}</strong></div>
+            <div class="metric-chip">Binary/skipped: <strong>${formatNumber(telemetry.binarySkipped || 0)}</strong></div>
+            <div class="metric-chip">Large vendor files skipped: <strong>${formatNumber(telemetry.heavyVendor || 0)}</strong></div>
+            <div class="metric-chip">Ignored by pattern: <strong>${formatNumber(telemetry.ignoredByPattern || 0)}</strong></div>
+          </div>
+        </div>
+      ` : ''}
     `;
   }
 
@@ -94,7 +106,22 @@ export class ResultsView {
 
     const el = document.createElement('div');
     el.className = 'fade-in';
-el.innerHTML = `
+    const _noReportEmptyState = !report ? renderEmptyState({
+      icon: '📋',
+      title: 'No scan report loaded yet',
+      body: 'Run a Simplebeacon or Complete scan from Analyze, or use Dashboard → Run scan.',
+      iconWrapper: 'emoji',
+      actions: [{ label: 'Go to Analyze', onClick: () => this.app.navigate('analyze') }]
+    }) : null;
+    const _issuesEmptyState = report && issues.length === 0 ? renderEmptyState({
+      icon: totalIssues === 0 && report.gate?.pass && !filtersActive ? '✅' : '🔍',
+      title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
+      iconWrapper: 'emoji'
+    }) : null;
+    const _noReportEmptyHtml = _noReportEmptyState ? (typeof _noReportEmptyState === 'string' ? _noReportEmptyState : _noReportEmptyState.html) : '';
+    const _issuesEmptyHtml = _issuesEmptyState ? (typeof _issuesEmptyState === 'string' ? _issuesEmptyState : _issuesEmptyState.html) : '';
+
+    el.innerHTML = `
       <div class="section-heading mb-4">
         <h1 class="page-title" style="margin:0">Results</h1>
         <div class="flex gap-2">
@@ -136,23 +163,14 @@ el.innerHTML = `
         <button type="button" class="filter-chip ${this.filterCategory === 'all' ? 'active' : ''}" data-category="all">All types</button>
         ${categories.map((c) => `
           <button type="button" class="filter-chip ${this.filterCategory === c.id ? 'active' : ''}" data-category="${c.id}">
-            ${c.icon} ${escapeHtml(c.title)} (${c.count})
-          </button>
+          ${typeof c.icon === 'string' ? c.icon : ''} ${escapeHtml(c.title)} (${c.count})
+        </button>
         `).join('')}
       </div>
       ${!report ? `
-        ${renderEmptyState({
-          icon: '📋',
-          title: 'No scan report loaded yet',
-          body: 'Run a Simplebeacon or Complete scan from Analyze, or use Dashboard → Run scan.',
-          iconWrapper: 'emoji'
-        })}
+        <div id="results-no-report-empty">${_noReportEmptyHtml}</div>
       ` : issues.length === 0 ? `
-        ${renderEmptyState({
-          icon: totalIssues === 0 && report.gate?.pass && !filtersActive ? '✅' : '🔍',
-          title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
-          iconWrapper: 'emoji'
-        })}
+        <div class="results-empty-wrap"><div id="results-empty-state">${_issuesEmptyHtml}</div></div>
         ${filtersActive
     ? '<p class="text-muted" style="margin-top:var(--space-2)"><button type="button" class="btn btn-secondary btn-sm" id="clear-results-filters">Clear filters</button></p>'
     : ''}
@@ -176,6 +194,19 @@ el.innerHTML = `
 
       ${this.renderSampleFiles()}
     `;
+
+    try {
+      if (_noReportEmptyState && typeof _noReportEmptyState !== 'string' && typeof _noReportEmptyState.attach === 'function') {
+        const c = el.querySelector('#results-no-report-empty');
+        if (c) _noReportEmptyState.attach(c);
+      }
+      if (_issuesEmptyState && typeof _issuesEmptyState !== 'string' && typeof _issuesEmptyState.attach === 'function') {
+        const c2 = el.querySelector('#results-empty-state');
+        if (c2) _issuesEmptyState.attach(c2);
+      }
+    } catch (e) {
+      console.warn('[ResultsView] emptyState attach failed', e);
+    }
 
     this.bindFilters(el);
     this.bindExport(el, issues);

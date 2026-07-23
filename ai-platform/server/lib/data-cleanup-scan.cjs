@@ -9,6 +9,7 @@ const {
     assertSafeProjectPath
 } = require('./path-safety.cjs');
 const { toClientError } = require('../../shared-utils/index.cjs');
+const { withTimeout } = require('./flexible-analyze-utils.cjs');
 const path = require('path');
 const fs = require('fs');
 const { readTextFileWithLimit, redactTextSecrets } = require('./recoverable-io.cjs');
@@ -285,12 +286,12 @@ function registerDataCleanupAnalyzeRoute(app, options = {}) {
             const singleScanner = req.query.scanner ? String(req.query.scanner).trim() : '';
             const full = ['1', 'true', 'yes'].includes(String(req.query.full || req.query.compact === '0' ? '1' : '').toLowerCase());
             const refresh = ['1', 'true', 'yes'].includes(String(req.query.refresh || '').toLowerCase());
-            const report = await runDataCleanupScan(projectPath, {
+            const report = await withTimeout(runDataCleanupScan(projectPath, {
                 profile,
                 scanner: singleScanner || undefined,
                 compact: !full,
                 bypassCache: refresh
-            });
+            }), 180_000, `data-cleanup ${profile}`);
 
             res.set('Cache-Control', 'no-store');
             return sendJson(res, {

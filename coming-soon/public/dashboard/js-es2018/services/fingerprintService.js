@@ -162,10 +162,10 @@ async function collectPaths(directoryHandle, paths = [], depth = 0, prefix = '')
             // Legacy webkit FileSystemDirectoryEntry
             const reader = directoryHandle.createReader();
             const entries = [];
-            let batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+            let batch = await new Promise((resolve) => reader.readEntries(resolve, () => resolve([])));
             while (batch.length > 0) {
                 entries.push(...batch);
-                batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+                batch = await new Promise((resolve) => reader.readEntries(resolve, () => resolve([])));
                 if (entries.length > MAX_DISCOVERED_ENTRIES)
                     break;
             }

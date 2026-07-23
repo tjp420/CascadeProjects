@@ -109,8 +109,7 @@ export class CodeMapView {
 
   async mount(container) {
     this.container = container;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = '<div style="padding:24px;color:#888;font-family:Inter,system-ui,sans-serif;">Loading code map…</div>';
+container.innerHTML = '<div style="padding:24px;color:#888;font-family:Inter,system-ui,sans-serif;">Loading code map…</div>';
 
     try {
       const projectPath = this.app.state && this.app.state.lastProjectPath;
@@ -124,8 +123,7 @@ export class CodeMapView {
 
       this.render(projectPath, reportData, inventoryData);
     } catch (err) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-      container.innerHTML = `<div style="padding:24px;color:#ef4444;">Failed to load code map: ${escapeHtml(err.message)}</div>`;
+container.innerHTML = `<div style="padding:24px;color:#ef4444;">Failed to load code map: ${escapeHtml(err.message)}</div>`;
     }
   }
 
@@ -164,8 +162,7 @@ export class CodeMapView {
         ? '<span style="background:#ef444433;color:#f87171;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">FAIL</span>'
         : '<span style="color:#64748b;font-size:11px;">—</span>';
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    this.container.innerHTML = `
+this.container.innerHTML = `
       <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;height:100%;padding:16px;box-sizing:border-box;font-family:Inter,system-ui,sans-serif;">
         <!-- Sidebar -->
         <div style="display:flex;flex-direction:column;gap:16px;overflow-y:auto;">

@@ -148,8 +148,68 @@ app.use(express.json({ limit: constants.safeJsonLimit(process.env.EXPRESS_JSON_L
 app.use(express.urlencoded({ extended: true }));
 
 const comingSoonRoot = path.join(__dirname, '../../coming-soon');
+const landingRoot = path.join(comingSoonRoot, 'public');
 const webRoot = path.join(__dirname, '../web');
 const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true';
+const landingEnabled = process.env.SIMPLEBEACON_LANDING === 'true';
+const landingRootExists = fs.existsSync(landingRoot);
+const landingAtRoot = landingEnabled && !internalDashboard;
+
+/**
+ * Whether storefront assets should be served.
+ * @returns {boolean}
+ */
+function storefrontAssetsEnabled() {
+  return landingEnabled || internalDashboard || landingRootExists;
+}
+
+/**
+ * Send a landing file with path-traversal guard.
+ * @param {import('express').Response} res
+ * @param {string} relativePath
+ * @param {string} [type]
+ * @returns {boolean}
+ */
+function sendLandingFile(res, relativePath, type) {
+  if (!landingRootExists) return false;
+  if (typeof relativePath !== 'string') return false;
+  const resolved = path.resolve(path.join(landingRoot, relativePath));
+  const rootResolved = path.resolve(landingRoot);
+  const relativeToRoot = path.relative(rootResolved, resolved);
+  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
+    return false;
+  }
+  if (!fs.existsSync(resolved)) return false;
+  if (typeof type === 'string' && type) res.type(type);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
+  res.sendFile(resolved);
+  return true;
+}
+
+/**
+ * Send landing index.
+ * @param {import('express').Response} res
+ * @returns {boolean}
+ */
+function sendLandingIndex(res) {
+  const landingIndex = path.join(landingRoot, 'index.html');
+  if (!fs.existsSync(landingIndex)) return false;
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
+  res.sendFile(landingIndex);
+  return true;
+}
+
+/**
+ * Send demo report if allowed.
+ * @param {import('express').Response} res
+ * @returns {boolean}
+ */
+function sendDemoReport(res) {
+  if (process.env.NODE_ENV === 'production' && !process.env.SIMPLEBEACON_ENABLE_DEMO_REPORT) {
+    return false;
+  }
+  return sendLandingFile(res, 'demo-report.html', 'text/html');
+}
 
 // Refuse to start internal dashboard without a vault password in non-dev environments
 if (internalDashboard && !process.env.DASHBOARD_VAULT_PASSWORD && process.env.NODE_ENV !== 'development') {
@@ -180,37 +240,51 @@ function isVaultAuthenticated(req) {
  * @returns {void}
  */
 function sendComingSoonIndex(res) {
-  res.sendFile(path.join(comingSoonRoot, 'index.html'));
+  res.sendFile(path.join(landingRoot, 'index.html'));
 }
 
 const dashboardPath = path.join(webRoot, 'simplebeacon-dashboard/index.html');
-let cachedDashboardHtml = null;
-try {
-  cachedDashboardHtml = fs.readFileSync(dashboardPath, 'utf8');
-} catch {
-  cachedDashboardHtml = null;
-}
+let _cachedDashboardHtml = null;
+let _cachedDashboardMtimeMs = 0;
 
 /**
- * Load dashboard html.
- * @returns {string|null}
+ * Load dashboard html with mtime-based caching.
+ * @returns {Promise<string|null>}
  */
-function loadDashboardHtml() {
+async function loadDashboardHtml() {
   try {
-    return fs.readFileSync(dashboardPath, 'utf8');
+    const stat = await fs.promises.stat(dashboardPath);
+    if (_cachedDashboardHtml && stat.mtimeMs === _cachedDashboardMtimeMs) {
+      return _cachedDashboardHtml;
+    }
+    let html = await fs.promises.readFile(dashboardPath, 'utf8');
+    // Ensure relative asset paths resolve from root when served from /dashboard
+    if (!html.includes('<base href=')) {
+      html = html.replace(/<head>/i, '<head>\n  <base href="/">');
+    }
+    _cachedDashboardHtml = html;
+    _cachedDashboardMtimeMs = stat.mtimeMs;
+    return html;
   } catch {
-    return cachedDashboardHtml;
+    return null;
   }
 }
 
 /**
  * Send simplebeacon dashboard.
  * @param {Object} res
- * @returns {void}
+ * @returns {Promise<void>}
  */
-function sendSimplebeaconDashboard(res) {
+async function sendSimplebeaconDashboard(res) {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
-  const html = loadDashboardHtml();
+  // Path-traversal guard: ensure dashboard path resolves inside webRoot
+  const resolved = path.resolve(dashboardPath);
+  const rootResolved = path.resolve(webRoot);
+  const relativeToRoot = path.relative(rootResolved, resolved);
+  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
+    return res.status(403).send('Forbidden');
+  }
+  const html = await loadDashboardHtml();
   if (html === null) {
     return res.status(404).send('Simplebeacon dashboard not found');
   }
@@ -220,15 +294,16 @@ function sendSimplebeaconDashboard(res) {
     setVaultSessionCookie(res, process.env.DASHBOARD_VAULT_PASSWORD);
   }
 
-  res.send(html);
+  return res.send(html);
 }
 
-// Public storefront — same paywall as simplebeacon.ai (coming-soon/)
+// Public storefront — same paywall as simplebeacon.ai (coming-soon/public/)
 // When internalDashboard is enabled, serve the dashboard instead of the landing page
 app.get('/', createRateLimiter({ max: 300 }), (req, res) => {
   if (internalDashboard) {
     return sendSimplebeaconDashboard(res);
   }
+  if (sendLandingIndex(res)) return;
   sendComingSoonIndex(res);
 });
 app.get(['/landing', '/landing/'], (req, res) => {
@@ -238,7 +313,7 @@ app.get(['/landing', '/landing/'], (req, res) => {
   sendComingSoonIndex(res);
 });
 app.get('/sample-report', (req, res) => {
-  res.sendFile(path.join(comingSoonRoot, 'sample-report.html'));
+  res.sendFile(path.join(landingRoot, 'sample-report.html'));
 });
 
 const VAULT_AUTH_EXACT_PATHS = new Set([
@@ -273,6 +348,7 @@ const VAULT_AUTH_PREFIX_PATHS = [
   '/api/security/',
   '/api/optimization/',
   '/api/analyze/',
+  '/api/find-folder',
   '/api/operator/',
   '/api/reports/status/'
 ];
@@ -355,7 +431,7 @@ app.get('/private-dashboard-vault', async (req, res) => {
       return res.status(403).send('Unauthorized Access: Private Vault is Locked.');
     }
     setVaultSessionCookie(res, vaultPassword);
-    const samplePath = path.join(comingSoonRoot, 'sample-report.html');
+    const samplePath = path.join(landingRoot, 'sample-report.html');
     try {
       await fs.promises.access(samplePath);
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
@@ -372,7 +448,7 @@ app.get('/private-dashboard-vault', async (req, res) => {
 // Public dashboard route (standalone coming-soon/public/dashboard copy)
 // Injects runtime env so it can reach the ai-platform server proxy regardless of the serving port.
 app.get(['/public/dashboard', '/public/dashboard/', '/public/dashboard/index.html'], async (req, res) => {
-  const indexPath = path.join(comingSoonRoot, 'public', 'dashboard', 'index.html');
+  const indexPath = path.join(landingRoot, 'dashboard', 'index.html');
   let html;
   try {
     html = await fs.promises.readFile(indexPath, 'utf8');
@@ -391,8 +467,8 @@ app.get(['/public/dashboard', '/public/dashboard/', '/public/dashboard/index.htm
   res.send(html);
 });
 
-// Storefront static assets — serve marketing site from root
-app.use('/', express.static(comingSoonRoot, { index: false }));
+// Storefront static assets — serve marketing site from landing root (coming-soon/public/)
+app.use('/', express.static(landingRoot, { index: false }));
 
 // Prevent browser caching of dashboard HTML/JS so updated client code always loads
 app.use((req, res, next) => {
@@ -434,92 +510,213 @@ for (const p of ['/dashboard/css', '/dashboard/images', '/dashboard/fonts', '/da
 }
 app.use('/site-config.js', express.static(path.join(dashDir, 'site-config.js')));
 
-// Fallback: serve coming-soon assets from root for pages served under /coming-soon/
+// Dashboard static asset fallback — also check coming-soon/public/dashboard for vendor files
+const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
+  ? path.join(landingRoot, 'dashboard')
+  : null;
+if (dashboardFallbackDir) {
+  for (const p of ['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets']) {
+    const sub = p.replace('/dashboard/', '');
+    app.use(p, express.static(path.join(dashboardFallbackDir, sub), { fallthrough: false }));
+  }
+  app.use('/dashboard/site-config.js', express.static(path.join(dashboardFallbackDir, 'site-config.js'), { fallthrough: false }));
+}
+
+// Fallback: serve landing assets from root for pages served under /coming-soon/
 for (const p of ['/css', '/js', '/images', '/fonts', '/assets']) {
-  app.use(p, express.static(path.join(comingSoonRoot, p.substring(1))));
+  app.use(p, express.static(path.join(landingRoot, p.substring(1))));
 }
 
 // Public data files (e.g. trust-verification.json)
 const publicDir = path.join(__dirname, '..', 'public');
 app.use('/public', express.static(publicDir, { index: false }));
 
+// === Legacy SPA redirects (consolidated from simplebeacon-server.cjs) ===
+async function redirectPublicToLanding(req, res) {
+  if (landingAtRoot) {
+    return res.redirect(302, '/');
+  }
+  if (internalDashboard && !isVaultAuthenticated(req)) {
+    return res.redirect(302, '/');
+  }
+  return sendSimplebeaconDashboard(res);
+}
+
+app.get(/^\/demo(\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res));
+app.get(/^\/signin(\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res));
+app.get(/^\/app(\/.*)?$/, async (req, res) => redirectPublicToLanding(req, res));
+app.get(/^\/upload(\.html)?(\/.*)?$/, (req, res) => res.redirect(302, '/#/upload'));
+app.get('/dashboard/pricing', (_req, res) => res.redirect(301, '/pricing'));
+app.get(/^\/trust(\/.*)?$/, (req, res) => {
+  if (landingAtRoot) return res.redirect(302, '/');
+  if (internalDashboard && !isVaultAuthenticated(req)) return res.redirect(302, '/');
+  const trustHash = internalDashboard ? '/#/trust' : '/app#/trust';
+  res.redirect(302, trustHash);
+});
+
+// === Storefront landing page routes (clean URLs) ===
+if (landingRootExists) {
+  app.get('/site-config.js', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'site-config.js', 'application/javascript')) return;
+    next();
+  });
+  app.get('/app-links.js', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'app-links.js', 'application/javascript')) return;
+    next();
+  });
+  app.get('/audit-booking.js', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'audit-booking.js', 'application/javascript')) return;
+    next();
+  });
+  app.get('/diagnostic-scanner.js', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'diagnostic-scanner.js', 'application/javascript')) return;
+    next();
+  });
+  app.get('/diagnostic-bundle-lib.js', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'diagnostic-bundle-lib.js', 'application/javascript')) return;
+    next();
+  });
+  app.get('/styles.css', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'styles.css', 'text/css')) return;
+    next();
+  });
+  app.get('/pricing.js', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'pricing.js', 'application/javascript')) return;
+    next();
+  });
+  app.get(['/pricing', '/pricing/'], (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'pricing.html', 'text/html')) return;
+    next();
+  });
+  app.get(['/roadmap', '/roadmap/'], (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'roadmap.html', 'text/html')) return;
+    next();
+  });
+  app.get(['/audit', '/audit/'], (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'audit.html', 'text/html')) return;
+    next();
+  });
+  app.get(['/downloads/diagnostic-prep', '/downloads/diagnostic-prep.html'], (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'downloads/diagnostic-prep.html', 'text/html')) return;
+    next();
+  });
+  for (const legalPage of ['terms', 'privacy', 'refund', 'contact']) {
+    app.get([`/${legalPage}`, `/${legalPage}/`], (req, res, next) => {
+      if (!storefrontAssetsEnabled()) return next();
+      if (sendLandingFile(res, `${legalPage}.html`, 'text/html')) return;
+      next();
+    });
+  }
+  // .html → clean URL redirects
+  app.get('/pricing.html', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    return res.redirect(301, '/pricing');
+  });
+  app.get('/roadmap.html', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    return res.redirect(301, '/roadmap');
+  });
+  app.get('/audit.html', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    return res.redirect(301, '/audit');
+  });
+  for (const legalPage of ['terms', 'privacy', 'refund', 'contact']) {
+    app.get(`/${legalPage}.html`, (req, res, next) => {
+      if (!storefrontAssetsEnabled()) return next();
+      return res.redirect(301, `/${legalPage}`);
+    });
+  }
+  app.get(['/community', '/community/'], (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    return res.redirect(302, '/');
+  });
+  app.get('/community.html', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    return res.redirect(301, '/community/');
+  });
+  app.get('/downloads/simplebeacon-:version.tgz', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    const version = String(req.params.version || '').replace(/[\\/]/g, '_');
+    if (!version) return next();
+    if (sendLandingFile(res, `downloads/simplebeacon-${version}.tgz`, 'application/gzip')) return;
+    next();
+  });
+  app.get('/robots.txt', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'robots.txt', 'text/plain')) return;
+    next();
+  });
+  app.get('/sitemap.xml', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'sitemap.xml', 'application/xml')) return;
+    next();
+  });
+  app.get('/favicon.svg', (req, res, next) => {
+    if (!storefrontAssetsEnabled()) return next();
+    if (sendLandingFile(res, 'favicon.svg', 'image/svg+xml')) return;
+    next();
+  });
+}
+
+// Direct access to landing.html (bypasses landingEnabled flag for development)
+app.get('/landing.html', (req, res) => {
+  if (sendLandingFile(res, 'landing.html', 'text/html')) return;
+  return res.status(404).send('Landing page not found');
+});
+
+// Demo report routes
+app.get(['/demo-report', '/demo-report/', '/demo-report.html'], (req, res, next) => {
+  if (sendDemoReport(res)) return;
+  next();
+});
+
 // Inject runtime configuration into dashboard HTML
 // This route MUST come before catch-all static middleware
-app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'], async (req, res) => {
-  const indexPath = path.join(webRoot, 'simplebeacon-dashboard', 'index.html');
-  let html;
-  try {
-    html = await fs.promises.readFile(indexPath, 'utf8');
-  } catch {
+// Uses mtime-cached HTML with <base href> injection from loadDashboardHtml()
+async function sendDashboardWithRuntimeConfig(req, res) {
+  let html = await loadDashboardHtml();
+  if (html === null) {
     return res.status(404).send('index.html not found');
   }
-
   const runtimeConfig = JSON.stringify({
     DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
     OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}` // simplebeacon-ignore hardcoded-url — default Ollama localhost URL for client-side settings
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
-  html = html.replace('<head>', `<head>${injectScript}`);
-
+  // Inject after <head> (or after <base href> if already present from loadDashboardHtml)
+  html = html.replace(/<head>(\s*<base href="[^"]*">)?/, `<head>$1${injectScript}`);
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
-  res.send(html);
+  return res.send(html);
+}
+
+app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'], async (req, res) => {
+  return sendDashboardWithRuntimeConfig(req, res);
 });
 
 // SPA fallback for dashboard sub-routes (e.g. /simplebeacon-dashboard/analyze)
 app.get('/simplebeacon-dashboard/*', async (req, res) => {
-  const indexPath = path.join(webRoot, 'simplebeacon-dashboard', 'index.html');
-  let html;
-  try {
-    html = await fs.promises.readFile(indexPath, 'utf8');
-  } catch {
-    return res.status(404).send('index.html not found');
-  }
-  const runtimeConfig = JSON.stringify({
-    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
-    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`
-  });
-  const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
-  html = html.replace('<head>', `<head>${injectScript}`);
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
-  res.send(html);
+  return sendDashboardWithRuntimeConfig(req, res);
 });
 
 // Compatibility: also serve dashboard at /dashboard (legacy simplebeacon-server.cjs path)
 app.get(['/dashboard', '/dashboard/'], async (req, res) => {
-  const indexPath = path.join(webRoot, 'simplebeacon-dashboard', 'index.html');
-  let html;
-  try {
-    html = await fs.promises.readFile(indexPath, 'utf8');
-  } catch {
-    return res.status(404).send('index.html not found');
-  }
-  const runtimeConfig = JSON.stringify({
-    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
-    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`
-  });
-  const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
-  html = html.replace('<head>', `<head>${injectScript}`);
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
-  res.send(html);
+  return sendDashboardWithRuntimeConfig(req, res);
 });
 
 // SPA fallback for /dashboard/* sub-routes
 app.get('/dashboard/*', async (req, res) => {
-  const indexPath = path.join(webRoot, 'simplebeacon-dashboard', 'index.html');
-  let html;
-  try {
-    html = await fs.promises.readFile(indexPath, 'utf8');
-  } catch {
-    return res.status(404).send('index.html not found');
-  }
-  const runtimeConfig = JSON.stringify({
-    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
-    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`
-  });
-  const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
-  html = html.replace('<head>', `<head>${injectScript}`);
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
-  res.send(html);
+  return sendDashboardWithRuntimeConfig(req, res);
 });
 
 // Dashboard / web assets (vault-gated when DASHBOARD_VAULT_PASSWORD is set)

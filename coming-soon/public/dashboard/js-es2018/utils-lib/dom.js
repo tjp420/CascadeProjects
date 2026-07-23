@@ -2,6 +2,17 @@
 import { escapeHtml } from './string.js';
 import { notifyDownloadComplete } from './notify.js?v=20260716cachefix1';
 let _toastId = 0;
+const _rectCache = new WeakMap();
+
+function _getCachedRect(el, maxAge = 100) {
+    if (!el || typeof el.getBoundingClientRect !== 'function') return null;
+    const now = Date.now();
+    const cached = _rectCache.get(el);
+    if (cached && (now - cached.ts) < maxAge) return cached.rect;
+    const rect = el.getBoundingClientRect();
+    _rectCache.set(el, { rect, ts: now });
+    return rect;
+}
 function _renderToast(container, message, type, duration) {
     const id = `toast-${++_toastId}`;
     const toast = document.createElement('div');
@@ -363,6 +374,44 @@ export function focusFirst(container) {
         return false;
     }
 }
+
+// Create empty state element builder attached to window to avoid redeclaration when scripts
+// are loaded multiple times in the same page (different bundles/variants).
+if (typeof window !== 'undefined') {
+    if (!window.__SB_createEmptyStateElement) {
+        window.__SB_createEmptyStateElement = function (opts) {
+            const { icon, title, body = '', actions: rawActions = [], iconWrapper = 'svg' } = opts || {};
+            const actions = Array.isArray(rawActions) ? rawActions.filter(a => a && typeof a === 'object') : [];
+            const container = createElement('div', { className: 'empty-state card' });
+            const iconWrapperEl = createElement('div', { className: 'empty-state-icon-wrapper' });
+            if (iconWrapper === 'emoji') {
+                iconWrapperEl.appendChild(createElement('div', { className: 'empty-state-icon', style: 'font-size:3rem;background:none;width:auto;height:auto;' }, [String(icon || '')]));
+            }
+            else {
+                const svgWrap = createElement('div', { className: 'empty-state-icon' });
+                svgWrap.innerHTML = String(icon || '');
+                iconWrapperEl.appendChild(svgWrap);
+            }
+            container.appendChild(iconWrapperEl);
+            container.appendChild(createElement('h3', { className: 'empty-state-title' }, [String(title || '')]));
+            if (body)
+                container.appendChild(createElement('p', { className: 'empty-state-body' }, [String(body)]));
+            if (actions.length) {
+                const actionsEl = createElement('div', { className: 'empty-state-actions' });
+                actions.forEach((a) => {
+                    const btn = createElement('button', { className: `btn ${String(a.className || 'btn-primary')}`, id: a.id || undefined }, [String(a.label || '')]);
+                    if (typeof a.onClick === 'function')
+                        btn.addEventListener('click', a.onClick);
+                    if (typeof a.handler === 'function')
+                        btn.addEventListener('click', a.handler);
+                    actionsEl.appendChild(btn);
+                });
+                container.appendChild(actionsEl);
+            }
+            return container;
+        };
+    }
+}
 /** Create a DOM element with attributes and child nodes.
  * @param {string} tag Element tag name.
  * @param {Object} [attrs={}] Attribute key-value pairs.
@@ -417,7 +466,7 @@ export function scrollToElement(selector, behavior = 'smooth') {
         return false;
     const el = document.querySelector(selector);
     if (el && typeof el.scrollIntoView === 'function') {
-        el.scrollIntoView({ behavior, block: 'start' });
+        requestAnimationFrame(() => el.scrollIntoView({ behavior, block: 'start' }));
         return true;
     }
     return false;
@@ -430,7 +479,8 @@ export function scrollToElement(selector, behavior = 'smooth') {
 export function elementInViewport(el) {
     if (!el || typeof el.getBoundingClientRect !== 'function')
         return false;
-    const rect = el.getBoundingClientRect();
+    const rect = _getCachedRect(el) || el.getBoundingClientRect();
+    if (!rect) return false;
     return rect.top >= 0 && rect.left >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && rect.right <= (window.innerWidth || document.documentElement.clientWidth);
 }
 /**
@@ -522,18 +572,14 @@ export function renderEmptyState(opts) {
       ${actionsHtml}
     </div>
   `.trim();
-    if (actions.some(a => typeof a.onClick === 'function')) {
+    if (actions.some(a => typeof a.onClick === 'function' || typeof a.handler === 'function')) {
         return {
             html,
             attach(container) {
-                actions.forEach((action, idx) => {
-                    if (typeof action.onClick !== 'function')
-                        return;
-                    const selector = action.id ? `#${CSS.escape(action.id)}` : `[data-action-index="${idx}"]`;
-                    const btn = container.querySelector(selector);
-                    if (btn)
-                        btn.addEventListener('click', action.onClick);
-                });
+                const builder = (typeof window !== 'undefined' && window.__SB_createEmptyStateElement) ? window.__SB_createEmptyStateElement : null;
+                const el = builder ? builder({ icon, title, body, actions: rawActions, iconWrapper }) : null;
+                // replace container contents rather than relying on innerHTML elsewhere
+                if (el && container && typeof container.appendChild === 'function') container.appendChild(el);
             }
         };
     }
@@ -543,19 +589,17 @@ export function renderEmptyState(opts) {
 /**
  * True when the dashboard runs inside an iframe/embed (VS Code webview, coming-soon shell, etc.).
  * Browsers block showDirectoryPicker in subframes even when same-origin.
+ * URL params (sb_parent_urlbar, sb_website_mode) configure the API bridge but do NOT
+ * mean we're embedded — the page could be in a top-level browser tab opened from the IDE.
  */
 export function isEmbeddedDashboardFrame() {
     if (typeof window === 'undefined')
         return false;
-    if (window.__SB_PARENT_URL_BAR__)
-        return true;
-    try {
-        const params = new URLSearchParams(window.location.search || '');
-        if (params.get('sb_parent_urlbar') === '1' || params.get('sb_website_mode') === '1')
-            return true;
-    }
-    catch (_a) { /* ignore */ }
+    // Primary check: actually inside a subframe.
     if (window.self !== window.top)
+        return true;
+    // Secondary check: IDE embed flag set by index.html (only set when inIframe).
+    if (window.__SB_PARENT_URL_BAR__)
         return true;
     return false;
 }
@@ -574,6 +618,11 @@ export function isIdeDashboardSurface() {
             return true;
     }
     catch (_a) { /* ignore */ }
+    // Also consider VS Code / Cursor webviews where `acquireVsCodeApi` is exposed.
+    try {
+        if (typeof window.acquireVsCodeApi === 'function') return true;
+    }
+    catch (_b) { /* ignore */ }
     return window.self !== window.top;
 }
 

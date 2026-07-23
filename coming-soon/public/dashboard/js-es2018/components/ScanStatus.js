@@ -1,9 +1,9 @@
 import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
-import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260721corsfix1';
+import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage } from '../utils-lib/dom.js?v=20260725dropfix2';
 import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260716cachefix1';
 import { runLocalScan } from '../services/localScanService.js?v=20260724fix1';
-import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260722scanfix1';
-import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry } from '../services/browserSandboxScanService.js?v=20260724fix1';
+import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260722scanfix2';
+import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260725dropfix2';
 function isRemoteDashboardHost() {
     return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 }
@@ -1198,12 +1198,44 @@ export function bindScanStatus(container, options = {}) {
                             console.warn('[ScanStatus] findFolderViaBridge failed for non-folder drop:', bridgeErr);
                         }
                     }
+                    // VS Code/Windsurf drops expose only 1 file without webkitRelativePath.
+                    // Try captureDroppedDirectoryHandle for full recursive traversal.
+                    if (!hasWebkitRelPath && files.length <= 2) {
+                        const dirHandle = await captureDroppedDirectoryHandle(itemArray);
+                        if (dirHandle) {
+                            if (terminal)
+                                terminal.textContent = `Traversing "${files[0].name || 'folder'}" directory tree…`;
+                            const report = await runLocalScan({ dirHandle, projectPath: resolvedPath });
+                            const cert = report.certificate || report.summary || {};
+                            if (resultStats)
+                                resultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${report.repositoryFilesTotal || report.totalFiles || 0} files scanned`;
+                            setDropzoneState('done');
+                            if (onLocalScanResult)
+                                onLocalScanResult(report);
+                            return;
+                        }
+                    }
+                    // If still only 1-2 files without webkitRelativePath on remote host,
+                    // prompt user to use Select Folder for full coverage instead of scanning 1 file.
+                    if (!hasWebkitRelPath && files.length <= 2 && isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
+                        if (terminal)
+                            terminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
+                        showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                        setDropzoneState('idle');
+                        if (dirInput) {
+                            setTimeout(() => dirInput.click(), 100);
+                        }
+                        return;
+                    }
+                    if (isLikelyWebkitDirectoryFileCap(files.length)) {
+                        showToast(browserFolderCapMessage(files.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });
+                    }
                     if (progressDetail)
                         progressDetail.textContent = `${files.length} file(s) queued`;
                     const report = await runLocalScan({ files, projectPath: resolvedPath });
-                    const cert = report.certificate || {};
+                    const cert = report.certificate || report.summary || {};
                     if (resultStats)
-                        resultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${files.length} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                        resultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${files.length} files scanned`;
                     setDropzoneState('done');
                     if (onLocalScanResult)
                         onLocalScanResult(report);

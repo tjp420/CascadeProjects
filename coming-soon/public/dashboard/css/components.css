@@ -66,7 +66,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 120px);
+  min-height: calc(100% - 120px);
   padding: var(--space-6);
   box-sizing: border-box;
 }
@@ -137,8 +137,7 @@ html[data-ide-embed="1"] .app-shell {
 html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell,
 html[data-ide-preview="true"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell,
 html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-shell {
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -177,6 +176,13 @@ html[data-ide-embed="1"] .settings-grid {
   width: 100%;
 }
 
+/* Support hosts that inject a class on the root container instead of attributes */
+.ide-embed .profile-page,
+.ide-embed .settings-grid {
+  max-width: none;
+  width: 100%;
+}
+
 /* Profile page redesign for IDE/webview */
 html[data-ide-embed="1"] .profile-page {
   padding: var(--space-3);
@@ -190,12 +196,27 @@ html[data-ide-embed="1"] .profile-hero-card {
   border-radius: var(--radius-lg);
 }
 
+.ide-embed .profile-hero-card {
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  border-radius: var(--radius-lg);
+}
+
 html[data-ide-embed="1"] .profile-hero-main {
   gap: var(--space-3);
   flex-wrap: wrap;
 }
 
 html[data-ide-embed="1"] .profile-avatar {
+  width: 40px;
+  height: 40px;
+  font-size: var(--font-size-lg);
+  box-shadow: none;
+}
+
+.ide-embed .profile-avatar {
   width: 40px;
   height: 40px;
   font-size: var(--font-size-lg);
@@ -223,20 +244,41 @@ html[data-ide-embed="1"] .profile-status-pill {
   font-size: 10px;
 }
 
-html[data-ide-embed="1"] .profile-layout {
-  display: flex;
-  flex-direction: column;
+html[data-ide-embed="1"] .profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-3);
+  align-items: start;
 }
 
-html[data-ide-embed="1"] .profile-main,
-html[data-ide-embed="1"] .profile-aside {
-  width: 100%;
-  min-width: 0;
+html[data-ide-embed="1"] .profile-grid .profile-card--login,
+html[data-ide-embed="1"] .profile-grid .profile-card--security-keys {
+  grid-column: span 2;
+}
+
+@container (max-width: 700px) {
+  html[data-ide-embed="1"] .profile-grid,
+  html[data-ide-embed="1"] .profile-grid .profile-card--login,
+  html[data-ide-embed="1"] .profile-grid .profile-card--security-keys {
+    grid-column: span 1;
+  }
+  html[data-ide-embed="1"] .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  html[data-ide-embed="1"] .profile-grid,
+  html[data-ide-embed="1"] .profile-grid .profile-card--login,
+  html[data-ide-embed="1"] .profile-grid .profile-card--security-keys {
+    grid-column: span 1;
+  }
+  html[data-ide-embed="1"] .profile-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 html[data-ide-embed="1"] .profile-card {
-  margin-bottom: var(--space-3);
   border-radius: var(--radius-md);
 }
 
@@ -253,8 +295,20 @@ html[data-ide-embed="1"] .profile-card-body {
 }
 
 html[data-ide-embed="1"] .login-method-grid {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--space-2);
+}
+
+@container (max-width: 600px) {
+  html[data-ide-embed="1"] .login-method-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  html[data-ide-embed="1"] .login-method-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 html[data-ide-embed="1"] .login-method-card {
@@ -335,6 +389,12 @@ html[data-ide-embed="1"] .results-layout {
   min-height: 0;
   align-items: start;
 }
+
+/* Floating scroll-to-top button (IDE embed only) */
+#sb-scroll-top-btn:not([style*="display: flex"]) { display: none !important; }
+#app-main:has(.chatbot-container) ~ #sb-scroll-top-btn,
+#sb-scroll-top-btn { pointer-events: auto; }
+html:not([data-ide-embed="1"]) #sb-scroll-top-btn { display: none !important; }
 
 html[data-ide-embed="1"] .results-sidebar {
   position: relative;
@@ -500,7 +560,7 @@ html[data-embed-full-nav="1"] .embed-quick-nav {
 }
 
 html[data-embed-full-nav="1"] .app-shell {
-  height: 100vh;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -570,8 +630,8 @@ html[data-embed-full-nav="1"][data-auth-page="1"] #app-main:has(.signin-page) {
 
 /* Embed / VS Code panel: stack quick nav above content when full sidebar is hidden */
 html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .app-shell {
-  height: 100vh;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
 }
 
 html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-body {
@@ -1203,7 +1263,7 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
 }
 
 .results-sidebar {
-  max-height: calc(100vh - 8rem);
+  max-height: calc(100% - 8rem);
   overflow-y: auto;
 }
 
@@ -4746,8 +4806,8 @@ button.tool-card.help-page-card:hover {
 
 /* Chatbot Styles — fill app-main width and viewport height; keep input pinned visible */
 .app-shell:has(.chatbot-page) {
-  height: 100vh;
-  max-height: 100dvh;
+  height: 100%;
+  max-height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -7578,8 +7638,8 @@ html[data-ide-embed="1"] .chatbot-container {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   z-index: 99999;
   display: none;
   align-items: center;
@@ -8478,8 +8538,10 @@ fieldset.analyze-mode-detail {
 }
 
 .profile-page {
+  width: 100%;
   max-width: 960px;
   margin: 0 auto;
+  container-type: inline-size;
 }
 
 .profile-hero-card {
@@ -8591,40 +8653,40 @@ fieldset.analyze-mode-detail {
   background: var(--danger);
 }
 
-.profile-collapse {
-  width: 100%;
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-auto-rows: min-content;
+  gap: var(--space-4);
+  align-items: start;
 }
 
-.profile-collapse > summary {
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
+.profile-grid .profile-card--status { grid-column: span 1; }
+.profile-grid .profile-card--actions { grid-column: span 1; }
+.profile-grid .profile-card--login { grid-column: span 2; }
+.profile-grid .profile-card--security-keys { grid-column: span 2; }
+.profile-grid .profile-card--email { grid-column: span 1; }
+.profile-grid .profile-card--token { grid-column: span 1; }
+.profile-grid .profile-card--stockpile { grid-column: span 1; }
+
+@container (max-width: 700px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+  .profile-grid .profile-card--login,
+  .profile-grid .profile-card--security-keys {
+    grid-column: span 1;
+  }
 }
 
-.profile-collapse > summary::-webkit-details-marker {
-  display: none;
-}
-
-.profile-collapse-header {
-  position: relative;
-}
-
-.profile-collapse-chevron {
-  margin-left: auto;
-  transition: transform 0.2s ease;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.profile-collapse[open] > summary .profile-collapse-chevron {
-  transform: rotate(180deg);
-}
-
-.profile-layout {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  align-items: stretch;
+@media (max-width: 700px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+  .profile-grid .profile-card--login,
+  .profile-grid .profile-card--security-keys {
+    grid-column: span 1;
+  }
 }
 
 .profile-card {
@@ -8781,7 +8843,7 @@ fieldset.analyze-mode-detail {
 
 .profile-stat-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-3);
 }
 
@@ -8838,156 +8900,18 @@ fieldset.analyze-mode-detail {
 @media (max-width: 900px) {
   .profile-hero-card {
     padding: var(--space-5);
-    flex-wrap: wrap;
   }
 
   .login-method-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .profile-stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 640px) {
-  .profile-page {
-    max-width: none;
-    padding: var(--space-3);
-  }
-
   .profile-hero-main {
     flex-direction: column;
     align-items: flex-start;
     text-align: left;
-  }
-
-  .profile-hero-card {
-    padding: var(--space-3);
-    gap: var(--space-3);
-  }
-
-  .profile-avatar {
-    width: 40px;
-    height: 40px;
-    font-size: var(--font-size-lg);
-  }
-
-  .profile-hero-text .page-title {
-    font-size: var(--font-size-lg);
-  }
-
-  .profile-hero-text .page-subtitle {
-    font-size: var(--font-size-xs);
-  }
-
-  .profile-hero-badges {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .profile-tier-badge,
-  .profile-status-pill {
-    padding: 4px 10px;
-    font-size: 10px;
-  }
-
-  .profile-card {
-    margin-bottom: var(--space-3);
-    border-radius: var(--radius-md);
-  }
-
-  .profile-card-header {
-    padding: var(--space-3);
-  }
-
-  .profile-card-header h2 {
-    font-size: var(--font-size-xs);
-  }
-
-  .profile-card-body {
-    padding: var(--space-3);
-  }
-
-  .login-method-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
-  }
-
-  .login-method-card {
-    padding: var(--space-3);
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-3);
-    text-align: left;
-  }
-
-  .login-method-card .method-icon {
-    margin-bottom: 0;
-  }
-
-  .security-key-step-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .profile-field {
-    margin-bottom: var(--space-3);
-  }
-
-  .profile-field label {
-    font-size: 10px;
-  }
-
-  .profile-input-group {
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
-  .profile-input-group input,
-  .profile-input-group .input-action {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .profile-input-group .input-action {
-    padding: 8px 12px;
-  }
-
-  .profile-actions {
-    gap: var(--space-2);
-    flex-wrap: wrap;
-  }
-
-  .profile-actions .btn {
-    padding: 8px 12px;
-    font-size: var(--font-size-xs);
-  }
-
-  .profile-stockpile-actions {
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
-  .profile-stockpile-row {
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
-  .profile-stat-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
-  }
-
-  .profile-stat {
-    padding: var(--space-2) var(--space-3);
-  }
-
-  .profile-stat .label {
-    font-size: 9px;
-  }
-
-  .profile-stat .value {
-    font-size: var(--font-size-xs);
   }
 }
 

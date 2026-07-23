@@ -324,6 +324,15 @@
       if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
       }
+      // If the server injected a same-origin base URL, clear stale bridge params
+      // from sessionStorage so requests don't go to a dead Node API server port.
+      try {
+        var envBase = window.__SIMPLEBEACON_ENV__ && (window.__SIMPLEBEACON_ENV__.DASHBOARD_BASE_URL || window.__SIMPLEBEACON_ENV__.API_BASE_URL);
+        if (envBase === '/' || envBase === '') {
+          sessionStorage.removeItem('sb_api_base');
+          sessionStorage.removeItem('sb_notify_base');
+        }
+      } catch (_e) { /* ignore */ }
       var search = window.location.search || '';
       var inIframe = window.self !== window.top;
       var embedKeys = ['sb_notify_base', 'sb_api_base', 'sb_parent_urlbar', 'sb_website_mode'];
@@ -351,9 +360,11 @@
         || /[?&]sb_(notify_base|api_base)=/i.test(search);
       var websiteMode = /[?&]sb_website_mode=1(?:&|$)/i.test(search);
       var parentOwnsUrlBar = false;
-      // Only apply compact embed chrome inside the IDE iframe or when embed params are on the URL.
+      // Only apply compact embed chrome inside the IDE iframe.
       // Stale sessionStorage from a prior VS Code session must not strip the header on a normal browser tab.
-      if (inIframe || explicitEmbedUrl) {
+      // URL params (sb_parent_urlbar, sb_website_mode, sb_api_base) configure the API bridge but
+      // do NOT mean we're embedded — the page could be in a top-level browser tab opened from the IDE.
+      if (inIframe) {
         parentOwnsUrlBar = explicitEmbedUrl || hasBridge || inIframe;
         try {
           if (!/[?&]sb_parent_urlbar=1/i.test(search) && sessionStorage.getItem('sb_parent_urlbar') === '1') {
@@ -366,7 +377,7 @@
         } catch (_c) { /* ignore */ }
       }
       var ideSurface = inIframe;
-      window.__SB_STANDALONE_DASHBOARD__ = !inIframe && !explicitEmbedUrl;
+      window.__SB_STANDALONE_DASHBOARD__ = !ideSurface;
       window.__SB_IDE_EMBED__ = ideSurface;
       window.__SB_PARENT_URL_BAR__ = parentOwnsUrlBar;
       // If this looks like a real IDE webview, prefer IDE embed behavior
@@ -387,13 +398,21 @@
         // IDE iframe: extension sidebar owns navigation, hide all dashboard chrome.
         document.documentElement.setAttribute('data-ide-embed', '1');
         document.documentElement.removeAttribute('data-embed-full-nav');
-      } else if (websiteMode) {
-        // Website mode: keep header + sidebar beside content (even inside an IDE iframe).
+        // Some IDE hosts (VS Code webviews) overlay a titlebar that clips
+        // the top of the embedded content. Provide a conservative shim so
+        // the page content isn't hidden behind host chrome.
+        try {
+          document.documentElement.style.setProperty('--embed-top-shim', '48px');
+        } catch (_e) { /* ignore */ }
+      
+      } else if (websiteMode && inIframe) {
+        // Website mode inside IDE iframe: keep header + sidebar beside content.
         document.documentElement.setAttribute('data-embed-full-nav', '1');
-        if (ideSurface) {
-          document.documentElement.setAttribute('data-ide-embed', '1');
-        }
+        // Do NOT set data-ide-embed in website mode — compact IDE styles are
+        // designed for the narrow sidebar view and break full-nav layout.
       }
+      // When not in an iframe (top-level browser tab), no embed attributes are set —
+      // the default standalone layout with natural scrolling is used.
       if (parentOwnsUrlBar) {
         document.documentElement.setAttribute('data-parent-urlbar', '1');
         document.documentElement.style.setProperty('--embed-top-shim', '0px');
@@ -427,6 +446,19 @@
           document.documentElement.setAttribute('data-ide-preview', 'true');
           console.info('[Simplebeacon] IDE preview detected: sidebar hidden');
           try { localStorage.setItem('sb_ide_preview', '1'); } catch (err) {}
+        }
+        // Host-controlled embed shim: allow the embedding host to set the
+        // top shim (px) so the dashboard content isn't clipped by host chrome.
+        if (e && e.data && (e.data.command === 'setEmbedTopShim' || e.data.command === 'setEmbedShim')) {
+          try {
+            var raw = e.data.value || '';
+            var s = String(raw).trim();
+            if (/^\d+$/.test(s)) s = s + 'px';
+            if (/^\d+px$/.test(s)) {
+              document.documentElement.style.setProperty('--embed-top-shim', s);
+              console.info('[Simplebeacon] embed shim set to', s);
+            }
+          } catch (_err) { /* ignore */ }
         }
       });
       function detectIdePreview() {
@@ -514,7 +546,7 @@
   <link rel="stylesheet" href="css/variables.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/reset.css?v=20260722clean1">
   <link rel="stylesheet" href="css/layout.css?v=20260725redesign2">
-  <link rel="stylesheet" href="css/components.css?v=20260725analyzefix2">
+  <link rel="stylesheet" href="css/components.css?v=20260726embedfix1">
   <link rel="stylesheet" href="css/utilities.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/disable-elements.css?v=20260722clean1">
   <script src="js/vendor/lucide.min.js?v=20260722clean1" defer onerror="window._lucideFailed=true"></script>
@@ -525,7 +557,11 @@
       const apiPorts = ['3000', '8080', '5000'];
       // When the API server itself serves the dashboard it injects window.__SIMPLEBEACON_ENV__
       const needsProxy = isLocal && !apiPorts.includes(location.port) && !window.__SIMPLEBEACON_ENV__;
-      const API_HOST = window.__SB_API_HOST__ || (window.__SIMPLEBEACON_ENV__ && window.__SIMPLEBEACON_ENV__.DASHBOARD_BASE_URL) || '';
+      function resolveApiHost() {
+        if (window.__SB_API_HOST__) return window.__SB_API_HOST__;
+        if (window.__SIMPLEBEACON_ENV__ && window.__SIMPLEBEACON_ENV__.DASHBOARD_BASE_URL) return window.__SIMPLEBEACON_ENV__.DASHBOARD_BASE_URL;
+        try { return sessionStorage.getItem('sb_api_base') || ''; } catch (_e) { return ''; }
+      }
       function proxyUrl(url) {
         if (!needsProxy) return url;
         try {
@@ -533,7 +569,7 @@
           // Only proxy same-origin relative /api/ URLs; leave absolute calls to
           // local Ollama (11434) and the local agent (4000) untouched.
           if (u.pathname.startsWith('/api/') && u.origin === location.origin) {
-            return API_HOST + u.pathname + u.search;
+            return resolveApiHost() + u.pathname + u.search;
           }
         } catch (e) {}
         return url;
@@ -985,7 +1021,7 @@
             '<ul style="font-size:14px;color:#94a3b8;text-align:left;max-width:400px;margin:0 auto 16px;list-style:disc;padding-left:20px;">' +
             '<li style="margin-bottom:6px;">In VS Code: use the SimpleBeacon sidebar or run the extension</li>' +
             '<li style="margin-bottom:6px;">In a browser: start the data server first (<code>node serve.cjs</code> or the extension)</li>' +
-            '<li style="margin-bottom:6px;">Then navigate to <code>http://127.0.0.1:57622/dashboard</code></li>' +
+            '<li style="margin-bottom:6px;">Then navigate to the dashboard URL shown in the server output</li>' +
             '</ul></div>');
         }
       });
@@ -1002,12 +1038,12 @@
           link.href = href;
           document.head.appendChild(link);
         }
-        preload('/dashboard/js-es2018/views/AnalyzeView.js?v=20260725iframefix1');
+        preload('/dashboard/js-es2018/views/AnalyzeView.js?v=20260725dropfix3');
         preload('/dashboard/js-es2018/services/aiProblemAnalyzerSuite.mjs');
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260726scanfix2" defer></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260722bridgefix1" defer></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

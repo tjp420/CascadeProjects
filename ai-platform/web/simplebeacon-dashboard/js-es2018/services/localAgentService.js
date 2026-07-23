@@ -932,8 +932,10 @@ export async function probeAgent4000(origin = resolveBridgeOrigin()) {
     }
     pendingProbe4000 = (async () => {
         // When served over HTTPS, plain HTTP localhost fetches are blocked by
-        // mixed-content rules in Firefox/Safari. Skip the doomed network call.
-        if (!hasAgentBridge() && isMixedContent(origin)) {
+        // mixed-content rules in some browsers. If the user explicitly configured
+        // an extension bridge (sb_api_base), still attempt the ping so we can
+        // prefer the extension path when it is reachable; otherwise skip it.
+        if (!extensionBridge && !hasAgentBridge() && isMixedContent(origin)) {
             const status = { available: false, likelyBlocked: true, extensionBridge, origin };
             cachedAgent4000Status = status;
             cachedAgent4000At = Date.now();
@@ -966,6 +968,33 @@ export async function probeAgent4000(origin = resolveBridgeOrigin()) {
     })();
     return pendingProbe4000;
 }
+
+const SCAN_POLL_INTERVAL_MS = 1500;
+const SCAN_POLL_TIMEOUT_MS = 5 * 60 * 1000;
+
+async function pollForScanCompletion(origin, projectPath, doFetch) {
+    const startTime = Date.now();
+    while (Date.now() - startTime < SCAN_POLL_TIMEOUT_MS) {
+        await new Promise((r) => setTimeout(r, SCAN_POLL_INTERVAL_MS));
+        try {
+            const progressRes = await doFetch(`${origin}/api/simplebeacon/scan/progress?projectPath=${encodeURIComponent(projectPath)}`);
+            const progressData = await progressRes.json().catch(() => ({}));
+            const progress = progressData.progress || {};
+            if (!progress.active) {
+                const reportRes = await doFetch(`${origin}/api/report`);
+                const reportData = await reportRes.json().catch(() => ({}));
+                if (reportData && Object.keys(reportData).length > 0) {
+                    return reportData;
+                }
+                throw new Error('Scan completed but no report is available');
+            }
+        } catch (err) {
+            throw new Error(`Scan polling failed: ${err.message || err}`);
+        }
+    }
+    throw new Error('Scan timed out after 5 minutes');
+}
+
 /**
  * Run a scan through the localhost bridge (extension data server or agent.js:4000).
  * @param {string} projectPath
@@ -982,6 +1011,17 @@ export async function scanViaAgent4000(projectPath, origin = resolveBridgeOrigin
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success) {
             throw new Error(data.error || data.warning || `Extension scan failed (${response.status})`);
+        }
+        if (data.scanning) {
+            const report = await pollForScanCompletion(origin, projectPath, doFetch);
+            return {
+                success: true,
+                extensionBridge: true,
+                report,
+                path: projectPath,
+                scannedPath: data.scannedPath || projectPath,
+                metrics: null
+            };
         }
         return {
             success: true,

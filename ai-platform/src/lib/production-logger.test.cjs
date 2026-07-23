@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Test file — NODE_ENV assignments are test fixtures, not production config
 'use strict';
 
 const { describe, it, beforeEach, afterEach } = require('node:test');

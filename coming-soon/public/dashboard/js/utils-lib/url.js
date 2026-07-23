@@ -18,6 +18,14 @@ function _isAllowedApiBase(value) {
   if (!value) return false;
   try {
     const url = new URL(value, location.href);
+    // Reject single-label hostnames (e.g. "http://api") which commonly
+    // appear in test or CI configs but do not resolve in developer machines.
+    // Prefer same-origin or fully qualified hostnames so browser DNS/CORS
+    // failures don't cause noisy errors.
+    const hostname = String(url.hostname || '');
+    if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) && hostname.indexOf('.') === -1) {
+      return false;
+    }
     // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
     if (location.protocol === 'https:' && url.protocol === 'http:') return false;
     // Never bridge a localhost/loopback data server from a remote or non-local host.

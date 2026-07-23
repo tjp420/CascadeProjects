@@ -198,8 +198,8 @@
       "severity": "medium"
     },
     "jest-baseline": {
-      "enabled": false,
-      "runTests": false
+      "enabled": true,
+      "runTests": true
     },
     "token-bleed-patterns": {
       "enabled": true,

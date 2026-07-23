@@ -14,7 +14,7 @@ import {
   loadIgnorePatternsFromDirHandle,
   shouldSkipSandboxComplianceDrift,
   shouldSkipSandboxScanFile
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260724fix1';
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
 
 /**
  * Local copy of `detectSimplebeaconMonorepo` to avoid runtime mismatches
@@ -291,8 +291,9 @@ function countMatches(content, regex) {
   return total;
 }
 
-function gradeFindings(highRiskCount, mediumRiskCount, criticalCount) {
+function gradeFindings(highRiskCount, mediumRiskCount, criticalCount, lowRiskCount) {
   const crit = criticalCount || 0;
+  const low = lowRiskCount || 0;
   let score = 100 - (crit * 25) - (highRiskCount * 15) - (mediumRiskCount * 4);
   if (score < 0) score = 0;
   if (crit > 0) score = Math.min(score, 30);
@@ -313,6 +314,7 @@ function gradeFindings(highRiskCount, mediumRiskCount, criticalCount) {
     badgeColor,
     highRiskCount,
     mediumRiskCount,
+    lowRiskCount: low,
     criticalCount: crit,
     liabilityStr: `$${estimatedLiability.toLocaleString()}`,
     complianceStatus: letterGrade === 'F'
@@ -475,6 +477,7 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
   const results = new Map();
   let highRiskCount = 0;
   let mediumRiskCount = 0;
+  let lowRiskCount = 0;
   let criticalCount = 0;
   let processed = 0;
   let skippedLarge = 0;
@@ -621,11 +624,12 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
       globalIssuesQueue.push(finding);
       if (finding.severity === 'CRITICAL') { criticalCount += 1; highRiskCount += 1; }
       else if (finding.severity === 'HIGH') highRiskCount += 1;
-      if (finding.severity === 'MEDIUM') mediumRiskCount += 1;
+      else if (finding.severity === 'MEDIUM') mediumRiskCount += 1;
+      else if (finding.severity === 'LOW') lowRiskCount += 1;
     }
   }
 
-  const certificate = gradeFindings(highRiskCount, mediumRiskCount, criticalCount);
+  const certificate = gradeFindings(highRiskCount, mediumRiskCount, criticalCount, lowRiskCount);
   certificate.logs = globalIssuesQueue;
   if (globalIssuesQueue.length >= MAX_FINDINGS) {
     certificate.findingsTruncated = true;
@@ -851,7 +855,8 @@ async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
     if (ignoreCtx && isIgnoredVirtualPath(currentPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
       return;
     }
-    const file = await new Promise((resolve) => entry.file(resolve));
+    const file = await new Promise((resolve) => entry.file(resolve, () => resolve(null)));
+    if (!file) return;
     if (file.name === '.simplebeaconignore') return;
     if (SKIP_FILE_PATTERNS.some((re) => re.test(file.name))) return;
     const extIndex = file.name.lastIndexOf('.');
@@ -878,7 +883,7 @@ async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
   const reader = entry.createReader();
   let batch;
   do {
-    batch = await new Promise((resolve) => reader.readEntries(resolve));
+    batch = await new Promise((resolve, reject) => reader.readEntries(resolve, (err) => { logLine(onLog, `readEntries error at ${currentPath}: ${err}`, 'warning'); resolve([]); }));
     for (const child of batch) {
       if (queue.length >= maxFiles) {
         logLine(onLog, `Reached max file limit (${maxFiles}); stopping traversal.`, 'warning');

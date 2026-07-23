@@ -124,7 +124,7 @@
       overflow-y: auto;
     }
     html[data-embed-full-nav="1"] .app-shell {
-      height: 100vh;
+      height: 100%;
       min-height: 0;
       overflow: hidden;
     }
@@ -166,7 +166,7 @@
     }
     /* Auto-hide sidebar + top bar when loaded inside IDE browser preview */
     html[data-ide-preview="true"] .app-shell {
-      height: 100vh;
+      height: 100%;
       min-height: 0;
       overflow: hidden;
     }
@@ -232,8 +232,8 @@
       overflow-x: hidden;
     }
     html[data-embed-full-nav="1"] .app-shell:has(.chatbot-page) {
-      height: 100vh;
-      max-height: 100dvh;
+      height: 100%;
+      max-height: 100%;
       overflow: hidden;
     }
     html[data-embed-full-nav="1"] .app-body:has(.chatbot-page) {
@@ -324,6 +324,15 @@
       if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
       }
+      // If the server injected a same-origin base URL, clear stale bridge params
+      // from sessionStorage so requests don't go to a dead Node API server port.
+      try {
+        var envBase = window.__SIMPLEBEACON_ENV__ && (window.__SIMPLEBEACON_ENV__.DASHBOARD_BASE_URL || window.__SIMPLEBEACON_ENV__.API_BASE_URL);
+        if (envBase === '/' || envBase === '') {
+          sessionStorage.removeItem('sb_api_base');
+          sessionStorage.removeItem('sb_notify_base');
+        }
+      } catch (_e) { /* ignore */ }
       var search = window.location.search || '';
       var inIframe = window.self !== window.top;
       var embedKeys = ['sb_notify_base', 'sb_api_base', 'sb_parent_urlbar', 'sb_website_mode'];
@@ -351,9 +360,11 @@
         || /[?&]sb_(notify_base|api_base)=/i.test(search);
       var websiteMode = /[?&]sb_website_mode=1(?:&|$)/i.test(search);
       var parentOwnsUrlBar = false;
-      // Only apply compact embed chrome inside the IDE iframe or when embed params are on the URL.
+      // Only apply compact embed chrome inside the IDE iframe.
       // Stale sessionStorage from a prior VS Code session must not strip the header on a normal browser tab.
-      if (inIframe || explicitEmbedUrl) {
+      // URL params (sb_parent_urlbar, sb_website_mode, sb_api_base) configure the API bridge but
+      // do NOT mean we're embedded — the page could be in a top-level browser tab opened from the IDE.
+      if (inIframe) {
         parentOwnsUrlBar = explicitEmbedUrl || hasBridge || inIframe;
         try {
           if (!/[?&]sb_parent_urlbar=1/i.test(search) && sessionStorage.getItem('sb_parent_urlbar') === '1') {
@@ -366,20 +377,42 @@
         } catch (_c) { /* ignore */ }
       }
       var ideSurface = inIframe;
-      window.__SB_STANDALONE_DASHBOARD__ = !inIframe && !explicitEmbedUrl;
+      window.__SB_STANDALONE_DASHBOARD__ = !ideSurface;
       window.__SB_IDE_EMBED__ = ideSurface;
       window.__SB_PARENT_URL_BAR__ = parentOwnsUrlBar;
+      // If this looks like a real IDE webview, prefer IDE embed behavior
+      // over the `sb_website_mode` query param. This prevents the dashboard
+      // from rendering its header/sidebar inside the IDE, which causes
+      // duplicate navigation chrome and layout issues.
+      try {
+        var idePreviewDetected = false;
+        if (inIframe) {
+          idePreviewDetected = detectIdePreview();
+        }
+      } catch (_d) { idePreviewDetected = false; }
+      if (idePreviewDetected) {
+        websiteMode = false;
+      }
+
       if (ideSurface && !websiteMode) {
         // IDE iframe: extension sidebar owns navigation, hide all dashboard chrome.
         document.documentElement.setAttribute('data-ide-embed', '1');
         document.documentElement.removeAttribute('data-embed-full-nav');
-      } else if (websiteMode) {
-        // Website mode: keep header + sidebar beside content (even inside an IDE iframe).
+        // Some IDE hosts (VS Code webviews) overlay a titlebar that clips
+        // the top of the embedded content. Provide a conservative shim so
+        // the page content isn't hidden behind host chrome.
+        try {
+          document.documentElement.style.setProperty('--embed-top-shim', '48px');
+        } catch (_e) { /* ignore */ }
+      
+      } else if (websiteMode && inIframe) {
+        // Website mode inside IDE iframe: keep header + sidebar beside content.
         document.documentElement.setAttribute('data-embed-full-nav', '1');
-        if (ideSurface) {
-          document.documentElement.setAttribute('data-ide-embed', '1');
-        }
+        // Do NOT set data-ide-embed in website mode — compact IDE styles are
+        // designed for the narrow sidebar view and break full-nav layout.
       }
+      // When not in an iframe (top-level browser tab), no embed attributes are set —
+      // the default standalone layout with natural scrolling is used.
       if (parentOwnsUrlBar) {
         document.documentElement.setAttribute('data-parent-urlbar', '1');
         document.documentElement.style.setProperty('--embed-top-shim', '0px');
@@ -413,6 +446,19 @@
           document.documentElement.setAttribute('data-ide-preview', 'true');
           console.info('[Simplebeacon] IDE preview detected: sidebar hidden');
           try { localStorage.setItem('sb_ide_preview', '1'); } catch (err) {}
+        }
+        // Host-controlled embed shim: allow the embedding host to set the
+        // top shim (px) so the dashboard content isn't clipped by host chrome.
+        if (e && e.data && (e.data.command === 'setEmbedTopShim' || e.data.command === 'setEmbedShim')) {
+          try {
+            var raw = e.data.value || '';
+            var s = String(raw).trim();
+            if (/^\d+$/.test(s)) s = s + 'px';
+            if (/^\d+px$/.test(s)) {
+              document.documentElement.style.setProperty('--embed-top-shim', s);
+              console.info('[Simplebeacon] embed shim set to', s);
+            }
+          } catch (_err) { /* ignore */ }
         }
       });
       function detectIdePreview() {
@@ -500,7 +546,7 @@
   <link rel="stylesheet" href="css/variables.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/reset.css?v=20260722clean1">
   <link rel="stylesheet" href="css/layout.css?v=20260725redesign2">
-  <link rel="stylesheet" href="css/components.css?v=20260725analyzefix2">
+  <link rel="stylesheet" href="css/components.css?v=20260726embedfix1">
   <link rel="stylesheet" href="css/utilities.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/disable-elements.css?v=20260722clean1">
   <script src="js/vendor/lucide.min.js?v=20260722clean1" defer onerror="window._lucideFailed=true"></script>
@@ -971,7 +1017,7 @@
             '<ul style="font-size:14px;color:#94a3b8;text-align:left;max-width:400px;margin:0 auto 16px;list-style:disc;padding-left:20px;">' +
             '<li style="margin-bottom:6px;">In VS Code: use the SimpleBeacon sidebar or run the extension</li>' +
             '<li style="margin-bottom:6px;">In a browser: start the data server first (<code>node serve.cjs</code> or the extension)</li>' +
-            '<li style="margin-bottom:6px;">Then navigate to <code>http://127.0.0.1:57622/dashboard</code></li>' +
+            '<li style="margin-bottom:6px;">Then navigate to the dashboard URL shown in the server output</li>' +
             '</ul></div>');
         }
       });
@@ -988,12 +1034,12 @@
           link.href = href;
           document.head.appendChild(link);
         }
-        preload('/dashboard/js-es2018/views/AnalyzeView.js?v=20260725iframefix1');
+        preload('/dashboard/js-es2018/views/AnalyzeView.js?v=20260725dropfix3');
         preload('/dashboard/js-es2018/services/aiProblemAnalyzerSuite.mjs');
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260726profile1" defer></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260726embedfix1" defer></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];
@@ -1101,6 +1147,84 @@
         render();
       }, 1500);
     })();
+  </script>
+  <!-- IDE runtime shim: force container-relative heights for older/quirky webview hosts -->
+  <script>
+  (function() {
+    try {
+      const isIdeWebview = (typeof navigator !== 'undefined' && (navigator.userAgent || '').includes('Electron')) ||
+                           (window.location && window.location.search && window.location.search.includes('sb_parent_urlbar=1')) ||
+                           (window.top !== window.self);
+
+      if (!isIdeWebview) return;
+      console.debug('[SimpleBeacon IDE Shim] Restricting layout engine bounds.');
+
+      // Explicit scroll anchoring function
+      function ensureTop() {
+        try {
+          if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+          if (document.body) document.body.scrollTop = 0;
+          const shell = document.querySelector('.app-shell') || document.querySelector('.main-content');
+          if (shell) shell.scrollTop = 0;
+        } catch(e) {
+          console.warn('[SimpleBeacon IDE Shim] Scroll anchor adjustment skipped:', e);
+        }
+      }
+
+      const applyIdeSizing = () => {
+        try {
+          const containerHeight = window.innerHeight + 'px';
+          document.documentElement.style.setProperty('height', containerHeight, 'important');
+          document.body.style.setProperty('height', containerHeight, 'important');
+
+          const appShell = document.querySelector('.app-shell');
+          if (appShell) {
+            appShell.style.setProperty('height', containerHeight, 'important');
+            appShell.style.setProperty('min-height', '100%', 'important');
+            appShell.style.setProperty('overflow', 'hidden', 'important');
+          }
+          // Force coordinate anchoring on layout calculation shifts
+          ensureTop();
+        } catch (e) {
+          console.warn('[SimpleBeacon IDE Shim] sizing failed', e);
+        }
+      };
+
+      applyIdeSizing();
+
+      // Wire up listeners to continuously intercept view shifts
+      window.addEventListener('load', ensureTop);
+      window.addEventListener('resize', applyIdeSizing, { passive: true });
+      window.addEventListener('focus', ensureTop);
+
+      // Watch for asynchronous DOM changes (late-loading components, graphs)
+      // and re-apply sizing. Use a small debounce to avoid layout thrash.
+      (function() {
+        var mutationDebounceMs = 50;
+        var mutationDebounceTimer = null;
+        try {
+          var contentObserver = new MutationObserver(function(mutations) {
+            if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
+            mutationDebounceTimer = setTimeout(function() {
+              try { if (typeof applyIdeSizing === 'function') applyIdeSizing(); } catch (e) {}
+              mutationDebounceTimer = null;
+            }, mutationDebounceMs);
+          });
+          if (document && document.body) {
+            contentObserver.observe(document.body, { childList: true, subtree: true });
+          } else {
+            window.addEventListener('DOMContentLoaded', function() {
+              try { contentObserver.observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+            });
+          }
+        } catch (e) {
+          console.warn('[SimpleBeacon IDE Shim] mutation observer init failed', e);
+        }
+      })();
+    } catch (err) {
+      console.warn('[SimpleBeacon IDE Shim] init failed', err);
+    }
+  })();
   </script>
 </body>
 </html>

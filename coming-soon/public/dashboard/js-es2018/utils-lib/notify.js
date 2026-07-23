@@ -6,10 +6,12 @@
  */
 
 import { apiBaseUrl, apiUrl } from './url.js';
+import { fetchApi } from '../lib/recoverable-fetch.js';
 
 let _notifyQueue = [];
 let _notifyTimer = null;
 let _downloadNotifyId = 0;
+let _notifyDisabledUntil = 0;
 
 /**
  * Best-effort POST a generic event to the local data-server /api/notify bridge.
@@ -199,30 +201,28 @@ function _postNotify(entry) {
     if (_isHostedHttps() && _isLoopbackNotifyUrl(url)) {
         return;
     }
-    try {
-        fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(entry)
-        }).then((res) => {
-            if (!res.ok) {
-                window["console"]["warn"]('[notifyVSCode] /api/notify returned', res.status, url);
-            }
-        }).catch((err) => {
-            if (_isHostedHttps() && _isLoopbackNotifyUrl(url)) {
+    // short-circuit if we recently discovered that notify is unavailable
+    if (Date.now() < _notifyDisabledUntil) return;
+    (async () => {
+        try {
+            const resp = await fetchApi(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+            if (resp === null) {
+                // network failure — mark disabled briefly to avoid tight retry loops
+                _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
+                window.console.warn('[notifyVSCode] /api/notify network failure', url);
+                if (!_isHostedHttps()) _postNotifyBeacon(url, entry);
                 return;
             }
-            window["console"]["warn"](
-                '[notifyVSCode] /api/notify unreachable:',
-                err && err.message ? err.message : err,
-                url
-            );
-            if (!_isHostedHttps()) {
-                _postNotifyBeacon(url, entry);
+            if (!resp.ok) {
+                window.console.warn('[notifyVSCode] /api/notify returned', resp.status, url);
+                if (resp.status === 404) {
+                    // Not found — disable further attempts for a while
+                    _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
+                }
             }
-        });
-    }
-    catch (_a) {
-        // Ignore serialization/fetch errors.
-    }
+        }
+        catch (err) {
+            window.console.warn('[notifyVSCode] /api/notify unexpected error', err, url);
+        }
+    })();
 }

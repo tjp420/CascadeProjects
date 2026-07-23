@@ -112,6 +112,7 @@ export class AuditView {
     this._fetchPromise = null;
     this._animatedOnce = false;
     this.assessmentHighlight = false;
+    this.authRequired = false;
   }
 
   _getVscodeApi() {
@@ -129,6 +130,7 @@ export class AuditView {
     this.audit = null;
     this.app.state.audit = null;
     this._fetchPromise = null;
+    this.authRequired = false;
   }
 
   layerStatusClass(status) {
@@ -301,6 +303,24 @@ el.innerHTML = `
       return el;
     }
 
+    if (this.authRequired && !this.audit) {
+el.innerHTML = `
+        <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Remote audit data requires authentication</p></div>
+        <div class="card" style="padding:var(--space-6);text-align:center;">
+          <h3 style="margin-bottom:8px">🔒 Authentication required</h3>
+          <p class="text-muted" style="margin-bottom:16px">The hosted audit endpoint requires a valid session or license key to fetch remote metrics.</p>
+          <div class="flex" style="justify-content:center;gap:12px">
+            <button type="button" class="btn btn-primary" id="audit-signin">Sign in</button>
+            <button type="button" class="btn btn-secondary" id="audit-import-report">Import report.json</button>
+            <button type="button" class="btn btn-ghost" id="audit-retry">Retry</button>
+          </div>
+        </div>
+      `;
+      el.querySelector('#audit-signin')?.addEventListener('click', () => { window.location.hash = '#signin'; });
+      el.querySelector('#audit-import-report')?.addEventListener('click', () => { const tab = document.querySelector('[data-tab="import"]'); if (tab) tab.click(); });
+      el.querySelector('#audit-retry')?.addEventListener('click', () => this.reload(el.parentElement), { once: true });
+      return el;
+    }
     if (this.error && !this.audit) {
 el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Audit unavailable</p></div>
@@ -359,7 +379,7 @@ el.innerHTML = `
           </div>
         </div>
         <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);">
-          <div style="width:48px;height:48px;border-radius:50%;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">�</div>
+          <div style="width:48px;height:48px;border-radius:50%;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📊</div>
           <div>
             <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Consistency</div>
             <div style="font-size:var(--font-size-xl);font-weight:700;">${formatPercent(metrics.consistencyScore)}</div>
@@ -598,18 +618,25 @@ container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Complian
       if (!hadAudit) {
         this.loading = true;
         this.error = null;
+        this.authRequired = false;
         this.paint();
       } else {
         this.refreshing = true;
         this.error = null;
+        this.authRequired = false;
         this.paint();
       }
 
       try {
         const audit = await this.app.scanService.fetchAudit(includeNpm);
-        this.audit = this.mergeLiveReport(audit);
-        if (this.app.state.npmAudit && !this.audit.npmAudit) {
-          this.audit.npmAudit = this.app.state.npmAudit;
+        if (audit && typeof audit === 'object' && audit.authRequired) {
+          this.authRequired = true;
+          this.audit = null;
+        } else {
+          this.audit = this.mergeLiveReport(audit);
+        }
+        if (this.app.state.npmAudit && !this.audit?.npmAudit) {
+          if (this.audit) this.audit.npmAudit = this.app.state.npmAudit;
         }
         this.app.state.audit = this.audit;
       } catch (err) {

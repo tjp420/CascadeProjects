@@ -2,6 +2,37 @@
 import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
+
+const SEVERITY_COLORS = {
+    critical: { bg: 'rgba(239,68,68,0.12)', bar: 'var(--danger)', text: 'var(--danger)', icon: '🔴' },
+    high: { bg: 'rgba(239,68,68,0.08)', bar: 'var(--danger)', text: 'var(--danger)', icon: '🟠' },
+    medium: { bg: 'rgba(245,158,11,0.10)', bar: 'var(--warning)', text: 'var(--warning)', icon: '🟡' },
+    low: { bg: 'rgba(148,163,184,0.10)', bar: 'var(--text-muted)', text: 'var(--text-muted)', icon: '⚪' }
+};
+
+function severityBar(label, count, total, config) {
+    const pct = total > 0 ? Math.min(100, (count / total) * 100) : 0;
+    return `
+      <div style="display:flex;align-items:center;gap:var(--space-3);">
+        <div style="width:72px;font-size:var(--font-size-xs);font-weight:600;color:${config.text};">${escapeHtml(label)}</div>
+        <div style="flex:1;height:6px;background:var(--border);border-radius:var(--radius-full);overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${config.bar};border-radius:var(--radius-full);transition:width 600ms cubic-bezier(0.4,0,0.2,1);"></div>
+        </div>
+        <div style="width:28px;text-align:right;font-size:var(--font-size-sm);font-weight:700;color:${config.text};">${formatNumber(count)}</div>
+      </div>`;
+}
+
+function statCard(icon, label, value, accentBg) {
+    return `
+      <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);transition:transform var(--transition),box-shadow var(--transition);">
+        <div style="width:44px;height:44px;border-radius:var(--radius-md);background:${accentBg};display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;">${icon}</div>
+        <div style="min-width:0;">
+          <div style="font-size:var(--font-size-xl);font-weight:700;line-height:var(--leading-tight);">${escapeHtml(String(value))}</div>
+          <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-1);">${escapeHtml(label)}</div>
+        </div>
+      </div>`;
+}
+
 /**
  * Security view.
  */
@@ -23,14 +54,6 @@ export class SecurityView {
     getSummary() {
         return buildSecuritySummary(this.getReport(), this.getFindings());
     }
-    renderSeverityBand(label, count, className) {
-        return `
-      <div class="card insight-stat">
-        <div class="insight-stat-value ${className}">${formatNumber(count)}</div>
-        <div class="insight-stat-label">${escapeHtml(label)}</div>
-      </div>
-    `;
-    }
     renderFindingsTable(findings) {
         if (!findings.length) {
             return renderEmptyState({
@@ -40,29 +63,33 @@ export class SecurityView {
                 iconWrapper: 'emoji'
             });
         }
+        const rows = findings.map((finding) => {
+            const sev = String(finding.severity || 'medium').toLowerCase();
+            const cfg = SEVERITY_COLORS[sev] || SEVERITY_COLORS.medium;
+            return `
+              <tr style="transition:background var(--transition);">
+                <td><span style="display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);font-size:var(--font-size-xs);font-weight:600;background:${cfg.bg};color:${cfg.text};">${cfg.icon} ${escapeHtml(finding.severity)}</span></td>
+                <td><span style="font-size:var(--font-size-xs);font-weight:600;color:var(--text-secondary);">${escapeHtml(finding.type)}</span></td>
+                <td><code style="font-size:var(--font-size-xs);color:var(--text-secondary);background:var(--surface-hover);padding:2px var(--space-2);border-radius:var(--radius-sm);">${escapeHtml(redactPathForDisplay(finding.file) || '—')}</code></td>
+                <td style="font-size:var(--font-size-sm);color:var(--text-primary);">${escapeHtml(finding.description || '—')}</td>
+                <td style="font-size:var(--font-size-sm);color:var(--text-muted);">${escapeHtml(finding.recommendation || '—')}</td>
+              </tr>`;
+        }).join('');
         return `
-      <div class="card" style="padding:0;overflow:hidden;">
+      <div class="card" style="padding:0;overflow:hidden;border-radius:var(--radius-lg);">
         <div class="table-scroll-wrapper">
         <table class="results-table">
           <thead>
             <tr>
-              <th scope="col" style="width:90px">Severity</th>
-              <th scope="col" style="width:140px">Type</th>
-              <th scope="col">File</th>
+              <th scope="col" style="width:100px">Severity</th>
+              <th scope="col" style="width:130px">Type</th>
+              <th scope="col" style="width:220px">File</th>
               <th scope="col">Description</th>
-              <th scope="col">Recommendation</th>
+              <th scope="col" style="width:200px">Recommendation</th>
             </tr>
           </thead>
           <tbody>
-            ${findings.map((finding) => `
-              <tr>
-                <td><span class="severity-pill ${escapeHtml(finding.severity)}">${escapeHtml(finding.severity)}</span></td>
-                <td><span style="font-size:var(--font-size-xs);font-weight:500;">${escapeHtml(finding.type)}</span></td>
-                <td><code style="font-size:var(--font-size-xs);">${escapeHtml(redactPathForDisplay(finding.file) || '—')}</code></td>
-                <td style="font-size:var(--font-size-sm);">${escapeHtml(finding.description || '—')}</td>
-                <td style="font-size:var(--font-size-sm);color:var(--text-secondary);">${escapeHtml(finding.recommendation)}</td>
-              </tr>
-            `).join('')}
+            ${rows}
           </tbody>
         </table>
         </div>
@@ -75,25 +102,22 @@ export class SecurityView {
         el.className = 'fade-in';
         if (this.loading && !this.getReport()) {
             el.innerHTML = `
-        <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Loading security findings…</p></div>
-        ${renderEmptyState({
-                icon: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-                title: 'Loading scan report…',
-                body: '<div class="loading-spinner" style="width:32px;height:32px;margin:0 auto var(--space-4)"></div>'
-            })}
-      `;
+        <div style="padding:var(--space-10) var(--space-6);text-align:center;">
+          <div style="width:56px;height:56px;margin:0 auto var(--space-4);border-radius:var(--radius-lg);background:var(--primary-subtle);display:flex;align-items:center;justify-content:center;font-size:1.75rem;">🛡️</div>
+          <h1 class="page-title" style="margin-bottom:var(--space-2);">Security Scanner</h1>
+          <p class="text-muted" style="margin-bottom:var(--space-6);">Loading security findings…</p>
+          <div class="loading-spinner" style="width:32px;height:32px;margin:0 auto;"></div>
+        </div>`;
             return el;
         }
         if (this.error && !this.getReport()) {
             el.innerHTML = `
-        <div class="analyze-hero"><h1 class="page-title">Security Scanner</h1><p class="text-muted analyze-hero-sub">Security scan unavailable</p></div>
-        ${renderEmptyState({
-                icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-                title: 'Security scan unavailable',
-                body: escapeHtml(this.error),
-                actions: [{ label: 'Retry', id: 'security-retry', className: 'btn-primary' }]
-            })}
-      `;
+        <div style="padding:var(--space-10) var(--space-6);text-align:center;">
+          <div style="width:56px;height:56px;margin:0 auto var(--space-4);border-radius:var(--radius-lg);background:var(--danger-bg);display:flex;align-items:center;justify-content:center;font-size:1.75rem;">⚠️</div>
+          <h1 class="page-title" style="margin-bottom:var(--space-2);">Security Scanner</h1>
+          <p class="text-muted" style="margin-bottom:var(--space-6);">${escapeHtml(this.error)}</p>
+          <button class="btn btn-primary" id="security-retry" type="button">Retry</button>
+        </div>`;
             (_a = el.querySelector('#security-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.loadReport(this._container));
             return el;
         }
@@ -101,120 +125,100 @@ export class SecurityView {
         const findings = this.getFindings();
         const summary = this.getSummary();
         const gateLabel = summary.gatePass ? 'PASS' : summary.gatePass === false ? 'REVIEW' : '—';
-        const gateClass = summary.gatePass ? 'success' : 'danger';
+        const gateColor = summary.gatePass ? 'var(--success)' : 'var(--danger)';
+        const gateBg = summary.gatePass ? 'var(--success-bg)' : 'var(--danger-bg)';
+        const gateIcon = summary.gatePass ? '✅' : summary.gatePass === false ? '⚠️' : '❓';
         const lastScan = summary.generatedAt
             ? new Date(summary.generatedAt).toLocaleString()
             : 'Never';
+        const complianceScore = (_c = (_b = this.compliance) === null || _b === void 0 ? void 0 : _b.securityScore) !== null && _c !== void 0 ? _c : null;
+        const totalScanned = (summary.credentialScanned || 0) + (summary.productionLeakScanned || 0);
         el.innerHTML = `
-      <div class="analyze-hero">
-        <h1 class="page-title">Security Scanner</h1>
-        <p class="text-muted analyze-hero-sub">Credential patterns, production leaks, and secret detection.</p>
+      <!-- Hero -->
+      <div style="margin-bottom:var(--space-8);">
+        <div style="display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-2);">
+          <div style="width:48px;height:48px;border-radius:var(--radius-lg);background:var(--primary-subtle);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🛡️</div>
+          <div>
+            <h1 class="page-title" style="margin:0;">Security Scanner</h1>
+            <p class="text-muted" style="margin:var(--space-1) 0 0;font-size:var(--font-size-sm);">Credential patterns, production leaks, and secret detection</p>
+          </div>
+        </div>
       </div>
 
-      <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-6);">
-        <div class="analyze-action-info">
-          <span class="text-muted" style="font-size:var(--font-size-sm);">Last scan: ${escapeHtml(lastScan)}</span>
+      <!-- Action bar -->
+      <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-6);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <div style="width:8px;height:8px;border-radius:50%;background:${gateColor};flex-shrink:0;"></div>
+          <span class="text-muted" style="font-size:var(--font-size-sm);">Last scan: <strong style="color:var(--text-primary);font-weight:600;">${escapeHtml(lastScan)}</strong></span>
         </div>
-        <div class="flex gap-2">
+        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
           <button class="btn btn-primary btn-sm" id="security-run-scan" type="button" ${this.scanning ? 'disabled' : ''}>
-            ${this.scanning ? 'Scanning…' : 'Run security scan'}
+            ${this.scanning ? '⟳ Scanning…' : '▶ Run security scan'}
           </button>
           <button class="btn btn-secondary btn-sm" id="security-export-json" type="button">
-            Export JSON
+            ⬇ Export JSON
           </button>
-          ${this.app.isCurrentUserAdmin() ? '<button class="btn btn-ghost btn-sm" id="security-send-ai-btn" type="button" title="Send security findings to AI coding agent">🤖 Send to AI Agent</button>' : ''}
+          ${this.app.isCurrentUserAdmin() ? '<button class="btn btn-ghost btn-sm" id="security-send-ai-btn" type="button" title="Send security findings to AI coding agent">🤖 Send to AI</button>' : ''}
         </div>
       </div>
 
       ${this.scanning ? `
-        <div class="card mb-6" style="padding:var(--space-4)">
-          <span class="loading-spinner" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:6px"></span>
-          Running Simplebeacon scan (credential + production-leak rules)…
+        <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-6);display:flex;align-items:center;gap:var(--space-3);border-left:3px solid var(--primary);">
+          <span class="loading-spinner" style="width:16px;height:16px;flex-shrink:0;"></span>
+          <span style="font-size:var(--font-size-sm);color:var(--text-secondary);">Running Simplebeacon scan — credential + production-leak rules…</span>
         </div>
       ` : ''}
 
-      <div class="grid-2 mb-6">
-        <div class="card" style="padding:0;overflow:hidden;">
-          <div style="padding:var(--space-5);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);">
-            <div>
-              <div style="font-size:var(--font-size-sm);color:var(--text-muted);margin-bottom:var(--space-1);">Gate Status</div>
-              <div style="font-size:var(--font-size-2xl);font-weight:700;color:var(--${gateClass});">${gateLabel}</div>
-            </div>
-            <div style="width:56px;height:56px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">
-              ${gateLabel === 'PASS' ? '✅' : gateLabel === 'REVIEW' ? '⚠️' : '❌'}
-            </div>
-          </div>
-          <div style="padding:var(--space-4);display:flex;gap:var(--space-4);flex-wrap:wrap;">
-            <div>
-              <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Files Checked</div>
-              <div style="font-size:var(--font-size-lg);font-weight:600;">${formatNumber(summary.credentialScanned + summary.productionLeakScanned)}</div>
-            </div>
-            <div>
-              <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Total Findings</div>
-              <div style="font-size:var(--font-size-lg);font-weight:600;">${formatNumber(summary.totalFindings)}</div>
-            </div>
-            <div>
-              <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Compliance</div>
-              <div style="font-size:var(--font-size-lg);font-weight:600;">${(_c = (_b = this.compliance) === null || _b === void 0 ? void 0 : _b.securityScore) !== null && _c !== void 0 ? _c : '—'}/100</div>
-            </div>
-          </div>
+      <!-- Gate status banner -->
+      <div class="card" style="padding:var(--space-5) var(--space-6);margin-bottom:var(--space-6);background:${gateBg};border:1px solid ${gateColor}33;display:flex;align-items:center;gap:var(--space-5);flex-wrap:wrap;">
+        <div style="width:52px;height:52px;border-radius:var(--radius-md);background:${gateColor}20;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">${gateIcon}</div>
+        <div style="flex:1;min-width:180px;">
+          <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:var(--space-1);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Gate Status</div>
+          <div style="font-size:var(--font-size-2xl);font-weight:800;color:${gateColor};line-height:1;">${gateLabel}</div>
         </div>
-
-        <div class="card" style="padding:var(--space-5);">
-          <div style="font-size:var(--font-size-sm);color:var(--text-muted);margin-bottom:var(--space-3);">Findings by Severity</div>
-          <div style="display:flex;flex-direction:column;gap:var(--space-3);">
-            <div style="display:flex;align-items:center;gap:var(--space-3);">
-              <div style="width:80px;font-size:var(--font-size-xs);font-weight:500;color:var(--danger);">Critical</div>
-              <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-                <div style="width:${Math.min(100, (summary.severityCounts.critical / Math.max(summary.totalFindings, 1)) * 100)}%;height:100%;background:var(--danger);border-radius:4px;"></div>
-              </div>
-              <div style="width:32px;text-align:right;font-size:var(--font-size-sm);font-weight:600;">${formatNumber(summary.severityCounts.critical)}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:var(--space-3);">
-              <div style="width:80px;font-size:var(--font-size-xs);font-weight:500;color:var(--danger);">High</div>
-              <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-                <div style="width:${Math.min(100, (summary.severityCounts.high / Math.max(summary.totalFindings, 1)) * 100)}%;height:100%;background:var(--danger);border-radius:4px;"></div>
-              </div>
-              <div style="width:32px;text-align:right;font-size:var(--font-size-sm);font-weight:600;">${formatNumber(summary.severityCounts.high)}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:var(--space-3);">
-              <div style="width:80px;font-size:var(--font-size-xs);font-weight:500;color:var(--warning);">Medium</div>
-              <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-                <div style="width:${Math.min(100, (summary.severityCounts.medium / Math.max(summary.totalFindings, 1)) * 100)}%;height:100%;background:var(--warning);border-radius:4px;"></div>
-              </div>
-              <div style="width:32px;text-align:right;font-size:var(--font-size-sm);font-weight:600;">${formatNumber(summary.severityCounts.medium)}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:var(--space-3);">
-              <div style="width:80px;font-size:var(--font-size-xs);font-weight:500;color:var(--text-muted);">Low</div>
-              <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-                <div style="width:${Math.min(100, (summary.severityCounts.low / Math.max(summary.totalFindings, 1)) * 100)}%;height:100%;background:var(--text-muted);border-radius:4px;"></div>
-              </div>
-              <div style="width:32px;text-align:right;font-size:var(--font-size-sm);font-weight:600;">${formatNumber(summary.severityCounts.low)}</div>
-            </div>
+        <div style="display:flex;gap:var(--space-6);flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div style="font-size:var(--font-size-xl);font-weight:700;">${formatNumber(totalScanned)}</div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Files Checked</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:var(--font-size-xl);font-weight:700;color:${summary.totalFindings > 0 ? 'var(--danger)' : 'var(--success)'};">${formatNumber(summary.totalFindings)}</div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Findings</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:var(--font-size-xl);font-weight:700;">${complianceScore !== null && complianceScore !== void 0 ? complianceScore : '—'}<span style="font-size:var(--font-size-sm);color:var(--text-muted);font-weight:400;">/100</span></div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Compliance</div>
           </div>
         </div>
       </div>
 
-      <div class="card mb-6" style="padding:var(--space-4);display:flex;gap:var(--space-6);flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:var(--space-3);">
-          <div style="width:36px;height:36px;border-radius:50%;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:1rem;">🔑</div>
-          <div>
-            <div style="font-size:var(--font-size-sm);font-weight:500;">${formatNumber(summary.credentialScanned)}</div>
-            <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Credentials scanned</div>
-          </div>
+      <!-- Stat cards row -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4);margin-bottom:var(--space-6);">
+        ${statCard('🔑', 'Credentials Scanned', formatNumber(summary.credentialScanned || 0), 'rgba(99,102,241,0.12)')}
+        ${statCard('🏭', 'Production Leaks Scanned', formatNumber(summary.productionLeakScanned || 0), 'rgba(245,158,11,0.12)')}
+        ${statCard('🔍', 'Credential Findings', formatNumber(summary.credentialFindings || 0), 'rgba(239,68,68,0.12)')}
+        ${statCard('🚧', 'Production Leak Findings', formatNumber(summary.productionLeakFindings || 0), 'rgba(239,68,68,0.12)')}
+      </div>
+
+      <!-- Severity breakdown -->
+      <div class="card" style="padding:var(--space-5) var(--space-6);margin-bottom:var(--space-6);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+          <div style="font-size:var(--font-size-sm);font-weight:700;color:var(--text-primary);">Findings by Severity</div>
+          <div style="font-size:var(--font-size-xs);color:var(--text-muted);">${formatNumber(summary.totalFindings)} total</div>
         </div>
-        <div style="display:flex;align-items:center;gap:var(--space-3);">
-          <div style="width:36px;height:36px;border-radius:50%;background:rgba(245,158,11,0.12);display:flex;align-items:center;justify-content:center;font-size:1rem;">🏭</div>
-          <div>
-            <div style="font-size:var(--font-size-sm);font-weight:500;">${formatNumber(summary.productionLeakScanned)}</div>
-            <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Production leaks scanned</div>
-          </div>
+        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+          ${severityBar('Critical', summary.severityCounts.critical, summary.totalFindings, SEVERITY_COLORS.critical)}
+          ${severityBar('High', summary.severityCounts.high, summary.totalFindings, SEVERITY_COLORS.high)}
+          ${severityBar('Medium', summary.severityCounts.medium, summary.totalFindings, SEVERITY_COLORS.medium)}
+          ${severityBar('Low', summary.severityCounts.low, summary.totalFindings, SEVERITY_COLORS.low)}
         </div>
       </div>
 
+      <!-- Findings table -->
       <div class="section-block">
-        <div class="section-heading" style="margin-bottom:var(--space-3);">
-          <h2>Findings (${findings.length})</h2>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0;">Findings</h2>
+          <span style="font-size:var(--font-size-sm);color:var(--text-muted);padding:var(--space-1) var(--space-3);background:var(--surface-hover);border-radius:var(--radius-full);font-weight:600;">${findings.length}</span>
         </div>
         ${this.renderFindingsTable(findings)}
       </div>

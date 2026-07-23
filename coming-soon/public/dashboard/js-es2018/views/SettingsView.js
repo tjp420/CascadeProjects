@@ -6,7 +6,7 @@ import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
 import { platformService } from '../services/platformService.js';
 import { fetchUserAiKeys, saveUserAiKeys, clearUserAiKeys, normalizeAiKeysRecord, fetchOllamaModels, shouldProbeOllamaModels, userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260720ollama6';
-import { authService } from '../services/authService.js?v=20260721cspapi';
+import { authService } from '../services/authService.js?v=20260725apifix1';
 import { OLLAMA_DEFAULT_URL } from '../config.js';
 import { isHostedDashboard } from '../demoMode.js';
 import { hasExtensionBridgeConfigured } from '../services/localAgentService.js?v=20260720ollama3';
@@ -1044,7 +1044,7 @@ export class SettingsView {
             spellcheck="false"
             placeholder="http://127.0.0.1:11434"
             value="${escapeHtml(keys.ollamaBaseUrl || '')}">
-          ${isHostedDashboard() && !hasExtensionBridgeConfigured() ? `<p class="text-muted settings-secret-hint">Local Ollama cannot be tested from this hosted site. Use OpenAI or Anthropic above, or run the dashboard at <code>http://localhost</code> with <code>ollama serve</code>.</p>` : ''}
+          ${isHostedDashboard() && !hasExtensionBridgeConfigured() ? `<p class="text-muted settings-secret-hint">Local Ollama cannot be tested from this hosted site. Use OpenAI or Anthropic above, or run the dashboard locally with <code>ollama serve</code>.</p>` : ''}
         </div>
         <div class="settings-field settings-field-stack">
           <label class="settings-label" for="settings-ai-ollama-model">Ollama model</label>
@@ -1135,7 +1135,7 @@ export class SettingsView {
         const payloadRoot = root || this._root;
         const baseUrl = this.sanitizeOllamaBaseUrl((_b = (_a = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama')) === null || _a === void 0 ? void 0 : _a.value) === null || _b === void 0 ? void 0 : _b.trim()) || 'http://127.0.0.1:11434';
         const model = ((_d = (_c = payloadRoot === null || payloadRoot === void 0 ? void 0 : payloadRoot.querySelector('#settings-ai-ollama-model')) === null || _c === void 0 ? void 0 : _c.value) === null || _d === void 0 ? void 0 : _d.trim()) || '';
-        const hostedBlockedMsg = 'Local Ollama cannot be reached from the hosted dashboard. Use OpenAI or Anthropic keys here, or run the dashboard at http://localhost with ollama serve.';
+        const hostedBlockedMsg = 'Local Ollama cannot be reached from the hosted dashboard. Use OpenAI or Anthropic keys here, or run the dashboard locally with ollama serve.';
         if (!shouldProbeOllamaModels(baseUrl)) {
             this.ollamaModels = [];
             this.ollamaModelsLoading = false;

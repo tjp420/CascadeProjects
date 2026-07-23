@@ -10,6 +10,7 @@
   const fwdBtn = document.getElementById('sbFwdBtn');
   const reloadBtn = document.getElementById('sbReloadBtn');
   const externalBtn = document.getElementById('sbExternalBtn');
+  const scrollTopBtn = document.getElementById('sbScrollTopBtn');
 
   const browserHistory = { urls: [], index: -1, pendingUrl: null };
 
@@ -84,6 +85,10 @@
           api = api.replace(/\/+$/, '') + '/api';
         }
         _embedContext.apiBase = api;
+        var apiOrigin = api.replace(/\/api\/?$/, '');
+        if (apiOrigin.indexOf('127.0.0.1') >= 0 || apiOrigin.indexOf('localhost') >= 0) {
+          window.__SB_LOCAL_DASHBOARD_BASE__ = apiOrigin;
+        }
       }
       const websiteParam = parsed.searchParams.get('sb_website_mode');
       if (websiteParam === '1') {
@@ -186,7 +191,7 @@
     try {
       const parsed = new URL(url);
       const host = parsed.hostname.toLowerCase();
-      if ((host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai')) && parsed.pathname.indexOf('/dashboard') === 0) {
+      if ((host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai') || host.endsWith('.netlify.app')) && parsed.pathname.indexOf('/dashboard') === 0) {
         if (localBase) {
           return localBase.replace(/\/$/, '') + parsed.pathname + parsed.search + parsed.hash;
         }
@@ -267,6 +272,10 @@
       }
       if (host === 'localhost' || host === '127.0.0.1') return true;
       if (host.endsWith('.onrender.com')) return true;
+      if (host.endsWith('.netlify.app')) {
+        var p = parsed.pathname || '';
+        return p === '/dashboard' || p.indexOf('/dashboard/') === 0;
+      }
       return false;
     } catch (e) {
       return false;
@@ -341,6 +350,13 @@
     externalBtn.addEventListener('click', function () {
       const url = stripEmbedParams(getCurrentUrl());
       if (url) vscode.postMessage({ command: 'openExternalUrl', url: url });
+    });
+  }
+  if (scrollTopBtn) {
+    scrollTopBtn.addEventListener('click', function () {
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ command: 'scrollToTop' }, '*');
+      }
     });
   }
   if (urlInput) {
@@ -547,13 +563,15 @@
     return { path: '', name: '' };
   }
   window.addEventListener('dragenter', function (ev) { ev.preventDefault(); showOverlay(); });
-  window.addEventListener('dragover', function (ev) { ev.preventDefault(); if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'; });
+  window.addEventListener('dragover', function (ev) { ev.preventDefault(); if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'; if (iframe) iframe.style.pointerEvents = 'none'; });
   window.addEventListener('dragleave', function () { hideOverlay(); });
   overlay.addEventListener('dragover', function (ev) { ev.preventDefault(); if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'; });
-  overlay.addEventListener('drop', function (ev) {
+  function handleDrop(ev) {
     ev.preventDefault();
+    ev.stopPropagation();
     dragDepth = 0;
     overlay.style.display = 'none';
+    if (iframe) iframe.style.pointerEvents = '';
     const dt = ev.dataTransfer;
     const { path, name } = extractDropPath(dt);
     if (path && iframe && iframe.contentWindow) {
@@ -561,6 +579,8 @@
     } else if (iframe && iframe.contentWindow) {
       iframe.contentWindow.postMessage({ command: 'ideDropFailed', reason: 'Could not read dropped path. Use Browse Folder or type the path.' }, '*');
     }
-  });
+  }
+  overlay.addEventListener('drop', handleDrop);
+  window.addEventListener('drop', handleDrop);
 })();
 //# sourceURL=dashboard-wrapper.js

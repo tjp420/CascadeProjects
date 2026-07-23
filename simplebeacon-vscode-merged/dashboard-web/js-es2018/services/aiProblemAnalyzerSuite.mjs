@@ -1,5 +1,22 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { createExtendedAnalyzers } from './extendedAnalyzers.mjs';
+// extendedAnalyzers may be an optional heavy module; provide a stub and attempt dynamic import.
+let createExtendedAnalyzers = function () {
+    return [];
+};
+(function tryLoadExtendedAnalyzers() {
+    try {
+        import('./extendedAnalyzers.mjs').then((mod) => {
+            if (mod && typeof mod.createExtendedAnalyzers === 'function')
+                createExtendedAnalyzers = mod.createExtendedAnalyzers;
+        }).catch((e) => {
+            // Keep stub — optionally log for telemetry/debugging when explicit debug enabled
+            try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__ && typeof console !== 'undefined') console.warn('[aiProblemAnalyzerSuite] extendedAnalyzers not available; using stubbed analyzers.', e); } catch (err) {}
+        });
+    }
+    catch (e) {
+        try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__ && typeof console !== 'undefined') console.warn('[aiProblemAnalyzerSuite] error starting dynamic import for extendedAnalyzers', e); } catch (err) {}
+    }
+})();
 const CATEGORY_DEFINITIONS = [
     {
         id: 'technical-ai-issues',

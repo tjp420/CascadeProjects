@@ -6,10 +6,12 @@
  */
 
 import { apiBaseUrl, apiUrl } from './url.js';
+import { fetchApi } from '../lib/recoverable-fetch.js';
 
 let _notifyQueue = [];
 let _notifyTimer = null;
 let _downloadNotifyId = 0;
+let _notifyDisabledUntil = 0;
 
 /**
  * Best-effort POST a generic event to the local data-server /api/notify bridge.
@@ -79,26 +81,9 @@ export function notifyAuthState(signedIn, tier, token, isAdmin) {
   });
 }
 
-let _vscodeApiCache = null;
-
 function _isLocalhost() {
   if (typeof window === 'undefined' || !window.location) return false;
   return /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-}
-
-function _isHostedHttps() {
-  if (typeof window === 'undefined' || !window.location) return false;
-  if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) return false;
-  return window.location.protocol === 'https:';
-}
-
-function _isLoopbackNotifyUrl(url) {
-  try {
-    const parsed = new URL(String(url || ''), window.location.href);
-    return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(parsed.hostname);
-  } catch (_a) {
-    return false;
-  }
 }
 
 function _notifyUrlFromBase(notifyBase) {
@@ -108,110 +93,7 @@ function _notifyUrlFromBase(notifyBase) {
   return `${hostRoot}/api/notify`;
 }
 
-function _redactPayload(obj) {
-  if (!obj || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(_redactPayload);
-  const out = {};
-  for (const key of Object.keys(obj)) {
-    const lower = key.toLowerCase();
-    if (lower === 'token' || lower === 'password' || lower === 'apikey' || lower === 'api_key' || lower === 'secret') {
-      out[key] = '[REDACTED]';
-    } else {
-      out[key] = _redactPayload(obj[key]);
-    }
-  }
-  return out;
-}
-
-function _postNotifyBeacon(url, entry) {
-  try {
-    const payload = _redactPayload(entry.payload || {});
-    const beaconUrl = String(url).replace(/\/api\/notify\/?$/, '/api/notify/beacon')
-      + '?type=' + encodeURIComponent(entry.type)
-      + '&payload=' + encodeURIComponent(JSON.stringify(payload));
-    const img = new Image();
-    img.src = beaconUrl;
-  } catch (_a) { /* ignore */ }
-}
-
-function _isIdeIframe() {
-  if (typeof window === 'undefined') return false;
-  return window.self !== window.top;
-}
-
-function _getVsCodeApi() {
-  if (_vscodeApiCache) return _vscodeApiCache;
-  if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
-  try {
-    _vscodeApiCache = window.acquireVsCodeApi();
-    return _vscodeApiCache;
-  } catch (_a) {
-    return null;
-  }
-}
-
-function _postMessageToHost(msg) {
-  const vscode = _getVsCodeApi();
-  if (vscode) {
-    try {
-      vscode.postMessage(msg);
-      return true;
-    } catch (_a) {
-      return false;
-    }
-  }
-  if (typeof window === 'undefined' || !window.parent || window.parent === window) {
-    return false;
-  }
-  try {
-    window.parent.postMessage(msg, '*');
-    return true;
-  } catch (_b) {
-    return false;
-  }
-}
-
-function _postNotifyViaParent(entry) {
-  const payload = entry.payload || {};
-  let msg;
-  if (entry.type === 'setAuthState') {
-    msg = {
-      command: 'setAuthState',
-      signedIn: payload.signedIn === true,
-      tier: payload.tier || '',
-      isAdmin: payload.isAdmin === true
-    };
-  } else if (entry.type === 'downloadComplete') {
-    msg = {
-      command: 'downloadComplete',
-      filename: payload.filename || '',
-      filePath: payload.filePath || ''
-    };
-  } else {
-    msg = {
-      command: 'notifyBridge',
-      type: entry.type,
-      payload: _redactPayload(payload)
-    };
-  }
-  return _postMessageToHost(msg);
-}
-
-function _isNotifyUrlReachable(url) {
-  if (_isLoopbackNotifyUrl(url)) return !_isHostedHttps();
-  try {
-    const urlObj = new URL(String(url || ''), window.location.href);
-    const pageObj = new URL(window.location.href);
-    return urlObj.origin === pageObj.origin;
-  } catch (_a) {
-    return false;
-  }
-}
-
 function _postNotify(entry) {
-  if (_postNotifyViaParent(entry)) {
-    return;
-  }
   if (typeof window === 'undefined' || !window.fetch) {
     return;
   }
@@ -230,30 +112,26 @@ function _postNotify(entry) {
   if (!notifyBase && apiBaseUrl() === '/') {
     return;
   }
-  if (!_isNotifyUrlReachable(url)) {
-    return;
-  }
-  try {
-    fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry)
-    }).then((res) => {
-      if (!res.ok) {
-        window["console"]["warn"]('[notifyVSCode] /api/notify returned', res.status, url);
+  
+  if (Date.now() < _notifyDisabledUntil) return;
+  (async () => {
+    try {
+      const resp = await fetchApi(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+      if (resp === null) {
+        _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
+        try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) window.console.warn('[notifyVSCode] /api/notify network failure', url); } catch (e) {}
+        if (!_isHostedHttps()) _postNotifyBeacon(url, entry);
+        return;
       }
-    }).catch((err) => {
-      window["console"]["warn"](
-        '[notifyVSCode] /api/notify unreachable:',
-        err && err.message ? err.message : err,
-        url
-      );
-      if (!_isHostedHttps()) {
-        _postNotifyBeacon(url, entry);
+      if (!resp.ok) {
+        try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) window.console.warn('[notifyVSCode] /api/notify returned', resp.status, url); } catch (e) {}
+        if (resp.status === 404) {
+          _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
+        }
       }
-    });
-  }
-  catch (_a) {
-    // Ignore serialization/fetch errors.
-  }
+    }
+    catch (err) {
+      try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) window.console.warn('[notifyVSCode] /api/notify unexpected error', err, url); } catch (e) {}
+    }
+  })();
 }

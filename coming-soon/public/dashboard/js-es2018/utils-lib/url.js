@@ -23,6 +23,14 @@ function _isAllowedApiBase(value) {
     try {
         const url = new URL(value, location.href);
         const isLoopback = _isLoopbackHost(url.hostname);
+            // Reject single-label hostnames (e.g. "http://api") which commonly
+            // appear in test or CI configs but do not resolve in developer machines.
+            // Prefer same-origin or fully qualified hostnames so browser DNS/CORS
+            // failures don't cause noisy errors.
+            const hostname = String(url.hostname || '');
+            if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) && hostname.indexOf('.') === -1) {
+                return false;
+            }
         // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
         if (!isLoopback && location.protocol === 'https:' && url.protocol === 'http:') return false;
         // Extension bridge: VS Code opens the hosted dashboard with loopback sb_api_base.
@@ -249,14 +257,16 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
                 cleanup = () => opts.signal.removeEventListener('abort', onAbort);
             }
             timer = setTimeout(() => controller.abort(), timeoutMs);
-            // Avoid sending credentials on cross-origin requests when caller requested 'include'.
+            // If caller requested credentials and target is cross-origin, avoid sending credentials
+            // because many production APIs respond with Access-Control-Allow-Origin: '*' which
+            // is incompatible with credentialed requests and causes a CORS failure in browsers.
             try {
                 const targetUrl = new URL(target, typeof location !== 'undefined' ? location.href : undefined);
                 if (typeof location !== 'undefined' && opts && opts.credentials === 'include' && targetUrl.origin !== location.origin) {
                     opts = { ...opts, credentials: 'omit' };
                 }
             }
-            catch (_c) { /* ignore */ }
+            catch (_c) { /* ignore if URL parsing fails */ }
             const res = await fetch(target, { ...opts, signal: controller.signal });
             if (!res.ok) {
                 const shouldRetry = retryCfg.count > 0 && attemptNum < retryCfg.count && res.status >= 500;

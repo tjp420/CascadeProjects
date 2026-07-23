@@ -75,8 +75,12 @@ async function loadPathHealthData(container, isInitial = false) {
     const gateBadge = container.querySelector('#path-health-gate');
     const refreshBtn = container.querySelector('#path-health-refresh');
     if (isInitial) {
-        // simplebeacon-ignore innerhtml-usage — static loading text
+      // simplebeacon-ignore innerhtml-usage — static loading text
+      if (typeof window !== 'undefined' && typeof window.setSafeHTML === 'function') {
+        window.setSafeHTML(content, '<div class="text-gray-500">Loading system metrics...</div>');
+      } else {
         content.innerHTML = '<div class="text-gray-500">Loading system metrics...</div>';
+      }
     }
     else {
         isRefreshing = true;
@@ -94,13 +98,21 @@ async function loadPathHealthData(container, isInitial = false) {
         }
         else if (data.status === 'unavailable') {
             // simplebeacon-ignore innerhtml-usage — static offline message
-            content.innerHTML = '<div class="text-muted" style="font-size:0.85rem;">Path health metrics unavailable — running offline.</div>';
+            if (typeof window !== 'undefined' && typeof window.setSafeHTML === 'function') {
+              window.setSafeHTML(content, '<div class="text-muted" style="font-size:0.85rem;">Path health metrics unavailable — running offline.</div>');
+            } else {
+              content.innerHTML = '<div class="text-muted" style="font-size:0.85rem;">Path health metrics unavailable — running offline.</div>';
+            }
             gateBadge.className = 'badge badge-ghost';
             gateBadge.textContent = 'Gate: —';
         }
         else {
             // simplebeacon-ignore innerhtml-usage — static error message
-            content.innerHTML = '<div class="text-red-500">Failed to load metrics.</div>';
+            if (typeof window !== 'undefined' && typeof window.setSafeHTML === 'function') {
+              window.setSafeHTML(content, '<div class="text-red-500">Failed to load metrics.</div>');
+            } else {
+              content.innerHTML = '<div class="text-red-500">Failed to load metrics.</div>';
+            }
         }
     }
     catch (error) {
@@ -126,7 +138,7 @@ function renderPathHealthContent(container, data) {
     const directories = data.directories;
     const engine = data.engine;
     // simplebeacon-ignore innerhtml-usage — internal API data rendered to trusted container
-    container.innerHTML = `
+    const html = `
     <div class="metrics-grid mb-4">
       <div class="metric-card">
         <div class="metric-label">Files Scanned</div>
@@ -168,6 +180,11 @@ function renderPathHealthContent(container, data) {
       <span>Refreshed: ${new Date(data.timestamp).toLocaleTimeString()}</span>
     </div>
   `;
+    if (typeof window !== 'undefined' && typeof window.setSafeHTML === 'function') {
+        window.setSafeHTML(container, html);
+    } else {
+        container.innerHTML = html;
+    }
 }
 /**
  * Cleanup path health dashboard.

@@ -3,6 +3,17 @@ import { escapeHtml } from './string.js';
 import { notifyDownloadComplete } from './notify.js';
 
 let _toastId = 0;
+const _rectCache = new WeakMap();
+
+function _getCachedRect(el, maxAge = 100) {
+  if (!el || typeof el.getBoundingClientRect !== 'function') return null;
+  const now = Date.now();
+  const cached = _rectCache.get(el);
+  if (cached && (now - cached.ts) < maxAge) return cached.rect;
+  const rect = el.getBoundingClientRect();
+  _rectCache.set(el, { rect, ts: now });
+  return rect;
+}
 
 function _renderToast(container, message, type, duration) {
   const id = `toast-${++_toastId}`;
@@ -321,7 +332,7 @@ export function scrollToElement(selector, behavior = 'smooth') {
   if (typeof document === 'undefined') return false;
   const el = document.querySelector(selector);
   if (el && typeof el.scrollIntoView === 'function') {
-    el.scrollIntoView({ behavior, block: 'start' });
+    requestAnimationFrame(() => el.scrollIntoView({ behavior, block: 'start' }));
     return true;
   }
   return false;
@@ -334,7 +345,8 @@ export function scrollToElement(selector, behavior = 'smooth') {
  */
 export function elementInViewport(el) {
   if (!el || typeof el.getBoundingClientRect !== 'function') return false;
-  const rect = el.getBoundingClientRect();
+  const rect = _getCachedRect(el) || el.getBoundingClientRect();
+  if (!rect) return false;
   return rect.top >= 0 && rect.left >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && rect.right <= (window.innerWidth || document.documentElement.clientWidth);
 }
 
@@ -424,17 +436,34 @@ export function renderEmptyState(opts) {
       ${actionsHtml}
     </div>
   `.trim();
-
-  if (actions.some(a => typeof a.onClick === 'function')) {
+  // If any actions include JS handlers, provide an attach that builds the DOM safely
+  if (actions.some(a => typeof a.onClick === 'function' || typeof a.handler === 'function')) {
     return {
       html,
       attach(container) {
-        actions.forEach((action, idx) => {
-          if (typeof action.onClick !== 'function') return;
-          const selector = action.id ? `#${CSS.escape(action.id)}` : `[data-action-index="${idx}"]`;
-          const btn = container.querySelector(selector);
-          if (btn) btn.addEventListener('click', action.onClick);
-        });
+        const el = createElement('div', { className: 'empty-state card' });
+        const iconWrapperEl = createElement('div', { className: 'empty-state-icon-wrapper' });
+        if (iconWrapper === 'emoji') {
+          iconWrapperEl.appendChild(createElement('div', { className: 'empty-state-icon', style: 'font-size:3rem;background:none;width:auto;height:auto;' }, [String(icon || '')]));
+        } else {
+          const svgWrap = createElement('div', { className: 'empty-state-icon' });
+          svgWrap.innerHTML = String(icon || '');
+          iconWrapperEl.appendChild(svgWrap);
+        }
+        el.appendChild(iconWrapperEl);
+        el.appendChild(createElement('p', { className: 'empty-state-title' }, [String(title || '')]));
+        if (body) el.appendChild(createElement('p', { className: 'empty-state-body' }, [String(body)]));
+        if (actions.length) {
+          const actionsEl = createElement('div', { className: 'empty-state-actions' });
+          actions.forEach((a) => {
+            const btn = createElement('button', { className: `btn ${String(a.className || 'btn-primary')}`, id: a.id || undefined }, [String(a.label || '')]);
+            if (typeof a.onClick === 'function') btn.addEventListener('click', a.onClick);
+            if (typeof a.handler === 'function') btn.addEventListener('click', a.handler);
+            actionsEl.appendChild(btn);
+          });
+          el.appendChild(actionsEl);
+        }
+        if (container && typeof container.appendChild === 'function') container.appendChild(el);
       }
     };
   }
@@ -463,6 +492,7 @@ export function isIdeDashboardSurface() {
   if (typeof window === 'undefined') return false;
   if (window.__SB_IDE_EMBED__) return true;
   try { if (document.documentElement.hasAttribute('data-ide-embed')) return true; } catch { /* ignore */ }
+  try { if (typeof window.acquireVsCodeApi === 'function') return true; } catch { /* ignore */ }
   return window.self !== window.top;
 }
 

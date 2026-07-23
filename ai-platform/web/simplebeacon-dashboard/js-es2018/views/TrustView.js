@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson } from '../utils.js';
+import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson, setHtml } from '../utils.js';
 import { renderRepositoryHealthSection } from './RepositoryHealthView.js';
 import { getVsCodeApi, renderSkeletonCard } from '../utils-lib/dom.js?v=20260725phase3';
 /**
@@ -339,7 +339,7 @@ export class TrustView {
         var _a, _b;
         this.loading = true;
         this.error = null;
-        container.innerHTML = this.render();
+        setHtml(container, this.render());
         try {
             this.data = await fetchTrustVerification();
         }
@@ -348,7 +348,7 @@ export class TrustView {
         }
         finally {
             this.loading = false;
-            container.innerHTML = this.render();
+            setHtml(container, this.render());
             (_a = container.querySelector('#trust-download-json')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.downloadTrustData());
             const retryBtn = container.querySelector('#trust-retry-btn');
             if (retryBtn) {

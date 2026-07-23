@@ -1,4 +1,5 @@
 // simplebeacon-ignore memory-leak, security
+import { setSafeHTML } from './utils-lib/dom.js';
 /**
  * Escape HTML special characters.
  * @param {string|null|undefined} str
@@ -38,7 +39,7 @@ function _drainToastQueue() {
         const toast = document.createElement('div');
         toast.className = `toast ${item.type} show`;
         if (item.html) {
-            toast.innerHTML = item.message;
+            setSafeHTML(toast, item.message);
         } else {
             toast.textContent = item.message;
         }
@@ -81,7 +82,7 @@ export function showToast(message, type = 'info', opts = {}) {
     const toast = document.createElement('div');
     toast.className = `toast ${type} show`;
     if (html) {
-        toast.innerHTML = message;
+        setSafeHTML(toast, message);
     } else {
         toast.textContent = message;
     }

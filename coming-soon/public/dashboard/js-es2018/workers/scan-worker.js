@@ -6,10 +6,11 @@
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
 import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260716cachefix1';
-import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260724fix1';
+import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
 const MAX_DISCOVERED_FILES = 500000;
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
+const YIELD_INTERVAL = 500; // yield back to main thread every N files
 const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
 const FILE_READ_TIMEOUT_MS = 30000;
 const CHUNK_ANALYZE_TIMEOUT_MS = 120000;
@@ -274,6 +275,9 @@ async function scanFiles(files, deepScan, state = null) {
     let textErrors = state?.textErrors || 0;
     let chunkAnalyzed = state?.chunkAnalyzed || 0;
     let binarySkipped = state?.binarySkipped || 0;
+    let ignoredDir = state?.ignoredDir || 0;
+    let heavyVendor = state?.heavyVendor || 0;
+    let ignoredByPattern = state?.ignoredByPattern || 0;
     let issuesTruncated = state?.issuesTruncated || false;
     const ignoreCtx = state?.ignoreCtx || null;
     for (const file of files) {
@@ -282,7 +286,20 @@ async function scanFiles(files, deepScan, state = null) {
             break;
         }
         if (shouldSkipFile(file.path, deepScan, ignoreCtx)) {
+            // classify skip reason for telemetry
+            const normalized = file.path.replace(/\\/g, '/');
+            const DIR_EXCLUDE_RE = /(^|[\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo\/registry|\.cargo\/git)([\/]|$)/i;
+            if (DIR_EXCLUDE_RE.test(normalized) || /(^|[\/])(docs\/|doc\/|third_party\/|thirdparty\/|vendor\/)/i.test(normalized)) {
+                ignoredDir++;
+            }
+            else {
+                ignoredByPattern++;
+            }
             processed++;
+            // yield occasionally to keep UI responsive
+            if (processed % YIELD_INTERVAL === 0) {
+                await new Promise(r => setTimeout(r, 0));
+            }
             continue;
         }
         try {
@@ -295,12 +312,39 @@ async function scanFiles(files, deepScan, state = null) {
             const size = fileObj.size || 0;
             if (isBinary(file.path)) {
                 binarySkipped += 1;
+                // telemetry
+                // also map to binaryFile counter
                 processed++;
+                if (processed % YIELD_INTERVAL === 0) {
+                    await new Promise(r => setTimeout(r, 0));
+                }
                 continue;
             }
             if (size > LARGE_FILE_THRESHOLD) {
-                const results = await withTimeout(analyzeFileChunks(fileObj, file.path), CHUNK_ANALYZE_TIMEOUT_MS, file.path);
-                chunkAnalyzed += 1;
+                // If file is very large and likely from vendor directories, avoid full-text analysis
+                const normalized = file.path.replace(/\\/g, '/');
+                if (!deepScan && /(?:\b|\/)(?:vendor|third_party|thirdparty|node_modules)(?:\b|\/)/i.test(normalized)) {
+                    heavyVendor += 1;
+                    processed++;
+                    if (processed % YIELD_INTERVAL === 0) {
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                    continue;
+                }
+                let results = [];
+                try {
+                    results = await withTimeout(analyzeFileChunks(fileObj, file.path), CHUNK_ANALYZE_TIMEOUT_MS, file.path);
+                    chunkAnalyzed += 1;
+                }
+                catch (err) {
+                    // chunk analyzer failed or timed out - skip to avoid OOM
+                    heavyVendor += 1;
+                    processed++;
+                    if (processed % YIELD_INTERVAL === 0) {
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                    continue;
+                }
                 const chunkIssues = findingsToIssues(results, file.path);
                 if (chunkIssues.length > 0) {
                     for (const issue of chunkIssues) {
@@ -331,7 +375,11 @@ async function scanFiles(files, deepScan, state = null) {
             processed++;
             const total = state?.totalFiles || files.length;
             if (processed % 25 === 0) {
-                self.postMessage({ type: 'progress', processed, total, currentFile: file.path });
+                self.postMessage({ type: 'progress', processed, total, currentFile: file.path, ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
+            }
+            // yield occasionally to keep main thread responsive
+            if (processed % YIELD_INTERVAL === 0) {
+                await new Promise(r => setTimeout(r, 0));
             }
         }
         catch (err) {
@@ -340,7 +388,7 @@ async function scanFiles(files, deepScan, state = null) {
         }
     }
     const total = state?.totalFiles || files.length;
-    self.postMessage({ type: 'progress', processed, total, currentFile: files.length ? files[files.length - 1].path : '' });
+    self.postMessage({ type: 'progress', processed, total, currentFile: files.length ? files[files.length - 1].path : '', ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
     return {
         processed,
         totalFiles: total,
@@ -349,6 +397,9 @@ async function scanFiles(files, deepScan, state = null) {
         issueCount: issues.length,
         chunkAnalyzed,
         binarySkipped,
+        ignoredDir,
+        heavyVendor,
+        ignoredByPattern,
         issuesTruncated,
         allResults,
         textErrors

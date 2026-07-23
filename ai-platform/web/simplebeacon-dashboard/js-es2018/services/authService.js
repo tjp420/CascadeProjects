@@ -79,17 +79,13 @@ export function apiBase() {
         const env = (typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__) || {};
         const envBase = env.API_BASE_URL || env.DASHBOARD_BASE_URL || (typeof window !== 'undefined' && window.__SB_API_HOST__) || '';
         if (envBase && _isAllowedApiBase(envBase)) {
-            return String(envBase).replace(/\/api\/?$/, '');
+            return String(envBase).replace(/\/api\/?$/, '').replace(/\/+$/, '');
         }
-        // Extension / VS Code bridge query override.
-        try {
-            const params = new URLSearchParams(location.search);
-            const override = params.get('sb_api_base');
-            if (override && _isAllowedApiBase(override)) {
-                return override.replace(/\/api\/?$/, '');
-            }
+        // Extension / VS Code bridge — query param or sessionStorage (set by discoverAndApplyExtensionBridge).
+        const bridgeBase = _resolveExtensionBridgeApiBase();
+        if (bridgeBase && _isAllowedApiBase(bridgeBase)) {
+            return bridgeBase.replace(/\/api\/?$/, '');
         }
-        catch (_a) { /* ignore */ }
         const host = location.hostname;
         // Canonical production domain serves the API same-origin.
         if (host === 'simplebeacon.ai') {

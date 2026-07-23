@@ -1,32 +1,32 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-// cache-bust: 20260725dashfix2
+// cache-bust: 20260725dropfix3
 // DOMPurify is loaded via a script tag in the HTML (or provided by the bundler).
 // The HTML includes a CDN fallback so `window.DOMPurify` should be available.
 import { scanService } from './services/scanService.js?v=20260716cachefix1';
 import { platformService } from './services/platformService.js?v=20260716cachefix1';
 import { billingService } from './services/billingService.js?v=20260716cachefix1';
-import { authService, apiBase } from './services/authService.js?v=20260720lockfix1';
+import { authService, apiBase } from './services/authService.js?v=20260725apifix1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
 import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260716cachefix1';
-import { DashboardView } from './views/DashboardView.js?v=20260725dashfix1';
-import { ResultsView } from './views/ResultsView.js?v=20260716cachefix1';
+import { DashboardView } from './views/DashboardView.js?v=20260726embedfix1';
+import { ResultsView } from './views/ResultsView.js';
 import { SettingsView } from './views/SettingsView.js?v=20260720ollama6';
 import { ToolsView } from './views/ToolsView.js';
 import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
-import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260725iframefix1';
-import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
-import { AboutView } from './views/AboutView.js';
+import { AuditView } from './views/AuditView.js?v=20260726auditfix3';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260726embedfix1';
+import { SecurityView } from './views/SecurityView.js?v=20260725secredesign1';
+import { AboutView } from './views/AboutView.js?v=20260726cachefix1';
 import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
 import { SignInView } from './views/SignInView.js?v=20260722signin3';
-import { ChatbotView } from './views/ChatbotView.js?v=20260720ollama6';
+import { ChatbotView } from './views/ChatbotView.js?v=20260726embedfix1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
-import { ProfileView } from './views/ProfileView.js?v=20260724profile1';
+import { ProfileView } from './views/ProfileView.js?v=20260726embedfix1';
 import { AdminPanelView } from './views/AdminPanelView.js?v=20260720adminfix1';
 import { GettingStartedView } from './views/GettingStartedView.js?v=20260718onboard1';
 import { GuidedTour } from './components/GuidedTour.js?v=20260718onboard1';
@@ -36,8 +36,8 @@ import { showUpgradeModal } from './components/UpgradeModal.js';
 import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
-import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260725iframefix1';
-import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260722scanfix1';
+import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260726embedfix1';
+import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260726browserdrop2';
 import { LocalScanService } from './services/localScanService.js?v=20260725local1';
 import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260716cachefix1';
 // Embed shim fallback: when loaded inside an IDE/webview that marks the document
@@ -48,15 +48,22 @@ import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefau
             if (typeof isEmbeddedDashboardFrame === 'function' && isEmbeddedDashboardFrame()) {
                 const root = document.documentElement;
                 root.setAttribute('data-embed-mode', '1');
-                // IDE mode already hides chrome and #app-main scrolls; do not add body padding here.
-                if (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface()) {
-                    return;
-                }
+                // Determine if this is an IDE surface, but still apply the embed shim
+                // so host chrome doesn't clip the page. Some IDE hosts do not hide
+                // chrome consistently, so ensure a safe padding is present.
+                try { typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface(); } catch (e) { /* ignore */ }
                 const cssVar = getComputedStyle(root).getPropertyValue('--embed-top-shim') || '';
                 const shimPx = parseInt(cssVar) || 48;
-                const bodyPad = parseInt(getComputedStyle(document.body).paddingTop) || 0;
-                if (!document.body.style.paddingTop || bodyPad === 0) {
-                    document.body.style.paddingTop = shimPx + 'px';
+                const appMain = document.querySelector('#app-main') || document.querySelector('.app-main');
+                if (appMain) {
+                    const cur = parseInt(getComputedStyle(appMain).paddingTop) || 0;
+                    if (!appMain.style.paddingTop || cur === 0) appMain.style.paddingTop = shimPx + 'px';
+                }
+                else {
+                    const bodyPad = parseInt(getComputedStyle(document.body).paddingTop) || 0;
+                    if (!document.body.style.paddingTop || bodyPad === 0) {
+                        document.body.style.paddingTop = shimPx + 'px';
+                    }
                 }
             }
         };
@@ -297,16 +304,34 @@ class SimplebeaconDashboard {
         // IDE surface: extension sidebar owns navigation — content pane only.
         // Keep data-embed-full-nav if the host requested website mode (header + sidebar visible).
         if (isIdeDashboardSurface()) {
-            document.documentElement.setAttribute('data-ide-embed', '1');
-            if (!document.documentElement.hasAttribute('data-embed-full-nav')) {
-                document.documentElement.removeAttribute('data-embed-full-nav');
+            let _websiteMode = false;
+            try {
+                let _params = new URLSearchParams(window.location.search || '');
+                _websiteMode = _params.get('sb_website_mode') === '1' || sessionStorage.getItem('sb_website_mode') === '1';
+            } catch (_) { /* ignore */ }
+            if (_websiteMode) {
+                document.documentElement.setAttribute('data-embed-full-nav', '1');
+            } else {
+                document.documentElement.setAttribute('data-ide-embed', '1');
+                if (!document.documentElement.hasAttribute('data-embed-full-nav')) {
+                    document.documentElement.removeAttribute('data-embed-full-nav');
+                }
             }
             return;
         }
         if (typeof window !== 'undefined' && window.self !== window.top) {
-            document.documentElement.setAttribute('data-ide-embed', '1');
-            if (!document.documentElement.hasAttribute('data-embed-full-nav')) {
-                document.documentElement.removeAttribute('data-embed-full-nav');
+            let _websiteMode2 = false;
+            try {
+                let _params2 = new URLSearchParams(window.location.search || '');
+                _websiteMode2 = _params2.get('sb_website_mode') === '1' || sessionStorage.getItem('sb_website_mode') === '1';
+            } catch (_) { /* ignore */ }
+            if (_websiteMode2) {
+                document.documentElement.setAttribute('data-embed-full-nav', '1');
+            } else {
+                document.documentElement.setAttribute('data-ide-embed', '1');
+                if (!document.documentElement.hasAttribute('data-embed-full-nav')) {
+                    document.documentElement.removeAttribute('data-embed-full-nav');
+                }
             }
             return;
         }
@@ -413,6 +438,45 @@ class SimplebeaconDashboard {
             }
         };
     }
+    _scrollMainToTop() {
+        const main = document.getElementById('app-main');
+        if (main) {
+            try { main.scrollTo({ top: 0, behavior: 'smooth' }); }
+            catch (_) { try { main.scrollTop = 0; } catch (_) { /* ignore */ } }
+        }
+        try { window.scrollTo(0, 0); } catch (_) { /* ignore */ }
+    }
+    _setupScrollToTopButton() {
+        if (!isEmbeddedDashboardFrame() && !isIdeDashboardSurface())
+            return;
+        const main = document.getElementById('app-main');
+        if (!main)
+            return;
+        if (document.getElementById('sb-scroll-top-btn'))
+            return;
+        const btn = document.createElement('button');
+        btn.id = 'sb-scroll-top-btn';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Scroll to top');
+        btn.title = 'Scroll to top';
+        const svgHtml = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 16V4"/><path d="M4 10l6-6 6 6"/></svg>';
+        if (typeof window !== 'undefined' && typeof window.setSafeHTML === 'function') {
+            window.setSafeHTML(btn, svgHtml);
+        } else {
+            btn.innerHTML = svgHtml;
+        }
+        btn.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;width:40px;height:40px;border-radius:50%;border:1px solid var(--border,#333);background:var(--surface,#1e1e1e);color:var(--text-primary,#ccc);display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:opacity 0.2s,transform 0.2s;padding:0;';
+        btn.addEventListener('mouseenter', () => { btn.style.transform = 'scale(1.1)'; });
+        btn.addEventListener('mouseleave', () => { btn.style.transform = 'scale(1)'; });
+        btn.addEventListener('click', () => this._scrollMainToTop());
+        document.body.appendChild(btn);
+        const onScroll = () => {
+            const st = main.scrollTop;
+            btn.style.display = st > 300 ? 'flex' : 'none';
+        };
+        main.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+    }
     cleanupOrphanViewRoots(main) {
         const keep = main || document.getElementById('app-main');
         document.querySelectorAll('body > .fade-in, .app-shell > .fade-in, .app-body > .fade-in').forEach((el) => {
@@ -455,6 +519,7 @@ class SimplebeaconDashboard {
         this.setupShell();
         this.setupEmbedQuickNav();
         this._setupIdeScrollBridge();
+        this._setupScrollToTopButton();
         this.showBridgeNotice();
         this.setupKeyboard();
         this.setupMobileNav();
@@ -482,6 +547,9 @@ class SimplebeaconDashboard {
                 if (pathInput) {
                     pathInput.value = event.data.path;
                 }
+            }
+            if (event.data && event.data.command === 'scrollToTop') {
+                this._scrollMainToTop();
             }
         });
         if (isDemoMode()) {

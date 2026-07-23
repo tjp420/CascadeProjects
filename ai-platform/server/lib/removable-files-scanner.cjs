@@ -71,6 +71,18 @@ const REMOVABLE_DIR_PATTERNS = [
   /^\.[a-z]+-cache$/i
 ];
 
+const SKIP_DIRS = new Set([
+  '.git',
+  '.vscode-test',
+  '.simplebeacon',
+  'github-cache',
+  'deliverables',
+  'java-ai-vulnerable',
+  'data-central',
+  'security-reports',
+  'archive'
+]);
+
 /**
  * Is removable file.
  * @param {string} fileName
@@ -117,6 +129,9 @@ async function walkDir(dirPath, basePath, results, options = {}) {
     const relativePath = path.relative(basePath, fullPath).replace(/\\/g, '/');
 
     if (entry.isDirectory()) {
+      if (SKIP_DIRS.has(entry.name)) {
+        continue;
+      }
       if (isRemovableDir(entry.name)) {
         // Compute directory size
         let dirSize = 0;

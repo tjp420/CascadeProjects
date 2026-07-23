@@ -79,7 +79,7 @@ export function apiBase() {
         const env = (typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__) || {};
         const envBase = env.API_BASE_URL || env.DASHBOARD_BASE_URL || (typeof window !== 'undefined' && window.__SB_API_HOST__) || '';
         if (envBase && _isAllowedApiBase(envBase)) {
-            return String(envBase).replace(/\/api\/?$/, '');
+            return String(envBase).replace(/\/api\/?$/, '').replace(/\/+$/, '');
         }
         // Extension / VS Code bridge query override.
         try {

@@ -523,7 +523,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             }
 
             if (analysisType === 'removable-files') {
-                const report = await scanRemovableFiles(projectPath);
+                const report = await withTimeout(scanRemovableFiles(projectPath), 120_000, 'removable-files analysis');
                 return sendAnalyzeJson(res, {
                     success: true,
                     analysisType: 'removable-files',
@@ -590,11 +590,12 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     }
                 }
 
-                // Run file merger reduction, removable files, and npm audit in parallel
-                const [fileReductionResult, removableFilesResult, npmAuditResult] = await Promise.allSettled([
-                    scanFileMergerReduction(projectPath, { includeRepositoryInventory: true }),
-                    scanRemovableFiles(projectPath),
-                    runNpmAuditAsync(projectPath, { force: false })
+                // Run file-reduction, removable-files, npm-audit, and data-cleanup in parallel
+                const [fileReductionResult, removableFilesResult, npmAuditResult, dataCleanupResult] = await Promise.allSettled([
+                    withTimeout(scanFileMergerReduction(projectPath, { includeRepositoryInventory: true }), 120_000, 'complete file-reduction'),
+                    withTimeout(scanRemovableFiles(projectPath), 120_000, 'complete removable-files'),
+                    withTimeout(runNpmAuditAsync(projectPath, { force: false }), 120_000, 'complete npm-audit'),
+                    withTimeout(runDataCleanupScan(projectPath, { profile: 'all' }), 180_000, 'complete data-cleanup')
                 ]);
 
                 if (fileReductionResult.status === 'fulfilled') {
@@ -618,12 +619,11 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     logger.warn('[Complete] npm audit failed:', safeErrorMessage(npmAuditResult.reason));
                 }
 
-                // Run data-cleanup scan so compliance can reference cleanup findings
-                try {
-                    results.dataCleanup = await runDataCleanupScan(projectPath, { profile: 'all' });
+                if (dataCleanupResult.status === 'fulfilled') {
+                    results.dataCleanup = dataCleanupResult.value;
                     enginesRun.push('data-cleanup');
-                } catch (cleanupErr) {
-                    logger.warn('[Complete] data-cleanup failed:', safeErrorMessage(cleanupErr));
+                } else {
+                    logger.warn('[Complete] data-cleanup failed:', safeErrorMessage(dataCleanupResult.reason));
                 }
 
                 // Run compliance checklist after cleanup

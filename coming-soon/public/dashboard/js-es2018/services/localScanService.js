@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { showToast } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260721corsfix1';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260716cachefix1';
 import {
   createIgnoreContext,
@@ -8,7 +8,7 @@ import {
   filterQueueByIgnore,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260724fix1';
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
 const WORKER_URL = new URL('../workers/scan-worker.js?v=20260724fix1', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
@@ -203,6 +203,7 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
             ]
         },
         ignoreMeta: meta.ignoreMeta || null,
+        telemetry: meta.telemetry || null,
         gate: {
             pass: blockingCount === 0 && totalFiles > 0,
             blockingCount,
@@ -240,12 +241,12 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             reject(new Error(err.message || 'Local scan worker failed'));
         };
         worker.onmessage = async (e) => {
-            const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile, binarySkipped, textErrors } = e.data;
+            const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile, binarySkipped, textErrors, ignoredDir, heavyVendor, ignoredByPattern } = e.data;
             if (type === 'progress' && options.onProgress) {
-                options.onProgress(processed, total, { currentFile });
+                    options.onProgress(processed, total, { currentFile, ignoredDir, heavyVendor, ignoredByPattern });
             }
             if (type === 'batch-complete' && options.onProgress) {
-                options.onProgress(processed, total, { currentFile: currentFile || `Batch ${Math.floor((e.data.batchOffset || 0) / SCAN_BATCH_SIZE) + 1} complete` });
+                    options.onProgress(processed, total, { currentFile: currentFile || `Batch ${Math.floor((e.data.batchOffset || 0) / SCAN_BATCH_SIZE) + 1} complete`, ignoredDir: e.data.ignoredDir, heavyVendor: e.data.heavyVendor, ignoredByPattern: e.data.ignoredByPattern });
             }
             if (type === 'error') {
                 cleanup();
@@ -267,7 +268,14 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                             patternCount: options.ignoreCtx.patterns?.length || 0,
                             scanRootName: options.ignoreCtx.scanRootName || ''
                         }
-                        : null
+                        : null,
+                    telemetry: {
+                        ignoredDir: ignoredDir || 0,
+                        heavyVendor: heavyVendor || 0,
+                        ignoredByPattern: ignoredByPattern || 0,
+                        binarySkipped: binarySkipped || 0,
+                        textErrors: textErrors || 0
+                    }
                 }));
             }
         };
@@ -349,16 +357,16 @@ export async function runLocalScan(options = {}) {
     let ignoreCtx = null;
     if (options.files && options.files.length) {
         const fileArray = Array.from(options.files);
-        const firstRel = fileArray[0].webkitRelativePath || fileArray[0].name || '';
+        const firstRel = fileArray[0]._virtualPath || fileArray[0].webkitRelativePath || fileArray[0].name || '';
         projectName = options.projectPath || firstRel.split('/')[0] || 'local-project';
         const ignoreLoad = await extractIgnorePatternsFromLegacyFiles(fileArray);
         ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
         files = fileArray
             .filter((f) => {
-                const path = f.webkitRelativePath || f.name;
+                const path = f._virtualPath || f.webkitRelativePath || f.name;
                 return !isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns);
             })
-            .map((f) => ({ path: f.webkitRelativePath || f.name, handle: f }));
+            .map((f) => ({ path: f._virtualPath || f.webkitRelativePath || f.name, handle: f }));
         // Deduplicate by normalized path — Windows symlinks/junctions (pnpm node_modules)
         // cause the same file to appear multiple times during recursive directory traversal.
         const _seen = new Set();

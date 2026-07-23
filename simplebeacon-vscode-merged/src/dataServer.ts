@@ -1454,13 +1454,16 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     res.setHeader('Access-Control-Allow-Origin', requestOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With, Accept, Accept-Language, X-CSRF-Token, X-Api-Key');
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
     res.setHeader('Access-Control-Max-Age', '86400');
     res.setHeader('Vary', 'Origin');
     if (requestOrigin !== '*' && isAllowedOrigin) {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
     if (req.method === 'OPTIONS') {
-      res.writeHead(204);
+      res.writeHead(204, {
+        'Access-Control-Allow-Private-Network': 'true'
+      });
       res.end();
       return;
     }
@@ -2336,24 +2339,42 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             projectPath: resolveRealPath(targetPath),
             fullDirectory: true,
           };
-          const report = await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args) as ScanReport | undefined;
-          const safeReport = report || serverState.currentReport || {};
-          const rawIssues = safeReport.rawIssues || safeReport.findings || safeReport.detectedIssues || [];
-          // Compute real file metrics from the filesystem since the report doesn't include them
-          const dirMetrics = fs.existsSync(resolveRealPath(targetPath))
-            ? getDirectoryMetrics(resolveRealPath(targetPath))
-            : { totalFiles: 0, totalSize: 0, breakdown: {} };
-          const totalFiles = safeReport.totalFiles || dirMetrics.totalFiles || 0;
+          // Fire-and-forget: start the scan without awaiting so the HTTP response
+          // returns immediately. The dashboard polls /api/scan/progress and fetches
+          // /api/report when the scan completes.
+          Promise.resolve(vscode.commands.executeCommand('simplebeacon.scanWorkspace', args))
+            .then((report: unknown) => {
+              const safeReport = report as ScanReport | undefined;
+              if (safeReport) {
+                const rawIssues = safeReport.rawIssues || safeReport.findings || safeReport.detectedIssues || [];
+                updateServerState({
+                  currentReport: safeReport as ScanReport | null,
+                  scanStatus: 'completed',
+                  scanMessage: 'Scan complete',
+                  lastScanTime: Date.now(),
+                });
+                if (outputChannel) {
+                  outputChannel.appendLine(`[SimpleBeacon DataServer] Background scan complete — ${rawIssues.length} issues`);
+                }
+              }
+            })
+            .catch((err: any) => {
+              if (outputChannel) {
+                outputChannel.appendLine(`[SimpleBeacon DataServer] Background scan failed: ${err?.message || err}`);
+              }
+              updateServerState({
+                scanStatus: 'error',
+                scanMessage: err?.message || 'Scan failed',
+                lastScanTime: Date.now(),
+              });
+            });
+          // Return immediately so the dashboard doesn't time out
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             success: true,
-            report: { ...safeReport, rawIssues },
+            scanning: true,
+            message: 'Scan started — poll /api/scan/progress for status',
             scannedPath: targetPath,
-            metrics: {
-              totalFiles,
-              totalSize: dirMetrics.totalSize || 0,
-              breakdown: dirMetrics.breakdown || {},
-            }
           }));
         } catch (err: any) {
           const fallback = serverState.currentReport || {};
@@ -2444,7 +2465,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       }
     }
 
-    // SimpleBeacon scan trigger — await scan completion and return report
+    // SimpleBeacon scan trigger — starts scan asynchronously, returns immediately
     if (parsed.pathname === '/api/simplebeacon/scan' && req.method === 'POST') {
       let body = '';
       req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
@@ -2461,24 +2482,39 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             projectPath: rawProjectPath ? resolveRealPath(rawProjectPath) : undefined,
             fullDirectory: payload.fullDirectoryScan !== false,
           };
-          const report = await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args);
-          if (!report) {
-            const fallback = serverState.currentReport;
-            if (fallback && Object.keys(fallback).length > 0) {
-              const msg = 'Scan command returned no report — returning cached report.';
-              if (outputChannel) { outputChannel.appendLine(`[SimpleBeacon DataServer] ${msg}`); }
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: true, fallback: true, warning: msg, report: fallback }));
-              return;
-            }
-            const msg = 'Scan command returned no report. Check that the SimpleBeacon CLI is installed and the workspace path is valid.';
-            if (outputChannel) { outputChannel.appendLine(`[SimpleBeacon DataServer] ${msg}`); }
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: false, error: msg }));
-            return;
-          }
+          // Fire-and-forget: start scan without awaiting
+          Promise.resolve(vscode.commands.executeCommand('simplebeacon.scanWorkspace', args))
+            .then((report: unknown) => {
+              const safeReport = report as ScanReport | undefined;
+              if (safeReport) {
+                updateServerState({
+                  currentReport: safeReport as ScanReport | null,
+                  scanStatus: 'completed',
+                  scanMessage: 'Scan complete',
+                  lastScanTime: Date.now(),
+                });
+                if (outputChannel) {
+                  outputChannel.appendLine('[SimpleBeacon DataServer] Background scan complete');
+                }
+              }
+            })
+            .catch((err: any) => {
+              if (outputChannel) {
+                outputChannel.appendLine(`[SimpleBeacon DataServer] Background scan failed: ${err?.message || err}`);
+              }
+              updateServerState({
+                scanStatus: 'error',
+                scanMessage: err?.message || 'Scan failed',
+                lastScanTime: Date.now(),
+              });
+            });
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, report }));
+          res.end(JSON.stringify({
+            success: true,
+            scanning: true,
+            message: 'Scan started — poll /api/scan/progress for status',
+            projectPath: rawProjectPath,
+          }));
         } catch (err: any) {
           const msg = err.message || 'Scan failed';
           if (outputChannel) {

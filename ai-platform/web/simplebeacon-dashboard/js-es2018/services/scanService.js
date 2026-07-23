@@ -1,10 +1,10 @@
 import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
 import { billingService } from './billingService.js';
-import { authService } from './authService.js?v=20260721cspapi';
+import { authService } from './authService.js?v=20260722bridgefix1';
 import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260716cachefix1';
-import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260716cachefix1';
+import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260722scanfix2';
 import { apiBaseUrl } from '../utils-lib/url.js';
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
@@ -365,14 +365,25 @@ export class ScanService {
     }
     async fetchAudit(includeNpmAudit = false) {
         const query = includeNpmAudit ? '?npmAudit=1' : '';
-        const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/audit${query}`, {}, includeNpmAudit ? 120000 : 30000);
-        if (!res.ok)
-            throw new Error('Failed to load compliance audit');
-        const data = await readJsonResponseBody(res, null);
-        if (!data || typeof data !== 'object') {
-            throw new Error('Audit API unavailable on this host (received HTML instead of JSON).');
+        try {
+            const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/audit${query}`, {}, includeNpmAudit ? 120000 : 30000);
+            if (!res.ok)
+                throw new Error('Failed to load compliance audit');
+            const data = await readJsonResponseBody(res, null);
+            if (!data || typeof data !== 'object') {
+                throw new Error('Audit API unavailable on this host (received HTML instead of JSON).');
+            }
+            return data;
         }
-        return data;
+        catch (err) {
+            // If the network layer signalled an auth requirement, return a predictable
+            // object so the UI can render a helpful action card instead of failing.
+            if (err && typeof err === 'object' && err.code === 'auth_required') {
+                return { authRequired: true, success: false };
+            }
+            // Re-throw other errors so callers can handle them as before.
+            throw err;
+        }
     }
     async runAssess() {
         const assessHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/assess`, { method: 'POST' }, 60000);

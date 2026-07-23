@@ -18,6 +18,9 @@ logs/
 ai-platform/web/simplebeacon-dashboard/data/
 ai-platform/web/simplebeacon-dashboard/tsconfig.json
 
+# Legacy dashboard build — duplicate/stale artifacts that trigger false positives
+ai-platform/web/dashboard/**
+
 # Dev environment file — intentional differences from production
 .env.v1-internal
 
@@ -286,6 +289,13 @@ packages/simplebeacon-cli/src/api/ci-ingest.js
 
 # Markdown files — legitimate code fence syntax is not a leak
 **/*.md
+
+# Keep root governance/docs files visible to scanner
+!LICENSE
+!LICENSE.md
+!SECURITY.md
+!GOVERNANCE.md
+!CONTRIBUTING.md
 
 # Backend modules falsely flagged for missing PropTypes (React-only rule)
 ai-agent/prompts.js
@@ -652,6 +662,9 @@ simplebeacon-rule-tests/negative-test-2/
 
 # Local agent setup
 ai-platform/local-agent/setup.cjs
+# Local agent source files already implement custom helmet/rate-limit middleware
+local-agent/agent.js
+ai-platform/local-agent/agent.cjs
 
 # Deep check and verify scripts
 simplebeacon-vscode-merged/deep-check-welcome.cjs
@@ -874,6 +887,15 @@ packages/simplebeacon-cli/scripts/
 packages/simplebeacon-cli/src/
 packages/simplebeacon-cli/docs/
 
+# Phase 11: common temp/junk file patterns
+*.bak
+*.orig
+*.old
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
 # Simplebeacon-intelligence build scripts
 ai-platform/packages/simplebeacon-intelligence/scripts/
 ai-platform/packages/simplebeacon-intelligence/src/slm-bridge.js
@@ -896,7 +918,10 @@ ai-platform/src/lib/app-logger.cjs
 
 # Environment files (not source code — contain env vars by design)
 .env
+**/.env
 ai-platform/.env
+coming-soon/.env
+simplebeacon-vscode-merged/.env
 
 # Audit capture files (HTTP response dumps, not source code)
 ai-platform/packages/simplebeacon-intelligence/simplebeacon_audit_get.html
@@ -1324,3 +1349,12 @@ ai-platform/web/simplebeacon-dashboard/js/vendor/jszip.min.js
 ai-platform/web/simplebeacon-dashboard/js-es2018/services/platformService.js
 ai-platform/web/simplebeacon-dashboard/js-es2018/utils-lib/async.js
 
+# --- 2026-07-22: Legacy dashboard false positives ---
+
+# Legacy dashboard (not deployed — coming-soon/public/dashboard is the live copy)
+# Hardcoded 127.0.0.1 is legitimate localhost config, console.warn in error handlers,
+# TODOs are technical debt tracking, high-entropy is a false positive on HTML strings
+ai-platform/web/dashboard/**
+
+# Complete scan analysis — console.warn in catch blocks for optional dynamic imports
+ai-platform/web/simplebeacon-dashboard/js-es2018/utils/completeScanAnalysis.js

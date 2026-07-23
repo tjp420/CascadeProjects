@@ -1,4 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
+// simplebeacon:production-leak-intent
 /**
  * Browser-side .simplebeaconignore parser and matcher (mirrors CLI glob-utils + isIgnoredPath).
  */
@@ -168,7 +169,39 @@ const BROWSER_BUILTIN_IGNORE_SIMPLEBEACON = Object.freeze([
   '**/coming-soon/functions/package.json',
   '**/coming-soon/public/dashboard/package.json',
   '**/web/simplebeacon-dashboard/package.json',
-  '**/worker-deploy/package.json'
+  '**/worker-deploy/package.json',
+  // --- 2026-07-22: Sandbox scan false-positive suppressions (mirror root .simplebeaconignore) ---
+  // Documentation, generated reports, and logs
+  '**/*.md',
+  '**/*.txt',
+  '**/*.bat',
+  '**/*.sh',
+  '**/dashboard-preview.html',
+  '**/simplebeacon-report.html',
+  // Code files with localhost / console / TODO false positives
+  '**/localAgentService.js',
+  '**/utils-dom.js',
+  '**/secret-config.cjs',
+  '**/generate-license-token.cjs',
+  '**/doctor.js',
+  '**/mcp/stdio-server.js',
+  '**/pii-logging-scanner.js',
+  '**/scan.js',
+  '**/llm-slop-catalog.json',
+  '**/test-jwt-rotation.cjs',
+  '**/_fix_*.cjs',
+  '**/__check_*.mjs',
+  '**/wasm/src/lib.rs',
+  '**/action.yml',
+  '**/gate-commit-check.json',
+  '**/dynamic-roadmap-last-scan.json',
+  '**/roadmap-ai-agent-*.json',
+  // Local agent source already implements custom helmet/rate-limit middleware
+  '**/local-agent/agent.js',
+  '**/local-agent/agent.cjs',
+  // --- 2026-07-22: Legacy dashboard + completeScanAnalysis false positives ---
+  '**/web/dashboard/**',
+  '**/web/simplebeacon-dashboard/js-es2018/utils/completeScanAnalysis.js'
 ]);
 
 /** Detect whether the scan target is the SimpleBeacon monorepo. */

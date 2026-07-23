@@ -6,8 +6,29 @@ import { classifyRegenerableArtifacts, softenPriorityActions, partitionArtifactD
 import { sanitizeCleanupBriefExport } from './cleanup-brief-export.browser.js?v=20260716cachefix1';
 import { sanitizeDataCleanupReportExport } from './data-cleanup-export.browser.js?v=20260716cachefix1';
 import { sanitizeCodebaseReportExport } from './codebase-export.browser.js?v=20260716cachefix1';
-import { sanitizeRoadmapExport as applyBenchmarkRoadmapSanitize } from './roadmap-export.browser.js?v=20260716cachefix1';
-import { sanitizeConsolidationExport as sanitizeConsolidationExportCore } from './consolidation-export.browser.js?v=20260716cachefix1';
+// Fallbackable imports: roadmap & consolidation exporters may be missing on some hosted builds.
+let applyBenchmarkRoadmapSanitize = (x) => x;
+let sanitizeConsolidationExportCore = (x) => x;
+(function tryLoadOptionalExports() {
+    try {
+        // Dynamic import — if it fails, keep the no-op defaults so UI degrades gracefully.
+        import('./roadmap-export.browser.js?v=20260716cachefix1').then((mod) => {
+            if (mod && typeof mod.sanitizeRoadmapExport === 'function')
+                applyBenchmarkRoadmapSanitize = mod.sanitizeRoadmapExport;
+        }).catch((e) => {
+            console.warn('[completeScanAnalysis] roadmap-export not available, using noop fallback.', e);
+        });
+        import('./consolidation-export.browser.js?v=20260716cachefix1').then((mod) => {
+            if (mod && typeof mod.sanitizeConsolidationExport === 'function')
+                sanitizeConsolidationExportCore = mod.sanitizeConsolidationExport;
+        }).catch((e) => {
+            console.warn('[completeScanAnalysis] consolidation-export not available, using noop fallback.', e);
+        });
+    }
+    catch (e) {
+        console.warn('[completeScanAnalysis] failed to initiate optional exports import', e);
+    }
+})();
 import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260716cachefix1';
 import { sanitizeComplianceBundleExport } from './compliance-export.browser.js?v=20260716cachefix1';
 import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260716cachefix1';

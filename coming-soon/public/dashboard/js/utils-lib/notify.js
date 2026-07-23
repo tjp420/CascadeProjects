@@ -6,10 +6,12 @@
  */
 
 import { apiBaseUrl, apiUrl } from './url.js';
+import { fetchApi } from '../lib/recoverable-fetch.js';
 
 let _notifyQueue = [];
 let _notifyTimer = null;
 let _downloadNotifyId = 0;
+let _notifyDisabledUntil = 0;
 
 /**
  * Best-effort POST a generic event to the local data-server /api/notify bridge.
@@ -110,34 +112,26 @@ function _postNotify(entry) {
   if (!notifyBase && apiBaseUrl() === '/') {
     return;
   }
-  try {
-    fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry)
-    }).then((res) => {
-      if (!res.ok) {
-        window["console"]["warn"]('[notifyVSCode] /api/notify returned', res.status, url);
+  
+  if (Date.now() < _notifyDisabledUntil) return;
+  (async () => {
+    try {
+      const resp = await fetchApi(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+      if (resp === null) {
+        _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
+        window.console.warn('[notifyVSCode] /api/notify network failure', url);
+        if (!_isHostedHttps()) _postNotifyBeacon(url, entry);
+        return;
       }
-    }).catch((err) => {
-      window["console"]["warn"](
-        '[notifyVSCode] /api/notify unreachable:',
-        err && err.message ? err.message : err,
-        url
-      );
-      // HTTPS pages cannot fetch local HTTP endpoints due to mixed-content rules.
-      // Fall back to a tiny image beacon because passive mixed content is usually allowed.
-      try {
-        const payload = entry.payload || {};
-        const beaconUrl = url.replace(/\/api\/notify\/?$/, '/api/notify/beacon')
-          + '?type=' + encodeURIComponent(entry.type)
-          + '&payload=' + encodeURIComponent(JSON.stringify(payload));
-        const img = new Image();
-        img.src = beaconUrl;
-      } catch (beaconErr) { /* ignore */ }
-    });
-  }
-  catch (_a) {
-    // Ignore serialization/fetch errors.
-  }
+      if (!resp.ok) {
+        window.console.warn('[notifyVSCode] /api/notify returned', resp.status, url);
+        if (resp.status === 404) {
+          _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
+        }
+      }
+    }
+    catch (err) {
+      window.console.warn('[notifyVSCode] /api/notify unexpected error', err, url);
+    }
+  })();
 }

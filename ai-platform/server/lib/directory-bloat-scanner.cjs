@@ -30,7 +30,17 @@ const LOG_EXTENSIONS = new Set(['.log', '.logs']);
  * @returns {any}
  */
 function shouldSkipDir(name) {
-  return name === '.git' || name === '.cursor' || name === '.vscode';
+  return name === '.git'
+    || name === '.cursor'
+    || name === '.vscode'
+    || name === '.vscode-test'
+    || name === '.simplebeacon'
+    || name === 'github-cache'
+    || name === 'deliverables'
+    || name === 'java-ai-vulnerable'
+    || name === 'data-central'
+    || name === 'security-reports'
+    || name === 'archive';
 }
 
 /**

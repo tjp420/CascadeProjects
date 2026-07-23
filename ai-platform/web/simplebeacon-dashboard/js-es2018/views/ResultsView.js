@@ -67,7 +67,8 @@ export class ResultsView {
         const gateLabel = gatePass ? 'PASS' : (blockingCount > 0 ? 'FAIL' : 'REVIEW');
         const gateClass = gatePass ? 'pass' : (blockingCount > 0 ? 'fail' : 'warn');
         const clientScan = isClientScanReport(report);
-        return `
+                const telemetry = report.telemetry || null;
+                return `
       ${clientScan ? `<div class="card mb-4 results-post-scan-banner" style="padding:var(--space-3);border-color:rgba(99,102,241,0.35);">
         <strong>Local browser scan</strong> — ${formatNumber((_d = report.issueCount) !== null && _d !== void 0 ? _d : 0)} finding(s) from your selected folder.
         ${gatePass ? 'No high-severity gate blockers under <code>failOn: high</code>.' : `${formatNumber(blockingCount)} blocking issue(s) — review before merge.`}
@@ -81,6 +82,17 @@ export class ResultsView {
         <div class="metric-chip"><strong>${formatPercent(report.schemaCompliance)}</strong> schema</div>
         <div class="metric-chip"><strong>${report.issueCount != null ? report.issueCount : 0}</strong> issue groups</div>
       </div>
+            ${telemetry ? `
+                <div class="card mb-4" style="padding:var(--space-3);">
+                    <h4 style="margin:0 0 8px;">Scan breakdown</h4>
+                    <div class="metrics-row">
+                        <div class="metric-chip">Ignored dirs: <strong>${formatNumber(telemetry.ignoredDir || 0)}</strong></div>
+                        <div class="metric-chip">Binary/skipped: <strong>${formatNumber(telemetry.binarySkipped || 0)}</strong></div>
+                        <div class="metric-chip">Large vendor files skipped: <strong>${formatNumber(telemetry.heavyVendor || 0)}</strong></div>
+                        <div class="metric-chip">Ignored by pattern: <strong>${formatNumber(telemetry.ignoredByPattern || 0)}</strong></div>
+                    </div>
+                </div>
+            ` : ''}
     `;
     }
     render() {
@@ -214,7 +226,6 @@ export class ResultsView {
             }
         } catch (e) {
             // ignore attach errors
-            console.warn('[ResultsView] emptyState attach failed', e);
         }
 
         this.bindFilters(el);

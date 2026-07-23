@@ -37,7 +37,7 @@ const files = [
   'security.html', 'terms.html', 'unlock.html',
   'styles.css', 'app-links.js', 'site-config.js',
   'js/auth.js', 'js/roadmap-app.js', 'js/scan-worker.js', 'js/terminal-simulation.js', 'js/token-entry-guard.js',
-  'favicon.svg', 'robots.txt', 'sitemap.xml', '_headers', '_redirects'
+  'favicon.ico', 'favicon.svg', 'robots.txt', 'sitemap.xml', '_headers', '_redirects'
 ];
 
 const minimalAuthJs = `(function(){'use strict';var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();`; // simplebeacon-ignore credential-pattern — generated auth JS template, token key names not secrets

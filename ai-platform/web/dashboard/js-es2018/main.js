@@ -5,7 +5,7 @@
 import { scanService } from './services/scanService.js?v=20260716cachefix1';
 import { platformService } from './services/platformService.js?v=20260716cachefix1';
 import { billingService } from './services/billingService.js?v=20260716cachefix1';
-import { authService, apiBase } from './services/authService.js?v=20260725apifix1';
+import { authService, apiBase } from './services/authService.js?v=20260722bridgefix1';
 import { themeService } from './services/themeService.js';
 import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
 import { TrustView } from './views/TrustView.js?v=20260716cachefix1';
@@ -508,10 +508,12 @@ class SimplebeaconDashboard {
         // Remove any stale full-page drag overlay that may have leaked from a previous session.
         document.querySelectorAll('.sb-global-drag-overlay').forEach(el => el.remove());
         try {
-            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad } = await import('./services/localAgentService.js?v=20260720ollama4');
+            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad, discoverAndApplyExtensionBridge } = await import('./services/localAgentService.js?v=20260720ollama4');
             clearStaleIntegratedBridgeParams();
             if (isHostedDashboard()) {
                 await validateExtensionBridgeOnLoad();
+            } else if (isLocalDevHost() && !hasExtensionBridgeConfigured() && !window.__SIMPLEBEACON_ENV__) {
+                await discoverAndApplyExtensionBridge();
             }
         }
         catch (_bridgeInit) { /* non-fatal */ }

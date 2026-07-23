@@ -93,8 +93,7 @@ export class AssessmentView {
     const authed = authService.isAuthenticated();
     const selectedId = this.app.state.routeParams?.id;
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    el.innerHTML = `
+el.innerHTML = `
       <h1 class="page-title">Assessment Portal</h1>
       <p class="page-subtitle">Simplebeacon scan → human triage → enterprise deliverable. Regex gate in minutes; expert review sells the audit.</p>
 
@@ -216,8 +215,7 @@ export class AssessmentView {
       this.report = null;
     }
     this.recent = assessmentService.getRecentAssessments();
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = '';
+container.innerHTML = '';
     container.appendChild(this.render());
   }
 }

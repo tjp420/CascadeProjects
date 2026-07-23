@@ -1,10 +1,12 @@
 // simplebeacon-ignore i18n
 import { apiUrl } from '../utils-lib/url.js';
+import { fetchApi } from '../lib/recoverable-fetch.js';
 const THEME_KEY = 'simplebeacon-theme';
 const MANUAL_KEY = 'simplebeacon-theme-manual';
 let _globalPollInterval = null;
 let _initCalled = false;
 let _themeMessageReceived = false;
+let _themePollingDisabledUntil = 0;
 function detectIdeTheme() {
     try {
         const bg = getComputedStyle(document.documentElement).getPropertyValue('--vscode-editor-background').trim();
@@ -72,16 +74,34 @@ export class ThemeService {
         const poll = () => {
             if (typeof fetch !== 'function')
                 return;
+            if (Date.now() < _themePollingDisabledUntil) return;
             if (this.manualOverride)
                 return;
             if (_themeMessageReceived)
                 return;
             if (typeof document !== 'undefined' && document.visibilityState === 'hidden')
                 return;
-            fetch(apiUrl('/api/theme')).then(r => r.json()).then(d => {
-                if (d && d.theme && !this.manualOverride)
-                    this.apply(d.theme);
-            }).catch(() => { });
+            (async () => {
+                try {
+                    const resp = await fetchApi(apiUrl('/api/theme'));
+                    if (resp === null) {
+                        // network failure — pause polling briefly
+                        _themePollingDisabledUntil = Date.now() + 60 * 1000;
+                        return;
+                    }
+                    if (!resp.ok) {
+                        if (resp.status === 404) {
+                            _themePollingDisabledUntil = Date.now() + 5 * 60 * 1000;
+                            return;
+                        }
+                        return;
+                    }
+                    const d = await resp.json().catch(() => null);
+                    if (d && d.theme && !this.manualOverride)
+                        this.apply(d.theme);
+                }
+                catch (_) { }
+            })();
         };
         poll();
         _globalPollInterval = setInterval(poll, 30000);

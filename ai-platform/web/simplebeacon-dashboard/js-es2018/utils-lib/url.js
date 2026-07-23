@@ -23,6 +23,14 @@ function _isAllowedApiBase(value) {
     try {
         const url = new URL(value, location.href);
         const isLoopback = _isLoopbackHost(url.hostname);
+            // Reject single-label hostnames (e.g. "http://api") which commonly
+            // appear in test or CI configs but do not resolve in developer machines.
+            // Prefer same-origin or fully qualified hostnames so browser DNS/CORS
+            // failures don't cause noisy errors.
+            const hostname = String(url.hostname || '');
+            if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) && hostname.indexOf('.') === -1) {
+                return false;
+            }
         // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
         if (!isLoopback && location.protocol === 'https:' && url.protocol === 'http:') return false;
         // Extension bridge: VS Code opens the hosted dashboard with loopback sb_api_base.

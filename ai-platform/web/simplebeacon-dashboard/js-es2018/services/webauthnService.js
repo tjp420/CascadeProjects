@@ -1,4 +1,4 @@
-import { authService, apiBase } from './authService.js?v=20260721cspapi';
+import { authService, apiBase } from './authService.js?v=20260722bridgefix1';
 import { getBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured } from './localAgentService.js?v=20260716cachefix1';
 
 function defaultRpId() {

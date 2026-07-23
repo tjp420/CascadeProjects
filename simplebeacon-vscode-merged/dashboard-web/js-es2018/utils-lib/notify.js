@@ -6,11 +6,12 @@
  */
 
 import { apiBaseUrl, apiUrl } from './url.js';
+import { fetchApi } from '../lib/recoverable-fetch.js';
 
 let _notifyQueue = [];
 let _notifyTimer = null;
 let _downloadNotifyId = 0;
-let _vscodeApiCache = null;
+let _notifyDisabledUntil = 0;
 
 /**
  * Best-effort POST a generic event to the local data-server /api/notify bridge.
@@ -139,75 +140,35 @@ function _isIdeIframe() {
         return false;
     return window.self !== window.top;
 }
-function _getVsCodeApi() {
-    if (_vscodeApiCache)
-        return _vscodeApiCache;
-    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function')
-        return null;
+function _postNotifyViaParent(entry) {
+    if (!_isIdeIframe() || !window.parent)
+        return false;
     try {
-        _vscodeApiCache = window.acquireVsCodeApi();
-        return _vscodeApiCache;
-    }
-    catch (_a) {
-        return null;
-    }
-}
-function _postMessageToHost(msg) {
-    const vscode = _getVsCodeApi();
-    if (vscode) {
-        try {
-            vscode.postMessage(msg);
+        if (entry.type === 'setAuthState') {
+            const payload = entry.payload || {};
+            window.parent.postMessage({
+                command: 'setAuthState',
+                signedIn: payload.signedIn === true,
+                tier: payload.tier || '',
+                isAdmin: payload.isAdmin === true
+            }, '*');
             return true;
         }
-        catch (_a) {
-            return false;
+        if (entry.type === 'downloadComplete') {
+            const payload = entry.payload || {};
+            window.parent.postMessage({
+                command: 'downloadComplete',
+                filename: payload.filename,
+                filePath: payload.filePath
+            }, '*');
+            return true;
         }
-    }
-    if (typeof window === 'undefined' || !window.parent || window.parent === window) {
-        return false;
-    }
-    try {
-        window.parent.postMessage(msg, '*');
-        return true;
-    }
-    catch (_b) {
-        return false;
-    }
-}
-function _postNotifyViaParent(entry) {
-    const payload = entry.payload || {};
-    let msg;
-    if (entry.type === 'setAuthState') {
-        msg = {
-            command: 'setAuthState',
-            signedIn: payload.signedIn === true,
-            tier: payload.tier || '',
-            isAdmin: payload.isAdmin === true
-        };
-    }
-    else if (entry.type === 'downloadComplete') {
-        msg = {
-            command: 'downloadComplete',
-            filename: payload.filename || '',
-            filePath: payload.filePath || ''
-        };
-    }
-    else {
-        msg = {
+        window.parent.postMessage({
             command: 'notifyBridge',
             type: entry.type,
-            payload: _redactPayload(payload)
-        };
-    }
-    return _postMessageToHost(msg);
-}
-function _isNotifyUrlReachable(url) {
-    if (_isLoopbackNotifyUrl(url))
-        return !_isHostedHttps();
-    try {
-        const urlObj = new URL(String(url || ''), window.location.href);
-        const pageObj = new URL(window.location.href);
-        return urlObj.origin === pageObj.origin;
+            payload: _redactPayload(entry.payload || {})
+        }, '*');
+        return true;
     }
     catch (_a) {
         return false;
@@ -236,33 +197,32 @@ function _postNotify(entry) {
     if (!notifyBase && apiBaseUrl() === '/') {
         return;
     }
-    if (!_isNotifyUrlReachable(url)) {
+    // Public HTTPS sites cannot reach loopback bridges (Local Network Access). IDE iframes use postMessage.
+    if (_isHostedHttps() && _isLoopbackNotifyUrl(url)) {
         return;
     }
-    try {
-        fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(entry)
-        }).then((res) => {
-            if (!res.ok) {
-                window["console"]["warn"]('[notifyVSCode] /api/notify returned', res.status, url);
-            }
-        }).catch((err) => {
-            if (_isHostedHttps() && _isLoopbackNotifyUrl(url)) {
+    // short-circuit if we recently discovered that notify is unavailable
+    if (Date.now() < _notifyDisabledUntil) return;
+    (async () => {
+        try {
+            const resp = await fetchApi(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+            if (resp === null) {
+                // network failure — mark disabled briefly to avoid tight retry loops
+                _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
+                try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) window.console.warn('[notifyVSCode] /api/notify network failure', url); } catch (e) {}
+                if (!_isHostedHttps()) _postNotifyBeacon(url, entry);
                 return;
             }
-            window["console"]["warn"](
-                '[notifyVSCode] /api/notify unreachable:',
-                err && err.message ? err.message : err,
-                url
-            );
-            if (!_isHostedHttps()) {
-                _postNotifyBeacon(url, entry);
+            if (!resp.ok) {
+                try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) window.console.warn('[notifyVSCode] /api/notify returned', resp.status, url); } catch (e) {}
+                if (resp.status === 404) {
+                    // Not found — disable further attempts for a while
+                    _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
+                }
             }
-        });
-    }
-    catch (_a) {
-        // Ignore serialization/fetch errors.
-    }
+        }
+        catch (err) {
+            try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) window.console.warn('[notifyVSCode] /api/notify unexpected error', err, url); } catch (e) {}
+        }
+    })();
 }

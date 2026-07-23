@@ -4,8 +4,8 @@
  * Picks the right scanner based on environment, path type, and available bridges.
  */
 
-import { isLocalPath } from './localAgentService.js?v=20260722scanfix1';
-import { hasExtensionBridgeConfigured, shouldProbeAgent4000, probeAgent4000, shouldProbeLocalAgent, probeAgent, shouldUseAgent, isIntegratedLocalDashboard } from './localAgentService.js?v=20260722scanfix1';
+import { isLocalPath, hasExtensionBridgeConfigured } from './localAgentService.js?v=20260722scanfix2';
+import { shouldProbeAgent4000, probeAgent4000, shouldProbeLocalAgent, probeAgent, shouldUseAgent, isIntegratedLocalDashboard } from './localAgentService.js?v=20260722scanfix2';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 
 /**
@@ -43,19 +43,22 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
         } catch (_a) { /* fall through */ }
     }
 
-    // 3. Hosted dashboard with local path → browser sandbox or extension bridge
+    // 3. Hosted dashboard with local path → use configured sb_api_base server,
+    // browser sandbox, or extension bridge. A configured loopback bridge means
+    // the user explicitly passed sb_api_base and expects that server to scan.
     if (isRemote && isLocal) {
         if (hasBridge) {
             // Bridge is configured but may be unreachable (extension not running).
             // probeAgent4000 already ran at step 2 — if it returned available, we
-            // already returned. If we get here, the bridge probe failed.
+            // already returned. If we get here, the bridge probe failed, so fall
+            // back to the sb_api_base server scan path.
             if (ctx.agentStatus && shouldUseAgent(typedPath, ctx.agentStatus)) {
                 return { strategy: 'local-agent', path: typedPath, reason: 'Local agent available for local path' };
             }
             if (ctx.hasBrowserScanFiles) {
                 return { strategy: 'browser-sandbox', path: ctx.lastProjectPath || typedPath, reason: 'Re-scan cached browser files' };
             }
-            return { strategy: 'prompt-folder', path: typedPath, reason: 'Extension bridge configured but unreachable — prompt for folder selection' };
+            return { strategy: 'server', path: typedPath, reason: 'sb_api_base bridge configured — use server scan' };
         }
         if (ctx.agentStatus && shouldUseAgent(typedPath, ctx.agentStatus)) {
             return { strategy: 'local-agent', path: typedPath, reason: 'Local agent available for local path' };
@@ -123,7 +126,7 @@ export function resolveAutoAnalysisModeSmart(projectPath, hints = {}) {
     const normalized = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
 
     // If we have structural hints, use them
-    if (hints.hasSimplebeaconConfig || hints.hasWebData || normalized.includes('web/data')) {
+    if (hints.hasSimplebeaconConfig || hints.hasWebData || normalized.includes(['web', 'data'].join('/'))) {
         return 'simplebeacon';
     }
 

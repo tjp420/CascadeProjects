@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson } from '../utils.js';
-import { authService } from '../services/authService.js?v=20260721cspapi';
+import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson, setHtml } from '../utils.js';
+import { authService } from '../services/authService.js?v=20260725apifix1';
 import { getVsCodeApi, renderSkeletonCard } from '../utils-lib/dom.js?v=20260725phase3';
 /**
  * Auth headers.
@@ -426,8 +426,8 @@ export class RepositoryHealthView {
         }
     }
     paint(container) {
-        container.innerHTML = this.render();
-        this.bindEvents(container);
+      setHtml(container, this.render());
+      this.bindEvents(container);
     }
     scrollPreviewIntoView(container) {
         requestAnimationFrame(() => {

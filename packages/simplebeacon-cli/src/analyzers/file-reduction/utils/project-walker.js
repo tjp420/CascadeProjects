@@ -16,6 +16,8 @@ const DEFAULT_SKIP_DIRS = new Set([
     'dist',
     'build',
     '.next',
+    '.nuxt',
+    'out',
     '.cache',
     'uploads',
     'archive',
@@ -23,7 +25,21 @@ const DEFAULT_SKIP_DIRS = new Set([
     'security-reports',
     '__pycache__',
     '.venv',
-    'htmlcov'
+    'htmlcov',
+    '.vscode-test',
+    '.nyc_output',
+    '.parcel-cache',
+    '.turbo',
+    '.serverless',
+    '.fusebox',
+    '.docusaurus',
+    '.vuepress',
+    '.svelte-kit',
+    '.vercel',
+    '.netlify',
+    '.pnpm-store',
+    '.yarn',
+    '.npm'
 ]);
 
 function normalizeRel(baseDir, filePath) {

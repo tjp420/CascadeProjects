@@ -67,7 +67,8 @@ export class ResultsView {
         const gateLabel = gatePass ? 'PASS' : (blockingCount > 0 ? 'FAIL' : 'REVIEW');
         const gateClass = gatePass ? 'pass' : (blockingCount > 0 ? 'fail' : 'warn');
         const clientScan = isClientScanReport(report);
-        return `
+                const telemetry = report.telemetry || null;
+                return `
       ${clientScan ? `<div class="card mb-4 results-post-scan-banner" style="padding:var(--space-3);border-color:rgba(99,102,241,0.35);">
         <strong>Local browser scan</strong> — ${formatNumber((_d = report.issueCount) !== null && _d !== void 0 ? _d : 0)} finding(s) from your selected folder.
         ${gatePass ? 'No high-severity gate blockers under <code>failOn: high</code>.' : `${formatNumber(blockingCount)} blocking issue(s) — review before merge.`}
@@ -81,6 +82,17 @@ export class ResultsView {
         <div class="metric-chip"><strong>${formatPercent(report.schemaCompliance)}</strong> schema</div>
         <div class="metric-chip"><strong>${report.issueCount != null ? report.issueCount : 0}</strong> issue groups</div>
       </div>
+            ${telemetry ? `
+                <div class="card mb-4" style="padding:var(--space-3);">
+                    <h4 style="margin:0 0 8px;">Scan breakdown</h4>
+                    <div class="metrics-row">
+                        <div class="metric-chip">Ignored dirs: <strong>${formatNumber(telemetry.ignoredDir || 0)}</strong></div>
+                        <div class="metric-chip">Binary/skipped: <strong>${formatNumber(telemetry.binarySkipped || 0)}</strong></div>
+                        <div class="metric-chip">Large vendor files skipped: <strong>${formatNumber(telemetry.heavyVendor || 0)}</strong></div>
+                        <div class="metric-chip">Ignored by pattern: <strong>${formatNumber(telemetry.ignoredByPattern || 0)}</strong></div>
+                    </div>
+                </div>
+            ` : ''}
     `;
     }
     render() {
@@ -96,6 +108,22 @@ export class ResultsView {
         const fromAudit = ((_d = this.app.state.routeParams) === null || _d === void 0 ? void 0 : _d.from) === 'audit';
         const el = document.createElement('div');
         el.className = 'fade-in';
+        // Prepare empty-state HTML (renderEmptyState may return a string or an { html, attach } object)
+        const _noReportEmptyState = !report ? renderEmptyState({
+            icon: '📋',
+            title: 'No scan report loaded yet',
+            body: 'Run a Simplebeacon or Complete scan from Analyze, or use Dashboard → Run scan.',
+            iconWrapper: 'emoji',
+            actions: [{ label: 'Go to Analyze', onClick: () => this.app.navigate('analyze') }]
+        }) : null;
+        const _issuesEmptyState = report && issues.length === 0 ? renderEmptyState({
+            icon: totalIssues === 0 && (report?.gate?.pass) && !filtersActive ? '✅' : '🔍',
+            title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
+            iconWrapper: 'emoji'
+        }) : null;
+        const _noReportEmptyHtml = _noReportEmptyState ? (typeof _noReportEmptyState === 'string' ? _noReportEmptyState : _noReportEmptyState.html) : '';
+        const _issuesEmptyHtml = _issuesEmptyState ? (typeof _issuesEmptyState === 'string' ? _issuesEmptyState : _issuesEmptyState.html) : '';
+
         el.innerHTML = `
       <div class="section-heading mb-4">
         <h1 class="page-title" style="margin:0">Results</h1>
@@ -141,9 +169,9 @@ export class ResultsView {
             <div class="flex flex-col gap-2" id="category-filters">
               <button type="button" class="filter-chip justify-start ${this.filterCategory === 'all' ? 'active' : ''}" data-category="all">All types</button>
               ${categories.map((c) => `
-                <button type="button" class="filter-chip justify-start ${this.filterCategory === c.id ? 'active' : ''}" data-category="${c.id}">
-                  ${c.icon} ${escapeHtml(c.title)} (${c.count})
-                </button>
+                            <button type="button" class="filter-chip justify-start ${this.filterCategory === c.id ? 'active' : ''}" data-category="${c.id}">
+                                    ${typeof c.icon === 'string' ? c.icon : ''} ${escapeHtml(c.title)} (${c.count})
+                                </button>
               `).join('')}
             </div>
           </div>
@@ -158,24 +186,12 @@ export class ResultsView {
           </div>
         </aside>
 
-        <div class="results-main">
-          ${!report ? `
-            ${renderEmptyState({
-                icon: '📋',
-                title: 'No scan report loaded yet',
-                body: 'Run a Simplebeacon or Complete scan from Analyze, or use Dashboard → Run scan.',
-                iconWrapper: 'emoji',
-                actions: [{ label: 'Go to Analyze', onClick: () => this.app.navigate('analyze') }]
-            })}
-          ` : issues.length === 0 ? `
-            <div class="results-empty-wrap">
-            ${renderEmptyState({
-                icon: totalIssues === 0 && ((_g = report.gate) === null || _g === void 0 ? void 0 : _g.pass) && !filtersActive ? '✅' : '🔍',
-                title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
-                iconWrapper: 'emoji'
-            })}
-            </div>
-          ` : `
+                <div class="results-main">
+                    ${!report ? `
+                        <div id="results-no-report-empty">${_noReportEmptyHtml}</div>
+                    ` : issues.length === 0 ? `
+                        <div class="results-empty-wrap"><div id="results-empty-state">${_issuesEmptyHtml}</div></div>
+                    ` : `
             <div class="card results-table-card" style="padding: 0; overflow: hidden;">
               <div class="results-table-scroll">
               <table class="results-table">
@@ -198,6 +214,21 @@ export class ResultsView {
         </div>
       </div>
     `;
+        // If renderEmptyState returned attachable objects, attach them into placeholders
+        try {
+            if (_noReportEmptyState && typeof _noReportEmptyState !== 'string' && typeof _noReportEmptyState.attach === 'function') {
+                const c = el.querySelector('#results-no-report-empty');
+                if (c) _noReportEmptyState.attach(c);
+            }
+            if (_issuesEmptyState && typeof _issuesEmptyState !== 'string' && typeof _issuesEmptyState.attach === 'function') {
+                const c2 = el.querySelector('#results-empty-state');
+                if (c2) _issuesEmptyState.attach(c2);
+            }
+        } catch (e) {
+            // ignore attach errors
+            console.warn('[ResultsView] emptyState attach failed', e);
+        }
+
         this.bindFilters(el);
         this.bindExport(el, issues);
         (_h = el.querySelector('#clear-results-filters')) === null || _h === void 0 ? void 0 : _h.addEventListener('click', () => {

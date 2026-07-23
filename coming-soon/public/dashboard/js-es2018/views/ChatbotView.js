@@ -1,9 +1,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, sanitizePrivacyData, copyToClipboard } from '../utils.js';
-import { authService, apiBase } from '../services/authService.js?v=20260721cspapi';
+import { authService, apiBase } from '../services/authService.js?v=20260725apifix1';
 import { fetchUserAiKeys, userHasJwtForAiKeys, fetchOllamaModels, saveUserAiKeys } from '../services/aiKeysService.js?v=20260720ollama6';
 import { canUseBrowserOllama, isHostedDashboard } from '../demoMode.js';
-import { isIdeDashboardSurface } from '../utils-lib/dom.js?v=20260721corsfix1';
+import { isIdeDashboardSurface } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { getLocalBridgeFetch, getExtensionBridgeOrigin, hasExtensionBridgeConfigured, hasExplicitBridgeParam, probeLocalOllama, probeUserInitiatedOllama, probeExtensionBridgeHealth, resolveOllamaProxyUrl, buildBridgeOllamaChatUrls, discoverAndApplyExtensionBridge, buildExtensionConnectDeepLink, getVsixDownloadUrl, isHostedHttpsDashboard } from '../services/localAgentService.js?v=20260720ollama4';
 
 function isExtensionHostedTab() {
@@ -193,7 +193,7 @@ async function resolveChatbotProviders(options = {}) {
                 ...provider,
                 available: false,
                 label: `Ollama (local${configuredHint})`,
-                hostedHint: `Not reachable from the hosted dashboard. Use OpenAI/Anthropic here, run the dashboard at http://localhost, set OLLAMA_ORIGINS=${origin} and restart ollama serve, or open via the VS Code extension.`
+                hostedHint: `Not reachable from the hosted dashboard. Use OpenAI/Anthropic here, run the dashboard locally, set OLLAMA_ORIGINS=${origin} and restart ollama serve, or open via the VS Code extension.`
             };
         });
     }
@@ -373,10 +373,10 @@ function renderOllamaSetupInstructions() {
             </li>
             ${hostedHttps ? '' : `
             <li>
-              <strong>Method 2: Local dashboard (http://localhost)</strong>
+              <strong>Method 2: Local dashboard</strong>
               <ul class="chatbot-ollama-substeps">
                 <li>Start Ollama: <code>ollama serve</code></li>
-                <li>Run the SimpleBeacon dashboard at <code>http://localhost</code> — it connects to Ollama automatically.</li>
+                <li>Run the SimpleBeacon dashboard locally — it connects to Ollama automatically.</li>
               </ul>
             </li>`}
           </ol>

@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from './authService.js?v=20260721cspapi';
+import { authService } from './authService.js?v=20260725apifix1';
 import { fetchUserAiKeys } from './aiKeysService.js?v=20260720ollama3';
 import { scanService } from './scanService.js?v=20260716cachefix1';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
@@ -1008,11 +1008,30 @@ export function openAuditReportPrintWindow(html, filename = 'simplebeacon-audit.
     const savedAs = downloadAuditReportHtml(html, filename);
     const previewWindow = window.open('', '_blank');
     if (previewWindow) {
-        previewWindow.document.open();
-        previewWindow.document.write(html);
-        previewWindow.document.close();
-        previewWindow.focus();
-        return { mode: 'html-download', filename: savedAs, preview: true };
+        try {
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            // Navigate the new window to the blob URL instead of using document.write()
+            previewWindow.location.href = url;
+            // Revoke the object URL after the window loads to free memory
+            previewWindow.addEventListener('load', () => {
+                try { URL.revokeObjectURL(url); } catch (e) { /* ignore */ }
+            }, { once: true });
+            previewWindow.focus();
+            return { mode: 'html-download', filename: savedAs, preview: true };
+        }
+        catch (e) {
+            // Fallback: navigate the preview window to a data URL as a safer alternative
+            try {
+                const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+                previewWindow.location.href = dataUrl;
+                previewWindow.focus();
+                return { mode: 'html-download', filename: savedAs, preview: true };
+            }
+            catch (err) {
+                return { mode: 'html-download', filename: savedAs, preview: false };
+            }
+        }
     }
     return { mode: 'html-download', filename: savedAs, preview: false };
 }

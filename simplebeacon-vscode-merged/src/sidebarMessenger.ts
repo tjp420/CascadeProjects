@@ -182,9 +182,10 @@ export function resolveSiteUrlInput(raw: string, baseOrigin: string): string {
 function isDashboardEmbedUrl(url: string): boolean {
   try {
     const path = new URL(url).pathname || '';
-    return path === '/dashboard' || path.startsWith('/dashboard/');
+    return path === '/dashboard' || path.startsWith('/dashboard/') ||
+      path === '/audit' || path.startsWith('/audit/') || path.endsWith('/audit.html');
   } catch {
-    return url.includes('/dashboard');
+    return url.includes('/dashboard') || url.includes('/audit');
   }
 }
 
@@ -201,19 +202,15 @@ function isRemoteUrl(url: string): boolean {
 export function appendDashboardEmbedParams(url: string, notifyBase?: string, websiteMode?: boolean): string {
   let result = url;
   const remote = isRemoteUrl(url);
-  // Only bridge the local data server API for local/localhost dashboards.
-  // Remote dashboards (e.g. simplebeacon.ai) must use their own backend API;
-  // injecting a local HTTP sb_api_base would be blocked by CORS/mixed-content.
-  const needsApiBridge = Boolean(notifyBase && isDashboardEmbedUrl(url) && !remote);
+  // Bridge the local data server API for local/localhost dashboards and for
+  // remote website-mode dashboards (e.g. simplebeacon.ai/audit) that need to talk
+  // to the VS Code: extension data server. Private Network Access CORS headers in
+  // dataServer.ts allow the cross-origin HTTPS-to-HTTP fetch.
+  const needsApiBridge = Boolean(notifyBase && isDashboardEmbedUrl(url) && (!remote || websiteMode));
   if (notifyBase) {
     if (!result.includes('sb_notify_base=')) {
       const sep = result.includes('?') ? '&' : '?';
       result = `${result}${sep}sb_notify_base=${encodeURIComponent(notifyBase)}`;
-    }
-    const needsBridge = needsApiBridge || (websiteMode && isDashboardEmbedUrl(url) && !remote);
-    if (needsBridge && !result.includes('sb_api_base=')) {
-      const sep = result.includes('?') ? '&' : '?';
-      result = `${result}${sep}sb_api_base=${encodeURIComponent(notifyBase)}`;
     }
   }
   if (!result.includes('sb_parent_urlbar=')) {
@@ -224,10 +221,16 @@ export function appendDashboardEmbedParams(url: string, notifyBase?: string, web
     const sep = result.includes('?') ? '&' : '?';
     result = `${result}${sep}sb_website_mode=1`;
   }
+  if (notifyBase) {
+    if (needsApiBridge && !result.includes('sb_api_base=')) {
+      const sep = result.includes('?') ? '&' : '?';
+      result = `${result}${sep}sb_api_base=${encodeURIComponent(notifyBase)}`;
+    }
+  }
   // Cache-bust remote dashboard URLs to bypass stale Cloudflare CDN edge cache.
   if (remote && !result.includes('sb_cb=')) {
     const sep = result.includes('?') ? '&' : '?';
-    result = `${result}${sep}sb_cb=20260725dashfix2`;
+    result = `${result}${sep}sb_cb=20260725dropfix3`;
   }
   return result;
 }
@@ -269,12 +272,14 @@ export function getDashboardUrlBarStyles(theme: 'dark' | 'light' = getTheme()): 
 }
 
 /** Shared Simple Browser-style address bar markup. */
-export function getDashboardUrlBarHtml(ids: { back: string; fwd: string; reload: string; input: string; external: string }, initialUrl: string): string {
+export function getDashboardUrlBarHtml(ids: { back: string; fwd: string; reload: string; input: string; external: string; scrollTop?: string }, initialUrl: string): string {
   const safeUrl = _escapeHtmlAttr(initialUrl);
+  const scrollTopBtn = ids.scrollTop ? `<button id="${ids.scrollTop}" title="Scroll to top" aria-label="Scroll to top"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3"/><path d="M3 8l5-5 5 5"/></svg></button>` : '';
   return `<div class="sb-url-bar">
   <button id="${ids.back}" title="Go back" disabled aria-label="Go back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg></button>
   <button id="${ids.fwd}" title="Go forward" disabled aria-label="Go forward"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></button>
   <button id="${ids.reload}" title="Reload" aria-label="Reload"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 3.5V8H9"/></svg></button>
+  ${scrollTopBtn}
   <span class="sb-url-spacer"></span>
   <input id="${ids.input}" type="text" value="${safeUrl}" spellcheck="false" aria-label="Address bar" />
   <button id="${ids.external}" title="Open in browser" aria-label="Open in browser"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5H3.5v9h9V9.5"/><path d="M9 3.5h3.5V7"/><path d="M7 9l6.5-6.5"/></svg></button>
@@ -285,7 +290,7 @@ export function getDashboardUrlBarHtml(ids: { back: string; fwd: string; reload:
  * Build a minimal webview HTML wrapper that embeds a remote dashboard in an iframe
  * and forwards postMessage events from the iframe to the extension via vscode.postMessage.
  */
-function _getWebsiteDashboardWebviewHtml(url: string, scriptUri: string, websiteMode = false, displayUrl?: string): string {
+function _getWebsiteDashboardWebviewHtml(url: string, scriptUri: string, cspSource: string, websiteMode = false, displayUrl?: string): string {
   const safeIframeUrl = _escapeHtmlAttr(url);
   const safeDisplayUrl = _escapeHtmlAttr(displayUrl || url);
   const theme = getTheme();
@@ -295,12 +300,14 @@ function _getWebsiteDashboardWebviewHtml(url: string, scriptUri: string, website
     fwd: 'sbFwdBtn',
     reload: 'sbReloadBtn',
     input: 'sbUrlInput',
-    external: 'sbExternalBtn'
+    external: 'sbExternalBtn',
+    scrollTop: 'sbScrollTopBtn'
   }, safeDisplayUrl);
   return `<!DOCTYPE html>
 <html lang="en" data-theme="${theme}">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' ${cspSource}; img-src data: https:; font-src https:; frame-src https://simplebeacon.ai http://127.0.0.1:*; connect-src http://127.0.0.1:* https://simplebeacon.ai;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SimpleBeacon Dashboard</title>
 <style>
@@ -569,7 +576,7 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
   );
   const mediaPath = vscode.Uri.file(path.join(__dirname, '..', 'media', 'dashboard-wrapper.js'));
   const scriptUri = panel.webview.asWebviewUri(mediaPath).toString();
-  panel.webview.html = _getWebsiteDashboardWebviewHtml(url, scriptUri, websiteMode, displayUrl);
+  panel.webview.html = _getWebsiteDashboardWebviewHtml(url, scriptUri, panel.webview.cspSource, websiteMode, displayUrl);
   _pushThemeAndAuth(panel);
 }
 

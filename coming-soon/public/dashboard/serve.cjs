@@ -50,6 +50,33 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ success: true, features: { scan: true, analyze: true }, env: 'local' }));
     return;
   }
+  if (urlPath === '/api/simplebeacon/report') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      reportVersion: 2,
+      rawIssues: [],
+      findings: [],
+      issueCount: 0,
+      gate: { pass: true, blockingCount: 0 },
+      qualityScore: 100,
+      projectRoot: '',
+      repositoryFilesTotal: 0,
+      filesAnalyzed: 0,
+      summary: { status: 'ok' }
+    }));
+    return;
+  }
+  if (urlPath === '/api/simplebeacon/baseline') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, baseline: {} }));
+    return;
+  }
+  if (urlPath === '/api/simplebeacon/history') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify([]));
+    return;
+  }
   if (urlPath === '/api/dashboard-home') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, data: { metrics: {}, recentScans: [] } }));

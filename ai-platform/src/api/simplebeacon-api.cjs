@@ -1459,8 +1459,76 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
+  // Local bridge helper: resolve a folder name (from browser picker) to an
+  // absolute path inside the allowed analysis roots. Used by the hosted
+  // dashboard when the user selects a folder and an sb_api_base bridge is set.
+  app.post('/api/find-folder', (req, res) => {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk.toString(); });
+    req.on('end', async () => {
+      try {
+        const payload = body ? JSON.parse(body) : {};
+        const folderName = String(payload.folderName || '').trim();
+        if (!folderName) {
+          res.status(400).json({ success: false, error: 'folderName is required' });
+          return;
+        }
+        const allowedRoots = resolveDefaultAllowedRoots(PROJECT_ROOT, { monorepoRoot: MONOREPO_ROOT });
+        const found = findFolderByName(folderName, allowedRoots);
+        if (!found) {
+          res.status(404).json({ success: false, error: 'Folder not found' });
+          return;
+        }
+        const safePath = assertSafeProjectPath(found, allowedRoots);
+        res.json({ success: true, results: [safePath] });
+      } catch (err) {
+        logger.error('[POST /api/find-folder] Error:', err.message);
+        res.status(500).json({ success: false, error: err.message || 'Folder lookup failed' });
+      }
+    });
+  });
+
   scheduler.startScheduler();
   setupSimplebeaconDemoAPI(app);
+}
+
+/**
+ * Search allowed roots for a directory matching folderName (case-insensitive).
+ * Checks each root basename first, then direct children, then grandchildren.
+ * @param {string} folderName
+ * @param {string[]} allowedRoots
+ * @returns {string|null}
+ */
+function findFolderByName(folderName, allowedRoots) {
+  const target = String(folderName || '').trim();
+  if (!target) return null;
+  const targetLower = target.toLowerCase();
+  const skipDirs = new Set(['node_modules', '.git', '.simplebeacon', 'dist', 'build', '.github', '.vscode', 'coverage']);
+
+  function search(dir, depth) {
+    if (depth <= 0) return null;
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        if (skipDirs.has(entry.name)) continue;
+        const candidate = path.join(dir, entry.name);
+        if (entry.name.toLowerCase() === targetLower) return candidate;
+        const deeper = search(candidate, depth - 1);
+        if (deeper) return deeper;
+      }
+    } catch { /* ignore unreadable directories */ }
+    return null;
+  }
+
+  for (const root of allowedRoots) {
+    const resolvedRoot = path.resolve(root);
+    if (!fs.existsSync(resolvedRoot) || !fs.statSync(resolvedRoot).isDirectory()) continue;
+    if (path.basename(resolvedRoot).toLowerCase() === targetLower) return resolvedRoot;
+    const found = search(resolvedRoot, 2);
+    if (found) return found;
+  }
+  return null;
 }
 
 /**

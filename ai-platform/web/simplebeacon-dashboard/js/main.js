@@ -742,6 +742,19 @@ class SimplebeaconDashboard {
       })();
       sandboxBanner.hidden = !isSandbox;
     }
+    // Admin and assessments visibility
+    const adminLink = document.getElementById('nav-admin-link');
+    const showAdmin = authed && Boolean(authService.isAdmin && authService.isAdmin());
+    if (adminLink) {
+      adminLink.hidden = !showAdmin;
+      adminLink.style.display = showAdmin ? '' : 'none';
+    }
+    const assessmentsLink = document.getElementById('nav-assessments-link');
+    if (assessmentsLink) {
+      const showAssessments = authed && Boolean(authService.isAdmin && authService.isAdmin());
+      assessmentsLink.hidden = !showAssessments;
+      assessmentsLink.style.display = showAssessments ? '' : 'none';
+    }
   }
 
   async loadBillingContext() {

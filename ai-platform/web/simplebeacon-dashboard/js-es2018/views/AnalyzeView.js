@@ -1,12 +1,18 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260725iframefix1';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
-import { LocalScanService } from '../services/localScanService.js?v=20260724fix1';
-import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260724dropfix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260725dropfix1';
-import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260722scanfix1';
+import { LocalScanService } from '../services/localScanService.js?v=20260725dropfix3';
+import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js?v=20260726dropfix2';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260726browserdrop2';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260726dropfix3';
+import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260726browserdrop2';
+
+const DROP_SKIP_DIRS = new Set([
+    'node_modules', '.git', 'dist', 'build', '.simplebeacon',
+    '.github', '.vscode', '.vscode-test', 'coverage', 'lcov-report',
+    '.husky', '.windsurf', '.wrangler', 'bower_components'
+]);
 
 function isRemoteDashboardHost() {
     return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
@@ -57,7 +63,7 @@ import { renderCodebasePanel, buildCodebaseConclusion } from '../components/Code
 import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../components/UnderstandingReport.js';
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
-import { authService } from '../services/authService.js?v=20260721cspapi';
+import { authService } from '../services/authService.js?v=20260722bridgefix1';
 import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260716cachefix1';
 import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260716cachefix1';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
@@ -4643,6 +4649,18 @@ export class AnalyzeView {
                 await this.runPathAnalysis(this.app.state.lastProjectPath || raw);
                 return;
             }
+            // If the user loaded the hosted dashboard with an explicit sb_api_base,
+            // let runPathAnalysis route the typed path to that local server.
+            if (hasExtensionBridgeConfigured()) {
+                const resolved = this.resolveProjectPath(raw) || raw;
+                this.app.state.pathInputDraft = '';
+                this.app.state.lastProjectPath = resolved;
+                const pathInput = root?.querySelector('#project-path-input');
+                if (pathInput)
+                    this.setPathInputDisplay(pathInput, resolved);
+                void this.runPathAnalysis(resolved);
+                return;
+            }
             showToast('Local disk paths cannot be read from this site. Use Select Folder or drop your project.', 'info', { duration: 9000 });
             await this.promptHostedLocalFolderScan(root);
             return;
@@ -4697,8 +4715,9 @@ export class AnalyzeView {
         }
         const isRemoteDeployment = typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
         const isLocalWindowsPath = /^[a-zA-Z]:[\\/]/i.test(String(projectPath || ''));
-        if (isRemoteDeployment && isLocalWindowsPath) {
-            // A typed local Windows path can never be resolved by the remote server.
+        if (isRemoteDeployment && isLocalWindowsPath && !hasExtensionBridgeConfigured()) {
+            // A typed local Windows path can never be resolved by the remote server
+            // unless the user explicitly provided an sb_api_base local bridge.
             // Don't poll report/inventory endpoints for it.
             this.app.state.pathInventory = null;
             this.syncAnalyzeModeUi(root);
@@ -4971,8 +4990,15 @@ export class AnalyzeView {
                         void this.pickFolderViaBrowser(el);
                         return;
                     }
-                    showToast('Scanning selected folder locally — no upload…', 'info');
-                    void this.runLocalScan(null, files, folderName || resolvedPath);
+                    // If a local bridge is configured, we have a real path — scan it server-side.
+                    if (hasExtensionBridgeConfigured() && resolvedPath && isLocalPath(resolvedPath)) {
+                        showToast(`Scanning "${resolvedPath}" via local bridge…`, 'info');
+                        void this.runPathAnalysis(resolvedPath);
+                    }
+                    else {
+                        showToast('Scanning selected folder locally — no upload…', 'info');
+                        void this.runLocalScan(null, files, folderName || resolvedPath);
+                    }
                 }
                 else {
                     void this.runPathAnalysis(resolvedPath);
@@ -4988,6 +5014,42 @@ export class AnalyzeView {
         if (isRemoteDashboardHost() && !isEmbeddedDashboardFrame() && canUseDirectoryPicker() && !this.isElectronLike() && isLikelyWebkitDirectoryFileCap(files.length)) {
             event.target.value = '';
             void this.pickFolderViaBrowser(el);
+            return;
+        }
+        // If a local bridge is configured, ask it to resolve the folder name and
+        // run a server scan for IDE-style coverage.
+        if (hasExtensionBridgeConfigured() && folderName) {
+            void (async () => {
+                try {
+                    const bridgePath = await findFolderViaBridge(folderName);
+                    if (bridgePath) {
+                        const pathInput = el.querySelector('#project-path-input');
+                        if (pathInput) {
+                            this.setPathInputDisplay(pathInput, bridgePath);
+                            this.app.state.lastProjectPath = bridgePath;
+                            this.app.state.pathInputDraft = '';
+                            this.syncAnalyzeModeUi(el);
+                        }
+                        showToast(`Scanning "${bridgePath}" via local bridge…`, 'info');
+                        void this.runPathAnalysis(bridgePath);
+                        return;
+                    }
+                }
+                catch (bridgeErr) {
+                    console.warn('[onFolderInputSelected] findFolderViaBridge failed:', bridgeErr);
+                }
+                showToast('Scanning selected folder locally — no upload…', 'info');
+                void this.runLocalScan(null, files, folderName);
+            })();
+            const pathInput = el.querySelector('#project-path-input');
+            if (pathInput && folderName) {
+                const fallback = this.resolveFallbackFolderPath(folderName);
+                this.setPathInputDisplay(pathInput, fallback);
+                this.app.state.lastProjectPath = fallback;
+                this.app.state.pathInputDraft = '';
+                this.syncAnalyzeModeUi(el);
+            }
+            event.target.value = '';
             return;
         }
         showToast('Scanning selected folder locally — no upload…', 'info');
@@ -5337,7 +5399,7 @@ export class AnalyzeView {
                                 this.syncAnalyzeModeUi(el);
                                 void this.refreshReportForActivePath(el);
                             }
-                            if (isRemoteDashboardHost() && isAbsoluteLocalPath(resolvedPath)) {
+                            if (isRemoteDashboardHost() && isAbsoluteLocalPath(resolvedPath) && !hasExtensionBridgeConfigured()) {
                                 if (files && files.length > 0) {
                                     void this.handleDroppedFolderFallback(files, folderName, event, null, null);
                                 }
@@ -5351,12 +5413,51 @@ export class AnalyzeView {
                                 showToast(`Analyzing dropped folder "${folderName}"…`, 'info');
                             }
                         } else if (files && files.length > 0) {
-                            // Absolute path is unavailable (e.g., Firefox Privacy mode). Use the local-scan fallback.
+                            // Absolute path is unavailable (browser security sandbox).
+                            // Try recursive traversal via scanDroppedItems first — it uses
+                            // webkitGetAsEntry / File System Access API to walk the full
+                            // directory tree, same as the #analyze-path-dropzone handler.
+                            const itemArray = dt.items ? Array.from(dt.items) : [];
                             const updateFingerprintStatus = (text) => {
                                 const fp = el.querySelector('#fingerprint-status');
                                 if (fp)
                                     fp.textContent = text || '';
                             };
+                            if (entry && entry.isDirectory && itemArray.length > 0) {
+                                analyzeDropZone.classList.add('drag-active');
+                                try {
+                                    const sandboxReport = await scanDroppedItems(itemArray, {
+                                        webkitEntry: entry,
+                                        onLog: (logEntry) => {
+                                            const term = el.querySelector('#sandbox-scan-terminal');
+                                            if (term)
+                                                term.textContent += `\n[${logEntry.level.toUpperCase()}] ${logEntry.message}`;
+                                        },
+                                        onProgress: ({ processed, total }) => {
+                                            const prog = el.querySelector('#analyze-dropzone-progress-detail');
+                                            if (prog)
+                                                prog.textContent = `${processed} / ${total} files`;
+                                        }
+                                    });
+                                    if (sandboxReport && sandboxReport.discoveredFiles >= 1) {
+                                        const cert = sandboxReport.certificate || {};
+                                        const stats = el.querySelector('#analyze-dropzone-result-stats');
+                                        if (stats)
+                                            stats.textContent = `${cert.letterGrade || 'N/A'} grade · ${sandboxReport.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
+                                        const certEl = el.querySelector('#sandbox-scanner');
+                                        if (certEl) {
+                                            certEl.style.display = 'block';
+                                            renderAgentCertificate(sandboxReport, certEl);
+                                        }
+                                        this.applySandboxScanResult(sandboxReport);
+                                        showToast(`Scanned "${folderName}" — ${sandboxReport.discoveredFiles} files found`, 'success');
+                                        return;
+                                    }
+                                }
+                                catch (sandboxErr) {
+                                    console.warn('[AnalyzeView] scanDroppedItems failed, falling back to handleDroppedFolderFallback:', sandboxErr);
+                                }
+                            }
                             void this.handleDroppedFolderFallback(files, folderName, event, null, updateFingerprintStatus);
                         } else {
                             showToast(`Directory "${folderName}" dropped but absolute path could not be read. Use Browse Folder or type the path.`, 'warning');
@@ -5804,6 +5905,29 @@ export class AnalyzeView {
                             return;
                         }
                     }
+                    // If webkitEntry is available, traverse the directory tree via
+                    // webkitGetAsEntry directly and scan the collected files locally.
+                    if (looksLikeDirDrop && webkitEntry && webkitEntry.isDirectory &&
+                        !fileArray.some((f) => f.webkitRelativePath)) {
+                        setAnalyzeDropzoneState('scanning');
+                        if (await this.tryScanDroppedEntries(itemArray, folderHint, el)) {
+                            setAnalyzeDropzoneState('done');
+                            return;
+                        }
+                    }
+                    // If only 1-2 files without webkitRelativePath on remote host without bridge,
+                    // prompt user to use Select Folder instead of scanning 1 file.
+                    if (!fileArray.some((f) => f.webkitRelativePath) && fileArray.length <= 2 && !hasExtensionBridgeConfigured()) {
+                        if (analyzeTerminal)
+                            analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
+                        showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                        setAnalyzeDropzoneState('idle');
+                        const nativePicker = el.querySelector('#trigger-native-picker');
+                        if (nativePicker) {
+                            setTimeout(() => nativePicker.click(), 100);
+                        }
+                        return;
+                    }
                     await this.runLocalScan(null, fileArray, folderHint);
                     setAnalyzeDropzoneState('done');
                     if (analyzeResultStats && this.lastResult?.report) {
@@ -5839,12 +5963,16 @@ export class AnalyzeView {
                 try {
                     let droppedFolder = !!(webkitEntry && webkitEntry.isDirectory);
                     let droppedDirHandle = null;
+                    // Start captureDroppedDirectoryHandle immediately (synchronous initiation
+                    // of getAsFileSystemHandle) but DON'T await it yet — awaiting here would
+                    // stale the webkitEntry before scanDroppedItems can call readEntries.
+                    const dirHandlePromise = captureDroppedDirectoryHandle(itemArray);
                     if (!droppedFolder) {
-                        droppedDirHandle = await captureDroppedDirectoryHandle(itemArray);
+                        droppedDirHandle = await dirHandlePromise;
                         droppedFolder = !!droppedDirHandle;
                     }
                     const firstFile = itemArray[0] && typeof itemArray[0].getAsFile === 'function' ? itemArray[0].getAsFile() : null;
-                    const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || (droppedDirHandle && droppedDirHandle.name) || 'selected';
+                    const folderName = (firstFile && firstFile.name) || (webkitEntry && webkitEntry.name) || 'selected';
                     if (droppedFolder) {
                         if (fileArray.length > 0) {
                             // VS Code / Windsurf drops expose only 1 file without webkitRelativePath.
@@ -5890,7 +6018,7 @@ export class AnalyzeView {
                                                 analyzeProgress.textContent = `${processed} / ${total} files`;
                                         }
                                     });
-                                    if (sandboxReport && sandboxReport.discoveredFiles > 1) {
+                                    if (sandboxReport && sandboxReport.discoveredFiles >= 1) {
                                         const cert = sandboxReport.certificate || {};
                                         if (analyzeResultStats)
                                             analyzeResultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${sandboxReport.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
@@ -5908,17 +6036,43 @@ export class AnalyzeView {
                                     console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                                 }
                             }
-                            // If webkitEntry was null but we captured a FileSystemDirectoryHandle,
-                            // use it for full recursive traversal via runLocalScan.
-                            if (!hasWebkitRelPath && droppedDirHandle) {
+                            // If scanDroppedItems failed or returned few files, try
+                            // runLocalScan with the FileSystemDirectoryHandle for full
+                            // recursive traversal via the File System Access API.
+                            if (!hasWebkitRelPath) {
+                                droppedDirHandle = await dirHandlePromise;
+                                if (droppedDirHandle) {
+                                    if (analyzeTerminal)
+                                        analyzeTerminal.textContent = `Traversing "${folderName}" directory tree…`;
+                                    await this.runLocalScan(droppedDirHandle, null, folderName);
+                                    setAnalyzeDropzoneState('done');
+                                    if (analyzeResultStats && this.lastResult?.report) {
+                                        const r = this.lastResult.report;
+                                        const gate = r.gate?.pass ? 'PASS' : 'REVIEW';
+                                        analyzeResultStats.textContent = `${r.issueCount ?? r.rawIssues?.length ?? 0} issues · gate ${gate}`;
+                                    }
+                                    return;
+                                }
+                            }
+                            // Direct webkitGetAsEntry traversal fallback for browsers that expose
+                            // entries but not full FileSystemDirectoryHandle support.
+                            if (!hasWebkitRelPath && webkitEntry && webkitEntry.isDirectory) {
+                                setAnalyzeDropzoneState('scanning');
+                                if (await this.tryScanDroppedEntries(itemArray, folderName, el)) {
+                                    setAnalyzeDropzoneState('done');
+                                    return;
+                                }
+                            }
+                            // If still only 1-2 files without webkitRelativePath on remote host
+                            // without bridge, prompt user to use Select Folder for full coverage.
+                            if (!hasWebkitRelPath && fileArray.length <= 2 && isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
                                 if (analyzeTerminal)
-                                    analyzeTerminal.textContent = `Traversing "${folderName}" directory tree…`;
-                                await this.runLocalScan(droppedDirHandle, null, folderName);
-                                setAnalyzeDropzoneState('done');
-                                if (analyzeResultStats && this.lastResult?.report) {
-                                    const r = this.lastResult.report;
-                                    const gate = r.gate?.pass ? 'PASS' : 'REVIEW';
-                                    analyzeResultStats.textContent = `${r.issueCount ?? r.rawIssues?.length ?? 0} issues · gate ${gate}`;
+                                    analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
+                                showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                                setAnalyzeDropzoneState('idle');
+                                const nativePicker = el.querySelector('#trigger-native-picker');
+                                if (nativePicker) {
+                                    setTimeout(() => nativePicker.click(), 100);
                                 }
                                 return;
                             }
@@ -6352,6 +6506,34 @@ export class AnalyzeView {
             const dirHandle = await window.showDirectoryPicker();
             const folderName = dirHandle.name || '';
             if (isRemoteDashboardHost()) {
+                // If a local bridge (sb_api_base) is configured, ask it to resolve
+                // the picked folder name to a real absolute path and run a server
+                // scan. This gives IDE-style results (full monorepo/platform walk)
+                // instead of the browser sandbox's limited pattern match.
+                if (hasExtensionBridgeConfigured() && folderName) {
+                    const analyzeTerminal = el.querySelector('#analyze-terminal');
+                    if (analyzeTerminal)
+                        analyzeTerminal.textContent = `Locating "${folderName}" via local bridge…`;
+                    try {
+                        const bridgePath = await findFolderViaBridge(folderName);
+                        if (bridgePath) {
+                            const pathInput = el.querySelector('#project-path-input');
+                            if (pathInput) {
+                                this.setPathInputDisplay(pathInput, bridgePath);
+                                this.app.state.lastProjectPath = bridgePath;
+                                this.app.state.pathInputDraft = '';
+                            }
+                            this.syncAnalyzeModeUi(el);
+                            this.savePreferredProjectBase(bridgePath);
+                            showToast(`Scanning "${bridgePath}" via local bridge…`, 'info');
+                            void this.runPathAnalysis(bridgePath);
+                            return true;
+                        }
+                    }
+                    catch (bridgeErr) {
+                        console.warn('[pickFolderViaBrowser] findFolderViaBridge failed:', bridgeErr);
+                    }
+                }
                 const resolvedPath = this.resolveFallbackFolderPath(folderName) || folderName;
                 const pathInput = el.querySelector('#project-path-input');
                 if (pathInput) {
@@ -7600,6 +7782,102 @@ export class AnalyzeView {
             this.busy = false;
             this.scanProgress = null;
             this.refresh();
+        }
+    }
+    /**
+     * Recursively traverse a FileSystemEntry tree from a drag-and-drop event,
+     * collecting File objects with virtual paths. Runs entirely in the browser.
+     */
+    async traverseEntryTree(entry, path = '', files = []) {
+        if (!entry)
+            return files;
+        if (entry.isFile) {
+            try {
+                const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+                if (file) {
+                    const virtualPath = path || file.name;
+                    file._virtualPath = virtualPath;
+                    files.push(file);
+                }
+            }
+            catch (fileErr) {
+                console.warn('[AnalyzeView] Could not read dropped file entry:', path, fileErr);
+            }
+            return files;
+        }
+        if (entry.isDirectory) {
+            if (DROP_SKIP_DIRS.has(entry.name))
+                return files;
+            const reader = entry.createReader();
+            let batch;
+            do {
+                try {
+                    batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+                }
+                catch (readErr) {
+                    console.warn('[AnalyzeView] readEntries error at', path, readErr);
+                    batch = [];
+                }
+                for (const child of batch) {
+                    const childPath = path ? `${path}/${child.name}` : child.name;
+                    await this.traverseEntryTree(child, childPath, files);
+                }
+            } while (batch.length > 0);
+        }
+        return files;
+    }
+    /**
+     * Capture all FileSystemEntry objects from dropped DataTransferItems before
+     * the live DataTransferItemList expires, then traverse each entry tree.
+     */
+    collectFilesFromDroppedEntries(itemArray) {
+        const entries = [];
+        for (const item of itemArray) {
+            if (item && typeof item.webkitGetAsEntry === 'function') {
+                try {
+                    const entry = item.webkitGetAsEntry();
+                    if (entry)
+                        entries.push(entry);
+                }
+                catch (_a) { /* invalid drop item */ }
+            }
+        }
+        return this.traverseAllDroppedEntries(entries);
+    }
+    async traverseAllDroppedEntries(entries) {
+        const files = [];
+        for (const entry of entries) {
+            await this.traverseEntryTree(entry, entry.name || '', files);
+        }
+        return files;
+    }
+    /**
+     * Try to scan dropped entries by traversing webkitGetAsEntry and sending
+     * the collected files through the local worker scan.
+     */
+    async tryScanDroppedEntries(itemArray, folderHint, el) {
+        const analyzeTerminal = el.querySelector('#sandbox-scan-terminal');
+        const analyzeProgress = el.querySelector('#analyze-dropzone-progress-detail');
+        const analyzeResultStats = el.querySelector('#analyze-dropzone-result-stats');
+        try {
+            if (analyzeTerminal)
+                analyzeTerminal.textContent = `Traversing "${folderHint}" via webkitGetAsEntry…`;
+            const files = await this.collectFilesFromDroppedEntries(itemArray);
+            if (files.length === 0)
+                return false;
+            if (analyzeProgress)
+                analyzeProgress.textContent = `${files.length} file(s) queued`;
+            await this.runLocalScan(null, files, folderHint);
+            if (analyzeResultStats && this.lastResult?.report) {
+                const r = this.lastResult.report;
+                const gate = r.gate?.pass ? 'PASS' : 'REVIEW';
+                analyzeResultStats.textContent = `${r.issueCount ?? r.rawIssues?.length ?? 0} issues · gate ${gate}`;
+            }
+            return true;
+        }
+        catch (err) {
+            console.warn('[AnalyzeView] webkitGetAsEntry traversal scan failed:', err);
+            return false;
         }
     }
     async runAgentScan(projectPath) {

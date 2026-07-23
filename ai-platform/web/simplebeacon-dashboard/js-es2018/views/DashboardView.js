@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
-import { isEmbeddedDashboardFrame, setSafeHTML } from '../utils-lib/dom.js?v=20260721corsfix1';
+import { isEmbeddedDashboardFrame, setSafeHTML } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260716cachefix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js?v=20260724trend1';
@@ -56,6 +56,7 @@ function convertSandboxReportToSimplebeacon(report, projectPath) {
     const logs = Array.isArray(cert.logs) ? cert.logs : [];
     const high = Number(cert.highRiskCount) || 0;
     const medium = Number(cert.mediumRiskCount) || 0;
+    const low = Number(cert.lowRiskCount) || 0;
     const totalFiles = report.discoveredFiles || report.files.length;
     const rawIssues = logs.map((entry) => ({
         severity: String(entry.severity || 'medium').toLowerCase(),
@@ -64,7 +65,7 @@ function convertSandboxReportToSimplebeacon(report, projectPath) {
         description: entry.message || '',
         count: 1
     }));
-    const severityCounts = { critical: 0, high, medium, low: 0, info: 0 };
+    const severityCounts = { critical: 0, high, medium, low, info: 0 };
     return {
         type: 'simplebeacon-report',
         version: '1.0.0',
@@ -296,6 +297,9 @@ export class DashboardView {
             ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
             : '';
         // content where applicable.
+        const adminBtnHtml = this.app && typeof this.app.isCurrentUserAdmin === 'function' && this.app.isCurrentUserAdmin()
+            ? '<button class="btn btn-primary btn-sm" id="team-admin-btn">Team Admin</button>'
+            : '';
         setSafeHTML(header, `
             <div>
                 <h1 class="h2 mb-1">Dashboard</h1>
@@ -306,6 +310,7 @@ export class DashboardView {
             </div>
             <div class="header-actions d-flex gap-2">
                 <button class="btn btn-ghost btn-sm" data-action="open-analyze">Advanced analyze</button>
+                ${adminBtnHtml}
             </div>
         `);
         return header;
@@ -569,10 +574,27 @@ export class DashboardView {
         bindScanStatus(scanSlot, {
             onRescan: (path) => this.app.runScan(path),
             onLocalScanResult: (payload) => {
-                if (payload && payload.projectPath) {
-                    this.app.state.lastProjectPath = payload.projectPath;
+                if (!payload)
+                    return;
+                const projectPath = payload.projectPath || payload.verifiedAddress || payload.path || '';
+                if (projectPath) {
+                    this.app.state.lastProjectPath = projectPath;
                 }
-                this.app.navigate('analyze');
+                if (payload.files || payload.certificate) {
+                    const sbReport = convertSandboxReportToSimplebeacon(payload, projectPath);
+                    this.app.state.report = sbReport;
+                    this.app.scanService.report = sbReport;
+                    this.app.state.analyzeResult = {
+                        kind: 'simplebeacon-report',
+                        report: sbReport,
+                        projectPath,
+                        label: `Local scan: ${projectPath}`,
+                        scanCompletedAt: Date.now()
+                    };
+                    this.app.navigate('results');
+                } else {
+                    this.app.navigate('analyze');
+                }
             },
             onViewResults: () => this.app.navigate('results'),
             getLastProjectPath: () => this.app.state.lastProjectPath || '',

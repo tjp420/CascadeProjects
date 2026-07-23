@@ -1,6 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, showToast, setHtml } from '../utils.js?v=20260720adminfix1';
-import { authService } from '../services/authService.js?v=20260721cspapi';
+import { isIdeDashboardSurface } from '../utils-lib/dom.js?v=20260726embedfix1';
+import { authService } from '../services/authService.js?v=20260725apifix1';
 import { isWebAuthnSupported, listSecurityKeys, registerSecurityKey, removeSecurityKey } from '../services/webauthnService.js?v=20260716cachefix1';
 import { userHasJwtForAiKeys } from '../services/aiKeysService.js?v=20260720ollama3';
 import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, listStockpiled, stockpileCount, tokenHint, } from '../services/tokenStockpileService.js';
@@ -120,11 +121,17 @@ export class ProfileView {
             <button type="button" class="btn btn-secondary btn-sm profile-stockpile-load" data-stockpile-load="${index}">Load</button>
           </div>`;
         }).join('');
+        const isIde = (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface())
+            && !document.documentElement.hasAttribute('data-embed-full-nav');
+        const avatarHtml = (user && (user.avatarUrl || user.picture))
+            ? `<img class="profile-avatar-img" src="${escapeHtml((user.avatarUrl || user.picture) || '')}" alt="Avatar" />`
+            : (email ? escapeHtml(email[0].toUpperCase()) : '?');
+
         const fragment = document.createRange().createContextualFragment(`
       <div class="profile-page">
         <div class="profile-hero-card">
           <div class="profile-hero-main">
-            <div class="profile-avatar" aria-hidden="true">${email ? escapeHtml(email[0].toUpperCase()) : '?'}</div>
+            <div class="profile-avatar" aria-hidden="true">${avatarHtml}</div>
             <div class="profile-hero-text">
               <h1 class="page-title">Account Profile</h1>
               <p class="page-subtitle">Manage your credentials, license token, and session settings.</p>
@@ -136,12 +143,42 @@ export class ProfileView {
           </div>
         </div>
 
-        <form class="profile-layout" id="profile-form" onsubmit="event.preventDefault(); return false;">
-          <div class="profile-main">
-            <div class="profile-card">
-              <div class="profile-card-header">
-                <i data-lucide="shield" class="icon-18 profile-card-icon"></i>
-                <h2>Preferred Login Method</h2>
+        <form class="profile-grid" id="profile-form" onsubmit="event.preventDefault(); return false;">
+          <div class="profile-card profile-card--status" id="profile-status-card">
+            <div class="profile-card-header">
+              <i data-lucide="badge-check" class="icon-18 profile-card-icon"></i>
+              <h2>Account Status</h2>
+            </div>
+            <div class="profile-card-body">
+              <div class="profile-stat-grid">
+                <div class="profile-stat"><div class="label">Token Type</div><div class="value">${escapeHtml(tokenType)}</div></div>
+                <div class="profile-stat"><div class="label">Project</div><div class="value">${escapeHtml(project)}</div></div>
+                <div class="profile-stat"><div class="label">Account Age</div><div class="value">${escapeHtml(accountAge)}</div></div>
+                <div class="profile-stat"><div class="label">Expires In</div><div class="value" style="color:${expiryInfo.color};">${escapeHtml(expiryInfo.label)}</div></div>
+                <div class="profile-stat"><div class="label">Subject</div><div class="value" style="font-size:var(--font-size-xs);">${escapeHtml(subLabel)}</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-card profile-card--actions" id="profile-actions-card">
+            <div class="profile-card-header">
+              <i data-lucide="zap" class="icon-18 profile-card-icon"></i>
+              <h2>Actions</h2>
+            </div>
+            <div class="profile-card-body">
+              <div class="profile-actions">
+                <button type="button" class="btn btn-primary" id="profile-save-btn"><i data-lucide="save" class="icon-16"></i> Save Changes</button>
+                <button type="button" class="btn btn-secondary" id="profile-clear-cache-btn"><i data-lucide="trash-2" class="icon-16"></i> Clear Cache</button>
+                <button type="button" class="btn btn-danger" id="profile-signout-btn"><i data-lucide="log-out" class="icon-16"></i> Sign Out</button>
+              </div>
+              <p class="profile-status-msg" id="profile-save-status"></p>
+            </div>
+          </div>
+
+          <div class="profile-card profile-card--login">
+            <div class="profile-card-header">
+              <i data-lucide="shield" class="icon-18 profile-card-icon"></i>
+              <h2>Preferred Login Method</h2>
               </div>
               <div class="profile-card-body">
                 <div class="login-method-grid" id="login-method-options">
@@ -174,15 +211,13 @@ export class ProfileView {
               </div>
             </div>
 
-            <div class="profile-card" id="security-keys-section">
-              <details class="profile-collapse">
-                <summary class="profile-card-header profile-collapse-header">
-                  <i data-lucide="key-round" class="icon-18 profile-card-icon"></i>
-                  <h2>Security Keys</h2>
-                  <i data-lucide="chevron-down" class="icon-16 profile-collapse-chevron"></i>
-                </summary>
-                <div class="profile-card-body">
-                  <div id="security-keys-content">
+          <div class="profile-card profile-card--security-keys" id="security-keys-section">
+              <div class="profile-card-header">
+                <i data-lucide="key-round" class="icon-18 profile-card-icon"></i>
+                <h2>Security Keys</h2>
+              </div>
+              <div class="profile-card-body">
+                <div id="security-keys-content">
                   <div class="security-key-intro">
                     <p class="profile-help">Add a security key for passwordless sign-in. You can use a hardware key (YubiKey, Titan), a built-in passkey (Windows Hello, Touch ID, Face ID), or a USB drive enrolled as a security key.</p>
                     <div class="security-key-status-banner" id="security-key-server-status" style="display:none;"></div>
@@ -247,41 +282,9 @@ export class ProfileView {
                 </div>
                 <p id="security-keys-status" class="profile-help"></p>
               </div>
-              </details>
             </div>
 
-            <div class="profile-card">
-              <div class="profile-card-header">
-                <i data-lucide="badge-check" class="icon-18 profile-card-icon"></i>
-                <h2>Account Status</h2>
-              </div>
-              <div class="profile-card-body">
-                <div class="profile-stat-grid">
-                  <div class="profile-stat">
-                    <div class="label">Token Type</div>
-                    <div class="value">${escapeHtml(tokenType)}</div>
-                  </div>
-                  <div class="profile-stat">
-                    <div class="label">Project</div>
-                    <div class="value">${escapeHtml(project)}</div>
-                  </div>
-                  <div class="profile-stat">
-                    <div class="label">Account Age</div>
-                    <div class="value">${escapeHtml(accountAge)}</div>
-                  </div>
-                  <div class="profile-stat">
-                    <div class="label">Expires In</div>
-                    <div class="value" style="color:${expiryInfo.color};">${escapeHtml(expiryInfo.label)}</div>
-                  </div>
-                  <div class="profile-stat">
-                    <div class="label">Subject</div>
-                    <div class="value" style="font-size:var(--font-size-xs);">${escapeHtml(subLabel)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="profile-card">
+          <div class="profile-card profile-card--email">
               <div class="profile-card-header">
                 <i data-lucide="mail" class="icon-18 profile-card-icon"></i>
                 <h2>Email Credentials</h2>
@@ -299,7 +302,7 @@ export class ProfileView {
               </div>
             </div>
 
-            <div class="profile-card" id="token-section">
+          <div class="profile-card profile-card--token" id="token-section">
               <div class="profile-card-header">
                 <i data-lucide="key-round" class="icon-18 profile-card-icon"></i>
                 <h2>License Token</h2>
@@ -322,40 +325,24 @@ export class ProfileView {
               </div>
             </div>
 
-            <div class="profile-card" id="profile-stockpile-card">
-              <div class="profile-card-header">
-                <i data-lucide="layers" class="icon-18 profile-card-icon"></i>
-                <h2>Token Loader (${reservedCount} reserved)</h2>
-              </div>
-              <div class="profile-card-body">
-                <p class="profile-help" style="margin-top:0;">Buy time tokens now and stockpile them here. They stay inactive until you click Load.</p>
-                <div class="profile-field">
-                  <label for="profile-stockpile-input">add time token</label>
-                  <div class="profile-input-group">
-                    <input type="password" id="profile-stockpile-input" placeholder="Paste purchased time token…" autocomplete="off">
-                    <button type="button" class="btn btn-secondary btn-sm" id="profile-stockpile-add">Stockpile</button>
-                  </div>
-                </div>
-                ${reservedCount > 0 ? `<div class="profile-stockpile-list">${stockpiledRows}</div>` : '<p class="profile-help">No reserved tokens yet.</p>'}
-                <div class="profile-stockpile-actions">
-                  <button type="button" class="btn btn-primary btn-sm" id="profile-buy-tokens"><i data-lucide="shopping-cart" class="icon-16"></i> Buy time tokens</button>
-                  <a class="btn btn-ghost btn-sm" href="/dashboard/settings">Manage in Settings</a>
-                </div>
-              </div>
+          <div class="profile-card profile-card--stockpile" id="profile-stockpile-card">
+            <div class="profile-card-header">
+              <i data-lucide="layers" class="icon-18 profile-card-icon"></i>
+              <h2>Token Loader (${reservedCount} reserved)</h2>
             </div>
-
-            <div class="profile-card">
-              <div class="profile-card-header">
-                <i data-lucide="zap" class="icon-18 profile-card-icon"></i>
-                <h2>Actions</h2>
-              </div>
-              <div class="profile-card-body">
-                <div class="profile-actions">
-                  <button type="button" class="btn btn-primary" id="profile-save-btn"><i data-lucide="save" class="icon-16"></i> Save Changes</button>
-                  <button type="button" class="btn btn-secondary" id="profile-clear-cache-btn"><i data-lucide="trash-2" class="icon-16"></i> Clear Cache</button>
-                  <button type="button" class="btn btn-danger" id="profile-signout-btn"><i data-lucide="log-out" class="icon-16"></i> Sign Out</button>
+            <div class="profile-card-body">
+              <p class="profile-help" style="margin-top:0;">Buy time tokens now and stockpile them here. They stay inactive until you click Load — useful for renewing before your current token expires.</p>
+              <div class="profile-field">
+                <label for="profile-stockpile-input">add time token</label>
+                <div class="profile-input-group">
+                  <input type="password" id="profile-stockpile-input" placeholder="Paste purchased time token…" autocomplete="off">
+                  <button type="button" class="btn btn-secondary btn-sm" id="profile-stockpile-add">Stockpile</button>
                 </div>
-                <p class="profile-status-msg" id="profile-save-status"></p>
+              </div>
+              ${reservedCount > 0 ? `<div class="profile-stockpile-list">${stockpiledRows}</div>` : '<p class="profile-help">No reserved tokens yet.</p>'}
+              <div class="profile-stockpile-actions">
+                <button type="button" class="btn btn-primary btn-sm" id="profile-buy-tokens"><i data-lucide="shopping-cart" class="icon-16"></i> Buy time tokens</button>
+                <a class="btn btn-ghost btn-sm" href="/dashboard/settings">Manage in Settings</a>
               </div>
             </div>
           </div>
@@ -364,8 +351,18 @@ export class ProfileView {
     `);
         window.setSafeHTML(container, '');
         container.appendChild(fragment);
+        if (isIde) {
+          const root = container.querySelector('.profile-page');
+          if (root)
+            root.classList.add('ide-embed');
+          container.classList.add('ide-embed');
+        }
         if (typeof window.lucide !== 'undefined')
-            window.lucide.createIcons();
+          window.lucide.createIcons();
+        // Some IDE webviews need a short delay before icons/images fully render — try again.
+        if (isIde) {
+          setTimeout(() => { if (typeof window.lucide !== 'undefined') window.lucide.createIcons(); }, 50);
+        }
         // Style active login method
         const updateLoginMethodStyles = () => {
             container.querySelectorAll('.login-method-card').forEach((card) => {
@@ -572,14 +569,33 @@ export class ProfileView {
                     }
                 }
                 if (copied) {
-                    const original = copyBtn.innerHTML;
-                    window.setSafeHTML(copyBtn, '<i data-lucide="check" class="icon-16"></i>');;
+                    const iconEl = copyBtn.querySelector('i[data-lucide]');
+                    const originalIcon = iconEl ? iconEl.getAttribute('data-lucide') : null;
+                    if (typeof window.setSafeHTML === 'function') {
+                        window.setSafeHTML(copyBtn, '<i data-lucide="check" class="icon-16"></i>');
+                    } else {
+                        while (copyBtn.firstChild) copyBtn.removeChild(copyBtn.firstChild);
+                        const ic = document.createElement('i');
+                        ic.setAttribute('data-lucide', 'check');
+                        ic.className = 'icon-16';
+                        copyBtn.appendChild(ic);
+                    }
                     if (typeof window.lucide !== 'undefined')
                         window.lucide.createIcons();
                     setTimeout(() => {
-                        copyBtn.innerHTML = original;
-                        if (typeof window.lucide !== 'undefined')
-                            window.lucide.createIcons();
+                      if (originalIcon) {
+                        if (typeof window.setSafeHTML === 'function') {
+                          window.setSafeHTML(copyBtn, `<i data-lucide="${originalIcon}" class="icon-16"></i>`);
+                        } else {
+                          while (copyBtn.firstChild) copyBtn.removeChild(copyBtn.firstChild);
+                          const ic2 = document.createElement('i');
+                          ic2.setAttribute('data-lucide', originalIcon);
+                          ic2.className = 'icon-16';
+                          copyBtn.appendChild(ic2);
+                        }
+                      }
+                      if (typeof window.lucide !== 'undefined')
+                        window.lucide.createIcons();
                     }, 1500);
                     (_d = (_c = this.app).showToast) === null || _d === void 0 ? void 0 : _d.call(_c, 'Token copied', 'success');
                 }
@@ -611,7 +627,7 @@ export class ProfileView {
         // Check server WebAuthn availability
         (async () => {
             try {
-                const { apiBase } = await import('../services/authService.js?v=20260721cspapi');
+                const { apiBase } = await import('../services/authService.js?v=20260725apifix1');
                 const res = await fetch(`${apiBase()}/api/webauthn/status`, { credentials: 'same-origin' });
                 if (res.status === 404) {
                     if (serverStatusBanner) {

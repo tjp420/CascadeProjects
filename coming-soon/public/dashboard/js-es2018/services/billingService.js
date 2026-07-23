@@ -1,5 +1,5 @@
 // simplebeacon-ignore governance-marker
-import { authService } from './authService.js?v=20260721cspapi';
+import { authService } from './authService.js?v=20260725apifix1';
 import { readJsonResponseBody, withRecoverableFallback } from '../lib/recoverable-fetch.js';
 /**
  * Open-source pivot: community CLI is the product. Billing API calls are stubbed;

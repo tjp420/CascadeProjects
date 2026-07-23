@@ -1,4 +1,9 @@
 [[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.svg"
+  status = 301
+
+[[redirects]]
   from = "/api/*"
   to = "https://cascadeprojects-yzzd.onrender.com/api/:splat"
   status = 200

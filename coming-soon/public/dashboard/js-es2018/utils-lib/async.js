@@ -537,12 +537,18 @@ export function withTimeout(promise, ms, message = 'Operation timed out') {
     }
     const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 0;
     return new Promise((resolve, reject) => {
-        let settled = false;
-        const timer = setTimeout(() => {
-            if (!settled)
-                reject(new Error(message));
-        }, timeoutMs);
-        promise.then((value) => { settled = true; clearTimeout(timer); resolve(value); }, (err) => { settled = true; clearTimeout(timer); reject(err); });
+        const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+        (async () => {
+            try {
+                const value = await promise;
+                clearTimeout(timer);
+                resolve(value);
+            }
+            catch (err) {
+                clearTimeout(timer);
+                reject(err);
+            }
+        })();
     });
 }
 /**

@@ -161,7 +161,7 @@ export class GuidedTour {
         const isLast = this.currentStep === TOUR_STEPS.length - 1;
         const isFirst = this.currentStep === 0;
 
-        tooltip.innerHTML = `
+        const tooltipHtml = `
             <div class="guided-tour-header">
                 <span class="guided-tour-step-counter">Step ${this.currentStep + 1} of ${TOUR_STEPS.length}</span>
                 <button class="guided-tour-close" id="tour-skip" aria-label="Skip tour">✕</button>
@@ -181,38 +181,52 @@ export class GuidedTour {
                 </div>
             </div>
         `;
-
+        if (typeof window !== 'undefined' && typeof window.setSafeHTML === 'function') {
+            window.setSafeHTML(tooltip, tooltipHtml);
+        } else {
+            tooltip.innerHTML = tooltipHtml;
+        }
+        // Append hidden, then measure & position in a single rAF to avoid layout thrash.
+        tooltip.style.visibility = 'hidden';
+        tooltip.style.top = '0px';
+        tooltip.style.left = '0px';
         document.body.appendChild(tooltip);
         this.tooltip = tooltip;
 
-        if (targetEl) {
-            const rect = targetEl.getBoundingClientRect();
-            const tooltipRect = tooltip.getBoundingClientRect();
+        const positionTooltip = () => {
+            if (!this.tooltip) return;
             const padding = 12;
-            let top = rect.bottom + padding;
-            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            if (targetEl) {
+                const rect = targetEl.getBoundingClientRect();
+                const tooltipRect = tooltip.getBoundingClientRect();
+                let top = rect.bottom + padding;
+                let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
 
-            if (top + tooltipRect.height > window.innerHeight - 20) {
-                top = rect.top - tooltipRect.height - padding;
-            }
-            if (top < 20) {
-                top = 20;
-            }
-            if (left < 20) left = 20;
-            if (left + tooltipRect.width > window.innerWidth - 20) {
-                left = window.innerWidth - tooltipRect.width - 20;
-            }
+                if (top + tooltipRect.height > window.innerHeight - 20) {
+                    top = rect.top - tooltipRect.height - padding;
+                }
+                if (top < 20) top = 20;
+                if (left < 20) left = 20;
+                if (left + tooltipRect.width > window.innerWidth - 20) {
+                    left = window.innerWidth - tooltipRect.width - 20;
+                }
 
-            tooltip.style.top = `${top}px`;
-            tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${top}px`;
+                tooltip.style.left = `${left}px`;
 
-            targetEl.classList.add('guided-tour-highlight');
-            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-            tooltip.style.top = '50%';
-            tooltip.style.left = '50%';
-            tooltip.style.transform = 'translate(-50%, -50%)';
-        }
+                targetEl.classList.add('guided-tour-highlight');
+                // scroll into view after positioning so the browser can optimize.
+                requestAnimationFrame(() => targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+            }
+            else {
+                tooltip.style.top = '50%';
+                tooltip.style.left = '50%';
+                tooltip.style.transform = 'translate(-50%, -50%)';
+            }
+            tooltip.style.visibility = '';
+        };
+
+        requestAnimationFrame(positionTooltip);
 
         tooltip.querySelector('#tour-next')?.addEventListener('click', () => {
             if (isLast) {

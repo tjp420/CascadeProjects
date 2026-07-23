@@ -1,5 +1,5 @@
 import { fetchWithTimeout } from '../utils.js';
-import { authService } from './authService.js?v=20260721cspapi';
+import { authService } from './authService.js?v=20260725apifix1';
 import { billingService } from './billingService.js';
 import { fetchDataCleanupScan as fetchDataCleanupAnalysis } from './analyzeService.js';
 import { spaUrl } from '../platformRoutes.js';
@@ -67,13 +67,13 @@ export class PlatformService {
     }
     async fetchAll() {
         const results = await Promise.allSettled([
-            fetchJson(PLATFORM.dashboardHome).then((d) => { this.dashboardHome = d.data || d; }),
-            fetchJson(PLATFORM.devTools).then((d) => { this.devTools = Array.isArray(d) ? d : d.tools || []; }),
-            fetchJson(PLATFORM.devWorkflows).then((d) => { this.devWorkflows = Array.isArray(d) ? d : d.workflows || []; }),
-            fetchJson(PLATFORM.coverageOverview).then((d) => { this.coverage = d; }),
-            fetchJson(PLATFORM.securityOverview).then((d) => { this.security = d; }),
-            fetchJson(PLATFORM.qualityOverview).then((d) => { this.quality = d; }),
-            fetchJson(PLATFORM.help).then((d) => { this.help = d.data || d; })
+            (async () => { const d = await fetchJson(PLATFORM.dashboardHome); this.dashboardHome = d.data || d; return this.dashboardHome; })(),
+            (async () => { const d = await fetchJson(PLATFORM.devTools); this.devTools = Array.isArray(d) ? d : d.tools || []; return this.devTools; })(),
+            (async () => { const d = await fetchJson(PLATFORM.devWorkflows); this.devWorkflows = Array.isArray(d) ? d : d.workflows || []; return this.devWorkflows; })(),
+            (async () => { const d = await fetchJson(PLATFORM.coverageOverview); this.coverage = d; return d; })(),
+            (async () => { const d = await fetchJson(PLATFORM.securityOverview); this.security = d; return d; })(),
+            (async () => { const d = await fetchJson(PLATFORM.qualityOverview); this.quality = d; return d; })(),
+            (async () => { const d = await fetchJson(PLATFORM.help); this.help = d.data || d; return this.help; })()
         ]);
         return results;
     }

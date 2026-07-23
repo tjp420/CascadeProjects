@@ -76,7 +76,7 @@
     "report.json",
     "cli-test-report*.json",
     "test-output.txt",
-    "server/db/token-registry.json",
+    "server/db/[REDACTED]",
     "C:/Users/Trevor/CascadeProjects/.github/workflows/simplebeacon-action-stress-test.yml",
     "C:/Users/Trevor/CascadeProjects/packages/simplebeacon-cli/src/rules/llm-slop-catalog.json",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/src/rules/llm-slop-catalog.json",
@@ -101,7 +101,7 @@
     "C:/Users/Trevor/CascadeProjects/ai-platform/server/routes/meta-routes.cjs",
     "C:/Users/Trevor/CascadeProjects/ai-platform/server/config/format.cjs",
     "C:/Users/Trevor/CascadeProjects/ai-platform/server/lib/audit-remediation-recipes.cjs",
-    "C:/Users/Trevor/CascadeProjects/ai-platform/server/lib/token-service.cjs",
+    "C:/Users/Trevor/CascadeProjects/ai-platform/server/lib/[REDACTED]",
     "C:/Users/Trevor/CascadeProjects/ai-platform/simplebeacon-server.cjs",
     "C:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/js-es2018/views/AnalyzeView.js",
     "C:/Users/Trevor/CascadeProjects/coming-soon/audit.html",
@@ -138,7 +138,7 @@
       "enabled": true,
       "scanProduction": true,
       "ignoreGlobs": [
-        "server/db/token-registry.json",
+        "server/db/[REDACTED]",
         "C:/Users/Trevor/CascadeProjects/ai-agent-report-for-dashboard.json",
         "coming-soon/**",
         "**/social-posts.md",
@@ -181,10 +181,10 @@
       "severity": "medium"
     },
     "jest-baseline": {
-      "enabled": false,
-      "runTests": false
+      "enabled": true,
+      "runTests": true
     },
-    "token-bleed-patterns": {
+    "[REDACTED]": {
       "enabled": true,
       "severity": "medium"
     },

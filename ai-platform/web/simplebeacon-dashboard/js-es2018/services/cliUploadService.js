@@ -1,4 +1,4 @@
-import { authService } from './authService.js?v=20260721cspapi';
+import { authService } from './authService.js?v=20260722bridgefix1';
 import { apiBaseUrl } from '../utils-lib/url.js';
 
 function apiPrefix() {

@@ -2,7 +2,7 @@
 import { DASHBOARD_BASE_URL, OLLAMA_DEFAULT_URL } from '../config.js';
 import { apiBaseUrl } from '../utils-lib/url.js';
 
-import { authService } from './authService.js?v=20260721cspapi';
+import { authService } from './authService.js?v=20260725apifix1';
 import { hasExtensionBridgeConfigured, getLocalBridgeFetch, getExtensionBridgeOrigin, buildBridgeOllamaProbeUrls } from './localAgentService.js?v=20260720ollama4';
 /**
  * Is authenticated.
@@ -229,7 +229,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
         return {
             ok: false,
             models: [],
-            message: 'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally over http://localhost.',
+            message: 'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally.',
             source: 'blocked'
         };
     }

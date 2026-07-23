@@ -3,6 +3,7 @@ import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, rende
 import { buildComplianceAuditExportBundle, complianceAuditExportFilename } from '../utils/compliance-audit-export.browser.js?v=20260716cachefix1';
 import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
 import { getVsCodeApi, renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';
+import { isSimplebeaconReport, normalizeSimplebeaconReport, normalizeImportedReport, readFileAsJson } from '../services/analyzeService.js?v=20260726auditfix1';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',
     fictionKpis: 'Fiction & KPI drift',
@@ -10,6 +11,8 @@ const LAYER_LABELS = {
     productionLeaks: 'Production path leaks',
     roadmap: 'Roadmap & duplicates',
     jestBaseline: 'Jest baseline',
+    securityPatterns: 'Security patterns',
+    llmSlop: 'LLM slop patterns',
     gate: 'Compliance gate'
 };
 /**
@@ -84,12 +87,14 @@ export class AuditView {
         this._container = null;
         this._fetchPromise = null;
         this._animatedOnce = false;
-        this.assessmentHighlight = false;
+      this.assessmentHighlight = false;
+      this.authRequired = false;
     }
     invalidateCache() {
         this.audit = null;
         this.app.state.audit = null;
         this._fetchPromise = null;
+      this.authRequired = false;
     }
     exportAuditData() {
         if (!this.audit) {
@@ -137,6 +142,59 @@ export class AuditView {
           ${layer.compliance != null ? `<div class="settings-row"><span class="settings-label">Compliance</span><span class="settings-value">${formatPercent(layer.compliance)}</span></div>` : ''}
           ${layer.knownPatterns != null ? `<div class="settings-row"><span class="settings-label">Known patterns</span><span class="settings-value">${layer.knownPatterns}</span></div>` : ''}
           ${extraRows}
+        </div>
+      </div>
+    `;
+    }
+    renderScanScopeSection(scope) {
+        if (!scope)
+            return '';
+        const profile = scope.profile || '—';
+        const rules = (scope.rulesEnabled || []).join(', ') || '—';
+        const prodPaths = (scope.productionPaths || []).join(', ') || '—';
+        const limitations = (scope.limitations || []).map(l => `<li>${escapeHtml(l)}</li>`).join('');
+        const mockFiles = scope.mockSampleFilesInScanPaths != null ? formatNumber(scope.mockSampleFilesInScanPaths) : '—';
+        const prodDirs = scope.productionDirsScanned != null ? formatNumber(scope.productionDirsScanned) : '—';
+        const ruleScoped = scope.ruleScopedFilesAnalyzed != null ? formatNumber(scope.ruleScopedFilesAnalyzed) : '—';
+        const jestExecuted = scope.jestExecutedDuringScan ? 'Yes' : 'No';
+        return `
+      <div class="section-block">
+        <div class="section-heading" style="margin-bottom:var(--space-3);"><h2>Scan scope</h2></div>
+        <div class="card">
+          <div class="settings-grid">
+            <div class="settings-row"><span class="settings-label">Profile</span><span class="settings-value">${escapeHtml(profile)}</span></div>
+            <div class="settings-row"><span class="settings-label">Rules enabled</span><span class="settings-value">${escapeHtml(rules)}</span></div>
+            <div class="settings-row"><span class="settings-label">Rule-scoped files</span><span class="settings-value">${ruleScoped}</span></div>
+            <div class="settings-row"><span class="settings-label">Mock/sample files</span><span class="settings-value">${mockFiles}</span></div>
+            <div class="settings-row"><span class="settings-label">Production dirs scanned</span><span class="settings-value">${prodDirs}</span></div>
+            <div class="settings-row"><span class="settings-label">Jest executed</span><span class="settings-value">${jestExecuted}</span></div>
+            <div class="settings-row"><span class="settings-label">Production paths</span><span class="settings-value" style="font-size:var(--font-size-xs)">${escapeHtml(prodPaths)}</span></div>
+          </div>
+          ${limitations ? `<h3 style="margin-top:var(--space-4);margin-bottom:var(--space-2);font-size:var(--font-size-sm)">Limitations</h3><ul class="about-list">${limitations}</ul>` : ''}
+        </div>
+      </div>
+    `;
+    }
+    renderGateWarnings(warnings) {
+        if (!warnings || !warnings.length)
+            return '';
+        const rows = warnings.map(w => `
+        <tr>
+          <td><span class="severity-pill ${w.severity || 'low'}">${escapeHtml(w.severity || 'low')}</span></td>
+          <td>${escapeHtml(w.type || w.id || '—')}</td>
+          <td>${escapeHtml(w.description || '—')}</td>
+          <td style="font-size:var(--font-size-xs);color:var(--text-muted)">${escapeHtml((w.filePath || w.file || '').split(/[\\/]/).pop() || '—')}</td>
+        </tr>`).join('');
+        return `
+      <div class="section-block">
+        <div class="section-heading" style="margin-bottom:var(--space-3);"><h2>Gate warnings (${warnings.length})</h2></div>
+        <div class="card">
+          <div class="table-scroll-wrapper">
+          <table class="results-table">
+            <thead><tr><th scope="col">Severity</th><th scope="col">Type</th><th scope="col">Description</th><th scope="col">File</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          </div>
         </div>
       </div>
     `;
@@ -272,18 +330,69 @@ export class AuditView {
       `;
             return el;
         }
+        if (this.authRequired && !this.audit) {
+          el.innerHTML = `
+        <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Remote audit data requires authentication</p></div>
+        <div class="card" style="padding:var(--space-6);text-align:center;">
+          <h3 style="margin-bottom:8px">🔒 Authentication required</h3>
+          <p class="text-muted" style="margin-bottom:16px">The hosted audit endpoint requires a valid session or license key to fetch remote metrics.<br>Or load a local scan report to view audit data without signing in.</p>
+          <div class="flex" style="justify-content:center;gap:12px;flex-wrap:wrap">
+          <button type="button" class="btn btn-primary" id="audit-signin">Sign in</button>
+          <button type="button" class="btn btn-secondary" id="audit-import-report">Import report.json</button>
+          <button type="button" class="btn btn-secondary" id="audit-load-file">Load report file…</button>
+          <button type="button" class="btn btn-ghost" id="audit-retry">Retry</button>
+          </div>
+          <input type="file" id="audit-file-input" accept=".json" hidden>
+        </div>
+        `;
+          (_a = el.querySelector('#audit-signin')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => { window.location.hash = '#signin'; });
+          (_a = el.querySelector('#audit-import-report')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
+            const tab = document.querySelector('[data-tab="import"]');
+            if (tab)
+              tab.click();
+          });
+          const fileInput = el.querySelector('#audit-file-input');
+          (_a = el.querySelector('#audit-load-file')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => { if (fileInput) fileInput.click(); });
+          if (fileInput) {
+              fileInput.addEventListener('change', async (e) => {
+                  const file = e.target.files && e.target.files[0];
+                  if (!file)
+                      return;
+                  try {
+                      const parsed = await readFileAsJson(file);
+                      const report = normalizeImportedReport(parsed) || (isSimplebeaconReport(parsed) ? normalizeSimplebeaconReport(parsed) : null);
+                      if (!report) {
+                          showToast('File is not a recognized Simplebeacon report', 'error');
+                          return;
+                      }
+                      this.app.state.report = report;
+                      this.app.scanService.report = report;
+                      this.authRequired = false;
+                      this.audit = this.buildAuditFromReport(report);
+                      this.app.state.audit = this.audit;
+                      this.paint(el.parentElement);
+                      showToast(`Loaded report: ${file.name} — ${report.issueCount || 0} issues`, 'success');
+                  }
+                  catch (err) {
+                      showToast(`Failed to load report: ${err.message}`, 'error');
+                  }
+              });
+          }
+          (_a = el.querySelector('#audit-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.reload(el.parentElement), { once: true });
+          return el;
+        }
         if (this.error && !this.audit) {
-            el.innerHTML = `
+          el.innerHTML = `
         <div class="analyze-hero"><h1 class="page-title">Compliance Audit</h1><p class="text-muted analyze-hero-sub">Audit unavailable</p></div>
         ${renderEmptyState({
-                icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-                title: 'Audit unavailable',
-                body: escapeHtml(this.error),
-                actions: [{ label: 'Retry', id: 'audit-retry', className: 'btn-primary' }]
-            })}
-      `;
-            (_a = el.querySelector('#audit-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.reload(el.parentElement), { once: true });
-            return el;
+            icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+            title: 'Audit unavailable',
+            body: escapeHtml(this.error),
+            actions: [{ label: 'Retry', id: 'audit-retry', className: 'btn-primary' }]
+          })}
+        `;
+          (_a = el.querySelector('#audit-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.reload(el.parentElement), { once: true });
+          return el;
         }
         const audit = this.audit || {};
         const layers = audit.auditLayers || {};
@@ -331,7 +440,7 @@ export class AuditView {
           </div>
         </div>
         <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);">
-          <div style="width:48px;height:48px;border-radius:50%;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">�</div>
+          <div style="width:48px;height:48px;border-radius:50%;background:rgba(99,102,241,0.12);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">📊</div>
           <div>
             <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Consistency</div>
             <div style="font-size:var(--font-size-xl);font-weight:700;">${formatPercent(metrics.consistencyScore)}</div>
@@ -365,6 +474,10 @@ export class AuditView {
           ${Object.entries(layers).filter(([k]) => k !== 'gate').map(([k, v]) => this.renderLayerCard(k, v, metrics)).join('')}
         </div>
       </div>
+
+      ${this.renderScanScopeSection(audit.scanScope)}
+
+      ${(audit.gateWarnings && audit.gateWarnings.length) ? this.renderGateWarnings(audit.gateWarnings) : ''}
 
       <div class="section-block">
         <div class="section-heading" style="margin-bottom:var(--space-3);">
@@ -591,16 +704,30 @@ export class AuditView {
             if (!hadAudit) {
                 this.loading = true;
                 this.error = null;
+            this.authRequired = false;
                 this.paint();
             }
             else {
                 this.refreshing = true;
                 this.error = null;
+            this.authRequired = false;
                 this.paint();
             }
             try {
-                const audit = await this.app.scanService.fetchAudit(includeNpm);
-                this.audit = this.mergeLiveReport(audit);
+            const audit = await this.app.scanService.fetchAudit(includeNpm);
+            if (audit && typeof audit === 'object' && audit.authRequired) {
+              if (this.app.state.report) {
+                this.authRequired = false;
+                this.audit = this.buildAuditFromReport(this.app.state.report);
+              }
+              else {
+                this.authRequired = true;
+                this.audit = null;
+              }
+            }
+            else {
+              this.audit = this.mergeLiveReport(audit);
+            }
                 if (this.app.state.npmAudit && !this.audit.npmAudit) {
                     this.audit.npmAudit = this.app.state.npmAudit;
                 }
@@ -619,6 +746,46 @@ export class AuditView {
             return this.audit;
         })();
         return this._fetchPromise;
+    }
+    buildAuditFromReport(report) {
+        const r = report || {};
+        const rawIssues = r.rawIssues || r.detectedIssues || [];
+        const gate = r.gate || { pass: true };
+        const issueCount = r.issueCount || rawIssues.length;
+        const layers = {};
+        const credIssues = rawIssues.filter(i => i.type === 'credential' || i.patternId === 'credential');
+        layers.credentials = { status: credIssues.length ? 'fail' : 'pass', findings: credIssues.length, scanned: r.credentialScanned || 0 };
+        const leakIssues = rawIssues.filter(i => i.type === 'production-leak' || i.patternId === 'production-leak' || i.type === 'productionLeak');
+        layers.productionLeaks = { status: leakIssues.length ? 'fail' : 'pass', findings: leakIssues.length, scanned: r.productionLeakScanned || 0 };
+        const fictionIssues = rawIssues.filter(i => i.type === 'fiction' || i.patternId === 'fiction' || i.type === 'fictionKpi');
+        layers.fictionKpis = { status: fictionIssues.length ? 'fail' : 'pass', findings: fictionIssues.length, scanned: r.sourceCodeFilesScanned || 0 };
+        layers.schema = { status: 'pass', findings: 0, scanned: r.schemaChecked || 0, pageSamplesChecked: r.pageSampleSchemaChecked, pageSamplesPassed: r.pageSampleSchemaPassed };
+        layers.roadmap = { status: 'pass', findings: 0, scanned: r.roadmapSchemaChecked || 0 };
+        layers.jestBaseline = { status: r.jestBaselinePassed ? 'pass' : 'warn', findings: 0, scanned: r.jestBaselineChecked ? 1 : 0 };
+        const secIssues = rawIssues.filter(i => i.type === 'security' || i.patternId === 'security' || i.type === 'securityPattern');
+        layers.securityPatterns = { status: secIssues.length ? 'fail' : 'pass', findings: r.securityPatternFindings || secIssues.length || 0, scanned: r.securityPatternFilesScanned || 0 };
+        const slopIssues = rawIssues.filter(i => i.type === 'llm-slop' || i.patternId === 'llm-slop' || i.type === 'llmSlop');
+        layers.llmSlop = { status: slopIssues.length ? 'fail' : 'pass', findings: r.llmSlopPatternHits || slopIssues.length || 0, scanned: r.llmSlopFilesScanned || 0 };
+        layers.gate = { pass: gate.pass !== false, findings: issueCount, blockingCount: gate.blockingCount || 0, warningCount: gate.warningCount || 0 };
+        return {
+            report: r,
+            auditLayers: layers,
+            dashboard: {
+                scanStatus: {
+                    totalFilesScanned: r.filesAnalyzed || r.totalFiles || 0,
+                    mockSampleFiles: r.mockSampleFiles || r.totalFiles || 0,
+                    qualityScore: r.qualityScore,
+                    consistencyScore: r.consistencyScore,
+                    lastScan: r.generatedAt
+                }
+            },
+            scanScope: r.scanScope || null,
+            ruleTimings: r.ruleTimings || null,
+            mockDataCategories: r.mockDataCategories || null,
+            gateWarnings: gate.warningIssues || [],
+            fictionCatalog: [],
+            npmAudit: this.app.state.npmAudit || null
+        };
     }
     mount(container) {
         if (!this.audit && this.app.state.audit) {

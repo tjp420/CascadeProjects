@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 // ============================================================================
 // SimpleBeacon Universal Scanner — Language Plugin Architecture (Phase 1)
-// VERSION: 2.2.2 — expanded gate, bun lockfiles, bloat patterns, roadmap markers
+// VERSION: 2.2.3 — optimized sandbox filter rules, partial reads, and cancel guard
 // ============================================================================
 
 /**
@@ -1919,30 +1919,37 @@ async function processLocalCLIScan(files) {
         scanWorker.postMessage({ type: 'scan', files: workerFiles, scanId: Date.now(), deepScan: deepScan });
     }
     // Robust file reader: File.text() with FileReader fallback for older browsers
-    const MAX_SCANNABLE_FILE_BYTES = 10 * 1024 * 1024; // 10 MB — avoid OOM on minified/model dumps
-    async function readFileText(file) {
+    const MAX_SCANNABLE_FILE_BYTES = 10 * 1024 * 1024; // 10 MB — hard cap; files above this are skipped entirely
+    const MAX_PARTIAL_READ_BYTES = 1024 * 1024; // 1 MB — for large text files, only scan the first chunk
+    async function readFileText(file, maxBytes = 0) {
         if (file.size > MAX_SCANNABLE_FILE_BYTES) {
             throw new Error(`File exceeds ${MAX_SCANNABLE_FILE_BYTES} byte limit`);
         }
-        if (typeof file.text === 'function') {
-            return await file.text();
+        const target = (maxBytes > 0 && file.size > maxBytes) ? file.slice(0, maxBytes) : file;
+        if (typeof target.text === 'function') {
+            return await target.text();
         }
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
             reader.onerror = () => reject(reader.error || new Error('FileReader error'));
-            reader.readAsText(file);
+            reader.readAsText(target);
         });
     }
     let readErrors = 0;
     let largeFileSkips = 0;
-    const SCAN_BATCH_SIZE = 250; // Yield to event loop every N files to prevent freezing
+    let partialReads = 0;
+    let skippedNonSource = 0;
+    const SCAN_BATCH_SIZE = 1000; // Yield to event loop every N files to keep the tab responsive on huge repos
     const MAX_DEEP_SCAN_FILES = 999999999; // No sampling cap — scan all files
     let sampledOut = 0;
     const shouldSample = sourceFiles.length > MAX_DEEP_SCAN_FILES;
     // Sampling is disabled — all files are scanned regardless of repo size
     // Pre-build a Set of all normalized paths for fast sibling lockfile lookups
     const allFilePaths = new Set(sourceFiles.map(f => (f.webkitRelativePath || f.name).replace(/\\/g, '/')));
+    const SOURCE_CODE_RE = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte)$/i;
+    const CONFIG_TEXT_RE = /(\.(json|md|markdown|txt|yml|yaml|xml|cfg|ini|toml|gradle|sh|bash|ps1|sql|html|htm|css|scss|sass|less)$|(^|\/)(package\.json|\.env|\.env\.example|\.env\.sample|\.env\.local|\.env\.development|\.env\.production|\.env\.test|license|licence|readme|changelog|changes|history|contributing|code_of_conduct|security|dockerfile|makefile)(\.|$))/i;
+    const NODE_MODULE_RE = /node_modules\//;
     for (let i = 0; i < sourceFiles.length; i++) {
         if (i > 0 && i % SCAN_BATCH_SIZE === 0) {
             await new Promise(r => setTimeout(r, 0));
@@ -1967,26 +1974,45 @@ async function processLocalCLIScan(files) {
             continue;
         }
 
+        const isSourceCode = SOURCE_CODE_RE.test(path);
+        const isNodeModule = NODE_MODULE_RE.test(lowerPath);
+        if (!isSourceCode) {
+            if (isNodeModule) {
+                skippedNonSource++;
+                skipReasons['Non-source dependency file'] = (skipReasons['Non-source dependency file'] || 0) + 1;
+                continue;
+            }
+            if (!CONFIG_TEXT_RE.test(path)) {
+                skippedNonSource++;
+                skipReasons['Non-source file'] = (skipReasons['Non-source file'] || 0) + 1;
+                continue;
+            }
+        }
+
         let text = '';
         let lineCount = 0;
+        let partial = false;
         try {
             if (file.size > MAX_SCANNABLE_FILE_BYTES) {
                 throw new Error(`File exceeds ${MAX_SCANNABLE_FILE_BYTES} byte limit`);
             }
-            text = await readFileText(file);
+            partial = file.size > MAX_PARTIAL_READ_BYTES;
+            if (partial) partialReads++;
+            text = await readFileText(file, partial ? MAX_PARTIAL_READ_BYTES : 0);
             lineCount = text.split('\n').length;
             totalLines += lineCount;
         } catch (e) {
             if (e.message && e.message.includes('byte limit')) {
                 largeFileSkips++;
+                skipReasons['File > 10 MB'] = (skipReasons['File > 10 MB'] || 0) + 1;
                 if (largeFileSkips <= 5) appendTerminalLine(`Skipping ${path}: file exceeds 10 MB read limit.`, 'warn');
             } else {
                 readErrors++;
+                skipReasons['Read error'] = (skipReasons['Read error'] || 0) + 1;
             }
             continue;
         }
         const lower = text.toLowerCase();
-        const isNodeModule = /node_modules\//.test(lowerPath);
         const isNodeModuleDoc = isNodeModule && /\/(readme|changelog|history|license|copying)([-_][a-z]+)?(\.md|\.txt|\.markdown)?$|\/examples?\//i.test(lowerPath);
         const isSimplebeaconCache = /\.simplebeacon\//i.test(lowerPath) || /\.github-sync\//i.test(lowerPath) || /github-cache\//i.test(lowerPath);
         const isScannerArtifact = /(?:^|\/)upload\.html$|(?:^|\/)report\.json$|(?:^|\/)report-deliveries\/|(?:^|\/)explainability\.md$|(?:^|\/)certificate\.html$|(?:^|\/)certificate\.png$|(?:^|\/)executive-summary\.md$|(?:^|\/)remediation-checklist\.md$|(?:^|\/)dev-report\.html$|(?:^|\/)manifest\.json$|(?:^|\/)findings\.md$|(?:^|\/)scanner-patterns\.js$|(?:^|\/)scanner-engine\.js$|(?:^|\/)main\.js$|(?:^|\/)ui-renderer\.js$|(?:^|\/)token-manager\.js$|(?:^|\/)scan-worker\.js$|(?:^|\/)certificate-module\.js$|(?:^|\/)generate-token\.js$|(?:^|\/)server\.cjs$|(?:^|\/)run-all-tier-scans\.cjs$|(?:^|\/)free-token\.cjs$|(?:^|\/)lib\/db\.cjs$|(?:^|\/)trello-roadmap-export\.js$|(?:^|\/)site-config\.js$|(?:^|\/)contact\.js$|(?:^|\/)roadmap\.html$|(?:^|\/)routes\/(certificates|checkout|subscriptions)\.cjs$|(?:^|\/)services\/email\.cjs$|(?:^|\/)modules\/(gate|consolidation|mock-data|roadmap|codebase|file-reduction|data-quality|cleanup|npm-audit|compliance|ai-indicators|governance|dependency-vulns|build-readiness|eu-ai-act|ai-residue|index)\.json$|eslint-report\.json$|pattern-documentation\.js$|quick-actions\.js$|(?:^|\/)scan-utils\.js$|(?:^|\/)phase-registry\.js$|(?:^|\/)scan-directory\.js$|(?:^|\/)local-scanner-bridge\.cjs$|(?:^|\/)analyze-directory\.js$|(?:^|\/)count-all-files\.js$|(?:^|\/)count-files\.js$|(?:^|\/)test-all-patterns\.js$|(?:^|\/)run-cli-scan\.js$|(?:^|\/)update-cache\.js$|(?:^|\/)fix-.*\.cjs$|(?:^|\/)repair-.*\.cjs$|(?:^|\/)js\/dashboard\/utils\.js$|(?:^|\/)ai-slop-cop-report\.json$|(?:^|\/)full-audit-report\.json$|(?:^|\/)cascade-root-report\.json$|(?:^|\/)cli-test-report\.json$|(?:^|\/)coming-soon-report\.json$|(?:^|\/)coming-soon-final\.json$|(?:^|\/)ai-platform-report\.json$|(?:^|\/)report-gate-pass-.*\.json$|(?:^|\/)New folder\/|(?:^|\/)simplebeacon-export-operator/i.test(path);
@@ -1999,7 +2025,6 @@ async function processLocalCLIScan(files) {
         const isSampleOrTest = /[/-]test[-_]|\.(test|spec)\.|sample[-_]|demo-|fixture-|mock-|audit-|vulnerable|exposed|leaky_|positive-test|\.simplebeacon\/|test-cert\/|__tests__\/|mocks\/|fixtures\/|report\.json|\.simplebeaconignore|(^|[\/])tmp-[^\/]*\.js$/i.test(lowerPath);
         const isTypeScriptDef = lowerPath.endsWith('.d.ts');
         const isCiWorkflow = /\.github\/workflows\//.test(lowerPath);
-        const isSourceCode = /\.(js|cjs|mjs|ts|tsx|jsx|py|java|go|rs|c|cpp|h|hpp|cs|php|rb|swift|kt|scala|dart|vue|svelte)$/i.test(path);
         const isServerEntry = /\/server\.cjs$|\/(server|api|scripts|reporters|bin|lib)\/|mcp-[^/]+\.cjs$|-helper\.cjs$|-gateway\.cjs$|AssessmentController\.cjs$|path-health\.cjs$|fetch-grammars\.js$/.test(path);
         const isBuildArtifact = /\/(frontend-build|dist|build|\.next|out|coverage)\//i.test(lowerPath);
 
@@ -2558,14 +2583,16 @@ async function processLocalCLIScan(files) {
     appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9432; Scan Diagnostic Report</span>');
     appendTerminalLine(`  Raw files discovered: <strong>${files.length.toLocaleString()}</strong>`);
     appendTerminalLine(`  After initial filter: <strong>${sourceFiles.length.toLocaleString()}</strong> (skipped ${skipped.toLocaleString()})`);
-    appendTerminalLine(`  Main thread scanned: <strong>${scanned.toLocaleString()}</strong>`);
+    appendTerminalLine(`  Main thread source files scanned: <strong>${scanned.toLocaleString()}</strong>`);
+    appendTerminalLine(`  Non-source files skipped: <strong>${skippedNonSource.toLocaleString()}</strong>`);
     appendTerminalLine(`  Read errors: <strong>${readErrors.toLocaleString()}</strong>`);
     if (largeFileSkips > 0) appendTerminalLine(`  Large files skipped (>10 MB): <strong>${largeFileSkips.toLocaleString()}</strong>`, 'warn');
+    if (partialReads > 0) appendTerminalLine(`  Large files partially read (1 MB chunk): <strong>${partialReads.toLocaleString()}</strong>`, 'warn');
     if (scanWorker) {
         appendTerminalLine(`  Worker files posted: <strong>${Math.min(sourceFiles.length, 100000).toLocaleString()}</strong> (cap: 100000)`);
         appendTerminalLine(`  <span style="color:#F59E0B;">&#9888; Worker receives path objects only — file.text() will silently fail. Main thread does actual scanning.</span>`, 'warn');
     }
-    const unaccounted = sourceFiles.length - scanned - readErrors - largeFileSkips - sampledOut;
+    const unaccounted = sourceFiles.length - scanned - readErrors - largeFileSkips - sampledOut - skippedNonSource;
     if (unaccounted > 0) {
         appendTerminalLine(`  <span style="color:#EF4444;">&#9888; Unaccounted files: ${unaccounted.toLocaleString()}</span>`, 'warn');
     }
@@ -2804,7 +2831,7 @@ async function processLocalCLIScan(files) {
         schemaChecked: totalJsonFiles,
         schemaPassed: totalJsonFiles - emptyJsonFiles.length,
         repositoryFoldersTotal: [...new Set(files.map(f => (f.webkitRelativePath || f.name).replace(/\\/g, '/').split('/').slice(0, -1).join('/')))].filter(Boolean).length,
-        excludedCount: skipped,
+        excludedCount: files.length - scanned,
         excludedSummary: Object.entries(skipReasons).sort((a,b) => b[1] - a[1]).slice(0,5).map(([r,c]) => `${c} ${r}`).join(', ') || 'none',
         simplebeaconIssues: (profile.checkAi ? aiHits.length : 0) + (profile.checkCredentials ? credentialHits : 0) + (profile.checkDebug ? debugHits.length : 0) + (profile.checkGov ? govHits.length : 0) + (profile.checkAiResidue ? aiResidueHits + perfHits + typeSafetyHits + testHits + a11yHits + i18nHits + sensitiveDataHits + configDriftHits + securityHeaderHits + dbPatternHits + frameworkHits + workspaceHits + unusedDepHits + apiContractHits + complexityHits + llmSlopHits + tokenBleedHits + productionLeakHits + fictionKpiHits + securityHits + qualityHits + maintainabilityHits : 0) + envInconsistencyFindings.length + missingEnvKeyFindings.length + versionDriftFindings.length + syncIoFindings.length + archDriftFindings.length,
         detectedIssues: [
