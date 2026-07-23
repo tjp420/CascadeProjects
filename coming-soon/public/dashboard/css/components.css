@@ -537,6 +537,22 @@ html[data-ide-embed="1"] #app-main:has(.chatbot-container) .view-container {
   overflow: hidden;
 }
 
+/* IDE embed: allow chatbot page to scroll when content exceeds viewport (bridge bar + hero + input) */
+html[data-ide-embed="1"] #app-main:has(.chatbot-container) {
+  overflow-y: auto;
+}
+html[data-ide-embed="1"] #app-main:has(.chatbot-container) .view-container.chatbot-page {
+  overflow-y: auto;
+  min-height: min-content;
+}
+html[data-ide-embed="1"] .chatbot-page .view-content {
+  flex: 1 1 auto;
+  min-height: min-content;
+}
+html[data-ide-embed="1"] .chatbot-container {
+  min-height: 400px;
+}
+
 html[data-embed-full-nav="1"] #app-main:has(.chatbot-container) .view-content,
 html[data-embed-mode="1"] #app-main:has(.chatbot-container) .view-content,
 html[data-ide-embed="1"] #app-main:has(.chatbot-container) .view-content {
