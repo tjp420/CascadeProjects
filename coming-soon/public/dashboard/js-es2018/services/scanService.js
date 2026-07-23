@@ -1,10 +1,10 @@
 import { fetchWithTimeout, downloadJson, downloadText, resolveDashboardProjectPath } from '../utils.js';
 import { billingService } from './billingService.js';
-import { authService } from './authService.js?v=20260729dropfix1';
+import { authService } from './authService.js?v=20260729dropfix2';
 import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
-import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260729dropfix1';
-import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260729dropfix1';
+import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260729dropfix2';
+import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260729dropfix2';
 import { apiBaseUrl } from '../utils-lib/url.js';
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the

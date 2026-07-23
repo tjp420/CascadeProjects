@@ -1,14 +1,15 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from './authService.js?v=20260729dropfix1';
-import { fetchUserAiKeys } from './aiKeysService.js?v=20260729dropfix1';
-import { scanService } from './scanService.js?v=20260729dropfix1';
+import { authService } from './authService.js?v=20260729dropfix2';
+import { fetchUserAiKeys } from './aiKeysService.js?v=20260729dropfix2';
+import { scanService } from './scanService.js?v=20260729dropfix2';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
-import { notifyDownloadComplete } from '../utils-lib/notify.js?v=20260729dropfix1';
+import { apiUrl } from '../utils-lib/url.js?v=20260729dropfix2';
+import { notifyDownloadComplete } from '../utils-lib/notify.js?v=20260729dropfix2';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
 import { DASHBOARD_BASE_URL } from '../config.js';
-import { isLocalPath, fetchInventoryViaAgent, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260729dropfix1';
+import { isLocalPath, fetchInventoryViaAgent, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260729dropfix2';
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
  * dashboard treats it as current and can render aligned file-count metrics.
@@ -103,7 +104,7 @@ export async function ensureDashboardApiReady() {
     const origin = typeof window !== 'undefined' ? window.location.origin : DASHBOARD_BASE_URL;
     let healthRes;
     try {
-        healthRes = await fetchWithTimeout('/api/health', {}, 8000);
+        healthRes = await fetchWithTimeout(apiUrl('/api/health'), {}, 8000);
     }
     catch (error) {
         if (isHostedPagesDashboard()) {
@@ -118,7 +119,7 @@ export async function ensureDashboardApiReady() {
     }
     let probeRes;
     try {
-        probeRes = await fetchWithTimeout('/api/simplebeacon/config', {
+        probeRes = await fetchWithTimeout(apiUrl('/api/simplebeacon/config'), {
             headers: authService.getAuthHeaders()
         }, 8000);
     }
@@ -141,9 +142,10 @@ export async function ensureDashboardApiReady() {
 async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
     let res;
     try {
+        const resolvedTarget = apiUrl(target);
         res = timeoutMs > 0
-            ? await fetchWithTimeout(target, options, timeoutMs)
-            : await fetch(target, options);
+            ? await fetchWithTimeout(resolvedTarget, options, timeoutMs)
+            : await fetch(resolvedTarget, options);
     }
     catch (error) {
         throw new Error(buildNetworkErrorMessage(target, error));

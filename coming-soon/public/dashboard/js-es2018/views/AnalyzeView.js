@@ -1,12 +1,12 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260729dropfix1';
-import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260729dropfix1';
-import { LocalScanService } from '../services/localScanService.js?v=20260729dropfix1';
-import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js?v=20260729dropfix1';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260729dropfix1';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260729dropfix1';
-import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260729dropfix1';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260729dropfix2';
+import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260729dropfix2';
+import { LocalScanService } from '../services/localScanService.js?v=20260729dropfix2';
+import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js?v=20260729dropfix2';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260729dropfix2';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260729dropfix2';
+import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260729dropfix2';
 
 const DROP_SKIP_DIRS = new Set([
     'node_modules', '.git', 'dist', 'build', '.simplebeacon',
@@ -35,37 +35,37 @@ function getHostedAnalyzeContext() {
     };
 }
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
-import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, isHostedServerDefaultPath, isHostedBrowserScanPath, shouldClearHostedServerDefaultPath, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, resolveReportIssues, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260729dropfix1';
+import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, isHostedServerDefaultPath, isHostedBrowserScanPath, shouldClearHostedServerDefaultPath, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, resolveReportIssues, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260729dropfix2';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
-import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260729dropfix1';
+import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260729dropfix2';
 import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
 import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
-import { runEuAiActSprint } from '../services/operatorService.js?v=20260729dropfix1';
-import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260729dropfix1';
+import { runEuAiActSprint } from '../services/operatorService.js?v=20260729dropfix2';
+import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260729dropfix2';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
-import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260729dropfix1';
+import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260729dropfix2';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
-import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260729dropfix1';
-import { buildCompleteScanAnalysis, renderCompleteScanAnalysisPanel, formatCompleteScanBytes, sanitizeCompleteScanBundle, sanitizeConsolidationExport, sanitizeRoadmapExport } from '../utils/completeScanAnalysis.js?v=20260729dropfix1';
-import { sanitizeNpmAuditExport } from '../utils/npm-audit-export.browser.js?v=20260729dropfix1';
-import { sanitizeComplianceBundleExport, reconcileComplianceWithGate, pickFreshGateReport } from '../utils/compliance-export.browser.js?v=20260729dropfix1';
-import { buildCleanupAssistantBrief, buildCleanupBriefFromLastResult, buildCleanupAssistantConclusion, isCleanupBriefRunnable, resolveFileReductionPlan, loadCleanupPolicy, saveCleanupPolicy, readCleanupPolicyFromDom, renderCleanupAssistantPanel } from '../utils/cleanupAssistant.js?v=20260729dropfix1';
-import { sanitizeCleanupBriefExport } from '../utils/cleanup-brief-export.browser.js?v=20260729dropfix1';
-import { sanitizeDataCleanupReportExport } from '../utils/data-cleanup-export.browser.js?v=20260729dropfix1';
-import { sanitizeCodebaseReportExport } from '../utils/codebase-export.browser.js?v=20260729dropfix1';
-import { sanitizeAiProblemAnalyzerExport, aiProblemAnalyzerExportFilename, buildAiProblemAnalyzerCsv } from '../utils/ai-problem-analyzer-export.browser.js?v=20260729dropfix1';
+import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260729dropfix2';
+import { buildCompleteScanAnalysis, renderCompleteScanAnalysisPanel, formatCompleteScanBytes, sanitizeCompleteScanBundle, sanitizeConsolidationExport, sanitizeRoadmapExport } from '../utils/completeScanAnalysis.js?v=20260729dropfix2';
+import { sanitizeNpmAuditExport } from '../utils/npm-audit-export.browser.js?v=20260729dropfix2';
+import { sanitizeComplianceBundleExport, reconcileComplianceWithGate, pickFreshGateReport } from '../utils/compliance-export.browser.js?v=20260729dropfix2';
+import { buildCleanupAssistantBrief, buildCleanupBriefFromLastResult, buildCleanupAssistantConclusion, isCleanupBriefRunnable, resolveFileReductionPlan, loadCleanupPolicy, saveCleanupPolicy, readCleanupPolicyFromDom, renderCleanupAssistantPanel } from '../utils/cleanupAssistant.js?v=20260729dropfix2';
+import { sanitizeCleanupBriefExport } from '../utils/cleanup-brief-export.browser.js?v=20260729dropfix2';
+import { sanitizeDataCleanupReportExport } from '../utils/data-cleanup-export.browser.js?v=20260729dropfix2';
+import { sanitizeCodebaseReportExport } from '../utils/codebase-export.browser.js?v=20260729dropfix2';
+import { sanitizeAiProblemAnalyzerExport, aiProblemAnalyzerExportFilename, buildAiProblemAnalyzerCsv } from '../utils/ai-problem-analyzer-export.browser.js?v=20260729dropfix2';
 import { renderCodebasePanel, buildCodebaseConclusion } from '../components/CodebaseReport.js';
 import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../components/UnderstandingReport.js';
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
-import { authService } from '../services/authService.js?v=20260729dropfix1';
-import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260729dropfix1';
-import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260729dropfix1';
+import { authService } from '../services/authService.js?v=20260729dropfix2';
+import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260729dropfix2';
+import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260729dropfix2';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB — server-side directory upload limit
 /**
@@ -8618,7 +8618,7 @@ export class AnalyzeView {
             if (effectiveType === 'eu-ai-act') {
                 this.completeStep = 'EU AI Act sprint (eu-ai-act profile)…';
                 this.refresh();
-                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260729dropfix1');
+                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260729dropfix2');
                 const euPath = resolveProductCompliancePath(projectPath, this.app);
                 if (euPath && euPath !== projectPath) {
                     showToast(`Benchmark clone — EU sprint runs on ${formatPathLabel(euPath)}`, 'warning');
@@ -8983,7 +8983,7 @@ export class AnalyzeView {
                 };
             },
             'eu-ai-act': async () => {
-                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260729dropfix1');
+                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260729dropfix2');
                 let euScanPath = resolveProductCompliancePath(projectPath, this.app) || projectPath;
                 if (euScanPath !== projectPath) {
                     showToast(`Benchmark clone — EU sprint runs on ${formatPathLabel(euScanPath)}`, 'warning');

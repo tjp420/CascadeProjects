@@ -5,7 +5,7 @@
  * applies SimpleBeacon heuristic rules, and produces an A-F compliance certificate.
  */
 
-import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260729dropfix1';
+import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260729dropfix2';
 import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,
@@ -14,7 +14,7 @@ import {
   loadIgnorePatternsFromDirHandle,
   shouldSkipSandboxComplianceDrift,
   shouldSkipSandboxScanFile
-} from '../utils-lib/simplebeaconignore.browser.js?v=20260729dropfix1';
+} from '../utils-lib/simplebeaconignore.browser.js?v=20260729dropfix2';
 
 /**
  * Local copy of `detectSimplebeaconMonorepo` to avoid runtime mismatches
@@ -460,7 +460,7 @@ function yieldToBrowser() {
 function createScanWorker() {
   if (typeof window === 'undefined' || typeof Worker === 'undefined') return null;
   try {
-    return new Worker(new URL('../workers/scan-worker.js?v=20260729dropfix1', import.meta.url));
+    return new Worker(new URL('../workers/scan-worker.js?v=20260729dropfix2', import.meta.url));
   }
   catch (err) {
     window["console"]["warn"](
