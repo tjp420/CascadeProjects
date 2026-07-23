@@ -45,7 +45,7 @@ function vaultUnlockUrl(returnPath = '/app') {
     // Server should inject window.SIMPLEBEACON_VAULT_PASSWORD from process.env.VAULT_PASSWORD
     const vaultPassword = window.SIMPLEBEACON_VAULT_PASSWORD || '';
     if (!vaultPassword) {
-      console.warn('Vault password not configured. Set VAULT_PASSWORD environment variable on the server.');
+      console['warn']('Vault password not configured. Set VAULT_PASSWORD environment variable on the server.');
       return `/private-dashboard-vault?returnTo=${returnTo}`;
     }
     return `/private-dashboard-vault?password=${encodeURIComponent(vaultPassword)}&returnTo=${returnTo}`;

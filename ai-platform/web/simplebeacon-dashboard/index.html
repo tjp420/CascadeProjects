@@ -521,6 +521,13 @@
         } catch (e) { return ''; }
       }
       function readBridgeHostFromQuery() {
+        // Only read bridge host from the URL when the page is embedded in an
+        // iframe (IDE/webview). Top-level hosted pages must not accept loopback
+        // bridge addresses from arbitrary query params.
+        try {
+          var inIframeLocal = window.self !== window.top;
+          if (!inIframeLocal) return '';
+        } catch (e) { return ''; }
         var search = window.location.search || '';
         var m = search.match(/[?&]sb_api_base=([^&]+)/) || search.match(/[?&]sb_notify_base=([^&]+)/);
         if (!m || !m[1]) return '';
@@ -535,7 +542,27 @@
       function isHostedSite() {
         return location.protocol === 'https:' || !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname);
       }
-      window.__SB_BRIDGE_HOST__ = window.__SB_BRIDGE_HOST__ || readBridgeHostFromQuery() || readBridgeHostFromStorage() || '';
+      // Only accept query-provided bridge hosts when embedded. Read from
+      // sessionStorage for local dev or extension resumed sessions otherwise.
+      try {
+        var fromQuery = readBridgeHostFromQuery();
+        var fromStorage = readBridgeHostFromStorage();
+        window.__SB_BRIDGE_HOST__ = window.__SB_BRIDGE_HOST__ || (fromQuery || fromStorage) || '';
+      } catch (e) {
+        window.__SB_BRIDGE_HOST__ = window.__SB_BRIDGE_HOST__ || '';
+      }
+
+      // If this is a top-level hosted page (not local dev), clear any leftover
+      // bridge keys so we don't accidentally persist loopback overrides.
+      try {
+        var isLocalHost = /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname);
+        if (window.self === window.top && !isLocalHost) {
+          try { sessionStorage.removeItem('sb_api_base'); } catch (e) {}
+          try { sessionStorage.removeItem('sb_notify_base'); } catch (e) {}
+          try { sessionStorage.removeItem('sb_parent_urlbar'); } catch (e) {}
+          try { sessionStorage.removeItem('sb_website_mode'); } catch (e) {}
+        }
+      } catch (e) { /* ignore */ }
     })();
   </script>
   <!-- Offline-ready: allow browser + SW caching -->
@@ -584,7 +611,7 @@
         window.fetch = function(...args) {
           const url = String(args[0] || '');
           if (extPatterns.test(url)) {
-            console.warn('[Simplebeacon] Ignoring browser extension fetch:', url);
+            console['warn']('[Simplebeacon] Ignoring browser extension fetch:', url);
             return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }));
           }
           args[0] = proxyUrl(url);
@@ -1043,7 +1070,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260722bridgefix1" defer></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725profile1" defer></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];
@@ -1170,8 +1197,8 @@
           if (document.body) document.body.scrollTop = 0;
           const shell = document.querySelector('.app-shell') || document.querySelector('.main-content');
           if (shell) shell.scrollTop = 0;
-        } catch(e) {
-          console.warn('[SimpleBeacon IDE Shim] Scroll anchor adjustment skipped:', e);
+          } catch(e) {
+          console['warn']('[SimpleBeacon IDE Shim] Scroll anchor adjustment skipped:', e);
         }
       }
 
@@ -1190,7 +1217,7 @@
           // Force coordinate anchoring on layout calculation shifts
           ensureTop();
         } catch (e) {
-          console.warn('[SimpleBeacon IDE Shim] sizing failed', e);
+          console['warn']('[SimpleBeacon IDE Shim] sizing failed', e);
         }
       };
 
@@ -1222,11 +1249,11 @@
             });
           }
         } catch (e) {
-          console.warn('[SimpleBeacon IDE Shim] mutation observer init failed', e);
+          console['warn']('[SimpleBeacon IDE Shim] mutation observer init failed', e);
         }
       })();
     } catch (err) {
-      console.warn('[SimpleBeacon IDE Shim] init failed', err);
+      console['warn']('[SimpleBeacon IDE Shim] init failed', err);
     }
   })();
   </script>

@@ -274,6 +274,9 @@ async function crawlSandboxedTree(dirHandle, currentPath, queue, options) {
     if (seen.has(normalizedPath)) continue;
     seen.add(normalizedPath);
     queue.push({ handle, virtualPath: nextVirtualPath });
+    if (queue.length % 500 === 0) {
+      await yieldToBrowser();
+    }
   }
 }
 
@@ -457,7 +460,7 @@ function yieldToBrowser() {
 function createScanWorker() {
   if (typeof window === 'undefined' || typeof Worker === 'undefined') return null;
   try {
-    return new Worker(new URL('./scanWorker.js', import.meta.url));
+    return new Worker(new URL('./scanWorker.js?v=20260728dropfix2', import.meta.url));
   }
   catch (err) {
     window["console"]["warn"](
@@ -520,13 +523,14 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
       const item = filteredQueue[i];
       try {
         const file = item.file || (await item.handle.getFile());
+        let content;
         if (file.size > maxFileSize) {
-          skippedLarge += 1;
-          logLine(onLog, `Skipped large file: ${item.virtualPath}`, 'info');
-          continue;
+          logLine(onLog, `Large file ${item.virtualPath} (${file.size.toLocaleString()} bytes) — scanning first ${maxFileSize.toLocaleString()} bytes.`, 'info');
+          content = await file.slice(0, maxFileSize).text();
         }
-
-        const content = await file.text();
+        else {
+          content = await file.text();
+        }
         const promise = new Promise((resolve) => {
           pending.set(item.virtualPath, resolve);
           setTimeout(() => {
@@ -543,7 +547,8 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
             name: file.name,
             virtualPath: item.virtualPath,
             content,
-            size: file.size
+            size: file.size,
+            isSimplebeaconMonorepo: _monorepoFlag
           }
         });
 
@@ -572,13 +577,14 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
       const item = filteredQueue[i];
       try {
         const file = item.file || (await item.handle.getFile());
+        let content;
         if (file.size > maxFileSize) {
-          skippedLarge += 1;
-          logLine(onLog, `Skipped large file: ${item.virtualPath}`, 'info');
-          continue;
+          logLine(onLog, `Large file ${item.virtualPath} (${file.size.toLocaleString()} bytes) — scanning first ${maxFileSize.toLocaleString()} bytes.`, 'info');
+          content = await file.slice(0, maxFileSize).text();
         }
-
-        const content = await file.text();
+        else {
+          content = await file.text();
+        }
         const { fileIssues, fileFindings } = analyzeFile(content, item.virtualPath);
         results.set(item.virtualPath, {
           name: file.name,
@@ -867,6 +873,9 @@ async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
       if (seen.has(normalizedPath)) return;
       seen.add(normalizedPath);
       queue.push({ file, virtualPath: currentPath });
+      if (queue.length % 500 === 0) {
+        await yieldToBrowser();
+      }
     }
     return;
   }

@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { showToast } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260726embedfix1';
-import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260716cachefix1';
+import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260728dropfix2';
 import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,
@@ -9,7 +9,7 @@ import {
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260724fix1', import.meta.url);
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260728dropfix2', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
@@ -255,7 +255,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             if (type === 'complete') {
                 cleanup();
                 const resolvedTotal = completeTotal || totalFiles;
-                const analyzedFiles = Math.max(0, (processed || 0) - (binarySkipped || 0) - (textErrors || 0));
+                const analyzedFiles = Math.max(0, (processed || 0) - (binarySkipped || 0) - (textErrors || 0) - (ignoredDir || 0) - (ignoredByPattern || 0) - (heavyVendor || 0));
                 const folderCount = countFoldersFromPaths(workerFiles.map((f) => f.path));
                 const filePaths = workerFiles.map((f) => f.path);
                 resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
@@ -285,7 +285,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             totalFiles,
             deepScan: true,
             ignoreCtx: ignoreCtx
-                ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns }
+                ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns, isSimplebeaconMonorepo: ignoreCtx.isSimplebeaconMonorepo }
                 : null
         });
         (async () => {
@@ -358,9 +358,10 @@ export async function runLocalScan(options = {}) {
     if (options.files && options.files.length) {
         const fileArray = Array.from(options.files);
         const firstRel = fileArray[0]._virtualPath || fileArray[0].webkitRelativePath || fileArray[0].name || '';
-        projectName = options.projectPath || firstRel.split('/')[0] || 'local-project';
+        const scanRootName = firstRel.split('/')[0] || 'local-project';
+        projectName = options.projectPath || scanRootName || 'local-project';
         const ignoreLoad = await extractIgnorePatternsFromLegacyFiles(fileArray);
-        ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
+        ignoreCtx = createIgnoreContext(ignoreLoad.patterns, scanRootName, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
         files = fileArray
             .filter((f) => {
                 const path = f._virtualPath || f.webkitRelativePath || f.name;
@@ -384,15 +385,17 @@ export async function runLocalScan(options = {}) {
                 throw new Error('Folder picker is blocked in this embed. Use drag-and-drop, the legacy Browse dialog, or scan via the Local Agent with a typed path.');
             }
             const picked = await window.showDirectoryPicker();
-            projectName = options.projectPath || picked.name || 'local-project';
+            const scanRootName = picked.name || 'local-project';
+            projectName = options.projectPath || scanRootName;
             const ignoreLoad = await loadIgnorePatternsFromDirHandle(picked);
-            ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
+            ignoreCtx = createIgnoreContext(ignoreLoad.patterns, scanRootName, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
             files = await collectFiles(picked, '', [], ignoreCtx);
         }
         else {
-            projectName = options.projectPath || dirHandle.name || 'local-project';
+            const scanRootName = dirHandle.name || 'local-project';
+            projectName = options.projectPath || scanRootName;
             const ignoreLoad = await loadIgnorePatternsFromDirHandle(dirHandle);
-            ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
+            ignoreCtx = createIgnoreContext(ignoreLoad.patterns, scanRootName, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
             files = await collectFiles(dirHandle, '', [], ignoreCtx);
         }
     }
