@@ -493,83 +493,80 @@ export class ChatbotView {
     mount(container) {
         container.innerHTML = `
       <div class="view-container chatbot-page">
-        <div class="analyze-hero" style="margin-bottom:var(--space-4);">
-          <h1 class="page-title" id="chatbot-page-title">${this.getTitle()}</h1>
-          <p class="text-muted analyze-hero-sub" id="chatbot-page-subtitle">${this.getSubtitle()}</p>
-        </div>
-        <div class="ai-transparency-notice" style="margin-bottom:var(--space-4);">
-          <span class="ai-transparency-icon">${this.personality === 'oracle' ? '🔮' : '🤖'}</span>
-          <span class="ai-transparency-text" id="chatbot-transparency-text">${this.getTransparencyText()}</span>
+        <div class="chatbot-header">
+          <div class="chatbot-header-row">
+            <h1 class="chatbot-title" id="chatbot-page-title">${this.getTitle()}</h1>
+            <div class="chatbot-status-pill" id="chatbot-connection-status">
+              <span class="chatbot-connection-dot" id="chatbot-connection-dot"></span>
+              <span class="chatbot-connection-text" id="chatbot-connection-text">Checking…</span>
+            </div>
+          </div>
+          <p class="chatbot-subtitle text-muted" id="chatbot-page-subtitle">${this.getSubtitle()}</p>
+          <div class="chatbot-transparency">
+            <span class="ai-transparency-icon">${this.personality === 'oracle' ? '🔮' : '🤖'}</span>
+            <span class="ai-transparency-text" id="chatbot-transparency-text">${this.getTransparencyText()}</span>
+          </div>
         </div>
         <div id="chatbot-error-banner" class="chatbot-error-banner" style="display:none;"></div>
         ${renderHostedConnectUi()}
-        <div id="chatbot-connection-status" class="chatbot-connection-status" style="margin-bottom:var(--space-4);">
-          <span class="chatbot-connection-dot" id="chatbot-connection-dot"></span>
-          <span class="chatbot-connection-text" id="chatbot-connection-text">Checking connection...</span>
-        </div>
-        <div class="view-content">
-          <div class="chatbot-container">
-            <div class="chatbot-toolbar">
-              <label for="chatbot-provider" class="visually-hidden">AI Provider</label>
-              <select id="chatbot-provider" class="chatbot-provider-select" aria-label="AI Provider">
-                <option value="" disabled selected>Loading providers…</option>
+        <div class="chatbot-container">
+          <div class="chatbot-toolbar">
+            <label for="chatbot-provider" class="visually-hidden">AI Provider</label>
+            <select id="chatbot-provider" class="chatbot-provider-select" aria-label="AI Provider">
+              <option value="" disabled selected>Loading providers…</option>
+            </select>
+            <button id="chatbot-prompt-toggle" class="chatbot-clear-btn" title="Toggle custom system prompt">📝 Prompt</button>
+            <button id="chatbot-settings-toggle" class="chatbot-clear-btn" title="Chatbot settings">⚙️</button>
+            <button id="chatbot-clear" class="chatbot-clear-btn">Clear</button>
+          </div>
+          <div id="chatbot-settings-panel" class="chatbot-settings-panel" style="display:none;">
+            <div class="chatbot-settings-group" id="chatbot-ollama-model-group">
+              <label class="chatbot-settings-label" for="chatbot-ollama-model">Ollama model</label>
+              <div id="chatbot-ollama-model-wrap">
+                ${renderChatbotOllamaModelSelect(this)}
+              </div>
+            </div>
+            <div class="chatbot-settings-group">
+              <label class="chatbot-settings-label">Personality</label>
+              <select id="chatbot-personality" class="chatbot-provider-select" aria-label="Personality">
+                <option value="helpful">Helpful (default)</option>
+                <option value="professional">Professional</option>
+                <option value="casual">Casual / Friendly</option>
+                <option value="sarcastic">Sarcastic / Witty</option>
+                <option value="technical">Deep Technical</option>
+                <option value="creative">Creative / Exploratory</option>
+                <option value="oracle">&#x1F52E; The Unbreakable Oracle</option>
               </select>
-              <button id="chatbot-prompt-toggle" class="chatbot-clear-btn" title="Toggle custom system prompt">📝 Custom Prompt</button>
-              <button id="chatbot-settings-toggle" class="chatbot-clear-btn" title="Chatbot settings">⚙️ Settings</button>
-              <button id="chatbot-clear" class="chatbot-clear-btn">Clear History</button>
             </div>
-            <div id="chatbot-settings-panel" class="chatbot-settings-panel" style="display:none;">
-              <div class="chatbot-settings-group" id="chatbot-ollama-model-group">
-                <label class="chatbot-settings-label" for="chatbot-ollama-model">Ollama model</label>
-                <div id="chatbot-ollama-model-wrap">
-                  ${renderChatbotOllamaModelSelect(this)}
-                </div>
-              </div>
-              <div class="chatbot-settings-group">
-                <label class="chatbot-settings-label">Personality</label>
-                <p class="chatbot-settings-help">Choose how the chatbot responds to you.</p>
-                <select id="chatbot-personality" class="chatbot-provider-select" aria-label="Personality">
-                  <option value="helpful">Helpful (default)</option>
-                  <option value="professional">Professional</option>
-                  <option value="casual">Casual / Friendly</option>
-                  <option value="sarcastic">Sarcastic / Witty</option>
-                  <option value="technical">Deep Technical</option>
-                  <option value="creative">Creative / Exploratory</option>
-                  <option value="oracle">&#x1F52E; The Unbreakable Oracle</option>
-                </select>
-              </div>
-              <div class="chatbot-settings-group">
-                <label class="chatbot-settings-toggle">
-                  <input type="checkbox" id="chatbot-remove-filters" aria-label="Remove all content filters" />
-                  <span class="chatbot-settings-toggle-text">Remove all content filters</span>
-                </label>
-                <p class="chatbot-settings-help">When enabled, the AI will not apply safety or content filtering. Use with caution.</p>
-              </div>
-              <div class="chatbot-prompt-actions">
-                <button type="button" id="chatbot-settings-save" class="btn btn-primary btn-sm">Save Settings</button>
-              </div>
+            <div class="chatbot-settings-group">
+              <label class="chatbot-settings-toggle">
+                <input type="checkbox" id="chatbot-remove-filters" aria-label="Remove all content filters" />
+                <span class="chatbot-settings-toggle-text">Remove all content filters</span>
+              </label>
             </div>
-            <div id="chatbot-prompt-panel" class="chatbot-prompt-panel" style="display:none;">
-              <label for="chatbot-custom-prompt" class="chatbot-prompt-label">Custom System Prompt (overrides default AI behavior)</label>
-              <p class="chatbot-prompt-help">The system prompt is an invisible instruction sent at the start of every conversation. Use it to tell the AI what to prioritize — for example: <em>"Focus on security vulnerabilities"</em>, <em>"Explain concepts for a junior developer"</em>, or <em>"Suggest performance optimizations"</em>. Your prompt is saved to your account and applied to all future chatbot sessions.</p>
-              <textarea id="chatbot-custom-prompt" class="chatbot-prompt-textarea" rows="4" placeholder="e.g. Focus on security vulnerabilities and OWASP compliance..."></textarea>
-              <div class="chatbot-prompt-actions">
-                <button type="button" id="chatbot-prompt-save" class="btn btn-primary btn-sm">Save Prompt</button>
-                <button type="button" id="chatbot-prompt-reset" class="btn btn-ghost btn-sm">Reset to Default</button>
-              </div>
+            <div class="chatbot-prompt-actions">
+              <button type="button" id="chatbot-settings-save" class="btn btn-primary btn-sm">Save Settings</button>
             </div>
-            <div id="chatbot-messages" class="chatbot-messages"></div>
-            <div class="chatbot-input-container">
-              <textarea 
-                id="chatbot-input" 
-                class="chatbot-input" 
-                placeholder="Ask about your codebase..."
-                rows="3"
-              ></textarea>
-              <button id="chatbot-send" class="chatbot-send-btn" ${this.isLoading ? 'disabled' : ''}>
-                ${this.isLoading ? 'Sending...' : 'Send'}
-              </button>
+          </div>
+          <div id="chatbot-prompt-panel" class="chatbot-prompt-panel" style="display:none;">
+            <label for="chatbot-custom-prompt" class="chatbot-prompt-label">Custom System Prompt</label>
+            <textarea id="chatbot-custom-prompt" class="chatbot-prompt-textarea" rows="3" placeholder="e.g. Focus on security vulnerabilities and OWASP compliance..."></textarea>
+            <div class="chatbot-prompt-actions">
+              <button type="button" id="chatbot-prompt-save" class="btn btn-primary btn-sm">Save Prompt</button>
+              <button type="button" id="chatbot-prompt-reset" class="btn btn-ghost btn-sm">Reset</button>
             </div>
+          </div>
+          <div id="chatbot-messages" class="chatbot-messages"></div>
+          <div class="chatbot-input-container">
+            <textarea
+              id="chatbot-input"
+              class="chatbot-input"
+              placeholder="Ask about your codebase..."
+              rows="2"
+            ></textarea>
+            <button id="chatbot-send" class="chatbot-send-btn" ${this.isLoading ? 'disabled' : ''}>
+              ${this.isLoading ? '…' : 'Send'}
+            </button>
           </div>
         </div>
       </div>
