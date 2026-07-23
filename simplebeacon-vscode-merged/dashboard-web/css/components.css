@@ -537,22 +537,6 @@ html[data-ide-embed="1"] #app-main:has(.chatbot-container) .view-container {
   overflow: hidden;
 }
 
-/* IDE embed: allow chatbot page to scroll when content exceeds viewport (bridge bar + hero + input) */
-html[data-ide-embed="1"] #app-main:has(.chatbot-container) {
-  overflow-y: auto;
-}
-html[data-ide-embed="1"] #app-main:has(.chatbot-container) .view-container.chatbot-page {
-  overflow-y: auto;
-  min-height: min-content;
-}
-html[data-ide-embed="1"] .chatbot-page .view-content {
-  flex: 1 1 auto;
-  min-height: min-content;
-}
-html[data-ide-embed="1"] .chatbot-container {
-  min-height: 400px;
-}
-
 html[data-embed-full-nav="1"] #app-main:has(.chatbot-container) .view-content,
 html[data-embed-mode="1"] #app-main:has(.chatbot-container) .view-content,
 html[data-ide-embed="1"] #app-main:has(.chatbot-container) .view-content {
@@ -4824,18 +4808,17 @@ button.tool-card.help-page-card:hover {
 }
 
 /* Chatbot Styles — fill app-main width and viewport height; keep input pinned visible */
+/* Base rules: flex layout only. overflow:hidden is added by embed-specific rules below. */
 .app-shell:has(.chatbot-page) {
   height: 100%;
   max-height: 100%;
   min-height: 0;
-  overflow: hidden;
 }
 
 .app-body:has(.chatbot-page) {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
 }
 
 #app-main:has(.chatbot-page),
@@ -4849,7 +4832,6 @@ button.tool-card.help-page-card:hover {
   min-height: 0;
   min-width: 0;
   height: auto;
-  overflow: hidden;
   box-sizing: border-box;
 }
 
@@ -4861,7 +4843,6 @@ button.tool-card.help-page-card:hover {
   max-width: none;
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
 }
 
 .view-container:has(.chatbot-container),
@@ -4870,7 +4851,6 @@ button.tool-card.help-page-card:hover {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
 }
 
 .view-container:has(.chatbot-container) .analyze-hero,
@@ -4906,7 +4886,6 @@ button.tool-card.help-page-card:hover {
   max-width: none;
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
 }
 
 .chatbot-container {
@@ -4922,7 +4901,79 @@ button.tool-card.help-page-card:hover {
   background: var(--surface-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+}
+
+/* Embed modes: lock overflow so chat messages scroll internally, input stays pinned */
+html[data-ide-embed="1"] .app-shell:has(.chatbot-page),
+html[data-embed-full-nav="1"] .app-shell:has(.chatbot-page),
+html[data-embed-mode="1"] .app-shell:has(.chatbot-page) {
   overflow: hidden;
+}
+
+html[data-ide-embed="1"] .app-body:has(.chatbot-page),
+html[data-embed-full-nav="1"] .app-body:has(.chatbot-page),
+html[data-embed-mode="1"] .app-body:has(.chatbot-page) {
+  overflow: hidden;
+}
+
+html[data-ide-embed="1"] #app-main:has(.chatbot-page),
+html[data-ide-embed="1"] .app-main:has(.chatbot-page),
+html[data-ide-embed="1"] .app-main:has(.chatbot-container),
+html[data-embed-full-nav="1"] #app-main:has(.chatbot-page),
+html[data-embed-full-nav="1"] .app-main:has(.chatbot-page),
+html[data-embed-full-nav="1"] .app-main:has(.chatbot-container),
+html[data-embed-mode="1"] #app-main:has(.chatbot-page),
+html[data-embed-mode="1"] .app-main:has(.chatbot-page),
+html[data-embed-mode="1"] .app-main:has(.chatbot-container) {
+  overflow: hidden;
+}
+
+html[data-ide-embed="1"] .chatbot-page,
+html[data-embed-full-nav="1"] .chatbot-page,
+html[data-embed-mode="1"] .chatbot-page,
+html[data-ide-embed="1"] .view-container:has(.chatbot-container),
+html[data-embed-full-nav="1"] .view-container:has(.chatbot-container),
+html[data-embed-mode="1"] .view-container:has(.chatbot-container) {
+  overflow: hidden;
+}
+
+html[data-ide-embed="1"] .view-content:has(.chatbot-container),
+html[data-ide-embed="1"] .chatbot-page .view-content,
+html[data-embed-full-nav="1"] .view-content:has(.chatbot-container),
+html[data-embed-full-nav="1"] .chatbot-page .view-content,
+html[data-embed-mode="1"] .view-content:has(.chatbot-container),
+html[data-embed-mode="1"] .chatbot-page .view-content {
+  overflow: hidden;
+}
+
+html[data-ide-embed="1"] .chatbot-container,
+html[data-embed-full-nav="1"] .chatbot-container,
+html[data-embed-mode="1"] .chatbot-container {
+  overflow: hidden;
+}
+
+/* Standalone (non-embed): app-main scrolls, chatbot fills available space */
+html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) #app-main:has(.chatbot-container) {
+  overflow-y: auto;
+}
+html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .chatbot-page {
+  overflow: visible;
+  min-height: min-content;
+}
+html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .chatbot-container {
+  min-height: 400px;
+}
+
+/* Small viewport: hide non-essential elements to keep input visible */
+@media (max-height: 700px) {
+  .chatbot-page .analyze-hero { margin-bottom: var(--space-1); }
+  .chatbot-page .analyze-hero .analyze-hero-sub { display: none; }
+  .chatbot-page .ai-transparency-notice { display: none; }
+  .chatbot-page .chatbot-connection-status { margin-bottom: var(--space-1) !important; }
+  .chatbot-ollama-setup { margin-bottom: var(--space-2); padding: var(--space-2); }
+  .chatbot-ollama-setup-details { display: none; }
+  .chatbot-settings-panel { max-height: 25vh; }
+  .chatbot-prompt-help { display: none; }
 }
 
 html[data-embed-mode="1"] .view-container,
