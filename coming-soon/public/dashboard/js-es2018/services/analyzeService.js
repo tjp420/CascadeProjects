@@ -1520,6 +1520,18 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
     const low = Number(cert.lowRiskCount) || 0;
     const totalFiles = report.discoveredFiles || (report.files && report.files.length) || 0;
     const scannedFiles = (report.files && report.files.length) || totalFiles;
+    const folderPaths = new Set();
+    for (const f of (report.files || [])) {
+        const p = String((typeof f === 'string' ? f : f.absolutePath || f.path || f.name || '')).replace(/\\/g, '/');
+        const parts = p.split('/');
+        parts.pop();
+        let acc = '';
+        for (const part of parts) {
+            acc = acc ? `${acc}/${part}` : part;
+            if (acc) folderPaths.add(acc);
+        }
+    }
+    const totalFolders = folderPaths.size;
     const rawIssues = logs.map((entry) => ({
         severity: String(entry.severity || 'medium').toLowerCase(),
         type: inferSandboxIssueType(entry),
@@ -1533,7 +1545,7 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
     const gatePass = blockingCount === 0 && high === 0 && cert.letterGrade !== 'F';
     const sampleFiles = (report.files || [])
         .slice(0, 96)
-        .map((f) => (typeof f === 'string' ? f : f.path || f.name || f.relativePath || ''))
+        .map((f) => (typeof f === 'string' ? f : f.absolutePath || f.path || f.name || f.relativePath || ''))
         .filter(Boolean);
     return {
         type: 'simplebeacon-report',
@@ -1551,6 +1563,7 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
         detectedIssues: rawIssues,
         findings: rawIssues,
         repositoryFilesTotal: totalFiles,
+        repositoryFoldersTotal: totalFolders,
         totalFiles,
         filesAnalyzed: scannedFiles,
         ruleScopedFilesAnalyzed: scannedFiles,
@@ -1560,8 +1573,13 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
         sampleFiles,
         inventory: {
             totalFiles,
-            totalFolders: 0,
+            totalFolders,
             scannedFiles
+        },
+        repositoryInventory: {
+            totalFiles,
+            totalFolders,
+            profile: 'audit'
         },
         gate: {
             pass: gatePass,

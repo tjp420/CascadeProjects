@@ -1,12 +1,12 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260726embedfix1';
-import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
-import { LocalScanService } from '../services/localScanService.js?v=20260725dropfix3';
-import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js?v=20260726dropfix2';
-import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260726browserdrop2';
-import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260726dropfix3';
-import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260726browserdrop2';
+import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260729dropfix1';
+import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260729dropfix1';
+import { LocalScanService } from '../services/localScanService.js?v=20260729dropfix1';
+import { fingerprintDirectory, formatFingerprint } from '../services/fingerprintService.js?v=20260729dropfix1';
+import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard } from '../services/localAgentService.js?v=20260729dropfix1';
+import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260729dropfix1';
+import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260729dropfix1';
 
 const DROP_SKIP_DIRS = new Set([
     'node_modules', '.git', 'dist', 'build', '.simplebeacon',
@@ -35,37 +35,37 @@ function getHostedAnalyzeContext() {
     };
 }
 // simplebeacon:production-leak-intent: sample-json - Legitimate documentation about sample file patterns in analysis results
-import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, isHostedServerDefaultPath, isHostedBrowserScanPath, shouldClearHostedServerDefaultPath, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, resolveReportIssues, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260716cachefix1';
+import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, isHostedServerDefaultPath, isHostedBrowserScanPath, shouldClearHostedServerDefaultPath, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, resolveReportIssues, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260729dropfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
-import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260716cachefix1';
+import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260729dropfix1';
 import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
 import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
-import { runEuAiActSprint } from '../services/operatorService.js?v=20260716cachefix1';
-import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260716cachefix1';
+import { runEuAiActSprint } from '../services/operatorService.js?v=20260729dropfix1';
+import { renderModeFileScopePanel, extractRoadmapFileMetrics } from '../utils/analyze-mode-file-scope.browser.js?v=20260729dropfix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
-import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260716cachefix1';
+import { renderModeFileResultsPanel } from '../utils/analyze-mode-file-results.browser.js?v=20260729dropfix1';
 import { renderScanPaywall, buildPublicSummaryFromScan, isDeliverableLocked } from '../components/ScanPaywall.js';
 import { AI_SYSTEM_ISSUES, ANALYZER_CATALOG, groupIssuesByCategory, buildAiSystemsIssueAnalysis } from '../services/aiProblemAnalyzerSuite.mjs';
 import { renderIssueList } from '../components/IssueCard.js';
 import { showDownloadCredentialsModal } from '../components/DownloadCredentialsModal.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
-import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260716cachefix1';
-import { buildCompleteScanAnalysis, renderCompleteScanAnalysisPanel, formatCompleteScanBytes, sanitizeCompleteScanBundle, sanitizeConsolidationExport, sanitizeRoadmapExport } from '../utils/completeScanAnalysis.js?v=20260716cachefix1';
-import { sanitizeNpmAuditExport } from '../utils/npm-audit-export.browser.js?v=20260716cachefix1';
-import { sanitizeComplianceBundleExport, reconcileComplianceWithGate, pickFreshGateReport } from '../utils/compliance-export.browser.js?v=20260716cachefix1';
-import { buildCleanupAssistantBrief, buildCleanupBriefFromLastResult, buildCleanupAssistantConclusion, isCleanupBriefRunnable, resolveFileReductionPlan, loadCleanupPolicy, saveCleanupPolicy, readCleanupPolicyFromDom, renderCleanupAssistantPanel } from '../utils/cleanupAssistant.js?v=20260716cachefix1';
-import { sanitizeCleanupBriefExport } from '../utils/cleanup-brief-export.browser.js?v=20260716cachefix1';
-import { sanitizeDataCleanupReportExport } from '../utils/data-cleanup-export.browser.js?v=20260716cachefix1';
-import { sanitizeCodebaseReportExport } from '../utils/codebase-export.browser.js?v=20260716cachefix1';
-import { sanitizeAiProblemAnalyzerExport, aiProblemAnalyzerExportFilename, buildAiProblemAnalyzerCsv } from '../utils/ai-problem-analyzer-export.browser.js?v=20260716cachefix1';
+import { renderDataCleanupPanel, buildDataCleanupConclusion } from '../components/DataCleanupReport.js?v=20260729dropfix1';
+import { buildCompleteScanAnalysis, renderCompleteScanAnalysisPanel, formatCompleteScanBytes, sanitizeCompleteScanBundle, sanitizeConsolidationExport, sanitizeRoadmapExport } from '../utils/completeScanAnalysis.js?v=20260729dropfix1';
+import { sanitizeNpmAuditExport } from '../utils/npm-audit-export.browser.js?v=20260729dropfix1';
+import { sanitizeComplianceBundleExport, reconcileComplianceWithGate, pickFreshGateReport } from '../utils/compliance-export.browser.js?v=20260729dropfix1';
+import { buildCleanupAssistantBrief, buildCleanupBriefFromLastResult, buildCleanupAssistantConclusion, isCleanupBriefRunnable, resolveFileReductionPlan, loadCleanupPolicy, saveCleanupPolicy, readCleanupPolicyFromDom, renderCleanupAssistantPanel } from '../utils/cleanupAssistant.js?v=20260729dropfix1';
+import { sanitizeCleanupBriefExport } from '../utils/cleanup-brief-export.browser.js?v=20260729dropfix1';
+import { sanitizeDataCleanupReportExport } from '../utils/data-cleanup-export.browser.js?v=20260729dropfix1';
+import { sanitizeCodebaseReportExport } from '../utils/codebase-export.browser.js?v=20260729dropfix1';
+import { sanitizeAiProblemAnalyzerExport, aiProblemAnalyzerExportFilename, buildAiProblemAnalyzerCsv } from '../utils/ai-problem-analyzer-export.browser.js?v=20260729dropfix1';
 import { renderCodebasePanel, buildCodebaseConclusion } from '../components/CodebaseReport.js';
 import { renderUnderstandingPanel, buildUnderstandingConclusion } from '../components/UnderstandingReport.js';
 import { renderZscriptReportPanel, buildZscriptConclusion } from '../components/ZscriptReport.js';
 import { showLoginModal } from '../components/LoginModal.js';
-import { authService } from '../services/authService.js?v=20260722bridgefix1';
-import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260716cachefix1';
-import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260716cachefix1';
+import { authService } from '../services/authService.js?v=20260729dropfix1';
+import { fetchCliApiKey, fetchCliHistory, fetchCliReport, renderCliUploadCard, renderCliReport } from '../services/cliUploadService.js?v=20260729dropfix1';
+import { MAX_SNIPPET_BYTES, isSupportedSourceFile, isAnalyzerCacheJson, isCleanupExportJson, isFictionDigestJson, isLockfileName, isMarkdownFileName, isScannerMetaFileName, filterSnippetFindingsForFile, scanSnippetText, computeThreatScore, redactMatch, severityLabel } from '../utils/snippetDiagnostic.js?v=20260729dropfix1';
 const SNIPPET_ACCEPT = '.json,.js,.mjs,.cjs,.ts,.tsx,.jsx,.py,.env,.yaml,.yml,.txt,.md,.html,.css,.xml,.toml,.ini,.sh,.ps1,.bat';
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB — server-side directory upload limit
 /**
@@ -1497,7 +1497,7 @@ export class AnalyzeView {
                 vscode.postMessage({ command: 'scanComplete', stats });
             }
             catch (err) {
-                console['warn']('[Sidebar-Notify] vscode.postMessage failed:', err);
+                console.warn('[Sidebar-Notify] vscode.postMessage failed:', err);
             }
         }
         else if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
@@ -1505,7 +1505,7 @@ export class AnalyzeView {
                 window.parent.postMessage({ command: 'scanComplete', stats }, '*');
             }
             catch (err) {
-                console['warn']('[Sidebar-Notify] parent.postMessage failed:', err);
+                console.warn('[Sidebar-Notify] parent.postMessage failed:', err);
             }
         }
     }
@@ -1518,8 +1518,9 @@ export class AnalyzeView {
         });
         const hostedCtx = getHostedAnalyzeContext();
         const el = document.createElement('div');
-        el.className = 'analyze-page analyze-page-v2';
+        el.className = 'fade-in';
         el.insertAdjacentHTML('afterbegin', `
+      <div class="analyze-page analyze-page-v2">
         ${this.renderAnalyzePageHero(workflowStep, displayPath, hostedCtx)}
         ${this.renderTargetCard(defaultPath, displayPath)}
 
@@ -1533,6 +1534,7 @@ export class AnalyzeView {
 
         <div id="analyze-file-results-section" class="analyze-file-results-section"></div>
         <div id="analyze-results">${this.renderResults()}</div>
+      </div>
 
       <!-- Directory browser modal -->
       <div class="modal-overlay hidden" id="dir-browser-modal" aria-hidden="true">
@@ -1552,7 +1554,8 @@ export class AnalyzeView {
             </div>
           </div>
         </div>
-      </div>`);
+      </div>
+    `);
         this.bindEvents(el);
         this._root = el;
         refreshPathSuggestionsDatalist(el, this.app, this.testSources);
@@ -1575,18 +1578,16 @@ export class AnalyzeView {
             ? formatPathLabel(displayPath) || redactPathForDisplay(displayPath)
             : '';
         const hostedNote = hostedCtx.isHosted
-            ? '<span class="analyze-hero-badge"><span aria-hidden="true">🔒</span> Private</span>'
+            ? '<span class="analyze-hero-badge"><span aria-hidden="true">🔒</span> Private — files stay in your browser</span>'
             : '';
         return `
-      <header class="analyze-header">
-        <div class="analyze-header-row">
-          <div class="analyze-header-text">
-            <h1 class="analyze-page-title">Analyze</h1>
-            <p class="analyze-page-subtitle">Scan for security issues, quality gates, and remediation steps.</p>
-          </div>
-          ${pathLabel ? `<div class="analyze-hero-path-chip"><span class="analyze-hero-path-icon"><i data-lucide="folder" class="icon-16"></i></span><code>${escapeHtml(pathLabel)}</code></div>` : ''}
+      <header class="analyze-page-hero analyze-page-hero-compact">
+        <div class="analyze-page-hero-text">
+          <h1 class="analyze-page-title">Analyze</h1>
+          <p class="analyze-page-subtitle">Scan for security issues, quality gates, and remediation steps.</p>
           ${hostedNote}
         </div>
+        ${pathLabel ? `<div class="analyze-hero-path-chip"><span class="analyze-hero-path-icon"><i data-lucide="folder" class="icon-16"></i></span><code>${escapeHtml(pathLabel)}</code></div>` : ''}
       </header>`;
     }
     renderQuickActionsCard() {
@@ -5035,7 +5036,7 @@ export class AnalyzeView {
                     }
                 }
                 catch (bridgeErr) {
-                    console['warn']('[onFolderInputSelected] findFolderViaBridge failed:', bridgeErr);
+                    console.warn('[onFolderInputSelected] findFolderViaBridge failed:', bridgeErr);
                 }
                 showToast('Scanning selected folder locally — no upload…', 'info');
                 void this.runLocalScan(null, files, folderName);
@@ -5400,7 +5401,7 @@ export class AnalyzeView {
                             }
                             if (isRemoteDashboardHost() && isAbsoluteLocalPath(resolvedPath) && !hasExtensionBridgeConfigured()) {
                                 if (files && files.length > 0) {
-                                    void this.handleDroppedFolderFallback(files, folderName, event, null, null);
+                                    void this.handleDroppedFolderFallback(files, folderName, event, entry, null);
                                 }
                                 else {
                                     void this.promptHostedLocalFolderScan(el);
@@ -5438,7 +5439,7 @@ export class AnalyzeView {
                                                 prog.textContent = `${processed} / ${total} files`;
                                         }
                                     });
-                                    if (sandboxReport && sandboxReport.discoveredFiles >= 1) {
+                                    if (sandboxReport && sandboxReport.discoveredFiles > 1) {
                                         const cert = sandboxReport.certificate || {};
                                         const stats = el.querySelector('#analyze-dropzone-result-stats');
                                         if (stats)
@@ -5454,10 +5455,10 @@ export class AnalyzeView {
                                     }
                                 }
                                 catch (sandboxErr) {
-                                    console['warn']('[AnalyzeView] scanDroppedItems failed, falling back to handleDroppedFolderFallback:', sandboxErr);
+                                    console.warn('[AnalyzeView] scanDroppedItems failed, falling back to handleDroppedFolderFallback:', sandboxErr);
                                 }
                             }
-                            void this.handleDroppedFolderFallback(files, folderName, event, null, updateFingerprintStatus);
+                            void this.handleDroppedFolderFallback(files, folderName, event, entry, updateFingerprintStatus);
                         } else {
                             showToast(`Directory "${folderName}" dropped but absolute path could not be read. Use Browse Folder or type the path.`, 'warning');
                         }
@@ -5884,7 +5885,7 @@ export class AnalyzeView {
                             }
                         }
                         catch (sandboxErr) {
-                            console['warn']('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
+                            console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                         }
                     }
                     // If webkitEntry was null or traversal failed, try capturing a
@@ -5914,12 +5915,12 @@ export class AnalyzeView {
                             return;
                         }
                     }
-                    // If only 1-2 files without webkitRelativePath on remote host without bridge,
-                    // prompt user to use Select Folder instead of scanning 1 file.
-                    if (!fileArray.some((f) => f.webkitRelativePath) && fileArray.length <= 2 && !hasExtensionBridgeConfigured()) {
+                    // If the FileList lacks webkitRelativePath, the browser only exposed a
+                    // partial list. Prompt for the native folder picker instead of scanning it.
+                    if (!fileArray.some((f) => f.webkitRelativePath) && !hasExtensionBridgeConfigured()) {
                         if (analyzeTerminal)
-                            analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                        showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                            analyzeTerminal.textContent = 'Drop exposed a partial file list. Use Select Folder for full scan.';
+                        showToast('Folder drop exposed a partial file list. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
                         setAnalyzeDropzoneState('idle');
                         const nativePicker = el.querySelector('#trigger-native-picker');
                         if (nativePicker) {
@@ -6017,7 +6018,7 @@ export class AnalyzeView {
                                                 analyzeProgress.textContent = `${processed} / ${total} files`;
                                         }
                                     });
-                                    if (sandboxReport && sandboxReport.discoveredFiles >= 1) {
+                                    if (sandboxReport && sandboxReport.discoveredFiles > 1) {
                                         const cert = sandboxReport.certificate || {};
                                         if (analyzeResultStats)
                                             analyzeResultStats.textContent = `${cert.letterGrade || 'N/A'} grade · ${sandboxReport.discoveredFiles || 0} files scanned · ${cert.highRiskCount || 0} high · ${cert.mediumRiskCount || 0} medium`;
@@ -6032,7 +6033,7 @@ export class AnalyzeView {
                                     }
                                 }
                                 catch (sandboxErr) {
-                                    console['warn']('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
+                                    console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                                 }
                             }
                             // If scanDroppedItems failed or returned few files, try
@@ -6062,12 +6063,12 @@ export class AnalyzeView {
                                     return;
                                 }
                             }
-                            // If still only 1-2 files without webkitRelativePath on remote host
-                            // without bridge, prompt user to use Select Folder for full coverage.
-                            if (!hasWebkitRelPath && fileArray.length <= 2 && isRemoteDashboardHost() && !hasExtensionBridgeConfigured()) {
+                            // If the FileList still lacks webkitRelativePath on a remote host,
+                            // the browser only exposed a partial list. Prompt for Select Folder.
+                            if (!hasWebkitRelPath && isRemoteDashboardHost()) {
                                 if (analyzeTerminal)
-                                    analyzeTerminal.textContent = 'Drop exposed only 1 file. Use Select Folder for full scan.';
-                                showToast('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                                    analyzeTerminal.textContent = 'Drop exposed a partial file list. Use Select Folder for full scan.';
+                                showToast('Folder drop exposed a partial file list. Click Select Folder to scan the full directory.', 'warning', { duration: 10000 });
                                 setAnalyzeDropzoneState('idle');
                                 const nativePicker = el.querySelector('#trigger-native-picker');
                                 if (nativePicker) {
@@ -6136,7 +6137,7 @@ export class AnalyzeView {
                                 }
                             }
                             catch (bridgeErr) {
-                                console['warn']('[AnalyzeView] findFolderViaBridge failed for non-folder drop:', bridgeErr);
+                                console.warn('[AnalyzeView] findFolderViaBridge failed for non-folder drop:', bridgeErr);
                             }
                         }
                         if (analyzeProgress)
@@ -6153,7 +6154,7 @@ export class AnalyzeView {
                 catch (err) {
                     const msg = (err && err.message) || '';
                     if (msg.includes('No scannable files or folders detected') || msg.includes('No items were dropped')) {
-                        console['warn']('[AnalyzeView] Sandbox scan unavailable in this context — falling back to path-based scan.');
+                        console.warn('[AnalyzeView] Sandbox scan unavailable in this context — falling back to path-based scan.');
                     } else {
                         console.error('[AnalyzeView] Sandbox scan failed:', err);
                     }
@@ -6194,7 +6195,7 @@ export class AnalyzeView {
                                     showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                                 }
                                 else {
-                                    console['warn']('Browse input click failed:', err);
+                                    console.warn('Browse input click failed:', err);
                                 }
                             }
                         }
@@ -6482,7 +6483,7 @@ export class AnalyzeView {
                     showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
                     return false;
                 }
-                console['warn']('Folder input click failed:', err);
+                console.warn('Folder input click failed:', err);
                 throw err;
             }
         }
@@ -6530,7 +6531,7 @@ export class AnalyzeView {
                         }
                     }
                     catch (bridgeErr) {
-                        console['warn']('[pickFolderViaBrowser] findFolderViaBridge failed:', bridgeErr);
+                        console.warn('[pickFolderViaBrowser] findFolderViaBridge failed:', bridgeErr);
                     }
                 }
                 const resolvedPath = this.resolveFallbackFolderPath(folderName) || folderName;
@@ -6574,7 +6575,7 @@ export class AnalyzeView {
                     showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                 }
                 else {
-                    console['warn']('Directory picker failed:', err);
+                    console.warn('Directory picker failed:', err);
                 }
             }
             return false;
@@ -7097,7 +7098,7 @@ export class AnalyzeView {
             return true; // handled (rejected)
         }
         if (warnings.length > 0) {
-            console['warn'](`[AnalyzeView] Import warnings for ${fileName}:`, warnings.map(w => w.msg));
+            console.warn(`[AnalyzeView] Import warnings for ${fileName}:`, warnings.map(w => w.msg));
         }
         // Duplicate detection
         if (this.isDuplicateReport(parsed)) {
@@ -7124,7 +7125,7 @@ export class AnalyzeView {
                 this.applyReport(loadedReport, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(loadedReport) });
             }
             catch (err) {
-                console['warn']('[AnalyzeView] Server report import failed; applying locally:', err);
+                console.warn('[AnalyzeView] Server report import failed; applying locally:', err);
                 this.applyReport(normalizedReport, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(normalizedReport) });
                 showToast(`Saved locally — server import failed: ${err.message}`, 'warning');
             }
@@ -7378,14 +7379,40 @@ export class AnalyzeView {
                 this.syncAnalyzeModeUi(this._root);
             }
             if (isRemoteDashboardHost()) {
-                if (files === null || files === void 0 ? void 0 : files.length) {
+                // Prefer a directory handle/entry for full recursive traversal.
+                if (directoryHandle && directoryHandle.kind === 'directory') {
                     showToast('Scanning dropped folder locally — no upload…', 'info');
-                    await this.runLocalScan(null, files, folderName || absolutePath);
+                    await this.runLocalScan(directoryHandle, null, folderName || absolutePath);
+                    return;
+                }
+                if (directoryHandle && directoryHandle.isDirectory) {
+                    showToast('Collecting dropped folder entries…', 'info');
+                    try {
+                        const collected = await this.traverseEntryTree(directoryHandle, directoryHandle.name || folderName || 'selected', []);
+                        if (collected.length > 0) {
+                            await this.runLocalScan(null, collected, folderName || absolutePath);
+                            return;
+                        }
+                    }
+                    catch (traverseErr) {
+                        console.warn('[handleDroppedFolderFallback] webkit entry traversal failed:', traverseErr);
+                    }
+                }
+                const fileList = files ? Array.from(files) : [];
+                const hasWebkitRelPath = fileList.some((f) => f.webkitRelativePath);
+                if (fileList.length > 0 && hasWebkitRelPath) {
+                    showToast('Scanning dropped folder locally — no upload…', 'info');
+                    await this.runLocalScan(null, fileList, folderName || absolutePath);
                     return;
                 }
                 if (hasExtensionBridgeConfigured()) {
                     showToast(`Scanning "${folderName || absolutePath}" via IDE bridge…`, 'info');
                     await this.runPathAnalysis(absolutePath);
+                    return;
+                }
+                if (fileList.length > 0 && fileList.length <= 2 && !hasWebkitRelPath) {
+                    showToast('Drop exposed only 1 file. Use Select Folder to scan the full directory.', 'warning', { duration: 10000 });
+                    await this.promptHostedLocalFolderScan(this._root);
                     return;
                 }
                 await this.promptHostedLocalFolderScan(this._root);
@@ -7417,14 +7444,24 @@ export class AnalyzeView {
             return;
         }
         if (directoryHandle && directoryHandle.isDirectory) {
-            // Legacy webkit entry: scan locally without uploading.
-            showToast('Scanning dropped folder locally — no upload…', 'info');
-            await this.runLocalScan(null, files, fallbackPath);
-            return;
+            // Legacy webkit entry: traverse the directory tree to recover all files.
+            showToast('Collecting dropped folder entries…', 'info');
+            try {
+                const collected = await this.traverseEntryTree(directoryHandle, directoryHandle.name || folderName || 'selected', []);
+                if (collected.length > 0) {
+                    await this.runLocalScan(null, collected, fallbackPath);
+                    return;
+                }
+            }
+            catch (traverseErr) {
+                console.warn('[handleDroppedFolderFallback] webkit entry traversal failed:', traverseErr);
+            }
         }
-        if (files?.length) {
+        const fileList = files ? Array.from(files) : [];
+        const hasWebkitRelPath = fileList.some((f) => f.webkitRelativePath);
+        if (fileList.length > 0 && hasWebkitRelPath) {
             showToast('Scanning dropped folder locally — no upload…', 'info');
-            await this.runLocalScan(null, files, fallbackPath);
+            await this.runLocalScan(null, fileList, fallbackPath);
             return;
         }
         if (canUseDirectoryPicker()) {
@@ -7444,7 +7481,7 @@ export class AnalyzeView {
                     showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                 }
                 else {
-                    console['warn']('Browse input click failed:', err);
+                    console.warn('Browse input click failed:', err);
                 }
             }
             return;
@@ -7702,7 +7739,7 @@ export class AnalyzeView {
                         showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                     }
                     else {
-                        console['warn']('Browse input click failed:', err);
+                        console.warn('Browse input click failed:', err);
                     }
                 }
                 return;
@@ -7771,10 +7808,15 @@ export class AnalyzeView {
             showToast('Local scan complete — no data sent to server', 'success');
         }
         catch (err) {
-            const msg = isFilePickerBlockedError(err)
-                ? filePickerBlockedMessage()
-                : (err.message || 'Local scan failed');
-            showToast(msg, isFilePickerBlockedError(err) ? 'warning' : 'error', { duration: isFilePickerBlockedError(err) ? 12000 : undefined });
+            if (err && err.name === 'AbortError') {
+                showToast('Folder picker cancelled.', 'info');
+            }
+            else {
+                const msg = isFilePickerBlockedError(err)
+                    ? filePickerBlockedMessage()
+                    : (err.message || 'Local scan failed');
+                showToast(msg, isFilePickerBlockedError(err) ? 'warning' : 'error', { duration: isFilePickerBlockedError(err) ? 12000 : undefined });
+            }
         }
         finally {
             this._browserLocalScanActive = false;
@@ -7797,10 +7839,13 @@ export class AnalyzeView {
                     const virtualPath = path || file.name;
                     file._virtualPath = virtualPath;
                     files.push(file);
+                    if (files.length % 500 === 0) {
+                        await new Promise((resolve) => setTimeout(resolve, 0));
+                    }
                 }
             }
             catch (fileErr) {
-                console['warn']('[AnalyzeView] Could not read dropped file entry:', path, fileErr);
+                console.warn('[AnalyzeView] Could not read dropped file entry:', path, fileErr);
             }
             return files;
         }
@@ -7814,7 +7859,7 @@ export class AnalyzeView {
                     batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
                 }
                 catch (readErr) {
-                    console['warn']('[AnalyzeView] readEntries error at', path, readErr);
+                    console.warn('[AnalyzeView] readEntries error at', path, readErr);
                     batch = [];
                 }
                 for (const child of batch) {
@@ -7875,7 +7920,7 @@ export class AnalyzeView {
             return true;
         }
         catch (err) {
-            console['warn']('[AnalyzeView] webkitGetAsEntry traversal scan failed:', err);
+            console.warn('[AnalyzeView] webkitGetAsEntry traversal scan failed:', err);
             return false;
         }
     }
@@ -8135,7 +8180,7 @@ export class AnalyzeView {
                             showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
                         }
                         else {
-                            console['warn']('Browse input click failed:', clickErr);
+                            console.warn('Browse input click failed:', clickErr);
                         }
                     }
                 }
@@ -8187,7 +8232,7 @@ export class AnalyzeView {
                                 showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                             }
                             else {
-                                console['warn']('Browse input click failed:', err);
+                                console.warn('Browse input click failed:', err);
                             }
                         }
                         return;
@@ -8224,7 +8269,7 @@ export class AnalyzeView {
                                 showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                             }
                             else {
-                                console['warn']('Browse input click failed:', err);
+                                console.warn('Browse input click failed:', err);
                             }
                         }
                         return;
@@ -8310,7 +8355,7 @@ export class AnalyzeView {
                 await authService.refreshToken(true);
             }
             catch (refreshErr) {
-                console['warn']('Token refresh before scan failed:', refreshErr);
+                console.warn('Token refresh before scan failed:', refreshErr);
             }
         }
         try {
@@ -8573,7 +8618,7 @@ export class AnalyzeView {
             if (effectiveType === 'eu-ai-act') {
                 this.completeStep = 'EU AI Act sprint (eu-ai-act profile)…';
                 this.refresh();
-                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260716cachefix1');
+                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260729dropfix1');
                 const euPath = resolveProductCompliancePath(projectPath, this.app);
                 if (euPath && euPath !== projectPath) {
                     showToast(`Benchmark clone — EU sprint runs on ${formatPathLabel(euPath)}`, 'warning');
@@ -8938,7 +8983,7 @@ export class AnalyzeView {
                 };
             },
             'eu-ai-act': async () => {
-                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260716cachefix1');
+                const { resolveProductCompliancePath } = await import('../lib/pageRepoScan.js?v=20260729dropfix1');
                 let euScanPath = resolveProductCompliancePath(projectPath, this.app) || projectPath;
                 if (euScanPath !== projectPath) {
                     showToast(`Benchmark clone — EU sprint runs on ${formatPathLabel(euScanPath)}`, 'warning');
@@ -11037,7 +11082,7 @@ export class AnalyzeView {
                     return;
                 }
                 catch (err) {
-                    console['warn']('[AI-Send] vscode.postMessage failed:', err);
+                    console.warn('[AI-Send] vscode.postMessage failed:', err);
                 }
             }
             // Fall back to server API + clipboard for standalone browser or VS Code simple-browser

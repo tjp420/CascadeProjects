@@ -573,7 +573,7 @@
   <link rel="stylesheet" href="css/variables.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/reset.css?v=20260722clean1">
   <link rel="stylesheet" href="css/layout.css?v=20260725redesign2">
-  <link rel="stylesheet" href="css/components.css?v=20260725chatbot5">
+  <link rel="stylesheet" href="css/components.css?v=20260725analyze1">
   <link rel="stylesheet" href="css/utilities.css?v=20260725redesign2">
   <link rel="stylesheet" href="css/disable-elements.css?v=20260722clean1">
   <script src="js/vendor/lucide.min.js?v=20260722clean1" defer onerror="window._lucideFailed=true"></script>
@@ -690,6 +690,25 @@
       flex: 1 !important;
       min-height: 0;
       overflow: hidden !important;
+    }
+  </style>
+  <style id="analyze-scroll-fix">
+    /* OVERRIDE: Fix analyze page scroll — ensure standalone mode scrolls naturally */
+    #app-main:has(.analyze-page) { overflow-y: auto !important; overflow-x: hidden !important; }
+    .app-main:has(.analyze-page) { overflow-y: auto !important; overflow-x: hidden !important; }
+
+    /* Standalone: analyze page grows with content, page scrolls naturally */
+    html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .analyze-page {
+      overflow: visible !important;
+      max-height: none !important;
+    }
+
+    /* Embed modes: #app-main scrolls, content flows within */
+    html[data-ide-embed="1"] #app-main:has(.analyze-page),
+    html[data-embed-full-nav="1"] #app-main:has(.analyze-page),
+    html[data-embed-mode="1"] #app-main:has(.analyze-page) {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
     }
   </style>
 </head>
@@ -1115,12 +1134,12 @@
           link.href = href;
           document.head.appendChild(link);
         }
-        preload('/dashboard/js-es2018/views/AnalyzeView.js?v=20260725dropfix3');
+        preload('/dashboard/js-es2018/views/AnalyzeView.js?v=20260729dropfix1');
         preload('/dashboard/js-es2018/services/aiProblemAnalyzerSuite.mjs');
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725chatbot5" defer></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260729dropfix1" defer></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];

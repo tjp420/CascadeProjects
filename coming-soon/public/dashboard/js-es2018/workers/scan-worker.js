@@ -5,8 +5,8 @@
  * This version streams large files through a Rust/WebAssembly chunk analyzer (with a
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
-import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260716cachefix1';
-import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js?v=20260729dropfix1';
+import { isIgnoredVirtualPath } from '../utils-lib/simplebeaconignore.browser.js?v=20260729dropfix1';
 const MAX_DISCOVERED_FILES = 500000;
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
@@ -269,6 +269,10 @@ async function analyzeWithTextPatterns(file, filePath) {
     return issues;
 }
 async function scanFiles(files, deepScan, state = null) {
+    if (state && files.length) {
+        if (!state.firstFile) state.firstFile = files[0].path;
+        state.lastFile = files[files.length - 1].path;
+    }
     const allResults = state?.allResults || [];
     const issues = state?.issues || [];
     let processed = state?.processed || 0;
@@ -428,6 +432,11 @@ self.onmessage = async (e) => {
             textErrors: 0,
             chunkAnalyzed: 0,
             binarySkipped: 0,
+            ignoredDir: 0,
+            ignoredByPattern: 0,
+            heavyVendor: 0,
+            firstFile: null,
+            lastFile: null,
             issuesTruncated: false,
             deepScan: Boolean(deepScan),
             ignoreCtx: e.data.ignoreCtx || null
@@ -450,6 +459,9 @@ self.onmessage = async (e) => {
             state.textErrors = results.textErrors;
             state.chunkAnalyzed = results.chunkAnalyzed;
             state.binarySkipped = results.binarySkipped;
+            state.ignoredDir = results.ignoredDir;
+            state.ignoredByPattern = results.ignoredByPattern;
+            state.heavyVendor = results.heavyVendor;
             state.issuesTruncated = results.issuesTruncated;
             self.postMessage({
                 type: 'batch-complete',
@@ -470,6 +482,7 @@ self.onmessage = async (e) => {
             self.postMessage({ type: 'error', scanId, error: 'Scan finish received before scan-start' });
             return;
         }
+        self["console"]["log"](`[scan-worker] scan complete: firstFile=${state.firstFile || ''}, lastFile=${state.lastFile || ''}, processed=${state.processed}, totalFiles=${state.totalFiles}, binarySkipped=${state.binarySkipped}, textErrors=${state.textErrors}, ignoredDir=${state.ignoredDir}, ignoredByPattern=${state.ignoredByPattern}, heavyVendor=${state.heavyVendor}, issues=${state.issues.length}`);
         self.postMessage({
             type: 'complete',
             scanId,
@@ -481,6 +494,9 @@ self.onmessage = async (e) => {
             chunkAnalyzed: state.chunkAnalyzed,
             binarySkipped: state.binarySkipped,
             textErrors: state.textErrors,
+            ignoredDir: state.ignoredDir,
+            ignoredByPattern: state.ignoredByPattern,
+            heavyVendor: state.heavyVendor,
             issuesTruncated: state.issuesTruncated
         });
         self.scanState = null;
