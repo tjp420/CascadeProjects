@@ -1497,7 +1497,7 @@ export class AnalyzeView {
                 vscode.postMessage({ command: 'scanComplete', stats });
             }
             catch (err) {
-                console.warn('[Sidebar-Notify] vscode.postMessage failed:', err);
+                console['warn']('[Sidebar-Notify] vscode.postMessage failed:', err);
             }
         }
         else if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
@@ -1505,7 +1505,7 @@ export class AnalyzeView {
                 window.parent.postMessage({ command: 'scanComplete', stats }, '*');
             }
             catch (err) {
-                console.warn('[Sidebar-Notify] parent.postMessage failed:', err);
+                console['warn']('[Sidebar-Notify] parent.postMessage failed:', err);
             }
         }
     }
@@ -1518,9 +1518,8 @@ export class AnalyzeView {
         });
         const hostedCtx = getHostedAnalyzeContext();
         const el = document.createElement('div');
-        el.className = 'fade-in';
+        el.className = 'analyze-page analyze-page-v2';
         el.insertAdjacentHTML('afterbegin', `
-      <div class="analyze-page analyze-page-v2">
         ${this.renderAnalyzePageHero(workflowStep, displayPath, hostedCtx)}
         ${this.renderTargetCard(defaultPath, displayPath)}
 
@@ -1534,7 +1533,6 @@ export class AnalyzeView {
 
         <div id="analyze-file-results-section" class="analyze-file-results-section"></div>
         <div id="analyze-results">${this.renderResults()}</div>
-      </div>
 
       <!-- Directory browser modal -->
       <div class="modal-overlay hidden" id="dir-browser-modal" aria-hidden="true">
@@ -1554,8 +1552,7 @@ export class AnalyzeView {
             </div>
           </div>
         </div>
-      </div>
-    `);
+      </div>`);
         this.bindEvents(el);
         this._root = el;
         refreshPathSuggestionsDatalist(el, this.app, this.testSources);
@@ -1578,16 +1575,18 @@ export class AnalyzeView {
             ? formatPathLabel(displayPath) || redactPathForDisplay(displayPath)
             : '';
         const hostedNote = hostedCtx.isHosted
-            ? '<span class="analyze-hero-badge"><span aria-hidden="true">🔒</span> Private — files stay in your browser</span>'
+            ? '<span class="analyze-hero-badge"><span aria-hidden="true">🔒</span> Private</span>'
             : '';
         return `
-      <header class="analyze-page-hero analyze-page-hero-compact">
-        <div class="analyze-page-hero-text">
-          <h1 class="analyze-page-title">Analyze</h1>
-          <p class="analyze-page-subtitle">Scan for security issues, quality gates, and remediation steps.</p>
+      <header class="analyze-header">
+        <div class="analyze-header-row">
+          <div class="analyze-header-text">
+            <h1 class="analyze-page-title">Analyze</h1>
+            <p class="analyze-page-subtitle">Scan for security issues, quality gates, and remediation steps.</p>
+          </div>
+          ${pathLabel ? `<div class="analyze-hero-path-chip"><span class="analyze-hero-path-icon"><i data-lucide="folder" class="icon-16"></i></span><code>${escapeHtml(pathLabel)}</code></div>` : ''}
           ${hostedNote}
         </div>
-        ${pathLabel ? `<div class="analyze-hero-path-chip"><span class="analyze-hero-path-icon"><i data-lucide="folder" class="icon-16"></i></span><code>${escapeHtml(pathLabel)}</code></div>` : ''}
       </header>`;
     }
     renderQuickActionsCard() {
@@ -5036,7 +5035,7 @@ export class AnalyzeView {
                     }
                 }
                 catch (bridgeErr) {
-                    console.warn('[onFolderInputSelected] findFolderViaBridge failed:', bridgeErr);
+                    console['warn']('[onFolderInputSelected] findFolderViaBridge failed:', bridgeErr);
                 }
                 showToast('Scanning selected folder locally — no upload…', 'info');
                 void this.runLocalScan(null, files, folderName);
@@ -5455,7 +5454,7 @@ export class AnalyzeView {
                                     }
                                 }
                                 catch (sandboxErr) {
-                                    console.warn('[AnalyzeView] scanDroppedItems failed, falling back to handleDroppedFolderFallback:', sandboxErr);
+                                    console['warn']('[AnalyzeView] scanDroppedItems failed, falling back to handleDroppedFolderFallback:', sandboxErr);
                                 }
                             }
                             void this.handleDroppedFolderFallback(files, folderName, event, null, updateFingerprintStatus);
@@ -5885,7 +5884,7 @@ export class AnalyzeView {
                             }
                         }
                         catch (sandboxErr) {
-                            console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
+                            console['warn']('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                         }
                     }
                     // If webkitEntry was null or traversal failed, try capturing a
@@ -6033,7 +6032,7 @@ export class AnalyzeView {
                                     }
                                 }
                                 catch (sandboxErr) {
-                                    console.warn('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
+                                    console['warn']('[AnalyzeView] scanDroppedItems with webkitEntry failed, falling back to runLocalScan:', sandboxErr);
                                 }
                             }
                             // If scanDroppedItems failed or returned few files, try
@@ -6137,7 +6136,7 @@ export class AnalyzeView {
                                 }
                             }
                             catch (bridgeErr) {
-                                console.warn('[AnalyzeView] findFolderViaBridge failed for non-folder drop:', bridgeErr);
+                                console['warn']('[AnalyzeView] findFolderViaBridge failed for non-folder drop:', bridgeErr);
                             }
                         }
                         if (analyzeProgress)
@@ -6154,7 +6153,7 @@ export class AnalyzeView {
                 catch (err) {
                     const msg = (err && err.message) || '';
                     if (msg.includes('No scannable files or folders detected') || msg.includes('No items were dropped')) {
-                        console.warn('[AnalyzeView] Sandbox scan unavailable in this context — falling back to path-based scan.');
+                        console['warn']('[AnalyzeView] Sandbox scan unavailable in this context — falling back to path-based scan.');
                     } else {
                         console.error('[AnalyzeView] Sandbox scan failed:', err);
                     }
@@ -6195,7 +6194,7 @@ export class AnalyzeView {
                                     showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                                 }
                                 else {
-                                    console.warn('Browse input click failed:', err);
+                                    console['warn']('Browse input click failed:', err);
                                 }
                             }
                         }
@@ -6483,7 +6482,7 @@ export class AnalyzeView {
                     showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
                     return false;
                 }
-                console.warn('Folder input click failed:', err);
+                console['warn']('Folder input click failed:', err);
                 throw err;
             }
         }
@@ -6531,7 +6530,7 @@ export class AnalyzeView {
                         }
                     }
                     catch (bridgeErr) {
-                        console.warn('[pickFolderViaBrowser] findFolderViaBridge failed:', bridgeErr);
+                        console['warn']('[pickFolderViaBrowser] findFolderViaBridge failed:', bridgeErr);
                     }
                 }
                 const resolvedPath = this.resolveFallbackFolderPath(folderName) || folderName;
@@ -6575,7 +6574,7 @@ export class AnalyzeView {
                     showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                 }
                 else {
-                    console.warn('Directory picker failed:', err);
+                    console['warn']('Directory picker failed:', err);
                 }
             }
             return false;
@@ -7098,7 +7097,7 @@ export class AnalyzeView {
             return true; // handled (rejected)
         }
         if (warnings.length > 0) {
-            console.warn(`[AnalyzeView] Import warnings for ${fileName}:`, warnings.map(w => w.msg));
+            console['warn'](`[AnalyzeView] Import warnings for ${fileName}:`, warnings.map(w => w.msg));
         }
         // Duplicate detection
         if (this.isDuplicateReport(parsed)) {
@@ -7125,7 +7124,7 @@ export class AnalyzeView {
                 this.applyReport(loadedReport, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(loadedReport) });
             }
             catch (err) {
-                console.warn('[AnalyzeView] Server report import failed; applying locally:', err);
+                console['warn']('[AnalyzeView] Server report import failed; applying locally:', err);
                 this.applyReport(normalizedReport, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(normalizedReport) });
                 showToast(`Saved locally — server import failed: ${err.message}`, 'warning');
             }
@@ -7445,7 +7444,7 @@ export class AnalyzeView {
                     showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                 }
                 else {
-                    console.warn('Browse input click failed:', err);
+                    console['warn']('Browse input click failed:', err);
                 }
             }
             return;
@@ -7703,7 +7702,7 @@ export class AnalyzeView {
                         showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                     }
                     else {
-                        console.warn('Browse input click failed:', err);
+                        console['warn']('Browse input click failed:', err);
                     }
                 }
                 return;
@@ -7801,7 +7800,7 @@ export class AnalyzeView {
                 }
             }
             catch (fileErr) {
-                console.warn('[AnalyzeView] Could not read dropped file entry:', path, fileErr);
+                console['warn']('[AnalyzeView] Could not read dropped file entry:', path, fileErr);
             }
             return files;
         }
@@ -7815,7 +7814,7 @@ export class AnalyzeView {
                     batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
                 }
                 catch (readErr) {
-                    console.warn('[AnalyzeView] readEntries error at', path, readErr);
+                    console['warn']('[AnalyzeView] readEntries error at', path, readErr);
                     batch = [];
                 }
                 for (const child of batch) {
@@ -7876,7 +7875,7 @@ export class AnalyzeView {
             return true;
         }
         catch (err) {
-            console.warn('[AnalyzeView] webkitGetAsEntry traversal scan failed:', err);
+            console['warn']('[AnalyzeView] webkitGetAsEntry traversal scan failed:', err);
             return false;
         }
     }
@@ -8136,7 +8135,7 @@ export class AnalyzeView {
                             showToast(filePickerBlockedMessage(), 'warning', { duration: 12000 });
                         }
                         else {
-                            console.warn('Browse input click failed:', clickErr);
+                            console['warn']('Browse input click failed:', clickErr);
                         }
                     }
                 }
@@ -8188,7 +8187,7 @@ export class AnalyzeView {
                                 showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                             }
                             else {
-                                console.warn('Browse input click failed:', err);
+                                console['warn']('Browse input click failed:', err);
                             }
                         }
                         return;
@@ -8225,7 +8224,7 @@ export class AnalyzeView {
                                 showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                             }
                             else {
-                                console.warn('Browse input click failed:', err);
+                                console['warn']('Browse input click failed:', err);
                             }
                         }
                         return;
@@ -8311,7 +8310,7 @@ export class AnalyzeView {
                 await authService.refreshToken(true);
             }
             catch (refreshErr) {
-                console.warn('Token refresh before scan failed:', refreshErr);
+                console['warn']('Token refresh before scan failed:', refreshErr);
             }
         }
         try {
@@ -11038,7 +11037,7 @@ export class AnalyzeView {
                     return;
                 }
                 catch (err) {
-                    console.warn('[AI-Send] vscode.postMessage failed:', err);
+                    console['warn']('[AI-Send] vscode.postMessage failed:', err);
                 }
             }
             // Fall back to server API + clipboard for standalone browser or VS Code simple-browser
