@@ -113,6 +113,8 @@ export function AnalyzeView() {
           issues: scanResult.issueCount,
           gate: scanResult.gate.pass,
         }));
+        localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
+        localStorage.setItem('sb_last_scan_time', new Date().toISOString());
       } else {
         appendLog(`[SimpleBeacon] No API base — browser sandbox mode`);
         setProgressLabel('Browser sandbox not available in React mode yet');
