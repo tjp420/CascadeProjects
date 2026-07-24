@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <script>
     // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
-    // Brave and aggressive tracker blockers return an empty body for beacon.min.js, which
-    // triggers SRI console errors when the tag has an integrity attribute. Strip the
-    // integrity and remove the tag entirely in Brave; otherwise attach an onerror cleanup.
     (function() {
       function isBeacon(el) {
         if (!el || el.tagName !== 'SCRIPT') return false;
@@ -16,9 +13,6 @@
       }
       function neutralize(el) {
         if (!isBeacon(el)) return;
-        // Edge-injected beacon tags may carry an integrity hash that does not match
-        // the actual script body, which causes SRI console errors. Stop them before
-        // the browser fetches by stripping src and disabling execution.
         if (el.hasAttribute && el.hasAttribute('integrity')) {
           try { el.removeAttribute('src'); } catch (_) {}
           try { el.type = 'text/plain'; } catch (_) {}
@@ -33,8 +27,6 @@
         }
         el.onerror = function() { if (el.parentNode) el.parentNode.removeChild(el); };
       }
-      // Intercept createElement('script') to strip integrity from beacon scripts
-      // before they are inserted into the DOM and the browser starts fetching.
       var origCreate = document.createElement.bind(document);
       document.createElement = function(tag) {
         var el = origCreate(tag);
@@ -42,7 +34,6 @@
           var origSetAttr = el.setAttribute.bind(el);
           el.setAttribute = function(name, value) {
             if (name === 'src' && typeof value === 'string' && value.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1) {
-              // Strip integrity immediately when src is set to the beacon URL
               try { el.removeAttribute('integrity'); } catch (_) {}
             }
             return origSetAttr(name, value);
@@ -50,8 +41,6 @@
         }
         return el;
       };
-      var scripts = document.querySelectorAll('script');
-      for (var i = 0; i < scripts.length; i++) neutralize(scripts[i]);
       if (window.MutationObserver) {
         var mo = new MutationObserver(function(records) {
           records.forEach(function(record) {
@@ -75,972 +64,56 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <!-- Minimal critical CSS for signin to avoid FOUC while components.css loads -->
-  <style id="critical-signin">
-    html,body{height:100%;margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;}
-    .app-header{display:flex;align-items:center;justify-content:space-between}
-    main{display:flex;align-items:center;justify-content:center;min-height:60vh}
-    form{max-width:420px;width:100%;box-sizing:border-box}
-    .signin-page{width:100%;padding:16px}
-    @media (min-width:720px){.signin-page{padding:28px}}
-  </style>
-  <style id="ide-preview-hide">
-    /* Hide embedded URL bar when parent extension/browser owns navigation */
-    html[data-parent-urlbar="1"] #sb-embedded-url-bar,
-    html[data-parent-urlbar="1"] .sb-url-bar {
-      display: none !important;
-    }
-    html[data-ide-embed="1"],
-    html[data-ide-embed="1"] body {
-      height: 100%;
-      min-height: 0;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-    }
-    html[data-ide-embed="1"] .app-header,
-    html[data-ide-embed="1"] .app-nav,
-    html[data-ide-embed="1"] .embed-quick-nav,
-    html[data-ide-embed="1"] .bridge-notice-banner,
-    html[data-ide-embed="1"] .sandbox-banner { display: none !important; }
-    html[data-ide-embed="1"] .app-shell {
-      height: 100%;
-      min-height: 0;
-      overflow: hidden;
-    }
-    html[data-ide-embed="1"] .app-body {
-      flex: 1;
-      flex-direction: column;
-      min-height: 0;
-      min-width: 0;
-    }
-    html[data-ide-embed="1"] #app-main {
-      flex: 1;
-      height: 100% !important;
-      min-height: 0;
-      min-width: 0;
-      width: 100%;
-      overflow-x: hidden;
-      overflow-y: auto;
-    }
-    html[data-embed-full-nav="1"] .app-shell {
-      height: 100%;
-      min-height: 0;
-      overflow: hidden;
-    }
-    html[data-embed-full-nav="1"] .app-body {
-      flex: 1 1 auto;
-      flex-direction: row !important;
-      flex-wrap: nowrap;
-      min-height: 0;
-      align-items: stretch;
-    }
-    html[data-embed-full-nav="1"] .app-nav {
-      flex: 0 0 var(--nav-width, 200px);
-      align-self: stretch;
-      max-height: none;
-    }
-    html[data-embed-full-nav="1"] #app-main {
-      display: block !important;
-      flex: 1 1 auto;
-      min-height: 0;
-      min-width: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
-      align-self: stretch;
-      align-items: flex-start;
-      justify-content: flex-start;
-    }
-    html[data-embed-full-nav="1"][data-auth-page="1"] #app-main:has(.signin-page) {
-      display: flex !important;
-      align-items: center;
-      justify-content: center;
-    }
-    html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-header { display: none !important; }
-    html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .app-nav { display: none !important; }
-    html[data-parent-urlbar="1"] .mobile-nav-overlay { display: none !important; }
-    html[data-parent-urlbar="1"] .mobile-nav-toggle { display: none !important; }
-    html[data-parent-urlbar="1"]:not([data-embed-full-nav="1"]) .sandbox-banner { display: none !important; }
-    html[data-ide-preview="true"] #sb-embedded-url-bar {
-      display: none !important;
-    }
-    /* Auto-hide sidebar + top bar when loaded inside IDE browser preview */
-    html[data-ide-preview="true"] .app-shell {
-      height: 100%;
-      min-height: 0;
-      overflow: hidden;
-    }
-    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-nav { display: none !important; }
-    html[data-ide-preview="true"] .mobile-nav-overlay { display: none !important; }
-    html[data-ide-preview="true"] .mobile-nav-toggle { display: none !important; }
-    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .sandbox-banner { display: none !important; }
-    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-header { display: none !important; }
-    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) .app-body {
-      flex: 1;
-      min-height: 0;
-      min-width: 0;
-    }
-    html[data-ide-preview="true"]:not([data-embed-full-nav="1"]) #app-main {
-      flex: 1;
-      min-height: 0;
-      min-width: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
-      padding: var(--space-4);
-    }
-    /* Hide "Send to AI" buttons in standalone browser; show only in IDE */
-    #audit-send-ai-btn, #security-send-ai-btn, #quality-send-ai-btn, #trust-send-ai-btn, #action-send-ai, #send-ai-btn, #send-health-ai-btn { display: none !important; }
-    html[data-ide-preview="true"] #audit-send-ai-btn,
-    html[data-ide-preview="true"] #security-send-ai-btn,
-    html[data-ide-preview="true"] #quality-send-ai-btn,
-    html[data-ide-preview="true"] #trust-send-ai-btn,
-    html[data-ide-preview="true"] #action-send-ai,
-    html[data-ide-preview="true"] #send-ai-btn,
-    html[data-ide-preview="true"] #send-health-ai-btn { display: revert !important; }
-    /* Compact quick nav only when the full dashboard sidebar is hidden */
-    html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) .embed-quick-nav { display: flex; }
-    html[data-embed-full-nav="1"] .embed-quick-nav { display: none !important; }
-    html[data-auth-page="1"] .embed-quick-nav { display: none !important; }
-    html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"]) .app-body {
-      flex-direction: column;
-      flex-wrap: nowrap;
-      flex: 1;
-      min-height: 0;
-    }
-    html[data-embed-full-nav="1"] .app-body {
-      flex: 1;
-      flex-direction: row;
-      min-height: 0;
-    }
-    html[data-embed-full-nav="1"] .app-nav {
-      width: var(--nav-width, 200px);
-    }
-    html[data-embed-mode="1"]:not([data-embed-full-nav="1"]) #app-main {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-    }
-    html[data-embed-full-nav="1"] #app-main:has(.chatbot-page),
-    html[data-embed-full-nav="1"] #app-main:has(.chatbot-container) {
-      display: flex !important;
-      flex-direction: column;
-      flex: 1 1 auto;
-      width: 100%;
-      min-height: 0;
-      min-width: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-    html[data-embed-full-nav="1"] .app-shell:has(.chatbot-page) {
-      height: 100%;
-      max-height: 100%;
-      overflow: hidden;
-    }
-    html[data-embed-full-nav="1"] .app-body:has(.chatbot-page) {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: hidden;
-    }
-    html[data-embed-full-nav="1"]:not([data-auth-page="1"]) #app-main,
-    html[data-embed-full-nav="1"][data-auth-page="1"] #app-main:not(:has(.signin-page)) {
-      display: block !important;
-      align-items: flex-start !important;
-      justify-content: flex-start !important;
-    }
-    html[data-auth-page="1"] #app-main {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex: 1 1 auto;
-      width: 100%;
-      min-height: 0;
-      padding: var(--space-4);
-      box-sizing: border-box;
-      overflow-y: auto;
-    }
-    html[data-auth-page="1"] .signin-page {
-      min-height: 0;
-      height: auto;
-      width: 100%;
-      padding: var(--space-4);
-    }
-    html[data-embed-full-nav="1"] .lock-screen,
-    html[data-embed-full-nav="1"] .ide-auth-pending,
-    html[data-embed-mode="1"] .lock-screen,
-    html[data-embed-mode="1"] .ide-auth-pending {
-      min-height: 0 !important;
-      flex: 1 1 auto;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    html[data-embed-mode="1"] .sidebar-auth-btn { display: none !important; }
-    .bridge-notice-banner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 16px;
-      background: rgba(59, 130, 246, 0.12);
-      border-bottom: 1px solid rgba(59, 130, 246, 0.35);
-      color: var(--text-primary);
-      font-size: 0.85rem;
-      line-height: 1.4;
-    }
-    .bridge-notice-banner span { flex: 1; }
-    .bridge-notice-close {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      font-size: 1rem;
-      cursor: pointer;
-      padding: 0 4px;
-      line-height: 1;
-    }
-    .bridge-notice-close:hover { color: var(--text-primary); }
-  </style>
+
+  <!-- IDE embed mode detection -->
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var sbParentUrlbar = params.get('sb_parent_urlbar');
+      var sbWebsiteMode = params.get('sb_website_mode');
+      var isIde = window.self !== window.top || (navigator.userAgent || '').includes('Electron');
+      if (sbParentUrlbar === '1') document.documentElement.setAttribute('data-parent-urlbar', '1');
+      if (sbWebsiteMode === '1') document.documentElement.setAttribute('data-embed-mode', '1');
+      if (isIde) document.documentElement.setAttribute('data-ide-embed', '1');
+    })();
+  </script>
+
+  <!-- Apply saved theme early to prevent FOUC -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('sb_theme');
+        if (saved === 'light' || saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (_) {}
+    })();
+  </script>
+
   <style>
-    /* Labeled action buttons */
-    .app-header-actions .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: transparent; border: none; cursor: pointer; }
-    .app-header-actions .icon-btn:hover { color: var(--text-primary); background: var(--surface-hover); }
-    .app-header-actions .icon-btn[hidden] { display: none !important; }
-    .app-header-actions .offline-status-icon { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; font-size: 13px; color: var(--text-secondary); }
-    .btn-label { white-space: nowrap; }
-    /* Profile dropdown */
-    .profile-dropdown { position: relative; display: inline-flex; }
-    .profile-dropdown-menu { position: absolute; top: calc(100% + 8px); right: 0; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(2,8,20,0.25); padding: 8px 0; z-index: 1000; display: flex; flex-direction: column; }
-    .profile-dropdown-menu.hidden { display: none; }
-    .profile-dropdown-header { padding: 12px 16px; font-size: 13px; color: var(--text-secondary); }
-    .profile-dropdown-header strong { display: block; color: var(--text-primary); font-weight: 600; }
-    .profile-dropdown-divider { height: 1px; background: var(--border); margin: 8px 0; }
-    .profile-dropdown-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 16px; background: none; border: none; color: var(--text-secondary); font-size: 13px; cursor: pointer; text-align: left; }
-    .profile-dropdown-item:hover { background: var(--surface-hover); color: var(--text-primary); }
-    /* Sidebar auth toggle */
-    .sidebar-auth-btn { display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-secondary); background: var(--surface); border: 1px solid var(--border); cursor: pointer; transition: all .15s; }
-    .sidebar-auth-btn:hover { background: var(--surface-hover); color: var(--text-primary); }
-    .sidebar-auth-btn[hidden] { display: none !important; }
-  </style>
-  <script>
-    (function() {
-      if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
-        history.scrollRestoration = 'manual';
-      }
-      // If the server injected a same-origin base URL, clear stale bridge params
-      // from sessionStorage so requests don't go to a dead Node API server port.
-      try {
-        var envBase = window.__SIMPLEBEACON_ENV__ && (window.__SIMPLEBEACON_ENV__.DASHBOARD_BASE_URL || window.__SIMPLEBEACON_ENV__.API_BASE_URL);
-        if (envBase === '/' || envBase === '') {
-          sessionStorage.removeItem('sb_api_base');
-          sessionStorage.removeItem('sb_notify_base');
-        }
-      } catch (_e) { /* ignore */ }
-      var search = window.location.search || '';
-      var inIframe = window.self !== window.top;
-      var embedKeys = ['sb_notify_base', 'sb_api_base', 'sb_parent_urlbar', 'sb_website_mode'];
-      try {
-        var params = new URLSearchParams(search);
-        embedKeys.forEach(function(key) {
-          var value = params.get(key) || sessionStorage.getItem(key);
-          if (value) {
-            if (key === 'sb_api_base' || key === 'sb_notify_base') {
-              // Store canonical host root (no trailing `/api`) to keep behavior consistent.
-              value = String(value).replace(/\/+$/, '');
-              value = value.replace(/\/api\/?$/i, '');
-            }
-            sessionStorage.setItem(key, value);
-          }
-        });
-      } catch (e) { /* ignore */ }
-      var hasBridge = false;
-      try {
-        hasBridge = Boolean(sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))
-          || /[?&]sb_(notify_base|api_base)=/i.test(search);
-      } catch (_b) { /* ignore */ }
-      var explicitEmbedUrl = /[?&]sb_parent_urlbar=1(?:&|$)/i.test(search)
-        || /[?&]sb_website_mode=1(?:&|$)/i.test(search)
-        || /[?&]sb_(notify_base|api_base)=/i.test(search);
-      var websiteMode = /[?&]sb_website_mode=1(?:&|$)/i.test(search);
-      var parentOwnsUrlBar = false;
-      // Only apply compact embed chrome inside the IDE iframe.
-      // Stale sessionStorage from a prior VS Code session must not strip the header on a normal browser tab.
-      // URL params (sb_parent_urlbar, sb_website_mode, sb_api_base) configure the API bridge but
-      // do NOT mean we're embedded — the page could be in a top-level browser tab opened from the IDE.
-      if (inIframe) {
-        parentOwnsUrlBar = explicitEmbedUrl || hasBridge || inIframe;
-        try {
-          if (!/[?&]sb_parent_urlbar=1/i.test(search) && sessionStorage.getItem('sb_parent_urlbar') === '1') {
-            parentOwnsUrlBar = true;
-          }
-          if (!websiteMode && sessionStorage.getItem('sb_website_mode') === '1') {
-            websiteMode = true;
-            parentOwnsUrlBar = true;
-          }
-        } catch (_c) { /* ignore */ }
-      }
-      var ideSurface = inIframe;
-      window.__SB_STANDALONE_DASHBOARD__ = !ideSurface;
-      window.__SB_IDE_EMBED__ = ideSurface;
-      window.__SB_PARENT_URL_BAR__ = parentOwnsUrlBar;
-      // If this looks like a real IDE webview, prefer IDE embed behavior
-      // over the `sb_website_mode` query param. This prevents the dashboard
-      // from rendering its header/sidebar inside the IDE, which causes
-      // duplicate navigation chrome and layout issues.
-      try {
-        var idePreviewDetected = false;
-        if (inIframe) {
-          idePreviewDetected = detectIdePreview();
-        }
-      } catch (_d) { idePreviewDetected = false; }
-      if (idePreviewDetected) {
-        websiteMode = false;
-      }
-
-      if (ideSurface && !websiteMode) {
-        // IDE iframe: extension sidebar owns navigation, hide all dashboard chrome.
-        document.documentElement.setAttribute('data-ide-embed', '1');
-        document.documentElement.removeAttribute('data-embed-full-nav');
-        // Some IDE hosts (VS Code webviews) overlay a titlebar that clips
-        // the top of the embedded content. Provide a conservative shim so
-        // the page content isn't hidden behind host chrome.
-        try {
-          document.documentElement.style.setProperty('--embed-top-shim', '48px');
-        } catch (_e) { /* ignore */ }
-      
-      } else if (websiteMode && inIframe) {
-        // Website mode inside IDE iframe: keep header + sidebar beside content.
-        document.documentElement.setAttribute('data-embed-full-nav', '1');
-        // Do NOT set data-ide-embed in website mode — compact IDE styles are
-        // designed for the narrow sidebar view and break full-nav layout.
-      }
-      // When not in an iframe (top-level browser tab), no embed attributes are set —
-      // the default standalone layout with natural scrolling is used.
-      if (parentOwnsUrlBar) {
-        document.documentElement.setAttribute('data-parent-urlbar', '1');
-        document.documentElement.style.setProperty('--embed-top-shim', '0px');
-      }
-      var path = window.location.pathname || '';
-      if (/\/dashboard\/(signin|register)\/?$/i.test(path)) {
-        document.documentElement.setAttribute('data-auth-page', '1');
-      }
-      function hideEmbeddedUrlBars() {
-        if (!window.__SB_PARENT_URL_BAR__) return;
-        document.querySelectorAll('#sb-embedded-url-bar, .sb-url-bar').forEach(function(el) {
-          el.style.display = 'none';
-        });
-      }
-      hideEmbeddedUrlBars();
-      function onParentUrlBarMessage(active) {
-        window.__SB_PARENT_URL_BAR__ = !!active;
-        if (window.__SB_PARENT_URL_BAR__) {
-          document.documentElement.setAttribute('data-parent-urlbar', '1');
-        } else {
-          document.documentElement.removeAttribute('data-parent-urlbar');
-        }
-        window.dispatchEvent(new CustomEvent('sb-parent-urlbar-changed'));
-        hideEmbeddedUrlBars();
-      }
-      window.addEventListener('message', function(e) {
-        if (e && e.data && e.data.command === 'setParentUrlBar') {
-          onParentUrlBarMessage(!!e.data.active);
-        }
-        if (e && e.data && (e.data.type === 'ide-preview' || e.data.idePreview === true || e.data.command === 'setIdePreview')) {
-          document.documentElement.setAttribute('data-ide-preview', 'true');
-          console.info('[Simplebeacon] IDE preview detected: sidebar hidden');
-          try { localStorage.setItem('sb_ide_preview', '1'); } catch (err) {}
-        }
-        // Host-controlled embed shim: allow the embedding host to set the
-        // top shim (px) so the dashboard content isn't clipped by host chrome.
-        if (e && e.data && (e.data.command === 'setEmbedTopShim' || e.data.command === 'setEmbedShim')) {
-          try {
-            var raw = e.data.value || '';
-            var s = String(raw).trim();
-            if (/^\d+$/.test(s)) s = s + 'px';
-            if (/^\d+px$/.test(s)) {
-              document.documentElement.style.setProperty('--embed-top-shim', s);
-              console.info('[Simplebeacon] embed shim set to', s);
-            }
-          } catch (_err) { /* ignore */ }
-        }
-      });
-      function detectIdePreview() {
-        var ua = (navigator.userAgent || '').toLowerCase();
-        var href = (window.location.href || '').toLowerCase();
-        var search = (window.location.search || '').toLowerCase();
-        var name = (window.name || '').toLowerCase();
-        var inIframe = window.self !== window.top;
-        var hasVsCodeSignal = /cascade|windsurf|codeium|vscode[-_]?webview|vscode-resource|electron|vscode|__cascade__|__windsurf__|__codeium__/.test(ua);
-        var hasVsCodeName = /cascade|windsurf|codeium|vscode[-_]?webview|vscode-resource/.test(name);
-        var hasVsCodeSearch = /[?&](__ide=|ide=|extensionid=|extension-id=|vscode-webview|origin=vscode-file)/.test(search);
-        var hasVsCodeHref = /vscode-webview|vscode-resource|__ide=|ide=|extensionid=|extension-id=/.test(href);
-        var hasVsCodeGlobal = window.__wind_surf__ || window.__windsurf__ || window.__cascade__ || window.__vscode__ || window.__codeium__ || window.__browser_preview__ || window.__browserPreview__ || window.__ide__;
-        var hasOpener = window.opener && window.opener !== window;
-        try {
-          if (window.top && window.top !== window && window.top.location && window.top.location.href) { /* in iframe but top accessible */ }
-        } catch (e) { /* cross-origin iframe */ }
-        // Strong IDE signals (iframe + vscode indicators, or direct vscode URL/globals)
-        if (inIframe && (hasVsCodeSignal || hasVsCodeName || hasVsCodeSearch || hasVsCodeHref || hasVsCodeGlobal)) { return true; }
-        if (!inIframe && (hasVsCodeSignal || hasVsCodeName || hasVsCodeSearch || hasVsCodeHref || hasVsCodeGlobal)) { return true; }
-        if (typeof acquireVsCodeApi === 'function') { return true; }
-        // The dashboard is embedded in an iframe inside the custom IDE panel
-        if (inIframe) { return true; }
-        return false;
-      }
-      function setIdePreview() {
-        document.documentElement.setAttribute('data-ide-preview', 'true');
-        console.info('[Simplebeacon] IDE preview detected: sidebar hidden');
-      }
-      if (inIframe && detectIdePreview()) {
-        setIdePreview();
-      } else if (inIframe) {
-        try {
-          if (localStorage && localStorage.getItem('sb_ide_preview') === '1') {
-            setIdePreview();
-          }
-        } catch (e) {}
-        var lateCheck = setInterval(function() {
-          if (detectIdePreview()) {
-            clearInterval(lateCheck);
-            setIdePreview();
-          }
-        }, 500);
-        setTimeout(function() { clearInterval(lateCheck); }, 5000);
-      }
-    })();
-  </script>
-  <script>
-    // VS Code extension bridge host (loopback only) — does NOT replace cloud auth/platform API.
-    (function() {
-      function normalizeBridgeHost(raw) {
-        if (!raw) return '';
-        try {
-          var base = String(raw).replace(/\/api\/?$/, '').replace(/\/$/, '');
-          var u = new URL(base, location.href);
-          if (!/^127\.0\.0\.1$|^localhost$/i.test(u.hostname)) return '';
-          // agent.js:4000 is not the VS Code extension data server — integrated dashboard serves /api on this origin.
-          if (u.port === '4000' && location.protocol === 'http:' && /^127\.0\.0\.1$|^localhost$/i.test(location.hostname)) return '';
-          return u.origin;
-        } catch (e) { return ''; }
-      }
-      function readBridgeHostFromQuery() {
-        // Only read bridge host from the URL when the page is embedded in an
-        // iframe (IDE/webview). Top-level hosted pages must not accept loopback
-        // bridge addresses from arbitrary query params.
-        try {
-          var inIframeLocal = window.self !== window.top;
-          if (!inIframeLocal) return '';
-        } catch (e) { return ''; }
-        var search = window.location.search || '';
-        var m = search.match(/[?&]sb_api_base=([^&]+)/) || search.match(/[?&]sb_notify_base=([^&]+)/);
-        if (!m || !m[1]) return '';
-        try { return normalizeBridgeHost(decodeURIComponent(m[1])); } catch (e) { return ''; }
-      }
-      function readBridgeHostFromStorage() {
-        try {
-          var stored = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
-          return normalizeBridgeHost(stored);
-        } catch (e) { return ''; }
-      }
-      function isHostedSite() {
-        return location.protocol === 'https:' || !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname);
-      }
-      // Only accept query-provided bridge hosts when embedded. Read from
-      // sessionStorage for local dev or extension resumed sessions otherwise.
-      try {
-        var fromQuery = readBridgeHostFromQuery();
-        var fromStorage = readBridgeHostFromStorage();
-        window.__SB_BRIDGE_HOST__ = window.__SB_BRIDGE_HOST__ || (fromQuery || fromStorage) || '';
-      } catch (e) {
-        window.__SB_BRIDGE_HOST__ = window.__SB_BRIDGE_HOST__ || '';
-      }
-
-      // If this is a top-level hosted page (not local dev), clear any leftover
-      // bridge keys so we don't accidentally persist loopback overrides.
-      try {
-        var isLocalHost = /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname);
-        if (window.self === window.top && !isLocalHost) {
-          try { sessionStorage.removeItem('sb_api_base'); } catch (e) {}
-          try { sessionStorage.removeItem('sb_notify_base'); } catch (e) {}
-          try { sessionStorage.removeItem('sb_parent_urlbar'); } catch (e) {}
-          try { sessionStorage.removeItem('sb_website_mode'); } catch (e) {}
-        }
-      } catch (e) { /* ignore */ }
-    })();
-  </script>
-  <!-- Offline-ready: allow browser + SW caching -->
-  <meta name="theme-color" content="#0f172a">
-  <title>Simplebeacon Dashboard</title>
-  <base href="/dashboard/">
-  <!-- System fonts only: VS Code webviews block external fonts.googleapis.com -->
-  <link rel="stylesheet" href="css/variables.css?v=20260725redesign2">
-  <link rel="stylesheet" href="css/reset.css?v=20260722clean1">
-  <link rel="stylesheet" href="css/layout.css?v=20260725redesign2">
-  <link rel="stylesheet" href="css/components.css?v=20260725analyze1">
-  <link rel="stylesheet" href="css/utilities.css?v=20260725redesign2">
-  <link rel="stylesheet" href="css/disable-elements.css?v=20260722clean1">
-  <script src="js/vendor/lucide.min.js?v=20260722clean1" defer onerror="window._lucideFailed=true"></script>
-  <script>
-    // API proxy: when served from a non-API port (e.g. 57622 static server), redirect /api/* to port 3000
-    (function() {
-      const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1' || !location.hostname;
-      const apiPorts = ['3000', '8080', '5000'];
-      // When the API server itself serves the dashboard it injects window.__SIMPLEBEACON_ENV__
-      const needsProxy = isLocal && !apiPorts.includes(location.port) && !window.__SIMPLEBEACON_ENV__;
-      function resolveApiHost() {
-        if (window.__SB_API_HOST__) return window.__SB_API_HOST__;
-        if (window.__SIMPLEBEACON_ENV__ && window.__SIMPLEBEACON_ENV__.DASHBOARD_BASE_URL) return window.__SIMPLEBEACON_ENV__.DASHBOARD_BASE_URL;
-        try { return sessionStorage.getItem('sb_api_base') || ''; } catch (_e) { return ''; }
-      }
-      function proxyUrl(url) {
-        if (!needsProxy) return url;
-        try {
-          const u = new URL(url, location.href);
-          // Only proxy same-origin relative /api/ URLs; leave absolute calls to
-          // local Ollama (11434) and the local agent (4000) untouched.
-          if (u.pathname.startsWith('/api/') && u.origin === location.origin) {
-            return resolveApiHost() + u.pathname + u.search;
-          }
-        } catch (e) {}
-        return url;
-      }
-
-      // Unified fetch wrapper: API proxy + extension noise suppression
-      const extPatterns = /free-token|provision sandbox|config\/pricing/i;
-      const origFetch = window.fetch;
-      const origXHR = window.XMLHttpRequest;
-
-      if (origFetch) {
-        window.fetch = function(...args) {
-          const url = String(args[0] || '');
-          if (extPatterns.test(url)) {
-            console['warn']('[Simplebeacon] Ignoring browser extension fetch:', url);
-            return Promise.resolve(new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } }));
-          }
-          args[0] = proxyUrl(url);
-          return origFetch.apply(this, args);
-        };
-      }
-
-      if (origXHR) {
-        window.XMLHttpRequest = function() {
-          const xhr = new origXHR();
-          const origOpen = xhr.open;
-          xhr.open = function(method, url) {
-            const strUrl = String(url);
-            if (extPatterns.test(strUrl)) {
-              xhr.send = function() {};
-              Object.defineProperty(xhr, 'readyState', { get: () => 4 });
-              Object.defineProperty(xhr, 'status', { get: () => 200 });
-              Object.defineProperty(xhr, 'responseText', { get: () => '{}' });
-              setTimeout(() => { if (xhr.onreadystatechange) xhr.onreadystatechange(); }, 0);
-              return;
-            }
-            return origOpen.call(xhr, method, proxyUrl(strUrl));
-          };
-          return xhr;
-        };
-        Object.setPrototypeOf(window.XMLHttpRequest, origXHR);
-        Object.keys(origXHR).forEach(k => { window.XMLHttpRequest[k] = origXHR[k]; });
-      }
-    })();
-  </script>
-  <style id="chatbot-scroll-fix">
-    /* OVERRIDE: Fix chatbot page scroll — overrides broken external components.css */
-    /* Remove height:100% and overflow:hidden from standalone mode */
-    .app-shell:has(.chatbot-page) { height: auto !important; max-height: none !important; }
-    .chatbot-page { overflow: visible !important; }
-    .view-content:has(.chatbot-container) { overflow: visible !important; }
-    #app-main:has(.chatbot-page) { overflow-y: auto !important; overflow-x: hidden !important; }
-    .app-main:has(.chatbot-container) { overflow-y: auto !important; overflow-x: hidden !important; }
-
-    /* Standalone: container grows with content, page scrolls naturally */
-    html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .chatbot-container {
-      flex: 0 1 auto !important;
-      min-height: 400px;
-      overflow: visible !important;
+    html, body { height: 100%; margin: 0; padding: 0; }
+    #root { min-height: 100vh; }
+    html[data-ide-embed="1"], html[data-ide-embed="1"] body {
+      height: 100%; min-height: 0; margin: 0; padding: 0; overflow: hidden;
     }
-    html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .chatbot-messages {
-      max-height: 60vh;
+    html[data-ide-embed="1"] #root {
+      height: 100% !important; min-height: 0; overflow: hidden;
     }
-
-    /* Embed modes: lock overflow so only chat messages scroll */
-    html[data-ide-embed="1"] .app-shell:has(.chatbot-page),
-    html[data-embed-full-nav="1"] .app-shell:has(.chatbot-page),
-    html[data-embed-mode="1"] .app-shell:has(.chatbot-page) {
-      height: 100% !important;
-      max-height: 100% !important;
-      min-height: 0;
-    }
-    html[data-ide-embed="1"] .app-body:has(.chatbot-page),
-    html[data-embed-full-nav="1"] .app-body:has(.chatbot-page),
-    html[data-embed-mode="1"] .app-body:has(.chatbot-page) {
-      overflow: hidden;
-    }
-    html[data-ide-embed="1"] #app-main:has(.chatbot-page),
-    html[data-embed-full-nav="1"] #app-main:has(.chatbot-page),
-    html[data-embed-mode="1"] #app-main:has(.chatbot-page) {
-      overflow: hidden !important;
-    }
-    html[data-ide-embed="1"] .chatbot-page,
-    html[data-embed-full-nav="1"] .chatbot-page,
-    html[data-embed-mode="1"] .chatbot-page {
-      overflow: hidden !important;
-    }
-    html[data-ide-embed="1"] .chatbot-container,
-    html[data-embed-full-nav="1"] .chatbot-container,
-    html[data-embed-mode="1"] .chatbot-container {
-      flex: 1 !important;
-      min-height: 0;
-      overflow: hidden !important;
-    }
-  </style>
-  <style id="analyze-scroll-fix">
-    /* OVERRIDE: Fix analyze page scroll — ensure standalone mode scrolls naturally */
-    #app-main:has(.analyze-page) { overflow-y: auto !important; overflow-x: hidden !important; }
-    .app-main:has(.analyze-page) { overflow-y: auto !important; overflow-x: hidden !important; }
-
-    /* Standalone: analyze page grows with content, page scrolls naturally */
-    html:not([data-ide-embed="1"]):not([data-embed-full-nav="1"]):not([data-embed-mode="1"]) .analyze-page {
-      overflow: visible !important;
-      max-height: none !important;
-    }
-
-    /* Embed modes: #app-main scrolls, content flows within */
-    html[data-ide-embed="1"] #app-main:has(.analyze-page),
-    html[data-embed-full-nav="1"] #app-main:has(.analyze-page),
-    html[data-embed-mode="1"] #app-main:has(.analyze-page) {
-      overflow-y: auto !important;
-      overflow-x: hidden !important;
+    html[data-parent-urlbar="1"] #root {
+      height: 100% !important; min-height: 0; overflow: hidden;
     }
   </style>
 </head>
 <body>
+  <noscript><div style="padding:40px;text-align:center;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
+
+  <!-- React mount point -->
+  <div id="root"></div>
+
+  <!-- Extension bridge fetch rewrite -->
   <script>
-    window.__sbErrors = [];
-    window.addEventListener('error', function(e) {
-      window.__sbErrors.push({type:'error', message:e.message, file:e.filename, line:e.lineno});
-      console.error('[Simplebeacon]', e.message, e.filename + ':' + e.lineno);
-    });
-    window.addEventListener('unhandledrejection', function(e) {
-      var msg = (e.reason && e.reason.message) || String(e.reason);
-      window.__sbErrors.push({type:'promise', message:msg});
-      console.error('[Simplebeacon] Unhandled rejection:', msg);
-    });
-  </script>
-  <noscript><div style="padding:40px;text-align:center;color:#fff;background:#0B0F19;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
-  <div class="app-shell">
-    <header class="app-header">
-      <button class="icon-btn mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open navigation"><i data-lucide="menu" class="icon-20"></i></button>
-      <a href="/dashboard/#/dashboard" class="app-brand">
-        <span class="app-brand-icon"><i data-lucide="shield-check" class="icon-20"></i></span>
-        <span>Simplebeacon</span>
-      </a>
-      <div class="app-header-search">
-        <span class="search-icon" aria-hidden="true"><i data-lucide="search" class="icon-16"></i></span>
-        <input type="search" id="global-search" placeholder="Search issues… (Ctrl+K)" aria-label="Search issues">
-      </div>
-      <div class="app-header-actions">
-        <span class="offline-status-icon" id="offline-toggle" title="Network status"><i data-lucide="wifi" class="icon-16"></i><span class="btn-label">Online</span></span>
-        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme"><i data-lucide="sun" class="icon-20"></i></button>
-        <div class="profile-dropdown" id="profile-dropdown">
-          <button class="icon-btn" id="profile-btn" aria-label="Profile" aria-haspopup="true" aria-expanded="false" hidden><i data-lucide="user" class="icon-20"></i></button>
-          <div class="profile-dropdown-menu hidden" id="profile-dropdown-menu" role="menu">
-            <div class="profile-dropdown-header" id="profile-dropdown-header"></div>
-            <div class="profile-dropdown-divider"></div>
-            <button class="profile-dropdown-item" id="profile-dropdown-view" role="menuitem"><i data-lucide="user" class="icon-16"></i><span>View Profile</span></button>
-            <button class="profile-dropdown-item" id="profile-dropdown-admin" role="menuitem" hidden><i data-lucide="shield" class="icon-16"></i><span>Admin Panel</span></button>
-            <button class="profile-dropdown-item" id="profile-dropdown-signout" role="menuitem"><i data-lucide="log-out" class="icon-16"></i><span>Sign Out</span></button>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <div class="sandbox-banner" id="sandbox-banner" hidden>
-      <i data-lucide="flask-conical" class="icon-16"></i>
-      <span><strong>Developer Sandbox</strong> — 100 requests/day limit. <a href="/pricing" data-pricing-cta="1" id="sandbox-upgrade-link">Upgrade</a></span>
-    </div>
-
-    <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
-
-    <div class="app-body">
-      <nav class="app-nav" id="app-nav" aria-label="Main navigation">
-        <div class="nav-group" data-nav-group="scan">
-          <button class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-scan">
-            <span class="nav-group-label">Scan</span>
-            <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
-          </button>
-          <div class="nav-group-items" id="nav-group-scan">
-            <a href="/dashboard/#/dashboard" class="nav-link active" data-view="dashboard">
-              <i data-lucide="layout-dashboard" class="nav-link-icon icon-18"></i>
-              <span>Dashboard</span>
-            </a>
-            <a href="/dashboard/#/analyze" class="nav-link" data-view="analyze">
-              <i data-lucide="folder-search" class="nav-link-icon icon-18"></i>
-              <span>Analyze</span>
-            </a>
-            <a href="/dashboard/#/results" class="nav-link" data-view="results">
-              <i data-lucide="clipboard-list" class="nav-link-icon icon-18"></i>
-              <span>Results</span>
-            </a>
-            <a href="/dashboard/#/repository-health" class="nav-link" data-view="repository-health">
-              <i data-lucide="package" class="nav-link-icon icon-18"></i>
-              <span>Repo health</span>
-            </a>
-          </div>
-        </div>
-
-        <div class="nav-group" data-nav-group="compliance">
-          <button class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-compliance">
-            <span class="nav-group-label">Compliance</span>
-            <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
-          </button>
-          <div class="nav-group-items" id="nav-group-compliance">
-            <a href="/dashboard/#/audit" class="nav-link" data-view="audit">
-              <i data-lucide="clipboard-check" class="nav-link-icon icon-18"></i>
-              <span>Audit Report</span>
-            </a>
-            <a href="/dashboard/#/security" class="nav-link" data-view="security">
-              <i data-lucide="lock" class="nav-link-icon icon-18"></i>
-              <span>Security</span>
-            </a>
-            <a href="/dashboard/#/quality" class="nav-link" data-view="quality">
-              <i data-lucide="award" class="nav-link-icon icon-18"></i>
-              <span>Quality</span>
-            </a>
-            <a href="/dashboard/#/trust" class="nav-link" data-view="trust">
-              <i data-lucide="badge-check" class="nav-link-icon icon-18"></i>
-              <span>Trust</span>
-            </a>
-          </div>
-        </div>
-
-        <div class="nav-group" data-nav-group="operations">
-          <button class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-operations">
-            <span class="nav-group-label">Operations</span>
-            <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
-          </button>
-          <div class="nav-group-items" id="nav-group-operations">
-            <a href="/dashboard/#/assessments" class="nav-link" data-view="assessments" id="nav-assessments-link">
-              <i data-lucide="file-text" class="nav-link-icon icon-18"></i>
-              <span>Assessments</span>
-            </a>
-            <a href="/dashboard/#/remediation" class="nav-link" data-view="remediation">
-              <i data-lucide="map" class="nav-link-icon icon-18"></i>
-              <span>Remediation</span>
-            </a>
-            <a href="/dashboard/#/platform" class="nav-link" data-view="platform">
-              <i data-lucide="bar-chart-3" class="nav-link-icon icon-18"></i>
-              <span>Platform</span>
-            </a>
-            <a href="/dashboard/#/profile" class="nav-link" data-view="profile">
-              <i data-lucide="user" class="nav-link-icon icon-18"></i>
-              <span>Profile</span>
-            </a>
-            <a href="/dashboard/#/admin" class="nav-link" data-view="admin" id="nav-admin-link" hidden>
-              <i data-lucide="users" class="nav-link-icon icon-18"></i>
-              <span>Admin</span>
-            </a>
-          </div>
-        </div>
-
-        <div class="nav-group" data-nav-group="system">
-          <button class="nav-group-toggle" aria-expanded="true" aria-controls="nav-group-system">
-            <span class="nav-group-label">System</span>
-            <i data-lucide="chevron-down" class="nav-group-chevron icon-16"></i>
-          </button>
-          <div class="nav-group-items" id="nav-group-system">
-            <a href="/dashboard/#/tools" class="nav-link" data-view="tools">
-              <i data-lucide="wrench" class="nav-link-icon icon-18"></i>
-              <span>Tools</span>
-            </a>
-            <a href="/dashboard/#/settings" class="nav-link" data-view="settings">
-              <i data-lucide="settings" class="nav-link-icon icon-18"></i>
-              <span>Settings</span>
-            </a>
-            <a href="/dashboard/#/help" class="nav-link" data-view="help">
-              <i data-lucide="help-circle" class="nav-link-icon icon-18"></i>
-              <span>Help</span>
-            </a>
-            <a href="/dashboard/#/getting-started" class="nav-link" data-view="getting-started">
-              <i data-lucide="rocket" class="nav-link-icon icon-18"></i>
-              <span>Getting Started</span>
-            </a>
-            <a href="/dashboard/#/chatbot" class="nav-link" data-view="chatbot">
-              <i data-lucide="bot" class="nav-link-icon icon-18"></i>
-              <span>Chatbot</span>
-            </a>
-            <a href="/dashboard/#/about" class="nav-link" data-view="about">
-              <i data-lucide="info" class="nav-link-icon icon-18"></i>
-              <span>About</span>
-            </a>
-          </div>
-        </div>
-
-        <div class="nav-footer">
-          <a href="https://github.com/tjp420/simplebeacon" class="nav-footer-link" target="_blank" rel="noopener noreferrer" title="GitHub">
-            <i data-lucide="code-2" class="icon-16"></i>
-          </a>
-          <a href="https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md" class="nav-footer-link" target="_blank" rel="noopener noreferrer" title="Docs">
-            <i data-lucide="book-open" class="icon-16"></i>
-          </a>
-          <button type="button" class="nav-footer-link" id="sidebar-export-btn" title="Export current scan report">
-            <i data-lucide="download" class="icon-16"></i>
-          </button>
-          <a href="/dashboard/#/about" class="nav-footer-link" data-view="about" title="About">
-            <i data-lucide="info" class="icon-16"></i>
-          </a>
-          <a href="/dashboard/#/audit" class="nav-footer-link" data-view="audit" title="Audit Report">
-            <i data-lucide="clipboard-check" class="icon-16"></i>
-          </a>
-        </div>
-      </nav>
-
-      <main class="app-main" id="app-main" aria-live="polite"></main>
-    </div>
-  </div>
-
-  <script>
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    } else {
-      window._lucideFailed = true;
-      // Icon-name-aware fallback so buttons remain identifiable when Lucide fails
-      var ICON_PATHS = {
-        menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
-        'shield-check': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 12 15 16 10"/>',
-        search: '<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>',
-        wifi: '<path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>',
-        sun: '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
-        'log-in': '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>',
-        'log-out': '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
-        'chevron-down': '<polyline points="6 9 12 15 18 9"/>',
-        'layout-dashboard': '<rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>',
-        'folder-search': '<path d="M22 19V9a2 2 0 0 0-2-2h-6.58a2 2 0 0 1-1.42-.59L9.88 4.59A2 2 0 0 0 8.46 4H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z"/><circle cx="11.5" cy="12.5" r="2.5"/><path d="M20 20l-2.3-2.3"/>',
-        'clipboard-list': '<rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="10" y1="12" x2="14" y2="12"/><line x1="10" y1="16" x2="14" y2="16"/>',
-        package: '<path d="m7.5 4.27 9 5.15M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
-        lock: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
-        award: '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>',
-        'badge-check': '<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/>',
-        'file-text': '<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>',
-        map: '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
-        'bar-chart-3': '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-4"/>',
-        wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
-        settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1.51-1H11a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1 1.51H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/>',
-        bot: '<rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>',
-        'code-2': '<polyline points="18 8 22 12 18 16"/><polyline points="6 8 2 12 6 16"/><line x1="10" y1="22" x2="14" y2="2"/>',
-        'book-open': '<path d="M2 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H2z"/><path d="M22 3h-6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6z"/>',
-        info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
-        'clipboard-check': '<rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
-        'help-circle': '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
-        user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'
-      };
-      document.querySelectorAll('[data-lucide]').forEach(function(el) {
-        var name = el.getAttribute('data-lucide');
-        var size = 20;
-        var cls = el.className || '';
-        var m = cls.match(/icon-(\d+)/);
-        if (m) size = parseInt(m[1], 10);
-        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', size);
-        svg.setAttribute('height', size);
-        svg.setAttribute('viewBox', '0 0 24 24');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('stroke', 'currentColor');
-        svg.setAttribute('stroke-width', '2');
-        svg.setAttribute('stroke-linecap', 'round');
-        svg.setAttribute('stroke-linejoin', 'round');
-        var pathHtml = ICON_PATHS[name] || '<circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>';
-        var title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-        title.textContent = name;
-        svg.appendChild(title);
-        var parser = new DOMParser();
-        var parsed = parser.parseFromString('<svg xmlns="http://www.w3.org/2000/svg">' + pathHtml + '</svg>', 'image/svg+xml');
-        Array.prototype.forEach.call(parsed.documentElement.childNodes, function(child) {
-          svg.appendChild(document.importNode(child, true));
-        });
-        el.parentNode.replaceChild(svg, el);
-      });
-    }
-
-    // Inject top navigation links only for standalone browser tabs (not IDE iframe).
     (function() {
-      if (window.self !== window.top || window.__SB_IDE_EMBED__ || document.documentElement.hasAttribute('data-ide-embed')) return;
-      var actions = document.querySelector('.app-header-actions');
-      if (!actions) return;
-      var nav = document.createElement('nav');
-      nav.className = 'app-header-links';
-      nav.setAttribute('aria-label', 'Top navigation');
-      var origin = window.location.origin || '';
-      var links = [
-        { href: '/roadmap', icon: 'map', label: 'Roadmap', site: true },
-        { href: '/audit', icon: 'clipboard-check', label: 'Audit', site: true },
-        { href: '/pricing', icon: 'tag', label: 'Pricing', id: 'header-pricing-link', site: true },
-        { href: '/dashboard/', icon: 'layout-dashboard', label: 'Team Dashboard', id: 'vaultLink' }
-      ];
-      links.forEach(function(link) {
-        var a = document.createElement('a');
-        a.href = link.href;
-        a.className = 'app-header-link';
-        a.title = link.label;
-        if (link.id) a.id = link.id;
-        if (link.site) {
-          a.setAttribute('data-site-nav', '1');
-          a.addEventListener('click', function(ev) {
-            ev.preventDefault();
-            window.top.location.assign(origin + link.href);
-          });
-        }
-        var i = document.createElement('i');
-        i.setAttribute('data-lucide', link.icon);
-        i.className = 'icon-16';
-        a.appendChild(i);
-        var span = document.createElement('span');
-        span.textContent = link.label;
-        a.appendChild(span);
-        nav.appendChild(a);
-      });
-      actions.parentNode.insertBefore(nav, actions);
-    })();
-
-    // Network status icon — reflects navigator.onLine state
-    (function() {
-      var icon = document.getElementById('offline-toggle');
-      if (!icon) return;
-      function updateOfflineUi() {
-        var isOnline = navigator.onLine;
-        while (icon.firstChild) icon.removeChild(icon.firstChild);
-        var i = document.createElement('i');
-        i.setAttribute('data-lucide', isOnline ? 'wifi' : 'wifi-off');
-        i.className = 'icon-16';
-        i.style.color = isOnline ? 'var(--success)' : 'var(--error)';
-        icon.appendChild(i);
-        icon.title = isOnline ? 'Online' : 'Offline';
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-      }
-      window.addEventListener('online', updateOfflineUi);
-      window.addEventListener('offline', updateOfflineUi);
-      updateOfflineUi();
-    })();
-
-    // Nav group toggles
-    document.querySelectorAll('.nav-group-toggle').forEach(function(toggle) {
-      toggle.addEventListener('click', function() {
-        var expanded = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', String(!expanded));
-        var items = document.getElementById(toggle.getAttribute('aria-controls'));
-        if (items) { items.hidden = expanded; }
-      });
-    });
-  </script>
-  <script src="js/vendor/jszip.min.js?v=20260722clean1" defer></script>
-  <script>
-    // Extension bridge fetch rewrite — only local scan/notify/Ollama paths, not cloud auth.
-    (function() {
-      var BRIDGE_PREFIXES = [
-        '/api/simplebeacon/',
-        '/api/notify',
-        '/api/ping',
-        '/api/stream',
-        '/api/free-token'
-      ];
+      var BRIDGE_PREFIXES = ['/api/simplebeacon/', '/api/notify', '/api/ping', '/api/stream', '/api/free-token'];
       function isBridgeApiPath(path) {
         if (!path || path.indexOf('/api/') !== 0) return false;
         for (var i = 0; i < BRIDGE_PREFIXES.length; i++) {
@@ -1049,30 +122,22 @@
         }
         return false;
       }
-      function bridgeHost() {
-        return window.__SB_BRIDGE_HOST__ || '';
-      }
+      function bridgeHost() { return window.__SB_BRIDGE_HOST__ || ''; }
       function isHostedSite() {
         return location.protocol === 'https:' || !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname);
       }
       function rewriteBridgeUrl(url) {
         var host = bridgeHost();
         if (!host || typeof url !== 'string') return url;
-        // Hosted dashboard cannot fetch loopback (CORS / mixed-content). Local bridge
-        // paths are resolved explicitly in localAgentService.js and notify.js.
         if (isHostedSite()) return url;
         try {
           var u = new URL(url, location.href);
           var path = u.pathname + u.search;
-          if (isBridgeApiPath(u.pathname)) {
-            return host + path;
-          }
+          if (isBridgeApiPath(u.pathname)) return host + path;
           var current = location.protocol + '//' + location.host;
           if (url.indexOf(current + '/api/') === 0) {
             var relPath = url.slice(current.length);
-            if (isBridgeApiPath(relPath.split('?')[0])) {
-              return host + relPath;
-            }
+            if (isBridgeApiPath(relPath.split('?')[0])) return host + relPath;
           }
         } catch (e) {}
         return url;
@@ -1082,10 +147,7 @@
         window.fetch = function(input, init) {
           var url = typeof input === 'string' ? input : (input && input.url ? input.url : String(input));
           var rewritten = rewriteBridgeUrl(url);
-          if (rewritten !== url) {
-            init = init || {};
-            if (!init.credentials) init.credentials = 'omit';
-          }
+          if (rewritten !== url) { init = init || {}; if (!init.credentials) init.credentials = 'omit'; }
           return origFetch.call(this, rewritten, init);
         };
       }
@@ -1094,9 +156,7 @@
         window.XMLHttpRequest = function() {
           var xhr = new origXHR();
           var origOpen = xhr.open;
-          xhr.open = function(method, url) {
-            return origOpen.call(this, method, rewriteBridgeUrl(String(url)));
-          };
+          xhr.open = function(method, url) { return origOpen.call(this, method, rewriteBridgeUrl(String(url))); };
           return xhr;
         };
         Object.setPrototypeOf(window.XMLHttpRequest, origXHR);
@@ -1104,227 +164,14 @@
       }
     })();
   </script>
-  <script>
-    // Detect file:// protocol — ES modules and <base href> require HTTP
-    if (location.protocol === 'file:') {
-      document.addEventListener('DOMContentLoaded', function() {
-        var main = document.getElementById('app-main');
-        if (main) {
-          main.insertAdjacentHTML('beforeend', '<div style="max-width:640px;margin:80px auto;padding:32px;text-align:center;font-family:system-ui,sans-serif;color:#e2e8f0;">' +
-            '<h1 style="font-size:24px;margin-bottom:12px;">Dashboard requires an HTTP server</h1>' +
-            '<p style="font-size:14px;color:#94a3b8;margin-bottom:16px;">This page uses ES modules and a base href that only work over HTTP. It cannot be opened directly via <code>file://</code>.</p>' +
-            '<p style="font-size:14px;color:#94a3b8;margin-bottom:16px;">To view the dashboard:</p>' +
-            '<ul style="font-size:14px;color:#94a3b8;text-align:left;max-width:400px;margin:0 auto 16px;list-style:disc;padding-left:20px;">' +
-            '<li style="margin-bottom:6px;">In VS Code: use the SimpleBeacon sidebar or run the extension</li>' +
-            '<li style="margin-bottom:6px;">In a browser: start the data server first (<code>node serve.cjs</code> or the extension)</li>' +
-            '<li style="margin-bottom:6px;">Then navigate to the dashboard URL shown in the server output</li>' +
-            '</ul></div>');
-        }
-      });
-    }
-  </script>
+
+  <!-- DOMPurify for sanitization -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
-  <script>
-    (function() {
-      var path = (typeof location !== 'undefined' && location.pathname) || '';
-      if (path === '/dashboard/analyze' || path.indexOf('/dashboard/analyze/') === 0) {
-        function preload(href) {
-          var link = document.createElement('link');
-          link.rel = 'modulepreload';
-          link.href = href;
-          document.head.appendChild(link);
-        }
-        preload('/dashboard/js-es2018/views/AnalyzeView.js?v=20260725dropfix3');
-        preload('/dashboard/js-es2018/services/aiProblemAnalyzerSuite.mjs');
-      }
-    })();
-  </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260725analyze1" defer></script>
-  <script>
-    // Capture script errors so the fallback page can report them without DevTools.
-    window.__SB_DASHBOARD_ERRORS__ = [];
-    window.addEventListener('error', function(e) {
-      window.__SB_DASHBOARD_ERRORS__.push({
-        type: 'error',
-        message: e.message,
-        filename: e.filename,
-        lineno: e.lineno,
-        colno: e.colno,
-        error: e.error && e.error.stack ? e.error.stack : String(e.error)
-      });
-    });
-    window.addEventListener('unhandledrejection', function(e) {
-      window.__SB_DASHBOARD_ERRORS__.push({
-        type: 'unhandledrejection',
-        message: e.reason && e.reason.message ? e.reason.message : String(e.reason),
-        error: e.reason && e.reason.stack ? e.reason.stack : String(e.reason)
-      });
-    });
 
-    // Fallback SPA router when the main.js module is missing or fails to load
-    (function() {
-      const main = document.getElementById('app-main');
-      if (!main) return;
+  <!-- JSZip for export functionality -->
+  <script src="js/vendor/jszip.min.js?v=20260726react1" defer></script>
 
-      function reportPanel() {
-        const errs = window.__SB_DASHBOARD_ERRORS__ || [];
-        if (!errs.length) return '';
-        const items = errs.map(function(err) {
-          return '<li style="margin-bottom:8px;"><strong>' + escapeHtml(err.type) + '</strong>: ' + escapeHtml(err.message || 'unknown') +
-            (err.filename ? '<br><code style="font-size:12px;">' + escapeHtml(err.filename) + ':' + err.lineno + ':' + err.colno + '</code>' : '') +
-            '</li>';
-        }).join('');
-        return '<div style="margin:24px auto;max-width:640px;padding:16px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.4);border-radius:8px;color:#e2e8f0;font-family:sans-serif;">' +
-          '<h3 style="margin-top:0;">Dashboard load error</h3>' +
-          '<p style="font-size:13px;">The full dashboard could not load. Details:</p>' +
-          '<ul style="font-size:13px;text-align:left;overflow:auto;max-height:200px;">' + items + '</ul>' +
-          '<button id="dash-retry-btn" style="padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:6px;cursor:pointer;">Reload Dashboard</button>' +
-          '</div>';
-      }
-
-      function escapeHtml(str) {
-        return String(str).replace(/[&<>"']/g, function(m) {
-          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
-        });
-      }
-
-      // Give main.js a short window to load before rendering the fallback.
-      setTimeout(function() {
-        if (window.__SB_DASHBOARD_APP__) return;
-        const items = [
-          { id: 'dashboard', label: 'Dashboard', icon: '☰' },
-          { id: 'analyze', label: 'Analyze', icon: '🕔' },
-          { id: 'report', label: 'Report', icon: '📄' },
-          { id: 'certificate', label: 'Certificate', icon: '🔒' },
-          { id: 'code-map', label: 'Code Map', icon: '🗺' },
-          { id: 'roadmap', label: 'Roadmap', icon: '🛣' },
-          { id: 'ai-context', label: 'AI Context', icon: '🤖' },
-          { id: 'upload', label: 'Upload', icon: '⭳' },
-          { id: 'audit', label: 'Audit', icon: '📝' },
-          { id: 'security', label: 'Security', icon: '🔒' },
-          { id: 'trust', label: 'Trust', icon: '🗸' },
-          { id: 'quality', label: 'Quality', icon: '⭐' },
-          { id: 'assessments', label: 'Assessments', icon: '✅' },
-          { id: 'platform', label: 'Platform', icon: '💻' },
-          { id: 'profile', label: 'Profile', icon: '👤' },
-          { id: 'compliance', label: 'Compliance', icon: '🛡' },
-          { id: 'repo-health', label: 'Repo Health', icon: '📈' },
-          { id: 'analytics', label: 'Analytics', icon: '📊' },
-          { id: 'scan', label: 'Scan', icon: '🔍' },
-          { id: 'settings', label: 'Settings', icon: '⚙' }
-        ];
-        function grid() {
-          return '<div class="dashboard-welcome"><div class="icon" style="font-size:120px">&#x1F5FA;</div><h1>SimpleBeacon Dashboard</h1><div class="subtitle">Overview of your codebase health, scan results, and quick actions.</div>' +
-            reportPanel() +
-            '<div class="dashboard-grid">' +
-            items.map(function(it) { return '<a href="#/' + it.id + '" data-view="' + it.id + '"><span class="icon">' + it.icon + '</span><span>' + it.label + '</span></a>'; }).join('') +
-            '</div></div>';
-        }
-        function placeholder(view) {
-          const it = items.find(function(x) { return x.id === view; });
-          return '<div class="view-placeholder"><h2>' + (it ? it.icon + ' ' + it.label : view) + '</h2><p>This view is rendered by the fallback SPA. Build the full dashboard assets for the complete experience.</p></div>';
-        }
-        function htmlToNodes(html) {
-          return document.createRange().createContextualFragment(html.trim());
-        }
-        function render() {
-          if (window.__SB_DASHBOARD_APP__) return;
-          const hash = location.hash.replace(/^#\//, '').split('#')[0] || 'dashboard';
-          main.textContent = '';
-          if (hash === 'dashboard') {
-            main.appendChild(htmlToNodes(grid()));
-            const retry = document.getElementById('dash-retry-btn');
-            if (retry) retry.addEventListener('click', function() { location.reload(); });
-          } else {
-            main.appendChild(htmlToNodes(placeholder(hash)));
-          }
-          document.querySelectorAll('.nav-link').forEach(function(link) {
-            const active = link.getAttribute('data-view') === hash;
-            link.classList.toggle('active', active);
-          });
-        }
-        window.addEventListener('hashchange', render);
-        render();
-      }, 1500);
-    })();
-  </script>
-  <!-- IDE runtime shim: force container-relative heights for older/quirky webview hosts -->
-  <script>
-  (function() {
-    try {
-      const isIdeWebview = (typeof navigator !== 'undefined' && (navigator.userAgent || '').includes('Electron')) ||
-                           (window.location && window.location.search && window.location.search.includes('sb_parent_urlbar=1')) ||
-                           (window.top !== window.self);
-
-      if (!isIdeWebview) return;
-      console.debug('[SimpleBeacon IDE Shim] Restricting layout engine bounds.');
-
-      // Explicit scroll anchoring function
-      function ensureTop() {
-        try {
-          if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
-          if (document.body) document.body.scrollTop = 0;
-          const shell = document.querySelector('.app-shell') || document.querySelector('.main-content');
-          if (shell) shell.scrollTop = 0;
-          } catch(e) {
-          console['warn']('[SimpleBeacon IDE Shim] Scroll anchor adjustment skipped:', e);
-        }
-      }
-
-      const applyIdeSizing = () => {
-        try {
-          const containerHeight = window.innerHeight + 'px';
-          document.documentElement.style.setProperty('height', containerHeight, 'important');
-          document.body.style.setProperty('height', containerHeight, 'important');
-
-          const appShell = document.querySelector('.app-shell');
-          if (appShell) {
-            appShell.style.setProperty('height', containerHeight, 'important');
-            appShell.style.setProperty('min-height', '100%', 'important');
-            appShell.style.setProperty('overflow', 'hidden', 'important');
-          }
-          // Force coordinate anchoring on layout calculation shifts
-          ensureTop();
-        } catch (e) {
-          console['warn']('[SimpleBeacon IDE Shim] sizing failed', e);
-        }
-      };
-
-      applyIdeSizing();
-
-      // Wire up listeners to continuously intercept view shifts
-      window.addEventListener('load', ensureTop);
-      window.addEventListener('resize', applyIdeSizing, { passive: true });
-      window.addEventListener('focus', ensureTop);
-
-      // Watch for asynchronous DOM changes (late-loading components, graphs)
-      // and re-apply sizing. Use a small debounce to avoid layout thrash.
-      (function() {
-        var mutationDebounceMs = 50;
-        var mutationDebounceTimer = null;
-        try {
-          var contentObserver = new MutationObserver(function(mutations) {
-            if (mutationDebounceTimer) clearTimeout(mutationDebounceTimer);
-            mutationDebounceTimer = setTimeout(function() {
-              try { if (typeof applyIdeSizing === 'function') applyIdeSizing(); } catch (e) {}
-              mutationDebounceTimer = null;
-            }, mutationDebounceMs);
-          });
-          if (document && document.body) {
-            contentObserver.observe(document.body, { childList: true, subtree: true });
-          } else {
-            window.addEventListener('DOMContentLoaded', function() {
-              try { contentObserver.observe(document.body, { childList: true, subtree: true }); } catch (e) {}
-            });
-          }
-        } catch (e) {
-          console['warn']('[SimpleBeacon IDE Shim] mutation observer init failed', e);
-        }
-      })();
-    } catch (err) {
-      console['warn']('[SimpleBeacon IDE Shim] init failed', err);
-    }
-  })();
-  </script>
+  <!-- React Dashboard Bundle -->
+  <script type="module" src="./dist/assets/main.js"></script>
 </body>
 </html>
