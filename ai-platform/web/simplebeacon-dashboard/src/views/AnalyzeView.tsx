@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase } from '@/config';
+import { runLocalScan } from '@services/localScanService.js';
 
 type ScanMode = 'local' | 'server' | 'github' | 'upload';
 type ScanState = 'idle' | 'scanning' | 'complete' | 'error';
@@ -98,6 +99,48 @@ export function AnalyzeView() {
         setProgress(40);
       }
 
+      // Local mode with a directory handle: use browser-based scan
+      const dirHandle = (window as any).__sbDroppedDirHandle as FileSystemDirectoryHandle | undefined;
+      if (mode === 'local' && dirHandle && dirHandle.name === scanPath) {
+        setProgressLabel('Scanning files in browser...');
+        setProgress(20);
+        appendLog(`[SimpleBeacon] Browser local scan via File System Access API...`);
+        const report = await runLocalScan({
+          dirHandle,
+          projectPath: scanPath,
+          onProgress: (processed: number, total: number) => {
+            if (total > 0) {
+              setProgress(Math.min(90, 20 + Math.round((processed / total) * 70)));
+              setProgressLabel(`Scanning ${processed} / ${total} files`);
+            }
+          },
+        });
+        setProgressLabel('Processing results...');
+        setProgress(95);
+        const r = report as any;
+        const scanResult: ScanResult = {
+          totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || 0,
+          issueCount: r.issueCount || r.summary?.totalFindings || 0,
+          severityCounts: r.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+          gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+          qualityScore: r.qualityScore ?? null,
+          projectPath: r.projectPath || scanPath,
+          scanScope: r.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+        };
+        setResult(scanResult);
+        setScanState('complete');
+        setProgress(100);
+        appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
+        localStorage.setItem('sb_last_scan', JSON.stringify({
+          files: scanResult.totalFiles,
+          issues: scanResult.issueCount,
+          gate: scanResult.gate.pass,
+        }));
+        localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
+        localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+        return;
+      }
+
       setProgressLabel('Resolving scan strategy...');
       setProgress(50);
 
@@ -151,7 +194,7 @@ export function AnalyzeView() {
       appendLog(`[SimpleBeacon] Error: ${err.message}`);
       toast.error(err.message || 'Scan failed');
     }
-  }, [path, appendLog]);
+  }, [path, mode, appendLog]);
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
