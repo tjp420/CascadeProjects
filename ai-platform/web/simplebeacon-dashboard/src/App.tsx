@@ -69,6 +69,7 @@ export default function App() {
   const { isAuthenticated, isFreeTier } = useAuth();
   useTheme();
 
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     const onHashChange = () => setRoute(getCurrentRoute());
     window.addEventListener('hashchange', onHashChange);

@@ -62,11 +62,17 @@ export function navigate(view: string, params?: Record<string, string>) {
   const qs = searchParams.toString();
   if (qs) hash += `?${qs}`;
   window.location.hash = hash;
+  try {
+    // Ensure scroll resets for embedded hosts
+    const sc = document.querySelector('#app-main') || document.querySelector('.app-main') || document.scrollingElement || document.documentElement;
+    if (sc && typeof (sc as any).scrollTo === 'function') (sc as any).scrollTo(0, 0); else if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
+  } catch (e) { /* ignore */ }
 }
 
 export function useHashRoute() {
   const [route, setRoute] = useState(getCurrentRoute());
 
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     const onHashChange = () => setRoute(getCurrentRoute());
     window.addEventListener('hashchange', onHashChange);
@@ -76,6 +82,10 @@ export function useHashRoute() {
   const handleNavigate = useCallback((view: string, params?: Record<string, string>) => {
     navigate(view, params);
     setRoute(getCurrentRoute());
+    try {
+      const sc = document.querySelector('#app-main') || document.querySelector('.app-main') || document.scrollingElement || document.documentElement;
+      if (sc && typeof (sc as any).scrollTo === 'function') (sc as any).scrollTo(0, 0); else if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
+    } catch (e) { /* ignore */ }
   }, []);
 
   return { route, navigate: handleNavigate };

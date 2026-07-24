@@ -325,6 +325,26 @@
           "reason": "Generated copy of CLI rule catalog — single source of truth in packages/simplebeacon-cli"
         },
         {
+          "type": "duplicate-data",
+          "path": "coming-soon/public/dashboard/js/demo/demo-audit.json",
+          "reason": "Build artifact copy from build-public.js — single source of truth in ai-platform/web/simplebeacon-dashboard/js/demo/"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "coming-soon/public/dashboard/js/demo/demo-report.json",
+          "reason": "Build artifact copy from build-public.js — single source of truth in ai-platform/web/simplebeacon-dashboard/js/demo/"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "simplebeacon-vscode-merged/dashboard-web/js/demo/demo-audit.json",
+          "reason": "Synced copy from sync-dashboard-web.cjs — single source of truth in ai-platform/web/simplebeacon-dashboard/js/demo/"
+        },
+        {
+          "type": "duplicate-data",
+          "path": "simplebeacon-vscode-merged/dashboard-web/js/demo/demo-report.json",
+          "reason": "Synced copy from sync-dashboard-web.cjs — single source of truth in ai-platform/web/simplebeacon-dashboard/js/demo/"
+        },
+        {
           "type": "synchronous-file-operation",
           "path": "coming-soon/build-public.js",
           "reason": "Build script — fs.mkdirSync is intentional for deployment"

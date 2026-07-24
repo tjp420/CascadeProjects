@@ -6,6 +6,7 @@ export function useAuth() {
   const [isFreeTier, setIsFreeTier] = useState(true);
   const [user, setUser] = useState<{ email?: string; name?: string; role?: string } | null>(null);
 
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     const checkAuth = () => {
       try {

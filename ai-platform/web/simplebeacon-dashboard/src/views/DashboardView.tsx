@@ -10,6 +10,7 @@ export function DashboardView() {
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'complete'>('idle');
   const [lastScan, setLastScan] = useState<{ files: number; issues: number; gate: boolean } | null>(null);
 
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     try {
       const saved = localStorage.getItem('sb_last_scan');

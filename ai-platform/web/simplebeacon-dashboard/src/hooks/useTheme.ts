@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 export function useTheme() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     const current = document.documentElement.getAttribute('data-theme') as 'light' | 'dark' || 'light';
     setTheme(current);
