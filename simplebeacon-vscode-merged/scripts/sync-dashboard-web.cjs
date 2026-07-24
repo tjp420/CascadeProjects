@@ -41,4 +41,16 @@ if (fs.existsSync(authServicePath)) {
   }
 }
 
+// Patch index.html: rewrite Vite dev script src to production build path for extension serving
+const indexPath = path.join(dest, 'index.html');
+if (fs.existsSync(indexPath)) {
+  let html = fs.readFileSync(indexPath, 'utf8');
+  // Replace /src/main.tsx with ./dist/assets/main.js (production build)
+  if (html.includes('/src/main.tsx')) {
+    html = html.replace(/<script type="module" src="\/src\/main\.tsx"><\/script>/, '<script type="module" src="./dist/assets/main.js"></script>');
+    fs.writeFileSync(indexPath, html, 'utf8');
+    console.log('[sync-dashboard-web] Patched index.html: /src/main.tsx -> ./dist/assets/main.js');
+  }
+}
+
 console.log('[sync-dashboard-web] Done');
