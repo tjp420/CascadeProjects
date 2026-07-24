@@ -9,7 +9,13 @@ export function getApiBase(): string {
   if (typeof window === 'undefined') return DEFAULT_API_BASE;
   try {
     const params = new URLSearchParams(window.location.search);
-    return params.get('sb_api_base') || DEFAULT_API_BASE;
+    const explicit = params.get('sb_api_base');
+    if (explicit) return explicit;
+    const host = window.location.hostname || '';
+    if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
+      return DEFAULT_API_BASE;
+    }
+    return '/api';
   } catch {
     return DEFAULT_API_BASE;
   }

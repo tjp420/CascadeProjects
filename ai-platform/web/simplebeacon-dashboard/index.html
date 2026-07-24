@@ -64,6 +64,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/main.css">
 
   <!-- IDE embed mode detection -->
   <script>
@@ -71,7 +72,11 @@
       var params = new URLSearchParams(window.location.search);
       var sbParentUrlbar = params.get('sb_parent_urlbar');
       var sbWebsiteMode = params.get('sb_website_mode');
-      var isIde = window.self !== window.top || (navigator.userAgent || '').includes('Electron');
+      // Consider IDE/embed only when explicitly embedded (iframe), when the
+      // host provides an explicit query flag, or when VS Code provides the
+      // `acquireVsCodeApi` bridge. Do not rely on the UA "Electron" token
+      // alone because browsers or previews may include it.
+      var isIde = (window.self !== window.top) || (typeof window.acquireVsCodeApi === 'function') || sbParentUrlbar === '1';
       if (sbParentUrlbar === '1') document.documentElement.setAttribute('data-parent-urlbar', '1');
       if (sbWebsiteMode === '1') document.documentElement.setAttribute('data-embed-mode', '1');
       if (isIde) document.documentElement.setAttribute('data-ide-embed', '1');
@@ -93,16 +98,118 @@
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
     #root { min-height: 100vh; }
+    /* If the host forces inline heights on html/body, make the app root
+       fill the viewport and be independently scrollable. Do not apply in
+       IDE/embed contexts where the host controls sizing. */
+    html:not([data-ide-embed="1"]) #root {
+      position: fixed;
+      inset: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      background: inherit;
+    }
+    /* Also ensure the runtime app container (`#app-main` / `.app-main`) is
+       fixed and scrollable when the host forces html/body heights. This
+       targets the built runtime structure. */
+    html:not([data-ide-embed="1"]) #app-main,
+    html:not([data-ide-embed="1"]) .app-main {
+      position: fixed;
+      inset: 0;
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      background: inherit;
+    }
+    /* When embedded in an IDE or parent URL bar we allow the app container to
+       remain scrollable rather than forcing host-hidden overflow. This prevents
+       host-injected inline heights from breaking layout/scrolling. */
     html[data-ide-embed="1"], html[data-ide-embed="1"] body {
-      height: 100%; min-height: 0; margin: 0; padding: 0; overflow: hidden;
+      height: 100%; min-height: 0; margin: 0; padding: 0; overflow: auto !important;
     }
     html[data-ide-embed="1"] #root {
-      height: 100% !important; min-height: 0; overflow: hidden;
+      height: 100% !important; min-height: 0; overflow: auto !important;
     }
     html[data-parent-urlbar="1"] #root {
-      height: 100% !important; min-height: 0; overflow: hidden;
+      height: 100% !important; min-height: 0; overflow: auto !important;
     }
   </style>
+
+  <script>
+    // Ensure the runtime app container is the scrollable viewport.
+    (function enforceAppMain() {
+      function apply() {
+        try {
+          // Do not force fixed positioning when embedded in an IDE parent —
+          // the host controls sizing. Skip applying fixed layout in that case.
+          if (document.documentElement && document.documentElement.getAttribute('data-ide-embed') === '1') return;
+          var el = document.getElementById('app-main') || document.querySelector('.app-main');
+          if (!el) return;
+          el.style.setProperty('position', 'fixed', 'important');
+          el.style.setProperty('inset', '64px 0 0 240px', 'important');
+          el.style.setProperty('overflow', 'auto', 'important');
+          el.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
+          el.style.setProperty('box-sizing', 'border-box', 'important');
+        } catch (e) { }
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+      var n = 0; var iv = setInterval(function(){ apply(); if (++n > 40) clearInterval(iv); }, 100);
+      setTimeout(function(){ try{ clearInterval(iv); }catch(e){} }, 3000);
+    })();
+  </script>
+
+  <script>
+    (function() {
+      function isIde() {
+        try {
+          var params = new URLSearchParams(window.location.search || '');
+          return (window.self !== window.top) || (typeof window.acquireVsCodeApi === 'function') || params.get('sb_parent_urlbar') === '1';
+        } catch (e) { return false; }
+      }
+      function stripHeightFromAttr(attrVal) {
+        if (!attrVal) return '';
+        return attrVal.replace(/\bheight\s*:\s*[^;!]*!important;?/gi, '').replace(/\bheight\s*:\s*[^;]*;?/gi, '');
+      }
+      function cleanup() {
+        if (isIde()) return;
+        try {
+          if (document.documentElement) {
+            // remove via style API
+            try { document.documentElement.style.removeProperty('height'); } catch (e){}
+            // also sanitize raw attribute
+            try {
+              var s = document.documentElement.getAttribute('style');
+              if (s && /height\s*:/i.test(s)) document.documentElement.setAttribute('style', stripHeightFromAttr(s));
+            } catch (e) {}
+          }
+          if (document.body) {
+            try { document.body.style.removeProperty('height'); } catch (e) {}
+            try {
+              var sb = document.body.getAttribute('style');
+              if (sb && /height\s*:/i.test(sb)) document.body.setAttribute('style', stripHeightFromAttr(sb));
+            } catch (e) {}
+          }
+        } catch (e) {}
+      }
+      cleanup();
+      try {
+        if (window.MutationObserver) {
+          var mo = new MutationObserver(function(m){ cleanup(); });
+          mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+          if (document.body) mo.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+        }
+      } catch (e) {}
+      // aggressive initial cleanup: use rAF for quick removal and then a
+      // short high-frequency interval. This is defensive against hosts that
+      // set inline heights shortly after load. After the initial period we
+      // back off to a lower frequency.
+      var rfStop = Date.now() + 2000;
+      (function rafLoop() {
+        try { cleanup(); } catch (e) {}
+        if (Date.now() < rfStop) requestAnimationFrame(rafLoop);
+      })();
+      var fastIv = setInterval(function() { try { cleanup(); } catch (e) {} }, 100);
+      setTimeout(function() { clearInterval(fastIv); setInterval(cleanup, 1000); }, 5000);
+    })();
+  </script>
 </head>
 <body>
   <noscript><div style="padding:40px;text-align:center;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
@@ -172,6 +279,26 @@
   <script src="js/vendor/jszip.min.js?v=20260726react1" defer></script>
 
   <!-- React Dashboard Bundle -->
-  <script type="module" src="/src/main.tsx"></script>
+  <script type="module" src="/assets/main.js"></script>
+  <script>
+    (function(){
+      try{
+        var _isEmbedFlag = (function(){
+          try{
+            var params = new URLSearchParams(location.search||'');
+            if (params.get('sb_parent_urlbar')==='1' || params.get('sb_website_mode')==='1') return true;
+            if (document.documentElement && (document.documentElement.getAttribute('data-parent-urlbar') || document.documentElement.getAttribute('data-embed-mode') || document.documentElement.getAttribute('data-ide-embed'))) return true;
+            if (typeof window.acquireVsCodeApi === 'function') return true;
+          }catch(e){}
+          return false;
+        })();
+        if (!_isEmbedFlag) {
+          var css = '#root, #app-main, .app-main { position: fixed !important; inset: 0 !important; overflow: auto !important; -webkit-overflow-scrolling: touch !important; background: inherit !important; }';
+          var s = document.createElement('style'); s.setAttribute('data-sb-resilient','1'); s.appendChild(document.createTextNode(css));
+          (document.head || document.documentElement).appendChild(s);
+        }
+      }catch(e){}
+    })();
+  </script>
 </body>
 </html>

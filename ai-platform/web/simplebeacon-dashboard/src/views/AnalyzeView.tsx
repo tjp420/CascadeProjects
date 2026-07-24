@@ -55,6 +55,8 @@ export function AnalyzeView() {
     setTerminalOutput((prev) => [...prev, line]);
   }, []);
 
+  const isGithubUrl = (url: string) => /^https?:\/\/github\.com\//i.test(url.trim());
+
   const handleScan = useCallback(async () => {
     if (!path.trim()) {
       toast.error('Please enter a project path');
@@ -73,18 +75,41 @@ export function AnalyzeView() {
       const apiBase = getApiBase();
       appendLog(`[SimpleBeacon] API base: ${apiBase || 'default'}`);
 
+      let scanPath = path.trim();
+
+      // GitHub URL: clone first, then scan the local clone path
+      if (isGithubUrl(scanPath)) {
+        setProgressLabel('Cloning GitHub repository...');
+        setProgress(20);
+        appendLog(`[SimpleBeacon] Cloning ${scanPath}...`);
+        const cloneResp = await fetch(`${apiBase}/analyze/github-clone`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ repoUrl: scanPath }),
+        });
+        if (!cloneResp.ok) {
+          const cloneErr = await cloneResp.json().catch(() => ({}));
+          throw new Error(cloneErr.error || `GitHub clone failed (${cloneResp.status})`);
+        }
+        const cloneData = await cloneResp.json();
+        if (!cloneData.success) throw new Error(cloneData.error || 'GitHub clone failed');
+        scanPath = cloneData.projectPath;
+        appendLog(`[SimpleBeacon] Clone complete: ${scanPath} (method: ${cloneData.method || 'git'})`);
+        setProgress(40);
+      }
+
       setProgressLabel('Resolving scan strategy...');
-      setProgress(20);
+      setProgress(50);
 
       if (apiBase) {
         appendLog(`[SimpleBeacon] Requesting server scan...`);
         setProgressLabel('Scanning via server...');
-        setProgress(40);
+        setProgress(60);
 
         const resp = await fetch(`${apiBase}/analyze/flexible`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectPath: path }),
+          body: JSON.stringify({ projectPath: scanPath }),
         });
 
         if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
@@ -99,7 +124,7 @@ export function AnalyzeView() {
           severityCounts: data.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
           gate: data.gate || { pass: true, blockingCount: 0, warningCount: 0 },
           qualityScore: data.qualityScore ?? null,
-          projectPath: data.projectPath || path,
+          projectPath: data.projectPath || scanPath,
           scanScope: data.scanScope || { profile: 'standard', resultsViewScope: 'platform-only' },
         };
 
@@ -128,9 +153,22 @@ export function AnalyzeView() {
     }
   }, [path, appendLog]);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+    const items = e.dataTransfer.items;
+    if (items && items.length > 0 && typeof (items[0] as any).getAsFileSystemHandle === 'function') {
+      try {
+        const handle = await (items[0] as any).getAsFileSystemHandle();
+        if (handle && handle.kind === 'directory') {
+          setPath(handle.name);
+          toast.info(`Folder dropped: ${handle.name}`);
+          // Store the directory handle for scanning
+          (window as any).__sbDroppedDirHandle = handle;
+          return;
+        }
+      } catch { /* fall through to file handling */ }
+    }
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
       const first = files[0];
@@ -151,6 +189,24 @@ export function AnalyzeView() {
       } else {
         setPath(first.name);
       }
+    }
+  }, []);
+
+  const handleBrowseFolder = useCallback(async () => {
+    if (typeof (window as any).showDirectoryPicker !== 'function') {
+      folderInputRef.current?.click();
+      return;
+    }
+    try {
+      const handle = await (window as any).showDirectoryPicker();
+      if (handle) {
+        setPath(handle.name);
+        toast.info(`Folder selected: ${handle.name}`);
+        (window as any).__sbDroppedDirHandle = handle;
+      }
+    } catch {
+      // User cancelled or permission denied — fall back to input
+      folderInputRef.current?.click();
     }
   }, []);
 
@@ -196,7 +252,7 @@ export function AnalyzeView() {
               >
                 <Folder className="mx-auto h-10 w-10 text-foreground-muted" />
                 <p className="mt-2 text-sm text-foreground-muted">Drag a folder here or browse</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => folderInputRef.current?.click()}>
+                <Button variant="outline" size="sm" className="mt-3" onClick={handleBrowseFolder}>
                   Browse Folder
                 </Button>
                 <input

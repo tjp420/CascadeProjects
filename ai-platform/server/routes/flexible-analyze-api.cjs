@@ -386,6 +386,23 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         if (!trimmed) {
             throw new Error('projectPath is required');
         }
+        if (/^https?:\/\/github\.com\//i.test(trimmed)) {
+            const cacheKey = crypto.createHash('sha256').update(trimmed).digest('hex').slice(0, 16);
+            const cacheDir = path.join(os.tmpdir(), 'sb-github-cache');
+            const projectPath = path.join(cacheDir, cacheKey);
+            const cacheExists = await fs.promises.access(projectPath).then(() => true).catch(() => false);
+            if (!cacheExists) {
+                await fs.promises.mkdir(cacheDir, { recursive: true });
+                const safeRepoUrl = trimmed.replace(/["';`$|&<>(){}[\]\n\r]/g, '');
+                try {
+                    await execAsync(`git clone --depth 1 "${safeRepoUrl}" "${projectPath}"`, { timeout: 120000, maxBuffer: 1024 * 1024 });
+                } catch (gitErr) {
+                    logger.warn('[Analyze/Flexible] git clone failed for GitHub URL, trying zipball fallback:', safeErrorMessage(gitErr));
+                    await downloadGithubZipball(trimmed, projectPath);
+                }
+            }
+            return { projectPath, tempFetchDir: null, isWebsite: false };
+        }
         if (/^https?:\/\//i.test(trimmed)) {
             const tempFetchDir = await fetchWebsiteToTemp(trimmed);
             return { projectPath: tempFetchDir, tempFetchDir, isWebsite: true };
@@ -2334,6 +2351,53 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         }
     });
 
+    async function downloadGithubZipball(repoUrl, destPath) {
+        const match = repoUrl.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?(?:$|[?#])/i);
+        if (!match) throw new Error('Not a GitHub repository URL');
+        const owner = match[1];
+        const repo = match[2];
+        let branch = 'HEAD';
+        const branchMatch = repoUrl.match(/(?:ref=|\/tree\/|\/blob\/)([^/?#]+)/);
+        if (branchMatch) branch = branchMatch[1];
+        const zipUrl = `https://codeload.github.com/${owner}/${repo}/zip/refs/heads/${branch}`;
+        const tmpDir = path.join(os.tmpdir(), `sb-zip-${Date.now()}`);
+        await fs.promises.mkdir(tmpDir, { recursive: true });
+        const zipPath = path.join(tmpDir, 'repo.zip');
+        await new Promise((resolve, reject) => {
+            const file = fs.createWriteStream(zipPath);
+            const handleResponse = (response) => {
+                if (response.statusCode === 302 || response.statusCode === 301) {
+                    https.get(response.headers.location, handleResponse).on('error', reject);
+                    return;
+                }
+                if (response.statusCode !== 200) {
+                    reject(new Error(`GitHub zipball download failed: ${response.statusCode}`));
+                    return;
+                }
+                response.pipe(file);
+                file.on('finish', () => { file.close(); resolve(); });
+                file.on('error', reject);
+            };
+            https.get(zipUrl, { headers: { 'User-Agent': 'SimpleBeacon/1.0' } }, handleResponse)
+                .on('error', reject);
+        });
+        const extractDir = path.join(tmpDir, 'extracted');
+        await fs.promises.mkdir(extractDir, { recursive: true });
+        await new Promise((resolve, reject) => {
+            fs.createReadStream(zipPath)
+                .pipe(unzipper.Extract({ path: extractDir }))
+                .on('close', resolve)
+                .on('error', reject);
+        });
+        const entries = await fs.promises.readdir(extractDir);
+        const topDir = entries.find((e) => fs.statSync(path.join(extractDir, e)).isDirectory());
+        if (!topDir) throw new Error('Zipball contained no top-level directory');
+        const srcDir = path.join(extractDir, topDir);
+        await fs.promises.mkdir(path.dirname(destPath), { recursive: true });
+        await fs.promises.rename(srcDir, destPath);
+        fs.promises.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
+    }
+
     app.post('/api/analyze/github-clone', async (req, res) => {
         const body = req.body || {};
         const repoUrl = String(body.repoUrl || '').trim();
@@ -2354,17 +2418,24 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 await fs.promises.rm(projectPath, { recursive: true, force: true });
             }
             const safeRepoUrl = repoUrl.replace(/["';`$|&<>(){}[\]\n\r]/g, '');
-            const { stdout, stderr } = await execAsync(
-                `git clone --depth 1 "${safeRepoUrl}" "${projectPath}"`,
-                { timeout: 120000, maxBuffer: 1024 * 1024 }
-            );
-            if (stderr && !stderr.includes('Cloning into')) {
-                logger.warn('[GitHub Clone] stderr:', stderr);
+            let cloneMethod = 'git';
+            try {
+                const { stdout, stderr } = await execAsync(
+                    `git clone --depth 1 "${safeRepoUrl}" "${projectPath}"`,
+                    { timeout: 120000, maxBuffer: 1024 * 1024 }
+                );
+                if (stderr && !stderr.includes('Cloning into')) {
+                    logger.warn('[GitHub Clone] stderr:', stderr);
+                }
+            } catch (gitErr) {
+                logger.warn('[GitHub Clone] git clone failed, trying zipball fallback:', safeErrorMessage(gitErr));
+                cloneMethod = 'zipball';
+                await downloadGithubZipball(repoUrl, projectPath);
             }
-            return res.json({ success: true, projectPath, cached: false });
+            return res.json({ success: true, projectPath, cached: false, method: cloneMethod });
         } catch (err) {
             logger.error('[GitHub Clone] failed:', safeErrorMessage(err));
-            return res.status(500).json({ success: false, error: safeErrorMessage(err) || 'Git clone failed' });
+            return res.status(500).json({ success: false, error: safeErrorMessage(err) || 'GitHub clone failed' });
         }
     });
 

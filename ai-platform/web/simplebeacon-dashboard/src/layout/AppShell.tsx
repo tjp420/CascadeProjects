@@ -8,11 +8,14 @@ interface AppShellProps {
   onNavigate: (view: string) => void;
   isAuthenticated: boolean;
   isFreeTier: boolean;
+  user?: { email?: string; name?: string; role?: string } | null;
   children: React.ReactNode;
 }
 
-export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier, children }: AppShellProps) {
+export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier, user, children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isAdmin = !!(user && (user.role === 'admin' || user.role === 'owner'));
 
   return (
     <div className="flex h-full overflow-hidden bg-background">
@@ -23,6 +26,7 @@ export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier,
           setSidebarOpen(false);
         }}
         isOpen={sidebarOpen}
+        isAdmin={isAdmin}
         onClose={() => setSidebarOpen(false)}
       />
       <div className="flex flex-1 flex-col overflow-hidden min-h-0">
