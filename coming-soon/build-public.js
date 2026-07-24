@@ -92,6 +92,10 @@ if (fs.existsSync(dashboardSrc)) {
   const dashboardIndex = path.join(dashboardDst, 'index.html');
   const dashboardEntry = path.join(dashboardDst, '__entry');
   if (fs.existsSync(dashboardIndex)) {
+    let dashHtml = fs.readFileSync(dashboardIndex, 'utf8');
+    // Rewrite Vite dev script src to production build path for deployed site
+    dashHtml = dashHtml.replace(/<script type="module" src="\/src\/main\.tsx"><\/script>/, '<script type="module" src="/dashboard/dist/assets/main.js"></script>');
+    fs.writeFileSync(dashboardIndex, dashHtml, 'utf8');
     fs.copyFileSync(dashboardIndex, dashboardEntry);
   }
 }

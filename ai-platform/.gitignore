@@ -26,6 +26,9 @@ build/
 .next/
 out/
 coverage/
+# Exception: dashboard dist assets are built externally and needed by CF Pages build
+!web/simplebeacon-dashboard/dist/
+!web/simplebeacon-dashboard/dist/**
 
 # Demo / fixture data (not production)
 web/data/*-sample.json
