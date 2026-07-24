@@ -94,7 +94,8 @@ if (fs.existsSync(dashboardSrc)) {
   if (fs.existsSync(dashboardIndex)) {
     let dashHtml = fs.readFileSync(dashboardIndex, 'utf8');
     // Rewrite Vite dev script src to production build path for deployed site
-    dashHtml = dashHtml.replace(/<script type="module" src="\/src\/main\.tsx"><\/script>/, '<script type="module" src="/dashboard/dist/assets/main.js"></script>');
+    const cacheBust = Date.now();
+    dashHtml = dashHtml.replace(/<script type="module" src="\/src\/main\.tsx"><\/script>/, `<script type="module" src="/dashboard/dist/assets/main.js?v=${cacheBust}"></script>`);
     // Rewrite relative js/vendor paths to absolute /dashboard/js/vendor for CF Pages
     dashHtml = dashHtml.replace(/src="js\/vendor\//g, 'src="/dashboard/js/vendor/');
     fs.writeFileSync(dashboardIndex, dashHtml, 'utf8');
