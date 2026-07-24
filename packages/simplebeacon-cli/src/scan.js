@@ -299,7 +299,7 @@ function normalizeScannerOutput(issues, scanResult, type, defaultId, defaultDesc
 
 /** Patterns for known false-positive suppression. */
 const FP_PATH_PATTERNS = Object.freeze([
-    { type: 'Duplicate Data', pathIncludes: ['simplebeacon-dashboard/js-es2018/', 'simplebeacon-dashboard/js/', 'simplebeacon-dashboard/data/', 'tsconfig.json', 'simplebeacon-vscode-merged/dashboard-web/data/', 'simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/'] },
+    { type: 'Duplicate Data', pathIncludes: ['simplebeacon-dashboard/js-es2018/', 'simplebeacon-dashboard/js/', 'simplebeacon-dashboard/data/', 'tsconfig.json', 'simplebeacon-vscode-merged/dashboard-web/data/', 'simplebeacon-vscode-merged/dashboard-web/js-es2018/utils-lib/', 'simplebeacon-dashboard/js/demo/', 'simplebeacon-vscode-merged/dashboard-web/js/demo/', 'coming-soon/public/dashboard/js/demo/', 'web/dashboard/js/utils-lib/'] },
     { type: 'Credential Pattern', pathIncludes: ['ai-agent-report-for-dashboard.json'] },
     { type: 'cleanup', pathIncludes: ['simplebeacon-dashboard/js-es2018/'] },
     { type: 'performance', pathIncludes: ['simplebeacon-dashboard/js-es2018/'] },

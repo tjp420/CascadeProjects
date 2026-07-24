@@ -169,6 +169,10 @@ function scanFileFast(relativePath, ext, content, ruleCounters) {
       const matchLine = lines[matchLineIndex];
       const lowerLine = matchLine.toLowerCase();
 
+      // Check for simplebeacon-ignore suppression on the preceding line
+      const prevLine = matchLineIndex > 0 ? lines[matchLineIndex - 1] : '';
+      if (/\/\/\s*simplebeacon-ignore\s*[:\s]/i.test(prevLine) && new RegExp(check.id, 'i').test(prevLine)) continue;
+
       // Context filters to reduce false positives
       if (check.id === 'governance-marker') {
         // Skip env-var names like SIMPLEBEACON_LICENSE_TOKEN, _LICENSE_SECRET, etc.
