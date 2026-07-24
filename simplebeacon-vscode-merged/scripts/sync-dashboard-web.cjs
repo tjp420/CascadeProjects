@@ -41,14 +41,21 @@ if (fs.existsSync(authServicePath)) {
   }
 }
 
+// Always force-copy index.html from source (xcopy /D may skip if dest is newer from prior patches)
+const srcIndex = path.join(source, 'index.html');
+const destIndex = path.join(dest, 'index.html');
+if (fs.existsSync(srcIndex)) {
+  fs.copyFileSync(srcIndex, destIndex);
+  console.log('[sync-dashboard-web] Force-copied index.html from source');
+}
+
 // Patch index.html: rewrite Vite dev script src to production build path for extension serving
-const indexPath = path.join(dest, 'index.html');
-if (fs.existsSync(indexPath)) {
-  let html = fs.readFileSync(indexPath, 'utf8');
+if (fs.existsSync(destIndex)) {
+  let html = fs.readFileSync(destIndex, 'utf8');
   // Replace /src/main.tsx with ./dist/assets/main.js (production build)
   if (html.includes('/src/main.tsx')) {
     html = html.replace(/<script type="module" src="\/src\/main\.tsx"><\/script>/, '<script type="module" src="./dist/assets/main.js"></script>');
-    fs.writeFileSync(indexPath, html, 'utf8');
+    fs.writeFileSync(destIndex, html, 'utf8');
     console.log('[sync-dashboard-web] Patched index.html: /src/main.tsx -> ./dist/assets/main.js');
   }
 }

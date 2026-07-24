@@ -103,6 +103,52 @@
       height: 100% !important; min-height: 0; overflow: hidden;
     }
   </style>
+
+  <script>
+    (function() {
+      function isIde() {
+        try {
+          var params = new URLSearchParams(window.location.search || '');
+          return window.self !== window.top || (navigator.userAgent || '').includes('Electron') || params.get('sb_parent_urlbar') === '1';
+        } catch (e) { return false; }
+      }
+      function stripHeightFromAttr(attrVal) {
+        if (!attrVal) return '';
+        return attrVal.replace(/\bheight\s*:\s*[^;!]*!important;?/gi, '').replace(/\bheight\s*:\s*[^;]*;?/gi, '');
+      }
+      function cleanup() {
+        if (isIde()) return;
+        try {
+          if (document.documentElement) {
+            // remove via style API
+            try { document.documentElement.style.removeProperty('height'); } catch (e){}
+            // also sanitize raw attribute
+            try {
+              var s = document.documentElement.getAttribute('style');
+              if (s && /height\s*:/i.test(s)) document.documentElement.setAttribute('style', stripHeightFromAttr(s));
+            } catch (e) {}
+          }
+          if (document.body) {
+            try { document.body.style.removeProperty('height'); } catch (e) {}
+            try {
+              var sb = document.body.getAttribute('style');
+              if (sb && /height\s*:/i.test(sb)) document.body.setAttribute('style', stripHeightFromAttr(sb));
+            } catch (e) {}
+          }
+        } catch (e) {}
+      }
+      cleanup();
+      try {
+        if (window.MutationObserver) {
+          var mo = new MutationObserver(function(m){ cleanup(); });
+          mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+          if (document.body) mo.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+        }
+      } catch (e) {}
+      // fallback periodic cleanup
+      setInterval(cleanup, 500);
+    })();
+  </script>
 </head>
 <body>
   <noscript><div style="padding:40px;text-align:center;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
