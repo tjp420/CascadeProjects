@@ -71,7 +71,11 @@
       var params = new URLSearchParams(window.location.search);
       var sbParentUrlbar = params.get('sb_parent_urlbar');
       var sbWebsiteMode = params.get('sb_website_mode');
-      var isIde = window.self !== window.top || (navigator.userAgent || '').includes('Electron');
+      // Consider IDE/embed only when explicitly embedded (iframe), when the
+      // host provides an explicit query flag, or when VS Code provides the
+      // `acquireVsCodeApi` bridge. Do not rely on the UA "Electron" token
+      // alone because browsers or previews may include it.
+      var isIde = (window.self !== window.top) || (typeof window.acquireVsCodeApi === 'function') || sbParentUrlbar === '1';
       if (sbParentUrlbar === '1') document.documentElement.setAttribute('data-parent-urlbar', '1');
       if (sbWebsiteMode === '1') document.documentElement.setAttribute('data-embed-mode', '1');
       if (isIde) document.documentElement.setAttribute('data-ide-embed', '1');
@@ -93,6 +97,27 @@
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
     #root { min-height: 100vh; }
+    /* If the host forces inline heights on html/body, make the app root
+       fill the viewport and be independently scrollable. Do not apply in
+       IDE/embed contexts where the host controls sizing. */
+    html:not([data-ide-embed="1"]) #root {
+      position: fixed;
+      inset: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      background: inherit;
+    }
+    /* Also ensure the runtime app container (`#app-main` / `.app-main`) is
+       fixed and scrollable when the host forces html/body heights. This
+       targets the built runtime structure. */
+    html:not([data-ide-embed="1"]) #app-main,
+    html:not([data-ide-embed="1"]) .app-main {
+      position: fixed;
+      inset: 0;
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      background: inherit;
+    }
     html[data-ide-embed="1"], html[data-ide-embed="1"] body {
       height: 100%; min-height: 0; margin: 0; padding: 0; overflow: hidden;
     }
@@ -109,7 +134,7 @@
       function isIde() {
         try {
           var params = new URLSearchParams(window.location.search || '');
-          return window.self !== window.top || (navigator.userAgent || '').includes('Electron') || params.get('sb_parent_urlbar') === '1';
+          return (window.self !== window.top) || (typeof window.acquireVsCodeApi === 'function') || params.get('sb_parent_urlbar') === '1';
         } catch (e) { return false; }
       }
       function stripHeightFromAttr(attrVal) {
@@ -145,8 +170,17 @@
           if (document.body) mo.observe(document.body, { attributes: true, attributeFilter: ['style'] });
         }
       } catch (e) {}
-      // fallback periodic cleanup
-      setInterval(cleanup, 500);
+      // aggressive initial cleanup: use rAF for quick removal and then a
+      // short high-frequency interval. This is defensive against hosts that
+      // set inline heights shortly after load. After the initial period we
+      // back off to a lower frequency.
+      var rfStop = Date.now() + 2000;
+      (function rafLoop() {
+        try { cleanup(); } catch (e) {}
+        if (Date.now() < rfStop) requestAnimationFrame(rafLoop);
+      })();
+      var fastIv = setInterval(function() { try { cleanup(); } catch (e) {} }, 100);
+      setTimeout(function() { clearInterval(fastIv); setInterval(cleanup, 1000); }, 5000);
     })();
   </script>
 </head>
@@ -215,9 +249,19 @@
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
 
   <!-- JSZip for export functionality -->
-  <script src="js/vendor/jszip.min.js?v=20260726react1" defer></script>
+  <script src="/dashboard/js/vendor/jszip.min.js?v=20260726react1" defer></script>
 
   <!-- React Dashboard Bundle -->
-  <script type="module" src="./dist/assets/main.js"></script>
+  <script type="module" src="/dashboard/dist/assets/main.js?v=20260726react2"></script>
+  <script>
+    (function(){
+      try{
+        if (document.documentElement.getAttribute('data-ide-embed') === '1') return;
+        var css = '#root, #app-main, .app-main { position: fixed !important; inset: 0 !important; overflow: auto !important; -webkit-overflow-scrolling: touch !important; background: inherit !important; }';
+        var s = document.createElement('style'); s.setAttribute('data-sb-resilient','1'); s.appendChild(document.createTextNode(css));
+        (document.head || document.documentElement).appendChild(s);
+      }catch(e){}
+    })();
+  </script>
 </body>
 </html>
