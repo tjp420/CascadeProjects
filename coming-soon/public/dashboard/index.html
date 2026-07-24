@@ -71,7 +71,11 @@
       var params = new URLSearchParams(window.location.search);
       var sbParentUrlbar = params.get('sb_parent_urlbar');
       var sbWebsiteMode = params.get('sb_website_mode');
-      var isIde = window.self !== window.top || (navigator.userAgent || '').includes('Electron');
+      // Consider IDE/embed only when explicitly embedded (iframe), when the
+      // host provides an explicit query flag, or when VS Code provides the
+      // `acquireVsCodeApi` bridge. Do not rely on the UA "Electron" token
+      // alone because browsers or previews may include it.
+      var isIde = (window.self !== window.top) || (typeof window.acquireVsCodeApi === 'function') || sbParentUrlbar === '1';
       if (sbParentUrlbar === '1') document.documentElement.setAttribute('data-parent-urlbar', '1');
       if (sbWebsiteMode === '1') document.documentElement.setAttribute('data-embed-mode', '1');
       if (isIde) document.documentElement.setAttribute('data-ide-embed', '1');
@@ -93,6 +97,27 @@
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
     #root { min-height: 100vh; }
+    /* If the host forces inline heights on html/body, make the app root
+       fill the viewport and be independently scrollable. Do not apply in
+       IDE/embed contexts where the host controls sizing. */
+    html:not([data-ide-embed="1"]) #root {
+      position: fixed;
+      inset: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      background: inherit;
+    }
+    /* Also ensure the runtime app container (`#app-main` / `.app-main`) is
+       fixed and scrollable when the host forces html/body heights. This
+       targets the built runtime structure. */
+    html:not([data-ide-embed="1"]) #app-main,
+    html:not([data-ide-embed="1"]) .app-main {
+      position: fixed;
+      inset: 0;
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      background: inherit;
+    }
     html[data-ide-embed="1"], html[data-ide-embed="1"] body {
       height: 100%; min-height: 0; margin: 0; padding: 0; overflow: hidden;
     }
@@ -103,6 +128,61 @@
       height: 100% !important; min-height: 0; overflow: hidden;
     }
   </style>
+
+  <script>
+    (function() {
+      function isIde() {
+        try {
+          var params = new URLSearchParams(window.location.search || '');
+          return (window.self !== window.top) || (typeof window.acquireVsCodeApi === 'function') || params.get('sb_parent_urlbar') === '1';
+        } catch (e) { return false; }
+      }
+      function stripHeightFromAttr(attrVal) {
+        if (!attrVal) return '';
+        return attrVal.replace(/\bheight\s*:\s*[^;!]*!important;?/gi, '').replace(/\bheight\s*:\s*[^;]*;?/gi, '');
+      }
+      function cleanup() {
+        if (isIde()) return;
+        try {
+          if (document.documentElement) {
+            // remove via style API
+            try { document.documentElement.style.removeProperty('height'); } catch (e){}
+            // also sanitize raw attribute
+            try {
+              var s = document.documentElement.getAttribute('style');
+              if (s && /height\s*:/i.test(s)) document.documentElement.setAttribute('style', stripHeightFromAttr(s));
+            } catch (e) {}
+          }
+          if (document.body) {
+            try { document.body.style.removeProperty('height'); } catch (e) {}
+            try {
+              var sb = document.body.getAttribute('style');
+              if (sb && /height\s*:/i.test(sb)) document.body.setAttribute('style', stripHeightFromAttr(sb));
+            } catch (e) {}
+          }
+        } catch (e) {}
+      }
+      cleanup();
+      try {
+        if (window.MutationObserver) {
+          var mo = new MutationObserver(function(m){ cleanup(); });
+          mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+          if (document.body) mo.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+        }
+      } catch (e) {}
+      // aggressive initial cleanup: use rAF for quick removal and then a
+      // short high-frequency interval. This is defensive against hosts that
+      // set inline heights shortly after load. After the initial period we
+      // back off to a lower frequency.
+      var rfStop = Date.now() + 2000;
+      (function rafLoop() {
+        try { cleanup(); } catch (e) {}
+        if (Date.now() < rfStop) requestAnimationFrame(rafLoop);
+      })();
+      var fastIv = setInterval(function() { try { cleanup(); } catch (e) {} }, 100);
+      setTimeout(function() { clearInterval(fastIv); setInterval(cleanup, 1000); }, 5000);
+    })();
+  </script>
 </head>
 <body>
   <noscript><div style="padding:40px;text-align:center;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
@@ -110,13 +190,78 @@
   <!-- React mount point -->
   <div id="root"></div>
 
+  <!-- Extension bridge fetch rewrite -->
+  <script>
+    (function() {
+      var BRIDGE_PREFIXES = ['/api/simplebeacon/', '/api/notify', '/api/ping', '/api/stream', '/api/free-token'];
+      function isBridgeApiPath(path) {
+        if (!path || path.indexOf('/api/') !== 0) return false;
+        for (var i = 0; i < BRIDGE_PREFIXES.length; i++) {
+          var prefix = BRIDGE_PREFIXES[i];
+          if (path === prefix.replace(/\/$/, '') || path.indexOf(prefix) === 0) return true;
+        }
+        return false;
+      }
+      function bridgeHost() { return window.__SB_BRIDGE_HOST__ || ''; }
+      function isHostedSite() {
+        return location.protocol === 'https:' || !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname);
+      }
+      function rewriteBridgeUrl(url) {
+        var host = bridgeHost();
+        if (!host || typeof url !== 'string') return url;
+        if (isHostedSite()) return url;
+        try {
+          var u = new URL(url, location.href);
+          var path = u.pathname + u.search;
+          if (isBridgeApiPath(u.pathname)) return host + path;
+          var current = location.protocol + '//' + location.host;
+          if (url.indexOf(current + '/api/') === 0) {
+            var relPath = url.slice(current.length);
+            if (isBridgeApiPath(relPath.split('?')[0])) return host + relPath;
+          }
+        } catch (e) {}
+        return url;
+      }
+      var origFetch = window.fetch;
+      if (origFetch) {
+        window.fetch = function(input, init) {
+          var url = typeof input === 'string' ? input : (input && input.url ? input.url : String(input));
+          var rewritten = rewriteBridgeUrl(url);
+          if (rewritten !== url) { init = init || {}; if (!init.credentials) init.credentials = 'omit'; }
+          return origFetch.call(this, rewritten, init);
+        };
+      }
+      var origXHR = window.XMLHttpRequest;
+      if (origXHR) {
+        window.XMLHttpRequest = function() {
+          var xhr = new origXHR();
+          var origOpen = xhr.open;
+          xhr.open = function(method, url) { return origOpen.call(this, method, rewriteBridgeUrl(String(url))); };
+          return xhr;
+        };
+        Object.setPrototypeOf(window.XMLHttpRequest, origXHR);
+        Object.keys(origXHR).forEach(function(k) { window.XMLHttpRequest[k] = origXHR[k]; });
+      }
+    })();
+  </script>
+
   <!-- DOMPurify for sanitization -->
   <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
 
   <!-- JSZip for export functionality -->
   <script src="/dashboard/js/vendor/jszip.min.js?v=20260726react1" defer></script>
 
-  <!-- React Dashboard Bundle (production build) -->
+  <!-- React Dashboard Bundle -->
   <script type="module" src="/dashboard/dist/assets/main.js"></script>
+  <script>
+    (function(){
+      try{
+        if (document.documentElement.getAttribute('data-ide-embed') === '1') return;
+        var css = '#root, #app-main, .app-main { position: fixed !important; inset: 0 !important; overflow: auto !important; -webkit-overflow-scrolling: touch !important; background: inherit !important; }';
+        var s = document.createElement('style'); s.setAttribute('data-sb-resilient','1'); s.appendChild(document.createTextNode(css));
+        (document.head || document.documentElement).appendChild(s);
+      }catch(e){}
+    })();
+  </script>
 </body>
 </html>
