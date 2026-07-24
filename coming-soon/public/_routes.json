@@ -5,7 +5,6 @@
     "/dashboard/css/*",
     "/dashboard/js/*",
     "/dashboard/js-es2018/*",
-    "/dashboard/dist/*",
     "/dashboard/images/*",
     "/dashboard/fonts/*",
     "/dashboard/assets/*"

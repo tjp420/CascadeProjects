@@ -18,6 +18,9 @@ out/
 coverage/
 public/js/
 /js-es2018/
+# Exception: dashboard dist assets are built externally and committed
+!public/dashboard/dist/
+!public/dashboard/dist/**
 
 # Logs
 *.log
