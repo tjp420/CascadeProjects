@@ -249,8 +249,12 @@ export function AnalyzeView() {
         return;
       }
 
-      // Detect local Windows/absolute path on hosted dashboard — auto-switch to browser-local scan
-      if (isWindowsPath(scanPath) && hosted && !bridgeBase) {
+      // Detect local path on hosted dashboard — auto-switch to browser-local scan
+      // On a hosted dashboard, the remote server cannot access the user's local filesystem.
+      // Any non-URL path (Windows drive letter, Unix absolute, or relative folder name) should
+      // trigger the browser-local scan via File System Access API.
+      const isUrl = /^https?:\/\//i.test(scanPath);
+      if (!isUrl && !isGithubUrl(scanPath) && hosted && !bridgeBase) {
         if (typeof (window as any).showDirectoryPicker !== 'function') {
           toast.error('Local path detected on remote dashboard. Use the "Browse Folder" button to pick a local directory, or use a relative path.');
           setScanState('error');

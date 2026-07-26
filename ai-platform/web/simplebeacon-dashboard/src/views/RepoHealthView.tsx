@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Package, RefreshCw, AlertCircle, FileCode, FolderTree, Gauge, Shield, FileText, Bug, Zap, Download } from 'lucide-react';
-import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { getApiBase, apiUrl, authHeaders, waitForApiBase } from '@/config';
 
 type CategoryInfo = {
   category: string;
@@ -67,6 +67,7 @@ export function RepoHealthView() {
     setLoading(true);
     setError(null);
     try {
+      await waitForApiBase();
       const resp = await fetch(apiUrl('/analyze/flexible'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
