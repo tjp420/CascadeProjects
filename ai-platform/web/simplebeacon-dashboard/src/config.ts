@@ -28,6 +28,11 @@ export function getApiBase(): string {
     if (detected && typeof detected === 'string' && detected.length > 0) return String(detected).replace(/\/+$/, '');
     const host = window.location.hostname || '';
     if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
+      // If the probe completed and found no local server, fall back to production API
+      // to avoid CORS errors from trying to reach a non-existent local server.
+      if (_probeDone && !detected) {
+        return 'https://simplebeacon.ai';
+      }
       return DEFAULT_API_BASE;
     }
     // Canonical production domain serves the API same-origin.
@@ -91,6 +96,7 @@ export function apiUrl(path: string): string {
 // Kick off an asynchronous probe to detect a local running API server on common developer ports.
 // When found, populate window.__SB_API_HOST__ so runtime bundles can prefer the local server.
 let _apiBaseDetectPromise: Promise<string | null> | null = null;
+let _probeDone = false;
 
 export function waitForApiBase(timeoutMs = 3000): Promise<string | null> {
   if (_apiBaseDetectPromise) return _apiBaseDetectPromise;
@@ -126,6 +132,7 @@ if (typeof window !== 'undefined') {
         }
       }
       const results = await Promise.allSettled(ports.map(p => probePort(p)));
+      _probeDone = true;
       for (let i = 0; i < ports.length; i++) {
         const r = results[i];
         if (r.status === 'fulfilled' && r.value) {
@@ -137,5 +144,8 @@ if (typeof window !== 'undefined') {
       }
       return null;
     })();
+  } else {
+    // No probing needed — mark as done so getApiBase doesn't wait
+    _probeDone = true;
   }
 }
