@@ -74,14 +74,33 @@ export function RepoHealthView() {
       });
       if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
       const json = await resp.json();
-      const r = json.report || {};
+      const r = json.report || json || {};
+      const s = r.summary || {};
+      const scope = r.scanScope || json.scanScope || {};
+      const inv = r.repositoryInventory || {};
       setData({
-        projectRoot: r.projectRoot || r.projectPath || '',
-        summary: r.summary || {} as Summary,
+        projectRoot: r.projectRoot || r.projectPath || json.projectPath || '',
+        summary: {
+          ...s,
+          healthScore: s.healthScore ?? json.qualityScore ?? r.qualityScore ?? 0,
+          findingsTotal: s.findingsTotal ?? json.issueCount ?? r.issueCount ?? 0,
+          codeFilesAnalyzed: s.codeFilesAnalyzed ?? scope.codeFilesAnalyzed ?? 0,
+          codeFilesDiscovered: s.codeFilesDiscovered ?? 0,
+          repositoryFilesTotal: s.repositoryFilesTotal ?? inv.totalFiles ?? 0,
+          repositoryFoldersTotal: s.repositoryFoldersTotal ?? inv.totalFolders ?? 0,
+          severityCounts: s.severityCounts || json.severityCounts || r.severityCounts || {},
+          tierCounts: s.tierCounts || {},
+          categoryCounts: s.categoryCounts || {},
+          eslintErrors: s.eslintErrors || 0,
+          eslintWarnings: s.eslintWarnings || 0,
+          eslintSource: s.eslintSource || '',
+          governanceFiles: s.governanceFiles || { licenseCount: 0, securityCount: 0, packageJsonCount: 0 },
+          analyzerCounts: s.analyzerCounts || {},
+        } as Summary,
         categories: r.categories || [],
-        repositoryInventory: r.repositoryInventory || { projectRoot: '', totalFiles: 0, totalFolders: 0, profile: '' },
+        repositoryInventory: inv || { projectRoot: '', totalFiles: 0, totalFolders: 0, profile: '' },
         structureInsights: r.structureInsights || { summary: { sampledFiles: 0, byLanguage: {}, approximateFunctions: 0, approximateClasses: 0, tier: 'baseline' } },
-        generatedAt: r.generatedAt || '',
+        generatedAt: r.generatedAt || json.generatedAt || '',
       });
     } catch {
       setError('Failed to fetch repository health data. Ensure the ai-platform server is running.');
