@@ -1,0 +1,736 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "scan_summary": {
+    "status": "PASSED",
+    "block_merge": false,
+    "total_risks_found": 0,
+    "high_severity_count": 0,
+    "medium_severity_count": 0,
+    "low_severity_count": 1,
+    "estimated_incident_cost_saved": "$5,000",
+    "scan_id": "sb_scan_64f7d954fabb",
+    "timestamp": "2026-07-26T01:53:20.905Z",
+    "tier": "developer",
+    "scans_remaining": 9957,
+    "pipeline_scan": false,
+    "critical_severity_count": 0,
+    "sandbox": {
+      "active": false,
+      "upgradeUrl": "https://simplebeacon.ai/pricing"
+    }
+  },
+  "generatedAt": "2026-07-26T01:53:20.905Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+  "platformRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+  "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\Trevor\\CascadeProjects"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "totalFiles": 2356,
+    "totalFolders": 261,
+    "profile": "all"
+  },
+  "mockSampleFiles": 66,
+  "totalFiles": 50,
+  "totalLines": 813870,
+  "ruleScopedFilesAnalyzed": 50,
+  "repositoryFilesTotal": 2356,
+  "repositoryFoldersTotal": 261,
+  "filesAnalyzed": 50,
+  "totalSizeBytes": 100301669,
+  "totalSizeLabel": "95.7 MB",
+  "issueCount": 0,
+  "invalidJson": 0,
+  "emptyFiles": 1,
+  "schemaChecked": 51,
+  "schemaPassed": 51,
+  "pageSampleSchemaChecked": 51,
+  "pageSampleSchemaPassed": 51,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 504,
+  "consistencyPassed": 504,
+  "fictionJsonFilesScanned": 504,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 658,
+  "credentialFindings": 0,
+  "productionLeakScanned": 1,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 3,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": null,
+  "securityPatternFilesScanned": 1,
+  "securityPatternFindings": 0,
+  "hardcodedUrlFilesScanned": 0,
+  "hardcodedUrlFindings": 0,
+  "weakCryptoFilesScanned": 0,
+  "weakCryptoFindings": 0,
+  "secretInCommentsFilesScanned": 0,
+  "secretInCommentsFindings": 0,
+  "syncIoFilesScanned": 0,
+  "syncIoFindings": 0,
+  "envInGitFilesScanned": 0,
+  "envInGitFindings": 0,
+  "redosFilesScanned": 0,
+  "redosFindings": 0,
+  "piiLoggingFilesScanned": 0,
+  "piiLoggingFindings": 0,
+  "deadCodeFilesScanned": 0,
+  "deadCodeFindings": 0,
+  "memoryLeakFilesScanned": 0,
+  "memoryLeakFindings": 0,
+  "typeSafetyFilesScanned": 0,
+  "typeSafetyFindings": 0,
+  "hallucinatedImportFilesScanned": 0,
+  "hallucinatedImportFindings": 0,
+  "astStructuralFilesScanned": 0,
+  "astStructuralFindings": 0,
+  "astAvailable": false,
+  "dependencyGraphFilesScanned": 0,
+  "dependencyGraphFindings": 0,
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 1
+  },
+  "mockDataCategories": [
+    {
+      "category": "Other Files",
+      "fileCount": 1844,
+      "totalSize": "88.3 MB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Other Files discovered during filesystem scan"
+    },
+    {
+      "category": "JSON Files",
+      "fileCount": 204,
+      "totalSize": "5.3 MB",
+      "qualityScore": 100,
+      "issues": 1,
+      "confidence": null,
+      "description": "JSON Files discovered during filesystem scan"
+    },
+    {
+      "category": "Documentation Files",
+      "fileCount": 193,
+      "totalSize": "911.4 KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Documentation Files discovered during filesystem scan"
+    },
+    {
+      "category": "Text Files",
+      "fileCount": 79,
+      "totalSize": "1.1 MB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Text Files discovered during filesystem scan"
+    },
+    {
+      "category": "Config Files",
+      "fileCount": 29,
+      "totalSize": "84.4 KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Config Files discovered during filesystem scan"
+    },
+    {
+      "category": "Database Files",
+      "fileCount": 6,
+      "totalSize": "20.4 KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Database Files discovered during filesystem scan"
+    },
+    {
+      "category": "CSV Files",
+      "fileCount": 1,
+      "totalSize": "302 B",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "CSV Files discovered during filesystem scan"
+    }
+  ],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "Empty File",
+      "count": 1,
+      "description": "tmp-scan3.json: empty file",
+      "pattern": null,
+      "line": null,
+      "recommendation": null,
+      "affectedFiles": [
+        "tmp-scan3.json"
+      ],
+      "filePaths": [],
+      "file": "tmp-scan3.json"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "invalid-json-tmp-scan3.json",
+      "type": "Empty File",
+      "severity": "low",
+      "severityBand": "low",
+      "filePath": "C:\\Users\\Trevor\\CascadeProjects\\tmp-scan3.json",
+      "file": "C:\\Users\\Trevor\\CascadeProjects\\tmp-scan3.json",
+      "line": null,
+      "description": "tmp-scan3.json: empty file",
+      "count": 1,
+      "affectedFiles": [
+        "tmp-scan3.json"
+      ],
+      "filePaths": [],
+      "metadata": {}
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    ".clinerules",
+    ".dockerignore",
+    ".env",
+    ".env.example",
+    ".env.production",
+    ".gitignore",
+    ".mcp.json",
+    ".npmignore",
+    ".prettierignore",
+    ".simplebeaconignore",
+    "100-PERCENT-COMPLETION-PLAN.md",
+    "AGENTS.md",
+    "ai-agent-audit-report.md",
+    "ai-agent-delta-report.md",
+    "ai-agent-roadmap-report.md",
+    "ai-platform-test-output.txt",
+    "ai-remediation-plan.md",
+    "AI_PLAN_FEATURE_REPORT.md",
+    "ANALYZER_IMPROVEMENTS_REPORT.md",
+    "AUDIT-PRD.md",
+    "audit-redirect.log",
+    "audit-server.log",
+    "backup-preview.txt",
+    "CHANGELOG.md",
+    "check-js.ps1",
+    "CODE_OF_CONDUCT.md",
+    "cli-scan-test.txt",
+    "compile.log",
+    "COMPLEXITY-REFACTORING-PLAN.md",
+    "consolidation-analysis.txt",
+    "CONTRIBUTING.md",
+    "dashboard-preview.html",
+    "dashboard-serve.log",
+    "dashboard-server.log",
+    "dashboard-start.log",
+    "DASHBOARD_BUTTONS_FIX_REPORT.md",
+    "DATA_AUDIT.md",
+    "DEPENDENCY-POLICY.md",
+    "deploy.bat",
+    "DEPLOYMENT-CHECKLIST.md",
+    "DEPLOY.md",
+    "DEPLOYMENT-ROADMAP.md",
+    "diff-scanReport.txt",
+    "ENHANCED_SIDEBAR_DASHBOARD_REPORT.md",
+    "EU_AI_ACT_CLASSIFICATION.md",
+    "export-test.json",
+    "extract.ps1",
+    "FEATURE_CHECKLIST.md",
+    "FINDINGS_DISPLAY_FIX_REPORT.md",
+    "FILE_COUNTING_TEST_REPORT.md"
+  ],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "production-leak",
+      "llm-slop-patterns",
+      "security-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "diffOnly": false,
+    "diffFileCount": 0,
+    "mockSampleFilesInScanPaths": 2356,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 51,
+    "pageSpecsFromScanPaths": 51,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 1,
+    "productionPaths": [
+      "server/",
+      "src/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 3,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 5,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 504,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 2356,
+    "repositoryFilesTotal": 2356,
+    "repositoryFoldersTotal": 261,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 2,356 files ΓÇö gate rules checked 2356 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths ΓÇö not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (504) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan ΓÇö use npm test or simplebeacon:full for live test verification."
+    ],
+    "fullDirectoryScan": true,
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false,
+    "inventoryMetricsStale": false
+  },
+  "gate": {
+    "pass": true,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 0,
+    "warningCount": 1,
+    "blockingIssues": [],
+    "warningIssues": [
+      {
+        "id": "invalid-json-tmp-scan3.json",
+        "type": "Empty File",
+        "severity": "low",
+        "severityBand": "low",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\tmp-scan3.json",
+        "file": "C:\\Users\\Trevor\\CascadeProjects\\tmp-scan3.json",
+        "line": null,
+        "description": "tmp-scan3.json: empty file",
+        "count": 1,
+        "affectedFiles": [
+          "tmp-scan3.json"
+        ],
+        "filePaths": [],
+        "metadata": {}
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "invalid-json-tmp-scan3.json",
+        "type": "Empty File",
+        "severity": "low",
+        "severityBand": "low",
+        "filePath": "C:\\Users\\Trevor\\CascadeProjects\\tmp-scan3.json",
+        "file": "C:\\Users\\Trevor\\CascadeProjects\\tmp-scan3.json",
+        "line": null,
+        "description": "tmp-scan3.json: empty file",
+        "count": 1,
+        "affectedFiles": [
+          "tmp-scan3.json"
+        ],
+        "filePaths": [],
+        "metadata": {}
+      }
+    ],
+    "status": "PASS",
+    "severityColor": "#34D399",
+    "summary": "Gate passed ΓÇö no blocking credentials found.",
+    "blockingFindings": [],
+    "remediation": []
+  },
+  "scanErrors": [],
+  "ruleTimings": [
+    {
+      "rule": "consistency",
+      "elapsedMs": 4811
+    },
+    {
+      "rule": "comprehensive",
+      "elapsedMs": 4700
+    },
+    {
+      "rule": "credentials",
+      "elapsedMs": 3432
+    },
+    {
+      "rule": "llm-slop-patterns",
+      "elapsedMs": 1222
+    },
+    {
+      "rule": "production-leak",
+      "elapsedMs": 1124
+    },
+    {
+      "rule": "security-patterns",
+      "elapsedMs": 1092
+    }
+  ],
+  "slowestRule": {
+    "rule": "consistency",
+    "elapsedMs": 4811
+  },
+  "totalScanTimeMs": 16381,
+  "totalScanDurationMs": 5685,
+  "tierLimitation": "Free tier limited to 50 files. Upgrade to Pro for unlimited scans.",
+  "qualityScoreHidden": true,
+  "tier": "developer",
+  "sandbox": {
+    "active": false,
+    "upgradeUrl": "https://simplebeacon.ai/pricing"
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 50,
+    "totalLines": 813870,
+    "averageLinesPerFile": 16277,
+    "summary": "50 files analyzed, 813,870 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 1,
+    "invalidJsonCount": 0,
+    "severity": "high",
+    "severityColor": "#EF4444",
+    "summary": "1 data quality issue detected.",
+    "remediation": "Review empty or invalid JSON files."
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 66,
+    "summary": "66 mock/fixture files detected."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 100,
+    "readinessStatus": "READY",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": true,
+        "critical": false
+      }
+    ],
+    "missingCritical": [],
+    "missingRecommended": [],
+    "totalChecks": 12,
+    "passedChecks": 12,
+    "summary": "READY ΓÇö 12 of 12 checklist items present.",
+    "recommendations": [
+      "Project is fully ready for production. All checklist items present."
+    ],
+    "remediation": "No remediation needed."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "high",
+      "effort": "2ΓÇô4 days",
+      "description": "Resolve structural issues: 1 empty file.",
+      "tasks": [
+        {
+          "description": "Remove 1 empty file",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Validate all JSON",
+          "type": "verify",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Re-run scan",
+          "type": "verify",
+          "done": false,
+          "isStructured": true
+        }
+      ],
+      "progress": 0,
+      "status": "pending"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3ΓÇô5 days",
+      "description": "Consistency verified ΓÇö no duplicates or naming drift.",
+      "tasks": [
+        {
+          "description": "Standardize naming conventions",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Document canonical file locations",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2ΓÇô3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        {
+          "description": "Audit 1 open-source license file",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review 1 security/governance file",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Verify license compatibility with distribution model",
+          "type": "verify",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Add LICENSE and SECURITY.md if missing",
+          "type": "fix",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Document governance policies",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5ΓÇô10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        {
+          "description": "Generate documentation artifacts",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review AI system classification (Art. 6)",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Schedule legal review",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "high",
+      "effort": "Ongoing",
+      "description": "Drive quality score from null/100 toward 95+.",
+      "tasks": [
+        {
+          "description": "Refactor low-quality modules (quality score < 85)",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add test coverage for uncovered modules",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Install pre-commit hooks for automated scanning",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Schedule monthly quality gate reviews",
+          "type": "review",
+          "done": false,
+          "isStructured": true
+        }
+      ],
+      "progress": 0,
+      "status": "in-progress"
+    }
+  ],
+  "summary": {
+    "gatePass": true,
+    "qualityScore": 0,
+    "totalFiles": 50,
+    "totalLines": 813870
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-07-26T01:53:20.915Z"
+}
