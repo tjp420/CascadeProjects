@@ -699,6 +699,89 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 }, 200, sendAnalyzeJsonOpts);
             }
 
+            if (analysisType === 'file-reduction') {
+                const report = await withTimeout(
+                    scanFileMergerReduction(projectPath, { includeRepositoryInventory: true }),
+                    180_000, 'flexible file-reduction'
+                );
+                return sendAnalyzeJson(res, {
+                    success: true,
+                    analysisType: 'file-reduction',
+                    aiProvider,
+                    report,
+                    fileReduction: report
+                }, 200, sendAnalyzeJsonOpts);
+            }
+
+            if (analysisType === 'data-quality') {
+                const report = await withTimeout(
+                    runDataCleanupScan(projectPath, { profile: 'data-quality' }),
+                    180_000, 'flexible data-quality'
+                );
+                return sendAnalyzeJson(res, {
+                    success: true,
+                    analysisType: 'data-quality',
+                    aiProvider,
+                    report,
+                    dataQuality: report
+                }, 200, sendAnalyzeJsonOpts);
+            }
+
+            if (analysisType === 'data-cleanup') {
+                const report = await withTimeout(
+                    runDataCleanupScan(projectPath, { profile: 'all' }),
+                    180_000, 'flexible data-cleanup'
+                );
+                return sendAnalyzeJson(res, {
+                    success: true,
+                    analysisType: 'data-cleanup',
+                    aiProvider,
+                    report,
+                    dataCleanup: report
+                }, 200, sendAnalyzeJsonOpts);
+            }
+
+            if (analysisType === 'npm-audit') {
+                const report = await withTimeout(
+                    runNpmAuditAsync(projectPath, { force: false }),
+                    120_000, 'flexible npm-audit'
+                );
+                return sendAnalyzeJson(res, {
+                    success: true,
+                    analysisType: 'npm-audit',
+                    aiProvider,
+                    report,
+                    npmAudit: report
+                }, 200, sendAnalyzeJsonOpts);
+            }
+
+            if (analysisType === 'compliance') {
+                const [scanResult, npmAuditResult, dataCleanupResult] = await Promise.allSettled([
+                    withTimeout(analyzeWithModel(baseDir, resolveModelId(registry, aiProvider), {
+                        scanPaths: resolveMockScanPaths(baseDir, projectPath, { isSameResolvedPath, resolvePlatformRoot }),
+                        aiProvider,
+                        projectPath
+                    }), 120_000, 'flexible compliance scan'),
+                    withTimeout(runNpmAuditAsync(projectPath, { force: false }), 120_000, 'flexible compliance npm-audit'),
+                    withTimeout(runDataCleanupScan(projectPath, { profile: 'all' }), 180_000, 'flexible compliance data-cleanup')
+                ]);
+                const baseReport = scanResult.status === 'fulfilled' ? scanResult.value.report : {};
+                const npmAudit = npmAuditResult.status === 'fulfilled' ? npmAuditResult.value : null;
+                const dataCleanup = dataCleanupResult.status === 'fulfilled' ? dataCleanupResult.value : null;
+                const compliance = evaluateComplianceChecklist(baseReport, {
+                    projectRoot: projectPath,
+                    npmAudit,
+                    dataCleanup
+                });
+                return sendAnalyzeJson(res, {
+                    success: true,
+                    analysisType: 'compliance',
+                    aiProvider,
+                    report: compliance,
+                    compliance
+                }, 200, sendAnalyzeJsonOpts);
+            }
+
             const modelId = resolveModelId(registry, aiProvider);
             const scanResult = await analyzeWithModel(baseDir, modelId, {
                 scanPaths: resolveMockScanPaths(baseDir, projectPath, { isSameResolvedPath, resolvePlatformRoot }),

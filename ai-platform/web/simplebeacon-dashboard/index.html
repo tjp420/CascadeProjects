@@ -64,7 +64,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/main.css?v=2026072527">
+  <link rel="stylesheet" href="/assets/main.B1MjD0P9.css">
 
   <!-- IDE embed mode detection -->
   <script>
@@ -233,37 +233,66 @@
       function isHostedSite() {
         return location.protocol === 'https:' || !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname);
       }
+
+      // Debug toggle: enable by adding `?sb_debug=1` or `localStorage.setItem('sb_debug','1')`
+      var SB_DEBUG = false;
+      try {
+        var params = new URLSearchParams(location.search || '');
+        if (params.get('sb_debug') === '1') SB_DEBUG = true;
+        if (!SB_DEBUG && localStorage && localStorage.getItem('sb_debug') === '1') SB_DEBUG = true;
+      } catch (e) { SB_DEBUG = false; }
+
+      function debug() {
+        if (!SB_DEBUG || !console || !console.debug) return; // no-op
+        try { console.groupCollapsed && console.groupCollapsed('SB Bridge Debug'); } catch(e){}
+        for (var i=0;i<arguments.length;i++) console.debug(arguments[i]);
+        try { console.groupEnd && console.groupEnd(); } catch(e){}
+      }
+
       function rewriteBridgeUrl(url) {
         var host = bridgeHost();
-        if (!host || typeof url !== 'string') return url;
-        if (isHostedSite()) return url;
+        debug('rewriteBridgeUrl called', {url:url, host:host, isHostedSite: isHostedSite()});
+        if (!host || typeof url !== 'string') { debug('no host or invalid url; returning original'); return url; }
+        if (isHostedSite()) { debug('hosted site detected; not rewriting'); return url; }
         try {
           var u = new URL(url, location.href);
           var path = u.pathname + u.search;
-          if (isBridgeApiPath(u.pathname)) return host + path;
+          if (isBridgeApiPath(u.pathname)) { debug('rewriting bridge api path', {orig:url, rewritten: host + path}); return host + path; }
           var current = location.protocol + '//' + location.host;
           if (url.indexOf(current + '/api/') === 0) {
             var relPath = url.slice(current.length);
-            if (isBridgeApiPath(relPath.split('?')[0])) return host + relPath;
+            if (isBridgeApiPath(relPath.split('?')[0])) { debug('rewriting current-origin api path', {orig:url, rewritten: host + relPath}); return host + relPath; }
           }
-        } catch (e) {}
+        } catch (e) { debug('rewriteBridgeUrl error', e); }
+        debug('no rewrite rule matched; returning original');
         return url;
       }
+
       var origFetch = window.fetch;
       if (origFetch) {
         window.fetch = function(input, init) {
           var url = typeof input === 'string' ? input : (input && input.url ? input.url : String(input));
           var rewritten = rewriteBridgeUrl(url);
-          if (rewritten !== url) { init = init || {}; if (!init.credentials) init.credentials = 'omit'; }
+          if (rewritten !== url) {
+            init = init || {}; if (!init.credentials) init.credentials = 'omit';
+            debug('fetch rewritten', {from: url, to: rewritten, init: init});
+          } else if (SB_DEBUG) {
+            debug('fetch passthrough', {url: url, init: init});
+          }
           return origFetch.call(this, rewritten, init);
         };
       }
+
       var origXHR = window.XMLHttpRequest;
       if (origXHR) {
         window.XMLHttpRequest = function() {
           var xhr = new origXHR();
           var origOpen = xhr.open;
-          xhr.open = function(method, url) { return origOpen.call(this, method, rewriteBridgeUrl(String(url))); };
+          xhr.open = function(method, url) {
+            var newUrl = rewriteBridgeUrl(String(url));
+            if (newUrl !== url) debug('XHR open rewritten', {method:method, from: url, to: newUrl}); else if (SB_DEBUG) debug('XHR open passthrough', {method:method, url:url});
+            return origOpen.call(this, method, newUrl);
+          };
           return xhr;
         };
         Object.setPrototypeOf(window.XMLHttpRequest, origXHR);
@@ -279,7 +308,7 @@
   <script src="js/vendor/jszip.min.js?v=20260726react1" defer></script>
 
   <!-- React Dashboard Bundle -->
-  <script type="module" src="/assets/main.js?v=2026072527"></script>
+  <script type="module" src="/assets/main.9aMmIkd9.js"></script>
   <script>
     (function(){
       try{

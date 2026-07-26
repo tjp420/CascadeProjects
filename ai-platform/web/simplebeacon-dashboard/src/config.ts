@@ -30,6 +30,15 @@ export function getApiBase(): string {
     if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
       return DEFAULT_API_BASE;
     }
+    // Canonical production domain serves the API same-origin.
+    if (host === 'simplebeacon.ai') {
+      return window.location.origin;
+    }
+    // Cloudflare Pages previews and other non-local domains talk to the production API.
+    if (!host.endsWith('.onrender.com')) {
+      return 'https://simplebeacon.ai';
+    }
+    // Onrender hosts serve the API same-origin.
     return '';
   } catch {
     return DEFAULT_API_BASE;
