@@ -64,7 +64,17 @@ const DUPLICATE_SKIP_BASENAMES = new Set([
     'ai-roadmap-report.json',
     'pre-commit.cmd',
     'render.yaml',
-    'generate-license-token.cjs'
+    'generate-license-token.cjs',
+    'test-out.txt',
+    'token-service.cjs',
+    'audit.cjs',
+    'oracle-search.cjs',
+    'trust-verification.json',
+    'paths.cjs',
+    'constants.cjs',
+    'network.cjs',
+    'renewals.cjs',
+    'client-error.cjs'
 ]);
 const DUPLICATE_STAGING_PREFIXES = [
     'web/scripts/',

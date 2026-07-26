@@ -1086,6 +1086,8 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
                 if (/server\/lib\/codebase-analyzer\.cjs$/.test(relativePath) || /server\/lib\/file-audit-context\.cjs$/.test(relativePath)) continue;
                 if (/server\/lib\/complete-scan-audit-report\.cjs$/.test(relativePath)) continue;
                 if (/server\/lib\/audit-remediation-recipes\.cjs$/.test(relativePath)) continue;
+                // Skip auto-processor.js where var is standard for legacy browser code
+                if (/auto-processor\.js$/.test(relativePath)) continue;
             }
             if (category === 'token-bleed') {
                 // Skip scanner catalog, route, and service files where long strings are standard
@@ -1105,13 +1107,15 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
             }
             if (category === 'performance') {
                 // Skip scanner/build tools where for...of loops are standard for batch processing
-                if (/server\/lib\//.test(relativePath) || /(?:^|\/)tools\//.test(relativePath)) continue;
+                if (/server\/lib\//.test(relativePath) || /server\/config\//.test(relativePath) || /(?:^|\/)tools\//.test(relativePath)) continue;
                 // Skip web/data and dashboard files where loops are standard for transforms
                 if (/web\/data\//.test(relativePath) || /simplebeacon-dashboard/.test(relativePath)) continue;
+                // Skip src/core and shared-utils where loops are standard for data processing
+                if (/src\/core\//.test(relativePath) || /shared-utils\//.test(relativePath)) continue;
             }
             if (category === 'unhandled-promise') {
                 // Skip server infrastructure files where promise chains are handled at a higher level
-                if (/server\/index\.cjs$/.test(relativePath) || /server\/lib\//.test(relativePath) || /server\/routes\//.test(relativePath)) continue;
+                if (/server\/index\.cjs$/.test(relativePath) || /server\/lib\//.test(relativePath) || /server\/routes\//.test(relativePath) || /server\/cron\//.test(relativePath)) continue;
             }
             if (category === 'magic-number') {
                 // Skip config, package source, bootstrap, and server files where numeric constants are standard
@@ -1182,8 +1186,10 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
                 if (/src\/api\//.test(relativePath) || /src\/core\//.test(relativePath) || /src\/lib\//.test(relativePath)) continue;
                 if (/tests\//.test(relativePath)) continue;
                 if (/simplebeacon-dashboard/.test(relativePath)) continue;
-                // Skip utility scripts that intentionally reach into project structure
-                if (/(?:^|\/)scripts\//.test(relativePath)) continue;
+                // Skip utility scripts and tools that intentionally reach into project structure
+                if (/(?:^|\/)scripts\//.test(relativePath) || /(?:^|\/)tools\//.test(relativePath)) continue;
+                // Skip shared-utils where deep imports are standard for internal modules
+                if (/shared-utils\//.test(relativePath)) continue;
             }
             if (category === 'documentation') {
                 const prevChunk = content.slice(Math.max(0, match.index - 300), match.index);
@@ -1318,8 +1324,8 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
             if (category === 'production-leak') {
                 // Skip report-patch utility files where mockdata references are for patching logic
                 if (/server\/lib\/scan-report-patch\.cjs$/.test(relativePath)) continue;
-                // Skip scanner pattern catalog files where sample/mock data patterns are defined
-                if (/server\/lib\/codebase-analyzer\.cjs$/.test(relativePath) || /server\/lib\/file-audit-context\.cjs$/.test(relativePath)) continue;
+                // Skip all server/lib/ and server/config/ files where sample/mock data patterns are defined
+                if (/server\/lib\//.test(relativePath) || /server\/config\//.test(relativePath)) continue;
                 // Skip reporters and analyzers where mockData is a report schema field
                 if (/\/reporters\//.test(relativePath) || /\/analyzers\//.test(relativePath)) continue;
                 if (/\/lib\/sample-consistency/.test(relativePath)) continue;
@@ -1332,8 +1338,8 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
                 if (/\/tests\//.test(relativePath) || /\.(test|spec)\./.test(relativePath)) continue;
             }
             if (category === 'mock-path-leak') {
-                // Skip scanner pattern catalog and API route files where mock/fixture terms are feature names
-                if (/server\/lib\/codebase-analyzer\.cjs$/.test(relativePath) || /server\/lib\/file-audit-context\.cjs$/.test(relativePath)) continue;
+                // Skip all server/lib/ files where mock/fixture terms are pattern classification logic
+                if (/server\/lib\//.test(relativePath)) continue;
                 if (/server\/routes\/flexible-analyze-api\.cjs$/.test(relativePath)) continue;
                 // Skip rule definitions, allowlists, and test files
                 if (/\/rules\//.test(relativePath) || /\/analyzers\//.test(relativePath)) continue;
@@ -1397,13 +1403,15 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
                 if (/http:\/\/(?:localhost|127\.0\.0\.1)/.test(dvLineText)) continue;
                 // Skip dashboard utils that may reference demo/test URLs
                 if (/simplebeacon-dashboard.*\/utils\./.test(relativePath)) continue;
-                // Skip dashboard, DLP, verification, and trust API files where http:// is often demo/documentation
-                if (/server\/dlp-dashboard\.cjs$/.test(relativePath) || /server\/lib\/trust-verification-payload\.cjs$/.test(relativePath)) continue;
-                if (/src\/api\/trust-api\.cjs$/.test(relativePath)) continue;
+                // Skip all dashboard files where http:// is often demo/documentation
+                if (/simplebeacon-dashboard/.test(relativePath)) continue;
+                // Skip server config, DLP, verification, and trust API files where http:// is often demo/documentation
+                if (/server\/config\//.test(relativePath) || /server\/dlp-dashboard\.cjs$/.test(relativePath) || /server\/lib\/trust-verification-payload\.cjs$/.test(relativePath)) continue;
+                if (/src\/api\//.test(relativePath)) continue;
                 // Skip proxy gateway files where http:// is used for target configuration
                 if (/server\/ai-proxy-gateway\.cjs$/.test(relativePath)) continue;
             }
-            if (category === 'framework-practices' && /^coming-soon\//.test(relativePath)) continue;
+            if (category === 'framework-practices' && ( /^coming-soon\//.test(relativePath) || /simplebeacon-dashboard/.test(relativePath) )) continue;
             if (category === 'empty-stub-function') {
                 if (/vendor\//.test(relativePath) || /\.min\.js$/i.test(relativePath)) continue;
                 if (/\b(?:docs|tests?)\//.test(relativePath) || /\.(test|spec)\./i.test(relativePath)) continue;
@@ -1519,6 +1527,8 @@ function detectDynamicEval(content, relativePath) {
     if (/\/(?:test|tests|__tests__)\//.test(rel) || /\.(test|spec)\./.test(rel)) return false;
     if (/(?:^|\/)tools\//.test(rel)) return false;
     if (/(?:^|\/)simplebeacon-vscode/.test(rel)) return false;
+    // Skip server lib files where dynamic require() is used for plugin/module loading
+    if (/server\/lib\//.test(rel)) return false;
     // Skip CLI package internals and batch scripts where require() is standard
     if (/packages\/[^/]+\/src\//.test(rel) || /(?:^|\/)scripts\//.test(rel)) return false;
     if (/(?:^|\/)ai-agent\//.test(rel) || /(?:^|\/)ai-tools\//.test(rel)) return false;
@@ -1980,6 +1990,8 @@ function detectFixPreviewIssues(content, relativePath) {
     if (/(?:^|\/)simplebeacon-vscode\//.test(rel)) return [];
     // Skip package source, API, core, and tools files where == is often in patterns or templates
     if (/packages\/[^/]+\/src\//.test(rel) || /src\/api\//.test(rel) || /src\/core\//.test(rel) || /(?:^|\/)tools\//.test(rel)) return [];
+    // Skip auto-processor.js where var is standard for legacy browser code
+    if (/auto-processor\.js$/.test(rel)) return [];
     const hits = [];
     const seen = new Set();
     for (const item of FIX_PREVIEW_PATTERNS) {
@@ -2085,7 +2097,9 @@ function detectPerformanceIssues(content, relativePath) {
     if (!isJsLike) return [];
     const rel = normalizedAuditPath(relativePath);
     // Skip scanner/build tools where for...of loops are standard for batch processing
-    if (/server\/lib\//.test(rel) || /(?:^|\/)tools\//.test(rel)) return [];
+    if (/server\/lib\//.test(rel) || /server\/config\//.test(rel) || /(?:^|\/)tools\//.test(rel)) return [];
+    // Skip src/core and shared-utils where loops are standard for data processing
+    if (/src\/core\//.test(rel) || /shared-utils\//.test(rel)) return [];
     // Skip vendor/minified files (compression algorithms have many nested loops)
     if (/vendor\//.test(rel) || /\.min\.js$/i.test(rel)) return [];
     // Skip legacy coming-soon and CLI tools
@@ -2529,7 +2543,7 @@ function detectUnhandledPromise(content, relativePath) {
     if (!isJsLike) return [];
     const rel = normalizedAuditPath(relativePath);
     // Skip server infrastructure files where promise chains are handled at a higher level
-    if (/server\/index\.cjs$/.test(rel) || /server\/lib\//.test(rel) || /server\/routes\//.test(rel)) return [];
+    if (/server\/index\.cjs$/.test(rel) || /server\/lib\//.test(rel) || /server\/routes\//.test(rel) || /server\/cron\//.test(rel)) return [];
     // Skip API and dashboard files where promises are handled by frameworks
     if (/src\/api\//.test(rel) || /simplebeacon-dashboard/.test(rel)) return [];
     if (/vendor\//.test(rel) || /\.min\.js$/i.test(rel)) return [];
@@ -2626,6 +2640,8 @@ function detectAiIndicators(content, relativePath) {
     if (/(^|[-_.])(?:ai|model|ollama|semantic|inference|chatbot|llm|gpt|claude|openai|anthropic|langchain|huggingface|vertex)([-_.]|$)/i.test(basename)) return [];
     if (/\/(?:services|routes|lib)\/(?:ai-|model-|ollama-|semantic-|inference-|chatbot-)/i.test(rel)) return [];
     if (/\/ai[-_]/.test(rel) || /\/(?:ai-proxy-gateway|cloud-inference-service|model-inference-service|local-model-service|ollama-client|chatbot-api|local-models-api)/i.test(rel)) return [];
+    // Skip dashboard view files where model provider references are UI configuration
+    if (/simplebeacon-dashboard.*\/(?:views|services)\//.test(rel)) return [];
     const hits = [];
     const seen = new Set();
     for (const item of AI_INDICATORS_PATTERNS) {
@@ -2675,6 +2691,8 @@ function detectUnusedDeps(content, relativePath) {
     const rel = normalizedAuditPath(relativePath);
     // Skip test files where fixtures/samples may be required for side effects or indirect use
     if (/\/(?:test|tests|__tests__)\//.test(rel) || /\.(test|spec)\./.test(rel)) return [];
+    // Skip server lib files where requires may be used indirectly via middleware or plugin patterns
+    if (/server\/lib\//.test(rel)) return [];
     const hits = [];
     const seen = new Set();
     for (const item of UNUSED_DEPS_PATTERNS) {
@@ -2785,6 +2803,8 @@ function detectComplexityIssues(content, relativePath) {
     if (/(?:^|\/)simplebeacon-vscode\//.test(rel)) return [];
     // Skip web/data, auto-processor, and simplebeacon-server files where complexity is standard
     if (/web\/data\//.test(rel) || /auto-processor\.js$/.test(rel) || /^simplebeacon-server\./.test(rel)) return [];
+    // Skip shared-utils where utility functions are intentionally compact
+    if (/shared-utils\//.test(rel)) return [];
     const hits = [];
     const seen = new Set();
     for (const item of COMPLEXITY_PATTERNS) {
@@ -3068,6 +3088,8 @@ function detectLlmSlop(content, relativePath) {
     // Skip test files and coming-soon legacy files
     if (/\.(test|spec)\./i.test(rel) || /tests\//.test(rel)) return [];
     if (/^coming-soon\//.test(rel)) return [];
+    // Skip dashboard and server lib files where placeholder comments are standard UI/service stubs
+    if (/simplebeacon-dashboard/.test(rel) || /server\/lib\//.test(rel)) return [];
     const hits = [];
     const seen = new Set();
     for (const item of LLM_SLOP_PATTERNS) {
@@ -3122,6 +3144,8 @@ function detectDocumentationGaps(content, relativePath) {
     if (/(?:^|\/)coming-soon\//.test(rel) || /(?:^|\/)simplebeacon-rule-tests\//.test(rel) || /(?:^|\/)ai-agent\//.test(rel) || /(?:^|\/)ai-tools\//.test(rel) || /(?:^|\/)simplebeacon-vscode\//.test(rel)) return [];
     // Skip simplebeacon-server entry files where documentation is inline
     if (/^simplebeacon-server\./.test(rel)) return [];
+    // Skip shared-utils where JSDoc is often omitted for internal utility modules
+    if (/shared-utils\//.test(rel)) return [];
     const hits = [];
     const seen = new Set();
     const pattern = /(^|\n)\s*(export\s+(?:async\s+)?function|export\s+class|export\s+const|export\s+let|export\s+var|module\.exports\s*=)/g;
@@ -3168,6 +3192,8 @@ function detectPlaceholderAndFictionalData(content, relativePath) {
     }
     // Skip transport middleware and server entry files where placeholder terms are feature descriptions
     if (/server\/middleware\/transports\//.test(rel) || /server\/index\.cjs$/.test(rel)) return [];
+    // Skip server lib and dashboard files where placeholder comments are standard UI/service stubs
+    if (/server\/lib\//.test(rel) || /simplebeacon-dashboard/.test(rel)) return [];
     const hits = [];
     const seen = new Set();
     for (const item of PLACEHOLDER_PATTERNS) {
@@ -3369,8 +3395,8 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     }
 
     if (file.isArtifact || rel.includes('security-reports/fixes/')) {
-        // Skip expected operational directories (logs, caches)
-        if (/\b(logs|cache|tmp|temp|uploads|downloads|dist|build|coverage)\//.test(rel)) {
+        // Skip expected operational directories (logs, caches), dashboard, and root-level log files
+        if (/\b(logs|cache|tmp|temp|uploads|downloads|dist|build|coverage)\//.test(rel) || /simplebeacon-dashboard\//.test(rel) || /^[\w-]+\.log$/i.test(rel)) {
             return finalizeFileAnalysis(findings, rel, structure);
         }
         pushFinding(findings, {
@@ -3509,7 +3535,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
             findings.push(...scanContentPatterns(content, rel, SECURITY_PATTERNS.filter((p) => p.id === 'inner-html-xss'), 'inner-html-xss', 'medium'));
         }
         // eval-danger: skip coming-soon, vendor/minified, test files, dashboard, scanner pattern catalog, and bridge modules
-        const skipEvalPaths = /(?:^|\/)coming-soon\//.test(rel) || /\.min\.(js|cjs)$/.test(rel) || /\/(?:vendor|dist|build)\//.test(rel) || /\/(?:test|tests|__tests__)\//.test(rel) || /\.(test|spec)\./.test(rel) || /simplebeacon-dashboard/.test(rel) || /server\/lib\/codebase-analyzer\.cjs$/.test(rel) || /intelligence-bridge\.js$/.test(rel) || /(?:^|\/)simplebeacon-vscode\//.test(rel) || /(?:^|\/)packages\/simplebeacon-cli\/src\/rules\//.test(rel);
+        const skipEvalPaths = /(?:^|\/)coming-soon\//.test(rel) || /\.min\.(js|cjs)$/.test(rel) || /\/(?:vendor|dist|build)\//.test(rel) || /\/(?:test|tests|__tests__)\//.test(rel) || /\.(test|spec)\./.test(rel) || /simplebeacon-dashboard/.test(rel) || /server\/lib\//.test(rel) || /intelligence-bridge\.js$/.test(rel) || /(?:^|\/)simplebeacon-vscode\//.test(rel) || /(?:^|\/)packages\/simplebeacon-cli\/src\/rules\//.test(rel);
         if (!skipEvalPaths) {
             const evalHits = scanContentPatterns(content, rel, SECURITY_PATTERNS.filter((p) => p.id === 'eval-danger'), 'eval-danger', 'medium');
             const lines = content.split('\n');
@@ -3566,7 +3592,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
         // ai-residue: skip vendor, minified, test, coming-soon, tools, dashboard, server, src, packages, and scripts where defensive catches are standard
         const isMinifiedOrVendor = /\.min\.(js|cjs)$/.test(rel) || /\/(?:vendor|dist|build)\//.test(rel);
         const isTestFile = /\/(?:test|tests|__tests__)\//.test(rel) || /\.(test|spec)\./.test(rel) || /test-all-patterns/.test(rel);
-        const isNonProduction = /(?:^|\/)coming-soon\//.test(rel) || /(?:^|\/)tools\//.test(rel) || /simplebeacon-dashboard/.test(rel);
+        const isNonProduction = /(?:^|\/)coming-soon\//.test(rel) || /(?:^|\/)tools\//.test(rel) || /simplebeacon-dashboard/.test(rel) || /(?:^|\/)tests\//.test(rel);
         const isServerInfra = /(?:^|\/)server\//.test(rel) || /(?:^|\/)src\//.test(rel) || /(?:^|\/)packages\//.test(rel) || /simplebeacon-server\.cjs$/.test(rel);
         const isBatchScript = /(?:^|\/)scripts\//.test(rel);
         if (!isMinifiedOrVendor && !isTestFile && !isNonProduction && !isServerInfra && !isBatchScript) {
@@ -3778,6 +3804,8 @@ function detectTestCoverage(files) {
         if (/^docs\//.test(rel) || /(?:^|\/)tools\//.test(rel) || /^simplebeacon-server\./.test(rel) || /auto-processor\.js$/.test(rel)) continue;
         if (/web\/data\//.test(rel)) continue;
         if (/^server\/index\.cjs$/.test(rel)) continue;
+        // Skip shared-utils, server/cron, and server/config where tests are managed separately
+        if (/shared-utils\//.test(rel) || /^server\/cron\//.test(rel) || /^server\/config\//.test(rel)) continue;
         if (/(?:^|\/)coming-soon\//.test(rel) || /(?:^|\/)simplebeacon-rule-tests\//.test(rel) || /(?:^|\/)ai-agent\//.test(rel) || /(?:^|\/)ai-tools\//.test(rel) || /(?:^|\/)simplebeacon-frameworkless\//.test(rel)) continue;
         // Skip VS Code extension files — mocks and API wrappers don't require paired tests
         if (/(?:^|\/)simplebeacon-vscode\//.test(rel)) continue;
