@@ -202,15 +202,14 @@ export function AnalyzeView() {
     }
 
     try {
-      let apiBase = getApiBase();
-      if (!apiBase) {
-        appendLog(`[SimpleBeacon] No API base detected, probing local server...`);
-        setProgressLabel('Detecting local API server...');
-        const detected = await waitForApiBase(3000);
-        if (detected) {
-          apiBase = detected;
-          appendLog(`[SimpleBeacon] Detected local API: ${apiBase}`);
-        }
+      appendLog(`[SimpleBeacon] Detecting local API server...`);
+      setProgressLabel('Detecting local API server...');
+      const detected = await waitForApiBase(3000);
+      let apiBase = detected || getApiBase() || '';
+      if (detected) {
+        appendLog(`[SimpleBeacon] Detected local API: ${apiBase}`);
+      } else {
+        appendLog(`[SimpleBeacon] No local API detected, using configured API base`);
       }
       appendLog(`[SimpleBeacon] API base: ${apiBase || 'default'}`);
 

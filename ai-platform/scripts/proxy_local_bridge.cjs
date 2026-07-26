@@ -8,9 +8,18 @@ const { URL } = require('url');
 const TARGET = process.env.TARGET || 'http://127.0.0.1:58000';
 const PORTS = process.env.PORTS ? process.env.PORTS.split(',').map(Number) : [3001,54358];
 
+const GLOBAL_DEBUG = process.env.PROXY_DEBUG === '1';
+
+function reqDebug(enabled, ...args) {
+  if (!enabled) return;
+  try { console.log.apply(console, args); } catch (e) {}
+}
+
 function makeHandler(port) {
   return async (req, res) => {
     try {
+      const perReqDebug = GLOBAL_DEBUG || req.headers['x-sb-debug'] === '1';
+      reqDebug(perReqDebug, '[proxy] incoming', req.method, req.url, req.headers && { host: req.headers.host, origin: req.headers.origin, 'x-sb-debug': req.headers['x-sb-debug'] });
       // Handle preflight
       if (req.method === 'OPTIONS') {
         const origin = req.headers.origin || '*';
@@ -37,6 +46,8 @@ function makeHandler(port) {
       await new Promise(r => req.on('end', r));
       const body = Buffer.concat(bodyChunks);
 
+      reqDebug(perReqDebug, '[proxy] forward to target', { hostname: url.hostname, port: url.port || 80, path: url.pathname + (url.search || ''), method: req.method, headersCount: Object.keys(headers).length, bodyLength: body.length });
+
       // Use native http.request to avoid intermittent global fetch ECONNREFUSED
       const opts = {
         hostname: url.hostname,
@@ -47,6 +58,7 @@ function makeHandler(port) {
       };
 
       const proxyReq = http.request(opts, targetRes => {
+        reqDebug(perReqDebug, '[proxy] upstream response', { statusCode: targetRes.statusCode, headers: targetRes.headers });
         res.statusCode = targetRes.statusCode;
         // Copy response headers except hop-by-hop
         for (const [k, v] of Object.entries(targetRes.headers)) {
@@ -65,6 +77,7 @@ function makeHandler(port) {
       });
 
       proxyReq.on('error', err => {
+        reqDebug(perReqDebug, '[proxy] upstream error', String(err), err && err.stack);
         res.writeHead(502, {'Content-Type':'application/json'});
         res.end(JSON.stringify({ error: 'proxy_error', message: String(err) }));
       });
@@ -72,6 +85,7 @@ function makeHandler(port) {
       if (body.length) proxyReq.write(body);
       proxyReq.end();
     } catch (err) {
+      console.error('[proxy] handler error', err && err.stack || String(err));
       res.writeHead(502, {'Content-Type':'application/json'});
       res.end(JSON.stringify({ error: 'proxy_error', message: String(err) }));
     }

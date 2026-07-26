@@ -165,6 +165,8 @@ test-results.txt
 tmp-compile-out.txt
 server-start-log.txt
 server-startup-error.txt
+server-startup-output.txt
+server-startup-err.txt
 orphan-audit-summary.json
 simplebeacon-report-export.json
 scan-exports/

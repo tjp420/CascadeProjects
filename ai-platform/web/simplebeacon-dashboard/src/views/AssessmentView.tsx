@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Shield, Scale, AlertTriangle, CheckCircle2, XCircle, Play } from 'lucide-react';
+import { FileText, Shield, Scale, AlertTriangle, CheckCircle2, XCircle, Play, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { navigate } from '@/router/HashRouter';
+import { Button } from '@/components/ui/button';
 
 interface ScanResultData {
   totalFiles: number;
@@ -111,12 +112,32 @@ export function AssessmentView() {
     );
   };
 
+  const handleExport = () => {
+    if (!result) return;
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      ...result,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `assessment-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const overallPass = result.gate?.pass && (result.severityCounts.critical === 0) && (result.severityCounts.high === 0);
 
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Assessments</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Assessments</h1>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" /> Export
+          </Button>
+        </div>
         <p className="text-foreground-muted">AI safety assessments and compliance checklists</p>
       </div>
 

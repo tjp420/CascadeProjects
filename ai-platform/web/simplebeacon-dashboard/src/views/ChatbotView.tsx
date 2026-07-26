@@ -294,7 +294,6 @@ export function ChatbotView() {
           removeFilters,
         }),
       });
-
       if (!res.ok) {
         if (res.status === 404) {
           throw new Error('Chatbot API not found. Ensure the ai-platform server is running.');
