@@ -956,6 +956,29 @@ if (isDatabaseEnabled()) {
 // FixOrchestrator 2.0 — auto-remediation preview / apply
 // Mounted with auth + RBAC + RLS transaction guardrails
 const fixoDbAdapter = isDatabaseEnabled() ? new DatabaseAdapter(getDatabaseConfig()) : null;
+// Read-only strategies endpoint — only requires authentication, not remediation:write
+const fixStrategiesRouter = express.Router();
+fixStrategiesRouter.get('/strategies', (_req, res) => {
+  const strategyMap = {
+    'debugger-statement': { strategy: 'delete', confidence: 0.95 },
+    'console-log': { strategy: 'delete', confidence: 0.95 },
+    'eval-usage': { strategy: 'replace', confidence: 0.6 },
+    'todo-comment': { strategy: 'delete', confidence: 0.85 },
+    'fixme-comment': { strategy: 'delete', confidence: 0.85 },
+    'hardcoded-secret': { strategy: 'replace', confidence: 0.75 },
+    'unhandled-promise': { strategy: 'wrap', confidence: 0.7 },
+    'missing-strict-mode': { strategy: 'wrap', confidence: 0.95 },
+    'missing-rate-limit': { strategy: 'insert', confidence: 0.85 },
+    'prototype-pollution': { strategy: 'replace', confidence: 0.8 },
+    'insecure-random': { strategy: 'wrap', confidence: 0.6 },
+    'debug-artifact': { strategy: 'delete', confidence: 0.9 },
+    'tech-debt': { strategy: 'delete', confidence: 0.85 },
+    'config-drift': { strategy: 'replace', confidence: 0.7 },
+    'security-headers': { strategy: 'wrap', confidence: 0.65 },
+  };
+  res.json({ success: true, strategies: strategyMap });
+});
+app.use('/api/v2/fixes', authenticate, fixStrategiesRouter);
 app.use('/api/v2/fixes', authenticate, requirePermission('remediation:write'), (req, res, next) => {
     if (fixoDbAdapter) req.db = fixoDbAdapter;
     next();
