@@ -28,7 +28,7 @@
   "prepare": "husky install",
   "dependencies": {
     "@swc/core": "^1.15.46",
-    "archiver": "^8.0.0",
+    "archiver": "^7.0.1",
     "dompurify": "^3.4.12",
     "express-rate-limit": "^8.5.2",
     "nodemailer": "^9.0.3",
@@ -51,6 +51,9 @@
   },
   "overrides": {
     "serialize-javascript": ">=7.0.5",
-    "minimatch": "^10.2.2"
+    "minimatch": "^10.2.2",
+    "brace-expansion": ">=2.1.2",
+    "readdir-glob": "^2.0.3",
+    "archiver": "^7.0.1"
   }
 }

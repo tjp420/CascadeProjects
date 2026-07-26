@@ -102,17 +102,21 @@ export function ProfileView() {
       // Fetch AI keys from API
       let aiKeys: unknown = null;
       try {
-        const resp = await fetch(apiUrl('/ai-keys'), { headers: authHeaders() });
+        const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), { headers: authHeaders() });
         if (resp.ok) aiKeys = await resp.json();
       } catch { /* ignore */ }
 
       // If scan history is empty, try fetching from API
       if (scanHistory.length === 0) {
         try {
-          const resp = await fetch(apiUrl('/scan-history?limit=50'), { headers: authHeaders() });
+          const resp = await fetch(apiUrl('/simplebeacon/history?limit=50'), { headers: authHeaders() });
           if (resp.ok) {
             const body = await resp.json();
-            if (body?.history) scanHistory = body.history;
+            if (Array.isArray(body)) {
+              scanHistory = body;
+            } else if (body?.history) {
+              scanHistory = body.history;
+            }
           }
         } catch { /* ignore */ }
       }
