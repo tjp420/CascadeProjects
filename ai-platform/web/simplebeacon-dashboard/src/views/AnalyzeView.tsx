@@ -249,6 +249,67 @@ export function AnalyzeView() {
         return;
       }
 
+      // Detect local Windows/absolute path on hosted dashboard — auto-switch to browser-local scan
+      if (isWindowsPath(scanPath) && hosted && !bridgeBase) {
+        if (typeof (window as any).showDirectoryPicker !== 'function') {
+          toast.error('Local path detected on remote dashboard. Use the "Browse Folder" button to pick a local directory, or use a relative path.');
+          setScanState('error');
+          appendLog('[SimpleBeacon] Cannot scan local path remotely — showDirectoryPicker unavailable');
+          return;
+        }
+        appendLog(`[SimpleBeacon] Local path "${scanPath}" detected on hosted dashboard. Switching to browser-local scan...`);
+        toast.info('Local path detected. Please select the folder in the picker to scan it in your browser.');
+        try {
+          const dirHandlePick = await (window as any).showDirectoryPicker();
+          if (!dirHandlePick) {
+            setScanState('idle');
+            return;
+          }
+          setProgressLabel('Scanning files in browser...');
+          setProgress(20);
+          appendLog(`[SimpleBeacon] Browser local scan via File System Access API...`);
+          const report = await runLocalScan({
+            dirHandle: dirHandlePick,
+            projectPath: scanPath,
+            onProgress: (processed: number, total: number) => {
+              if (total > 0) {
+                setProgress(Math.min(90, 20 + Math.round((processed / total) * 70)));
+                setProgressLabel(`Scanning ${processed} / ${total} files`);
+              }
+            },
+          });
+          setProgressLabel('Processing results...');
+          setProgress(95);
+          const r = report as any;
+          const scanResult: ScanResult = {
+            totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || 0,
+            issueCount: r.issueCount || r.summary?.totalFindings || 0,
+            severityCounts: r.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+            gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+            qualityScore: r.qualityScore ?? null,
+            projectPath: r.projectPath || scanPath,
+            scanScope: r.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+          };
+          setResult(scanResult);
+          setScanState('complete');
+          setProgress(100);
+          appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
+          localStorage.setItem('sb_last_scan', JSON.stringify({
+            files: scanResult.totalFiles,
+            issues: scanResult.issueCount,
+            gate: scanResult.gate.pass,
+          }));
+          localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
+          localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+          return;
+        } catch (e: any) {
+          setScanState('error');
+          appendLog(`[SimpleBeacon] Browser-local scan failed: ${e?.message || e}`);
+          toast.error(e?.message || 'Folder picker was cancelled or scan failed');
+          return;
+        }
+      }
+
       // Detect Windows path when no local server — use server's defaultProjectPath
       if (isWindowsPath(scanPath) && !apiBase) {
         appendLog(`[SimpleBeacon] Windows path "${scanPath}" detected but no local server running.`);
