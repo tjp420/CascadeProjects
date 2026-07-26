@@ -101,12 +101,13 @@ if (typeof window !== 'undefined') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const win: any = window as any;
   const _host = window.location.hostname || '';
-  // Probe for a local API server from any host except the canonical production domain.
-  // Hosted previews (simplebeacon.pages.dev) need this so they can reach a user's local server.
-  // The server now responds to Private Network Access preflights and CORS, so the previous
-  // restriction can be relaxed while still skipping the probe on simplebeacon.ai itself.
-  const _isProduction = _host === 'simplebeacon.ai';
-  if (!_isProduction && !win.__SB_API_HOST__ && !new URLSearchParams(window.location.search).get('sb_api_base')) {
+  // Only probe for a local API server when running on localhost.
+  // On hosted dashboards (simplebeacon.pages.dev), probing causes Private Network Access
+  // permission prompts and CORS errors because the secure context cannot reach a local
+  // server without explicit browser permission. Users who need a local server can use
+  // the sb_api_base query parameter instead.
+  const _isLocalhost = /^127\.0\.0\.1$|^localhost$/i.test(_host);
+  if (_isLocalhost && !win.__SB_API_HOST__ && !new URLSearchParams(window.location.search).get('sb_api_base')) {
     const ports = [3001, 58000, 64772, 3000, 3002, 4000, 8080, 50559, 54358];
     _apiBaseDetectPromise = (async () => {
       async function probePort(port: number): Promise<boolean> {

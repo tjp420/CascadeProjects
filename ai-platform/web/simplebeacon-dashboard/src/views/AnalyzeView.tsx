@@ -26,7 +26,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getApiBase, apiUrl, authHeaders, waitForApiBase, isTokenExpired, clearAuthAndRedirect } from '@/config';
+import { getApiBase, apiUrl, authHeaders, isTokenExpired, clearAuthAndRedirect } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 import { runLocalScan } from '@services/localScanService.js';
 import { navigate } from '@/router/HashRouter';
@@ -202,15 +202,7 @@ export function AnalyzeView() {
     }
 
     try {
-      appendLog(`[SimpleBeacon] Detecting local API server...`);
-      setProgressLabel('Detecting local API server...');
-      const detected = await waitForApiBase(3000);
-      let apiBase = detected || getApiBase() || '';
-      if (detected) {
-        appendLog(`[SimpleBeacon] Detected local API: ${apiBase}`);
-      } else {
-        appendLog(`[SimpleBeacon] No local API detected, using configured API base`);
-      }
+      const apiBase = getApiBase() || '';
       appendLog(`[SimpleBeacon] API base: ${apiBase || 'default'}`);
 
       let scanPath = scanInput;
