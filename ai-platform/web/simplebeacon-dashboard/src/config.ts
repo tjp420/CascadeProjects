@@ -114,7 +114,8 @@ if (typeof window !== 'undefined') {
   // the sb_api_base query parameter instead.
   const _isLocalhost = /^127\.0\.0\.1$|^localhost$/i.test(_host);
   if (_isLocalhost && !win.__SB_API_HOST__ && !new URLSearchParams(window.location.search).get('sb_api_base')) {
-    const ports = [3001, 58000, 64772, 3000, 3002, 4000, 8080, 50559, 54358];
+    // Prefer the configured default port first, then common proxy/agent ports.
+    const ports = [58000, 64772, 54358, 50559, 3001, 3000, 3002, 4000, 8080];
     _apiBaseDetectPromise = (async () => {
       async function probePort(port: number): Promise<boolean> {
         try {
@@ -127,6 +128,17 @@ if (typeof window !== 'undefined') {
           });
           clearTimeout(id);
           if (!res || !(res.ok || res.status === 401 || res.status === 403 || res.status === 404)) {
+            return false;
+          }
+          // Verify the response actually came from a Simplebeacon server.
+          // Other dev tools (e.g. Windsurf, Vite) may respond on 3001 with the
+          // wrong CORS policy and cause subsequent API calls to fail.
+          try {
+            const data = await res.clone().json();
+            if (data.platform !== 'Simplebeacon' && data.status !== 'healthy') {
+              return false;
+            }
+          } catch {
             return false;
           }
           // Verify CORS allows the authorization header — otherwise authenticated
