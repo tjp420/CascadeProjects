@@ -3,6 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <script>
+    // Early embed detection: set HTML attributes so CSS can apply for IDE embeds.
+    (function(){
+      try {
+        var params = new URLSearchParams(window.location.search || '');
+        var inIframe = (window.self !== window.top);
+        var hasEmbedParam = params.get('sb_parent_urlbar') === '1' || params.get('sb_api_base') || params.get('sb_website_mode');
+        var hasVsCode = typeof window.acquireVsCodeApi === 'function';
+        if (inIframe || hasEmbedParam || hasVsCode) {
+          document.documentElement.setAttribute('data-embed-mode', '1');
+          if (inIframe) document.documentElement.setAttribute('data-ide-embed', '1');
+          if (hasEmbedParam) document.documentElement.setAttribute('data-parent-urlbar', '1');
+          if (hasVsCode) document.documentElement.setAttribute('data-ide-preview', 'true');
+          try { window.__SB_PARENT_URL_BAR__ = params.get('sb_parent_urlbar') === '1'; } catch (e) {}
+          try { window.__SB_IDE_EMBED__ = inIframe || hasVsCode; } catch (e) {}
+        }
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
+  <script>
     // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
     // Brave and aggressive tracker blockers return an empty body for beacon.min.js, which
     // triggers SRI console errors when the tag has an integrity attribute. Strip the
@@ -86,6 +105,9 @@
   </style>
   <style id="ide-preview-hide">
     /* Hide embedded URL bar when parent extension/browser owns navigation */
+    /* Ensure normal browser layout when not in IDE/embed mode */
+    html:not([data-ide-embed="1"]) { height: auto !important; min-height: 0 !important; }
+    body:not([data-ide-embed="1"]) { height: auto !important; min-height: 0 !important; }
     html[data-parent-urlbar="1"] #sb-embedded-url-bar,
     html[data-parent-urlbar="1"] .sb-url-bar {
       display: none !important;
@@ -1043,7 +1065,7 @@
       }
     })();
   </script>
-  <script type="module" src="/dashboard/js-es2018/main.js?v=20260728dropfix2" defer></script>
+  <script type="module" src="/dashboard/js-es2018/main.js?v=20260728agentfix2" defer></script>
   <script>
     // Capture script errors so the fallback page can report them without DevTools.
     window.__SB_DASHBOARD_ERRORS__ = [];
@@ -1156,9 +1178,11 @@
   <script>
   (function() {
     try {
+      // Only treat this as an IDE/webview when explicitly requested via query
+      // param or a known IDE user agent. Avoid triggering for arbitrary iframes
+      // which can cause fixed-height layout issues in embedded contexts.
       const isIdeWebview = (typeof navigator !== 'undefined' && (navigator.userAgent || '').includes('Electron')) ||
-                           (window.location && window.location.search && window.location.search.includes('sb_parent_urlbar=1')) ||
-                           (window.top !== window.self);
+               (window.location && window.location.search && window.location.search.includes('sb_parent_urlbar=1'));
 
       if (!isIdeWebview) return;
       console.debug('[SimpleBeacon IDE Shim] Restricting layout engine bounds.');
@@ -1229,6 +1253,69 @@
       console.warn('[SimpleBeacon IDE Shim] init failed', err);
     }
   })();
+  </script>
+  <script>
+    // If the page was previously loaded with IDE sizing applied, but we're not
+    // in IDE/embed mode now, remove the forced inline heights to restore normal layout.
+    (function() {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var sbParentUrlbar = params.get('sb_parent_urlbar');
+        var sbWebsiteMode = params.get('sb_website_mode');
+        var isIde = (typeof navigator !== 'undefined' && (navigator.userAgent || '').includes('Electron')) ||
+                    (sbParentUrlbar === '1');
+        if (!isIde) {
+          try { document.documentElement.style.removeProperty('height'); } catch (e) {}
+          try { document.documentElement.removeAttribute('style'); } catch (e) {}
+          try { document.body.style.removeProperty('height'); } catch (e) {}
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    // Robust cleanup: remove forced heights after load and if they reappear.
+    (function() {
+      function isIdeMode() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var sbParentUrlbar = params.get('sb_parent_urlbar');
+          return (typeof navigator !== 'undefined' && (navigator.userAgent || '').includes('Electron')) || sbParentUrlbar === '1';
+        } catch (e) { return false; }
+      }
+      function cleanup() {
+        if (isIdeMode()) return;
+        try { document.documentElement.style.removeProperty('height'); } catch (e) {}
+        try { document.documentElement.removeAttribute('style'); } catch (e) {}
+        try { document.body.style.removeProperty('height'); } catch (e) {}
+      }
+      window.addEventListener('load', function() { setTimeout(cleanup, 50); });
+      // Watch for attribute changes on the html element
+      try {
+        var mo = new MutationObserver(function(records) { cleanup(); });
+        mo.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+      } catch (e) {}
+      // Also run once after short delay in case of late scripts
+      setTimeout(cleanup, 300);
+    })();
+  </script>
+  <script>
+    // Aggressive temporary cleanup: remove inline height repeatedly for a short period
+    (function() {
+      var attempts = 0;
+      var max = 40; // ~4 seconds at 100ms
+      var iv = setInterval(function() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var sbParentUrlbar = params.get('sb_parent_urlbar');
+          var isIde = (typeof navigator !== 'undefined' && (navigator.userAgent || '').includes('Electron')) || sbParentUrlbar === '1';
+          if (isIde) { clearInterval(iv); return; }
+          document.documentElement.style.removeProperty('height');
+          document.documentElement.removeAttribute('style');
+          document.body.style.removeProperty('height');
+        } catch (e) {}
+        attempts++; if (attempts >= max) clearInterval(iv);
+      }, 100);
+    })();
   </script>
 </body>
 </html>

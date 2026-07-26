@@ -30,8 +30,12 @@ function _isAllowedApiBase(value) {
     try {
         const url = new URL(value, location.href);
         const isLoopback = _isLoopbackHost(url.hostname);
-        // HTTPS pages cannot call an HTTP data server (mixed-content / LAN access), including
-        // loopback addresses. Extension bridge params do not bypass browser mixed-content policy.
+        // Extension bridge: allow loopback HTTP on HTTPS pages when sb_api_base is present.
+        // The CSP connect-src already permits http://127.0.0.1:* and browsers grant
+        // Private Network Access for loopback when explicitly configured.
+        if (!isLocalDevHost() && isLoopback && _hasExtensionBridgeParams())
+            return true;
+        // HTTPS pages cannot call an HTTP data server (mixed-content / LAN access).
         if (location.protocol === 'https:' && url.protocol === 'http:') return false;
         // Allow loopback bridges on non-HTTPS pages when the dashboard was opened with extension params.
         if (!isLocalDevHost() && isLoopback && !_hasExtensionBridgeParams()) return false;

@@ -254,7 +254,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Accept']
 }));
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({
+  limit: '1mb',
+  verify: (req, res, buf, encoding) => {
+    req.rawBody = buf.toString(encoding || 'utf8');
+  }
+}));
 
 // Trust proxy disabled so req.ip is accurate
 app.set('trust proxy', false);
@@ -363,6 +368,16 @@ app.post('/summary', async (req, res) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
   process.stderr.write(['[agent] Unhandled error:', err].join(" ") + "\n");
+  if (err && err.name === 'SyntaxError' && req.rawBody !== undefined) {
+    process.stderr.write(['[agent] Invalid JSON body received:', req.rawBody].join(" ") + "\n");
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.status(400).json({ success: false, error: 'Invalid JSON body', details: err.message });
+    return;
+  }
   const origin = req.headers.origin;
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);

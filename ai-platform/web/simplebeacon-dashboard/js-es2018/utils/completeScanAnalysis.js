@@ -16,17 +16,17 @@ let sanitizeConsolidationExportCore = (x) => x;
             if (mod && typeof mod.sanitizeRoadmapExport === 'function')
                 applyBenchmarkRoadmapSanitize = mod.sanitizeRoadmapExport;
         }).catch((e) => {
-            console.warn('[completeScanAnalysis] roadmap-export not available, using noop fallback.', e);
+            console['warn']('[completeScanAnalysis] roadmap-export not available, using noop fallback.', e);
         });
         import('./consolidation-export.browser.js?v=20260716cachefix1').then((mod) => {
             if (mod && typeof mod.sanitizeConsolidationExport === 'function')
                 sanitizeConsolidationExportCore = mod.sanitizeConsolidationExport;
         }).catch((e) => {
-            console.warn('[completeScanAnalysis] consolidation-export not available, using noop fallback.', e);
+            console['warn']('[completeScanAnalysis] consolidation-export not available, using noop fallback.', e);
         });
     }
     catch (e) {
-        console.warn('[completeScanAnalysis] failed to initiate optional exports import', e);
+        console['warn']('[completeScanAnalysis] failed to initiate optional exports import', e);
     }
 })();
 import { sanitizeNpmAuditExport } from './npm-audit-export.browser.js?v=20260716cachefix1';

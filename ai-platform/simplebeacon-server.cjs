@@ -161,6 +161,22 @@ function isAllowedCorsOrigin(origin) {
     }) || pagesPreviewOriginRegex.test(origin) || renderOriginRegex.test(origin) || netlifyOriginRegex.test(origin);
 }
 
+// Private Network Access (PNA) support: when a secure public page fetches a
+// loopback address, browsers send Access-Control-Request-Private-Network: true
+// in the preflight and require Access-Control-Allow-Private-Network: true.
+app.use((req, res, next) => {
+  try {
+    const acrpn = req.headers['access-control-request-private-network'];
+    if (typeof acrpn !== 'undefined') {
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+  } catch {
+    // ignore header-setting errors
+  }
+  next();
+});
+
 app.use(cors({
     origin: (origin, callback) => {
         if (isAllowedCorsOrigin(origin)) {
@@ -169,7 +185,10 @@ app.use(cors({
             callback(null, false);
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Token-Password'],
+    maxAge: 86400
 }));
 
 // Security headers (lightweight helmet alternative — zero dependencies)
@@ -910,6 +929,7 @@ app.use((req, res, next) => {
   if (!req.path.startsWith('/api/')) return next();
   if (req.path.startsWith('/api/simplebeacon/billing/webhook')) return next();
   if (req.path.startsWith('/api/auth/')) return next();
+  if (req.path.startsWith('/api/user/')) return next();
   if (req.path === '/api/platform/status') return next();
   if (req.path === '/api/health' || req.path === '/health') return next();
   if (req.path === '/api/analyze') return next();
@@ -1061,6 +1081,7 @@ async function bootstrapPhase2Routes() {
             publicGateEnabled: !internalDashboard,
             closedVaultMode: landingAtRoot
         }) },
+        { name: 'proxyOllama', fn: () => require('./server/routes/proxy-ollama-api.cjs').setupProxyOllamaAPI(app) },
         { name: 'phase2Integration', fn: async () => await setupPhase2Integration(app, { webRoot }) },
         { name: 'billingRoutes', fn: () => setupSimplebeaconBillingRoutes(app) },
         { name: 'simplebeaconAPI', fn: () => setupSimplebeaconAPI(app) },

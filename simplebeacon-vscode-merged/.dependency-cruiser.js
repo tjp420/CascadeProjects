@@ -54,14 +54,30 @@ module.exports = {
 
     // ── Circular dependency ban ──────────────────────────────────
     // NOTE: Known cycles exist between extension.ts ↔ providers/index.ts
-    // via dashboardPanel.ts. These are tolerated while being refactored.
-    // New cycles must be broken by extracting shared code into src/utils/.
+    // via dashboardPanel.ts. These are tolerated as warnings while being refactored.
+    // New cycles will fail the gate at error severity.
+    {
+      name: 'no-circular-known',
+      comment: 'Pre-existing cycles between extension.ts, providers/index.ts, and dashboardPanel.ts. Tolerated as warnings while being refactored.',
+      severity: 'warn',
+      from: {
+        path: '^src/(extension|providers/index|aiPlatform/dashboardPanel|dashboardUpdater)\\.ts$',
+      },
+      to: {
+        circular: true,
+      },
+    },
     {
       name: 'no-circular',
-      comment: 'Circular dependencies are not allowed in src/. Break the cycle by extracting shared code into src/utils/.',
-      severity: 'warn',
-      from: { path: '^src/' },
-      to: { circular: true },
+      comment: 'Circular dependencies are not allowed in src/. Break the cycle by extracting shared code into src/utils/ or using a bridge/mediator pattern.',
+      severity: 'error',
+      from: {
+        path: '^src/',
+        pathNot: '^src/(extension|providers/index|aiPlatform/dashboardPanel|dashboardUpdater)\\.ts$',
+      },
+      to: {
+        circular: true,
+      },
     },
 
   ],

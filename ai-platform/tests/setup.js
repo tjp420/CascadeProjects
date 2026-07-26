@@ -6,7 +6,39 @@
  */
 
 // Set test environment
+// Mock heavy config constants to avoid loading the full constants facade in tests
+jest.mock('../server/config/constants.cjs', () => ({
+  TIMEOUT_30S: 30000,
+  TIMEOUT_8S: 8000,
+  TIMEOUT_12S: 12000,
+  TIMEOUT_1M: 60000,
+  MAX_RATE_LIMIT: 1000,
+  safeJsonLimit: () => '1mb'
+}));
 const constants = require('../server/config/constants.cjs');
+
+// Normalize `minimatch` shape for Jest runtime: some installed versions export
+// an object with named exports while other code expects a callable function.
+try {
+  jest.mock('minimatch', () => {
+    // Defer to the real package and wrap it if needed
+    // eslint-disable-next-line global-require
+    const real = require('minimatch');
+    if (typeof real === 'function') return real;
+    // v9+ exports named functions; expose a callable signature compatible with older code
+    const fn = function (pattern, str, opts) {
+      if (typeof real === 'function') return real(pattern, str, opts);
+      if (real && typeof real.minimatch === 'function') return real.minimatch(str, pattern, opts);
+      if (real && typeof real.match === 'function') return real.match(str, pattern, opts);
+      throw new Error('minimatch shim: underlying minimatch shape unsupported');
+    };
+    // copy properties
+    Object.assign(fn, real);
+    return fn;
+  });
+} catch (e) {
+  // best-effort; don't fail tests if mocking fails
+}
 process.env.NODE_ENV = 'test';
 
 // Mock console methods to reduce noise in test output

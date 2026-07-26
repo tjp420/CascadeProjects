@@ -75,6 +75,8 @@ const setupLocalModelsAPI = require('./routes/local-models-api.cjs');
 const { setupSimplebeaconAPI } = require('../src/api/simplebeacon-api.cjs');
 const setupDashboardStubAPIs = require('../src/api/dashboard-stub-api.cjs');
 const { setupTrustAPI } = require('../src/api/trust-api.cjs');
+const setupExternalWeatherAPI = require('./routes/external-weather-api.cjs');
+const setupOracleSearch = require('./routes/oracle-search.cjs');
 const {
   setupSimplebeaconBillingWebhook,
   setupSimplebeaconBillingRoutes
@@ -137,9 +139,84 @@ app.use('/api/analyze/', createRateLimiter({
   max: constants.MAX_ANALYZE_RATE_LIMIT // Allow up to 1000 requests per 15 minutes for scan operations
 }));
 
+// Handle Private Network Access (PNA) preflight from browsers.
+// When a secure page attempts to fetch a loopback address, browsers send
+// `Access-Control-Request-Private-Network: true` in the preflight. The server
+// must respond with `Access-Control-Allow-Private-Network: true` to permit access.
+app.use((req, res, next) => {
+  try {
+    const acrpn = req.headers['access-control-request-private-network'];
+    if (typeof acrpn !== 'undefined') {
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+      // helpful cache for preflight
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+  } catch (e) {
+    // ignore header-setting errors
+  }
+  next();
+});
+
+// Explicitly handle OPTIONS preflight early so browsers receive the
+// required PNA + CORS headers even when other middleware short-circuits.
+app.options('/*', (req, res) => {
+  try {
+    const acrpn = req.headers['access-control-request-private-network'];
+    if (typeof acrpn !== 'undefined') {
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // Reflect origin when present (the `cors` middleware will also validate this later)
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,Access-Control-Request-Private-Network');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  return res.sendStatus(204);
+});
+
 app.use(cors(resolveCorsOptions({
   devFallbackOrigin: process.env.CORS_ORIGIN || process.env.SIMPLEBEACON_DEV_CORS_ORIGIN
 })));
+
+// Ensure local analyze backend (dev ports) are permitted by CSP connect-src.
+// This middleware augments any existing Content-Security-Policy header by
+// appending the local endpoints we rely on during development and hosted-preview.
+app.use((req, res, next) => {
+  try {
+    const existing = res.getHeader('Content-Security-Policy');
+    const connectExtras = 'http://127.0.0.1:8081 http://localhost:8081';
+    let csp = '';
+
+    if (typeof existing === 'string') csp = existing;
+    else if (Array.isArray(existing)) csp = existing.join(' ');
+
+    // If there's already a connect-src directive, append our extras if missing
+    if (csp && /connect-src[^;]*/i.test(csp)) {
+      const m = csp.match(/(connect-src[^;]*)/i);
+      if (m) {
+        const connectSrc = m[1];
+        if (!/127\.0\.0\.1:8081/.test(connectSrc)) {
+          const replaced = csp.replace(/(connect-src[^;]*)/i, `${connectSrc} ${connectExtras}`);
+          res.setHeader('Content-Security-Policy', replaced);
+        }
+      }
+    } else {
+      // No existing CSP or no connect-src: add a connect-src allowing local dev
+      // with wildcard ports so the dashboard's port-scanning probes work.
+      const base = csp && csp.length ? csp + '; ' : '';
+      const newCsp = `${base}connect-src 'self' ws: wss: https://cloudflareinsights.com https://*.onrender.com http://127.0.0.1:* http://localhost:* https://localhost:*;`;
+      res.setHeader('Content-Security-Policy', newCsp);
+    }
+  } catch (e) {
+    // Don't break request flow for header setting errors
+  }
+  return next();
+});
 
 // Billing webhook must use raw body before JSON parser
 setupSimplebeaconBillingWebhook(app);
@@ -337,6 +414,7 @@ const VAULT_AUTH_PREFIX_PATHS = [
   '/api/simplebeacon/config',
   '/api/simplebeacon/history',
   '/api/simplebeacon/user',
+  '/api/user',
   '/api/simplebeacon/entitlements',
   '/api/chatbot/',
   '/api/auth/',
@@ -500,14 +578,16 @@ app.use('/js-es2018', noStoreStatic(path.join(dashDir, 'js-es2018')));
 app.use('/js', noStoreStatic(path.join(dashDir, 'js')));
 app.use('/dashboard/js-es2018', noStoreStatic(path.join(dashDir, 'js-es2018')));
 app.use('/dashboard/js', noStoreStatic(path.join(dashDir, 'js')));
-for (const p of ['/css', '/images', '/fonts', '/assets']) {
+for (const p of ['/css', '/images', '/fonts']) {
   app.use(p, express.static(path.join(dashDir, p.substring(1))));
 }
+app.use('/assets', noStoreStatic(path.join(dashDir, 'assets')));
 // Also serve under /dashboard/ prefix so relative paths work for /dashboard/* routes
-for (const p of ['/dashboard/css', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets']) {
+for (const p of ['/dashboard/css', '/dashboard/images', '/dashboard/fonts']) {
   const sub = p.replace('/dashboard/', '');
   app.use(p, express.static(path.join(dashDir, sub)));
 }
+app.use('/dashboard/assets', noStoreStatic(path.join(dashDir, 'assets')));
 app.use('/site-config.js', express.static(path.join(dashDir, 'site-config.js')));
 
 // Dashboard static asset fallback — also check coming-soon/public/dashboard for vendor files
@@ -818,6 +898,30 @@ app.get('/api/theme', (_req, res) => {
 // Chatbot API — AI-powered code assistance
 setupChatbotAPI(app);
 
+// Browser notification bridge — no-op sink for legacy dashboard / extension heartbeat events
+app.post('/api/notify', (req, res) => {
+  res.json({ success: true, received: true });
+});
+
+// Path verification — used by the Analyze page to validate candidate scan paths
+app.post('/api/verify-path', (req, res) => {
+  const candidate = String(req.body?.path || '').trim();
+  if (!candidate) {
+    return res.json({ success: false, error: 'No path provided' });
+  }
+  try {
+    const fs = require('fs');
+    const resolved = require('path').resolve(candidate);
+    if (fs.existsSync(resolved)) {
+      const stat = fs.statSync(resolved);
+      return res.json({ success: true, path: resolved, isDirectory: stat.isDirectory() });
+    }
+    return res.json({ success: false, error: `Path does not exist: ${resolved}` });
+  } catch (e) {
+    return res.json({ success: false, error: e.message || 'Path verification failed' });
+  }
+});
+
 // WebAuthn passkey registration / authentication (dashboard Profile + Sign-in)
 setupWebAuthnAPI(app);
 
@@ -898,6 +1002,23 @@ try {
     setupTrustAPI(app, { platformRoot: path.join(__dirname, '..'), monorepoRoot: path.join(__dirname, '../..') });
 } catch (e) {
     logger.warn('[Simplebeacon] trust-api setup skipped:', e.message);
+}
+
+// External integrations (dev-friendly) — weather lookup
+try {
+  if (process.env.ENABLE_EXTERNAL_APIS === 'true' || process.env.NODE_ENV === 'development') {
+    setupExternalWeatherAPI(app);
+    // Oracle search (SerpAPI) - optional external API integration
+    try {
+      setupOracleSearch(app);
+    } catch (e) {
+      logger.warn('[OracleSearch] setup skipped:', e.message);
+    }
+  } else {
+    logger.info('[ExternalWeather] Disabled - set ENABLE_EXTERNAL_APIS=true to enable');
+  }
+} catch (e) {
+  logger.warn('[ExternalWeather] setup skipped:', e.message);
 }
 
 // EU AI Act sprint route

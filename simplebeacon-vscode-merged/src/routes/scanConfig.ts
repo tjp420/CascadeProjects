@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as http from 'http';
 import * as https from 'https';
 import { getSbConfig } from '../utils/vscode';
-import { ServerState } from '../dataServer';
+import { ServerState } from '../serverState';
 
 function readProjectScanProgress(projectPath: string) {
   if (!projectPath) return null;

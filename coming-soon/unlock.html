@@ -33,6 +33,11 @@ input:focus { outline:none; border-color:#6366f1; }
   const btn = document.getElementById('verifyBtn');
   const status = document.getElementById('status');
 
+  function setCookie(name, value, maxAge) {
+    const secure = location.protocol === 'https:' ? ';Secure' : '';
+    document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + maxAge + ';SameSite=Lax' + secure;
+  }
+
   btn.addEventListener('click', async function(){
     const token = input.value.trim();
     if (!token || token.split('.').length !== 3) {
@@ -52,12 +57,15 @@ input:focus { outline:none; border-color:#6366f1; }
       });
       const data = await res.json();
       if (data.valid) {
-        localStorage.setItem('cascadeAuthToken', token);
-        localStorage.setItem('cascadeAuthUser', JSON.stringify({
+        const userJson = JSON.stringify({
           email: data.email || 'user@simplebeacon.ai',
           plan: data.tier || 'community',
           tokenSession: true
-        }));
+        });
+        localStorage.setItem('cascadeAuthToken', token);
+        localStorage.setItem('cascadeAuthUser', userJson);
+        setCookie('cascadeAuthToken', token, 60 * 60 * 24 * 30);
+        setCookie('cascadeAuthUser', userJson, 60 * 60 * 24 * 30);
         status.textContent = '✅ Token verified. Redirecting…';
         status.className = 'status ok';
         setTimeout(function(){ window.location.href = 'audit.html'; }, 800);

@@ -1,0 +1,21 @@
+{
+  "report": {
+    "project": "CascadeProjects",
+    "tool": "SimpleBeacon",
+    "version": "1.0.0-demo",
+    "generatedAt": "2026-07-23T16:03:14Z",
+    "summary": {
+      "quality": 0,
+      "repoFiles": 1,
+      "gateRulesChecked": 0,
+      "mockSamples": 0,
+      "status": "PASS"
+    },
+    "details": {
+      "notes": "Demo fixture: shows minimal scan output when API unavailable.",
+      "links": [
+        "https://simplebeacon.ai/dashboard/analyze?sb_parent_urlbar=1&sb_notify_base=http://127.0.0.1:53900/api&sb_api_base=http://127.0.0.1:53900/api&sb_website_mode=1"
+      ]
+    }
+  }
+}

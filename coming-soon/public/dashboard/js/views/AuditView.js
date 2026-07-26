@@ -672,5 +672,15 @@ container.innerHTML = `<div class="analyze-hero"><h1 class="page-title">Complian
       this.audit.npmAudit = this.app.state.npmAudit;
     }
     this.app.state.audit = this.audit;
+    // If embedded in an IDE parent (sb_parent_urlbar=1), notify parent and request scroll-to-top
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const sbParent = params.get('sb_parent_urlbar') === '1';
+      if (sbParent) {
+        try { window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*'); } catch (e) { /* ignore */ }
+        try { window.parent.postMessage({ command: 'scrollToTop' }, '*'); } catch (e) { /* ignore */ }
+        try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+      }
+    } catch (_e) { /* ignore */ }
   }
 }

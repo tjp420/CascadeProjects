@@ -703,7 +703,7 @@ export async function pickFolderViaExtensionBridge() {
     }
 }
 async function agentFetchWithTimeout(url, options = {}, timeoutMs = 300000) {
-    const doFetch = getAgentFetch();
+    const doFetch = getBridgeFetch();
     const timeout = new Promise((_resolve, reject) => {
         setTimeout(() => reject(new Error('Local agent request timed out')), timeoutMs);
     });
@@ -799,7 +799,17 @@ function isMixedContent(origin) {
         return false;
     if (typeof window === 'undefined')
         return false;
-    return window.location.protocol === 'https:';
+    if (window.location.protocol !== 'https:')
+        return false;
+    try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('sb_api_base') || params.get('sb_notify_base'))
+            return false;
+        if (typeof sessionStorage !== 'undefined' && (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')))
+            return false;
+    }
+    catch (_a) { /* ignore */ }
+    return true;
 }
 /**
  * Fetch repository inventory through the local agent.
@@ -974,6 +984,7 @@ const SCAN_POLL_TIMEOUT_MS = 5 * 60 * 1000;
 
 async function pollForScanCompletion(origin, projectPath, doFetch) {
     const startTime = Date.now();
+    let inactiveCount = 0;
     while (Date.now() - startTime < SCAN_POLL_TIMEOUT_MS) {
         await new Promise((r) => setTimeout(r, SCAN_POLL_INTERVAL_MS));
         try {
@@ -981,13 +992,18 @@ async function pollForScanCompletion(origin, projectPath, doFetch) {
             const progressData = await progressRes.json().catch(() => ({}));
             const progress = progressData.progress || {};
             if (!progress.active) {
-                const reportRes = await doFetch(`${origin}/api/report`);
-                const reportData = await reportRes.json().catch(() => ({}));
-                if (reportData && Object.keys(reportData).length > 0) {
-                    return reportData;
+                inactiveCount++;
+                if (inactiveCount >= 3) {
+                    const reportRes = await doFetch(`${origin}/api/report`);
+                    const reportData = await reportRes.json().catch(() => ({}));
+                    if (reportData && Object.keys(reportData).length > 0) {
+                        return reportData;
+                    }
+                    throw new Error('Scan completed but no report is available');
                 }
-                throw new Error('Scan completed but no report is available');
+                continue;
             }
+            inactiveCount = 0;
         } catch (err) {
             throw new Error(`Scan polling failed: ${err.message || err}`);
         }

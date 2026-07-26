@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, formatNumber, downloadJson } from '../utils.js';
-import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260716cachefix1';
+import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260726sevfix1';
 import { buildQualityExportBundle, qualityExportFilename } from '../utils/quality-export.browser.js?v=20260716cachefix1';
 import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
 import { getVsCodeApi, renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';

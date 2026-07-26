@@ -1,0 +1,17 @@
+{
+  "name": "local-analyzer",
+  "version": "1.0.0",
+  "description": "Lightweight local HDD analyzer bridge for demo dashboards",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build:exe": "pkg server.js --targets node18-win-x64 --output local-analyzer.exe"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.0"
+  }
+}

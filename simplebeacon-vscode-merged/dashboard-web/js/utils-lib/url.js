@@ -38,7 +38,10 @@ function _isAllowedApiBase(value) {
 function _readStoredApiBase() {
   if (typeof sessionStorage !== 'undefined') {
     try {
-      return sessionStorage.getItem(SB_API_BASE_KEY);
+      const value = sessionStorage.getItem(SB_API_BASE_KEY);
+      if (value) {
+        return String(value).replace(/\/api\/?$/, '').replace(/\/+$/, '');
+      }
     }
     catch (_a) { /* ignore */ }
   }

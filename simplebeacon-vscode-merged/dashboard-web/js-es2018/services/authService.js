@@ -35,9 +35,21 @@ function _isAllowedApiBase(value) {
         if (location.protocol === 'https:' && url.protocol === 'http:') return false;
         // Allow loopback bridges on non-HTTPS pages when the dashboard was opened with extension params.
         if (!isLocalDevHost() && isLoopback && !_hasExtensionBridgeParams()) return false;
+        // Reject loopback API bases whose port differs from the current dashboard origin.
+        if (_isStaleLoopbackApiBase(value)) return false;
         return true;
     }
     catch (_a) { return false; }
+}
+function _isStaleLoopbackApiBase(value) {
+    if (!value || typeof location === 'undefined') return false;
+    try {
+        const url = new URL(String(value).startsWith('http') ? value : `http:${value}`, location.href);
+        const currentPort = location.port || (location.protocol === 'https:' ? '443' : '80');
+        const basePort = url.port || (url.protocol === 'https:' ? '443' : '80');
+        return _isLoopbackHost(url.hostname) && _isLoopbackHost(location.hostname) && basePort !== currentPort;
+    }
+    catch (_e) { return false; }
 }
 function _resolveExtensionBridgeApiBase() {
     let raw = '';
@@ -837,7 +849,7 @@ export class AuthService {
         if (AuthService._bridgeSyncBlockedUntil > Date.now())
             return false;
         const apiRoot = _resolveExtensionBridgeApiBase();
-        if (!apiRoot)
+        if (!apiRoot || !_isAllowedApiBase(apiRoot))
             return false;
         let canUseParent = false;
         try {

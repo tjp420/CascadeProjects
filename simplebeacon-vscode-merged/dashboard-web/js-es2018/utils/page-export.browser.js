@@ -3,7 +3,7 @@
  */
 import { downloadJson, showToast } from '../utils.js';
 import { FEATURE_CATALOG } from '../services/platformService.js?v=20260716cachefix1';
-import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary } from '../services/analyzeService.js?v=20260716cachefix1';
+import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary } from '../services/analyzeService.js?v=20260726sevfix1';
 import { pipelineStats, prospectsWithSentLog, OUTREACH_PROSPECTS } from '../data/outreach-prospects.js?v=20260716cachefix1';
 /**
  * Page export filename.

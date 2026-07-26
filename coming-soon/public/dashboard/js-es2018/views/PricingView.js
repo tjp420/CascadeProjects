@@ -18,14 +18,14 @@ export class PricingView {
     mount(container) {
         container.innerHTML = `
       <div class="page-header">
-        <h1>Team Pricing</h1>
+        <h1 style="margin:0 0 0.5rem;font-size:var(--font-size-2xl);color:var(--text-primary);">Team Pricing</h1>
         <p class="page-subtitle">
           Free community guardrails for every repo. Upgrade when you need team dashboards, CI telemetry, and multi-repo ROI reporting.
         </p>
       </div>
 
-      <div class="card notice-card mb-4">
-        <p style="margin:0">
+      <div class="card mb-4" style="border-left:4px solid var(--accent);">
+        <p class="text-sm text-secondary" style="margin:0;">
           <strong>Community stays free.</strong> Install the GitHub Action with no token — PR comments and merge gates work on every pull request.
           Team tier adds centralized metrics like <em>Merges Blocked This Week</em>.
         </p>
@@ -33,7 +33,7 @@ export class PricingView {
 
       <div class="pricing-grid mb-6">
         <div class="pricing-card card">
-          <h2>Community</h2>
+          <h2 style="margin:0;font-size:var(--font-size-xl);color:var(--text-primary);">Community</h2>
           <p class="pricing-tier-label">Open source · no account</p>
           <p class="pricing-price">$0</p>
           <ul class="pricing-features">
@@ -45,8 +45,8 @@ export class PricingView {
           <a class="btn btn-secondary" href="${GITHUB_ACTION_URL}" target="_blank" rel="noopener noreferrer">Install GitHub Action</a>
         </div>
 
-        <div class="pricing-card card pricing-card-featured">
-          <h2>Team Guardrails</h2>
+        <div class="pricing-card card pricing-card-highlight">
+          <h2 style="margin:0;font-size:var(--font-size-xl);color:var(--text-primary);">Team Guardrails</h2>
           <p class="pricing-tier-label">For engineering leads</p>
           <p class="pricing-price">$49<span class="pricing-period">/mo</span></p>
           <ul class="pricing-features">
@@ -59,7 +59,7 @@ export class PricingView {
         </div>
 
         <div class="pricing-card card">
-          <h2>Team Growth</h2>
+          <h2 style="margin:0;font-size:var(--font-size-xl);color:var(--text-primary);">Team Growth</h2>
           <p class="pricing-tier-label">Multi-repo engineering orgs</p>
           <p class="pricing-price">$149<span class="pricing-period">/mo</span></p>
           <ul class="pricing-features">
@@ -76,16 +76,16 @@ export class PricingView {
         <h3 class="h5 mb-2">Self-serve checkout</h3>
         <p class="text-muted text-sm mb-3">Pay on Stripe → receive your license token by email → paste into <code>SIMPLEBEACON_LICENSE_TOKEN</code> in GitHub secrets.</p>
         <p class="text-muted text-sm mb-3">Need an account first? <button type="button" class="btn btn-ghost btn-sm" id="pricing-goto-register" data-auth-action="register">Create a free account</button></p>
-        <label class="form-label" for="checkout-email">Work email</label>
+        <label for="checkout-email" style="display:block;font-size:var(--font-size-sm);color:var(--text-secondary);margin-bottom:var(--space-2);">Work email</label>
         <div class="d-flex gap-2 flex-wrap align-items-center">
-          <input type="email" id="checkout-email" class="form-input" placeholder="lead@yourcompany.com" autocomplete="email" style="max-width:320px">
+          <input type="email" id="checkout-email" placeholder="lead@yourcompany.com" autocomplete="email" style="padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-md);background:var(--background);color:var(--text-primary);font-size:var(--font-size-sm);max-width:320px;">
           <span class="text-muted text-xs">Token also appears in Settings after payment.</span>
         </div>
       </div>
 
       <div class="card">
         <h3 class="h5 mb-2">Quickstart after purchase</h3>
-        <pre class="code-block text-sm"><code>- uses: actions/checkout@v4
+        <pre class="text-sm" style="padding:var(--space-3);background:var(--surface-hover);border:1px solid var(--border);border-radius:var(--radius-md);overflow-x:auto;"><code style="font-family:var(--font-mono);color:var(--text-primary);">- uses: actions/checkout@v4
   with:
     fetch-depth: 0
 

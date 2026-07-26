@@ -54,7 +54,7 @@ function printSetupGuide(status) {
     console.log('2. Add and verify domain simplebeacon.ai (DNS records in Cloudflare)');
     console.log('3. Create API key (starts with re_)');
     console.log('4. In Render → simplebeacon service → Environment:');
-    console.log('     RESEND_API_KEY=re_xxxxxxxx');
+    console.log('     RESEND_API_KEY set to re_xxxxxxxx');
     console.log('     RESEND_FROM=certificates@simplebeacon.ai');
     console.log('5. Redeploy the Render service');
     console.log('\nLocal dev: copy coming-soon/.env.example → .env and set the same vars.');

@@ -57,6 +57,7 @@ import { validateLicenseLocally, normalizeTier } from './licenseManager';
 import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { getAccountTracker } from './accountTracker';
 import { PAID_TIERS, resolveTier } from './tierConstants';
+import { countLocalDirectoryInventory } from './routes/scanReport';
 
 /** Decode the payload section of a JWT (3-part dot-separated token). */
 function decodeJwtPayload(token: string): Record<string, any> | null {
@@ -738,9 +739,11 @@ export function activate(context: vscode.ExtensionContext) {
           if (!route.startsWith('/')) {
             route = `/dashboard/${route.replace(/^dashboard\/?/, '')}`;
           }
-          const notifyBase = `http://127.0.0.1:${getDataServerPort()}/api`;
+          const dataServerPort = getDataServerPort();
+          const localBase = `http://127.0.0.1:${dataServerPort}`;
+          const notifyBase = `${localBase}/api`;
           import('./sidebarMessenger').then(({ buildDashboardUrl, appendDashboardEmbedParams }) => {
-            let url = buildDashboardUrl('https://simplebeacon.ai', route);
+            let url = buildDashboardUrl(localBase, route);
             url = appendDashboardEmbedParams(url, notifyBase, true);
             return vscode.env.openExternal(vscode.Uri.parse(url));
           }).then(() => {
@@ -822,7 +825,13 @@ export function activate(context: vscode.ExtensionContext) {
     setSidebarBridge({
       showDashboardInSidebar: ModernSidebarProvider.showDashboardInSidebar.bind(ModernSidebarProvider),
       openSidebarInBrowserStatic: ModernSidebarProvider.openSidebarInBrowserStatic.bind(ModernSidebarProvider),
-      isSidebarReady: ModernSidebarProvider.isViewReady.bind(ModernSidebarProvider)
+      isSidebarReady: ModernSidebarProvider.isViewReady.bind(ModernSidebarProvider),
+      openSidebarPreview: ModernSidebarProvider.openSidebarPreview.bind(ModernSidebarProvider),
+      setSidebarAuthState: ModernSidebarProvider.setSidebarAuthState.bind(ModernSidebarProvider),
+      getDashboardMode: ModernSidebarProvider.getDashboardMode.bind(ModernSidebarProvider),
+      refreshAuthState: ModernSidebarProvider.refreshAuthState.bind(ModernSidebarProvider),
+      addDownloadedFile: ModernSidebarProvider.addDownloadedFile.bind(ModernSidebarProvider),
+      updateSidebarReport: ModernSidebarProvider.updateSidebarReport.bind(ModernSidebarProvider)
     });
   });
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(ModernSidebarProvider.viewType, modernSidebarProvider));
@@ -3457,6 +3466,64 @@ Timestamp: ${escapeHtml(new Date().toISOString())}</pre>
 }
 
 /**
+ * Upload a scan report to the remote SimpleBeacon server so the website dashboard
+ * can display the same results as the IDE. Only runs when syncToCloud is enabled.
+ */
+async function syncReportToCloud(report: ScanReport): Promise<void> {
+  try {
+    const config = getSbConfig();
+    const syncEnabled = config.get<boolean>('syncToCloud', false);
+    if (!syncEnabled || !report) { return; }
+    const apiUrl = config.get<string>('apiUrl', '') || config.get<string>('apiServerUrl', '');
+    if (!apiUrl) {
+      outputChannel.appendLine('[SimpleBeacon] Cloud sync skipped — no apiUrl configured');
+      return;
+    }
+    let authToken = '';
+    try {
+      authToken = await getAuthManager().getToken() || '';
+    } catch { /* auth manager may not be initialized */ }
+    const cloudScanUrl = apiUrl.replace(/\/+$/, '') + '/api/simplebeacon/cloud-scan';
+    const body = JSON.stringify({ report });
+    const parsed = new URL(cloudScanUrl);
+    const lib = parsed.protocol === 'https:' ? https : http;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Content-Length': String(Buffer.byteLength(body)),
+    };
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    const req = lib.request(parsed, {
+      method: 'POST',
+      headers,
+      timeout: 30000,
+    }, (res) => {
+      let respBody = '';
+      res.on('data', (chunk: Buffer) => { respBody += chunk.toString(); });
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          outputChannel.appendLine('[SimpleBeacon] Cloud sync complete — report uploaded to remote server');
+        } else {
+          outputChannel.appendLine(`[SimpleBeacon] Cloud sync failed — HTTP ${res.statusCode}: ${respBody.slice(0, 200)}`);
+        }
+      });
+    });
+    req.on('error', (err: Error) => {
+      outputChannel.appendLine(`[SimpleBeacon] Cloud sync error: ${err.message}`);
+    });
+    req.on('timeout', () => {
+      req.destroy();
+      outputChannel.appendLine('[SimpleBeacon] Cloud sync timed out');
+    });
+    req.write(body);
+    req.end();
+  } catch (err) {
+    outputChannel.appendLine(`[SimpleBeacon] Cloud sync skipped: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/**
  * Resolve the SimpleBeacon CLI entry point.
  * Tries bundled, workspace-local, and npx global paths.
  */
@@ -3524,6 +3591,13 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
     return;
   }
   scanInProgress = true;
+  updateServerState({
+    scanStatus: 'scanning',
+    scanMessage: 'Starting scan…',
+    scanProgressProcessed: 0,
+    scanProgressTotal: 100,
+    lastScanTime: Date.now(),
+  });
 
   const cliResolved = resolveCliPath();
   const cliOk = cliResolved !== null;
@@ -3531,6 +3605,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   const localAgentEnabled = config.get<boolean>('localAgent.enabled', true);
   if (!cliOk && !localAgentEnabled) {
     scanInProgress = false;
+    updateServerState({ scanStatus: 'idle', scanMessage: 'No scanner available' });
     const install = await vscode.window.showWarningMessage(
       'SimpleBeacon CLI not found. Install it with: npm install -g simplebeacon-cli',
       'Copy Command',
@@ -3560,6 +3635,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   }
   if (!projectPath) {
     scanInProgress = false;
+    updateServerState({ scanStatus: 'idle', scanMessage: 'No project path selected' });
     return;
   }
 
@@ -3757,6 +3833,15 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
         const report = await scanViaLocalAgent({ projectPath, fullDirectory: options?.fullDirectory }, agentPort);
         clearInterval(agentProgressInterval);
         if (report) {
+          const localInv = countLocalDirectoryInventory(projectPath);
+          if (localInv) {
+            report.repositoryFoldersTotal = localInv.totalFolders;
+            if (report.repositoryInventory) {
+              report.repositoryInventory.totalFolders = localInv.totalFolders;
+            } else {
+              report.repositoryInventory = { totalFiles: localInv.totalFiles, totalFolders: localInv.totalFolders };
+            }
+          }
           modernSidebarProvider.updateScanProgress(100);
           const sbDir = path.join(projectPath, '.simplebeacon');
           await fs.promises.mkdir(sbDir, { recursive: true });
@@ -3787,6 +3872,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
             `SimpleBeacon scan complete — Score: ${scanScore}/100 — Gate: ${scanGate}. ${issueCount} issue${issueCount === 1 ? '' : 's'} found.`
           );
           outputChannel.appendLine(`[SimpleBeacon] Local agent scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
+          void syncReportToCloud(report);
           scanInProgress = false;
           setTimeout(() => modernSidebarProvider.updateScanProgress(0), 2000);
           generateCodeMap(false, projectPath)
@@ -3807,6 +3893,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   if (!cliResolved) {
     vscode.window.showErrorMessage('SimpleBeacon CLI not found. Install with: npm install -g simplebeacon-cli');
     scanInProgress = false;
+    updateServerState({ scanStatus: 'idle', scanMessage: 'CLI not found' });
     return;
   }
 
@@ -4132,6 +4219,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
               outputChannel.appendLine(`[SimpleBeacon] Headless scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
             }
             outputChannel.appendLine(`[SimpleBeacon] Scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
+            void syncReportToCloud(report);
             scanInProgress = false;
             _stopSimulatedProgress();
             _reportProgress(100);

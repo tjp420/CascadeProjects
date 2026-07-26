@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { showToast } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260726embedfix1';
-import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260716cachefix1';
+import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260726sevfix1';
 import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,

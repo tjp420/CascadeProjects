@@ -5,20 +5,16 @@ This is a temporary standalone server that serves the SimpleBeacon dashboard and
 ## Start the API server
 
 <!-- simplebeacon-ignore: markdown-fence-leak — code blocks in markdown documentation -->
-```powershell
-cd c:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged
-node dashboard-server.cjs
-```
+	cd c:\Users\Trevor\CascadeProjects\simplebeacon-vscode-merged
+	node dashboard-server.cjs
 
 The server listens on `http://127.0.0.1:8081`.
 
 ## Start the React dashboard (Vite)
 
 <!-- simplebeacon-ignore: markdown-fence-leak — code blocks in markdown documentation -->
-```powershell
-cd c:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard
-npm run dev
-```
+	cd c:\Users\Trevor\CascadeProjects\ai-platform\web\simplebeacon-dashboard
+	npm run dev
 
 Then open `http://127.0.0.1:51369/` (or the port Vite reports). The dashboard reads the API base from `src/config.ts` (`http://127.0.0.1:8081/api` by default).
 

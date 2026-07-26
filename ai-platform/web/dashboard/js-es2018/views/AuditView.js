@@ -101,9 +101,18 @@ export class AuditView {
             showToast('No audit data to export — load the page first', 'error');
             return;
         }
-        const payload = buildComplianceAuditExportBundle(this.audit);
-        downloadJson(payload, complianceAuditExportFilename('json'));
-        showToast('Compliance audit exported', 'success');
+      try {
+        if (typeof authService !== 'undefined' && authService.isFreeTier && authService.isFreeTier()) {
+          showToast('Export disabled for free-tier accounts — upgrade to Pro to download full reports.', 'error');
+          return;
+        }
+      }
+      catch (_err) {
+        window.console.warn('[AuditView] authService.isFreeTier check failed', _err);
+      }
+      const payload = buildComplianceAuditExportBundle(this.audit);
+      downloadJson(payload, complianceAuditExportFilename('json'));
+      showToast('Compliance audit exported', 'success');
     }
     layerStatusClass(status) {
         if (status === 'pass')

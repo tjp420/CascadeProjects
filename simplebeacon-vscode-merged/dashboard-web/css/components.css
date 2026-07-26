@@ -159,6 +159,10 @@ html[data-embed-mode="1"]:not([data-embed-full-nav="1"]):not([data-ide-embed="1"
 }
 
 html[data-ide-embed="1"] #app-main {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
   flex: 1;
   height: 100% !important;
   min-width: 0;

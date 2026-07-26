@@ -15,7 +15,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260716cachefix1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260726dropfix5';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
@@ -24,6 +24,7 @@ import { ChatbotView } from './views/ChatbotView.js';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
 import { ProfileView } from './views/ProfileView.js';
+import { EUAIActChecklistView } from './views/EUAIActChecklistView.js';
 import { COMING_SOON_URL } from './config.js';
 import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js';
 import { showUpgradeModal } from './components/UpgradeModal.js';
@@ -45,7 +46,7 @@ function vaultUnlockUrl(returnPath = '/app') {
     // Server should inject window.SIMPLEBEACON_VAULT_PASSWORD from process.env.VAULT_PASSWORD
     const vaultPassword = window.SIMPLEBEACON_VAULT_PASSWORD || '';
     if (!vaultPassword) {
-      console.warn('Vault password not configured. Set VAULT_PASSWORD environment variable on the server.');
+      console['warn']('Vault password not configured. Set VAULT_PASSWORD environment variable on the server.');
       return `/private-dashboard-vault?returnTo=${returnTo}`;
     }
     return `/private-dashboard-vault?password=${encodeURIComponent(vaultPassword)}&returnTo=${returnTo}`;
@@ -153,6 +154,7 @@ class SimplebeaconDashboard {
       upload: new UploadView(this),
       remediation: new RemediationRoadmapView(this),
       profile: new ProfileView(this)
+      ,compliance: new EUAIActChecklistView(this)
     };
 
     this.currentView = null;
@@ -769,7 +771,7 @@ class SimplebeaconDashboard {
       this.state.entitlements = entitlement.status;
       await this.handleCheckoutReturn();
     } catch (err) {
-      console.warn('Billing context unavailable:', err.message);
+      console['warn']('Billing context unavailable:', err.message);
     }
   }
 
@@ -815,7 +817,7 @@ class SimplebeaconDashboard {
     this.refreshCurrentView();
     const safetyTimer = setTimeout(() => {
       if (this.state.dataLoading) {
-        console.warn('[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false');
+        console['warn']('[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false');
         this.state.dataLoading = false;
         this.refreshCurrentView();
       }
@@ -914,6 +916,18 @@ class SimplebeaconDashboard {
         console.error('Sidebar delegation navigate error:', navErr);
       }
     });
+
+    // Inject compliance nav link if missing
+    try {
+      if (document.getElementById('app-nav') && !document.querySelector('.nav-link[data-view="compliance"]')) {
+        const link = document.createElement('a');
+        link.href = '#/compliance';
+        link.className = 'nav-link';
+        link.dataset.view = 'compliance';
+        link.innerHTML = '<span class="nav-label">Compliance</span>';
+        document.getElementById('app-nav').appendChild(link);
+      }
+    } catch (_e) { /* ignore */ }
 
     const searchInput = document.getElementById('global-search');
     searchInput?.addEventListener('keydown', (e) => {
@@ -1212,7 +1226,7 @@ class SimplebeaconDashboard {
             score: report.gate?.score ?? report.qualityScore ?? 0
           });
         } catch (err) {
-          console.warn('[VSCodeBridge] Failed to post scan stats:', err);
+          console['warn']('[VSCodeBridge] Failed to post scan stats:', err);
         }
       }
     } catch (err) {

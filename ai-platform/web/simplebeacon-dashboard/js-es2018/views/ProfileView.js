@@ -103,9 +103,13 @@ export class ProfileView {
           const sbApi = params.get('sb_api_base') || params.get('sb_api');
           if (sbParent || sbWebsite) {
             try { document.documentElement.setAttribute('data-parent-urlbar', '1'); } catch (e) { }
-            try { document.documentElement.setAttribute('data-ide-embed', '1'); } catch (e) { }
             window.__SB_PARENT_URL_BAR__ = true;
-            window.__SB_IDE_EMBED__ = true;
+            // Only set data-ide-embed when actually inside an iframe (IDE webview).
+            // Setting it in a top-level browser tab applies compact IDE styles that break the layout.
+            if (window.__SB_IDE_EMBED__ || (window.parent && window.parent !== window)) {
+              try { document.documentElement.setAttribute('data-ide-embed', '1'); } catch (e) { }
+              window.__SB_IDE_EMBED__ = true;
+            }
           }
           if (sbApi && typeof isExtensionHostedTab === 'function' && isExtensionHostedTab()) {
             try { window.__SB_BRIDGE_HOST__ = sbApi; } catch (e) { }

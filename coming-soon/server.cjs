@@ -136,6 +136,8 @@ app.use((req, res, next) => {
     const SCANNER_BRIDGE_PORT = 3456;
     const LOCAL_PORTS = [DEFAULT_PORT, 3000, 3002, 4000, 8080, 5000, 58000, 54358, 38000, 50559, 11434];
     const localConnectOrigins = LOCAL_PORTS.flatMap(p => ['http://127.0.0.1:' + p, 'http://localhost:' + p]).join(' ');
+    // Allow any loopback port for extension bridge (dynamic port assignment)
+    const loopbackWildcard = 'http://127.0.0.1:* http://localhost:*';
     // Render backend and any other Render service the dashboard may call
     const renderOrigins = 'https://simplebeacon.onrender.com https://*.onrender.com';
     // frame-ancestors allows IDE preview iframes from localhost origins in dev
@@ -150,7 +152,7 @@ app.use((req, res, next) => {
     if (!res.getHeader || !res.getHeader('Content-Security-Policy')) {
         res.setHeader('Content-Security-Policy',
             "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdnjs.cloudflare.com https://unpkg.com" + cfScript + "; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' "
-            + renderOrigins + " http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " " + localConnectOrigins + " https://api.stripe.com" + cfConnect + "; frame-src https://js.stripe.com; frame-ancestors " + frameAncestors + ";");
+            + renderOrigins + " http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " " + localConnectOrigins + " " + loopbackWildcard + " https://api.stripe.com" + cfConnect + "; frame-src https://js.stripe.com; frame-ancestors " + frameAncestors + ";");
     }
     if (req.headers['x-forwarded-proto'] === 'https' || req.secure) {
         const HSTS_MAX_AGE_SECONDS = 2 * 365 * 24 * 60 * 60;

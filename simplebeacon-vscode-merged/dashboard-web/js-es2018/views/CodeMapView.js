@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber } from '../utils.js';
 import { scanService } from '../services/scanService.js?v=20260716cachefix1';
-import { fetchRepositoryInventory } from '../services/analyzeService.js?v=20260716cachefix1';
+import { fetchRepositoryInventory } from '../services/analyzeService.js?v=20260726sevfix1';
 /**
  * Build a nested tree object from an array of file paths.
  * @param {string[]} paths

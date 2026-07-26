@@ -3329,6 +3329,11 @@ body{font-family:var(--vscode-font-family,'Segoe UI',sans-serif);background:var(
         <div class="tm-quick-tile-label">Settings</div>
         <div class="tm-quick-tile-desc">Configure team</div>
       </div>
+      <div class="tm-quick-tile" id="tmAdminBtn" style="display:none">
+        <span class="tm-quick-tile-icon">&#128274;</span>
+        <div class="tm-quick-tile-label">Admin</div>
+        <div class="tm-quick-tile-desc">Team admin tools</div>
+      </div>
     </div>
     <div class="db-sev-row">
       <div class="db-sev-label"><span class="db-sev-dot crit"></span><span id="tmCritLabel">0 Critical</span></div>
@@ -4936,6 +4941,8 @@ const tmReportBtn = document.getElementById('tmReportBtn');
 if (tmReportBtn) tmReportBtn.addEventListener('click', () => { addTab('Report','reportPane'); vscode.postMessage({ command: 'openReport' }); });
 const tmSettingsBtn = document.getElementById('tmSettingsBtn');
 if (tmSettingsBtn) tmSettingsBtn.addEventListener('click', () => { addTab('Settings','settingsPane'); vscode.postMessage({ command: 'openSettings' }); });
+const tmAdminBtn = document.getElementById('tmAdminBtn');
+if (tmAdminBtn) tmAdminBtn.addEventListener('click', () => vscode.postMessage({ command: 'openAdmin' }));
 const scRunBtn = document.getElementById('scRunBtn');
 if (scRunBtn) scRunBtn.addEventListener('click', () => { const pw = document.getElementById('scProgressWrap'); if (pw) pw.classList.add('active'); vscode.postMessage({ command: 'runScan' }); });
 const scanPathInput = document.getElementById('scanPathInput');
@@ -6603,6 +6610,11 @@ window.addEventListener('message', (event) => {
     if (msg.membersList) renderTeamMembers(msg.membersList);
     const summary = document.getElementById('tmSummary');
     if (summary && msg.status && msg.status !== 'Pending') summary.style.display = 'none';
+    // Show admin controls if the extension indicates current user is an admin
+    try {
+      const tmAdminBtnEl = document.getElementById('tmAdminBtn');
+      if (tmAdminBtnEl) tmAdminBtnEl.style.display = msg.isAdmin ? 'flex' : 'none';
+    } catch (e) {}
   }
   if (msg.command === 'updateScanPane') {
     const t = document.getElementById('scTotal');

@@ -55,9 +55,14 @@ if (fs.existsSync(destIndex)) {
   // Replace /src/main.tsx with ./dist/assets/main.js (production build)
   if (html.includes('/src/main.tsx')) {
     html = html.replace(/<script type="module" src="\/src\/main\.tsx"><\/script>/, '<script type="module" src="./dist/assets/main.js"></script>');
-    fs.writeFileSync(destIndex, html, 'utf8');
     console.log('[sync-dashboard-web] Patched index.html: /src/main.tsx -> ./dist/assets/main.js');
   }
+  // Rewrite absolute /assets/ paths to /dashboard/assets/ for extension serving
+  if (html.includes('"/assets/') || html.includes("'/assets/") || html.includes('=/assets/')) {
+    html = html.replace(/(["'(=]\s*)\/assets\//g, '$1/dashboard/assets/');
+    console.log('[sync-dashboard-web] Patched index.html: /assets/ -> /dashboard/assets/');
+  }
+  fs.writeFileSync(destIndex, html, 'utf8');
 }
 
 console.log('[sync-dashboard-web] Done');

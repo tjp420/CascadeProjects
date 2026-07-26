@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber, formatPercent, showToast, renderEmptyState } from '../utils.js';
-import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260716cachefix1';
+import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260726sevfix1';
 import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
 import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';

@@ -288,7 +288,11 @@
     let displayUrl = explicitDisplayUrl || toWebsiteDisplayUrl(ensureEmbedParams(resolved));
     let iframeUrl = preferLocalDashboardUrl(displayUrl);
     if (!canEmbed(iframeUrl)) {
-      const clean = stripEmbedParams(displayUrl);
+      let clean = stripEmbedParams(displayUrl);
+      const notifyBase = _embedContext.notifyBase || (window.__SB_LOCAL_DASHBOARD_BASE__ ? window.__SB_LOCAL_DASHBOARD_BASE__ + '/api' : '');
+      if (notifyBase && clean.indexOf('sb_notify_base=') === -1) {
+        clean += (clean.indexOf('?') === -1 ? '?' : '&') + 'sb_notify_base=' + encodeURIComponent(notifyBase);
+      }
       vscode.postMessage({ command: 'openInSimpleBrowser', url: clean });
       if (urlInput) urlInput.value = clean;
       if (push) pushHistory(clean);
@@ -488,7 +492,11 @@
             }
           } else {
             // Non-dashboard pages (marketing, roadmap, etc.): open in simple browser
-            const cleanUrl = stripEmbedParams(currentSrc);
+            let cleanUrl = stripEmbedParams(currentSrc);
+            const notifyBase = _embedContext.notifyBase || (window.__SB_LOCAL_DASHBOARD_BASE__ ? window.__SB_LOCAL_DASHBOARD_BASE__ + '/api' : '');
+            if (notifyBase && cleanUrl.indexOf('sb_notify_base=') === -1) {
+              cleanUrl += (cleanUrl.indexOf('?') === -1 ? '?' : '&') + 'sb_notify_base=' + encodeURIComponent(notifyBase);
+            }
             vscode.postMessage({ command: 'openInSimpleBrowser', url: cleanUrl });
             if (urlInput) urlInput.value = cleanUrl;
           }

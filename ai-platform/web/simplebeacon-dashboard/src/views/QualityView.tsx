@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Award, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Award, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info, TrendingUp, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { navigate } from '@/router/HashRouter';
 
@@ -29,6 +30,32 @@ export function QualityView() {
     }
   }, []);
 
+  const exportQuality = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      scan: result || {
+        totalFiles: 0,
+        issueCount: 0,
+        severityCounts: { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+        gate: { pass: true, blockingCount: 0, warningCount: 0 },
+        qualityScore: 100,
+        projectPath: '',
+        scanScope: { profile: 'unknown', resultsViewScope: 'quality', codeFilesAnalyzed: 0 },
+      },
+      scanTime,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const root = ((result && result.projectPath) || 'quality').replace(/[\/:\\\s]+/g, '-').slice(0, 60);
+    a.href = url;
+    a.download = `quality-${root || 'quality'}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   if (!result) {
     return (
       <div className="mx-auto max-w-5xl p-6 space-y-6">
@@ -41,12 +68,14 @@ export function QualityView() {
             <Award className="h-12 w-12 text-foreground-muted" />
             <p className="text-sm text-foreground-muted">No quality metrics to display</p>
             <p className="text-xs text-foreground-muted">Run a scan from the Analyze page to see quality metrics</p>
-            <button
-              className="mt-2 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              onClick={() => navigate('analyze')}
-            >
-              <Play className="h-4 w-4" /> Go to Analyze
-            </button>
+            <div className="mt-2 flex gap-2">
+              <Button onClick={() => navigate('analyze')}>
+                <Play className="h-4 w-4 mr-2" /> Go to Analyze
+              </Button>
+              <Button variant="outline" onClick={exportQuality}>
+                <Download className="h-4 w-4 mr-2" /> Export JSON
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -68,9 +97,16 @@ export function QualityView() {
 
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Quality</h1>
-        <p className="text-foreground-muted">Code quality metrics and trends</p>
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold tracking-tight">Quality</h1>
+          <p className="text-foreground-muted">Code quality metrics and trends</p>
+        </div>
+        <div className="ml-4 flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={exportQuality}>
+            <Download className="h-4 w-4 mr-2" /> Export JSON
+          </Button>
+        </div>
       </div>
 
       {/* Quality Score Card */}

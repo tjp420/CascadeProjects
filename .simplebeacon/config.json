@@ -82,6 +82,7 @@
     "**/coming-soon-dev/**",
     "C:/Users/Trevor/CascadeProjects/coming-soon/**",
     "**/ai-platform/web/simplebeacon-dashboard/data/**",
+    "**/ai-platform/web/simplebeacon-dashboard/assets/**",
     "server/db/token-registry.json",
     "ai-platform/server/db/token-registry.json",
     "C:/Users/Trevor/CascadeProjects/server/db/token-registry.json",

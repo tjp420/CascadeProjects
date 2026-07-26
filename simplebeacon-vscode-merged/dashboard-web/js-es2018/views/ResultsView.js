@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, showToast, formatPercent, formatNumber, renderEmptyState } from '../utils.js';
-import { getScanFileMetrics, resolveDisplayScore, hydrateClientScanReport, isClientScanReport } from '../services/analyzeService.js?v=20260716cachefix1';
+import { getScanFileMetrics, resolveDisplayScore, hydrateClientScanReport, isClientScanReport } from '../services/analyzeService.js?v=20260726sevfix1';
 import { openInIde, renderIdeFileLink, resolveProjectRootFromApp } from '../utils-lib/ideDeepLink.js';
 const SEVERITIES = ['all', 'high', 'medium', 'low'];
 /**
@@ -226,7 +226,6 @@ export class ResultsView {
             }
         } catch (e) {
             // ignore attach errors
-            try { if (typeof window !== 'undefined' && window.__SIMPLEBEACON_DEBUG__) console.warn('[ResultsView] emptyState attach failed', e); } catch (err) {}
         }
 
         this.bindFilters(el);

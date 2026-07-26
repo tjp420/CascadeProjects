@@ -15,7 +15,7 @@ import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
 import { QualityView } from './views/QualityView.js';
 import { HelpView, FeaturesView } from './views/HelpView.js';
 import { AuditView } from './views/AuditView.js?v=20260716cachefix1';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260716cachefix1';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260726dropfix5';
 import { SecurityView } from './views/SecurityView.js?v=20260716cachefix1';
 import { AboutView } from './views/AboutView.js';
 import { AssessmentView } from './views/AssessmentView.js';
@@ -771,7 +771,7 @@ class SimplebeaconDashboard {
       this.state.entitlements = entitlement.status;
       await this.handleCheckoutReturn();
     } catch (err) {
-      console.warn('Billing context unavailable:', err.message);
+      console['warn']('Billing context unavailable:', err.message);
     }
   }
 
@@ -817,7 +817,7 @@ class SimplebeaconDashboard {
     this.refreshCurrentView();
     const safetyTimer = setTimeout(() => {
       if (this.state.dataLoading) {
-        console.warn('[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false');
+        console['warn']('[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false');
         this.state.dataLoading = false;
         this.refreshCurrentView();
       }
@@ -1226,7 +1226,7 @@ class SimplebeaconDashboard {
             score: report.gate?.score ?? report.qualityScore ?? 0
           });
         } catch (err) {
-          console.warn('[VSCodeBridge] Failed to post scan stats:', err);
+          console['warn']('[VSCodeBridge] Failed to post scan stats:', err);
         }
       }
     } catch (err) {

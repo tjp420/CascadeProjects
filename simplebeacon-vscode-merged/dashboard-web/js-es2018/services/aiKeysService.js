@@ -271,18 +271,32 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
         const timeout = setTimeout(() => controller.abort(), 15000);
         try {
             const apiBase = getApiBaseUrl();
-            const proxyPath = `/api/simplebeacon/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`;
-            const proxyUrl = apiBase ? `${apiBase}${proxyPath}` : proxyPath;
-            const response = await fetch(proxyUrl, {
+            // Prefer the new server-side proxy when available.
+            const proxyPathNew = `/api/proxy/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`;
+            const proxyPathLegacy = `/api/simplebeacon/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`;
+            const proxyUrlNew = apiBase ? `${apiBase}${proxyPathNew}` : proxyPathNew;
+            const proxyUrlLegacy = apiBase ? `${apiBase}${proxyPathLegacy}` : proxyPathLegacy;
+            // Try new proxy first, then legacy simplebeacon proxy path.
+            let response = await fetch(proxyUrlNew, {
                 method: 'GET',
                 signal: controller.signal,
                 headers: { Accept: 'application/json' }
-            });
+            }).catch(() => null);
+            if (!response || !response.ok) {
+                // Try legacy proxy path as a fallback
+                response = await fetch(proxyUrlLegacy, {
+                    method: 'GET',
+                    signal: controller.signal,
+                    headers: { Accept: 'application/json' }
+                });
+            }
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
                 throw new Error(data.error || data.message || `Server proxy returned HTTP ${response.status}`);
             }
-            const models = Array.isArray(data.models) ? data.models.map((m) => m.name || m.model) : [];
+            // Support both legacy raw upstream response (array/object) and our proxy wrapper { success, data }
+            const modelsArray = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : (Array.isArray(data?.models) ? data.models : []));
+            const models = Array.isArray(modelsArray) ? modelsArray.map((m) => (typeof m === 'string' ? m : (m.name || m.model))) : [];
             return {
                 ok: true,
                 models,

@@ -34,6 +34,83 @@ async function parseJsonSafe(res) {
 }
 
 /**
+ * Try to extract JSON embedded in an HTML document.
+ * Looks for <script type="application/json"> blocks or window assignment patterns.
+ * @param {string} html
+ * @returns {any}
+ */
+function extractJsonFromHtml(html) {
+  if (!html || typeof html !== 'string') return null;
+  // Look for <script type="application/json">...</script>
+  const scriptMatch = /<script[^>]*type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/i.exec(html);
+  if (scriptMatch && scriptMatch[1]) {
+    try {
+      return JSON.parse(scriptMatch[1]);
+    } catch (e) {
+      // fall through to other heuristics
+    }
+  }
+
+  // Look for a global assignment like: window.__SIMPLEBEACON_REPORT__ = {...};
+  const assignMatch = /window\.[A-Za-z0-9_]+\s*=\s*(\{[\s\S]*\});?/.exec(html);
+  if (assignMatch && assignMatch[1]) {
+    try {
+      return JSON.parse(assignMatch[1]);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Last resort: try to find a large JSON object that contains "simplebeacon" or "detectedIssues"
+  const looseMatch = /(\{[\s\S]*?(?:\"simplebeacon\"|\"detectedIssues\"|\"reportVersion\")[\s\S]*?\})/i.exec(html);
+  if (looseMatch && looseMatch[1]) {
+    try {
+      return JSON.parse(looseMatch[1]);
+    } catch (e) {
+      // give up
+    }
+  }
+  return null;
+}
+
+/**
+ * Basic normalization/recognition for incoming report payloads.
+ * Accepts multiple shapes (simplebeacon report, audit export, legacy wrappers).
+ * @param {any} obj
+ * @returns {any}
+ */
+function normalizeIncomingReport(obj) {
+  if (!obj || typeof obj !== 'object') throw new Error('Report is not a JSON object');
+  // If it's already a simplebeacon export
+  if (obj.type && String(obj.type).toLowerCase().includes('simplebeacon')) return obj;
+  // If it contains results/simplebeacon
+  if (obj.results && obj.results.simplebeacon) return obj.results.simplebeacon;
+  // If it contains detectedIssues/rawIssues or gate/issueCount
+  if (obj.detectedIssues || obj.rawIssues || obj.gate || obj.issueCount) return obj;
+  throw new Error('Unrecognized report shape');
+}
+
+/**
+ * Parse arbitrary text that may be JSON or an HTML wrapper containing JSON.
+ * @param {string} text
+ * @returns {any}
+ */
+export function loadReportFromText(text) {
+  if (!text || typeof text !== 'string') throw new Error('No file content');
+  // Try direct JSON parse first
+  try {
+    const parsed = JSON.parse(text);
+    return normalizeIncomingReport(parsed);
+  } catch (e) {
+    // Try HTML extraction
+    const extracted = extractJsonFromHtml(text);
+    if (extracted) return normalizeIncomingReport(extracted);
+    // Re-throw original parse error for diagnostics
+    throw new Error('Failed to parse report: not valid JSON or known HTML-wrapped report');
+  }
+}
+
+/**
  * Build network error message.
  * @param {any} target
  * @param {any} error
@@ -85,26 +162,56 @@ export async function ensureDashboardApiReady() {
  * @returns {any}
  */
 async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
-  let res;
-  try {
-    res = timeoutMs > 0
-      ? await fetchWithTimeout(target, options, timeoutMs)
-      : await fetch(target, options);
-  } catch (error) {
-    throw new Error(buildNetworkErrorMessage(target, error));
-  }
+  const maxRetries = 3;
+  let attempt = 0;
+  let lastErr = null;
+  while (attempt < maxRetries) {
+    attempt += 1;
+    let res;
+    try {
+      res = timeoutMs > 0
+        ? await fetchWithTimeout(target, options, timeoutMs)
+        : await fetch(target, options);
+    } catch (error) {
+      lastErr = error;
+      // Network-level error: retry a few times
+      if (attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, 250 * attempt));
+        continue;
+      }
+      throw new Error(buildNetworkErrorMessage(target, error));
+    }
 
-  const data = await parseJsonSafe(res);
-  if (res.status === 401) {
-    authService.clearSession();
-    throw new Error(`Session expired — sign in again at #/signin (${DEMO_EMAIL}).`);
-  }
-  if (!res.ok) {
-    const detail = data.error || data.message || `${res.status} ${res.statusText}`.trim();
-    throw new Error(`Request failed for ${target}: ${detail}`);
-  }
+    const data = await parseJsonSafe(res);
 
-  return data;
+    // Authentication
+    if (res.status === 401) {
+      authService.clearSession();
+      throw new Error(`Session expired — sign in again at #/signin (${DEMO_EMAIL}).`);
+    }
+
+    // Retry on server errors (502/503/504)
+    if (res.status >= 500 && res.status < 600) {
+      lastErr = new Error(`Server error ${res.status} ${res.statusText}`);
+      if (attempt < maxRetries) {
+        // Exponential-ish backoff
+        await new Promise((r) => setTimeout(r, 500 * attempt));
+        continue;
+      }
+      // Surface guidance for 5xx errors
+      const detail = data.error || data.message || `${res.status} ${res.statusText}`.trim();
+      throw new Error(`Server error when requesting ${target}: ${detail}. Try again later or contact support.`);
+    }
+
+    if (!res.ok) {
+      const detail = data.error || data.message || `${res.status} ${res.statusText}`.trim();
+      throw new Error(`Request failed for ${target}: ${detail}`);
+    }
+
+    return data;
+  }
+  // If we fallthrough, throw last error
+  throw lastErr || new Error(`Request failed for ${target}`);
 }
 
 /** Clear cached /api/analyze/providers (call after Settings → Save AI keys). */

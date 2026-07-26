@@ -4,7 +4,6 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import * as child_process from 'child_process';
 import * as crypto from 'crypto';
 // bcryptjs replaced with Node.js crypto for zero-dependency VSIX packaging
 function _hashPassword(password: string): string {
@@ -87,19 +86,9 @@ import { handleAuthRoutes } from './routes/auth';
 import { handleScanReportRoutes } from './routes/scanReport';
 import { handleScanConfigRoutes } from './routes/scanConfig';
 
-export interface ServerState {
-  currentReport: ScanReport | null;
-  scanStatus: string;
-  scanMessage: string;
-  lastScanTime: number;
-  workspaceName: string;
-  workspacePath: string;
-  extensionVersion: string;
-  lastTrustData: any;
-  scanProgressProcessed?: number;
-  scanProgressTotal?: number;
-  scanProgressFile?: string;
-}
+export { ServerState, listDirectories } from './serverState';
+import type { ServerState } from './serverState';
+import { getWindowsDrives } from './serverState';
 
 let serverState: ServerState = {
   currentReport: null,
@@ -519,7 +508,9 @@ const DASHBOARD_SPA_ROUTES = new Set([
   '/dashboard', '/analyze', '/certificate', '/aicontext', '/audit', '/report',
   '/security', '/trust', '/quality', '/assessments', '/platform', '/scan',
   '/profile', '/about', '/repohealth', '/analytics', '/team', '/settings',
-  '/help', '/roadmap', '/pricing', '/upload', '/compliance', '/results'
+  '/help', '/roadmap', '/pricing', '/upload', '/compliance', '/results',
+  '/tools', '/chatbot', '/admin', '/features', '/getting-started',
+  '/signin', '/register', '/remediation'
 ]);
 
 function isDashboardSpaRoute(pathname: string): boolean {
@@ -1001,14 +992,6 @@ function issueLocalJwt(user: LocalUser): string {
   return `${header}.${payload}.local-jwt`;
 }
 
-function getWindowsDrives(): string[] {
-  try {
-    const out = child_process.execSync('wmic logicaldisk get name', { encoding: 'utf8' });
-    return out.split('\n').map(line => line.trim()).filter(line => /^[A-Za-z]:$/.test(line));
-  } catch {
-    return [];
-  }
-}
 
 async function findDirectoryByName(rootPath: string, targetName: string, maxDepth = 8, maxResults = 10, maxDirsPerLevel = 200): Promise<string[]> {
   const results: string[] = [];
@@ -1042,10 +1025,6 @@ async function findDirectoryByName(rootPath: string, targetName: string, maxDept
   return results;
 }
 
-function normalizeDirPath(input: string): string {
-  if (!input) { return ''; }
-  return input.replace(/\//g, '\\').replace(/\\+$/, '');
-}
 
 function resolveRealPath(inputPath: string): string {
   if (!inputPath) { return inputPath; }
@@ -1146,64 +1125,7 @@ function resolveFolderNameToPath(folderName: string, hintPath?: string): string 
   return null;
 }
 
-function parentDirPath(dirPath: string): string {
-  if (!dirPath) { return ''; }
-  const normalized = dirPath.replace(/\\/g, '/').replace(/\/+$/, '');
-  const parts = normalized.split('/').filter(Boolean);
-  if (parts.length === 0) { return ''; }
-  if (parts.length === 1 && /^[A-Za-z]:$/.test(parts[0])) { return ''; }
-  parts.pop();
-  const parent = parts.join('/');
-  const withSlash = normalized.startsWith('/') ? '/' + parent : parent;
-  if (/^[A-Za-z]:$/.test(parts[parts.length - 1] || '')) {
-    return withSlash + '\\';
-  }
-  return withSlash;
-}
 
-export function listDirectories(dirPath: string): { success: boolean; current?: string; parent?: string; directories?: { name: string; path: string }[]; error?: string } {
-  try {
-    const current = normalizeDirPath(dirPath);
-    if (!current) {
-      if (os.platform() === 'win32') {
-        const drives = getWindowsDrives();
-        return {
-          success: true,
-          current: '',
-          parent: '',
-          directories: drives.map(d => ({ name: d + '\\', path: d + '\\' })),
-        };
-      }
-      const root = '/';
-      const entries = fs.readdirSync(root, { withFileTypes: true });
-      return {
-        success: true,
-        current: root,
-        parent: '',
-        directories: entries.filter(e => e.isDirectory()).map(e => ({
-          name: e.name,
-          path: path.join(root, e.name),
-        })),
-      };
-    }
-    const resolved = path.resolve(current);
-    if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
-      return { success: false, error: 'Not a directory' };
-    }
-    const entries = fs.readdirSync(resolved, { withFileTypes: true });
-    return {
-      success: true,
-      current: resolved,
-      parent: parentDirPath(resolved),
-      directories: entries.filter(e => e.isDirectory()).map(e => ({
-        name: e.name,
-        path: path.join(resolved, e.name),
-      })),
-    };
-  } catch (err) {
-    return { success: false, error: (err as Error).message || 'Failed to list directories' };
-  }
-}
 
 export function setAiContextCallback(fn: ((context: unknown) => void) | null): void {
   aiContextCallback = fn;
@@ -1321,6 +1243,19 @@ let cachedDashboardRoot: string | null = null;
 let cachedDashboardRootTime = 0;
 const DASHBOARD_ROOT_CACHE_TTL = 30000; // 30 seconds
 
+function dashboardRootHasAssets(p: string): boolean {
+  return fs.existsSync(p) &&
+    fs.existsSync(path.join(p, 'index.vanilla.html')) &&
+    fs.existsSync(path.join(p, 'css', 'variables.css')) &&
+    fs.existsSync(path.join(p, 'js-es2018', 'main.js'));
+}
+
+function pickDashboardRoot(candidates: string[]): string {
+  return candidates.find(dashboardRootHasAssets) ||
+    candidates.find((p) => fs.existsSync(p)) ||
+    candidates[0];
+}
+
 /** Resolve dashboard-web directory with simple fs-cache to avoid repeated scans. */
 function resolveDashboardRoot(context: vscode.ExtensionContext): string {
   if (cachedDashboardRoot && Date.now() - cachedDashboardRootTime < DASHBOARD_ROOT_CACHE_TTL) {
@@ -1338,7 +1273,7 @@ function resolveDashboardRoot(context: vscode.ExtensionContext): string {
     path.join(workspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
     path.join(context.extensionPath, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'),
   ];
-  const found = candidates.find((p) => fs.existsSync(p)) || candidates[0];
+  const found = pickDashboardRoot(candidates);
   cachedDashboardRoot = found;
   cachedDashboardRootTime = Date.now();
   return found;
@@ -1388,7 +1323,7 @@ function resolveDownloadPath(urlOrPath: string, context: vscode.ExtensionContext
       path.join(staticWorkspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
       path.join(context.extensionPath, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'),
     ];
-    const dashboardRoot = staticDashboardCandidates.find((p) => fs.existsSync(p)) || staticDashboardCandidates[0];
+    const dashboardRoot = pickDashboardRoot(staticDashboardCandidates);
     const filePath = path.join(dashboardRoot, pathname === '/' ? 'index.html' : pathname);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       return filePath;
@@ -2465,7 +2400,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       }
     }
 
-    // SimpleBeacon scan trigger — starts scan asynchronously, returns immediately
+    // SimpleBeacon scan trigger — awaits scan completion and returns full report
     if (parsed.pathname === '/api/simplebeacon/scan' && req.method === 'POST') {
       let body = '';
       req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
@@ -2482,46 +2417,78 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
             projectPath: rawProjectPath ? resolveRealPath(rawProjectPath) : undefined,
             fullDirectory: payload.fullDirectoryScan !== false,
           };
-          // Fire-and-forget: start scan without awaiting
-          Promise.resolve(vscode.commands.executeCommand('simplebeacon.scanWorkspace', args))
-            .then((report: unknown) => {
-              const safeReport = report as ScanReport | undefined;
-              if (safeReport) {
-                updateServerState({
-                  currentReport: safeReport as ScanReport | null,
-                  scanStatus: 'completed',
-                  scanMessage: 'Scan complete',
-                  lastScanTime: Date.now(),
-                });
-                if (outputChannel) {
-                  outputChannel.appendLine('[SimpleBeacon DataServer] Background scan complete');
-                }
-              }
-            })
-            .catch((err: any) => {
-              if (outputChannel) {
-                outputChannel.appendLine(`[SimpleBeacon DataServer] Background scan failed: ${err?.message || err}`);
-              }
+          // Await the scan so the response includes the full report (matches remote server behavior)
+          try {
+            const report = await vscode.commands.executeCommand('simplebeacon.scanWorkspace', args) as ScanReport | undefined;
+            if (report) {
               updateServerState({
-                scanStatus: 'error',
-                scanMessage: err?.message || 'Scan failed',
+                currentReport: report as ScanReport | null,
+                scanStatus: 'completed',
+                scanMessage: 'Scan complete',
                 lastScanTime: Date.now(),
               });
+              if (outputChannel) {
+                outputChannel.appendLine('[SimpleBeacon DataServer] Scan complete — returning full report');
+              }
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: true,
+                scanning: false,
+                message: 'Scan complete',
+                projectPath: rawProjectPath,
+                report,
+              }));
+            } else {
+              // No report returned — try fetching the cached report
+              const cached = serverState.currentReport;
+              if (cached && Object.keys(cached).length > 0) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                  success: true,
+                  scanning: false,
+                  message: 'Scan complete (cached report)',
+                  projectPath: rawProjectPath,
+                  report: cached,
+                }));
+              } else {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                  success: false,
+                  error: 'Scan completed but returned no report',
+                  projectPath: rawProjectPath,
+                }));
+              }
+            }
+          } catch (scanErr: any) {
+            if (outputChannel) {
+              outputChannel.appendLine(`[SimpleBeacon DataServer] Scan failed: ${scanErr?.message || scanErr}`);
+            }
+            updateServerState({
+              scanStatus: 'error',
+              scanMessage: scanErr?.message || 'Scan failed',
+              lastScanTime: Date.now(),
             });
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            scanning: true,
-            message: 'Scan started — poll /api/scan/progress for status',
-            projectPath: rawProjectPath,
-          }));
+            const fallback = serverState.currentReport;
+            if (fallback && Object.keys(fallback).length > 0) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: true,
+                fallback: true,
+                warning: `${scanErr?.message || 'Scan failed'} — returning cached report`,
+                report: fallback,
+                projectPath: rawProjectPath,
+              }));
+            } else {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: false, error: scanErr?.message || 'Scan failed' }));
+            }
+          }
         } catch (err: any) {
           const msg = err.message || 'Scan failed';
           if (outputChannel) {
             outputChannel.appendLine(`[SimpleBeacon DataServer] Scan endpoint error: ${msg}`);
             if (err.stack) { outputChannel.appendLine(err.stack); }
           }
-          // Only return a cached fallback if we actually have one
           const fallback = serverState.currentReport;
           if (fallback && Object.keys(fallback).length > 0) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -3999,7 +3966,8 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
     // Demo route — read-only dashboard without auth
     if (parsed.pathname === '/demo' || parsed.pathname === '/demo/') {
       const dashboardRoot = resolveDashboardRoot(context);
-      const indexPath = path.join(dashboardRoot, 'index.html');
+      const vanillaIndexPath = path.join(dashboardRoot, 'index.vanilla.html');
+      const indexPath = fs.existsSync(vanillaIndexPath) ? vanillaIndexPath : path.join(dashboardRoot, 'index.html');
       if (fs.existsSync(indexPath)) {
         res.writeHead(200, {
           'Content-Type': 'text/html',
@@ -4022,6 +3990,7 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         res.end(html);
         return;
       }
+      console.error(`[SimpleBeacon] 503 (demo): index.html not found. dashboardRoot=${dashboardRoot}, indexPath=${indexPath}, extensionPath=${context.extensionPath}, __dirname=${__dirname}`);
       res.writeHead(503, { 'Content-Type': 'text/html' });
       res.end('<!DOCTYPE html><html><body><h2>Dashboard not available</h2><p>Dashboard files not found.</p></body></html>');
       return;
@@ -4058,7 +4027,8 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         res.end(fs.readFileSync(requestedPath));
         return;
       }
-      const indexPath = path.join(dashboardRoot, 'index.html');
+      const vanillaIndexPath = path.join(dashboardRoot, 'index.vanilla.html');
+      const indexPath = fs.existsSync(vanillaIndexPath) ? vanillaIndexPath : path.join(dashboardRoot, 'index.html');
       if (fs.existsSync(indexPath)) {
         res.writeHead(200, {
           'Content-Type': 'text/html',
@@ -4069,6 +4039,8 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         let html = fs.readFileSync(indexPath, 'utf8');
         // Convert any hardcoded file:// coming-soon links to relative HTTP paths
         html = html.replace(/file:\/\/\/[^'"]*?\/(coming-soon\/[^'"]*)/g, '/$1');
+        // Rewrite absolute /assets/ paths to /dashboard/assets/ for extension serving
+        html = html.replace(/(["'(=]\s*)\/assets\//g, '$1/dashboard/assets/');
         // Inject env flag so client knows it's being served by the real data server
         const dataPort = getDataServerPort();
         const publicBase = getPublicBaseUrl(req);
@@ -4083,6 +4055,7 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
         res.end(html);
         return;
       }
+      console.error(`[SimpleBeacon] 503: index.html not found. dashboardRoot=${dashboardRoot}, indexPath=${indexPath}, extensionPath=${context.extensionPath}, __dirname=${__dirname}`);
       res.writeHead(503, { 'Content-Type': 'text/html' });
       res.end('<!DOCTYPE html><html><body><h2>Dashboard not available</h2><p>Dashboard files not found.</p></body></html>');
       return;
@@ -4143,7 +4116,7 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
       path.join(staticWorkspacePath, 'simplebeacon-vscode-merged', 'dashboard-web'),
       path.join(context.extensionPath, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'),
     ];
-    const dashboardRoot = staticDashboardCandidates.find((p) => fs.existsSync(p)) || staticDashboardCandidates[0];
+    const dashboardRoot = pickDashboardRoot(staticDashboardCandidates);
     // Strip /dashboard prefix so static assets resolve correctly regardless of SPA route
     let staticPath = parsed.pathname;
     if (staticPath.startsWith('/dashboard/')) {
@@ -4168,7 +4141,9 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
       });
       let content = fs.readFileSync(filePath);
       if (getMimeType(filePath) === 'text/html') {
-        const html = content.toString('utf8');
+        let html = content.toString('utf8');
+        // Rewrite absolute /assets/ paths to /dashboard/assets/ for extension serving
+        html = html.replace(/(["'(=]\s*)\/assets\//g, '$1/dashboard/assets/');
         const bodyClose = html.lastIndexOf('</body>');
         if (bodyClose > 0) {
           content = Buffer.from(html.slice(0, bodyClose) + DOWNLOAD_NOTIFY_SCRIPT + THEME_SCRIPT + SESSION_REGISTRATION_SCRIPT + html.slice(bodyClose), 'utf8');
@@ -4182,7 +4157,6 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
 
     // Redirect legacy dashboard HTML links to the SPA hash routes
     const htmlToRoute: Record<string, string> = {
-      '/audit.html': '/dashboard/#/audit',
       '/security.html': '/dashboard/#/security',
       '/quality.html': '/dashboard/#/quality',
       '/trust.html': '/dashboard/#/trust',
@@ -4194,7 +4168,6 @@ ${issueRows ? `<h2>Findings (${Math.min(rawIssues.length, 200)} of ${rawIssues.l
       '/analytics.html': '/dashboard/#/analytics',
       '/team.html': '/dashboard/#/team',
       '/remediation.html': '/dashboard/#/remediation',
-      '/roadmap.html': '/dashboard/#/remediation',
       '/results.html': '/dashboard/#/results',
       '/report.html': '/dashboard/#/results',
       '/upload.html': '/dashboard/#/upload',

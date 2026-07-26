@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "remove-filters-vs-top-layers",
+      "triggers": [
+        "remove filters",
+        "remove all filters",
+        "filter layers",
+        "convolutional filters",
+        "conv filters",
+        "include_top",
+        "include top",
+        "mobilenetv2",
+        "mobilenet",
+        "top layer",
+        "classification head"
+      ],
+      "context": "When a user asks about removing filters from a neural network or AI model, you MUST distinguish between two very different things:\n\n1. Removing the top classification head (also called the top layers or dense/fully-connected classifier). In Keras/TensorFlow this is done with `include_top=False`. This REMOVES the final classifier but KEEPS all Conv2D / DepthwiseConv2D filters, so the model becomes a feature extractor. The correct code is:\n\n'''python\nimport tensorflow as tf\nfrom tensorflow.keras.applications import MobileNetV2\nbase_model = MobileNetV2(weights='imagenet', include_top=False)\nfeature_extractor = tf.keras.Model(inputs=base_model.input, outputs=base_model.output)\n'''\n\n2. Removing the actual convolutional filters (Conv2D, DepthwiseConv2D, etc.). Removing all convolutional layers typically leaves a non-functional model because those layers perform the feature extraction. Do not recommend doing this unless the user explicitly asks for it and understands the consequences.\n\nAlways correct the user if they use 'remove filters' to mean 'remove the top classification head' or vice versa."
+    }
+  ]
+}

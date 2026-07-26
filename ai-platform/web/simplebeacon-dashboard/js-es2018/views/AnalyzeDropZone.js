@@ -25,16 +25,18 @@ function extractFolderFromFilePath(filePath, folderName) {
     }
     const norm = filePath.replace(/\\/g, '/');
     if (folderName) {
-        const idx = norm.indexOf(`/${folderName}/`);
+        const lower = norm.toLowerCase();
+        const fname = folderName.toLowerCase();
+        const idx = lower.indexOf(`/${fname}/`);
         if (idx >= 0) {
-            return norm.slice(0, idx + folderName.length + 1);
+            return norm.slice(0, idx + fname.length + 1).replace(/\/+$/, '').replace(/\//g, '\\');
         }
-        const endIdx = norm.lastIndexOf(`/${folderName}`);
+        const endIdx = lower.lastIndexOf(`/${fname}`);
         if (endIdx >= 0) {
-            return norm.slice(0, endIdx + folderName.length + 1);
+            return norm.slice(0, endIdx + fname.length).replace(/\/+$/, '').replace(/\//g, '\\');
         }
     }
-    return deriveDirFromFilePath(filePath);
+    return deriveDirFromFilePath(filePath).replace(/\/+$/, '').replace(/\//g, '\\');
 }
 
 function extractFileUri(data) {

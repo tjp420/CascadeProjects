@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, sanitizePrivacyData } from '../utils.js';
+import { isIdeDashboardSurface, isExtensionHostedTab } from '../utils-lib/dom.js';
 
 /**
  * Chatbot view.
@@ -33,6 +34,25 @@ export class ChatbotView {
   }
 
   mount(container) {
+// Detect IDE/embed query params and expose lightweight flags for host integration.
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const sbParent = params.get('sb_parent_urlbar') === '1';
+      const sbWebsite = params.get('sb_website_mode') === '1';
+      const sbApi = params.get('sb_api_base') || params.get('sb_api');
+      if (sbParent || sbWebsite) {
+        try { document.documentElement.setAttribute('data-parent-urlbar', '1'); } catch (e) { /* ignore */ }
+        window.__SB_PARENT_URL_BAR__ = true;
+        // Only set data-ide-embed when actually inside an iframe (IDE webview).
+        if (window.__SB_IDE_EMBED__ || (window.parent && window.parent !== window)) {
+          try { document.documentElement.setAttribute('data-ide-embed', '1'); } catch (e) { /* ignore */ }
+          window.__SB_IDE_EMBED__ = true;
+        }
+      }
+      if (sbApi && isExtensionHostedTab()) {
+        try { window.__SB_BRIDGE_HOST__ = sbApi; } catch (e) { /* ignore */ }
+      }
+    } catch (_e) { /* ignore */ }
 // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = `
       <div class="view-container">
@@ -112,6 +132,26 @@ export class ChatbotView {
         </div>
       </div>
     `;
+
+    // If running inside an IDE or extension-hosted tab, mark UI and render a small connection banner
+    try {
+      const isIde = (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface());
+      if (isIde) {
+        const root = container.querySelector('.view-container');
+        if (root) root.classList.add('ide-embed');
+        container.classList.add('ide-embed');
+      }
+      const isExt = typeof isExtensionHostedTab === 'function' && isExtensionHostedTab();
+      const apiHost = window.__SB_BRIDGE_HOST__ || (new URLSearchParams(window.location.search || '')).get('sb_api_base');
+      if (isExt && apiHost) {
+        const banner = document.createElement('div');
+        banner.className = 'profile-ide-banner';
+        banner.style.cssText = 'margin-top:12px;padding:8px;border-radius:6px;background:var(--card-bg);border:1px solid rgba(0,0,0,0.06);font-size:0.95rem;';
+        banner.innerHTML = `Connected to IDE bridge · API: <code style="background:transparent;padding:0;border-radius:3px;">${escapeHtml(apiHost)}</code>`;
+        const hero = container.querySelector('.analyze-hero');
+        if (hero && hero.parentNode) hero.parentNode.insertBefore(banner, hero.nextSibling);
+      }
+    } catch (_e) { /* ignore */ }
 
     this.bindEvents();
     this.loadProviders();
@@ -232,7 +272,7 @@ export class ChatbotView {
           });
           this.showPromptToast('Custom prompt saved');
         } catch (e) {
-          console.warn('Failed to save prompt:', e);
+          console['warn']('Failed to save prompt:', e);
           // Fallback to localStorage
           localStorage.setItem('chatbot_custom_prompt', prompt);
           this.showPromptToast('Custom prompt saved locally');
@@ -311,7 +351,7 @@ export class ChatbotView {
         return;
       }
     } catch (e) {
-      console.warn('Failed to load custom prompt from API:', e);
+      console['warn']('Failed to load custom prompt from API:', e);
     }
     // Fallback to localStorage
     const localPrompt = localStorage.getItem('chatbot_custom_prompt');

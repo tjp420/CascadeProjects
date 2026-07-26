@@ -1,6 +1,6 @@
 function sbLog(level, ...args) {
   if (window.__SB_DEBUG__ && typeof console !== 'undefined') {
-    var fn = level === 'error' ? console['error'] : (level === 'warn' ? console['warn'] : null);
+    const fn = level === 'error' ? console['error'] : (level === 'warn' ? console['warn'] : null);
     if (fn) fn.apply(console, args);
   }
 }
@@ -152,7 +152,7 @@ if (typeof switchTab === 'function') {
       settings: base + '/simplebeacon-dashboard/#/settings',
       certificate: base + '/certificate-upload.html',
       codeMap: base + '/simplebeacon-dashboard/#/codeMap',
-      roadmap: base + '/simplebeacon-dashboard/#/remediation',
+      roadmap: 'https://simplebeacon.ai/roadmap',
       preview: base + '/simplebeacon-dashboard/#/dashboard',
       openSidebarDebug: base + '/simplebeacon-dashboard/#/dashboard',
       scan: base + '/simplebeacon-dashboard/#/dashboard',
@@ -163,7 +163,7 @@ if (typeof switchTab === 'function') {
       trust: base + '/simplebeacon-dashboard/#/dashboard',
       assessments: base + '/simplebeacon-dashboard/#/dashboard',
       repoHealth: base + '/simplebeacon-dashboard/#/dashboard',
-      securityAudit: base + '/simplebeacon-dashboard/#/dashboard',
+      securityAudit: 'https://simplebeacon.ai/audit',
       aiContext: base + '/simplebeacon-dashboard/#/dashboard'
     };
     let url = urlMap[cmd];
@@ -212,13 +212,13 @@ if (typeof switchTab === 'function') {
       settings: base + '/simplebeacon-dashboard/#/settings',
       certificate: base + '/certificate-upload.html',
       codeMap: base + '/simplebeacon-dashboard/#/codeMap',
-      roadmap: base + '/simplebeacon-dashboard/#/remediation',
+      roadmap: 'https://simplebeacon.ai/roadmap',
       analyze: base + '/simplebeacon-dashboard/#/analyze',
       upload: base + '/simplebeacon-dashboard/#/upload',
       trust: base + '/simplebeacon-dashboard/#/dashboard',
       assessments: base + '/simplebeacon-dashboard/#/dashboard',
       repoHealth: base + '/simplebeacon-dashboard/#/dashboard',
-      securityAudit: base + '/simplebeacon-dashboard/#/dashboard',
+      securityAudit: 'https://simplebeacon.ai/audit',
       aiContext: base + '/simplebeacon-dashboard/#/dashboard'
     };
     let url = urlMap[pid];

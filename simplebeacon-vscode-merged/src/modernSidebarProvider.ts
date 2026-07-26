@@ -7,7 +7,6 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
-import { WelcomeDashboard } from './welcomeDashboard';
 import { getDataServerPort, getBrowserSessionToken, setBrowserSessionToken, clearBrowserSessionToken, recordBrowserSignOut, isTokenSignedOut, getTheme, setTheme } from './dataServer';
 import { registerSidebarView, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel, openWebsiteDashboardPanel, postWebsiteDashboardMessage, navigateWebsiteDashboardPanel, isWebsiteDashboardPanelOpen, buildDashboardUrl, appendDashboardEmbedParams, getDashboardUrlBarStyles, getDashboardUrlBarHtml } from './sidebarMessenger';
 import { getAuthManager } from './auth/authContext';
@@ -18,6 +17,16 @@ import { resolveTier } from './tierConstants';
 import { validateLicenseLocally } from './licenseManager';
 import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { AccountTracker } from './accountTracker';
+
+type WelcomeDashboardType = typeof import('./welcomeDashboard')['WelcomeDashboard'];
+let _WelcomeDashboard: WelcomeDashboardType | null = null;
+function getWelcomeDashboard(): WelcomeDashboardType {
+  if (!_WelcomeDashboard) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    _WelcomeDashboard = require('./welcomeDashboard').WelcomeDashboard as WelcomeDashboardType;
+  }
+  return _WelcomeDashboard;
+}
 
 /** Resolve IDE color theme for sidebar/dashboard sync. */
 function getIdeThemeKind(): 'dark' | 'light' {
@@ -129,7 +138,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private static _lastAuthRefreshAt = 0;
   private static _dashboardMode: 'website' | 'localhost' | null = 'localhost';
   public static getDashboardMode(): 'website' | 'localhost' {
-    return ModernSidebarProvider._dashboardMode === 'website' ? 'website' : 'localhost';
+    return ModernSidebarProvider._dashboardMode || 'localhost';
   }
   public static getCachedTier(): string { return ModernSidebarProvider._cachedTier; }
   public static getCachedIsAdmin(): boolean { return ModernSidebarProvider._cachedIsAdmin; }
@@ -150,10 +159,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   /** Return the active dashboard host: explicit website/localhost override, then local fallback. */
   private static resolveDashboardHost(): string | null {
-    // TODO: Revert to simplebeacon.ai once CDN cache is purged.
-    if (ModernSidebarProvider._dashboardMode === 'website') { return 'https://simplebeacon.pages.dev'; }
-    if (ModernSidebarProvider._dashboardMode === 'localhost') { return `http://127.0.0.1:${getDataServerPort()}`; }
-    return null;
+    return `http://127.0.0.1:${getDataServerPort()}`;
   }
 
   /** Open a dashboard route in the Simple Browser using the active dashboard host. */
@@ -833,8 +839,8 @@ $('cancelBtn').addEventListener('click', () => {
   }
 
   public static openWelcomeDashboardRoute(extUri: vscode.Uri, route: string) {
-    WelcomeDashboard.createOrShow(extUri, true);
-    WelcomeDashboard.showPaneIfOpen(route || '/dashboard');
+    getWelcomeDashboard().createOrShow(extUri, true);
+    getWelcomeDashboard().showPaneIfOpen(route || '/dashboard');
   }
 
   public static showDashboardRoute(extUri: vscode.Uri, route: string) {
@@ -1012,7 +1018,7 @@ $('cancelBtn').addEventListener('click', () => {
 
     // Auto-open main window panel on activation (welcome vs dashboard tab depends on showWelcomeOnLoad)
     setTimeout(() => {
-      try { WelcomeDashboard.createOrShow(this._extensionUri, true); } catch(e) { ModernSidebarProvider.logRelay('Auto open dashboard error: ' + (e instanceof Error ? e.message : String(e))); }
+      try { getWelcomeDashboard().createOrShow(this._extensionUri, true); } catch(e) { ModernSidebarProvider.logRelay('Auto open dashboard error: ' + (e instanceof Error ? e.message : String(e))); }
     }, 50);
 
     // Cache browser-ready sidebar HTML so external browser preview and diagnose can report it as loaded
@@ -1138,19 +1144,19 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.relayCommand('clear');
             break;
           case 'showDashboard':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showDashboardPane();
             break;
           case 'openInIde': {
             vscode.commands.executeCommand('simplebeacon-modern.focus');
-            WelcomeDashboard.createOrShow(this._extensionUri, true);
+            getWelcomeDashboard().createOrShow(this._extensionUri, true);
             break;
           }
           case 'openSidebarDebug':
-            WelcomeDashboard.createOrShow(this._extensionUri, true);
+            getWelcomeDashboard().createOrShow(this._extensionUri, true);
             break;
           case 'openCloudInBrowser':
           case 'openCloudInPreview':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showDashboardPane();
             break;
           case 'openAiToolsInBrowser':
           case 'openAiToolsInPreview':
@@ -1165,7 +1171,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'settings':
           case 'openSettings':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showSettingsPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showSettingsPane();
             ModernSidebarProvider.relayCommand('openSettings');
             break;
           case 'setServerUrl':
@@ -1227,11 +1233,11 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'dashboard':
           case 'openDashboard':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showDashboardPane();
             ModernSidebarProvider.relayCommand('dashboard');
             break;
           case 'openReport':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showReportPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showReportPane();
             ModernSidebarProvider.relayCommand('report');
             break;
           case 'analytics':
@@ -1240,7 +1246,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'team':
           case 'openTeamDashboard': {
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showTeamPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showTeamPane();
             ModernSidebarProvider.relayCommand('showTeamDashboard');
             this._view?.webview.postMessage({ command: 'switchSidebarTab', tab: 'team' });
             break;
@@ -1257,12 +1263,12 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'upload':
           case 'openUpload':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showUploadPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showUploadPane();
             ModernSidebarProvider.relayCommand('upload');
             break;
           case 'roadmap':
           case 'openRoadmap':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showRoadmapPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showRoadmapPane();
             ModernSidebarProvider.relayCommand('showRemediationGuide');
             break;
           case 'generateRoadmap':
@@ -1555,10 +1561,10 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           }
           case 'openHelp':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showDashboardPane();
             break;
           case 'openChatbot':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showDashboardPane();
             break;
           case 'openGitHub':
             vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/simplebeacon/simplebeacon-vscode');
@@ -1581,7 +1587,12 @@ $('cancelBtn').addEventListener('click', () => {
             if (message.url) {
               try {
                 const parsed = new URL(message.url);
-                ['sb_parent_urlbar', 'sb_notify_base', 'sb_api_base', 'sb_website_mode'].forEach((k) => parsed.searchParams.delete(k));
+                // Keep sb_notify_base so audit/roadmap pages can bridge back to the extension.
+                ['sb_parent_urlbar', 'sb_api_base', 'sb_website_mode'].forEach((k) => parsed.searchParams.delete(k));
+                if (!parsed.searchParams.has('sb_notify_base')) {
+                  const port = getDataServerPort();
+                  parsed.searchParams.set('sb_notify_base', `http://127.0.0.1:${port}/api`);
+                }
                 vscode.commands.executeCommand('simpleBrowser.show', parsed.toString());
               } catch {
                 vscode.commands.executeCommand('simpleBrowser.show', message.url);
@@ -1613,9 +1624,12 @@ $('cancelBtn').addEventListener('click', () => {
               const isRemote = !!host && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(host);
               const localBaseUrl = `http://127.0.0.1:${getDataServerPort()}`;
               const apiBaseQuery = !isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1` : '';
-              const url = isRemote
+              let url = isRemote
                 ? `${base}${message.path}`
                 : buildDashboardUrl(base, message.path, apiBaseQuery);
+              if (isRemote) {
+                url = appendDashboardEmbedParams(url, `${localBaseUrl}/api`, true);
+              }
               if (isWebsiteDashboardPanelOpen() && navigateWebsiteDashboardPanel(url)) {
                 break;
               }
@@ -1788,13 +1802,13 @@ $('cancelBtn').addEventListener('click', () => {
               openScan: '/scan',
               openTools: '/tools'
             };
-            const panel = WelcomeDashboard.createOrShow(this._extensionUri, true);
+            const panel = getWelcomeDashboard().createOrShow(this._extensionUri, true);
             if (panel) {
               const method = paneMap[message.command];
               if (method && typeof (panel as any)[method] === 'function') {
                 (panel as any)[method]();
               } else {
-                WelcomeDashboard.showPaneIfOpen(routeMap[message.command] || '/dashboard');
+                getWelcomeDashboard().showPaneIfOpen(routeMap[message.command] || '/dashboard');
               }
             }
             ModernSidebarProvider.relayCommand(message.command);
@@ -1822,7 +1836,7 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'openCodeMap':
             vscode.commands.executeCommand('simplebeacon-modern.focus');
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showCodeMapPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showCodeMapPane();
             vscode.commands.executeCommand('simplebeacon-codemap-tree.focus');
             break;
           case 'refreshCodeMap':
@@ -1876,9 +1890,9 @@ $('cancelBtn').addEventListener('click', () => {
               if (isLocalHost && !websiteMode && url.startsWith('https://simplebeacon.ai/')) {
                 const localBase = `http://127.0.0.1:${getDataServerPort()}`;
                 const localMap: Record<string, string> = {
-                  'https://simplebeacon.ai/roadmap': `${localBase}/roadmap.html`,
-                  'https://simplebeacon.ai/audit': `${localBase}/audit.html`,
-                  'https://simplebeacon.ai/pricing': `${localBase}/pricing.html`,
+                  'https://simplebeacon.ai/roadmap': `${localBase}/coming-soon/roadmap.html`,
+                  'https://simplebeacon.ai/audit': `${localBase}/coming-soon/audit.html`,
+                  'https://simplebeacon.ai/pricing': `${localBase}/coming-soon/pricing.html`,
                   'https://simplebeacon.ai/dashboard': `${localBase}/dashboard`,
                   'https://simplebeacon.ai/dashboard/': `${localBase}/dashboard`
                 };
@@ -1898,7 +1912,7 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           case 'getAuditData':
             {
-              const data = WelcomeDashboard.getLastReportData ? WelcomeDashboard.getLastReportData() : null;
+              const data = getWelcomeDashboard().getLastReportData ? getWelcomeDashboard().getLastReportData() : null;
               if (data && this._view) {
                 this._view.webview.postMessage({ command: 'updateAuditData', ...data });
               }
@@ -1911,13 +1925,13 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.pushRoadmapToSidebar(this._view?.webview);
             break;
           case 'openSecurityAuditPage':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showSecurityPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showSecurityPane();
             break;
           case 'openTrustPage':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showTrustPane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showTrustPane();
             break;
           case 'openCompliance':
-            WelcomeDashboard.createOrShow(this._extensionUri, true)?.showCompliancePane();
+            getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showCompliancePane();
             break;
           case 'bridgeFetch': {
             const bfMsg = message as SidebarMessage & { url?: string; requestId?: string; init?: { method?: string; headers?: Record<string, string>; body?: string } };
@@ -5161,7 +5175,7 @@ ${sidebarMainJsContent}
         return cached;
       }
     }
-    const welcomeData = WelcomeDashboard.getLastCodeMapData?.();
+    const welcomeData = getWelcomeDashboard().getLastCodeMapData?.();
     if (welcomeData) {
       const mapped = ModernSidebarProvider.mapWelcomeCodeMapToSidebar(welcomeData as Record<string, unknown>);
       const mappedFiles = Number(mapped.totalFiles || 0);
@@ -5251,7 +5265,7 @@ ${sidebarMainJsContent}
     );
     // Remove leftover reference to the removed vscodeApi variable
     browserHtml = browserHtml.replace(new RegExp('v'+'ar'+' _isRealVsCode = !!vscodeApi;\\s*'), 'const _isRealVsCode = false;');
-    WelcomeDashboard.createOrShow(this._extensionUri, true);
+    getWelcomeDashboard().createOrShow(this._extensionUri, true);
   }
 
   public openStandaloneDebug() {
@@ -5314,7 +5328,7 @@ ${sidebarMainJsContent}
           vscode.commands.executeCommand('simplebeacon.clearResults');
           break;
         case 'openDashboard':
-          WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
+          getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showDashboardPane();
           break;
         case 'report':
           vscode.commands.executeCommand('simplebeacon.showReport');
@@ -5334,7 +5348,7 @@ ${sidebarMainJsContent}
           break;
         case 'openCloudInBrowser':
         case 'openCloudInPreview':
-          WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
+          getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showDashboardPane();
           break;
         case 'openAiToolsInBrowser':
         case 'openAiToolsInPreview':
@@ -5342,7 +5356,7 @@ ${sidebarMainJsContent}
           break;
         case 'openAdvancedInBrowser':
         case 'openAdvancedInPreview':
-          WelcomeDashboard.createOrShow(this._extensionUri, true)?.showDashboardPane();
+          getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showDashboardPane();
           break;
         case 'diagnose':
           vscode.commands.executeCommand('simplebeacon.diagnoseSidebar');
@@ -5580,7 +5594,7 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
     }
 
     // Open the main SimpleBeacon dashboard panel instead of a browser preview tab
-    WelcomeDashboard.createOrShow(this._extensionUri, true);
+    getWelcomeDashboard().createOrShow(this._extensionUri, true);
     return browserHtml;
   }
 
@@ -5636,8 +5650,8 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
 
     // Generate welcome window browser HTML for the relay preview
     try {
-      if (typeof WelcomeDashboard.buildBrowserHtml === 'function') {
-        ModernSidebarProvider._welcomeBrowserHtml = WelcomeDashboard.buildBrowserHtml(this._currentReport || undefined);
+      if (typeof getWelcomeDashboard().buildBrowserHtml === 'function') {
+        ModernSidebarProvider._welcomeBrowserHtml = getWelcomeDashboard().buildBrowserHtml(this._currentReport || undefined);
       }
     } catch (e) {
       ModernSidebarProvider.logRelay('Failed to build welcome browser HTML: ' + (e instanceof Error ? e.message : String(e)));
@@ -5836,10 +5850,18 @@ body.tabs-open #browserTabBar{display:flex !important;}
     } catch (e) { return false; }
   }
   function ensureEmbedParams(url) {
-    if (!url || url.indexOf('sb_parent_urlbar=') !== -1) return url;
+    if (!url) return url;
     try {
       const parsed = new URL(url);
-      parsed.searchParams.set('sb_parent_urlbar', '1');
+      if (!parsed.searchParams.has('sb_parent_urlbar')) {
+        parsed.searchParams.set('sb_parent_urlbar', '1');
+      }
+      const host = parsed.hostname.toLowerCase();
+      const isRemote = host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.ai') || host.endsWith('.onrender.com') || host.endsWith('.netlify.app') || host.endsWith('.pages.dev');
+      if (isRemote && !parsed.searchParams.has('sb_notify_base')) {
+        const notifyBase = (typeof window !== 'undefined' && window.__SB_DATA_SERVER_URL__ ? window.__SB_DATA_SERVER_URL__ : DASHBOARD_URL).replace(/\/$/, '') + '/api';
+        parsed.searchParams.set('sb_notify_base', notifyBase);
+      }
       return parsed.toString();
     } catch (e) {
       return url + (url.indexOf('?') === -1 ? '?' : '&') + 'sb_parent_urlbar=1';
@@ -6263,8 +6285,8 @@ body.tabs-open #browserTabBar{display:flex !important;}
       }
       if (req.url === '/welcome') {
         try {
-          if (typeof WelcomeDashboard.buildBrowserHtml === 'function') {
-            const welcomeHtml = WelcomeDashboard.buildBrowserHtml(this._currentReport || undefined);
+          if (typeof getWelcomeDashboard().buildBrowserHtml === 'function') {
+            const welcomeHtml = getWelcomeDashboard().buildBrowserHtml(this._currentReport || undefined);
             ModernSidebarProvider._welcomeBrowserHtml = welcomeHtml;
             res.writeHead(200, htmlCacheHeaders);
             res.end(welcomeHtml);

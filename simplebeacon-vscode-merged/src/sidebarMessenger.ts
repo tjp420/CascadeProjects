@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as http from 'http';
 import { getDataServerPort, getTheme } from './dataServer';
 import { getAuthManager } from './auth/authContext';
+import { getDashboardMode, refreshAuthState, setSidebarAuthState, addDownloadedFile, updateSidebarReport } from './sidebarBridge';
 
 let _sidebarView: vscode.WebviewView | undefined;
 
@@ -42,9 +43,26 @@ function stripSimplebeaconEmbedParams(url: string): string {
   }
 }
 
+function prepareSimpleBrowserUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    // Keep sb_notify_base so audit/roadmap pages can bridge back to the extension;
+    // strip the other embed params that clutter the IDE address bar.
+    ['sb_parent_urlbar', 'sb_api_base', 'sb_website_mode'].forEach((key) => {
+      parsed.searchParams.delete(key);
+    });
+    if (!parsed.searchParams.has('sb_notify_base')) {
+      const port = getDataServerPort();
+      parsed.searchParams.set('sb_notify_base', `http://127.0.0.1:${port}/api`);
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
 async function openUrlInIdeBrowser(url: string): Promise<void> {
-  const clean = stripSimplebeaconEmbedParams(url);
-  await vscode.commands.executeCommand('simpleBrowser.show', clean);
+  await vscode.commands.executeCommand('simpleBrowser.show', prepareSimpleBrowserUrl(url));
 }
 
 /** Normalize a dashboard route to /dashboard/<view> form used by dashboard-web. */
@@ -101,7 +119,13 @@ export function rewriteRemotePreviewUrl(url: string, localBase: string): string 
     const hash = parsed.hash || '';
     if (isMarketingSitePath(parsed.pathname)) {
       const htmlPath = parsed.pathname.endsWith('.html') ? parsed.pathname : `${parsed.pathname}.html`;
-      return `${base}${htmlPath}${search}${hash}`;
+      // Roadmap, audit, and pricing pages live in the coming-soon directory.
+      // Serve them through the /coming-soon/ static handler so legacy /xxx.html
+      // redirects to the dashboard SPA do not intercept them.
+      const comingSoonPaths = ['/roadmap', '/audit', '/pricing'];
+      const useComingSoon = comingSoonPaths.some((p) => parsed.pathname === p || parsed.pathname === p + '.html');
+      const prefix = useComingSoon ? '/coming-soon' : '';
+      return `${base}${prefix}${htmlPath}${search}${hash}`;
     }
     let route = parsed.pathname;
     if (route === '/' || route === '' || route === '/dashboard' || route === '/dashboard/') {
@@ -223,6 +247,9 @@ export function appendDashboardEmbedParams(url: string, notifyBase?: string, web
   }
   if (notifyBase) {
     if (needsApiBridge && !result.includes('sb_api_base=')) {
+      // Allow the API bridge even for HTTPS→HTTP localhost. The data server sets
+      // Access-Control-Allow-Private-Network: true and allows simplebeacon.ai origins,
+      // and modern browsers permit HTTPS pages to fetch http://127.0.0.1 resources.
       const sep = result.includes('?') ? '&' : '?';
       result = `${result}${sep}sb_api_base=${encodeURIComponent(notifyBase)}`;
     }
@@ -307,7 +334,7 @@ function _getWebsiteDashboardWebviewHtml(url: string, scriptUri: string, cspSour
 <html lang="en" data-theme="${theme}">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' ${cspSource}; img-src data: https:; font-src https:; frame-src https://simplebeacon.ai http://127.0.0.1:*; connect-src http://127.0.0.1:* https://simplebeacon.ai;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' ${cspSource} http://127.0.0.1:* http://localhost:*; img-src data: https: http://127.0.0.1:* http://localhost:*; font-src https: http://127.0.0.1:* http://localhost:*; frame-src https://simplebeacon.ai http://127.0.0.1:* http://localhost:*; connect-src http://127.0.0.1:* http://localhost:* https://simplebeacon.ai;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SimpleBeacon Dashboard</title>
 <style>
@@ -348,12 +375,7 @@ export function navigateWebsiteDashboardPanel(url: string): boolean {
     const dataServerPort = getDataServerPort();
     const localBase = `http://127.0.0.1:${dataServerPort}`;
     const notifyBase = `${localBase}/api`;
-    let websiteMode = false;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { ModernSidebarProvider } = require('./modernSidebarProvider') as typeof import('./modernSidebarProvider');
-      websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
-    } catch { /* ignore */ }
+    const websiteMode = getDashboardMode() === 'website';
     const canonical = url;
     const iframeUrl = appendDashboardEmbedParams(rewriteIdePreviewUrl(url, localBase, websiteMode), notifyBase, websiteMode);
     const displayUrl = buildDashboardDisplayUrl(
@@ -376,9 +398,7 @@ function _pushThemeAndAuth(panel: vscode.WebviewPanel) {
       if (ws && ws.length > 0) {
         panel.webview.postMessage({ command: 'setWorkspacePath', path: ws[0].uri.fsPath });
       }
-      import('./modernSidebarProvider').then(({ ModernSidebarProvider }) => {
-        ModernSidebarProvider.refreshAuthState();
-      }).catch(() => {});
+      refreshAuthState();
     }
   }, 800);
 }
@@ -446,9 +466,7 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
             });
           }
         } catch { /* data server offline */ }
-        import('./modernSidebarProvider').then(({ ModernSidebarProvider }) => {
-          ModernSidebarProvider.refreshAuthState('websitePanel');
-        }).catch(() => {});
+        refreshAuthState('websitePanel');
       })();
       return;
     }
@@ -471,10 +489,8 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
       } catch { /* auth manager may not be initialized */ }
       postSidebarMessage({ command: 'setAuthState', signedIn, token, tier, isAdmin, source: 'websitePanel' });
       // Also update extension-side caches and trigger a refresh so the AuthManager mirrors the website token.
-      import('./modernSidebarProvider').then(({ ModernSidebarProvider }) => {
-        ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, 'websitePanel', isAdmin);
-        setTimeout(() => ModernSidebarProvider.refreshAuthState('websitePanel'), 50);
-      }).catch(() => {});
+      setSidebarAuthState(signedIn, tier, token, 'websitePanel', isAdmin);
+      setTimeout(() => refreshAuthState('websitePanel'), 50);
     }
     if (message.command === 'scanWorkspace' && message.path) {
       Promise.resolve(vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: message.path })).catch(() => {});
@@ -483,14 +499,12 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
       const filename = typeof message.filename === 'string' ? message.filename : '';
       const filePath = typeof message.filePath === 'string' ? message.filePath : '';
       if (filename) {
-        const { ModernSidebarProvider } = await import('./modernSidebarProvider');
-        ModernSidebarProvider.addDownloadedFile(filename, filePath);
+        addDownloadedFile(filename, filePath);
       }
     }
     if (message.command === 'updateReport' && message.report) {
       postSidebarMessage({ command: 'updateReport', report: message.report });
-      const { ModernSidebarProvider } = await import('./modernSidebarProvider');
-      ModernSidebarProvider.updateSidebarReport(message.report);
+      updateSidebarReport(message.report);
     }
     if (message.command === 'scanComplete' && message.stats) {
       postSidebarMessage({ command: 'scanComplete', stats: message.stats });
@@ -558,12 +572,7 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
   const localBase = `http://127.0.0.1:${dataServerPort}`;
   const notifyBase = `${localBase}/api`;
 
-  let websiteMode = false;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { ModernSidebarProvider } = require('./modernSidebarProvider') as typeof import('./modernSidebarProvider');
-    websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
-  } catch { /* extension still starting */ }
+  const websiteMode = getDashboardMode() === 'website';
 
   // Localhost mode: dashboard iframe via data-server. Website mode: same iframe + simplebeacon.ai in the address bar.
   const canonical = url;

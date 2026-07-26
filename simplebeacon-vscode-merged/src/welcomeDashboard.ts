@@ -9,9 +9,8 @@ import { getDataServerPort, getServerState } from './dataServer';
 import { ScanProfile } from './analyzers/workspaceAnalyzer';
 import { AuthManager } from './auth/authManager';
 import { buildDashboardHtml } from './welcomeDashboardHtml';
-import { showDashboardInSidebar, isSidebarReady } from './sidebarBridge';
+import { showDashboardInSidebar, isSidebarReady, openSidebarPreview, setSidebarAuthState } from './sidebarBridge';
 import { postSidebarMessage, openTeamDashboardPanel } from './sidebarMessenger';
-import { ModernSidebarProvider } from './modernSidebarProvider';
 import { showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
 
 const DEFAULT_API_URL = 'https://simplebeacon.ai/';
@@ -924,7 +923,7 @@ export class WelcomeDashboard {
           this.showTeamPane();
           break;
         case 'openPreviewInBrowser': {
-          ModernSidebarProvider.openSidebarPreview();
+          openSidebarPreview();
           break;
         }
         case 'openExternal': {
@@ -1426,12 +1425,12 @@ export class WelcomeDashboard {
             try { await this.authManager.setToken(String(msg.token)); } catch {}
           }
           // Forward auth state from dashboard to sidebar
-          ModernSidebarProvider.setSidebarAuthState(msg.signedIn === true, msg.tier || '', msg.token ? String(msg.token) : undefined, undefined, msg.isAdmin === true);
+          setSidebarAuthState(msg.signedIn === true, msg.tier || '', msg.token ? String(msg.token) : undefined, undefined, msg.isAdmin === true);
           break;
         case 'storeActiveLicenseToken':
           if (msg.token) {
             this.authManager.setToken(String(msg.token));
-            ModernSidebarProvider.setSidebarAuthState(true);
+            setSidebarAuthState(true);
           }
           break;
       }

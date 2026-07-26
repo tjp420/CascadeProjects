@@ -3,25 +3,44 @@ import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson
 import { renderRepositoryHealthSection } from './RepositoryHealthView.js';
 import { getVsCodeApi, renderSkeletonCard } from '../utils-lib/dom.js?v=20260725phase3';
 /**
+ * Extract normalized live trust data from a raw payload or wrapper.
+ * @param {any} data
+ * @returns {any}
+ */
+function extractLiveTrustData(data) {
+    if (!data || typeof data !== 'object')
+        return null;
+    const source = data.live || data;
+    const headline = source.headline;
+    const headlineObj = (typeof headline === 'object' && headline && headline.primary) ? headline : null;
+    return {
+        verificationId: source.verificationId || null,
+        headlineSource: headlineObj ? (headlineObj.source || null) : (source.headlineSource || null),
+        headlineReason: headlineObj ? (headlineObj.reason || null) : (source.headlineReason || null),
+        headline: headlineObj ? (headlineObj.primary || null) : (source.headline || null),
+        gatePass: source.gatePass != null ? source.gatePass : null,
+        score: source.score != null ? source.score : null,
+        generatedAt: source.generatedAt || null,
+        platform: source.platform || null,
+        monorepo: source.monorepo || null,
+        repositoryHealth: source.repositoryHealth || null,
+        disclaimers: Array.isArray(source.disclaimers) ? source.disclaimers : [],
+        methodology: Array.isArray(source.methodology) ? source.methodology : [],
+        fictionScope: source.fictionScope || null,
+        factors: Array.isArray(source.factors) ? source.factors : [],
+        badges: Array.isArray(source.badges) ? source.badges : []
+    };
+}
+
+/**
  * Normalize static trust payload.
  * @param {any} data
  * @returns {any}
  */
 function normalizeStaticTrustPayload(data) {
-    if (!data || typeof data !== 'object')
+    const live = extractLiveTrustData(data);
+    if (!live)
         return null;
-    const live = {
-        verificationId: data.verificationId,
-        headlineSource: data.headlineSource || null,
-        headlineReason: data.headlineReason || null,
-        headline: data.headline || null,
-        platform: data.platform || null,
-        monorepo: data.monorepo || null,
-        repositoryHealth: data.repositoryHealth || null,
-        disclaimers: Array.isArray(data.disclaimers) ? data.disclaimers : [],
-        methodology: Array.isArray(data.methodology) ? data.methodology : [],
-        fictionScope: data.fictionScope || null
-    };
     return { success: true, live, staticHost: true, staticPayload: true };
 }
 /**
@@ -43,26 +62,15 @@ async function fetchStaticTrustFallback() {
 function normalizeTrustApiPayload(data) {
     if (!data || typeof data !== 'object')
         return null;
-    if (data.live && typeof data.live === 'object') {
+    if (!data.type && !data.platform && !data.monorepo && !data.live) {
         return data;
     }
-    if (!data.type && !data.platform && !data.monorepo) {
-        return data;
-    }
+    const live = extractLiveTrustData(data);
+    if (!live)
+        return null;
     return {
-        success: true,
-        live: {
-            verificationId: data.verificationId,
-            headlineSource: data.headlineSource || null,
-            headlineReason: data.headlineReason || null,
-            headline: data.headline || null,
-            platform: data.platform || null,
-            monorepo: data.monorepo || null,
-            repositoryHealth: data.repositoryHealth || null,
-            disclaimers: Array.isArray(data.disclaimers) ? data.disclaimers : [],
-            methodology: Array.isArray(data.methodology) ? data.methodology : [],
-            fictionScope: data.fictionScope || null
-        },
+        success: data.success != null ? data.success : true,
+        live,
         publishedAt: data.publishedAt || null
     };
 }
@@ -160,33 +168,53 @@ function renderReAttestation(meta) {
  * @returns {any}
  */
 function renderSnapshot(snap, title) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
     if (!snap) {
-        return `<p class="text-muted card">No ${escapeHtml(title)} report on disk — run Simplebeacon scan first.</p>`;
-    }
-    return `
-    <div class="card mb-4">
+        return `
+    <div class="card mb-4" style="border-left:4px solid var(--warning);">
       <div class="section-heading mb-2">
         <h3 style="margin:0;font-size:var(--font-size-base);">${escapeHtml(title)}</h3>
-        <span class="gate-badge ${snap.gatePass ? 'pass' : 'warn'}">${snap.gatePass ? 'GATE PASS' : 'GATE REVIEW'}</span>
+        <span class="gate-badge warn">NO DATA</span>
       </div>
-      <p class="text-muted text-sm mb-4" style="margin-top:0;">
-        Path: <code>${escapeHtml(redactPathForDisplay(snap.projectRoot))}</code>
-        ${snap.platformRoot ? ` · Platform: <code>${escapeHtml(redactPathForDisplay(snap.platformRoot))}</code>` : ''}
-        · Last scan: ${escapeHtml(snap.generatedAt || '—')}
-      </p>
-      <div class="metrics-row mb-4">
-        <div class="metric-chip"><strong>${(_a = snap.qualityScore) !== null && _a !== void 0 ? _a : '—'}%</strong> quality</div>
-        <div class="metric-chip"><strong>${formatNumber((_b = snap.issueCount) !== null && _b !== void 0 ? _b : 0)}</strong> issues</div>
-        <div class="metric-chip"><strong>${(_c = snap.schemaPassed) !== null && _c !== void 0 ? _c : '—'}/${(_d = snap.schemaChecked) !== null && _d !== void 0 ? _d : '—'}</strong> schema</div>
-        <div class="metric-chip"><strong>${(_e = snap.consistencyScore) !== null && _e !== void 0 ? _e : '—'}%</strong> consistency</div>
-        <div class="metric-chip"><strong>${formatNumber((_f = snap.repositoryFilesTotal) !== null && _f !== void 0 ? _f : '—')}</strong> repo files</div>
-        <div class="metric-chip"><strong>${formatNumber((_g = snap.ruleScopedFilesAnalyzed) !== null && _g !== void 0 ? _g : '—')}</strong> gate checked</div>
-        <div class="metric-chip"><strong>${formatNumber((_h = snap.mockSampleFiles) !== null && _h !== void 0 ? _h : '—')}</strong> mock/sample</div>
-        <div class="metric-chip"><strong>${formatNumber((_j = snap.fictionJsonFilesScanned) !== null && _j !== void 0 ? _j : '—')}</strong> fiction JSON</div>
-        <div class="metric-chip"><strong>${formatNumber((_l = (_k = snap.fictionSampleFilesScanned) !== null && _k !== void 0 ? _k : snap.mockSampleFiles) !== null && _l !== void 0 ? _l : '—')}</strong> fiction samples</div>
+      <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">No ${escapeHtml(title)} report on disk — run a Simplebeacon scan first.</p>
+    </div>
+  `;
+    }
+    const gatePass = snap.gatePass;
+    const accent = gatePass ? 'var(--success)' : 'var(--warning)';
+    const badgeClass = gatePass ? 'pass' : 'warn';
+    const badgeLabel = gatePass ? 'GATE PASS' : 'GATE REVIEW';
+    const quality = snap.qualityScore != null ? snap.qualityScore + '%' : '—';
+    const issueCount = snap.issueCount != null ? formatNumber(snap.issueCount) : '—';
+    const schema = (snap.schemaPassed != null ? snap.schemaPassed : '—') + '/' + (snap.schemaChecked != null ? snap.schemaChecked : '—');
+    const consistency = snap.consistencyScore != null ? snap.consistencyScore + '%' : '—';
+    const repoFiles = snap.repositoryFilesTotal != null ? formatNumber(snap.repositoryFilesTotal) : '—';
+    const gateChecked = snap.ruleScopedFilesAnalyzed != null ? formatNumber(snap.ruleScopedFilesAnalyzed) : '—';
+    const mockSample = snap.mockSampleFiles != null ? formatNumber(snap.mockSampleFiles) : '—';
+    const fictionJson = snap.fictionJsonFilesScanned != null ? formatNumber(snap.fictionJsonFilesScanned) : '—';
+    const fictionSamples = snap.fictionSampleFilesScanned != null ? formatNumber(snap.fictionSampleFilesScanned) : (snap.mockSampleFiles != null ? formatNumber(snap.mockSampleFiles) : '—');
+    return `
+    <div class="card mb-4" style="border-top:3px solid ${accent};">
+      <div class="section-heading mb-3">
+        <div>
+          <h3 style="margin:0 0 0.25rem;font-size:var(--font-size-base);">${escapeHtml(title)}</h3>
+          <p class="text-muted" style="margin:0;font-size:var(--font-size-xs);">
+            <code>${escapeHtml(redactPathForDisplay(snap.projectRoot))}</code> · ${escapeHtml(snap.generatedAt || '—')}
+          </p>
+        </div>
+        <span class="gate-badge ${badgeClass}">${badgeLabel}</span>
       </div>
-      <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">${escapeHtml(snap.scopeNote || '')}</p>
+      <div class="metrics-row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:0.75rem;">
+        <div class="metric-chip"><strong>${quality}</strong> quality</div>
+        <div class="metric-chip"><strong>${issueCount}</strong> issues</div>
+        <div class="metric-chip"><strong>${schema}</strong> schema</div>
+        <div class="metric-chip"><strong>${consistency}</strong> consistency</div>
+        <div class="metric-chip"><strong>${repoFiles}</strong> repo files</div>
+        <div class="metric-chip"><strong>${gateChecked}</strong> gate checked</div>
+        <div class="metric-chip"><strong>${mockSample}</strong> mock/sample</div>
+        <div class="metric-chip"><strong>${fictionJson}</strong> fiction JSON</div>
+        <div class="metric-chip"><strong>${fictionSamples}</strong> fiction samples</div>
+      </div>
+      ${snap.scopeNote ? `<p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">${escapeHtml(snap.scopeNote)}</p>` : ''}
     </div>
   `;
 }
@@ -201,7 +229,15 @@ export class TrustView {
         this.data = null;
     }
     render() {
-        var _a, _b, _c, _d, _e, _f, _g;
+        const live = (this.data && this.data.live) || null;
+        const staticHost = Boolean(this.data && this.data.staticHost);
+        const disclaimers = (live && live.disclaimers) || [];
+        const methodology = (live && live.methodology) || [];
+        const fictionScope = (live && live.fictionScope) || null;
+        const factors = (live && live.factors) || [];
+        const badges = (live && live.badges) || [];
+        const reAttestation = this.app && this.app.state && this.app.state.reAttestation;
+        const repoHealth = live && live.repositoryHealth;
         if (this.loading) {
             return `
         <div class="analyze-hero"><h1 class="page-title">Trust Verification</h1><p class="text-muted analyze-hero-sub">Loading trust data…</p></div>
@@ -222,20 +258,13 @@ export class TrustView {
         </div>
       `;
         }
-        const live = (_a = this.data) === null || _a === void 0 ? void 0 : _a.live;
-        const staticHost = Boolean((_b = this.data) === null || _b === void 0 ? void 0 : _b.staticHost);
-        const disclaimers = (live === null || live === void 0 ? void 0 : live.disclaimers) || [];
-        const methodology = (live === null || live === void 0 ? void 0 : live.methodology) || [];
-        const fictionScope = (live === null || live === void 0 ? void 0 : live.fictionScope) || null;
         return `
-      <div class="analyze-hero">
-        <h1 class="page-title">Trust Verification</h1>
-        <p class="text-muted analyze-hero-sub">Scoped scan results — not marketing claims.</p>
-      </div>
-
-      <div class="analyze-action-bar" style="position:static;margin:0 0 var(--space-4);">
-        <div class="analyze-action-info"></div>
-        <div class="flex gap-2">
+      <div class="analyze-hero" style="align-items:flex-start;gap:var(--space-3);">
+        <div>
+          <h1 class="page-title">Trust Verification</h1>
+          <p class="text-muted analyze-hero-sub">Scoped scan results and integrity attestation.</p>
+        </div>
+        <div class="flex gap-2" style="flex-wrap:wrap;justify-content:flex-end;">
           <button class="btn btn-secondary btn-sm" id="trust-download-json" type="button">
             <i data-lucide="download" class="icon-16"></i> Download JSON
           </button>
@@ -253,76 +282,121 @@ export class TrustView {
         </div>
       ` : ''}
 
-      <div class="card mb-4">
-        <p style="margin:0 0 0.75rem;font-size:var(--font-size-sm);color:var(--text-secondary);">
-          We publish <strong>scoped</strong> Simplebeacon scan results — not marketing claims.
-          A 99% quality score on the platform gate means configured sample paths passed rules;
-          it does <em>not</em> mean zero issues across a 40k+ file monorepo.
-        </p>
-          <p class="text-muted" style="margin:0 0 0.35rem;font-size:var(--font-size-xs);">
-            Verification ID: <code>${escapeHtml((live === null || live === void 0 ? void 0 : live.verificationId) || '—')}</code>
-            · Method: deterministic gate + pattern matching
-          </p>
-          <p class="text-muted" style="margin:0;font-size:var(--font-size-xs);">
-            Headline source: <code>${escapeHtml((live === null || live === void 0 ? void 0 : live.headlineSource) || 'n/a')}</code>
-            ${(live === null || live === void 0 ? void 0 : live.headlineReason) ? ` · ${escapeHtml(live.headlineReason)}` : ''}
-          </p>
+      <div class="grid-3 mb-4">
+        <div class="card" style="border-top:3px solid var(--accent);">
+          <div class="text-muted text-xs" style="margin-bottom:0.25rem;">Trust score</div>
+          <div style="font-size:2rem;font-weight:700;color:var(--text-primary);">${escapeHtml((live && live.score) != null ? live.score + '%' : '—')}</div>
         </div>
-
-        ${renderSnapshot(live === null || live === void 0 ? void 0 : live.platform, 'Platform gate scan')}
-        ${(live === null || live === void 0 ? void 0 : live.monorepo) ? renderSnapshot(live.monorepo, 'Monorepo root scan') : ''}
-        ${renderReAttestation((_d = (_c = this.app) === null || _c === void 0 ? void 0 : _c.state) === null || _d === void 0 ? void 0 : _d.reAttestation)}
-
-        <div class="card mb-4">
-          <div class="section-heading mb-2">
-            <h3 style="margin:0;font-size:var(--font-size-base);">Repository optimization</h3>
-            <a class="btn btn-secondary btn-sm" href="/dashboard/repository-health">Full health report →</a>
-          </div>
-          ${((_e = live === null || live === void 0 ? void 0 : live.repositoryHealth) === null || _e === void 0 ? void 0 : _e.headline)
-            ? renderRepositoryHealthSection(live.repositoryHealth, { compact: true })
-            : '<p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">Run consolidation scan to publish repo health metrics.</p>'}
+        <div class="card" style="border-top:3px solid ${(live && live.gatePass) ? 'var(--success)' : 'var(--warning)'};">
+          <div class="text-muted text-xs" style="margin-bottom:0.25rem;">Gate</div>
+          <div style="font-size:1.25rem;font-weight:700;color:var(--text-primary);">${(live && live.gatePass) ? 'PASS' : 'REVIEW'}</div>
         </div>
+        <div class="card" style="border-top:3px solid var(--accent);">
+          <div class="text-muted text-xs" style="margin-bottom:0.25rem;">Generated</div>
+          <div style="font-size:1rem;font-weight:600;color:var(--text-primary);">${escapeHtml((live && live.generatedAt) ? live.generatedAt.slice(0, 10) : '—')}</div>
+        </div>
+      </div>
 
-        ${disclaimers.length ? `
-          <div class="card mb-4">
-            <h3 class="mb-2" style="font-size:var(--font-size-base);">Scope disclaimers</h3>
-            <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
-              ${disclaimers.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
-            </ul>
-          </div>
-        ` : ''}
-
-        ${fictionScope ? `
-          <div class="card mb-4">
-            <h3 class="mb-2" style="font-size:var(--font-size-base);">Fiction / KPI scope</h3>
-            <div class="metrics-row mb-3">
-              <div class="metric-chip"><strong>${escapeHtml(fictionScope.mode || 'repository-json')}</strong> mode</div>
-              <div class="metric-chip"><strong>${formatNumber((_f = fictionScope.fictionJsonFilesScanned) !== null && _f !== void 0 ? _f : '—')}</strong> JSON scanned</div>
-              <div class="metric-chip"><strong>${formatNumber((_g = fictionScope.fictionSampleFilesScanned) !== null && _g !== void 0 ? _g : '—')}</strong> mock JSON</div>
-            </div>
+      <div class="card mb-4" style="border-left:4px solid var(--accent);">
+        <div class="section-heading mb-3">
+          <div>
+            <h2 style="margin:0 0 0.25rem;font-size:var(--font-size-lg);">Verification summary</h2>
             <p class="text-muted" style="margin:0;font-size:var(--font-size-xs);">
-              Walk root: <code>${escapeHtml(redactPathForDisplay(fictionScope.walkRoot || 'ai-platform'))}</code>
-              · Pattern matching only (config.ignore applied)
+              ID: <code>${escapeHtml((live && live.verificationId) || '—')}</code> · Method: deterministic gate + pattern matching
             </p>
           </div>
-        ` : ''}
+          ${(live && live.headline) ? `<span class="gate-badge ${live.gatePass ? 'pass' : 'warn'}">${escapeHtml(live.headline)}</span>` : ''}
+        </div>
+        <p style="margin:0 0 0.75rem;font-size:var(--font-size-sm);color:var(--text-secondary);">
+          We publish <strong>scoped</strong> Simplebeacon scan results — not marketing claims.
+          A high quality score means configured sample paths passed rules; it does <em>not</em> mean zero issues across a large monorepo.
+        </p>
+        <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">
+          Headline source: <code>${escapeHtml((live && live.headlineSource) || 'n/a')}</code>
+          ${(live && live.headlineReason) ? ` · ${escapeHtml(live.headlineReason)}` : ''}
+        </p>
+      </div>
 
-        ${methodology.length ? `
-          <div class="card mb-4">
-            <h3 class="mb-2" style="font-size:var(--font-size-base);">Methodology</h3>
-            <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
-              ${methodology.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
-            </ul>
+      ${factors.length ? `
+        <div class="card mb-4">
+          <h3 class="mb-2" style="font-size:var(--font-size-base);">Trust factors</h3>
+          <div class="metrics-row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
+            ${factors.map((f) => `
+              <div class="metric-chip" style="${f.status === 'Fail' ? 'border-color:var(--danger);' : (f.status === 'Review' ? 'border-color:var(--warning);' : '')}">
+                <strong>${escapeHtml(f.status || '—')}</strong> ${escapeHtml(f.text || '')}
+              </div>
+            `).join('')}
           </div>
-        ` : ''}
+        </div>
+      ` : ''}
 
-        <div class="card">
-          <h3 class="mb-2" style="font-size:var(--font-size-base);">Embed badge</h3>
-          <pre class="audit-log" style="margin:0;font-size:var(--font-size-xs);">&lt;img src="${escapeHtml(window.location.origin)}/api/trust/badge.svg?raw=1" alt="Simplebeacon gate verification badge" width="320" height="72"&gt;</pre>
-          <p class="text-muted mt-2 mb-0" style="font-size:var(--font-size-xs);">
-            Refresh reports + publish: <code>npm run trust:refresh</code> (platform + monorepo scan with <code>--output</code>, then trust publish)
+      ${badges.length ? `
+        <div class="card mb-4">
+          <h3 class="mb-2" style="font-size:var(--font-size-base);">Badges</h3>
+          <div class="metrics-row" style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${badges.map((b) => `
+              <div class="metric-chip" style="${b.unlocked ? '' : 'opacity:0.5;'}">
+                <span style="margin-right:0.25rem;">${escapeHtml(b.icon || '')}</span>
+                <strong>${escapeHtml(b.name || '')}</strong>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${renderSnapshot((live && live.platform) || null, 'Platform gate scan')}
+      ${(live && live.monorepo) ? renderSnapshot(live.monorepo, 'Monorepo root scan') : ''}
+      ${renderReAttestation(reAttestation)}
+
+      <div class="card mb-4">
+        <div class="section-heading mb-2">
+          <h3 style="margin:0;font-size:var(--font-size-base);">Repository optimization</h3>
+          <a class="btn btn-secondary btn-sm" href="/dashboard/repository-health">Full health report →</a>
+        </div>
+        ${(repoHealth && repoHealth.headline)
+          ? renderRepositoryHealthSection(repoHealth, { compact: true })
+          : '<p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">Run consolidation scan to publish repo health metrics.</p>'}
+      </div>
+
+      ${disclaimers.length ? `
+        <div class="card mb-4">
+          <h3 class="mb-2" style="font-size:var(--font-size-base);">Scope disclaimers</h3>
+          <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
+            ${disclaimers.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      ${fictionScope ? `
+        <div class="card mb-4">
+          <h3 class="mb-2" style="font-size:var(--font-size-base);">Fiction / KPI scope</h3>
+          <div class="metrics-row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:0.75rem;">
+            <div class="metric-chip"><strong>${escapeHtml(fictionScope.mode || 'repository-json')}</strong> mode</div>
+            <div class="metric-chip"><strong>${formatNumber(fictionScope.fictionJsonFilesScanned != null ? fictionScope.fictionJsonFilesScanned : '—')}</strong> JSON scanned</div>
+            <div class="metric-chip"><strong>${formatNumber(fictionScope.fictionSampleFilesScanned != null ? fictionScope.fictionSampleFilesScanned : '—')}</strong> mock JSON</div>
+          </div>
+          <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">
+            Walk root: <code>${escapeHtml(redactPathForDisplay(fictionScope.walkRoot || 'ai-platform'))}</code>
+            · Pattern matching only (config.ignore applied)
           </p>
         </div>
+      ` : ''}
+
+      ${methodology.length ? `
+        <div class="card mb-4">
+          <h3 class="mb-2" style="font-size:var(--font-size-base);">Methodology</h3>
+          <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
+            ${methodology.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      <div class="card">
+        <h3 class="mb-2" style="font-size:var(--font-size-base);">Embed badge</h3>
+        <pre class="audit-log" style="margin:0;font-size:var(--font-size-xs);">&lt;img src="${escapeHtml(window.location.origin)}/api/trust/badge.svg?raw=1" alt="Simplebeacon gate verification badge" width="320" height="72"&gt;</pre>
+        <p class="text-muted mt-2 mb-0" style="font-size:var(--font-size-xs);">
+          Refresh reports + publish: <code>npm run trust:refresh</code> (platform + monorepo scan with <code>--output</code>, then trust publish)
+        </p>
       </div>
     `;
     }

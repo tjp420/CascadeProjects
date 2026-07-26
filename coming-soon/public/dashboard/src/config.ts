@@ -1,0 +1,101 @@
+/**
+ * Default API base for local development against the SimpleBeacon dashboard server.
+ * Override with the `sb_api_base` query parameter, e.g.:
+ *   http://localhost:5173/?sb_api_base=http://127.0.0.1:8081/api#/signin
+ */
+export const DEFAULT_API_BASE = 'http://127.0.0.1:58000';
+
+export function getApiBase(): string {
+  if (typeof window === 'undefined') return DEFAULT_API_BASE;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const explicit = params.get('sb_api_base');
+    if (explicit) {
+      const trimmed = explicit.replace(/\/+$/, '');
+      if (/\/api$/i.test(trimmed)) return trimmed.replace(/\/api$/i, '');
+      return trimmed;
+    }
+    // Prefer an already-detected local API host (populated by background probe)
+    // Window variable kept for compatibility with legacy bundles.
+    // Example value: "http://127.0.0.1:58000"
+    // Use `__SB_API_HOST__` (short) for legacy code and `__SIMPLEBEACON_DETECTED_API_BASE` as explicit name.
+    // This allows hosted dashboards to detect a running local server and prefer it when no explicit sb_api_base is provided.
+    // Detection is kicked off at module import and sets these globals asynchronously.
+    // If present, prefer the detected host (do not append /api here).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win: any = window as any;
+    const detected = win.__SB_API_HOST__ || win.__SIMPLEBEACON_DETECTED_API_BASE;
+    if (detected && typeof detected === 'string' && detected.length > 0) return String(detected).replace(/\/+$/, '');
+    const host = window.location.hostname || '';
+    if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
+      return DEFAULT_API_BASE;
+    }
+    return '';
+  } catch {
+    return DEFAULT_API_BASE;
+  }
+}
+
+/**
+ * Build a safe API URL for a given path segment.
+ * Ensures the base has no trailing `/api` and the returned URL contains exactly one `/api` prefix.
+ */
+export function authHeaders(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export function apiUrl(path: string): string {
+  const base = getApiBase() || '';
+  const normalized = String(base).replace(/\/+$/, '').replace(/\/api$/i, '');
+  const segment = String(path || '').replace(/^\/+/, '');
+  if (!segment) return normalized || '/';
+  if (normalized) return `${normalized}/api/${segment}`;
+  return `/api/${segment}`;
+}
+
+// Kick off an asynchronous probe to detect a local running API server on common developer ports.
+// When found, populate window.__SB_API_HOST__ so runtime bundles can prefer the local server.
+let _apiBaseDetectPromise: Promise<string | null> | null = null;
+
+export function waitForApiBase(timeoutMs = 3000): Promise<string | null> {
+  if (_apiBaseDetectPromise) return _apiBaseDetectPromise;
+  return Promise.resolve(null);
+}
+
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const win: any = window as any;
+  if (!win.__SB_API_HOST__ && !new URLSearchParams(window.location.search).get('sb_api_base')) {
+    const ports = [58000, 64772, 3000, 3001, 3002, 4000, 8080, 50559, 54358];
+    _apiBaseDetectPromise = (async () => {
+      async function probePort(port: number): Promise<boolean> {
+        try {
+          const controller = new AbortController();
+          const id = setTimeout(() => controller.abort(), 1500);
+          const res = await fetch(`http://127.0.0.1:${port}/api/health`, {
+            method: 'GET',
+            mode: 'cors',
+            signal: controller.signal,
+          });
+          clearTimeout(id);
+          return res && (res.ok || res.status === 401 || res.status === 403 || res.status === 404);
+        } catch {
+          return false;
+        }
+      }
+      const results = await Promise.allSettled(ports.map(p => probePort(p)));
+      for (let i = 0; i < ports.length; i++) {
+        const r = results[i];
+        if (r.status === 'fulfilled' && r.value) {
+          const base = `http://127.0.0.1:${ports[i]}`;
+          win.__SB_API_HOST__ = base;
+          win.__SIMPLEBEACON_DETECTED_API_BASE = base;
+          return base;
+        }
+      }
+      return null;
+    })();
+  }
+}

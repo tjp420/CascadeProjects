@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const express = require('express');
 const logger = require('../../server/lib/app-logger.cjs');
 
 const constants = require('../../server/config/constants.cjs');
@@ -61,6 +62,7 @@ function getAnalyzeAllowedRoots() {
 const SIMPLEBEACON_DIR = path.join(PROJECT_ROOT, '.simplebeacon');
 const REPORT_PATH = path.join(SIMPLEBEACON_DIR, 'report.json');
 const BASELINE_PATH = path.join(SIMPLEBEACON_DIR, 'baseline.json');
+const SUBSCRIPTION_PATH = path.join(SIMPLEBEACON_DIR, 'subscription.json');
 const CONFIG_PATH = path.join(SIMPLEBEACON_DIR, 'config.json');
 const HISTORY_PATH = path.join(SIMPLEBEACON_DIR, 'history.json');
 const ASSESSMENT_PATH = path.join(SIMPLEBEACON_DIR, 'assessment.json');
@@ -916,6 +918,92 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
   });
 
+  // --- User data export (GDPR-style data download) ---
+  app.get('/api/user/export', optionalAuthenticate, requireUserAccount, async (req, res) => {
+    try {
+      const email = req.user?.email || 'anonymous';
+      const [aiKeys, report, history, baseline, config, assessment] = await Promise.all([
+        getUserAiKeysPublic(email).catch(() => ({ providers: {}, ollamaBaseUrl: '', ollamaModel: '', updatedAt: null })),
+        readSimplebeaconJson('report.json', null),
+        readSimplebeaconJson('history.json', []),
+        readSimplebeaconJson('baseline.json', {}),
+        readSimplebeaconJson('config.json', {}),
+        readSimplebeaconJson('assessment.json', null)
+      ]);
+
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        profile: {
+          id: req.user?.id || null,
+          email: req.user?.email || null,
+          name: req.user?.name || null,
+          role: req.user?.role || null,
+          tier: req.user?.tier || req.user?.plan || null,
+          trustLevel: req.user?.trustLevel || null
+        },
+        aiKeys,
+        scanHistory: history,
+        report,
+        baseline,
+        config,
+        assessment
+      };
+
+      const safeEmail = String(email).replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filename = `simplebeacon-export-${safeEmail}-${Date.now()}.json`;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.json(exportData);
+    } catch (err) {
+      logger.error('[GET /api/user/export] Export failed:', err.message);
+      res.status(500).json({ success: false, error: 'Export failed', message: err.message });
+    }
+  });
+
+  // --- Subscription endpoints (simple persisted JSON for demo/dev)
+  app.get('/api/user/subscription', optionalAuthenticate, requireUserAccount, async (req, res) => {
+    try {
+      // Prefer per-project subscription file; fall back to user tier
+      let sub = null;
+      try {
+        const raw = await readTextFileWithLimit(SUBSCRIPTION_PATH, 64 * 1024).catch(() => null);
+        if (raw) sub = JSON.parse(raw);
+      } catch { sub = null; }
+
+      // Default subscription derived from user profile when file missing
+      if (!sub) {
+        sub = {
+          plan: req.user?.tier || req.user?.plan || 'free',
+          scansRemaining: req.user?.plan === 'free' ? 'Unlimited' : 'Unlimited',
+          apiAccess: req.user?.tier === 'pro' || req.user?.plan === 'pro' ? 'Full' : 'Limited'
+        };
+      }
+      return res.json({ success: true, subscription: sub });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // For local development convenience, allow updating subscription file (dev only or admin)
+  app.put('/api/user/subscription', optionalAuthenticate, requireUserAccount, express.json(), async (req, res) => {
+    try {
+      if (process.env.NODE_ENV !== 'development' && req.user?.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      const toWrite = {
+        plan: body.plan || req.user?.tier || 'free',
+        scansRemaining: typeof body.scansRemaining !== 'undefined' ? body.scansRemaining : (body.plan === 'free' ? 'Unlimited' : 'Unlimited'),
+        apiAccess: body.apiAccess || (body.plan === 'pro' ? 'Full' : (req.user?.tier === 'pro' ? 'Full' : 'Limited'))
+      };
+      await fs.promises.mkdir(SIMPLEBEACON_DIR, { recursive: true });
+      await fs.promises.writeFile(SUBSCRIPTION_PATH, JSON.stringify(toWrite, null, 2), 'utf8');
+      return res.json({ success: true, subscription: toWrite });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // Server-side proxy for Ollama so the HTTPS dashboard avoids mixed-content CORS issues
   // with direct http://127.0.0.1:11434 calls from the browser.
   function isAllowedOllamaHost(hostname) {
@@ -1329,6 +1417,8 @@ function setupSimplebeaconAPI(app, options = {}) {
     }
 
     try {
+      await fs.promises.mkdir(SIMPLEBEACON_DIR, { recursive: true });
+      await fs.promises.writeFile(REPORT_PATH, JSON.stringify(report, null, 2));
       const history = await appendHistory(report);
       res.json({
         success: true,
@@ -1480,13 +1570,39 @@ function setupSimplebeaconAPI(app, options = {}) {
           return;
         }
         const safePath = assertSafeProjectPath(found, allowedRoots);
-        res.json({ success: true, results: [safePath] });
+            res.json({ success: true, results: [safePath] });
       } catch (err) {
         logger.error('[POST /api/find-folder] Error:', err.message);
         res.status(500).json({ success: false, error: err.message || 'Folder lookup failed' });
       }
     });
   });
+
+      // Verify an absolute or relative path is allowed and exists on the server.
+      app.post('/api/verify-path', (req, res) => {
+        let body = '';
+        req.on('data', (chunk) => { body += chunk.toString(); });
+        req.on('end', () => {
+          try {
+            const payload = body ? JSON.parse(body) : {};
+            const target = String(payload.path || '').trim();
+            if (!target) {
+              res.status(400).json({ success: false, error: 'path is required' });
+              return;
+            }
+            const allowedRoots = getAnalyzeAllowedRoots();
+            try {
+              const safe = assertSafeProjectPath(target, allowedRoots, 'path');
+              res.json({ success: true, path: safe });
+            } catch (err) {
+              res.status(400).json({ success: false, error: err.message });
+            }
+          } catch (err) {
+            logger.error('[POST /api/verify-path] Error:', err.message);
+            res.status(500).json({ success: false, error: err.message || 'Path verification failed' });
+          }
+        });
+      });
 
   scheduler.startScheduler();
   setupSimplebeaconDemoAPI(app);

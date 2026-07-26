@@ -1,46 +1,46 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-// cache-bust: 20260729dropfix2
+// cache-bust: 20260725dropfix3
 // DOMPurify is loaded via a script tag in the HTML (or provided by the bundler).
 // The HTML includes a CDN fallback so `window.DOMPurify` should be available.
-import { scanService } from './services/scanService.js?v=20260729dropfix2';
-import { platformService } from './services/platformService.js?v=20260729dropfix2';
-import { billingService } from './services/billingService.js?v=20260729dropfix2';
-import { authService, apiBase } from './services/authService.js?v=20260729dropfix2';
+import { scanService } from './services/scanService.js?v=20260716cachefix1';
+import { platformService } from './services/platformService.js?v=20260716cachefix1';
+import { billingService } from './services/billingService.js?v=20260716cachefix1';
+import { authService, apiBase } from './services/authService.js?v=20260722bridgefix1';
 import { themeService } from './services/themeService.js';
-import { Router, PUBLIC_VIEWS } from './router.js?v=20260729dropfix2';
-import { TrustView } from './views/TrustView.js?v=20260729dropfix2';
-import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260729dropfix2';
-import { DashboardView } from './views/DashboardView.js?v=20260729dropfix2';
+import { Router, PUBLIC_VIEWS } from './router.js?v=20260716cachefix1';
+import { TrustView } from './views/TrustView.js?v=20260724layoutfix2';
+import { RepositoryHealthView } from './views/RepositoryHealthView.js?v=20260716cachefix1';
+import { DashboardView } from './views/DashboardView.js?v=20260726embedfix1';
 import { ResultsView } from './views/ResultsView.js';
-import { SettingsView } from './views/SettingsView.js?v=20260729dropfix2';
+import { SettingsView } from './views/SettingsView.js?v=20260720ollama6';
 import { ToolsView } from './views/ToolsView.js';
-import { PlatformView } from './views/PlatformView.js?v=20260729dropfix2';
-import { QualityView } from './views/QualityView.js?v=20260729dropfix2';
+import { PlatformView } from './views/PlatformView.js?v=20260716cachefix1';
+import { QualityView } from './views/QualityView.js?v=20260716cachefix1';
 import { HelpView, FeaturesView } from './views/HelpView.js';
-import { AuditView } from './views/AuditView.js?v=20260729dropfix2';
-import { AnalyzeView } from './views/AnalyzeView.js?v=20260729dropfix2';
-import { SecurityView } from './views/SecurityView.js?v=20260729dropfix2';
-import { AboutView } from './views/AboutView.js?v=20260729dropfix2';
-import { AssessmentView } from './views/AssessmentView.js?v=20260729dropfix2';
-import { SignInView } from './views/SignInView.js?v=20260729dropfix2';
-import { ChatbotView } from './views/ChatbotView.js?v=20260729dropfix2';
+import { AuditView } from './views/AuditView.js?v=20260726auditfix3';
+import { PricingView } from './views/PricingView.js?v=20260724layoutfix2';
+import { AnalyzeView } from './views/AnalyzeView.js?v=20260728dropfix2';
+import { SecurityView } from './views/SecurityView.js?v=20260725secredesign1';
+import { AboutView } from './views/AboutView.js?v=20260726cachefix1';
+import { AssessmentView } from './views/AssessmentView.js?v=20260716cachefix1';
+import { SignInView } from './views/SignInView.js?v=20260722signin3';
+import { ChatbotView } from './views/ChatbotView.js?v=20260726embedfix1';
 import { UploadView } from './views/UploadView.js';
 import { RemediationRoadmapView } from './views/RemediationRoadmapView.js';
-import { ProfileView } from './views/ProfileView.js?v=20260729dropfix2';
-import { AdminPanelView } from './views/AdminPanelView.js?v=20260729dropfix2';
-import { EUAIActChecklistView } from './views/EUAIActChecklistView.js?v=20260729dropfix2';
-import { GettingStartedView } from './views/GettingStartedView.js?v=20260729dropfix2';
-import { GuidedTour } from './components/GuidedTour.js?v=20260729dropfix2';
+import { ProfileView } from './views/ProfileView.js?v=20260726embedfix1';
+import { AdminPanelView } from './views/AdminPanelView.js?v=20260720adminfix1';
+import { GettingStartedView } from './views/GettingStartedView.js?v=20260718onboard1';
+import { GuidedTour } from './components/GuidedTour.js?v=20260718onboard1';
 import { COMING_SOON_URL } from './config.js';
-import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js?v=20260729dropfix2';
+import { shouldShowOnboarding, renderOnboarding, bindOnboarding } from './components/Onboarding.js?v=20260718onboard1';
 import { showUpgradeModal } from './components/UpgradeModal.js';
-import { showLoginModal } from './components/LoginModal.js?v=20260729dropfix2';
+import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
-import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260729dropfix2';
-import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260729dropfix2';
-import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260729dropfix2';
-import { LocalScanService } from './services/localScanService.js?v=20260729dropfix2';
-import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260729dropfix2';
+import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
+import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260726embedfix1';
+import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260728agentfix2';
+import { LocalScanService } from './services/localScanService.js?v=20260728dropfix2';
+import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260728dropfix2';
 // Embed shim fallback: when loaded inside an IDE/webview that marks the document
 // as embedded, ensure a top padding is applied so host chrome doesn't clip content.
 (function applyEmbedShim() {
@@ -49,23 +49,24 @@ import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefau
             if (typeof isEmbeddedDashboardFrame === 'function' && isEmbeddedDashboardFrame()) {
                 const root = document.documentElement;
                 root.setAttribute('data-embed-mode', '1');
-                // Determine if this is an IDE surface, but still apply the embed shim
-                // so host chrome doesn't clip the page. Some IDE hosts do not hide
-                // chrome consistently, so ensure a safe padding is present.
-                try { typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface(); } catch (e) { /* ignore */ }
-                const cssVar = getComputedStyle(root).getPropertyValue('--embed-top-shim') || '';
-                const shimPx = parseInt(cssVar) || 48;
-                const appMain = document.querySelector('#app-main') || document.querySelector('.app-main');
-                if (appMain) {
-                    const cur = parseInt(getComputedStyle(appMain).paddingTop) || 0;
-                    if (!appMain.style.paddingTop || cur === 0) appMain.style.paddingTop = shimPx + 'px';
-                }
-                else {
-                    const bodyPad = parseInt(getComputedStyle(document.body).paddingTop) || 0;
-                    if (!document.body.style.paddingTop || bodyPad === 0) {
-                        document.body.style.paddingTop = shimPx + 'px';
+                // When running inside an IDE/webview, ensure IDE-specific attribute is present
+                try {
+                    if (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface()) {
+                        root.setAttribute('data-ide-embed', '1');
                     }
                 }
+                catch (e) { /* ignore */ }
+                // Propagate any parent urlbar/session flags so CSS rules apply
+                try {
+                    const params = new URLSearchParams(window.location.search || '');
+                    if (params.get('sb_parent_urlbar') === '1' || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('sb_parent_urlbar') === '1')) {
+                        root.setAttribute('data-parent-urlbar', '1');
+                    }
+                }
+                catch (e) { /* ignore */ }
+                // Embed-mode attributes and CSS already set the correct padding via
+                // --embed-top-shim; do not hard-code an inline padding here so the
+                // dashboard can scroll to the very top of its content.
             }
         };
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
@@ -195,7 +196,7 @@ class SimplebeaconDashboard {
             help: new HelpView(this),
             features: new FeaturesView(this),
             settings: new SettingsView(this),
-            pricing: { mount: () => { window.location.href = '/pricing'; } },
+            pricing: new PricingView(this),
             about: new AboutView(this),
             trust: new TrustView(this),
             'repository-health': new RepositoryHealthView(this),
@@ -208,7 +209,6 @@ class SimplebeaconDashboard {
             profile: new ProfileView(this),
             admin: new AdminPanelView(this),
             'getting-started': new GettingStartedView(this)
-            ,compliance: new EUAIActChecklistView(this)
         };
         this.currentView = null;
         this.guidedTour = new GuidedTour(this);
@@ -367,7 +367,7 @@ class SimplebeaconDashboard {
         const embedded = isEmbeddedDashboardFrame() || isIdeDashboardSurface();
         // In embed/IDE mode the CSS makes #app-main the scroll container;
         // in standalone mode the document scrolling element is the container.
-        let container = (embedded && root) || root || (typeof document !== 'undefined' && (document.scrollingElement || document.documentElement || document.body));
+        let container = (embedded && root) || (typeof document !== 'undefined' && (document.scrollingElement || document.documentElement || document.body)) || root;
         if (!container)
             return;
         try {
@@ -510,7 +510,7 @@ class SimplebeaconDashboard {
         // Remove any stale full-page drag overlay that may have leaked from a previous session.
         document.querySelectorAll('.sb-global-drag-overlay').forEach(el => el.remove());
         try {
-            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad, discoverAndApplyExtensionBridge } = await import('./services/localAgentService.js?v=20260729dropfix2');
+            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad, discoverAndApplyExtensionBridge } = await import('./services/localAgentService.js?v=20260728agentfix2');
             clearStaleIntegratedBridgeParams();
             if (isHostedDashboard()) {
                 await validateExtensionBridgeOnLoad();
@@ -1596,18 +1596,6 @@ class SimplebeaconDashboard {
         var _a, _b;
         (_a = document.getElementById('app-nav')) === null || _a === void 0 ? void 0 : _a.classList.remove('open');
         (_b = document.getElementById('mobile-nav-overlay')) === null || _b === void 0 ? void 0 : _b.classList.remove('open');
-
-        // Inject compliance nav link if missing
-        try {
-            if (document.getElementById('app-nav') && !document.querySelector('.nav-link[data-view="compliance"]')) {
-                const link = document.createElement('a');
-                link.href = '#/compliance';
-                link.className = 'nav-link';
-                link.dataset.view = 'compliance';
-                link.innerHTML = '<span class="nav-label">Compliance</span>';
-                document.getElementById('app-nav').appendChild(link);
-            }
-        } catch (_e) { /* ignore */ }
     }
     cleanupDisabledElements() {
         const selectors = [
@@ -2059,6 +2047,8 @@ class SimplebeaconDashboard {
     }
     maybeShowOnboarding() {
         if (!shouldShowOnboarding())
+            return;
+        if (this._currentViewName === 'chatbot')
             return;
         const overlay = renderOnboarding();
         document.body.appendChild(overlay);

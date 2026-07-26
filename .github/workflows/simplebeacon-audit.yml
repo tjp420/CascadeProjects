@@ -1,0 +1,53 @@
+name: SimpleBeacon Enterprise Compliance Gate
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  audit-repository:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source Repository Code
+      uses: actions/checkout@v4
+
+    - name: Initialize Node.js Environment Runtime
+      uses: actions/setup-node@v4
+      with:
+        node-node-version: '20'
+        cache: 'npm'
+
+    - name: Install Analysis Dependencies
+      run: |
+        npm install @swc/core minimatch
+
+    - name: Execute SimpleBeacon Engine Core Gate
+      id: run-audit
+      run: |
+        node -e "
+        import('./SimpleBeaconPoC.js').then(async (m) => {
+          const report = await m.runSimpleBeaconAudit(process.cwd());
+          console.log(JSON.stringify(report, null, 2));
+          
+          // Fail build gate if circular boundaries are compromised
+          if (report.architecturalCyclesCount > 0) {
+            console.error('❌ CRITICAL ENGINE BREAK: Circular dependencies detected in core product code.');
+            process.exit(1);
+          }
+        }).catch(err => {
+          console.error(err);
+          process.exit(1);
+        });
+        "
+
+    - name: Archive Remediation Diagnostics and Patches
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: compliance-remediation-patches
+        path: |
+          **/*.patch-fix
+          report-output.json

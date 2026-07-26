@@ -27,6 +27,7 @@
   },
   "prepare": "husky install",
   "dependencies": {
+    "@swc/core": "^1.15.46",
     "archiver": "^8.0.0",
     "dompurify": "^3.4.12",
     "express-rate-limit": "^8.5.2",
@@ -41,6 +42,8 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "dotenv": "^16.3.1",
+    "helmet": "^7.0.0",
     "husky": "^8.0.3",
     "jest": "^29.7.0",
     "playwright": "^1.61.1",

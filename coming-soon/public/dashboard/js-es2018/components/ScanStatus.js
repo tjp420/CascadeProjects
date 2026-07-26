@@ -1,6 +1,6 @@
 import { escapeHtml, formatPercent, formatNumber, showToast } from '../utils.js';
 import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage } from '../utils-lib/dom.js?v=20260725dropfix2';
-import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260716cachefix1';
+import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote, getScanFileMetrics } from '../services/analyzeService.js?v=20260726sevfix1';
 import { runLocalScan } from '../services/localScanService.js?v=20260724fix1';
 import { isLocalPath, probeAgent, scanViaAgent, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000 } from '../services/localAgentService.js?v=20260722scanfix2';
 import { runSandboxedDirectoryScan, isDroppedFolder, scanDroppedItems, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260725dropfix2';
@@ -1008,7 +1008,7 @@ export function bindScanStatus(container, options = {}) {
                         showToast(filePickerBlockedMessage(), 'warning', { duration: 10000 });
                     }
                     else {
-                        console.warn('[ScanStatus] Directory picker failed:', err);
+                        console['warn']('[ScanStatus] Directory picker failed:', err);
                     }
                 }
                 // Fall through to file input fallback
@@ -1195,7 +1195,7 @@ export function bindScanStatus(container, options = {}) {
                             }
                         }
                         catch (bridgeErr) {
-                            console.warn('[ScanStatus] findFolderViaBridge failed for non-folder drop:', bridgeErr);
+                            console['warn']('[ScanStatus] findFolderViaBridge failed for non-folder drop:', bridgeErr);
                         }
                     }
                     // VS Code/Windsurf drops expose only 1 file without webkitRelativePath.

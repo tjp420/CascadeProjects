@@ -1,7 +1,7 @@
 /**
  * Platform page export bundle — browser mirror of server/lib/platform-export.js
  */
-import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260716cachefix1';
+import { resolveJestTestsLabel } from '../services/analyzeService.js?v=20260726sevfix1';
 import { sanitizeSimplebeaconReportExport } from './simplebeacon-report-export.browser.js?v=20260716cachefix1';
 import { stripInternalExportFields, resolveSectionProvenance, redactProjectPathForExport, sanitizeCoverageExport, sanitizeSecurityExport, sanitizeQualityExport, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260716cachefix1';
 /**

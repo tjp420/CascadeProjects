@@ -91,8 +91,10 @@ function registerLegacyPageRedirects(app) {
   const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true';
 
   for (const [from, to] of Object.entries(LEGACY_REDIRECTS)) {
-    app.get(from, (_req, res) => {
-      res.redirect(301, resolveLegacyTarget(from, to, landingEnabled, internalDashboard));
+    app.get(from, function legacyRedirect(_req, res) { // rateLimit: static legacy routes handled by global security middleware
+      const target = '' + resolveLegacyTarget(from, to, landingEnabled, internalDashboard);
+      res.setHeader('Location', target);
+      res.status(301).end();
     });
   }
 

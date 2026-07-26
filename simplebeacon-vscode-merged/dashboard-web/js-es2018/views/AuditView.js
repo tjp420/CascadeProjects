@@ -3,7 +3,7 @@ import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, rende
 import { buildComplianceAuditExportBundle, complianceAuditExportFilename } from '../utils/compliance-audit-export.browser.js?v=20260716cachefix1';
 import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
 import { getVsCodeApi, renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';
-import { isSimplebeaconReport, normalizeSimplebeaconReport, normalizeImportedReport, readFileAsJson } from '../services/analyzeService.js?v=20260726auditfix1';
+import { isSimplebeaconReport, normalizeSimplebeaconReport, normalizeImportedReport, readFileAsJson } from '../services/analyzeService.js?v=20260726sevfix1';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',
     fictionKpis: 'Fiction & KPI drift',
@@ -11,6 +11,8 @@ const LAYER_LABELS = {
     productionLeaks: 'Production path leaks',
     roadmap: 'Roadmap & duplicates',
     jestBaseline: 'Jest baseline',
+    securityPatterns: 'Security patterns',
+    llmSlop: 'LLM slop patterns',
     gate: 'Compliance gate'
 };
 /**
@@ -99,9 +101,18 @@ export class AuditView {
             showToast('No audit data to export — load the page first', 'error');
             return;
         }
-        const payload = buildComplianceAuditExportBundle(this.audit);
-        downloadJson(payload, complianceAuditExportFilename('json'));
-        showToast('Compliance audit exported', 'success');
+      try {
+        if (typeof authService !== 'undefined' && authService.isFreeTier && authService.isFreeTier()) {
+          showToast('Export disabled for free-tier accounts — upgrade to Pro to download full reports.', 'error');
+          return;
+        }
+      }
+      catch (_err) {
+        window.console.warn('[AuditView] authService.isFreeTier check failed', _err);
+      }
+      const payload = buildComplianceAuditExportBundle(this.audit);
+      downloadJson(payload, complianceAuditExportFilename('json'));
+      showToast('Compliance audit exported', 'success');
     }
     layerStatusClass(status) {
         if (status === 'pass')
@@ -140,6 +151,59 @@ export class AuditView {
           ${layer.compliance != null ? `<div class="settings-row"><span class="settings-label">Compliance</span><span class="settings-value">${formatPercent(layer.compliance)}</span></div>` : ''}
           ${layer.knownPatterns != null ? `<div class="settings-row"><span class="settings-label">Known patterns</span><span class="settings-value">${layer.knownPatterns}</span></div>` : ''}
           ${extraRows}
+        </div>
+      </div>
+    `;
+    }
+    renderScanScopeSection(scope) {
+        if (!scope)
+            return '';
+        const profile = scope.profile || '—';
+        const rules = (scope.rulesEnabled || []).join(', ') || '—';
+        const prodPaths = (scope.productionPaths || []).join(', ') || '—';
+        const limitations = (scope.limitations || []).map(l => `<li>${escapeHtml(l)}</li>`).join('');
+        const mockFiles = scope.mockSampleFilesInScanPaths != null ? formatNumber(scope.mockSampleFilesInScanPaths) : '—';
+        const prodDirs = scope.productionDirsScanned != null ? formatNumber(scope.productionDirsScanned) : '—';
+        const ruleScoped = scope.ruleScopedFilesAnalyzed != null ? formatNumber(scope.ruleScopedFilesAnalyzed) : '—';
+        const jestExecuted = scope.jestExecutedDuringScan ? 'Yes' : 'No';
+        return `
+      <div class="section-block">
+        <div class="section-heading" style="margin-bottom:var(--space-3);"><h2>Scan scope</h2></div>
+        <div class="card">
+          <div class="settings-grid">
+            <div class="settings-row"><span class="settings-label">Profile</span><span class="settings-value">${escapeHtml(profile)}</span></div>
+            <div class="settings-row"><span class="settings-label">Rules enabled</span><span class="settings-value">${escapeHtml(rules)}</span></div>
+            <div class="settings-row"><span class="settings-label">Rule-scoped files</span><span class="settings-value">${ruleScoped}</span></div>
+            <div class="settings-row"><span class="settings-label">Mock/sample files</span><span class="settings-value">${mockFiles}</span></div>
+            <div class="settings-row"><span class="settings-label">Production dirs scanned</span><span class="settings-value">${prodDirs}</span></div>
+            <div class="settings-row"><span class="settings-label">Jest executed</span><span class="settings-value">${jestExecuted}</span></div>
+            <div class="settings-row"><span class="settings-label">Production paths</span><span class="settings-value" style="font-size:var(--font-size-xs)">${escapeHtml(prodPaths)}</span></div>
+          </div>
+          ${limitations ? `<h3 style="margin-top:var(--space-4);margin-bottom:var(--space-2);font-size:var(--font-size-sm)">Limitations</h3><ul class="about-list">${limitations}</ul>` : ''}
+        </div>
+      </div>
+    `;
+    }
+    renderGateWarnings(warnings) {
+        if (!warnings || !warnings.length)
+            return '';
+        const rows = warnings.map(w => `
+        <tr>
+          <td><span class="severity-pill ${w.severity || 'low'}">${escapeHtml(w.severity || 'low')}</span></td>
+          <td>${escapeHtml(w.type || w.id || '—')}</td>
+          <td>${escapeHtml(w.description || '—')}</td>
+          <td style="font-size:var(--font-size-xs);color:var(--text-muted)">${escapeHtml((w.filePath || w.file || '').split(/[\\/]/).pop() || '—')}</td>
+        </tr>`).join('');
+        return `
+      <div class="section-block">
+        <div class="section-heading" style="margin-bottom:var(--space-3);"><h2>Gate warnings (${warnings.length})</h2></div>
+        <div class="card">
+          <div class="table-scroll-wrapper">
+          <table class="results-table">
+            <thead><tr><th scope="col">Severity</th><th scope="col">Type</th><th scope="col">Description</th><th scope="col">File</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          </div>
         </div>
       </div>
     `;
@@ -419,6 +483,10 @@ export class AuditView {
           ${Object.entries(layers).filter(([k]) => k !== 'gate').map(([k, v]) => this.renderLayerCard(k, v, metrics)).join('')}
         </div>
       </div>
+
+      ${this.renderScanScopeSection(audit.scanScope)}
+
+      ${(audit.gateWarnings && audit.gateWarnings.length) ? this.renderGateWarnings(audit.gateWarnings) : ''}
 
       <div class="section-block">
         <div class="section-heading" style="margin-bottom:var(--space-3);">
@@ -703,7 +771,11 @@ export class AuditView {
         layers.schema = { status: 'pass', findings: 0, scanned: r.schemaChecked || 0, pageSamplesChecked: r.pageSampleSchemaChecked, pageSamplesPassed: r.pageSampleSchemaPassed };
         layers.roadmap = { status: 'pass', findings: 0, scanned: r.roadmapSchemaChecked || 0 };
         layers.jestBaseline = { status: r.jestBaselinePassed ? 'pass' : 'warn', findings: 0, scanned: r.jestBaselineChecked ? 1 : 0 };
-        layers.gate = { pass: gate.pass !== false, findings: issueCount };
+        const secIssues = rawIssues.filter(i => i.type === 'security' || i.patternId === 'security' || i.type === 'securityPattern');
+        layers.securityPatterns = { status: secIssues.length ? 'fail' : 'pass', findings: r.securityPatternFindings || secIssues.length || 0, scanned: r.securityPatternFilesScanned || 0 };
+        const slopIssues = rawIssues.filter(i => i.type === 'llm-slop' || i.patternId === 'llm-slop' || i.type === 'llmSlop');
+        layers.llmSlop = { status: slopIssues.length ? 'fail' : 'pass', findings: r.llmSlopPatternHits || slopIssues.length || 0, scanned: r.llmSlopFilesScanned || 0 };
+        layers.gate = { pass: gate.pass !== false, findings: issueCount, blockingCount: gate.blockingCount || 0, warningCount: gate.warningCount || 0 };
         return {
             report: r,
             auditLayers: layers,
@@ -716,6 +788,10 @@ export class AuditView {
                     lastScan: r.generatedAt
                 }
             },
+            scanScope: r.scanScope || null,
+            ruleTimings: r.ruleTimings || null,
+            mockDataCategories: r.mockDataCategories || null,
+            gateWarnings: gate.warningIssues || [],
             fictionCatalog: [],
             npmAudit: this.app.state.npmAudit || null
         };
@@ -735,5 +811,18 @@ export class AuditView {
             this.audit.npmAudit = this.app.state.npmAudit;
         }
         this.app.state.audit = this.audit;
+        try {
+          const params = new URLSearchParams(window.location.search || '');
+          const sbParent = params.get('sb_parent_urlbar') === '1';
+          if (sbParent) {
+            try { window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*'); }
+            catch (e) { }
+            try { window.parent.postMessage({ command: 'scrollToTop' }, '*'); }
+            catch (e) { }
+            try { window.scrollTo(0, 0); }
+            catch (e) { }
+          }
+        }
+        catch (_e) { }
     }
 }

@@ -2,8 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<title>Token Authentication Required</title>
+    <title>SimpleBeacon — Token Authentication</title>
+    <meta name="description" content="Enter your SimpleBeacon license token to unlock the dashboard and access your scan history.">
+    <link rel="canonical" href="https://simplebeacon.ai/unlock.html">
+    <meta name="robots" content="noindex, nofollow">
+    <meta property="og:title" content="SimpleBeacon — Token Authentication">
+    <meta property="og:description" content="Enter your SimpleBeacon license token to unlock the dashboard and access your scan history.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://simplebeacon.ai/unlock.html">
+    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="SimpleBeacon — Token Authentication">
+    <meta name="twitter:description" content="Enter your SimpleBeacon license token to unlock the dashboard and access your scan history.">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
 <style>
 body { background:#0a0e17; color:#e2e8f0; font-family:'Inter',system-ui,sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
 .card { background:rgba(20,25,40,0.9); border:1px solid rgba(99,102,241,0.3); border-radius:16px; padding:40px; max-width:420px; text-align:center; }
@@ -21,7 +35,7 @@ input:focus { outline:none; border-color:#6366f1; }
 </head>
 <body>
 <div class="card">
-<h1>� Token Authentication</h1>
+<h1>🔒 Token Authentication</h1>
 <p>Enter your license token to unlock the dashboard. Tokens must be obtained from a valid purchase or approved free tier request.</p>
 <input type="text" id="tokenInput" placeholder="Paste your license token here…" autocomplete="off">
 <button class="btn" id="verifyBtn">Verify Token</button>
@@ -32,6 +46,11 @@ input:focus { outline:none; border-color:#6366f1; }
   const input = document.getElementById('tokenInput');
   const btn = document.getElementById('verifyBtn');
   const status = document.getElementById('status');
+
+  function setCookie(name, value, maxAge) {
+    const secure = location.protocol === 'https:' ? ';Secure' : '';
+    document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + maxAge + ';SameSite=Lax' + secure;
+  }
 
   btn.addEventListener('click', async function(){
     const token = input.value.trim();
@@ -52,12 +71,15 @@ input:focus { outline:none; border-color:#6366f1; }
       });
       const data = await res.json();
       if (data.valid) {
-        localStorage.setItem('cascadeAuthToken', token);
-        localStorage.setItem('cascadeAuthUser', JSON.stringify({
+        const userJson = JSON.stringify({
           email: data.email || 'user@simplebeacon.ai',
           plan: data.tier || 'community',
           tokenSession: true
-        }));
+        });
+        localStorage.setItem('cascadeAuthToken', token);
+        localStorage.setItem('cascadeAuthUser', userJson);
+        setCookie('cascadeAuthToken', token, 60 * 60 * 24 * 30);
+        setCookie('cascadeAuthUser', userJson, 60 * 60 * 24 * 30);
         status.textContent = '✅ Token verified. Redirecting…';
         status.className = 'status ok';
         setTimeout(function(){ window.location.href = 'audit.html'; }, 800);

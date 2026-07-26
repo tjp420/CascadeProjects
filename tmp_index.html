@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // Neutralize any Cloudflare beacon / analytics script that may be injected at the edge.
+    (function() {
+      function isBeacon(el) {
+        if (!el || el.tagName !== 'SCRIPT') return false;
+        var src = el.src || '';
+        var cf = el.getAttribute && el.getAttribute('data-cf-beacon');
+        return src.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1 || (cf && cf.length > 0);
+      }
+      function neutralize(el) {
+        if (!isBeacon(el)) return;
+        if (el.hasAttribute && el.hasAttribute('integrity')) {
+          try { el.removeAttribute('src'); } catch (_) {}
+          try { el.type = 'text/plain'; } catch (_) {}
+        }
+        try { el.removeAttribute('integrity'); } catch (_) {}
+        try { el.removeAttribute('crossorigin'); } catch (_) {}
+        var isBrave = typeof navigator.brave !== 'undefined';
+        var ua = navigator.userAgent || '';
+        if (isBrave || /Brave/.test(ua)) {
+          if (el.parentNode) el.parentNode.removeChild(el);
+          return;
+        }
+        el.onerror = function() { if (el.parentNode) el.parentNode.removeChild(el); };
+      }
+      var origCreate = document.createElement.bind(document);
+      document.createElement = function(tag) {
+        var el = origCreate(tag);
+        if (typeof tag === 'string' && tag.toLowerCase() === 'script') {
+          var origSetAttr = el.setAttribute.bind(el);
+          el.setAttribute = function(name, value) {
+            if (name === 'src' && typeof value === 'string' && value.indexOf('static.cloudflareinsights.com/beacon.min.js') !== -1) {
+              try { el.removeAttribute('integrity'); } catch (_) {}
+            }
+            return origSetAttr(name, value);
+          };
+        }
+        return el;
+      };
+      if (window.MutationObserver) {
+        var mo = new MutationObserver(function(records) {
+          records.forEach(function(record) {
+            Array.prototype.forEach.call(record.addedNodes || [], function(node) {
+              if (node.nodeType === 1) {
+                if (node.tagName === 'SCRIPT') neutralize(node);
+                if (node.querySelectorAll) {
+                  Array.prototype.forEach.call(node.querySelectorAll('script'), neutralize);
+                }
+              }
+            });
+          });
+        });
+        mo.observe(document.documentElement, { childList: true, subtree: true });
+      }
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
+  <!-- IDE embed mode detection -->
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var sbParentUrlbar = params.get('sb_parent_urlbar');
+      var sbWebsiteMode = params.get('sb_website_mode');
+      var isIde = (window.self !== window.top) || (typeof window.acquireVsCodeApi === 'function') || sbParentUrlbar === '1';
+      if (sbParentUrlbar === '1') document.documentElement.setAttribute('data-parent-urlbar', '1');
+      if (sbWebsiteMode === '1') document.documentElement.setAttribute('data-embed-mode', '1');
+      if (isIde) document.documentElement.setAttribute('data-ide-embed', '1');
+    })();
+  </script>
+
+  <!-- Apply saved theme early to prevent FOUC -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('sb_theme');
+        if (saved === 'light' || saved === 'dark') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (_) {}
+    })();
+  </script>
+
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    #root { min-height: 100vh; }
+    html:not([data-ide-embed="1"]) #root {
+      position: fixed;
+      inset: 0;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      background: inherit;
+    }
+    html:not([data-ide-embed="1"]) #app-main,
+    html:not([data-ide-embed="1"]) .app-main {
+      position: fixed;
+      inset: 0;
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      background: inherit;
+    }
+    html[data-ide-embed="1"], html[data-ide-embed="1"] body {
+      height: 100%; min-height: 0; margin: 0; padding: 0; overflow: hidden;
+    }
+    html[data-ide-embed="1"] #root {
+      height: 100% !important; min-height: 0; overflow: hidden;
+    }
+    html[data-parent-urlbar="1"] #root {
+      height: 100% !important; min-height: 0; overflow: hidden;
+    }
+  </style>
+
+  <script>
+    (function enforceAppMain() {
+      function apply() {
+        try {
+          var el = document.getElementById('app-main') || document.querySelector('.app-main');
+          if (!el) return;
+          el.style.setProperty('position', 'fixed', 'important');
+          el.style.setProperty('inset', '64px 0 0 240px', 'important');
+          el.style.setProperty('overflow', 'auto', 'important');
+          el.style.setProperty('-webkit-overflow-scrolling', 'touch', 'important');
+          el.style.setProperty('box-sizing', 'border-box', 'important');
+        } catch (e) { }
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+      var n = 0; var iv = setInterval(function(){ apply(); if (++n > 40) clearInterval(iv); }, 100);
+      setTimeout(function(){ try{ clearInterval(iv); }catch(e){} }, 3000);
+    })();
+  </script>
+</head>
+<body>
+  <noscript><div style="padding:40px;text-align:center;"><h2>JavaScript Required</h2><p>SimpleBeacon Dashboard requires JavaScript.</p></div></noscript>
+
+  <div id="root"></div>
+
+  <script>
+    (function() {
+      var BRIDGE_PREFIXES = ['/api/simplebeacon/', '/api/notify', '/api/ping', '/api/stream', '/api/free-token'];
+      function isBridgeApiPath(path) {
+        if (!path || path.indexOf('/api/') !== 0) return false;
+        for (var i = 0; i < BRIDGE_PREFIXES.length; i++) {
+          var prefix = BRIDGE_PREFIXES[i];
+          if (path === prefix.replace(/\/$/, '') || path.indexOf(prefix) === 0) return true;
+        }
+        return false;
+      }
+      function bridgeHost() { return window.__SB_BRIDGE_HOST__ || ''; }
+      function isHostedSite() {
+        return location.protocol === 'https:' || !/^127\.0\.0\.1$|^localhost$/i.test(location.hostname);
+      }
+      function rewriteBridgeUrl(url) {
+        var host = bridgeHost();
+        if (!host || typeof url !== 'string') return url;
+        if (isHostedSite()) return url;
+        try {
+          var u = new URL(url, location.href);
+          var path = u.pathname + u.search;
+          if (isBridgeApiPath(u.pathname)) return host + path;
+          var current = location.protocol + '//' + location.host;
+          if (url.indexOf(current + '/api/') === 0) {
+            var relPath = url.slice(current.length);
+            if (isBridgeApiPath(relPath.split('?')[0])) return host + relPath;
+          }
+        } catch (e) {}
+        return url;
+      }
+      var origFetch = window.fetch;
+      if (origFetch) {
+        window.fetch = function(input, init) {
+          var url = typeof input === 'string' ? input : (input && input.url ? input.url : String(input));
+          var rewritten = rewriteBridgeUrl(url);
+          if (rewritten !== url) { init = init || {}; if (!init.credentials) init.credentials = 'omit'; }
+          return origFetch.call(this, rewritten, init);
+        };
+      }
+      var origXHR = window.XMLHttpRequest;
+      if (origXHR) {
+        window.XMLHttpRequest = function() {
+          var xhr = new origXHR();
+          var origOpen = xhr.open;
+          xhr.open = function(method, url) { return origOpen.call(this, method, rewriteBridgeUrl(String(url))); };
+          return xhr;
+        };
+        Object.setPrototypeOf(window.XMLHttpRequest, origXHR);
+        Object.keys(origXHR).forEach(function(k) { window.XMLHttpRequest[k] = origXHR[k]; });
+      }
+    })();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@2.5.9/dist/purify.min.js"></script>
+  <script src="js/vendor/jszip.min.js?v=20260726react1" defer></script>
+
+  <script type="module" src="./dist/assets/main.js"></script>
+  <script>
+    (function(){
+      try{
+        var doc = document.documentElement;
+        if (doc && (doc.getAttribute('data-ide-embed') === '1' || doc.getAttribute('data-parent-urlbar') === '1' || doc.getAttribute('data-embed-mode') === '1')) return;
+        var css = '#root, #app-main, .app-main { position: fixed !important; inset: 0 !important; overflow: auto !important; -webkit-overflow-scrolling: touch !important; background: inherit !important; }';
+        var s = document.createElement('style'); s.setAttribute('data-sb-resilient','1'); s.appendChild(document.createTextNode(css));
+        (document.head || document.documentElement).appendChild(s);
+      }catch(e){}
+    })();
+  </script>
+</body>
+</html>

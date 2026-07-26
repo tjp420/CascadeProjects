@@ -122,6 +122,16 @@ export class Router {
             const { view, params } = this.parsePath();
             this.onNavigate(view, params);
             this.updateNav(view);
+            try {
+                var sc = document.querySelector('#app-main') || document.querySelector('.app-main') || document.scrollingElement || document.documentElement;
+                if (sc && typeof sc.scrollTo === 'function') {
+                    sc.scrollTo(0, 0);
+                }
+                else if (typeof window.scrollTo === 'function') {
+                    window.scrollTo(0, 0);
+                }
+            }
+            catch (_a) { /* ignore */ }
         }
         catch (err) {
             const msg = (err === null || err === void 0 ? void 0 : err.message) || String(err);
@@ -156,6 +166,11 @@ export class Router {
             this.onNavigate(view, params);
             this.updateNav(view);
             this.pushPath(view, params);
+            try {
+                var sc2 = document.querySelector('#app-main') || document.querySelector('.app-main') || document.scrollingElement || document.documentElement;
+                if (sc2 && typeof sc2.scrollTo === 'function') sc2.scrollTo(0, 0); else if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
+            }
+            catch (_b) { /* ignore */ }
         }
         catch (err) {
             const msg = (err === null || err === void 0 ? void 0 : err.message) || String(err);
@@ -210,6 +225,11 @@ export class Router {
         this.pushPath(view, params);
         this.onNavigate(view, params);
         this.updateNav(view);
+        try {
+            var sc3 = document.querySelector('#app-main') || document.querySelector('.app-main') || document.scrollingElement || document.documentElement;
+            if (sc3 && typeof sc3.scrollTo === 'function') sc3.scrollTo(0, 0); else if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
+        }
+        catch (_c) { /* ignore */ }
     }
     updateNav(view) {
         document.querySelectorAll('.nav-link[data-view]').forEach((link) => {

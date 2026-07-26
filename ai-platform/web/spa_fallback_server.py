@@ -70,6 +70,16 @@ def _get_index_html():
     except Exception:
         return None
 
+
+DEMO_JSON_PATH = os.path.join(WEBROOT, 'demo', 'simplebeacon-demo-report.json')
+
+def _load_demo_json():
+    try:
+        with open(DEMO_JSON_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return None
+
 class SPARequestHandler(http.server.SimpleHTTPRequestHandler):
     # Lightweight API stubs to support local dashboard validation
     def _json_response(self, code, obj):
@@ -85,6 +95,40 @@ class SPARequestHandler(http.server.SimpleHTTPRequestHandler):
         if html is None:
             self.send_error(404, 'index.html not found')
             return
+        # If the incoming request includes IDE/embed query params, inject
+        # lightweight HTML attributes so static HTML-based checks (curl)
+        # and server-side renderings can hide the URL bar and sidebar.
+        try:
+            from urllib.parse import urlsplit, parse_qs
+            qs = parse_qs(urlsplit(self.path).query or '')
+            sb_parent = qs.get('sb_parent_urlbar', ['0'])[0] == '1'
+            sb_website = qs.get('sb_website_mode', ['0'])[0] == '1'
+            # Force a fresh read of index.html when embed params are present
+            # to avoid serving a cached variant that lacks injected attributes.
+            if sb_parent or sb_website:
+                try:
+                    global _index_html_cache, _index_html_mtime
+                    _index_html_cache = None
+                    html = _get_index_html()
+                    if html is None:
+                        self.send_error(404, 'index.html not found')
+                        return
+                except Exception:
+                    pass
+            if sb_parent or sb_website:
+                # Inject attributes into <html ...> tag while preserving existing attributes
+                try:
+                    if 'data-parent-urlbar' not in html:
+                        html = re.sub(r'<html\b([^>]*)>', r'<html\1 data-parent-urlbar="1" data-ide-embed="1">', html, count=1)
+                    # Also inject a small inline script to set runtime flags so that
+                    # client-side rendering immediately hides chrome for IDE previews.
+                    inject_runtime_flag = '<script>try{document.documentElement.setAttribute("data-parent-urlbar","1");document.documentElement.setAttribute("data-ide-embed","1");window.__SB_PARENT_URL_BAR__=true;window.__SB_IDE_EMBED__=true;}catch(e){};</script>'
+                    # Place runtime flag script after opening <head>
+                    html = re.sub(r'(<head[^>]*>)', r"\1" + inject_runtime_flag, html, count=1)
+                except Exception:
+                    pass
+        except Exception:
+            pass
         data = html.encode('utf-8')
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -109,6 +153,17 @@ class SPARequestHandler(http.server.SimpleHTTPRequestHandler):
             return self._serve_index_html()
         # API requests: stub a few for local dev, proxy the rest to Node server
         if self.path.startswith('/api/'):
+            # If demo explicitly requested via query param, serve demo JSON
+            try:
+                from urllib.parse import urlsplit, parse_qs
+                qs = parse_qs(urlsplit(self.path).query or '')
+                sb_demo = qs.get('sb_demo', ['0'])[0] == '1'
+            except Exception:
+                sb_demo = False
+            if sb_demo:
+                demo = _load_demo_json()
+                if demo is not None:
+                    return self._json_response(200, demo)
             # Local stub for theme so dev pages don't spam 404s when no API server is running
             if self.path.startswith('/api/theme'):
                 return self._json_response(200, {"theme": "dark"})
@@ -123,6 +178,8 @@ class SPARequestHandler(http.server.SimpleHTTPRequestHandler):
             if self.path.startswith('/api/auth/me'):
                 user = {"id": "user-emergency", "email": "admin@simplebeacon.ai", "name": "Emergency Admin"}
                 return self._json_response(200, {"user": user})
+            # If path is an analyze/report-ish endpoint and API is unavailable,
+            # we'll try proxying, but on upstream failure we'll return demo JSON.
             return self._proxy_to_api('GET')
         # Favicon — return 204 to avoid 404 noise
         if clean_path == '/favicon.ico':
@@ -177,8 +234,16 @@ class SPARequestHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(resp_body)
         except Exception as e:
-            # Node API server unreachable — return a harmless empty JSON response
-            # instead of 502 so the browser doesn't throw network errors.
+            # Node API server unreachable — if this is a report/analyze path,
+            # serve a local demo fixture; otherwise return a harmless JSON.
+            try:
+                path = self.path or ''
+                if any(path.startswith(p) for p in ('/api/analyze', '/api/simplebeacon', '/api/scan', '/api/reports', '/api/coverage', '/api/report')):
+                    demo = _load_demo_json()
+                    if demo is not None:
+                        return self._json_response(200, demo)
+            except Exception:
+                pass
             self._json_response(200, {"ok": False, "message": "API server unavailable"})
 
     def do_POST(self):

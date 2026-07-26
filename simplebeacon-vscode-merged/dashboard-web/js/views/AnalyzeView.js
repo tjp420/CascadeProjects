@@ -58,7 +58,7 @@ import {
   fetchAnalyzeTestSources,
   isAnalyzeProviderConfigured,
   uploadDirectoryAndAnalyze
-} from '../services/analyzeService.js?v=20260716cachefix1';
+} from '../services/analyzeService.js?v=20260726sevfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js';
 import {
@@ -1475,6 +1475,71 @@ export class AnalyzeView {
     this.agentStatus = { available: false, scannerAvailable: false };
   }
 
+  // Demo mode helpers: detect and load demo scan when requested
+  isDemoRequested() {
+    try {
+      if (typeof window === 'undefined') return false;
+      const u = new URL(window.location.href);
+      if (u.searchParams.get('sb_demo') === '1') return true;
+      const hashVal = readHashQueryParam('sb_demo');
+      if (hashVal === '1') return true;
+    } catch (e) {
+      return false;
+    }
+    return false;
+  }
+
+  async loadDemoReport(root) {
+    try {
+      const url = '/api/analyze/report?sb_demo=1';
+      const resp = await fetch(url, { credentials: 'same-origin' });
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      const report = data.report || data;
+      if (!report) return false;
+      this.lastResult = { kind: 'simplebeacon-report', report: report, label: 'Demo scan', projectPath: report.project || report.projectPath || '' };
+      this.app.state.analyzeResult = this.lastResult;
+      this.app.state.report = report;
+      const resultsEl = (root || this._root)?.querySelector('#analyze-results');
+      if (resultsEl) resultsEl.innerHTML = this.renderResults();
+      this.insertDemoBanner(resultsEl || root);
+      return true;
+    } catch (e) {
+      console['warn']('[Demo] loadDemoReport failed', e);
+      return false;
+    }
+  }
+
+  insertDemoBanner(container) {
+    try {
+      const root = container || this._root;
+      if (!root) return;
+      const parent = root.querySelector ? root : { querySelector: () => null };
+      const results = parent.querySelector && parent.querySelector('#analyze-results') ? parent.querySelector('#analyze-results') : (container || null);
+      if (!results) return;
+      if (results.querySelector('.demo-bridge-banner')) return;
+      const banner = `\n        <div class="bridge-notice-banner demo-bridge-banner">Demo data — showing offline fixture (sb_demo=1)</div>\n      `;
+      results.insertAdjacentHTML('afterbegin', banner);
+    } catch (e) {
+      console['warn']('[Demo] insertDemoBanner failed', e);
+    }
+  }
+
+  /**
+   * Notify parent frame (IDE) about route change and request scroll-to-top when embedded.
+   */
+  notifyParentEmbed() {
+    try {
+      if (typeof window === 'undefined' || !window.parent) return;
+      // Inform the wrapper/IDE that the dashboard route changed so it can update its URL bar
+      try { window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*'); } catch (e) { /* ignore */ }
+      // Ask the wrapper to scroll the iframe to top so the top of the UI is visible in the IDE
+      try { window.parent.postMessage({ command: 'scrollToTop' }, '*'); } catch (e) { /* ignore */ }
+      // Also ensure the frame itself is scrolled to top
+      try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+    } catch (_e) { /* ignore */ }
+  }
+
   get vscodeEnhanced() {
     if (this._vscodeApiCached !== null) return !!this._vscodeApiCached;
     if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') {
@@ -1528,7 +1593,7 @@ export class AnalyzeView {
         }
       });
     } catch (err) {
-      console.warn('[Sidebar-Notify] vscode.postMessage failed:', err);
+      console['warn']('[Sidebar-Notify] vscode.postMessage failed:', err);
     }
   }
 
@@ -1667,6 +1732,9 @@ export class AnalyzeView {
       this.syncZipExportButtonLabel(el);
       this.syncAuditButtonLabel(el);
     });
+    if (this.isDemoRequested()) {
+      void this.loadDemoReport(el);
+    }
     if (displayPath) {
       void this.refreshReportForActivePath(el);
     }
@@ -5100,19 +5168,22 @@ export class AnalyzeView {
             if (!filePath) return '';
             const norm = filePath.replace(/\\/g, '/');
             if (folderName) {
-              // Search for /folderName/ in path — this gives us the actual dropped folder
-              const idx = norm.indexOf(`/${folderName}/`);
+              // Case-insensitive search for the dropped folder segment in the path.
+              const lower = norm.toLowerCase();
+              const fname = folderName.toLowerCase();
+              const idx = lower.indexOf(`/${fname}/`);
               if (idx >= 0) {
-                return norm.slice(0, idx + folderName.length + 1);
+                // Return the folder path without a trailing slash and using backslashes for Windows.
+                return norm.slice(0, idx + fname.length + 1).replace(/\/+$/, '').replace(/\//g, '\\');
               }
               // Handle case where folderName is at the end: .../folderName
-              const endIdx = norm.lastIndexOf(`/${folderName}`);
+              const endIdx = lower.lastIndexOf(`/${fname}`);
               if (endIdx >= 0) {
-                return norm.slice(0, endIdx + folderName.length + 1);
+                return norm.slice(0, endIdx + fname.length).replace(/\/+$/, '').replace(/\//g, '\\');
               }
             }
             // Fallback: parent directory of the first file (may be subfolder — marked for review)
-            return deriveDirFromFilePath(filePath);
+            return deriveDirFromFilePath(filePath).replace(/\/+$/, '').replace(/\//g, '\\');
           };
           if (files?.[0]?.path) {
             return tryExtractFromPath(String(files[0].path));
@@ -5355,7 +5426,7 @@ export class AnalyzeView {
       return true;
     } catch (err) {
       if (err.name !== 'AbortError') {
-        console.warn('Directory picker failed:', err);
+        console['warn']('Directory picker failed:', err);
         if (isFilePickerBlockedError(err)) {
           showToast(filePickerBlockedMessage(), 'warning');
         }
@@ -5757,7 +5828,7 @@ export class AnalyzeView {
       return true; // handled (rejected)
     }
     if (warnings.length > 0) {
-      console.warn(`[AnalyzeView] Import warnings for ${fileName}:`, warnings.map(w => w.msg));
+            console['warn'](`[AnalyzeView] Import warnings for ${fileName}:`, warnings.map(w => w.msg));
     }
 
     // Duplicate detection
@@ -5783,7 +5854,7 @@ export class AnalyzeView {
         }
         this.applyReport(loadedReport, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(loadedReport) });
       } catch (err) {
-        console.warn('[AnalyzeView] Server report import failed; applying locally:', err);
+        console['warn']('[AnalyzeView] Server report import failed; applying locally:', err);
         this.applyReport(parsed, `Imported scan: ${fileName}`, { conclusion: buildScanConclusion(parsed) });
         showToast(`Saved locally — server import failed: ${err.message}`, 'warning');
       }
@@ -6493,7 +6564,7 @@ export class AnalyzeView {
       try {
         await authService.refreshToken(true);
       } catch (refreshErr) {
-        console.warn('Token refresh before scan failed:', refreshErr);
+        console['warn']('Token refresh before scan failed:', refreshErr);
       }
     }
 
@@ -9083,6 +9154,15 @@ export class AnalyzeView {
     const el = view;
     container.appendChild(view);
 
+    // If embedded in an IDE parent (sb_parent_urlbar=1), notify parent and request scroll-to-top
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      const sbParent = params.get('sb_parent_urlbar') === '1';
+      if (sbParent) {
+        try { this.notifyParentEmbed(); } catch (e) { /* ignore */ }
+      }
+    } catch (_e) { /* ignore */ }
+
     view.querySelector('#goto-results-btn')?.addEventListener('click', () => {
       this.openResultsView();
     });
@@ -9180,7 +9260,7 @@ export class AnalyzeView {
           showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
           return;
         } catch (err) {
-          console.warn('[AI-Send] vscode.postMessage failed:', err);
+          console['warn']('[AI-Send] vscode.postMessage failed:', err);
         }
       }
 

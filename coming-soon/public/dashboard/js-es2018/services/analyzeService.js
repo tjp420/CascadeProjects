@@ -1,15 +1,19 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
-import { authService } from './authService.js?v=20260729dropfix2';
-import { fetchUserAiKeys } from './aiKeysService.js?v=20260729dropfix2';
-import { scanService } from './scanService.js?v=20260729dropfix2';
+import { authService, apiBase } from './authService.js?v=20260728dropfix2';
+import { fetchUserAiKeys } from './aiKeysService.js?v=20260720ollama3';
+import { scanService } from './scanService.js?v=20260716cachefix1';
 import { formatNumber, escapeHtml, fetchWithTimeout } from '../utils.js';
-import { apiUrl } from '../utils-lib/url.js?v=20260729dropfix2';
-import { notifyDownloadComplete } from '../utils-lib/notify.js?v=20260729dropfix2';
+import { notifyDownloadComplete } from '../utils-lib/notify.js?v=20260716cachefix1';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { DEMO_EMAIL } from '../demoMode.js';
 import { DASHBOARD_BASE_URL } from '../config.js';
-import { isLocalPath, fetchInventoryViaAgent, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260729dropfix2';
+import { isLocalPath, fetchInventoryViaAgent, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260720ollama4';
+
+function resolveApiUrl(path) {
+    const base = apiBase();
+    return base && path.startsWith('/') ? `${base}${path}` : path;
+}
 /**
  * Upgrade a v1 ("version": "1.0.0" and no reportVersion) scan report so the
  * dashboard treats it as current and can render aligned file-count metrics.
@@ -104,7 +108,7 @@ export async function ensureDashboardApiReady() {
     const origin = typeof window !== 'undefined' ? window.location.origin : DASHBOARD_BASE_URL;
     let healthRes;
     try {
-        healthRes = await fetchWithTimeout(apiUrl('/api/health'), {}, 8000);
+        healthRes = await fetchWithTimeout(resolveApiUrl('/api/health'), {}, 8000);
     }
     catch (error) {
         if (isHostedPagesDashboard()) {
@@ -119,7 +123,7 @@ export async function ensureDashboardApiReady() {
     }
     let probeRes;
     try {
-        probeRes = await fetchWithTimeout(apiUrl('/api/simplebeacon/config'), {
+        probeRes = await fetchWithTimeout(resolveApiUrl('/api/simplebeacon/config'), {
             headers: authService.getAuthHeaders()
         }, 8000);
     }
@@ -140,15 +144,15 @@ export async function ensureDashboardApiReady() {
  * @returns {any}
  */
 async function fetchJsonWithGuidance(target, options = {}, timeoutMs = 0) {
+    const fullUrl = resolveApiUrl(target);
     let res;
     try {
-        const resolvedTarget = apiUrl(target);
         res = timeoutMs > 0
-            ? await fetchWithTimeout(resolvedTarget, options, timeoutMs)
-            : await fetch(resolvedTarget, options);
+            ? await fetchWithTimeout(fullUrl, options, timeoutMs)
+            : await fetch(fullUrl, options);
     }
     catch (error) {
-        throw new Error(buildNetworkErrorMessage(target, error));
+        throw new Error(buildNetworkErrorMessage(fullUrl, error));
     }
     const data = await parseJsonSafe(res);
     if (res.status === 401) {
@@ -395,7 +399,7 @@ export function slimReportForSummary(report) {
  */
 export async function summarizeReport(report, options = {}) {
     const slim = slimReportForSummary(report);
-    const res = await fetch('/api/analyze/summary', {
+    const res = await fetch(resolveApiUrl('/api/analyze/summary'), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -770,7 +774,7 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
         throw new Error(tierPreview.blockReason);
     }
     const timeoutMs = (_b = options.timeoutMs) !== null && _b !== void 0 ? _b : 300000;
-    const res = await fetchWithTimeout('/api/analyze/complete-audit-report', {
+    const res = await fetchWithTimeout(resolveApiUrl('/api/analyze/complete-audit-report'), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -808,7 +812,7 @@ export async function fetchCompleteAuditReport(completeScan, options = {}) {
 export async function fetchEuAiActAuditReport(options = {}) {
     var _a;
     const timeoutMs = (_a = options.timeoutMs) !== null && _a !== void 0 ? _a : 120000;
-    const res = await fetchWithTimeout('/api/analyze/eu-ai-act-audit-report', {
+    const res = await fetchWithTimeout(resolveApiUrl('/api/analyze/eu-ai-act-audit-report'), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -868,7 +872,7 @@ export async function fetchAnalyzeExportBundleZip(completeScan, options = {}) {
         findingsLimit: (_a = options.findingsLimit) !== null && _a !== void 0 ? _a : 5000
     }) || normalized;
     const timeoutMs = (_b = options.timeoutMs) !== null && _b !== void 0 ? _b : 300000;
-    const res = await fetchWithTimeout('/api/analyze/export-bundle', {
+    const res = await fetchWithTimeout(resolveApiUrl('/api/analyze/export-bundle'), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -958,7 +962,7 @@ export async function fetchComplianceTrailExportJson(windowDays = 90) {
         window: `${windowDays}d`,
         _: String(Date.now())
     });
-    const res = await fetch(`/api/compliance-trail/export/json?${params}`, {
+    const res = await fetch(resolveApiUrl(`/api/compliance-trail/export/json?${params}`), {
         cache: 'no-store',
         headers: authService.getAuthHeaders()
     });
@@ -983,7 +987,7 @@ export async function fetchComplianceTrailExportHtml(windowDays = 90) {
         disposition: 'inline',
         _: String(Date.now())
     });
-    const res = await fetch(`/api/compliance-trail/export/pdf?${params}`, {
+    const res = await fetch(resolveApiUrl(`/api/compliance-trail/export/pdf?${params}`), {
         cache: 'no-store',
         headers: authService.getAuthHeaders()
     });
@@ -1384,8 +1388,12 @@ export function mergeReportInventory(report, inventory) {
         return report;
     if (!(inventory === null || inventory === void 0 ? void 0 : inventory.totalFiles))
         return report;
-    const repoFiles = (_b = report.repositoryFilesTotal) !== null && _b !== void 0 ? _b : inventory.totalFiles;
-    const repoFolders = (_c = report.repositoryFoldersTotal) !== null && _c !== void 0 ? _c : inventory.totalFolders;
+    const repoFiles = (report.repositoryFilesTotal === 0 || report.repositoryFilesTotal === 1)
+        ? inventory.totalFiles
+        : (report.repositoryFilesTotal ?? inventory.totalFiles);
+    const repoFolders = (report.repositoryFoldersTotal === 0 || report.repositoryFoldersTotal === 1)
+        ? (inventory.totalFolders ?? 0)
+        : (report.repositoryFoldersTotal ?? inventory.totalFolders);
     const normalizedTotalFiles = (report.totalFiles === 0 || report.totalFiles === 1) ? inventory.totalFiles : report.totalFiles;
     const normalizedFilesAnalyzed = (report.filesAnalyzed === 0 || report.filesAnalyzed === 1)
         ? repoFiles
@@ -1402,7 +1410,12 @@ export function mergeReportInventory(report, inventory) {
         repositoryFilesTotal: repoFiles,
         repositoryFoldersTotal: repoFolders,
         filesAnalyzed: normalizedFilesAnalyzed,
-        ruleScopedFilesAnalyzed: normalizedRuleScoped
+        ruleScopedFilesAnalyzed: normalizedRuleScoped,
+        scanScope: report.scanScope ? {
+            ...report.scanScope,
+            repositoryFilesTotal: repoFiles,
+            repositoryFoldersTotal: repoFolders
+        } : report.scanScope
     };
 }
 /**
@@ -1441,7 +1454,7 @@ export async function fetchScanReport(projectPath) {
     const params = `?projectPath=${encodeURIComponent(path)}`;
     let res;
     try {
-        res = await fetchWithTimeout(`/api/simplebeacon/report${params}`, {
+        res = await fetchWithTimeout(resolveApiUrl(`/api/simplebeacon/report${params}`), {
             headers: authService.getAuthHeaders()
         }, 30000);
     }
@@ -1533,18 +1546,6 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
     const low = Number(cert.lowRiskCount) || 0;
     const totalFiles = report.discoveredFiles || (report.files && report.files.length) || 0;
     const scannedFiles = (report.files && report.files.length) || totalFiles;
-    const folderPaths = new Set();
-    for (const f of (report.files || [])) {
-        const p = String((typeof f === 'string' ? f : f.absolutePath || f.path || f.name || '')).replace(/\\/g, '/');
-        const parts = p.split('/');
-        parts.pop();
-        let acc = '';
-        for (const part of parts) {
-            acc = acc ? `${acc}/${part}` : part;
-            if (acc) folderPaths.add(acc);
-        }
-    }
-    const totalFolders = folderPaths.size;
     const rawIssues = logs.map((entry) => ({
         severity: String(entry.severity || 'medium').toLowerCase(),
         type: inferSandboxIssueType(entry),
@@ -1554,11 +1555,15 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
     }));
     const blockingCount = rawIssues.filter((issue) => issue.severity === 'high' || issue.severity === 'critical').length;
     const warningCount = rawIssues.filter((issue) => issue.severity === 'medium' || issue.severity === 'low').length;
-    const severityCounts = { critical: 0, high, medium, low, info: 0 };
-    const gatePass = blockingCount === 0 && high === 0 && cert.letterGrade !== 'F';
+    const severityCounts = rawIssues.reduce((acc, issue) => {
+        const sev = issue.severity || 'medium';
+        acc[sev] = (acc[sev] || 0) + 1;
+        return acc;
+    }, { critical: 0, high: 0, medium: 0, low: 0, info: 0 });
+    const gatePass = blockingCount === 0 && (severityCounts.high || 0) === 0 && cert.letterGrade !== 'F';
     const sampleFiles = (report.files || [])
         .slice(0, 96)
-        .map((f) => (typeof f === 'string' ? f : f.absolutePath || f.path || f.name || f.relativePath || ''))
+        .map((f) => (typeof f === 'string' ? f : f.path || f.name || f.relativePath || ''))
         .filter(Boolean);
     return {
         type: 'simplebeacon-report',
@@ -1576,7 +1581,6 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
         detectedIssues: rawIssues,
         findings: rawIssues,
         repositoryFilesTotal: totalFiles,
-        repositoryFoldersTotal: totalFolders,
         totalFiles,
         filesAnalyzed: scannedFiles,
         ruleScopedFilesAnalyzed: scannedFiles,
@@ -1586,13 +1590,8 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
         sampleFiles,
         inventory: {
             totalFiles,
-            totalFolders,
+            totalFolders: 0,
             scannedFiles
-        },
-        repositoryInventory: {
-            totalFiles,
-            totalFolders,
-            profile: 'audit'
         },
         gate: {
             pass: gatePass,
@@ -2967,7 +2966,7 @@ export async function readDroppedFiles(fileList) {
  */
 export async function fetchComplianceChecklist(report, projectPath, options = {}) {
     var _a;
-    const checklistHttpResponse = await fetchWithTimeout('/api/analyze/compliance-checklist', {
+    const checklistHttpResponse = await fetchWithTimeout(resolveApiUrl('/api/analyze/compliance-checklist'), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

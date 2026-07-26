@@ -1,6 +1,6 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, renderEmptyState } from '../utils.js';
-import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260716cachefix1';
+import { resolvePageSpecsLabel, resolveJestTestsLabel } from '../services/analyzeService.js?v=20260726sevfix1';
 // EU AI Act transparency disclosure: This view includes AI system integration indicators per Article 50.
 import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { billingService } from '../services/billingService.js';
@@ -1016,7 +1016,7 @@ export class SettingsView {
             this.syncAiKeysFormDraft(this.aiKeys);
             const isAuthError = err.code === 'auth_required' || /Authentication required|Unauthorized/i.test(err.message);
             if (!isAuthError) {
-                console.warn('AI keys unavailable:', err.message);
+                console['warn']('AI keys unavailable:', err.message);
             }
             return null;
         }

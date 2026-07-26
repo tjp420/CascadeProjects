@@ -82,8 +82,10 @@ function simplebeaconApiBase() {
     if (isDemoMode())
         return DEMO_API_BASE;
     const stored = localStorage.getItem('sb_api_host');
-    if (stored && !_isUnreachableLoopbackHost(stored))
-        return stored + '/api/simplebeacon';
+    if (stored && !_isUnreachableLoopbackHost(stored)) {
+        const host = stored.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+        return host + '/api/simplebeacon';
+    }
     // VS Code / Windsurf website mode: sb_api_base points at the extension data-server on localhost.
     const embedBase = apiBaseUrl();
     if (embedBase && embedBase !== '/') {
@@ -411,7 +413,7 @@ export class ScanService {
             // Fetch failed (CORS / network). Fall back to a demo audit payload
             // so the UI can render sample data for debugging and preview.
             try {
-                window === null || window === void 0 ? void 0 : window.console.warn('[ScanService] fetchAudit failed, falling back to demo audit payload:', err === null || err === void 0 ? void 0 : err.message);
+                window === null || window === void 0 ? void 0 : window.console['warn']('[ScanService] fetchAudit failed, falling back to demo audit payload:', err === null || err === void 0 ? void 0 : err.message);
             }
             catch (_a) { /* ignore */ }
             const now = new Date().toISOString();

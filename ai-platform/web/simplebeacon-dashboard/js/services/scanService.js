@@ -26,7 +26,10 @@ function _isUnreachableLoopbackHost(value) {
 function simplebeaconApiBase() {
   if (isDemoMode()) return DEMO_API_BASE;
   const stored = localStorage.getItem('sb_api_host');
-  if (stored && !_isUnreachableLoopbackHost(stored)) return stored + '/api/simplebeacon';
+  if (stored && !_isUnreachableLoopbackHost(stored)) {
+    const host = stored.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+    return host + '/api/simplebeacon';
+  }
   return '/api/simplebeacon';
 }
 

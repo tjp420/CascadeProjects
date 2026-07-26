@@ -1,0 +1,60 @@
+2026-07-25T15:28:24.538Z  INFO: [token-service] JWT configuration loaded: {
+  algorithm: 'HS256',
+  issuer: 'cascade-ai-platform',
+  audience: 'cascade-ai-users',
+  expiresIn: '1h',
+  hasSecret: true,
+  secretSource: 'env',
+  secretLength: 58,
+  secretFromEnv: true
+}
+2026-07-25T15:28:26.960Z DEBUG: [AUDIT] Initializing audit logging system
+2026-07-25T15:28:26.964Z  INFO: [DevStubs] SIMPLEBEACON_DEV_STUBS=true — registering dev-only auth stubs
+2026-07-25T15:28:26.986Z  INFO: [Simplebeacon] Registered POST and GET /api/analyze/eu-ai-act-audit-report
+[Chatbot API] Registered POST /api/chatbot/message
+[Chatbot API] Registered GET /api/chatbot/providers
+[Chatbot API] Registered GET /api/chatbot/disclosure
+2026-07-25T15:28:27.000Z  INFO: [WebAuthn API] Registered /api/webauthn/* routes
+2026-07-25T15:28:27.002Z  INFO: [Workspaces] Database disabled — workspace routes not mounted
+2026-07-25T15:28:27.002Z  INFO: [FixOrchestrator] RLS-scoped routes mounted at /api/v2/fixes
+2026-07-25T15:28:27.009Z  INFO: [SSO] Enterprise SSO routes mounted at /api/v2/auth/sso
+[ExternalWeather] Route mounted at /api/external/weather
+2026-07-25T15:28:27.061Z  INFO: Simplebeacon server running on port 58000
+2026-07-25T15:28:27.061Z  INFO: Dashboard listening on port 58000 (set PUBLIC_BASE_URL for absolute links)
+2026-07-25T15:28:27.061Z  INFO: API Health: /api/health
+2026-07-25T15:28:27.062Z  INFO: Status: /api/status
+2026-07-25T15:28:27.062Z  INFO: Security: Enhanced security features enabled
+2026-07-25T15:28:27.062Z  INFO: Audit: Comprehensive audit logging active
+2026-07-25T15:28:27.066Z DEBUG: [AUDIT] 2026-07-25T15:28:27.063Z [INFO] system: System event: server_start {
+  port: 58000,
+  environment: 'development',
+  security: { rateLimiting: true, authentication: true, auditLogging: true },
+  pid: 632432,
+  hostname: 'DESKTOP-9DM8MIF',
+  version: '1.0.0'
+}
+2026-07-25T15:28:27.069Z DEBUG: [AUDIT] 2026-07-25T15:28:27.069Z [INFO] system: System event: startup {
+  nodeVersion: 'v24.9.0',
+  platform: 'win32',
+  auditConfig: {
+    logFile: 'logs/audit.log',
+    maxLogSize: 104857600,
+    backupCount: 5,
+    logLevel: 'info',
+    enableConsole: true,
+    enableFile: true,
+    retentionDays: 90,
+    enableBlockchain: false,
+    enableSIEM: false,
+    siemEndpoint: undefined,
+    siemApiKey: undefined,
+    complianceFrameworks: [ 'SOC2', 'ISO27001', 'GDPR' ],
+    enableRealTime: false,
+    enableEncryption: true
+  },
+  pid: 632432,
+  hostname: 'DESKTOP-9DM8MIF',
+  version: '1.0.0'
+}
+2026-07-25T15:28:48.729Z DEBUG: [2026-07-25T15:28:48.729Z] GET /api/oracle/search?q=test+oracle - Request ID: b9i7jxkgoch - IP: ::ffff:127.0.0.1
+2026-07-25T15:28:48.743Z DEBUG: [2026-07-25T15:28:48.743Z] GET /api/oracle/search?q=test+oracle - Request ID: b9i7jxkgoch - Status: 200 - Duration: 14ms

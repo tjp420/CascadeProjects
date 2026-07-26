@@ -7,7 +7,12 @@ node_modules/
 **/node_modules/
 **/vendor/
 
-# Environment examples (documented placeholders — not secrets)
+# Environment files (gitignored — never commit real secrets)
+.env
+.env.production
+ai-platform/.env
+ai-platform/.env.production
+coming-soon/.env
 .env.example
 
 # Log files
@@ -56,6 +61,8 @@ simplebeacon-vscode-merged/
 # VS Code extension build artifacts (*.vsix are ZIP packages, not source code)
 *.vsix
 **/*.vsix
+# Explicit ignore for merged extension package
+simplebeacon-vscode-merged/*.vsix
 
 # Ignore temp files
 *.tmp
@@ -1358,3 +1365,18 @@ ai-platform/web/dashboard/**
 
 # Complete scan analysis — console.warn in catch blocks for optional dynamic imports
 ai-platform/web/simplebeacon-dashboard/js-es2018/utils/completeScanAnalysis.js
+
+# Nested stub directory — causes IDE scan to report only 8 files instead of full project
+CascadeProjects/
+
+# Temp/dev scripts — not production code, console.log is expected
+run.mjs
+tmp-*.mjs
+tmp-*.js
+tmp-*.cjs
+tmp-*.png
+tmp-*.html
+write-report*.mjs
+SimpleBeaconPoC.mjs
+local_dashboard_server.js
+local-analyzer/server.js

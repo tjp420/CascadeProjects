@@ -2,9 +2,22 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+    <title>SimpleBeacon — Interactive Terminal Walkthrough</title>
+    <meta name="description" content="Watch an interactive terminal demo of a SimpleBeacon local scan and see the gate attestation output.">
+    <link rel="canonical" href="https://simplebeacon.ai/terminal-walkthrough.html">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="SimpleBeacon — Interactive Terminal Walkthrough">
+    <meta property="og:description" content="Watch an interactive terminal demo of a SimpleBeacon local scan and see the gate attestation output.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://simplebeacon.ai/terminal-walkthrough.html">
+    <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="SimpleBeacon — Interactive Terminal Walkthrough">
+    <meta name="twitter:description" content="Watch an interactive terminal demo of a SimpleBeacon local scan and see the gate attestation output.">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<title>SimpleBeacon — Interactive Terminal Walkthrough</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+
 <style>
   :root {
     --bg: #0d1117;
@@ -25,12 +38,12 @@
     color: var(--fg);
     font-family: var(--font);
     font-size: 14px;
-    line-height: 1.6;
+    line-height: 1.5;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
-    padding: 12px 20px;
+    padding: 8px 16px;
+    overflow: hidden;
   }
   h1 {
     font-size: 24px;
@@ -67,10 +80,14 @@
   .dot.g { background: var(--green); }
   .term-title { flex: 1; text-align: center; color: var(--gray); font-size: 12px; }
   .term-body {
-    padding: 16px;
-    min-height: 420px;
+    padding: 12px;
+    min-height: 260px;
+    max-height: 380px;
+    overflow-y: auto;
     position: relative;
+    scrollbar-width: none;
   }
+  .term-body::-webkit-scrollbar { display: none; }
   .line { white-space: pre-wrap; word-break: break-word; }
   .cursor {
     display: inline-block;
@@ -133,7 +150,7 @@
   .controls {
     display: flex;
     gap: 12px;
-    margin-top: 20px;
+    margin-top: 12px;
     flex-wrap: wrap;
     justify-content: center;
   }
@@ -155,7 +172,7 @@
   .skip-hint {
     color: var(--gray);
     font-size: 11px;
-    margin-top: 12px;
+    margin-top: 8px;
     text-align: center;
   }
 
@@ -164,7 +181,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 8px;
     justify-content: center;
   }
   .speed-label { font-size: 11px; color: var(--gray); }
@@ -184,6 +201,11 @@
 </style>
 </head>
 <body>
+<nav style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">
+  <a href="/index.html" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;">SimpleBeacon</a>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;"><a href="/index.html" style="color:#9CA3AF;text-decoration:none;margin-left:18px;font-size:0.9rem;white-space:nowrap;">Home</a><a href="/pricing.html" style="color:#9CA3AF;text-decoration:none;margin-left:18px;font-size:0.9rem;white-space:nowrap;">Pricing</a><a href="/audit.html" style="color:#9CA3AF;text-decoration:none;margin-left:18px;font-size:0.9rem;white-space:nowrap;">Audit</a><a href="/roadmap.html" style="color:#9CA3AF;text-decoration:none;margin-left:18px;font-size:0.9rem;white-space:nowrap;">Roadmap</a><a href="/community.html" style="color:#9CA3AF;text-decoration:none;margin-left:18px;font-size:0.9rem;white-space:nowrap;">Install</a><a href="/contact.html" style="color:#9CA3AF;text-decoration:none;margin-left:18px;font-size:0.9rem;white-space:nowrap;">Contact</a><a href="/faq.html" style="color:#9CA3AF;text-decoration:none;margin-left:18px;font-size:0.9rem;white-space:nowrap;">FAQ</a><a href="/blog/case-study-ai-slop-1-25m.html" style="color:#9CA3AF;text-decoration:none;margin-left:18px;font-size:0.9rem;white-space:nowrap;">Blog</a></div>
+</nav>
+    <h1 style="text-align:center;margin:24px 0 0;font-size:1.75rem;">Interactive Terminal Walkthrough</h1>
 
 <div class="terminal">
   <div class="term-header">
@@ -427,5 +449,15 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<footer style="background:#0B0F19;border-top:1px solid #1E293B;padding:32px 24px;text-align:center;color:#9CA3AF;font-size:0.85rem;">
+  <p style="margin:0 0 12px;color:#F3F4F6;">&copy; 2026 SimpleBeacon. All rights reserved.</p>
+  <p style="margin:0;">
+    <a href="/sample-report.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Sample report</a> &middot;
+    <a href="/pricing.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Pricing</a> &middot;
+    <a href="/contact.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Contact</a> &middot;
+    <a href="/terms.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Terms</a> &middot;
+    <a href="/privacy.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a>
+  </p>
+</footer>
 </body>
 </html>

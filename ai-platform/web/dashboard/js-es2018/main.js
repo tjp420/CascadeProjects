@@ -37,7 +37,7 @@ import { showLoginModal } from './components/LoginModal.js?v=20260716cachefix1';
 import { isDemoMode, isSignedOffMode, isLocalDevHost, isHostedDashboard, demoReadOnlyMessage } from './demoMode.js';
 import { showToast, resolveDashboardProjectPath, setHtml } from './utils.js?v=20260721corsfix1';
 import { isEmbeddedDashboardFrame, isIdeDashboardSurface, canUseDirectoryPicker, getVsCodeApi } from './utils-lib/dom.js?v=20260726embedfix1';
-import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260726browserdrop2';
+import { hasExtensionBridgeConfigured, getExtensionBridgeOrigin } from './services/localAgentService.js?v=20260728agentfix2';
 import { LocalScanService } from './services/localScanService.js?v=20260728dropfix2';
 import { fetchAnalyzeProviders, isClientScanReport, shouldClearHostedServerDefaultPath } from './services/analyzeService.js?v=20260728dropfix2';
 // Embed shim fallback: when loaded inside an IDE/webview that marks the document
@@ -508,7 +508,7 @@ class SimplebeaconDashboard {
         // Remove any stale full-page drag overlay that may have leaked from a previous session.
         document.querySelectorAll('.sb-global-drag-overlay').forEach(el => el.remove());
         try {
-            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad, discoverAndApplyExtensionBridge } = await import('./services/localAgentService.js?v=20260720ollama4');
+            const { clearStaleIntegratedBridgeParams, validateExtensionBridgeOnLoad, discoverAndApplyExtensionBridge } = await import('./services/localAgentService.js?v=20260728agentfix2');
             clearStaleIntegratedBridgeParams();
             if (isHostedDashboard()) {
                 await validateExtensionBridgeOnLoad();

@@ -112,7 +112,13 @@ function isMixedContentBlocked(origin, err) {
 function isMixedContent(origin) {
   if (!origin || !origin.startsWith('http://')) return false;
   if (typeof window === 'undefined') return false;
-  return window.location.protocol === 'https:';
+  if (window.location.protocol !== 'https:') return false;
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('sb_api_base') || params.get('sb_notify_base')) return false;
+    if (typeof sessionStorage !== 'undefined' && (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))) return false;
+  } catch (e) { /* ignore */ }
+  return true;
 }
 
 /**

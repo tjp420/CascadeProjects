@@ -159,6 +159,18 @@ function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
         }
         return normalized;
     }
+    // If the relative path matches the basename of the monorepo root or base dir,
+    // return that root directly instead of creating a nested self-referential path.
+    const monoBasename = monorepoRoot ? path.basename(monorepoRoot).toLowerCase() : '';
+    const baseBasename = path.basename(baseDir).toLowerCase();
+    const trimmedLower = trimmedPath.toLowerCase();
+    if (monoBasename && trimmedLower === monoBasename && fs.existsSync(monorepoRoot)) {
+        return monorepoRoot;
+    }
+    if (trimmedLower === baseBasename && fs.existsSync(baseDir)) {
+        return baseDir;
+    }
+
     const fromBase = path.normalize(path.join(baseDir, trimmedPath));
     if (fs.existsSync(fromBase)) return fromBase;
     if (monorepoRoot) {

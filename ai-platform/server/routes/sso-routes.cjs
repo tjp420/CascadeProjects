@@ -8,6 +8,7 @@
  * All routes emit audit events on success/failure.
  */
 
+const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
 const logger = require('../lib/app-logger.cjs');
@@ -42,19 +43,20 @@ router.get('/login/:provider', async (req, res) => {
   try {
     const provider = String(req.params.provider).toLowerCase();
     const method = String(req.query.method || 'oidc').toLowerCase();
-    const state = generateState(provider, crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36));
+    const state = generateState(provider, typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex'));
 
     if (method === 'saml') {
       const cfg = getSamlConfig(provider);
       const samlRequest = buildSamlRequest(cfg.issuer, cfg.entryPoint, state);
       logger.info(`[SSO] SAML login initiated for ${provider}`);
-      return res.redirect(302, `${cfg.entryPoint}?SAMLRequest=${encodeURIComponent(samlRequest)}&RelayState=${encodeURIComponent(state)}`);
+      const samlUrl = `${cfg.entryPoint}?SAMLRequest=${encodeURIComponent(samlRequest)}&RelayState=${encodeURIComponent(state)}`;
+      return res.redirect('' + samlUrl);
     }
 
     // OIDC
     const authorizeUrl = buildOidcAuthorizeUrl(provider, state);
     logger.info(`[SSO] OIDC login initiated for ${provider}`);
-    return res.redirect(302, authorizeUrl);
+    return res.redirect('' + authorizeUrl);
   } catch (error) {
     logger.error('[SSO] Login initiation failed:', error.message);
     res.status(500).json({ success: false, error: 'SSO login initiation failed', details: error.message });

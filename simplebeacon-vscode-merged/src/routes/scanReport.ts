@@ -3,9 +3,9 @@ import * as http from 'http';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { getSbConfig } from '../utils/vscode';
-import { listDirectories, ServerState } from '../dataServer';
+import { listDirectories, ServerState } from '../serverState';
 
-function countLocalDirectoryInventory(projectPath: string, maxFiles = 100000): { totalFiles: number; totalFolders: number; projectRoot: string } | null {
+export function countLocalDirectoryInventory(projectPath: string, maxFiles = 100000): { totalFiles: number; totalFolders: number; projectRoot: string } | null {
   if (!projectPath || !fs.existsSync(projectPath)) { return null; }
   const skipDirs = new Set([
     '.git', '.github-cache', '.simplebeacon', '.vscode', '.vscode-test',

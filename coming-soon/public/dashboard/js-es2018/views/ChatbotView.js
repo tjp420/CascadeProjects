@@ -571,12 +571,35 @@ export class ChatbotView {
         </div>
       </div>
     `;
+        // If running inside an IDE or extension-hosted tab, mark UI and render a small connection banner
+        try {
+            const isIde = (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface());
+            if (isIde) {
+                const root = container.querySelector('.view-container');
+                if (root)
+                    root.classList.add('ide-embed');
+                container.classList.add('ide-embed');
+            }
+            const isExt = typeof isExtensionHostedTab === 'function' && isExtensionHostedTab();
+            const apiHost = window.__SB_BRIDGE_HOST__ || (new URLSearchParams(window.location.search || '')).get('sb_api_base');
+            if (isExt && apiHost) {
+                const banner = document.createElement('div');
+                banner.className = 'profile-ide-banner';
+                banner.style.cssText = 'margin-top:12px;padding:8px;border-radius:6px;background:var(--card-bg);border:1px solid rgba(0,0,0,0.06);font-size:0.95rem;';
+                banner.innerHTML = `Connected to IDE bridge · API: <code style="background:transparent;padding:0;border-radius:3px;">${escapeHtml(apiHost)}</code>`;
+                const hero = container.querySelector('.chatbot-header');
+                if (hero && hero.parentNode)
+                    hero.parentNode.insertBefore(banner, hero.nextSibling);
+            }
+        }
+        catch (_a) { /* ignore */ }
+
         this.bindEvents();
         this._onAiKeysUpdated = () => { void this.refreshProviders().catch(() => { /* ignore */ }); };
         window.addEventListener('simplebeacon:ai-keys-updated', this._onAiKeysUpdated);
         void this.refreshProviders()
             .then(() => this.maybeAutoConnectBridgeOllama())
-            .catch((err) => { console.warn('Chatbot bridge auto-connect failed:', err); });
+            .catch((err) => { console['warn']('Chatbot bridge auto-connect failed:', err); });
         this.renderMessages();
         return container;
     }
@@ -1179,7 +1202,7 @@ export class ChatbotView {
                     this.showPromptToast('Custom prompt saved');
                 }
                 catch (e) {
-                    console.warn('Failed to save prompt:', e);
+                    console['warn']('Failed to save prompt:', e);
                     // Fallback to localStorage
                     localStorage.setItem('chatbot_custom_prompt', prompt);
                     this.showPromptToast('Custom prompt saved locally');
@@ -1252,7 +1275,7 @@ export class ChatbotView {
                 });
             }
             catch (err) {
-                console.warn('Could not sync Ollama model to server keys:', err);
+                console['warn']('Could not sync Ollama model to server keys:', err);
             }
         }
         const titleEl = document.getElementById('chatbot-page-title');
@@ -1270,7 +1293,7 @@ export class ChatbotView {
         this.showPromptToast(this.ollamaModel ? `Settings saved — model: ${this.ollamaModel}` : 'Settings saved');
         if (settingsPanel)
             settingsPanel.style.display = 'none';
-        void this.refreshProviders().catch((err) => { console.warn('refreshProviders failed after saving settings:', err); });
+        void this.refreshProviders().catch((err) => { console['warn']('refreshProviders failed after saving settings:', err); });
     }
     showPromptToast(text) {
         const toast = document.createElement('div');
@@ -1295,7 +1318,7 @@ export class ChatbotView {
             }
         }
         catch (e) {
-            console.warn('Failed to load custom prompt from API:', e);
+            console['warn']('Failed to load custom prompt from API:', e);
         }
         // Fallback to localStorage
         const localPrompt = localStorage.getItem('chatbot_custom_prompt');

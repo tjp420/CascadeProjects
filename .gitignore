@@ -187,6 +187,7 @@ __tmp_*.js
 _check_*.js
 _find_*.js
 tmp_find_*.js
+tmp_chatbot.html
 **/__create_token.js
 
 # Root generated reports

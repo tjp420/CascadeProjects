@@ -16,10 +16,14 @@ export async function onRequest(context) {
 
   // Serve SPA entry for /dashboard (no trailing slash) without a redirect so
   // ?sb_api_base=…&sb_notify_base=… query params survive (VS Code embed bridge).
+  // Append a cache-bust param to the asset URL so the CDN always fetches the
+  // latest index.html instead of serving a stale edge-cached copy.
+  const cacheBust = `${Date.now()}`;
   const entryCandidates = ['/dashboard/__entry', '/dashboard/index.html'];
   let response = null;
   for (const entryPath of entryCandidates) {
     const assetUrl = new URL(entryPath, url.origin);
+    assetUrl.searchParams.set('_cb', cacheBust);
     const candidate = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
     if (candidate.ok) {
       response = candidate;

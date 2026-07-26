@@ -223,8 +223,73 @@ async function ollamaListModels(baseUrl, options = {}) {
     }
 }
 
+async function ollamaChat(baseUrl, model, messages, options = {}) {
+    const url = `${normalizeBaseUrl(baseUrl)}/api/chat`;
+    const timeoutMs = asPositiveInt(options.timeoutMs || process.env.OLLAMA_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
+    const maxRetries = asPositiveInt(options.retryAttempts, DEFAULT_RETRY_ATTEMPTS);
+    const startedAt = Date.now();
+    const body = {
+        model,
+        messages,
+        stream: false,
+        options: {
+            temperature: options.temperature ?? 0.3,
+            top_p: options.topP ?? 0.9,
+            num_predict: options.numPredict ?? 2048
+        }
+    };
+
+    let attempt = 0;
+    while (attempt <= maxRetries) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const text = await response.text();
+                if (shouldRetry(response.status, null, attempt, maxRetries)) {
+                    attempt += 1;
+                    continue;
+                }
+                throw new Error(`Ollama chat failed (${response.status}): ${text.slice(0, 200)}`);
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            const responseText = payload.message?.content || payload.response || '';
+            if (options.includeMeta) {
+                return {
+                    response: responseText,
+                    timing: {
+                        durationMs: Date.now() - startedAt,
+                        attempts: attempt + 1
+                    }
+                };
+            }
+            return responseText;
+        } catch (error) {
+            if (shouldRetry(null, error, attempt, maxRetries)) {
+                attempt += 1;
+                continue;
+            }
+            if (isAbortError(error)) {
+                throw new Error(`Ollama chat timed out after ${timeoutMs}ms`);
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+}
+
 module.exports = {
     ollamaGenerate,
+    ollamaChat,
     ollamaListModels,
     extractJsonObject,
     DEFAULT_OLLAMA_URL

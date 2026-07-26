@@ -723,8 +723,8 @@ async function callOpenAI(prompt, options = {}) {
         body: JSON.stringify({
             model: options.model || cfg.model,
             messages: messages,
-            temperature: 0.2,
-            max_tokens: 400
+            temperature: 0.3,
+            max_tokens: 2000
         })
     }, timeoutMs);
 
@@ -786,7 +786,7 @@ async function callAnthropic(prompt, options = {}) {
         },
         body: JSON.stringify({
             model: options.model || cfg.model,
-            max_tokens: 400,
+            max_tokens: 2000,
             system: systemMessage,
             messages: filteredMessages
         })
@@ -827,7 +827,7 @@ async function callAnthropic(prompt, options = {}) {
  * @returns {Promise<Object>}
  */
 async function callOllama(prompt, options = {}) {
-    const { ollamaGenerate } = require('./ollama-client.cjs');
+    const { ollamaChat } = require('./ollama-client.cjs');
     const baseUrl = resolveOllamaBaseUrl(options.registry || null, options.userCredentials || null);
     const model = await resolveOllamaModel(
         options.registry || null,
@@ -840,26 +840,9 @@ async function callOllama(prompt, options = {}) {
     const messages = normalizeMessages(prompt, options);
     const timeoutMs = options.timeoutMs || DEFAULTS.ollama.timeoutMs;
 
-    let conversationalPrompt = '';
-    let systemPrompt = options.systemPrompt || OLLAMA_SUMMARY_SYSTEM_PROMPT;
-    if (Array.isArray(messages)) {
-        const hasSystem = messages.some(m => m.role === 'system');
-        const nonSystem = hasSystem ? messages.filter(m => m.role !== 'system') : messages;
-        if (hasSystem) {
-            const systemMsg = messages.find(m => m.role === 'system');
-            systemPrompt = systemMsg.content;
-        }
-        conversationalPrompt = nonSystem.map(m => {
-            if (m.role === 'user') return `User: ${m.content}`;
-            if (m.role === 'assistant') return `Assistant: ${m.content}`;
-            return `${m.role}: ${m.content}`;
-        }).join('\n\n') + '\n\nAssistant:';
-    } else {
-        conversationalPrompt = String(prompt);
-    }
-    const generated = await ollamaGenerate(baseUrl, model, conversationalPrompt, {
+    // Use chat API for better conversation handling (system prompts, message history)
+    const generated = await ollamaChat(baseUrl, model, messages, {
         timeoutMs: timeoutMs,
-        system: systemPrompt,
         includeMeta: true
     });
     if (generated?.timing) {

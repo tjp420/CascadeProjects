@@ -703,7 +703,7 @@ export async function pickFolderViaExtensionBridge() {
     }
 }
 async function agentFetchWithTimeout(url, options = {}, timeoutMs = 300000) {
-    const doFetch = getAgentFetch();
+    const doFetch = getBridgeFetch();
     const timeout = new Promise((_resolve, reject) => {
         setTimeout(() => reject(new Error('Local agent request timed out')), timeoutMs);
     });
@@ -799,7 +799,17 @@ function isMixedContent(origin) {
         return false;
     if (typeof window === 'undefined')
         return false;
-    return window.location.protocol === 'https:';
+    if (window.location.protocol !== 'https:')
+        return false;
+    try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('sb_api_base') || params.get('sb_notify_base'))
+            return false;
+        if (typeof sessionStorage !== 'undefined' && (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')))
+            return false;
+    }
+    catch (_a) { /* ignore */ }
+    return true;
 }
 /**
  * Fetch repository inventory through the local agent.

@@ -23,16 +23,17 @@ function _isAllowedApiBase(value) {
     try {
         const url = new URL(value, location.href);
         const isLoopback = _isLoopbackHost(url.hostname);
-            // Reject single-label hostnames (e.g. "http://api") which commonly
-            // appear in test or CI configs but do not resolve in developer machines.
-            // Prefer same-origin or fully qualified hostnames so browser DNS/CORS
-            // failures don't cause noisy errors.
-            const hostname = String(url.hostname || '');
-            if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) && hostname.indexOf('.') === -1) {
-                return false;
-            }
-        // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
-        if (!isLoopback && location.protocol === 'https:' && url.protocol === 'http:') return false;
+        // Reject single-label hostnames (e.g. "http://api") which commonly
+        // appear in test or CI configs but do not resolve in developer machines.
+        // Prefer same-origin or fully qualified hostnames so browser DNS/CORS
+        // failures don't cause noisy errors.
+        const hostname = String(url.hostname || '');
+        if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) && hostname.indexOf('.') === -1) {
+            return false;
+        }
+        // HTTPS pages cannot call an HTTP data server — including loopback — because
+        // mixed-content / Local Network Access policies block the fetch.
+        if (location.protocol === 'https:' && url.protocol === 'http:') return false;
         // Extension bridge: VS Code opens the hosted dashboard with loopback sb_api_base.
         if (!_isLocalDevHost() && isLoopback) {
             try {
@@ -50,6 +51,7 @@ function _isAllowedApiBase(value) {
             catch (_c) { /* ignore */ }
             return false;
         }
+        if (_isStaleLoopbackApiBase(value)) return false;
         return true;
     }
     catch (_a) { return false; }
@@ -128,7 +130,10 @@ export function clearExtensionBridge(options = {}) {
 function _readStoredApiBase() {
     if (typeof sessionStorage !== 'undefined') {
         try {
-            return sessionStorage.getItem(SB_API_BASE_KEY);
+            const value = sessionStorage.getItem(SB_API_BASE_KEY);
+            if (value) {
+                return String(value).replace(/\/api\/?$/, '').replace(/\/+$/, '');
+            }
         }
         catch (_a) { /* ignore */ }
     }
@@ -153,6 +158,18 @@ function _storeNotifyBase(value) {
     }
 }
 
+function _isStaleLoopbackApiBase(value) {
+    if (!value || typeof location === 'undefined')
+        return false;
+    try {
+        const url = new URL(String(value).startsWith('http') ? value : `http:${value}`, location.href);
+        const currentPort = location.port || (location.protocol === 'https:' ? '443' : '80');
+        const basePort = url.port || (url.protocol === 'https:' ? '443' : '80');
+        return _isLoopbackHost(url.hostname) && _isLoopbackHost(location.hostname) && basePort !== currentPort;
+    }
+    catch (_e) { return false; }
+}
+
 function _readEmbedApiBaseFromQuery() {
     if (typeof window === 'undefined')
         return null;
@@ -164,13 +181,14 @@ function _readEmbedApiBaseFromQuery() {
             const raw = String(override).replace(/\/+$/, '');
             const hostRoot = raw.replace(/\/api\/?$/i, '');
             const apiUrl = hostRoot.endsWith('/') ? `${hostRoot}api` : `${hostRoot}/api`;
-            if (_isAllowedApiBase(apiUrl)) {
+            if (_isAllowedApiBase(apiUrl) && !_isStaleLoopbackApiBase(apiUrl)) {
                 _storeApiBase(hostRoot);
                 if (params.get(SB_NOTIFY_BASE_KEY)) {
                     _storeNotifyBase(String(params.get(SB_NOTIFY_BASE_KEY)).replace(/\/+$/, '').replace(/\/api\/?$/i, ''));
                 }
                 return hostRoot;
             }
+            // Stale loopback API base in query; fall through to current origin.
         }
     }
     catch (_a) {
@@ -196,8 +214,12 @@ export function apiBaseUrl() {
             return fromQuery;
         }
         const stored = _readStoredApiBase();
-        if (stored && _isAllowedApiBase(stored))
+        if (stored && _isAllowedApiBase(stored) && !_isStaleLoopbackApiBase(stored)) {
             return stored;
+        }
+        if (stored && _isAllowedApiBase(stored) && _isStaleLoopbackApiBase(stored)) {
+            clearExtensionBridge({ updateUrl: false });
+        }
         const meta = document.querySelector('meta[name="api-base-url"]');
         if (meta) {
             const metaBase = meta.getAttribute('content') || '';

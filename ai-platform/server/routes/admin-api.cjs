@@ -541,7 +541,8 @@ async function loadAdminUsers(db) {
               successful_analyses, security_incidents, community_contributions,
               created_at, updated_at
        FROM users
-       ORDER BY created_at DESC`
+       ORDER BY created_at DESC
+       LIMIT 1000`
     );
     return result.rows.map(mapPgAdminUser);
   }

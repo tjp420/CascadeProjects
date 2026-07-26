@@ -3,7 +3,7 @@ import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, rende
 import { buildComplianceAuditExportBundle, complianceAuditExportFilename } from '../utils/compliance-audit-export.browser.js?v=20260716cachefix1';
 import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
 import { getVsCodeApi, renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';
-import { isSimplebeaconReport, normalizeSimplebeaconReport, normalizeImportedReport, readFileAsJson } from '../services/analyzeService.js?v=20260726auditfix1';
+import { isSimplebeaconReport, normalizeSimplebeaconReport, normalizeImportedReport, readFileAsJson } from '../services/analyzeService.js?v=20260726sevfix1';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',
     fictionKpis: 'Fiction & KPI drift',
@@ -101,9 +101,20 @@ export class AuditView {
             showToast('No audit data to export — load the page first', 'error');
             return;
         }
-        const payload = buildComplianceAuditExportBundle(this.audit);
-        downloadJson(payload, complianceAuditExportFilename('json'));
-        showToast('Compliance audit exported', 'success');
+      // Prevent free-tier sessions from downloading full audit exports
+      try {
+        if (typeof authService !== 'undefined' && authService.isFreeTier && authService.isFreeTier()) {
+          showToast('Export disabled for free-tier accounts — upgrade to Pro to download full reports.', 'error');
+          return;
+        }
+      }
+      catch (_err) {
+        // If authService check fails, fall back to allowing exports (fail-open)
+        window.console.warn('[AuditView] authService.isFreeTier check failed', _err);
+      }
+      const payload = buildComplianceAuditExportBundle(this.audit);
+      downloadJson(payload, complianceAuditExportFilename('json'));
+      showToast('Compliance audit exported', 'success');
     }
     layerStatusClass(status) {
         if (status === 'pass')
@@ -802,5 +813,18 @@ export class AuditView {
             this.audit.npmAudit = this.app.state.npmAudit;
         }
         this.app.state.audit = this.audit;
+        try {
+          const params = new URLSearchParams(window.location.search || '');
+          const sbParent = params.get('sb_parent_urlbar') === '1';
+          if (sbParent) {
+            try { window.parent.postMessage({ command: 'dashboardRouteChanged', url: window.location.href }, '*'); }
+            catch (e) { }
+            try { window.parent.postMessage({ command: 'scrollToTop' }, '*'); }
+            catch (e) { }
+            try { window.scrollTo(0, 0); }
+            catch (e) { }
+          }
+        }
+        catch (_e) { }
     }
 }

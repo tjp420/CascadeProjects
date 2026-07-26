@@ -7,6 +7,9 @@
     "/dashboard/js-es2018/*",
     "/dashboard/images/*",
     "/dashboard/fonts/*",
-    "/dashboard/assets/*"
+    "/dashboard/assets/*",
+    "/dashboard/dist/assets/*",
+    "/dashboard/dist/*.css",
+    "/dashboard/dist/*.js"
   ]
 }
