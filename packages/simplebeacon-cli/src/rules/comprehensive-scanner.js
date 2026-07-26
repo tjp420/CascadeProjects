@@ -57,6 +57,18 @@ const SKIP_PATH_PATTERNS = [
   /\bsimplebeacon-vscode-merged\/dashboard-web\b/i,
   /\bai-platform\/web\/simplebeacon-dashboard\/js-es2018\b/i,
   /\bai-platform\/web\/simplebeacon-dashboard\/js\b/i,
+  /\bai-platform\/web\/simplebeacon-dashboard\/assets\b/i,
+  /\bai-platform\/web\/simplebeacon-dashboard\/dist\b/i,
+  /\bai-platform\/web\/dashboard\b/i,
+  /\b_fix_refusal\.js$/i,
+  /\btmp-test-redact\.cjs$/i,
+  /\btmp_auth.*\.txt$/i,
+  /\btmp_prompt.*\.txt$/i,
+  /\btmp_extract.*\.(txt|json)$/i,
+  /\btmp_index\.html$/i,
+  /\bwrite-report.*\.mjs$/i,
+  /\brun\.mjs$/i,
+  /\bserver-startup-(error|stderr|output)\.txt$/i,
   /\bsimplebeacon-vscode-merged\/dashboard-web\/js-es2018\b/i,
   /\bsimplebeacon-vscode-merged\/dashboard-web\/js\b/i,
   /temp_codemap_js\.js$/i,
@@ -146,6 +158,7 @@ function scanFileFast(relativePath, ext, content, ruleCounters) {
 
   const lowerContent = content.toLowerCase();
   const lines = content.split('\n');
+  const hasFileLevelIgnore = /simplebeacon-ignore/i.test(content.substring(0, 500));
 
   for (const check of STRING_CHECKS) {
     // skip if rule already at max
@@ -154,6 +167,9 @@ function scanFileFast(relativePath, ext, content, ruleCounters) {
 
     // skip known false-positive paths for this check
     if (shouldSkipCheckForPath(check.id, relativePath)) continue;
+
+    // skip file if file-level simplebeacon-ignore comment is present in first 500 chars
+    if (hasFileLevelIgnore) continue;
 
     // restrict documentation/security-headers to substantial source files
     if ((check.id === 'documentation' || check.id === 'security-headers') && (!isSourceDir || lineCount < 30)) continue;

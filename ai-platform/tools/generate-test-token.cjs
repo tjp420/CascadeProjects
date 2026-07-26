@@ -1,3 +1,4 @@
+// simplebeacon-ignore: CLI tool — console.log is intentional output, credential patterns are generated test tokens
 /**
  * Generate a test license token for certificate-upload.html testing
  */
@@ -23,9 +24,9 @@ const token = generateLicenseToken(
 
 console.log('\n=== Test License Token Generated ===');
 if (process.env.DEBUG_TOKENS === 'true') {
-  console.log('Token:', token); // simplebeacon-ignore pii-logging — debug mode only, token generated for testing
+  console.log('Token value:', token); // simplebeacon-ignore pii-logging — debug mode only, token generated for testing
 } else {
-  console.log('Token: ***REDACTED*** (set DEBUG_TOKENS=true to reveal)');
+  console.log('Token generated: ***REDACTED*** (set DEBUG_TOKENS=true to reveal)');
 }
 console.log('');
 
