@@ -306,6 +306,7 @@ tmp-find-html.ps1
 tmp-find-links.ps1
 tmp-find-pricing.ps1
 __ci_run_*.log
+vsix-inspect/
 __check_*.mjs
 __cs_*.mjs
 __fake_vscode.js
