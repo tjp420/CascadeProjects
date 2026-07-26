@@ -58,6 +58,9 @@ build/
 coverage/
 .next/
 out/
+__pycache__/
+**/__pycache__/
+*.pyc
 
 # Environment files
 .env
