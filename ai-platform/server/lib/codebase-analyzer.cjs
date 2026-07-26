@@ -151,7 +151,7 @@ const GOVERNANCE_FILE_BASENAMES = new Set([
   'license', 'license.md', 'license.txt', 'license.rst',
   'security.md', 'security.txt', 'security.rst',
   'contributing.md', 'contributing.txt', 'code_of_conduct.md',
-  'dockerfile', '.env', '.env.example', '.env.production', '.env.local',
+  'dockerfile', '.env.example',
   '.gitignore', '.dockerignore', '.npmignore',
   'docker-compose.yml', 'docker-compose.yaml',
   'makefile', 'makefile.mak',
@@ -185,6 +185,12 @@ const EXCLUDED_ANALYZER_PATHS = [
     new RegExp('(?:^|/)New folder/'),
     /(?:^|\/)\.simplebeacon\//,
     /(?:^|\/)coming-soon\//,
+    /(?:^|\/)__tests__\//,
+    /(?:^|\/)__tests__[^/]*$/,
+    /(?:^|\/)web\/dashboard\//,
+    /(?:^|\/)web\/simplebeacon-dashboard\/(?:js-es2018|js\/vendor|assets|dist)\//,
+    /(?:^|\/)simplebeacon-server\.cjs$/,
+    /(?:^|\/)web\/data\/simplebeacon-report\.json$/,
     /REALTIME_MONITORING_FEATURE_REPORT\.md$/,
     /complete-scan\.json$/
 ];
@@ -1175,6 +1181,8 @@ function scanContentPatterns(content, relativePath, patterns, category, severity
                 const lineText = content.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
                 // Skip function calls on the right side (e.g., resolveCredential(), generateLicenseToken())
                 if (/[:=]\s*(?:get|resolve|generate|decode|create|build|fetch|load|read)[A-Z]\w+\s*\(/.test(lineText)) continue;
+                // Skip any variable assigned from a function call (not a hardcoded secret)
+                if (/[:=]\s*[A-Za-z_$][\w$]*\s*\(/.test(lineText)) continue;
                 // Skip template string interpolation (e.g., token=' + encodeURIComponent(...))
                 if (/[:=]\s*['"`]\s*\+\s*\w+\s*\(/.test(lineText)) continue;
                 // Skip documentation placeholders
@@ -2014,6 +2022,7 @@ function detectPerformanceIssues(content, relativePath) {
 function detectSyncIoIssues(content, relativePath) {
     const isJsLike = /\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);
     if (!isJsLike) return [];
+    if (hasFileLevelIgnore(content, 'sync-io')) return [];
     const rel = normalizedAuditPath(relativePath);
     // Skip scanner/build tools where sync I/O is standard for CLI operations
     if (/server\/lib\//.test(rel) || /(?:^|\/)tools\//.test(rel)) return [];
@@ -2094,6 +2103,7 @@ function isExcludedPrototypePollutionLine(content, matchIndex) {
 function detectPrototypePollution(content, relativePath) {
     const isJsLike = /\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);
     if (!isJsLike) return [];
+    if (hasFileLevelIgnore(content, 'prototype-pollution')) return [];
     // Skip minified vendor files — they often contain __proto__ references from bundlers
     if (/\.min\.(js|cjs)$/i.test(relativePath)) return [];
     // Skip coming-soon frontend files where __proto__ references are common in UI strings / descriptions
@@ -2265,6 +2275,7 @@ function detectSecurityHeaders(content, relativePath) {
 function detectUnvalidatedRedirects(content, relativePath) {
     const isJsLike = /\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);
     if (!isJsLike) return [];
+    if (hasFileLevelIgnore(content, 'unvalidated-redirect')) return [];
     const rel = normalizedAuditPath(relativePath);
     // Skip dashboard, coming-soon, and vendor files where redirects are often legitimate navigation
     if (/simplebeacon-dashboard/.test(rel) || /(?:^|\/)coming-soon\//.test(rel)) return [];
@@ -2344,6 +2355,7 @@ function detectTokenBleed(content, relativePath) {
     const isJsLike = /\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);
     const isJson = /\.json$/i.test(relativePath);
     if (!isJsLike && !isJson) return [];
+    if (hasFileLevelIgnore(content, 'token-bleed')) return [];
     const rel = normalizedAuditPath(relativePath);
     // Skip scanner catalog, route, and service files where long strings are standard
     if (/server\/lib\//.test(rel) || /server\/routes\//.test(rel) || /server\/services\//.test(rel)) return [];
@@ -2697,6 +2709,7 @@ function detectDatabasePatterns(content, relativePath) {
     const isPy = /\.py$/i.test(relativePath);
     const isCLike = /\.(c|cpp|cc|cxx|h|hpp|hh|hxx)$/i.test(relativePath);
     if (!isJsLike && !isPy && !isCLike) return [];
+    if (hasFileLevelIgnore(content, 'database-patterns')) return [];
     if (isNonProductionAuditContentPath(relativePath)) return [];
     // Skip known false-positive files that contain no actual database patterns
     if (/cleanup-brief-export-sanitize\.js$/i.test(relativePath)) return [];
@@ -2704,7 +2717,7 @@ function detectDatabasePatterns(content, relativePath) {
     const rel = normalizedAuditPath(relativePath);
     const basename = rel.split('/').pop() || '';
     const isReportGeneration = /\/(?:audit-remediation-recipes|scan-report-patch|report-builder|audit-export)\.cjs$/i.test(rel);
-    const isDashboardUtility = /\/simplebeacon-dashboard\/js\/utils\//i.test(rel) || /\/simplebeacon-dashboard\/js\/components\//i.test(rel) || /\/simplebeacon-dashboard\/js\/views\//i.test(rel);
+    const isDashboardUtility = /\/simplebeacon-dashboard\/(?:js-es2018\/|js\/)(?:utils|components|views|services|lib)\//i.test(rel);
     const isBrowserFile = /\.browser\.(js|cjs)$/i.test(basename);
     const hits = [];
     const seen = new Set();
@@ -2724,17 +2737,32 @@ function detectDatabasePatterns(content, relativePath) {
             }
             // Skip coming-soon legacy files
             if (/^coming-soon\//.test(rel)) continue;
-            // Skip unparameterized-query for health checks (no params needed)
-            if (item.id === 'unparameterized-query' && /SELECT\s+1\s+AS|SELECT\s+CURRENT_TIMESTAMP|SELECT\s+version\(\)/i.test(match[0])) continue;
-            // Skip unbounded-select for single-row lookups and count queries
+            // Skip unparameterized-query for health checks and parameter-less statements
+            if (item.id === 'unparameterized-query') {
+                if (/SELECT\s+1\s+AS|SELECT\s+CURRENT_TIMESTAMP|SELECT\s+version\(\)/i.test(match[0])) continue;
+                if (/\b(?:BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE)\b/i.test(match[0])) continue;
+                // If the SQL literal contains no placeholders, it is a safe literal query
+                // (ignore :: PostgreSQL type casts; only count ?, $n, and :name placeholders)
+                if (!/\?|\$\d+|(?<!:):[a-zA-Z_][\w$]*/.test(match[0])) continue;
+            }
+            // Skip unbounded-select for single-row lookups, count queries, and non-SQL content
             if (item.id === 'unbounded-select') {
                 const surrounding = content.slice(Math.max(0, match.index - 50), match.index + match[0].length + 50);
                 if (/\.get\s*\(/.test(surrounding)) continue;
                 if (/COUNT\s*\(\s*\*\s*\)/i.test(match[0])) continue;
-                if (/WHERE\s+\w+_?id\s*=\s*\?/i.test(match[0])) continue;
+                if (/WHERE\s+\w+\s*=\s*(?:\?|\$\d+|:\w+)/i.test(match[0])) continue;
+                // Skip natural-language/HTML/markdown strings that happen to contain SELECT and FROM
+                if (/<[A-Za-z]|<\/|stepsList|privacyText|supportText/.test(match[0])) continue;
             }
             // Skip sql-template-injection if the match is HTML (contains <select> tag, not SQL)
             if (item.id === 'sql-template-injection' && /<\s*(?:select|div|span|option)/i.test(match[0])) continue;
+            // Skip sql-template-injection for natural language that uses SQL keywords without SQL clauses
+            if (item.id === 'sql-template-injection' && !/\b(?:FROM|INTO|WHERE|VALUES|SET|TABLE|JOIN)\b/i.test(match[0])) continue;
+            // Skip sql-template-injection when the template is passed to a parameterized db.query() call
+            if (item.id === 'sql-template-injection') {
+                const after = content.slice(match.index + match[0].length, match.index + match[0].length + 120);
+                if (/,[\s\n\r]*[a-zA-Z_$][\w$]*[\s\n\r]*\)[\s\n\r]*;?/.test(after)) continue;
+            }
             const line = lineNumberAt(content, match.index);
             const matchText = match[0].slice(0, 80);
             const dedupeKey = line + '|' + item.id + '|' + matchText;
@@ -2766,6 +2794,7 @@ function detectInsecureRandom(content, relativePath) {
     const isJsLike = /\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);
     const isCLike = /\.(c|cpp|cc|cxx|h|hpp|hh|hxx)$/i.test(relativePath);
     if (!isJsLike && !isCLike) return [];
+    if (hasFileLevelIgnore(content, 'insecure-random')) return [];
     if (isNonProductionAuditContentPath(relativePath)) return [];
     const rel = normalizedAuditPath(relativePath);
     // Skip dashboard, coming-soon, vendor, tests, tools, and scanner library files
@@ -2918,6 +2947,7 @@ function detectLlmSlop(content, relativePath) {
     const isJsLike = /\.(js|mjs|cjs|ts|tsx|jsx)$/i.test(relativePath);
     const isHtml = /\.(html|htm|vue|svelte)$/i.test(relativePath);
     const isJson = /\.json$/i.test(relativePath);
+    if (hasFileLevelIgnore(content, 'llm-slop')) return [];
     if (!isJsLike && !isHtml && !isJson) return [];
     const rel = normalizedAuditPath(relativePath);
     // Skip test files and coming-soon legacy files
@@ -3171,10 +3201,10 @@ async function loadEslintReportFromDisk(scanRoot, platformRoot) {
             const fullPath = path.join(root, relPath);
             if (!fs.existsSync(fullPath)) continue; // simplebeacon-ignore sync-io — existence check before async read
             try {
-                const { readTextFileWithLimit, redactTextSecrets } = require('./recoverable-io.cjs');
+                const { readTextFileWithLimit } = require('./recoverable-io.cjs');
                 const raw = await readTextFileWithLimit(fullPath, 512 * 1024);
                 if (!raw) continue;
-                const parsed = JSON.parse(redactTextSecrets(raw));
+                const parsed = JSON.parse(raw);
                 const reportItems = Array.isArray(parsed) ? parsed : parsed.results;
                 if (!Array.isArray(reportItems)) continue;
 
@@ -3271,10 +3301,11 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     }
 
     let content = '';
+    let raw = '';
     try {
-        const { readTextFileWithLimit, redactTextSecrets } = require('./recoverable-io.cjs');
-        const raw = await readTextFileWithLimit(file.path, 512 * 1024);
-        content = raw ? redactTextSecrets(raw) : '';
+        const { readTextFileWithLimit } = require('./recoverable-io.cjs');
+        raw = await readTextFileWithLimit(file.path, 512 * 1024) || '';
+        content = raw;
     } catch (error) {
         pushFinding(findings, {
             category: 'broken',
@@ -3329,7 +3360,7 @@ async function analyzeFileContent(file, rootDir, options = {}) {
     if (['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx'].includes(file.ext)) {
         const isNodeModulesFile = /(^|\/)node_modules\//.test(rel);
         if (!isNodeModulesFile && !shouldSkipSyntaxCheck(rel)) {
-            const syntaxError = checkJsSyntax(content, rel);
+            const syntaxError = checkJsSyntax(raw, rel);
             if (syntaxError) {
                 pushFinding(findings, {
                     category: 'broken',

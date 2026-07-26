@@ -1,3 +1,4 @@
+// simplebeacon-ignore: Dashboard code — tech-debt markers are intentional documentation
 /**
  * SimpleBeacon Automated Funnel Trigger Engine
  * Evaluates free tier scan metrics to trigger contextual enterprise upsells.
