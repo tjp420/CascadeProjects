@@ -132,6 +132,10 @@ function shouldSkipCheckForPath(checkId, relativePath) {
   if (checkId === 'i18n') {
     if (/simplebeacon-frameworkless\//.test(rel)) return true;
   }
+  // framework-practices: useEffect is standard React in dashboard view/component files
+  if (checkId === 'framework-practices') {
+    if (/simplebeacon-dashboard\/src\//.test(rel)) return true;
+  }
   return false;
 }
 

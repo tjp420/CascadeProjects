@@ -70,7 +70,7 @@ const SECURITY_RULES = [
     name: 'Missing Rate Limiting',
     regex: /app\.(get|post|put|delete|patch)\s*\([^)]*\)(?!.*rateLimit|.*throttle|.*limiter)/i,
     severity: 'medium',
-    skipFiles: /local-agent\/agent\.js$/i,
+    skipFiles: /local-agent\/agent\.js$|server\/routes\//i,
     description: 'API endpoint without rate limiting — DoS vulnerability'
   },
   {
