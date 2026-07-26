@@ -126,7 +126,19 @@ if (typeof window !== 'undefined') {
             signal: controller.signal,
           });
           clearTimeout(id);
-          return res && (res.ok || res.status === 401 || res.status === 403 || res.status === 404);
+          if (!res || !(res.ok || res.status === 401 || res.status === 403 || res.status === 404)) {
+            return false;
+          }
+          // Verify CORS allows the authorization header — otherwise authenticated
+          // requests will fail with preflight errors.
+          const allowHeaders = res.headers.get('Access-Control-Allow-Headers') || '';
+          if (allowHeaders && allowHeaders !== '*') {
+            const allowed = allowHeaders.toLowerCase().split(',').map(h => h.trim());
+            if (!allowed.includes('authorization')) {
+              return false;
+            }
+          }
+          return true;
         } catch {
           return false;
         }
