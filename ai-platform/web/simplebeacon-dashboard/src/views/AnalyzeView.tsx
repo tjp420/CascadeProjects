@@ -548,8 +548,10 @@ export function AnalyzeView() {
       }
     } catch (err: any) {
       setScanState('error');
-      appendLog(`[SimpleBeacon] Error: ${err.message}`);
-      toast.error(err.message || 'Scan failed');
+      const errMsg = err?.message || String(err || 'Unknown error');
+      appendLog(`[SimpleBeacon] Error: ${errMsg}`);
+      console.error('[SimpleBeacon] Scan error:', err);
+      toast.error(errMsg || 'Scan failed');
     }
   }, [path, mode, appendLog]);
 
@@ -920,7 +922,7 @@ export function AnalyzeView() {
         <Card className="border-danger">
           <CardContent className="flex items-center gap-3 p-4">
             <XCircle className="h-5 w-5 text-danger" />
-            <span className="text-sm">Scan failed. Check the terminal output above for details.</span>
+            <span className="text-sm">Scan failed. {terminalOutput.length > 0 && terminalOutput[terminalOutput.length - 1].replace(/^\[SimpleBeacon\]\s*/i, '')}</span>
           </CardContent>
         </Card>
       )}
