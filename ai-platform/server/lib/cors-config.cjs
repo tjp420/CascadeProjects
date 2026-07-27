@@ -24,7 +24,7 @@ function resolveCorsOptions(overrides = {}) {
     const raw = process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || overrides.devFallbackOrigin || overrides.defaultOrigin || '';
     const origins = parseOriginList(raw);
 
-    const pagesPreviewOriginRegex = /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/;
+    const pagesPreviewOriginRegex = /^https:\/\/(?:[a-z0-9-]+\.)?simplebeacon\.pages\.dev$/;
     const renderOriginRegex = /^https:\/\/[a-z0-9-]+\.onrender\.com$/;
     const netlifyOriginRegex = /^https:\/\/[a-z0-9-]+\.netlify\.app$/;
 
