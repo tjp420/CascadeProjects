@@ -103,6 +103,7 @@ const BROWSER_BUILTIN_IGNORE_SIMPLEBEACON = Object.freeze([
   '**/server/lib/codebase-analyzer-patterns.cjs',
   '**/server/lib/code-hygiene-certificate.cjs',
   '**/web/simplebeacon-dashboard/js/**',
+  '**/web/simplebeacon-dashboard/assets/**',
   '**/web/simplebeacon-dashboard/js-es2018/workers/**',
   '**/web/simplebeacon-dashboard/js-es2018/services/scanWorker.js',
   '**/web/simplebeacon-dashboard/js-es2018/services/browserSandboxScanService.js',
