@@ -574,19 +574,65 @@ export function AnalyzeView() {
     }
   }, [bridgeBase, hosted]);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      const first = files[0];
-      const rel = (first as any).webkitRelativePath;
-      if (rel) {
-        const dir = rel.split('/').slice(0, -1).join('/') || first.name;
-        setPath(dir);
-      } else {
-        setPath(first.name);
-      }
+    if (!files || files.length === 0) return;
+    const first = files[0];
+    const rel = (first as any).webkitRelativePath;
+    let dirName = first.name;
+    if (rel) {
+      dirName = rel.split('/')[0] || first.name;
     }
-  }, []);
+    setPath(dirName);
+
+    // Run a browser-local scan with the selected files — no server involved
+    setScanState('scanning');
+    setProgress(20);
+    setProgressLabel('Scanning files in browser...');
+    setTerminalOutput([]);
+    appendLog(`[SimpleBeacon] Browser local scan via file input (${files.length} files selected)...`);
+    try {
+      const report = await runLocalScan({
+        files,
+        projectPath: dirName,
+        onProgress: (processed: number, total: number) => {
+          if (total > 0) {
+            setProgress(Math.min(90, 20 + Math.round((processed / total) * 70)));
+            setProgressLabel(`Scanning ${processed} / ${total} files`);
+          }
+        },
+      });
+      setProgressLabel('Processing results...');
+      setProgress(95);
+      const r = report as any;
+      const scanResult: ScanResult = {
+        totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || 0,
+        issueCount: r.issueCount || r.summary?.totalFindings || 0,
+        severityCounts: r.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+        gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+        qualityScore: r.qualityScore ?? null,
+        projectPath: r.projectPath || dirName,
+        scanScope: r.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+      };
+      setResult(scanResult);
+      setScanState('complete');
+      setProgress(100);
+      appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
+      localStorage.setItem('sb_last_scan', JSON.stringify({
+        files: scanResult.totalFiles,
+        issues: scanResult.issueCount,
+        gate: scanResult.gate.pass,
+      }));
+      localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
+      localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+    } catch (err: any) {
+      setScanState('error');
+      appendLog(`[SimpleBeacon] Browser-local scan failed: ${err?.message || err}`);
+      toast.error(err?.message || 'Local scan failed');
+    }
+    // Reset input so the same folder can be selected again
+    e.target.value = '';
+  }, [appendLog]);
 
   const handleBrowseFolder = useCallback(async () => {
     // 1. Try extension bridge folder picker first (works in cross-origin iframes)
