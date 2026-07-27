@@ -10,7 +10,6 @@ import { Separator } from '@/components/ui/separator';
 import {
   FolderSearch,
   Folder,
-  Upload,
   Github,
   Play,
   Loader2,
@@ -31,15 +30,27 @@ import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwo
 import { runLocalScan } from '@services/localScanService.js';
 import { navigate } from '@/router/HashRouter';
 
-type ScanMode = 'local' | 'server' | 'github' | 'upload' | 'website';
+type ScanMode = 'local' | 'server' | 'github' | 'website';
 type ScanState = 'idle' | 'scanning' | 'complete' | 'error';
 
 function getExtensionBridgeBase(): string | null {
   if (typeof window === 'undefined') return null;
   try {
     const params = new URLSearchParams(window.location.search);
-    const bridge = params.get('sb_api_base');
-    if (bridge) return bridge.replace(/\/+$/, '');
+    let bridge = params.get('sb_api_base') || params.get('sb_notify_base');
+    if (!bridge && typeof sessionStorage !== 'undefined') {
+      bridge = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
+    }
+    if (bridge) {
+      const trimmed = bridge.replace(/\/+$/, '');
+      // Normalize: strip trailing /api so bridge base is consistent with getApiBase()
+      const hostRoot = trimmed.replace(/\/api$/i, '');
+      // Persist to sessionStorage so bridge survives URL rewrites
+      if (typeof sessionStorage !== 'undefined') {
+        try { sessionStorage.setItem('sb_api_base', hostRoot); } catch { /* ignore */ }
+      }
+      return hostRoot;
+    }
   } catch { /* ignore */ }
   return null;
 }
@@ -59,7 +70,7 @@ function isWebsiteMode(): boolean {
 
 async function findFolderViaBridge(folderName: string, bridgeBase: string): Promise<string | null> {
   try {
-    const res = await fetch(`${bridgeBase}/find-folder`, {
+    const res = await fetch(`${bridgeBase}/api/find-folder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ folderName }),
@@ -76,7 +87,7 @@ async function findFolderViaBridge(folderName: string, bridgeBase: string): Prom
 
 async function pickFolderViaExtensionBridge(bridgeBase: string): Promise<string | null> {
   try {
-    const res = await fetch(`${bridgeBase}/pick-folder`, {
+    const res = await fetch(`${bridgeBase}/api/pick-folder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -106,11 +117,9 @@ export function AnalyzeView() {
   const [progressLabel, setProgressLabel] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [fullDirectoryScan, setFullDirectoryScan] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
   const [serverDefaultPath, setServerDefaultPath] = useState<string | null>(null);
   const [resolvedCandidate, setResolvedCandidate] = useState<string | null>(null);
   const [candidateError, setCandidateError] = useState<string | null>(null);
@@ -175,6 +184,18 @@ export function AnalyzeView() {
 
   const handleScan = useCallback(async () => {
     let scanInput = path.trim();
+
+    if (mode === 'website') {
+      if (!scanInput) {
+        toast.error('Please enter a website URL');
+        return;
+      }
+      if (!/^https?:\/\//i.test(scanInput)) {
+        toast.error('Website URL must start with http:// or https://');
+        return;
+      }
+    }
+
     if (!scanInput) {
       // Default to server's defaultProjectPath if available
       if (serverDefaultPath) {
@@ -191,7 +212,7 @@ export function AnalyzeView() {
     setTerminalOutput([]);
     setResult(null);
 
-    appendLog(`[SimpleBeacon] Starting scan: ${path}`);
+    appendLog(`[SimpleBeacon] Starting scan: ${scanInput}`);
     setProgressLabel('Initializing...');
     setProgress(10);
 
@@ -605,13 +626,11 @@ export function AnalyzeView() {
     ? [
         { key: 'website', label: 'Website URL', icon: Globe },
         { key: 'github', label: 'GitHub URL', icon: Github },
-        { key: 'upload', label: 'Upload', icon: Upload },
       ]
     : [
         { key: 'local', label: 'Local Path', icon: Folder },
         { key: 'server', label: 'Server Path', icon: FolderSearch },
         { key: 'github', label: 'GitHub URL', icon: Github },
-        { key: 'upload', label: 'Upload', icon: Upload },
       ];
 
   return (
@@ -661,7 +680,7 @@ export function AnalyzeView() {
               {modeTabs.map((t) => {
                 const Icon = t.icon;
                 return (
-                  <TabsTrigger key={t.key} value={t.key} className="flex-1 gap-2">
+                  <TabsTrigger key={t.key} value={t.key} aria-label={t.label} title={t.label} className="flex-1 gap-2">
                     <Icon className="h-4 w-4" />
                     <span className="hidden sm:inline">{t.label}</span>
                   </TabsTrigger>
@@ -763,34 +782,13 @@ export function AnalyzeView() {
               <p className="text-xs text-foreground-muted">Scan a public GitHub repository URL</p>
             </TabsContent>
 
-            <TabsContent value="upload" className="space-y-3">
-              <div
-                className={`rounded-lg border-2 border-dashed p-6 text-center transition-colors ${dragOver ? 'border-primary bg-primary-subtle' : 'border-border'}`}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
-              >
-                <Upload className="mx-auto h-10 w-10 text-foreground-muted" />
-                <p className="mt-2 text-sm text-foreground-muted">Drop a scan report JSON or browse</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => fileInputRef.current?.click()}>
-                  Browse File
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  accept=".json"
-                  onChange={handleFileSelect}
-                />
-              </div>
-            </TabsContent>
           </Tabs>
 
           <Button
             variant="default"
             size="lg"
             className="w-full"
-            disabled={scanState === 'scanning' || isScanning || !path.trim()}
+            disabled={scanState === 'scanning' || !path.trim()}
             onClick={handleScan}
           >
             {scanState === 'scanning' ? (
@@ -1003,3 +1001,4 @@ function SeverityChip({ label, count, variant }: { label: string; count: number;
     </Badge>
   );
 }
+          
