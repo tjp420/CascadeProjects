@@ -812,16 +812,6 @@ export function AnalyzeView() {
                 <Button variant="outline" size="sm" className="mt-3" onClick={handleBrowseFolder}>
                   Browse Folder
                 </Button>
-                <input
-                  ref={folderInputRef}
-                  type="file"
-                  className="hidden"
-                  // @ts-ignore
-                  webkitdirectory=""
-                  directory=""
-                  multiple
-                  onChange={handleFileSelect}
-                />
               </div>
               <Input
                 placeholder={serverDefaultPath || 'e.g. my-project or /path/to/project'}
@@ -930,6 +920,17 @@ export function AnalyzeView() {
       {scanState === 'complete' && result && (
         <ScanResults result={result} terminalOutput={terminalOutput} isRemoteBackend={isRemoteBackend} />
       )}
+
+      <input
+        ref={folderInputRef}
+        type="file"
+        className="hidden"
+        // @ts-ignore
+        webkitdirectory=""
+        directory=""
+        multiple
+        onChange={handleFileSelect}
+      />
     </div>
   );
 }
