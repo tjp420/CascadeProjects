@@ -386,6 +386,9 @@ async function loadAssessment(report) {
     company: 'Cascade AI Platform',
     projectRoot: safeReport.projectRoot || PROJECT_ROOT
   });
+
+  
+
 }
 
 /**
@@ -686,6 +689,41 @@ function setupSimplebeaconAPI(app, options = {}) {
         };
       }
       return res.json(fallback);
+    }
+  });
+
+  // --- Upload a report (server-side ingestion) ---
+  app.post('/api/simplebeacon/report/upload', async (req, res) => {
+    try {
+      const uploadSecret = process.env.SIMPLEBEACON_UPLOAD_SECRET;
+      if (uploadSecret) {
+        const provided = req.headers['x-sb-upload-secret'] || req.query.token;
+        if (!provided || provided !== uploadSecret) {
+          return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
+      } else {
+        const remote = (req.ip || req.connection?.remoteAddress || '').toString();
+        if (!remote.includes('127.0.0.1') && !remote.includes('::1')) {
+          return res.status(403).json({ success: false, error: 'Uploads restricted. Set SIMPLEBEACON_UPLOAD_SECRET to enable remote uploads.' });
+        }
+      }
+
+      const report = req.body;
+      if (!report || typeof report !== 'object') {
+        return res.status(400).json({ success: false, error: 'Invalid JSON body' });
+      }
+
+      const reportPath = resolveReportFilePath(null);
+      await fs.promises.mkdir(path.dirname(reportPath), { recursive: true });
+      await fs.promises.writeFile(reportPath, JSON.stringify(report, null, 2));
+
+      const normalized = normalizeDashboardReport(report, report.projectPath || PROJECT_ROOT);
+      const history = await appendHistory(normalized);
+
+      return res.json({ success: true, savedTo: reportPath, scanId: history[history.length - 1]?.scanId || null });
+    } catch (err) {
+      logger.warn('[simplebeacon-api] upload failed:', err.message || err);
+      return res.status(500).json({ success: false, error: err.message || String(err) });
     }
   });
 

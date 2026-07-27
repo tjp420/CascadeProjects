@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { LogIn, UserPlus } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { toast } from 'sonner';
-import { apiUrl, authHeaders } from '@/config';
+import { apiUrl, authHeaders, waitForApiBase } from '@/config';
 
 export function SignInView() {
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
@@ -23,6 +23,7 @@ export function SignInView() {
     }
     setLoading(true);
     try {
+      await waitForApiBase();
       const endpoint = mode === 'signin' ? '/auth/login' : '/auth/register';
       const resp = await fetch(apiUrl(endpoint), {
         method: 'POST',

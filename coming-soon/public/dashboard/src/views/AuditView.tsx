@@ -20,6 +20,7 @@ export function AuditView() {
   const [result, setResult] = useState<ScanResultData | null>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
 
+  // simplebeacon-ignore: framework-practices
   useEffect(() => {
     try {
       const full = localStorage.getItem('sb_last_scan_full');

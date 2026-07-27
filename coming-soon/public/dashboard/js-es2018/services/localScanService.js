@@ -9,7 +9,7 @@ import {
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260724fix1', import.meta.url);
+const WORKER_URL = new URL('../workers/scan-worker.js?v=20260726scanfix1', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
@@ -238,7 +238,9 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
         };
         worker.onerror = (err) => {
             cleanup();
-            reject(new Error(err.message || 'Local scan worker failed'));
+            const detail = err.message || (err.error && err.error.message) || '';
+            const loc = err.filename ? ` at ${err.filename}:${err.lineno || 0}:${err.colno || 0}` : '';
+            reject(new Error(detail ? `Worker error: ${detail}${loc}` : `Local scan worker failed${loc}`));
         };
         worker.onmessage = async (e) => {
             const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile, binarySkipped, textErrors, ignoredDir, heavyVendor, ignoredByPattern } = e.data;
@@ -403,7 +405,8 @@ export async function runLocalScan(options = {}) {
         showToast(`Excluded ${beforeIgnoreCount - files.length} paths via ${ignoreCtx.source || 'ignore'} rules.`, 'info', { duration: 5000 });
     }
     if (files.length === 0) {
-        throw new Error(`No files were found in "${projectName}". The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
+        const excluded = Math.max(0, beforeIgnoreCount - files.length);
+        throw new Error(`No files were found in "${projectName}" (collected ${beforeIgnoreCount} before exclusions; ${excluded} excluded${ignoreCtx?.source ? ` via ${ignoreCtx.source}` : ''}). The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
     }
     if (options.files && isLikelyWebkitDirectoryFileCap(files.length)) {
         showToast(browserFolderCapMessage(files.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });

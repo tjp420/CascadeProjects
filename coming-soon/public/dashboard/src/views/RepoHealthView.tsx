@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, RefreshCw, AlertCircle, FileCode, FolderTree, Gauge, Shield, FileText, Bug, Zap } from 'lucide-react';
-import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { Package, RefreshCw, AlertCircle, FileCode, FolderTree, Gauge, Shield, FileText, Bug, Zap, Download } from 'lucide-react';
+import { getApiBase, apiUrl, authHeaders, waitForApiBase } from '@/config';
 
 type CategoryInfo = {
   category: string;
@@ -64,10 +64,10 @@ export function RepoHealthView() {
   const apiBase = getApiBase();
 
   const fetchData = useCallback(async () => {
-    if (!apiBase) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
+      await waitForApiBase();
       const resp = await fetch(apiUrl('/analyze/flexible'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
@@ -75,14 +75,33 @@ export function RepoHealthView() {
       });
       if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
       const json = await resp.json();
-      const r = json.report || {};
+      const r = json.report || json || {};
+      const s = r.summary || {};
+      const scope = r.scanScope || json.scanScope || {};
+      const inv = r.repositoryInventory || {};
       setData({
-        projectRoot: r.projectRoot || r.projectPath || '',
-        summary: r.summary || {} as Summary,
+        projectRoot: r.projectRoot || r.projectPath || json.projectPath || '',
+        summary: {
+          ...s,
+          healthScore: s.healthScore ?? json.qualityScore ?? r.qualityScore ?? 0,
+          findingsTotal: s.findingsTotal ?? json.issueCount ?? r.issueCount ?? 0,
+          codeFilesAnalyzed: s.codeFilesAnalyzed ?? scope.codeFilesAnalyzed ?? 0,
+          codeFilesDiscovered: s.codeFilesDiscovered ?? 0,
+          repositoryFilesTotal: s.repositoryFilesTotal ?? inv.totalFiles ?? 0,
+          repositoryFoldersTotal: s.repositoryFoldersTotal ?? inv.totalFolders ?? 0,
+          severityCounts: s.severityCounts || json.severityCounts || r.severityCounts || {},
+          tierCounts: s.tierCounts || {},
+          categoryCounts: s.categoryCounts || {},
+          eslintErrors: s.eslintErrors || 0,
+          eslintWarnings: s.eslintWarnings || 0,
+          eslintSource: s.eslintSource || '',
+          governanceFiles: s.governanceFiles || { licenseCount: 0, securityCount: 0, packageJsonCount: 0 },
+          analyzerCounts: s.analyzerCounts || {},
+        } as Summary,
         categories: r.categories || [],
-        repositoryInventory: r.repositoryInventory || { projectRoot: '', totalFiles: 0, totalFolders: 0, profile: '' },
+        repositoryInventory: inv || { projectRoot: '', totalFiles: 0, totalFolders: 0, profile: '' },
         structureInsights: r.structureInsights || { summary: { sampledFiles: 0, byLanguage: {}, approximateFunctions: 0, approximateClasses: 0, tier: 'baseline' } },
-        generatedAt: r.generatedAt || '',
+        generatedAt: r.generatedAt || json.generatedAt || '',
       });
     } catch {
       setError('Failed to fetch repository health data. Ensure the ai-platform server is running.');
@@ -91,11 +110,28 @@ export function RepoHealthView() {
     }
   }, [apiBase]);
 
+  // simplebeacon-ignore: framework-practices
   useEffect(() => { void fetchData(); }, [fetchData]);
 
   const fmtDate = (s: string) => {
     if (!s) return '—';
     try { return new Date(s).toLocaleString(); } catch { return s; }
+  };
+
+  const handleExport = () => {
+    if (!data) return;
+    const payload = { exportedAt: new Date().toISOString(), data };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const root = (data.projectRoot || 'repository').replace(/[\/:\\\s]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    const name = `repository-health-${root || 'repo'}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -167,9 +203,14 @@ export function RepoHealthView() {
             <h1 className="text-3xl font-bold tracking-tight">Repository Health</h1>
             <p className="text-foreground-muted">Repository structure, dependencies, and health metrics</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => fetchData()}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" /> Export JSON
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => fetchData()}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-foreground-muted">{data.projectRoot} — {fmtDate(data.generatedAt)}</p>
       </div>

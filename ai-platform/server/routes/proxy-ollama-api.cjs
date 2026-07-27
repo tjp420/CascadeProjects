@@ -20,7 +20,14 @@ function setupProxyOllamaAPI(app, options = {}) {
     const baseUrl = String(process.env.OLLAMA_BASE_URL || options.baseUrl || DEFAULT_OLLAMA_URL).replace(/\/$/, '');
     const fetch = getFetch();
 
-    const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: Number(process.env.PROXY_OLLAMA_RATE_LIMIT || 30) });
+    const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: Number(process.env.PROXY_OLLAMA_RATE_LIMIT || 30),
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { success: false, error: 'Too many requests — please try again later.' },
+        keyGenerator: (req) => req.ip || req.socket?.remoteAddress || 'unknown',
+    });
 
     app.get('/api/proxy/ollama/models', limiter, async (req, res) => {
         try {

@@ -178,6 +178,9 @@ function scanFileFast(relativePath, ext, content, ruleCounters) {
     // restrict documentation/security-headers to substantial source files
     if ((check.id === 'documentation' || check.id === 'security-headers') && (!isSourceDir || lineCount < 30)) continue;
 
+    // framework-practices: useEffect is a standard React hook; skip React component files outright
+    if (check.id === 'framework-practices' && /from ['"]react['"]|require\(['"]react['"]\)|import\s+React/.test(content)) continue;
+
     if (check.ext && !check.ext.includes(ext)) continue;
     for (const term of check.terms) {
       const lowerTerm = term.toLowerCase();

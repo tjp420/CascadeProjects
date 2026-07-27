@@ -46,20 +46,44 @@ function rateLimit(options = {}) {
     };
 }
 
-// Whitelist the deployed Render dashboard and common local dev origins.
-// Add more origins here if you run the dashboard on a different domain.
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://cascadeprojects-yzzd.onrender.com,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4000,http://127.0.0.1:4000').split(',');
+// Whitelist the deployed Pages/dashboard hosts and common local dev origins.
+// Use the environment variable `ALLOWED_ORIGINS` to override.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://cascadeprojects-yzzd.onrender.com,http://localhost:3000,http://127.0.0.1:3000,http://localhost:4000,http://127.0.0.1:4000,https://simplebeacon.pages.dev').split(',');
 
 app.use(cors({
     origin: (origin, callback) => {
         // allow requests with no origin (e.g. curl, mobile wrappers)
         if (!origin) return callback(null, true);
+        // Allow exact configured origins
         if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        // Allow Cloudflare Pages previews under simplebeacon.pages.dev (subdomain pattern)
+        try {
+            if (String(origin).indexOf('simplebeacon.pages.dev') !== -1) return callback(null, true);
+            const u = new URL(origin);
+            if (u.hostname && u.hostname.endsWith('.simplebeacon.pages.dev')) return callback(null, true);
+        } catch (e) {
+            // fallthrough
+        }
         callback(new Error(`CORS blocked origin: ${origin}`));
     },
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Accept']
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
 }));
+
+// Special-case OPTIONS preflight for Private Network Access (PNA).
+// Browsers that probe local network will send 'Access-Control-Request-Private-Network: true'.
+// Respond with 'Access-Control-Allow-Private-Network: true' to permit the connection.
+app.options('*', (req, res) => {
+    try {
+        if (req.headers['access-control-request-private-network']) {
+            res.setHeader('Access-Control-Allow-Private-Network', 'true');
+        }
+        // Let the CORS middleware populate other headers; respond 204 for preflight
+        return res.sendStatus(204);
+    } catch (err) {
+        return res.sendStatus(500);
+    }
+});
 
 // Security middleware (equivalent to npm 'helmet' package)
 app.use(helmet()); // simplebeacon-ignore

@@ -11028,6 +11028,27 @@ export class AnalyzeView {
         if (mode) {
             this.analysisType = mode;
         }
+        // If the loaded report is very large, avoid full render to prevent main-thread freeze.
+        try {
+            const reportForSize = this.resolveResultsReport();
+            const totalFiles = Number((reportForSize && (reportForSize.repositoryFilesTotal || reportForSize.totalFiles || (reportForSize.inventory && reportForSize.inventory.totalFiles))) || 0);
+            const LARGE_THRESHOLD = 2000; // files
+            if (totalFiles > LARGE_THRESHOLD && !this._forceLoadFull) {
+                container.replaceChildren();
+                const panel = document.createElement('div');
+                panel.className = 'analyze-compact-warning';
+                panel.innerHTML = `<div style="padding:24px;background:#111;border-radius:8px;color:#ddd">Large scan detected (<strong>${totalFiles}</strong> files). To keep the UI responsive, load a lightweight summary first. <button id="load-full-results" style="margin-left:12px;padding:6px 10px;border-radius:6px;border:0;cursor:pointer">Load full results</button></div>`;
+                container.appendChild(panel);
+                panel.querySelector('#load-full-results').addEventListener('click', () => {
+                    this._forceLoadFull = true;
+                    this.refresh();
+                });
+                return;
+            }
+        }
+        catch (e) {
+            // ignore sizing checks on error
+        }
         if (this.app.state.lastProjectPath && !isPlausibleProjectPath(this.app.state.lastProjectPath)) {
             this.app.state.lastProjectPath = '';
         }

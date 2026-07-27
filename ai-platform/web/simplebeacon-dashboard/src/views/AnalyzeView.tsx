@@ -480,7 +480,7 @@ export function AnalyzeView() {
         setProgress(60);
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
         let resp: Response;
         try {
           resp = await fetch(apiUrl('/analyze/flexible'), {
@@ -492,7 +492,7 @@ export function AnalyzeView() {
         } catch (fetchErr: any) {
           clearTimeout(timeoutId);
           if (fetchErr?.name === 'AbortError') {
-            throw new Error('Scan timed out after 60 seconds. The server may be unresponsive.');
+            throw new Error('Scan timed out after 120 seconds. The server may be unresponsive.');
           }
           throw fetchErr;
         }
@@ -507,6 +507,53 @@ export function AnalyzeView() {
           throw new Error(`Server returned ${resp.status}`);
         }
         const data = await resp.json();
+
+        // Handle async scan job (202) — poll until complete
+        if (data.asyncScan && data.scanId) {
+          const scanId = data.scanId;
+          appendLog(`[SimpleBeacon] Server scan started (job ${scanId}), polling for results...`);
+          let pollData: any = null;
+          let pollAttempts = 0;
+          const maxPollAttempts = 120; // 120 × 2s = 240s max
+          while (pollAttempts < maxPollAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            pollAttempts++;
+            try {
+              const pollResp = await fetch(apiUrl(`/analyze/progress?scanId=${encodeURIComponent(scanId)}`), {
+                headers: authHeaders(),
+              });
+              if (!pollResp.ok) {
+                if (pollResp.status === 404) {
+                  throw new Error('Scan job not found on server. It may have expired.');
+                }
+                throw new Error(`Poll returned ${pollResp.status}`);
+              }
+              pollData = await pollResp.json();
+              if (pollData.status === 'complete') {
+                appendLog(`[SimpleBeacon] Scan complete (polled ${pollAttempts} times)`);
+                break;
+              }
+              if (pollData.status === 'error') {
+                throw new Error(pollData.error || 'Scan failed on server');
+              }
+              if (pollData.percent != null) {
+                setProgress(60 + Math.round(pollData.percent * 0.3));
+                setProgressLabel(`Scanning... ${pollData.percent}% (${pollData.current}/${pollData.total})`);
+              }
+            } catch (pollErr: any) {
+              throw pollErr;
+            }
+          }
+          if (!pollData || pollData.status !== 'complete') {
+            throw new Error('Scan timed out waiting for results. The server may be overloaded.');
+          }
+          // Use the report from the poll response
+          const data2 = pollData.reportJson;
+          if (!data2 || !data2.success) {
+            throw new Error('Scan completed but no report was returned');
+          }
+          Object.assign(data, data2);
+        }
 
         setProgressLabel('Processing results...');
         setProgress(90);

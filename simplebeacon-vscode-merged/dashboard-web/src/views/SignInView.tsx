@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { LogIn, UserPlus } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { toast } from 'sonner';
-import { getApiBase } from '@/config';
+import { apiUrl, authHeaders, waitForApiBase } from '@/config';
 
 export function SignInView() {
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
@@ -23,11 +23,11 @@ export function SignInView() {
     }
     setLoading(true);
     try {
-      const apiBase = getApiBase();
+      await waitForApiBase();
       const endpoint = mode === 'signin' ? '/auth/login' : '/auth/register';
-      const resp = await fetch(`${apiBase}${endpoint}`, {
+      const resp = await fetch(apiUrl(endpoint), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ email, password }),
       });
       if (!resp.ok) throw new Error(`Auth failed: ${resp.status}`);

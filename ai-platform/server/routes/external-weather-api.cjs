@@ -3,7 +3,23 @@ const logger = require('../../src/lib/app-logger.cjs');
 const { getWeather } = require('../services/weather-service.cjs');
 
 function setupExternalWeatherAPI(app, options = {}) {
-  const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: Number(process.env.EXTERNAL_WEATHER_RATE_LIMIT || 60) });
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: Number(process.env.EXTERNAL_WEATHER_RATE_LIMIT || 60),
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the deprecated `X-RateLimit-*` headers
+    message: { success: false, error: 'Too many requests — please try again later.' },
+    keyGenerator: (req) => {
+      if (rateLimit && typeof rateLimit.ipKeyGenerator === 'function') {
+        try {
+          return rateLimit.ipKeyGenerator(req.ip);
+        } catch (err) {
+          return req.ip;
+        }
+      }
+      return req.ip;
+    },
+  });
 
   app.get('/api/external/weather', limiter, async (req, res) => {
     const city = req.query.city || req.query.q || '';

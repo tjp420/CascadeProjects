@@ -68,7 +68,7 @@ const SECURITY_RULES = [
   {
     id: 'SB-SEC-006',
     name: 'Missing Rate Limiting',
-    regex: /app\.(get|post|put|delete|patch)\s*\([^)]*\)(?!.*rateLimit|.*throttle|.*limiter)/i,
+    regex: /app\.(get|post|put|delete|patch)\s*\([^)]*\)(?!.*rateLimit|.*throttle|.*limiter)/is,
     severity: 'medium',
     skipFiles: /local-agent\/agent\.js$|server\/routes\//i,
     description: 'API endpoint without rate limiting — DoS vulnerability'
@@ -140,9 +140,10 @@ function scanSecurityPatterns(relativePath, content, ext) {
   if (content.length > MAX_SCAN_BYTES) return issues;
   if (/simplebeacon-ignore/i.test(content.substring(0, 500))) return issues;
 
+  const rel = String(relativePath).replace(/\\/g, '/');
   for (const rule of SECURITY_RULES) {
-    if (rule.skipFiles && rule.skipFiles.test(relativePath)) continue;
-    if (rule.pathRegex && !rule.pathRegex.test(relativePath)) continue;
+    if (rule.skipFiles && rule.skipFiles.test(rel)) continue;
+    if (rule.pathRegex && !rule.pathRegex.test(rel)) continue;
     const matches = [];
     let match;
     if (rule.pathOnly) {

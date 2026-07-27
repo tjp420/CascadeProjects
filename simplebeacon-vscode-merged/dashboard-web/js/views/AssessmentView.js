@@ -95,6 +95,9 @@ export class AssessmentView {
 
 el.innerHTML = `
       <h1 class="page-title">Assessment Portal</h1>
+  <div style="position:absolute; right:16px; top:16px">
+    <button id="assessments-export-btn" class="btn btn-ghost btn-sm">Export</button>
+  </div>
       <p class="page-subtitle">Simplebeacon scan → human triage → enterprise deliverable. Regex gate in minutes; expert review sells the audit.</p>
 
       <div class="card mb-4">
@@ -135,6 +138,7 @@ el.innerHTML = `
     `;
 
     el.querySelector('#assessment-form')?.addEventListener('submit', (e) => this.onSubmit(e));
+    el.querySelector('#assessments-export-btn')?.addEventListener('click', () => this.onExport());
     el.querySelectorAll('[data-open-assessment]').forEach((btn) => {
       btn.addEventListener('click', () => {
         this.app.navigate('assessments', { id: btn.dataset.openAssessment });
@@ -146,6 +150,25 @@ el.innerHTML = `
     }
 
     return el;
+  }
+
+  onExport() {
+    try {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        recent: this.recent || [],
+        report: this.report || null,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `assessments-export-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast('Export failed: ' + String(err), 'error');
+    }
   }
 
   async loadReport(assessmentId) {

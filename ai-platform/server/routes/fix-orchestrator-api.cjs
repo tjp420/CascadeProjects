@@ -65,6 +65,22 @@ function enforceConfidenceGate(req, res, next) {
   next();
 }
 
+// GET /api/v2/archive/download?name=FILENAME — download an archived file
+router.get('/archive/download', async (req, res) => {
+  try {
+    const name = req.query.name;
+    if (!name) return res.status(400).json({ success: false, error: 'Missing name' });
+    const archiveDir = path.join(__dirname, '..', '.simplebeacon', 'archive');
+    const filePath = path.join(archiveDir, path.basename(String(name)));
+    if (!filePath.startsWith(archiveDir)) return res.status(403).json({ success: false, error: 'Invalid path' });
+    if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, error: 'Not found' });
+    return res.sendFile(filePath);
+  } catch (err) {
+    logger.error('[Archive] download failed: ' + err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/v2/fixes/preview — dry run, RLS scoped
 router.post('/preview',
   enforceConfidenceGate,

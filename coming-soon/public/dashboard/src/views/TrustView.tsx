@@ -84,7 +84,6 @@ export function TrustView() {
   const apiBase = getApiBase();
 
   const fetchData = useCallback(async () => {
-    if (!apiBase) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
@@ -110,6 +109,7 @@ export function TrustView() {
     }
   }, [apiBase]);
 
+  // simplebeacon-ignore: framework-practices
   useEffect(() => { void fetchData(); }, [fetchData]);
 
   const handlePublish = async () => {

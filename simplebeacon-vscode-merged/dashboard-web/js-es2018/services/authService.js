@@ -30,26 +30,18 @@ function _isAllowedApiBase(value) {
     try {
         const url = new URL(value, location.href);
         const isLoopback = _isLoopbackHost(url.hostname);
-        // HTTPS pages cannot call an HTTP data server (mixed-content / LAN access), including
-        // loopback addresses. Extension bridge params do not bypass browser mixed-content policy.
+        // Extension bridge: allow loopback HTTP on HTTPS pages when sb_api_base is present.
+        // The CSP connect-src already permits http://127.0.0.1:* and browsers grant
+        // Private Network Access for loopback when explicitly configured.
+        if (!isLocalDevHost() && isLoopback && _hasExtensionBridgeParams())
+            return true;
+        // HTTPS pages cannot call an HTTP data server (mixed-content / LAN access).
         if (location.protocol === 'https:' && url.protocol === 'http:') return false;
         // Allow loopback bridges on non-HTTPS pages when the dashboard was opened with extension params.
         if (!isLocalDevHost() && isLoopback && !_hasExtensionBridgeParams()) return false;
-        // Reject loopback API bases whose port differs from the current dashboard origin.
-        if (_isStaleLoopbackApiBase(value)) return false;
         return true;
     }
     catch (_a) { return false; }
-}
-function _isStaleLoopbackApiBase(value) {
-    if (!value || typeof location === 'undefined') return false;
-    try {
-        const url = new URL(String(value).startsWith('http') ? value : `http:${value}`, location.href);
-        const currentPort = location.port || (location.protocol === 'https:' ? '443' : '80');
-        const basePort = url.port || (url.protocol === 'https:' ? '443' : '80');
-        return _isLoopbackHost(url.hostname) && _isLoopbackHost(location.hostname) && basePort !== currentPort;
-    }
-    catch (_e) { return false; }
 }
 function _resolveExtensionBridgeApiBase() {
     let raw = '';
@@ -849,7 +841,7 @@ export class AuthService {
         if (AuthService._bridgeSyncBlockedUntil > Date.now())
             return false;
         const apiRoot = _resolveExtensionBridgeApiBase();
-        if (!apiRoot || !_isAllowedApiBase(apiRoot))
+        if (!apiRoot)
             return false;
         let canUseParent = false;
         try {

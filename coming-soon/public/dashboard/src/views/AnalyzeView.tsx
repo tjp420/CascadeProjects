@@ -10,7 +10,6 @@ import { Separator } from '@/components/ui/separator';
 import {
   FolderSearch,
   Folder,
-  Upload,
   Github,
   Play,
   Loader2,
@@ -26,20 +25,37 @@ import {
   Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getApiBase, apiUrl, authHeaders, waitForApiBase } from '@/config';
+import { getApiBase, apiUrl, authHeaders, isTokenExpired, clearAuthAndRedirect } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 import { runLocalScan } from '@services/localScanService.js';
 import { navigate } from '@/router/HashRouter';
 
-type ScanMode = 'local' | 'server' | 'github' | 'upload' | 'website';
+type ScanMode = 'local' | 'server' | 'github' | 'website';
 type ScanState = 'idle' | 'scanning' | 'complete' | 'error';
 
 function getExtensionBridgeBase(): string | null {
   if (typeof window === 'undefined') return null;
   try {
     const params = new URLSearchParams(window.location.search);
-    const bridge = params.get('sb_api_base');
-    if (bridge) return bridge.replace(/\/+$/, '');
+    let bridge = params.get('sb_api_base') || params.get('sb_notify_base');
+    // If no bridge params in current URL, clear stale sessionStorage entries
+    if (!bridge && typeof sessionStorage !== 'undefined') {
+      const stale = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
+      if (stale) {
+        try { sessionStorage.removeItem('sb_api_base'); } catch { /* ignore */ }
+        try { sessionStorage.removeItem('sb_notify_base'); } catch { /* ignore */ }
+      }
+    }
+    if (bridge) {
+      const trimmed = bridge.replace(/\/+$/, '');
+      // Normalize: strip trailing /api so bridge base is consistent with getApiBase()
+      const hostRoot = trimmed.replace(/\/api$/i, '');
+      // Persist to sessionStorage so bridge survives URL rewrites
+      if (typeof sessionStorage !== 'undefined') {
+        try { sessionStorage.setItem('sb_api_base', hostRoot); } catch { /* ignore */ }
+      }
+      return hostRoot;
+    }
   } catch { /* ignore */ }
   return null;
 }
@@ -59,7 +75,7 @@ function isWebsiteMode(): boolean {
 
 async function findFolderViaBridge(folderName: string, bridgeBase: string): Promise<string | null> {
   try {
-    const res = await fetch(`${bridgeBase}/find-folder`, {
+    const res = await fetch(`${bridgeBase}/api/find-folder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ folderName }),
@@ -76,7 +92,7 @@ async function findFolderViaBridge(folderName: string, bridgeBase: string): Prom
 
 async function pickFolderViaExtensionBridge(bridgeBase: string): Promise<string | null> {
   try {
-    const res = await fetch(`${bridgeBase}/pick-folder`, {
+    const res = await fetch(`${bridgeBase}/api/pick-folder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -99,18 +115,16 @@ interface ScanResult {
 }
 
 export function AnalyzeView() {
-  const [mode, setMode] = useState<ScanMode>('local');
+  const [mode, setMode] = useState<ScanMode>(isWebsiteMode() ? 'website' : 'local');
   const [path, setPath] = useState(localStorage.getItem('sb_default_path') || '');
   const [scanState, setScanState] = useState<ScanState>('idle');
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [fullDirectoryScan, setFullDirectoryScan] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
   const [serverDefaultPath, setServerDefaultPath] = useState<string | null>(null);
   const [resolvedCandidate, setResolvedCandidate] = useState<string | null>(null);
   const [candidateError, setCandidateError] = useState<string | null>(null);
@@ -118,8 +132,21 @@ export function AnalyzeView() {
   const hosted = isHostedDashboard();
   const websiteMode = isWebsiteMode();
   const [localNetworkDenied, setLocalNetworkDenied] = useState(false);
+  const [isRemoteBackend, setIsRemoteBackend] = useState(false);
+
+  // Detect whether we're using a local server or the remote Render backend
+  // simplebeacon-ignore: framework-practices
+  useEffect(() => {
+    const base = getApiBase();
+    if (!base || /^https?:\/\/(127\.0\.0\.1|localhost):/i.test(base)) {
+      setIsRemoteBackend(false);
+    } else {
+      setIsRemoteBackend(true);
+    }
+  }, []);
 
   // Fetch server defaultProjectPath on mount so we can auto-populate and resolve paths
+  // simplebeacon-ignore: framework-practices
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -162,6 +189,24 @@ export function AnalyzeView() {
 
   const handleScan = useCallback(async () => {
     let scanInput = path.trim();
+
+    // Reject page URL or fragment as scan path
+    if (scanInput && (scanInput === window.location.href || scanInput === window.location.pathname || scanInput.includes(window.location.host + '/#/'))) {
+      scanInput = '';
+      setPath('');
+    }
+
+    if (mode === 'website') {
+      if (!scanInput) {
+        toast.error('Please enter a website URL');
+        return;
+      }
+      if (!/^https?:\/\//i.test(scanInput)) {
+        toast.error('Website URL must start with http:// or https://');
+        return;
+      }
+    }
+
     if (!scanInput) {
       // Default to server's defaultProjectPath if available
       if (serverDefaultPath) {
@@ -178,21 +223,18 @@ export function AnalyzeView() {
     setTerminalOutput([]);
     setResult(null);
 
-    appendLog(`[SimpleBeacon] Starting scan: ${path}`);
+    appendLog(`[SimpleBeacon] Starting scan: ${scanInput}`);
     setProgressLabel('Initializing...');
     setProgress(10);
 
+    if (isTokenExpired()) {
+      toast.error('Your session has expired. Please sign in again.');
+      clearAuthAndRedirect();
+      return;
+    }
+
     try {
-      let apiBase = getApiBase();
-      if (!apiBase) {
-        appendLog(`[SimpleBeacon] No API base detected, probing local server...`);
-        setProgressLabel('Detecting local API server...');
-        const detected = await waitForApiBase(3000);
-        if (detected) {
-          apiBase = detected;
-          appendLog(`[SimpleBeacon] Detected local API: ${apiBase}`);
-        }
-      }
+      const apiBase = getApiBase() || '';
       appendLog(`[SimpleBeacon] API base: ${apiBase || 'default'}`);
 
       let scanPath = scanInput;
@@ -239,6 +281,91 @@ export function AnalyzeView() {
         return;
       }
 
+      // Detect local path on hosted dashboard — auto-switch to browser-local scan
+      // On a hosted dashboard, the remote server cannot access the user's local filesystem.
+      // Any non-URL path (Windows drive letter, Unix absolute, or relative folder name) should
+      // trigger the browser-local scan via File System Access API.
+      const isUrl = /^https?:\/\//i.test(scanPath);
+      if (!isUrl && !isGithubUrl(scanPath) && hosted) {
+        // If bridgeBase is set, verify it's reachable; if not, proceed with browser-local scan
+        let bridgeReachable = false;
+        if (bridgeBase) {
+          bridgeReachable = await checkLocalNetworkAccess(bridgeBase, 2000);
+          if (!bridgeReachable) {
+            appendLog(`[SimpleBeacon] Extension bridge ${bridgeBase} not reachable, falling back to browser-local scan...`);
+          }
+        }
+        if (!bridgeReachable) {
+        // Try browser-local scan via File System Access API or file input fallback
+        let dirHandlePick: any = null;
+        if (typeof (window as any).showDirectoryPicker === 'function') {
+          appendLog(`[SimpleBeacon] Local path "${scanPath}" detected on hosted dashboard. Switching to browser-local scan...`);
+          toast.info('Local path detected. Please select the folder in the picker to scan it in your browser.');
+          try {
+            dirHandlePick = await (window as any).showDirectoryPicker();
+          } catch (e: any) {
+            if (e?.name === 'AbortError') {
+              setScanState('idle');
+              return;
+            }
+            appendLog(`[SimpleBeacon] showDirectoryPicker failed: ${e?.message || e}, trying file input fallback...`);
+          }
+        }
+        if (!dirHandlePick && folderInputRef.current) {
+          appendLog('[SimpleBeacon] Using file input fallback for folder selection...');
+          toast.info('Please select the folder to scan using the file picker (select any file in the folder).');
+          folderInputRef.current.click();
+          setScanState('idle');
+          return;
+        }
+        if (!dirHandlePick) {
+          setScanState('error');
+          appendLog('[SimpleBeacon] No folder picker available in this context. Cannot scan local path on hosted dashboard.');
+          toast.error('No folder picker available. Use the "Browse Folder" button to select a local directory, or enter a GitHub URL.');
+          return;
+        }
+        if (dirHandlePick) {
+          setProgressLabel('Scanning files in browser...');
+          setProgress(20);
+          appendLog(`[SimpleBeacon] Browser local scan via File System Access API...`);
+          const report = await runLocalScan({
+            dirHandle: dirHandlePick,
+            projectPath: scanPath,
+            onProgress: (processed: number, total: number) => {
+              if (total > 0) {
+                setProgress(Math.min(90, 20 + Math.round((processed / total) * 70)));
+                setProgressLabel(`Scanning ${processed} / ${total} files`);
+              }
+            },
+          });
+          setProgressLabel('Processing results...');
+          setProgress(95);
+          const r = report as any;
+          const scanResult: ScanResult = {
+            totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || 0,
+            issueCount: r.issueCount || r.summary?.totalFindings || 0,
+            severityCounts: r.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+            gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+            qualityScore: r.qualityScore ?? null,
+            projectPath: r.projectPath || scanPath,
+            scanScope: r.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+          };
+          setResult(scanResult);
+          setScanState('complete');
+          setProgress(100);
+          appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
+          localStorage.setItem('sb_last_scan', JSON.stringify({
+            files: scanResult.totalFiles,
+            issues: scanResult.issueCount,
+            gate: scanResult.gate.pass,
+          }));
+          localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
+          localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+          return;
+        }
+        }
+      }
+
       // Detect Windows path when no local server — use server's defaultProjectPath
       if (isWindowsPath(scanPath) && !apiBase) {
         appendLog(`[SimpleBeacon] Windows path "${scanPath}" detected but no local server running.`);
@@ -262,9 +389,13 @@ export function AnalyzeView() {
       if (scanPath && !scanPath.startsWith('/') && !scanPath.match(/^[A-Za-z]:[\\/]/) && !isGithubUrl(scanPath) && !scanPath.match(/^https?:\/\//i)) {
         appendLog(`[SimpleBeacon] Resolving relative path "${scanPath}" via server...`);
         try {
+          const providersController = new AbortController();
+          const providersTimeout = setTimeout(() => providersController.abort(), 10000);
           const providersResp = await fetch(apiUrl('/analyze/providers'), {
             headers: authHeaders(),
+            signal: providersController.signal,
           });
+          clearTimeout(providersTimeout);
           if (providersResp.ok) {
             const providersData = await providersResp.json();
             const defaultPath = providersData.defaultProjectPath;
@@ -275,11 +406,15 @@ export function AnalyzeView() {
               const candidate = root.replace(/\/+$/, '') + '/' + scanPath.replace(/^[\\/]+/, '');
               appendLog(`[SimpleBeacon] Trying: ${candidate}`);
               try {
+                const verifyController = new AbortController();
+                const verifyTimeout = setTimeout(() => verifyController.abort(), 10000);
                 const verifyResp = await fetch(apiUrl('/verify-path'), {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', ...authHeaders() },
                   body: JSON.stringify({ path: candidate }),
+                  signal: verifyController.signal,
                 });
+                clearTimeout(verifyTimeout);
                 if (verifyResp.ok) {
                   const v = await verifyResp.json();
                   if (v && v.success) {
@@ -296,6 +431,9 @@ export function AnalyzeView() {
                   appendLog(`[SimpleBeacon] Candidate invalid: ${errMsg}`);
                   setCandidateError(errMsg);
                   setResolvedCandidate(null);
+                } else if (verifyResp.status === 404) {
+                  appendLog(`[SimpleBeacon] Verify endpoint not available, skipping path resolution`);
+                  break;
                 } else {
                   appendLog(`[SimpleBeacon] Verify endpoint returned ${verifyResp.status}`);
                 }
@@ -335,19 +473,87 @@ export function AnalyzeView() {
       setProgressLabel('Resolving scan strategy...');
       setProgress(50);
 
-      if (apiBase) {
-        appendLog(`[SimpleBeacon] Requesting server scan...`);
-        setProgressLabel('Scanning via server...');
+      if (apiBase || hosted) {
+        const scanMode = apiBase ? 'local server' : 'remote backend (Render proxy)';
+        appendLog(`[SimpleBeacon] Requesting server scan via ${scanMode}...`);
+        setProgressLabel(`Scanning via ${scanMode}...`);
         setProgress(60);
 
-        const resp = await fetch(apiUrl('/analyze/flexible'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ projectPath: scanPath, analysisType: 'codebase' }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
+        let resp: Response;
+        try {
+          resp = await fetch(apiUrl('/analyze/flexible'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ projectPath: scanPath, analysisType: 'codebase' }),
+            signal: controller.signal,
+          });
+        } catch (fetchErr: any) {
+          clearTimeout(timeoutId);
+          if (fetchErr?.name === 'AbortError') {
+            throw new Error('Scan timed out after 120 seconds. The server may be unresponsive.');
+          }
+          throw fetchErr;
+        }
+        clearTimeout(timeoutId);
 
-        if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+        if (!resp.ok) {
+          if (resp.status === 401) {
+            toast.error('Your session has expired. Please sign in again.');
+            clearAuthAndRedirect();
+            return;
+          }
+          throw new Error(`Server returned ${resp.status}`);
+        }
         const data = await resp.json();
+
+        // Handle async scan job (202) — poll until complete
+        if (data.asyncScan && data.scanId) {
+          const scanId = data.scanId;
+          appendLog(`[SimpleBeacon] Server scan started (job ${scanId}), polling for results...`);
+          let pollData: any = null;
+          let pollAttempts = 0;
+          const maxPollAttempts = 120; // 120 × 2s = 240s max
+          while (pollAttempts < maxPollAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            pollAttempts++;
+            try {
+              const pollResp = await fetch(apiUrl(`/analyze/progress?scanId=${encodeURIComponent(scanId)}`), {
+                headers: authHeaders(),
+              });
+              if (!pollResp.ok) {
+                if (pollResp.status === 404) {
+                  throw new Error('Scan job not found on server. It may have expired.');
+                }
+                throw new Error(`Poll returned ${pollResp.status}`);
+              }
+              pollData = await pollResp.json();
+              if (pollData.status === 'complete') {
+                appendLog(`[SimpleBeacon] Scan complete (polled ${pollAttempts} times)`);
+                break;
+              }
+              if (pollData.status === 'error') {
+                throw new Error(pollData.error || 'Scan failed on server');
+              }
+              if (pollData.percent != null) {
+                setProgress(60 + Math.round(pollData.percent * 0.3));
+                setProgressLabel(`Scanning... ${pollData.percent}% (${pollData.current}/${pollData.total})`);
+              }
+            } catch (pollErr: any) {
+              throw pollErr;
+            }
+          }
+          if (!pollData || pollData.status !== 'complete') {
+            throw new Error('Scan timed out waiting for results. The server may be overloaded.');
+          }
+          // Use the report from the poll response
+          const data2 = pollData.reportJson;
+          if (!data2 || !data2.success) {
+            throw new Error('Scan completed but no report was returned');
+          }
+          Object.assign(data, data2);
+        }
 
         setProgressLabel('Processing results...');
         setProgress(90);
@@ -365,7 +571,7 @@ export function AnalyzeView() {
           scanScope: {
             profile: scope.scanProfile || scope.profile || 'standard',
             resultsViewScope: scope.scanContext || scope.resultsViewScope || 'platform-only',
-            codeFilesAnalyzed: s.codeFilesAnalyzed || s.ruleScopedFilesAnalyzed || 0,
+            codeFilesAnalyzed: s.codeFilesAnalyzed || s.ruleScopedFilesAnalyzed || r.ruleScopedFilesAnalyzed || r.filesAnalyzed || 0,
           },
         };
 
@@ -389,8 +595,10 @@ export function AnalyzeView() {
       }
     } catch (err: any) {
       setScanState('error');
-      appendLog(`[SimpleBeacon] Error: ${err.message}`);
-      toast.error(err.message || 'Scan failed');
+      const errMsg = err?.message || String(err || 'Unknown error');
+      appendLog(`[SimpleBeacon] Error: ${errMsg}`);
+      console.error('[SimpleBeacon] Scan error:', err);
+      toast.error(errMsg || 'Scan failed');
     }
   }, [path, mode, appendLog]);
 
@@ -458,19 +666,65 @@ export function AnalyzeView() {
     }
   }, [bridgeBase, hosted]);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      const first = files[0];
-      const rel = (first as any).webkitRelativePath;
-      if (rel) {
-        const dir = rel.split('/').slice(0, -1).join('/') || first.name;
-        setPath(dir);
-      } else {
-        setPath(first.name);
-      }
+    if (!files || files.length === 0) return;
+    const first = files[0];
+    const rel = (first as any).webkitRelativePath;
+    let dirName = first.name;
+    if (rel) {
+      dirName = rel.split('/')[0] || first.name;
     }
-  }, []);
+    setPath(dirName);
+
+    // Run a browser-local scan with the selected files — no server involved
+    setScanState('scanning');
+    setProgress(20);
+    setProgressLabel('Scanning files in browser...');
+    setTerminalOutput([]);
+    appendLog(`[SimpleBeacon] Browser local scan via file input (${files.length} files selected)...`);
+    try {
+      const report = await runLocalScan({
+        files,
+        projectPath: dirName,
+        onProgress: (processed: number, total: number) => {
+          if (total > 0) {
+            setProgress(Math.min(90, 20 + Math.round((processed / total) * 70)));
+            setProgressLabel(`Scanning ${processed} / ${total} files`);
+          }
+        },
+      });
+      setProgressLabel('Processing results...');
+      setProgress(95);
+      const r = report as any;
+      const scanResult: ScanResult = {
+        totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || 0,
+        issueCount: r.issueCount || r.summary?.totalFindings || 0,
+        severityCounts: r.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+        gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+        qualityScore: r.qualityScore ?? null,
+        projectPath: r.projectPath || dirName,
+        scanScope: r.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+      };
+      setResult(scanResult);
+      setScanState('complete');
+      setProgress(100);
+      appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
+      localStorage.setItem('sb_last_scan', JSON.stringify({
+        files: scanResult.totalFiles,
+        issues: scanResult.issueCount,
+        gate: scanResult.gate.pass,
+      }));
+      localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
+      localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+    } catch (err: any) {
+      setScanState('error');
+      appendLog(`[SimpleBeacon] Browser-local scan failed: ${err?.message || err}`);
+      toast.error(err?.message || 'Local scan failed');
+    }
+    // Reset input so the same folder can be selected again
+    e.target.value = '';
+  }, [appendLog]);
 
   const handleBrowseFolder = useCallback(async () => {
     // 1. Try extension bridge folder picker first (works in cross-origin iframes)
@@ -519,13 +773,11 @@ export function AnalyzeView() {
     ? [
         { key: 'website', label: 'Website URL', icon: Globe },
         { key: 'github', label: 'GitHub URL', icon: Github },
-        { key: 'upload', label: 'Upload', icon: Upload },
       ]
     : [
         { key: 'local', label: 'Local Path', icon: Folder },
         { key: 'server', label: 'Server Path', icon: FolderSearch },
         { key: 'github', label: 'GitHub URL', icon: Github },
-        { key: 'upload', label: 'Upload', icon: Upload },
       ];
 
   return (
@@ -575,7 +827,7 @@ export function AnalyzeView() {
               {modeTabs.map((t) => {
                 const Icon = t.icon;
                 return (
-                  <TabsTrigger key={t.key} value={t.key} className="flex-1 gap-2">
+                  <TabsTrigger key={t.key} value={t.key} aria-label={t.label} title={t.label} className="flex-1 gap-2">
                     <Icon className="h-4 w-4" />
                     <span className="hidden sm:inline">{t.label}</span>
                   </TabsTrigger>
@@ -607,16 +859,6 @@ export function AnalyzeView() {
                 <Button variant="outline" size="sm" className="mt-3" onClick={handleBrowseFolder}>
                   Browse Folder
                 </Button>
-                <input
-                  ref={folderInputRef}
-                  type="file"
-                  className="hidden"
-                  // @ts-ignore
-                  webkitdirectory=""
-                  directory=""
-                  multiple
-                  onChange={handleFileSelect}
-                />
               </div>
               <Input
                 placeholder={serverDefaultPath || 'e.g. my-project or /path/to/project'}
@@ -677,34 +919,13 @@ export function AnalyzeView() {
               <p className="text-xs text-foreground-muted">Scan a public GitHub repository URL</p>
             </TabsContent>
 
-            <TabsContent value="upload" className="space-y-3">
-              <div
-                className={`rounded-lg border-2 border-dashed p-6 text-center transition-colors ${dragOver ? 'border-primary bg-primary-subtle' : 'border-border'}`}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
-              >
-                <Upload className="mx-auto h-10 w-10 text-foreground-muted" />
-                <p className="mt-2 text-sm text-foreground-muted">Drop a scan report JSON or browse</p>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => fileInputRef.current?.click()}>
-                  Browse File
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  accept=".json"
-                  onChange={handleFileSelect}
-                />
-              </div>
-            </TabsContent>
           </Tabs>
 
           <Button
             variant="default"
             size="lg"
             className="w-full"
-            disabled={scanState === 'scanning' || isScanning || !path.trim()}
+            disabled={scanState === 'scanning' || !path.trim()}
             onClick={handleScan}
           >
             {scanState === 'scanning' ? (
@@ -738,21 +959,48 @@ export function AnalyzeView() {
         <Card className="border-danger">
           <CardContent className="flex items-center gap-3 p-4">
             <XCircle className="h-5 w-5 text-danger" />
-            <span className="text-sm">Scan failed. Check the terminal output above for details.</span>
+            <span className="text-sm">Scan failed. {terminalOutput.length > 0 && terminalOutput[terminalOutput.length - 1].replace(/^\[SimpleBeacon\]\s*/i, '')}</span>
           </CardContent>
         </Card>
       )}
 
       {scanState === 'complete' && result && (
-        <ScanResults result={result} terminalOutput={terminalOutput} />
+        <ScanResults result={result} terminalOutput={terminalOutput} isRemoteBackend={isRemoteBackend} />
       )}
+
+      <input
+        ref={folderInputRef}
+        type="file"
+        className="hidden"
+        // @ts-ignore
+        webkitdirectory=""
+        directory=""
+        multiple
+        onChange={handleFileSelect}
+      />
     </div>
   );
 }
 
-function ScanResults({ result, terminalOutput }: { result: ScanResult; terminalOutput: string[] }) {
+function ScanResults({ result, terminalOutput, isRemoteBackend }: { result: ScanResult; terminalOutput: string[]; isRemoteBackend: boolean }) {
+  const isZeroResult = result.totalFiles === 0 && result.issueCount === 0;
   return (
     <div className="space-y-4">
+      {isZeroResult && (
+        <Card className="border-yellow-400/30 bg-yellow-50/30">
+          <CardContent className="flex items-start gap-3 p-4">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Scan returned no files or issues</p>
+              <p className="text-xs text-foreground-muted">
+                {isRemoteBackend
+                  ? 'The remote server\'s project directory may be stale or empty. Start your local SimpleBeacon server (npm start in ai-platform) and refresh to scan your local codebase.'
+                  : 'The scanned path may not contain any files, or the server\'s scan paths are not configured. Verify the path and try again.'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -760,9 +1008,14 @@ function ScanResults({ result, terminalOutput }: { result: ScanResult; terminalO
               <CardTitle>Scan Results</CardTitle>
               <CardDescription>{result.projectPath}</CardDescription>
             </div>
-            <Badge variant={result.gate.pass ? 'success' : 'danger'} className="text-sm">
-              {result.gate.pass ? 'PASS' : 'FAIL'}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {isRemoteBackend && (
+                <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-400/30">Remote</Badge>
+              )}
+              <Badge variant={result.gate.pass ? 'success' : 'danger'} className="text-sm">
+                {result.gate.pass ? 'PASS' : 'FAIL'}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -785,6 +1038,14 @@ function ScanResults({ result, terminalOutput }: { result: ScanResult; terminalO
             <SeverityChip label="Medium" count={result.severityCounts.medium} variant="info" />
             <SeverityChip label="Low" count={result.severityCounts.low} variant="secondary" />
             <SeverityChip label="Info" count={result.severityCounts.info} variant="outline" />
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate('results')}>
+              <FileCode className="h-4 w-4" /> View Results
+            </Button>
           </div>
         </CardContent>
       </Card>

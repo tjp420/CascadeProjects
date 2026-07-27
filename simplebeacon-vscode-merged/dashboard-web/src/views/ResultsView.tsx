@@ -14,7 +14,7 @@ interface ScanResultData {
   gate: { pass: boolean; blockingCount: number; warningCount: number };
   qualityScore: number | null;
   projectPath: string;
-  scanScope: { profile: string; resultsViewScope: string };
+  scanScope: { profile: string; resultsViewScope: string; codeFilesAnalyzed: number };
 }
 
 export function ResultsView() {
@@ -60,15 +60,7 @@ export function ResultsView() {
   }
 
   const severities = ['critical', 'high', 'medium', 'low', 'info'] as const;
-  const activeSeverities = severities.filter(s => Number(result.severityCounts[s]) > 0);
-
-  function renderVal(v: any) {
-    if (v === null || v === undefined) return '—';
-    if (typeof v === 'object') {
-      try { return JSON.stringify(v); } catch (e) { return String(v); }
-    }
-    return String(v);
-  }
+  const activeSeverities = severities.filter(s => result.severityCounts[s] > 0);
 
   return (
     <div className="mx-auto max-w-7xl p-6 space-y-6">
@@ -84,7 +76,7 @@ export function ResultsView() {
             <div>
               <CardTitle>Scan Report</CardTitle>
               <CardDescription>
-                {renderVal(result.projectPath)}
+                {result.projectPath}
                 {scanTime && <span className="ml-2 text-xs">— {scanTime}</span>}
               </CardDescription>
             </div>
@@ -97,14 +89,14 @@ export function ResultsView() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard icon={FileCode} label="Files Scanned" value={result.totalFiles} />
             <MetricCard icon={AlertTriangle} label="Issues Found" value={result.issueCount} />
-            <MetricCard icon={Shield} label="Gate Rules" value={result.gate.blockingCount + result.gate.warningCount} />
+            <MetricCard icon={Shield} label="Rules Checked" value={result.scanScope.codeFilesAnalyzed || 0} />
             <MetricCard icon={CheckCircle2} label="Quality Score" value={result.qualityScore !== null ? `${result.qualityScore}%` : '—'} />
           </div>
 
           <Separator />
 
           <div className="flex flex-wrap gap-2">
-                {severities.map((sev) => (
+            {severities.map((sev) => (
               <Badge
                 key={sev}
                 variant={
@@ -170,7 +162,7 @@ export function ResultsView() {
                 <div className="space-y-2">
                   {severities
                     .filter(s => filter === 'all' || s === filter)
-                    .filter(s => Number(result.severityCounts[s]) > 0)
+                    .filter(s => result.severityCounts[s] > 0)
                     .map((sev) => (
                       <div key={sev} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -186,7 +178,7 @@ export function ResultsView() {
                             {sev}
                           </Badge>
                           <span className="text-sm text-foreground-muted">
-                            {renderVal(result.severityCounts[sev])} finding{Number(result.severityCounts[sev]) !== 1 ? 's' : ''}
+                            {result.severityCounts[sev]} finding{result.severityCounts[sev] !== 1 ? 's' : ''}
                           </span>
                         </div>
                       </div>
@@ -208,7 +200,7 @@ export function ResultsView() {
                 <Info className="h-5 w-5 text-info shrink-0 mt-0.5" />
                 <div className="text-sm space-y-1">
                   <p>Repository inventory: <strong>{result.totalFiles} files</strong> indexed</p>
-                  <p>Gate rules checked: <strong>{result.gate.blockingCount + result.gate.warningCount} files</strong></p>
+                  <p>Code files analyzed: <strong>{result.scanScope.codeFilesAnalyzed || 0} files</strong></p>
                   <p>Profile: <strong>{result.scanScope.profile}</strong></p>
                   <p>Scope: <strong>{result.scanScope.resultsViewScope}</strong></p>
                   <p>Deterministic gate scan — pattern matching on configured production paths. Source files are not semantically reviewed.</p>
@@ -251,7 +243,7 @@ export function ResultsView() {
 }
 
 // simplebeacon-ignore: mega-params — only 3 params, false positive
-function MetricCard({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: any }) {
+function MetricCard({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: number | string }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
@@ -259,7 +251,7 @@ function MetricCard({ icon: Icon, label, value }: { icon: React.ComponentType<{ 
       </div>
       <div className="flex flex-col">
         <span className="text-xs text-foreground-muted">{label}</span>
-        <span className="text-lg font-bold">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
+        <span className="text-lg font-bold">{value}</span>
       </div>
     </div>
   );

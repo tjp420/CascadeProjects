@@ -486,31 +486,73 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 if (maxDeepAnalyze != null) {
                     analyzeOpts.maxDeepAnalyze = maxDeepAnalyze;
                 }
-                let report = await withTimeout(
-                    getAnalyzeCodebase()(projectPath, analyzeOpts),
-                    120_000,
-                    'flexible codebase analysis'
-                );
-                if (understandingMode !== 'off') {
-                    const registry = await ensureRegistry(baseDir);
-                    const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
-                    report = await attachUnderstandingToCodebaseReport(report, projectPath, {
-                        platformRoot: baseDir,
-                        understandingMode,
-                        mode: understandingMode,
-                        aiProvider: aiProvider,
-                        registry,
-                        userCredentials
-                    });
-                }
-                return sendAnalyzeJson(res, {
+
+                // Use async job pattern to avoid Render/Cloudflare proxy timeout (60s)
+                const asyncScanId = crypto.randomUUID();
+                const fileCount = await countFiles(projectPath);
+                scanJobs.set(asyncScanId, {
+                    status: 'scanning',
+                    current: 0,
+                    total: fileCount,
+                    percent: 0,
+                    createdAt: Date.now(),
+                    filename: safeBasename(projectPath)
+                });
+
+                (async () => {
+                    const startedAt = Date.now();
+                    try {
+                        let report = await withTimeout(
+                            getAnalyzeCodebase()(projectPath, analyzeOpts),
+                            120_000,
+                            'flexible codebase analysis'
+                        );
+                        if (understandingMode !== 'off') {
+                            const reg = await ensureRegistry(baseDir);
+                            const userCredentials = await loadUserCredentials(req, getUserAiKeys);
+                            report = await attachUnderstandingToCodebaseReport(report, projectPath, {
+                                platformRoot: baseDir,
+                                understandingMode,
+                                mode: understandingMode,
+                                aiProvider,
+                                registry: reg,
+                                userCredentials
+                            });
+                        }
+                        scanJobs.set(asyncScanId, {
+                            ...scanJobs.get(asyncScanId),
+                            status: 'complete',
+                            percent: 100,
+                            current: fileCount,
+                            reportJson: {
+                                success: true,
+                                analysisType: 'codebase',
+                                aiProvider,
+                                understandingMode,
+                                scanProfile,
+                                report
+                            },
+                            completedAt: Date.now()
+                        });
+                        logger.info(`[Async Codebase] ${asyncScanId} completed in ${Date.now() - startedAt}ms`);
+                    } catch (err) {
+                        logger.error('[Async Codebase] fatal error:', safeErrorMessage(err));
+                        scanJobs.set(asyncScanId, {
+                            ...scanJobs.get(asyncScanId),
+                            status: 'error',
+                            error: safeErrorMessage(err) || 'Scan failed'
+                        });
+                    }
+                })();
+
+                return res.status(202).json({
                     success: true,
-                    analysisType: 'codebase',
-                    aiProvider,
-                    understandingMode,
-                    scanProfile,
-                    report
-                }, 200, sendAnalyzeJsonOpts);
+                    asyncScan: true,
+                    scanId: asyncScanId,
+                    status: 'scanning',
+                    total: fileCount,
+                    message: 'Codebase scan started. Poll /api/analyze/progress?scanId=... for results.'
+                });
             }
 
             if (analysisType === 'workspace-health') {

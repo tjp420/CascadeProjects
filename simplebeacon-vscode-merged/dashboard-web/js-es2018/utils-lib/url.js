@@ -31,10 +31,9 @@ function _isAllowedApiBase(value) {
         if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(hostname) && hostname.indexOf('.') === -1) {
             return false;
         }
-        // HTTPS pages cannot call an HTTP data server — including loopback — because
-        // mixed-content / Local Network Access policies block the fetch.
-        if (location.protocol === 'https:' && url.protocol === 'http:') return false;
         // Extension bridge: VS Code opens the hosted dashboard with loopback sb_api_base.
+        // Check this BEFORE the mixed-content check below, since the bridge is HTTP
+        // loopback while the page is HTTPS (simplebeacon.pages.dev).
         if (!_isLocalDevHost() && isLoopback) {
             try {
                 const params = new URLSearchParams(location.search || '');
@@ -51,6 +50,9 @@ function _isAllowedApiBase(value) {
             catch (_c) { /* ignore */ }
             return false;
         }
+        // HTTPS pages cannot call an HTTP data server — including loopback — because
+        // mixed-content / Local Network Access policies block the fetch.
+        if (location.protocol === 'https:' && url.protocol === 'http:') return false;
         if (_isStaleLoopbackApiBase(value)) return false;
         return true;
     }
@@ -261,7 +263,7 @@ export function apiUrl(path) {
  */
 export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { count: 0, delay: 1000, maxDelay: 30000 }) {
     const target = String(url || '');
-    const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+    let opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
     const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 10000;
     const retryCfg = { count: 0, delay: 1000, maxDelay: 30000, ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {}) };
     const attempt = async (attemptNum) => {

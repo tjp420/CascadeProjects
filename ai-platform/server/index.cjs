@@ -817,6 +817,8 @@ app.use('/assets', express.static(path.join(webRoot, 'assets')));
 // Health, status, and VS Code heartbeat routes
 app.use('/api', require('./routes/health-routes.cjs'));
 
+// /api/status is already handled by health-routes.cjs (mounted at /api above).
+
 // Meta routes — project structure, releases, backlog
 app.use('/api', require('./routes/meta-routes.cjs'));
 
@@ -985,6 +987,22 @@ app.use('/api/v2/fixes', authenticate, requirePermission('remediation:write'), (
 }, setWorkspaceRlsContext, fixOrchestratorRouter);
 logger.info('[FixOrchestrator] RLS-scoped routes mounted at /api/v2/fixes');
 
+// Backward-compatible archive download endpoint used by dashboard bundles.
+// Serves files from ai-platform/.simplebeacon/archive by filename query param.
+app.get('/api/v2/archive/download', (req, res) => {
+  try {
+    const name = req.query.name;
+    if (!name) return res.status(400).json({ success: false, error: 'Missing name' });
+    const archiveDir = path.join(__dirname, '..', '.simplebeacon', 'archive');
+    const filePath = path.join(archiveDir, path.basename(String(name)));
+    if (!filePath.startsWith(archiveDir)) return res.status(403).json({ success: false, error: 'Invalid path' });
+    if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, error: 'Not found' });
+    return res.sendFile(filePath);
+  } catch (err) {
+    logger.error('[Archive] download failed: ' + err.message);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 // Simplebeacon dashboard API — scan report, baseline, config, history
 // Authenticate vault sessions for user routes so req.user is populated
 app.use('/api/simplebeacon/user', authenticate);
@@ -1147,6 +1165,11 @@ app.use((err, req, res, _next) => {
     message: process.env.NODE_ENV === 'development' ? (err && typeof err.message === 'string' ? err.message : safeErr) : 'Internal server error',
     requestId: req.requestId || req.id || 'unknown'
   });
+});
+
+// Diagnostic: simple POST echo to verify POST routing and auth behavior
+app.post('/api/_diagnostic/report-upload-test', express.json(), (req, res) => {
+  res.json({ success: true, received: true, bodyPreview: (req.body && typeof req.body === 'object') ? Object.keys(req.body).slice(0,5) : null });
 });
 
 // 404 handler with audit logging

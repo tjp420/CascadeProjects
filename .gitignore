@@ -120,6 +120,12 @@ simplebeacon-report.json
 ai-agent-report-for-dashboard.json
 !ai-platform/web/data/simplebeacon-report.json
 
+# ESLint dry-run test artifacts
+eslint-dryrun.json
+
+# Generated welcome HTML (build output)
+simplebeacon-vscode-merged/generated-welcome.html
+
 # Development script residue accumulation
 tmp-*.js
 fix-*.js
