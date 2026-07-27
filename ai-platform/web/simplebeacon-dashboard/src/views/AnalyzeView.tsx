@@ -299,9 +299,10 @@ export function AnalyzeView() {
           return;
         }
         if (!dirHandlePick) {
-          // No picker available at all — fall through to remote server with a warning
-          appendLog(`[SimpleBeacon] No folder picker available. Sending path "${scanPath}" to remote server...`);
-          toast.warning('No folder picker available in this context. The remote server will try to scan the path, but it may not have access to your local files.');
+          setScanState('error');
+          appendLog('[SimpleBeacon] No folder picker available in this context. Cannot scan local path on hosted dashboard.');
+          toast.error('No folder picker available. Use the "Browse Folder" button to select a local directory, or enter a GitHub URL.');
+          return;
         }
         if (dirHandlePick) {
           setProgressLabel('Scanning files in browser...');
@@ -367,9 +368,13 @@ export function AnalyzeView() {
       if (scanPath && !scanPath.startsWith('/') && !scanPath.match(/^[A-Za-z]:[\\/]/) && !isGithubUrl(scanPath) && !scanPath.match(/^https?:\/\//i)) {
         appendLog(`[SimpleBeacon] Resolving relative path "${scanPath}" via server...`);
         try {
+          const providersController = new AbortController();
+          const providersTimeout = setTimeout(() => providersController.abort(), 10000);
           const providersResp = await fetch(apiUrl('/analyze/providers'), {
             headers: authHeaders(),
+            signal: providersController.signal,
           });
+          clearTimeout(providersTimeout);
           if (providersResp.ok) {
             const providersData = await providersResp.json();
             const defaultPath = providersData.defaultProjectPath;
@@ -380,11 +385,15 @@ export function AnalyzeView() {
               const candidate = root.replace(/\/+$/, '') + '/' + scanPath.replace(/^[\\/]+/, '');
               appendLog(`[SimpleBeacon] Trying: ${candidate}`);
               try {
+                const verifyController = new AbortController();
+                const verifyTimeout = setTimeout(() => verifyController.abort(), 10000);
                 const verifyResp = await fetch(apiUrl('/verify-path'), {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', ...authHeaders() },
                   body: JSON.stringify({ path: candidate }),
+                  signal: verifyController.signal,
                 });
+                clearTimeout(verifyTimeout);
                 if (verifyResp.ok) {
                   const v = await verifyResp.json();
                   if (v && v.success) {
@@ -449,11 +458,24 @@ export function AnalyzeView() {
         setProgressLabel(`Scanning via ${scanMode}...`);
         setProgress(60);
 
-        const resp = await fetch(apiUrl('/analyze/flexible'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ projectPath: scanPath, analysisType: 'codebase' }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        let resp: Response;
+        try {
+          resp = await fetch(apiUrl('/analyze/flexible'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ projectPath: scanPath, analysisType: 'codebase' }),
+            signal: controller.signal,
+          });
+        } catch (fetchErr: any) {
+          clearTimeout(timeoutId);
+          if (fetchErr?.name === 'AbortError') {
+            throw new Error('Scan timed out after 60 seconds. The server may be unresponsive.');
+          }
+          throw fetchErr;
+        }
+        clearTimeout(timeoutId);
 
         if (!resp.ok) {
           if (resp.status === 401) {
