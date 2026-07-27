@@ -276,20 +276,34 @@ export function AnalyzeView() {
       // trigger the browser-local scan via File System Access API.
       const isUrl = /^https?:\/\//i.test(scanPath);
       if (!isUrl && !isGithubUrl(scanPath) && hosted && !bridgeBase) {
-        if (typeof (window as any).showDirectoryPicker !== 'function') {
-          toast.error('Local path detected on remote dashboard. Use the "Browse Folder" button to pick a local directory, or use a relative path.');
-          setScanState('error');
-          appendLog('[SimpleBeacon] Cannot scan local path remotely — showDirectoryPicker unavailable');
+        // Try browser-local scan via File System Access API or file input fallback
+        let dirHandlePick: any = null;
+        if (typeof (window as any).showDirectoryPicker === 'function') {
+          appendLog(`[SimpleBeacon] Local path "${scanPath}" detected on hosted dashboard. Switching to browser-local scan...`);
+          toast.info('Local path detected. Please select the folder in the picker to scan it in your browser.');
+          try {
+            dirHandlePick = await (window as any).showDirectoryPicker();
+          } catch (e: any) {
+            if (e?.name === 'AbortError') {
+              setScanState('idle');
+              return;
+            }
+            appendLog(`[SimpleBeacon] showDirectoryPicker failed: ${e?.message || e}, trying file input fallback...`);
+          }
+        }
+        if (!dirHandlePick && folderInputRef.current) {
+          appendLog('[SimpleBeacon] Using file input fallback for folder selection...');
+          toast.info('Please select the folder to scan using the file picker (select any file in the folder).');
+          folderInputRef.current.click();
+          setScanState('idle');
           return;
         }
-        appendLog(`[SimpleBeacon] Local path "${scanPath}" detected on hosted dashboard. Switching to browser-local scan...`);
-        toast.info('Local path detected. Please select the folder in the picker to scan it in your browser.');
-        try {
-          const dirHandlePick = await (window as any).showDirectoryPicker();
-          if (!dirHandlePick) {
-            setScanState('idle');
-            return;
-          }
+        if (!dirHandlePick) {
+          // No picker available at all — fall through to remote server with a warning
+          appendLog(`[SimpleBeacon] No folder picker available. Sending path "${scanPath}" to remote server...`);
+          toast.warning('No folder picker available in this context. The remote server will try to scan the path, but it may not have access to your local files.');
+        }
+        if (dirHandlePick) {
           setProgressLabel('Scanning files in browser...');
           setProgress(20);
           appendLog(`[SimpleBeacon] Browser local scan via File System Access API...`);
@@ -326,11 +340,6 @@ export function AnalyzeView() {
           }));
           localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
           localStorage.setItem('sb_last_scan_time', new Date().toISOString());
-          return;
-        } catch (e: any) {
-          setScanState('error');
-          appendLog(`[SimpleBeacon] Browser-local scan failed: ${e?.message || e}`);
-          toast.error(e?.message || 'Folder picker was cancelled or scan failed');
           return;
         }
       }
@@ -1001,4 +1010,3 @@ function SeverityChip({ label, count, variant }: { label: string; count: number;
     </Badge>
   );
 }
-          
