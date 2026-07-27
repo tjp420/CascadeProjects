@@ -110,7 +110,7 @@ interface ScanResult {
 }
 
 export function AnalyzeView() {
-  const [mode, setMode] = useState<ScanMode>('local');
+  const [mode, setMode] = useState<ScanMode>(isWebsiteMode() ? 'website' : 'local');
   const [path, setPath] = useState(localStorage.getItem('sb_default_path') || '');
   const [scanState, setScanState] = useState<ScanState>('idle');
   const [progress, setProgress] = useState(0);
