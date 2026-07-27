@@ -38,8 +38,13 @@ function getExtensionBridgeBase(): string | null {
   try {
     const params = new URLSearchParams(window.location.search);
     let bridge = params.get('sb_api_base') || params.get('sb_notify_base');
+    // If no bridge params in current URL, clear stale sessionStorage entries
     if (!bridge && typeof sessionStorage !== 'undefined') {
-      bridge = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
+      const stale = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
+      if (stale) {
+        try { sessionStorage.removeItem('sb_api_base'); } catch { /* ignore */ }
+        try { sessionStorage.removeItem('sb_notify_base'); } catch { /* ignore */ }
+      }
     }
     if (bridge) {
       const trimmed = bridge.replace(/\/+$/, '');
@@ -185,6 +190,12 @@ export function AnalyzeView() {
   const handleScan = useCallback(async () => {
     let scanInput = path.trim();
 
+    // Reject page URL or fragment as scan path
+    if (scanInput && (scanInput === window.location.href || scanInput === window.location.pathname || scanInput.includes(window.location.host + '/#/'))) {
+      scanInput = '';
+      setPath('');
+    }
+
     if (mode === 'website') {
       if (!scanInput) {
         toast.error('Please enter a website URL');
@@ -275,7 +286,16 @@ export function AnalyzeView() {
       // Any non-URL path (Windows drive letter, Unix absolute, or relative folder name) should
       // trigger the browser-local scan via File System Access API.
       const isUrl = /^https?:\/\//i.test(scanPath);
-      if (!isUrl && !isGithubUrl(scanPath) && hosted && !bridgeBase) {
+      if (!isUrl && !isGithubUrl(scanPath) && hosted) {
+        // If bridgeBase is set, verify it's reachable; if not, proceed with browser-local scan
+        let bridgeReachable = false;
+        if (bridgeBase) {
+          bridgeReachable = await checkLocalNetworkAccess(bridgeBase, 2000);
+          if (!bridgeReachable) {
+            appendLog(`[SimpleBeacon] Extension bridge ${bridgeBase} not reachable, falling back to browser-local scan...`);
+          }
+        }
+        if (!bridgeReachable) {
         // Try browser-local scan via File System Access API or file input fallback
         let dirHandlePick: any = null;
         if (typeof (window as any).showDirectoryPicker === 'function') {
@@ -342,6 +362,7 @@ export function AnalyzeView() {
           localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
           localStorage.setItem('sb_last_scan_time', new Date().toISOString());
           return;
+        }
         }
       }
 

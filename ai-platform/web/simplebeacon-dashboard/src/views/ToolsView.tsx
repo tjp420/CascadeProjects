@@ -165,6 +165,24 @@ export function ToolsView() {
     URL.revokeObjectURL(url);
   };
 
+  // Export arbitrary file from server archive by requesting a download endpoint
+  const exportArchiveFile = async (filename: string) => {
+    try {
+      const resp = await fetch(apiUrl(`/archive/download?name=${encodeURIComponent(filename)}`), { headers: authHeaders() });
+      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Export started');
+    } catch (err: any) {
+      toast.error('Export failed: ' + (err?.message || 'unknown'));
+    }
+  };
+
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
@@ -268,6 +286,12 @@ export function ToolsView() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => navigate('security')}>
             <Shield className="h-4 w-4" /> Security View
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportArchiveFile('simplebeacon-fix-strategies-1785040174360.json')}>
+            <Download className="h-4 w-4" /> Export Fix Strategies
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportArchiveFile('security-export-2026-07-26T04-26-28-205Z.json')}>
+            <Download className="h-4 w-4" /> Export Security Export
           </Button>
         </CardContent>
       </Card>
