@@ -238,7 +238,9 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
         };
         worker.onerror = (err) => {
             cleanup();
-            reject(new Error(err.message || 'Local scan worker failed'));
+            const detail = err.message || (err.error && err.error.message) || '';
+            const loc = err.filename ? ` at ${err.filename}:${err.lineno || 0}:${err.colno || 0}` : '';
+            reject(new Error(detail ? `Worker error: ${detail}${loc}` : `Local scan worker failed${loc}`));
         };
         worker.onmessage = async (e) => {
             const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile, binarySkipped, textErrors, ignoredDir, heavyVendor, ignoredByPattern } = e.data;
