@@ -3,9 +3,9 @@
   "ogImage": "/favicon.svg",
   "pages": {
     "index.html": {
-      "title": "SimpleBeacon — Browser-local AI code audits & compliance certificates",
-      "description": "SimpleBeacon runs locally in your browser or IDE to detect AI slop, leaked credentials, and compliance gaps. Generate board-ready hygiene certificates without uploading source code.",
-      "h1": "Pass the EU AI Act without exposing your code.",
+      "title": "SimpleBeacon — Auto-Remediate AI Code Debt Before It Becomes Audit Risk",
+      "description": "SimpleBeacon scans your AI-assisted codebases for algorithmic redundancy, credential leaks, and compliance drift—then simplebeacon fix cleans the debris locally before it reaches CI.",
+      "h1": "Auto-Remediate AI Code Debt Before It Becomes Audit Risk.",
       "sitemap": { "priority": "1.0", "changefreq": "weekly" },
       "includeNav": true,
       "includeFooter": true
@@ -19,9 +19,9 @@
       "includeFooter": true
     },
     "pricing.html": {
-      "title": "SimpleBeacon Pricing — AI Code Debt Detection & Compliance",
-      "description": "SimpleBeacon pricing: Free IDE extension and CLI, $9/mo Pro for unlimited scans, $399/mo Compliance Suite with EU AI Act documentation, and Enterprise air-gapped deployments.",
-      "h1": "Reduce AI compliance risk before your next release.",
+      "title": "SimpleBeacon Pricing — B2B AI Code Debt Remediation & Compliance",
+      "description": "Free Preview, Pro ($9/mo), and Compliance Suite ($399/mo) with unlimited local scans, CI gate integration, EU AI Act mapping, and board-ready compliance documentation.",
+      "h1": "B2B AI Code Debt Remediation & Compliance",
       "sitemap": { "priority": "0.9", "changefreq": "weekly" },
       "includeNav": true,
       "includeFooter": true
@@ -51,9 +51,9 @@
       "includeFooter": true
     },
     "roadmap.html": {
-      "title": "SimpleBeacon — Remediation Roadmap Generator",
-      "description": "Drop a SimpleBeacon scan report to generate a prioritized, phased remediation plan with Triage, Short-Term, and Long-Term tracks.",
-      "h1": "Remediation Roadmap Generator",
+      "title": "SimpleBeacon Auto-Remediation Roadmap",
+      "description": "See how simplebeacon fix evolves from local CLI cleanup to IDE-native remediation and enterprise compliance.",
+      "h1": "From Detection to Automated Janitor",
       "sitemap": { "priority": "0.7", "changefreq": "weekly" },
       "includeNav": true,
       "includeFooter": true

@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8">
     <title>SimpleBeacon Pricing — B2B AI Code Debt Remediation &amp; Compliance</title>
-    <meta name="description" content="Free Preview, Team / Agency Suite ($49–$99/mo), and Enterprise Governance ($499+/mo) with automated local remediation, EU AI Act mapping, and air-gapped deployment.">
+    <meta name="description" content="Free Preview, Pro ($9/mo), and Compliance Suite ($399/mo) with unlimited local scans, CI gate integration, EU AI Act mapping, and board-ready compliance documentation.">
     <link rel="canonical" href="https://simplebeacon.ai/pricing.html">
     <meta name="robots" content="index, follow">
     <meta property="og:title" content="SimpleBeacon Pricing — B2B AI Code Debt Remediation &amp; Compliance">
-    <meta property="og:description" content="Free Preview, Team / Agency Suite ($49–$99/mo), and Enterprise Governance ($499+/mo) with automated local remediation, EU AI Act mapping, and air-gapped deployment.">
+    <meta property="og:description" content="Free Preview, Pro ($9/mo), and Compliance Suite ($399/mo) with unlimited local scans, CI gate integration, EU AI Act mapping, and board-ready compliance documentation.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://simplebeacon.ai/pricing.html">
     <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="SimpleBeacon Pricing — B2B AI Code Debt Remediation &amp; Compliance">
-    <meta name="twitter:description" content="Free Preview, Team / Agency Suite ($49–$99/mo), and Enterprise Governance ($499+/mo) with automated local remediation, EU AI Act mapping, and air-gapped deployment.">
+    <meta name="twitter:description" content="Free Preview, Pro ($9/mo), and Compliance Suite ($399/mo) with unlimited local scans, CI gate integration, EU AI Act mapping, and board-ready compliance documentation.">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
@@ -637,7 +637,7 @@
       <div class="guarantee" data-animate="fade-up">
         <div class="guarantee-icon">&#128196;</div>
         <div class="guarantee-title">Satisfaction Guaranteed</div>
-        <div class="guarantee-text">Self-service tiers include a 48-hour review period. Enterprise contracts include 14 days with analyst support. See our <a href="refund.html" style="color:var(--accent-hover);">refund policy</a> for complete terms.</div>
+        <div class="guarantee-text">Self-service tiers (Pro and Compliance Suite) include a 7-day money-back guarantee. Enterprise contracts include 14 days with analyst support. See our <a href="refund.html" style="color:var(--accent-hover);">refund policy</a> for complete terms.</div>
       </div>
 
       <!-- Checkout Modal -->
@@ -744,7 +744,7 @@
     // Checkout modal handlers
     function openCheckoutModal(tier) {
       var modal = document.getElementById('checkoutModal');
-      var tierNames = { pro: 'SimpleBeacon Agency Reputation Suite — $99/mo', pro_annual: 'SimpleBeacon Agency Reputation Suite — $990/yr', compliance_suite: 'SimpleBeacon Enterprise Compliance & Governance — $499/mo', compliance_suite_annual: 'SimpleBeacon Enterprise Compliance & Governance — $4,990/yr', team_suite: 'SimpleBeacon Agency Reputation Suite — $99/mo', team_suite_annual: 'SimpleBeacon Agency Reputation Suite — $990/yr', enterprise: 'SimpleBeacon Enterprise — Custom', enterprise_annual: 'SimpleBeacon Enterprise — Custom', one_time_certificate: 'SimpleBeacon Audit Certificate — $149 one-time', one_time_certificate_annual: 'SimpleBeacon Audit Certificate — $149 one-time', custom: 'Custom Audit Plan' };
+      var tierNames = { startup: 'SimpleBeacon Pro — $9/mo', startup_annual: 'SimpleBeacon Pro — $90/yr', compliance: 'SimpleBeacon Compliance Suite — $399/mo', compliance_annual: 'SimpleBeacon Compliance Suite — $3,990/yr', enterprise: 'SimpleBeacon Enterprise — Custom', enterprise_annual: 'SimpleBeacon Enterprise — Custom', one_time_certificate: 'SimpleBeacon Audit Certificate — $149 one-time', one_time_certificate_annual: 'SimpleBeacon Audit Certificate — $149 one-time', custom: 'Custom Audit Plan' };
       var displayTier = tier;
       if (isAnnual) { displayTier = tier + '_annual'; }
       document.getElementById('modalTitle').textContent = 'Purchase: ' + (tierNames[displayTier] || 'License');
