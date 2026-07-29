@@ -173,6 +173,30 @@ export default {
       return new Response(null, { status: 204, headers });
     }
 
+    // Redirect /demo to the landing page
+    if (url.pathname === '/demo' || url.pathname.startsWith('/demo/')) {
+      return Response.redirect(new URL('/', url.origin).toString(), 302);
+    }
+
+    // SPA fallback for /dashboard/* routes — serve the dashboard entry HTML
+    // so the client-side router can render the requested view.
+    if (url.pathname.startsWith('/dashboard/') && !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+      const cacheBust = `${Date.now()}`;
+      const entryCandidates = ['/dashboard/__entry', '/dashboard/index.html'];
+      for (const entryPath of entryCandidates) {
+        const assetUrl = new URL(entryPath, url.origin);
+        assetUrl.searchParams.set('_cb', cacheBust);
+        const candidate = await env.ASSETS.fetch(new Request(assetUrl.toString(), request));
+        if (candidate.ok) {
+          const headers = new Headers(candidate.headers);
+          headers.set('Content-Type', 'text/html; charset=utf-8');
+          headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+          headers.set('CDN-Cache-Control', 'no-store');
+          return new Response(candidate.body, { status: candidate.status, headers });
+        }
+      }
+    }
+
     // Dynamic Route 1: GET /api/license?session_id=...
     // Fetches the generated license token securely from the edge cache
     if (url.pathname === '/api/license' && request.method === 'GET') {
