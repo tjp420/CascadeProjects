@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SimpleBeacon Pricing — AI Code Debt Detection & Compliance</title>
-  <meta name="description" content="SimpleBeacon pricing: Free Scan Preview (5 browser scans/mo), Agency Reputation Suite ($79-$99/mo with automated remediation + A-F PDF reports), Enterprise Compliance & Governance ($499/mo with air-gapped deployment + EU AI Act + SOC 2 mapping). AI code debt detection + board-ready certificates.">
+  <meta name="description" content="SimpleBeacon pricing: Free (10 local scans/mo), Pro ($9/mo with unlimited scans + CI gate + 38 analyzer modules), Compliance Suite ($399/mo with EU AI Act + SOC 2 + board-ready certificates), Enterprise (custom air-gapped deployment). AI code debt detection + board-ready certificates.">
   <meta name="theme-color" content="#0a0a0a">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://simplebeacon.ai/pricing">
@@ -133,11 +133,10 @@
 
     /* FAQ */
     .faq-wrap { margin-bottom: 40px; position: relative; z-index: 2; }
-    .faq-item { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: rgba(20,20,20,0.4); backdrop-filter: blur(10px); transition: all 0.2s; position: relative; z-index: 1; }
-    .faq-item summary { position: relative; z-index: 2; }
+    .faq-item { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 12px; background: rgba(20,20,20,0.4); backdrop-filter: blur(10px); transition: border-color 0.2s; position: relative; }
+    .faq-item summary { padding: 16px 20px; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; user-select: none; }
     .faq-item:hover { border-color: var(--surface-hover); }
-    .faq-item summary { padding: 16px 20px; font-weight: 600; font-size: 0.9rem; color: var(--text-primary); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; }
-    .faq-item summary::after { content: "+"; color: var(--accent-hover); font-size: 1.1rem; transition: transform 0.2s; }
+    .faq-item summary::after { content: "+"; color: var(--accent-hover); font-size: 1.1rem; transition: transform 0.2s; pointer-events: none; }
     .faq-item[open] summary::after { transform: rotate(45deg); }
     .faq-item p { padding: 0 20px 16px; margin: 0; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6; }
 
@@ -431,40 +430,41 @@
         <article class="price-card price-card-popular" data-animate="fade-up" data-delay="100">
           <div class="popular-badge">Most Popular</div>
           <div class="price-card-header">
-            <span class="price-tag">Agency</span>
-            <h3>Team / Agency Suite</h3>
-            <div class="price-amount" id="teamPrice">$49&ndash;$99<span class="price-unit">/mo</span></div>
-            <p id="teamAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$1,188/yr</span> <span style="color:var(--success);font-weight:600;">$990/yr</span> <span class="save-badge">Save 17%</span></p>
+            <span class="price-tag">Pro</span>
+            <h3>Pro</h3>
+            <div class="price-amount" id="teamPrice">$9<span class="price-unit">/mo</span></div>
+            <p id="teamAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$108/yr</span> <span style="color:var(--success);font-weight:600;">$90/yr</span> <span class="save-badge">Save 17%</span></p>
           </div>
-          <p class="price-desc">Unlimited local cleanup and professional client handoff reports.</p>
+          <p class="price-desc">Unlimited scans, CI gate integration, and full JSON exports for power users.</p>
           <ul class="price-features">
-            <li>Invisible Pipeline Guardrails: Scans 14,000 files in under 40 seconds natively on local hardware, keeping engineering velocity high with zero network round-trips.</li>
-            <li>Automated Release Janitor: Enforces <code>simplebeacon fix</code> pre-commit to strip formatting artifacts and protect credentials before pull request review.</li>
-            <li>Frictionless Client Handoffs: Generates instant, board-ready A-F risk certificates so code clears client security and compliance reviews faster.</li>
-            <li>Unlimited CLI executions with team-wide pre-commit policy support.</li>
-            <li>Up to 5 developer seats.</li>
+            <li>Unlimited pipeline scans with unlimited files per scan.</li>
+            <li>GitHub Action CI gate for every pull request.</li>
+            <li>Custom scanner toggles via Configuration-as-Code.</li>
+            <li>Quality score + full JSON exports with actionable summary.</li>
+            <li>38 CLI analyzer modules + team dashboard.</li>
+            <li>Priority email support.</li>
           </ul>
           <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
-          <button class="price-btn checkout-btn" data-tier="team_suite" data-price-id="price_team_suite_monthly">Subscribe</button>
+          <button class="price-btn checkout-btn" data-tier="startup" data-price-id="price_startup_monthly">Subscribe</button>
         </article>
 
         <article class="price-card price-card-premium" data-animate="fade-up" data-delay="200">
           <div class="price-card-header">
-            <span class="price-tag">Enterprise</span>
-            <h3>Enterprise Governance</h3>
-            <div class="price-amount" id="compliancePrice">$499<span class="price-unit">/mo</span></div>
-            <p id="complianceAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$5,988/yr</span> <span style="color:var(--success);font-weight:600;">$4,990/yr</span> <span class="save-badge">Save 17%</span></p>
+            <span class="price-tag">Compliance</span>
+            <h3>Compliance Suite</h3>
+            <div class="price-amount" id="compliancePrice">$399<span class="price-unit">/mo</span></div>
+            <p id="complianceAnnualNote" style="font-size:0.8rem;color:var(--text-secondary);margin-top:4px;display:none;"><span style="text-decoration:line-through;color:var(--text-muted);">$4,788/yr</span> <span style="color:var(--success);font-weight:600;">$3,990/yr</span> <span class="save-badge">Save 17%</span></p>
           </div>
-          <p class="price-desc">Strict algorithmic compliance verification and air-gapped security.</p>
+          <p class="price-desc">Board-ready compliance documentation and EU AI Act evidence packs.</p>
           <ul class="price-features">
-            <li>Full AST structural syntax parsing</li>
             <li>EU AI Act &amp; SOC 2 legal compliance mapping</li>
-            <li>Financial liability forecasting dashboard</li>
-            <li>Air-gapped / on-premise execution deployment</li>
-            <li>Dedicated support &amp; SLA</li>
+            <li>Board-ready PDF certificate ZIP</li>
+            <li>5 team seats + team dashboard</li>
+            <li>Priority email + Slack support</li>
+            <li>Quarterly compliance reviews</li>
           </ul>
-          <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Annual contract &middot; Custom terms available</p>
-          <button class="price-btn checkout-btn" data-tier="compliance_suite" data-price-id="price_compliance_monthly">Subscribe to $499/mo</button>
+          <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:-12px;margin-bottom:12px;">&#10003; Cancel anytime &middot; 7-day money-back guarantee</p>
+          <button class="price-btn checkout-btn" data-tier="compliance" data-price-id="price_compliance_monthly">Subscribe to $399/mo</button>
           <p class="price-sample">Need air-gapped or custom contracts? <a href="/contact?topic=enterprise" data-contact-link data-contact-topic="enterprise">Contact Sales &rarr;</a></p>
         </article>
 
@@ -584,7 +584,7 @@
         <div class="faq-fallback">
           <details class="faq-item"><summary>Is my source code uploaded to your servers?</summary><p>No. SimpleBeacon runs entirely offline on your machine. The browser sandbox version executes in your browser's memory and is wiped when you close the tab. The CLI version never makes network requests unless you explicitly pass --upload.</p></details>
           <details class="faq-item"><summary>What happens after I purchase a certificate?</summary><p>You receive a license token via email. Paste it into the certificate upload page, run your scan, and download the board-ready ZIP package with PDF certificate, JSON exports, and SHA-256 integrity seal.</p></details>
-          <details class="faq-item"><summary>Do you offer refunds?</summary><p>Self-service tiers include a 48-hour review period. Enterprise contracts include 14 days with analyst support. See our refund policy for complete terms.</p></details>
+          <details class="faq-item"><summary>Do you offer refunds?</summary><p>Self-service tiers (Pro and Compliance Suite) include a 7-day money-back guarantee. Enterprise contracts include 14 days with analyst support. See our <a href="refund.html">refund policy</a> for complete terms.</p></details>
           <details class="faq-item"><summary>Can I use this for EU AI Act compliance?</summary><p>The Enterprise Compliance Suite includes EU AI Act Annex III documentation, Article 14 Human Oversight evaluation, and Article 50 transparency checks — everything a board needs for regulatory readiness. <a href="contact.html?topic=enterprise">Contact Sales</a> for custom pricing.</p></details>
           <details class="faq-item"><summary>What payment methods do you accept?</summary><p>Self-service tiers accept all major credit cards via Stripe. Enterprise invoices support ACH wire transfer, purchase orders, and NET-30 terms.</p></details>
         </div>
@@ -603,7 +603,7 @@
       <div class="guarantee" data-animate="fade-up">
         <div class="guarantee-icon">&#128196;</div>
         <div class="guarantee-title">Satisfaction Guaranteed</div>
-        <div class="guarantee-text">Self-service tiers include a 48-hour review period. Enterprise contracts include 14 days with analyst support. See our <a href="refund.html" style="color:var(--accent-hover);">refund policy</a> for complete terms.</div>
+        <div class="guarantee-text">Self-service tiers (Pro and Compliance Suite) include a 7-day money-back guarantee. Enterprise contracts include 14 days with analyst support. See our <a href="refund.html" style="color:var(--accent-hover);">refund policy</a> for complete terms.</div>
       </div>
 
       <!-- Checkout Modal -->
@@ -710,7 +710,7 @@
     // Checkout modal handlers
     function openCheckoutModal(tier) {
       var modal = document.getElementById('checkoutModal');
-      var tierNames = { pro: 'SimpleBeacon Agency Reputation Suite — $99/mo', pro_annual: 'SimpleBeacon Agency Reputation Suite — $990/yr', compliance_suite: 'SimpleBeacon Enterprise Compliance & Governance — $499/mo', compliance_suite_annual: 'SimpleBeacon Enterprise Compliance & Governance — $4,990/yr', team_suite: 'SimpleBeacon Agency Reputation Suite — $99/mo', team_suite_annual: 'SimpleBeacon Agency Reputation Suite — $990/yr', enterprise: 'SimpleBeacon Enterprise — Custom', enterprise_annual: 'SimpleBeacon Enterprise — Custom', one_time_certificate: 'SimpleBeacon Audit Certificate — $149 one-time', one_time_certificate_annual: 'SimpleBeacon Audit Certificate — $149 one-time', custom: 'Custom Audit Plan' };
+      var tierNames = { startup: 'SimpleBeacon Pro — $9/mo', startup_annual: 'SimpleBeacon Pro — $90/yr', compliance: 'SimpleBeacon Compliance Suite — $399/mo', compliance_annual: 'SimpleBeacon Compliance Suite — $3,990/yr', enterprise: 'SimpleBeacon Enterprise — Custom', enterprise_annual: 'SimpleBeacon Enterprise — Custom', one_time_certificate: 'SimpleBeacon Audit Certificate — $149 one-time', one_time_certificate_annual: 'SimpleBeacon Audit Certificate — $149 one-time', custom: 'Custom Audit Plan' };
       var displayTier = tier;
       if (isAnnual) { displayTier = tier + '_annual'; }
       document.getElementById('modalTitle').textContent = 'Purchase: ' + (tierNames[displayTier] || 'License');
@@ -738,8 +738,8 @@
       var teamNote = document.getElementById('teamAnnualNote');
       var complianceNote = document.getElementById('complianceAnnualNote');
       var entNote = document.getElementById('entAnnualNote');
-      if (teamPrice) teamPrice.innerHTML = isAnnual ? '$990<span class="price-unit">/yr</span>' : '$79&ndash;$99<span class="price-unit">/mo</span>';
-      if (compliancePrice) compliancePrice.innerHTML = isAnnual ? '$4,990<span class="price-unit">/yr</span>' : '$499<span class="price-unit">/mo</span>';
+      if (teamPrice) teamPrice.innerHTML = isAnnual ? '$90<span class="price-unit">/yr</span>' : '$9<span class="price-unit">/mo</span>';
+      if (compliancePrice) compliancePrice.innerHTML = isAnnual ? '$3,990<span class="price-unit">/yr</span>' : '$399<span class="price-unit">/mo</span>';
       if (entPrice) entPrice.innerHTML = 'Custom';
       if (teamNote) teamNote.style.display = isAnnual ? 'block' : 'none';
       if (complianceNote) complianceNote.style.display = isAnnual ? 'block' : 'none';
@@ -1026,7 +1026,7 @@
       var wrap = document.getElementById('faqWrap');
       if (!wrap) return;
       wrap.innerHTML = faqs.map(function(f) {
-        return '<details class="faq-item" data-animate="fade-up"><summary>' + escapeHtml(f.q) + '</summary><p>' + escapeHtml(f.a) + '</p></details>';
+        return '<details class="faq-item"><summary>' + escapeHtml(f.q) + '</summary><p>' + escapeHtml(f.a) + '</p></details>';
       }).join('');
     }
 
@@ -1272,7 +1272,7 @@
           e.preventDefault();
           e.stopPropagation();
           if (typeof gtag === 'function') {
-            gtag('event', 'begin_checkout', { event_category: 'ecommerce', event_label: tier, value: tier === 'enterprise' ? 499 : 19 });
+            gtag('event', 'begin_checkout', { event_category: 'ecommerce', event_label: tier, value: tier === 'enterprise' ? 399 : 9 });
           }
           openCheckoutModal(tier);
           return false;
