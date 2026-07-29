@@ -32,7 +32,12 @@ async function buildReportBundle(licenseToken, reportJson) {
     let payload = null;
     if (!record) {
         // Fallback: cryptographically verify tokens not in store
-        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+        if (!secret) {
+            const err = new Error('License secret not configured');
+            err.statusCode = 503;
+            throw err;
+        }
         payload = verifyLicenseToken(licenseToken, secret);
         if (!payload) {
             const err = new Error('Invalid license token');
@@ -50,7 +55,8 @@ async function buildReportBundle(licenseToken, reportJson) {
         };
     } else {
         // Token found in store — enrich with cert fields from payload if missing
-        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+        if (!secret) return record;
         payload = verifyLicenseToken(licenseToken, secret);
         if (payload) {
             record.certClientName = record.certClientName || payload.clientName || record.clientName || 'Client';

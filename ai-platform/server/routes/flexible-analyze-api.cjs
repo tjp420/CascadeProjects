@@ -1178,7 +1178,8 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             return record;
         }
         // Fallback: cryptographically verify tokens not in store
-        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+        const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || (process.env.NODE_ENV === 'production' ? null : 'simplebeacon-dev-insecure');
+        if (!secret) return null;
         const payload = verifyLicenseToken(token, secret);
         if (!payload) return null;
         const tier = payload.tier || 'executive';

@@ -11,7 +11,11 @@ function validateProjectToken(req, res, next) {
     return res.status(401).json({ error: 'missing_token', message: 'License token required. Paste the token from your payment email.' });
   }
 
-  const payload = verifyLicenseToken(token, process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure');
+  const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
+  if (!secret) {
+    return res.status(503).json({ error: 'license_secret_not_configured', message: 'License verification is not configured.' });
+  }
+  const payload = verifyLicenseToken(token, secret);
   if (!payload) {
     return res.status(403).json({ error: 'invalid_token', message: 'License token is invalid or expired.' });
   }
