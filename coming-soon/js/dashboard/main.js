@@ -189,7 +189,7 @@ function applyFolderSizeAnalysis(files, context) {
     // Color-coded terminal line
     var color = analysis.severity === 'error' ? '#EF4444' : (analysis.severity === 'warn' ? '#F59E0B' : '#60A5FA');
     var icon = analysis.severity === 'error' ? '&#10008;' : (analysis.severity === 'warn' ? '&#9888;' : '&#9432;');
-    appendTerminalLine('<span style="color:' + color + ';font-weight:700;">' + icon + ' ' + (context || 'Folder') + ':</span> ' + analysis.message, analysis.severity === 'error' ? 'error' : 'warn');
+    appendTerminalLine('<span style="color:' + color + ';font-weight:700;">' + icon + ' ' + escapeHtml(context || 'Folder') + ':</span> ' + escapeHtml(analysis.message), analysis.severity === 'error' ? 'error' : 'warn', true);
     // Toast for errors so the user sees it even if terminal is hidden
     if (analysis.severity === 'error') {
         showToast(analysis.message, 'error', 8000);
@@ -2150,22 +2150,22 @@ async function collectFilesFromDirectoryHandle(dirHandle) {
     }
 
     if (files.length >= MAX_DISCOVERED_FILES) {
-        appendTerminalLine('<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ' + MAX_DISCOVERED_FILES.toLocaleString() + ' files discovered. Use CLI for full coverage.', 'warn');
+        appendTerminalLine('<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ' + MAX_DISCOVERED_FILES.toLocaleString() + ' files discovered. Use CLI for full coverage.', 'warn', true);
     }
     appendTerminalLine('&#128451; Discovery complete: ' + files.length.toLocaleString() + ' files, ' + traverseErrors + ' read errors.');
     if (traverseErrors > 0) {
         appendTerminalLine('Warning: ' + traverseErrors + ' files/dirs could not be read during directory traversal.', 'warn');
     }
     if (files.length >= MAX_DISCOVERED_FILES) {
-        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' + files.length.toLocaleString() + ' files discovered.', 'warn');
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' + files.length.toLocaleString() + ' files discovered.', 'warn', true);
     }
     if (localScanFileName) {
         localScanFileName.innerHTML = '<span style="font-size:1.1rem;font-weight:700;color:#60A5FA;">' + files.length.toLocaleString() + '</span> <span style="font-size:0.75rem;color:#94A3B8;">files in directory</span>';
     }
-    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>' + files.length.toLocaleString() + '</strong> files.');
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>' + files.length.toLocaleString() + '</strong> files.', undefined, true);
     // Diagnostic: warn if showDirectoryPicker returned suspiciously few files
     if (files.length > 0 && files.length < 3000) {
-        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Low file count detected:</span> The browser directory picker may have capped results at ~1,000–1,500 files. For large directories, try <strong>dragging and dropping</strong> the folder onto the dropzone instead — it uses a different API with higher limits.', 'warn');
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Low file count detected:</span> The browser directory picker may have capped results at ~1,000–1,500 files. For large directories, try <strong>dragging and dropping</strong> the folder onto the dropzone instead — it uses a different API with higher limits.', 'warn', true);
     }
     return files;
 }
@@ -2276,18 +2276,18 @@ if (browserFolderDropzone) browserFolderDropzone.addEventListener('drop', async 
         }
 
         if (files.length >= MAX_DISCOVERED_FILES) {
-            appendTerminalLine(`<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ${MAX_DISCOVERED_FILES.toLocaleString()} files discovered. Browser memory limit — use CLI for full coverage.`, 'warn');
+            appendTerminalLine(`<span style="color:#EF4444;font-weight:700;">&#9888; File limit reached:</span> ${MAX_DISCOVERED_FILES.toLocaleString()} files discovered. Browser memory limit — use CLI for full coverage.`, 'warn', true);
         }
         if (state.traverseErrors > 0) {
             appendTerminalLine(`Warning: ${state.traverseErrors} files could ! be read during directory traversal.`, 'warn');
         }
         if (files.length >= MAX_DISCOVERED_FILES) {
-            appendTerminalLine(`<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ${files.length.toLocaleString()} files discovered. Scanning very large repositories in-browser may be slow — consider using the CLI for best performance.`, 'warn');
+            appendTerminalLine(`<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ${files.length.toLocaleString()} files discovered. Scanning very large repositories in-browser may be slow — consider using the CLI for best performance.`, 'warn', true);
         }
         if (localScanFileName) {
             localScanFileName.innerHTML = `<span style="font-size:1.1rem;font-weight:700;color:#60A5FA;">${files.length.toLocaleString()}</span> <span style="font-size:0.75rem;color:#94A3B8;">files in directory</span>`;
         }
-        appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>${files.length.toLocaleString()}</strong> files.`);
+        appendTerminalLine(`<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Directory contains <strong>${files.length.toLocaleString()}</strong> files.`, undefined, true);
         const dropCheck = applyFolderSizeAnalysis(files, 'Drop');
         if (!dropCheck.proceed) return;
         // Defensive stale-data purge before new scan
@@ -2414,7 +2414,7 @@ function renderQualityScorecard(report) {
     for (const d of dims) {
         const icon = d.pass ? '✓' : '✗';
         const color = d.pass ? '#34D399' : '#EF4444';
-        appendTerminalLine(`  ${icon} <span style="color:${color};">${d.name}</span> — ${d.note}`);
+        appendTerminalLine(`  ${icon} <span style="color:${color};">${escapeHtml(d.name)}</span> — ${escapeHtml(d.note)}`, undefined, true);
     }
     appendTerminalLine(`  ${passCount}/6 dimensions passed · Report is ${overall === 'PASS' ? 'ready for certificate generation' : 'flagged for review'}.`);
     return { dims, score, overall };
@@ -2560,7 +2560,7 @@ function showAccumulationPrompt() {
     else if (total > FILE_COUNT_HIGH) badgeColor = '#EF4444';
     else if (total > 10000) badgeColor = '#F59E0B';
     else if (total > 5000) badgeColor = '#F59E0B';
-    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#128451; Accumulated:</span> <strong style="color:' + badgeColor + ';">' + total.toLocaleString() + '</strong> files from folder pick.');
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#128451; Accumulated:</span> <strong style="color:' + badgeColor + ';">' + total.toLocaleString() + '</strong> files from folder pick.', undefined, true);
     appendTerminalLine(
         '<span style="color:#94A3B8;">&#10148;</span> ' +
         '<a href="#" onclick="window._addAnotherFolder();return false;" style="color:#60A5FA;text-decoration:underline;font-weight:600;">Add another folder</a>' +
@@ -2585,7 +2585,7 @@ async function uploadFilesToServer(files, serverUrl) {
         return false;
     }
     if (files.length > 500000) {
-        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' + files.length.toLocaleString() + ' files exceed server upload limit (500k). Falling back to browser scan.', 'warn');
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888; Large repo:</span> ' + files.length.toLocaleString() + ' files exceed server upload limit (500k). Falling back to browser scan.', 'warn', true);
         return false;
     }
     const formData = new FormData();
@@ -2598,7 +2598,7 @@ async function uploadFilesToServer(files, serverUrl) {
     formData.append('licenseToken', token);
     formData.append('analysisType', 'simplebeacon');
 
-    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Uploading ' + files.length.toLocaleString() + ' files to server for full CLI scan...');
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Uploading ' + files.length.toLocaleString() + ' files to server for full CLI scan...', undefined, true);
     try {
         const res = await fetch(serverUrl + '/api/analyze/upload-directory', {
             method: 'POST',
@@ -2656,7 +2656,7 @@ async function startServerScan(projectPath) {
     const url = serverUploadUrl || '';
     const scanUrl = url + '/api/simplebeacon/scan';
     const payload = { projectPath: projectPath || '', fullDirectoryScan: true, format: 'json' };
-    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting server-side scan...', 'info');
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting server-side scan...', 'info', true);
     try {
         const res = await fetch(scanUrl, {
             method: 'POST',
@@ -2670,7 +2670,7 @@ async function startServerScan(projectPath) {
         }
         const data = await res.json();
         const report = data.report || data;
-        appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#10004;</span> Server scan complete — ' + (report.filesAnalyzed || report.totalFiles || 0).toLocaleString() + ' files analyzed.', 'success');
+        appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#10004;</span> Server scan complete — ' + (report.filesAnalyzed || report.totalFiles || 0).toLocaleString() + ' files analyzed.', 'success', true);
         reportData = report;
         window._scanPreviewData = null;
         window._scanPreviewModules = null;
@@ -2700,11 +2700,11 @@ window._startAccumulatedScan = async function() {
         appendTerminalLine('Scan cancelled — folder exceeds safe limits.', 'warn');
         return;
     }
-    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting scan with <strong>' + files.length.toLocaleString() + '</strong> files...');
+    appendTerminalLine('<span style="color:#60A5FA;font-weight:700;">&#9654;</span> Starting scan with <strong>' + files.length.toLocaleString() + '</strong> files...', undefined, true);
 
     // Low file count from browser picker — fall back to server-side scan for full coverage
     if (files.length < 1000 && serverUploadUrl) {
-        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888;</span> Browser picker returned only ' + files.length.toLocaleString() + ' files. Falling back to server-side scan for full coverage...', 'warn');
+        appendTerminalLine('<span style="color:#F59E0B;font-weight:700;">&#9888;</span> Browser picker returned only ' + files.length.toLocaleString() + ' files. Falling back to server-side scan for full coverage...', 'warn', true);
         const ok = await startServerScan();
         if (ok) {
             console.log('[_startAccumulatedScan] server scan fallback completed');
@@ -2854,7 +2854,7 @@ const panelProgressContainer = document.getElementById('panel-progress-container
 const panelProgressBar = document.getElementById('panel-progress-bar');
 
 // 2. Terminal writer
-function appendTerminalLine(text, type) {
+function appendTerminalLine(text, type, isHtml) {
     const line = document.createElement('div');
     const ts = new Date().toLocaleTimeString().split(' ')[0];
     let indicator = `<span style="color:#64748B;">[${ts}]</span> `;
@@ -2862,7 +2862,9 @@ function appendTerminalLine(text, type) {
     else if (type === 'warn') indicator += '<span style="color:#F59E0B;">&#9888; WARN:</span> ';
     else if (type === 'error') indicator += '<span style="color:#EF4444;">&#10007; CRITICAL:</span> ';
     else if (type === 'input') indicator += '<span style="color:#60A5FA;">&#10095;</span> ';
-    line.insertAdjacentHTML('beforeend', indicator + text);
+    // Escape text by default to prevent HTML injection; isHtml=true passes through trusted template HTML
+    const safeText = isHtml ? text : escapeHtml(text);
+    line.insertAdjacentHTML('beforeend', indicator + safeText);
     line.style.marginBottom = '2px';
     terminalConsole.appendChild(line);
     // Avoid unbounded DOM growth on long scans (Brave/Zorin low-memory freeze)
@@ -3052,7 +3054,7 @@ async function probeLocalBridge() {
             bridgeAvailable = true;
             const panel = document.getElementById('local-scanner-panel');
             if (panel) panel.style.display = 'block';
-            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native filesystem—no file limits.', 'info');
+            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#9889; Local Scanner Bridge detected</span> — scans will use native filesystem—no file limits.', 'info', true);
         }
     } catch (_) {
         bridgeAvailable = false;
@@ -3086,7 +3088,7 @@ async function probeDataServer() {
                 statusEl.textContent = "Connected to VS Code: sidebar";
                 statusEl.style.color = '#34D399';
             }
-            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#128225; Sidebar data server detected</span> — scan results available from VS Code: extension.', 'info');
+            appendTerminalLine('<span style="color:#34D399;font-weight:700;">&#128225; Sidebar data server detected</span> — scan results available from VS Code: extension.', 'info', true);
             // Start SSE to get real-time updates
             startDataServerSse();
         }
@@ -3144,10 +3146,10 @@ async function fetchSidebarData() {
             scanPreview.style.display = 'block';
             updateSubmit();
         }
-        appendTerminalLine(`<span style="color:#34D399;font-weight:700;">&#128229;</span> Loaded sidebar report — ${report.totalFiles || report.filesAnalyzed || '?'} files, score ${report.qualityScore != null ? report.qualityScore : '?'}/100`, 'success');
+        appendTerminalLine(`<span style="color:#34D399;font-weight:700;">&#128229;</span> Loaded sidebar report — ${escapeHtml(report.totalFiles || report.filesAnalyzed || '?')} files, score ${escapeHtml(report.qualityScore != null ? report.qualityScore : '?')}/100`, 'success', true);
         showToast(`Sidebar report loaded: ${report.totalFiles || report.filesAnalyzed || '?'} files`, 'success');
     } catch (err) {
-        appendTerminalLine(`<span style="color:#EF4444;">&#10008;</span> Failed to fetch sidebar data: ${err.message}`, 'error');
+        appendTerminalLine(`<span style="color:#EF4444;">&#10008;</span> Failed to fetch sidebar data: ${escapeHtml(err.message)}`, 'error', true);
         showToast('Failed to fetch sidebar data: ' + err.message, 'error');
     } finally {
         if (btn) { btn.disabled = false; btn.textContent = "Fetch from Sidebar"; }
@@ -3190,7 +3192,9 @@ function appendLocalScannerLine(html, type) {
     if (!term) return;
     const line = document.createElement('div');
     line.className = 'log-line';
-    line.innerHTML = `<span class="log-ts">${new Date().toLocaleTimeString()}</span> ${html}`;
+    // Escape html by default; type='html' passes through trusted template HTML
+    const safeHtml = type === 'html' ? html : escapeHtml(html);
+    line.innerHTML = `<span class="log-ts">${new Date().toLocaleTimeString()}</span> ${safeHtml}`;
     term.appendChild(line);
     term.scrollTop = term.scrollHeight;
 }
@@ -3262,7 +3266,7 @@ async function startLocalScan() {
         try {
             const data = JSON.parse(e.data);
             if (e.lastEventId === 'phase') {
-                appendLocalScannerLine(`<span style="color:#60A5FA;">&#10148;</span> ${data.message || data.phase}`, 'info');
+                appendLocalScannerLine(`<span style="color:#60A5FA;">&#10148;</span> ${escapeHtml(data.message || data.phase)}`, 'html');
                 if (statusDiv) statusDiv.textContent = data.message || data.phase;
             }
             if (e.lastEventId === 'progress') {
@@ -3270,18 +3274,18 @@ async function startLocalScan() {
                 if (statusDiv) statusDiv.textContent = `${data.percent}% — ${data.processed.toLocaleString()} / ${data.total.toLocaleString()} files (${data.findingsSoFar} findings)`;
             }
             if (e.lastEventId === 'discoveryComplete') {
-                appendLocalScannerLine(`<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Discovered ${data.totalFiles.toLocaleString()} files`, 'info');
+                appendLocalScannerLine(`<span style="color:#60A5FA;font-weight:700;">&#128451;</span> Discovered ${data.totalFiles.toLocaleString()} files`, 'html');
             }
             if (e.lastEventId === 'complete') {
-                appendLocalScannerLine(`<span style="color:#34D399;font-weight:700;">&#10004;</span> Scan complete — ${data.filesAnalyzed.toLocaleString()} files analyzed in ${(data.durationMs / 1000).toFixed(1)}s`, 'success');
+                appendLocalScannerLine(`<span style="color:#34D399;font-weight:700;">&#10004;</span> Scan complete — ${data.filesAnalyzed.toLocaleString()} files analyzed in ${(data.durationMs / 1000).toFixed(1)}s`, 'html');
                 if (bridgeEventSource) { bridgeEventSource.close(); bridgeEventSource = null; }
                 fetchReportAndLoad();
             }
             if (e.lastEventId === 'error') {
-                appendLocalScannerLine(`<span style="color:#EF4444;">&#10008;</span> ${data.message}`, 'error');
+                appendLocalScannerLine(`<span style="color:#EF4444;">&#10008;</span> ${escapeHtml(data.message)}`, 'html');
             }
             if (e.lastEventId === 'cancelled') {
-                appendLocalScannerLine(`<span style="color:#F59E0B;">&#9209;</span> Scan cancelled`, 'warn');
+                appendLocalScannerLine(`<span style="color:#F59E0B;">&#9209;</span> Scan cancelled`, 'html');
                 if (bridgeEventSource) { bridgeEventSource.close(); bridgeEventSource = null; }
             }
         } catch (_) {}
@@ -3297,9 +3301,9 @@ async function startLocalScan() {
         return r.json();
     }).then(j => {
         console.log('[startLocalScan] bridge POST response=' + JSON.stringify(j));
-        appendLocalScannerLine(`<span style="color:#60A5FA;">&#9432;</span> Scan job started: ${j.scanId}`, 'info');
+        appendLocalScannerLine(`<span style="color:#60A5FA;">&#9432;</span> Scan job started: ${escapeHtml(j.scanId)}`, 'html');
     }).catch(err => {
-        appendLocalScannerLine(`<span style="color:#EF4444;">&#10008;</span> Failed to start scan: ${err.message}`, 'error');
+        appendLocalScannerLine(`<span style="color:#EF4444;">&#10008;</span> Failed to start scan: ${escapeHtml(err.message)}`, 'html');
         if (bridgeEventSource) { bridgeEventSource.close(); bridgeEventSource = null; }
     });
 }
@@ -3309,7 +3313,7 @@ async function fetchReportAndLoad() {
         const res = await fetch(`${BRIDGE_URL}/result`, { mode: 'cors' });
         if (!res.ok) throw new Error('Report not ready');
         const report = await res.json();
-        appendLocalScannerLine(`<span style="color:#34D399;font-weight:700;">&#128229;</span> Report loaded — ${report.totalFiles ? report.totalFiles.toLocaleString() : '?'} files, score ${report.qualityScore != null ? report.qualityScore : '?'}/100`, 'success');
+        appendLocalScannerLine(`<span style="color:#34D399;font-weight:700;">&#128229;</span> Report loaded — ${report.totalFiles ? report.totalFiles.toLocaleString() : '?'} files, score ${report.qualityScore != null ? report.qualityScore : '?'}/100`, 'html');
         reportData = report;
         if (typeof window.renderPreview === 'function') {
             window.renderPreview(reportData);
@@ -3318,7 +3322,7 @@ async function fetchReportAndLoad() {
         }
         showToast(`Local scan complete: ${report.totalFiles ? report.totalFiles.toLocaleString() : '?'} files`, 'success');
     } catch (err) {
-        appendLocalScannerLine(`<span style="color:#EF4444;">&#10008;</span> Failed to load report: ${err.message}`, 'error');
+        appendLocalScannerLine(`<span style="color:#EF4444;">&#10008;</span> Failed to load report: ${escapeHtml(err.message)}`, 'html');
     }
 }
 
