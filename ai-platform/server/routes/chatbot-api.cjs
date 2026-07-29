@@ -262,6 +262,17 @@ function setupChatbotAPI(app) {
 
   const MOCK_ENABLED = process.env.SIMPLEBEACON_CHATBOT_MOCK === 'true';
 
+  // General message rate limiter — 30 messages per minute per IP/user
+  const messageLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    keyGenerator: (r) => (r.user && r.user.email) ? String(r.user.email).toLowerCase() : r.ip,
+    handler: (r, res) => {
+      try { logSecurityEvent('chatbot_message_rate_limited', { ip: r.ip, path: r.originalUrl }, r.user, r); } catch (e) {}
+      return res.status(429).json({ success: false, error: 'rate_limited', message: 'Too many chatbot messages, try later' });
+    }
+  });
+
   function sanitizeModelIdentifier(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
@@ -292,6 +303,18 @@ function setupChatbotAPI(app) {
       const ALLOWED_PROVIDERS = ['openai', 'anthropic', 'ollama'];
       if (!ALLOWED_PROVIDERS.includes(provider)) {
         return res.status(400).json({ success: false, error: `Unsupported provider: ${provider}` });
+      }
+
+      // Apply general message rate limiting (30 messages/min per IP/user)
+      try {
+        await new Promise((resolve, reject) => {
+          messageLimiter(req, res, (err) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
+      } catch (err) {
+        return; // rate limiter already sent response
       }
 
       // Mock provider mode — returns a canned response for E2E testing without real API keys

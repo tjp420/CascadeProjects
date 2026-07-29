@@ -27,7 +27,19 @@ jobs:
         node-version: '20'
         cache: 'npm'
     
-    - name: Install dependencies
+    - name: Cache Node Modules
+      id: cache-nodemodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/node_modules
+          ~/.cache/pip
+          ~/.cache/puppeteer
+        key: ${{ runner.os }}-node-v20-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-v20-
+    - name: Install Dependencies
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: npm ci
     
     - name: Run Simplebeacon scan with gate
@@ -96,11 +108,25 @@ jobs:
         node-version: '20'
         cache: 'npm'
     
-    - name: Install dependencies
+    - name: Cache Node Modules
+      id: cache-nodemodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/node_modules
+          ~/.cache/pip
+          ~/.cache/puppeteer
+        key: ${{ runner.os }}-node-v20-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-v20-
+    - name: Install Dependencies
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: npm ci
     
     - name: Run tests with coverage
       run: npm run test:coverage
+      env:
+        SIMPLEBEACON_CHATBOT_MOCK: 'true'
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -136,7 +162,19 @@ jobs:
         node-version: '20'
         cache: 'npm'
     
-    - name: Install dependencies
+    - name: Cache Node Modules
+      id: cache-nodemodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/node_modules
+          ~/.cache/pip
+          ~/.cache/puppeteer
+        key: ${{ runner.os }}-node-v20-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-v20-
+    - name: Install Dependencies
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: npm ci
     
     - name: Verify docker-compose.phase2.yml exists
@@ -206,7 +244,19 @@ jobs:
         node-version: '20'
         cache: 'npm'
     
-    - name: Install dependencies
+    - name: Cache Node Modules
+      id: cache-nodemodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/node_modules
+          ~/.cache/pip
+          ~/.cache/puppeteer
+        key: ${{ runner.os }}-node-v20-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-v20-
+    - name: Install Dependencies
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: npm ci
     
     - name: Configure test environment
@@ -228,6 +278,7 @@ jobs:
         npm run test:integration
       env:
         NODE_ENV: test
+        SIMPLEBEACON_CHATBOT_MOCK: 'true'
     
     - name: Test database connectivity
       run: |
@@ -283,7 +334,19 @@ jobs:
         node-version: '20'
         cache: 'npm'
     
-    - name: Install dependencies
+    - name: Cache Node Modules
+      id: cache-nodemodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/node_modules
+          ~/.cache/pip
+          ~/.cache/puppeteer
+        key: ${{ runner.os }}-node-v20-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-v20-
+    - name: Install Dependencies
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: npm ci
     
     - name: Run npm audit
@@ -306,6 +369,15 @@ jobs:
         fi
         
         echo "✅ No obvious hardcoded secrets found"
+    
+    - name: Check for insecure license fallback string
+      run: |
+        if grep -r -F "simplebeacon-dev-insecure" --include="*.cjs" --include="*.js" --include="*.ts" --exclude-dir=node_modules --exclude-dir=.git server/middleware server/routes src/api; then
+          echo "❌ Insecure fallback secret 'simplebeacon-dev-insecure' found in production code"
+          exit 1
+        fi
+        
+        echo "✅ No insecure license fallback string found"
 
   # Performance Tests
   performance-tests:
@@ -322,7 +394,19 @@ jobs:
         node-version: '20'
         cache: 'npm'
     
-    - name: Install dependencies
+    - name: Cache Node Modules
+      id: cache-nodemodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/node_modules
+          ~/.cache/pip
+          ~/.cache/puppeteer
+        key: ${{ runner.os }}-node-v20-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-v20-
+    - name: Install Dependencies
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: npm ci
     
     - name: Start application
@@ -372,7 +456,19 @@ jobs:
         node-version: '20'
         cache: 'npm'
 
-    - name: Install dependencies
+    - name: Cache Node Modules
+      id: cache-nodemodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/node_modules
+          ~/.cache/pip
+          ~/.cache/puppeteer
+        key: ${{ runner.os }}-node-v20-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-v20-
+    - name: Install Dependencies
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: npm ci
 
     - name: Run pre-deploy gate
@@ -403,7 +499,19 @@ jobs:
         node-version: '20'
         cache: 'npm'
     
-    - name: Install dependencies
+    - name: Cache Node Modules
+      id: cache-nodemodules
+      uses: actions/cache@v4
+      with:
+        path: |
+          **/node_modules
+          ~/.cache/pip
+          ~/.cache/puppeteer
+        key: ${{ runner.os }}-node-v20-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-v20-
+    - name: Install Dependencies
+      if: steps.cache-nodemodules.outputs.cache-hit != 'true'
       run: npm ci
     
     - name: Run build
@@ -501,3 +609,34 @@ jobs:
           echo "## 🚫 Overall Status: ❌ $failed_jobs CHECKS FAILED" >> $GITHUB_STEP_SUMMARY
           echo "Please address the failing jobs before merging." >> $GITHUB_STEP_SUMMARY
         fi
+
+  # Broadcast Pipeline Failure
+  notify-failure:
+    name: 🚨 Broadcast Pipeline Failure
+    runs-on: ubuntu-latest
+    needs: [hygiene-gate, test-coverage, phase2-tests, security-audit, performance-tests, build-test, predeploy-gate]
+    if: failure() # Only triggers if any dependent gate exits non-zero
+    steps:
+      - name: Send Slack Notification webhook
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "❌ *SimpleBeacon Pipeline Crash on branch '${{ github.ref_name }}'*",
+              "attachments": [
+                {
+                  "color": "#FF0000",
+                  "title": "Gate Failure Summary",
+                  "text": "Workflow URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\nTriggered By: ${{ github.actor }}\nEvent Type: ${{ github.event_name }}",
+                  "fields": [
+                    {
+                      "title": "Status",
+                      "value": "CRITICAL DEPLOYMENT BLOCK",
+                      "short": true
+                    }
+                  ]
+                }
+              ]
+            }

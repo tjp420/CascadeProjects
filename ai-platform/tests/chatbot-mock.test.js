@@ -84,3 +84,40 @@ describe('Chatbot mock provider mode', () => {
     expect(res.body.needsConfiguration).toBe(false);
   });
 });
+
+describe('Chatbot message rate limiting', () => {
+  let rateApp;
+
+  beforeAll(() => {
+    process.env.NODE_ENV = 'test';
+    process.env.PORT = '0';
+    process.env.SIMPLEBEACON_CHATBOT_MOCK = 'true';
+
+    rateApp = express();
+    rateApp.use(express.json());
+    rateApp.use(express.urlencoded({ extended: true }));
+
+    const chatbotApi = require('../server/routes/chatbot-api.cjs');
+    chatbotApi.setupChatbotAPI(rateApp);
+  });
+
+  afterAll(() => {
+    delete process.env.SIMPLEBEACON_CHATBOT_MOCK;
+  });
+
+  test('POST /api/chatbot/message returns 429 after 30 messages in 1 minute', async () => {
+    // Send 30 messages — all should succeed (mock mode)
+    for (let i = 0; i < 30; i++) {
+      const res = await request(rateApp)
+        .post('/api/chatbot/message')
+        .send({ message: `msg-${i}`, provider: 'openai' });
+      expect(res.status).toBe(200);
+    }
+    // 31st message should be rate limited
+    const res = await request(rateApp)
+      .post('/api/chatbot/message')
+      .send({ message: 'msg-31', provider: 'openai' });
+    expect(res.status).toBe(429);
+    expect(res.body.error).toBe('rate_limited');
+  });
+});
