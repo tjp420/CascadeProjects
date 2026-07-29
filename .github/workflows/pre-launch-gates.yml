@@ -1,0 +1,62 @@
+name: Pre-Launch Quality and Privacy Gates
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  security-audit:
+    name: Security and Environment Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scan dependencies
+        run: npm audit --audit-level=high
+
+      - name: Check for insecure auth fallback strings
+        run: |
+          if grep -R -n "simplebeacon-dev-insecure" ai-platform/server/routes/auth-inline-routes.cjs; then
+            echo "ERROR: insecure fallback secret detected in auth-inline-routes.cjs"
+            exit 1
+          fi
+
+  privacy-and-integration-testing:
+    name: Playwright Integration and Privacy Gate
+    runs-on: ubuntu-latest
+    needs: security-audit
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build application if build scripts exist
+        run: npm run build --workspaces --if-present
+
+      - name: Run Playwright license privacy gate
+        run: node scripts/ci/playwright-license-gate-check.mjs

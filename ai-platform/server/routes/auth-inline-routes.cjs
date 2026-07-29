@@ -21,6 +21,11 @@ const DatabaseAdapter = require('../lib/database-adapter.cjs');
 
 const router = express.Router();
 
+function resolveLicenseSecret() {
+  const secret = (process.env.SIMPLEBEACON_LICENSE_SECRET || '').trim();
+  return secret || null;
+}
+
 let dbAdapter = null;
 if (isDatabaseEnabled()) {
   try {
@@ -84,7 +89,15 @@ router.post('/auth/token-status', (req, res) => {
     return res.status(400).json({ registered: false, valid: false, error: 'Token required' });
   }
 
-  const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+  const secret = resolveLicenseSecret();
+  if (!secret) {
+    return res.status(503).json({
+      registered: false,
+      valid: false,
+      error: 'License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured'
+    });
+  }
+
   const claims = verifyLicenseToken(token, secret);
   if (claims) {
     const email = claims.sub || claims.email || null;
@@ -120,7 +133,17 @@ router.post('/license/validate', (req, res) => {
     return res.status(400).json({ active: false, sandbox: true, registered: false, valid: false, error: 'Token required' });
   }
 
-  const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+  const secret = resolveLicenseSecret();
+  if (!secret) {
+    return res.status(503).json({
+      active: false,
+      sandbox: true,
+      registered: false,
+      valid: false,
+      error: 'License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured'
+    });
+  }
+
   const claims = verifyLicenseToken(token, secret);
   const entry = getLicenseToken(token);
   const registered = !!claims || !!entry;
