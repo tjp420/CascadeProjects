@@ -55,6 +55,11 @@ const PUBLIC_API_PATHS = new Set([
     'chatbot/disclosure',
     'chatbot/providers',
     'chatbot/message',
+    // Referral program — public capture, link generation, stats, invites
+    'referral/capture',
+    'referral/link',
+    'referral/stats',
+    'referral/invite',
     // Legacy dashboard.html scanner wiring (read-only repository scans)
     'project-structure',
     'backlog',

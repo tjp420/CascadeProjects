@@ -39,6 +39,12 @@ router.post('/register', async (req, res) => {
     if (result.error) {
       return res.status(409).json({ error: 'Registration failed', message: result.error });
     }
+    try {
+      const { processReferralSignup } = require('../../../coming-soon/lib/referral-webhook.cjs');
+      processReferralSignup(req, result.user.email);
+    } catch (referralErr) {
+      // Non-blocking — signup succeeds even if referral cookie is absent
+    }
     const token = tokenServiceGenerateToken(result.user);
     res.json({
       message: 'Registration successful',

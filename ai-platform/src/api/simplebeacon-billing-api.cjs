@@ -39,6 +39,10 @@ const { insertLicenseToken } = require('../../server/lib/token-db.cjs');
 const { generateLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
 const { getTierConfigByPriceId, getTierConfigByProduct } = require('../../server/config/stripe.cjs');
 const { buildReportBundle } = require('./billing/report-bundle-builder.cjs');
+const {
+  buildReferralCheckoutMetadata,
+  processStripeReferralAttribution
+} = require('../../../coming-soon/lib/referral-webhook.cjs');
 
 // ── Extracted billing sub-modules ──
 const {
@@ -300,6 +304,15 @@ function setupSimplebeaconBillingWebhook(app) {
                 logger.error('[Simplebeacon billing] Post-payment scan failed:', err.message);
               });
             }
+
+            try {
+              const referralResult = processStripeReferralAttribution(session);
+              if (referralResult?.converted) {
+                logger.info('[Simplebeacon billing] Referral conversion:', referralResult.attributionId);
+              }
+            } catch (referralErr) {
+              logger.warn('[Simplebeacon billing] Referral attribution skipped:', referralErr.message);
+            }
             break;
           }
           case 'customer.subscription.updated': {
@@ -452,7 +465,7 @@ function setupSimplebeaconBillingRoutes(app) {
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${baseUrl}${successPath}`,
         cancel_url: `${baseUrl}/dashboard/pricing?canceled=true`,
-        metadata: { email, product, projectName, certClientName }
+        metadata: { email, product, projectName, certClientName, ...buildReferralCheckoutMetadata(req, req.body) }
       };
 
       if (mode === 'subscription') {
