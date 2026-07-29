@@ -76,9 +76,10 @@ function resolvePolicyGateConfig() {
 }
 
 function runPolicyGate() {
-    const isLocalDevMode = process.env.NODE_ENV === 'development' && process.env.SIMPLEBEACON_DISABLE_POLICY_GATE === 'true';
-    if (isLocalDevMode) {
-        console.warn('[TRUST BYPASS] Policy gate skipped in local development');
+    const bypassRequested = ['1', 'true', 'yes', 'on'].includes(String(process.env.SIMPLEBEACON_DISABLE_POLICY_GATE || '').trim().toLowerCase());
+    const isLocalDevMode = process.env.NODE_ENV === 'development' && bypassRequested;
+    if (bypassRequested || isLocalDevMode) {
+        console.warn('[TRUST BYPASS] Policy gate skipped by local override');
         return null;
     }
 
@@ -223,6 +224,7 @@ function createDefaultOptions(command) {
         message: null,
         link: false,
         sendEmail: false,
+        jsonOutput: false,
         tier: null,
         forceNpmAudit: false,
         debug: false,
@@ -298,7 +300,7 @@ const FLAG_MAP = [
     { aliases: ['--force-npm-audit'], key: 'forceNpmAudit', type: 'boolean' },
     { aliases: ['--email'], key: 'email', type: 'string' },
     { aliases: ['--from'], key: 'from', type: 'string' },
-    { aliases: ['--message'], key: 'message', type: 'string' },
+    { aliases: ['--message', '-m'], key: 'message', type: 'string' },
     { aliases: ['--link'], key: 'link', type: 'boolean' },
     { aliases: ['--send-email'], key: 'sendEmail', type: 'boolean' },
     { aliases: ['--server'], key: 'server', type: 'string' },
@@ -312,9 +314,7 @@ const FLAG_MAP = [
     { aliases: ['--base-ref'], key: 'baseRef', type: 'string' },
     { aliases: ['--head-ref'], key: 'headRef', type: 'string' },
     { aliases: ['--json'], key: 'jsonOutput', type: 'boolean', extra: (o) => { o.format = 'json'; } },
-    { aliases: ['--invitee-email', '--to'], key: 'inviteeEmail', type: 'string' },
-    { aliases: ['--message', '-m'], key: 'message', type: 'string' },
-    { aliases: ['--send-email'], key: 'sendEmail', type: 'boolean' }
+    { aliases: ['--invitee-email', '--to'], key: 'inviteeEmail', type: 'string' }
 ];
 
 // Auto-derive knownFlags from FLAG_MAP so it never drifts
@@ -470,7 +470,7 @@ Usage:
   simplebeacon reduce [options]     Analyze repo for file-reduction opportunities (dry-run)
   simplebeacon pdf [options]        Generate Executive Risk Certificate (requires license token)
   simplebeacon buy-clearance        Purchase executive clearance and receive license token
-    simplebeacon refer [options]      Generate a local-only referral token and share link
+  simplebeacon refer [options]      Generate a local-only referral token and share link
   simplebeacon ai-plan [options]   Generate AI-friendly remediation plan from scan results
   simplebeacon doctor              Runs integrity diagnostics, applies auto-fixes, and generates triage packages
 
@@ -481,10 +481,10 @@ buy-clearance options:
   --max-polls <n>   Maximum poll attempts (default: 60)
 
 refer options:
-    --email <addr>      Target colleague email (required)
-    --server <url>      Base URL for generated referral link (default: https://simplebeacon.ai)
-    --json              Machine-readable output
-    --format json       Machine-readable output (alias)
+  --email <addr>      Target colleague email (required)
+  --server <url>      Base URL for generated referral link (default: https://simplebeacon.ai)
+  --json              Machine-readable output
+  --format json       Machine-readable output (alias)
 
 PDF options:
   --report <file>     Scan report JSON (default: .simplebeacon/report.json)
@@ -1597,7 +1597,7 @@ async function runReferCommand(options) {
     const { runReferSubcommand } = require('../src/commands/refer');
     return runReferSubcommand(options, {
         writeOut: writeStdoutLine,
-        writeErr: (message) => console.error(message)
+        writeErr: (...args) => console.error(...args)
     });
 }
 

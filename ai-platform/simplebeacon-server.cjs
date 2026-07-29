@@ -1502,6 +1502,15 @@ async function startServer() {
     logger.warn('[TokenValidate] Routes not loaded:', e.message);
   }
 
+  // Referral program — link generation, click capture, invite emails
+  try {
+    const referralRoutes = require('../coming-soon/routes/referral.cjs');
+    app.use(referralRoutes);
+    logger.info('[Referral] Referral API routes mounted');
+  } catch (e) {
+    logger.warn('[Referral] Referral routes not loaded:', e.message);
+  }
+
   try {
     const { startEmailRetryWorker } = require('../coming-soon/lib/email-retry-bootstrap.cjs');
     startEmailRetryWorker({ logger });
