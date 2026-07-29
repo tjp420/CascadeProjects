@@ -12,9 +12,11 @@
     "format": "npx prettier --write .",
     "analyze": "node analyze-directory.js",
     "analyze:full": "node analyze-directory.js --output .simplebeacon/analyzer-report.json",
-    "quality:check": "npx simplebeacon scan . --gate --offline",
+    "quality:check": "node scripts/quality-check.cjs",
     "email:setup": "node tools/setup-email.cjs",
     "email:test": "node tools/setup-email.cjs --send",
+    "email:probe": "node tools/probe-email.cjs --dry-run",
+    "email:probe:send": "node tools/probe-email.cjs --send",
     "deploy": "wrangler pages deploy public --project-name=simplebeacon"
   },
   "keywords": [],
