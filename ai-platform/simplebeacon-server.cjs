@@ -214,8 +214,8 @@ app.use((req, res, next) => {
   const prodConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self' https://simplebeacon.onrender.com https://*.onrender.com http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " http://localhost:" + SCANNER_BRIDGE_PORT + " http://127.0.0.1:" + LIVE_SERVER_PORT + " http://localhost:" + LIVE_SERVER_PORT + DEFAULT_PORTS.flatMap(p => [" http://127.0.0.1:" + p, " http://localhost:" + p]).join(""); // simplebeacon-ignore hardcoded-url — Render and localhost origins for dashboard API
   const devConnectOrigins = process.env.SIMPLEBEACON_CSP_CONNECT_ORIGINS || "'self' ws: wss: http: https: http://127.0.0.1:" + SCANNER_BRIDGE_PORT + " http://localhost:" + SCANNER_BRIDGE_PORT + " http://127.0.0.1:" + LIVE_SERVER_PORT + " http://localhost:" + LIVE_SERVER_PORT + DEFAULT_PORTS.flatMap(p => [" http://127.0.0.1:" + p, " http://localhost:" + p]).join(""); // simplebeacon-ignore hardcoded-url — localhost dev CSP origins, never production
   const csp = process.env.NODE_ENV === 'production'
-    ? `default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src ${prodConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'self' vscode-webview: vscode-extension:; base-uri 'self'; form-action 'self';`
-    : `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src ${devConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors *;`
+    ? `default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src ${prodConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors 'self' vscode-webview: vscode-extension:; base-uri 'self'; form-action 'self';`
+    : `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; connect-src ${devConnectOrigins}; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-ancestors *;`
   res.setHeader('Content-Security-Policy', csp);
   next();
 });
@@ -1073,6 +1073,30 @@ async function bootstrapPhase2Routes() {
         next();
     });
 
+    // Fix strategies endpoint (read-only) used by dashboard Tools view
+    const fixStrategiesRouter = express.Router();
+    fixStrategiesRouter.get('/strategies', authenticate, (_req, res) => {
+        const strategyMap = {
+            'debugger-statement': { strategy: 'delete', confidence: 0.95 },
+            'console-log': { strategy: 'delete', confidence: 0.95 },
+            'eval-usage': { strategy: 'replace', confidence: 0.6 },
+            'todo-comment': { strategy: 'delete', confidence: 0.85 },
+            'fixme-comment': { strategy: 'delete', confidence: 0.85 },
+            'hardcoded-secret': { strategy: 'replace', confidence: 0.75 },
+            'unhandled-promise': { strategy: 'wrap', confidence: 0.7 },
+            'missing-strict-mode': { strategy: 'wrap', confidence: 0.95 },
+            'missing-rate-limit': { strategy: 'insert', confidence: 0.85 },
+            'prototype-pollution': { strategy: 'replace', confidence: 0.8 },
+            'insecure-random': { strategy: 'wrap', confidence: 0.6 },
+            'debug-artifact': { strategy: 'delete', confidence: 0.9 },
+            'tech-debt': { strategy: 'delete', confidence: 0.85 },
+            'config-drift': { strategy: 'replace', confidence: 0.7 },
+            'security-headers': { strategy: 'wrap', confidence: 0.65 },
+        };
+        res.json({ success: true, strategies: strategyMap });
+    });
+    app.use('/api/v2/fixes', authenticate, fixStrategiesRouter);
+
     const routeSetups = [
         { name: 'localModels', fn: () => setupLocalModelsAPI(app, { baseDir: __dirname }) },
         { name: 'flexibleAnalyze', fn: () => setupFlexibleAnalyzeAPI(app, {
@@ -1143,6 +1167,14 @@ async function startServer() {
 
   // Auth routes are always registered, even if phase 2 bootstrap partially failed
   app.use('/api/auth', authRoutes);
+
+  // Newsletter subscription — public, no auth required (pricing page email signup)
+  try {
+    const subscriptionRoutes = require('../coming-soon/routes/subscriptions.cjs');
+    app.use(subscriptionRoutes);
+  } catch (err) {
+    logger.warn('[Routes] Subscriptions routes not loaded:', err.message);
+  }
 
   // CLI upload API key — returns the authenticated user's current JWT so the dashboard CLI card
   // can poll /api/simplebeacon/history and fetch reports on the same origin.

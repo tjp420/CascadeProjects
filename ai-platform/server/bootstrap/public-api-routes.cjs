@@ -38,6 +38,7 @@ const PUBLIC_API_PATHS = new Set([
     'simplebeacon/ci/telemetry/summary',
     'quota/check',
     'quota/consume',
+    'subscribe',
     'reports/upload',
     'trust/verification',
     'trust/verify',
