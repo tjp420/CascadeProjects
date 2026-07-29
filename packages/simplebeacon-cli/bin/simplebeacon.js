@@ -7,6 +7,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const { orchestratePolicyPipeline } = require('../src/policy/PolicyOrchestrator');
+const { TrustStore } = require('../src/policy/signature-verifier');
 const {
     loadSimplebeaconConfig,
     initSimplebeacon,
@@ -56,6 +58,34 @@ const { installDeveloperStack } = require('../src/lib/developer-onboarding');
 const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp', 'ai-plan', 'doctor', 'upload']);
 
 let _cliDebugMode = false;
+
+function resolvePolicyGateConfig() {
+    const fingerprint = String(process.env.SIMPLEBEACON_POLICY_TRUST_FINGERPRINT || '').trim().toLowerCase();
+    let publicKeyPem = String(process.env.SIMPLEBEACON_POLICY_PUBLIC_KEY || '').trim();
+
+    const publicKeyPath = String(process.env.SIMPLEBEACON_POLICY_PUBLIC_KEY_PATH || '').trim();
+    if (!publicKeyPem && publicKeyPath) {
+        publicKeyPem = fs.readFileSync(publicKeyPath, 'utf8');
+    }
+
+    return {
+        trustStore: fingerprint && publicKeyPem ? new TrustStore({ [fingerprint]: publicKeyPem }) : null,
+        orgPolicyPath: String(process.env.SIMPLEBEACON_ORG_POLICY_PATH || '').trim() || path.join(process.env.HOME || process.env.USERPROFILE || process.cwd(), '.simplebeacon', 'org.policy.json'),
+        repoPolicyPath: String(process.env.SIMPLEBEACON_REPO_POLICY_PATH || '').trim() || path.join(process.cwd(), 'simplebeacon.policy.json')
+    };
+}
+
+function runPolicyGate() {
+    const { trustStore, orgPolicyPath, repoPolicyPath } = resolvePolicyGateConfig();
+
+    if (!trustStore) {
+        console.error('[AUDIT FAILURE] Policy gate requires SIMPLEBEACON_POLICY_TRUST_FINGERPRINT and SIMPLEBEACON_POLICY_PUBLIC_KEY or SIMPLEBEACON_POLICY_PUBLIC_KEY_PATH');
+        process.exit(78);
+    }
+
+    const repoPath = repoPolicyPath && fs.existsSync(repoPolicyPath) ? repoPolicyPath : null;
+    orchestratePolicyPipeline(orgPolicyPath, repoPath, trustStore);
+}
 
 function writeStdoutLine(message = '') {
     process.stdout.write(`${message == null ? '' : String(message)}\n`);
@@ -1556,6 +1586,10 @@ const COMMAND_REGISTRY = {
 };
 
 async function main() {
+    // Only run policy gate if trust fingerprint is explicitly configured
+    if (process.env.SIMPLEBEACON_POLICY_TRUST_FINGERPRINT) {
+        runPolicyGate();
+    }
     const options = parseArgs(process.argv);
 
     if (options.version) {
