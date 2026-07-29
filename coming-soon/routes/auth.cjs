@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const db = require('../lib/db.cjs');
+const { processReferralSignup } = require('../lib/referral-webhook.cjs');
 
 const logger = {
     info: (...a) => { const c = globalThis.console; c.info(...a); },
@@ -96,6 +97,11 @@ router.post('/api/auth/register', express.json(), async (req, res) => {
         const passwordHash = await hashPassword(password, salt);
         const user = db.createUser(email, passwordHash, salt, 'community');
         const token = generateSessionToken(user);
+        try {
+            processReferralSignup(req, user.email);
+        } catch (referralErr) {
+            logger.warn('[Auth] Referral signup attribution skipped:', referralErr.message);
+        }
         logger.info('[Auth] Registration success:', email);
 
         res.json({

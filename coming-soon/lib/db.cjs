@@ -136,6 +136,58 @@ function getDb() {
             );
             CREATE INDEX IF NOT EXISTS idx_cli_reports_email ON cli_reports(customer_email);
             CREATE INDEX IF NOT EXISTS idx_cli_reports_created ON cli_reports(created_at DESC);
+            CREATE TABLE IF NOT EXISTS webhook_events (
+                id TEXT PRIMARY KEY,
+                source TEXT NOT NULL,
+                event_type TEXT NOT NULL,
+                payload_hash TEXT,
+                received_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_webhook_events_source_received ON webhook_events(source, received_at DESC);
+            CREATE TABLE IF NOT EXISTS referrers (
+                id TEXT PRIMARY KEY,
+                user_email TEXT UNIQUE NOT NULL,
+                partner_code TEXT UNIQUE NOT NULL,
+                tier TEXT DEFAULT 'developer',
+                scans_bonus INTEGER DEFAULT 0,
+                cert_credit_cents INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS referral_links (
+                id TEXT PRIMARY KEY,
+                referrer_id TEXT NOT NULL,
+                slug TEXT UNIQUE NOT NULL,
+                channel TEXT NOT NULL,
+                clicks INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(referrer_id) REFERENCES referrers(id)
+            );
+            CREATE TABLE IF NOT EXISTS referral_attributions (
+                id TEXT PRIMARY KEY,
+                link_id TEXT NOT NULL,
+                referee_email TEXT,
+                referee_ip_hash TEXT NOT NULL,
+                status TEXT DEFAULT 'clicked',
+                cookie_expires TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now')),
+                converted_at TEXT,
+                FOREIGN KEY(link_id) REFERENCES referral_links(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_ref_links_slug ON referral_links(slug);
+            CREATE INDEX IF NOT EXISTS idx_ref_attr_ip ON referral_attributions(referee_ip_hash);
+            CREATE TABLE IF NOT EXISTS referral_rewards (
+                id TEXT PRIMARY KEY,
+                attribution_id TEXT NOT NULL,
+                referrer_id TEXT NOT NULL,
+                reward_type TEXT NOT NULL DEFAULT 'cert_credit',
+                reward_value INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'granted',
+                granted_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY(attribution_id) REFERENCES referral_attributions(id),
+                FOREIGN KEY(referrer_id) REFERENCES referrers(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_ref_rewards_referrer ON referral_rewards(referrer_id);
+            CREATE INDEX IF NOT EXISTS idx_ref_rewards_attribution ON referral_rewards(attribution_id);
         `);
     }
     // Schema migrations for existing databases
@@ -469,6 +521,239 @@ function markValidationCodeUsed(id) {
     ).run(id);
 }
 
+function recordWebhookEvent(eventId, source, eventType, payloadHash) {
+    if (!eventId) return false;
+    const db = getDb();
+    const result = db.prepare(
+        `INSERT OR IGNORE INTO webhook_events (id, source, event_type, payload_hash)
+         VALUES (?, ?, ?, ?)`
+    ).run(String(eventId), String(source || 'unknown'), String(eventType || 'unknown'), payloadHash || null);
+    return !!(result && result.changes === 1);
+}
+
+function generatePartnerCode() {
+    const crypto = require('crypto');
+    return crypto.randomBytes(6).toString('hex');
+}
+
+function getReferrerByEmail(email) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM referrers WHERE user_email = ?').get(String(email || '').trim().toLowerCase());
+}
+
+function getReferrerByPartnerCode(partnerCode) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM referrers WHERE partner_code = ?').get(String(partnerCode || '').trim());
+}
+
+function getReferrerById(referrerId) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM referrers WHERE id = ?').get(String(referrerId || ''));
+}
+
+function getOrCreateReferrer(email, tier) {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized || !normalized.includes('@')) {
+        throw new Error('Valid email required');
+    }
+    const existing = getReferrerByEmail(normalized);
+    if (existing) return existing;
+
+    const crypto = require('crypto');
+    const db = getDb();
+    let partnerCode = generatePartnerCode();
+    for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+            const id = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+            db.prepare(
+                `INSERT INTO referrers (id, user_email, partner_code, tier)
+                 VALUES (?, ?, ?, ?)`
+            ).run(id, normalized, partnerCode, tier || 'developer');
+            return db.prepare('SELECT * FROM referrers WHERE id = ?').get(id);
+        } catch (err) {
+            if (err.message && err.message.includes('UNIQUE constraint failed')) {
+                if (err.message.includes('user_email')) {
+                    return getReferrerByEmail(normalized);
+                }
+                partnerCode = generatePartnerCode();
+                continue;
+            }
+            throw err;
+        }
+    }
+    throw new Error('Failed to create referrer');
+}
+
+function getReferralLinkBySlug(slug) {
+    const db = getDb();
+    return db.prepare('SELECT * FROM referral_links WHERE slug = ?').get(String(slug || '').trim());
+}
+
+function getOrCreateReferralLink(referrerId, channel) {
+    const db = getDb();
+    const referrer = db.prepare('SELECT * FROM referrers WHERE id = ?').get(referrerId);
+    if (!referrer) throw new Error('Referrer not found');
+
+    const existing = db.prepare(
+        `SELECT * FROM referral_links WHERE referrer_id = ? AND channel = ? ORDER BY created_at ASC LIMIT 1`
+    ).get(referrerId, channel || 'web');
+    if (existing) return existing;
+
+    const crypto = require('crypto');
+    const id = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+    db.prepare(
+        `INSERT INTO referral_links (id, referrer_id, slug, channel)
+         VALUES (?, ?, ?, ?)`
+    ).run(id, referrerId, referrer.partner_code, channel || 'web');
+    return db.prepare('SELECT * FROM referral_links WHERE id = ?').get(id);
+}
+
+function incrementReferralLinkClicks(linkId) {
+    const db = getDb();
+    db.prepare('UPDATE referral_links SET clicks = clicks + 1 WHERE id = ?').run(linkId);
+}
+
+function createReferralAttribution({ linkId, refereeIpHash, refereeEmail, cookieExpires }) {
+    const crypto = require('crypto');
+    const db = getDb();
+    const id = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+    db.prepare(
+        `INSERT INTO referral_attributions (id, link_id, referee_email, referee_ip_hash, status, cookie_expires)
+         VALUES (?, ?, ?, ?, 'clicked', ?)`
+    ).run(
+        id,
+        linkId,
+        refereeEmail ? String(refereeEmail).trim().toLowerCase() : null,
+        refereeIpHash,
+        cookieExpires
+    );
+    return db.prepare('SELECT * FROM referral_attributions WHERE id = ?').get(id);
+}
+
+function getReferralStatsByEmail(email) {
+    const referrer = getReferrerByEmail(email);
+    if (!referrer) {
+        return { partnerCode: null, clicks: 0, attributions: 0, conversions: 0 };
+    }
+    const db = getDb();
+    const links = db.prepare('SELECT id, slug, channel, clicks FROM referral_links WHERE referrer_id = ?').all(referrer.id);
+    const linkIds = links.map((l) => l.id);
+    if (!linkIds.length) {
+        return {
+            partnerCode: referrer.partner_code,
+            clicks: 0,
+            attributions: 0,
+            conversions: 0,
+            links: []
+        };
+    }
+    const placeholders = linkIds.map(() => '?').join(',');
+    const attrRow = db.prepare(
+        `SELECT
+            COUNT(*) AS attributions,
+            SUM(CASE WHEN status = 'converted' THEN 1 ELSE 0 END) AS conversions
+         FROM referral_attributions WHERE link_id IN (${placeholders})`
+    ).get(...linkIds);
+    const clicks = links.reduce((sum, l) => sum + (Number(l.clicks) || 0), 0);
+    return {
+        partnerCode: referrer.partner_code,
+        clicks,
+        attributions: Number(attrRow?.attributions) || 0,
+        conversions: Number(attrRow?.conversions) || 0,
+        links
+    };
+}
+
+function getReferralAttributionById(attributionId) {
+    const db = getDb();
+    return db.prepare(`
+        SELECT a.*, l.referrer_id, l.slug
+        FROM referral_attributions a
+        JOIN referral_links l ON a.link_id = l.id
+        WHERE a.id = ?
+    `).get(String(attributionId || ''));
+}
+
+function getLatestOpenReferralAttribution(slug, refereeEmail) {
+    const db = getDb();
+    const normalizedEmail = refereeEmail ? String(refereeEmail).trim().toLowerCase() : null;
+    if (normalizedEmail) {
+        const byEmail = db.prepare(`
+            SELECT a.*, l.referrer_id, l.slug
+            FROM referral_attributions a
+            JOIN referral_links l ON a.link_id = l.id
+            WHERE l.slug = ?
+              AND a.status IN ('clicked', 'signed_up')
+              AND (a.referee_email IS NULL OR a.referee_email = ?)
+              AND datetime(a.cookie_expires) >= datetime('now')
+            ORDER BY a.created_at DESC
+            LIMIT 1
+        `).get(String(slug || ''), normalizedEmail);
+        if (byEmail) return byEmail;
+    }
+    return db.prepare(`
+        SELECT a.*, l.referrer_id, l.slug
+        FROM referral_attributions a
+        JOIN referral_links l ON a.link_id = l.id
+        WHERE l.slug = ?
+          AND a.status IN ('clicked', 'signed_up')
+          AND datetime(a.cookie_expires) >= datetime('now')
+        ORDER BY a.created_at DESC
+        LIMIT 1
+    `).get(String(slug || ''));
+}
+
+function markReferralAttributionSignedUp(attributionId, refereeEmail) {
+    const db = getDb();
+    const result = db.prepare(`
+        UPDATE referral_attributions
+        SET status = 'signed_up', referee_email = COALESCE(?, referee_email)
+        WHERE id = ? AND status = 'clicked'
+    `).run(refereeEmail ? String(refereeEmail).trim().toLowerCase() : null, String(attributionId || ''));
+    return !!(result && result.changes === 1);
+}
+
+function markReferralAttributionConverted(attributionId, refereeEmail) {
+    const db = getDb();
+    const result = db.prepare(`
+        UPDATE referral_attributions
+        SET status = 'converted',
+            converted_at = datetime('now'),
+            referee_email = COALESCE(?, referee_email)
+        WHERE id = ? AND status IN ('clicked', 'signed_up')
+    `).run(refereeEmail ? String(refereeEmail).trim().toLowerCase() : null, String(attributionId || ''));
+    return !!(result && result.changes === 1);
+}
+
+function grantReferralReward({ attributionId, referrerId, rewardType, rewardValue }) {
+    const crypto = require('crypto');
+    const db = getDb();
+    const existing = db.prepare('SELECT id FROM referral_rewards WHERE attribution_id = ?').get(String(attributionId || ''));
+    if (existing) return existing;
+
+    const id = `rew_${crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex')}`;
+    db.prepare(`
+        INSERT INTO referral_rewards (id, attribution_id, referrer_id, reward_type, reward_value, status, granted_at)
+        VALUES (?, ?, ?, ?, ?, 'granted', datetime('now'))
+    `).run(
+        id,
+        String(attributionId || ''),
+        String(referrerId || ''),
+        rewardType || 'cert_credit',
+        Number(rewardValue) || 0
+    );
+
+    if (rewardType === 'cert_credit' || !rewardType) {
+        db.prepare(`
+            UPDATE referrers
+            SET cert_credit_cents = cert_credit_cents + ?
+            WHERE id = ?
+        `).run(Number(rewardValue) || 0, String(referrerId || ''));
+    }
+
+    return db.prepare('SELECT * FROM referral_rewards WHERE id = ?').get(id);
+}
+
 module.exports = {
     getDb,
     addSubscription,
@@ -508,5 +793,20 @@ module.exports = {
     createValidationCode,
     getValidationCodeByEmailAndCode,
     getValidationCodeByTokenHash,
-    markValidationCodeUsed
+    markValidationCodeUsed,
+    recordWebhookEvent,
+    getReferrerByEmail,
+    getReferrerByPartnerCode,
+    getReferrerById,
+    getOrCreateReferrer,
+    getReferralLinkBySlug,
+    getOrCreateReferralLink,
+    incrementReferralLinkClicks,
+    createReferralAttribution,
+    getReferralStatsByEmail,
+    getReferralAttributionById,
+    getLatestOpenReferralAttribution,
+    markReferralAttributionSignedUp,
+    markReferralAttributionConverted,
+    grantReferralReward
 };

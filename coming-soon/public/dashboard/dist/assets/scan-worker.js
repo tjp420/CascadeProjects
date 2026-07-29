@@ -5,8 +5,8 @@
  * This version streams large files through a Rust/WebAssembly chunk analyzer (with a
  * pure-JS fallback) instead of loading the entire file into memory at once.
  */
-import { analyzeFileChunks, findingsToIssues } from '../../js-es2018/workers/scan-wasm-bridge.js?v=20260716cachefix1';
-import { isIgnoredVirtualPath } from '../../js-es2018/utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
+import { analyzeFileChunks, findingsToIssues } from './scan-wasm-bridge.js';
+import { isIgnoredVirtualPath } from './simplebeaconignore.browser.js';
 const MAX_DISCOVERED_FILES = 500000;
 const MAX_ISSUES = 100000;
 const SCAN_BATCH_SIZE = 400;
@@ -383,8 +383,12 @@ async function scanFiles(files, deepScan, state = null) {
             }
         }
         catch (err) {
-            textErrors++;
-            processed++;
+                    textErrors++;
+                    processed++;
+                    try {
+                        self.postMessage({ type: 'file-error', scanId: self.scanState?.scanId || null, file: file.path, name: err && err.name ? err.name : null, message: err && err.message ? err.message : String(err), stack: err && err.stack ? err.stack : null });
+                    }
+                    catch (_a) { }
         }
     }
     const total = state?.totalFiles || files.length;

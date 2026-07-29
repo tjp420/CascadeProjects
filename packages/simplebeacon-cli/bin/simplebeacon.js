@@ -55,7 +55,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'mcp', 'ai-plan', 'doctor', 'upload']);
+const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload']);
 
 let _cliDebugMode = false;
 
@@ -76,6 +76,12 @@ function resolvePolicyGateConfig() {
 }
 
 function runPolicyGate() {
+    const isLocalDevMode = process.env.NODE_ENV === 'development' && process.env.SIMPLEBEACON_DISABLE_POLICY_GATE === 'true';
+    if (isLocalDevMode) {
+        console.warn('[TRUST BYPASS] Policy gate skipped in local development');
+        return null;
+    }
+
     const { trustStore, orgPolicyPath, repoPolicyPath } = resolvePolicyGateConfig();
 
     if (!trustStore) {
@@ -84,7 +90,7 @@ function runPolicyGate() {
     }
 
     const repoPath = repoPolicyPath && fs.existsSync(repoPolicyPath) ? repoPolicyPath : null;
-    orchestratePolicyPipeline(orgPolicyPath, repoPath, trustStore);
+    return orchestratePolicyPipeline(orgPolicyPath, repoPath, trustStore);
 }
 
 function writeStdoutLine(message = '') {
@@ -213,12 +219,19 @@ function createDefaultOptions(command) {
         pollSeconds: 5,
         maxPolls: 60,
         email: null,
+        from: null,
+        message: null,
+        link: false,
+        sendEmail: false,
         tier: null,
         forceNpmAudit: false,
         debug: false,
         diff: false,
         baseRef: null,
-        headRef: null
+        headRef: null,
+        inviteeEmail: null,
+        message: null,
+        sendEmail: false
     };
 }
 
@@ -284,6 +297,10 @@ const FLAG_MAP = [
     { aliases: ['--tier-limits'], key: 'tierLimits', type: 'string' },
     { aliases: ['--force-npm-audit'], key: 'forceNpmAudit', type: 'boolean' },
     { aliases: ['--email'], key: 'email', type: 'string' },
+    { aliases: ['--from'], key: 'from', type: 'string' },
+    { aliases: ['--message'], key: 'message', type: 'string' },
+    { aliases: ['--link'], key: 'link', type: 'boolean' },
+    { aliases: ['--send-email'], key: 'sendEmail', type: 'boolean' },
     { aliases: ['--server'], key: 'server', type: 'string' },
     { aliases: ['--poll-seconds'], key: 'pollSeconds', type: 'positive-number', fallback: 5 },
     { aliases: ['--max-polls'], key: 'maxPolls', type: 'positive-number', fallback: 60 },
@@ -293,7 +310,11 @@ const FLAG_MAP = [
     { aliases: ['--slop-cop'], key: 'slopCop', type: 'boolean' },
     { aliases: ['--diff'], key: 'diff', type: 'boolean' },
     { aliases: ['--base-ref'], key: 'baseRef', type: 'string' },
-    { aliases: ['--head-ref'], key: 'headRef', type: 'string' }
+    { aliases: ['--head-ref'], key: 'headRef', type: 'string' },
+    { aliases: ['--json'], key: 'jsonOutput', type: 'boolean', extra: (o) => { o.format = 'json'; } },
+    { aliases: ['--invitee-email', '--to'], key: 'inviteeEmail', type: 'string' },
+    { aliases: ['--message', '-m'], key: 'message', type: 'string' },
+    { aliases: ['--send-email'], key: 'sendEmail', type: 'boolean' }
 ];
 
 // Auto-derive knownFlags from FLAG_MAP so it never drifts
@@ -332,6 +353,11 @@ function parseArgs(argv) {
     }
 
     const options = createDefaultOptions(command);
+
+    if (command === 'fix' && args[flagStart] && !args[flagStart].startsWith('-')) {
+        options.path = args[flagStart];
+        flagStart += 1;
+    }
 
     for (let i = flagStart; i < args.length; i += 1) {
         let arg = args[i];
@@ -394,6 +420,7 @@ function applyCliPathSafety(options) {
 
     const pathRequiredCommands = new Set([
         'scan',
+        'fix',
         'init',
         'baseline-sync',
         'assess',
@@ -430,6 +457,7 @@ function printHelp() {
 
 Usage:
   simplebeacon scan [options]     Scan project and report findings
+  simplebeacon fix [path] [options]  Run local auto-remediation on high-severity findings
   simplebeacon init [options]     Create .simplebeacon/config.json and baseline.json
   simplebeacon mcp [options]      Start MCP stdio server for Cursor / Claude Desktop
   simplebeacon comment [options]  Post GitHub PR comment from JSON report
@@ -442,6 +470,7 @@ Usage:
   simplebeacon reduce [options]     Analyze repo for file-reduction opportunities (dry-run)
   simplebeacon pdf [options]        Generate Executive Risk Certificate (requires license token)
   simplebeacon buy-clearance        Purchase executive clearance and receive license token
+    simplebeacon refer [options]      Generate a local-only referral token and share link
   simplebeacon ai-plan [options]   Generate AI-friendly remediation plan from scan results
   simplebeacon doctor              Runs integrity diagnostics, applies auto-fixes, and generates triage packages
 
@@ -450,6 +479,12 @@ buy-clearance options:
   --server <url>    Simplebeacon server URL (default: https://simplebeacon.ai)
   --poll-seconds <n> Seconds between poll attempts (default: 5)
   --max-polls <n>   Maximum poll attempts (default: 60)
+
+refer options:
+    --email <addr>      Target colleague email (required)
+    --server <url>      Base URL for generated referral link (default: https://simplebeacon.ai)
+    --json              Machine-readable output
+    --format json       Machine-readable output (alias)
 
 PDF options:
   --report <file>     Scan report JSON (default: .simplebeacon/report.json)
@@ -528,6 +563,7 @@ Hook install options:
   --fail-on a,b,c     Gate severities (default: high)
   --with-jest         Include Jest baseline in hook scan
   --husky             Prefer .husky/ even when not present yet
+  --fix               Run fix dry-run instead of a scan gate in the hook
 
 Reduce options:
   --path <dir>        Project root (default: cwd)
@@ -777,13 +813,15 @@ async function executeOneScan(options, networkGuard) {
             }
         }
 
+        let remediation = null;
+
         if (options.fix) {
             const fixableIssues = gateResult.blockingIssues?.length > 0
                 ? gateResult.blockingIssues
                 : (report.rawIssues || []).filter((i) => i.severity === 'high' || i.severity === 'critical');
             if (fixableIssues.length > 0) {
                 console.error(`\n🔧 [Local Remediation] Running local agent on ${fixableIssues.length} finding(s)...`);
-                const remediation = await runLocalRemediation(fixableIssues, {
+                remediation = await runLocalRemediation(fixableIssues, {
                     dryRun: options.fixDryRun,
                     maxFixes: options.maxFixes,
                     model: options.fixProvider === 'ollama' || !options.fixProvider
@@ -804,6 +842,12 @@ async function executeOneScan(options, networkGuard) {
             console.error(paint(`Gate failed: ${gateResult.blockingIssues.length} blocking issue(s)`, 'red'));
             return 1;
         }
+
+        if (options.fixDryRun && remediation && remediation.total > 0) {
+            console.error(paint(remediation.total + ' fixable issue(s) found in dry-run; run without --dry-run to apply.', 'red'));
+            return 1;
+        }
+
         return 0;
     } catch (err) {
         spinner.stop();
@@ -1338,6 +1382,7 @@ function runHookInstallCommand(options) {
         failOn: options.failOn || 'high',
         withJest: options.withJest,
         preferHusky: options.preferHusky,
+        fix: options.fix,
         dryRun: options.dryRun
     });
 
@@ -1547,6 +1592,15 @@ async function runBuyClearanceCommand(options) {
     throw new Error('Payment confirmation timed out. Run `npx simplebeacon buy-clearance --email <addr>` again to retry, or check your email for the license token.');
 }
 
+async function runReferCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runReferCommand requires an options object');
+    const { runReferSubcommand } = require('../src/commands/refer');
+    return runReferSubcommand(options, {
+        writeOut: writeStdoutLine,
+        writeErr: (message) => console.error(message)
+    });
+}
+
 /** Validate command-specific required flags before dispatch. */
 function validateCommandOptions(options) {
     if (!options || typeof options !== 'object') return;
@@ -1579,16 +1633,22 @@ const COMMAND_REGISTRY = {
     },
     'ai-plan': runAiPlanCommand,
     scan: runScanCommand,
+    fix: (options) => {
+        options.fix = true;
+        options.fixDryRun = options.dryRun;
+        return runScanCommand(options);
+    },
     upload: runUploadCommand,
     pdf: runPdfCommand,
     'buy-clearance': runBuyClearanceCommand,
+    refer: runReferCommand,
     doctor: runDoctorCommand
 };
 
 async function main() {
-    // Only run policy gate if trust fingerprint is explicitly configured
-    if (process.env.SIMPLEBEACON_POLICY_TRUST_FINGERPRINT) {
-        runPolicyGate();
+    const activeCompliancePolicy = runPolicyGate();
+    if (activeCompliancePolicy) {
+        global.__SIMPLEBEACON_ACTIVE_POLICY__ = activeCompliancePolicy;
     }
     const options = parseArgs(process.argv);
 

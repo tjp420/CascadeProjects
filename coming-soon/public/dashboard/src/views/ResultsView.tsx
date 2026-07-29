@@ -6,6 +6,9 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ClipboardList, Download, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
+import { useAuth } from '@/hooks/useAuth';
+import { ResultsReferralBanner } from '@/components/ResultsReferralBanner';
+import { resolveScanLetterGrade } from '@/lib/gradeFromScore';
 
 interface ScanResultData {
   totalFiles: number;
@@ -17,10 +20,73 @@ interface ScanResultData {
   scanScope: { profile: string; resultsViewScope: string; codeFilesAnalyzed: number };
 }
 
+function extractIssueListForSidebar(report: any): any[] {
+  if (Array.isArray(report?.rawIssues) && report.rawIssues.length) return report.rawIssues;
+  if (Array.isArray(report?.detectedIssues) && report.detectedIssues.length) return report.detectedIssues;
+  if (Array.isArray(report?.findings) && report.findings.length) {
+    return report.findings.map((f: any) => ({
+      filePath: f.filePath || f.file || '',
+      line: f.line || 1,
+      severity: f.severity || 'medium',
+      severityBand: f.severityBand || f.severity || 'medium',
+      type: f.category || f.type || 'finding',
+      description: f.message || f.description || 'Finding detected',
+      count: Number(f.count) || 1,
+    }));
+  }
+  return [];
+}
+
+function syncReportToVscodeSidebar(reportData: any, fallbackProjectPath = ''): void {
+  if (!reportData || typeof window === 'undefined') return;
+  const issues = extractIssueListForSidebar(reportData);
+  const sev = reportData?.severityCounts || {};
+  const qualityScore = reportData?.qualityScore ?? reportData?.gate?.score ?? 0;
+  const payload = {
+    totalFiles: reportData?.repositoryFilesTotal || reportData?.totalFiles || reportData?.summary?.totalFiles || 0,
+    ruleScopedFilesAnalyzed: reportData?.ruleScopedFilesAnalyzed || reportData?.filesAnalyzed || reportData?.summary?.codeFilesAnalyzed || 0,
+    issueCount: issues.length,
+    qualityScore,
+    gate: reportData?.gate || { pass: false },
+    issues: issues.slice(0, 200),
+    projectPath: reportData?.projectRoot || reportData?.projectPath || fallbackProjectPath || '',
+    severityCounts: {
+      critical: sev.critical || 0,
+      high: sev.high || 0,
+      medium: sev.medium || 0,
+      low: sev.low || 0,
+      info: sev.info || 0,
+    },
+  };
+  const stats = {
+    issues: issues.length,
+    critical: payload.severityCounts.critical,
+    high: payload.severityCounts.high,
+    medium: payload.severityCounts.medium,
+    low: payload.severityCounts.low,
+    score: qualityScore,
+  };
+
+  const vscode = (window as any).acquireVsCodeApi?.();
+  try {
+    if (vscode) {
+      vscode.postMessage({ command: 'updateReport', report: payload });
+      vscode.postMessage({ command: 'scanComplete', stats });
+    } else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ command: 'updateReport', report: payload }, '*');
+      window.parent.postMessage({ command: 'scanComplete', stats }, '*');
+    }
+  } catch {
+    // Sidebar sync is best-effort and should never block report export.
+  }
+}
+
 export function ResultsView() {
   const [filter, setFilter] = useState<string>('all');
   const [result, setResult] = useState<ScanResultData | null>(null);
+  const [fullReport, setFullReport] = useState<any>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
+  const { user } = useAuth();
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
@@ -28,6 +94,10 @@ export function ResultsView() {
       const full = localStorage.getItem('sb_last_scan_full');
       if (full) {
         setResult(JSON.parse(full));
+      }
+      const report = localStorage.getItem('sb_last_scan_report');
+      if (report) {
+        setFullReport(JSON.parse(report));
       }
       const time = localStorage.getItem('sb_last_scan_time');
       if (time) {
@@ -61,6 +131,7 @@ export function ResultsView() {
 
   const severities = ['critical', 'high', 'medium', 'low', 'info'] as const;
   const activeSeverities = severities.filter(s => result.severityCounts[s] > 0);
+  const currentScanGrade = resolveScanLetterGrade(result.qualityScore, fullReport);
 
   return (
     <div className="mx-auto max-w-7xl p-6 space-y-6">
@@ -113,6 +184,11 @@ export function ResultsView() {
           </div>
         </CardContent>
       </Card>
+
+      <ResultsReferralBanner
+        userEmail={user?.email}
+        currentScanGrade={currentScanGrade}
+      />
 
       {/* Severity Filter + Detail Tabs */}
       <Tabs defaultValue="summary">
@@ -218,11 +294,35 @@ export function ResultsView() {
             </CardHeader>
             <CardContent className="flex flex-wrap gap-3">
               <Button variant="outline" size="sm" onClick={() => {
-                const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+                if (!result) return;
+                const exportData = fullReport || result;
+                syncReportToVscodeSidebar(exportData, result.projectPath);
+                const json = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const filename = `simplebeacon-report-${Date.now()}.json`;
+                const params = new URLSearchParams(window.location.search);
+                const inIde = typeof window !== 'undefined' && (
+                  typeof (window as any).acquireVsCodeApi === 'function' ||
+                  params.get('sb_parent_urlbar') ||
+                  params.get('sb_notify_base') ||
+                  params.get('sb_api_base')
+                );
+                if (inIde) {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const base64 = String(reader.result || '').split(',')[1];
+                    const vscode = (window as any).acquireVsCodeApi?.();
+                    const msg = { command: 'downloadFile', filename, mimeType: blob.type, base64 };
+                    if (vscode) { try { vscode.postMessage(msg); } catch { /* ignore */ } }
+                    else if (window.parent && window.parent !== window) { try { window.parent.postMessage(msg, '*'); } catch { /* ignore */ } }
+                  };
+                  reader.readAsDataURL(blob);
+                  return;
+                }
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `simplebeacon-report-${Date.now()}.json`;
+                a.download = filename;
                 a.click();
                 URL.revokeObjectURL(url);
               }}>

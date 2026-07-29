@@ -7,16 +7,29 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const db = require('../lib/db.cjs');
+const { buildReferralCheckoutMetadata, processStripeReferralAttribution } = require('../lib/referral-webhook.cjs');
 
 let stripe = null;
 try { stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); } catch { stripe = null; }
 
 const DEFAULT_PORT = 3001;
 const PUBLIC_URL = process.env.PUBLIC_URL || ('http://' + 'localhost' + ':' + (process.env.PORT || DEFAULT_PORT));
+const SUBSCRIPTION_WEBHOOK_SOURCE = 'subscription-webhook';
+
+const PRICE_PRO_MONTHLY = 900;
+const PRICE_PRO_ANNUAL = 9000;
+const PRICE_COMPLIANCE_MONTHLY = 39900;
+const PRICE_COMPLIANCE_ANNUAL = 399000;
+const PRICE_TEAM_MONTHLY = 9900;
+const PRICE_TEAM_ANNUAL = 99000;
+const PRICE_ENTERPRISE_MONTHLY = 49900;
+const PRICE_ENTERPRISE_ANNUAL = 499000;
 
 const logger = {
     error: (...a) => { const c = globalThis.console; c.error(...a); },
-    info:  (...a) => { const c = globalThis.console; c.log(...a); }
+    info:  (...a) => { const c = globalThis.console; c.log(...a); },
+    warn:  (...a) => { const c = globalThis.console; c.warn(...a); }
 };
 
 const { generateLicenseToken } = require('../lib/license-utils.cjs');
@@ -30,6 +43,11 @@ const subCheckoutRateLog = new Map();
 const WEBHOOK_RATE_LIMIT_MS = 60 * 1000;
 const WEBHOOK_RATE_LIMIT_MAX = 30;
 const webhookRateLog = new Map();
+
+function parseRawWebhookJson(rawBody) {
+    const text = Buffer.isBuffer(rawBody) ? rawBody.toString('utf8') : String(rawBody || '{}');
+    return JSON.parse(text);
+}
 
 // Create a Stripe Checkout Session for Continuous Shield subscription
 router.post('/api/create-subscription-session', async (req, res) => {
@@ -55,14 +73,6 @@ router.post('/api/create-subscription-session', async (req, res) => {
             return res.status(400).json({ error: 'Email and project name are required.' });
         }
 
-        const PRICE_PRO_MONTHLY = 900;
-        const PRICE_PRO_ANNUAL = 9000;
-        const PRICE_COMPLIANCE_MONTHLY = 39900;
-        const PRICE_COMPLIANCE_ANNUAL = 399000;
-        const PRICE_TEAM_MONTHLY = 4900;
-        const PRICE_TEAM_ANNUAL = 49000;
-        const PRICE_ENTERPRISE_MONTHLY = 49900;
-        const PRICE_ENTERPRISE_ANNUAL = 499000;
         const tierConfig = {
             pro: {
                 name: 'AI Slop Cop Pro',
@@ -77,8 +87,8 @@ router.post('/api/create-subscription-session', async (req, res) => {
                 annual: PRICE_COMPLIANCE_ANNUAL
             },
             team: {
-                name: 'Continuous Shield Team',
-                desc: 'SimpleBeacon Team — unlimited repos, devs, and scans',
+                name: 'SimpleBeacon Agency Reputation Suite',
+                desc: 'SimpleBeacon Agency Reputation Suite — unlimited repos, devs, and scans',
                 monthly: PRICE_TEAM_MONTHLY,
                 annual: PRICE_TEAM_ANNUAL
             },
@@ -95,8 +105,8 @@ router.post('/api/create-subscription-session', async (req, res) => {
         const unitAmount = isAnnual ? selectedTier.annual : selectedTier.monthly;
         const interval = isAnnual ? 'year' : 'month';
         const displayPrice = isAnnual
-            ? (tier === 'enterprise' ? '$4,990/yr' : tier === 'compliance' ? '$3,990/yr' : tier === 'pro' ? '$90/yr' : '$490/yr')
-            : (tier === 'enterprise' ? '$499/mo' : tier === 'compliance' ? '$399/mo' : tier === 'pro' ? '$9/mo' : '$49/mo');
+            ? (tier === 'enterprise' ? '$4,990/yr' : tier === 'compliance' ? '$3,990/yr' : tier === 'team' ? '$990/yr' : tier === 'pro' ? '$90/yr' : '$490/yr')
+            : (tier === 'enterprise' ? '$499/mo' : tier === 'compliance' ? '$399/mo' : tier === 'team' ? '$99/mo' : tier === 'pro' ? '$9/mo' : '$49/mo');
 
         // Get or create customer in DB
         const db = require('../lib/db.cjs');
@@ -119,6 +129,7 @@ router.post('/api/create-subscription-session', async (req, res) => {
 
         const successUrl = `${PUBLIC_URL}/certificate-upload.html?session_id={CHECKOUT_SESSION_ID}`;
         const cancelUrl = `${PUBLIC_URL}/pricing.html?canceled=true`;
+        const referralMetadata = buildReferralCheckoutMetadata(req, req.body);
 
         const session = await stripe.checkout.sessions.create({
             mode: 'subscription',
@@ -143,7 +154,8 @@ router.post('/api/create-subscription-session', async (req, res) => {
                 email,
                 projectName: String(projectName).slice(0, 200),
                 clientName: String(clientName || email).slice(0, 200),
-                apiKey: customer.api_key
+                apiKey: customer.api_key,
+                ...referralMetadata
             }
         });
 
@@ -239,21 +251,74 @@ function setupSubscriptionWebhook(app) {
 
         const sig = req.headers['stripe-signature'];
         const secret = process.env.STRIPE_WEBHOOK_SECRET;
+        const isProduction = process.env.NODE_ENV === 'production';
         let event;
         try {
+            if (isProduction && !sig) {
+                return res.status(400).send('Webhook Error: Missing Stripe signature');
+            }
+            if (isProduction && (!stripe || !secret)) {
+                return res.status(503).send('Webhook Error: Stripe webhook is not configured');
+            }
             if (stripe && secret && sig) {
                 event = stripe.webhooks.constructEvent(req.body, sig, secret);
             } else {
-                event = JSON.parse(req.body);
+                event = parseRawWebhookJson(req.body);
             }
         } catch (err) {
             logger.error('[SubscriptionWebhook] Signature verification failed:', err.message);
             return res.status(400).send('Webhook Error: ' + err.message);
         }
 
-        const db = require('../lib/db.cjs');
+        const rawBodyBuffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(String(req.body || ''), 'utf8');
+        const payloadHash = crypto.createHash('sha256').update(rawBodyBuffer).digest('hex');
+        if (event && event.id) {
+            const inserted = db.recordWebhookEvent(event.id, SUBSCRIPTION_WEBHOOK_SOURCE, event.type, payloadHash);
+            if (!inserted) {
+                return res.json({ received: true, duplicate: true });
+            }
+        }
 
-        if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated') {
+        const allowedEvents = new Set([
+            'checkout.session.completed',
+            'customer.subscription.updated',
+            'customer.subscription.deleted',
+            'invoice.paid'
+        ]);
+        if (!allowedEvents.has(event.type)) {
+            return res.json({ received: true, ignored: true });
+        }
+
+        if (event.type === 'checkout.session.completed') {
+            const session = event.data.object;
+            if (session.mode === 'subscription' && (session.payment_status === 'paid' || session.status === 'complete')) {
+                const customerId = session.customer;
+                if (customerId) {
+                    const customer = db.getDb().prepare('SELECT * FROM customers WHERE stripe_customer_id = ?').get(customerId);
+                    if (customer) {
+                        db.updateCustomerSubscription(customer.email, 'active', customer.tier || 'team');
+                        if (session.subscription) {
+                            const existingSub = db.getDb().prepare('SELECT * FROM paid_subscriptions WHERE stripe_subscription_id = ?').get(session.subscription);
+                            if (existingSub) {
+                                db.updatePaidSubscriptionStatus(session.subscription, 'active');
+                            } else {
+                                db.addPaidSubscription(customer.email, session.subscription, null, 'active', null, null);
+                            }
+                        }
+                    }
+                }
+                try {
+                    const referralResult = processStripeReferralAttribution(session);
+                    if (referralResult.converted) {
+                        logger.info('[SubscriptionWebhook] Referral conversion:', referralResult.attributionId, referralResult.rewardId);
+                    }
+                } catch (referralErr) {
+                    logger.error('[SubscriptionWebhook] Referral attribution failed:', referralErr.message);
+                }
+            }
+        }
+
+        if (event.type === 'customer.subscription.updated') {
             const sub = event.data.object;
             const customerId = sub.customer;
             const status = sub.status;
@@ -357,22 +422,19 @@ function setupSubscriptionWebhook(app) {
         }
 
         // Payment failed — enter grace period (past_due)
-        if (event.type === 'invoice.payment_failed') {
+        if (event.type === 'invoice.paid') {
             const invoice = event.data.object;
             const subscriptionId = invoice.subscription;
-            logger.warn('[SubscriptionWebhook] Payment failed for subscription:', subscriptionId);
-            // Attempt to find customer by subscription via paid_subscriptions table
-            const subRows = db.getDb().prepare('SELECT customer_email FROM paid_subscriptions WHERE stripe_subscription_id = ?').all(subscriptionId);
-            if (subRows.length > 0) {
-                const email = subRows[0].customer_email;
-                db.updateCustomerSubscription(email, 'past_due', null);
-                logger.warn('[SubscriptionWebhook] Marked past_due:', email);
+            logger.info('[SubscriptionWebhook] Payment succeeded for subscription:', subscriptionId);
+            if (subscriptionId) {
+                db.updatePaidSubscriptionStatus(subscriptionId, 'active');
+                const subRows = db.getDb().prepare('SELECT customer_email FROM paid_subscriptions WHERE stripe_subscription_id = ?').all(subscriptionId);
+                if (subRows.length > 0) {
+                    const email = subRows[0].customer_email;
+                    const customer = db.getDb().prepare('SELECT tier FROM customers WHERE email = ?').get(email);
+                    db.updateCustomerSubscription(email, 'active', customer?.tier || 'team');
+                }
             }
-        }
-
-        if (event.type === 'invoice.payment_succeeded') {
-            const invoice = event.data.object;
-            logger.info('[SubscriptionWebhook] Payment succeeded for subscription:', invoice.subscription);
         }
 
         res.json({ received: true });

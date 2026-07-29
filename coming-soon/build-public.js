@@ -54,21 +54,26 @@ function buildHeadBlock(meta, relPath) {
   return lines.join('\n');
 }
 function navHtml() {
-  const links = [
-    { href: '/index.html', label: 'Home' },
-    { href: '/pricing.html', label: 'Pricing' },
-    { href: '/audit.html', label: 'Audit' },
-    { href: '/roadmap.html', label: 'Roadmap' },
-    { href: '/community.html', label: 'Install' },
-    { href: '/contact.html', label: 'Contact' },
-    { href: '/faq.html', label: 'FAQ' },
-    { href: '/blog/case-study-ai-slop-1-25m.html', label: 'Blog' }
+  const primaryLinks = [
+    { href: '/audit', label: 'Audit' },
+    { href: '/app/', label: 'Dashboard' }
   ];
-  const inner = links.map(l => `<a href="${l.href}" style="color:#9CA3AF;text-decoration:none;margin-left:18px;font-size:0.9rem;white-space:nowrap;">${l.label}</a>`).join('');
-  return `<nav style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">\n  <a href="/index.html" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;">SimpleBeacon</a>\n  <div style="display:flex;flex-wrap:wrap;align-items:center;">${inner}</div>\n</nav>`;
+  const moreLinks = [
+    { href: '/roadmap', label: 'Roadmap', icon: 'M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L9 3' },
+    { href: '/pricing', label: 'Pricing', icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
+    { href: '/community', label: 'Install', icon: 'M12 10v6m0 0l-3-3m3 3l3-3m2-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-7l-2-2z' },
+    { href: '/blog/case-study-ai-slop-1-25m', label: 'Blog', icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z' },
+    { href: '/faq', label: 'FAQ', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { href: '/contact', label: 'Contact', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' }
+  ];
+  const primaryStyle = 'color:#F3F4F6;text-decoration:none;margin-left:14px;font-size:0.9rem;font-weight:600;white-space:nowrap;padding:6px 12px;border-radius:8px;transition:background 0.2s;';
+  const primaryHtml = primaryLinks.map(l => `<a href="${l.href}" style="${primaryStyle}" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">${l.label}</a>`).join('');
+  const moreHtml = moreLinks.map(l => `<a href="${l.href}" class="sb-nav-more-link" style="display:flex;align-items:center;gap:10px;padding:10px 16px;color:#9CA3AF;text-decoration:none;font-size:0.875rem;white-space:nowrap;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='#F3F4F6'" onmouseout="this.style.background='transparent';this.style.color='#9CA3AF'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7;flex-shrink:0"><path d="${l.icon}"/></svg>${l.label}</a>`).join('\n    ');
+  const navCss = '.iframe-embed .sb-site-nav{display:none!important;}.sb-nav-more-wrap{position:relative;}.sb-nav-more-toggle{display:none;}.sb-nav-more-label{display:flex;align-items:center;gap:6px;margin-left:6px;padding:6px 12px;background:transparent;color:#9CA3AF;font-size:0.9rem;font-weight:600;cursor:pointer;border:1px solid #30363d;border-radius:8px;transition:background 0.2s,color 0.2s;user-select:none;}.sb-nav-more-label:hover{background:rgba(255,255,255,0.06);color:#F3F4F6;}.sb-nav-more-arrow{transition:transform 0.2s;display:inline-block;}.sb-nav-more-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#111827;border:1px solid #1E293B;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,0.4);padding:6px;z-index:200;overflow:hidden;}.sb-nav-more-toggle:checked~.sb-nav-more-menu{display:block;}.sb-nav-more-toggle:checked~.sb-nav-more-label .sb-nav-more-arrow{transform:rotate(180deg);}.sb-nav-more-toggle:checked~.sb-nav-more-label{background:rgba(255,255,255,0.06);color:#F3F4F6;}';
+  return `<nav class="sb-site-nav" style="background:#0B0F19;border-bottom:1px solid #1E293B;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-sizing:border-box;">\n  <a href="/" style="color:#F3F4F6;text-decoration:none;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>SimpleBeacon</a>\n  <div style="display:flex;align-items:center;gap:4px;">${primaryHtml}\n    <div class="sb-nav-more-wrap">\n      <input type="checkbox" id="sb-nav-more-toggle" class="sb-nav-more-toggle">\n      <label for="sb-nav-more-toggle" class="sb-nav-more-label">More<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sb-nav-more-arrow"><path d="M6 9l6 6 6-6"/></svg></label>\n      <div class="sb-nav-more-menu">\n    ${moreHtml}\n      </div>\n    </div>\n    <button type="button" id="nav-signin-btn" style="display:none;margin-left:10px;padding:6px 14px;background:#6366f1;color:white;font-size:0.85rem;font-weight:600;cursor:pointer;border:none;border-radius:8px;">Sign in</button>\n    <button type="button" id="nav-signout-btn" style="display:none;margin-left:10px;padding:6px 14px;background:transparent;color:#9CA3AF;font-size:0.85rem;font-weight:500;cursor:pointer;border:1px solid #374151;border-radius:8px;">Sign out</button>\n  </div>\n</nav>\n<style>${navCss}</style>\n<script>(function(){var TOKEN_KEYS=['sb_token','cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];var USER_KEYS=['sb_user','sb-user','cascadeAuthUser'];var FREE_TIERS=['free','community','sandbox',''];function hasAnyToken(){try{for(var i=0;i<TOKEN_KEYS.length;i++){if(localStorage.getItem(TOKEN_KEYS[i])||document.cookie.indexOf(TOKEN_KEYS[i]+'=')!==-1)return true;}}catch(_){}return false;}function getUserTier(){try{var u=null;for(var i=0;i<USER_KEYS.length;i++){u=localStorage.getItem(USER_KEYS[i]);if(u)break;}if(!u)return '';var p=JSON.parse(u);var role=String(p.role||'').toLowerCase();if(role==='admin'||role==='superuser')return 'enterprise';return (p.tier||p.plan||'').toLowerCase();}catch(_){}return '';}function isPaidTier(){var t=getUserTier();return t&&FREE_TIERS.indexOf(t)===-1;}function clearCookie(k){document.cookie=k+'=;path=/;max-age=0;SameSite=Lax;';}function updateAuthNav(){var authed=hasAnyToken();var paid=isPaidTier();var signinBtn=document.getElementById('nav-signin-btn');var signoutBtn=document.getElementById('nav-signout-btn');if(signinBtn)signinBtn.style.display=authed?'none':'inline-block';if(signoutBtn)signoutBtn.style.display=authed?'inline-block':'none';var pricingLinks=document.querySelectorAll('.sb-nav-more-link[href="/pricing"]');for(var i=0;i<pricingLinks.length;i++){pricingLinks[i].style.display=paid?'none':'flex';}}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.sb-site-nav a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}function initSignout(){var signoutBtn=document.getElementById('nav-signout-btn');if(signoutBtn){signoutBtn.addEventListener('click',function(){for(var i=0;i<TOKEN_KEYS.length;i++){try{localStorage.removeItem(TOKEN_KEYS[i]);}catch(_){}clearCookie(TOKEN_KEYS[i]);}for(var i=0;i<USER_KEYS.length;i++){try{localStorage.removeItem(USER_KEYS[i]);}catch(_){}}try{sessionStorage.clear();}catch(_){}window.location.reload();});}}function initDropdownClose(){document.addEventListener('click',function(e){var toggle=document.getElementById('sb-nav-more-toggle');if(!toggle||!toggle.checked)return;var wrap=toggle.parentNode;if(wrap&&!wrap.contains(e.target))toggle.checked=false;});document.addEventListener('keydown',function(e){if(e.key==='Escape'){var toggle=document.getElementById('sb-nav-more-toggle');if(toggle)toggle.checked=false;}});}function initSignIn(){var signinBtn=document.getElementById('nav-signin-btn');if(!signinBtn)return;signinBtn.addEventListener('click',function(){var overlay=document.getElementById('auth-modal-overlay');if(overlay){overlay.style.display='flex';overlay.classList.add('active');return;}var signinOverlay=document.getElementById('signinOverlay');if(signinOverlay){signinOverlay.style.display='flex';return;}window.location.href='/app/#/signin';});}function init(){updateAuthNav();propagateTokenToLinks();initSignout();initSignIn();initDropdownClose();}if(document.readyState==='loading'){window.addEventListener('DOMContentLoaded',init);}else{init();}})();</script>`;
 }
 function footerHtml() {
-  return `<footer style="background:#0B0F19;border-top:1px solid #1E293B;padding:32px 24px;text-align:center;color:#9CA3AF;font-size:0.85rem;">\n  <p style="margin:0 0 12px;color:#F3F4F6;">&copy; 2026 SimpleBeacon. All rights reserved.</p>\n  <p style="margin:0;">\n    <a href="/sample-report.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Sample report</a> &middot;\n    <a href="/pricing.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Pricing</a> &middot;\n    <a href="/contact.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Contact</a> &middot;\n    <a href="/terms.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Terms</a> &middot;\n    <a href="/privacy.html" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a>\n  </p>\n</footer>`;
+  return `<footer style="background:#0B0F19;border-top:1px solid #1E293B;padding:32px 24px;text-align:center;color:#9CA3AF;font-size:0.85rem;">\n  <p style="margin:0 0 12px;color:#F3F4F6;">&copy; 2026 SimpleBeacon. All rights reserved.</p>\n  <p style="margin:0;">\n    <a href="/sample-report" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Sample report</a> &middot;\n    <a href="/pricing" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Pricing</a> &middot;\n    <a href="/contact" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Contact</a> &middot;\n    <a href="/faq" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">FAQ</a> &middot;\n    <a href="/blog/case-study-ai-slop-1-25m" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Blog</a> &middot;\n    <a href="/roadmap" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Roadmap</a> &middot;\n    <a href="/terms" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Terms</a> &middot;\n    <a href="/privacy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a>\n  </p>\n</footer>`;
 }
 function transformHtml(html, relPath) {
   const meta = pageConfig.pages[relPath];
@@ -88,7 +93,7 @@ function transformHtml(html, relPath) {
   }
   // Inject fresh head block immediately after charset so title/description appear early
   const headBlock = buildHeadBlock(meta, relPath);
-  html = html.replace(/(<meta[^>]*charset[^>]*>)/i, '$1\n' + headBlock + '\n');
+  html = html.replace(/(<meta[^>]*charset[^>]*>)/i, (match) => match + '\n' + headBlock + '\n');
   // H1
   if (meta.h1) {
     if (/<h1[^>]*>/i.test(html)) {
@@ -104,6 +109,10 @@ function transformHtml(html, relPath) {
   // Footer
   if (meta.includeFooter && !/<footer\b/i.test(html)) {
     html = html.replace(/<\/body>/i, footerHtml() + '\n</body>');
+  }
+  // Referral attribution capture on marketing pages
+  if (meta.includeNav && !/referral-capture\.js/i.test(html)) {
+    html = html.replace(/<\/body>/i, '  <script src="/js/referral-capture.js" defer></script>\n</body>');
   }
   return html;
 }
@@ -157,11 +166,11 @@ const files = [
   'security.html', 'terms.html', 'unlock.html',
   'cloud-teams.html', 'dashboard-preview.html', 'terminal-walkthrough.html', 'walkthrough-embed.html',
   'styles.css', 'app-links.js', 'site-config.js',
-  'js/auth.js', 'js/roadmap-app.js', 'js/scan-worker.js', 'js/terminal-simulation.js', 'js/token-entry-guard.js',
+  'js/auth.js', 'js/referral-capture.js', 'js/roadmap-app.js', 'js/scan-worker.js', 'js/terminal-simulation.js', 'js/token-entry-guard.js',
   'favicon.ico', 'favicon.svg', 'robots.txt', 'sitemap.xml', '_headers', '_redirects'
 ];
 
-const minimalAuthJs = `(function(){'use strict';var TOKEN_KEYS=['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();`; // simplebeacon-ignore credential-pattern — generated auth JS template, token key names not secrets
+const minimalAuthJs = `(function(){'use strict';var TOKEN_KEYS=['sb_token','cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token-vault'];var USER_KEYS=['sb_user','sb-user','cascadeAuthUser'];function clearLocalStorageItems(keys){try{for(var i=0;i<keys.length;i++){localStorage.removeItem(keys[i]);}}catch(_){}}function clearCookies(keys){try{for(var i=0;i<keys.length;i++){document.cookie=keys[i]+'=;path=/;max-age=0;SameSite=Lax;';}}catch(_){}}function signOut(){clearLocalStorageItems(TOKEN_KEYS);clearLocalStorageItems(USER_KEYS);clearCookies(TOKEN_KEYS);try{sessionStorage.clear();}catch(_){}window.location.reload();}function propagateTokenToLinks(){try{var params=new URLSearchParams(window.location.search);var token=params.get('token');if(!token)return;var links=document.querySelectorAll('.nav-links a');for(var i=0;i<links.length;i++){var a=links[i];var href=a.getAttribute('href')||'';if(href.indexOf('#')===-1&&href.indexOf('http')!==0){var sep=href.indexOf('?')===-1?'?':'&';a.setAttribute('href',href+sep+'token='+encodeURIComponent(token));}}}catch(e){}}window.SbAuth={signOut:signOut,propagateTokenToLinks:propagateTokenToLinks};})();`; // simplebeacon-ignore credential-pattern — generated auth JS template, token key names not secrets
 
 function processFile(f) {
   const s = path.join(src, f);
@@ -238,7 +247,10 @@ if (fs.existsSync(dashboardSrc)) {
   if (fs.existsSync(dashboardIndex)) {
     let dashHtml = fs.readFileSync(dashboardIndex, 'utf8');
     // Make marketing site config available to the dashboard for vsixDownloadUrl and pricing fallbacks.
-    dashHtml = dashHtml.replace(/<\/head>/i, '  <script src="/site-config.js"></script>\n</head>');
+    dashHtml = dashHtml.replace(/<\/head>/i, '  <script src="/site-config.js"></script>\n  <script src="/js/referral-capture.js" defer></script>\n</head>');
+    if (!/<title>/i.test(dashHtml)) {
+      dashHtml = dashHtml.replace(/<head[^>]*>/i, '$&\n  <title>SimpleBeacon Dashboard</title>');
+    }
     // Rewrite production asset paths to /dashboard/dist/assets for CF Pages
     const cacheBust = Date.now();
     dashHtml = dashHtml.replace(/href="\/assets\/main\.css(?:\?[^"]*)?"/g, `href="/dashboard/dist/assets/main.css?v=${cacheBust}"`);
@@ -249,6 +261,23 @@ if (fs.existsSync(dashboardSrc)) {
     dashHtml = dashHtml.replace(/src="js\/vendor\//g, 'src="/dashboard/js/vendor/');
     fs.writeFileSync(dashboardIndex, dashHtml, 'utf8');
     fs.copyFileSync(dashboardIndex, dashboardEntry);
+  }
+
+  // Also copy dashboard to /app/ — the CDN has a stuck cache on /dashboard/ and
+  // cannot be purged without zone-level API permissions. /app/ is a fresh path
+  // the CDN has never seen, so it will fetch the latest version.
+  const appDst = path.join(dst, 'app');
+  fs.rmSync(appDst, { recursive: true, force: true });
+  fs.mkdirSync(appDst, { recursive: true });
+  copyRecursive(dashboardDst, appDst, 'app/');
+  // Rewrite asset paths from /dashboard/ to /app/ in the /app/ copy
+  const appIndex = path.join(appDst, 'index.html');
+  const appEntry = path.join(appDst, '__entry');
+  if (fs.existsSync(appIndex)) {
+    let appHtml = fs.readFileSync(appIndex, 'utf8');
+    appHtml = appHtml.replace(/\/dashboard\//g, '/app/');
+    fs.writeFileSync(appIndex, appHtml, 'utf8');
+    fs.copyFileSync(appIndex, appEntry);
   }
 }
 

@@ -288,6 +288,15 @@ app.use((req, res, next) => {
     next();
 });
 
+// Referral attribution cookie drop for ?ref=CODE (before static assets)
+try {
+    const { handleReferralTrackingRequest } = require('./lib/referral-tracking.cjs');
+    app.use(handleReferralTrackingRequest);
+    logger.info('[Referral] Tracking middleware mounted');
+} catch (err) {
+    logger.warn('[Referral] Tracking middleware not loaded:', err.message);
+}
+
 // Static files: deny dotfiles and disable index auto-serve
 app.use('/', express.static(path.join(__dirname, 'public'), { dotfiles: 'deny', index: false }));
 
@@ -946,6 +955,14 @@ app.use(checkoutRoutes);
 
 const freeTokenRoutes = require('./routes/free-token.cjs');
 app.use(freeTokenRoutes);
+
+try {
+    const referralRoutes = require('./routes/referral.cjs');
+    app.use(referralRoutes);
+    logger.info('[Referral] Referral API routes mounted');
+} catch (err) {
+    logger.warn('[Referral] Referral routes not loaded:', err.message);
+}
 
 // Auth routes — email/password registration and login
 try {

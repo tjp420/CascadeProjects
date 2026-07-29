@@ -135,18 +135,58 @@ if (jsonPasteBtn && jsonPasteInput) {
         }
     });
 }
+function buildEmbeddedTestReport() {
+    return {
+        type: 'simplebeacon-report',
+        projectName: 'Sample Project (Embedded Test Report)',
+        projectRoot: 'sample-project',
+        generatedAt: new Date().toISOString(),
+        qualityScore: 87,
+        schemaCompliance: 96,
+        consistencyScore: 91,
+        issueCount: 5,
+        gate: { pass: false, blockingCount: 1 },
+        sourceReport: {
+            qualityScore: 87,
+            schemaCompliance: 96,
+            consistencyScore: 91,
+            issueCount: 5,
+            invalidJson: 1,
+            emptyFiles: 1,
+            duplicateGroups: 1,
+            gate: { pass: false, blockingCount: 1 },
+            roadmap: { todoCount: 2 },
+            cleanup: { debugArtifactCount: 1 }
+        }
+    };
+}
+async function tryFetchJson(paths) {
+    for (const path of paths) {
+        try {
+            const res = await fetch(path);
+            if (!res.ok)
+                continue;
+            return await res.json();
+        }
+        catch (_) { /* try next path */ }
+    }
+    return null;
+}
 // Load test report button
 const loadTestReportBtn = document.getElementById('loadTestReportBtn');
 if (loadTestReportBtn) {
     loadTestReportBtn.addEventListener('click', async () => {
         try {
-            const res = await fetch('archive/test-report.json');
-            if (!res.ok) {
-                showToast('Failed to load test-report.json: ' + res.status, 'error');
-                return;
-            }
-            const parsedJson = await res.json();
+            const parsedJson = await tryFetchJson([
+                '/archive/test-report.json',
+                'archive/test-report.json',
+                '/test-report.json',
+                '/data/test-report.json'
+            ]) || buildEmbeddedTestReport();
             loadReport(parsedJson);
+            if (parsedJson.projectRoot === 'sample-project') {
+                showToast('Loaded embedded test report fallback', 'warning');
+            }
         }
         catch (err) {
             showToast('Error loading test report: ' + err.message, 'error');
@@ -309,6 +349,24 @@ function saveTaskTime(project, phaseId, taskIdx, seconds) { try {
 catch (e) { } }
 function formatTime(sec) { const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60; return (h > 0 ? h + 'h ' : '') + (m > 0 ? m + 'm ' : '') + s + 's'; }
 function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
+function deriveRoiMetrics(sourceReport, allIssues) {
+    const src = sourceReport || {};
+    const issues = Array.isArray(allIssues) ? allIssues : [];
+    const critical = issues.filter(i => String(i.sev || '').toLowerCase() === 'critical').length;
+    const high = issues.filter(i => String(i.sev || '').toLowerCase() === 'high').length;
+    const medium = issues.filter(i => String(i.sev || '').toLowerCase() === 'medium').length;
+    const quality = Number.isFinite(Number(src.qualityScore)) ? Number(src.qualityScore) : 75;
+    const effortHours = (critical * 1.4) + (high * 0.8) + (medium * 0.35) + (issues.length * 0.08);
+    const developerHoursSaved = Math.max(2.5, Math.round(effortHours * 10) / 10);
+    const auditFrictionReduction = Math.max(25, Math.min(95, Math.round((quality * 0.6) + 25 - (critical * 4))));
+    const euAiActRiskReduction = Math.max(20, Math.min(99, Math.round((quality * 0.72) + 15 - (critical * 5) - (high * 2))));
+    return {
+        developerHoursSaved,
+        auditFrictionReduction,
+        euAiActRiskReduction,
+        label: quality >= 85 && critical === 0 ? 'Compliant' : (quality >= 70 ? 'Review Required' : 'High Risk')
+    };
+}
 function htmlToFragment(html) { return document.createRange().createContextualFragment(html.trim()); }
 function fireConfetti(container) {
     if (!container)
@@ -655,6 +713,7 @@ function generateRoadmap(report) {
     // Use null for missing fields so we can distinguish "not measured" from "zero"
     const src = report.sourceReport || ((_a = report.results) === null || _a === void 0 ? void 0 : _a.simplebeacon) || report;
     const qualityScore = src.qualityScore != null ? Number(src.qualityScore) : null;
+    const qs = qualityScore != null ? qualityScore : 0;
     const issues = src.issueCount != null ? Number(src.issueCount) : null;
     const invalidJson = src.invalidJson != null ? Number(src.invalidJson) : null;
     const emptyFiles = src.emptyFiles != null ? Number(src.emptyFiles) : (((_b = src.dataQuality) === null || _b === void 0 ? void 0 : _b.emptyJsonCount) != null ? Number(src.dataQuality.emptyJsonCount) : null);
@@ -1158,10 +1217,14 @@ function renderDashboard(report, roadmap) {
     const issues = allIssues.length;
     const dupes = src.duplicateGroups != null ? Number(src.duplicateGroups) : null;
     const filesAnalyzed = src.filesAnalyzed != null ? Number(src.filesAnalyzed) : (src.totalFiles != null ? Number(src.totalFiles) : null);
+    const roi = deriveRoiMetrics(src, allIssues);
     const cards = [
         qualityScore != null ? { label: 'Quality Score', value: qualityScore + '/100', pct: qualityScore, cls: qualityScore >= 85 ? 'score-good' : qualityScore >= 70 ? 'score-warn' : 'score-bad' } : null,
         schemaComplianceScore != null ? { label: 'Schema Compliance', value: schemaComplianceScore + '%', pct: schemaComplianceScore, cls: schemaComplianceScore === 100 ? 'score-good' : schemaComplianceScore >= 80 ? 'score-warn' : 'score-bad' } : null,
         consistencyScore != null ? { label: 'Consistency', value: consistencyScore + '%', pct: consistencyScore, cls: consistencyScore === 100 ? 'score-good' : consistencyScore >= 80 ? 'score-warn' : 'score-bad' } : null,
+        { label: 'Developer Hours Saved', value: roi.developerHoursSaved + 'h', pct: Math.min(100, Math.round(roi.developerHoursSaved * 6)), cls: 'score-good' },
+        { label: 'Audit Friction Reduction', value: roi.auditFrictionReduction + '%', pct: roi.auditFrictionReduction, cls: roi.auditFrictionReduction >= 75 ? 'score-good' : 'score-warn' },
+        { label: 'EU AI Act Risk Reduction', value: roi.euAiActRiskReduction + '%', pct: roi.euAiActRiskReduction, cls: roi.euAiActRiskReduction >= 75 ? 'score-good' : 'score-warn' },
         issues != null ? { label: 'Total Issues', value: String(issues), pct: Math.max(0, 100 - issues * 3), cls: issues === 0 ? 'score-good' : issues < 10 ? 'score-warn' : 'score-bad' } : null,
         dupes != null ? { label: 'Duplicate Groups', value: String(dupes), pct: dupes === 0 ? 100 : Math.max(0, 100 - dupes * 10), cls: dupes === 0 ? 'score-good' : dupes < 5 ? 'score-warn' : 'score-bad' } : null,
         filesAnalyzed != null ? { label: 'Files Analyzed', value: String(filesAnalyzed), rawValue: String(filesAnalyzed) + (src.excludedCount != null && src.excludedCount > 0 ? ` <span style="font-size:0.7rem;color:var(--text-dim);">(${src.excludedCount} excluded)</span>` : ''), pct: 100, cls: 'score-info' } : null
@@ -2316,6 +2379,8 @@ function exportRoadmapJson() {
     });
     const totalTasks = phasesWithState.reduce((a, p) => a + p.taskSummary.total, 0);
     const completedTasks = phasesWithState.reduce((a, p) => a + p.taskSummary.done, 0);
+    const exportIssues = (currentReport.rawIssues || currentReport.issues || currentReport.detectedIssues || []).map((issue) => ({ sev: issue.severity || issue.severityBand || 'low' }));
+    const roi = deriveRoiMetrics(currentReport.sourceReport || currentReport, exportIssues);
     const sevWeights = { critical: 4, high: 3, medium: 2, low: 1 };
     const statusWeights = { completed: 1, 'in-progress': 0.5, pending: 0, blocked: 0 };
     const pendingBonus = { critical: 0, high: 0.1, medium: 0.25, low: 0.4 };
@@ -2333,6 +2398,12 @@ function exportRoadmapJson() {
         exportedAt: new Date().toISOString(),
         generatedAt: currentRoadmap.generatedAt,
         sourceReport: currentRoadmap.sourceReport,
+        roi: {
+            developerHoursSaved: roi.developerHoursSaved,
+            auditFrictionReductionPct: roi.auditFrictionReduction,
+            euAiActRiskReductionPct: roi.euAiActRiskReduction,
+            euAiActStatus: roi.label
+        },
         phases: { total: phasesWithState.length, completed: phasesWithState.filter(p => p.status === 'completed').length, blocked: phasesWithState.filter(p => p.status === 'blocked').length, inProgress: phasesWithState.filter(p => p.status === 'in-progress').length, pending: phasesWithState.filter(p => p.status === 'pending').length },
         tasks: { total: totalTasks, completed: completedTasks, remaining: totalTasks - completedTasks },
         criticalPaths: phasesWithState.filter(p => p.severity === 'critical' && p.status !== 'completed').map(p => ({ id: p.id, title: p.title, progress: p.progress, tasksRemaining: p.taskSummary.todo }))
@@ -2605,6 +2676,8 @@ function exportAllReportsJson() {
     });
     const totalTasks = phasesWithState.reduce((a, p) => a + p.taskSummary.total, 0);
     const completedTasks = phasesWithState.reduce((a, p) => a + p.taskSummary.done, 0);
+    const exportIssues = (currentReport.rawIssues || currentReport.issues || currentReport.detectedIssues || []).map((issue) => ({ sev: issue.severity || issue.severityBand || 'low' }));
+    const roi = deriveRoiMetrics(currentReport.sourceReport || currentReport, exportIssues);
     const sevWeights = { critical: 4, high: 3, medium: 2, low: 1 };
     const statusWeights = { completed: 1, 'in-progress': 0.5, pending: 0, blocked: 0 };
     const pendingBonus = { critical: 0, high: 0.1, medium: 0.25, low: 0.4 };
@@ -2630,6 +2703,12 @@ function exportAllReportsJson() {
             summary: {
                 project: projectName,
                 healthScore,
+                roi: {
+                    developerHoursSaved: roi.developerHoursSaved,
+                    auditFrictionReductionPct: roi.auditFrictionReduction,
+                    euAiActRiskReductionPct: roi.euAiActRiskReduction,
+                    euAiActStatus: roi.label
+                },
                 phases: { total: phasesWithState.length, completed: phasesWithState.filter(p => p.status === 'completed').length, blocked: phasesWithState.filter(p => p.status === 'blocked').length, inProgress: phasesWithState.filter(p => p.status === 'in-progress').length, pending: phasesWithState.filter(p => p.status === 'pending').length },
                 tasks: { total: totalTasks, completed: completedTasks, remaining: totalTasks - completedTasks },
                 criticalPaths: phasesWithState.filter(p => p.severity === 'critical' && p.status !== 'completed').map(p => ({ id: p.id, title: p.title, progress: p.progress, tasksRemaining: p.taskSummary.todo }))
@@ -2697,7 +2776,9 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
         return;
     }
     const pk = String(currentReport.projectRoot || currentReport.projectPath || currentReport.projectName || 'Unknown').replace(/[^a-z0-9]/gi, '_');
-    const rows = [['Phase', 'Severity', 'Effort', 'Progress', 'Status', 'Task Index', 'Task Description', 'Task Type', 'Done', 'Location']];
+    const exportIssues = (currentReport.rawIssues || currentReport.issues || currentReport.detectedIssues || []).map((issue) => ({ sev: issue.severity || issue.severityBand || 'low' }));
+    const roi = deriveRoiMetrics(currentReport.sourceReport || currentReport, exportIssues);
+    const rows = [['Phase', 'Severity', 'Effort', 'Progress', 'Status', 'Task Index', 'Task Description', 'Task Type', 'Done', 'Location', 'Developer Hours Saved', 'Audit Friction Reduction %', 'EU AI Act Risk Reduction %', 'EU AI Act Status']];
     currentRoadmap.phases.forEach(p => {
         p.tasks.forEach((t, idx) => {
             const done = loadTaskState(pk, p.id, idx);
@@ -2713,7 +2794,7 @@ document.getElementById('exportCsvBtn').addEventListener('click', () => {
             else if (t && t.html) {
                 desc = t.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
             }
-            rows.push([p.title, p.severity, p.effort, p.progress + '%', p.status, String(idx + 1), desc, type, String(done), loc]);
+            rows.push([p.title, p.severity, p.effort, p.progress + '%', p.status, String(idx + 1), desc, type, String(done), loc, String(roi.developerHoursSaved), String(roi.auditFrictionReduction), String(roi.euAiActRiskReduction), roi.label]);
         });
     });
     const csv = rows.map(r => r.map(c => {

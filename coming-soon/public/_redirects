@@ -1,0 +1,30 @@
+# Canonicalize .html URLs to extensionless for SEO
+/audit.html     /audit     301
+/pricing.html   /pricing   301
+/roadmap.html   /roadmap   301
+/community.html /community 301
+/contact.html   /contact   301
+/faq.html       /faq       301
+/security.html  /security  301
+/privacy.html   /privacy   301
+/terms.html     /terms     301
+/refund.html    /refund    301
+/sample-report.html         /sample-report         301
+/sample-certificate.html    /sample-certificate    301
+/certificate-upload.html    /certificate-upload    301
+/cloud-scan.html            /cloud-scan            301
+/cloud-teams.html           /cloud-teams           301
+/dashboard-preview.html     /dashboard-preview     301
+/terminal-walkthrough.html  /terminal-walkthrough  301
+
+# Legacy / alias paths from marketing links and bookmarks
+/refunds              /refund               301
+/dpa                  /privacy#dpa          301
+/security-whitepaper  /security             301
+/waitlist             /cloud-teams          301
+
+# API backend routing is handled by Worker code/functions. Do not proxy absolute
+# external URLs from _redirects using 200 rewrites.
+
+# SPA fallback for dashboard/app is handled by Worker code/functions.
+# Avoid wildcard 200 rewrites here; they can create infinite loop validation errors.
