@@ -1594,8 +1594,8 @@ async function runBuyClearanceCommand(options) {
 
 async function runReferCommand(options) {
     if (!options || typeof options !== 'object') throw new TypeError('runReferCommand requires an options object');
-    const { runReferSubcommand } = require('../src/commands/refer');
-    return runReferSubcommand(options, {
+    const { runReferCommand: runRefer } = require('../src/lib/referral-cli');
+    return runRefer(options, {
         writeOut: writeStdoutLine,
         writeErr: (...args) => console.error(...args)
     });
@@ -1607,6 +1607,12 @@ function validateCommandOptions(options) {
     const cmd = options.command;
     if (cmd === 'buy-clearance' && !options.email) {
         throw new ConfigError('--email is required for buy-clearance', { command: cmd });
+    }
+    if (cmd === 'refer' && !options.from && !process.env.SIMPLEBEACON_REFERRER_EMAIL && !process.env.SIMPLEBEACON_EMAIL && !process.env.SIMPLEBEACON_LICENSE_TOKEN) {
+        const licensePath = path.join(require('os').homedir(), '.simplebeacon', 'license.jwt');
+        if (!fs.existsSync(licensePath)) {
+            throw new ConfigError('--from is required for refer (or set SIMPLEBEACON_REFERRER_EMAIL / save ~/.simplebeacon/license.jwt)', { command: cmd });
+        }
     }
     if (cmd === 'pdf' && options.report && !fs.existsSync(path.resolve(options.report))) {
         throw new ConfigError(`Report not found: ${options.report}`, { command: cmd });
