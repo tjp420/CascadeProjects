@@ -112,7 +112,7 @@ function transformHtml(html, relPath) {
   }
   // Referral attribution capture on marketing pages
   if (meta.includeNav && !/referral-capture\.js/i.test(html)) {
-    html = html.replace(/<\/body>/i, '  <script src="/js/referral-capture.js" defer></script>\n</body>');
+    html = html.replace(/<\/body>/i, '  <script src="/js-es2018/referral-capture.js" defer></script>\n</body>');
   }
   return html;
 }
@@ -247,7 +247,7 @@ if (fs.existsSync(dashboardSrc)) {
   if (fs.existsSync(dashboardIndex)) {
     let dashHtml = fs.readFileSync(dashboardIndex, 'utf8');
     // Make marketing site config available to the dashboard for vsixDownloadUrl and pricing fallbacks.
-    dashHtml = dashHtml.replace(/<\/head>/i, '  <script src="/site-config.js"></script>\n  <script src="/js/referral-capture.js" defer></script>\n</head>');
+    dashHtml = dashHtml.replace(/<\/head>/i, '  <script src="/site-config.js"></script>\n  <script src="/js-es2018/referral-capture.js" defer></script>\n</head>');
     if (!/<title>/i.test(dashHtml)) {
       dashHtml = dashHtml.replace(/<head[^>]*>/i, '$&\n  <title>SimpleBeacon Dashboard</title>');
     }
