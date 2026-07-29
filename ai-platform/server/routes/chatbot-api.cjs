@@ -259,9 +259,30 @@ async function resolveChatbotUserEmail(req) {
 }
 
 function setupChatbotAPI(app) {
+
+  const MOCK_ENABLED = process.env.SIMPLEBEACON_CHATBOT_MOCK === 'true';
+
+  function sanitizeModelIdentifier(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (raw.length > 128) return '';
+    if (!/^[A-Za-z0-9._:-]+$/.test(raw)) return '';
+    return raw;
+  }
+
   app.post('/api/chatbot/message', chatbotAuth, async (req, res) => {
+    let provider = 'ollama';
+    let message = '';
     try {
-      const { message, conversationHistory = [], provider = 'ollama', projectPath } = req.body;
+      const {
+        message: incomingMessage,
+        conversationHistory = [],
+        provider: incomingProvider = 'ollama',
+        projectPath
+      } = req.body;
+      message = incomingMessage;
+      provider = incomingProvider;
+      const requestedModel = sanitizeModelIdentifier(req.body?.model);
       const requestId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       if (!message || typeof message !== 'string') {
@@ -271,6 +292,21 @@ function setupChatbotAPI(app) {
       const ALLOWED_PROVIDERS = ['openai', 'anthropic', 'ollama'];
       if (!ALLOWED_PROVIDERS.includes(provider)) {
         return res.status(400).json({ success: false, error: `Unsupported provider: ${provider}` });
+      }
+
+      // Mock provider mode — returns a canned response for E2E testing without real API keys
+      if (MOCK_ENABLED) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        const mockPersonality = String(req.body?.personality || 'helpful');
+        const personalityPrompt = PERSONALITY_PROMPTS[mockPersonality] || PERSONALITY_PROMPTS.helpful;
+        const mockResponse = `[MOCK] ${personalityPrompt.split('.')[0]}. You said: ${message}`;
+        return res.json({
+          success: true,
+          response: mockResponse,
+          provider: 'mock',
+          requestId,
+          mock: true
+        });
       }
 
       // Defend against massive payload sizes
@@ -489,7 +525,12 @@ function setupChatbotAPI(app) {
         {
           userCredentials,
           timeoutMs: constants.TIMEOUT_1M,
-          ollamaModel: userCredentials?.ollamaModel || null
+          ollamaModel: provider === 'ollama' ? (requestedModel || userCredentials?.ollamaModel || null) : null,
+          model: provider === 'openai'
+            ? (requestedModel || userCredentials?.openaiModel || null)
+            : provider === 'anthropic'
+              ? (requestedModel || userCredentials?.anthropicModel || null)
+              : null
         }
       );
 
@@ -514,7 +555,12 @@ function setupChatbotAPI(app) {
             {
               userCredentials,
               timeoutMs: constants.TIMEOUT_1M,
-              ollamaModel: userCredentials?.ollamaModel || null
+              ollamaModel: provider === 'ollama' ? (requestedModel || userCredentials?.ollamaModel || null) : null,
+              model: provider === 'openai'
+                ? (requestedModel || userCredentials?.openaiModel || null)
+                : provider === 'anthropic'
+                  ? (requestedModel || userCredentials?.anthropicModel || null)
+                  : null
             }
           );
           if (retryResponse.text && !serverRefusalPattern.test(retryResponse.text)) {
@@ -623,16 +669,20 @@ function setupChatbotAPI(app) {
     try {
       const userEmail = await resolveChatbotUserEmail(req);
       const userCredentials = await getUserAiCredentials(userEmail);
+      const ollamaBaseUrl = resolveOllamaBaseUrl(userCredentials);
 
       // A configured Ollama URL is not enough — it must actually be reachable from the server.
       let ollamaConfigured = Boolean(userCredentials?.ollamaBaseUrl || process.env.OLLAMA_BASE_URL);
       let ollamaReachable = false;
+      let ollamaModels = [];
       if (ollamaConfigured) {
         try {
-          ollamaReachable = await probeOllama(resolveOllamaBaseUrl(userCredentials), 2500);
+          ollamaModels = await ollamaListModels(ollamaBaseUrl, { timeoutMs: 2500 });
+          ollamaReachable = Array.isArray(ollamaModels);
         }
         catch {
           ollamaReachable = false;
+          ollamaModels = [];
         }
       }
 
@@ -640,25 +690,34 @@ function setupChatbotAPI(app) {
         {
           id: 'ollama',
           label: 'Ollama',
-          available: ollamaReachable,
-          description: 'Local models via Ollama'
+          available: MOCK_ENABLED || ollamaReachable,
+          description: 'Local models via Ollama',
+          model: userCredentials?.ollamaModel || process.env.OLLAMA_MODEL || '',
+          models: ollamaModels
         },
         {
           id: 'openai',
           label: 'OpenAI',
-          available: Boolean(userCredentials?.openai || process.env.OPENAI_API_KEY),
-          description: 'GPT models'
+          available: MOCK_ENABLED || Boolean(userCredentials?.openai || process.env.OPENAI_API_KEY),
+          description: 'GPT models',
+          model: userCredentials?.openaiModel || process.env.OPENAI_MODEL || ''
         },
         {
           id: 'anthropic',
           label: 'Anthropic',
-          available: Boolean(userCredentials?.anthropic || process.env.ANTHROPIC_API_KEY),
-          description: 'Claude models'
+          available: MOCK_ENABLED || Boolean(userCredentials?.anthropic || process.env.ANTHROPIC_API_KEY),
+          description: 'Claude models',
+          model: userCredentials?.anthropicModel || process.env.ANTHROPIC_MODEL || ''
         }
       ];
 
       res.json({
         providers,
+        modelsByProvider: {
+          ollama: ollamaModels,
+          openai: [],
+          anthropic: []
+        },
         authenticated: Boolean(userEmail),
         needsConfiguration: !providers.some((p) => p.available),
         platformEnv: {
