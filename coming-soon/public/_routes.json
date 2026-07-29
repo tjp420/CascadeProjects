@@ -1,7 +1,22 @@
 {
   "version": 1,
-  "include": ["/api/*", "/dashboard/*"],
+  "include": [
+    "/api/*",
+    "/dashboard/*",
+    "/app/*"
+  ],
   "exclude": [
+    "/js/*",
+    "/js-es2018/*",
+    "/css/*",
+    "/downloads/*",
+    "/data/*",
+    "/content/*",
+    "/blog/*",
+    "/favicon.ico",
+    "/favicon.svg",
+    "/robots.txt",
+    "/sitemap.xml",
     "/dashboard/css/*",
     "/dashboard/js/*",
     "/dashboard/js-es2018/*",
@@ -10,6 +25,15 @@
     "/dashboard/assets/*",
     "/dashboard/dist/assets/*",
     "/dashboard/dist/*.css",
-    "/dashboard/dist/*.js"
+    "/dashboard/dist/*.js",
+    "/app/css/*",
+    "/app/js/*",
+    "/app/js-es2018/*",
+    "/app/images/*",
+    "/app/fonts/*",
+    "/app/assets/*",
+    "/app/dist/assets/*",
+    "/app/dist/*.css",
+    "/app/dist/*.js"
   ]
 }
