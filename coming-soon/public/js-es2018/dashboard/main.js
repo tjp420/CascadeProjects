@@ -2854,7 +2854,16 @@ const panelProgressContainer = document.getElementById('panel-progress-container
 const panelProgressBar = document.getElementById('panel-progress-bar');
 
 // 2. Terminal writer
+// Performance stats tracker for terminal render calls
+const __terminalPerf = { calls: 0, totalMs: 0, maxMs: 0, trims: 0, slowCalls: 0 };
+window.__getTerminalPerfStats = function() {
+    return Object.assign({}, __terminalPerf, {
+        avgMs: __terminalPerf.calls ? (__terminalPerf.totalMs / __terminalPerf.calls).toFixed(2) : '0'
+    });
+};
+
 function appendTerminalLine(text, type, isHtml) {
+    const t0 = performance.now();
     const line = document.createElement('div');
     const ts = new Date().toLocaleTimeString().split(' ')[0];
     let indicator = `<span style="color:#64748B;">[${ts}]</span> `;
@@ -2870,8 +2879,18 @@ function appendTerminalLine(text, type, isHtml) {
     // Avoid unbounded DOM growth on long scans (Brave/Zorin low-memory freeze)
     while (terminalConsole.children.length > 1000) {
         terminalConsole.removeChild(terminalConsole.firstChild);
+        __terminalPerf.trims++;
     }
     terminalConsole.scrollTop = terminalConsole.scrollHeight;
+    // Perf tracking: warn on slow calls (>16ms = dropped frame)
+    const elapsed = performance.now() - t0;
+    __terminalPerf.calls++;
+    __terminalPerf.totalMs += elapsed;
+    if (elapsed > __terminalPerf.maxMs) __terminalPerf.maxMs = elapsed;
+    if (elapsed > 16) {
+        __terminalPerf.slowCalls++;
+        if (console && console.warn) console.warn('[terminal-perf] slow render:', elapsed.toFixed(1) + 'ms', 'type:', type);
+    }
 }
 
 // Parse .simplebeaconignore contents into RegExp patterns (gitignore-style)
@@ -3188,6 +3207,7 @@ async function probeLocalServer() {
 }
 
 function appendLocalScannerLine(html, type) {
+    const t0 = performance.now();
     const term = document.getElementById('localScannerTerminal');
     if (!term) return;
     const line = document.createElement('div');
@@ -3197,6 +3217,15 @@ function appendLocalScannerLine(html, type) {
     line.innerHTML = `<span class="log-ts">${new Date().toLocaleTimeString()}</span> ${safeHtml}`;
     term.appendChild(line);
     term.scrollTop = term.scrollHeight;
+    // Perf tracking: warn on slow calls (>16ms = dropped frame)
+    const elapsed = performance.now() - t0;
+    __terminalPerf.calls++;
+    __terminalPerf.totalMs += elapsed;
+    if (elapsed > __terminalPerf.maxMs) __terminalPerf.maxMs = elapsed;
+    if (elapsed > 16) {
+        __terminalPerf.slowCalls++;
+        if (console && console.warn) console.warn('[local-scanner-perf] slow render:', elapsed.toFixed(1) + 'ms', 'type:', type);
+    }
 }
 
 let isPickerActive = false;
