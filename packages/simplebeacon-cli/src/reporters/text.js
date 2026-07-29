@@ -35,6 +35,21 @@ function severityColor(severity) {
     return 'dim';
 }
 
+function severityRank(severity) {
+    const map = {
+        critical: 0,
+        high: 1,
+        medium: 2,
+        low: 3,
+        info: 4
+    };
+    return Object.prototype.hasOwnProperty.call(map, severity) ? map[severity] : 5;
+}
+
+function remediationText(issue) {
+    return (issue.suggestion || issue.fix || issue.remediation || '').trim();
+}
+
 function formatTextReport(report, gateResult = null) {
     const { detectTier } = require('../lib/tier-detector');
     const tierInfo = detectTier();
@@ -93,11 +108,51 @@ function formatTextReport(report, gateResult = null) {
         return lines.join('\n');
     }
 
-    const displayLimit = 1000; // Show all findings instead of capping
-    lines.push('Issues:');
-    for (const issue of issues.slice(0, displayLimit)) {
-        const label = `[${issue.severity}] ${issue.type}`;
-        lines.push(`  ${paint(label, severityColor(issue.severity))}: ${issue.description}`);
+    const sortedIssues = [...issues].sort((a, b) => {
+        const sevDelta = severityRank(a.severity) - severityRank(b.severity);
+        if (sevDelta !== 0) return sevDelta;
+        const aHasFix = remediationText(a).length > 0;
+        const bHasFix = remediationText(b).length > 0;
+        if (aHasFix !== bHasFix) return aHasFix ? -1 : 1;
+        return String(a.type || '').localeCompare(String(b.type || ''));
+    });
+
+    const prioritized = sortedIssues
+        .filter((issue) => remediationText(issue).length > 0)
+        .slice(0, 8);
+
+    if (prioritized.length > 0) {
+        lines.push(paint('Top Remediation Actions (do these first):', 'cyan'));
+        for (const [idx, issue] of prioritized.entries()) {
+            const action = remediationText(issue);
+            lines.push(
+                `  ${idx + 1}. ${paint(`[${String(issue.severity || 'low').toUpperCase()}]`, severityColor(issue.severity))} ${issue.type}: ${action}`
+            );
+        }
+        lines.push('');
+    }
+
+    const displayLimit = 1000;
+    const buckets = ['critical', 'high', 'medium', 'low', 'info'];
+    const grouped = new Map(buckets.map((key) => [key, []]));
+    for (const issue of sortedIssues.slice(0, displayLimit)) {
+        const sev = grouped.has(issue.severity) ? issue.severity : 'info';
+        grouped.get(sev).push(issue);
+    }
+
+    lines.push('Issues by severity:');
+    for (const sev of buckets) {
+        const list = grouped.get(sev);
+        if (!list || list.length === 0) continue;
+        lines.push(`  ${paint(sev.toUpperCase(), severityColor(sev))} (${list.length})`);
+        for (const issue of list) {
+            const label = `${issue.type}: ${issue.description}`;
+            lines.push(`    - ${label}`);
+            const action = remediationText(issue);
+            if (action) {
+                lines.push(`      Fix: ${action}`);
+            }
+        }
     }
 
     const hiddenCount = issues.length - displayLimit;
@@ -198,9 +253,58 @@ function formatActionPlanReport(report, gateResult = null) {
     return lines.join('\n');
 }
 
+const REFERRAL_NUDGE_INNER_WIDTH = 72;
+
+function truncateToWidth(text, maxWidth) {
+    const value = String(text || '');
+    if (value.length <= maxWidth) return value;
+    if (maxWidth <= 1) return value.slice(0, maxWidth);
+    return `${value.slice(0, maxWidth - 1)}…`;
+}
+
+function boxLinePlain(text) {
+    const visible = truncateToWidth(text, REFERRAL_NUDGE_INNER_WIDTH);
+    return `│ ${visible.padEnd(REFERRAL_NUDGE_INNER_WIDTH)} │`;
+}
+
+function boxLineColored(text, color) {
+    const visible = truncateToWidth(text, REFERRAL_NUDGE_INNER_WIDTH);
+    const padding = ' '.repeat(Math.max(0, REFERRAL_NUDGE_INNER_WIDTH - visible.length));
+    if (!colorEnabled()) return boxLinePlain(text);
+    return `│ ${paint(visible, color)}${padding} │`;
+}
+
+function formatReferralNudgeBanner(context = {}) {
+    const shareUrl = String(context.shareUrl || 'https://simplebeacon.ai/').trim();
+    const lines = [
+        '🎉 Scan Passed! Help secure the engineering ecosystem.',
+        '',
+        'Share SimpleBeacon with your network and earn $50 server credits.',
+        `Link: ${shareUrl}`,
+        '',
+        "Run 'simplebeacon refer --link' to manage or extract tracking codes."
+    ];
+
+    if (!context.personalized) {
+        lines.splice(4, 0, 'Tip: set SIMPLEBEACON_REFERRER_EMAIL for your personal tracking link.');
+    } else if (context.partnerCode) {
+        lines.splice(4, 0, `Partner code: ${context.partnerCode}`);
+    }
+
+    const horiz = '─'.repeat(REFERRAL_NUDGE_INNER_WIDTH + 2);
+    const top = paint(`┌${horiz}┐`, 'cyan');
+    const bottom = paint(`└${horiz}┘`, 'cyan');
+    const body = lines.map((line, index) => (
+        index === 0 ? boxLineColored(line, 'green') : boxLinePlain(line)
+    ));
+
+    return [top, ...body, bottom].join('\n');
+}
+
 module.exports = {
     formatTextReport,
     formatActionPlanReport,
+    formatReferralNudgeBanner,
     paint,
     colorEnabled
 };

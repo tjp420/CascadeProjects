@@ -192,6 +192,7 @@ function createDefaultOptions(command) {
         preferHusky: false,
         offline: false,
         noTrustBanner: false,
+        noReferralNudge: false,
         dryRun: false,
         force: false,
         enhance: false,
@@ -274,6 +275,7 @@ const FLAG_MAP = [
     { aliases: ['--husky'], key: 'preferHusky', type: 'boolean' },
     { aliases: ['--offline'], key: 'offline', type: 'boolean' },
     { aliases: ['--no-trust-banner'], key: 'noTrustBanner', type: 'boolean' },
+    { aliases: ['--no-referral-nudge'], key: 'noReferralNudge', type: 'boolean' },
     { aliases: ['--dry-run'], key: 'dryRun', type: 'boolean' },
     { aliases: ['--force'], key: 'force', type: 'boolean' },
     { aliases: ['--enhance'], key: 'enhance', type: 'boolean' },
@@ -525,6 +527,7 @@ Scan options:
   --min-confidence n  Minimum rule confidence threshold 0.0–1.0 (default: 0.5)
   --offline           Fail if any outbound network activity occurs during scan
   --no-trust-banner   Suppress read-only / local-only trust confirmation lines
+  --no-referral-nudge Suppress post-scan referral share banner (also SIMPLEBEACON_REFERRAL_NUDGE=false)
   --slop-cop          Run AI Slop Cop (LLM residue / mock-data detection) during scan
   --api-token <tok>   Paid tier API token (required with --upload)
   --upload <url>      POST JSON report to Simplebeacon cloud (paid tier)
@@ -846,6 +849,13 @@ async function executeOneScan(options, networkGuard) {
         if (options.fixDryRun && remediation && remediation.total > 0) {
             console.error(paint(remediation.total + ' fixable issue(s) found in dry-run; run without --dry-run to apply.', 'red'));
             return 1;
+        }
+
+        try {
+            const { runReferralNudge } = require('../src/lib/referral-cli');
+            await runReferralNudge(options, gateResult);
+        } catch {
+            /* non-blocking */
         }
 
         return 0;

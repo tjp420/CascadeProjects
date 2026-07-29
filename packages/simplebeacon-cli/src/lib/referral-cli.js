@@ -62,9 +62,9 @@ function getApiBase(server) {
     return String(server || process.env.SIMPLEBEACON_API_URL || 'https://simplebeacon.ai').replace(/\/$/, '');
 }
 
-async function fetchJson(url, init) {
+async function fetchJson(url, init, timeoutMs = 30000) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
         const response = await fetch(url, { ...init, signal: controller.signal });
         const data = await response.json().catch(() => ({}));
@@ -74,7 +74,62 @@ async function fetchJson(url, init) {
     }
 }
 
-async function fetchReferralLink({ server, referrerEmail, channel, sendEmail }) {
+function isReferralNudgeDisabled(options = {}) {
+    if (options.noReferralNudge === true) return true;
+    const env = String(process.env.SIMPLEBEACON_REFERRAL_NUDGE || '').trim().toLowerCase();
+    return env === 'false' || env === '0' || env === 'no';
+}
+
+/**
+ * Resolve share URL for post-scan nudge — personalized when identity + network available.
+ */
+async function resolveReferralNudgeContext(options = {}) {
+    const base = getApiBase(options.server || options.apiUrl);
+    const generic = {
+        shareUrl: `${base}/`,
+        partnerCode: null,
+        personalized: false
+    };
+
+    if (options.offline) return generic;
+
+    const referrerEmail = resolveReferrerEmail(options);
+    if (!referrerEmail) return generic;
+
+    try {
+        const data = await fetchReferralLink({
+            server: options.server || options.apiUrl,
+            referrerEmail,
+            channel: 'cli-scan-nudge',
+            sendEmail: false,
+            timeoutMs: 5000
+        });
+        return {
+            shareUrl: data.shareUrl || generic.shareUrl,
+            partnerCode: data.partnerCode || data.slug || null,
+            personalized: true
+        };
+    } catch (_) {
+        return generic;
+    }
+}
+
+/**
+ * Print referral nudge after a passing scan (non-blocking, stderr-only).
+ */
+async function runReferralNudge(options = {}, gateResult = null, io = {}) {
+    const writeErr = io.writeErr || ((msg) => process.stderr.write(msg));
+
+    if (isReferralNudgeDisabled(options)) return;
+    if (options.quiet || options.watch) return;
+    if (!gateResult || gateResult.pass !== true) return;
+
+    const { formatReferralNudgeBanner } = require('../reporters/text');
+    const context = await resolveReferralNudgeContext(options);
+    writeErr(`\n${formatReferralNudgeBanner(context)}\n`);
+}
+
+async function fetchReferralLink({ server, referrerEmail, channel, sendEmail, timeoutMs }) {
     const base = getApiBase(server);
     const params = new URLSearchParams({
         email: referrerEmail,
@@ -82,7 +137,7 @@ async function fetchReferralLink({ server, referrerEmail, channel, sendEmail }) 
     });
     if (sendEmail) params.set('sendEmail', 'true');
     const url = `${base}/api/referral/link?${params.toString()}`;
-    const result = await fetchJson(url, { method: 'GET' });
+    const result = await fetchJson(url, { method: 'GET' }, timeoutMs);
     if (!result.ok || !result.data?.success) {
         throw new Error(result.data?.error || `Failed to create referral link (${result.status})`);
     }
@@ -206,5 +261,8 @@ module.exports = {
     resolveReferrerEmail,
     fetchReferralLink,
     sendReferralInvite,
-    runReferCommand
+    runReferCommand,
+    isReferralNudgeDisabled,
+    resolveReferralNudgeContext,
+    runReferralNudge
 };
