@@ -28,39 +28,13 @@ import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders, isTokenExpired, clearAuthAndRedirect } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 import { runLocalScan } from '@services/localScanService.js';
+import { useExtensionBridge } from '@/hooks/useExtensionBridge';
 import { discoverAndApplyExtensionBridge } from '@services/localAgentService.js';
 import { navigate } from '@/router/HashRouter';
 import { requestNotificationPermission, showOSNotification, isNotificationsEnabled, setNotificationsEnabled as setNotificationsPreference } from '@utils/utils-lib/dom';
 
 type ScanMode = 'local' | 'server' | 'github' | 'website';
 type ScanState = 'idle' | 'scanning' | 'complete' | 'error' | 'auth_required';
-
-function getExtensionBridgeBase(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    let bridge = params.get('sb_api_base') || params.get('sb_notify_base');
-    // If no bridge params in current URL, clear stale sessionStorage entries
-    if (!bridge && typeof sessionStorage !== 'undefined') {
-      const stale = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
-      if (stale) {
-        try { sessionStorage.removeItem('sb_api_base'); } catch { /* ignore */ }
-        try { sessionStorage.removeItem('sb_notify_base'); } catch { /* ignore */ }
-      }
-    }
-    if (bridge) {
-      const trimmed = bridge.replace(/\/+$/, '');
-      // Normalize: strip trailing /api so bridge base is consistent with getApiBase()
-      const hostRoot = trimmed.replace(/\/api$/i, '');
-      // Persist to sessionStorage so bridge survives URL rewrites
-      if (typeof sessionStorage !== 'undefined') {
-        try { sessionStorage.setItem('sb_api_base', hostRoot); } catch { /* ignore */ }
-      }
-      return hostRoot;
-    }
-  } catch { /* ignore */ }
-  return null;
-}
 
 function isHostedDashboard(): boolean {
   if (typeof window === 'undefined') return false;
@@ -75,35 +49,121 @@ function isWebsiteMode(): boolean {
   } catch { return false; }
 }
 
-async function findFolderViaBridge(folderName: string, bridgeBase: string): Promise<string | null> {
+function bridgeFetchHeaders(bridgeToken?: string | null): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (bridgeToken) {
+    headers['X-SimpleBeacon-Bridge-Token'] = bridgeToken;
+  }
+  return headers;
+}
+
+async function findFolderViaBridge(folderName: string, bridgeBase: string, bridgeToken?: string | null): Promise<string | null> {
   try {
     const res = await fetch(`${bridgeBase}/api/find-folder`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: bridgeFetchHeaders(bridgeToken),
       body: JSON.stringify({ folderName }),
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.matches) && data.matches.length > 0) {
-        return data.matches[0].path || data.matches[0];
+      const matches = Array.isArray(data.matches) ? data.matches : [];
+      if (matches.length > 0) {
+        return matches[0].path || matches[0];
+      }
+      const results = Array.isArray(data.results) ? data.results : [];
+      if (results.length > 0) {
+        return typeof results[0] === 'string' ? results[0] : results[0]?.path || null;
       }
     }
   } catch { /* ignore */ }
   return null;
 }
 
-async function pickFolderViaExtensionBridge(bridgeBase: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${bridgeBase}/api/pick-folder`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.path) return data.path;
-    }
-  } catch { /* ignore */ }
+async function pickFolderViaExtensionBridge(bridgeBase: string, bridgeToken?: string | null): Promise<string | null> {
+  const headers = bridgeFetchHeaders(bridgeToken);
+  for (const route of ['/api/analyze/pick-folder', '/api/pick-folder']) {
+    try {
+      const res = await fetch(`${bridgeBase}${route}`, { method: 'POST', headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.path) return data.path;
+      }
+    } catch { /* try alias */ }
+  }
   return null;
+}
+
+function isAbsoluteLocalPath(value: string): boolean {
+  return /^([A-Za-z]:[\\/]|\\\\|\/)/.test(String(value || '').trim());
+}
+
+async function runBridgeExtensionScan(
+  bridgeBase: string,
+  scanPath: string,
+  bridgeToken: string | null | undefined,
+  callbacks: {
+    appendLog: (line: string) => void;
+    setProgress: (n: number) => void;
+    setProgressLabel: (label: string) => void;
+  }
+): Promise<any> {
+  const headers = bridgeFetchHeaders(bridgeToken);
+  let resolvedPath = scanPath;
+  if (!isAbsoluteLocalPath(scanPath)) {
+    callbacks.appendLog(`[SimpleBeacon] Resolving "${scanPath}" via extension bridge...`);
+    const found = await findFolderViaBridge(scanPath, bridgeBase, bridgeToken);
+    if (!found) {
+      throw new Error(`Could not resolve folder "${scanPath}" on your machine via the VS Code extension.`);
+    }
+    resolvedPath = found;
+    callbacks.appendLog(`[SimpleBeacon] Resolved to ${resolvedPath}`);
+  }
+
+  callbacks.setProgressLabel('Starting scan via VS Code extension...');
+  callbacks.setProgress(10);
+  const startResp = await fetch(`${bridgeBase}/api/scan`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ path: resolvedPath }),
+  });
+  if (!startResp.ok) {
+    throw new Error(`Bridge scan failed to start (${startResp.status})`);
+  }
+
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const progResp = await fetch(
+      `${bridgeBase}/api/analyze/progress?projectPath=${encodeURIComponent(resolvedPath)}`,
+      { headers }
+    );
+    if (!progResp.ok) continue;
+    const progData = await progResp.json().catch(() => ({}));
+    const progress = progData?.progress || {};
+    if (progress.active) {
+      const processed = Number(progress.processed) || 0;
+      const total = Number(progress.total) || 0;
+      if (total > 0) {
+        callbacks.setProgress(Math.min(90, 15 + Math.round((processed / total) * 75)));
+        callbacks.setProgressLabel(`Scanning via IDE ${processed.toLocaleString()} / ${total.toLocaleString()} files`);
+      } else {
+        callbacks.setProgressLabel(String(progress.label || 'Scanning via VS Code extension...'));
+      }
+      continue;
+    }
+    break;
+  }
+
+  callbacks.setProgressLabel('Fetching scan report from extension...');
+  callbacks.setProgress(95);
+  const reportResp = await fetch(`${bridgeBase}/api/report`, { headers });
+  if (!reportResp.ok) {
+    throw new Error(`Bridge report fetch failed (${reportResp.status})`);
+  }
+  const report = await reportResp.json();
+  if (report && typeof report === 'object') {
+    report.projectPath = report.projectPath || report.projectRoot || resolvedPath;
+  }
+  return report;
 }
 
 interface ScanResult {
@@ -204,7 +264,7 @@ export function AnalyzeView() {
   const [browserErrorsLoading, setBrowserErrorsLoading] = useState(false);
   const [rerunAfterProbe, setRerunAfterProbe] = useState(true);
   const [pendingBrowserErrorsCount, setPendingBrowserErrorsCount] = useState<number>(0);
-  const bridgeBase = getExtensionBridgeBase();
+  const { bridgeBase, bridgeToken, status: bridgeStatus, recheck: recheckBridge } = useExtensionBridge();
   const hosted = isHostedDashboard();
   const websiteMode = isWebsiteMode();
   const [localNetworkDenied, setLocalNetworkDenied] = useState(false);
@@ -625,16 +685,53 @@ export function AnalyzeView() {
       const isUrl = /^https?:\/\//i.test(scanPath);
       const isServerDefaultPath = !!serverDefaultPath && scanPath === serverDefaultPath;
       if (!isUrl && !isGithubUrl(scanPath) && hosted && !isServerDefaultPath) {
-        // If bridgeBase is set, verify it's reachable; if not, proceed with browser-local scan
+        // Bridge-first: scan via VS Code extension data server when available
         let bridgeReachable = false;
         if (bridgeBase) {
           bridgeReachable = await checkLocalNetworkAccess(bridgeBase, 2000);
-          if (!bridgeReachable) {
+          if (bridgeReachable) {
+            try {
+              appendLog('[SimpleBeacon] Scanning via local VS Code extension bridge...');
+              setProgressLabel('Scanning workspace via local IDE engine...');
+              setProgress(5);
+              const report = await runBridgeExtensionScan(bridgeBase, scanPath, bridgeToken, {
+                appendLog,
+                setProgress,
+                setProgressLabel,
+              });
+              setProgressLabel('Processing results...');
+              setProgress(95);
+              const r = report as any;
+              setFileErrorsCount(r?.telemetry?.fileErrors ?? null);
+              setFileErrorExamples(r?.telemetry?.fileErrorExamples ?? null);
+              const scanResult: ScanResult = {
+                totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || r.totalFiles || 0,
+                issueCount: r.issueCount || r.summary?.totalFindings || (r.rawIssues?.length ?? 0),
+                severityCounts: r.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+                gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+                qualityScore: r.qualityScore ?? null,
+                projectPath: r.projectPath || r.projectRoot || scanPath,
+                scanScope: {
+                  profile: r.scanScope?.profile || 'standard',
+                  resultsViewScope: r.scanScope?.resultsViewScope || 'extension-bridge',
+                  codeFilesAnalyzed: r.scanScope?.codeFilesAnalyzed || r.scanScope?.ruleScopedFilesAnalyzed || r.summary?.codeFilesAnalyzed || r.filesAnalyzed || 0,
+                },
+              };
+              setResult(scanResult);
+              setFullReport(report);
+              setScanState('complete');
+              setProgress(100);
+              appendLog(`[SimpleBeacon] Bridge scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues`);
+              persistScanResult(scanResult, report);
+              return;
+            } catch (bridgeErr: any) {
+              appendLog(`[SimpleBeacon] Extension bridge scan failed: ${bridgeErr?.message || bridgeErr}. Falling back to browser-local scan...`);
+            }
+          } else {
             appendLog(`[SimpleBeacon] Extension bridge ${bridgeBase} not reachable, falling back to browser-local scan...`);
           }
         }
-        if (!bridgeReachable) {
-        // Try browser-local scan via File System Access API or file input fallback
+        // Browser-local fallback when bridge is unavailable or bridge scan failed
         let dirHandlePick: any = null;
         const hasFsa = typeof (window as any).showDirectoryPicker === 'function';
         console.warn('[SimpleBeacon] Browser-local scan path: showDirectoryPicker available:', hasFsa, '| folderInputRef exists:', !!folderInputRef.current, '| bridgeBase:', bridgeBase, '| scanPath:', scanPath);
@@ -731,7 +828,6 @@ export function AnalyzeView() {
           appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
           persistScanResult(scanResult, report);
           return;
-        }
         }
       }
 
@@ -1019,7 +1115,7 @@ export function AnalyzeView() {
                     toast.error('Local Network Access blocked — cannot resolve dropped folder via bridge');
                     return;
                   }
-                  const bridgePath = await findFolderViaBridge(handle.name, bridgeBase);
+                  const bridgePath = await findFolderViaBridge(handle.name, bridgeBase, bridgeToken);
                   if (bridgePath) {
                     setPath(bridgePath);
                     toast.info(`Folder located via bridge: ${bridgePath}`);
@@ -1044,7 +1140,7 @@ export function AnalyzeView() {
       const dirName = (first as any).webkitRelativePath?.split('/')[0] || first.name;
       // On hosted with bridge, try to find the folder
       if (hosted && bridgeBase && dirName) {
-        const bridgePath = await findFolderViaBridge(dirName, bridgeBase);
+        const bridgePath = await findFolderViaBridge(dirName, bridgeBase, bridgeToken);
         if (bridgePath) {
           setPath(bridgePath);
           toast.info(`Folder located via bridge: ${bridgePath}`);
@@ -1054,7 +1150,7 @@ export function AnalyzeView() {
       setPath(dirName);
       toast.info(`Dropped: ${dirName}`);
     }
-  }, [bridgeBase, hosted]);
+  }, [bridgeBase, bridgeToken, hosted]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -1141,7 +1237,7 @@ export function AnalyzeView() {
         toast.error('Local Network Access blocked — cannot open bridge folder picker');
         return;
       }
-      const bridgePath = await pickFolderViaExtensionBridge(bridgeBase);
+      const bridgePath = await pickFolderViaExtensionBridge(bridgeBase, bridgeToken);
       if (bridgePath) {
         setPath(bridgePath);
         toast.info(`Folder selected via extension: ${bridgePath}`);
@@ -1158,7 +1254,7 @@ export function AnalyzeView() {
       if (handle) {
         // On hosted dashboard with bridge, try to resolve real path via bridge
         if (hosted && bridgeBase) {
-          const bridgePath = await findFolderViaBridge(handle.name, bridgeBase);
+          const bridgePath = await findFolderViaBridge(handle.name, bridgeBase, bridgeToken);
           if (bridgePath) {
             setPath(bridgePath);
             toast.info(`Folder selected: ${bridgePath}`);
@@ -1173,7 +1269,7 @@ export function AnalyzeView() {
       // User cancelled or permission denied — fall back to input
       folderInputRef.current?.click();
     }
-  }, [bridgeBase, hosted]);
+  }, [bridgeBase, bridgeToken, hosted]);
 
   const modeTabs: { key: ScanMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = websiteMode
     ? [
@@ -1401,8 +1497,23 @@ export function AnalyzeView() {
         return null;
       })()}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Analyze</h1>
-        <p className="text-foreground-muted">Scan a project for AI safety issues, gate compliance, and quality metrics</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Analyze</h1>
+            <p className="text-foreground-muted">Scan a project for AI safety issues, gate compliance, and quality metrics</p>
+          </div>
+          {hosted && (
+            <div className="flex items-center gap-2 shrink-0">
+              {bridgeStatus === 'connected' && bridgeBase ? (
+                <Badge variant="default" className="gap-1">IDE bridge connected</Badge>
+              ) : (
+                <Button type="button" size="sm" variant="outline" onClick={() => void recheckBridge(true)}>
+                  Connect IDE
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <Card>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Technical Whitepaper: Zero-Upload Architecture — SimpleBeacon</title>
+  <meta name="description" content="SimpleBeacon Technical Whitepaper for enterprise security auditors: zero-upload architecture, network audit methodology, CSP enforcement, and air-gapped verification.">
+  <link rel="canonical" href="https://simplebeacon.ai/security-whitepaper">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="Technical Whitepaper: Zero-Upload Architecture — SimpleBeacon">
+  <meta property="og:description" content="Independent verification methodology for SimpleBeacon's zero-upload, privacy-first scanning architecture.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://simplebeacon.ai/security-whitepaper">
+  <meta property="og:image" content="https://simplebeacon.ai/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { max-width: 860px; margin: 0 auto; padding: 40px 24px; color: #F3F4F6; background: #0B1120; font-family: Inter, sans-serif; line-height: 1.7; }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h2 { font-size: 1.3rem; margin-top: 40px; margin-bottom: 12px; color: #60A5FA; }
+    h3 { font-size: 1.05rem; margin-top: 28px; margin-bottom: 8px; color: #93C5FD; }
+    p { color: #9CA3AF; margin-bottom: 16px; }
+    ul, ol { color: #9CA3AF; padding-left: 20px; }
+    li { margin-bottom: 8px; }
+    code { background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #C4B5FD; }
+    pre { background: rgba(11,17,32,0.8); border: 1px solid #1E293B; border-radius: 8px; padding: 16px; overflow-x: auto; }
+    pre code { background: none; padding: 0; color: #C4B5FD; font-size: 0.82rem; }
+    .badge { display: inline-block; background: rgba(37,99,235,0.12); color: #60A5FA; font-size: 0.75rem; font-weight: 600; padding: 4px 12px; border-radius: 12px; border: 1px solid rgba(37,99,235,0.2); margin-right: 6px; }
+    a { color: #60A5FA; }
+    .meta-box { background: rgba(20,20,20,0.5); border: 1px solid #1E293B; border-radius: 12px; padding: 20px 24px; margin: 24px 0; }
+    .meta-box p { margin: 4px 0; }
+    .meta-label { color: #6B7280; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .callout { background: rgba(5,150,105,0.06); border: 1px solid rgba(5,150,105,0.2); border-radius: 12px; padding: 16px 20px; margin: 20px 0; }
+    .callout p { margin: 0; color: #6EE7B7; }
+    .toc { background: rgba(20,20,20,0.4); border: 1px solid #1E293B; border-radius: 12px; padding: 20px 24px; margin: 24px 0; }
+    .toc ul { margin: 0; padding-left: 16px; }
+    .toc li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Technical Whitepaper: Zero-Upload Architecture</h1>
+  <p style="color:#9CA3AF;">SimpleBeacon &mdash; July 2026</p>
+
+  <div class="meta-box">
+    <p><span class="meta-label">Audience:</span> Enterprise security teams, procurement, compliance auditors</p>
+    <p><span class="meta-label">Classification:</span> <span class="badge">Public</span></p>
+    <p><span class="meta-label">Version:</span> 1.0</p>
+    <p><span class="meta-label">Companion documents:</span> <a href="dpa.html">Data Processing Agreement</a>, <a href="security.html">Security &amp; Trust</a>, <a href="privacy.html">Privacy Policy</a></p>
+  </div>
+
+  <div class="callout">
+    <p><strong>Executive Summary:</strong> SimpleBeacon is a local-first code quality and compliance scanner. Source code never leaves the client's infrastructure at any point during scanning. This whitepaper documents the architectural guarantees, network-level verification methods, and compliance frameworks that allow client security teams to independently prove zero data egress.</p>
+  </div>
+
+  <div class="toc">
+    <p style="color:#60A5FA;font-weight:600;margin-bottom:12px;">Table of Contents</p>
+    <ul>
+      <li><a href="#architecture" style="color:#9CA3AF;">1. Architecture Overview</a></li>
+      <li><a href="#browser" style="color:#9CA3AF;">2. Browser Sandbox Architecture</a></li>
+      <li><a href="#cli" style="color:#9CA3AF;">3. CLI Scanner Architecture</a></li>
+      <li><a href="#csp" style="color:#9CA3AF;">4. Content Security Policy Enforcement</a></li>
+      <li><a href="#routes" style="color:#9CA3AF;">5. Deterministic Routing (_routes.json)</a></li>
+      <li><a href="#network-audit" style="color:#9CA3AF;">6. Network Audit Methodology</a></li>
+      <li><a href="#airgapped" style="color:#9CA3AF;">7. Air-Gapped Verification</a></li>
+      <li><a href="#crypto" style="color:#9CA3AF;">8. Cryptographic Integrity</a></li>
+      <li><a href="#compliance" style="color:#9CA3AF;">9. Compliance Framework Alignment</a></li>
+      <li><a href="#ci-cd" style="color:#9CA3AF;">10. Automated CI/CD Validation Scripts</a></li>
+    </ul>
+  </div>
+
+  <h2 id="architecture">1. Architecture Overview</h2>
+  <p>SimpleBeacon operates on a <strong>local-first execution model</strong> with three distinct scanning surfaces, all of which process source code entirely on the client's machine:</p>
+  <ul>
+    <li><strong>VS Code Extension (AI Slop Cop):</strong> Runs as a VS Code extension that shells out to the local CLI binary. No cloud API is invoked for scanning. Real-time IDE squiggles are generated by local regex and AST rules.</li>
+    <li><strong>CLI Scanner:</strong> A standalone binary that reads files from the local filesystem. Performs 60+ analyzer module scans (AST parsing, regex matching, dependency analysis) entirely in-process. No network calls are made unless the user explicitly passes <code>--upload</code> to generate a certificate.</li>
+    <li><strong>Browser Sandbox:</strong> A WebAssembly-based scanner that runs in the browser's memory sandbox. Files are read via the File System Access API or drag-and-drop. All processing occurs in the browser's JavaScript runtime. The sandbox is wiped when the tab closes.</li>
+  </ul>
+
+  <h2 id="browser">2. Browser Sandbox Architecture</h2>
+  <h3>Execution Model</h3>
+  <p>The browser sandbox scanner operates within the following constraints:</p>
+  <ul>
+    <li>Files are loaded via <code>FileReader</code> or <code>showOpenFilePicker()</code> (File System Access API).</li>
+    <li>All scanning logic executes in the main thread or a Web Worker. No <code>fetch()</code>, <code>XMLHttpRequest</code>, or <code>WebSocket</code> calls are made with file contents.</li>
+    <li>Scan results are rendered in the DOM and optionally downloaded as JSON/PDF by the user.</li>
+    <li>The browser's Same-Origin Policy and CSP headers provide defense-in-depth against accidental exfiltration.</li>
+  </ul>
+
+  <h3>Memory Isolation</h3>
+  <p>The browser sandbox inherits the browser engine's process isolation. File contents exist only in the scanner tab's memory space. When the tab is closed, the OS reclaims the memory. No persistence to IndexedDB, localStorage, or cookies occurs for file contents.</p>
+
+  <h2 id="cli">3. CLI Scanner Architecture</h2>
+  <h3>Network Behavior</h3>
+  <p>The CLI scanner (<code>simplebeacon scan</code>) is designed with a strict zero-network-default policy:</p>
+  <ul>
+    <li><strong>Default mode:</strong> Zero network requests. All file I/O is local filesystem reads.</li>
+    <li><strong>License validation:</strong> Performed locally using HMAC-SHA256 token verification. No license server contact required.</li>
+    <li><strong>Optional upload (<code>--upload</code>):</strong> Only when the user explicitly passes this flag, a scan report (not source code) is uploaded to generate a cryptographic certificate. The upload contains the JSON report output, never the original source files.</li>
+  </ul>
+
+  <h3>Dependency Analysis</h3>
+  <p>Dependency scanning reads <code>package.json</code>, <code>Cargo.toml</code>, <code>requirements.txt</code>, and other manifest files locally. CVE matching is performed against a locally cached vulnerability database that is updated via a separate <code>simplebeacon update</code> command (not during scans).</p>
+
+  <h2 id="csp">4. Content Security Policy Enforcement</h2>
+  <p>SimpleBeacon's production site enforces strict Content Security Policy headers on all pages, including static HTML:</p>
+  <pre><code>Content-Security-Policy:
+  default-src 'self';
+  script-src 'self' 'unsafe-inline'
+    https://static.cloudflareinsights.com
+    https://*.cloudflareinsights.com
+    https://cdn.jsdelivr.net
+    https://js.stripe.com
+    https://api.stripe.com;
+  connect-src 'self'
+    https://simplebeacon.ai
+    https://*.simplebeacon.ai
+    https://cascadeprojects-yzzd.onrender.com
+    https://*.onrender.com
+    https://cloudflareinsights.com
+    https://*.cloudflareinsights.com
+    https://api.stripe.com
+    https://js.stripe.com
+    http://127.0.0.1:*
+    http://localhost:*
+    https://localhost:*;
+  object-src 'none';
+  frame-ancestors 'self'
+    https://simplebeacon.ai
+    vscode-webview:
+    https://simplebeacon.netlify.app;</code></pre>
+
+  <h3>Key Restrictions</h3>
+  <ul>
+    <li><code>connect-src</code> is restricted to SimpleBeacon's own domain, the API backend (onrender.com), Stripe (billing), and Cloudflare Insights (analytics). No wildcard origins that could allow data exfiltration.</li>
+    <li><code>object-src 'none'</code> blocks all plugins and embedded objects.</li>
+    <li><code>frame-ancestors</code> prevents the site from being embedded by unauthorized domains.</li>
+    <li>Any violation of this policy is logged to the browser console and reported via Cloudflare Insights, providing real-time detection of attempted exfiltration.</li>
+  </ul>
+
+  <h3>Verification Command</h3>
+  <pre><code>curl -I https://simplebeacon.ai/dashboard/</code></pre>
+  <p>This will return the CSP header in the response, which client security teams can compare against the policy documented above.</p>
+
+  <h2 id="routes">5. Deterministic Routing (_routes.json)</h2>
+  <p>SimpleBeacon's Cloudflare Pages deployment uses <code>_routes.json</code> to explicitly isolate which paths are handled by serverless functions versus served as static assets:</p>
+  <pre><code>{
+  "version": 1,
+  "include": ["/api/*", "/dashboard/*", "/app/*"],
+  "exclude": ["/js/*", "/js-es2018/*", "/css/*", ...]
+}</code></pre>
+  <ul>
+    <li><strong>Serverless paths (<code>include</code>):</strong> Only <code>/api/*</code> (auth, billing, config), <code>/dashboard/*</code> (SPA), and <code>/app/*</code> (SPA) are routed to backend functions.</li>
+    <li><strong>Static paths (<code>exclude</code>):</strong> All JavaScript (<code>/js-es2018/*</code>), CSS, fonts, and static HTML are served directly from the CDN edge with no server-side processing.</li>
+    <li>This means the scanning JavaScript that runs in the browser is served as a static file and executes entirely in the client context.</li>
+  </ul>
+
+  <h2 id="network-audit">6. Network Audit Methodology</h2>
+  <p>Client security teams can independently verify zero data egress using standard network monitoring tools:</p>
+
+  <h3>6.1 Browser DevTools Network Audit</h3>
+  <ol>
+    <li>Open Chrome or Firefox Developer Tools (F12).</li>
+    <li>Navigate to the <strong>Network</strong> tab.</li>
+    <li>Visit <code>https://simplebeacon.ai/audit</code> and initiate a scan.</li>
+    <li>Filter by <code>Fetch/XHR</code> requests.</li>
+    <li>Observe: only static asset loads (JS, CSS, fonts) and analytics pings (Cloudflare Insights). Zero requests containing file contents, code snippets, or file paths.</li>
+    <li>Check the <strong>Initiator</strong> column to confirm all processing is client-side.</li>
+  </ol>
+
+  <h3>6.2 CLI Packet Inspection</h3>
+  <ol>
+    <li>Start a packet capture on the machine that will run the CLI scanner:
+      <pre><code># Linux/macOS
+sudo tcpdump -i any -nn -X 'not port 22 and not port 53'
+
+# Or use Wireshark with display filter:
+# tcp and not (tcp.port == 22 or tcp.port == 53)</code></pre>
+    </li>
+    <li>Run a full repository scan: <code>simplebeacon scan .</code></li>
+    <li>Observe: zero outbound TCP/UDP packets to external IPs during the scan. The only network activity (if any) is DNS resolution for the initial page load and Cloudflare analytics beacon.</li>
+    <li>For air-gapped validation, repeat with the network interface fully disabled.</li>
+  </ol>
+
+  <h3>6.3 Expected Network Activity</h3>
+  <p>The following network requests are <strong>expected and legitimate</strong> &mdash; none contain source code:</p>
+  <ul>
+    <li>Static asset requests to <code>simplebeacon.ai</code> (JS, CSS, fonts, images)</li>
+    <li>Cloudflare Insights beacon (anonymous page view analytics)</li>
+    <li>Stripe.js loading (only on pricing/checkout pages)</li>
+    <li>API calls to <code>/api/*</code> (authentication, license validation, billing) &mdash; these transmit only tokens and metadata, never source code</li>
+  </ul>
+
+  <h2 id="airgapped">7. Air-Gapped Verification</h2>
+  <p>For maximum assurance, SimpleBeacon can be tested in a fully disconnected environment:</p>
+  <ol>
+    <li><strong>Browser sandbox:</strong> Enable Airplane Mode or disconnect from the network. Navigate to <code>https://simplebeacon.ai/audit</code> (if cached) or open the local HTML file. Run a scan. All processing occurs in the browser's memory with zero network dependency.</li>
+    <li><strong>CLI scanner:</strong> Disable all network interfaces (<code>sudo ifconfig eth0 down</code> or Airplane Mode). Run <code>simplebeacon scan .</code>. The scanner operates flawlessly offline. License tokens are validated locally via HMAC-SHA256.</li>
+    <li><strong>Enterprise Air-Gapped deployment:</strong> The Docker image is pulled once on a connected machine, then transferred to the air-gapped network via physical media. All subsequent operations require zero internet connectivity.</li>
+  </ol>
+  <p>Reports and certificates are generated locally and saved to the filesystem. No cloud dependency exists for core scanning functionality.</p>
+
+  <h2 id="crypto">8. Cryptographic Integrity</h2>
+  <p>Every scan report produced by SimpleBeacon can be independently integrity-verified:</p>
+  <ul>
+    <li><strong>SHA-256 hash:</strong> Computed over the JSON report output. Any tampering with the report invalidates the hash.</li>
+    <li><strong>HMAC-SHA256 signature:</strong> The report is signed with the project's license secret. Auditors can verify the signature without logging into SimpleBeacon.</li>
+    <li><strong>Certificate ZIP:</strong> Board-ready certificates include the PDF certificate, JSON exports, and a SHA-256 integrity seal in a single ZIP package.</li>
+  </ul>
+  <pre><code># Verify a report signature
+echo -n "REPORT_JSON" | openssl dgst -sha256 -hmac "LICENSE_SECRET"</code></pre>
+
+  <h2 id="compliance">9. Compliance Framework Alignment</h2>
+  <h3>SOC 2 Type II</h3>
+  <ul>
+    <li>SimpleBeacon's zero-upload architecture directly supports SOC 2 Trust Services Criteria for Security and Confidentiality.</li>
+    <li>Since source code never enters SimpleBeacon's infrastructure, there is no attack surface for source code exfiltration.</li>
+    <li>Annual SOC 2 Type II reports are available for enterprise clients under NDA.</li>
+  </ul>
+
+  <h3>EU AI Act</h3>
+  <ul>
+    <li>The Compliance Suite produces Annex III high-risk AI system documentation, Article 14 Human Oversight evaluation, and Article 50 transparency checks.</li>
+    <li>All documentation is generated from local scan results &mdash; no source code is transmitted to produce compliance artifacts.</li>
+    <li>This is a technical attestation, not a legal certification. For full legal conformity, engage a qualified EU legal firm.</li>
+  </ul>
+
+  <h3>GDPR</h3>
+  <ul>
+    <li>SimpleBeacon does not process personal data contained in source code. Since source code is never uploaded, any personal data (e.g., email addresses in code comments) remains on the client's infrastructure.</li>
+    <li>Account metadata is processed in the client's chosen region (EU Frankfurt or US Virginia) with no cross-border transfer.</li>
+    <li>A formal <a href="dpa.html">Data Processing Agreement</a> is available for countersignature.</li>
+  </ul>
+
+  <h2 id="ci-cd">10. Automated CI/CD Validation Scripts</h2>
+  <p>SimpleBeacon provides post-deployment verification scripts that client security teams can integrate into their own CI/CD pipelines:</p>
+  <ul>
+    <li><strong><code>verify-production.ps1</code></strong> &mdash; Validates production deployment configuration, CSP headers, and routing rules. Asserts that <code>connect-src</code> matches the documented policy.</li>
+    <li><strong><code>verify-email-pipeline.ps1</code></strong> &mdash; Validates the email notification pipeline for breach notification readiness.</li>
+  </ul>
+  <p>These scripts can be run as pre-deployment security gates in the client's CI/CD sandbox. They assert zero unexpected egress and can be customized to match the client's network boundary policies.</p>
+
+  <h2>Appendix A: Verification Checklist</h2>
+  <ol>
+    <li>[ ] <strong>CSP Header Inspection:</strong> Run <code>curl -I https://simplebeacon.ai/dashboard/</code> and verify <code>connect-src</code> matches this whitepaper.</li>
+    <li>[ ] <strong>Browser Network Audit:</strong> Open DevTools &rarr; Network tab &rarr; run scan &rarr; verify zero code-bearing outbound requests.</li>
+    <li>[ ] <strong>CLI Packet Capture:</strong> Run tcpdump/Wireshark during CLI scan &rarr; verify zero external packet egress.</li>
+    <li>[ ] <strong>Air-Gapped Test:</strong> Disable network &rarr; run both browser and CLI scans &rarr; verify successful completion.</li>
+    <li>[ ] <strong>Report Integrity:</strong> Verify SHA-256 hash and HMAC signature of a generated report.</li>
+    <li>[ ] <strong>_routes.json Review:</strong> Confirm serverless paths are limited to <code>/api/*</code>, <code>/dashboard/*</code>, <code>/app/*</code>.</li>
+    <li>[ ] <strong>DPA Execution:</strong> Sign the <a href="dpa.html">Data Processing Agreement</a> and retain for audit records.</li>
+  </ol>
+
+  <h2>Contact</h2>
+  <p>For technical questions about this whitepaper or to schedule a live audit demonstration:</p>
+  <p>Email: <a href="mailto:security@simplebeacon.ai">security@simplebeacon.ai</a></p>
+  <p><a href="security.html">&larr; Security &amp; Trust</a> &middot; <a href="dpa.html">Data Processing Agreement</a> &middot; <a href="pricing.html">Pricing</a></p>
+
+<footer style="background:#0B0F19;border-top:1px solid #1E293B;padding:32px 24px;text-align:center;color:#9CA3AF;font-size:0.85rem;">
+  <p style="margin:0 0 12px;color:#F3F4F6;">&copy; 2026 SimpleBeacon. All rights reserved.</p>
+  <p style="margin:0;">
+    <a href="/sample-report" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Sample report</a> &middot;
+    <a href="/pricing" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Pricing</a> &middot;
+    <a href="/contact" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Contact</a> &middot;
+    <a href="/faq" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">FAQ</a> &middot;
+    <a href="/blog/case-study-ai-slop-1-25m" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Blog</a> &middot;
+    <a href="/roadmap" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Roadmap</a> &middot;
+    <a href="/terms" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Terms</a> &middot;
+    <a href="/privacy" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Privacy</a> &middot;
+    <a href="/dpa" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">DPA</a> &middot;
+    <a href="/refunds" style="color:#9CA3AF;text-decoration:none;margin:0 6px;">Refunds</a>
+  </p>
+</footer>
+  <script src="/js-es2018/referral-capture.js" defer></script>
+</body>
+</html>

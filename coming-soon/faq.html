@@ -20,11 +20,6 @@
 </head>
 <body>
   <div class="faq-wrap">
-    <div class="faq-nav">
-      <a href="index.html" class="faq-brand">SimpleBeacon</a>
-      <a href="index.html" class="pricing-nav-link">Home</a>
-    </div>
-
     <h1 style="font-size:2rem; font-weight:700; margin-bottom:8px;">FAQ</h1>
     <p style="color:#9CA3AF; margin-bottom:32px;">Common questions about SimpleBeacon.</p>
 
@@ -35,7 +30,7 @@
 
     <div class="faq-item">
       <h3>What is the difference between Free and Pro?</h3>
-      <p>Free includes 24 real-time regex rules in the VS Code extension. Pro ($9/month) adds 14 batch analyzer engines, CLI scanning, CI/CD gate integration, and exportable reports.</p>
+      <p>Free includes 24 real-time regex rules in the VS Code extension and up to 10 local scans per month. Pro ($9/month) adds unlimited pipeline scans, 38 CLI analyzer modules, CI/CD gate integration, custom scanner toggles, full JSON exports, team dashboard, and priority email support.</p>
     </div>
 
     <div class="faq-item">
@@ -53,9 +48,19 @@
       <p>Search "Simplebeacon" in the VS Code Extensions marketplace, or visit <a href="https://marketplace.visualstudio.com/items?itemName=simplebeacon.ai-slop-cop" style="color:#60A5FA;">our listing</a> directly.</p>
     </div>
 
+    <div class="faq-item">
+      <h3>How can I verify that my source code never leaves my machine?</h3>
+      <p>You can independently audit our zero-upload claim in three ways: (1) Open Chrome/Firefox DevTools (F12), go to the Network tab, and run a scan &mdash; you will see zero outbound payloads containing code. (2) Run Wireshark or tcpdump during a CLI scan to confirm zero external packet egress. (3) Enable Airplane Mode and verify both the browser sandbox and CLI scanner operate flawlessly offline. See our <a href="security.html" style="color:#60A5FA;">Security &amp; Trust</a> page for detailed audit steps.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3>Does SimpleBeacon use a Content Security Policy (CSP)?</h3>
+      <p>Yes. Our production site enforces strict <code>connect-src</code> CSP headers that restrict outbound connections to auth and billing endpoints only (https://simplebeacon.ai, Stripe, Cloudflare Insights). The browser itself hard-blocks any accidental or rogue code upload attempt that violates this policy. You can inspect our headers with <code>curl -I https://simplebeacon.ai/dashboard/</code>.</p>
+    </div>
+
     <div style="text-align:center; padding: 40px 0;">
       <p style="color:#9CA3AF; margin-bottom:16px;">Still have questions?</p>
-      <a href="contact.html" style="display:inline-block; background:#2563EB; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600;">Contact Support</a>
+      <a href="/contact" style="display:inline-block; background:#2563EB; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600;">Contact Support</a>
     </div>
   </div>
 </body>

@@ -123,6 +123,33 @@ export function drainNotificationQueue(): NotifyEntry[] {
 }
 let currentTheme: 'light' | 'dark' = 'light';
 let extensionContext: vscode.ExtensionContext | null = null;
+const BRIDGE_TOKEN_KEY = 'sb_bridge_token';
+
+function getOrCreateBridgeToken(): string {
+  if (!extensionContext) {
+    return '';
+  }
+  let token = extensionContext.globalState.get<string>(BRIDGE_TOKEN_KEY);
+  if (!token) {
+    token = crypto.randomUUID();
+    void extensionContext.globalState.update(BRIDGE_TOKEN_KEY, token);
+  }
+  return token;
+}
+
+function isBridgeTokenValid(req: http.IncomingMessage): boolean {
+  const expected = extensionContext?.globalState.get<string>(BRIDGE_TOKEN_KEY);
+  if (!expected) {
+    return true;
+  }
+  const provided = String(req.headers['x-simplebeacon-bridge-token'] || '').trim();
+  return provided === expected;
+}
+
+function rejectBridgeToken(res: http.ServerResponse): void {
+  res.writeHead(401, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ success: false, error: 'Invalid or missing bridge token' }));
+}
 
 // Resolve the public base URL for this backend.
 // For incoming requests, always use the request host so the local data server
@@ -1357,6 +1384,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     serverState.workspacePath = wsFolders[0]?.uri?.fsPath || '';
   }
   ensureDemoLocalUsers();
+  getOrCreateBridgeToken();
 
   if (outputChannel) {
     outputChannel.appendLine(`[SimpleBeacon DataServer] Starting on port ${dataServerPort}...`);
@@ -1431,10 +1459,22 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Health
+    // Health — fingerprint for dashboard port discovery
     if (parsed.pathname === '/api/health' || parsed.pathname === '/health') {
+      const addr = dataServer?.address();
+      const activePort = addr && typeof addr === 'object' ? addr.port : dataServerPort;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok', timestamp: Date.now(), version: serverState.extensionVersion }));
+      res.end(JSON.stringify({
+        service: 'simplebeacon-bridge',
+        platform: 'Simplebeacon',
+        status: 'ok',
+        timestamp: Date.now(),
+        version: serverState.extensionVersion || 'unknown',
+        port: activePort,
+        workspacePath: serverState.workspacePath || '',
+        capabilities: ['pick-folder', 'find-folder', 'scan', 'report'],
+        bridgeToken: getOrCreateBridgeToken()
+      }));
       return;
     }
 
@@ -1518,8 +1558,12 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
       return;
     }
 
-    // Native OS folder picker for the dashboard/analyze page
-    if (parsed.pathname === '/api/analyze/pick-folder' && req.method === 'POST') {
+    // Native OS folder picker for the dashboard/analyze page (canonical + legacy alias)
+    if ((parsed.pathname === '/api/analyze/pick-folder' || parsed.pathname === '/api/pick-folder') && req.method === 'POST') {
+      if (!isBridgeTokenValid(req)) {
+        rejectBridgeToken(res);
+        return;
+      }
       try {
         const fileUris = await vscode.window.showOpenDialog({
           canSelectMany: false,
@@ -1708,21 +1752,53 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     if (parsed.pathname === '/api/chatbot/providers') {
       const cfg = getSbConfig();
       const ollamaUrl = cfg.get<string>('ollamaUrl') || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+      const aiKeys = cfg.get<any>('aiKeys') || {};
       let ollamaAvailable = false;
+      let ollamaModels: string[] = [];
       try {
         const ollamaRes = await fetch(`${ollamaUrl}/api/tags`, { method: 'GET' });
         ollamaAvailable = ollamaRes.ok;
+        if (ollamaRes.ok) {
+          const tagsPayload = await ollamaRes.json().catch(() => ({}));
+          ollamaModels = Array.from(new Set(((tagsPayload as any)?.models || [])
+            .map((entry: any) => entry?.name || entry?.model)
+            .filter(Boolean)));
+        }
       } catch {
         ollamaAvailable = false;
+        ollamaModels = [];
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
         providers: [
-          { id: 'ollama', label: 'Ollama', available: ollamaAvailable },
-          { id: 'openai', label: 'OpenAI', available: false },
-          { id: 'anthropic', label: 'Anthropic', available: false }
-        ]
+          {
+            id: 'ollama',
+            label: 'Ollama',
+            available: ollamaAvailable,
+            model: cfg.get<string>('ollamaModel') || process.env.AGENT_MODEL || '',
+            models: ollamaModels,
+          },
+          {
+            id: 'openai',
+            label: 'OpenAI',
+            available: Boolean((aiKeys?.providers || {}).openai?.configured),
+            model: String(aiKeys?.openaiModel || ''),
+            models: []
+          },
+          {
+            id: 'anthropic',
+            label: 'Anthropic',
+            available: Boolean((aiKeys?.providers || {}).anthropic?.configured),
+            model: String(aiKeys?.anthropicModel || ''),
+            models: []
+          }
+        ],
+        modelsByProvider: {
+          ollama: ollamaModels,
+          openai: [],
+          anthropic: []
+        }
       }));
       return;
     }
@@ -1738,9 +1814,18 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
           const message = String(data.message || '');
           const cfg = getSbConfig();
 
+          const sanitizeModelIdentifier = (value: unknown): string => {
+            const raw = String(value || '').trim();
+            if (!raw) return '';
+            if (raw.length > 128) return '';
+            if (!/^[A-Za-z0-9._:-]+$/.test(raw)) return '';
+            return raw;
+          };
+
           if (provider === 'ollama') {
             const ollamaUrl = cfg.get<string>('ollamaUrl') || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-            const modelName = cfg.get<string>('ollamaModel') || process.env.AGENT_MODEL || 'llama3.2:latest';
+            const requestedModel = sanitizeModelIdentifier(data.model);
+            const modelName = requestedModel || cfg.get<string>('ollamaModel') || process.env.AGENT_MODEL || 'llama3.2:latest';
             const prompt = buildChatbotPrompt(message, data.conversationHistory, data);
 
             try {
@@ -2136,6 +2221,10 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // Find folder by name (drag-and-drop auto-locate)
     if (parsed.pathname === '/api/find-folder' && req.method === 'POST') {
+      if (!isBridgeTokenValid(req)) {
+        rejectBridgeToken(res);
+        return;
+      }
       let body = '';
       req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
       req.on('end', async () => {
@@ -2197,8 +2286,15 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
               a.p.localeCompare(b.p)
             )
             .map((o) => o.p);
+          const results = sorted.slice(0, 15);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, folderName: targetName, results: sorted.slice(0, 15), timedOut: timedOut() }));
+          res.end(JSON.stringify({
+            success: true,
+            folderName: targetName,
+            results,
+            matches: results.map((p: string) => ({ path: p })),
+            timedOut: timedOut()
+          }));
         } catch {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Invalid JSON' }));
@@ -2258,6 +2354,10 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
 
     // Scan endpoint (dashboard analyze page compatibility)
     if (parsed.pathname === '/api/scan' && req.method === 'POST') {
+      if (!isBridgeTokenValid(req)) {
+        rejectBridgeToken(res);
+        return;
+      }
       let body = '';
       req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
       req.on('end', async () => {

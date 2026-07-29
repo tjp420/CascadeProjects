@@ -278,6 +278,14 @@ window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
     {
       q: 'Can I pay by invoice or ACH?',
       a: 'Enterprise contracts support invoice, ACH, wire transfer, and NET-30 terms. <a href="contact.html?topic=enterprise">Contact us</a> for a tailored proposal.'
+    },
+    {
+      q: 'How can I verify that my source code never leaves my machine?',
+      a: 'You can independently audit our zero-upload claim in three ways: (1) Open Chrome/Firefox DevTools (F12), go to the Network tab, and run a scan — you will see zero outbound payloads containing code. (2) Run Wireshark or tcpdump during a CLI scan to confirm zero external packet egress. (3) Enable Airplane Mode and verify both the browser sandbox and CLI scanner operate flawlessly offline. See our <a href="security.html">Security & Trust</a> page for detailed audit steps.'
+    },
+    {
+      q: 'Does SimpleBeacon use a Content Security Policy (CSP)?',
+      a: 'Yes. Our production site enforces strict <code>connect-src</code> CSP headers that restrict outbound connections to auth and billing endpoints only (https://simplebeacon.ai, Stripe, Cloudflare Insights). The browser itself hard-blocks any accidental or rogue code upload attempt that violates this policy. You can inspect our headers with <code>curl -I https://simplebeacon.ai/dashboard/</code>.'
     }
   ]
 };
