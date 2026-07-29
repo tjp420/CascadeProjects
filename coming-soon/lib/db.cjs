@@ -631,36 +631,88 @@ function createReferralAttribution({ linkId, refereeIpHash, refereeEmail, cookie
 }
 
 function getReferralStatsByEmail(email) {
+    const empty = {
+        partnerCode: null,
+        clicks: 0,
+        attributions: 0,
+        signups: 0,
+        conversions: 0,
+        certCreditCents: 0,
+        links: [],
+        ledger: []
+    };
     const referrer = getReferrerByEmail(email);
     if (!referrer) {
-        return { partnerCode: null, clicks: 0, attributions: 0, conversions: 0 };
+        return empty;
     }
     const db = getDb();
     const links = db.prepare('SELECT id, slug, channel, clicks FROM referral_links WHERE referrer_id = ?').all(referrer.id);
     const linkIds = links.map((l) => l.id);
     if (!linkIds.length) {
         return {
+            ...empty,
             partnerCode: referrer.partner_code,
-            clicks: 0,
-            attributions: 0,
-            conversions: 0,
-            links: []
+            certCreditCents: Number(referrer.cert_credit_cents) || 0
         };
     }
     const placeholders = linkIds.map(() => '?').join(',');
     const attrRow = db.prepare(
         `SELECT
             COUNT(*) AS attributions,
+            SUM(CASE WHEN status IN ('signed_up', 'converted') THEN 1 ELSE 0 END) AS signups,
             SUM(CASE WHEN status = 'converted' THEN 1 ELSE 0 END) AS conversions
          FROM referral_attributions WHERE link_id IN (${placeholders})`
     ).get(...linkIds);
     const clicks = links.reduce((sum, l) => sum + (Number(l.clicks) || 0), 0);
+    const ledgerRows = db.prepare(
+        `SELECT
+            a.id AS attribution_id,
+            a.created_at,
+            a.status AS attribution_status,
+            a.referee_email,
+            a.converted_at,
+            r.id AS reward_id,
+            r.reward_value,
+            r.status AS reward_status,
+            r.granted_at
+         FROM referral_attributions a
+         JOIN referral_links l ON a.link_id = l.id
+         LEFT JOIN referral_rewards r ON r.attribution_id = a.id
+         WHERE l.referrer_id = ?
+         ORDER BY COALESCE(r.granted_at, a.created_at) DESC
+         LIMIT 50`
+    ).all(referrer.id);
+
+    const ledger = ledgerRows.map((row) => {
+        const rewardCents = Number(row.reward_value) || 0;
+        let status = 'pending';
+        if (row.attribution_status === 'converted' && row.reward_id) {
+            status = row.reward_status === 'granted' ? 'converted' : String(row.reward_status || 'converted');
+        } else if (row.attribution_status === 'signed_up') {
+            status = 'signed_up';
+        } else if (row.attribution_status === 'clicked') {
+            status = 'clicked';
+        }
+        const dateSource = row.granted_at || row.converted_at || row.created_at || '';
+        const date = dateSource ? String(dateSource).slice(0, 10) : '';
+        return {
+            id: row.reward_id || row.attribution_id,
+            date,
+            status,
+            reward: rewardCents ? rewardCents / 100 : 0,
+            refereeEmail: row.referee_email || null
+        };
+    });
+
     return {
         partnerCode: referrer.partner_code,
         clicks,
         attributions: Number(attrRow?.attributions) || 0,
+        signups: Number(attrRow?.signups) || 0,
         conversions: Number(attrRow?.conversions) || 0,
-        links
+        certCreditCents: Number(referrer.cert_credit_cents) || 0,
+        links,
+        ledger
     };
 }
 

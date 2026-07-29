@@ -187,10 +187,22 @@ router.get('/api/referral/stats', (req, res) => {
 
     const stats = getReferralStatsByEmail(email);
     const origin = getPublicOrigin(req);
+    const shareUrl = stats.partnerCode ? buildShareUrl(origin, stats.partnerCode) : null;
+    const pendingPayout = (Number(stats.certCreditCents) || 0) / 100;
     return res.json({
         success: true,
         ...stats,
-        shareUrl: stats.partnerCode ? buildShareUrl(origin, stats.partnerCode) : null
+        shareUrl,
+        stats: {
+            clicks: stats.clicks,
+            signups: stats.signups,
+            conversions: stats.conversions,
+            attributions: stats.attributions,
+            pendingPayout,
+            partnerCode: stats.partnerCode,
+            shareUrl
+        },
+        ledger: stats.ledger || []
     });
 });
 
