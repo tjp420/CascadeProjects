@@ -188,14 +188,32 @@ function maskToken(value) {
 }
 
 function getLicenseSecret() {
-  return process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+  const secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || '').trim();
+  if (secret) {
+    return secret;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: SIMPLEBEACON_LICENSE_SECRET environment variable is missing in production.');
+  }
+  return null;
 }
 
 function getLicenseTokenStatus(token) {
   if (!token || typeof token !== 'string') {
     return { present: false, valid: false, registered: false, expired: false, error: 'No token' };
   }
-  const validation = validateLicenseToken(token, getLicenseSecret());
+  const secret = getLicenseSecret();
+  if (!secret) {
+    return {
+      present: true,
+      tokenPreview: maskToken(token),
+      valid: false,
+      registered: false,
+      expired: false,
+      error: 'license_secret_unconfigured'
+    };
+  }
+  const validation = validateLicenseToken(token, secret);
   const nowSec = Math.floor(Date.now() / 1000);
   const base = {
     present: true,

@@ -52,6 +52,17 @@ const {
 const PROJECT_ROOT = path.join(__dirname, '../..');
 const MONOREPO_ROOT = path.join(PROJECT_ROOT, '..');
 
+function resolveLicenseSecret() {
+  const secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || '').trim();
+  if (secret) {
+    return secret;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SIMPLEBEACON_LICENSE_SECRET is required in production');
+  }
+  return null;
+}
+
 /**
  * Get analyze allowed roots.
  * @returns {any}
@@ -501,7 +512,7 @@ async function runSimplebeaconScan(projectPath, opts = {}) {
 
   // Generate a short-lived license token for the CLI so it enables the user's tiered rule engines.
   const licenseTier = opts.tier || 'executive';
-  const licenseSecret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+  const licenseSecret = resolveLicenseSecret();
   let licenseToken = '';
   try {
     licenseToken = generateLicenseToken(
@@ -724,6 +735,54 @@ function setupSimplebeaconAPI(app, options = {}) {
     } catch (err) {
       logger.warn('[simplebeacon-api] upload failed:', err.message || err);
       return res.status(500).json({ success: false, error: err.message || String(err) });
+    }
+  });
+
+  // --- Browser error reporting (client-side diagnostic uploads) ---
+  // Accepts JSON payloads from the dashboard client when a browser-local
+  // scan encounters an error (e.g., File System Access NotFoundError).
+  // Stored as NDJSON in .simplebeacon/browser-errors.ndjson so we can inspect
+  // and surface them via a simple GET endpoint for debugging.
+  app.post('/api/simplebeacon/report/browser-error', optionalAuthenticate, requireUserAccount, async (req, res) => {
+    try {
+      const payload = req.body;
+      if (!payload || typeof payload !== 'object') return res.status(400).json({ success: false, error: 'Invalid JSON body' });
+      const record = Object.assign({ receivedAt: new Date().toISOString() }, payload);
+      const errorsDir = path.dirname(resolveReportFilePath(null));
+      const filePath = path.join(errorsDir, 'browser-errors.ndjson');
+      await fs.promises.mkdir(errorsDir, { recursive: true });
+      await fs.promises.appendFile(filePath, JSON.stringify(record) + '\n');
+      try {
+        logger.info('[AUDIT] browser-error', {
+          time: new Date().toISOString(),
+          source: record.source || 'dashboard',
+          message: record.error || null,
+          filePath: record.filePath || null,
+          receivedAt: record.receivedAt || null
+        });
+      } catch (e) {
+        logger.warn('[simplebeacon-api] failed to write audit log for browser-error', e && e.message ? e.message : String(e));
+      }
+      return res.json({ success: true, savedTo: filePath });
+    } catch (err) {
+      logger.warn('[simplebeacon-api] browser-error save failed:', err && err.message ? err.message : String(err));
+      return res.status(500).json({ success: false, error: err && err.message ? err.message : String(err) });
+    }
+  });
+
+  app.get('/api/simplebeacon/report/browser-errors', requirePaidReadOnly, async (req, res) => {
+    try {
+      const errorsPath = path.join(path.dirname(resolveReportFilePath(null)), 'browser-errors.ndjson');
+      if (!fs.existsSync(errorsPath)) return res.json({ success: true, entries: [] });
+      const raw = await fs.promises.readFile(errorsPath, 'utf8');
+      const lines = raw.split('\n').filter(Boolean).slice(-200); // last 200 entries
+      const entries = lines.map(l => {
+        try { return JSON.parse(l); } catch { return { raw: l }; }
+      });
+      return res.json({ success: true, entries });
+    } catch (err) {
+      logger.warn('[simplebeacon-api] browser-errors read failed:', err && err.message ? err.message : String(err));
+      return res.status(500).json({ success: false, error: err && err.message ? err.message : String(err) });
     }
   });
 

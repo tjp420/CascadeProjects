@@ -62,6 +62,22 @@ function envFlag(name) {
 }
 
 /**
+ * Resolve license secret.
+ * Fails closed in production when the secret is not configured.
+ * @returns {string|null}
+ */
+function resolveLicenseSecret() {
+  const secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || '').trim();
+  if (secret) {
+    return secret;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: SIMPLEBEACON_LICENSE_SECRET environment variable is missing in production.');
+  }
+  return null;
+}
+
+/**
  * Is internal dashboard mode.
  * @returns {any}
  */
@@ -149,7 +165,10 @@ function createRequireSubscription(options = {}) {
 
     // --- Free tier read-only fallback ---
     if (allowFree && token) {
-      const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+      const secret = resolveLicenseSecret();
+      if (!secret) {
+        return res.status(503).json({ error: 'license_secret_unconfigured', message: 'License validation is not configured.' });
+      }
       const payload = verifyLicenseToken(token, secret);
       if (payload) {
         const tier = String(payload.tier || payload.product || 'community').toLowerCase();

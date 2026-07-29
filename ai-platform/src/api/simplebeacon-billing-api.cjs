@@ -87,6 +87,17 @@ const { getLicenseToken } = require('../../server/lib/token-db.cjs');
 const { verifyToken } = require('../../server/lib/auth/token-service.cjs');
 const { recordCiTelemetryEvent, summarizeCiTelemetry } = require('../../server/lib/ci-telemetry-store.cjs');
 
+function resolveLicenseSecret() {
+  const secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || '').trim();
+  if (secret) {
+    return secret;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SIMPLEBEACON_LICENSE_SECRET is required in production');
+  }
+  return null;
+}
+
 
 
 
@@ -172,7 +183,7 @@ function setupSimplebeaconBillingWebhook(app) {
                   projectName: session.metadata?.certProjectName || session.metadata?.projectName || 'default-project',
                   clientName: session.metadata?.certClientName || email
                 },
-                process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure',
+                resolveLicenseSecret(),
                 expiresInMinutes
               );
               const record = await upsertSubscription(email, {
@@ -246,7 +257,7 @@ function setupSimplebeaconBillingWebhook(app) {
                   projectName: session.metadata?.projectName || 'default-project',
                   clientName: session.metadata?.certClientName || email
                 },
-                process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure',
+                resolveLicenseSecret(),
                 subExpiryMinutes
               );
 
@@ -481,7 +492,7 @@ function setupSimplebeaconBillingRoutes(app) {
           if (!record?.licenseToken) {
             const licenseToken = generateLicenseToken(
               { email, tier: 'executive', features: ['pdf-generation'] },
-              process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure',
+              resolveLicenseSecret(),
               60
             );
             record = await upsertSubscription(email, {
@@ -507,7 +518,7 @@ function setupSimplebeaconBillingRoutes(app) {
           const tier = isGrowth ? 'team' : 'pro';
           const licenseToken = generateLicenseToken(
             { email, tier, product: product || 'startup_monthly', features: ['team-management', 'pdf-generation'] },
-            process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure',
+            resolveLicenseSecret(),
             365 * 24 * 60
           );
           record = await upsertSubscription(email, {
@@ -790,7 +801,7 @@ function setupSimplebeaconBillingRoutes(app) {
    * @returns {string|null}
    */
   function resolveTelemetryEmail(token) {
-    const secret = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-insecure';
+    const secret = resolveLicenseSecret();
     const payload = verifyLicenseToken(token, secret);
     if (payload?.email) {
       return normalizeEmail(payload.email);
