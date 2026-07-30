@@ -195,7 +195,7 @@ async function runReferCommand(options = {}, io = {}) {
         );
     }
 
-    const inviteeEmail = normalizeEmail(options.email);
+    const inviteeEmail = normalizeEmail(options.inviteeEmail || options.email);
     const server = options.server;
     const jsonOutput = options.format === 'json';
     const linkOnly = options.link === true || !inviteeEmail;
