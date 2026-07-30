@@ -12,6 +12,7 @@ const { ollamaGenerate, extractJsonObject } = require('./ollama-client.cjs');
 const { assertSafeExecutablePath } = require('../lib/path-safety.cjs');
 
 const constants = require('../config/constants.cjs');
+const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
 const SAMPLE_PATH = process.env.MOCK_ANALYSIS_SAMPLE_PATH || path.join('data', 'templates', 'analysis-template.json');
 const FALLBACK_TEMPLATE = {
     mockDataCategories: [],
@@ -222,8 +223,15 @@ async function tryLlamaCppInference(modelPath, prompt) {
             }
             resolve(extractJsonObject(stdout) || { rawText: stdout.slice(0, constants.MAX_RATE_LIMIT), stderr: stderr.slice(0, 500) });
         });
-        child.on('error', () => {
+        child.on('error', (err) => {
             clearTimeout(timeout);
+            logInferenceEvent({
+                provider: 'llama.cpp',
+                operation: 'tryLlamaCppInference',
+                projectLabel: 'inference',
+                outcome: 'error',
+                metadata: { errorMessage: err.message, modelPath }
+            });
             resolve(null);
         });
     });
@@ -383,6 +391,13 @@ async function analyzeWithModel(baseDir, modelId, options = {}) {
         } catch (error) {
             report.inferenceMeta.mode = 'filesystem-fallback';
             report.inferenceMeta.ollamaError = error.message;
+            logInferenceEvent({
+                provider: 'ollama',
+                operation: 'enhanceWithOllama',
+                projectLabel: 'inference',
+                outcome: 'error',
+                metadata: { errorMessage: error.message, ollamaModel: model.ollamaModel }
+            });
         }
     } else if (model.path) {
         const llamaResult = await tryLlamaCppInference(
