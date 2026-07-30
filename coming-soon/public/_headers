@@ -1,5 +1,6 @@
 /*
   Cache-Control: public, max-age=0, must-revalidate, no-transform
+  CDN-Cache-Control: max-age=0, must-revalidate
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -7,6 +8,7 @@
 
 /*.html
   Cache-Control: public, no-cache, no-transform
+  CDN-Cache-Control: no-cache
 
 /dashboard
   Cache-Control: no-store, no-cache, must-revalidate, no-transform
