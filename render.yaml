@@ -3,7 +3,7 @@ services:
     name: simplebeacon
     runtime: node
     plan: free
-    buildCommand: npm install --include=dev; npm run build
+    buildCommand: npm install --include=dev; npm run build --workspace=ai-platform
     startCommand: node ai-platform/simplebeacon-server.cjs
     envVars:
       - key: NODE_ENV
