@@ -478,6 +478,7 @@ export function AnalyzeView() {
     setProgress(2);
     setProgressLabel('Preparing files for scanning...');
     setTerminalOutput([]);
+    setRequiresManualTrigger(false);
     setPath(options.projectPath);
     appendLog(`[SimpleBeacon] ${options.logLabel || 'Browser local scan'}...`);
     try {
@@ -759,6 +760,18 @@ export function AnalyzeView() {
       const isUrl = /^https?:\/\//i.test(scanPath);
       const isServerDefaultPath = !!serverDefaultPath && scanPath === serverDefaultPath;
       if (!isUrl && !isGithubUrl(scanPath) && hosted && !isServerDefaultPath) {
+        const hasFsaEarly = typeof (window as any).showDirectoryPicker === 'function';
+        // Relative names like "Games" cannot be resolved on hosted without bridge or FSA.
+        // Skip async bridge probes that break the user-gesture chain on Firefox/Safari.
+        if (!isAbsoluteLocalPath(scanPath) && !bridgeBase && !hasFsaEarly) {
+          appendLog('[SimpleBeacon] Relative folder name without IDE bridge — use Select Folder (sync click) or drop onto scan zone.');
+          setRequiresManualTrigger(true);
+          setScanState('idle');
+          setProgress(0);
+          setProgressLabel('Click Select Folder to choose a local directory to scan.');
+          toast.info('Your browser cannot resolve "' + scanPath + '" automatically. Click Select Folder below.');
+          return;
+        }
         // Bridge-first: scan via VS Code extension data server when available
         let activeBridge = bridgeBase;
         let activeToken = bridgeToken;
@@ -1274,11 +1287,15 @@ export function AnalyzeView() {
         }
       }
       setPath(dirName);
-      toast.warning(`Dropped "${dirName}" but could not read folder contents. Use Browse Folder or Connect IDE.`);
+      setRequiresManualTrigger(true);
+      setScanState('idle');
+      toast.warning(`Dropped "${dirName}" but could not read folder contents. Click Select Folder below, or use Browse Folder.`);
       return;
     }
 
-    toast.error('Could not read dropped folder. Use Browse Folder or install the VS Code extension.');
+    toast.error('Could not read dropped folder. Click Select Folder below or install the VS Code extension.');
+    setRequiresManualTrigger(true);
+    setScanState('idle');
   }, [appendLog, bridgeBase, bridgeToken, hosted, runBrowserLocalScan]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
