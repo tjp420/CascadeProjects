@@ -134,6 +134,13 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = constants.TIMEOUT
         return response;
     } catch (error) {
         clearTimeout(timeoutId);
+        logInferenceEvent({
+            provider: 'network',
+            operation: 'fetchWithTimeout',
+            projectLabel: 'inference',
+            outcome: 'error',
+            metadata: { errorMessage: error.message, errorName: error.name, url }
+        });
         if (error.name === 'AbortError') {
             throw new Error(`Request timeout after ${timeoutMs}ms`);
         }
@@ -253,6 +260,13 @@ async function resolveOllamaModel(registry = null, userCredentials = null, optio
             options._ollamaTiming.list = listed.timing;
         }
     } catch (err) {
+        logInferenceEvent({
+            provider: 'ollama',
+            operation: 'resolveOllamaModel',
+            projectLabel: 'inference',
+            outcome: 'error',
+            metadata: { errorMessage: err.message, baseUrl }
+        });
         if (explicit) return explicit;
         // Ollama not running — return null so caller can fail fast
         return null;
@@ -676,6 +690,13 @@ async function callProvider(providerId, prompt, options = {}) {
         return result;
     } catch (error) {
         recordFailure(providerId);
+        logInferenceEvent({
+            provider: providerId,
+            operation: 'callProvider',
+            projectLabel: 'inference',
+            outcome: 'error',
+            metadata: { errorMessage: error.message }
+        });
         throw error;
     }
 }

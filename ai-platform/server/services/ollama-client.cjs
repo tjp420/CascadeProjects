@@ -5,6 +5,7 @@
 
 const constants = require('../config/constants.cjs');
 const logger = require('../lib/app-logger.cjs');
+const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
 
 const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`;
 const DEFAULT_TIMEOUT_MS = constants.TIMEOUT_2M;
@@ -123,6 +124,13 @@ async function ollamaGenerate(baseUrl, model, prompt, options = {}) {
                 attempt += 1;
                 continue;
             }
+            logInferenceEvent({
+                provider: 'ollama',
+                operation: 'ollamaGenerate',
+                projectLabel: 'inference',
+                outcome: 'error',
+                metadata: { errorMessage: error.message, model, attempt }
+            });
             if (isAbortError(error)) {
                 throw new Error(`Ollama generate timed out after ${timeoutMs}ms`);
             }
@@ -216,6 +224,13 @@ async function ollamaListModels(baseUrl, options = {}) {
         if (isAbortError(error)) {
             throw new Error(`Ollama tags timed out after ${timeoutMs}ms`);
         }
+        logInferenceEvent({
+            provider: 'ollama',
+            operation: 'ollamaListModels',
+            projectLabel: 'inference',
+            outcome: 'error',
+            metadata: { errorMessage: error.message, baseUrl }
+        });
         logger.error('[Ollama Client] Failed to list models:', error);
         throw error;
     } finally {
@@ -277,6 +292,13 @@ async function ollamaChat(baseUrl, model, messages, options = {}) {
                 attempt += 1;
                 continue;
             }
+            logInferenceEvent({
+                provider: 'ollama',
+                operation: 'ollamaChat',
+                projectLabel: 'inference',
+                outcome: 'error',
+                metadata: { errorMessage: error.message, model, attempt }
+            });
             if (isAbortError(error)) {
                 throw new Error(`Ollama chat timed out after ${timeoutMs}ms`);
             }
