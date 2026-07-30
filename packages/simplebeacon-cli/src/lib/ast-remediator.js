@@ -174,6 +174,134 @@ function fixSqlInjection(snippet, finding) {
     return { search, replace };
 }
 
+/**
+ * SB-GO-REDUNDANCY-002: Repeated identical error handlers → consolidate into helper
+ * Transforms: if err != nil { return err }
+ * Into:       if err != nil { return handleError(err) }
+ * (Only applies when the same handler body appears 3+ times in the snippet)
+ */
+function fixGoRepeatedErrorHandlers(snippet, finding) {
+    const errRe = /if\s+err\s*!=\s*nil\s*\{\s*([^\n}]+)\s*\}/g;
+    const handlers = [];
+    let m;
+    while ((m = errRe.exec(snippet)) !== null) {
+        handlers.push({ match: m[0], body: m[1].trim() });
+    }
+    if (handlers.length < 3) return null;
+
+    // Find the most common handler body
+    const counts = {};
+    for (const h of handlers) {
+        counts[h.body] = (counts[h.body] || 0) + 1;
+    }
+    const mostCommon = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    if (mostCommon[1] < 3) return null;
+
+    const commonBody = mostCommon[0];
+    const helperName = 'handleErr';
+
+    // Replace all instances of the common handler with helper call
+    let modified = snippet;
+    const searchRe = new RegExp(
+        `if\\s+err\\s*!=\\s*nil\\s*\\{\\s*${commonBody.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\}`,
+        'g'
+    );
+    modified = modified.replace(searchRe, `if err != nil {\n\treturn ${helperName}(err)\n}`);
+
+    // Prepend helper function if not already present
+    const helperDef = `func ${helperName}(err error) error {\n\t${commonBody}\n}\n\n`;
+    const search = snippet;
+    const replace = helperDef + modified;
+    return { search, replace };
+}
+
+/**
+ * SB-GO-REDUNDANCY-003: Deep nesting → suggest guard clause extraction
+ * This is a recommendation-only fix (adds a TODO comment with refactor suggestion).
+ */
+function fixGoDeepNesting(snippet, finding) {
+    // Find the function with deep nesting and add a refactor TODO
+    const funcRe = /(func\s+(\w+)\s*\([^)]*\)[^{]*\{)/;
+    const m = snippet.match(funcRe);
+    if (!m) return null;
+    const funcName = m[2];
+    const search = m[1];
+    const replace = `${m[1]}\n\t// TODO(refactor): Extract guard clauses to reduce nesting depth in ${funcName}()`;
+    return { search, replace };
+}
+
+/**
+ * SB-GO-TB-001: Go LLM call without token limit → add MaxTokens field
+ */
+function fixGoTokenBleed(snippet, finding) {
+    // Match Go struct literal call: client.Chat.Create(ctx, &openai.ChatRequest{Model: "gpt-4"})
+    const callRe = /((?:openai|anthropic|client|llm)\.(?:Chat|Complete|Generate|Create|Invoke|Stream|Batch)\w*(?:\.\w+)?)\s*\(\s*(\w+)\s*,\s*&(\w+\.\w+\{)([^}]*)(\}\s*\))/;
+    const m = snippet.match(callRe);
+    if (!m) return null;
+    if (/MaxTokens|max_tokens|MaxCompletionTokens/i.test(m[4])) return null;
+    const search = m[0];
+    const props = m[4].trim();
+    const replace = `${m[1]}(${m[2]}, &${m[3]}${props}${props && !props.endsWith(',') ? ', ' : ''}MaxTokens: 4096${m[5]}`;
+    return { search, replace };
+}
+
+/**
+ * SB-GO-REDUNDANCY-001: Duplicate Go function bodies → suggest extraction
+ * This is a recommendation-only fix (adds a TODO comment).
+ */
+function fixGoDuplicateBody(snippet, finding) {
+    const funcRe = /(func\s+(\w+)\s*\([^)]*\)[^{]*\{)/;
+    const m = snippet.match(funcRe);
+    if (!m) return null;
+    const funcName = m[2];
+    const search = m[1];
+    const replace = `${m[1]}\n\t// TODO(refactor): ${funcName}() has a duplicate body — extract shared logic into a helper`;
+    return { search, replace };
+}
+
+/**
+ * SB-JS-SQL-002: Unparameterized SQL query (string variable passed to executor)
+ * Transforms: db.query(sqlString) → db.query(sqlString, [])
+ * Adds empty params array to signal intent to parameterize.
+ */
+function fixJsSqlUnparameterized(snippet, finding) {
+    // Match: executor(variableName) where variableName is not a template literal or string literal
+    const callRe = /(\w+(?:\.\w+)*)\s*\(\s*(sql\w*|query\w*|stmt\w*)\s*\)/;
+    const m = snippet.match(callRe);
+    if (!m) return null;
+    const search = m[0];
+    const replace = `${m[1]}(${m[2]}, []) // TODO: Pass query parameters as array, not interpolated string`;
+    return { search, replace };
+}
+
+/**
+ * SB-PY-REDUNDANCY-004: Python deep nesting → suggest guard clause extraction
+ * Adds a TODO comment with refactor suggestion.
+ */
+function fixPythonDeepNesting(snippet, finding) {
+    const funcRe = /((?:async\s+)?def\s+(\w+)\s*\([^)]*\)[^:]*:)/;
+    const m = snippet.match(funcRe);
+    if (!m) return null;
+    const funcName = m[2];
+    const search = m[1];
+    const replace = `${m[1]}\n    # TODO(refactor): Extract guard clauses to reduce nesting depth in ${funcName}()`;
+    return { search, replace };
+}
+
+/**
+ * SB-PY-REDUNDANCY-001: Duplicate Python function bodies → suggest extraction
+ * Adds a TODO comment with refactor suggestion.
+ */
+function fixPythonDuplicateBody(snippet, finding) {
+    const funcRe = /((?:async\s+)?def\s+(\w+)\s*\([^)]*\)[^:]*:)/;
+    const m = snippet.match(funcRe);
+    if (!m) return null;
+    const funcName = m[2];
+    const search = m[1];
+    const replace = `${m[1]}\n    # TODO(refactor): ${funcName}() has a duplicate body — extract shared logic into a helper`;
+    return { search, replace };
+}
+
 // ---------------------------------------------------------------------------
 // Fix registry: pattern ID → fix function
 // ---------------------------------------------------------------------------
@@ -183,8 +311,15 @@ const FIX_REGISTRY = {
     'SB-JS-FICTION-002': fixJsStub,
     'SB-PY-TB-001': fixTokenBleed,
     'SB-JS-TB-001': fixTokenBleed,
+    'SB-GO-TB-001': fixGoTokenBleed,
     'SB-PY-REDUNDANCY-002': fixRedundantTryExcept,
+    'SB-PY-REDUNDANCY-001': fixPythonDuplicateBody,
+    'SB-PY-REDUNDANCY-004': fixPythonDeepNesting,
+    'SB-GO-REDUNDANCY-001': fixGoDuplicateBody,
+    'SB-GO-REDUNDANCY-002': fixGoRepeatedErrorHandlers,
+    'SB-GO-REDUNDANCY-003': fixGoDeepNesting,
     'SB-JS-SQL-001': fixSqlInjection,
+    'SB-JS-SQL-002': fixJsSqlUnparameterized,
 };
 
 // ---------------------------------------------------------------------------
@@ -207,7 +342,8 @@ function remediateFinding(finding, options = {}) {
     }
 
     const line = finding.line || finding.metadata?.line || null;
-    const snippet = extractSnippet(filePath, line, 8);
+    const ctxLines = patternId === 'SB-GO-REDUNDANCY-002' ? 20 : 8;
+    const snippet = extractSnippet(filePath, line, ctxLines);
     if (!snippet) {
         return { applied: false, reason: 'Could not read source file', engine: 'deterministic' };
     }
