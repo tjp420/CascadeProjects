@@ -9,6 +9,8 @@ import { ClipboardList, Download, FileCode, AlertTriangle, Shield, CheckCircle2,
 import { navigate } from '@/router/HashRouter';
 import { useAuth } from '@/hooks/useAuth';
 import { ResultsReferralBanner } from '@/components/ResultsReferralBanner';
+import { PostScanCliNudge } from '@/components/PostScanCliNudge';
+import { PostScanShareBanner } from '@/components/PostScanShareBanner';
 import { resolveScanLetterGrade } from '@/lib/gradeFromScore';
 
 interface ScanResultData {
@@ -111,31 +113,6 @@ export function ResultsView() {
     }
   }, []);
 
-  if (!result) {
-    return (
-      <div className="mx-auto max-w-7xl p-6 space-y-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight">Results</h1>
-          <p className="text-foreground-muted">Detailed scan findings and issue breakdown</p>
-        </div>
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-16">
-            <ClipboardList className="h-12 w-12 text-foreground-muted" />
-            <p className="text-sm text-foreground-muted">No scan results loaded</p>
-            <p className="text-xs text-foreground-muted">Run a scan from the Analyze page to see results here</p>
-            <Button className="mt-2" onClick={() => navigate('analyze')}>
-              <Play className="h-4 w-4" /> Go to Analyze
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const severities = ['critical', 'high', 'medium', 'low', 'info'] as const;
-  const activeSeverities = severities.filter(s => result.severityCounts[s] > 0);
-  const currentScanGrade = resolveScanLetterGrade(result.qualityScore, fullReport);
-
   const allIssues = useMemo(() => extractIssueListForSidebar(fullReport), [fullReport]);
 
   const filteredIssues = useMemo(() => {
@@ -165,6 +142,31 @@ export function ResultsView() {
       .sort((a, b) => b[1] - a[1])
       .map(([type, count]) => ({ type, count }));
   }, [allIssues]);
+
+  if (!result) {
+    return (
+      <div className="mx-auto max-w-7xl p-6 space-y-6">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl font-bold tracking-tight">Results</h1>
+          <p className="text-foreground-muted">Detailed scan findings and issue breakdown</p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-16">
+            <ClipboardList className="h-12 w-12 text-foreground-muted" />
+            <p className="text-sm text-foreground-muted">No scan results loaded</p>
+            <p className="text-xs text-foreground-muted">Run a scan from the Analyze page to see results here</p>
+            <Button className="mt-2" onClick={() => navigate('analyze')}>
+              <Play className="h-4 w-4" /> Go to Analyze
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const severities = ['critical', 'high', 'medium', 'low', 'info'] as const;
+  const activeSeverities = severities.filter(s => result.severityCounts[s] > 0);
+  const currentScanGrade = resolveScanLetterGrade(result.qualityScore, fullReport);
 
   return (
     <div className="mx-auto max-w-7xl p-6 space-y-6">
@@ -221,6 +223,13 @@ export function ResultsView() {
       <ResultsReferralBanner
         userEmail={user?.email}
         currentScanGrade={currentScanGrade}
+      />
+
+      <PostScanCliNudge scanGatePass={result.gate.pass} />
+
+      <PostScanShareBanner
+        qualityScore={result.qualityScore}
+        gatePass={result.gate.pass}
       />
 
       {/* Findings Table + Detail Tabs */}

@@ -9,6 +9,8 @@ import { ClipboardList, Download, FileCode, AlertTriangle, Shield, CheckCircle2,
 import { navigate } from '@/router/HashRouter';
 import { useAuth } from '@/hooks/useAuth';
 import { ResultsReferralBanner } from '@/components/ResultsReferralBanner';
+import { PostScanCliNudge } from '@/components/PostScanCliNudge';
+import { PostScanShareBanner } from '@/components/PostScanShareBanner';
 import { resolveScanLetterGrade } from '@/lib/gradeFromScore';
 
 interface ScanResultData {
@@ -221,6 +223,13 @@ export function ResultsView() {
       <ResultsReferralBanner
         userEmail={user?.email}
         currentScanGrade={currentScanGrade}
+      />
+
+      <PostScanCliNudge scanGatePass={result.gate.pass} />
+
+      <PostScanShareBanner
+        qualityScore={result.qualityScore}
+        gatePass={result.gate.pass}
       />
 
       {/* Findings Table + Detail Tabs */}
