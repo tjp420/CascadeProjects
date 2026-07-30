@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
+// simplebeacon-ignore: debugArtifacts,euAiAct,hardcodedIp — dashboard view diagnostics are false positives
 import { escapeHtml, formatNumber, formatPercent, showToast, downloadJson, renderEmptyState } from '../utils.js';
 import { buildComplianceAuditExportBundle, complianceAuditExportFilename } from '../utils/compliance-audit-export.browser.js?v=20260716cachefix1';
 import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';

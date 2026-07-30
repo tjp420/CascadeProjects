@@ -10,6 +10,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { apiUrl, authHeaders, waitForApiBase } from '@/config';
 import { isNotificationsEnabled, setNotificationsEnabled as setNotificationsPreference } from '@utils/utils-lib/dom';
+import { useAuth } from '@/hooks/useAuth';
+import { ReferralAnalyticsPanel } from '@/components/ReferralAnalyticsPanel';
 
 interface AiKeysState {
   openai: { configured: boolean; hint: string };
@@ -78,6 +80,7 @@ function writeProviderDiscoveryCache(ollamaModels: string[]) {
 
 export function SettingsView() {
   const [enabled, setEnabled] = useState(isNotificationsEnabled());
+  const { user } = useAuth();
 
   return (
     <div className="mx-auto max-w-4xl p-6 space-y-6">
@@ -93,6 +96,7 @@ export function SettingsView() {
           <TabsTrigger value="paths">Scan Paths</TabsTrigger>
           <TabsTrigger value="theme">Theme</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="referrals">Referrals</TabsTrigger>
         </TabsList>
 
         <TabsContent value="ai">
@@ -158,6 +162,10 @@ export function SettingsView() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="referrals">
+          <ReferralAnalyticsPanel userEmail={user?.email} />
         </TabsContent>
       </Tabs>
     </div>

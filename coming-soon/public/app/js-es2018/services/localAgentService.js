@@ -288,10 +288,17 @@ export async function probeExtensionDataServer(ports = EXTENSION_PROBE_PORTS, _o
         if (isMixedContent(origin) && !hasAgentBridge())
             continue;
         try {
-            const res = await doFetch(`${origin}/api/ping`, { signal: AbortSignal.timeout(2200) });
-            if (!res.ok)
+            const res = await doFetch(`${origin}/api/health`, { signal: AbortSignal.timeout(2200) });
+            if (res.ok) {
+                const data = await res.json().catch(() => ({}));
+                if (data && (data.service === 'simplebeacon-bridge' || data.platform === 'Simplebeacon')) {
+                    return `${origin}/api`;
+                }
+            }
+            const pingRes = await doFetch(`${origin}/api/ping`, { signal: AbortSignal.timeout(2200) });
+            if (!pingRes.ok)
                 continue;
-            const data = await res.json().catch(() => ({}));
+            const data = await pingRes.json().catch(() => ({}));
             if (data && (data.online === true || data.status === 'ok'))
                 return `${origin}/api`;
         }

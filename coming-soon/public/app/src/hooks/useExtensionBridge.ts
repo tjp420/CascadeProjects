@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  buildExtensionConnectDeepLink,
   discoverAndApplyExtensionBridge,
   getExtensionBridgeOrigin,
   getLocalBridgeFetch,
 } from '@services/localAgentService.js';
+import { persistExtensionBridge } from '@utils/utils-lib/url.js';
 
 const BRIDGE_PORTS = [54358, 54697, 58681, 58000, 64772];
 const BRIDGE_BASE_KEY = 'sb_bridge_base';
@@ -85,35 +87,42 @@ export function useExtensionBridge() {
 
     setStatus('discovering');
 
+    // Parallel loopback probes run on hosted HTTPS too (Chrome LNA / Private Network Access).
+    // Do not bail out early on needsDeepLink — that only means localAgentService skips its own probe.
+    const probes = await Promise.all(BRIDGE_PORTS.map((port) => probeBridgePort(port)));
+    const match = probes.find(Boolean);
+    if (match) {
+      persistExtensionBridge(`${match.base}/api`, { websiteMode: true, updateUrl: options.userInitiated === true });
+      persistBridge(match.base, match.token);
+      setBridgeBase(match.base);
+      setBridgeToken(match.token);
+      setStatus('connected');
+      return { ok: true as const, base: match.base, token: match.token };
+    }
+
     const discovery = await discoverAndApplyExtensionBridge({
       userInitiated: options.userInitiated === true,
     });
     const origin = getExtensionBridgeOrigin();
     if (discovery.ok && origin) {
       setBridgeBase(origin);
-      persistBridge(origin, bridgeToken);
+      persistBridge(origin, null);
       setStatus('connected');
       return { ok: true as const, base: origin };
     }
 
     if (discovery.needsDeepLink) {
       setStatus('denied');
-      return { ok: false as const, reason: 'needs-deep-link' as const };
-    }
-
-    const probes = await Promise.all(BRIDGE_PORTS.map((port) => probeBridgePort(port)));
-    const match = probes.find(Boolean);
-    if (match) {
-      persistBridge(match.base, match.token);
-      setBridgeBase(match.base);
-      setBridgeToken(match.token);
-      setStatus('connected');
-      return { ok: true as const, base: match.base };
+      return {
+        ok: false as const,
+        reason: 'needs-deep-link' as const,
+        deepLink: buildExtensionConnectDeepLink('analyze'),
+      };
     }
 
     setStatus('unavailable');
     return { ok: false as const, reason: 'unavailable' as const };
-  }, [bridgeToken]);
+  }, []);
 
   useEffect(() => {
     void discoverBridge();

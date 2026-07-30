@@ -1,3 +1,4 @@
+// simplebeacon-ignore: debugArtifacts — console.error in catch block is intentional error handling
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ interface UserData {
   name?: string;
   role?: string;
   plan?: string;
+  tier?: string;
 }
 
 export function ProfileView() {
@@ -179,7 +181,7 @@ export function ProfileView() {
 
   const displayName = user?.name || user?.email || 'User';
   const initials = displayName.charAt(0).toUpperCase();
-  const plan = user?.plan || 'free';
+  const plan = user?.plan || user?.tier || (user?.role === 'admin' || user?.role === 'superuser' ? 'enterprise' : 'free');
   const role = user?.role || 'user';
   const displayedPlan = subscription?.plan || plan;
 

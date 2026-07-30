@@ -36,6 +36,34 @@ import { ComplianceView } from './views/ComplianceView';
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
 const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
 
+const VIEW_TITLES: Record<string, string> = {
+  dashboard: 'Dashboard',
+  analyze: 'Analyze',
+  results: 'Results',
+  settings: 'Settings',
+  audit: 'Audit Report',
+  security: 'Security',
+  quality: 'Quality',
+  chatbot: 'Chatbot',
+  trust: 'Trust',
+  remediation: 'Remediation',
+  roadmap: 'Remediation Roadmap',
+  profile: 'Profile',
+  platform: 'Platform',
+  tools: 'Tools',
+  'repository-health': 'Repo Health',
+  signin: 'Sign In',
+  register: 'Create Account',
+  admin: 'Admin',
+  upload: 'Upload',
+  help: 'Help',
+  features: 'Features',
+  assessments: 'Assessments',
+  about: 'About',
+  'getting-started': 'Getting Started',
+  compliance: 'Compliance',
+};
+
 const viewMap: Record<string, React.ComponentType> = {
   dashboard: DashboardView,
   analyze: AnalyzeView,
@@ -75,6 +103,12 @@ export default function App() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
+  useEffect(() => {
+    const label = VIEW_TITLES[route.view] || 'Dashboard';
+    document.title = `${label} — SimpleBeacon`;
+  }, [route.view]);
 
   const handleNavigate = useCallback((view: string) => {
     navigate(view);

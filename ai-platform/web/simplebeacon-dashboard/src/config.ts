@@ -35,7 +35,8 @@ export function getApiBase(): string {
       }
       return DEFAULT_API_BASE;
     }
-    // Canonical production domain serves the API same-origin.
+    // Canonical production domain proxies API via the Worker to the Render backend.
+    // The Worker forwards /api/* to API_BACKEND (Render), so same-origin calls work.
     if (host === 'simplebeacon.ai') {
       return window.location.origin;
     }

@@ -244,6 +244,7 @@ export function AnalyzeView() {
   const [scanState, setScanState] = useState<ScanState>('idle');
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
+  const [requiresManualTrigger, setRequiresManualTrigger] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
@@ -656,6 +657,7 @@ export function AnalyzeView() {
     }
     setScanState('scanning');
     setProgress(0);
+    setRequiresManualTrigger(false);
     setTerminalOutput([]);
     setResult(null);
     setFullReport(null);
@@ -840,8 +842,21 @@ export function AnalyzeView() {
           }
         }
         if (!dirHandlePick && folderInputRef.current) {
-          console.warn('[SimpleBeacon] Using file input fallback. folderInputRef.current:', folderInputRef.current, '| has webkitdirectory:', folderInputRef.current.hasAttribute('webkitdirectory'));
+          // The user-gesture chain may be broken by the async checkLocalNetworkAccess /
+          // showDirectoryPicker awaits above. Some browsers (Firefox, Safari, cross-origin
+          // iframes) will silently block .click() on a file input when not invoked within
+          // a synchronous user gesture. Surface a manual "Select Folder" button instead.
+          const gestureChainBroken = !hasFsa;
+          console.warn('[SimpleBeacon] Using file input fallback. folderInputRef.current:', folderInputRef.current, '| has webkitdirectory:', folderInputRef.current.hasAttribute('webkitdirectory'), '| gestureChainBroken:', gestureChainBroken);
           appendLog('[SimpleBeacon] Using file input fallback for folder selection...');
+          if (gestureChainBroken) {
+            setRequiresManualTrigger(true);
+            setScanState('idle');
+            setProgress(0);
+            setProgressLabel('Click "Select Folder" below to choose a local directory to scan.');
+            appendLog('[SimpleBeacon] Gesture chain broken — showing manual Select Folder button.');
+            return;
+          }
           toast.info('Please select the folder to scan using the file picker (select any file in the folder).');
           try {
             folderInputRef.current.click();
@@ -1769,6 +1784,28 @@ export function AnalyzeView() {
               <><Play className="h-4 w-4" /> Start Scan</>
             )}
           </Button>
+          {requiresManualTrigger && (
+            <div className="mt-3 rounded-md border border-blue-300 bg-blue-50/50 p-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <strong>Select Folder</strong>
+                  <p className="text-xs text-foreground-muted mt-1">
+                    Your browser blocked the automatic file picker (async gesture chain broken).
+                    Click the button below to choose a local directory to scan.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setRequiresManualTrigger(false);
+                    folderInputRef.current?.click();
+                  }}
+                >
+                  Select Folder
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       {scanState === 'complete' && fileErrorsCount ? (

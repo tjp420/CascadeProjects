@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
+// simplebeacon-ignore: debugArtifacts,euAiAct,hardcodedIp — scanner service diagnostics and pattern definitions are false positives
 import { showToast } from '../utils.js';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260726sevfix1';
@@ -6,13 +6,15 @@ import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,
   filterQueueByIgnore,
+  getBrowserBuiltinIgnorePatterns,
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
-const WORKER_URL = new URL('../workers/scan-worker.js?v=20260726scanfix1', import.meta.url);
+const WORKER_URL = new URL('../workers/scan-worker.js?v=2026072701', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
+const WORKER_START_TIMEOUT_MS = 15000;
 const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo[\\/]registry|\.cargo[\\/]git)([\\/]|$)/i;
 const SCANABLE_EXTENSIONS = new Set([
     '.js', '.cjs', '.mjs', '.ts', '.tsx', '.jsx', '.json', '.txt', '.ini', '.cfg',
@@ -26,6 +28,28 @@ const SCANABLE_EXTENSIONS = new Set([
     '.npmrc', '.nvmrc', '.lock', '.feature', '.story'
 ]);
 /**
+ * Ensure the directory handle has read permission before iterating entries.
+ * @param {FileSystemDirectoryHandle} dirHandle
+ * @returns {Promise<boolean>}
+ */
+async function ensureReadPermission(dirHandle) {
+    if (!dirHandle || typeof dirHandle.requestPermission !== 'function')
+        return true;
+    try {
+        const perm = await dirHandle.requestPermission({ mode: 'read' });
+        if (perm !== 'granted') {
+            console.warn('[collectFiles] requestPermission returned:', perm);
+            return false;
+        }
+    }
+    catch (err) {
+        console.warn('[collectFiles] requestPermission threw:', err);
+        return false;
+    }
+    return true;
+}
+
+/**
  * Recursively collect FileSystemFileHandle entries from a directory handle.
  * @param {FileSystemDirectoryHandle} dirHandle
  * @param {string} pathPrefix
@@ -38,16 +62,35 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
     if (ignoreCtx && pathPrefix && isIgnoredVirtualPath(pathPrefix, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
         return files;
     }
+    if (!pathPrefix) {
+        await ensureReadPermission(dirHandle);
+    }
     let entryCount = 0;
+    let ignoredCount = 0;
+    let skippedDirCount = 0;
+    let firstEntries = [];
     for await (const [name, handle] of dirHandle.entries()) {
+        if (entryCount < 5 && !pathPrefix) {
+            firstEntries.push(`${name} (${handle.kind})`);
+        }
         const fullPath = pathPrefix ? `${pathPrefix}/${name}` : name;
         if (ignoreCtx && isIgnoredVirtualPath(fullPath, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
+            ignoredCount++;
             continue;
         }
-        if (SKIP_DIRS.test(fullPath))
+        if (SKIP_DIRS.test(fullPath)) {
+            skippedDirCount++;
             continue;
+        }
         if (handle.kind === 'directory') {
-            await collectFiles(handle, fullPath, files, ignoreCtx);
+            try {
+                const subDirHandle = await dirHandle.getDirectoryHandle(name);
+                if (await ensureReadPermission(subDirHandle)) {
+                    await collectFiles(subDirHandle, fullPath, files, ignoreCtx);
+                }
+            } catch (dirErr) {
+                console.warn('[collectFiles] Could not traverse directory:', fullPath, dirErr);
+            }
         }
         else if (handle.kind === 'file') {
             if (name === '.simplebeaconignore')
@@ -64,6 +107,9 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
         if (entryCount % 500 === 0) {
             await new Promise((resolve) => setTimeout(resolve, 0));
         }
+    }
+    if (!pathPrefix) {
+        console.warn('[collectFiles] Root dir:', dirHandle.name, '| entries seen:', entryCount, '| files collected:', files.length, '| ignored:', ignoredCount, '| skipped dirs:', skippedDirCount, '| first entries:', firstEntries.join(', '));
     }
     return files;
 }
@@ -227,12 +273,18 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
     const scanId = crypto.randomUUID();
     const totalFiles = workerFiles.length;
     const ignoreCtx = options.ignoreCtx || null;
+    let fileErrors = 0;
+    const fileErrorExamples = [];
     return new Promise((resolve, reject) => {
         let settled = false;
+        let workerStarted = false;
+        let workerStartTimer = null;
         const cleanup = (terminate = true) => {
             if (settled)
                 return;
             settled = true;
+            if (workerStartTimer)
+                clearTimeout(workerStartTimer);
             if (terminate)
                 worker.terminate();
         };
@@ -240,10 +292,54 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             cleanup();
             const detail = err.message || (err.error && err.error.message) || '';
             const loc = err.filename ? ` at ${err.filename}:${err.lineno || 0}:${err.colno || 0}` : '';
-            reject(new Error(detail ? `Worker error: ${detail}${loc}` : `Local scan worker failed${loc}`));
+            const workerUrl = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
+            // Provide a more actionable error when the worker script fails to load (CSP, 404, network).
+            // This commonly happens on hosted dashboards when the worker URL resolves to the wrong path.
+            if (!detail) {
+                reject(new Error(`Local scan worker failed to load from ${workerUrl}${loc}. Check your browser console for network/CSP errors.`));
+            } else {
+                reject(new Error(`Worker error: ${detail}${loc} (worker: ${workerUrl})`));
+            }
+        };
+        worker.onmessage = (e) => {
+            const msg = e.data || {};
+            if (msg.type === 'file-error') {
+                try {
+                    if (options.onFileError) {
+                        options.onFileError(msg.file, { name: msg.name, message: msg.message, stack: msg.stack });
+                    }
+                }
+                catch (_a) { }
+            }
         };
         worker.onmessage = async (e) => {
             const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile, binarySkipped, textErrors, ignoredDir, heavyVendor, ignoredByPattern } = e.data;
+            if (type === 'started') {
+                workerStarted = true;
+                if (workerStartTimer)
+                    clearTimeout(workerStartTimer);
+                try {
+                    window["console"]["warn"](`[localScan] Worker started for ${totalFiles.toLocaleString()} files (scanId=${scanId})`);
+                }
+                catch (_startLogErr) { }
+                if (options.onProgress) {
+                    options.onProgress(0, totalFiles, { currentFile: 'Scanner worker initialized' });
+                }
+                return;
+            }
+            if (e.data && e.data.type === 'file-error') {
+                try {
+                    fileErrors += 1;
+                    if (fileErrorExamples.length < 20) {
+                        fileErrorExamples.push({ file: e.data.file, name: e.data.name, message: e.data.message });
+                    }
+                    if (options.onFileError) {
+                        try { options.onFileError(e.data.file, { name: e.data.name, message: e.data.message, stack: e.data.stack }); } catch (_a) { }
+                    }
+                }
+                catch (_b) { }
+                // continue processing other message types
+            }
             if (type === 'progress' && options.onProgress) {
                     options.onProgress(processed, total, { currentFile, ignoredDir, heavyVendor, ignoredByPattern });
             }
@@ -276,7 +372,9 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                         heavyVendor: heavyVendor || 0,
                         ignoredByPattern: ignoredByPattern || 0,
                         binarySkipped: binarySkipped || 0,
-                        textErrors: textErrors || 0
+                        textErrors: textErrors || 0,
+                        fileErrors: fileErrors || 0,
+                        fileErrorExamples: fileErrorExamples.length ? fileErrorExamples : undefined
                     }
                 }));
             }
@@ -290,6 +388,12 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns }
                 : null
         });
+        workerStartTimer = setTimeout(() => {
+            if (workerStarted || settled)
+                return;
+            cleanup();
+            reject(new Error('Local scan worker did not initialize in time. This is often caused by blocked worker module imports in hosted/embedded mode. Reload and try again, or run via the Local Agent/CLI.'));
+        }, WORKER_START_TIMEOUT_MS);
         (async () => {
             try {
                 for (let offset = 0; offset < workerFiles.length; offset += SCAN_BATCH_SIZE) {
@@ -345,6 +449,8 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
  * @param {Object} options
  * @param {AbortSignal} [options.signal]
  * @param {(processed:number, total:number) => void} [options.onProgress]
+ * @param {(file:string, err:any) => void} [options.onFileError] Optional callback invoked for per-file access errors (e.g. NotFoundError)
+ * @param {(processed:number, total:number, label:string) => void} [options.onFilePrepProgress] Optional callback invoked during file preparation (filtering, dedup) before the worker scan starts.
  * @param {FileSystemDirectoryHandle} [options.dirHandle] Optional directory handle from drag-and-drop.
  * @param {FileList|File[]} [options.files] Optional dropped files (legacy directory entry) to scan locally.
  * @param {string} [options.projectPath] Optional display path/label to use as projectPath in the report.
@@ -354,30 +460,62 @@ export async function runLocalScan(options = {}) {
     if (!options.files && !options.dirHandle && !canUseDirectoryPicker()) {
         throw new Error('Your browser does not support the local directory picker. Use Chrome/Edge or run the server locally.');
     }
+    const onFilePrepProgress = typeof options.onFilePrepProgress === 'function' ? options.onFilePrepProgress : null;
     let projectName = options.projectPath || 'local-project';
     let files = [];
     let ignoreCtx = null;
     if (options.files && options.files.length) {
         const fileArray = Array.from(options.files);
+        if (onFilePrepProgress) onFilePrepProgress(0, fileArray.length, 'Reading file list...');
         const firstRel = fileArray[0]._virtualPath || fileArray[0].webkitRelativePath || fileArray[0].name || '';
-        projectName = options.projectPath || firstRel.split('/')[0] || 'local-project';
+        // Prefer the root directory name from the actual FileList over any caller-supplied label;
+        // this ensures ignore-pattern root-stripping matches the selected folder.
+        projectName = firstRel.split('/')[0] || options.projectPath || 'local-project';
+        if (onFilePrepProgress) onFilePrepProgress(0, fileArray.length, 'Loading ignore patterns...');
         const ignoreLoad = await extractIgnorePatternsFromLegacyFiles(fileArray);
         ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
+        console.warn('[localScan] fileInput', fileArray.length, 'files; projectName=', projectName, 'firstRel=', firstRel, 'ignoreSource=', ignoreCtx.source, 'ignorePatterns=', ignoreCtx.patterns.length);
+        if (onFilePrepProgress) onFilePrepProgress(0, fileArray.length, 'Filtering files...');
         files = fileArray
-            .filter((f) => {
+            .filter((f, i) => {
+                if (onFilePrepProgress && i % 5000 === 0) onFilePrepProgress(i, fileArray.length, 'Filtering files...');
                 const path = f._virtualPath || f.webkitRelativePath || f.name;
                 return !isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns);
             })
             .map((f) => ({ path: f._virtualPath || f.webkitRelativePath || f.name, handle: f }));
         // Deduplicate by normalized path — Windows symlinks/junctions (pnpm node_modules)
         // cause the same file to appear multiple times during recursive directory traversal.
+        if (onFilePrepProgress) onFilePrepProgress(files.length, fileArray.length, 'Deduplicating paths...');
         const _seen = new Set();
-        files = files.filter((f) => {
+        files = files.filter((f, i) => {
+            if (onFilePrepProgress && i % 5000 === 0) onFilePrepProgress(i, files.length, 'Deduplicating paths...');
             const key = String(f.path).replace(/\\/g, '/').toLowerCase();
             if (_seen.has(key)) return false;
             _seen.add(key);
             return true;
         });
+        // If the user's .simplebeaconignore filtered out every file, fall back to built-in
+        // exclusions so a misconfigured catch-all doesn't silently block the scan.
+        if (files.length === 0 && fileArray.length > 0) {
+            console.warn('[localScan] All', fileArray.length, 'files were excluded by', ignoreCtx.source, 'rules. Falling back to built-in ignore patterns.');
+            ignoreCtx = createIgnoreContext(getBrowserBuiltinIgnorePatterns(ignoreLoad.isSimplebeaconMonorepo), projectName, 'builtin');
+            files = fileArray
+                .filter((f) => {
+                    const path = f._virtualPath || f.webkitRelativePath || f.name;
+                    return !isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns);
+                })
+                .map((f) => ({ path: f._virtualPath || f.webkitRelativePath || f.name, handle: f }));
+            const seen = new Set();
+            files = files.filter((f) => {
+                const key = String(f.path).replace(/\\/g, '/').toLowerCase();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+            if (files.length > 0) {
+                showToast(`Your .simplebeaconignore excluded all files; scanned with built-in exclusions instead.`, 'warning', { duration: 7000 });
+            }
+        }
     }
     else {
         const dirHandle = options.dirHandle;
@@ -387,12 +525,24 @@ export async function runLocalScan(options = {}) {
             }
             const picked = await window.showDirectoryPicker();
             projectName = options.projectPath || picked.name || 'local-project';
+            if (picked.requestPermission) {
+                const perm = await picked.requestPermission({ mode: 'read' });
+                if (perm !== 'granted') {
+                    throw new Error(`Read permission was not granted for "${projectName}". Browser returned: ${perm}`);
+                }
+            }
             const ignoreLoad = await loadIgnorePatternsFromDirHandle(picked);
             ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
             files = await collectFiles(picked, '', [], ignoreCtx);
         }
         else {
             projectName = options.projectPath || dirHandle.name || 'local-project';
+            if (dirHandle.requestPermission) {
+                const perm = await dirHandle.requestPermission({ mode: 'read' });
+                if (perm !== 'granted') {
+                    throw new Error(`Read permission was not granted for "${projectName}". Browser returned: ${perm}`);
+                }
+            }
             const ignoreLoad = await loadIgnorePatternsFromDirHandle(dirHandle);
             ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
             files = await collectFiles(dirHandle, '', [], ignoreCtx);
@@ -417,8 +567,32 @@ export async function runLocalScan(options = {}) {
     else if (files.length > 3000) {
         showToast(`Scanning ${files.length.toLocaleString()} files locally — this may take a few minutes.`, 'info', { duration: 6000 });
     }
+    if (onFilePrepProgress) onFilePrepProgress(files.length, files.length, `Starting scan of ${files.length.toLocaleString()} files...`);
     const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
-    const worker = new Worker(WORKER_URL, { type: 'module' });
+    if (options.onProgress) {
+        options.onProgress(0, workerFiles.length, { currentFile: 'Initializing scanner worker...' });
+    }
+    let worker;
+    try {
+        const workerUrlStr = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
+        console.warn('[localScan] Creating module worker from:', workerUrlStr);
+        // Firefox has issues with query parameters in module worker URLs — strip them as a fallback
+        let workerUrlForCreation = WORKER_URL;
+        try {
+            const parsed = new URL(workerUrlStr);
+            if (parsed.search && navigator.userAgent.toLowerCase().includes('firefox')) {
+                parsed.search = '';
+                const cleanUrl = parsed.href;
+                console.warn('[localScan] Firefox detected — stripping query param from worker URL:', cleanUrl);
+                workerUrlForCreation = cleanUrl;
+            }
+        } catch (_e) { /* ignore URL parse errors */ }
+        worker = new Worker(workerUrlForCreation, { type: 'module' });
+    } catch (workerCtorErr) {
+        const workerUrlStr = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
+        console.error('[localScan] new Worker() constructor threw:', workerCtorErr);
+        throw new Error(`Failed to create module worker from ${workerUrlStr}: ${workerCtorErr?.message || workerCtorErr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`);
+    }
     if (options.signal) {
         options.signal.addEventListener('abort', () => worker.terminate(), { once: true });
     }

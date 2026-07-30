@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ClipboardList, Download, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info } from 'lucide-react';
+import { ClipboardList, Download, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info, Search, ChevronRight, FileText } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { useAuth } from '@/hooks/useAuth';
 import { ResultsReferralBanner } from '@/components/ResultsReferralBanner';
@@ -83,6 +84,8 @@ function syncReportToVscodeSidebar(reportData: any, fallbackProjectPath = ''): v
 
 export function ResultsView() {
   const [filter, setFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedIssue, setSelectedIssue] = useState<any>(null);
   const [result, setResult] = useState<ScanResultData | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
@@ -132,6 +135,36 @@ export function ResultsView() {
   const severities = ['critical', 'high', 'medium', 'low', 'info'] as const;
   const activeSeverities = severities.filter(s => result.severityCounts[s] > 0);
   const currentScanGrade = resolveScanLetterGrade(result.qualityScore, fullReport);
+
+  const allIssues = useMemo(() => extractIssueListForSidebar(fullReport), [fullReport]);
+
+  const filteredIssues = useMemo(() => {
+    let issues = allIssues;
+    if (filter !== 'all') {
+      issues = issues.filter(i => i.severity === filter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      issues = issues.filter(i =>
+        (i.type || '').toLowerCase().includes(q) ||
+        (i.description || '').toLowerCase().includes(q) ||
+        (i.filePath || '').toLowerCase().includes(q)
+      );
+    }
+    issues = issues.filter(i => !String(i.filePath || '').includes('node_modules'));
+    return issues;
+  }, [allIssues, filter, searchQuery]);
+
+  const issueCategories = useMemo(() => {
+    const catMap: Record<string, number> = {};
+    allIssues.forEach(i => {
+      const cat = i.type || 'other';
+      catMap[cat] = (catMap[cat] || 0) + 1;
+    });
+    return Object.entries(catMap)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) => ({ type, count }));
+  }, [allIssues]);
 
   return (
     <div className="mx-auto max-w-7xl p-6 space-y-6">
@@ -190,77 +223,262 @@ export function ResultsView() {
         currentScanGrade={currentScanGrade}
       />
 
-      {/* Severity Filter + Detail Tabs */}
-      <Tabs defaultValue="summary">
+      {/* Findings Table + Detail Tabs */}
+      <Tabs defaultValue="findings">
         <TabsList>
+          <TabsTrigger value="findings">Findings</TabsTrigger>
           <TabsTrigger value="summary">Summary</TabsTrigger>
           <TabsTrigger value="scope">Scope</TabsTrigger>
           <TabsTrigger value="export">Export</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="findings">
+          <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+            <Card>
+              <CardHeader>
+                <CardTitle>Findings Breakdown</CardTitle>
+                <CardDescription>
+                  {allIssues.length} total issue{allIssues.length !== 1 ? 's' : ''}
+                  {filter !== 'all' && ` · filtered by ${filter}`}
+                  {searchQuery && ` · matching "${searchQuery}"`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {['all', ...activeSeverities].map((sev) => (
+                    <Button
+                      key={sev}
+                      variant={filter === sev ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFilter(sev)}
+                      className="capitalize"
+                    >
+                      {sev}
+                      {sev !== 'all' && (
+                        <span className="ml-1.5 text-xs opacity-70">
+                          {result.severityCounts[sev as keyof typeof result.severityCounts]}
+                        </span>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="relative mb-3">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-foreground-muted" />
+                  <Input
+                    placeholder="Search by type, description, or file path…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+
+                <Separator />
+
+                {allIssues.length === 0 ? (
+                  <div className="flex items-center gap-3 py-8">
+                    <CheckCircle2 className="h-8 w-8 text-success" />
+                    <div>
+                      <p className="text-sm font-medium">No issues detected</p>
+                      <p className="text-xs text-foreground-muted">All gate rules passed with zero findings</p>
+                    </div>
+                  </div>
+                ) : filteredIssues.length === 0 ? (
+                  <div className="flex items-center gap-3 py-8">
+                    <Search className="h-8 w-8 text-foreground-muted" />
+                    <div>
+                      <p className="text-sm font-medium">No issues match current filters</p>
+                      <p className="text-xs text-foreground-muted">Try adjusting severity filter or search query</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {filteredIssues.length > 500 && (
+                      <p className="text-xs text-foreground-muted py-2">
+                        Showing first 500 of {filteredIssues.length} filtered issues. Export for the full set.
+                      </p>
+                    )}
+                    <div className="rounded-md border border-border overflow-hidden">
+                      <div className="max-h-[600px] overflow-auto">
+                        <table className="w-full text-sm">
+                          <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
+                            <tr className="text-left">
+                              <th className="px-3 py-2 font-medium text-foreground-muted">Severity</th>
+                              <th className="px-3 py-2 font-medium text-foreground-muted">Type</th>
+                              <th className="px-3 py-2 font-medium text-foreground-muted">Description</th>
+                              <th className="px-3 py-2 font-medium text-foreground-muted">File</th>
+                              <th className="px-3 py-2 font-medium text-foreground-muted text-right">Count</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredIssues.slice(0, 500).map((issue, idx) => (
+                              <tr
+                                key={issue.id || idx}
+                                onClick={() => setSelectedIssue(issue)}
+                                className={`border-t border-border cursor-pointer transition-colors hover:bg-muted/50 ${selectedIssue === issue ? 'bg-muted' : ''}`}
+                              >
+                                <td className="px-3 py-2">
+                                  <Badge
+                                    variant={
+                                      issue.severity === 'critical' ? 'danger' :
+                                      issue.severity === 'high' ? 'warning' :
+                                      issue.severity === 'medium' ? 'info' :
+                                      issue.severity === 'low' ? 'secondary' : 'outline'
+                                    }
+                                    className="capitalize text-xs"
+                                  >
+                                    {issue.severity}
+                                  </Badge>
+                                </td>
+                                <td className="px-3 py-2 text-foreground-muted whitespace-nowrap">{issue.type || '—'}</td>
+                                <td className="px-3 py-2 text-foreground-muted max-w-md truncate">{issue.description || '—'}</td>
+                                <td className="px-3 py-2 text-foreground-muted whitespace-nowrap max-w-[200px] truncate">
+                                  {issue.filePath ? (
+                                    <span className="font-mono text-xs">{issue.filePath.split('/').pop()}</span>
+                                  ) : '—'}
+                                </td>
+                                <td className="px-3 py-2 text-right text-foreground-muted">{issue.count || 1}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Issue Detail Panel */}
+            <Card className="lg:sticky lg:top-4 h-fit">
+              <CardHeader>
+                <CardTitle className="text-base">Issue Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {selectedIssue ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={
+                          selectedIssue.severity === 'critical' ? 'danger' :
+                          selectedIssue.severity === 'high' ? 'warning' :
+                          selectedIssue.severity === 'medium' ? 'info' :
+                          selectedIssue.severity === 'low' ? 'secondary' : 'outline'
+                        }
+                        className="capitalize"
+                      >
+                        {selectedIssue.severity}
+                      </Badge>
+                      <span className="text-sm font-medium">{selectedIssue.type || 'Issue'}</span>
+                    </div>
+                    <p className="text-sm text-foreground-muted">{selectedIssue.description || ''}</p>
+                    {selectedIssue.filePath && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-foreground-muted">File</p>
+                        <code className="block text-xs bg-muted rounded-md p-2 break-all">{selectedIssue.filePath}{selectedIssue.line && selectedIssue.line > 1 ? `:${selectedIssue.line}` : ''}</code>
+                      </div>
+                    )}
+                    {selectedIssue.recommendedAction && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-foreground-muted">Recommended Action</p>
+                        <p className="text-sm">{selectedIssue.recommendedAction}</p>
+                      </div>
+                    )}
+                    {selectedIssue.affectedFiles?.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-foreground-muted">Affected Files ({selectedIssue.affectedFiles.length})</p>
+                        <ul className="text-xs space-y-1 max-h-40 overflow-auto">
+                          {selectedIssue.affectedFiles.map((f: string, i: number) => (
+                            <li key={i} className="font-mono break-all">{f}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {selectedIssue.metadata?.duplicatePaths?.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-foreground-muted">Duplicate Paths</p>
+                        <ul className="text-xs space-y-1 max-h-40 overflow-auto">
+                          {selectedIssue.metadata.duplicatePaths.map((p: string, i: number) => (
+                            <li key={i} className="font-mono break-all">{p}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const vscode = (window as any).acquireVsCodeApi?.();
+                          if (vscode && selectedIssue.filePath) {
+                            vscode.postMessage({
+                              command: 'openFile',
+                              filePath: selectedIssue.filePath,
+                              line: selectedIssue.line || 1,
+                            });
+                          }
+                        }}
+                      >
+                        <FileText className="h-4 w-4" /> Open in editor
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 py-8 text-center">
+                    <ChevronRight className="h-8 w-8 text-foreground-muted" />
+                    <p className="text-sm text-foreground-muted">Click a finding in the table to see details</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         <TabsContent value="summary">
           <Card>
             <CardHeader>
-              <CardTitle>Findings Breakdown</CardTitle>
-              <CardDescription>Issues grouped by severity</CardDescription>
+              <CardTitle>Severity Summary</CardTitle>
+              <CardDescription>Issues grouped by severity and type</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2 mb-2">
-                {['all', ...activeSeverities].map((sev) => (
-                  <Button
-                    key={sev}
-                    variant={filter === sev ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFilter(sev)}
-                    className="capitalize"
-                  >
-                    {sev}
-                    {sev !== 'all' && sev !== 'info' && (
-                      <span className="ml-1.5 text-xs opacity-70">
-                        {result.severityCounts[sev as keyof typeof result.severityCounts]}
-                      </span>
-                    )}
-                  </Button>
-                ))}
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                {severities
+                  .filter(s => result.severityCounts[s] > 0)
+                  .map((sev) => (
+                    <div key={sev} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          variant={
+                            sev === 'critical' ? 'danger' :
+                            sev === 'high' ? 'warning' :
+                            sev === 'medium' ? 'info' :
+                            sev === 'low' ? 'secondary' : 'outline'
+                          }
+                          className="capitalize"
+                        >
+                          {sev}
+                        </Badge>
+                        <span className="text-sm text-foreground-muted">
+                          {result.severityCounts[sev]} finding{result.severityCounts[sev] !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
               </div>
 
               <Separator />
 
-              {result.issueCount === 0 ? (
-                <div className="flex items-center gap-3 py-8">
-                  <CheckCircle2 className="h-8 w-8 text-success" />
-                  <div>
-                    <p className="text-sm font-medium">No issues detected</p>
-                    <p className="text-xs text-foreground-muted">All gate rules passed with zero findings</p>
-                  </div>
+              <div>
+                <p className="text-sm font-medium mb-2">Issues by Type</p>
+                <div className="space-y-1">
+                  {issueCategories.map(({ type, count }) => (
+                    <div key={type} className="flex items-center justify-between text-sm">
+                      <span className="text-foreground-muted">{type}</span>
+                      <Badge variant="secondary" className="text-xs">{count}</Badge>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {severities
-                    .filter(s => filter === 'all' || s === filter)
-                    .filter(s => result.severityCounts[s] > 0)
-                    .map((sev) => (
-                      <div key={sev} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <Badge
-                            variant={
-                              sev === 'critical' ? 'danger' :
-                              sev === 'high' ? 'warning' :
-                              sev === 'medium' ? 'info' :
-                              sev === 'low' ? 'secondary' : 'outline'
-                            }
-                            className="capitalize"
-                          >
-                            {sev}
-                          </Badge>
-                          <span className="text-sm text-foreground-muted">
-                            {result.severityCounts[sev]} finding{result.severityCounts[sev] !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

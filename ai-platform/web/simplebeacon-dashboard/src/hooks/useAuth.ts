@@ -17,7 +17,9 @@ export function useAuth() {
           if (userData) {
             const parsed = JSON.parse(userData);
             setUser(parsed);
-            setIsFreeTier(parsed.plan === 'free' || !parsed.plan);
+            const tier = parsed.plan || parsed.tier || '';
+            const isAdmin = parsed.role === 'admin' || parsed.role === 'superuser';
+            setIsFreeTier(!isAdmin && (tier === 'free' || !tier));
           }
         } else {
           setIsAuthenticated(false);

@@ -1,4 +1,4 @@
-import { Menu, Sun, Moon, LogOut, User as UserIcon } from 'lucide-react';
+import { Menu, Sun, Moon, LogOut, User as UserIcon, ChevronDown, Map, DollarSign, Download, FileText, HelpCircle, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,6 +20,15 @@ interface HeaderProps {
 export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
 
+  const moreLinks = [
+    { href: '/roadmap', label: 'Roadmap', icon: Map },
+    ...((!isAuthenticated || isFreeTier) ? [{ href: '/pricing', label: 'Pricing', icon: DollarSign }] : []),
+    { href: '/community', label: 'Install', icon: Download },
+    { href: '/blog/case-study-ai-slop-1-25m', label: 'Blog', icon: FileText },
+    { href: '/faq', label: 'FAQ', icon: HelpCircle },
+    { href: '/contact', label: 'Contact', icon: Mail },
+  ];
+
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4">
       <div className="flex items-center gap-3">
@@ -32,6 +41,32 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
       </div>
 
       <div className="flex items-center gap-2">
+        <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex font-semibold">
+          <a href="/audit">Audit</a>
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="hidden sm:inline-flex gap-1.5">
+              More
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[180px]">
+            {moreLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <DropdownMenuItem key={link.href} asChild>
+                  <a href={link.href} className="flex items-center gap-2.5 cursor-pointer">
+                    <Icon className="h-4 w-4 text-foreground-muted" />
+                    {link.label}
+                  </a>
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {isAuthenticated && isFreeTier && (
           <span className="hidden rounded-full bg-warning-subtle px-2.5 py-0.5 text-xs font-medium text-warning sm:inline-block">
             Free Tier

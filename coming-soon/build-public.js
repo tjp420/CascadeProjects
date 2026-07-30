@@ -7,6 +7,19 @@ const dst = path.resolve(__dirname, 'public');
 
 const pageConfig = loadPageConfig();
 
+function removeDirSafe(targetPath) {
+  if (!targetPath || !fs.existsSync(targetPath)) {
+    return;
+  }
+  try {
+    fs.rmSync(targetPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  } catch (error) {
+    if (error && error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
 function loadPageConfig() {
   try {
     const raw = fs.readFileSync(path.join(__dirname, 'page-metadata.json'), 'utf8');
@@ -237,7 +250,7 @@ if (fs.existsSync(auditDashSrc)) {
 const dashboardSrc = path.resolve(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard');
 const dashboardDst = path.join(dst, 'dashboard');
 if (fs.existsSync(dashboardSrc)) {
-  fs.rmSync(dashboardDst, { recursive: true, force: true });
+  removeDirSafe(dashboardDst);
   fs.mkdirSync(dashboardDst, { recursive: true });
   copyRecursive(dashboardSrc, dashboardDst, 'dashboard/');
   // Duplicate index.html under a no-extension name so the Pages Function can serve the SPA
@@ -267,7 +280,7 @@ if (fs.existsSync(dashboardSrc)) {
   // cannot be purged without zone-level API permissions. /app/ is a fresh path
   // the CDN has never seen, so it will fetch the latest version.
   const appDst = path.join(dst, 'app');
-  fs.rmSync(appDst, { recursive: true, force: true });
+  removeDirSafe(appDst);
   fs.mkdirSync(appDst, { recursive: true });
   copyRecursive(dashboardDst, appDst, 'app/');
   // Rewrite asset paths from /dashboard/ to /app/ in the /app/ copy

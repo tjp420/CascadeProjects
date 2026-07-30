@@ -383,8 +383,12 @@ async function scanFiles(files, deepScan, state = null) {
             }
         }
         catch (err) {
-            textErrors++;
-            processed++;
+                    textErrors++;
+                    processed++;
+                    try {
+                        self.postMessage({ type: 'file-error', scanId: self.scanState?.scanId || null, file: file.path, name: err && err.name ? err.name : null, message: err && err.message ? err.message : String(err), stack: err && err.stack ? err.stack : null });
+                    }
+                    catch (_a) { }
         }
     }
     const total = state?.totalFiles || files.length;

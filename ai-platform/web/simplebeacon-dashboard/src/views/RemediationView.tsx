@@ -11,7 +11,8 @@ type Phase = {
   name?: string;
   status?: string;
   items?: string[];
-  features?: Array<{ name: string; status: string; category?: string }>;
+  milestones?: string[];
+  features?: Array<{ name: string; status: string; category?: string }> | string[];
 };
 
 type Risk = {
@@ -348,15 +349,30 @@ export function RemediationView() {
                     ))}
                   </ul>
                 )}
+                {phase.milestones && phase.milestones.length > 0 && (
+                  <div className="ml-6 mt-2 space-y-1">
+                    <span className="text-xs font-medium text-foreground-muted">Milestones:</span>
+                    <ul className="space-y-0.5">
+                      {phase.milestones.map((ms, j) => (
+                        <li key={j} className="text-xs text-foreground-muted">• {ms}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 {phase.features && phase.features.length > 0 && (
                   <div className="ml-6 space-y-1 mt-2">
-                    {phase.features.map((feat, j) => (
-                      <div key={j} className="flex items-center gap-2">
-                        {statusIcon(feat.status || 'pending')}
-                        <span className="text-xs">{feat.name}</span>
-                        <Badge className={statusColor(feat.status || 'pending')} variant="outline">{feat.status || 'pending'}</Badge>
-                      </div>
-                    ))}
+                    {phase.features.map((feat, j) => {
+                      const isString = typeof feat === 'string';
+                      const featName = isString ? feat : (feat as any).name;
+                      const featStatus = isString ? (phase.status || 'pending') : ((feat as any).status || 'pending');
+                      return (
+                        <div key={j} className="flex items-center gap-2">
+                          {statusIcon(featStatus)}
+                          <span className="text-xs">{featName}</span>
+                          <Badge className={statusColor(featStatus)} variant="outline">{featStatus}</Badge>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

@@ -146,18 +146,24 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
           </a>
           <button
             type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/simplebeacon/report');
+                if (!res.ok) return;
+                const data = await res.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'simplebeacon-report.json';
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch { /* ignore download errors */ }
+            }}
             className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
-            title="Export"
+            title="Export Report"
           >
             <Download className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigate('about')}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-foreground-muted hover:bg-muted hover:text-foreground"
-            title="About"
-          >
-            <Info className="h-4 w-4" />
           </button>
         </div>
       </aside>
