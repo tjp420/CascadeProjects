@@ -290,6 +290,19 @@ simplebeacon-report.json
 scan-exports/
 simplebeacon-export-operator
 false-positive-audit/
+scan-output-agent.json
+scan-output*.json
+
+# Ignore vite build logs (generated, contains hardcoded IPs from dev server)
+vite.log
+**/vite.log
+
+# Ignore minified dashboard bundles (generated, false positives from minified code)
+ai-platform/web/simplebeacon-dashboard/assets/main.js
+ai-platform/web/simplebeacon-dashboard/assets/scan-worker.js
+
+# Ignore pages-publish directory (full dashboard copy deployed to Cloudflare Pages)
+ai-platform/web/simplebeacon-dashboard/pages-publish/**
 
 # Ignore CI ingest false positive
 packages/simplebeacon-cli/src/api/ci-ingest.js
@@ -1380,3 +1393,45 @@ write-report*.mjs
 SimpleBeaconPoC.mjs
 local_dashboard_server.js
 local-analyzer/server.js
+__tmp_inspect/
+
+# --- 2026-07-28: Browser-local scanner false positives (inline ignore comments not supported) ---
+
+# Dev/diagnostic scripts — console.log is intentional for test output and request logging
+ai-platform/scripts/check-browser-error.js
+ai-platform/scripts/proxy_local_bridge.cjs
+ai-platform/scripts/proxy_local_bridge.js
+
+# Server strategy map — 'debugger-statement' string key is not a debug statement
+ai-platform/server/index.cjs
+
+# Dashboard scanner service — console.warn diagnostics for permission/file collection
+ai-platform/web/simplebeacon-dashboard/js-es2018/services/localScanService.js
+
+# Dashboard audit view — console.warn in error handler for auth check
+ai-platform/web/simplebeacon-dashboard/js-es2018/views/AuditView.js
+
+# Build scripts — console.log for build output
+ai-platform/web/simplebeacon-dashboard/scripts/build-lucide-custom.cjs
+ai-platform/web/simplebeacon-dashboard/scripts/prepare-worker-assets.cjs
+
+# React dashboard views — console.warn/error diagnostics and compliance UI
+ai-platform/web/simplebeacon-dashboard/src/views/AnalyzeView.tsx
+ai-platform/web/simplebeacon-dashboard/src/views/ProfileView.tsx
+ai-platform/web/simplebeacon-dashboard/src/views/AssessmentView.tsx
+ai-platform/web/simplebeacon-dashboard/src/views/ChatbotView.tsx
+
+# --- 2026-07-30: Suppress false positives from browser-local scan report ---
+
+# Temporary stdout dump written by scan runner — not source code
+.tmp-scan-stdout.json
+**/.tmp-scan-stdout.json
+
+# Developer JWT verification utility — console.log calls are the tool's output
+worker-deploy/scripts/verify-license-token.mjs
+
+# CLI policy gate — console.log/error emit intentional audit messages to stdout/stderr
+ai-platform/src/cli/policy-gate.ts
+
+# Cloudflare Worker — console.error in catch blocks is the CF Workers logging mechanism
+worker-deploy/src/worker.js
