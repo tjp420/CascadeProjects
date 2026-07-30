@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders, isTokenExpired, clearAuthAndRedirect } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 import { runLocalScan } from '@services/localScanService.js';
+import { captureDropEntries, collectFilesFromDrop } from '@/services/dropFolderTraversal';
 import { useExtensionBridge } from '@/hooks/useExtensionBridge';
 import { discoverAndApplyExtensionBridge } from '@services/localAgentService.js';
 import { navigate } from '@/router/HashRouter';
@@ -464,6 +465,77 @@ export function AnalyzeView() {
     }
   }, []);
 
+  const runBrowserLocalScan = useCallback(async (options: {
+    files?: FileList | File[];
+    dirHandle?: FileSystemDirectoryHandle;
+    projectPath: string;
+    logLabel?: string;
+  }) => {
+    if (scanInFlightRef.current) return;
+    scanInFlightRef.current = true;
+    setScanState('scanning');
+    setProgress(2);
+    setProgressLabel('Preparing files for scanning...');
+    setTerminalOutput([]);
+    setPath(options.projectPath);
+    appendLog(`[SimpleBeacon] ${options.logLabel || 'Browser local scan'}...`);
+    try {
+      const report = await runLocalScan({
+        files: options.files,
+        dirHandle: options.dirHandle,
+        projectPath: options.projectPath,
+        onFilePrepProgress: (processed: number, total: number, label: string) => {
+          if (total > 0) {
+            setProgress(Math.min(15, Math.round((processed / total) * 15)));
+            setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
+          } else {
+            setProgress(2);
+            setProgressLabel(label);
+          }
+        },
+        onProgress: (processed: number, total: number) => {
+          if (total > 0) {
+            setProgress(Math.min(90, 15 + Math.round((processed / total) * 75)));
+            setProgressLabel(`Scanning ${processed.toLocaleString()} / ${total.toLocaleString()} files`);
+          }
+        },
+      });
+      setFileErrorsCount((report as any)?.telemetry?.fileErrors ?? null);
+      setFileErrorExamples((report as any)?.telemetry?.fileErrorExamples ?? null);
+      setProgressLabel('Processing results...');
+      setProgress(95);
+      const r = report as any;
+      const scanResult: ScanResult = {
+        totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || 0,
+        issueCount: r.issueCount || r.summary?.totalFindings || 0,
+        severityCounts: r.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+        gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+        qualityScore: r.qualityScore ?? null,
+        projectPath: r.projectPath || options.projectPath,
+        scanScope: {
+          profile: r.scanScope?.profile || 'standard',
+          resultsViewScope: r.scanScope?.resultsViewScope || 'browser-local',
+          codeFilesAnalyzed: r.scanScope?.codeFilesAnalyzed || r.scanScope?.ruleScopedFilesAnalyzed || r.summary?.codeFilesAnalyzed || r.filesAnalyzed || 0,
+        },
+      };
+      setResult(scanResult);
+      setFullReport(report);
+      setScanState('complete');
+      setProgress(100);
+      appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
+      persistScanResult(scanResult, report);
+    } catch (err: any) {
+      setScanState('error');
+      const errMsg = err?.message || String(err || 'Unknown error');
+      setLastErrorMsg(errMsg);
+      appendLog(`[SimpleBeacon] Browser-local scan failed: ${errMsg}`);
+      toast.error(errMsg || 'Local scan failed');
+      postBrowserError({ source: 'dashboard', error: errMsg, filePath: options.projectPath, stack: err?.stack || null, context: 'drop-scan' });
+    } finally {
+      scanInFlightRef.current = false;
+    }
+  }, [appendLog, persistScanResult]);
+
   // Debounced append to reduce layout churn when many logs arrive quickly
   const debouncedAppendLog = useCallback((line: string) => {
     // Use a short debounce to batch rapid updates
@@ -686,15 +758,29 @@ export function AnalyzeView() {
       const isServerDefaultPath = !!serverDefaultPath && scanPath === serverDefaultPath;
       if (!isUrl && !isGithubUrl(scanPath) && hosted && !isServerDefaultPath) {
         // Bridge-first: scan via VS Code extension data server when available
+        let activeBridge = bridgeBase;
+        let activeToken = bridgeToken;
+        if (!activeBridge) {
+          appendLog('[SimpleBeacon] No bridge yet — probing local extension ports (user gesture)...');
+          const probe = await recheckBridge(true);
+          if (probe?.ok && 'base' in probe && probe.base) {
+            activeBridge = probe.base;
+            if ('token' in probe && probe.token) {
+              activeToken = probe.token;
+            } else if (typeof sessionStorage !== 'undefined') {
+              activeToken = sessionStorage.getItem('sb_bridge_token');
+            }
+          }
+        }
         let bridgeReachable = false;
-        if (bridgeBase) {
-          bridgeReachable = await checkLocalNetworkAccess(bridgeBase, 2000);
+        if (activeBridge) {
+          bridgeReachable = await checkLocalNetworkAccess(activeBridge, 2000);
           if (bridgeReachable) {
             try {
               appendLog('[SimpleBeacon] Scanning via local VS Code extension bridge...');
               setProgressLabel('Scanning workspace via local IDE engine...');
               setProgress(5);
-              const report = await runBridgeExtensionScan(bridgeBase, scanPath, bridgeToken, {
+              const report = await runBridgeExtensionScan(activeBridge, scanPath, activeToken, {
                 appendLog,
                 setProgress,
                 setProgressLabel,
@@ -728,13 +814,15 @@ export function AnalyzeView() {
               appendLog(`[SimpleBeacon] Extension bridge scan failed: ${bridgeErr?.message || bridgeErr}. Falling back to browser-local scan...`);
             }
           } else {
-            appendLog(`[SimpleBeacon] Extension bridge ${bridgeBase} not reachable, falling back to browser-local scan...`);
+            appendLog(`[SimpleBeacon] Extension bridge ${activeBridge} not reachable, falling back to browser-local scan...`);
           }
+        } else {
+          appendLog('[SimpleBeacon] VS Code extension bridge not found. Install the extension or use Browse Folder.');
         }
         // Browser-local fallback when bridge is unavailable or bridge scan failed
         let dirHandlePick: any = null;
         const hasFsa = typeof (window as any).showDirectoryPicker === 'function';
-        console.warn('[SimpleBeacon] Browser-local scan path: showDirectoryPicker available:', hasFsa, '| folderInputRef exists:', !!folderInputRef.current, '| bridgeBase:', bridgeBase, '| scanPath:', scanPath);
+        console.warn('[SimpleBeacon] Browser-local scan path: showDirectoryPicker available:', hasFsa, '| folderInputRef exists:', !!folderInputRef.current, '| bridgeBase:', activeBridge, '| scanPath:', scanPath);
         if (hasFsa) {
           appendLog(`[SimpleBeacon] Local path "${scanPath}" detected on hosted dashboard. Switching to browser-local scan...`);
           toast.info('Local path detected. Please select the folder in the picker to scan it in your browser.');
@@ -1086,12 +1174,13 @@ export function AnalyzeView() {
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const items = e.dataTransfer.items;
-    const files = Array.from(e.dataTransfer.files);
-    // Try to extract absolute path from dropped file (VS Code/Electron drops expose .path)
-    if (files.length > 0 && (files[0] as any).path) {
-      const filePath = String((files[0] as any).path).replace(/\\/g, '/');
-      const folderName = (files[0] as any).webkitRelativePath?.split('/')[0] || files[0].name;
+
+    const capturedEntries = captureDropEntries(e.dataTransfer.items);
+    const dtFiles = Array.from(e.dataTransfer.files);
+
+    if (dtFiles.length > 0 && (dtFiles[0] as any).path) {
+      const filePath = String((dtFiles[0] as any).path).replace(/\\/g, '/');
+      const folderName = (dtFiles[0] as any).webkitRelativePath?.split('/')[0] || dtFiles[0].name;
       const idx = filePath.indexOf(`/${folderName}/`);
       const absPath = idx >= 0
         ? filePath.slice(0, idx + folderName.length + 1).replace(/\//g, '\\')
@@ -1102,43 +1191,65 @@ export function AnalyzeView() {
         return;
       }
     }
-    // Try File System Access API for directory handle
-    if (items && items.length > 0 && typeof (items[0] as any).getAsFileSystemHandle === 'function') {
+
+    if (capturedEntries.length > 0) {
       try {
-        const handle = await (items[0] as any).getAsFileSystemHandle();
+        const { files, rootName, traverseErrors } = await collectFilesFromDrop(e.dataTransfer, capturedEntries);
+        if (files.length > 0) {
+          if (traverseErrors > 0) {
+            appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
+          }
+          toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
+          await runBrowserLocalScan({
+            files,
+            projectPath: rootName,
+            logLabel: `Browser local scan via drag-and-drop (${files.length.toLocaleString()} files)`,
+          });
+          return;
+        }
+      } catch (traverseErr: any) {
+        appendLog(`[SimpleBeacon] Drop traversal failed: ${traverseErr?.message || traverseErr}`);
+        console.warn('[SimpleBeacon] Drop traversal error:', traverseErr);
+      }
+    }
+
+    const firstItem = e.dataTransfer.items?.[0] as DataTransferItem & { getAsFileSystemHandle?: () => Promise<FileSystemHandle> };
+    if (firstItem && typeof firstItem.getAsFileSystemHandle === 'function') {
+      try {
+        const handle = await firstItem.getAsFileSystemHandle();
         if (handle && handle.kind === 'directory') {
-          // On hosted dashboard with bridge, try to resolve real path
-                if (hosted && bridgeBase) {
-                  const ok = await checkLocalNetworkAccess(bridgeBase, 2000);
-                  if (!ok) {
-                    setLocalNetworkDenied(true);
-                    toast.error('Local Network Access blocked — cannot resolve dropped folder via bridge');
-                    return;
-                  }
-                  const bridgePath = await findFolderViaBridge(handle.name, bridgeBase, bridgeToken);
-                  if (bridgePath) {
-                    setPath(bridgePath);
-                    toast.info(`Folder located via bridge: ${bridgePath}`);
-                    return;
-                  }
-                }
-          setPath(handle.name);
-          toast.info(`Folder dropped: ${handle.name}`);
-          (window as any).__sbDroppedDirHandle = handle;
+          const dirHandle = handle as FileSystemDirectoryHandle;
+          toast.info(`Scanning dropped folder "${dirHandle.name}"...`);
+          await runBrowserLocalScan({
+            dirHandle,
+            projectPath: dirHandle.name,
+            logLabel: `Browser local scan via directory handle (${dirHandle.name})`,
+          });
           return;
         }
       } catch (dropErr: any) {
-        const dropMsg = dropErr?.message || String(dropErr || 'Unknown drop error');
-        appendLog(`[SimpleBeacon] getAsFileSystemHandle failed: ${dropMsg}`);
-        console.warn('[SimpleBeacon] Drag-and-drop File System Access API error:', dropErr);
-        toast.warning(`Could not access dropped folder via File System Access API: ${dropMsg}. Falling back to file list.`);
+        appendLog(`[SimpleBeacon] getAsFileSystemHandle failed: ${dropErr?.message || dropErr}`);
       }
     }
-    // Fallback: use file names
-    if (files.length > 0) {
-      const first = files[0];
+
+    if (dtFiles.length > 0) {
+      try {
+        const { files, rootName } = await collectFilesFromDrop(e.dataTransfer, []);
+        if (files.length > 0) {
+          toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
+          await runBrowserLocalScan({
+            files,
+            projectPath: rootName,
+            logLabel: `Browser local scan via flat drop (${files.length.toLocaleString()} files)`,
+          });
+          return;
+        }
+      } catch (flatErr: any) {
+        appendLog(`[SimpleBeacon] Flat drop fallback failed: ${flatErr?.message || flatErr}`);
+      }
+
+      const first = dtFiles[0];
       const dirName = (first as any).webkitRelativePath?.split('/')[0] || first.name;
-      // On hosted with bridge, try to find the folder
       if (hosted && bridgeBase && dirName) {
         const bridgePath = await findFolderViaBridge(dirName, bridgeBase, bridgeToken);
         if (bridgePath) {
@@ -1148,9 +1259,12 @@ export function AnalyzeView() {
         }
       }
       setPath(dirName);
-      toast.info(`Dropped: ${dirName}`);
+      toast.warning(`Dropped "${dirName}" but could not read folder contents. Use Browse Folder or Connect IDE.`);
+      return;
     }
-  }, [bridgeBase, bridgeToken, hosted]);
+
+    toast.error('Could not read dropped folder. Use Browse Folder or install the VS Code extension.');
+  }, [appendLog, bridgeBase, bridgeToken, hosted, runBrowserLocalScan]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -1507,7 +1621,20 @@ export function AnalyzeView() {
               {bridgeStatus === 'connected' && bridgeBase ? (
                 <Badge variant="default" className="gap-1">IDE bridge connected</Badge>
               ) : (
-                <Button type="button" size="sm" variant="outline" onClick={() => void recheckBridge(true)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const probe = await recheckBridge(true);
+                    if (probe?.ok) return;
+                    if (probe && 'deepLink' in probe && probe.deepLink) {
+                      window.location.href = probe.deepLink;
+                    } else {
+                      toast.info('Install the SimpleBeacon VS Code extension, reload this page, then try Connect IDE again.');
+                    }
+                  }}
+                >
                   Connect IDE
                 </Button>
               )}
@@ -1563,7 +1690,7 @@ export function AnalyzeView() {
                 onDrop={handleDrop}
               >
                 <Folder className="mx-auto h-10 w-10 text-foreground-muted" />
-                <p className="mt-2 text-sm text-foreground-muted">Drag a folder here or browse</p>
+                <p className="mt-2 text-sm text-foreground-muted">Drag a folder here to scan immediately, or browse</p>
                 <Button variant="outline" size="sm" className="mt-3" onClick={handleBrowseFolder}>
                   Browse Folder
                 </Button>
