@@ -182,6 +182,8 @@ export class ResultsView {
               <button class="btn btn-secondary btn-sm w-full" id="export-full-btn" type="button">Export full report</button>
               <button class="btn btn-secondary btn-sm w-full" id="export-filtered-json-btn" type="button">Export filtered JSON</button>
               <button class="btn btn-secondary btn-sm w-full" id="export-csv-btn" type="button">Export CSV</button>
+              <button class="btn btn-secondary btn-sm w-full" id="export-trend-csv-btn" type="button">Export trend CSV</button>
+              <button class="btn btn-secondary btn-sm w-full" id="export-audit-pdf-btn" type="button">Export audit PDF</button>
               ${filtersActive ? '<button type="button" class="btn btn-ghost btn-sm w-full" id="clear-results-filters">Clear filters</button>' : ''}
             </div>
           </div>
@@ -335,6 +337,24 @@ export class ResultsView {
             }
             svc.exportIssuesCsv(issues);
             showToast(`Exported ${issues.length} issue(s) as CSV`, 'success');
+        });
+        (_e = el.querySelector('#export-trend-csv-btn')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => {
+            try {
+                svc.exportTrendCsv();
+                showToast('Trend CSV downloaded', 'success');
+            }
+            catch (err) {
+                showToast(err.message || 'Failed to export trend CSV', 'error');
+            }
+        });
+        (_f = el.querySelector('#export-audit-pdf-btn')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', () => {
+            try {
+                svc.exportAuditPdf();
+                showToast('Audit PDF opened in new window — use Print to save', 'success');
+            }
+            catch (err) {
+                showToast(err.message || 'Failed to generate audit PDF', 'error');
+            }
         });
         // Send to AI Agent handlers
         const aiPanel = el.querySelector('#ai-send-panel');

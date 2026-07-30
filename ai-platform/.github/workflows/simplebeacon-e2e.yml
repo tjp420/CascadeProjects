@@ -1,0 +1,109 @@
+name: SimpleBeacon E2E Chaos Sweep
+
+on:
+  schedule:
+    # Run daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'web/**'
+      - 'server/**'
+      - 'tests/test_simplebeacon.cjs'
+
+jobs:
+  chaos-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ai-platform
+        run: npm install
+
+      - name: Install Playwright browsers
+        working-directory: ai-platform
+        run: npx playwright install chromium
+
+      - name: Run chaos E2E sweep
+        working-directory: ai-platform
+        run: npm run test:chaos
+        env:
+          CI: true
+          SIMPLEBEACON_WEBHOOK_URL: ${{ secrets.SIMPLEBEACON_WEBHOOK_URL }}
+
+      - name: Validate webhook formatting
+        working-directory: ai-platform
+        run: node tests/test_webhook_format.cjs
+
+      - name: Generate status badge
+        working-directory: ai-platform
+        run: node tests/generate_status_badge.cjs
+
+      - name: Commit status badge
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        working-directory: ai-platform
+        run: |
+          git config --global user.name "SimpleBeacon Bot"
+          git config --global user.email "bot@simplebeacon.ai"
+          git add README.md .simplebeacon/logs/status-badge.json || true
+          git commit -m "chore: update E2E security status badge [skip ci]" || true
+          git push || true
+
+      - name: Upload screenshots artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-chaos-screenshots
+          path: ai-platform/simplebeacon_test_artifacts/
+          retention-days: 7
+
+      - name: Upload auth state artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-auth-state
+          path: ai-platform/tests/auth_state.json
+          retention-days: 1
+
+      - name: Upload visual baselines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-visual-baselines
+          path: ai-platform/tests/visual-baselines/
+          retention-days: 30
+
+      - name: Upload visual diffs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-visual-diffs
+          path: ai-platform/simplebeacon_test_artifacts/diffs/
+          retention-days: 7
+
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-security-report
+          path: ai-platform/SECURITY.md
+          retention-days: 30
+
+      - name: Upload visual gallery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-visual-gallery
+          path: ai-platform/simplebeacon_test_artifacts/visual-gallery.html
+          retention-days: 30

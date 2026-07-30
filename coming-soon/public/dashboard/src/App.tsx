@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { getCurrentRoute, navigate } from './router/HashRouter';
 import { AppShell } from './layout/AppShell';
 import { ToastProvider } from './components/ToastProvider';
@@ -34,6 +34,9 @@ import { AboutView } from './views/AboutView';
 import { GettingStartedView } from './views/GettingStartedView';
 import { ComplianceView } from './views/ComplianceView';
 import { OrganizationView } from './views/OrganizationView';
+
+// Lazy-loaded views — code-split to keep initial bundle small
+const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
 const AUTH_REQUIRED_VIEWS = new Set(['organization']);
@@ -85,6 +88,7 @@ const VIEW_TITLES: Record<string, string> = {
   'getting-started': 'Getting Started',
   compliance: 'Compliance',
   organization: 'Organization',
+  'team-metrics': 'Team Metrics',
 };
 
 const viewMap: Record<string, React.ComponentType> = {
@@ -114,6 +118,7 @@ const viewMap: Record<string, React.ComponentType> = {
   'getting-started': GettingStartedView,
   compliance: ComplianceView,
   organization: OrganizationView,
+  'team-metrics': TeamMetricsView,
 };
 
 export default function App() {
@@ -166,7 +171,9 @@ export default function App() {
         isFreeTier={isFreeTier}
         user={user}
       >
-        <CurrentView />
+        <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-foreground-muted">Loading...</div>}>
+          <CurrentView />
+        </Suspense>
       </AppShell>
     </ToastProvider>
   );

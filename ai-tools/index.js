@@ -87,6 +87,61 @@ function isBinaryFile(fullPath) {
     }
 }
 
+/**
+ * Detect the dominant line ending style in a text buffer.
+ * Defaults to LF for empty/single-line files.
+ *
+ * @param {string} content
+ * @returns {'\r\n'|'\n'}
+ */
+function detectPreferredLineEnding(content) {
+    const crlfCount = (content.match(/\r\n/g) || []).length;
+    const newlineCount = (content.match(/\n/g) || []).length;
+    const lfCount = Math.max(0, newlineCount - crlfCount);
+    if (crlfCount === 0 && lfCount === 0) return '\n';
+    return crlfCount >= lfCount ? '\r\n' : '\n';
+}
+
+/**
+ * Normalize line endings in text to match the target file style.
+ *
+ * @param {string} text
+ * @param {'\r\n'|'\n'} preferredEol
+ * @returns {string}
+ */
+function normalizeLineEndings(text, preferredEol) {
+    const value = (typeof text === 'string') ? text : String(text ?? '');
+    if (preferredEol === '\r\n') {
+        return value.replace(/\r?\n/g, '\r\n');
+    }
+    return value.replace(/\r\n/g, '\n');
+}
+
+/**
+ * Resolve target/replacement pair against current file content.
+ * Falls back to line-ending-normalized target matching for cross-platform snippets.
+ *
+ * @param {string} content
+ * @param {string} targetText
+ * @param {string} replacementText
+ * @returns {{target:string,replacement:string}|null}
+ */
+function resolveReplacementPair(content, targetText, replacementText) {
+    const preferredEol = detectPreferredLineEnding(content);
+    const normalizedReplacement = normalizeLineEndings(replacementText, preferredEol);
+
+    if (content.includes(targetText)) {
+        return { target: targetText, replacement: normalizedReplacement };
+    }
+
+    const normalizedTarget = normalizeLineEndings(targetText, preferredEol);
+    if (content.includes(normalizedTarget)) {
+        return { target: normalizedTarget, replacement: normalizedReplacement };
+    }
+
+    return null;
+}
+
 // ── Syntax verification (sync) ───────────────────────────────────────────
 
 /**
@@ -163,22 +218,23 @@ function computeDiff(relativeFilePath, targetText, replacementText, options) {
         throw new Error(`[AI Safety] Rejected: ${relativeFilePath} appears to be a binary file.`);
     }
     const before = fs.readFileSync(fullPath, 'utf8');
-    if (!before.includes(targetText)) {
+    const pair = resolveReplacementPair(before, targetText, replacementText);
+    if (!pair) {
         return { before, after: before, changed: false, occurrences: 0 };
     }
     const count = options && typeof options.replaceCount === 'number' ? options.replaceCount : Infinity;
     let after = before;
     let occurrences = 0;
     if (Number.isFinite(count)) {
-        let idx = after.indexOf(targetText);
+        let idx = after.indexOf(pair.target);
         while (idx !== -1 && occurrences < count) {
-            after = after.slice(0, idx) + replacementText + after.slice(idx + targetText.length);
+            after = after.slice(0, idx) + pair.replacement + after.slice(idx + pair.target.length);
             occurrences += 1;
-            idx = after.indexOf(targetText, idx + replacementText.length);
+            idx = after.indexOf(pair.target, idx + pair.replacement.length);
         }
     } else {
-        after = before.replaceAll(targetText, replacementText);
-        occurrences = (before.split(targetText).length - 1);
+        after = before.replaceAll(pair.target, pair.replacement);
+        occurrences = (before.split(pair.target).length - 1);
     }
     return { before, after, changed: after !== before, occurrences };
 }
@@ -229,7 +285,8 @@ function proposeInlineFix(relativeFilePath, targetText, replacementText, options
         throw new Error(`[AI Safety] Rejected: ${relativeFilePath} appears to be a binary file.`);
     }
     let content = fs.readFileSync(fullPath, 'utf8');
-    if (!content.includes(targetText)) {
+    const pair = resolveReplacementPair(content, targetText, replacementText);
+    if (!pair) {
         return { ok: false, error: 'Target string to replace was not found in the source file.' };
     }
     const count = options && typeof options.replaceCount === 'number' ? options.replaceCount : Infinity;
@@ -237,15 +294,15 @@ function proposeInlineFix(relativeFilePath, targetText, replacementText, options
     let occurrences = 0;
     if (Number.isFinite(count)) {
         updatedContent = content;
-        let idx = updatedContent.indexOf(targetText);
+        let idx = updatedContent.indexOf(pair.target);
         while (idx !== -1 && occurrences < count) {
-            updatedContent = updatedContent.slice(0, idx) + replacementText + updatedContent.slice(idx + targetText.length);
+            updatedContent = updatedContent.slice(0, idx) + pair.replacement + updatedContent.slice(idx + pair.target.length);
             occurrences += 1;
-            idx = updatedContent.indexOf(targetText, idx + replacementText.length);
+            idx = updatedContent.indexOf(pair.target, idx + pair.replacement.length);
         }
     } else {
-        updatedContent = content.replaceAll(targetText, replacementText);
-        occurrences = content.split(targetText).length - 1;
+        updatedContent = content.replaceAll(pair.target, pair.replacement);
+        occurrences = content.split(pair.target).length - 1;
     }
     fs.writeFileSync(fullPath, updatedContent, 'utf8');
     const check = verifyFileSyntax(relativeFilePath, options);
@@ -283,7 +340,8 @@ async function proposeInlineFixAsync(relativeFilePath, targetText, replacementTe
         throw new Error(`[AI Safety] Rejected: ${relativeFilePath} appears to be a binary file.`);
     }
     const content = await fs.promises.readFile(fullPath, 'utf8');
-    if (!content.includes(targetText)) {
+    const pair = resolveReplacementPair(content, targetText, replacementText);
+    if (!pair) {
         return { ok: false, error: 'Target string to replace was not found in the source file.' };
     }
     const count = options && typeof options.replaceCount === 'number' ? options.replaceCount : Infinity;
@@ -291,15 +349,15 @@ async function proposeInlineFixAsync(relativeFilePath, targetText, replacementTe
     let occurrences = 0;
     if (Number.isFinite(count)) {
         updatedContent = content;
-        let idx = updatedContent.indexOf(targetText);
+        let idx = updatedContent.indexOf(pair.target);
         while (idx !== -1 && occurrences < count) {
-            updatedContent = updatedContent.slice(0, idx) + replacementText + updatedContent.slice(idx + targetText.length);
+            updatedContent = updatedContent.slice(0, idx) + pair.replacement + updatedContent.slice(idx + pair.target.length);
             occurrences += 1;
-            idx = updatedContent.indexOf(targetText, idx + replacementText.length);
+            idx = updatedContent.indexOf(pair.target, idx + pair.replacement.length);
         }
     } else {
-        updatedContent = content.replaceAll(targetText, replacementText);
-        occurrences = content.split(targetText).length - 1;
+        updatedContent = content.replaceAll(pair.target, pair.replacement);
+        occurrences = content.split(pair.target).length - 1;
     }
     await fs.promises.writeFile(fullPath, updatedContent, 'utf8');
     const check = await verifyFileSyntaxAsync(relativeFilePath, options);
@@ -347,10 +405,11 @@ function proposeBatchFix(relativeFilePath, replacements, options) {
         if (typeof target !== 'string' || typeof replacement !== 'string') {
             return { ok: false, error: 'Each replacement must have {target, replacement} strings.' };
         }
-        if (!updated.includes(target)) {
+        const pair = resolveReplacementPair(updated, target, replacement);
+        if (!pair) {
             return { ok: false, error: `Batch fix failed: target "${target}" not found.` };
         }
-        updated = updated.replaceAll(target, replacement);
+        updated = updated.replaceAll(pair.target, pair.replacement);
         applied += 1;
     }
     fs.writeFileSync(fullPath, updated, 'utf8');

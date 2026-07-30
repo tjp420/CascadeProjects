@@ -28,9 +28,9 @@ export class DiagnosticsManager {
       const severityMap: Record<string, vscode.DiagnosticSeverity> = {
         critical: vscode.DiagnosticSeverity.Error,
         high: vscode.DiagnosticSeverity.Error,
-        medium: vscode.DiagnosticSeverity.Warning,
-        low: vscode.DiagnosticSeverity.Information,
-        info: vscode.DiagnosticSeverity.Information,
+        medium: vscode.DiagnosticSeverity.Hint,
+        low: vscode.DiagnosticSeverity.Hint,
+        info: vscode.DiagnosticSeverity.Hint,
       };
 
       const diagnostic = new vscode.Diagnostic(
@@ -40,6 +40,9 @@ export class DiagnosticsManager {
       );
       diagnostic.code = issue.id;
       diagnostic.source = 'SimpleBeacon';
+      if (diagnostic.severity !== vscode.DiagnosticSeverity.Error) {
+        diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
+      }
 
       if (!diagnosticsByFile.has(filePath)) {
         diagnosticsByFile.set(filePath, []);

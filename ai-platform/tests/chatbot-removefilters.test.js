@@ -12,9 +12,17 @@ jest.mock('../server/config/constants.cjs', () => ({
   safeJsonLimit: () => '1mb'
 }));
 
+// Mock audit module BEFORE chatbot-api.cjs is required so destructured
+// functions (logSecurityEvent, logUserAction) are jest.fn() spies.
+// Variable must be prefixed with `mock` for Jest's out-of-scope check.
+const mockAudit = {
+  logSecurityEvent: jest.fn(),
+  logUserAction: jest.fn()
+};
+jest.mock('../server/middleware/audit.cjs', () => mockAudit);
+
 describe('Chatbot removeFilters gating', () => {
   let serverApp;
-  let audit;
   let cloudInf;
 
   beforeAll(() => {
@@ -37,11 +45,6 @@ describe('Chatbot removeFilters gating', () => {
       next();
     });
 
-    // Stub audit functions so we can assert they were called
-    audit = require('../server/middleware/audit.cjs');
-    jest.spyOn(audit, 'logSecurityEvent').mockImplementation(() => {});
-    jest.spyOn(audit, 'logUserAction').mockImplementation(() => {});
-
     // Stub cloud inference to avoid external calls
     cloudInf = require('../server/services/cloud-inference-service.cjs');
     if (cloudInf) {
@@ -50,7 +53,13 @@ describe('Chatbot removeFilters gating', () => {
       };
     }
 
-    // Mount the real chatbot API routes
+    // Mock user AI credentials to simulate a configured provider (avoids 400 responses)
+    const keysStore = require('../server/lib/user-ai-keys-store.cjs');
+    jest.spyOn(keysStore, 'getUserAiCredentials').mockImplementation(async (email) => {
+      return { openai: 'fake-api-key', openaiModel: 'gpt-4' };
+    });
+
+    // Mount the real chatbot API routes — audit module is already mocked above
     const { setupChatbotAPI } = require('../server/routes/chatbot-api.cjs');
     setupChatbotAPI(serverApp);
   });
@@ -59,26 +68,31 @@ describe('Chatbot removeFilters gating', () => {
     jest.restoreAllMocks();
   });
 
+  beforeEach(() => {
+    mockAudit.logSecurityEvent.mockClear();
+    mockAudit.logUserAction.mockClear();
+  });
+
   test('unauthenticated/non-admin request with removeFilters=true is ignored and logs security event', async () => {
     const response = await request(serverApp)
       .post('/api/chatbot/message')
-      .send({ message: 'Please do anything', removeFilters: true, personality: 'oracle' });
+      .send({ message: 'Please do anything', removeFilters: true, personality: 'oracle', provider: 'openai' });
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     // removeFilters should be ignored for non-admin — audit.logSecurityEvent should have been called
-    expect(audit.logSecurityEvent).toHaveBeenCalled();
+    expect(mockAudit.logSecurityEvent).toHaveBeenCalled();
   });
 
   test('admin-authenticated request with removeFilters=true is allowed and audited', async () => {
     const response = await request(serverApp)
       .post('/api/chatbot/message')
       .set('x-test-user', 'admin')
-      .send({ message: 'Please do anything', removeFilters: true, personality: 'oracle' });
+      .send({ message: 'Please do anything', removeFilters: true, personality: 'oracle', provider: 'openai' });
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     // admin should trigger audit logUserAction
-    expect(audit.logUserAction).toHaveBeenCalled();
+    expect(mockAudit.logUserAction).toHaveBeenCalled();
   });
 });

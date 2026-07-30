@@ -6,46 +6,23 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-function freshEventStore(env = {}) {
-  const saved = {};
-  for (const [k, v] of Object.entries(env)) {
-    saved[k] = process.env[k];
-    process.env[k] = v;
-  }
-  delete require.cache[require.resolve('../stripe-event-store.cjs')];
-  const mod = require('../stripe-event-store.cjs');
-  for (const [k, v] of Object.entries(saved)) {
-    if (v === undefined) delete process.env[k];
-    else process.env[k] = v;
-  }
-  return mod;
-}
+// Require the module once — we'll use setStorePath + clearCache to reset state
+// between tests instead of delete require.cache (which is unreliable under Jest).
+const mod = require('../stripe-event-store.cjs');
 
 describe('stripe-event-store', () => {
   let tempStorePath;
-  let mod;
-  let savedEnv;
-
-  before(() => {
-    savedEnv = { ...process.env };
-  });
-
-  after(() => {
-    for (const k of Object.keys(process.env)) {
-      if (!(k in savedEnv)) delete process.env[k];
-    }
-    Object.assign(process.env, savedEnv);
-  });
+  let tempDir;
 
   beforeEach(() => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-event-store-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-event-store-'));
     tempStorePath = path.join(tempDir, 'stripe-events.json');
-    mod = freshEventStore({ STRIPE_EVENT_STORE: tempStorePath });
+    mod.setStorePath(tempStorePath);
+    mod.clearCache();
   });
 
   afterEach(() => {
-    const dir = path.dirname(tempStorePath);
-    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
   it('exports expected functions', () => {
@@ -75,7 +52,6 @@ describe('stripe-event-store', () => {
   it('persists events to disk file', async () => {
     await mod.recordProcessedEvent('evt_test_004');
     await mod.recordProcessedEvent('evt_test_005');
-
     assert.ok(fs.existsSync(tempStorePath), 'store file should exist on disk');
     const raw = JSON.parse(fs.readFileSync(tempStorePath, 'utf8'));
     assert.ok(Array.isArray(raw.eventIds), 'store should have eventIds array');
@@ -109,9 +85,8 @@ describe('stripe-event-store', () => {
 
   it('creates store directory if it does not exist', async () => {
     // Remove the temp dir
-    const dir = path.dirname(tempStorePath);
-    fs.rmSync(dir, { recursive: true, force: true });
-    assert.ok(!fs.existsSync(dir), 'dir should not exist');
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    assert.ok(!fs.existsSync(tempDir), 'dir should not exist');
 
     const result = await mod.recordProcessedEvent('evt_test_006');
     assert.strictEqual(result, true, 'should process event successfully');

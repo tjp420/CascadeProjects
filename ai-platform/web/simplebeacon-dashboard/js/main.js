@@ -1,4 +1,5 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
+/* global main, isEmbeddedDashboardFrame, isIdeDashboardSurface */
 import { scanService } from './services/scanService.js?v=20260716cachefix1';
 import { platformService } from './services/platformService.js?v=20260716cachefix1';
 import { billingService } from './services/billingService.js?v=20260716cachefix1';

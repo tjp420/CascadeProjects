@@ -1,3 +1,9 @@
 {
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "validate:webhook": "node scripts/validate-edge-webhook.mjs",
+    "validate:webhook:negative": "node scripts/validate-edge-webhook.mjs --negative-signature",
+    "validate:license": "node scripts/validate-success-poll.mjs",
+    "launch:nonsecret": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/runbook-nonsecret-deploy.ps1"
+  }
 }

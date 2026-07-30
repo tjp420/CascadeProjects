@@ -54,6 +54,14 @@ describe('report-bundle-builder', () => {
     renderCertificateHtml.mockReturnValue('<html>cert</html>');
     buildCompleteAuditReport.mockReturnValue('<html>audit</html>');
 
+    // Provide a proper mock for buildAnalyzeExportZipStream so the full ZIP path is exercised
+    const { buildAnalyzeExportZipStream } = require('../../../server/lib/analyze-export-bundle.cjs');
+    const { PassThrough } = require('stream');
+    const pass = new PassThrough();
+    // write a tiny zip-like payload (not a real zip, just bytes) and end
+    pass.end(Buffer.from('PK\u0003\u0004mockzip'));
+    buildAnalyzeExportZipStream.mockResolvedValue({ stream: pass, filename: 'full-export.zip' });
+
     const result = await buildReportBundle('good-token', { qualityScore: 95, scan_summary: { status: 'PASSED' } });
     expect(result.record).toBe(record);
     expect(result.email).toBe('test@example.com');

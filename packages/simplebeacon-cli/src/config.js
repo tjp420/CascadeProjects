@@ -75,7 +75,9 @@ const PROFILE_RULES = {
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
         'security-patterns': { enabled: true, severity: 'high' },
         'javascript-ast-patterns': { enabled: true, severity: 'critical' },
-        'file-reduction': { enabled: true, dryRun: true }
+        'eu-ai-act-patterns': { enabled: true, severity: 'medium' },
+        'file-reduction': { enabled: true, dryRun: true },
+        'custom-heuristic-rules': { enabled: true, severity: 'medium' }
     },
     'eu-ai-act': {
         credentials: { enabled: true, scanProduction: true },
@@ -124,6 +126,24 @@ const PROFILE_RULES = {
         'architecture-drift-patterns': { enabled: true, severity: 'medium' },
         'security-patterns': { enabled: true, severity: 'high' },
         'javascript-ast-patterns': { enabled: true, severity: 'critical' },
+        'file-reduction': { enabled: true, dryRun: true }
+    },
+    'air-gap': {
+        credentials: { enabled: true, scanProduction: true },
+        'json-schema': { enabled: true },
+        'sample-consistency': { enabled: true },
+        roadmap: { enabled: true },
+        'production-leak': { enabled: true, severity: 'high' },
+        'agency-handoff-patterns': { enabled: true, severity: 'medium' },
+        'fiction-kpi-patterns': { enabled: true, severity: 'medium' },
+        'llm-slop-patterns': { enabled: true, severity: 'medium', registryCheck: false },
+        'token-bleed-patterns': { enabled: true, severity: 'medium' },
+        'architecture-drift-patterns': { enabled: true, severity: 'medium' },
+        'security-patterns': { enabled: true, severity: 'high' },
+        'javascript-ast-patterns': { enabled: true, severity: 'critical' },
+        'python-ast-patterns': { enabled: true, severity: 'medium' },
+        'go-ast-patterns': { enabled: true, severity: 'medium' },
+        'eu-ai-act-patterns': { enabled: true, severity: 'medium' },
         'file-reduction': { enabled: true, dryRun: true }
     }
 };
@@ -434,7 +454,8 @@ const FREE_RULE_ENGINES = new Set([
     'dead-code',
     'security-patterns',
     'json-schema',
-    'sample-consistency'
+    'sample-consistency',
+    'eu-ai-act-patterns'
 ]);
 
 function sanitizeConfigForTier(config, tier) {

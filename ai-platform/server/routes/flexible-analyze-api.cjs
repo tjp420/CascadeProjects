@@ -513,7 +513,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                         );
                         if (understandingMode !== 'off') {
                             const reg = await ensureRegistry(baseDir);
-                            const userCredentials = await loadUserCredentials(req, getUserAiKeys);
+                            const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
                             report = await attachUnderstandingToCodebaseReport(report, projectPath, {
                                 platformRoot: baseDir,
                                 understandingMode,
@@ -2782,12 +2782,8 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 }
 
                 const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
-                try {
-                    const raw = await readTextFileWithLimit(reportOut, 10 * 1024 * 1024);
-                    report = raw ? JSON.parse(redactTextSecrets(raw)) : {};
-                } catch (err) {
-                    throw err;
-                }
+                const raw = await readTextFileWithLimit(reportOut, 10 * 1024 * 1024);
+                report = raw ? JSON.parse(redactTextSecrets(raw)) : {};
                 report = patchRemediationPhases(report);
                 logger.info(`[Upload Directory] Scan found: totalFiles=${report.totalFiles || report.repositoryFilesTotal || 'n/a'}, scanned=${report.ruleScopedFilesAnalyzed || 'n/a'}, issues=${report.issueCount || report.gate?.blockingCount || 'n/a'}`);
             }

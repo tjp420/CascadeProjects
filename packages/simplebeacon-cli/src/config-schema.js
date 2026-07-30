@@ -29,7 +29,8 @@ const VALID_RULES = new Set([
     'redos-risk',
     'pii-logging',
     'dead-code',
-    'memory-leak'
+    'memory-leak',
+    'custom-heuristic-rules'
 ]);
 
 const VALID_SCANNER_ACTIONS = new Set(['BLOCK', 'WARN', 'SKIP']);

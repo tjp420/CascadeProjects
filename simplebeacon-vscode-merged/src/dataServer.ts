@@ -1416,7 +1416,7 @@ export function startDataServer(context: vscode.ExtensionContext, outputChannel?
     const requestOrigin = rawOrigin && rawOrigin !== 'null' && isAllowedOrigin ? rawOrigin : '*';
     res.setHeader('Access-Control-Allow-Origin', requestOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With, Accept, Accept-Language, X-CSRF-Token, X-Api-Key');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Authorization, X-Requested-With, Accept, Accept-Language, X-CSRF-Token, X-Api-Key, X-SimpleBeacon-Bridge-Token');
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
     res.setHeader('Access-Control-Max-Age', '86400');
     res.setHeader('Vary', 'Origin');

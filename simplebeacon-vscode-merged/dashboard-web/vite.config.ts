@@ -14,14 +14,14 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist',
+    outDir: 'assets',
     sourcemap: true,
     rollupOptions: {
       input: 'src/main.tsx',
       output: {
-        entryFileNames: 'assets/[name].js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name].[ext]',
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name].[ext]',
       },
     },
   },

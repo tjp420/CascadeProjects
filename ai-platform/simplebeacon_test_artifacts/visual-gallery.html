@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SimpleBeacon Visual Snapshot Gallery</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 24px; }
+  h1 { font-size: 1.8em; margin-bottom: 8px; color: #58a6ff; }
+  .meta { color: #8b949e; font-size: 0.9em; margin-bottom: 24px; }
+  .stats { display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+  .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 24px; text-align: center; }
+  .stat-card .num { font-size: 1.8em; font-weight: 700; color: #58a6ff; }
+  .stat-card .label { font-size: 0.8em; color: #8b949e; margin-top: 4px; }
+  h2 { font-size: 1.3em; color: #58a6ff; margin: 32px 0 16px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; transition: border-color 0.2s; }
+  .card:hover { border-color: #58a6ff; }
+  .card img { width: 100%; height: 200px; object-fit: cover; cursor: pointer; border-bottom: 1px solid #30363d; }
+  .card .info { padding: 12px 16px; }
+  .card .route { font-weight: 600; color: #c9d1d9; font-size: 0.95em; word-break: break-all; }
+  .card .details { color: #8b949e; font-size: 0.8em; margin-top: 6px; display: flex; gap: 12px; }
+  .card .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; font-weight: 600; }
+  .badge-diff { background: #da3633; color: #fff; }
+  .badge-ok { background: #238636; color: #fff; }
+  .badge-warn { background: #d29922; color: #0d1117; }
+  .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; cursor: pointer; }
+  .lightbox img { max-width: 95%; max-height: 95%; object-fit: contain; border-radius: 8px; }
+  .lightbox.open { display: flex; }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.8em; }
+</style>
+</head>
+<body>
+  <h1>SimpleBeacon Visual Snapshot Gallery</h1>
+  <div class="meta">Generated: 2026-07-29T22:23:30.751Z | Target: https://simplebeacon.ai | Scanner: Chaos Agent v5.0</div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="num">47</div><div class="label">Total Screenshots</div></div>
+    <div class="stat-card"><div class="num">27</div><div class="label">Public Routes</div></div>
+    <div class="stat-card"><div class="num">20</div><div class="label">SPA Routes</div></div>
+    <div class="stat-card"><div class="num">1</div><div class="label">Visual Diffs</div></div>
+  </div>
+
+  <h2>Public Routes</h2>
+  <div class="gallery">
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__.png" alt="(root)" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">(root)</div>
+        <div class="details"><span>1089 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__app.png" alt="app" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">app</div>
+        <div class="details"><span>60 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__audit.png" alt="audit" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">audit</div>
+        <div class="details"><span>8 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__blog_case-study-ai-slop-1-25m.html.png" alt="blog_case-study-ai-slop-1-25m.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">blog_case-study-ai-slop-1-25m.html</div>
+        <div class="details"><span>404 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__blog_case-study-ai-slop-1-25m.png" alt="blog_case-study-ai-slop-1-25m" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">blog_case-study-ai-slop-1-25m</div>
+        <div class="details"><span>404 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__cloud-teams.html.png" alt="cloud-teams.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">cloud-teams.html</div>
+        <div class="details"><span>173 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__community.html.png" alt="community.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">community.html</div>
+        <div class="details"><span>399 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__community.png" alt="community" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">community</div>
+        <div class="details"><span>399 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__contact.html.png" alt="contact.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">contact.html</div>
+        <div class="details"><span>285 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__contact.png" alt="contact" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">contact</div>
+        <div class="details"><span>285 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__dashboard.png" alt="dashboard" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">dashboard</div>
+        <div class="details"><span>60 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__faq.html.png" alt="faq.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">faq.html</div>
+        <div class="details"><span>199 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__faq.png" alt="faq" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">faq</div>
+        <div class="details"><span>199 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__index.html.png" alt="index.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">index.html</div>
+        <div class="details"><span>1089 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__pricing.html.png" alt="pricing.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">pricing.html</div>
+        <div class="details"><span>8 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__pricing.png" alt="pricing" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">pricing</div>
+        <div class="details"><span>8 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__privacy.html.png" alt="privacy.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">privacy.html</div>
+        <div class="details"><span>394 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__privacy.png" alt="privacy" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">privacy</div>
+        <div class="details"><span>394 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__refund.html.png" alt="refund.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">refund.html</div>
+        <div class="details"><span>532 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__roadmap.html.png" alt="roadmap.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">roadmap.html</div>
+        <div class="details"><span>225 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__roadmap.png" alt="roadmap" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">roadmap</div>
+        <div class="details"><span>225 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__sample-report.html.png" alt="sample-report.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">sample-report.html</div>
+        <div class="details"><span>8 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__sample-report.png" alt="sample-report" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">sample-report</div>
+        <div class="details"><span>8 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__terminal-walkthrough.html.png" alt="terminal-walkthrough.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">terminal-walkthrough.html</div>
+        <div class="details"><span>35 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__terminal-walkthrough.png" alt="terminal-walkthrough" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">terminal-walkthrough</div>
+        <div class="details"><span>35 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__terms.html.png" alt="terms.html" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">terms.html</div>
+        <div class="details"><span>441 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline__terms.png" alt="terms" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">terms</div>
+        <div class="details"><span>441 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>SPA Dashboard Routes</h2>
+  <div class="gallery">
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_about.png" alt="/#/about" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/about</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_admin.png" alt="/#/admin" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/admin</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_analyze.png" alt="/#/analyze" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/analyze</div>
+        <div class="details"><span>62 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_assessments.png" alt="/#/assessments" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/assessments</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_audit.png" alt="/#/audit" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/audit</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_chatbot.png" alt="/#/chatbot" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/chatbot</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_compliance.png" alt="/#/compliance" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/compliance</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_dashboard.png" alt="/#/dashboard" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/dashboard</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_getting-started.png" alt="/#/getting-started" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/getting-started</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_help.png" alt="/#/help" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/help</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_platform.png" alt="/#/platform" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/platform</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_profile.png" alt="/#/profile" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/profile</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_quality.png" alt="/#/quality" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/quality</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_remediation.png" alt="/#/remediation" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/remediation</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_repository-health.png" alt="/#/repository-health" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/repository-health</div>
+        <div class="details"><span>62 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_results.png" alt="/#/results" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/results</div>
+        <div class="details"><span>62 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_security.png" alt="/#/security" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/security</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_settings.png" alt="/#/settings" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/settings</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_tools.png" alt="/#/tools" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/tools</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="../tests/visual-baselines/baseline_app_trust.png" alt="/#/trust" onclick="openLightbox(this.src)" loading="lazy">
+      <div class="info">
+        <div class="route">/#/trust</div>
+        <div class="details"><span>61 KB</span><span>2026-07-29</span><span class="badge badge-ok">baseline</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <img id="lightbox-img" src="" alt="Full size screenshot">
+  </div>
+
+  <footer>
+    Auto-generated by SimpleBeacon Chaos Agent v5.0 | Visual baselines stored in tests/visual-baselines/
+  </footer>
+
+  <script>
+    function openLightbox(src) {
+      var lb = document.getElementById('lightbox');
+      document.getElementById('lightbox-img').src = src;
+      lb.classList.add('open');
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('open');
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  </script>
+</body>
+</html>

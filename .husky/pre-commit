@@ -1,24 +1,17 @@
 #!/usr/bin/env sh
 . "$(dirname "$0")/_/husky.sh"
 
-# Run SimpleBeacon gate scan as a pre-commit hook. Exits non-zero to block commit on high/critical findings.
-echo "Running SimpleBeacon pre-commit scan..."
-npm run sb:hook:pre-commit
-RESULT=$?
-if [ $RESULT -ne 0 ]; then
-  echo "SimpleBeacon pre-commit check failed (exit $RESULT). Commit aborted." >&2
-  exit $RESULT
-fi
-echo "SimpleBeacon pre-commit passed. Proceeding with commit."
-#!/usr/bin/env sh
-# Simplebeacon pre-commit — syntax check + gate scan
-# https://www.npmjs.com/package/simplebeacon
 set -e
+
+echo "[SimpleBeacon] Running staged secrets gate..."
+npm run sb:hook:secrets-gate
+
 echo "[SimpleBeacon] Syntax-checking staged JS/CJS files..."
 for file in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|cjs)$'); do
   [ -f "$file" ] || continue
   node -c "$file" || { echo "[SimpleBeacon] Syntax error in $file"; exit 1; }
 done
+
 echo "[SimpleBeacon] Running gate scan..."
 npx simplebeacon scan --gate --fail-on high --config ai-platform/.simplebeacon/config.json
 echo "[SimpleBeacon] Pre-commit passed"

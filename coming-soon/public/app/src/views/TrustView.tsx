@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BadgeCheck, ShieldCheck, Activity, FileCheck, TrendingUp, RefreshCw, AlertCircle, Download } from 'lucide-react';
-import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { apiUrl, authHeaders } from '@/config';
 
 type SeverityCounts = Record<string, number>;
 
@@ -76,28 +76,112 @@ type TrustHistory = {
   }>;
 };
 
+function parseEpoch(value: unknown): number | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function toIsoOrNull(value: unknown): string | null {
+  const epoch = parseEpoch(value);
+  return epoch ? new Date(epoch).toISOString() : null;
+}
+
+function newestIso(values: Array<unknown>): string | null {
+  const epochs = values
+    .map((v) => parseEpoch(v))
+    .filter((v): v is number => v !== null);
+  if (epochs.length === 0) return null;
+  const newest = Math.max(...epochs);
+  return new Date(newest).toISOString();
+}
+
+function withCacheBust(path: string): string {
+  const separator = path.includes('?') ? '&' : '?';
+  return `${path}${separator}_ts=${Date.now()}`;
+}
+
+function sanitizeVerification(data: unknown): TrustVerification | null {
+  if (!data || typeof data !== 'object') return null;
+  const raw = data as TrustVerification;
+  if (!raw.headline || typeof raw.headline !== 'object') return null;
+
+  const repairedLastScan = newestIso([raw.headline.lastScan, raw.generatedAt]);
+  if (!repairedLastScan) return null;
+
+  const repairedGeneratedAt = toIsoOrNull(raw.generatedAt) || repairedLastScan;
+  return {
+    ...raw,
+    generatedAt: repairedGeneratedAt,
+    headline: {
+      ...raw.headline,
+      lastScan: repairedLastScan,
+    },
+  };
+}
+
+function sanitizeHistory(data: unknown): TrustHistory | null {
+  if (!data || typeof data !== 'object') return null;
+  const raw = data as TrustHistory;
+  const entries = Array.isArray(raw.entries) ? raw.entries : [];
+  const cleanedEntries = entries
+    .map((entry) => {
+      const generatedAt = newestIso([entry.generatedAt, entry.recordedAt]);
+      if (!generatedAt) return null;
+      return {
+        ...entry,
+        generatedAt,
+      };
+    })
+    .filter((entry): entry is TrustHistory['entries'][number] => Boolean(entry));
+
+  return {
+    ...raw,
+    count: Number.isFinite(Number(raw.count)) ? Number(raw.count) : cleanedEntries.length,
+    entries: cleanedEntries,
+  };
+}
+
 export function TrustView() {
   const [verification, setVerification] = useState<TrustVerification | null>(null);
   const [history, setHistory] = useState<TrustHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const apiBase = getApiBase();
+  const [selectionDebug, setSelectionDebug] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      const headers = {
+        ...authHeaders(),
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      };
       const [vRes, hRes] = await Promise.all([
-        fetch(apiUrl('/trust/verification'), { headers: authHeaders() }),
-        fetch(apiUrl('/trust/history?limit=10'), { headers: authHeaders() }),
+        fetch(apiUrl(withCacheBust('/trust/verification')), { headers, cache: 'no-store' }),
+        fetch(apiUrl(withCacheBust('/trust/history?limit=10')), { headers, cache: 'no-store' }),
       ]);
       if (vRes.ok) {
-        const vData = await vRes.json();
-        setVerification(vData);
+        const rawVerification = await vRes.json();
+        const vData = sanitizeVerification(rawVerification);
+        if (vData) {
+          setVerification(vData);
+          const source = (rawVerification as Record<string, unknown>)?.payloadSource;
+          const reason = (rawVerification as Record<string, unknown>)?.payloadSourceReason;
+          const debug = [
+            source ? `payload source: ${String(source)}` : null,
+            reason ? String(reason) : null,
+          ].filter(Boolean).join(' · ');
+          setSelectionDebug(debug || null);
+        }
       }
       if (hRes.ok) {
-        const hData = await hRes.json();
-        setHistory(hData);
+        const rawHistory = await hRes.json();
+        const hData = sanitizeHistory(rawHistory);
+        if (hData) {
+          setHistory(hData);
+        }
       }
       if (!vRes.ok && !hRes.ok) {
         setError('Trust API unavailable. Ensure the ai-platform server is running.');
@@ -107,7 +191,7 @@ export function TrustView() {
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, []);
 
   // simplebeacon-ignore: framework-practices
   useEffect(() => { void fetchData(); }, [fetchData]);
@@ -318,6 +402,11 @@ export function TrustView() {
           <div className="text-xs text-foreground-muted">
             Verification method: {verification.verificationMethod} · Source: {verification.headlineSource} · {verification.headlineReason}
           </div>
+          {selectionDebug && (
+            <div className="text-xs text-foreground-muted">
+              Freshness debug: {selectionDebug}
+            </div>
+          )}
         </CardContent>
       </Card>
 

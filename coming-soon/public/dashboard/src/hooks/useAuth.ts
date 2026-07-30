@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { navigate } from '../router/HashRouter';
+import { isTokenExpired } from '../config';
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -11,7 +12,7 @@ export function useAuth() {
     const checkAuth = () => {
       try {
         const token = localStorage.getItem('sb_token') || localStorage.getItem('auth_token');
-        if (token) {
+        if (token && !isTokenExpired()) {
           setIsAuthenticated(true);
           const userData = localStorage.getItem('sb_user');
           if (userData) {
@@ -22,6 +23,7 @@ export function useAuth() {
             setIsFreeTier(!isAdmin && (tier === 'free' || !tier));
           }
         } else {
+          // Token missing or expired — clear all auth state
           setIsAuthenticated(false);
           setUser(null);
           setIsFreeTier(true);

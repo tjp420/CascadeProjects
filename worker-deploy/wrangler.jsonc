@@ -1,25 +1,35 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "simplebeacon-dashboard",
-  "main": "src/worker.js",
-  "compatibility_date": "2026-07-18",
-  "routes": [
-    {
-      "pattern": "simplebeacon.ai/*",
-      "zone_name": "simplebeacon.ai"
-    },
-    {
-      "pattern": "www.simplebeacon.ai/*",
-      "zone_name": "simplebeacon.ai"
-    }
-  ],
-  "assets": {
-    "directory": "../coming-soon/public",
-    "binding": "ASSETS",
-    "not_found_handling": "404-page",
-    "html_handling": "auto-trailing-slash"
-  },
-  "vars": {
-    "API_BACKEND": "https://cascadeprojects-yzzd.onrender.com"
-  }
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "simplebeacon-dashboard",
+	"main": "src/worker.js",
+	"compatibility_date": "2026-07-18",
+	"routes": [
+		{
+			"pattern": "simplebeacon.ai/*",
+			"zone_name": "simplebeacon.ai"
+		},
+		{
+			"pattern": "www.simplebeacon.ai/*",
+			"zone_name": "simplebeacon.ai"
+		}
+	],
+	"assets": {
+		"directory": "../coming-soon/public",
+		"binding": "ASSETS",
+		"not_found_handling": "404-page",
+		"html_handling": "auto-trailing-slash"
+	},
+	"vars": {
+		"API_BACKEND": "https://cascadeprojects-yzzd.onrender.com",
+		"ALLOWED_ORIGINS": "https://simplebeacon.ai,https://www.simplebeacon.ai",
+		"PRICE_ID_AGENCY": "price_agency_suite_99",
+		"PRICE_ID_ENTERPRISE": "price_enterprise_499"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "LICENSE_STORE",
+			"id": "5a5a2125a7e14bf6b3e9b7b6d1e4441c",
+			"remote": true
+		}
+	]
 }

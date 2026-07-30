@@ -6,12 +6,30 @@
  * Set SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE=true to skip admin approval (not recommended).
  */
 
+function parseBooleanEnvValue(value) {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+    if (typeof value === 'number') {
+        return value !== 0;
+    }
+
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) {
+        return true;
+    }
+    if (['0', 'false', 'no', 'n', 'off', ''].includes(normalized)) {
+        return false;
+    }
+    return false;
+}
+
 function isPublicRegistrationAllowed() {
-    return String(process.env.SIMPLEBEACON_ALLOW_PUBLIC_REGISTRATION || '').toLowerCase() === 'true';
+    return parseBooleanEnvValue(process.env.SIMPLEBEACON_ALLOW_PUBLIC_REGISTRATION);
 }
 
 function registrationRequiresApproval() {
-    return String(process.env.SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE || '').toLowerCase() !== 'true';
+    return !parseBooleanEnvValue(process.env.SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE);
 }
 
 function normalizeEmail(email) {

@@ -1,5 +1,9 @@
 # SimpleBeacon
 
+[//]: # (simplebeacon-e2e-badge:start)
+![SimpleBeacon E2E State](https://img.shields.io/badge/SimpleBeacon%20E2E-UNKNOWN-lightgrey)
+[//]: # (simplebeacon-e2e-badge:end)
+
 **Release hygiene for AI-assisted code** — local MCP + CLI gate. No repo upload required.
 
 [![npm version](https://img.shields.io/npm/v/simplebeacon.svg)](https://www.npmjs.com/package/simplebeacon)

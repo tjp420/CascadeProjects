@@ -40,6 +40,7 @@ import { CodeMapTreeProvider } from './codeMapTreeProvider';
 import { startDataServer, stopDataServer, updateServerState, getServerState, getDataServerPort, clearBrowserSessionToken, setBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback, drainNotificationQueue, setTheme } from './dataServer';
 import { SimpleBeaconFixEngine } from './fixes/fixEngine';
 import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
+import { resolveCliSpawnEnv } from './utils/cliEnv';
 import { escapeHtml } from './utils/string';
 import { openWebsiteDashboardPanel } from './sidebarMessenger';
 import {
@@ -3987,7 +3988,7 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
         const child = spawn(cmd, cliArgs, {
           cwd: projectPath,
           shell: useShell,
-          env: { ...process.env, FORCE_COLOR: '0' },
+          env: resolveCliSpawnEnv(),
         });
 
         let stdout = '';
@@ -5736,7 +5737,7 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
         // Pass both JSON (arg 1) and markdown (arg 2) paths to bridge script
         const child = spawn(process.execPath, [bridgeScript, reportPath, mdPath], {
           cwd: projectRoot,
-          env: { ...process.env, FORCE_COLOR: '0' },
+          env: resolveCliSpawnEnv(),
         });
 
         let stdout = '';

@@ -24,7 +24,9 @@ const RULE_TYPE_MAP = {
   'SB-SEC-010': 'sensitive-data',
   'SB-SEC-011': 'insecure-random',
   'SB-SEC-012': 'performance',
-  'SB-SEC-013': 'sensitive-data'
+  'SB-SEC-013': 'sensitive-data',
+  'SB-SEC-014': 'hardcoded-payment-key',
+  'SB-SEC-015': 'hardcoded-cloud-key'
 };
 
 const SECURITY_RULES = [
@@ -127,6 +129,22 @@ const SECURITY_RULES = [
     severity: 'critical',
     description: 'Hardcoded CI/CD secret in workflow/config file',
     pathRegex: /\.(yml|yaml|json)$/
+  },
+  {
+    id: 'SB-SEC-014',
+    name: 'Hardcoded Payment Provider Key',
+    regex: /(?:sk_live_[a-zA-Z0-9]{24,}|sk_test_[a-zA-Z0-9]{24,}|rk_live_[a-zA-Z0-9]{24,}|pk_live_[a-zA-Z0-9]{24,})/,
+    severity: 'critical',
+    description: 'Hardcoded Stripe key in source code — rotate immediately and move to env/secret manager',
+    skipFiles: /security-pattern-scanner\.js$|simplebeacon-fix-standalone\.cjs$|test-poisoned-pipeline\.cjs$/i
+  },
+  {
+    id: 'SB-SEC-015',
+    name: 'Hardcoded Cloud Provider Key',
+    regex: /(?:AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[0-9A-Za-z_\-]{35}|ya29\.[0-9A-Za-z_\-]+)/,
+    severity: 'critical',
+    description: 'Hardcoded AWS/Google Cloud key in source code — rotate immediately and move to env/secret manager',
+    skipFiles: /security-pattern-scanner\.js$|secret-in-comments-scanner\.js$|simplebeacon-fix-standalone\.cjs$|test-poisoned-pipeline\.cjs$/i
   }
 ];
 

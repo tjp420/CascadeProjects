@@ -1,0 +1,9 @@
+{
+  "cookies": [],
+  "localStorage": {
+    "sb_user": "{\"email\":\"admin@simplebeacon.ai\",\"name\":\"Test Agent\",\"role\":\"admin\",\"tier\":\"enterprise\",\"plan\":\"enterprise\",\"trustLevel\":\"gold\",\"permissions\":[\"read:own\",\"write:own\",\"read:shared\",\"write:shared\",\"analyze:public\",\"analyze:private\",\"admin:basic\",\"admin:all\"],\"features\":[\"all_modules\"]}",
+    "sb-sample-report-theme": "light",
+    "sb_token": "test-agent-mock-token",
+    "simplebeacon_handoff_v1": "{\"date\":\"2026-07-29\",\"files\":\"\",\"decisions\":\"\",\"pending\":\"- Review and verify all changes before next session\\n- Run node --test if tests exist\",\"notes\":\"\"}"
+  }
+}

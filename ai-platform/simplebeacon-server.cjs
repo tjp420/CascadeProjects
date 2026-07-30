@@ -41,6 +41,7 @@ const rateLimit = require('express-rate-limit');
 const http = require('http');
 const WebSocket = require('ws');
 const cors = require('cors');
+const { resolveCorsOptions, parseOriginList, isAllowedCorsOrigin } = require('./server/lib/cors-config.cjs');
 
 const setupBuildFromPathRoute = require('./src/api/build-from-path-route.cjs');
 const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs'); // simplebeacon-ignore production-leak — real production dashboard API module, not a stub
@@ -138,28 +139,48 @@ const PORT = Number.isFinite(Number(process.env.PORT)) && Number(process.env.POR
   : constants.DEFAULT_PORT;
 const WS_PORT = 8081;
 
-// CORS — allow any origin in dev; specific origins in production
-const productionDefaultOrigins = (process.env.ALLOWED_ORIGIN || 'https://simplebeacon.ai').split(',').map(s => s.trim()).filter(Boolean);
-const publicUrlOrigin = process.env.PUBLIC_URL ? (process.env.PUBLIC_URL.startsWith('http') ? process.env.PUBLIC_URL : 'https://' + process.env.PUBLIC_URL) : '';
-const rawAllowedOrigins = process.env.NODE_ENV === 'production'
-    ? [...new Set([...productionDefaultOrigins, publicUrlOrigin].filter(Boolean))]
-    : true;
-const allowedOrigins = Array.isArray(rawAllowedOrigins) && rawAllowedOrigins.length > 0 ? rawAllowedOrigins : true;
+const corsOptions = resolveCorsOptions({
+  devFallbackOrigin: process.env.CORS_ORIGIN || process.env.ALLOWED_ORIGIN || process.env.SIMPLEBEACON_DEV_CORS_ORIGIN,
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  maxAge: 86400
+});
 
-const pagesPreviewOriginRegex = /^https:\/\/[a-z0-9-]+\.simplebeacon\.pages\.dev$/;
-const renderOriginRegex = /^https:\/\/[a-z0-9-]+\.onrender\.com$/;
-const netlifyOriginRegex = /^https:\/\/[a-z0-9-]+\.netlify\.app$/;
-function isAllowedCorsOrigin(origin) {
-    if (allowedOrigins === true) { return true; }
-    if (!origin) { return true; }
-    return allowedOrigins.some(allowed => {
-        if (allowed === origin) { return true; }
-        if (/^http:\/\/(127\.0\.0\.1|localhost):\*$/.test(allowed)) {
-            return origin.startsWith(allowed.replace(':*', ':'));
-        }
-        return false;
-    }) || pagesPreviewOriginRegex.test(origin) || renderOriginRegex.test(origin) || netlifyOriginRegex.test(origin);
-}
+app.options('/*', (req, res) => {
+  const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+  const rawCorsOrigins = process.env.CORS_ORIGINS
+    || process.env.CORS_ORIGIN
+    || process.env.ALLOWED_ORIGIN
+    || process.env.SIMPLEBEACON_DEV_CORS_ORIGIN
+    || '';
+  const allowedOrigins = parseOriginList(rawCorsOrigins);
+  const requestOrigin = req.headers.origin;
+  const allowed = isAllowedCorsOrigin(requestOrigin, {
+    isProduction,
+    origins: allowedOrigins,
+  });
+
+  try {
+    const acrpn = req.headers['access-control-request-private-network'];
+    if (typeof acrpn !== 'undefined') {
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+  } catch {
+    // ignore
+  }
+
+  res.setHeader('Vary', 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+  if (allowed && requestOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,Access-Control-Request-Private-Network');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (!allowed) {
+    return res.sendStatus(403);
+  }
+  return res.sendStatus(204);
+});
 
 // Private Network Access (PNA) support: when a secure public page fetches a
 // loopback address, browsers send Access-Control-Request-Private-Network: true
@@ -177,19 +198,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({
-    origin: (origin, callback) => {
-        if (isAllowedCorsOrigin(origin)) {
-            callback(null, origin || true);
-        } else {
-            callback(null, false);
-        }
-    },
-    credentials: true,
-    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept', 'Authorization', 'X-Token-Password'],
-    maxAge: 86400
-}));
+app.use(cors(corsOptions));
 
 // Security headers (lightweight helmet alternative — zero dependencies)
 app.use((req, res, next) => {

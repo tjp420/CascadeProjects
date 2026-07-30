@@ -47,6 +47,29 @@ test('SB-FIX-MARKDOWN-FENCE removes trailing code fence', () => {
   assert.ok(!result.content.includes('```'));
 });
 
+test('SB-FIX-MARKDOWN-FENCE produces exact deterministic output for wrapped snippet', () => {
+  const engine = new RemediationEngine(STRUCTURAL_RULES);
+  const input = '```ts\nconst answer = 42;\n```\n';
+  const expected = 'const answer = 42;\n';
+  const result = engine.processBuffer(input, 'sample.ts');
+
+  assert.ok(result.changed);
+  assert.equal(result.content, expected);
+  assert.equal(result.matchCounts['SB-FIX-MARKDOWN-FENCE'], 2);
+});
+
+test('SB-FIX-MARKDOWN-FENCE is idempotent across repeated passes', () => {
+  const engine = new RemediationEngine(STRUCTURAL_RULES);
+  const input = '```js\nconst value = 7;\n```\n';
+  const first = engine.processBuffer(input, 'sample.js');
+  const second = engine.processBuffer(first.content, 'sample.js');
+
+  assert.ok(first.changed);
+  assert.ok(!second.changed);
+  assert.equal(second.content, first.content);
+  assert.deepEqual(second.rulesApplied, []);
+});
+
 test('SB-FIX-LLM-PREAMBLE strips "here is your updated component" header', () => {
   const engine = new RemediationEngine(STRUCTURAL_RULES);
   const input = 'here is your updated component:\n\nexport default function App() {}\n';

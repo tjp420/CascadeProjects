@@ -7,7 +7,7 @@ const PORT = Number(process.env.SB_DASHBOARD_PORT) || 8081;
 const HOST = process.env.SB_DASHBOARD_HOST || '127.0.0.1';
 
 const DASHBOARD_DIR = path.join(__dirname, 'dashboard-web');
-const DEFAULT_PROJECT = 'C:\\Users\\Trevor\\CascadeProjects_BACKUP_20260521';
+const DEFAULT_PROJECT = process.env.SB_PROJECT_PATH || path.resolve(__dirname, '..');
 const DEFAULT_REPORT_PATH = path.join(DEFAULT_PROJECT, '.simplebeacon', 'report.json');
 
 let cachedReport;

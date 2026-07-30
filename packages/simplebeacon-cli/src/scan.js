@@ -42,6 +42,7 @@ const { scanHallucinatedImports } = require('./rules/hallucinated-import-scanner
 const { scanDependencyGraph } = require('./rules/dependency-graph-scanner');
 const { scanAstStructural } = require('./rules/ast-structural-scanner');
 const { scanComprehensive } = require('./rules/comprehensive-scanner');
+const { scanCustomHeuristicRules } = require('./rules/custom-heuristic-scanner');
 const { loadSimplebeaconConfig, resolveScanPaths, isRuleEnabled, getRuleOptions, sanitizeConfigForTier } = require('./config');
 const { detectTier } = require('./lib/tier-detector');
 const { checkLocalScanQuota, incrementLocalScan, incrementPipelineScan, isPipelineScan } = require('./lib/scan-usage-tracker');
@@ -1655,6 +1656,14 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             key: 'comprehensive', varName: 'comprehensiveScan',
             alwaysRun: true,
             run: () => scanComprehensive(uniqueFiles, { rootDir: root })
+        },
+        {
+            key: 'custom-heuristic-rules', varName: 'customHeuristicScan',
+            enabled: (cfg) => isRuleEnabled(cfg, 'custom-heuristic-rules'),
+            run: () => scanCustomHeuristicRules(root, {
+                ignoreGlobs: config.ignore,
+                productionPaths: config.productionPaths
+            })
         }
     ];
 

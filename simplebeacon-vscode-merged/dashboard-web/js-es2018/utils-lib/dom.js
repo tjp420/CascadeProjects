@@ -37,6 +37,81 @@ export function showToast(message, type = 'info') {
     })();
     _renderToast(container, message, typeof type === 'string' ? type : 'info', 3500);
 }
+
+/**
+ * Request browser notification permission. Must be called from a user gesture.
+ * Returns the permission string ('granted'|'denied'|'default').
+ */
+export async function requestNotificationPermission() {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') return 'default';
+    try {
+        // Some browsers return a Promise, some a string — normalize
+        const result = await Notification.requestPermission();
+        return String(result || 'default');
+    }
+    catch (e) {
+        try {
+            // fallback for older APIs
+            return Notification.permission || 'default';
+        }
+        catch (_a) {
+            return 'default';
+        }
+    }
+}
+
+const SB_NOTIFICATIONS_ENABLED_KEY = 'sb_notifications_enabled';
+
+function readNotificationsEnabled() {
+    try {
+        return localStorage.getItem(SB_NOTIFICATIONS_ENABLED_KEY) !== 'false';
+    }
+    catch (_a) {
+        return true;
+    }
+}
+
+function writeNotificationsEnabled(enabled) {
+    try {
+        localStorage.setItem(SB_NOTIFICATIONS_ENABLED_KEY, String(enabled));
+    }
+    catch (_a) { }
+}
+
+/**
+ * @returns {boolean}
+ */
+export function isNotificationsEnabled() {
+    return readNotificationsEnabled();
+}
+
+/**
+ * @param {boolean} enabled
+ * @returns {void}
+ */
+export function setNotificationsEnabled(enabled) {
+    writeNotificationsEnabled(enabled);
+}
+
+/**
+ * Show an OS-level notification if permission is granted and the user has not disabled notifications.
+ * This is best-effort and silent on failure.
+ */
+export function showOSNotification(title, options) {
+    if (typeof window === 'undefined' || typeof Notification === 'undefined') return null;
+    try {
+        if (readNotificationsEnabled() && Notification.permission === 'granted') {
+            try {
+                return new Notification(String(title || ''), options || {});
+            }
+            catch (_a) {
+                return null;
+            }
+        }
+    }
+    catch (_b) { }
+    return null;
+}
 /**
  * Manually remove the toast container and clear any active timers.
  * @returns {void}

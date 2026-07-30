@@ -1,4 +1,4 @@
-// simplebeacon-ignore: mega-params — refactor flagged functions later if desired
+// simplebeacon-ignore: mega-params,debugArtifacts — refactor flagged functions later; console.warn diagnostics are intentional
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,37 +28,13 @@ import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders, isTokenExpired, clearAuthAndRedirect } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 import { runLocalScan } from '@services/localScanService.js';
+import { useExtensionBridge } from '@/hooks/useExtensionBridge';
+import { discoverAndApplyExtensionBridge } from '@services/localAgentService.js';
 import { navigate } from '@/router/HashRouter';
+import { requestNotificationPermission, showOSNotification, isNotificationsEnabled, setNotificationsEnabled as setNotificationsPreference } from '@utils/utils-lib/dom';
 
 type ScanMode = 'local' | 'server' | 'github' | 'website';
-type ScanState = 'idle' | 'scanning' | 'complete' | 'error';
-
-function getExtensionBridgeBase(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    let bridge = params.get('sb_api_base') || params.get('sb_notify_base');
-    // If no bridge params in current URL, clear stale sessionStorage entries
-    if (!bridge && typeof sessionStorage !== 'undefined') {
-      const stale = sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base');
-      if (stale) {
-        try { sessionStorage.removeItem('sb_api_base'); } catch { /* ignore */ }
-        try { sessionStorage.removeItem('sb_notify_base'); } catch { /* ignore */ }
-      }
-    }
-    if (bridge) {
-      const trimmed = bridge.replace(/\/+$/, '');
-      // Normalize: strip trailing /api so bridge base is consistent with getApiBase()
-      const hostRoot = trimmed.replace(/\/api$/i, '');
-      // Persist to sessionStorage so bridge survives URL rewrites
-      if (typeof sessionStorage !== 'undefined') {
-        try { sessionStorage.setItem('sb_api_base', hostRoot); } catch { /* ignore */ }
-      }
-      return hostRoot;
-    }
-  } catch { /* ignore */ }
-  return null;
-}
+type ScanState = 'idle' | 'scanning' | 'complete' | 'error' | 'auth_required';
 
 function isHostedDashboard(): boolean {
   if (typeof window === 'undefined') return false;
@@ -73,35 +49,121 @@ function isWebsiteMode(): boolean {
   } catch { return false; }
 }
 
-async function findFolderViaBridge(folderName: string, bridgeBase: string): Promise<string | null> {
+function bridgeFetchHeaders(bridgeToken?: string | null): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (bridgeToken) {
+    headers['X-SimpleBeacon-Bridge-Token'] = bridgeToken;
+  }
+  return headers;
+}
+
+async function findFolderViaBridge(folderName: string, bridgeBase: string, bridgeToken?: string | null): Promise<string | null> {
   try {
     const res = await fetch(`${bridgeBase}/api/find-folder`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: bridgeFetchHeaders(bridgeToken),
       body: JSON.stringify({ folderName }),
     });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.matches) && data.matches.length > 0) {
-        return data.matches[0].path || data.matches[0];
+      const matches = Array.isArray(data.matches) ? data.matches : [];
+      if (matches.length > 0) {
+        return matches[0].path || matches[0];
+      }
+      const results = Array.isArray(data.results) ? data.results : [];
+      if (results.length > 0) {
+        return typeof results[0] === 'string' ? results[0] : results[0]?.path || null;
       }
     }
   } catch { /* ignore */ }
   return null;
 }
 
-async function pickFolderViaExtensionBridge(bridgeBase: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${bridgeBase}/api/pick-folder`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.path) return data.path;
-    }
-  } catch { /* ignore */ }
+async function pickFolderViaExtensionBridge(bridgeBase: string, bridgeToken?: string | null): Promise<string | null> {
+  const headers = bridgeFetchHeaders(bridgeToken);
+  for (const route of ['/api/analyze/pick-folder', '/api/pick-folder']) {
+    try {
+      const res = await fetch(`${bridgeBase}${route}`, { method: 'POST', headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.path) return data.path;
+      }
+    } catch { /* try alias */ }
+  }
   return null;
+}
+
+function isAbsoluteLocalPath(value: string): boolean {
+  return /^([A-Za-z]:[\\/]|\\\\|\/)/.test(String(value || '').trim());
+}
+
+async function runBridgeExtensionScan(
+  bridgeBase: string,
+  scanPath: string,
+  bridgeToken: string | null | undefined,
+  callbacks: {
+    appendLog: (line: string) => void;
+    setProgress: (n: number) => void;
+    setProgressLabel: (label: string) => void;
+  }
+): Promise<any> {
+  const headers = bridgeFetchHeaders(bridgeToken);
+  let resolvedPath = scanPath;
+  if (!isAbsoluteLocalPath(scanPath)) {
+    callbacks.appendLog(`[SimpleBeacon] Resolving "${scanPath}" via extension bridge...`);
+    const found = await findFolderViaBridge(scanPath, bridgeBase, bridgeToken);
+    if (!found) {
+      throw new Error(`Could not resolve folder "${scanPath}" on your machine via the VS Code extension.`);
+    }
+    resolvedPath = found;
+    callbacks.appendLog(`[SimpleBeacon] Resolved to ${resolvedPath}`);
+  }
+
+  callbacks.setProgressLabel('Starting scan via VS Code extension...');
+  callbacks.setProgress(10);
+  const startResp = await fetch(`${bridgeBase}/api/scan`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ path: resolvedPath }),
+  });
+  if (!startResp.ok) {
+    throw new Error(`Bridge scan failed to start (${startResp.status})`);
+  }
+
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const progResp = await fetch(
+      `${bridgeBase}/api/analyze/progress?projectPath=${encodeURIComponent(resolvedPath)}`,
+      { headers }
+    );
+    if (!progResp.ok) continue;
+    const progData = await progResp.json().catch(() => ({}));
+    const progress = progData?.progress || {};
+    if (progress.active) {
+      const processed = Number(progress.processed) || 0;
+      const total = Number(progress.total) || 0;
+      if (total > 0) {
+        callbacks.setProgress(Math.min(90, 15 + Math.round((processed / total) * 75)));
+        callbacks.setProgressLabel(`Scanning via IDE ${processed.toLocaleString()} / ${total.toLocaleString()} files`);
+      } else {
+        callbacks.setProgressLabel(String(progress.label || 'Scanning via VS Code extension...'));
+      }
+      continue;
+    }
+    break;
+  }
+
+  callbacks.setProgressLabel('Fetching scan report from extension...');
+  callbacks.setProgress(95);
+  const reportResp = await fetch(`${bridgeBase}/api/report`, { headers });
+  if (!reportResp.ok) {
+    throw new Error(`Bridge report fetch failed (${reportResp.status})`);
+  }
+  const report = await reportResp.json();
+  if (report && typeof report === 'object') {
+    report.projectPath = report.projectPath || report.projectRoot || resolvedPath;
+  }
+  return report;
 }
 
 interface ScanResult {
@@ -114,6 +176,67 @@ interface ScanResult {
   scanScope: { profile: string; resultsViewScope: string; codeFilesAnalyzed: number };
 }
 
+function extractIssueListForSidebar(report: any): any[] {
+  if (Array.isArray(report?.rawIssues) && report.rawIssues.length) return report.rawIssues;
+  if (Array.isArray(report?.detectedIssues) && report.detectedIssues.length) return report.detectedIssues;
+  if (Array.isArray(report?.findings) && report.findings.length) {
+    return report.findings.map((f: any) => ({
+      filePath: f.filePath || f.file || '',
+      line: f.line || 1,
+      severity: f.severity || 'medium',
+      severityBand: f.severityBand || f.severity || 'medium',
+      type: f.category || f.type || 'finding',
+      description: f.message || f.description || 'Finding detected',
+      count: Number(f.count) || 1,
+    }));
+  }
+  return [];
+}
+
+function syncReportToVscodeSidebar(reportData: any, fallbackProjectPath = ''): void {
+  if (!reportData || typeof window === 'undefined') return;
+  const issues = extractIssueListForSidebar(reportData);
+  const sev = reportData?.severityCounts || {};
+  const qualityScore = reportData?.qualityScore ?? reportData?.gate?.score ?? 0;
+  const payload = {
+    totalFiles: reportData?.repositoryFilesTotal || reportData?.totalFiles || reportData?.summary?.totalFiles || 0,
+    ruleScopedFilesAnalyzed: reportData?.ruleScopedFilesAnalyzed || reportData?.filesAnalyzed || reportData?.summary?.codeFilesAnalyzed || 0,
+    issueCount: issues.length,
+    qualityScore,
+    gate: reportData?.gate || { pass: false },
+    issues: issues.slice(0, 200),
+    projectPath: reportData?.projectRoot || reportData?.projectPath || fallbackProjectPath || '',
+    severityCounts: {
+      critical: sev.critical || 0,
+      high: sev.high || 0,
+      medium: sev.medium || 0,
+      low: sev.low || 0,
+      info: sev.info || 0,
+    },
+  };
+  const stats = {
+    issues: issues.length,
+    critical: payload.severityCounts.critical,
+    high: payload.severityCounts.high,
+    medium: payload.severityCounts.medium,
+    low: payload.severityCounts.low,
+    score: qualityScore,
+  };
+
+  const vscode = (window as any).acquireVsCodeApi?.();
+  try {
+    if (vscode) {
+      vscode.postMessage({ command: 'updateReport', report: payload });
+      vscode.postMessage({ command: 'scanComplete', stats });
+    } else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ command: 'updateReport', report: payload }, '*');
+      window.parent.postMessage({ command: 'scanComplete', stats }, '*');
+    }
+  } catch {
+    // Sidebar sync is best-effort and should never block report export.
+  }
+}
+
 export function AnalyzeView() {
   const [mode, setMode] = useState<ScanMode>(isWebsiteMode() ? 'website' : 'local');
   const [path, setPath] = useState(localStorage.getItem('sb_default_path') || '');
@@ -121,6 +244,7 @@ export function AnalyzeView() {
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [fullReport, setFullReport] = useState<any>(null);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -128,11 +252,25 @@ export function AnalyzeView() {
   const [serverDefaultPath, setServerDefaultPath] = useState<string | null>(null);
   const [resolvedCandidate, setResolvedCandidate] = useState<string | null>(null);
   const [candidateError, setCandidateError] = useState<string | null>(null);
-  const bridgeBase = getExtensionBridgeBase();
+  const [traceId, setTraceId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [lastErrorMsg, setLastErrorMsg] = useState<string | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const [showAgentModal, setShowAgentModal] = useState(false);
+  const [probingAgent, setProbingAgent] = useState(false);
+  const [fileErrorsCount, setFileErrorsCount] = useState<number | null>(null);
+  const [fileErrorExamples, setFileErrorExamples] = useState<any[] | null>(null);
+  const [browserErrors, setBrowserErrors] = useState<any[] | null>(null);
+  const [browserErrorsLoading, setBrowserErrorsLoading] = useState(false);
+  const [rerunAfterProbe, setRerunAfterProbe] = useState(true);
+  const [pendingBrowserErrorsCount, setPendingBrowserErrorsCount] = useState<number>(0);
+  const { bridgeBase, bridgeToken, status: bridgeStatus, recheck: recheckBridge } = useExtensionBridge();
   const hosted = isHostedDashboard();
   const websiteMode = isWebsiteMode();
   const [localNetworkDenied, setLocalNetworkDenied] = useState(false);
   const [isRemoteBackend, setIsRemoteBackend] = useState(false);
+  const [notifsEnabled, setNotifsEnabled] = useState(isNotificationsEnabled());
+  const scanInFlightRef = useRef(false);
 
   // Detect whether we're using a local server or the remote Render backend
   // simplebeacon-ignore: framework-practices
@@ -144,6 +282,115 @@ export function AnalyzeView() {
       setIsRemoteBackend(true);
     }
   }, []);
+
+  // Auto-open Local Agent modal when Local Network Access is denied
+  useEffect(() => {
+    if (localNetworkDenied) setShowAgentModal(true);
+  }, [localNetworkDenied]);
+
+  // Fetch recent browser-errors when modal opens
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!showAgentModal) return;
+      // Flush pending browser errors (if any) when modal is opened
+      try {
+        await flushPendingBrowserErrors();
+      } catch (_e) { /* ignore */ }
+
+      setBrowserErrorsLoading(true);
+      try {
+        const resp = await fetch(apiUrl('/simplebeacon/report/browser-errors'), { headers: authHeaders() });
+        if (!cancelled) {
+          if (resp.ok) {
+            const data = await resp.json();
+            setBrowserErrors(Array.isArray(data) ? data : [data]);
+          } else {
+            setBrowserErrors([]);
+          }
+        }
+      } catch (e) {
+        if (!cancelled) setBrowserErrors([]);
+      }
+      if (!cancelled) setBrowserErrorsLoading(false);
+      // update pending count
+      try {
+        const key = 'sb_pending_browser_errors';
+        const raw = localStorage.getItem(key);
+        const pending = raw ? JSON.parse(raw) : [];
+        setPendingBrowserErrorsCount(Array.isArray(pending) ? pending.length : 0);
+      } catch (_e) { setPendingBrowserErrorsCount(0); }
+    })();
+    return () => { cancelled = true; };
+  }, [showAgentModal]);
+
+  // Flush pending browser-errors if the user re-authenticates
+  const flushPendingBrowserErrors = useCallback(async () => {
+    try {
+      const key = 'sb_pending_browser_errors';
+      // If no valid token is present, skip network flush — wait for login
+      if (isTokenExpired()) return 0;
+      const raw = localStorage.getItem(key);
+      if (!raw) return 0;
+      const pending = JSON.parse(raw || '[]');
+      if (!Array.isArray(pending) || pending.length === 0) return 0;
+      let flushed = 0;
+      for (const p of pending) {
+        try {
+          const r = await fetch(apiUrl('/simplebeacon/report/browser-error'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(p) });
+          if (r.status === 401) break; // still unauthorized
+          if (r.ok) flushed++;
+        } catch (_e) { break; }
+      }
+      if (flushed > 0) {
+        try { localStorage.removeItem(key); } catch (_e) { }
+        toast.success(`Flushed ${flushed} pending browser error(s)`);
+      }
+      return flushed;
+    } catch (e) {
+      return 0;
+    }
+  }, []);
+
+  // Listen to storage events for login changes and poll auth state as a fallback
+  useEffect(() => {
+    let prevExpired = isTokenExpired();
+    const onStorage = (ev: StorageEvent) => {
+      if (!ev.key) return;
+      if (ev.key === 'sb_user' || ev.key === 'sb_user_id' || ev.key === 'sb_token') {
+        // Try flushing pending errors on auth change
+        (async () => { try { await flushPendingBrowserErrors(); } catch { } })();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    const interval = window.setInterval(async () => {
+      try {
+        const nowExpired = isTokenExpired();
+        if (prevExpired && !nowExpired) {
+          // token became valid
+          await flushPendingBrowserErrors();
+        }
+        prevExpired = nowExpired;
+      } catch (_e) { }
+    }, 3000);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      clearInterval(interval);
+    };
+  }, [flushPendingBrowserErrors]);
+
+  // Listen for an explicit login event dispatched by the SignIn flow so we can
+  // immediately flush pending browser errors in the same window (storage events
+  // don't fire in the same tab that updated localStorage).
+  useEffect(() => {
+    const onLogin = async () => {
+      try { await flushPendingBrowserErrors(); } catch { /* ignore */ }
+    };
+    window.addEventListener('sb:login', onLogin as EventListener);
+    return () => { window.removeEventListener('sb:login', onLogin as EventListener); };
+  }, [flushPendingBrowserErrors]);
 
   // Fetch server defaultProjectPath on mount so we can auto-populate and resolve paths
   // simplebeacon-ignore: framework-practices
@@ -168,8 +415,10 @@ export function AnalyzeView() {
           const dp = data.defaultProjectPath;
           if (dp && !cancelled) {
             setServerDefaultPath(dp);
-            // Auto-populate path if empty and no saved default
-            if (!path.trim() && !localStorage.getItem('sb_default_path')) {
+            // Auto-populate path if empty and no saved default — but only for local dev
+            // On a hosted dashboard, the server's path is on a remote machine and useless
+            // for browser-local scanning. Leave the field empty so the user types a folder name.
+            if (!path.trim() && !localStorage.getItem('sb_default_path') && !isHostedDashboard()) {
               setPath(dp);
             }
           }
@@ -183,11 +432,124 @@ export function AnalyzeView() {
     setTerminalOutput((prev) => [...prev, line]);
   }, []);
 
+  // Persist scan result to localStorage without failing the scan on QuotaExceededError
+  const persistScanResult = useCallback((scanResult: ScanResult, fullReportData?: any) => {
+    try {
+      localStorage.setItem('sb_last_scan', JSON.stringify({
+        files: scanResult.totalFiles,
+        issues: scanResult.issueCount,
+        gate: scanResult.gate.pass,
+      }));
+    } catch (e) {
+      console.warn('[SimpleBeacon] Failed to store sb_last_scan:', e);
+    }
+    try {
+      localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
+    } catch (e) {
+      console.warn('[SimpleBeacon] Failed to store sb_last_scan_full (may exceed quota):', e);
+      toast.warning('Results page may be empty — localStorage quota exceeded. Export the report from the Analyze page instead.');
+    }
+    // Store the full report (with findings) in a separate key for the Results page export
+    if (fullReportData) {
+      try {
+        localStorage.setItem('sb_last_scan_report', JSON.stringify(fullReportData));
+      } catch (e) {
+        console.warn('[SimpleBeacon] Failed to store sb_last_scan_report (may exceed quota):', e);
+      }
+    }
+    try {
+      localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+    } catch (e) {
+      console.warn('[SimpleBeacon] Failed to store sb_last_scan_time:', e);
+    }
+  }, []);
+
+  // Debounced append to reduce layout churn when many logs arrive quickly
+  const debouncedAppendLog = useCallback((line: string) => {
+    // Use a short debounce to batch rapid updates
+    (window as any).__sb_debounce_append = (window as any).__sb_debounce_append || { timer: 0, queue: [] };
+    const state = (window as any).__sb_debounce_append;
+    state.queue.push(line);
+    if (state.timer) return;
+    state.timer = window.setTimeout(() => {
+      setTerminalOutput((prev) => [...prev, ...state.queue]);
+      state.queue = [];
+      clearTimeout(state.timer);
+      state.timer = 0;
+    }, 80);
+  }, []);
+
+  const postBrowserError = useCallback(async (payload: any) => {
+    try {
+      const key = 'sb_pending_browser_errors';
+      const body = {
+        traceId: traceId || undefined,
+        userId: userId || undefined,
+        ...payload
+      };
+
+      // If no valid token, persist locally and skip network POST to avoid unauthenticated requests.
+      if (isTokenExpired()) {
+        try {
+          const existing = JSON.parse(localStorage.getItem(key) || '[]');
+          existing.push(body);
+          localStorage.setItem(key, JSON.stringify(existing));
+        } catch (_e) { /* ignore */ }
+        return;
+      }
+
+      const url = apiUrl('/simplebeacon/report/browser-error');
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body),
+      });
+      if (resp.status === 401) {
+        // Auth required — persist locally for later retry
+        try {
+          const existing = JSON.parse(localStorage.getItem(key) || '[]');
+          existing.push(body);
+          localStorage.setItem(key, JSON.stringify(existing));
+        } catch (_e) { /* ignore */ }
+      }
+    } catch (e) {
+      // Swallow errors — logging best-effort only
+      console.debug('[SimpleBeacon] Failed to POST browser error', e);
+      try {
+        const key = 'sb_pending_browser_errors';
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        existing.push({ traceId: traceId || undefined, userId: userId || undefined, ...payload });
+        localStorage.setItem(key, JSON.stringify(existing));
+      } catch (_e) { /* ignore */ }
+    }
+  }, [traceId, userId]);
+
+  // Small allowlist for transient/benign filenames to avoid noisy reports
+  const fileErrorAllowlist = [
+    /(^|[\\/])~\$/,
+    /(^|[\\/])\.DS_Store$/i,
+    /(^|[\\/])Thumbs\.db$/i,
+    /(^|[\\/])desktop\.ini$/i,
+    /(^|[\\/])\..*\.swp$/i,
+    /(^|[\\/]).*\.tmp$/i
+  ];
+  const isAllowedFileError = (filePath: string) => {
+    if (!filePath) return false;
+    try {
+      return fileErrorAllowlist.some((rx) => rx.test(filePath));
+    } catch (_a) { return false; }
+  };
+
   const isGithubUrl = (url: string) => /^https?:\/\/github\.com\//i.test(url.trim());
 
   const isWindowsPath = (p: string) => /^[A-Za-z]:[\\/]/.test(p.trim());
 
   const handleScan = useCallback(async () => {
+    if (scanInFlightRef.current) {
+      appendLog('[SimpleBeacon] Scan already in progress; ignoring duplicate start request.');
+      return;
+    }
+    scanInFlightRef.current = true;
     let scanInput = path.trim();
 
     // Reject page URL or fragment as scan path
@@ -208,13 +570,15 @@ export function AnalyzeView() {
     }
 
     if (!scanInput) {
-      // Default to server's defaultProjectPath if available
-      if (serverDefaultPath) {
+      // Default to server's defaultProjectPath if available — but only for server scans
+      // On a hosted dashboard, the server's path is on a remote machine and useless
+      // for browser-local scanning. Prompt the user to enter a folder name instead.
+      if (serverDefaultPath && !hosted) {
         scanInput = serverDefaultPath;
         setPath(scanInput);
         appendLog(`[SimpleBeacon] Using server default path: ${scanInput}`);
       } else {
-        toast.error('Please enter a project path');
+        toast.error('Please enter a project folder name (e.g. CascadeProjects) or use the Browse Folder button.');
         return;
       }
     }
@@ -222,16 +586,29 @@ export function AnalyzeView() {
     setProgress(0);
     setTerminalOutput([]);
     setResult(null);
+    setFullReport(null);
 
     appendLog(`[SimpleBeacon] Starting scan: ${scanInput}`);
     setProgressLabel('Initializing...');
     setProgress(10);
 
-    if (isTokenExpired()) {
-      toast.error('Your session has expired. Please sign in again.');
-      clearAuthAndRedirect();
-      return;
+    // Establish a traceId for this scan for correlation and capture user id if available
+    try {
+      setTraceId((crypto as any).randomUUID ? (crypto as any).randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2));
+    } catch (_a) {
+      setTraceId(String(Date.now()) + Math.random().toString(36).slice(2));
     }
+    try {
+      const maybe = (window as any).__SB_USER || localStorage.getItem('sb_user') || localStorage.getItem('sb_user_id');
+      if (maybe) {
+        try {
+          const parsed = typeof maybe === 'string' ? JSON.parse(maybe) : maybe;
+          setUserId(parsed && parsed.id ? String(parsed.id) : String(parsed || ''));
+        } catch (_b) {
+          setUserId(String(maybe));
+        }
+      }
+    } catch (_c) { }
 
     try {
       const apiBase = getApiBase() || '';
@@ -240,24 +617,44 @@ export function AnalyzeView() {
       let scanPath = scanInput;
 
       // If we have a dropped directory handle, use browser-based scan directly (skip server path resolution)
+      // Browser-local scans run entirely on the user's machine and do NOT require server auth,
+      // so the isTokenExpired() check is intentionally deferred until after this branch.
       const dirHandle = (window as any).__sbDroppedDirHandle as FileSystemDirectoryHandle | undefined;
       if (mode === 'local' && dirHandle && dirHandle.name === scanPath) {
-        setProgressLabel('Scanning files in browser...');
-        setProgress(20);
+        setProgressLabel('Collecting files from folder...');
+        setProgress(5);
         appendLog(`[SimpleBeacon] Browser local scan via File System Access API...`);
         const report = await runLocalScan({
           dirHandle,
           projectPath: scanPath,
-          onProgress: (processed: number, total: number) => {
+          onFilePrepProgress: (processed: number, total: number, label: string) => {
             if (total > 0) {
-              setProgress(Math.min(90, 20 + Math.round((processed / total) * 70)));
-              setProgressLabel(`Scanning ${processed} / ${total} files`);
+              const pct = Math.min(15, Math.round((processed / total) * 15));
+              setProgress(pct);
+              setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
+            } else {
+              setProgress(5);
+              setProgressLabel(label);
             }
           },
+          onProgress: (processed: number, total: number) => {
+            if (total > 0) {
+              setProgress(Math.min(90, 15 + Math.round((processed / total) * 75)));
+              setProgressLabel(`Scanning ${processed.toLocaleString()} / ${total.toLocaleString()} files`);
+            }
+          },
+          onFileError: (file: string, err: any) => {
+            if (!isAllowedFileError(file)) {
+              debouncedAppendLog(`[file-error] ${file} ${err?.name || ''} ${err?.message || ''}`);
+              postBrowserError({ source: 'dashboard', error: err?.message || String(err), filePath: file, context: 'file-access', errorName: err?.name || null, stack: err?.stack || null });
+            }
+          }
         });
         setProgressLabel('Processing results...');
         setProgress(95);
         const r = report as any;
+        setFileErrorsCount(r?.telemetry?.fileErrors ?? null);
+        setFileErrorExamples(r?.telemetry?.fileErrorExamples ?? null);
         const scanResult: ScanResult = {
           totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || 0,
           issueCount: r.issueCount || r.summary?.totalFindings || 0,
@@ -265,19 +662,18 @@ export function AnalyzeView() {
           gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
           qualityScore: r.qualityScore ?? null,
           projectPath: r.projectPath || scanPath,
-          scanScope: r.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+          scanScope: {
+            profile: r.scanScope?.profile || 'standard',
+            resultsViewScope: r.scanScope?.resultsViewScope || 'browser-local',
+            codeFilesAnalyzed: r.scanScope?.codeFilesAnalyzed || r.scanScope?.ruleScopedFilesAnalyzed || r.summary?.codeFilesAnalyzed || r.filesAnalyzed || 0,
+          },
         };
         setResult(scanResult);
+        setFullReport(report);
         setScanState('complete');
         setProgress(100);
         appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
-        localStorage.setItem('sb_last_scan', JSON.stringify({
-          files: scanResult.totalFiles,
-          issues: scanResult.issueCount,
-          gate: scanResult.gate.pass,
-        }));
-        localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
-        localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+        persistScanResult(scanResult, report);
         return;
       }
 
@@ -285,37 +681,90 @@ export function AnalyzeView() {
       // On a hosted dashboard, the remote server cannot access the user's local filesystem.
       // Any non-URL path (Windows drive letter, Unix absolute, or relative folder name) should
       // trigger the browser-local scan via File System Access API.
+      // Exception: the server's own defaultProjectPath should be scanned remotely, not locally.
       const isUrl = /^https?:\/\//i.test(scanPath);
-      if (!isUrl && !isGithubUrl(scanPath) && hosted) {
-        // If bridgeBase is set, verify it's reachable; if not, proceed with browser-local scan
+      const isServerDefaultPath = !!serverDefaultPath && scanPath === serverDefaultPath;
+      if (!isUrl && !isGithubUrl(scanPath) && hosted && !isServerDefaultPath) {
+        // Bridge-first: scan via VS Code extension data server when available
         let bridgeReachable = false;
         if (bridgeBase) {
           bridgeReachable = await checkLocalNetworkAccess(bridgeBase, 2000);
-          if (!bridgeReachable) {
+          if (bridgeReachable) {
+            try {
+              appendLog('[SimpleBeacon] Scanning via local VS Code extension bridge...');
+              setProgressLabel('Scanning workspace via local IDE engine...');
+              setProgress(5);
+              const report = await runBridgeExtensionScan(bridgeBase, scanPath, bridgeToken, {
+                appendLog,
+                setProgress,
+                setProgressLabel,
+              });
+              setProgressLabel('Processing results...');
+              setProgress(95);
+              const r = report as any;
+              setFileErrorsCount(r?.telemetry?.fileErrors ?? null);
+              setFileErrorExamples(r?.telemetry?.fileErrorExamples ?? null);
+              const scanResult: ScanResult = {
+                totalFiles: r.repositoryFilesTotal || r.summary?.totalFiles || r.totalFiles || 0,
+                issueCount: r.issueCount || r.summary?.totalFindings || (r.rawIssues?.length ?? 0),
+                severityCounts: r.severityCounts || { critical: 0, high: 0, medium: 0, low: 0, info: 0 },
+                gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
+                qualityScore: r.qualityScore ?? null,
+                projectPath: r.projectPath || r.projectRoot || scanPath,
+                scanScope: {
+                  profile: r.scanScope?.profile || 'standard',
+                  resultsViewScope: r.scanScope?.resultsViewScope || 'extension-bridge',
+                  codeFilesAnalyzed: r.scanScope?.codeFilesAnalyzed || r.scanScope?.ruleScopedFilesAnalyzed || r.summary?.codeFilesAnalyzed || r.filesAnalyzed || 0,
+                },
+              };
+              setResult(scanResult);
+              setFullReport(report);
+              setScanState('complete');
+              setProgress(100);
+              appendLog(`[SimpleBeacon] Bridge scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues`);
+              persistScanResult(scanResult, report);
+              return;
+            } catch (bridgeErr: any) {
+              appendLog(`[SimpleBeacon] Extension bridge scan failed: ${bridgeErr?.message || bridgeErr}. Falling back to browser-local scan...`);
+            }
+          } else {
             appendLog(`[SimpleBeacon] Extension bridge ${bridgeBase} not reachable, falling back to browser-local scan...`);
           }
         }
-        if (!bridgeReachable) {
-        // Try browser-local scan via File System Access API or file input fallback
+        // Browser-local fallback when bridge is unavailable or bridge scan failed
         let dirHandlePick: any = null;
-        if (typeof (window as any).showDirectoryPicker === 'function') {
+        const hasFsa = typeof (window as any).showDirectoryPicker === 'function';
+        console.warn('[SimpleBeacon] Browser-local scan path: showDirectoryPicker available:', hasFsa, '| folderInputRef exists:', !!folderInputRef.current, '| bridgeBase:', bridgeBase, '| scanPath:', scanPath);
+        if (hasFsa) {
           appendLog(`[SimpleBeacon] Local path "${scanPath}" detected on hosted dashboard. Switching to browser-local scan...`);
           toast.info('Local path detected. Please select the folder in the picker to scan it in your browser.');
           try {
             dirHandlePick = await (window as any).showDirectoryPicker();
+            console.warn('[SimpleBeacon] showDirectoryPicker succeeded:', dirHandlePick?.name);
           } catch (e: any) {
             if (e?.name === 'AbortError') {
               setScanState('idle');
               return;
             }
-            appendLog(`[SimpleBeacon] showDirectoryPicker failed: ${e?.message || e}, trying file input fallback...`);
+            console.error('[SimpleBeacon] showDirectoryPicker failed:', e);
+            appendLog(`[SimpleBeacon] showDirectoryPicker failed: ${e?.name || ''} ${e?.message || e}, trying file input fallback...`);
+            postBrowserError({ source: 'dashboard', error: String(e?.message || e), filePath: scanPath, context: 'showDirectoryPicker', errorName: e?.name || null, stack: e?.stack || null });
           }
         }
         if (!dirHandlePick && folderInputRef.current) {
+          console.warn('[SimpleBeacon] Using file input fallback. folderInputRef.current:', folderInputRef.current, '| has webkitdirectory:', folderInputRef.current.hasAttribute('webkitdirectory'));
           appendLog('[SimpleBeacon] Using file input fallback for folder selection...');
           toast.info('Please select the folder to scan using the file picker (select any file in the folder).');
-          folderInputRef.current.click();
-          setScanState('idle');
+          try {
+            folderInputRef.current.click();
+          } catch (clickErr: any) {
+            console.error('[SimpleBeacon] folderInputRef.current.click() threw:', clickErr);
+            setScanState('idle');
+          }
+          // Keep scanState as 'scanning' with a waiting message so the loading overlay stays visible
+          // while the file picker is open. handleFileSelect will update progress when the user picks a folder.
+          setProgressLabel('Waiting for folder selection — select a folder in the picker to continue...');
+          setProgress(1);
           return;
         }
         if (!dirHandlePick) {
@@ -325,19 +774,37 @@ export function AnalyzeView() {
           return;
         }
         if (dirHandlePick) {
-          setProgressLabel('Scanning files in browser...');
-          setProgress(20);
+          setProgressLabel('Collecting files from folder...');
+          setProgress(5);
           appendLog(`[SimpleBeacon] Browser local scan via File System Access API...`);
           const report = await runLocalScan({
             dirHandle: dirHandlePick,
             projectPath: scanPath,
-            onProgress: (processed: number, total: number) => {
+            onFilePrepProgress: (processed: number, total: number, label: string) => {
               if (total > 0) {
-                setProgress(Math.min(90, 20 + Math.round((processed / total) * 70)));
-                setProgressLabel(`Scanning ${processed} / ${total} files`);
+                const pct = Math.min(15, Math.round((processed / total) * 15));
+                setProgress(pct);
+                setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
+              } else {
+                setProgress(5);
+                setProgressLabel(label);
               }
             },
+            onProgress: (processed: number, total: number) => {
+              if (total > 0) {
+                setProgress(Math.min(90, 15 + Math.round((processed / total) * 75)));
+                setProgressLabel(`Scanning ${processed.toLocaleString()} / ${total.toLocaleString()} files`);
+              }
+            },
+            onFileError: (file: string, err: any) => {
+              if (!isAllowedFileError(file)) {
+                debouncedAppendLog(`[file-error] ${file} ${err?.name || ''} ${err?.message || ''}`);
+                postBrowserError({ source: 'dashboard', error: err?.message || String(err), filePath: file, context: 'file-access', errorName: err?.name || null, stack: err?.stack || null });
+              }
+            }
           });
+          setFileErrorsCount((report as any)?.telemetry?.fileErrors ?? null);
+          setFileErrorExamples((report as any)?.telemetry?.fileErrorExamples ?? null);
           setProgressLabel('Processing results...');
           setProgress(95);
           const r = report as any;
@@ -348,22 +815,33 @@ export function AnalyzeView() {
             gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
             qualityScore: r.qualityScore ?? null,
             projectPath: r.projectPath || scanPath,
-            scanScope: r.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+            scanScope: {
+            profile: r.scanScope?.profile || 'standard',
+            resultsViewScope: r.scanScope?.resultsViewScope || 'browser-local',
+            codeFilesAnalyzed: r.scanScope?.codeFilesAnalyzed || r.scanScope?.ruleScopedFilesAnalyzed || r.summary?.codeFilesAnalyzed || r.filesAnalyzed || 0,
+          },
           };
           setResult(scanResult);
+          setFullReport(report);
           setScanState('complete');
           setProgress(100);
           appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
-          localStorage.setItem('sb_last_scan', JSON.stringify({
-            files: scanResult.totalFiles,
-            issues: scanResult.issueCount,
-            gate: scanResult.gate.pass,
-          }));
-          localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
-          localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+          persistScanResult(scanResult, report);
           return;
         }
-        }
+      }
+
+      // Server-side scan paths below require authentication.
+      // Browser-local scans (dropped dirHandle and hosted dashboard auto-switch above)
+      // return early before this point, so they work without signing in.
+      if (isTokenExpired()) {
+        setScanState('auth_required');
+        setProgress(0);
+        setProgressLabel('Session expired. Please sign in again.');
+        setLastErrorMsg('Session expired. Please sign in again.');
+        appendLog('[SimpleBeacon] Authentication required: session expired before server-side scan.');
+        toast.error('Your session has expired. Please sign in again.');
+        return;
       }
 
       // Detect Windows path when no local server — use server's defaultProjectPath
@@ -500,8 +978,12 @@ export function AnalyzeView() {
 
         if (!resp.ok) {
           if (resp.status === 401) {
+            setScanState('auth_required');
+            setProgress(0);
+            setProgressLabel('Session expired. Please sign in again.');
+            setLastErrorMsg('Session expired. Please sign in again.');
+            appendLog('[SimpleBeacon] Authentication required: /analyze/flexible returned 401.');
             toast.error('Your session has expired. Please sign in again.');
-            clearAuthAndRedirect();
             return;
           }
           throw new Error(`Server returned ${resp.status}`);
@@ -576,17 +1058,12 @@ export function AnalyzeView() {
         };
 
         setResult(scanResult);
+        setFullReport(data.report || data);
         setScanState('complete');
         setProgress(100);
         appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
 
-        localStorage.setItem('sb_last_scan', JSON.stringify({
-          files: scanResult.totalFiles,
-          issues: scanResult.issueCount,
-          gate: scanResult.gate.pass,
-        }));
-        localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
-        localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+        persistScanResult(scanResult, data.report || data);
       } else {
         appendLog(`[SimpleBeacon] No API base — browser sandbox mode`);
         setProgressLabel('Browser sandbox not available in React mode yet');
@@ -596,11 +1073,15 @@ export function AnalyzeView() {
     } catch (err: any) {
       setScanState('error');
       const errMsg = err?.message || String(err || 'Unknown error');
+      setLastErrorMsg(errMsg);
       appendLog(`[SimpleBeacon] Error: ${errMsg}`);
       console.error('[SimpleBeacon] Scan error:', err);
       toast.error(errMsg || 'Scan failed');
+      postBrowserError({ source: 'dashboard', error: errMsg, filePath: path || null, stack: (err && err.stack) || null, context: 'handleScan' });
+    } finally {
+      scanInFlightRef.current = false;
     }
-  }, [path, mode, appendLog]);
+  }, [path, mode, appendLog, hosted, serverDefaultPath]);
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
@@ -634,7 +1115,7 @@ export function AnalyzeView() {
                     toast.error('Local Network Access blocked — cannot resolve dropped folder via bridge');
                     return;
                   }
-                  const bridgePath = await findFolderViaBridge(handle.name, bridgeBase);
+                  const bridgePath = await findFolderViaBridge(handle.name, bridgeBase, bridgeToken);
                   if (bridgePath) {
                     setPath(bridgePath);
                     toast.info(`Folder located via bridge: ${bridgePath}`);
@@ -646,7 +1127,12 @@ export function AnalyzeView() {
           (window as any).__sbDroppedDirHandle = handle;
           return;
         }
-      } catch { /* fall through to file handling */ }
+      } catch (dropErr: any) {
+        const dropMsg = dropErr?.message || String(dropErr || 'Unknown drop error');
+        appendLog(`[SimpleBeacon] getAsFileSystemHandle failed: ${dropMsg}`);
+        console.warn('[SimpleBeacon] Drag-and-drop File System Access API error:', dropErr);
+        toast.warning(`Could not access dropped folder via File System Access API: ${dropMsg}. Falling back to file list.`);
+      }
     }
     // Fallback: use file names
     if (files.length > 0) {
@@ -654,7 +1140,7 @@ export function AnalyzeView() {
       const dirName = (first as any).webkitRelativePath?.split('/')[0] || first.name;
       // On hosted with bridge, try to find the folder
       if (hosted && bridgeBase && dirName) {
-        const bridgePath = await findFolderViaBridge(dirName, bridgeBase);
+        const bridgePath = await findFolderViaBridge(dirName, bridgeBase, bridgeToken);
         if (bridgePath) {
           setPath(bridgePath);
           toast.info(`Folder located via bridge: ${bridgePath}`);
@@ -664,11 +1150,12 @@ export function AnalyzeView() {
       setPath(dirName);
       toast.info(`Dropped: ${dirName}`);
     }
-  }, [bridgeBase, hosted]);
+  }, [bridgeBase, bridgeToken, hosted]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    console.warn('[SimpleBeacon] handleFileSelect: files.length =', files.length, '| first.webkitRelativePath =', (files[0] as any).webkitRelativePath);
     const first = files[0];
     const rel = (first as any).webkitRelativePath;
     let dirName = first.name;
@@ -679,21 +1166,35 @@ export function AnalyzeView() {
 
     // Run a browser-local scan with the selected files — no server involved
     setScanState('scanning');
-    setProgress(20);
-    setProgressLabel('Scanning files in browser...');
+    setProgress(2);
+    setProgressLabel(`Preparing ${files.length.toLocaleString()} files for scanning...`);
     setTerminalOutput([]);
     appendLog(`[SimpleBeacon] Browser local scan via file input (${files.length} files selected)...`);
     try {
       const report = await runLocalScan({
         files,
         projectPath: dirName,
+        onFilePrepProgress: (processed: number, total: number, label: string) => {
+          // File prep phase: 0-15% of the bar
+          if (total > 0) {
+            const pct = Math.min(15, Math.round((processed / total) * 15));
+            setProgress(pct);
+            setProgressLabel(`${label} ${processed.toLocaleString()} / ${total.toLocaleString()}`);
+          } else {
+            setProgress(2);
+            setProgressLabel(label);
+          }
+        },
         onProgress: (processed: number, total: number) => {
           if (total > 0) {
-            setProgress(Math.min(90, 20 + Math.round((processed / total) * 70)));
-            setProgressLabel(`Scanning ${processed} / ${total} files`);
+            // Worker scan phase: 15-90% of the bar
+            setProgress(Math.min(90, 15 + Math.round((processed / total) * 75)));
+            setProgressLabel(`Scanning ${processed.toLocaleString()} / ${total.toLocaleString()} files`);
           }
         },
       });
+      setFileErrorsCount((report as any)?.telemetry?.fileErrors ?? null);
+      setFileErrorExamples((report as any)?.telemetry?.fileErrorExamples ?? null);
       setProgressLabel('Processing results...');
       setProgress(95);
       const r = report as any;
@@ -704,23 +1205,24 @@ export function AnalyzeView() {
         gate: r.gate || { pass: true, blockingCount: 0, warningCount: 0 },
         qualityScore: r.qualityScore ?? null,
         projectPath: r.projectPath || dirName,
-        scanScope: r.scanScope || { profile: 'standard', resultsViewScope: 'browser-local' },
+        scanScope: {
+            profile: r.scanScope?.profile || 'standard',
+            resultsViewScope: r.scanScope?.resultsViewScope || 'browser-local',
+            codeFilesAnalyzed: r.scanScope?.codeFilesAnalyzed || r.scanScope?.ruleScopedFilesAnalyzed || r.summary?.codeFilesAnalyzed || r.filesAnalyzed || 0,
+          },
       };
       setResult(scanResult);
+      setFullReport(report);
       setScanState('complete');
       setProgress(100);
       appendLog(`[SimpleBeacon] Scan complete: ${scanResult.totalFiles} files, ${scanResult.issueCount} issues, gate ${scanResult.gate.pass ? 'PASS' : 'FAIL'}`);
-      localStorage.setItem('sb_last_scan', JSON.stringify({
-        files: scanResult.totalFiles,
-        issues: scanResult.issueCount,
-        gate: scanResult.gate.pass,
-      }));
-      localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
-      localStorage.setItem('sb_last_scan_time', new Date().toISOString());
+      persistScanResult(scanResult, report);
     } catch (err: any) {
+      console.error('[SimpleBeacon] Browser-local scan (file input) failed:', err);
       setScanState('error');
       appendLog(`[SimpleBeacon] Browser-local scan failed: ${err?.message || err}`);
       toast.error(err?.message || 'Local scan failed');
+      postBrowserError({ source: 'dashboard', error: err?.message || String(err), filePath: dirName, stack: err?.stack || null, context: 'file-input-scan' });
     }
     // Reset input so the same folder can be selected again
     e.target.value = '';
@@ -735,7 +1237,7 @@ export function AnalyzeView() {
         toast.error('Local Network Access blocked — cannot open bridge folder picker');
         return;
       }
-      const bridgePath = await pickFolderViaExtensionBridge(bridgeBase);
+      const bridgePath = await pickFolderViaExtensionBridge(bridgeBase, bridgeToken);
       if (bridgePath) {
         setPath(bridgePath);
         toast.info(`Folder selected via extension: ${bridgePath}`);
@@ -752,7 +1254,7 @@ export function AnalyzeView() {
       if (handle) {
         // On hosted dashboard with bridge, try to resolve real path via bridge
         if (hosted && bridgeBase) {
-          const bridgePath = await findFolderViaBridge(handle.name, bridgeBase);
+          const bridgePath = await findFolderViaBridge(handle.name, bridgeBase, bridgeToken);
           if (bridgePath) {
             setPath(bridgePath);
             toast.info(`Folder selected: ${bridgePath}`);
@@ -767,7 +1269,7 @@ export function AnalyzeView() {
       // User cancelled or permission denied — fall back to input
       folderInputRef.current?.click();
     }
-  }, [bridgeBase, hosted]);
+  }, [bridgeBase, bridgeToken, hosted]);
 
   const modeTabs: { key: ScanMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = websiteMode
     ? [
@@ -782,6 +1284,31 @@ export function AnalyzeView() {
 
   return (
     <div className="mx-auto max-w-7xl p-6 space-y-6">
+      <div className="flex items-center justify-end">
+        <Button size="sm" onClick={async () => {
+          try {
+            if (notifsEnabled) {
+              setNotificationsPreference(false);
+              setNotifsEnabled(false);
+              toast.success('Notifications disabled');
+              return;
+            }
+            setNotificationsPreference(true);
+            setNotifsEnabled(true);
+            const perm = await requestNotificationPermission();
+            if (perm === 'granted') {
+              showOSNotification('SimpleBeacon', { body: 'Notifications enabled' });
+              toast.success('Notifications enabled');
+            }
+            else {
+              toast.error('Notifications not enabled');
+            }
+          }
+          catch (e) {
+            toast.error('Could not enable notifications');
+          }
+        }}>{notifsEnabled ? 'Disable notifications' : 'Enable notifications'}</Button>
+      </div>
       {localNetworkDenied && (
         <div className="flex items-center justify-between gap-2 rounded-lg border border-yellow-400/30 bg-yellow-50/30 px-4 py-3 text-sm">
           <div className="flex items-center gap-2">
@@ -803,9 +1330,190 @@ export function AnalyzeView() {
           </div>
         </div>
       )}
+      {/* Hidden file inputs used for folder fallback and upload */}
+      <input ref={uploadInputRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={async (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return; try {
+          const txt = await f.text();
+          let parsed = null;
+          try { parsed = JSON.parse(txt); } catch (_a) { parsed = null; }
+          const url = apiUrl('/simplebeacon/report/upload');
+          const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: parsed ? JSON.stringify(parsed) : txt });
+          if (resp.ok) {
+            toast.success('Uploaded scan JSON successfully');
+          } else {
+            toast.error('Upload failed');
+          }
+        } catch (err) { toast.error('Upload failed'); }
+        // reset
+        (e.target as HTMLInputElement).value = '';
+      }} />
+
+      {scanState === 'error' && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm">
+          <div className="flex items-start gap-3">
+            <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+            <div>
+              <div className="font-medium">Scan failed</div>
+              <div className="text-xs text-foreground-muted">{terminalOutput.length ? terminalOutput[terminalOutput.length - 1] : 'An error occurred during scan.'}</div>
+              <div className="mt-1 text-xs text-foreground-muted">Try one of these workarounds.</div>
+            </div>
+          </div>
+            <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => { handleBrowseFolder(); }}>Browse folder</Button>
+            <Button size="sm" onClick={() => { setShowAgentModal(true); }}>Use Local Agent</Button>
+            <Button size="sm" onClick={() => uploadInputRef.current?.click()}>Upload scan JSON</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Local Agent Modal */}
+      {showAgentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-2xl rounded bg-white p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Local Agent</h3>
+                <p className="mt-1 text-sm text-foreground-muted">Start the Local Agent on your machine to enable direct filesystem scans from the hosted dashboard. The agent listens on loopback and proxies requests to your filesystem.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={() => setShowAgentModal(false)}>Close</Button>
+              </div>
+            </div>
+
+            <Tabs defaultValue="instructions" className="mt-3">
+              <TabsList>
+                <TabsTrigger value="instructions">Instructions</TabsTrigger>
+                <TabsTrigger value="errors">Browser errors</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="instructions">
+                <ol className="mt-3 ml-4 text-sm list-decimal">
+                  <li>Download/start the agent: <code>node local-agent/agent.js</code> or use the platform installer.</li>
+                  <li>Allow Local Network Access when prompted by your browser.</li>
+                  <li>Click "Probe agent now" to detect a running agent and apply the bridge.</li>
+                </ol>
+                <label className="mt-3 flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!rerunAfterProbe} onChange={(e) => setRerunAfterProbe(e.target.checked)} />
+                  <span>Re-run current scan after successful probe</span>
+                </label>
+                <div className="mt-4 flex items-center justify-end gap-2">
+                  <Button onClick={async () => {
+                    setProbingAgent(true);
+                    try {
+                      const res = await discoverAndApplyExtensionBridge({ userInitiated: true });
+                      if (res && res.ok) {
+                        toast.success('Local agent detected and applied');
+                        setShowAgentModal(false);
+                        if (rerunAfterProbe) {
+                          // Re-run the scan after a brief delay to allow bridge to settle
+                          setTimeout(() => { try { (handleScan as any)(); } catch { } }, 500);
+                        }
+                      } else {
+                        toast.error('Local agent not detected');
+                      }
+                    } catch (e) {
+                      toast.error('Probe failed');
+                    }
+                    setProbingAgent(false);
+                  }}>{probingAgent ? 'Probing...' : 'Probe agent now'}</Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="errors">
+                <div className="mt-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">Recent browser errors</div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" onClick={async () => {
+                        setBrowserErrorsLoading(true);
+                        try {
+                          const resp = await fetch(apiUrl('/simplebeacon/report/browser-errors'), { headers: authHeaders() });
+                          if (resp.ok) {
+                            const data = await resp.json();
+                            setBrowserErrors(Array.isArray(data) ? data : [data]);
+                          } else {
+                            setBrowserErrors([]);
+                          }
+                        } catch (e) {
+                          setBrowserErrors([]);
+                        }
+                        setBrowserErrorsLoading(false);
+                      }}>Refresh</Button>
+                      <Button size="sm" onClick={async () => {
+                        const flushed = await flushPendingBrowserErrors();
+                        // refresh list after flushing
+                        try {
+                          const resp = await fetch(apiUrl('/simplebeacon/report/browser-errors'), { headers: authHeaders() });
+                          if (resp.ok) {
+                            const data = await resp.json();
+                            setBrowserErrors(Array.isArray(data) ? data : [data]);
+                          }
+                        } catch { }
+                        // update pending count
+                        try {
+                          const key = 'sb_pending_browser_errors';
+                          const raw = localStorage.getItem(key);
+                          const pending = raw ? JSON.parse(raw) : [];
+                          setPendingBrowserErrorsCount(Array.isArray(pending) ? pending.length : 0);
+                        } catch (_e) { setPendingBrowserErrorsCount(0); }
+                      }}>{pendingBrowserErrorsCount > 0 ? `Retry pending (${pendingBrowserErrorsCount})` : 'Retry pending'}</Button>
+                    </div>
+                  </div>
+                  <div className="mt-2 max-h-64 overflow-y-auto rounded-md border bg-muted p-3 text-xs font-mono">
+                    {browserErrorsLoading ? (
+                      <div>Loading...</div>
+                    ) : browserErrors && browserErrors.length > 0 ? (
+                      browserErrors.map((be, i) => {
+                        return (
+                          <div key={i} className="mb-2">
+                            <div className="text-foreground-muted text-[11px]">{be.timestamp || be.time || ''} — {be.traceId || ''}</div>
+                            <div className="text-sm">{be.errorName || be.error || be.message || JSON.stringify(be)}</div>
+                            <div className="text-foreground-muted text-[11px]">{be.filePath ? `file: ${be.filePath}` : ''}</div>
+                            <Separator className="my-2" />
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-foreground-muted">No browser errors found.</div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      )}
+      {/* Ensure folder input has webkitdirectory attribute for directory picking in browsers */}
+      {/* Set attribute at runtime to avoid TSX unknown prop errors */}
+      {/* eslint-disable-next-line react-hooks/rules-of-hooks */}
+      {(() => {
+        try {
+          if (folderInputRef.current && !folderInputRef.current.hasAttribute('webkitdirectory')) {
+            folderInputRef.current.setAttribute('webkitdirectory', '');
+          }
+        }
+        catch (_a) { }
+        return null;
+      })()}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Analyze</h1>
-        <p className="text-foreground-muted">Scan a project for AI safety issues, gate compliance, and quality metrics</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Analyze</h1>
+            <p className="text-foreground-muted">Scan a project for AI safety issues, gate compliance, and quality metrics</p>
+          </div>
+          {hosted && (
+            <div className="flex items-center gap-2 shrink-0">
+              {bridgeStatus === 'connected' && bridgeBase ? (
+                <Badge variant="default" className="gap-1">IDE bridge connected</Badge>
+              ) : (
+                <Button type="button" size="sm" variant="outline" onClick={() => void recheckBridge(true)}>
+                  Connect IDE
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -936,21 +1644,60 @@ export function AnalyzeView() {
           </Button>
         </CardContent>
       </Card>
+      {scanState === 'complete' && fileErrorsCount ? (
+        <div className="rounded-md border p-3 bg-muted/5 text-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <strong>File access issues:</strong> {fileErrorsCount} file(s) could not be read during the scan.
+              {fileErrorExamples && fileErrorExamples.length > 0 && (
+                <div className="mt-2 text-xs text-foreground-muted">
+                  Examples: {fileErrorExamples.slice(0,3).map((e,i) => <span key={i} className="inline-block mr-2">{e.file}</span>)}{fileErrorExamples.length>3?` (+${fileErrorExamples.length-3} more)`:null}
+                </div>
+              )}
+            </div>
+            <div>
+              <Button size="sm" onClick={() => {
+                // open browser-errors view
+                navigate('#/reports/browser-errors');
+              }}>View browser errors</Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {scanState === 'scanning' && (
         <Card>
           <CardContent className="space-y-3 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{progressLabel}</span>
-              <span className="text-sm text-foreground-muted">{progress}%</span>
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold break-words">{progressLabel || 'Scanning...'}</div>
+                <div className="text-xs text-foreground-muted">{progress}% complete</div>
+              </div>
+              <span className="text-sm text-foreground-muted shrink-0">{progress}%</span>
             </div>
             <Progress value={progress} />
             <Separator />
-            <div className="rounded-md bg-muted p-3 font-mono text-xs space-y-1 max-h-48 overflow-y-auto scrollbar-thin">
+            <div className="rounded-md bg-muted p-3 font-mono text-xs space-y-0 max-h-48 overflow-y-auto scrollbar-thin break-words">
               {terminalOutput.map((line, i) => (
-                <div key={i} className="text-foreground-secondary">{line}</div>
+                <div key={i} className="text-foreground-secondary break-all whitespace-pre-wrap">{line}</div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {scanState === 'auth_required' && (
+        <Card className="border-yellow-400/30 bg-yellow-50/30">
+          <CardContent className="flex items-start justify-between gap-3 p-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <Lock className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <div className="text-sm font-medium">Sign in required</div>
+                <div className="text-xs text-foreground-muted truncate">{lastErrorMsg || 'Your session expired before analysis completed.'}</div>
+              </div>
+            </div>
+            <Button size="sm" className="shrink-0" onClick={() => clearAuthAndRedirect()}>Sign in again</Button>
           </CardContent>
         </Card>
       )}
@@ -965,7 +1712,7 @@ export function AnalyzeView() {
       )}
 
       {scanState === 'complete' && result && (
-        <ScanResults result={result} terminalOutput={terminalOutput} isRemoteBackend={isRemoteBackend} />
+        <ScanResults result={result} terminalOutput={terminalOutput} isRemoteBackend={isRemoteBackend} fullReport={fullReport} />
       )}
 
       <input
@@ -977,12 +1724,16 @@ export function AnalyzeView() {
         directory=""
         multiple
         onChange={handleFileSelect}
+        onCancel={() => {
+          // If the user cancels the file picker while waiting for folder selection, reset to idle
+          setScanState(prev => (prev === 'scanning' ? 'idle' : prev));
+        }}
       />
     </div>
   );
 }
 
-function ScanResults({ result, terminalOutput, isRemoteBackend }: { result: ScanResult; terminalOutput: string[]; isRemoteBackend: boolean }) {
+function ScanResults({ result, terminalOutput, isRemoteBackend, fullReport }: { result: ScanResult; terminalOutput: string[]; isRemoteBackend: boolean; fullReport?: any }) {
   const isZeroResult = result.totalFiles === 0 && result.issueCount === 0;
   return (
     <div className="space-y-4">
@@ -1089,9 +1840,9 @@ function ScanResults({ result, terminalOutput, isRemoteBackend }: { result: Scan
         <TabsContent value="terminal">
           <Card>
             <CardContent className="p-4">
-              <div className="rounded-md bg-muted p-3 font-mono text-xs space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
+              <div className="rounded-md bg-muted p-3 font-mono text-xs space-y-0 overflow-y-auto scrollbar-thin break-words max-h-96">
                 {terminalOutput.map((line, i) => (
-                  <div key={i} className="text-foreground-secondary">{line}</div>
+                  <div key={i} className="text-foreground-secondary break-all whitespace-pre-wrap">{line}</div>
                 ))}
               </div>
             </CardContent>
@@ -1102,11 +1853,35 @@ function ScanResults({ result, terminalOutput, isRemoteBackend }: { result: Scan
           <Card>
             <CardContent className="flex flex-wrap gap-3 p-4">
               <Button variant="outline" size="sm" onClick={() => {
-                const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+                if (!result) return;
+                const exportData = fullReport || result;
+                syncReportToVscodeSidebar(exportData, result.projectPath);
+                const json = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const filename = `simplebeacon-report-${Date.now()}.json`;
+                const params = new URLSearchParams(window.location.search);
+                const inIde = typeof window !== 'undefined' && (
+                  typeof (window as any).acquireVsCodeApi === 'function' ||
+                  params.get('sb_parent_urlbar') ||
+                  params.get('sb_notify_base') ||
+                  params.get('sb_api_base')
+                );
+                if (inIde) {
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const base64 = String(reader.result || '').split(',')[1];
+                    const vscode = (window as any).acquireVsCodeApi?.();
+                    const msg = { command: 'downloadFile', filename, mimeType: blob.type, base64 };
+                    if (vscode) { try { vscode.postMessage(msg); } catch { /* ignore */ } }
+                    else if (window.parent && window.parent !== window) { try { window.parent.postMessage(msg, '*'); } catch { /* ignore */ } }
+                  };
+                  reader.readAsDataURL(blob);
+                  return;
+                }
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `simplebeacon-report-${Date.now()}.json`;
+                a.download = filename;
                 a.click();
                 URL.revokeObjectURL(url);
               }}>

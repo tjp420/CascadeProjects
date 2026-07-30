@@ -11,6 +11,11 @@ const https = require('https');
 
 const TEST_PORT = process.env.TEST_PORT || 3000;
 const BASE_URL = `http://localhost:${TEST_PORT}`;
+const CHECKOUT_CLIENT_ID = 'payment-workflow-v2';
+
+function checkoutHeaders(scope) {
+  return { 'x-test-checkout-client': `${CHECKOUT_CLIENT_ID}:${scope}` };
+}
 
 let passCount = 0;
 let failCount = 0;
@@ -94,7 +99,7 @@ async function runAll() {
       projectName: 'Workflow Test Project',
       clientName: 'Test User',
       tier: 'team'
-    });
+    }, checkoutHeaders('token-verify'));
     assert.strictEqual(co.status, 200, `Checkout failed: ${JSON.stringify(co.body)}`);
     assert.ok(co.body.token, 'Token should be present');
     checkoutToken = co.body.token;
@@ -137,7 +142,7 @@ async function runAll() {
 
   // 2a: Missing required fields
   try {
-    const r = await request('POST', `${BASE_URL}/api/test-checkout`, { email: 'only-email@example.com' });
+    const r = await request('POST', `${BASE_URL}/api/test-checkout`, { email: 'only-email@example.com' }, checkoutHeaders('missing-project'));
     assert.strictEqual(r.status, 400);
     assert.ok(r.body.error.includes('project name'));
     ok('Missing projectName returns 400');
@@ -149,7 +154,7 @@ async function runAll() {
       email: 'paid-test@example.com',
       projectName: 'Paid Test',
       tier: 'runtime_shield'
-    });
+    }, checkoutHeaders('paid-tier'));
     assert.strictEqual(r.status, 403);
     ok('Paid tier blocked without demo mode');
   } catch (e) { fail('Paid tier blocking', e); }
@@ -174,7 +179,7 @@ async function runAll() {
       email: `rate-test-${Date.now()}@example.com`,
       projectName: 'Rate Limit Test',
       tier: 'team'
-    });
+    }, checkoutHeaders('rate-limit'));
     if (r.status === 429) {
       ok('Rate limiter engaged after repeated requests');
     } else if (r.status === 200) {
@@ -236,7 +241,7 @@ async function runAll() {
   try {
     const r = await request('GET', `${BASE_URL}/pricing.html`);
     assert.strictEqual(r.status, 200);
-    assert.ok(r.body.includes('Developer') || r.body.includes('Startup') || r.body.includes('Growth'), 'Should show pricing tiers');
+    assert.ok(/Free Preview|Team \/ Agency Suite|Enterprise Governance|Developer|Startup|Growth/i.test(r.body), 'Should show pricing tiers');
     ok('Step 1: Pricing page displays tiers');
   } catch (e) { fail('Pricing page', e); }
 

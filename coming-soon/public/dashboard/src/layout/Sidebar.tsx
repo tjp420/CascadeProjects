@@ -10,6 +10,7 @@ import {
   FileText,
   Map,
   BarChart3,
+  TrendingUp,
   User,
   Users,
   Wrench,
@@ -32,6 +33,7 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   isAdmin?: boolean;
+  isAuthenticated?: boolean;
 }
 
 interface NavItem {
@@ -70,6 +72,7 @@ const navGroups: NavGroup[] = [
       { view: 'assessments', label: 'Assessments', icon: FileText },
       { view: 'remediation', label: 'Remediation', icon: Map },
       { view: 'platform', label: 'Platform', icon: BarChart3 },
+      { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
       { view: 'organization', label: 'Organization', icon: Building2 },
       { view: 'profile', label: 'Profile', icon: User },
       { view: 'admin', label: 'Admin', icon: Users },
@@ -88,7 +91,15 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: SidebarProps) {
+// Views that require authentication — hidden from sidebar when signed out
+const AUTH_REQUIRED_VIEWS = new Set([
+  'admin',
+  'organization',
+  'profile',
+  'chatbot',
+]);
+
+export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin, isAuthenticated }: SidebarProps) {
   return (
     <>
       {isOpen && (
@@ -123,6 +134,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
               currentView={currentView}
               onNavigate={onNavigate}
               isAdmin={!!isAdmin}
+              isAuthenticated={!!isAuthenticated}
             />
           ))}
         </nav>
@@ -173,7 +185,7 @@ export function Sidebar({ currentView, onNavigate, isOpen, onClose, isAdmin }: S
   );
 }
 
-function NavGroupSection({ group, currentView, onNavigate, isAdmin }: { group: NavGroup; currentView: string; onNavigate: (v: string) => void; isAdmin: boolean }) {
+function NavGroupSection({ group, currentView, onNavigate, isAdmin, isAuthenticated }: { group: NavGroup; currentView: string; onNavigate: (v: string) => void; isAdmin: boolean; isAuthenticated: boolean }) {
   return (
     <div className="mb-2">
       <div className="flex items-center gap-1 px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-foreground-muted">
@@ -183,8 +195,10 @@ function NavGroupSection({ group, currentView, onNavigate, isAdmin }: { group: N
       <div className="space-y-0.5">
         {group.items
           .filter(item => {
-            // Hide Assessments from non-admin users
-            if (item.view === 'assessments' && !isAdmin) return false;
+            // Hide admin-only items from non-admin users
+            if (!isAdmin && item.view === 'admin') return false;
+            // Hide auth-required items from signed-out users
+            if (!isAuthenticated && AUTH_REQUIRED_VIEWS.has(item.view)) return false;
             return true;
           })
           .map((item) => {

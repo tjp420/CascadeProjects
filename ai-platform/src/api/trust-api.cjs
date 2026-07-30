@@ -69,15 +69,65 @@ function buildLiveTrustPayload(platformRoot, monorepoRoot) {
 }
 
 /**
+ * Parse payload time.
+ * @param {any} payload
+ * @returns {number}
+ */
+function parsePayloadTime(payload) {
+    const ts = payload?.headline?.lastScan || payload?.generatedAt;
+    const parsed = Date.parse(String(ts || ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
+ * Select freshest payload.
+ * @param {any} live
+ * @param {any} published
+ * @returns {{payload:any, source:string, reason:string}}
+ */
+function selectFreshestPayload(live, published) {
+    if (!live && !published) {
+        return { payload: null, source: 'none', reason: 'No trust payload available.' };
+    }
+    if (live && !published) {
+        return { payload: live, source: 'live', reason: 'Only live trust payload is available.' };
+    }
+    if (!live && published) {
+        return { payload: published, source: 'published', reason: 'Only published trust payload is available.' };
+    }
+
+    const liveTime = parsePayloadTime(live);
+    const publishedTime = parsePayloadTime(published);
+
+    if (publishedTime > liveTime) {
+        return {
+            payload: published,
+            source: 'published',
+            reason: 'Published trust payload has the newer scan timestamp.'
+        };
+    }
+
+    return {
+        payload: live,
+        source: 'live',
+        reason: 'Live trust payload is newer or equally recent.'
+    };
+}
+
+/**
  * Build verification envelope.
  * @param {any} live
  * @param {any} published
  * @returns {any}
  */
 function buildVerificationEnvelope(live, published) {
+    const selected = selectFreshestPayload(live, published);
     return {
         success: true,
-        ...live,
+        ...(selected.payload || live || {}),
+        payloadSource: selected.source,
+        payloadSourceReason: selected.reason,
+        liveGeneratedAt: live?.generatedAt || null,
         publishedAt: published?.generatedAt || null
     };
 }

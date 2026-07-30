@@ -65,7 +65,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
-  <link rel="stylesheet" href="/app/assets/main.css?v=2026072701">
+  <link rel="stylesheet" href="/app/assets/main.v1785430267819.css">
 
   <!-- IDE embed mode detection -->
   <script>
@@ -311,7 +311,7 @@
   <script src="/app/js/vendor/jszip.min.js?v=20260726react1" defer></script>
 
   <!-- React Dashboard Bundle -->
-  <script type="module" src="/app/assets/main.js?v=1785400797606"></script>
+  <script type="module" src="/app/assets/main.v1785430267819.js"></script>
   <script>
     (function(){
       try{
@@ -334,3 +334,5 @@
   </script>
 </body>
 </html>
+
+<!-- deploy:1785410305364 -->

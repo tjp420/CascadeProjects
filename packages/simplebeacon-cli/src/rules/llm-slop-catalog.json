@@ -16,7 +16,7 @@
   },
   {
     "id": "SB-FICTION-002",
-    "regexSource": "(\\x60\\x60\\x60javascript|\\x60\\x60\\x60typescript|\\x60\\x60\\x60python|\\x60\\x60\\x60json|\\x60\\x60\\x60\\s?$)",
+    "regexSource": "(\\x60\\x60\\x60(?:javascript|typescript|python|json|tsx|jsx|html|css|scss|yaml|yml|bash|sh|shell|sql|go|rust|java|c|cpp|php|ruby|vue|svelte|md|markdown)?\\s?$)",
     "regexFlags": "gm",
     "severity": "high",
     "confidence": 0.88,
@@ -41,6 +41,21 @@
     "suggestion": "Replace hardcoded metrics with dynamic or production-validated values",
     "contextExclusions": {
       "ext": [".css", ".scss", ".less", ".svg"],
+      "linePrefixes": ["// simplebeacon-ignore"]
+    }
+  },
+  {
+    "id": "SB-FICTION-005",
+    "regexSource": "(?:\\/\\/\\s*TODO:\\s*Implement the rest|\\/\\/\\s*TODO:\\s*Add actual|\\/\\/\\s*TODO:\\s*Your business logic here|\\/\\/\\s*TODO:[^\\n]*(?:ChatGPT|Claude|GPT|Copilot|LLM|AI\\s+(?:told|said|suggested|recommended))[^\\n]*)",
+    "regexFlags": "gim",
+    "severity": "high",
+    "confidence": 0.85,
+    "description": "AI-generated placeholder TODO comment referencing LLM tools or unimplemented business logic",
+    "type": "ai-placeholder-todo",
+    "message": "AI-generated placeholder TODO comment — implement or remove before client handoff",
+    "suggestion": "Replace AI-suggested placeholder comments with actual implementation or remove the TODO",
+    "contextExclusions": {
+      "ext": [".test.js", ".test.ts", ".spec.js", ".spec.ts", ".example.js", ".example.ts"],
       "linePrefixes": ["// simplebeacon-ignore"]
     }
   }

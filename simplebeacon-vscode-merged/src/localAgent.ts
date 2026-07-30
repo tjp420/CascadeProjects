@@ -41,20 +41,76 @@ export function getAgentPort(): number {
   return config.get<number>('localAgent.port', 55432);
 }
 
+/** GitHub release asset — Cloudflare Pages rejects static files over 25 MiB. */
+export const DEFAULT_AGENT_DOWNLOAD_URL =
+  'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon-local-agent-portable.zip';
+
 /**
  * Resolve the download URL for the agent zip.
- * Falls back to the public Render deployment if no URL is configured.
+ * Falls back to the GitHub release asset when no URL is configured.
  */
 export function getAgentDownloadUrl(): string {
   const config = getSbConfig();
   const configured = config.get<string>('localAgent.downloadUrl', '');
   if (configured) { return configured; }
-  const apiUrl = config.get<string>('apiServerUrl', '') || config.get<string>('apiUrl', '');
-  if (apiUrl) {
-    const base = apiUrl.replace(/\/$/, '');
-    return `${base}/downloads/simplebeacon-local-agent-portable.zip`;
+  return DEFAULT_AGENT_DOWNLOAD_URL;
+}
+
+interface WorkspaceAgentSources {
+  portableDir?: string;
+  zipPath?: string;
+}
+
+/**
+ * Locate bundled local-agent artifacts inside open workspace folders.
+ */
+function resolveWorkspaceAgentSources(): WorkspaceAgentSources {
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  for (const folder of folders) {
+    const root = folder.uri.fsPath;
+    const portableDir = path.join(root, 'ai-platform', 'local-agent', 'dist', 'portable');
+    const zipPath = path.join(root, 'ai-platform', 'local-agent', 'dist', 'simplebeacon-local-agent-portable.zip');
+    const sources: WorkspaceAgentSources = {};
+    if (fs.existsSync(path.join(portableDir, 'agent.cjs'))) {
+      sources.portableDir = portableDir;
+    }
+    if (fs.existsSync(zipPath)) {
+      sources.zipPath = zipPath;
+    }
+    if (sources.portableDir || sources.zipPath) {
+      return sources;
+    }
   }
-  return 'https://cascadeprojects-yzzd.onrender.com/downloads/simplebeacon-local-agent-portable.zip';
+  return {};
+}
+
+/**
+ * Copy a pre-built portable agent directory into the install location.
+ */
+async function copyPortableAgentDir(srcDir: string, installDir: string): Promise<void> {
+  fs.mkdirSync(installDir, { recursive: true });
+  fs.cpSync(srcDir, installDir, { recursive: true });
+}
+
+/**
+ * Install from workspace-local agent artifacts when remote download fails.
+ */
+async function installFromWorkspaceFallback(
+  installDir: string,
+  progress?: vscode.Progress<{ increment?: number; message?: string }>
+): Promise<boolean> {
+  const { portableDir, zipPath } = resolveWorkspaceAgentSources();
+  if (portableDir) {
+    progress?.report({ message: `Installing from workspace: ${portableDir}` });
+    await copyPortableAgentDir(portableDir, installDir);
+    return true;
+  }
+  if (zipPath) {
+    progress?.report({ message: `Installing from workspace zip: ${zipPath}` });
+    await extractAgentZip(zipPath, installDir, progress);
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -204,10 +260,17 @@ export async function installLocalAgent(): Promise<void> {
     title: 'Installing SimpleBeacon Local Agent',
     cancellable: false
   }, async (progress) => {
-    progress.report({ message: `Downloading from ${url}` });
-    const zipPath = await downloadAgentZip(url, progress);
-    progress.report({ message: `Extracting to ${installDir}` });
-    await extractAgentZip(zipPath, installDir, progress);
+    try {
+      progress.report({ message: `Downloading from ${url}` });
+      const zipPath = await downloadAgentZip(url, progress);
+      progress.report({ message: `Extracting to ${installDir}` });
+      await extractAgentZip(zipPath, installDir, progress);
+    } catch (downloadErr) {
+      const installed = await installFromWorkspaceFallback(installDir, progress);
+      if (!installed) {
+        throw downloadErr;
+      }
+    }
     progress.report({ message: 'Running installer' });
     await runBundledInstaller(installDir);
     progress.report({ message: 'Starting agent' });

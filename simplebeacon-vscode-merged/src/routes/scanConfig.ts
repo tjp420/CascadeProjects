@@ -197,6 +197,8 @@ export function handleScanConfigRoutes(
       providers: {},
       ollamaBaseUrl: '',
       ollamaModel: '',
+      openaiModel: '',
+      anthropicModel: '',
       updatedAt: null,
       ...raw
     });
@@ -218,6 +220,8 @@ export function handleScanConfigRoutes(
             providers: payload.providers || {},
             ollamaBaseUrl: payload.ollamaBaseUrl || '',
             ollamaModel: payload.ollamaModel || '',
+            openaiModel: payload.openaiModel || '',
+            anthropicModel: payload.anthropicModel || '',
             updatedAt: new Date().toISOString()
           };
           try {

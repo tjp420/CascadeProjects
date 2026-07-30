@@ -8,12 +8,14 @@ const { runTextRulePasses } = require('./full-tree-rule-pass');
 const { runTextRulePassesParallel } = require('./full-tree-scan-pool');
 const { scanPythonAstPatterns } = require('./python-ast-scanner');
 const { scanJavascriptAstPatterns } = require('./javascript-ast-scanner');
+const { scanGoAstPatterns } = require('./go-ast-scanner');
 
 const PHASES = [
     'discover',
     'text-rules',
     'python-ast',
     'javascript-ast',
+    'go-ast',
     'aggregate'
 ];
 
@@ -41,6 +43,15 @@ async function runFullTreePipeline(rootDir, options = {}) {
             severity: config.rules?.['javascript-ast-patterns']?.severity
         });
         if (js.ok) sidecarIssues.push(...js.issues);
+    }
+
+    if (options.rules?.goAst !== false && config.rules?.['go-ast-patterns']?.enabled !== false) {
+        const go = await scanGoAstPatterns(rootDir, {
+            productionPaths: config.productionPaths,
+            ignoreGlobs: config.ignore,
+            severity: config.rules?.['go-ast-patterns']?.severity
+        });
+        if (go.ok) sidecarIssues.push(...go.issues);
     }
 
     if (sidecarIssues.length) {

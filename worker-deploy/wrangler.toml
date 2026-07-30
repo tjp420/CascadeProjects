@@ -1,0 +1,13 @@
+name = "simplebeacon-license-worker"
+main = "src/worker.js"
+compatibility_date = "2026-07-28"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://simplebeacon.ai,https://www.simplebeacon.ai"
+PRICE_ID_AGENCY = "price_agency_suite_99"
+PRICE_ID_ENTERPRISE = "price_enterprise_499"
+
+[[kv_namespaces]]
+binding = "LICENSE_STORE"
+id = "local"

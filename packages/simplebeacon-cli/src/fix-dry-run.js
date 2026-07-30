@@ -101,14 +101,49 @@ function formatFixDryRunText(plan) {
         lines.push('');
     }
 
-    for (const [index, fix] of plan.fixes.entries()) {
-        lines.push(`${index + 1}. [${String(fix.severity || 'medium').toUpperCase()}] ${fix.location}`);
-        lines.push(`   Kind: ${fix.kind} · ${fix.blocksGate ? 'Blocks gate' : 'Non-blocking'} · ~${fix.estimatedMinutes || '?'} min`);
-        lines.push(`   Impact: ${fix.businessImpact || '—'}`);
-        if (fix.recipe) {
-            lines.push(`   Recipe:\n${fix.recipe.split('\n').map((line) => `     ${line}`).join('\n')}`);
+    const severityOrder = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+    const sortedFixes = [...plan.fixes].sort((a, b) => {
+        const aRank = Object.prototype.hasOwnProperty.call(severityOrder, a.severity) ? severityOrder[a.severity] : 5;
+        const bRank = Object.prototype.hasOwnProperty.call(severityOrder, b.severity) ? severityOrder[b.severity] : 5;
+        if (aRank !== bRank) return aRank - bRank;
+        if (a.blocksGate !== b.blocksGate) return a.blocksGate ? -1 : 1;
+        return (a.estimatedMinutes || 0) - (b.estimatedMinutes || 0);
+    });
+
+    const topActions = sortedFixes.slice(0, 5);
+    lines.push('Remediation first-pass:');
+    for (const [index, fix] of topActions.entries()) {
+        const action = fix.recipe ? fix.recipe.split('\n')[0] : (fix.kind || 'Apply suggested fix');
+        lines.push(`  ${index + 1}. [${String(fix.severity || 'medium').toUpperCase()}] ${fix.location} -> ${action}`);
+    }
+    lines.push('');
+
+    const groups = {
+        critical: [],
+        high: [],
+        medium: [],
+        low: [],
+        info: []
+    };
+    for (const fix of sortedFixes) {
+        const sev = Object.prototype.hasOwnProperty.call(groups, fix.severity) ? fix.severity : 'info';
+        groups[sev].push(fix);
+    }
+
+    let row = 1;
+    for (const sev of Object.keys(groups)) {
+        if (groups[sev].length === 0) continue;
+        lines.push(`${sev.toUpperCase()} (${groups[sev].length})`);
+        for (const fix of groups[sev]) {
+            lines.push(`${row}. ${fix.location}`);
+            lines.push(`   Kind: ${fix.kind} · ${fix.blocksGate ? 'Blocks gate' : 'Non-blocking'} · ~${fix.estimatedMinutes || '?'} min`);
+            lines.push(`   Impact: ${fix.businessImpact || '—'}`);
+            if (fix.recipe) {
+                lines.push(`   Recipe:\n${fix.recipe.split('\n').map((line) => `     ${line}`).join('\n')}`);
+            }
+            lines.push('');
+            row += 1;
         }
-        lines.push('');
     }
 
     lines.push(`Verify: ${plan.verify}`);

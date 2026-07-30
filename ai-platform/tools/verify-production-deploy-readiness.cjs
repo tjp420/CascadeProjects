@@ -134,6 +134,11 @@ class ProductionDeployVerifier {
   checkEnvironmentVariables() {
     this.log(`Checking ${CHECKS.ENVIRONMENT_VARS.name}...`);
 
+    const registrationEnvVars = [
+      'SIMPLEBEACON_ALLOW_PUBLIC_REGISTRATION',
+      'SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE'
+    ];
+
     // Check required environment variables
     for (const varName of CHECKS.ENVIRONMENT_VARS.required) {
       const value = process.env[varName];
@@ -160,6 +165,18 @@ class ProductionDeployVerifier {
 
       this.log(`Environment variable configured: ${varName}`, 'success');
       this.results.passed.push(`${varName} configured`);
+    }
+
+    // Check registration policy environment variables explicitly for production deployments
+    for (const varName of registrationEnvVars) {
+      const value = process.env[varName];
+      if (value === undefined || value === '') {
+        this.log(`Registration configuration not set: ${varName}`, 'warning');
+        this.results.warnings.push(`Registration config: ${varName}`);
+      } else {
+        this.log(`Registration configuration set: ${varName}=${value}`, 'success');
+        this.results.passed.push(`Registration config: ${varName}`);
+      }
     }
 
     // Check production-specific requirements

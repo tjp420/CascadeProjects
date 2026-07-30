@@ -255,8 +255,8 @@ export function slimReportForSummary(report) {
         description: f.description,
         filePath: f.filePath
       })),
-      scanScope: report.scanScope,
       repositoryInventory: report.repositoryInventory,
+      scanScope: report.scanScope,
       projectRoot: report.projectRoot,
       platformRoot: report.platformRoot,
       gate: report.gate,
@@ -268,7 +268,6 @@ export function slimReportForSummary(report) {
       ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed,
       fictionJsonFilesScanned: report.fictionJsonFilesScanned,
       severityCounts: report.severityCounts,
-      scanScope: report.scanScope,
       scanTargetProfile: report.scanTargetProfile,
       handoffEligible: report.handoffEligible,
       benchmarkScan: report.benchmarkScan,

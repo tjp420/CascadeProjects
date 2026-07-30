@@ -1,0 +1,118 @@
+name: SimpleBeacon E2E Automation Sweep
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  e2e-crawl:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Validate notification payload schema shape
+        run: |
+          python ai-platform/tests/test_notification_payload_schema.py
+          python .github/scripts/test_update_e2e_badge.py
+
+      - name: Execute Dual-Notifying Python Automation Framework
+        env:
+          SLACK_CHANNEL_SECRET: ${{ secrets.MONITORING_SLACK_URL }}
+          DISCORD_CHANNEL_SECRET: ${{ secrets.MONITORING_DISCORD_URL }}
+          LEGACY_TRACKING_SECRET: ${{ secrets.MONITORING_WEBHOOK_URL }}
+        run: |
+          python ai-platform/tests/test_simplebeacon_e2e_runner.py \
+            --json-out .simplebeacon/logs/simplebeacon-e2e-report.json \
+            --junit-out .simplebeacon/logs/simplebeacon-e2e-report.xml \
+            --screenshot \
+            --skip-notifications \
+            --slack-webhook "$SLACK_CHANNEL_SECRET" \
+            --discord-webhook "$DISCORD_CHANNEL_SECRET" \
+            --webhook "$LEGACY_TRACKING_SECRET"
+
+      - name: Smoke-check E2E report JSON schema
+        if: always()
+        run: |
+          python ai-platform/tests/test_simplebeacon_e2e_runner.py \
+            --notify-from-report .simplebeacon/logs/simplebeacon-e2e-report.json \
+            --skip-notifications
+
+      - name: Dispatch notifications from validated report
+        if: always()
+        env:
+          SLACK_CHANNEL_SECRET: ${{ secrets.MONITORING_SLACK_URL }}
+          DISCORD_CHANNEL_SECRET: ${{ secrets.MONITORING_DISCORD_URL }}
+          LEGACY_TRACKING_SECRET: ${{ secrets.MONITORING_WEBHOOK_URL }}
+        run: |
+          python ai-platform/tests/test_simplebeacon_e2e_runner.py \
+            --notify-from-report .simplebeacon/logs/simplebeacon-e2e-report.json \
+            --slack-webhook "$SLACK_CHANNEL_SECRET" \
+            --discord-webhook "$DISCORD_CHANNEL_SECRET" \
+            --webhook "$LEGACY_TRACKING_SECRET"
+
+      - name: Update README dynamic E2E severity badge
+        if: always()
+        run: |
+          python .github/scripts/update_e2e_badge.py \
+            --report .simplebeacon/logs/simplebeacon-e2e-report.json \
+            --readme README.md
+
+      - name: Commit badge update
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          if git diff --quiet README.md; then
+            echo "No README badge changes detected"
+            exit 0
+          fi
+          git config --global user.name "SimpleBeacon Watchdog"
+          git config --global user.email "watchdog@simplebeacon.ai"
+          git add README.md
+          git commit -m "docs: auto-update e2e severity badge [skip ci]"
+          git push
+
+      - name: Generate remediation markdown manifest
+        if: always()
+        run: |
+          python ai-platform/tests/generate_e2e_remediation_log.py \
+            --report .simplebeacon/logs/simplebeacon-e2e-report.json \
+            --output .simplebeacon/logs/simplebeacon-e2e-remediation.md \
+            --manifest .simplebeacon/security-tracking-manifest.md
+
+      - name: Upload crawler artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-e2e-reports
+          path: |
+            .simplebeacon/logs/
+            .simplebeacon/security-tracking-manifest.md
+
+      - name: Publish JUnit test report
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: '.simplebeacon/logs/simplebeacon-e2e-report.xml'
+          check_name: 'SimpleBeacon E2E JUnit'
+          fail_on_failure: false

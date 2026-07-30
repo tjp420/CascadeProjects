@@ -1,0 +1,200 @@
+Simplebeacon ΓÇö detect mock data, fiction KPIs, and credential leaks
+  simplebeacon --version          Show version number
+
+Usage:
+  simplebeacon scan [options]     Scan project and report findings
+  simplebeacon init [options]     Create .simplebeacon/config.json and baseline.json
+  simplebeacon mcp [options]      Start MCP stdio server for Cursor / Claude Desktop
+  simplebeacon comment [options]  Post GitHub PR comment from JSON report
+  simplebeacon assess [options]   Build customer assessment JSON from scan report
+  simplebeacon compliance [opts]  Evaluate corporate safety checklist from report
+  simplebeacon report [options]   Build client-facing markdown audit from scan JSON
+  simplebeacon baseline sync      Run Jest and update .simplebeacon/baseline.json
+  simplebeacon hook install         Install pre-commit or pre-push git hook
+  simplebeacon gate status            Print gate pass/fail from .simplebeacon/report.json
+  simplebeacon reduce [options]     Analyze repo for file-reduction opportunities (dry-run)
+  simplebeacon pdf [options]        Generate Executive Risk Certificate (requires license token)
+  simplebeacon buy-clearance        Purchase executive clearance and receive license token
+  simplebeacon ai-plan [options]   Generate AI-friendly remediation plan from scan results
+  simplebeacon doctor              Runs integrity diagnostics, applies auto-fixes, and generates triage packages
+
+buy-clearance options:
+  --email <addr>      Email address for checkout (required)
+  --server <url>    Simplebeacon server URL (default: https://simplebeacon.ai)
+  --poll-seconds <n> Seconds between poll attempts (default: 5)
+  --max-polls <n>   Maximum poll attempts (default: 60)
+
+PDF options:
+  --report <file>     Scan report JSON (default: .simplebeacon/report.json)
+  --output <file>     Output HTML path (default: simplebeacon-executive-risk-certificate.html)
+  Requires SIMPLEBEACON_LICENSE_TOKEN env var or ~/.simplebeacon/license.jwt
+
+Init options:
+  --path <dir>        Project root (default: cwd)
+  --profile <name>    Force profile: minimal, standard, cascade (auto-detected by default)
+  --dry-run           Preview init changes without writing files
+  --force             Overwrite existing config/baseline (backup created first)
+  --with-mcp          Write .cursor/mcp.json + agent rule for Cursor MCP
+  --with-ci           Write .github/workflows/simplebeacon.yml
+  --starter           Shorthand for --with-mcp --with-ci
+  --mcp-mode MODE     npx-local (default) | npx-github | monorepo
+
+Scan options:
+  --path, -p <dir>    Project root (default: cwd)
+  --config, -c <f>    Config path (default: .simplebeacon/config.json)
+  --format, -f fmt    Output format: text | json (default: text)
+  --output, -o <file> Write report to file
+  --report, -r <file> Use existing scan report JSON
+  --gate              Exit 1 when gate severities are found
+  --fail-on a,b,c     Override gate fail severities (default: high)
+  --with-jest         Run npm test and compare to baseline (slow)
+  --verbose, -v       Print config warnings and scan paths
+  --anonymize         Strip all file paths, descriptions, and code snippets from JSON output
+                        Output contains only abstract error codes and compliance metrics.
+  --fix               Run local remediation agent against blocking findings (requires Ollama)
+  // simplebeacon-ignore: generic-naming ΓÇö CLI flag name is user-facing API
+  --fix-provider <p>  Override remediation LLM: ollama (default) | openai | anthropic
+  --fix-dry-run       Show diffs without applying patches
+  --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
+  --complete          Run all 11 analyzers (gate + consolidation + mock data + roadmap + codebase + file reduction + data quality + cleanup + npm audit + compliance + EU AI Act)
+  --watch             Watch project files and re-run scan on changes (ctrl+c to stop)
+  --deep-scan         Bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)
+  --include-deps      Include node_modules and .git in scan (slower, more noise)
+  --min-confidence n  Minimum rule confidence threshold 0.0ΓÇô1.0 (default: 0.5)
+  --offline           Fail if any outbound network activity occurs during scan
+  --no-trust-banner   Suppress read-only / local-only trust confirmation lines
+  --slop-cop          Run AI Slop Cop (LLM residue / mock-data detection) during scan
+  --api-token <tok>   Paid tier API token (required with --upload)
+  --upload <url>      POST JSON report to Simplebeacon cloud (paid tier)
+
+Comment options:
+  --report <file>     JSON report path (default: .simplebeacon/report.json)
+  --issue-number N    Pull request number (or GITHUB_EVENT_PULL_REQUEST_NUMBER)
+  --repo owner/repo   Repository slug (or GITHUB_REPOSITORY)
+  --print-only        Print comment markdown only (for GITHUB_STEP_SUMMARY)
+
+Assess options:
+  --path <dir>        Project root (default: cwd)
+  --report <file>     Existing scan report (default: run scan first)
+  --output <file>     Write assessment JSON (default: .simplebeacon/assessment.json)
+  --company <name>    Customer / repo name for report title
+  --assessor <name>   Your name on the deliverable
+  --checklist <id>    Checklist profile: default | eu-ai-act (default: default)
+  --with-analyzer-suite  Run 48-analyzer AI risk assessment and export JSON
+
+Report options:
+  --path <dir>        Project root (default: cwd)
+  --report <file>     Scan report JSON (default: .simplebeacon/report.json)
+  --assessment <file> Assessment JSON (default: .simplebeacon/assessment.json if present)
+  --output <file>     Write markdown audit (default: AUDIT_REPORT.md)
+  --company <name>    Prepared-for name on cover line
+  --client <name>     Target project name (default: repo folder name)
+  --branch <name>     Optional branch label on cover line
+  --assessor <name>   Assessor name on cover line
+  --enhance           Rewrite executive summary via OpenAI (requires assessment.json + OPENAI_API_KEY)
+  --enhance-model <m> OpenAI model for --enhance (default: gpt-4o-mini or OPENAI_MODEL)
+
+Hook install options:
+  --path <dir>        Project root (default: cwd)
+  --type pre-commit|pre-push   Hook to install (default: pre-commit)
+  --dry-run           Preview hook install without writing files
+  --fail-on a,b,c     Gate severities (default: high)
+  --with-jest         Include Jest baseline in hook scan
+  --husky             Prefer .husky/ even when not present yet
+
+Reduce options:
+  --path <dir>        Project root (default: cwd)
+  --format text|json  Output format (default: text)
+  --output <file>     Write report to file (default: .simplebeacon/file-reduction.md)
+  --scanner <id>      Run one scanner: build-artifacts, asset-consolidation, unused-files,
+                      config-management, dependency-health, environment-variables,
+                      data-freshness, data-access-patterns, data-privacy, data-lineage, data-consistency
+  --verbose, -v       Print scanner summaries
+
+Profiles:
+  minimal    credentials + production-leak only
+  standard   all rules with generic defaults
+  cascade    ai-platform dashboard preset
+  eu-ai-act  standard + EU AI Act pattern scan (August 2026 readiness)
+
+Compliance options:
+  --checklist <id>    Checklist profile: default | eu-ai-act
+
+AI Plan options:
+  --path, -p <dir>    Project root (default: cwd)
+  --config, -c <f>    Config path (default: .simplebeacon/config.json)
+  --output, -o <file> Write AI plan to file
+  --complete          Run all 11 analyzers for comprehensive analysis
+
+Global options:
+  --debug             Print full stack traces on errors and disable spinner
+
+Examples:
+  npx simplebeacon init
+  npx simplebeacon init --profile minimal
+  npx simplebeacon scan --gate
+  npx simplebeacon scan --offline --gate
+  npx simplebeacon scan --format json --output .simplebeacon/report.json --gate
+  npx simplebeacon scan --gate --complete
+  npx simplebeacon scan --format json --api-token sb_xxx --upload https://simplebeacon.ai/api/simplebeacon/cloud-scan
+  npx simplebeacon assess --company "Acme" --assessor "Jane" --checklist eu-ai-act
+  npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --assessor "Jane"
+  npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --enhance
+  npx simplebeacon compliance --checklist eu-ai-act --format json --output .simplebeacon/compliance.json
+  npx simplebeacon init --profile eu-ai-act
+  npx simplebeacon baseline sync
+  npx simplebeacon hook install
+  npx simplebeacon reduce
+  npx simplebeacon reduce --format json --output .simplebeacon/file-reduction.json
+  npx simplebeacon ai-plan --output .simplebeacon/ai-remediation-plan.md
+  npx simplebeacon ai-plan --complete --output .simplebeacon/comprehensive-ai-plan.md
+
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "formatBytes" from "compliance" shadows "scan". Access via Simplebeacon namespace to disambiguate.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "redactProjectPathForExport" from "simplebeacon-report-export-sanitize" shadows "assessment-export-sanitize". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "projectLabelFromPath" from "simplebeacon-report-export-sanitize" shadows "assessment-export-sanitize". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "projectLabelFromPath" from "ai-problem-analyzer-export-sanitize" shadows "assessment-export-sanitize". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "normalizePathKey" from "path-utils" shadows "config". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "clampScore" from "ai-problem-analyzer-suite" shadows "ai-problem-analyzer-export-sanitize". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "isBlank" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "isEmpty" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "ensureArray" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "capitalize" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "pluralize" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "truncate" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "tryFn" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "memoize" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "hash" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "randomId" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "sleep" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "delay" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "parseJsonSafe" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "deepEqual" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "unique" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "partition" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "sortBy" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "flatten" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "range" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "chunk" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "times" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "get" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "set" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "seq" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "identity" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "constant" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "random" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "sleep" from "async-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "zipObject" from "object-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "kebabCase" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "camelCase" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "snakeCase" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "padStart" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "padEnd" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "escapeRegExp" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "formatNumber" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "isBlank" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "noop" from "functional-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "assertNever" from "functional-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "retry" from "async-advanced" shadows "async-utils". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "withTimeout" from "async-advanced" shadows "async-utils". Access via Simplebeacon namespace to disambiguate.
+(node:58068) SimplebeaconExportCollision: [simplebeacon] Export collision: "delay" from "async-advanced" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.

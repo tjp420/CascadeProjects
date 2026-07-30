@@ -11,6 +11,12 @@
  *   SB-PY-TB-001 / SB-JS-TB-001: LLM calls without token limits
  *   SB-PY-REDUNDANCY-002: Redundant try/except wrappers (Python)
  *   SB-JS-SQL-001: SQL injection via template literal (JavaScript)
+ *   SB-JS-REDUNDANCY-003: Identical JS catch handlers → extract shared handler
+ *   SB-JS-REDUNDANCY-004: JS deep nesting → guard clause refactor suggestion
+ *   SB-JS-REDUNDANCY-005: Identical Promise .catch() chains → shared error handler
+ *   SB-JS-REDUNDANCY-006: Duplicate condition branches → collapse into single branch
+ *   SB-GO-REDUNDANCY-004: Go deep nested if-blocks → guard clause extraction
+ *   SB-PY-REDUNDANCY-003: Python identical exception handlers → shared handler
  */
 
 const fs = require('fs');
@@ -302,6 +308,189 @@ function fixPythonDuplicateBody(snippet, finding) {
     return { search, replace };
 }
 
+/**
+ * SB-PY-REDUNDANCY-003: Identical Python exception handlers → consolidate into shared handler
+ * Transforms multiple except blocks with identical bodies into a tuple handler.
+ *   except ValueError:
+ *       logging.error("failed")
+ *   except TypeError:
+ *       logging.error("failed")
+ * → except (ValueError, TypeError):
+ *       logging.error("failed")
+ */
+function fixPythonIdenticalExceptionHandlers(snippet, finding) {
+    // Match consecutive except blocks with identical bodies
+    const exceptRe = /except\s+(\w+(?:\s+as\s+\w+)?)\s*:\s*\n(\s+)([^\n]+)\n\s*except\s+(\w+(?:\s+as\s+\w+)?)\s*:\s*\n\2/g;
+    const m = snippet.match(exceptRe);
+    if (!m) return null;
+
+    // Extract the exception types and shared body
+    const singleRe = /except\s+(\w+(?:\s+as\s+\w+)?)\s*:\s*\n(\s+)([^\n]+)\n\s*except\s+(\w+(?:\s+as\s+\w+)?)\s*:\s*\n\2/;
+    const sm = snippet.match(singleRe);
+    if (!sm) return null;
+
+    const exc1 = sm[1].split(/\s+as\s+/)[0];
+    const exc2 = sm[4].split(/\s+as\s+/)[0];
+    const indent = sm[2];
+    const body = sm[3];
+
+    const search = sm[0];
+    const replace = `except (${exc1}, ${exc2}):\n${indent}${body}`;
+    return { search, replace };
+}
+
+/**
+ * SB-JS-REDUNDANCY-003: Identical JS catch handlers → extract shared handler function
+ * Transforms multiple catch blocks with identical bodies into calls to a shared handler.
+ *   catch (err) { console.error(err); return null; }
+ *   catch (err) { console.error(err); return null; }
+ * → catch (err) { return handleCatch(err); }
+ * (Only applies when the same handler body appears 3+ times in the snippet)
+ */
+function fixJsIdenticalCatchHandlers(snippet, finding) {
+    const catchRe = /catch\s*\(\s*(\w+)\s*\)\s*\{\s*([^}]+)\s*\}/g;
+    const handlers = [];
+    let m;
+    while ((m = catchRe.exec(snippet)) !== null) {
+        handlers.push({ match: m[0], param: m[1], body: m[2].trim() });
+    }
+    if (handlers.length < 3) return null;
+
+    // Find the most common handler body
+    const counts = {};
+    for (const h of handlers) {
+        counts[h.body] = (counts[h.body] || 0) + 1;
+    }
+    const mostCommon = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    if (mostCommon[1] < 3) return null;
+
+    const commonBody = mostCommon[0];
+    const commonParam = handlers.find(h => h.body === commonBody).param;
+    const helperName = 'handleCatch';
+
+    // Replace all instances of the common handler with helper call
+    let modified = snippet;
+    const escapedBody = commonBody.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const searchRe = new RegExp(
+        `catch\\s*\\(\\s*${commonParam}\\s*\\)\\s*\\{\\s*${escapedBody}\\s*\\}`,
+        'g'
+    );
+    modified = modified.replace(searchRe, `catch (${commonParam}) { return ${helperName}(${commonParam}); }`);
+
+    // Prepend helper function
+    const helperDef = `function ${helperName}(err) {\n  ${commonBody}\n}\n\n`;
+    const search = snippet;
+    const replace = helperDef + modified;
+    return { search, replace };
+}
+
+/**
+ * SB-JS-REDUNDANCY-004: JS deep nesting → suggest guard clause extraction
+ * Adds a TODO comment with refactor suggestion at the function definition.
+ */
+function fixJsDeepNesting(snippet, finding) {
+    // Match function declarations (various forms)
+    const funcRe = /((?:async\s+)?function\s+(\w+)\s*\([^)]*\)\s*\{|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|\w+)\s*=>\s*\{)/;
+    const m = snippet.match(funcRe);
+    if (!m) return null;
+    const funcName = m[2] || m[3] || 'anonymous';
+    const search = m[1];
+    const replace = `${m[1]}\n  // TODO(refactor): Extract guard clauses to reduce nesting depth in ${funcName}()`;
+    return { search, replace };
+}
+
+/**
+ * SB-JS-REDUNDANCY-005: Identical Promise .catch() chains → shared error handler
+ * Transforms multiple .catch(err => console.error(err)) into .catch(handleAsyncError)
+ * (Only applies when identical .catch() handlers appear 3+ times)
+ */
+function fixJsIdenticalPromiseCatch(snippet, finding) {
+    const catchRe = /\.catch\(\s*(?:\((\w+)\)\s*=>|function\s*\((\w+)\))\s*([^)]+?)(?:\)\s*)?\)/g;
+    const handlers = [];
+    let m;
+    while ((m = catchRe.exec(snippet)) !== null) {
+        const param = m[1] || m[2];
+        const body = m[3].trim();
+        handlers.push({ match: m[0], param, body });
+    }
+    if (handlers.length < 3) return null;
+
+    // Find the most common handler body
+    const counts = {};
+    for (const h of handlers) {
+        counts[h.body] = (counts[h.body] || 0) + 1;
+    }
+    const mostCommon = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    if (mostCommon[1] < 3) return null;
+
+    const commonBody = mostCommon[0];
+    const commonParam = handlers.find(h => h.body === commonBody).param;
+    const helperName = 'handleAsyncError';
+
+    // Replace all instances of the common handler with helper reference
+    let modified = snippet;
+    const escapedBody = commonBody.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const searchRe = new RegExp(
+        `\\.catch\\(\\s*(?:\\(${commonParam}\\)\\s*=>|function\\s*\\(${commonParam}\\))\\s*${escapedBody}\\)`,
+        'g'
+    );
+    modified = modified.replace(searchRe, `.catch(${helperName})`);
+
+    // Prepend helper function
+    const helperDef = `function ${helperName}(err) {\n  ${commonBody}\n}\n\n`;
+    const search = snippet;
+    const replace = helperDef + modified;
+    return { search, replace };
+}
+
+/**
+ * SB-JS-REDUNDANCY-006: Duplicate condition branches → collapse into single branch
+ * Transforms: if (a) return x; if (b) return x; → if (a || b) return x;
+ * (Only applies when two consecutive if statements return the same value)
+ */
+function fixJsDuplicateConditionBranches(snippet, finding) {
+    // Match: if (cond1) return val;
+    //        if (cond2) return val;
+    const dupRe = /if\s*\(([^)]+)\)\s*\{?\s*(return\s+([^;]+);)\s*\}?\n\s*if\s*\(([^)]+)\)\s*\{?\s*\2\s*\}?/;
+    const m = snippet.match(dupRe);
+    if (!m) return null;
+    const cond1 = m[1].trim();
+    const cond2 = m[4].trim();
+    const returnStmt = m[2];
+    const search = m[0];
+    const replace = `if (${cond1} || ${cond2}) ${returnStmt}`;
+    return { search, replace };
+}
+
+/**
+ * SB-GO-REDUNDANCY-004: Go deep nested if-blocks → guard clause extraction
+ * Transforms deeply nested if-blocks into early return guard clauses.
+ *   if cond {
+ *       if innerCond {
+ *           doSomething()
+ *       }
+ *   }
+ * → if !cond { return }
+ *   if !innerCond { return }
+ *   doSomething()
+ */
+function fixGoDeepNestedIfBlocks(snippet, finding) {
+    // Match: if cond {
+    //     if innerCond {
+    //         <body>
+    //     }
+    // }
+    const nestRe = /if\s+([^\{]+)\s*\{\n\s+if\s+([^\{]+)\s*\{\n\s+([^\n]+)\n\s+\}\n\s*\}/;
+    const m = snippet.match(nestRe);
+    if (!m) return null;
+    const outerCond = m[1].trim();
+    const innerCond = m[2].trim();
+    const body = m[3].trim();
+    const search = m[0];
+    const replace = `if !(${outerCond}) { return }\n\tif !(${innerCond}) { return }\n\t${body}`;
+    return { search, replace };
+}
+
 // ---------------------------------------------------------------------------
 // Fix registry: pattern ID → fix function
 // ---------------------------------------------------------------------------
@@ -314,12 +503,18 @@ const FIX_REGISTRY = {
     'SB-GO-TB-001': fixGoTokenBleed,
     'SB-PY-REDUNDANCY-002': fixRedundantTryExcept,
     'SB-PY-REDUNDANCY-001': fixPythonDuplicateBody,
+    'SB-PY-REDUNDANCY-003': fixPythonIdenticalExceptionHandlers,
     'SB-PY-REDUNDANCY-004': fixPythonDeepNesting,
     'SB-GO-REDUNDANCY-001': fixGoDuplicateBody,
     'SB-GO-REDUNDANCY-002': fixGoRepeatedErrorHandlers,
     'SB-GO-REDUNDANCY-003': fixGoDeepNesting,
+    'SB-GO-REDUNDANCY-004': fixGoDeepNestedIfBlocks,
     'SB-JS-SQL-001': fixSqlInjection,
     'SB-JS-SQL-002': fixJsSqlUnparameterized,
+    'SB-JS-REDUNDANCY-003': fixJsIdenticalCatchHandlers,
+    'SB-JS-REDUNDANCY-004': fixJsDeepNesting,
+    'SB-JS-REDUNDANCY-005': fixJsIdenticalPromiseCatch,
+    'SB-JS-REDUNDANCY-006': fixJsDuplicateConditionBranches,
 };
 
 // ---------------------------------------------------------------------------

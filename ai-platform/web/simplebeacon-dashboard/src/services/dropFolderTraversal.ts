@@ -88,9 +88,8 @@ async function traverseFileSystemEntry(
   } while (batch.length > 0 && files.length < state.maxFiles);
 }
 
-function appendFlatDataTransferFiles(dataTransfer: DataTransfer, files: VirtualFile[]): void {
-  if (!dataTransfer.files?.length) return;
-  const dtFiles = Array.from(dataTransfer.files);
+function appendFlatFiles(dtFiles: File[], files: VirtualFile[]): void {
+  if (!dtFiles?.length) return;
   const hasRelativePath = dtFiles.some((f) => {
     const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
     return rel && rel.includes('/');
@@ -120,10 +119,13 @@ function appendFlatDataTransferFiles(dataTransfer: DataTransfer, files: VirtualF
 }
 
 /**
- * Collect all files from a drop event. Pass entries captured synchronously in handleDrop.
+ * Collect all files from a drop event.
+ * Pass entries and files captured **synchronously** in handleDrop — do NOT
+ * pass the live DataTransfer, which Firefox invalidates after the drop
+ * handler yields (causing DOMException "no longer usable").
  */
 export async function collectFilesFromDrop(
-  dataTransfer: DataTransfer,
+  dataTransferOrFiles: DataTransfer | File[] | null | undefined,
   preCapturedEntries?: FileSystemEntry[],
   options: { maxFiles?: number } = {}
 ): Promise<{ files: VirtualFile[]; rootName: string; traverseErrors: number }> {
@@ -132,7 +134,23 @@ export async function collectFilesFromDrop(
     maxFiles: options.maxFiles ?? DEFAULT_MAX_FILES,
   };
   const files: VirtualFile[] = [];
-  const entries = preCapturedEntries ?? captureDropEntries(dataTransfer.items);
+
+  // Resolve entries: prefer pre-captured, otherwise try to read from DataTransfer
+  // (only safe if called synchronously — which is why callers should pre-capture).
+  let entries: FileSystemEntry[] = [];
+  let preCapturedFiles: File[] = [];
+  if (Array.isArray(dataTransferOrFiles)) {
+    preCapturedFiles = dataTransferOrFiles;
+  } else if (dataTransferOrFiles) {
+    entries = preCapturedEntries ?? captureDropEntries(dataTransferOrFiles.items);
+    try {
+      preCapturedFiles = Array.from(dataTransferOrFiles.files);
+    } catch {
+      /* Firefox: DataTransfer may be stale after await — ignore */
+    }
+  } else if (preCapturedEntries) {
+    entries = preCapturedEntries;
+  }
 
   for (const entry of entries) {
     if (files.length >= state.maxFiles) break;
@@ -140,7 +158,7 @@ export async function collectFilesFromDrop(
   }
 
   if (files.length === 0) {
-    appendFlatDataTransferFiles(dataTransfer, files);
+    appendFlatFiles(preCapturedFiles, files);
   }
 
   const firstRel = files[0]?._virtualPath

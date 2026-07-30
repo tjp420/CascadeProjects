@@ -13,8 +13,16 @@ const path = require('path');
 const logger = require('./app-logger.cjs');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
-const STORE_PATH = process.env.STRIPE_EVENT_STORE
+// Mutable store path so tests can override it at runtime when needed.
+let STORE_PATH = process.env.STRIPE_EVENT_STORE
   || path.join(PROJECT_ROOT, '.simplebeacon', 'stripe-events.json');
+
+function setStorePath(p) {
+  STORE_PATH = p;
+  // Reset in-memory cache so subsequent reads use the new store path
+  _processedEvents = null;
+  _cacheDirty = true;
+}
 
 /** In-memory set of processed event IDs. */
 let _processedEvents = null;
@@ -59,6 +67,7 @@ async function loadProcessedEvents() {
     _cacheDirty = false;
     return _processedEvents;
   } catch {
+    // Nothing on disk or unreadable — reset to empty
     _processedEvents = new Set();
     _cacheDirty = false;
     return _processedEvents;
@@ -160,5 +169,6 @@ module.exports = {
   clearCache,
   getProcessedCount,
   STORE_PATH,
+  setStorePath,
   MAX_EVENTS
 };

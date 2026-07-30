@@ -188,6 +188,104 @@ function getDb() {
             );
             CREATE INDEX IF NOT EXISTS idx_ref_rewards_referrer ON referral_rewards(referrer_id);
             CREATE INDEX IF NOT EXISTS idx_ref_rewards_attribution ON referral_rewards(attribution_id);
+            CREATE TABLE IF NOT EXISTS organizations (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                slug TEXT NOT NULL UNIQUE,
+                owner_email TEXT NOT NULL,
+                plan TEXT DEFAULT 'team',
+                max_seats INTEGER DEFAULT 10,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_organizations_slug ON organizations(slug);
+            CREATE INDEX IF NOT EXISTS idx_organizations_owner ON organizations(owner_email);
+            CREATE TABLE IF NOT EXISTS organization_members (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                org_id TEXT NOT NULL,
+                user_email TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'auditor',
+                invited_by TEXT,
+                invited_at TEXT NOT NULL DEFAULT (datetime('now')),
+                accepted_at TEXT,
+                status TEXT DEFAULT 'active',
+                UNIQUE(org_id, user_email),
+                FOREIGN KEY(org_id) REFERENCES organizations(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_org_members_org ON organization_members(org_id);
+            CREATE INDEX IF NOT EXISTS idx_org_members_email ON organization_members(user_email);
+            CREATE INDEX IF NOT EXISTS idx_org_members_role ON organization_members(role);
+            CREATE TABLE IF NOT EXISTS tenants (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                slug TEXT NOT NULL UNIQUE,
+                owner_email TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_tenants_owner ON tenants(owner_email);
+            CREATE TABLE IF NOT EXISTS tenant_memberships (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tenant_id TEXT NOT NULL,
+                user_email TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'auditor',
+                status TEXT NOT NULL DEFAULT 'active',
+                invited_by TEXT,
+                invited_at TEXT NOT NULL DEFAULT (datetime('now')),
+                accepted_at TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(tenant_id, user_email),
+                FOREIGN KEY(tenant_id) REFERENCES tenants(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_tenant_memberships_tenant ON tenant_memberships(tenant_id);
+            CREATE INDEX IF NOT EXISTS idx_tenant_memberships_email ON tenant_memberships(user_email);
+            CREATE TABLE IF NOT EXISTS workspaces (
+                id TEXT PRIMARY KEY,
+                tenant_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                slug TEXT NOT NULL,
+                visibility TEXT NOT NULL DEFAULT 'private',
+                created_by TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(tenant_id, slug),
+                FOREIGN KEY(tenant_id) REFERENCES tenants(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_workspaces_tenant ON workspaces(tenant_id);
+            CREATE INDEX IF NOT EXISTS idx_workspaces_creator ON workspaces(created_by);
+            CREATE TABLE IF NOT EXISTS workspace_memberships (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workspace_id TEXT NOT NULL,
+                user_email TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'auditor',
+                status TEXT NOT NULL DEFAULT 'active',
+                invited_by TEXT,
+                invited_at TEXT NOT NULL DEFAULT (datetime('now')),
+                accepted_at TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(workspace_id, user_email),
+                FOREIGN KEY(workspace_id) REFERENCES workspaces(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_workspace_memberships_workspace ON workspace_memberships(workspace_id);
+            CREATE INDEX IF NOT EXISTS idx_workspace_memberships_email ON workspace_memberships(user_email);
+            CREATE TABLE IF NOT EXISTS tenant_audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tenant_id TEXT NOT NULL,
+                workspace_id TEXT,
+                actor_email TEXT NOT NULL,
+                action TEXT NOT NULL,
+                resource_type TEXT,
+                resource_id TEXT,
+                metadata_json TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                FOREIGN KEY(tenant_id) REFERENCES tenants(id),
+                FOREIGN KEY(workspace_id) REFERENCES workspaces(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_tenant_audit_logs_tenant_created ON tenant_audit_logs(tenant_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_tenant_audit_logs_actor_created ON tenant_audit_logs(actor_email, created_at DESC);
         `);
     }
     // Schema migrations for existing databases
@@ -229,6 +327,82 @@ function getDb() {
     } catch (err) { /* index may already exist */ }
     try {
         db.exec(`UPDATE users SET status = 'active' WHERE status IS NULL OR status = '';`);
+    } catch (err) { /* ignore */ }
+
+    // Phase 1 tenant/workspace RBAC migrations
+    try {
+        db.exec(`ALTER TABLE organizations ADD COLUMN tenant_id TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE organization_members ADD COLUMN tenant_id TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`ALTER TABLE cli_reports ADD COLUMN tenant_id TEXT;`);
+    } catch (err) { /* column may already exist */ }
+    try {
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_organizations_tenant ON organizations(tenant_id);`);
+    } catch (err) { /* index may already exist */ }
+    try {
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_org_members_tenant ON organization_members(tenant_id);`);
+    } catch (err) { /* index may already exist */ }
+    try {
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_cli_reports_tenant_created ON cli_reports(tenant_id, created_at DESC);`);
+    } catch (err) { /* index may already exist */ }
+    try {
+        db.exec(`
+            UPDATE organizations
+            SET tenant_id = id
+            WHERE tenant_id IS NULL OR tenant_id = '';
+        `);
+    } catch (err) { /* ignore */ }
+    try {
+        db.exec(`
+            UPDATE organization_members
+            SET tenant_id = org_id
+            WHERE tenant_id IS NULL OR tenant_id = '';
+        `);
+    } catch (err) { /* ignore */ }
+    try {
+        db.exec(`
+            INSERT INTO tenants (id, name, slug, owner_email, status)
+            SELECT o.id, o.name, o.slug, o.owner_email, 'active'
+            FROM organizations o
+            WHERE NOT EXISTS (SELECT 1 FROM tenants t WHERE t.id = o.id);
+        `);
+    } catch (err) { /* ignore */ }
+    try {
+        db.exec(`
+            INSERT INTO tenant_memberships (tenant_id, user_email, role, status, invited_by, accepted_at)
+            SELECT om.org_id, om.user_email, om.role, om.status, om.invited_by, om.accepted_at
+            FROM organization_members om
+            WHERE NOT EXISTS (
+                SELECT 1 FROM tenant_memberships tm
+                WHERE tm.tenant_id = om.org_id AND tm.user_email = om.user_email
+            );
+        `);
+    } catch (err) { /* ignore */ }
+    try {
+        db.exec(`
+            INSERT INTO tenants (id, name, slug, owner_email, status)
+            VALUES ('tenant_personal', 'Personal Workspace', 'personal', 'system@simplebeacon.local', 'active')
+            ON CONFLICT(id) DO NOTHING;
+        `);
+    } catch (err) { /* ignore */ }
+    try {
+        db.exec(`
+            UPDATE cli_reports
+            SET tenant_id = COALESCE(
+                (
+                    SELECT tm.tenant_id
+                    FROM tenant_memberships tm
+                    WHERE tm.user_email = cli_reports.customer_email AND tm.status = 'active'
+                    ORDER BY tm.id ASC
+                    LIMIT 1
+                ),
+                'tenant_personal'
+            )
+            WHERE tenant_id IS NULL OR tenant_id = '';
+        `);
     } catch (err) { /* ignore */ }
     return db;
 }
@@ -806,6 +980,210 @@ function grantReferralReward({ attributionId, referrerId, rewardType, rewardValu
     return db.prepare('SELECT * FROM referral_rewards WHERE id = ?').get(id);
 }
 
+// ── Organization & RBAC functions ──
+
+const VALID_ROLES = new Set(['owner', 'team_lead', 'compliance_officer', 'auditor']);
+
+function createOrganization(name, slug, ownerEmail, plan = 'team', maxSeats = 10) {
+    const d = getDb();
+    const id = 'org_' + (crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex'));
+    const normalizedSlug = String(slug).toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    d.prepare(
+        'INSERT INTO organizations (id, name, slug, owner_email, plan, max_seats) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, String(name).trim(), normalizedSlug, ownerEmail.trim().toLowerCase(), plan, Number(maxSeats) || 10);
+    d.prepare(
+        "INSERT INTO organization_members (org_id, user_email, role, status, accepted_at) VALUES (?, ?, 'owner', 'active', datetime('now'))"
+    ).run(id, ownerEmail.trim().toLowerCase());
+    return d.prepare('SELECT * FROM organizations WHERE id = ?').get(id);
+}
+
+function getOrganizationById(id) {
+    const d = getDb();
+    return d.prepare('SELECT * FROM organizations WHERE id = ?').get(String(id || ''));
+}
+
+function getOrganizationBySlug(slug) {
+    const d = getDb();
+    return d.prepare('SELECT * FROM organizations WHERE slug = ?').get(String(slug || '').toLowerCase());
+}
+
+function getOrganizationsForUser(email) {
+    const d = getDb();
+    return d.prepare(`
+        SELECT o.*, om.role, om.status as member_status
+        FROM organizations o
+        JOIN organization_members om ON om.org_id = o.id
+        WHERE om.user_email = ? AND om.status = 'active'
+        ORDER BY o.created_at DESC
+    `).all(email.trim().toLowerCase());
+}
+
+function updateOrganization(id, updates) {
+    const d = getDb();
+    const org = getOrganizationById(id);
+    if (!org) return null;
+    const name = updates.name || org.name;
+    const plan = updates.plan || org.plan;
+    const maxSeats = updates.max_seats !== undefined ? Number(updates.max_seats) : org.max_seats;
+    d.prepare(
+        "UPDATE organizations SET name = ?, plan = ?, max_seats = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(name, plan, maxSeats, String(id));
+    return getOrganizationById(id);
+}
+
+function deleteOrganization(id) {
+    const d = getDb();
+    d.prepare('DELETE FROM organization_members WHERE org_id = ?').run(String(id || ''));
+    d.prepare('DELETE FROM organizations WHERE id = ?').run(String(id || ''));
+    return { success: true };
+}
+
+function addOrganizationMember(orgId, email, role, invitedBy) {
+    const d = getDb();
+    if (!VALID_ROLES.has(role)) throw new Error(`Invalid role: ${role}`);
+    const normalizedEmail = email.trim().toLowerCase();
+    const existing = d.prepare(
+        'SELECT * FROM organization_members WHERE org_id = ? AND user_email = ?'
+    ).get(String(orgId), normalizedEmail);
+    if (existing) {
+        d.prepare(
+            "UPDATE organization_members SET role = ?, status = 'active', invited_by = ? WHERE id = ?"
+        ).run(role, invitedBy || null, existing.id);
+        return d.prepare('SELECT * FROM organization_members WHERE id = ?').get(existing.id);
+    }
+    d.prepare(
+        "INSERT INTO organization_members (org_id, user_email, role, invited_by, status) VALUES (?, ?, ?, ?, 'pending')"
+    ).run(String(orgId), normalizedEmail, role, invitedBy || null);
+    return d.prepare(
+        'SELECT * FROM organization_members WHERE org_id = ? AND user_email = ?'
+    ).get(String(orgId), normalizedEmail);
+}
+
+function getOrganizationMembers(orgId) {
+    const d = getDb();
+    return d.prepare(`
+        SELECT om.*, u.name as user_name, u.tier as user_tier
+        FROM organization_members om
+        LEFT JOIN users u ON u.email = om.user_email
+        WHERE om.org_id = ?
+        ORDER BY om.invited_at DESC
+    `).all(String(orgId || ''));
+}
+
+function getMemberRole(orgId, email) {
+    const d = getDb();
+    const row = d.prepare(
+        'SELECT role, status FROM organization_members WHERE org_id = ? AND user_email = ?'
+    ).get(String(orgId || ''), email.trim().toLowerCase());
+    return row || null;
+}
+
+function updateMemberRole(orgId, email, newRole) {
+    const d = getDb();
+    if (!VALID_ROLES.has(newRole)) throw new Error(`Invalid role: ${newRole}`);
+    d.prepare(
+        'UPDATE organization_members SET role = ? WHERE org_id = ? AND user_email = ?'
+    ).run(newRole, String(orgId), email.trim().toLowerCase());
+    return getMemberRole(orgId, email);
+}
+
+function removeOrganizationMember(orgId, email) {
+    const d = getDb();
+    d.prepare(
+        'DELETE FROM organization_members WHERE org_id = ? AND user_email = ?'
+    ).run(String(orgId), email.trim().toLowerCase());
+    return { success: true };
+}
+
+function acceptInvitation(orgId, email) {
+    const d = getDb();
+    d.prepare(
+        "UPDATE organization_members SET status = 'active', accepted_at = datetime('now') WHERE org_id = ? AND user_email = ?"
+    ).run(String(orgId), email.trim().toLowerCase());
+    return getMemberRole(orgId, email);
+}
+
+function countOrganizationMembers(orgId) {
+    const d = getDb();
+    const row = d.prepare(
+        "SELECT COUNT(*) as count FROM organization_members WHERE org_id = ? AND status IN ('active', 'pending')"
+    ).get(String(orgId || ''));
+    return row ? row.count : 0;
+}
+
+function createWorkspace(tenantId, name, slug, createdBy, visibility = 'private') {
+    const d = getDb();
+    const normalizedTenantId = String(tenantId || '').trim();
+    if (!normalizedTenantId) throw new Error('tenantId required');
+    const normalizedName = String(name || '').trim();
+    if (!normalizedName) throw new Error('Workspace name required');
+    const normalizedSlug = String(slug || normalizedName)
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    const workspaceId = 'ws_' + (crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex'));
+    d.prepare(
+        'INSERT INTO workspaces (id, tenant_id, name, slug, visibility, created_by) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(
+        workspaceId,
+        normalizedTenantId,
+        normalizedName,
+        normalizedSlug,
+        String(visibility || 'private').trim() || 'private',
+        String(createdBy || '').trim().toLowerCase()
+    );
+    d.prepare(
+        "INSERT INTO workspace_memberships (workspace_id, user_email, role, status, accepted_at) VALUES (?, ?, 'owner', 'active', datetime('now'))"
+    ).run(workspaceId, String(createdBy || '').trim().toLowerCase());
+    return d.prepare('SELECT * FROM workspaces WHERE id = ?').get(workspaceId);
+}
+
+function listWorkspacesForTenant(tenantId, userEmail) {
+    const d = getDb();
+    return d.prepare(`
+        SELECT w.*, wm.role, wm.status as membership_status
+        FROM workspaces w
+        JOIN workspace_memberships wm ON wm.workspace_id = w.id
+        WHERE w.tenant_id = ? AND wm.user_email = ? AND wm.status = 'active'
+        ORDER BY w.updated_at DESC, w.created_at DESC
+    `).all(String(tenantId || ''), String(userEmail || '').trim().toLowerCase());
+}
+
+function addTenantAuditLog(entry) {
+    const d = getDb();
+    d.prepare(`
+        INSERT INTO tenant_audit_logs (
+            tenant_id,
+            workspace_id,
+            actor_email,
+            action,
+            resource_type,
+            resource_id,
+            metadata_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+        String(entry.tenantId || ''),
+        entry.workspaceId ? String(entry.workspaceId) : null,
+        String(entry.actorEmail || '').trim().toLowerCase(),
+        String(entry.action || 'unknown'),
+        entry.resourceType ? String(entry.resourceType) : null,
+        entry.resourceId ? String(entry.resourceId) : null,
+        entry.metadata ? JSON.stringify(entry.metadata) : null
+    );
+}
+
+function getTenantAuditLogs(tenantId, limit = 100) {
+    const d = getDb();
+    return d.prepare(`
+        SELECT id, tenant_id, workspace_id, actor_email, action, resource_type, resource_id, metadata_json, created_at
+        FROM tenant_audit_logs
+        WHERE tenant_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+    `).all(String(tenantId || ''), Math.max(1, Math.min(500, Number(limit) || 100)));
+}
+
 module.exports = {
     getDb,
     addSubscription,
@@ -860,5 +1238,23 @@ module.exports = {
     getLatestOpenReferralAttribution,
     markReferralAttributionSignedUp,
     markReferralAttributionConverted,
-    grantReferralReward
+    grantReferralReward,
+    createOrganization,
+    getOrganizationById,
+    getOrganizationBySlug,
+    getOrganizationsForUser,
+    updateOrganization,
+    deleteOrganization,
+    addOrganizationMember,
+    getOrganizationMembers,
+    getMemberRole,
+    updateMemberRole,
+    removeOrganizationMember,
+    acceptInvitation,
+    countOrganizationMembers,
+    createWorkspace,
+    listWorkspacesForTenant,
+    addTenantAuditLog,
+    getTenantAuditLogs,
+    VALID_ROLES
 };

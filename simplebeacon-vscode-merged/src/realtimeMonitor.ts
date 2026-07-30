@@ -1058,8 +1058,8 @@ export class RealtimeMonitor {
         issue.severity === 'error'
           ? vscode.DiagnosticSeverity.Error
           : issue.severity === 'warning'
-            ? vscode.DiagnosticSeverity.Warning
-            : vscode.DiagnosticSeverity.Information;
+            ? vscode.DiagnosticSeverity.Hint
+            : vscode.DiagnosticSeverity.Hint;
 
       const range = new vscode.Range(
         new vscode.Position(issue.line - 1, issue.column - 1),
@@ -1068,6 +1068,9 @@ export class RealtimeMonitor {
       const diagnostic = new vscode.Diagnostic(range, `${issue.message} (${issue.type})`, diagnosticSeverity);
       diagnostic.code = 'simplebeacon-ai-slop';
       diagnostic.source = 'SimpleBeacon AI Slop Cop';
+      if (diagnostic.severity !== vscode.DiagnosticSeverity.Error) {
+        diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
+      }
 
       const existing = diagnosticsMap.get(issue.file) || [];
       existing.push(diagnostic);

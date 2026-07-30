@@ -6,15 +6,30 @@
  */
 
 // Set test environment
-// Mock heavy config constants to avoid loading the full constants facade in tests
-jest.mock('../server/config/constants.cjs', () => ({
-  TIMEOUT_30S: 30000,
-  TIMEOUT_8S: 8000,
-  TIMEOUT_12S: 12000,
-  TIMEOUT_1M: 60000,
-  MAX_RATE_LIMIT: 1000,
-  safeJsonLimit: () => '1mb'
-}));
+// Provide a safe, minimal override for a few heavy constants, but keep the
+// real constants facade available for tests that depend on its helpers.
+// Merge real constants with a small override so tests still see all helpers.
+// Use a factory that calls `jest.requireActual` inside so Jest's hoisting rules are satisfied.
+jest.mock('../server/config/constants.cjs', () => {
+  try {
+    const realConstants = jest.requireActual('../server/config/constants.cjs');
+    return Object.freeze(Object.assign({}, realConstants, {
+      TIMEOUT_30S: 30000,
+      TIMEOUT_8S: 8000,
+      TIMEOUT_12S: 12000,
+      TIMEOUT_1M: 60000,
+      MAX_RATE_LIMIT: 1000
+    }));
+  } catch (e) {
+    return {
+      TIMEOUT_30S: 30000,
+      TIMEOUT_8S: 8000,
+      TIMEOUT_12S: 12000,
+      TIMEOUT_1M: 60000,
+      MAX_RATE_LIMIT: 1000
+    };
+  }
+});
 const constants = require('../server/config/constants.cjs');
 
 // Normalize `minimatch` shape for Jest runtime: some installed versions export
@@ -41,30 +56,40 @@ try {
 }
 process.env.NODE_ENV = 'test';
 
-// Mock console methods to reduce noise in test output
+// Mock console methods to reduce noise in test output. Set KEEP_CONSOLE=1 to passthrough real console.
 const originalConsole = global.console;
+let __consoleMocked = false;
 
-beforeAll(() => {
-  global.console = {
-    ...originalConsole,
-    // Keep error and warn for debugging
-    log: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-    error: originalConsole.error,
-    warn: originalConsole.warn,
-  };
-});
+if (!process.env.KEEP_CONSOLE) {
+  beforeAll(() => {
+    __consoleMocked = true;
+    global.console = {
+      ...originalConsole,
+      // Keep error and warn for debugging
+      log: jest.fn(),
+      info: jest.fn(),
+      debug: jest.fn(),
+      error: originalConsole.error,
+      warn: originalConsole.warn,
+    };
+  });
 
-afterAll(() => {
-  global.console = originalConsole;
-});
+  afterAll(() => {
+    if (__consoleMocked) global.console = originalConsole;
+  });
+} else {
+  // No-op hooks when console passthrough is requested
+  beforeAll(() => {});
+  afterAll(() => {});
+}
 
 // Mock environment variables that might be missing in test environment
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-32chars-minimum';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test-jwt-refresh-secret-key-for-testing-32chars';
 process.env.REQUIRE_AUTH = process.env.REQUIRE_AUTH || 'true';
 process.env.SIMPLEBEACON_INTERNAL_DASHBOARD = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || 'true';
+// Provide a test license secret so license verification branches run during unit tests
+process.env.SIMPLEBEACON_LICENSE_SECRET = process.env.SIMPLEBEACON_LICENSE_SECRET || 'test-license-secret';
 
 // Increase timeout for async operations
 jest.setTimeout(constants.TIMEOUT_30S);

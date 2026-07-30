@@ -61,6 +61,34 @@ const JAVASCRIPT_AST_RULE_CATALOG = [
         type: 'SQL Injection — Unparameterized Query',
         severity: 'critical',
         description: 'Non-literal SQL argument passed to query executor without placeholder array (JavaScript AST)'
+    },
+    {
+        id: 'SB-JS-REDUNDANCY-003',
+        category: 'algorithmic-redundancy',
+        type: 'Identical Catch Handlers',
+        severity: 'low',
+        description: 'Multiple catch blocks share identical handler bodies — possible LLM boilerplate (JavaScript AST)'
+    },
+    {
+        id: 'SB-JS-REDUNDANCY-004',
+        category: 'algorithmic-redundancy',
+        type: 'Deep Nesting / High Complexity',
+        severity: 'medium',
+        description: 'Function with nesting depth >= 6 — consider refactoring with guard clauses (JavaScript AST)'
+    },
+    {
+        id: 'SB-JS-REDUNDANCY-005',
+        category: 'algorithmic-redundancy',
+        type: 'Identical Promise Catch Chains',
+        severity: 'low',
+        description: 'Multiple .catch() handlers share identical bodies — possible LLM boilerplate (JavaScript AST)'
+    },
+    {
+        id: 'SB-JS-REDUNDANCY-006',
+        category: 'algorithmic-redundancy',
+        type: 'Duplicate Condition Branches',
+        severity: 'low',
+        description: 'Consecutive if-statements with identical return values — collapse into single condition (JavaScript AST)'
     }
 ];
 
@@ -70,7 +98,11 @@ const RECOMMENDATIONS = {
     'SB-JS-TB-001': 'Pass max_tokens, max_completion_tokens, or maxOutputTokens on LLM client calls.',
     'SB-JS-EU-001': 'Document Annex III classification, transparency, and human oversight for this flow.',
     'SB-JS-SQL-001': 'Use parameterized queries with placeholder arrays. Never concatenate variables into SQL strings.',
-    'SB-JS-SQL-002': 'Pass query parameters as a separate array to the driver. Do not interpolate user input into SQL.'
+    'SB-JS-SQL-002': 'Pass query parameters as a separate array to the driver. Do not interpolate user input into SQL.',
+    'SB-JS-REDUNDANCY-003': 'Extract shared catch logic into a reusable error handler function.',
+    'SB-JS-REDUNDANCY-004': 'Refactor deeply nested logic using early returns, guard clauses, or helper functions to reduce cyclomatic complexity.',
+    'SB-JS-REDUNDANCY-005': 'Extract shared .catch() handler into a named function and reference it across promise chains.',
+    'SB-JS-REDUNDANCY-006': 'Collapse consecutive if-statements with identical return values into a single condition using logical OR.'
 };
 
 let babelParser = null;
@@ -244,6 +276,42 @@ function scanSourceAst(relativePath, content, ext) {
         findings.push(makeFinding(relativePath, line, rule, details));
     };
 
+    // Collectors for redundancy analysis
+    const catchBodies = [];
+    const promiseCatchBodies = [];
+    const funcNesting = [];
+
+    function countNestingDepth(node, depth = 0) {
+        if (!node || typeof node !== 'object') return depth;
+        let maxDepth = depth;
+        if (node.type === 'BlockStatement' || node.type === 'IfStatement' ||
+            node.type === 'ForStatement' || node.type === 'WhileStatement' ||
+            node.type === 'SwitchStatement' || node.type === 'TryStatement') {
+            depth++;
+            maxDepth = depth;
+        }
+        for (const key of Object.keys(node)) {
+            if (key === 'loc' || key === 'start' || key === 'end' || key === 'range') continue;
+            const child = node[key];
+            if (Array.isArray(child)) {
+                for (const item of child) {
+                    if (item && typeof item === 'object' && item.type) {
+                        maxDepth = Math.max(maxDepth, countNestingDepth(item, depth));
+                    }
+                }
+            } else if (child && typeof child === 'object' && child.type) {
+                maxDepth = Math.max(maxDepth, countNestingDepth(child, depth));
+            }
+        }
+        return maxDepth;
+    }
+
+    function bodyToKey(node) {
+        if (!node) return '';
+        try { return JSON.stringify({ t: node.type, b: node.body?.map?.(s => s.type) || node.argument?.type || node.expression?.type }); }
+        catch { return ''; }
+    }
+
     getTraverse()(ast, {
         StringLiteral(pathNode) {
             const val = pathNode.node.value;
@@ -267,11 +335,19 @@ function scanSourceAst(relativePath, content, ext) {
                 push(JAVASCRIPT_AST_RULE_CATALOG[1], pathNode.node.loc?.start?.line || 1,
                     `Function '${pathNode.node.id?.name || 'anonymous'}' returns only null/undefined — likely stub.`);
             }
+            const depth = countNestingDepth(pathNode.node.body);
+            if (depth >= 6) {
+                funcNesting.push({ name: pathNode.node.id?.name || 'anonymous', depth, line: pathNode.node.loc?.start?.line || 1 });
+            }
         },
         FunctionExpression(pathNode) {
             if (pathNode.node.id && isStubBody(pathNode.node.body)) {
                 push(JAVASCRIPT_AST_RULE_CATALOG[1], pathNode.node.loc?.start?.line || 1,
                     `Function '${pathNode.node.id.name}' returns only null/undefined — likely stub.`);
+            }
+            const depth = countNestingDepth(pathNode.node.body);
+            if (depth >= 6) {
+                funcNesting.push({ name: pathNode.node.id?.name || 'anonymous', depth, line: pathNode.node.loc?.start?.line || 1 });
             }
         },
         ArrowFunctionExpression(pathNode) {
@@ -280,6 +356,19 @@ function scanSourceAst(relativePath, content, ext) {
                 || (body.type === 'Identifier' && body.name === 'undefined')) {
                 push(JAVASCRIPT_AST_RULE_CATALOG[1], pathNode.node.loc?.start?.line || 1,
                     'Arrow function returns only null/undefined — likely stub.');
+            }
+            const depth = countNestingDepth(body);
+            if (depth >= 6) {
+                funcNesting.push({ name: 'anonymous', depth, line: pathNode.node.loc?.start?.line || 1 });
+            }
+        },
+        CatchClause(pathNode) {
+            const body = pathNode.node.body;
+            if (body && body.type === 'BlockStatement') {
+                catchBodies.push({
+                    key: bodyToKey(body),
+                    line: pathNode.node.loc?.start?.line || 1,
+                });
             }
         },
         CallExpression(pathNode) {
@@ -292,6 +381,17 @@ function scanSourceAst(relativePath, content, ext) {
                 if (!hasTokenLimit(args)) {
                     push(JAVASCRIPT_AST_RULE_CATALOG[2], line,
                         `Unbounded LLM call via '${calleeLabel(callee)}' — missing token limit.`);
+                }
+            }
+
+            // Promise .catch() handler collection
+            if (callee.type === 'MemberExpression' && callee.property?.name === 'catch') {
+                const handler = args[0];
+                if (handler) {
+                    promiseCatchBodies.push({
+                        key: bodyToKey(handler),
+                        line,
+                    });
                 }
             }
 
@@ -311,8 +411,65 @@ function scanSourceAst(relativePath, content, ext) {
                 push(JAVASCRIPT_AST_RULE_CATALOG[5], line,
                     `Unparameterized query in '${calleeLabel(callee)}' — variable SQL without placeholder array.`);
             }
+        },
+        IfStatement(pathNode) {
+            // SB-JS-REDUNDANCY-006: Check for consecutive if-statements with identical return values
+            const node = pathNode.node;
+            const next = pathNode.parentPath?.node;
+            if (next && Array.isArray(next.body)) {
+                const idx = next.body.indexOf(node);
+                if (idx >= 0 && idx < next.body.length - 1) {
+                    const nextIf = next.body[idx + 1];
+                    if (nextIf?.type === 'IfStatement' && !node.alternate && !nextIf.alternate) {
+                        const curBody = node.consequent;
+                        const nextBody = nextIf.consequent;
+                        if (bodyToKey(curBody) === bodyToKey(nextBody) && bodyToKey(curBody)) {
+                            push(JAVASCRIPT_AST_RULE_CATALOG[9], node.loc?.start?.line || 1,
+                                `Consecutive if-statements with identical bodies — collapse with logical OR.`);
+                        }
+                    }
+                }
+            }
         }
     });
+
+    // Post-traversal analysis: SB-JS-REDUNDANCY-003 (identical catch handlers)
+    if (catchBodies.length >= 3) {
+        const counts = {};
+        for (const c of catchBodies) {
+            if (!c.key) continue;
+            counts[c.key] = (counts[c.key] || 0) + 1;
+        }
+        for (const [key, count] of Object.entries(counts)) {
+            if (count >= 3) {
+                const first = catchBodies.find(c => c.key === key);
+                push(JAVASCRIPT_AST_RULE_CATALOG[6], first.line,
+                    `${count} catch blocks share identical handler bodies — extract shared handler.`);
+            }
+        }
+    }
+
+    // Post-traversal analysis: SB-JS-REDUNDANCY-004 (deep nesting)
+    for (const f of funcNesting) {
+        push(JAVASCRIPT_AST_RULE_CATALOG[7], f.line,
+            `Function '${f.name}' has nesting depth ${f.depth} — consider refactoring with guard clauses.`);
+    }
+
+    // Post-traversal analysis: SB-JS-REDUNDANCY-005 (identical Promise .catch() chains)
+    if (promiseCatchBodies.length >= 3) {
+        const counts = {};
+        for (const c of promiseCatchBodies) {
+            if (!c.key) continue;
+            counts[c.key] = (counts[c.key] || 0) + 1;
+        }
+        for (const [key, count] of Object.entries(counts)) {
+            if (count >= 3) {
+                const first = promiseCatchBodies.find(c => c.key === key);
+                push(JAVASCRIPT_AST_RULE_CATALOG[8], first.line,
+                    `${count} .catch() handlers share identical bodies — extract shared error handler.`);
+            }
+        }
+    }
 
     return { findings };
 }

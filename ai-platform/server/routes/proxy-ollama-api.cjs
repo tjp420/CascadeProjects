@@ -9,7 +9,6 @@ const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434';
 function getFetch() {
     if (typeof globalThis.fetch === 'function') return globalThis.fetch;
     try {
-        // eslint-disable-next-line global-require
         return require('node-fetch');
     } catch (e) {
         throw new Error('fetch is not available; please run on Node >= 18 or install node-fetch');

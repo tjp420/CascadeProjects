@@ -502,6 +502,18 @@ export function openWebsiteDashboardPanel(url: string, title = 'SimpleBeacon Das
         addDownloadedFile(filename, filePath);
       }
     }
+    if (message.command === 'downloadFile' && typeof message.base64 === 'string' && message.base64 && typeof message.filename === 'string' && message.filename) {
+      try {
+        const buffer = Buffer.from(message.base64, 'base64');
+        const uri = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(message.filename) });
+        if (uri) {
+          await vscode.workspace.fs.writeFile(uri, buffer);
+          addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
+        }
+      } catch {
+        // ignore
+      }
+    }
     if (message.command === 'updateReport' && message.report) {
       postSidebarMessage({ command: 'updateReport', report: message.report });
       updateSidebarReport(message.report);

@@ -1,0 +1,65 @@
+[TRUST BYPASS] Policy gate skipped by local override
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Offline mode ΓÇö scan fails if any network activity is detected
+Γ£ô Your source files are never modified by Simplebeacon
+
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "formatBytes" from "compliance" shadows "scan". Access via Simplebeacon namespace to disambiguate.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "redactProjectPathForExport" from "simplebeacon-report-export-sanitize" shadows "assessment-export-sanitize". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "projectLabelFromPath" from "simplebeacon-report-export-sanitize" shadows "assessment-export-sanitize". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "projectLabelFromPath" from "ai-problem-analyzer-export-sanitize" shadows "assessment-export-sanitize". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "normalizePathKey" from "path-utils" shadows "config". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "clampScore" from "ai-problem-analyzer-suite" shadows "ai-problem-analyzer-export-sanitize". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "isBlank" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "isEmpty" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "ensureArray" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "capitalize" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "pluralize" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "truncate" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "tryFn" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "memoize" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "hash" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "randomId" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "sleep" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "delay" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "parseJsonSafe" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "deepEqual" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "unique" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "partition" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "sortBy" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "flatten" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "range" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "chunk" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "times" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "get" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "set" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "seq" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "identity" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "constant" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "random" from "ai-problem-analyzer-suite" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "sleep" from "async-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "zipObject" from "object-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "kebabCase" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "camelCase" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "snakeCase" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "padStart" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "padEnd" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "escapeRegExp" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "formatNumber" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "isBlank" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "noop" from "functional-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "assertNever" from "functional-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "retry" from "async-advanced" shadows "async-utils". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "withTimeout" from "async-advanced" shadows "async-utils". Access via Simplebeacon namespace to disambiguate.
+(node:10648) SimplebeaconExportCollision: [simplebeacon] Export collision: "delay" from "async-advanced" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+Γ£ô No network activity detected during scan
+
+ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ
+Γöé ≡ƒÄë Scan Passed! Help secure the engineering ecosystem.                   Γöé
+Γöé                                                                          Γöé
+Γöé Share SimpleBeacon with your network and earn $50 server credits.        Γöé
+Γöé Link: https://simplebeacon.ai/                                           Γöé
+Γöé Tip: set SIMPLEBEACON_REFERRER_EMAIL for your personal tracking link.    Γöé
+Γöé                                                                          Γöé
+Γöé Run 'simplebeacon refer --link' to manage or extract tracking codes.     Γöé
+ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ

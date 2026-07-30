@@ -55,8 +55,16 @@ export default [
       'packages/simplebeacon-cli/**',
       '.github-sync/**',
       'github-cache/**',
+      // Exclude generated and bundled web assets to reduce lint noise
       'web/simplebeacon-dashboard/js/vendor/**',
       'web/simplebeacon-dashboard/js-es2018/vendor/**',
+      // General vendor bundles and minified libraries
+      'web/**/vendor/**',
+      'web/**/js/**/vendor/**',
+      'web/**/dist/**',
+      'web/**/assets/**',
+      'web/**/js-es2018/**',
+      'web/**/pages-publish/assets/**',
       'local-agent/**'
     ]
   }

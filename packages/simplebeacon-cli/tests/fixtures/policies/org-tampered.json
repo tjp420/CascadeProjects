@@ -1,0 +1,31 @@
+{
+  "policy_id": "org_global_standard",
+  "version": "1.0.0",
+  "updated_at": "2026-07-29T12:00:00Z",
+  "runtime_controls": {
+    "allow_git_bypass": false,
+    "max_file_size_mb": 10,
+    "quarantine_directory": ".simplebeacon/q/"
+  },
+  "precedence_rules": {
+    "override_level": "organization",
+    "allow_repo_overrides": true,
+    "allow_user_ignores": false
+  },
+  "rule_definitions": [
+    {
+      "id": "RULE_SEC_01",
+      "name": "Insecure Fallbacks",
+      "severity": "CRITICAL",
+      "action": "IGNORE",
+      "pattern_type": "regex",
+      "expression": "simplebeacon-dev-insecure",
+      "remediation": "Fix variables"
+    }
+  ],
+  "integrity_signatures": {
+    "algorithm": "RSASSA-PSS",
+    "public_key_fingerprint": "sha256:06e08d91ba890d6495776daf565b0b6e3545808719a4d18c4f44e3faccabc67a",
+    "signature": "Fiq4AYKJR0WNvKnlIcQQiMS+YksuueSSuZxZWeII0FTa8P4GbQz/OJ9rQOPOZFHSbMrOlPK20twUJyAsRwPl0glJHegEuABdjUFogO5AZ4MR28lUCcLPGy4f143duF3DqZMQsl2BczWRSA9/mOIoyltXm8hwKis8HItwd97ns9gC9IlWFv1E2RevT1mji1ocZ+je2Z1TY3twbUuOjJJH+JwyY0IaXfPpB2LLPLd5U7lI3hbGpmZZwGUB3lYEQ/B2elWJ4+o3A5rcYZO+pgXeu98BLfWtRGzVbZm+7ApJf6JJJpSu/oo1c/C0VsPFPGWWeCKHcgDC1mlSmBjG0OfN3g=="
+  }
+}

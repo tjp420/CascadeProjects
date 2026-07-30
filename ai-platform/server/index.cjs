@@ -36,7 +36,7 @@ if (fs.existsSync(envPath)) {
 }
 
 const logger = require('./lib/app-logger.cjs');
-const { resolveCorsOptions } = require('./lib/cors-config.cjs');
+const { resolveCorsOptions, parseOriginList, isAllowedCorsOrigin } = require('./lib/cors-config.cjs');
 const { appendContactSubmission } = require('./lib/contact-submissions-store.cjs');
 
 // Import enhanced security middleware
@@ -161,6 +161,18 @@ app.use((req, res, next) => {
 // Explicitly handle OPTIONS preflight early so browsers receive the
 // required PNA + CORS headers even when other middleware short-circuits.
 app.options('/*', (req, res) => {
+  const isProduction = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+  const rawCorsOrigins = process.env.CORS_ORIGINS
+    || process.env.CORS_ORIGIN
+    || process.env.SIMPLEBEACON_DEV_CORS_ORIGIN
+    || '';
+  const allowedOrigins = parseOriginList(rawCorsOrigins);
+  const requestOrigin = req.headers.origin;
+  const allowed = isAllowedCorsOrigin(requestOrigin, {
+    isProduction,
+    origins: allowedOrigins,
+  });
+
   try {
     const acrpn = req.headers['access-control-request-private-network'];
     if (typeof acrpn !== 'undefined') {
@@ -171,18 +183,23 @@ app.options('/*', (req, res) => {
     // ignore
   }
 
-  // Reflect origin when present (the `cors` middleware will also validate this later)
-  const origin = req.headers.origin || '*';
-  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Vary', 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+  if (allowed && requestOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,Access-Control-Request-Private-Network');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (!allowed) {
+    return res.sendStatus(403);
+  }
   return res.sendStatus(204);
 });
 
-app.use(cors(resolveCorsOptions({
+const corsOptions = resolveCorsOptions({
   devFallbackOrigin: process.env.CORS_ORIGIN || process.env.SIMPLEBEACON_DEV_CORS_ORIGIN
-})));
+});
+app.use(cors(corsOptions));
 
 // Ensure local analyze backend (dev ports) are permitted by CSP connect-src.
 // This middleware augments any existing Content-Security-Policy header by

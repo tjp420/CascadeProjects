@@ -4,12 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **TTM messaging release** across the marketing funnel: added the "TTM Bottleneck" section to the landing page, updated Team/Agency pricing bullets with velocity-focused value props, and added a targeted outbound "Time-to-Market Hook" email variant for attribution tracking.
+
 ### Fixed
 - **Cloudflare Web Analytics beacon** now only loads on `simplebeacon.ai` production origins when `CF_BEACON_TOKEN` is set, eliminating empty-response SRI mismatch warnings in local/preview environments.
 - **CSP** in `coming-soon/server.cjs` now allows `static.cloudflareinsights.com` in `script-src` and `*.cloudflareinsights.com` in `connect-src`.
 
 ### Security
 - Added the correct Subresource Integrity (`integrity`) and `crossorigin="anonymous"` attributes to the Cloudflare `beacon.min.js` loader.
+
+### [Released - 2026-07-28] Edge Ingress Integration & Payment Hardening
+
+#### Added
+- **Edge Ingress Proxy Gateway**: Compiled and deployed `worker-deploy/src/worker.js` as the primary ingestion hook for all incoming Stripe network events.
+- **Serverless HMAC License Signer**: Configured lightweight WebCrypto `HMAC-SHA256` token minting loops directly within Cloudflare V8 edge isolates.
+- **Verification Tooling**: Added automated runners `validate-edge-webhook.mjs` and `validate-success-poll.mjs` with matching npm aliases (`npm run validate:webhook` / `validate:license`) for high-signal integration checks.
+- **DNS Automation Suite**: Created `verify-dns.ps1` to programmatically audit outbound SPF, DKIM, and DMARC text records before testing email pipelines.
+
+#### Fixed
+- **Split-Handler Coordination Gap**: Re-architected the payment flow to turn the Cloudflare Worker into an active reverse proxy, forwarding raw payloads and original headers directly to Render (`${API_BACKEND}/api/stripe/webhook`) while simultaneously minting local JWT licenses.
+- **Edge Webhook Idempotency Lock**: Hardened the Worker isolate against Stripe network retry storms via a dedicated `processed:${eventId}` verification gate inside the edge key-value data store.
+
+#### Operational Infrastructure Telemetry (Audited Baseline)
+- **Live Cloudflare KV Namespace Binding**: `LICENSE_STORE`
+- **Assigned Production Namespace ID**: `5a5a2125a7e14bf6b3e9b7b6d1e4441c`
+- **Verified Local Test Grid**: 563 / 563 Unit and Integration Suites Reporting Green (0 Failures).
+- **Grounded Performance Claims**: Verified local processing throughput at exactly **14,000 files across 4.4M lines of code in ~40 seconds** with 100% network isolation.
 
 ## [1.1.0] - 2026-06-06
 

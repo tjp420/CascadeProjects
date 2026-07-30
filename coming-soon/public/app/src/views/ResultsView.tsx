@@ -13,6 +13,7 @@ import { PostScanCliNudge } from '@/components/PostScanCliNudge';
 import { PostScanShareBanner } from '@/components/PostScanShareBanner';
 import { resolveScanLetterGrade } from '@/lib/gradeFromScore';
 import { resolveReportIssues } from '@services/analyzeService.js';
+import { apiUrl, authHeaders } from '@/config';
 
 interface ScanResultData {
   totalFiles: number;
@@ -22,6 +23,124 @@ interface ScanResultData {
   qualityScore: number | null;
   projectPath: string;
   scanScope: { profile: string; resultsViewScope: string; codeFilesAnalyzed: number };
+}
+
+type ResultCandidate = {
+  result: ScanResultData;
+  fullReport: any | null;
+  generatedAt: string | null;
+  epoch: number | null;
+};
+
+function parseJsonObject(raw: string | null): Record<string, unknown> | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseEpoch(value: unknown): number | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function toIso(value: unknown): string | null {
+  const epoch = parseEpoch(value);
+  return epoch ? new Date(epoch).toISOString() : null;
+}
+
+function toNum(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toBool(value: unknown, fallback = true): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+  }
+  return fallback;
+}
+
+function normalizeSeverityCounts(input: unknown): ScanResultData['severityCounts'] {
+  const sev = (input && typeof input === 'object') ? input as Record<string, unknown> : {};
+  return {
+    critical: toNum(sev.critical, 0),
+    high: toNum(sev.high, 0),
+    medium: toNum(sev.medium, 0),
+    low: toNum(sev.low, 0),
+    info: toNum(sev.info, 0),
+  };
+}
+
+function buildResultFromPayload(payload: Record<string, unknown> | null): ScanResultData | null {
+  if (!payload) return null;
+  const summary = (payload.summary && typeof payload.summary === 'object')
+    ? payload.summary as Record<string, unknown>
+    : null;
+  const gateObj = (payload.gate && typeof payload.gate === 'object')
+    ? payload.gate as Record<string, unknown>
+    : null;
+  const scanScopeObj = (payload.scanScope && typeof payload.scanScope === 'object')
+    ? payload.scanScope as Record<string, unknown>
+    : null;
+  const findings = Array.isArray(payload.findings) ? payload.findings : [];
+
+  return {
+    totalFiles: toNum(payload.repositoryFilesTotal ?? payload.totalFiles ?? summary?.totalFiles, 0),
+    issueCount: toNum(payload.issueCount ?? summary?.totalFindings ?? findings.length, 0),
+    severityCounts: normalizeSeverityCounts(payload.severityCounts ?? summary?.severityCounts),
+    gate: {
+      pass: toBool(gateObj?.pass, true),
+      blockingCount: toNum(gateObj?.blockingCount, 0),
+      warningCount: toNum(gateObj?.warningCount, 0),
+    },
+    qualityScore: Number.isFinite(Number(payload.qualityScore)) ? Number(payload.qualityScore) : null,
+    projectPath: String(payload.projectRoot ?? payload.projectPath ?? ''),
+    scanScope: {
+      profile: String(scanScopeObj?.profile ?? 'standard'),
+      resultsViewScope: String(scanScopeObj?.resultsViewScope ?? 'dashboard'),
+      codeFilesAnalyzed: toNum(
+        scanScopeObj?.codeFilesAnalyzed
+          ?? payload.ruleScopedFilesAnalyzed
+          ?? payload.filesAnalyzed,
+        0,
+      ),
+    },
+  };
+}
+
+function toCandidate(payload: Record<string, unknown> | null, fallbackTime?: string | null): ResultCandidate | null {
+  const result = buildResultFromPayload(payload);
+  if (!result) return null;
+  const generatedAt = toIso(payload?.generatedAt ?? payload?.lastScan ?? fallbackTime ?? null);
+  return {
+    result,
+    fullReport: payload,
+    generatedAt,
+    epoch: parseEpoch(generatedAt),
+  };
+}
+
+function chooseFreshestCandidate(candidates: Array<ResultCandidate | null>): ResultCandidate | null {
+  const valid = candidates.filter((c): c is ResultCandidate => Boolean(c));
+  if (valid.length === 0) return null;
+  const withTime = valid.filter((c) => c.epoch !== null);
+  if (withTime.length === 0) return valid[0];
+  withTime.sort((a, b) => (b.epoch ?? 0) - (a.epoch ?? 0));
+  return withTime[0];
+}
+
+function formatTime(iso: string | null): string | null {
+  if (!iso) return null;
+  const epoch = parseEpoch(iso);
+  return epoch ? new Date(epoch).toLocaleString() : iso;
 }
 
 function syncReportToVscodeSidebar(reportData: any, fallbackProjectPath = ''): void {
@@ -79,22 +198,46 @@ export function ResultsView() {
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
-    try {
-      const full = localStorage.getItem('sb_last_scan_full');
-      if (full) {
-        setResult(JSON.parse(full));
-      }
-      const report = localStorage.getItem('sb_last_scan_report');
-      if (report) {
-        setFullReport(JSON.parse(report));
-      }
-      const time = localStorage.getItem('sb_last_scan_time');
-      if (time) {
-        setScanTime(new Date(time).toLocaleString());
-      }
-    } catch {
-      /* ignore */
+    let cancelled = false;
+
+    const fullLocal = parseJsonObject(localStorage.getItem('sb_last_scan_full'));
+    const reportLocal = parseJsonObject(localStorage.getItem('sb_last_scan_report'));
+    const timeLocal = toIso(localStorage.getItem('sb_last_scan_time'));
+
+    const localCandidate = chooseFreshestCandidate([
+      toCandidate(fullLocal, timeLocal),
+      toCandidate(reportLocal, timeLocal),
+    ]);
+
+    if (localCandidate) {
+      setResult(localCandidate.result);
+      setFullReport(localCandidate.fullReport);
+      setScanTime(formatTime(localCandidate.generatedAt));
     }
+
+    const fetchFreshCandidate = async () => {
+      try {
+        const res = await fetch(apiUrl(`/simplebeacon/report?_ts=${Date.now()}`), {
+          headers: authHeaders(),
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const apiPayload = await res.json() as Record<string, unknown>;
+        const apiCandidate = toCandidate(apiPayload);
+        const selected = chooseFreshestCandidate([localCandidate, apiCandidate]);
+        if (cancelled || !selected) return;
+        setResult(selected.result);
+        setFullReport(selected.fullReport);
+        setScanTime(formatTime(selected.generatedAt));
+      } catch {
+        // keep local candidate
+      }
+    };
+
+    void fetchFreshCandidate();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const reportForIssues = useMemo(() => {

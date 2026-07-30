@@ -9,25 +9,223 @@ import {
 } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { useAuth } from '@/hooks/useAuth';
+import { apiUrl, authHeaders } from '@/config';
+
+type ScanSummary = {
+  files: number;
+  issues: number;
+  gate: boolean;
+  qualityScore: number | null;
+  generatedAt: string | null;
+  source: 'local' | 'api';
+  sourceReason: string;
+};
+
+type FreshnessCandidate = {
+  summary: ScanSummary;
+  epoch: number | null;
+};
+
+function parseJsonObject(raw: string | null): Record<string, unknown> | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toBoolean(value: unknown, fallback = true): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+  }
+  return fallback;
+}
+
+function parseEpoch(value: unknown): number | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function parseIso(value: unknown): string | null {
+  const epoch = parseEpoch(value);
+  return epoch ? new Date(epoch).toISOString() : null;
+}
+
+function deriveSummaryFromReport(
+  report: Record<string, unknown> | null,
+  source: 'local' | 'api',
+  sourceReason: string,
+): ScanSummary | null {
+  if (!report) return null;
+  const summary = (report.summary && typeof report.summary === 'object')
+    ? report.summary as Record<string, unknown>
+    : null;
+  const findings = Array.isArray(report.findings) ? report.findings : [];
+  const files = toFiniteNumber(
+    report.repositoryFilesTotal
+      ?? report.ruleScopedFilesAnalyzed
+      ?? report.filesAnalyzed
+      ?? summary?.totalFiles
+      ?? 0,
+    0,
+  );
+  const issues = toFiniteNumber(
+    report.issueCount
+      ?? summary?.totalFindings
+      ?? summary?.issues
+      ?? findings.length,
+    0,
+  );
+  const gate = toBoolean((report.gate as Record<string, unknown> | undefined)?.pass, true);
+  const qualityScoreRaw = report.qualityScore
+    ?? summary?.healthScore
+    ?? (report.gate as Record<string, unknown> | undefined)?.score
+    ?? null;
+  const qualityScore = Number.isFinite(Number(qualityScoreRaw)) ? Number(qualityScoreRaw) : null;
+  const generatedAt = parseIso(report.generatedAt ?? report.lastScan ?? summary?.generatedAt ?? null);
+
+  return {
+    files,
+    issues,
+    gate,
+    qualityScore,
+    generatedAt,
+    source,
+    sourceReason,
+  };
+}
+
+function toCandidate(summary: ScanSummary | null): FreshnessCandidate | null {
+  if (!summary) return null;
+  return {
+    summary,
+    epoch: parseEpoch(summary.generatedAt),
+  };
+}
+
+function chooseFreshest(candidates: Array<FreshnessCandidate | null>): ScanSummary | null {
+  const available = candidates.filter((c): c is FreshnessCandidate => Boolean(c));
+  if (available.length === 0) return null;
+
+  const withTime = available.filter((c) => c.epoch !== null);
+  if (withTime.length > 0) {
+    withTime.sort((a, b) => {
+      const timeDelta = (b.epoch ?? 0) - (a.epoch ?? 0);
+      if (timeDelta !== 0) return timeDelta;
+      if (a.summary.source === b.summary.source) return 0;
+      return a.summary.source === 'api' ? -1 : 1;
+    });
+    return withTime[0].summary;
+  }
+
+  const apiFallback = available.find((c) => c.summary.source === 'api');
+  return apiFallback?.summary ?? available[0].summary;
+}
+
+function fmtDate(value: string | null): string {
+  if (!value) return '—';
+  const epoch = parseEpoch(value);
+  if (!epoch) return value;
+  return new Date(epoch).toLocaleString();
+}
+
+function readLocalCandidate(): FreshnessCandidate | null {
+  const cachedSummary = parseJsonObject(localStorage.getItem('sb_last_scan'));
+  const cachedReport = parseJsonObject(localStorage.getItem('sb_last_scan_report'));
+  const cachedFull = parseJsonObject(localStorage.getItem('sb_last_scan_full'));
+  const cachedTime = parseIso(localStorage.getItem('sb_last_scan_time'));
+
+  const reportSummary = deriveSummaryFromReport(
+    cachedReport || cachedFull,
+    'local',
+    'Recovered from browser cache report payload.',
+  );
+
+  if (cachedSummary) {
+    const combined: ScanSummary = {
+      files: toFiniteNumber(cachedSummary.files, reportSummary?.files ?? 0),
+      issues: toFiniteNumber(cachedSummary.issues, reportSummary?.issues ?? 0),
+      gate: toBoolean(cachedSummary.gate, reportSummary?.gate ?? true),
+      qualityScore: reportSummary?.qualityScore ?? null,
+      generatedAt: cachedTime || reportSummary?.generatedAt || null,
+      source: 'local',
+      sourceReason: 'Recovered from browser cache summary.',
+    };
+    return toCandidate(combined);
+  }
+
+  if (reportSummary) {
+    const withTime = {
+      ...reportSummary,
+      generatedAt: cachedTime || reportSummary.generatedAt,
+      sourceReason: cachedTime
+        ? 'Recovered from browser cache report and timestamp.'
+        : reportSummary.sourceReason,
+    };
+    return toCandidate(withTime);
+  }
+
+  return null;
+}
 
 export function DashboardView() {
   const { isFreeTier } = useAuth();
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'complete'>('idle');
-  const [lastScan, setLastScan] = useState<{ files: number; issues: number; gate: boolean } | null>(null);
+  const [lastScan, setLastScan] = useState<ScanSummary | null>(null);
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('sb_last_scan');
-      if (saved) {
-        const data = JSON.parse(saved);
-        setLastScan({
-          files: data.files || 0,
-          issues: data.issues || 0,
-          gate: data.gate ?? true,
-        });
+    let cancelled = false;
+
+    const localCandidate = (() => {
+      try {
+        return readLocalCandidate();
+      } catch {
+        return null;
       }
-    } catch { /* ignore */ }
+    })();
+
+    if (localCandidate?.summary) {
+      setLastScan(localCandidate.summary);
+    }
+
+    const fetchApiCandidate = async () => {
+      try {
+        const res = await fetch(apiUrl(`/simplebeacon/report?_ts=${Date.now()}`), {
+          headers: authHeaders(),
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const payload = await res.json() as Record<string, unknown>;
+        const apiCandidate = toCandidate(deriveSummaryFromReport(
+          payload,
+          'api',
+          'Fetched latest scan summary from API.',
+        ));
+        const selected = chooseFreshest([localCandidate, apiCandidate]);
+        if (!cancelled && selected) {
+          setLastScan(selected);
+        }
+      } catch {
+        // local fallback remains in place
+      }
+    };
+
+    void fetchApiCandidate();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -95,10 +293,15 @@ export function DashboardView() {
         <MetricCard
           icon={TrendingUp}
           label="Quality Score"
-          value="—"
+          value={lastScan?.qualityScore != null ? String(lastScan.qualityScore) : '—'}
           color="muted"
         />
       </div>
+      {lastScan && (
+        <p className="text-xs text-foreground-muted">
+          Last scan: {fmtDate(lastScan.generatedAt)} · Source: {lastScan.source} · {lastScan.sourceReason}
+        </p>
+      )}
 
       {/* Quick Actions + Scan Status */}
       <div className="grid gap-4 lg:grid-cols-3">

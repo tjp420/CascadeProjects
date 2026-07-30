@@ -37,6 +37,12 @@ function generateSessionToken(user) {
     const tier = user.tier || 'community';
     const payload = { email: user.email, tier, type: 'session' };
     if (tier === 'admin') payload.role = 'admin';
+    try {
+        const orgs = db.getOrganizationsForUser(user.email);
+        if (orgs && orgs.length > 0) {
+            payload.orgs = orgs.map(o => ({ id: o.id, role: o.role }));
+        }
+    } catch { /* org lookup optional — don't block login */ }
     return jwt.sign(payload, secret, { expiresIn: SESSION_EXPIRY_HOURS * 60 * 60 });
 }
 

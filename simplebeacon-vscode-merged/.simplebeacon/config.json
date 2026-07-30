@@ -7,9 +7,8 @@
     "src/"
   ],
   "allowedAnalysisRoots": [
-    "C:/Users/Trevor/CascadeProjects",
-    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged",
-    "C:/Users/Trevor/CascadeProjects_BACKUP_20260521"
+    "C:/Users/user/CascadeProjects",
+    "C:/Users/user/CascadeProjects/simplebeacon-vscode-merged"
   ],
   "fullDirectoryScan": true,
   "fullDirectoryScanMaxFiles": 50000,

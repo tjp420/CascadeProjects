@@ -1304,8 +1304,14 @@ export function AnalyzeView() {
       return;
     }
 
+    // Firefox invalidates DataTransfer after the drop handler yields.
+    // Capture EVERYTHING synchronously before any await.
     const capturedEntries = captureDropEntries(e.dataTransfer.items);
     const dtFiles = Array.from(e.dataTransfer.files);
+    const firstItem = e.dataTransfer.items?.[0] as (DataTransferItem & { getAsFileSystemHandle?: () => Promise<FileSystemHandle> }) | undefined;
+    const getFsHandle = firstItem && typeof firstItem.getAsFileSystemHandle === 'function'
+      ? firstItem.getAsFileSystemHandle.bind(firstItem)
+      : null;
 
     if (dtFiles.length > 0 && (dtFiles[0] as any).path) {
       const filePath = String((dtFiles[0] as any).path).replace(/\\/g, '/');
@@ -1323,7 +1329,7 @@ export function AnalyzeView() {
 
     if (capturedEntries.length > 0) {
       try {
-        const { files, rootName, traverseErrors } = await collectFilesFromDrop(e.dataTransfer, capturedEntries);
+        const { files, rootName, traverseErrors } = await collectFilesFromDrop(dtFiles, capturedEntries);
         if (files.length > 0) {
           if (traverseErrors > 0) {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
@@ -1342,10 +1348,9 @@ export function AnalyzeView() {
       }
     }
 
-    const firstItem = e.dataTransfer.items?.[0] as DataTransferItem & { getAsFileSystemHandle?: () => Promise<FileSystemHandle> };
-    if (firstItem && typeof firstItem.getAsFileSystemHandle === 'function') {
+    if (getFsHandle) {
       try {
-        const handle = await firstItem.getAsFileSystemHandle();
+        const handle = await getFsHandle();
         if (handle && handle.kind === 'directory') {
           const dirHandle = handle as FileSystemDirectoryHandle;
           toast.info(`Scanning dropped folder "${dirHandle.name}"...`);
@@ -1363,7 +1368,7 @@ export function AnalyzeView() {
 
     if (dtFiles.length > 0) {
       try {
-        const { files, rootName } = await collectFilesFromDrop(e.dataTransfer, []);
+        const { files, rootName } = await collectFilesFromDrop(dtFiles, []);
         if (files.length > 0) {
           toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
           await runBrowserLocalScan({

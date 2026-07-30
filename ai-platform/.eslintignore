@@ -3,3 +3,25 @@ simplebeacon-vscode/out/
 
 # Complex legacy file with many no-case-declarations errors
 server/lib/code-understanding/ml-pattern-detector.cjs
+
+# Ignore generated/dist assets and compiled bundles
+web/**/dist/
+web/**/assets/
+web/**/js-es2018/
+web/**/pages-publish/assets/
+web/**/vendor/
+web/**/wasm/pkg/
+# Local build outputs
+dist/
+*.min.js
+*.map
+# node_modules are already excluded but be explicit for safety
+node_modules/
+# Coverage and build artifacts
+coverage/
+.simplebeacon/
+
+# Ignore IDE and OS files
+.vscode/
+.DS_Store
+Thumbs.db

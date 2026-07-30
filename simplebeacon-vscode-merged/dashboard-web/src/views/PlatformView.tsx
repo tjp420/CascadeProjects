@@ -35,7 +35,7 @@ export function PlatformView() {
     setError(null);
     try {
       const [statusResp, healthResp] = await Promise.allSettled([
-        fetch(apiUrl('/status'), { headers: authHeaders() }),
+        fetch(apiUrl('/platform/status'), { headers: authHeaders() }),
         fetch(apiUrl('/health'), { headers: authHeaders() }),
       ]);
 

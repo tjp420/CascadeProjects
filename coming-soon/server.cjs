@@ -60,6 +60,9 @@ const {
     buildModuleHtml,
     buildCertificateHtml
 } = require('./lib/certificate-utils.cjs');
+const { requireAuth } = require('./lib/rbac.cjs');
+const { extractTenantContext, resolveAuthenticatedContext } = require('./src/middleware/tenantContext.js');
+const { enforcePermissions } = require('./src/middleware/roleGuard.js');
 const systemLogger = require('./lib/system-logger.cjs');
 const app = express();
 const DEFAULT_PORT = 3000;
@@ -73,6 +76,24 @@ const logger = {
 };
 
 const PUBLIC_URL = process.env.PUBLIC_URL || ('http://' + 'localhost' + ':' + PORT);
+
+function withTenantPermission(permission) {
+    return [
+        requireAuth,
+        (req, _res, next) => {
+            const resolved = resolveAuthenticatedContext(req);
+            req.user = {
+                id: resolved.email || req.authPayload?.email || null,
+                email: resolved.email,
+                role: resolved.role,
+                tenantId: resolved.tenantId || null
+            };
+            next();
+        },
+        extractTenantContext,
+        enforcePermissions(permission)
+    ];
+}
 
 // Free-token rate limiter: one per IP per hour (prevents unlimited abuse)
 const FREE_TOKEN_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
@@ -972,6 +993,65 @@ try {
 } catch (err) {
     logger.warn('[Auth] Auth routes not loaded:', err.message);
 }
+
+// Organization RBAC routes — multi-tenant role-based access control
+try {
+    const orgRoutes = require('./routes/organizations.cjs');
+    app.use(orgRoutes);
+    logger.info('[Orgs] Organization RBAC routes mounted');
+} catch (err) {
+    logger.warn('[Orgs] Organization routes not loaded:', err.message);
+}
+
+// Tenant/workspace RBAC endpoints (Option A phase 1)
+app.get('/api/tenant/context', ...withTenantPermission('tenant:read'), (req, res) => {
+    res.json({ success: true, context: req.authContext });
+});
+
+app.get('/api/tenant/workspaces', ...withTenantPermission('workspaces:read'), (req, res) => {
+    try {
+        const rows = db.listWorkspacesForTenant(req.authContext.tenantId, req.authContext.userId);
+        res.json({ success: true, tenantId: req.authContext.tenantId, workspaces: rows, total: rows.length });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/tenant/workspaces', express.json({ limit: '1mb' }), ...withTenantPermission('workspaces:write'), (req, res) => {
+    try {
+        const body = req.body || {};
+        const created = db.createWorkspace(
+            req.authContext.tenantId,
+            body.name,
+            body.slug,
+            req.authContext.userId,
+            body.visibility || 'private'
+        );
+        db.addTenantAuditLog({
+            tenantId: req.authContext.tenantId,
+            workspaceId: created.id,
+            actorEmail: req.authContext.userId,
+            action: 'workspace.create',
+            resourceType: 'workspace',
+            resourceId: created.id,
+            metadata: { name: created.name, slug: created.slug }
+        });
+        res.status(201).json({ success: true, workspace: created });
+    } catch (err) {
+        const status = /required|unique|constraint/i.test(err.message || '') ? 400 : 500;
+        res.status(status).json({ success: false, error: err.message });
+    }
+});
+
+app.get('/api/tenant/audit-logs', ...withTenantPermission('audit_logs:read'), (req, res) => {
+    try {
+        const limit = Number(req.query.limit || 100);
+        const logs = db.getTenantAuditLogs(req.authContext.tenantId, limit);
+        res.json({ success: true, tenantId: req.authContext.tenantId, logs, total: logs.length });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 // Email management routes — retry worker, resend, webhooks
 try {

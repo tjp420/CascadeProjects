@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2 } from 'lucide-react';
+import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2, Sun, Moon, Monitor } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { apiUrl, authHeaders, waitForApiBase } from '@/config';
 import { isNotificationsEnabled, setNotificationsEnabled as setNotificationsPreference } from '@utils/utils-lib/dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 import { ReferralAnalyticsPanel } from '@/components/ReferralAnalyticsPanel';
 
 interface AiKeysState {
@@ -128,15 +129,7 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="theme">
-          <Card>
-            <CardHeader>
-              <CardTitle>Theme</CardTitle>
-              <CardDescription>Customize the dashboard appearance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-foreground-muted">Use the theme toggle in the header to switch between light and dark mode.</p>
-            </CardContent>
-          </Card>
+          <ThemeTab />
         </TabsContent>
 
         <TabsContent value="notifications">
@@ -184,7 +177,7 @@ function ApiKeysTab() {
     setLoading(true);
     try {
       await waitForApiBase();
-      const resp = await fetch(apiUrl('/user/ai-keys'), { headers: authHeaders() });
+      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), { headers: authHeaders() });
       if (resp.ok) {
         const data = await resp.json();
         setOpenaiHint(data.openai?.hint || '');
@@ -206,7 +199,7 @@ function ApiKeysTab() {
       const payload: Record<string, string> = {};
       if (openaiKey) payload.openai = openaiKey;
       if (anthropicKey) payload.anthropic = anthropicKey;
-      const resp = await fetch(apiUrl('/user/ai-keys'), {
+      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload),
@@ -233,7 +226,7 @@ function ApiKeysTab() {
     setSaving(true);
     try {
       await waitForApiBase();
-      const resp = await fetch(apiUrl('/user/ai-keys'), {
+      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), {
         method: 'DELETE',
         headers: authHeaders(),
       });
@@ -336,7 +329,7 @@ function AiProvidersTab() {
     setLoading(true);
     try {
       await waitForApiBase();
-      const resp = await fetch(apiUrl('/user/ai-keys'), { headers: authHeaders() });
+      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), { headers: authHeaders() });
       if (resp.ok) {
         const data = await resp.json();
         setOllamaUrl(data.ollamaBaseUrl || '');
@@ -414,7 +407,7 @@ function AiProvidersTab() {
         : selectedProvider === 'openai'
           ? { openaiModel: selectedModel }
           : { anthropicModel: selectedModel };
-      const resp = await fetch(apiUrl('/user/ai-keys'), {
+      const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload),
@@ -552,5 +545,125 @@ function ProviderStatusCard({ label, configured, hint }: { label: string; config
       </div>
       <span className="text-xs text-foreground-muted">{hint}</span>
     </div>
+  );
+}
+
+function ThemeTab() {
+  const { theme, toggleTheme } = useTheme();
+  const [followSystem, setFollowSystem] = useState(false);
+
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('sb_theme');
+      setFollowSystem(!stored);
+    } catch { /* ignore */ }
+  }, []);
+
+  const applyTheme = (next: 'light' | 'dark') => {
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('sb_theme', next);
+    setFollowSystem(false);
+    toast.success(`Theme set to ${next} mode`);
+  };
+
+  const enableFollowSystem = () => {
+    localStorage.removeItem('sb_theme');
+    setFollowSystem(true);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    toast.success('Theme set to follow system preference');
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Palette className="h-5 w-5" />
+          Theme
+        </CardTitle>
+        <CardDescription>Customize the dashboard appearance</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Mode Selection */}
+        <div className="space-y-3">
+          <Label>Appearance Mode</Label>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => applyTheme('light')}
+              className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors ${
+                theme === 'light' && !followSystem
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/40'
+              }`}
+            >
+              <Sun className="h-6 w-6 text-warning" />
+              <span className="text-sm font-medium">Light</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => applyTheme('dark')}
+              className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors ${
+                theme === 'dark' && !followSystem
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/40'
+              }`}
+            >
+              <Moon className="h-6 w-6 text-info" />
+              <span className="text-sm font-medium">Dark</span>
+            </button>
+            <button
+              type="button"
+              onClick={enableFollowSystem}
+              className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors ${
+                followSystem
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/40'
+              }`}
+            >
+              <Monitor className="h-6 w-6 text-foreground-muted" />
+              <span className="text-sm font-medium">System</span>
+            </button>
+          </div>
+          {followSystem && (
+            <p className="text-xs text-foreground-muted">
+              Dashboard will match your OS preference. Currently using <strong>{theme}</strong> mode.
+            </p>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Quick Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label>Quick Toggle</Label>
+            <p className="text-xs text-foreground-muted">Switch between light and dark instantly</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={toggleTheme} className="gap-2">
+            {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            {theme === 'light' ? 'Dark' : 'Light'}
+          </Button>
+        </div>
+
+        <Separator />
+
+        {/* Current Status */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label>Current Status</Label>
+            <p className="text-xs text-foreground-muted">
+              Active theme: <strong className="capitalize">{theme}</strong>
+              {followSystem && ' (following system)'}
+            </p>
+          </div>
+          <Badge variant={theme === 'dark' ? 'secondary' : 'outline'} className="gap-1.5">
+            {theme === 'dark' ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />}
+            <span className="capitalize">{theme}</span>
+          </Badge>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -28,6 +28,12 @@ function cleanupDir(dir) {
   } catch { /* ignore */ }
 }
 
+function countBareLf(content) {
+  const totalLf = (content.match(/\n/g) || []).length;
+  const crlf = (content.match(/\r\n/g) || []).length;
+  return totalLf - crlf;
+}
+
 describe('ai-tools safety utilities', () => {
   before(() => {
     originalCwd = process.cwd();
@@ -201,6 +207,21 @@ describe('ai-tools safety utilities', () => {
         fs.unlinkSync(tmp);
       }
     });
+
+    it('normalizes replacement text to CRLF when file uses CRLF', () => {
+      const { computeDiff } = require('./index.js');
+      const tmp = makeTmpFile('tmp-diff-crlf-' + Date.now() + '.js');
+      fs.writeFileSync(tmp, 'const a = 1;\r\nconst b = 2;\r\n', 'utf8');
+      try {
+        const result = computeDiff(tmp, 'const b = 2;\n', 'const b = 3;\nconst c = 4;\n');
+        assert.strictEqual(result.changed, true);
+        assert.strictEqual(result.occurrences, 1);
+        assert.ok(result.after.includes('const b = 3;\r\nconst c = 4;\r\n'));
+        assert.strictEqual(countBareLf(result.after), 0);
+      } finally {
+        fs.unlinkSync(tmp);
+      }
+    });
   });
 
   describe('previewFix', () => {
@@ -310,6 +331,21 @@ describe('ai-tools safety utilities', () => {
         fs.unlinkSync(tmpFile);
       }
     });
+
+    it('preserves CRLF when replacement text contains LF newlines', () => {
+      const { proposeInlineFix } = require('./index.js');
+      const tmpFile = makeTmpFile('tmp-fix-crlf-' + Date.now() + '.js');
+      fs.writeFileSync(tmpFile, 'const x = 1;\r\nconst y = 2;\r\n', 'utf8');
+      try {
+        const result = proposeInlineFix(tmpFile, 'const y = 2;\n', 'const y = 3;\nconst z = 4;\n');
+        assert.strictEqual(result.ok, true);
+        const content = fs.readFileSync(tmpFile, 'utf8');
+        assert.ok(content.includes('const y = 3;\r\nconst z = 4;\r\n'));
+        assert.strictEqual(countBareLf(content), 0);
+      } finally {
+        fs.unlinkSync(tmpFile);
+      }
+    });
   });
 
   describe('proposeInlineFixAsync', () => {
@@ -338,6 +374,21 @@ describe('ai-tools safety utilities', () => {
         assert.ok(result.error.includes('Patch rolled back'));
         const content = fs.readFileSync(tmpFile, 'utf8');
         assert.strictEqual(content, 'const x = 1;');
+      } finally {
+        fs.unlinkSync(tmpFile);
+      }
+    });
+
+    it('preserves CRLF when replacement text contains LF newlines async', async () => {
+      const { proposeInlineFixAsync } = require('./index.js');
+      const tmpFile = makeTmpFile('tmp-fix-async-crlf-' + Date.now() + '.js');
+      fs.writeFileSync(tmpFile, 'const x = 1;\r\nconst y = 2;\r\n', 'utf8');
+      try {
+        const result = await proposeInlineFixAsync(tmpFile, 'const y = 2;\n', 'const y = 3;\nconst z = 4;\n');
+        assert.strictEqual(result.ok, true);
+        const content = fs.readFileSync(tmpFile, 'utf8');
+        assert.ok(content.includes('const y = 3;\r\nconst z = 4;\r\n'));
+        assert.strictEqual(countBareLf(content), 0);
       } finally {
         fs.unlinkSync(tmpFile);
       }
@@ -403,6 +454,25 @@ describe('ai-tools safety utilities', () => {
       try {
         const result = proposeBatchFix(tmpFile, []);
         assert.strictEqual(result.ok, false);
+      } finally {
+        fs.unlinkSync(tmpFile);
+      }
+    });
+
+    it('preserves CRLF when replacements contain LF newlines', () => {
+      const { proposeBatchFix } = require('./index.js');
+      const tmpFile = makeTmpFile('tmp-batch-crlf-' + Date.now() + '.js');
+      fs.writeFileSync(tmpFile, 'const a = 1;\r\nconst b = 2;\r\nconst c = 3;\r\n', 'utf8');
+      try {
+        const result = proposeBatchFix(tmpFile, [
+          { target: 'const b = 2;\n', replacement: 'const b = 20;\nconst bb = 21;\n' },
+          { target: 'const c = 3;\n', replacement: 'const c = 30;\n' }
+        ]);
+        assert.strictEqual(result.ok, true);
+        const content = fs.readFileSync(tmpFile, 'utf8');
+        assert.ok(content.includes('const b = 20;\r\nconst bb = 21;\r\n'));
+        assert.ok(content.includes('const c = 30;\r\n'));
+        assert.strictEqual(countBareLf(content), 0);
       } finally {
         fs.unlinkSync(tmpFile);
       }

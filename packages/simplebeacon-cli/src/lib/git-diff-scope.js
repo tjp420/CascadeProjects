@@ -2,7 +2,7 @@
 /**
  * Collect changed file paths for PR / CI diff-only scans.
  */
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const path = require('path');
 
 function normalizeRelPath(entry) {
@@ -60,8 +60,98 @@ function collectGitDiffFiles(cwd, options = {}) {
     return null;
 }
 
+/**
+ * List paths staged in the git index (cached diff).
+ * Returns null when not a git repo or diff cannot be computed.
+ * @param {string} [cwd]
+ * @returns {string[]|null}
+ */
+function collectGitStagedFiles(cwd) {
+    const root = cwd || process.cwd();
+    try {
+        const out = execFileSync('git', ['diff', '--cached', '--raw', '--diff-filter=ACMR', '-z'], {
+            cwd: root,
+            stdio: ['ignore', 'pipe', 'ignore']
+        });
+        if (!Buffer.isBuffer(out) || out.length === 0) {
+            return [];
+        }
+
+        const records = out.toString('utf8').split('\0').filter(Boolean);
+        const files = [];
+        for (let i = 0; i < records.length; i += 1) {
+            const record = records[i];
+            if (!record || record[0] !== ':') continue;
+
+            const header = record;
+            const sourcePath = normalizeRelPath(records[i + 1] || '');
+            const statusMatch = header.match(/\s([A-Z][0-9]{0,3})$/);
+            const status = statusMatch ? statusMatch[1] : '';
+
+            if (!sourcePath) {
+                continue;
+            }
+
+            if (/^[RC]/.test(status)) {
+                const renamedPath = normalizeRelPath(records[i + 2] || '');
+                if (renamedPath) {
+                    files.push(renamedPath);
+                    i += 2;
+                    continue;
+                }
+            }
+
+            files.push(sourcePath);
+            i += 1;
+        }
+
+        return Array.from(new Set(files));
+    } catch {
+        try {
+            const fallback = execSync('git diff --cached --name-only --diff-filter=ACMR', {
+                cwd: root,
+                encoding: 'utf8',
+                stdio: ['ignore', 'pipe', 'ignore']
+            });
+            return Array.from(new Set(fallback.split(/\r?\n/).map(normalizeRelPath).filter(Boolean)));
+        } catch {
+            return null;
+        }
+    }
+}
+
+/**
+ * Read staged blob content for a path from the git index.
+ * Returns null for binary, missing, or oversized blobs.
+ * @param {string} cwd
+ * @param {string} relativePath
+ * @param {{ maxBytes?: number }} [options]
+ * @returns {string|null}
+ */
+function readStagedFileContent(cwd, relativePath, options = {}) {
+    const root = cwd || process.cwd();
+    const normalized = normalizeRelPath(relativePath);
+    if (!normalized) return null;
+    const maxBytes = Number.isFinite(options.maxBytes) ? options.maxBytes : 256000;
+    try {
+        const buffer = execFileSync('git', ['show', `:${normalized}`], {
+            cwd: root,
+            stdio: ['ignore', 'pipe', 'ignore'],
+            maxBuffer: maxBytes + 1024
+        });
+        if (!Buffer.isBuffer(buffer) || buffer.length === 0) return null;
+        if (buffer.includes(0)) return null;
+        if (buffer.length > maxBytes) return null;
+        return buffer.toString('utf8');
+    } catch {
+        return null;
+    }
+}
+
 module.exports = {
     collectGitDiffFiles,
+    collectGitStagedFiles,
+    readStagedFileContent,
     resolveDiffRefs,
     normalizeRelPath
 };

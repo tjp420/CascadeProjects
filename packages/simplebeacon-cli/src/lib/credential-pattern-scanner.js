@@ -70,6 +70,21 @@ const SCANNABLE_EXTENSIONS = new Set(['.json', '.js', '.mjs', '.cjs', '.ts', '.t
 const SUPPRESS_PATTERN = /(?:\/\/|#)\s*simplebeacon-ignore\s+(?:credentials|credential-pattern)/i;
 const MAX_SCAN_BYTES = 256000;
 
+const BLOCKING_PATTERN_IDS = new Set([
+    'github-pat',
+    'github-oauth',
+    'openai-key',
+    'aws-access-key',
+    'stripe-key',
+    'private-key-block',
+    'resend-key',
+    'sendgrid-key',
+    'jwt-token',
+    'slack-token',
+    'database-url',
+    'firebase-key'
+]);
+
 function lineNumberAt(content, index) {
     if (typeof content !== 'string') return 1;
     const idx = typeof index === 'number' && Number.isFinite(index) ? Math.max(0, index) : 0;
@@ -121,6 +136,23 @@ function isAllowlisted(match, content, fileName = '') {
     return false;
 }
 
+function redactMatch(value) {
+    const raw = String(value || '');
+    if (raw.length <= 4) return '****';
+    return `${raw.slice(0, 4)}…`;
+}
+
+function isBlockingSecretFinding(finding) {
+    if (!finding || typeof finding !== 'object') return false;
+    if (finding.severityBand === 'critical') return true;
+    if (BLOCKING_PATTERN_IDS.has(finding.pattern)) return true;
+    if (finding.pattern === 'generic-api-key' || finding.pattern === 'bearer-token') {
+        const matchLength = finding.metadata?.matchLength || 0;
+        return matchLength >= 20;
+    }
+    return false;
+}
+
 function scanTextContent(fileName, content, filePath = fileName) {
     if (typeof content !== 'string') return [];
     if (/simplebeacon-ignore/i.test(content.substring(0, 500))) return [];
@@ -156,6 +188,8 @@ function scanTextContent(fileName, content, filePath = fileName) {
                 metadata: {
                     patternId: pattern.id,
                     offset: match.index,
+                    matchLength: match[0].length,
+                    redactedPreview: redactMatch(match[0]),
                     findingPayload: {
                         file: filePath,
                         line,
@@ -168,6 +202,83 @@ function scanTextContent(fileName, content, filePath = fileName) {
     }
 
     return findings;
+}
+
+/**
+ * Fast pre-commit gate: scan staged git index blobs for blocking credential patterns.
+ * @param {string} [cwd]
+ * @param {{ dryRun?: boolean }} [options]
+ * @returns {{ pass: boolean, blockingCount: number, findings: object[], scannedFiles: number, skippedFiles: string[], message?: string }}
+ */
+function runStagedSecretsGate(cwd, options = {}) {
+    const { collectGitStagedFiles, readStagedFileContent } = require('./git-diff-scope');
+    const root = cwd || process.cwd();
+    const stagedPaths = collectGitStagedFiles(root);
+
+    if (stagedPaths === null) {
+        return {
+            pass: true,
+            blockingCount: 0,
+            findings: [],
+            scannedFiles: 0,
+            skippedFiles: [],
+            message: 'Not a git repository — staged secrets gate skipped'
+        };
+    }
+
+    if (!stagedPaths.length) {
+        return {
+            pass: true,
+            blockingCount: 0,
+            findings: [],
+            scannedFiles: 0,
+            skippedFiles: [],
+            message: 'Nothing staged — secrets gate passed'
+        };
+    }
+
+    const allFindings = [];
+    const skippedFiles = [];
+    let scannedFiles = 0;
+
+    for (const relativePath of stagedPaths) {
+        const name = path.basename(relativePath);
+        const ext = path.extname(name).toLowerCase();
+        if (isCredentialScanExcludedPath({ relativePath, name })) {
+            skippedFiles.push(relativePath);
+            continue;
+        }
+        if (!SCANNABLE_EXTENSIONS.has(ext)) {
+            skippedFiles.push(relativePath);
+            continue;
+        }
+
+        const content = readStagedFileContent(root, relativePath, { maxBytes: MAX_SCAN_BYTES });
+        if (content === null) {
+            skippedFiles.push(relativePath);
+            continue;
+        }
+
+        scannedFiles += 1;
+        const hits = scanTextContent(name, content, relativePath);
+        for (const hit of hits) {
+            if (isBlockingSecretFinding(hit)) {
+                allFindings.push(hit);
+            }
+        }
+    }
+
+    const blockingCount = allFindings.length;
+    return {
+        pass: blockingCount === 0 || Boolean(options.dryRun),
+        blockingCount,
+        findings: allFindings,
+        scannedFiles,
+        skippedFiles,
+        message: blockingCount === 0
+            ? `Staged secrets gate passed (${scannedFiles} file(s) scanned)`
+            : `Staged secrets gate failed (${blockingCount} blocking finding(s))`
+    };
 }
 
 function isCredentialScanExcludedPath(file) {
@@ -258,6 +369,10 @@ async function scanCredentialPatterns(files, options = {}) {
 
 module.exports = {
     CREDENTIAL_PATTERNS,
+    BLOCKING_PATTERN_IDS,
     scanCredentialPatterns,
-    scanTextContent
+    scanTextContent,
+    runStagedSecretsGate,
+    isBlockingSecretFinding,
+    redactMatch
 };

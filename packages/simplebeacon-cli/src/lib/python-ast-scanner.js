@@ -41,6 +41,34 @@ const PYTHON_AST_RULE_CATALOG = [
         type: 'EU AI Act — High-Risk Indicator',
         severity: 'high',
         description: 'Python identifier or string matches Annex III high-risk term (AST)'
+    },
+    {
+        id: 'SB-PY-REDUNDANCY-001',
+        category: 'algorithmic-redundancy',
+        type: 'Duplicate Function Body',
+        severity: 'medium',
+        description: 'Multiple Python functions share identical AST bodies — possible copy-paste or AI generation'
+    },
+    {
+        id: 'SB-PY-REDUNDANCY-002',
+        category: 'algorithmic-redundancy',
+        type: 'Redundant Try/Except Wrappers',
+        severity: 'low',
+        description: 'Majority of functions wrapped in single-statement try/except — possible LLM boilerplate'
+    },
+    {
+        id: 'SB-PY-REDUNDANCY-003',
+        category: 'algorithmic-redundancy',
+        type: 'Identical Exception Handlers',
+        severity: 'low',
+        description: 'Multiple except blocks share identical handler bodies — possible boilerplate'
+    },
+    {
+        id: 'SB-PY-REDUNDANCY-004',
+        category: 'algorithmic-redundancy',
+        type: 'Deep Nesting / High Complexity',
+        severity: 'medium',
+        description: 'Function with nesting depth >= 6 — consider refactoring for readability'
     }
 ];
 
@@ -48,7 +76,11 @@ const RECOMMENDATIONS = {
     'SB-PY-FICTION-001': 'Replace mock/sample strings with runtime config or test-scoped fixtures.',
     'SB-PY-FICTION-002': 'Implement the function or remove the AI-generated stub before merge.',
     'SB-PY-TB-001': 'Pass max_tokens or max_completion_tokens on LLM client calls.',
-    'SB-PY-EU-001': 'Document Annex III classification, transparency, and human oversight for this flow.'
+    'SB-PY-EU-001': 'Document Annex III classification, transparency, and human oversight for this flow.',
+    'SB-PY-REDUNDANCY-001': 'Extract shared logic into a single function or use a factory pattern to eliminate duplicate bodies.',
+    'SB-PY-REDUNDANCY-002': 'Consolidate error handling into a decorator or middleware instead of per-function try/except boilerplate.',
+    'SB-PY-REDUNDANCY-003': 'Extract shared exception handling into a reusable error handler or decorator.',
+    'SB-PY-REDUNDANCY-004': 'Refactor deeply nested logic using early returns, guard clauses, or helper functions to reduce cyclomatic complexity.'
 };
 
 function resolvePackageRoot() {
