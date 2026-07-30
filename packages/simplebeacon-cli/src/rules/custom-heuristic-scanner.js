@@ -97,10 +97,31 @@ function validateRule(rule, index) {
     if (engine === 'ast' || (rule.astCriteria && typeof rule.astCriteria === 'object')) {
         if (!rule.astCriteria || typeof rule.astCriteria !== 'object') {
             errors.push(`${prefix}: AST rules require a valid "astCriteria" object`);
-        } else if (typeof rule.astCriteria.nodeType !== 'string') {
-            errors.push(`${prefix}: AST rule "astCriteria.nodeType" must be a string`);
-        } else if (rule.astCriteria.arguments && (typeof rule.astCriteria.arguments.index !== 'number' || typeof rule.astCriteria.arguments.type !== 'string')) {
-            errors.push(`${prefix}: AST rule "astCriteria.arguments" must have numeric "index" and string "type"`);
+        } else {
+            const ac = rule.astCriteria;
+            if (typeof ac.nodeType !== 'string') {
+                errors.push(`${prefix}: AST rule "astCriteria.nodeType" must be a string`);
+            }
+            if (ac.arguments && (typeof ac.arguments.index !== 'number' || typeof ac.arguments.type !== 'string')) {
+                errors.push(`${prefix}: AST rule "astCriteria.arguments" must have numeric "index" and string "type"`);
+            }
+            for (const key of ['calleeRegex', 'nameRegex']) {
+                if (ac[key] == null) continue;
+                if (typeof ac[key] !== 'string') {
+                    errors.push(`${prefix}: AST rule "astCriteria.${key}" must be a string`);
+                } else {
+                    try {
+                        new RegExp(ac[key]);
+                    } catch (e) {
+                        errors.push(`${prefix}: invalid "astCriteria.${key}" — ${e.message}`);
+                    }
+                }
+            }
+            for (const key of ['minArgs', 'maxArgs']) {
+                if (ac[key] != null && typeof ac[key] !== 'number') {
+                    errors.push(`${prefix}: AST rule "astCriteria.${key}" must be a number`);
+                }
+            }
         }
     } else {
         if (!rule.pattern || typeof rule.pattern !== 'string') {
@@ -325,19 +346,37 @@ function calleeLabel(node) {
     return 'call';
 }
 
+function nodeName(node) {
+    return node.name || (node.id && node.id.name) || null;
+}
+
 function matchesAstCriteria(node, criteria) {
     if (node.type !== criteria.nodeType) return false;
     if (criteria.callee) {
         if (node.type !== 'CallExpression' || !node.callee) return false;
         if (calleeLabel(node.callee) !== criteria.callee) return false;
     }
+    if (criteria.calleeRegex) {
+        if (node.type !== 'CallExpression' || !node.callee) return false;
+        if (!new RegExp(criteria.calleeRegex).test(calleeLabel(node.callee))) return false;
+    }
     if (criteria.arguments) {
         const arg = node.arguments && node.arguments[criteria.arguments.index];
         if (!arg || arg.type !== criteria.arguments.type) return false;
     }
     if (criteria.name) {
-        const name = node.name || (node.id && node.id.name) || null;
+        const name = nodeName(node);
         if (name !== criteria.name) return false;
+    }
+    if (criteria.nameRegex) {
+        const name = nodeName(node);
+        if (name === null || !new RegExp(criteria.nameRegex).test(name)) return false;
+    }
+    if (typeof criteria.minArgs === 'number') {
+        if (!Array.isArray(node.arguments) || node.arguments.length < criteria.minArgs) return false;
+    }
+    if (typeof criteria.maxArgs === 'number') {
+        if (!Array.isArray(node.arguments) || node.arguments.length > criteria.maxArgs) return false;
     }
     return true;
 }

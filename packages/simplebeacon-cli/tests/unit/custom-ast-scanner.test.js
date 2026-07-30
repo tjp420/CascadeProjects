@@ -118,3 +118,67 @@ test('AST and regex rules can coexist in the same custom-rules.json', async () =
   const patterns = result.issues.map((i) => i.pattern).sort();
   assert.deepEqual(patterns, ['SB-CUSTOM-AST-001', 'SB-CUSTOM-REGEX-001']);
 });
+
+test('AST calleeRegex matches any console method', async () => {
+  const result = await withTempProject({
+    '.simplebeacon/custom-rules.json': JSON.stringify([{
+      id: 'SB-CUSTOM-AST-REGEX-001',
+      name: 'No console methods',
+      engine: 'ast',
+      astCriteria: {
+        nodeType: 'CallExpression',
+        calleeRegex: '^console\\.(log|warn|error|debug)$'
+      },
+      severity: 'medium',
+      description: 'Console methods should not be in production code.',
+      recommendation: 'Use a proper logger.'
+    }]),
+    'src/app.js': 'function init() {\n  console.warn("starting");\n  console.log("running");\n}\n'
+  }, async (dir) => scanCustomHeuristicRules(dir));
+
+  assert.equal(result.findings, 2);
+});
+
+test('AST nameRegex matches function declarations starting with get', async () => {
+  const result = await withTempProject({
+    '.simplebeacon/custom-rules.json': JSON.stringify([{
+      id: 'SB-CUSTOM-AST-NAME-001',
+      name: 'Getter-style function naming',
+      engine: 'ast',
+      astCriteria: {
+        nodeType: 'FunctionDeclaration',
+        nameRegex: '^get'
+      },
+      severity: 'low',
+      description: 'Functions prefixed with get should be reviewed.',
+      recommendation: 'Use semantic names.'
+    }]),
+    'src/app.js': 'function getUser() { return {}; }\nfunction fetchData() { return []; }\n'
+  }, async (dir) => scanCustomHeuristicRules(dir));
+
+  assert.equal(result.findings, 1);
+  assert.equal(result.issues[0].line, 1);
+});
+
+test('AST minArgs and maxArgs filter by call arity', async () => {
+  const result = await withTempProject({
+    '.simplebeacon/custom-rules.json': JSON.stringify([{
+      id: 'SB-CUSTOM-AST-ARITY-001',
+      name: 'Binary helper calls',
+      engine: 'ast',
+      astCriteria: {
+        nodeType: 'CallExpression',
+        callee: 'add',
+        minArgs: 2,
+        maxArgs: 2
+      },
+      severity: 'medium',
+      description: 'Calls to add must have exactly two arguments.',
+      recommendation: 'Review the call.'
+    }]),
+    'src/app.js': 'function test() {\n  add(1);\n  add(1, 2);\n  add(1, 2, 3);\n}\n'
+  }, async (dir) => scanCustomHeuristicRules(dir));
+
+  assert.equal(result.findings, 1);
+  assert.equal(result.issues[0].line, 3);
+});
