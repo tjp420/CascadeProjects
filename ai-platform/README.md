@@ -2,6 +2,7 @@
 [![CI Status](https://github.com/tjp420/simplebeacon/workflows/Simplebeacon%20AI%20Hygiene%20Gate/badge.svg)](https://github.com/tjp420/simplebeacon/actions)
 [![Coverage](https://codecov.io/gh/tjp420/simplebeacon/branch/main/graph/badge.svg)](https://codecov.io/gh/tjp420/simplebeacon)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![E2E Security Status](https://img.shields.io/badge/E2E_Security-%E2%9C%85%20Secure-brightgreen.svg)](https://github.com/tjp420/simplebeacon/actions/workflows/simplebeacon-e2e.yml)
 
 🛡️ **Simplebeacon** is an AI safety scanning and audit platform designed for enterprise codebases, providing comprehensive security analysis, compliance checking, and quality assurance for AI-powered applications.
 
@@ -387,3 +388,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Simplebeacon** - 🛡️ AI Safety for Enterprise Codebases
 
 Built with ❤️ by the Simplebeacon Team
+
+## 📊 E2E Security Status
+
+<!-- E2E_SECURITY_STATUS_TABLE_START -->
+| Metric | Value |
+|---|---|
+| E2E Security Status | ✅ **Secure** |
+| Routes Tested | 23 |
+| Routes Passed | 23 |
+| Routes Failed | — |
+| UI Interactions | 101 |
+| Console Errors | 4 |
+| Payload Injections | — |
+| XSS Reflected | — |
+| Last Updated | 2026-07-29T22:23:50.542Z |
+<!-- E2E_SECURITY_STATUS_TABLE_END -->

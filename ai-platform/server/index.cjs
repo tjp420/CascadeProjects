@@ -37,6 +37,7 @@ if (fs.existsSync(envPath)) {
 
 const logger = require('./lib/app-logger.cjs');
 const { resolveCorsOptions } = require('./lib/cors-config.cjs');
+const { appendContactSubmission } = require('./lib/contact-submissions-store.cjs');
 
 // Import enhanced security middleware
 const { 
@@ -817,6 +818,9 @@ app.use('/assets', express.static(path.join(webRoot, 'assets')));
 // Health, status, and VS Code heartbeat routes
 app.use('/api', require('./routes/health-routes.cjs'));
 
+// Stripe webhook — must use raw body, mounted before express.json() middleware
+app.use('/api/stripe', require('./routes/stripe-webhook-routes.cjs'));
+
 // /api/status is already handled by health-routes.cjs (mounted at /api above).
 
 // Meta routes — project structure, releases, backlog
@@ -905,6 +909,13 @@ app.post('/api/notify', (req, res) => {
   res.json({ success: true, received: true });
 });
 
+// Note: unauthenticated fallback for browser-error POST removed to require
+// authentication. Client-side reporting should POST to the authenticated
+// endpoint mounted by `setupSimplebeaconAPI` at
+// `/api/simplebeacon/report/browser-error` which enforces user authentication
+// and emits audit logs. This strengthens ingestion security and ensures
+// audit attribution.
+
 // Path verification — used by the Analyze page to validate candidate scan paths
 app.post('/api/verify-path', (req, res) => {
   const candidate = String(req.body?.path || '').trim();
@@ -924,11 +935,81 @@ app.post('/api/verify-path', (req, res) => {
   }
 });
 
+function sanitizeServerInput(value) {
+  if (typeof value !== 'string') return value;
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
+    .replace(/{{/g, '&#x7B;&#x7B;')
+    .replace(/}}/g, '&#x7D;&#x7D;');
+}
+
+function sanitizeRequestBody(body) {
+  if (!body || typeof body !== 'object') return body;
+  const sanitized = {};
+  for (const [key, value] of Object.entries(body)) {
+    sanitized[key] = typeof value === 'string' ? sanitizeServerInput(value) : value;
+  }
+  return sanitized;
+}
+
+app.post('/api/contact', async (req, res) => {
+  try {
+    req.body = sanitizeRequestBody(req.body);
+    const { name, email, message } = req.body || {};
+    if (!email || typeof email !== 'string' || !email.trim().includes('@')) {
+      return res.status(400).json({ success: false, error: 'A valid email is required' });
+    }
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ success: false, error: 'Message is required' });
+    }
+    const result = appendContactSubmission({ name, email, message });
+    res.json({ success: true, received: true, id: result.id });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // WebAuthn passkey registration / authentication (dashboard Profile + Sign-in)
 setupWebAuthnAPI(app);
 
 // Admin dashboard stats, users, sessions (requires admin role)
 setupAdminAPI(app, { platformRoot: path.join(__dirname, '..') });
+
+// Per-user AI provider keys (OpenAI, Anthropic, Ollama) — encrypted at rest
+const { getUserAiKeysPublic, saveUserAiKeys, clearUserAiKeys } = require('./lib/user-ai-keys-store.cjs');
+app.get('/api/user/ai-keys', authenticate, async (req, res) => {
+  try {
+    const email = req.user?.email || '';
+    const result = await getUserAiKeysPublic(email);
+    res.json({ success: true, ...result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+app.put('/api/user/ai-keys', authenticate, async (req, res) => {
+  try {
+    const email = req.user?.email || '';
+    if (!email) return res.status(400).json({ success: false, error: 'User email required' });
+    const result = await saveUserAiKeys(email, req.body || {});
+    res.json({ success: true, ...result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+app.delete('/api/user/ai-keys', authenticate, async (req, res) => {
+  try {
+    const email = req.user?.email || '';
+    const result = await clearUserAiKeys(email);
+    res.json({ success: true, ...result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
 
 // Stub endpoints for dashboard client features not available in local dev
 // Note: /api/chatbot/providers is handled by setupChatbotAPI using actual provider credentials.
@@ -961,6 +1042,7 @@ const fixoDbAdapter = isDatabaseEnabled() ? new DatabaseAdapter(getDatabaseConfi
 // Read-only strategies endpoint — only requires authentication, not remediation:write
 const fixStrategiesRouter = express.Router();
 fixStrategiesRouter.get('/strategies', (_req, res) => {
+  // simplebeacon-ignore: debugArtifacts — strategy map keys are string identifiers, not debug statements
   const strategyMap = {
     'debugger-statement': { strategy: 'delete', confidence: 0.95 },
     'console-log': { strategy: 'delete', confidence: 0.95 },

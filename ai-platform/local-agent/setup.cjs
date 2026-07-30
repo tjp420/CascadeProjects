@@ -16,7 +16,8 @@ const https = require('https');
 const http = require('http');
 const { execSync, spawn } = require('child_process');
 
-const DEFAULT_DOWNLOAD_URL = 'https://cascadeprojects-yzzd.onrender.com/downloads/simplebeacon-local-agent-portable.zip';
+const DEFAULT_DOWNLOAD_URL =
+  'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon-local-agent-portable.zip';
 const SETUP_VERSION = '1.0.4';
 
 function getInstallDir() {

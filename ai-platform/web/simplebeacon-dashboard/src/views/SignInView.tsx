@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { LogIn, UserPlus, KeyRound } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { toast } from 'sonner';
-import { apiUrl, authHeaders, waitForApiBase } from '@/config';
+import { apiUrl, waitForApiBase } from '@/config';
 
 type Mode = 'signin' | 'register' | 'license';
 
@@ -24,16 +24,32 @@ export function SignInView() {
       toast.error('Please enter email and password');
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    if (mode === 'register' && password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
     setLoading(true);
     try {
       await waitForApiBase();
       const endpoint = mode === 'signin' ? '/auth/login' : '/auth/register';
       const resp = await fetch(apiUrl(endpoint), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      if (!resp.ok) throw new Error(`Auth failed: ${resp.status}`);
+      if (!resp.ok) {
+        let friendlyMsg = `Authentication failed (${resp.status})`;
+        try {
+          const errData = await resp.json();
+          friendlyMsg = errData.message || errData.error || errData.detail || friendlyMsg;
+        } catch { /* response was not JSON — use default message */ }
+        throw new Error(friendlyMsg);
+      }
       const data = await resp.json();
       if (data.token) {
         localStorage.setItem('sb_token', data.token);
@@ -42,7 +58,7 @@ export function SignInView() {
         toast.success(mode === 'signin' ? 'Signed in' : 'Account created');
         navigate('dashboard');
       } else {
-        throw new Error('No token received');
+        throw new Error('No token received from server');
       }
     } catch (err: any) {
       toast.error(err.message || 'Authentication failed');
@@ -63,14 +79,19 @@ export function SignInView() {
       await waitForApiBase();
       const resp = await fetch(apiUrl('/auth/token-status'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: trimmed }),
       });
       if (!resp.ok) {
         if (resp.status === 503) {
           throw new Error('License validation is temporarily unavailable');
         }
-        throw new Error(`Validation failed: ${resp.status}`);
+        let friendlyMsg = `Validation failed (${resp.status})`;
+        try {
+          const errData = await resp.json();
+          friendlyMsg = errData.message || errData.error || errData.detail || friendlyMsg;
+        } catch { /* response was not JSON */ }
+        throw new Error(friendlyMsg);
       }
       const data = await resp.json();
       if (data.valid && data.registered) {
@@ -171,6 +192,11 @@ export function SignInView() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                {mode === 'register' && (
+                  <p className="text-xs text-muted-foreground">
+                    Must be at least 8 characters
+                  </p>
+                )}
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (

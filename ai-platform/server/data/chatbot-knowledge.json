@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "aiDisclosure": "You are interacting with an AI system",
   "entries": [
     {
       "id": "remove-filters-vs-top-layers",

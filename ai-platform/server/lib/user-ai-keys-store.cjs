@@ -18,7 +18,7 @@ const STORE_PATH = process.env.SIMPLEBEACON_USER_AI_KEYS_STORE
   || path.join(PROJECT_ROOT, '.simplebeacon', 'user-ai-keys.json');
 
 const PROVIDERS = ['openai', 'anthropic'];
-const _STRING_FIELDS = [...PROVIDERS, 'ollamaBaseUrl', 'ollamaModel'];
+const _STRING_FIELDS = [...PROVIDERS, 'ollamaBaseUrl', 'ollamaModel', 'openaiModel', 'anthropicModel'];
 
 /**
  * Normalize email.
@@ -129,6 +129,8 @@ function emptyRecord() {
     anthropic: null,
     ollamaBaseUrl: '',
     ollamaModel: '',
+    openaiModel: '',
+    anthropicModel: '',
     updatedAt: null
   };
 }
@@ -163,6 +165,12 @@ async function getUserAiCredentials(email) {
   if (record.ollamaModel) {
     credentials.ollamaModel = record.ollamaModel;
   }
+  if (record.openaiModel) {
+    credentials.openaiModel = record.openaiModel;
+  }
+  if (record.anthropicModel) {
+    credentials.anthropicModel = record.anthropicModel;
+  }
   return credentials;
 }
 
@@ -186,6 +194,8 @@ async function getUserAiKeysPublic(email) {
     providers,
     ollamaBaseUrl: record.ollamaBaseUrl || '',
     ollamaModel: record.ollamaModel || '',
+    openaiModel: record.openaiModel || '',
+    anthropicModel: record.anthropicModel || '',
     updatedAt: record.updatedAt || null
   };
 }
@@ -224,6 +234,14 @@ async function saveUserAiKeys(email, payload = {}) {
 
   if (({}).hasOwnProperty.call(payload, 'ollamaModel')) {
     next.ollamaModel = String(payload.ollamaModel || '').trim();
+  }
+
+  if (({}).hasOwnProperty.call(payload, 'openaiModel')) {
+    next.openaiModel = String(payload.openaiModel || '').trim();
+  }
+
+  if (({}).hasOwnProperty.call(payload, 'anthropicModel')) {
+    next.anthropicModel = String(payload.anthropicModel || '').trim();
   }
 
   next.updatedAt = new Date().toISOString();

@@ -47,6 +47,9 @@
     "guard:fiction-kpi:ci": "node tools/fiction-kpi-guard.js --ci --paths web/data,server/lib,web/api,packages/simplebeacon-cli/src,docs/reports --report .simplebeacon/fiction-kpi-guard-report.json",
     "guard:debug-artifacts": "node tools/production-debug-guard.js --report .simplebeacon/debug-artifact-guard-report.json",
     "guard:debug-artifacts:strict": "node tools/production-debug-guard.js --strict --report .simplebeacon/debug-artifact-guard-report.json",
+    "test:chaos": "node tests/test_simplebeacon.cjs",
+    "test:webhook": "node tests/test_webhook_format.cjs",
+    "badge:generate": "node tests/generate_status_badge.cjs",
     "remediation:metrics": "node tools/remediation-weekly-metrics.js",
     "remediation:gate": "node tools/remediation-weekly-metrics.js --gate",
     "scan:fiction-remediation-map": "node tools/fiction-pattern-remediation-map.js --out .simplebeacon/fiction-pattern-remediation-map.json",
@@ -158,6 +161,7 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "9.0.3",
     "pg": "^8.21.0",
+    "playwright": "^1.62.0",
     "redis": "^4.7.1",
     "simple-git": "^3.20.0",
     "speakeasy": "^2.0.0",
@@ -169,6 +173,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.62.0",
     "eslint": "^9.39.4",
     "globals": "^15.14.0",
     "jest": "^30.4.2",
@@ -180,5 +185,13 @@
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
+  },
+  "overrides": {
+    "eslint": {
+      "minimatch": "^9.0.0",
+      "brace-expansion": "^2.0.1"
+    },
+    "minimatch": "^9.0.0",
+    "brace-expansion": "^2.0.1"
   }
 }

@@ -1,4 +1,4 @@
-// simplebeacon-ignore: Dev proxy script — console.log is intentional for request logging
+// simplebeacon-ignore: debugArtifacts — dev proxy script uses console.log for request logging
 // proxy_local_bridge.js
 // Lightweight proxy to forward requests from common dev ports to the main
 // ai-platform server on port 58000, injecting CORS and Private Network Access headers.
