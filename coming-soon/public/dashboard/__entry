@@ -311,7 +311,7 @@
   <script src="/dashboard/js/vendor/jszip.min.js?v=20260726react1" defer></script>
 
   <!-- React Dashboard Bundle -->
-  <script type="module" src="/dashboard/assets/main.js?v=20260729settings1"></script>
+  <script type="module" src="/dashboard/assets/main.js?v=1785400797606"></script>
   <script>
     (function(){
       try{

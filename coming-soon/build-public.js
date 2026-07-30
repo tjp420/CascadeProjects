@@ -142,22 +142,45 @@ function generateSitemap() {
   process.stdout.write('Generated sitemap.xml with ' + urls.length + ' URLs\n');
 }
 
+function shouldSkipPath(relPath) {
+  if (!relPath) return false;
+  const normalized = relPath.replace(/\\/g, '/').toLowerCase();
+  return normalized.split('/').some((part) => part === 'node_modules' || part === '.git' || part === 'dist');
+}
+
 function copyRecursive(srcDir, dstDir, relPrefix = '') {
   fs.mkdirSync(dstDir, { recursive: true });
   const items = fs.readdirSync(srcDir);
   for (const item of items) {
     if (item.endsWith('.exe')) continue;
+    const relPath = relPrefix + item;
+    if (shouldSkipPath(relPath)) continue;
     const srcPath = path.join(srcDir, item);
     const dstPath = path.join(dstDir, item);
-    const stat = fs.statSync(srcPath);
-    const relPath = relPrefix + item;
+    let stat;
+    try {
+      stat = fs.statSync(srcPath);
+    } catch (e) {
+      if (e && e.code === 'ENOENT') {
+        continue;
+      }
+      throw e;
+    }
     if (stat.isDirectory()) {
       copyRecursive(srcPath, dstPath, relPath + '/');
     } else if (item.endsWith('.html') && pageConfig.pages[relPath]) {
-      const html = fs.readFileSync(srcPath, 'utf8');
-      fs.writeFileSync(dstPath, transformHtml(html, relPath), 'utf8');
+      try {
+        const html = fs.readFileSync(srcPath, 'utf8');
+        fs.writeFileSync(dstPath, transformHtml(html, relPath), 'utf8');
+      } catch (e) {
+        console.warn('Skipping copy of', relPath, ':', (e && e.message) || e);
+      }
     } else {
-      fs.copyFileSync(srcPath, dstPath);
+      try {
+        fs.copyFileSync(srcPath, dstPath);
+      } catch (e) {
+        console.warn('Skipping copy of', relPath, ':', (e && e.message) || e);
+      }
     }
   }
 }
@@ -268,12 +291,13 @@ if (fs.existsSync(dashboardSrc)) {
     const cacheBust = Date.now();
     dashHtml = dashHtml.replace(/href="\/assets\/main\.css(?:\?[^"]*)?"/g, `href="/dashboard/dist/assets/main.css?v=${cacheBust}"`);
     dashHtml = dashHtml.replace(/src="\/assets\/main\.js(?:\?[^"]*)?"/g, `src="/dashboard/dist/assets/main.js?v=${cacheBust}"`);
+    dashHtml = dashHtml.replace(/src="\/dashboard\/assets\/main\.js(?:\?[^"]*)?"/g, `src="/dashboard/assets/main.js?v=${cacheBust}"`);
     // Also handle any leftover Vite dev script references
     dashHtml = dashHtml.replace(/<script type="module" src="\/src\/main\.tsx"><\/script>/, `<script type="module" src="/dashboard/dist/assets/main.js?v=${cacheBust}"></script>`);
     // Rewrite relative js/vendor paths to absolute /dashboard/js/vendor for CF Pages
     dashHtml = dashHtml.replace(/src="js\/vendor\//g, 'src="/dashboard/js/vendor/');
-    fs.writeFileSync(dashboardIndex, dashHtml, 'utf8');
-    fs.copyFileSync(dashboardIndex, dashboardEntry);
+    try { fs.writeFileSync(dashboardIndex, dashHtml, 'utf8'); } catch (e) { console.warn('Skipping write of dashboard/index.html:', (e && e.message) || e); }
+    try { fs.copyFileSync(dashboardIndex, dashboardEntry); } catch (e) { console.warn('Skipping copy of dashboard/__entry:', (e && e.message) || e); }
   }
 
   // Also copy dashboard to /app/ — the CDN has a stuck cache on /dashboard/ and
@@ -289,8 +313,8 @@ if (fs.existsSync(dashboardSrc)) {
   if (fs.existsSync(appIndex)) {
     let appHtml = fs.readFileSync(appIndex, 'utf8');
     appHtml = appHtml.replace(/\/dashboard\//g, '/app/');
-    fs.writeFileSync(appIndex, appHtml, 'utf8');
-    fs.copyFileSync(appIndex, appEntry);
+    try { fs.writeFileSync(appIndex, appHtml, 'utf8'); } catch (e) { console.warn('Skipping write of app/index.html:', (e && e.message) || e); }
+    try { fs.copyFileSync(appIndex, appEntry); } catch (e) { console.warn('Skipping copy of app/__entry:', (e && e.message) || e); }
   }
 }
 

@@ -3,7 +3,7 @@ import { billingService } from './billingService.js';
 import { authService } from './authService.js?v=20260722bridgefix1';
 import { isDemoMode, DEMO_API_BASE, isLocalDevHost } from '../demoMode.js';
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
-import { buildDashboardExportBundle } from '../utils/dashboard-export.browser.js?v=20260716cachefix1';
+import { buildDashboardExportBundle, buildVulnerabilityTrendCsv, buildBulkIssuesCsv, buildAuditPrintableHtml } from '../utils/dashboard-export.browser.js?v=20260730export1';
 import { isLocalPath, fetchScanProgressViaAgent, fetchScanProgressViaExtensionBridge, hasExtensionBridgeConfigured, probeAgent, shouldProbeLocalAgent } from './localAgentService.js?v=20260722scanfix2';
 import { apiBaseUrl } from '../utils-lib/url.js';
 /**
@@ -611,6 +611,32 @@ export class ScanService {
             ].map(escape).join(',');
         });
         downloadText([header.join(','), ...rows].join('\n'), `simplebeacon-results-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+    }
+    exportTrendCsv(report = this.report, history = this.history) {
+        const csv = buildVulnerabilityTrendCsv(report, history);
+        if (!csv) {
+            throw new Error('No scan history available for trend export');
+        }
+        downloadText(csv, `simplebeacon-trend-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+    }
+    exportAuditPdf(report = this.report, history = this.history) {
+        if (!report) {
+            throw new Error('No scan report loaded — run a scan first');
+        }
+        const html = buildAuditPrintableHtml(report, history);
+        const w = window.open('', '_blank');
+        if (!w) {
+            throw new Error('Pop-up blocked — allow pop-ups to generate audit PDF');
+        }
+        w.document.write(html);
+        w.document.close();
+    }
+    exportBulkIssuesCsv(reports = []) {
+        const csv = buildBulkIssuesCsv(reports);
+        if (!csv) {
+            throw new Error('No issues found in provided reports');
+        }
+        downloadText(csv, `simplebeacon-bulk-issues-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
     }
     getIssueCategories(report = this.report) {
         var _a, _b;
