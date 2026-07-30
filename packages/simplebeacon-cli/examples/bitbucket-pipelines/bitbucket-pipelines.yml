@@ -1,0 +1,25 @@
+# SimpleBeacon Bitbucket Pipelines
+# Copy via: npx simplebeacon init --with-ci --ci-platform bitbucket-pipelines
+
+# Requires .simplebeacon/config.json (created by init)
+
+pipelines:
+  default:
+    - step:
+        name: SimpleBeacon gate scan
+        image: node:20
+        script:
+          - npx --yes simplebeacon scan --format json --output .simplebeacon/report.json --gate --offline --verbose
+          - npx --yes simplebeacon gate status
+        artifacts:
+          - .simplebeacon/report.json
+  pull-requests:
+    "**":
+      - step:
+          name: SimpleBeacon gate scan (PR)
+          image: node:20
+          script:
+            - npx --yes simplebeacon scan --format json --output .simplebeacon/report.json --gate --offline --verbose
+            - npx --yes simplebeacon gate status
+          artifacts:
+            - .simplebeacon/report.json

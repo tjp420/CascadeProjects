@@ -1,0 +1,22 @@
+# SimpleBeacon GitLab CI Pipeline
+# Copy via: npx simplebeacon init --with-ci --ci-platform gitlab-ci
+
+# Requires .simplebeacon/config.json (created by init)
+
+stages:
+  - scan
+
+simplebeacon:
+  stage: scan
+  image: node:20
+  script:
+    - npx --yes simplebeacon scan --format json --output .simplebeacon/report.json --gate --offline --verbose
+    - npx --yes simplebeacon gate status
+  artifacts:
+    when: always
+    paths:
+      - .simplebeacon/report.json
+    expire_in: 7 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"

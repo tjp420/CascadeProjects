@@ -290,6 +290,7 @@ const FLAG_MAP = [
     { aliases: ['--checklist'], key: 'checklist', type: 'string' },
     { aliases: ['--with-mcp'], key: 'withMcp', type: 'boolean' },
     { aliases: ['--with-ci'], key: 'withCi', type: 'boolean' },
+    { aliases: ['--ci-platform'], key: 'ciPlatform', type: 'string' },
     { aliases: ['--starter'], key: 'starter', type: 'boolean', extra: (o) => { o.withMcp = true; o.withCi = true; } },
     { aliases: ['--anonymize'], key: 'anonymize', type: 'boolean' },
     { aliases: ['--fix'], key: 'fix', type: 'boolean' },
@@ -518,7 +519,8 @@ Init options:
   --dry-run           Preview init changes without writing files
   --force             Overwrite existing config/baseline (backup created first)
   --with-mcp          Write .cursor/mcp.json + agent rule for Cursor MCP
-  --with-ci           Write .github/workflows/simplebeacon.yml
+  --with-ci           Write CI pipeline workflow (auto-detects platform)
+  --ci-platform <p>   Force CI platform: github-actions | gitlab-ci | bitbucket-pipelines
   --starter           Shorthand for --with-mcp --with-ci
   --mcp-mode MODE     npx-local (default) | npx-github | monorepo
 
@@ -1365,7 +1367,8 @@ function runInitCommand(options) {
             dryRun: options.dryRun,
             withMcp: options.withMcp || options.starter,
             withCursorRule: options.withMcp || options.starter,
-            withCi: options.withCi || options.starter
+            withCi: options.withCi || options.starter,
+            platform: options.ciPlatform
         });
     }
 
@@ -1387,9 +1390,9 @@ function runInitCommand(options) {
                 writeStdoutLine(`Would skip: ${stack.cursorRule.path}`);
             }
             if (stack.ciWorkflow?.dryRun) {
-                writeStdoutLine(`Would create: ${stack.ciWorkflow.path}`);
+                writeStdoutLine(`Would create: ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`);
             } else if (stack.ciWorkflow?.skipped) {
-                writeStdoutLine(`Would skip: ${stack.ciWorkflow.path}`);
+                writeStdoutLine(`Would skip: ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`);
             }
         }
         writeStdoutLine('');
@@ -1433,9 +1436,9 @@ function runInitCommand(options) {
             writeStdoutLine(`Skipped existing ${stack.cursorRule.path}`);
         }
         if (stack.ciWorkflow?.created) {
-            writeStdoutLine(`Created ${stack.ciWorkflow.path}`);
+            writeStdoutLine(`Created ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`);
         } else if (stack.ciWorkflow?.skipped) {
-            writeStdoutLine(`Skipped existing ${stack.ciWorkflow.path}`);
+            writeStdoutLine(`Skipped existing ${stack.ciWorkflow.path} (${stack.ciWorkflow.platformLabel})`);
         }
         if (options.withMcp || options.starter) {
             writeStdoutLine('Reload Cursor → Settings → MCP → enable simplebeacon');
