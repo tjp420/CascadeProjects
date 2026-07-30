@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "start": "node ai-platform/simplebeacon-server.cjs",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace=ai-platform",
     "lint": "npm run lint --workspaces --if-present",
     "format": "npx prettier --write \"**/*.{js,cjs,mjs,ts,json,md}\"",
     "quality:check": "npm run quality:check --workspaces --if-present",
@@ -21,7 +21,14 @@
     "ai:check": "node scripts/ai-check.js",
     "audit:context": "node scripts/audit-context.cjs",
     "audit:context:init": "node scripts/audit-context.cjs --init-prd",
-    "sb:hook:pre-commit": "npx simplebeacon scan --gate --fail-on high",
+    "sb:hook:secrets-gate": "npx simplebeacon secrets-gate --path .",
+    "sb:hook:pre-commit": "npm run sb:hook:secrets-gate && npx simplebeacon scan --gate --fail-on high",
+    "release:simplebeacon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1 -PrepareOnly",
+    "release:simplebeacon:tag": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1",
+    "release:simplebeacon:tag:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-simplebeacon.ps1 -PushTag",
+    "deploy:coming-soon": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1",
+    "deploy:coming-soon:lighthouse": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -RunLighthouse",
+    "deploy:coming-soon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -SkipDeploy",
     "diagnose:dashboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/diagnose-dashboard.ps1",
     "start:54800": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:PORT=54800; node ai-platform/simplebeacon-server.cjs\""
   },
@@ -32,7 +39,6 @@
     "dompurify": "^3.4.12",
     "express-rate-limit": "^8.5.2",
     "nodemailer": "^9.0.3",
-    "resend": "^3.2.0",
     "stripe": "^22.1.1",
     "tmp": "^0.2.7"
   },
@@ -45,14 +51,14 @@
     "dotenv": "^16.3.1",
     "helmet": "^7.0.0",
     "husky": "^8.0.3",
-    "jest": "^29.7.0",
+    "jest": "^30.4.2",
     "playwright": "^1.61.1",
     "vite": "^8.0.16"
   },
   "overrides": {
     "serialize-javascript": ">=7.0.5",
     "minimatch": "^10.2.2",
-    "brace-expansion": ">=2.1.2",
+    "brace-expansion": ">=5.0.8",
     "readdir-glob": "^2.0.3",
     "archiver": "^7.0.1"
   }
