@@ -4,6 +4,7 @@ import { AppShell } from './layout/AppShell';
 import { ToastProvider } from './components/ToastProvider';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
+import { isTokenExpired } from './config';
 
 // P1 views
 import { DashboardView } from './views/DashboardView';
@@ -35,6 +36,25 @@ import { ComplianceView } from './views/ComplianceView';
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
 const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
+
+function isHostedDashboard(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+}
+
+function isIdeEmbedSurface(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any;
+    if (win.__SB_IDE_EMBED__) return true;
+    if (document.documentElement.hasAttribute('data-ide-embed')) return true;
+    if (typeof win.acquireVsCodeApi === 'function') return true;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
+  } catch { /* ignore */ }
+  return window.self !== window.top;
+}
 
 const VIEW_TITLES: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -108,6 +128,16 @@ export default function App() {
   useEffect(() => {
     const label = VIEW_TITLES[route.view] || 'Dashboard';
     document.title = `${label} — SimpleBeacon`;
+  }, [route.view]);
+
+  // simplebeacon-ignore: framework-practices — standard React useEffect hook
+  useEffect(() => {
+    if (PUBLIC_VIEWS.has(route.view)) return;
+    if (!WRITE_HEAVY_VIEWS.has(route.view)) return;
+    if (!isHostedDashboard() || isIdeEmbedSurface()) return;
+    if (!isTokenExpired()) return;
+    navigate('signin');
+    setRoute(getCurrentRoute());
   }, [route.view]);
 
   const handleNavigate = useCallback((view: string) => {

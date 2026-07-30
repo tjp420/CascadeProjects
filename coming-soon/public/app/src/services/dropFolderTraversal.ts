@@ -75,8 +75,11 @@ async function traverseFileSystemEntry(
   const reader = dirEntry.createReader();
   let batch: FileSystemEntry[] = [];
   do {
-    batch = await new Promise<FileSystemEntry[]>((resolve, reject) => {
-      reader.readEntries(resolve, reject);
+    batch = await new Promise<FileSystemEntry[]>((resolve) => {
+      reader.readEntries(resolve, () => {
+        state.errors += 1;
+        resolve([]);
+      });
     });
     for (const child of batch) {
       if (files.length >= state.maxFiles) break;

@@ -230,10 +230,10 @@ export function apiBaseUrl() {
     }
     if (typeof location !== 'undefined') {
         const host = location.hostname;
-        if (host === 'simplebeacon.ai') {
+        if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
             return location.origin;
         }
-        // Cloudflare Pages previews and other non-local/custom domains talk to the production API.
+        // Other non-local/custom domains fall back to production API.
         if (!/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(host) && !host.endsWith('.onrender.com')) {
             return 'https://simplebeacon.ai';
         }

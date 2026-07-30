@@ -91,11 +91,11 @@ export function apiBase() {
             return bridgeBase.replace(/\/api\/?$/, '');
         }
         const host = location.hostname;
-        // Canonical production domain serves the API same-origin.
-        if (host === 'simplebeacon.ai') {
+        // Canonical production + Cloudflare Pages previews serve the API same-origin.
+        if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
             return location.origin;
         }
-        // Cloudflare Pages previews (and any other non-local/custom domain) talk to the production API.
+        // Other non-local/custom domains fall back to production API.
         if (!/^(localhost|127\.0\.0\.1)$/i.test(host) && !host.endsWith('.onrender.com')) {
             return 'https://simplebeacon.ai';
         }

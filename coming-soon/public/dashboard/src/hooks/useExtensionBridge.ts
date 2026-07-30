@@ -4,6 +4,8 @@ import {
   discoverAndApplyExtensionBridge,
   getExtensionBridgeOrigin,
   getLocalBridgeFetch,
+  isHostedHttpsDashboard,
+  canUseParentBridgeFetch,
 } from '@services/localAgentService.js';
 import { persistExtensionBridge } from '@utils/utils-lib/url.js';
 
@@ -25,6 +27,15 @@ function readUrlBridgeBase(): string | null {
   }
 }
 
+function readStoredBridgeBase(): string | null {
+  if (typeof sessionStorage === 'undefined') return null;
+  try {
+    return sessionStorage.getItem(BRIDGE_BASE_KEY) || getExtensionBridgeOrigin();
+  } catch {
+    return getExtensionBridgeOrigin();
+  }
+}
+
 function persistBridge(base: string, token: string | null) {
   if (typeof sessionStorage === 'undefined') return;
   try {
@@ -34,6 +45,14 @@ function persistBridge(base: string, token: string | null) {
   } catch {
     // best-effort
   }
+}
+
+/** True when blind loopback port scans are allowed without an explicit user gesture. */
+function shouldAutoProbeLoopback(userInitiated: boolean): boolean {
+  if (userInitiated) return true;
+  if (canUseParentBridgeFetch()) return true;
+  if (!isHostedHttpsDashboard()) return true;
+  return false;
 }
 
 async function probeBridgePort(port: number): Promise<{ base: string; token: string | null } | null> {
@@ -66,10 +85,7 @@ export function useExtensionBridge() {
   const [bridgeBase, setBridgeBase] = useState<string | null>(() => {
     const fromUrl = readUrlBridgeBase();
     if (fromUrl) return fromUrl;
-    if (typeof sessionStorage !== 'undefined') {
-      return sessionStorage.getItem(BRIDGE_BASE_KEY) || getExtensionBridgeOrigin();
-    }
-    return getExtensionBridgeOrigin();
+    return readStoredBridgeBase();
   });
   const [bridgeToken, setBridgeToken] = useState<string | null>(() => {
     if (typeof sessionStorage === 'undefined') return null;
@@ -78,6 +94,8 @@ export function useExtensionBridge() {
   const [status, setStatus] = useState<ExtensionBridgeStatus>('idle');
 
   const discoverBridge = useCallback(async (options: { userInitiated?: boolean } = {}) => {
+    const userInitiated = options.userInitiated === true;
+
     const urlBase = readUrlBridgeBase();
     if (urlBase) {
       setBridgeBase(urlBase);
@@ -85,23 +103,48 @@ export function useExtensionBridge() {
       return { ok: true as const, base: urlBase };
     }
 
+    const storedBase = readStoredBridgeBase();
+
+    // Hosted HTTPS: do not blind-scan loopback on page load — Chrome LNA prompts fire for
+    // every port. Restore a saved bridge silently; probe only on explicit user action or
+    // when the VS Code wrapper can relay fetches without LNA.
+    if (isHostedHttpsDashboard() && !userInitiated && !canUseParentBridgeFetch()) {
+      if (storedBase) {
+        setBridgeBase(storedBase);
+        setBridgeToken(
+          typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(BRIDGE_TOKEN_KEY) : null,
+        );
+        setStatus('connected');
+        return { ok: true as const, base: storedBase, unverified: true as const };
+      }
+      setStatus('denied');
+      return {
+        ok: false as const,
+        reason: 'needs-deep-link' as const,
+        deepLink: buildExtensionConnectDeepLink('analyze'),
+      };
+    }
+
     setStatus('discovering');
 
-    // Parallel loopback probes run on hosted HTTPS too (Chrome LNA / Private Network Access).
-    // Do not bail out early on needsDeepLink — that only means localAgentService skips its own probe.
-    const probes = await Promise.all(BRIDGE_PORTS.map((port) => probeBridgePort(port)));
-    const match = probes.find(Boolean);
-    if (match) {
-      persistExtensionBridge(`${match.base}/api`, { websiteMode: true, updateUrl: options.userInitiated === true });
-      persistBridge(match.base, match.token);
-      setBridgeBase(match.base);
-      setBridgeToken(match.token);
-      setStatus('connected');
-      return { ok: true as const, base: match.base, token: match.token };
+    if (shouldAutoProbeLoopback(userInitiated)) {
+      const probes = await Promise.all(BRIDGE_PORTS.map((port) => probeBridgePort(port)));
+      const match = probes.find(Boolean);
+      if (match) {
+        persistExtensionBridge(`${match.base}/api`, {
+          websiteMode: true,
+          updateUrl: userInitiated,
+        });
+        persistBridge(match.base, match.token);
+        setBridgeBase(match.base);
+        setBridgeToken(match.token);
+        setStatus('connected');
+        return { ok: true as const, base: match.base, token: match.token };
+      }
     }
 
     const discovery = await discoverAndApplyExtensionBridge({
-      userInitiated: options.userInitiated === true,
+      userInitiated,
     });
     const origin = getExtensionBridgeOrigin();
     if (discovery.ok && origin) {

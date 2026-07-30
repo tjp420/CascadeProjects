@@ -35,12 +35,11 @@ export function getApiBase(): string {
       }
       return DEFAULT_API_BASE;
     }
-    // Canonical production domain proxies API via the Worker to the Render backend.
-    // The Worker forwards /api/* to API_BACKEND (Render), so same-origin calls work.
-    if (host === 'simplebeacon.ai') {
+    // Canonical production + Cloudflare Pages (preview) proxy /api/* via the Worker — same-origin.
+    if (host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev')) {
       return window.location.origin;
     }
-    // Cloudflare Pages previews and other non-local domains talk to the production API.
+    // Other non-local domains fall back to production API (may require CORS on backend).
     if (!host.endsWith('.onrender.com')) {
       return 'https://simplebeacon.ai';
     }
