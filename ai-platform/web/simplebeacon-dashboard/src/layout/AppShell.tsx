@@ -15,7 +15,10 @@ interface AppShellProps {
 export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier, user, children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isAdmin = !!(user && (user.role === 'admin' || user.role === 'owner'));
+  const isAdmin = !!(
+    user &&
+    ['admin', 'owner', 'superuser', 'superadmin'].includes(String(user.role || '').toLowerCase())
+  );
 
   return (
     <div className="flex h-full overflow-hidden bg-background">
@@ -27,6 +30,7 @@ export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier,
         }}
         isOpen={sidebarOpen}
         isAdmin={isAdmin}
+        isAuthenticated={isAuthenticated}
         onClose={() => setSidebarOpen(false)}
       />
       <div className="flex flex-1 flex-col overflow-hidden min-h-0">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { getCurrentRoute, navigate } from './router/HashRouter';
 import { AppShell } from './layout/AppShell';
 import { ToastProvider } from './components/ToastProvider';
@@ -33,8 +33,13 @@ import { AssessmentView } from './views/AssessmentView';
 import { AboutView } from './views/AboutView';
 import { GettingStartedView } from './views/GettingStartedView';
 import { ComplianceView } from './views/ComplianceView';
+import { OrganizationView } from './views/OrganizationView';
+
+// Lazy-loaded views — code-split to keep initial bundle small
+const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
+const AUTH_REQUIRED_VIEWS = new Set(['organization']);
 const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
 
 function isHostedDashboard(): boolean {
@@ -82,6 +87,8 @@ const VIEW_TITLES: Record<string, string> = {
   about: 'About',
   'getting-started': 'Getting Started',
   compliance: 'Compliance',
+  organization: 'Organization',
+  'team-metrics': 'Team Metrics',
 };
 
 const viewMap: Record<string, React.ComponentType> = {
@@ -110,6 +117,8 @@ const viewMap: Record<string, React.ComponentType> = {
   about: AboutView,
   'getting-started': GettingStartedView,
   compliance: ComplianceView,
+  organization: OrganizationView,
+  'team-metrics': TeamMetricsView,
 };
 
 export default function App() {
@@ -133,12 +142,17 @@ export default function App() {
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     if (PUBLIC_VIEWS.has(route.view)) return;
+    if (AUTH_REQUIRED_VIEWS.has(route.view) && !isAuthenticated) {
+      navigate('signin');
+      setRoute(getCurrentRoute());
+      return;
+    }
     if (!WRITE_HEAVY_VIEWS.has(route.view)) return;
     if (!isHostedDashboard() || isIdeEmbedSurface()) return;
     if (!isTokenExpired()) return;
     navigate('signin');
     setRoute(getCurrentRoute());
-  }, [route.view]);
+  }, [route.view, isAuthenticated]);
 
   const handleNavigate = useCallback((view: string) => {
     navigate(view);
@@ -157,7 +171,9 @@ export default function App() {
         isFreeTier={isFreeTier}
         user={user}
       >
-        <CurrentView />
+        <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-foreground-muted">Loading...</div>}>
+          <CurrentView />
+        </Suspense>
       </AppShell>
     </ToastProvider>
   );
