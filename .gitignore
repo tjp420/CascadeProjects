@@ -264,6 +264,12 @@ google-earthenterprise/
 # Wrangler deployment cache
 coming-soon/.wrangler/tmp/
 
+# Wrangler local state and secrets (worker-deploy)
+worker-deploy/.dev.vars
+worker-deploy/.wrangler/
+**/.dev.vars
+**/.wrangler/state/
+
 # Generated root-level scan/status artifacts
 simplebeacon-c-users-*.json
 users-import.csv
@@ -338,3 +344,4 @@ deploy.bat
 restart-simplebeacon-server.bat
 stop-all-servers.bat
 launch-website.bat
+node_modules
