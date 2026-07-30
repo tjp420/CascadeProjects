@@ -124,7 +124,7 @@
     "test:auth": "jest --config jest.config.cjs --no-coverage tests/integration/phase2-integration.test.js tests/integration/simplebeacon-monetization.test.js",
     "test:export": "jest --config jest.config.cjs --no-coverage tests/e2e/dashboard-pages.e2e.test.js tests/e2e/simplebeacon-dashboard.e2e.test.js",
     "verify:stripe": "node tools/verify-stripe-config.js",
-    "verify:predeploy": "node tools/verify-predeploy-sequence.js",
+    "verify:predeploy": "node tools/verify-predeploy-sequence.cjs",
     "bundle:signin-site": "node tools/create-signed-off-site-bundle.js",
     "bundle:signin-site:links": "node tools/create-signed-off-site-bundle.js --links-only",
     "deploy:v1-internal": "node tools/start-v1-internal-dashboard.cjs",
@@ -134,6 +134,7 @@
     "quality:check": "npm run lint && npm run simplebeacon:report && npm run compliance:check",
     "format": "npx prettier --write \"server/**/*.cjs\"",
     "clean": "rm -rf node_modules dist coverage",
+    "predeploy": "npm run verify:predeploy",
     "deploy": "npm run build && npm run test"
   },
   "keywords": [
@@ -176,7 +177,7 @@
     "@playwright/test": "^1.62.0",
     "eslint": "^9.39.4",
     "globals": "^15.14.0",
-    "jest": "^30.4.2",
+    "jest": "^30.2.0",
     "nodemon": "^3.0.1",
     "supertest": "^7.0.0",
     "webpack": "^5.88.2",
@@ -185,13 +186,5 @@
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
-  },
-  "overrides": {
-    "eslint": {
-      "minimatch": "^9.0.0",
-      "brace-expansion": "^2.0.1"
-    },
-    "minimatch": "^9.0.0",
-    "brace-expansion": "^2.0.1"
   }
 }

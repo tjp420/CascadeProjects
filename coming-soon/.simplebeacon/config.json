@@ -15,13 +15,13 @@
     "packages/"
   ],
   "allowedAnalysisRoots": [
-    "C:/Users/Trevor",
-    "C:/Users/Trevor/CascadeProjects",
-    "C:/Users/Trevor/CascadeProjects/coming-soon",
-    "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode",
+    "C:/Users/user",
+    "C:/Users/user/CascadeProjects",
+    "C:/Users/user/CascadeProjects/coming-soon",
+    "C:/Users/user/CascadeProjects/simplebeacon-vscode",
     "J:/AI project backup",
-    "c:\\Users\\Trevor\\CascadeProjects\\coming-soon",
-    "c:\\Users\\Trevor\\CascadeProjects"
+    "c:\\Users\\user\\CascadeProjects\\coming-soon",
+    "c:\\Users\\user\\CascadeProjects"
   ],
   "fullDirectoryScan": true,
   "fullDirectoryScanMaxFiles": 100000,

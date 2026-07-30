@@ -37,6 +37,7 @@
     "@swc/core": "^1.15.46",
     "archiver": "^7.0.1",
     "dompurify": "^3.4.12",
+    "esbuild": "^0.28.1",
     "express-rate-limit": "^8.5.2",
     "nodemailer": "^9.0.3",
     "stripe": "^22.1.1",
@@ -51,13 +52,13 @@
     "dotenv": "^16.3.1",
     "helmet": "^7.0.0",
     "husky": "^8.0.3",
-    "jest": "^30.4.2",
+    "jest": "^30.2.0",
     "playwright": "^1.61.1",
     "vite": "^8.0.16"
   },
   "overrides": {
     "serialize-javascript": ">=7.0.5",
-    "minimatch": "^10.2.2",
+    "minimatch": "3.1.5",
     "brace-expansion": ">=5.0.8",
     "readdir-glob": "^2.0.3",
     "archiver": "^7.0.1"
