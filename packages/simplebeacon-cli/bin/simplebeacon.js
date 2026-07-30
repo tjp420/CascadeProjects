@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { orchestratePolicyPipeline } = require('../src/policy/PolicyOrchestrator');
 const { TrustStore } = require('../src/policy/signature-verifier');
+const { RemediationEngine, STRUCTURAL_RULES } = require('../src/policy/RemediationEngine');
 const {
     loadSimplebeaconConfig,
     initSimplebeacon,
@@ -454,7 +455,7 @@ function applyCliPathSafety(options) {
     if (pathRequiredCommands.has(options.command)) {
         options.path = resolveCliProjectRoot(options.path, {
             mustExist: true,
-            mustBeDirectory: true,
+            mustBeDirectory: options.command !== 'fix',
             label: 'Project path'
         });
     }
@@ -479,7 +480,7 @@ function printHelp() {
 
 Usage:
   simplebeacon scan [options]     Scan project and report findings
-  simplebeacon fix [path] [options]  Run local auto-remediation on high-severity findings
+  simplebeacon fix [path] [options]  Run structural auto-remediation (markdown, slop, tokens)
   simplebeacon init [options]     Create .simplebeacon/config.json and baseline.json
   simplebeacon mcp [options]      Start MCP stdio server for Cursor / Claude Desktop
   simplebeacon comment [options]  Post GitHub PR comment from JSON report
@@ -810,6 +811,7 @@ async function executeOneScan(options, networkGuard) {
 
         const gateResult = evaluateGate(report, config.gate);
         const jsonReport = formatJsonReport(report, gateResult);
+        const airGapped = options.airGapped === true;
         spinner.stop();
 
         let outputFormat = options.format;
@@ -1989,6 +1991,98 @@ async function runTeamMetricsCommand(options) {
     }
 }
 
+function runFixCommand(options) {
+    const targetPath = path.resolve(sanitizePath(options.path || '.'));
+    const dryRun = !!options.fixDryRun;
+    const engine = new RemediationEngine(STRUCTURAL_RULES);
+    const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '.cache', 'coverage', '.simplebeacon']);
+    const TEXT_EXTENSIONS = /\.(js|jsx|ts|tsx|mjs|cjs|json|md|py|rb|go|rs|java|c|cpp|h|hpp|css|scss|html|vue|svelte)$/;
+    const files = [];
+    const envVariablesToExport = [];
+    const stats = { filesScanned: 0, filesChanged: 0 };
+
+    function walk(dir) {
+        let entries;
+        try {
+            entries = fs.readdirSync(dir);
+        } catch (e) {
+            console.error('[!] Cannot read directory: ' + dir + ' — ' + e.message);
+            return;
+        }
+        for (const entry of entries) {
+            const fullPath = path.join(dir, entry);
+            let stat;
+            try {
+                stat = fs.statSync(fullPath);
+            } catch (e) {
+                continue;
+            }
+            if (stat.isDirectory()) {
+                if (!SKIP_DIRS.has(entry) && !entry.startsWith('.')) {
+                    walk(fullPath);
+                }
+            } else if (stat.isFile() && TEXT_EXTENSIONS.test(entry)) {
+                files.push(fullPath);
+            }
+        }
+    }
+
+    if (!fs.existsSync(targetPath)) {
+        console.error('Target path does not exist: ' + targetPath);
+        return 1;
+    }
+    if (fs.statSync(targetPath).isDirectory()) {
+        walk(targetPath);
+    } else {
+        files.push(targetPath);
+    }
+
+    for (const filePath of files) {
+        stats.filesScanned++;
+        let result;
+        try {
+            result = engine.processFile(filePath, { dryRun });
+        } catch (e) {
+            console.error('[!] Cannot process file: ' + filePath + ' — ' + e.message);
+            continue;
+        }
+        if (!result.changed) continue;
+        stats.filesChanged++;
+        envVariablesToExport.push(...result.quarantine);
+        writeStdoutLine('--- ' + path.relative(process.cwd(), filePath));
+        for (const ruleId of result.rulesApplied) {
+            writeStdoutLine('  ' + ruleId + ': ' + (result.matchCounts[ruleId] || 0) + ' match(es)');
+        }
+        if (result.diff && (dryRun || options.diff)) {
+            writeStdoutLine(result.diff);
+        }
+    }
+
+    if (envVariablesToExport.length > 0 && !dryRun) {
+        const envPath = path.join(process.cwd(), '.env');
+        const envPayload = '\\n# --- SimpleBeacon Safety Token Quarantine ---\\n# WARNING: These are REAL secrets extracted from your code.\\n# Do NOT commit this file to version control.\\n# Verify .gitignore includes .env before proceeding.\\n' + envVariablesToExport.join('\\n') + '\\n';
+        fs.appendFileSync(envPath, envPayload, 'utf8');
+        console.error('[OK] Appended ' + envVariablesToExport.length + ' quarantine definitions to .env');
+    } else if (envVariablesToExport.length > 0 && dryRun) {
+        console.error('[!] ' + envVariablesToExport.length + ' tokens would be extracted to .env on write:');
+        for (const v of envVariablesToExport) {
+            console.error('  ' + v);
+        }
+    }
+
+    writeStdoutLine('\\nStructural Remediation:');
+    writeStdoutLine('  Files processed: ' + stats.filesScanned);
+    writeStdoutLine('  Files changed:   ' + stats.filesChanged);
+    writeStdoutLine('  Tokens quarantined: ' + envVariablesToExport.length);
+
+    if (dryRun && stats.filesChanged > 0) {
+        console.error('No modifications written to disk. Re-run without --dry-run to apply.');
+        return 1;
+    }
+
+    return 0;
+}
+
 const COMMAND_REGISTRY = {
     init: runInitCommand,
     comment: runCommentCommand,
@@ -2008,9 +2102,8 @@ const COMMAND_REGISTRY = {
     'ai-plan': runAiPlanCommand,
     scan: runScanCommand,
     fix: (options) => {
-        options.fix = true;
-        options.fixDryRun = options.dryRun;
-        return runScanCommand(options);
+        if (options.dryRun) options.fixDryRun = true;
+        return runFixCommand(options);
     },
     upload: runUploadCommand,
     pdf: runPdfCommand,
@@ -2023,7 +2116,7 @@ const COMMAND_REGISTRY = {
 
 async function main() {
     const argvCommand = process.argv[2];
-    const skipPolicyGate = argvCommand === 'secrets-gate';
+    const skipPolicyGate = argvCommand === 'secrets-gate' || argvCommand === 'fix';
     const activeCompliancePolicy = skipPolicyGate ? null : runPolicyGate();
     if (activeCompliancePolicy) {
         global.__SIMPLEBEACON_ACTIVE_POLICY__ = activeCompliancePolicy;
@@ -2249,7 +2342,7 @@ function generateRecommendation(issue) {
 }
 
 main().then((code) => {
-    if (typeof code === 'number') process.exit(code);
+    if (typeof code === 'number') process.exitCode = code;
 }).catch((error) => {
     console.error(paint(formatCliError(error), 'red'));
     process.exit(2);
