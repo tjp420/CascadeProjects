@@ -12,10 +12,6 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
 
-defaults:
-  run:
-    working-directory: ai-platform
-
 permissions:
   contents: read
 
@@ -30,6 +26,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install workspace
         run: npm ci --ignore-scripts
@@ -44,10 +41,10 @@ jobs:
           SIMPLEBEACON_OFFLINE: '1'
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js scan \
-            --path . \
+            --path ai-platform \
             --full \
             --format json \
-            --output .simplebeacon/nightly-report.json \
+            --output ai-platform/.simplebeacon/nightly-report.json \
             --gate \
             --with-jest \
             --offline \
@@ -58,25 +55,25 @@ jobs:
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js reduce \
             --format json \
-            --output .simplebeacon/nightly-file-reduction.json
+            --output ai-platform/.simplebeacon/nightly-file-reduction.json
         continue-on-error: true
 
       - name: Run Accuracy Tracker
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js accuracy \
             --format json \
-            --output .simplebeacon/nightly-scanner-accuracy.json
+            --output ai-platform/.simplebeacon/nightly-scanner-accuracy.json
           node packages/simplebeacon-cli/bin/simplebeacon.js accuracy || true
         continue-on-error: true
 
       - name: Generate Marketing Content
         if: always()
         run: |
-          if [ -f .simplebeacon/nightly-report.json ]; then
+          if [ -f ai-platform/.simplebeacon/nightly-report.json ]; then
             node packages/simplebeacon-cli/bin/generate-marketing-content.js \
-              --complete-scan .simplebeacon/nightly-report.json \
+              --complete-scan ai-platform/.simplebeacon/nightly-report.json \
               --all \
-              --output .simplebeacon/marketing-content
+              --output ai-platform/.simplebeacon/marketing-content
           fi
         continue-on-error: true
 
@@ -88,7 +85,7 @@ jobs:
           path: |
             ai-platform/.simplebeacon/nightly-report.json
             ai-platform/.simplebeacon/nightly-file-reduction.json
-            ai-platform/.simplebeacon/scanner-accuracy.json
+            ai-platform/.simplebeacon/nightly-scanner-accuracy.json
             ai-platform/.simplebeacon/marketing-content
           if-no-files-found: ignore
 
@@ -97,17 +94,17 @@ jobs:
         run: |
           echo "## SimpleBeacon Nightly Scan — $(date -u +%Y-%m-%d)" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f .simplebeacon/nightly-report.json ]; then
+          if [ -f ai-platform/.simplebeacon/nightly-report.json ]; then
             node packages/simplebeacon-cli/bin/simplebeacon.js comment \
-              --report .simplebeacon/nightly-report.json \
+              --report ai-platform/.simplebeacon/nightly-report.json \
               --print-only >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
           else
             echo "Report not generated." >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f .simplebeacon/nightly-scanner-accuracy.json ]; then
+          if [ -f ai-platform/.simplebeacon/nightly-scanner-accuracy.json ]; then
             echo "### Scanner Accuracy" >> "$GITHUB_STEP_SUMMARY"
-            node -e "const r=require('./.simplebeacon/nightly-scanner-accuracy.json'); console.log('Precision: '+(r.aggregate.precision*100).toFixed(1)+'%, Recall: '+(r.aggregate.recall*100).toFixed(1)+'%, F1: '+(r.aggregate.f1*100).toFixed(1)+'%'); r.fixtures.forEach(f=>console.log(f.fixtureId+': '+(f.actualFindings===0 && !f.expectedFindings ? 'PASS (0 findings)' : f.actualFindings>=f.minFindings ? 'PASS ('+f.actualFindings+' findings)' : 'FAIL ('+f.actualFindings+'/'+f.minFindings+')')));" >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
+            node -e "const r=require('./ai-platform/.simplebeacon/nightly-scanner-accuracy.json'); console.log('Precision: '+(r.aggregate.precision*100).toFixed(1)+'%, Recall: '+(r.aggregate.recall*100).toFixed(1)+'%, F1: '+(r.aggregate.f1*100).toFixed(1)+'%'); r.fixtures.forEach(f=>console.log(f.fixtureId+': '+(f.actualFindings===0 && !f.expectedFindings ? 'PASS (0 findings)' : f.actualFindings>=f.minFindings ? 'PASS ('+f.actualFindings+' findings)' : 'FAIL ('+f.actualFindings+'/'+f.minFindings+')')));" >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
           fi
 
       - name: Alert on failure

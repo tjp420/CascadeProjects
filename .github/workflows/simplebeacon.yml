@@ -27,12 +27,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
-      - name: Build local SimpleBeacon CLI
-        run: |
-          cd packages/simplebeacon-cli
-          npm ci --ignore-scripts
-          npm run build
+      - name: Install monorepo dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build SimpleBeacon CLI
+        run: npm run build --workspace=simplebeacon
 
       - name: Run local scan
         run: |

@@ -16,10 +16,6 @@ on:
       - '.github/workflows/simplebeacon-enterprise-gate.yml'
   workflow_dispatch:
 
-defaults:
-  run:
-    working-directory: ai-platform
-
 permissions:
   contents: read
   pull-requests: write
@@ -35,6 +31,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install workspace (monorepo lockfile)
         run: npm ci --ignore-scripts
@@ -49,9 +46,9 @@ jobs:
           SIMPLEBEACON_OFFLINE: '1'
         run: |
           node packages/simplebeacon-cli/bin/simplebeacon.js scan \
-            --path . \
+            --path ai-platform \
             --format json \
-            --output .simplebeacon/report.json \
+            --output ai-platform/.simplebeacon/report.json \
             --anonymize \
             --gate \
             --offline \
@@ -67,7 +64,7 @@ jobs:
           fi
           echo "## ${TITLE}" >> "$GITHUB_STEP_SUMMARY"
           node packages/simplebeacon-cli/bin/simplebeacon.js comment \
-            --report .simplebeacon/report.json --print-only >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
+            --report ai-platform/.simplebeacon/report.json --print-only >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "---" >> "$GITHUB_STEP_SUMMARY"
           echo "**💡 Stale compliance on every push?** Upgrade to [Continuous Shield](https://simplebeacon.ai/pricing) ($149/mo) for automated PR blocking + 3 compliance certifications per month." >> "$GITHUB_STEP_SUMMARY"
