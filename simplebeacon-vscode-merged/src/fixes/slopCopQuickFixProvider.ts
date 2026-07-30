@@ -39,6 +39,29 @@ export class SlopCopQuickFixProvider implements vscode.CodeActionProvider {
       action.isPreferred = true;
 
       actions.push(action);
+
+      const jumpAction = new vscode.CodeAction(
+        'Jump to this finding',
+        vscode.CodeActionKind.QuickFix
+      );
+      jumpAction.command = {
+        title: 'Jump to this finding',
+        command: 'simplebeacon.jumpToFinding',
+        arguments: [document.uri, diagnostic.range.start.line, diagnostic.range.start.character]
+      };
+      jumpAction.diagnostics = [diagnostic];
+      actions.push(jumpAction);
+
+      const reportAction = new vscode.CodeAction(
+        'Open SimpleBeacon remediation panel',
+        vscode.CodeActionKind.QuickFix
+      );
+      reportAction.command = {
+        title: 'Open SimpleBeacon remediation panel',
+        command: 'simplebeacon.showReport'
+      };
+      reportAction.diagnostics = [diagnostic];
+      actions.push(reportAction);
     }
 
     return actions;

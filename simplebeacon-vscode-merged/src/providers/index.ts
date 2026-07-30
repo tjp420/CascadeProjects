@@ -18,6 +18,7 @@ export { TeamDashboard } from '../collaboration/teamDashboard';
 export { ScanResult, ScanProfile, exportScanResultToJson } from '../analyzers/workspaceAnalyzer';
 export { RemediationProvider } from '../fixes/remediationProvider';
 export { SlopCopQuickFixProvider } from '../fixes/slopCopQuickFixProvider';
+export { LocalRemediationCodeActionProvider } from '../fixes/localRemediationCodeActionProvider';
 export { registerReferralEngine, evaluateReferralPrompt } from '../referralEngine';
 export { SimpleBeaconProvider, ScanIssue } from '../aiPlatform/simplebeaconProvider';
 export { UploadPanel } from '../aiPlatform/uploadPanel';

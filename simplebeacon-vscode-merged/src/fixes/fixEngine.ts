@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
+import { resolveCliSpawnEnv } from '../utils/cliEnv';
 
 export type CliResolver = () => { cmd: string; args: string[] } | null;
 
@@ -108,7 +109,7 @@ export class SimpleBeaconFixEngine {
       const child = spawn(cmd, args, {
         cwd,
         shell: useShell,
-        env: { ...process.env, FORCE_COLOR: '0' },
+        env: resolveCliSpawnEnv(),
       });
       let stdout = '';
       let stderr = '';
