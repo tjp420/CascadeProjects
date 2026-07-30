@@ -7,6 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const { resolvePackageExists, detectProxyEnvironment } = require('../lib/offline-resolver');
 const { globMatch } = require('./production-leak');
 
 const DEFAULT_SOURCE_PATHS = ['server', 'src', 'web', 'lib', 'packages', 'app'];
@@ -201,7 +202,7 @@ function scanTextPatterns(relativePath, content, ext, options = {}) {
             if (isAllowlistedMatch(line, match[0])) continue;
             if (isFenceDetectorMetaLine(line, relativePath, rule.id)) continue;
             if (rule.id === 'SB-FICTION-002' && isJSDocLine(line)) continue;
-            if (isCommentLine(line, ext) && rule.id !== 'SB-FICTION-002' && rule.id !== 'SB-FICTION-001') continue;
+            if (isCommentLine(line, ext) && rule.id !== 'SB-FICTION-002' && rule.id !== 'SB-FICTION-001' && rule.id !== 'SB-FICTION-005') continue;
 
             const cardType = rule.id === 'SB-FICTION-002' ? 'markdown-fence-leak'
                 : rule.id === 'SB-FICTION-001' ? 'ai-placeholder-comment'
@@ -270,18 +271,7 @@ function scanSuspiciousDependencies(relativePath, content) {
 }
 
 function npmRegistryExists(packageName, timeoutMs = 4000) {
-    return new Promise((resolve) => {
-        const url = `https://registry.npmjs.org/${encodeURIComponent(packageName)}`;
-        const req = https.get(url, { timeout: timeoutMs }, (res) => {
-            resolve(res.statusCode === 200);
-            res.resume();
-        });
-        req.on('error', () => resolve(null));
-        req.on('timeout', () => {
-            req.destroy();
-            resolve(null);
-        });
-    });
+    return resolvePackageExists(packageName, { timeoutMs, useCache: true });
 }
 
 async function scanUnknownNpmDependencies(relativePath, content, options = {}) {

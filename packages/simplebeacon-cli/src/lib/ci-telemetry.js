@@ -45,6 +45,9 @@ function buildCiTelemetryPayload(report, license, context = {}) {
  * @returns {Promise<Object>}
  */
 async function postCiTelemetry(report, license, options = {}) {
+  if (options.airGapped === true) {
+    return { skipped: true, reason: 'air_gapped' };
+  }
   if (!license?.paid) {
     return { skipped: true, reason: 'community_tier' };
   }

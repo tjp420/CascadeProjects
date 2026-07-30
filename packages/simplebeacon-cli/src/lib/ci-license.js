@@ -90,6 +90,7 @@ async function tryRemoteValidation(token) {
  */
 async function resolveCiLicense(options = {}) {
     const failOpenOnNetwork = options.failOpenOnNetwork !== false;
+    const airGapped = options.airGapped === true;
     const token = process.env.SIMPLEBEACON_LICENSE_TOKEN || resolveLicenseToken();
     const isPipeline = isPipelineScan();
     const inPipeline = isPipeline || Boolean(token);
@@ -103,7 +104,7 @@ async function resolveCiLicense(options = {}) {
             active: false,
             sandbox: isPipeline,
             upgradeUrl: DEFAULT_UPGRADE_URL,
-            mode: 'community'
+            mode: airGapped ? 'air-gapped-community' : 'community'
         };
     }
 
@@ -122,6 +123,21 @@ async function resolveCiLicense(options = {}) {
             upgradeUrl: paid ? undefined : DEFAULT_UPGRADE_URL,
             mode: local.mode,
             claims: local.claims
+        };
+    }
+
+    // Air-gapped mode: never attempt remote validation
+    if (airGapped) {
+        return {
+            ok: true,
+            tier: 'developer',
+            paid: false,
+            limits: getTierLimits('developer'),
+            active: false,
+            sandbox: isPipeline,
+            upgradeUrl: DEFAULT_UPGRADE_URL,
+            mode: 'air-gapped-fallback',
+            warning: 'Air-gapped mode — license token could not be validated locally. Running community gate (scan not blocked).'
         };
     }
 

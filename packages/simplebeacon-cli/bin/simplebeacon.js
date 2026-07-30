@@ -55,7 +55,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload']);
+const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache']);
 
 let _cliDebugMode = false;
 
@@ -234,7 +234,8 @@ function createDefaultOptions(command) {
         headRef: null,
         inviteeEmail: null,
         message: null,
-        sendEmail: false
+        sendEmail: false,
+        secretsOnly: false
     };
 }
 
@@ -251,6 +252,7 @@ const FLAG_MAP = [
     { aliases: ['--config', '-c'], key: 'config', type: 'string' },
     { aliases: ['--format', '-f'], key: 'format', type: 'string' },
     { aliases: ['--output', '-o'], key: 'output', type: 'string' },
+    { aliases: ['--input', '-i'], key: 'input', type: 'string' },
     { aliases: ['--report', '-r'], key: 'report', type: 'string' },
     { aliases: ['--issue-number'], key: 'issueNumber', type: 'string' },
     { aliases: ['--repo'], key: 'repo', type: 'string' },
@@ -273,7 +275,9 @@ const FLAG_MAP = [
     { aliases: ['--api-url'], key: 'apiUrl', type: 'string' },
     { aliases: ['--type'], key: 'hookType', type: 'string' },
     { aliases: ['--husky'], key: 'preferHusky', type: 'boolean' },
+    { aliases: ['--secrets-only'], key: 'secretsOnly', type: 'boolean' },
     { aliases: ['--offline'], key: 'offline', type: 'boolean' },
+    { aliases: ['--air-gapped'], key: 'airGapped', type: 'boolean' },
     { aliases: ['--no-trust-banner'], key: 'noTrustBanner', type: 'boolean' },
     { aliases: ['--no-referral-nudge'], key: 'noReferralNudge', type: 'boolean' },
     { aliases: ['--dry-run'], key: 'dryRun', type: 'boolean' },
@@ -356,6 +360,16 @@ function parseArgs(argv) {
 
     const options = createDefaultOptions(command);
 
+    // Collect positional args for subcommands that need them (e.g., cache export/import)
+    if (command === 'cache') {
+        options._positional = [];
+        for (let i = flagStart; i < args.length; i += 1) {
+            if (!args[i].startsWith('-')) {
+                options._positional.push(args[i]);
+            }
+        }
+    }
+
     if (command === 'fix' && args[flagStart] && !args[flagStart].startsWith('-')) {
         options.path = args[flagStart];
         flagStart += 1;
@@ -428,7 +442,8 @@ function applyCliPathSafety(options) {
         'assess',
         'compliance',
         'report',
-        'hook-install'
+        'hook-install',
+        'secrets-gate'
     ]);
 
     if (pathRequiredCommands.has(options.command)) {
@@ -468,6 +483,7 @@ Usage:
   simplebeacon report [options]   Build client-facing markdown audit from scan JSON
   simplebeacon baseline sync      Run Jest and update .simplebeacon/baseline.json
   simplebeacon hook install         Install pre-commit or pre-push git hook
+  simplebeacon secrets-gate [opts]  Block commits when staged files contain secrets
   simplebeacon gate status            Print gate pass/fail from .simplebeacon/report.json
   simplebeacon reduce [options]     Analyze repo for file-reduction opportunities (dry-run)
   simplebeacon pdf [options]        Generate Executive Risk Certificate (requires license token)
@@ -526,6 +542,8 @@ Scan options:
   --include-deps      Include node_modules and .git in scan (slower, more noise)
   --min-confidence n  Minimum rule confidence threshold 0.0–1.0 (default: 0.5)
   --offline           Fail if any outbound network activity occurs during scan
+  --air-gapped        Enterprise air-gapped mode: implies --offline, skips remote license
+                      validation and telemetry, uses only local cache for registry lookups
   --no-trust-banner   Suppress read-only / local-only trust confirmation lines
   --no-referral-nudge Suppress post-scan referral share banner (also SIMPLEBEACON_REFERRAL_NUDGE=false)
   --slop-cop          Run AI Slop Cop (LLM residue / mock-data detection) during scan
@@ -595,14 +613,26 @@ AI Plan options:
 Global options:
   --debug             Print full stack traces on errors and disable spinner
 
+Cache options (air-gapped support):
+  simplebeacon cache prewarm          Pre-populate registry cache from npm (run before air-gap)
+  simplebeacon cache export <file>    Export cache to JSON for USB transfer to air-gapped env
+  simplebeacon cache import <file>    Import cache from JSON (air-gapped env)
+  simplebeacon cache stats            Show cache entry count, freshness, and file path
+  simplebeacon cache clear            Delete the local registry cache
+
 Examples:
   npx simplebeacon init
   npx simplebeacon init --profile minimal
   npx simplebeacon scan --gate
   npx simplebeacon scan --offline --gate
+  npx simplebeacon scan --air-gapped --gate
   npx simplebeacon scan --format json --output .simplebeacon/report.json --gate
   npx simplebeacon scan --gate --complete
   npx simplebeacon scan --format json --api-token sb_xxx --upload https://simplebeacon.ai/api/simplebeacon/cloud-scan
+  npx simplebeacon cache prewarm
+  npx simplebeacon cache export /tmp/sb-cache.json
+  npx simplebeacon cache import /tmp/sb-cache.json
+  npx simplebeacon cache stats
   npx simplebeacon assess --company "Acme" --assessor "Jane" --checklist eu-ai-act
   npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --assessor "Jane"
   npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --enhance
@@ -799,13 +829,13 @@ async function executeOneScan(options, networkGuard) {
             writeStdoutLine(payload);
         }
 
-        if (options.paidLicense) {
+        if (options.paidLicense && !airGapped) {
             try {
                 const { postCiTelemetry } = require('../src/lib/ci-telemetry');
                 const telemetryResult = await postCiTelemetry(jsonReport, {
                     paid: true,
                     tier: options.tier || 'developer'
-                });
+                }, { airGapped });
                 if (telemetryResult.ok && !options.quiet) {
                     console.error('[simplebeacon] Team CI telemetry recorded.');
                 } else if (telemetryResult.networkError && !options.quiet) {
@@ -872,10 +902,22 @@ async function executeOneScan(options, networkGuard) {
  */
 async function runScanCommand(options) {
     if (!options || typeof options !== 'object') throw new TypeError('runScanCommand requires an options object');
+    // --air-gapped implies --offline and skips all remote calls
+    const airGapped = options.airGapped === true;
+    if (airGapped) {
+        options.offline = true;
+        if (options.upload) {
+            console.error('[simplebeacon] --air-gapped cannot be used with --upload (contradictory)');
+            return 1;
+        }
+    }
     const networkGuard = createNetworkGuard({ offline: options.offline });
     printTrustBanner({ quiet: options.noTrustBanner, offline: options.offline }, paint);
+    if (airGapped && !options.noTrustBanner) {
+        console.error(`${paint('✓', 'green')} Air-gapped mode — remote license validation and telemetry disabled`);
+    }
 
-    const license = await resolveCiLicense({ failOpenOnNetwork: true, allowRemote: true });
+    const license = await resolveCiLicense({ failOpenOnNetwork: true, allowRemote: !airGapped, airGapped });
     if (!license.ok) {
         console.error(`[simplebeacon] ${license.message || 'Invalid SIMPLEBEACON_LICENSE_TOKEN'}`);
         return 1;
@@ -1393,6 +1435,7 @@ function runHookInstallCommand(options) {
         withJest: options.withJest,
         preferHusky: options.preferHusky,
         fix: options.fix,
+        secretsOnly: options.secretsOnly,
         dryRun: options.dryRun
     });
 
@@ -1464,6 +1507,55 @@ async function runReduceCommand(options) {
             writeStdoutLine('…');
         }
     }
+}
+
+function runSecretsGateCommand(options) {
+    if (!options || typeof options !== 'object') throw new TypeError('runSecretsGateCommand requires an options object');
+    const { runStagedSecretsGate, redactMatch } = require('../src/lib/credential-pattern-scanner');
+    const root = resolveCliProjectRoot(options.path, {
+        mustExist: true,
+        mustBeDirectory: true,
+        label: 'Project path'
+    });
+    const result = runStagedSecretsGate(root, { dryRun: Boolean(options.dryRun) });
+    const asJson = options.format === 'json' || options.jsonOutput;
+
+    if (asJson) {
+        writeStdoutLine(JSON.stringify({
+            pass: result.pass,
+            blockingCount: result.blockingCount,
+            scannedFiles: result.scannedFiles,
+            skippedFiles: result.skippedFiles,
+            message: result.message,
+            findings: (result.findings || []).map((finding) => ({
+                file: finding.filePath || finding.file,
+                line: finding.line,
+                pattern: finding.pattern,
+                severityBand: finding.severityBand,
+                redactedPreview: finding.metadata?.redactedPreview || redactMatch(''),
+                recommendation: finding.recommendation
+            }))
+        }, null, 2));
+    } else if (!options.quiet) {
+        writeStdoutLine(result.message || (result.pass ? 'Staged secrets gate passed' : 'Staged secrets gate failed'));
+        if (result.findings?.length) {
+            console.error('');
+            console.error('[SimpleBeacon] COMMIT BLOCKED — staged secret detected');
+            for (const finding of result.findings) {
+                const file = finding.filePath || finding.file;
+                const preview = finding.metadata?.redactedPreview || '****';
+                console.error(`  ${file}:${finding.line}  ${finding.pattern}  (${preview})`);
+                console.error(`    ${finding.recommendation}`);
+            }
+            console.error('');
+            console.error('Run: npx simplebeacon secrets-gate --path .');
+        }
+    }
+
+    if (result.pass) {
+        return 0;
+    }
+    return 1;
 }
 
 function runGateStatusCommand(options) {
@@ -1632,6 +1724,88 @@ function validateCommandOptions(options) {
     }
 }
 
+/**
+ * Execute a cache management command for air-gapped support.
+ * Subcommands: prewarm, export, import, stats, clear
+ * @param {Object} options
+ * @returns {Promise<number>}
+ */
+async function runCacheCommand(options) {
+    const {
+        prewarmCache,
+        exportCache,
+        importCache,
+        getCacheStats,
+        clearCache
+    } = require('../src/lib/offline-resolver');
+
+    const subcommand = options._positional?.[0] || 'stats';
+
+    switch (subcommand) {
+        case 'stats': {
+            const stats = getCacheStats();
+            console.error(`Cache file:     ${stats.cacheFile}`);
+            console.error(`Total entries:  ${stats.totalEntries}`);
+            console.error(`Fresh entries:  ${stats.fresh}`);
+            console.error(`Stale entries:  ${stats.stale}`);
+            if (stats.cacheAge !== null) {
+                const ageDays = Math.floor(stats.cacheAge / (24 * 60 * 60 * 1000));
+                console.error(`Cache age:      ${ageDays} day(s)`);
+            }
+            return 0;
+        }
+        case 'prewarm': {
+            console.error('[simplebeacon] Pre-warming registry cache (this requires network access)...');
+            const results = await prewarmCache([], { onProgress: (name, exists) => {
+                if (exists === true) console.error(`  ✓ ${name}`);
+                else if (exists === false) console.error(`  ✗ ${name} (not found)`);
+            }});
+            console.error(`\nDone. Cached: ${results.cached}, Failed: ${results.failed}`);
+            return 0;
+        }
+        case 'export': {
+            const outputPath = options._positional?.[1] || options.output;
+            if (!outputPath) {
+                console.error('[simplebeacon] Usage: simplebeacon cache export <output-file>');
+                return 1;
+            }
+            const data = exportCache(outputPath);
+            console.error(`Exported ${data.entryCount} cache entries to ${outputPath}`);
+            console.error(`  Known-good packages: ${data.knownGoodPackages.length}`);
+            console.error(`  Known-hallucinated packages: ${data.knownHallucinatedPackages.length}`);
+            return 0;
+        }
+        case 'import': {
+            const inputPath = options._positional?.[1] || options.input;
+            if (!inputPath) {
+                console.error('[simplebeacon] Usage: simplebeacon cache import <input-file>');
+                return 1;
+            }
+            try {
+                const result = importCache(inputPath);
+                console.error(`Imported ${result.imported} cache entries from ${inputPath}`);
+                return 0;
+            } catch (err) {
+                console.error(`[simplebeacon] Import failed: ${err.message}`);
+                return 1;
+            }
+        }
+        case 'clear': {
+            const cleared = clearCache();
+            if (cleared) {
+                console.error('[simplebeacon] Registry cache cleared.');
+            } else {
+                console.error('[simplebeacon] No cache file to clear (already empty).');
+            }
+            return 0;
+        }
+        default:
+            console.error(`[simplebeacon] Unknown cache subcommand: ${subcommand}`);
+            console.error('Available: prewarm, export, import, stats, clear');
+            return 1;
+    }
+}
+
 const COMMAND_REGISTRY = {
     init: runInitCommand,
     comment: runCommentCommand,
@@ -1640,6 +1814,7 @@ const COMMAND_REGISTRY = {
     compliance: runComplianceCommand,
     report: runReportCommand,
     'hook-install': runHookInstallCommand,
+    'secrets-gate': runSecretsGateCommand,
     reduce: runReduceCommand,
     'gate-status': runGateStatusCommand,
     mcp: (opts) => {
@@ -1658,11 +1833,14 @@ const COMMAND_REGISTRY = {
     pdf: runPdfCommand,
     'buy-clearance': runBuyClearanceCommand,
     refer: runReferCommand,
-    doctor: runDoctorCommand
+    doctor: runDoctorCommand,
+    cache: runCacheCommand
 };
 
 async function main() {
-    const activeCompliancePolicy = runPolicyGate();
+    const argvCommand = process.argv[2];
+    const skipPolicyGate = argvCommand === 'secrets-gate';
+    const activeCompliancePolicy = skipPolicyGate ? null : runPolicyGate();
     if (activeCompliancePolicy) {
         global.__SIMPLEBEACON_ACTIVE_POLICY__ = activeCompliancePolicy;
     }

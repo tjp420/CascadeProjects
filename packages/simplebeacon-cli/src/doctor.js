@@ -23,7 +23,35 @@ function runDoctor() {
         issuesFixed.push('Generated missing configuration template: .env.example');
     }
 
-    // 3. Print Results Matrix
+    // 3. Air-Gap Readiness Check
+    let airGapReady = true;
+    const airGapWarnings = [];
+    try {
+        const { getCacheStats } = require('./lib/offline-resolver');
+        const cacheStats = getCacheStats();
+        if (cacheStats.totalEntries === 0) {
+            airGapReady = false;
+            airGapWarnings.push('Registry cache is empty — run "simplebeacon cache prewarm" before air-gapping');
+        } else if (cacheStats.fresh === 0) {
+            airGapReady = false;
+            airGapWarnings.push(`Registry cache has ${cacheStats.stale} stale entries — run "simplebeacon cache prewarm" to refresh`);
+        } else {
+            console.log(`  ✅ Registry cache: ${cacheStats.fresh} fresh entries (${cacheStats.stale} stale)`);
+        }
+    } catch {
+        airGapReady = false;
+        airGapWarnings.push('Unable to read registry cache — offline-resolver module not available');
+    }
+
+    if (airGapReady) {
+        console.log('  ✅ Air-gap readiness: cache populated and ready for offline scans');
+    } else {
+        for (const w of airGapWarnings) {
+            console.error(`  ⚠️ Air-gap: ${w}`);
+        }
+    }
+
+    // 4. Print Results Matrix
     if (issuesFixed.length > 0) {
         console.log('\n🔧 Auto-Fixes Applied Successfully:');
         issuesFixed.forEach(fix => console.log(`  ✅ ${fix}`));
