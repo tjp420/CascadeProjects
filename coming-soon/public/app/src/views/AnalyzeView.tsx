@@ -50,6 +50,25 @@ function isWebsiteMode(): boolean {
   } catch { return false; }
 }
 
+function isIdeEmbedSurface(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const win = window as any;
+    if (win.__SB_IDE_EMBED__) return true;
+    if (document.documentElement.hasAttribute('data-ide-embed')) return true;
+    if (typeof win.acquireVsCodeApi === 'function') return true;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
+  } catch { /* ignore */ }
+  return window.self !== window.top;
+}
+
+/** Hosted dashboard scans require a valid session (browser-local included). */
+function hostedScanRequiresAuth(hosted: boolean): boolean {
+  return hosted && !isIdeEmbedSurface();
+}
+
 function bridgeFetchHeaders(bridgeToken?: string | null): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (bridgeToken) {
@@ -399,17 +418,6 @@ export function AnalyzeView() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // If bridgeBase is present and host is secure, ensure Local Network Access is allowed
-      try {
-        if (bridgeBase && window.location.protocol === 'https:') {
-          const ok = await checkLocalNetworkAccess(bridgeBase, 2000);
-          if (!ok) {
-            setLocalNetworkDenied(true);
-            return;
-          }
-          setLocalNetworkDenied(false);
-        }
-      } catch {}
       try {
         const resp = await fetch(apiUrl('/analyze/providers'), { headers: authHeaders() });
         if (resp.ok && !cancelled) {
@@ -436,6 +444,57 @@ export function AnalyzeView() {
 
   // Persist scan result to localStorage without failing the scan on QuotaExceededError
   const persistScanResult = useCallback((scanResult: ScanResult, fullReportData?: any) => {
+    const buildCompactReport = (report: any) => {
+      const rawIssues = Array.isArray(report?.rawIssues) ? report.rawIssues
+        : (Array.isArray(report?.detectedIssues) ? report.detectedIssues : []);
+      const fullSummary = report?.summary || {};
+      return {
+        type: report?.type || 'simplebeacon-report',
+        version: report?.version || '1.0.0',
+        reportVersion: report?.reportVersion || 2,
+        generatedAt: report?.generatedAt || new Date().toISOString(),
+        scanSource: report?.scanSource || 'browser-local',
+        projectPath: report?.projectPath || scanResult.projectPath,
+        projectRoot: report?.projectRoot || report?.projectPath || scanResult.projectPath,
+        // Strip summary to essential scalar fields only — nested arrays/objects can be large
+        summary: {
+          totalFiles: fullSummary.totalFiles ?? scanResult.totalFiles,
+          codeFilesAnalyzed: fullSummary.codeFilesAnalyzed ?? scanResult.scanScope?.codeFilesAnalyzed,
+          totalFindings: fullSummary.totalFindings ?? scanResult.issueCount,
+          severityCounts: fullSummary.severityCounts || scanResult.severityCounts,
+        },
+        severityCounts: report?.severityCounts || scanResult.severityCounts,
+        issueCount: report?.issueCount ?? scanResult.issueCount,
+        gate: report?.gate || scanResult.gate,
+        qualityScore: report?.qualityScore ?? scanResult.qualityScore,
+        repositoryFilesTotal: report?.repositoryFilesTotal ?? scanResult.totalFiles,
+        ruleScopedFilesAnalyzed: report?.ruleScopedFilesAnalyzed ?? scanResult.scanScope?.codeFilesAnalyzed,
+        // Strip scanScope to scalar fields only — the full object can include arrays
+        scanScope: {
+          profile: report?.scanScope?.profile || scanResult.scanScope?.profile || 'standard',
+          resultsViewScope: report?.scanScope?.resultsViewScope || scanResult.scanScope?.resultsViewScope || 'browser-local',
+          codeFilesAnalyzed: report?.scanScope?.codeFilesAnalyzed ?? scanResult.scanScope?.codeFilesAnalyzed,
+        },
+        rawIssues: rawIssues.slice(0, 50),
+        detectedIssues: rawIssues.slice(0, 50),
+        issuesTruncated: Boolean(report?.issuesTruncated || rawIssues.length > 50),
+        scanLimitNote: report?.scanLimitNote || (rawIssues.length > 50
+          ? `Detailed findings capped at 50 rows for browser storage (${rawIssues.length.toLocaleString()} total). Export JSON or use the CLI for the full list.`
+          : null),
+      };
+    };
+
+    const clearBulkyScanKeys = () => {
+      try {
+        localStorage.removeItem('sb_last_scan_report');
+        localStorage.removeItem('sb_last_scan_full');
+      } catch { /* ignore */ }
+    };
+
+    const storeReportPayload = (payload: unknown) => {
+      localStorage.setItem('sb_last_scan_report', JSON.stringify(payload));
+    };
+
     try {
       localStorage.setItem('sb_last_scan', JSON.stringify({
         files: scanResult.totalFiles,
@@ -449,14 +508,29 @@ export function AnalyzeView() {
       localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
     } catch (e) {
       console.warn('[SimpleBeacon] Failed to store sb_last_scan_full (may exceed quota):', e);
-      toast.warning('Results page may be empty — localStorage quota exceeded. Export the report from the Analyze page instead.');
-    }
-    // Store the full report (with findings) in a separate key for the Results page export
-    if (fullReportData) {
+      clearBulkyScanKeys();
       try {
-        localStorage.setItem('sb_last_scan_report', JSON.stringify(fullReportData));
+        localStorage.setItem('sb_last_scan_full', JSON.stringify(scanResult));
+      } catch {
+        toast.warning('Results summary may be limited — localStorage quota exceeded.');
+      }
+    }
+    if (fullReportData) {
+      const rawIssues = Array.isArray(fullReportData?.rawIssues) ? fullReportData.rawIssues
+        : (Array.isArray(fullReportData?.detectedIssues) ? fullReportData.detectedIssues : []);
+      const useCompactFirst = rawIssues.length > 200 || (scanResult.issueCount ?? 0) > 500;
+      const payload = useCompactFirst ? buildCompactReport(fullReportData) : fullReportData;
+      try {
+        storeReportPayload(payload);
       } catch (e) {
         console.warn('[SimpleBeacon] Failed to store sb_last_scan_report (may exceed quota):', e);
+        clearBulkyScanKeys();
+        try {
+          storeReportPayload(buildCompactReport(fullReportData));
+        } catch (compactErr) {
+          console.warn('[SimpleBeacon] Failed to store compact sb_last_scan_report:', compactErr);
+          toast.warning('Findings list not saved to browser storage — use Export on the Results page or re-scan after clearing site data.');
+        }
       }
     }
     try {
@@ -472,6 +546,14 @@ export function AnalyzeView() {
     projectPath: string;
     logLabel?: string;
   }) => {
+    if (hostedScanRequiresAuth(hosted) && isTokenExpired()) {
+      setScanState('auth_required');
+      setProgress(0);
+      setProgressLabel('Sign in required to run analysis.');
+      setLastErrorMsg('Sign in required to run analysis on the hosted dashboard.');
+      toast.error('Sign in to run analysis.');
+      return;
+    }
     if (scanInFlightRef.current) return;
     scanInFlightRef.current = true;
     setScanState('scanning');
@@ -536,7 +618,18 @@ export function AnalyzeView() {
     } finally {
       scanInFlightRef.current = false;
     }
-  }, [appendLog, persistScanResult]);
+  }, [appendLog, persistScanResult, hosted]);
+
+  const ensureScanAuthorized = useCallback((): boolean => {
+    if (!hostedScanRequiresAuth(hosted) || !isTokenExpired()) return true;
+    setScanState('auth_required');
+    setProgress(0);
+    setProgressLabel('Sign in required to run analysis.');
+    setLastErrorMsg('Sign in required to run analysis on the hosted dashboard.');
+    appendLog('[SimpleBeacon] Authentication required before scan.');
+    toast.error('Sign in to run analysis.');
+    return false;
+  }, [appendLog, hosted]);
 
   // Debounced append to reduce layout churn when many logs arrive quickly
   const debouncedAppendLog = useCallback((line: string) => {
@@ -623,6 +716,9 @@ export function AnalyzeView() {
       appendLog('[SimpleBeacon] Scan already in progress; ignoring duplicate start request.');
       return;
     }
+    if (!ensureScanAuthorized()) {
+      return;
+    }
     scanInFlightRef.current = true;
     let scanInput = path.trim();
 
@@ -692,8 +788,8 @@ export function AnalyzeView() {
       let scanPath = scanInput;
 
       // If we have a dropped directory handle, use browser-based scan directly (skip server path resolution)
-      // Browser-local scans run entirely on the user's machine and do NOT require server auth,
-      // so the isTokenExpired() check is intentionally deferred until after this branch.
+      // Browser-local scans run on the user's machine; auth is checked at scan start.
+      // Server-side paths below also require authentication.
       const dirHandle = (window as any).__sbDroppedDirHandle as FileSystemDirectoryHandle | undefined;
       if (mode === 'local' && dirHandle && dirHandle.name === scanPath) {
         setProgressLabel('Collecting files from folder...');
@@ -948,8 +1044,6 @@ export function AnalyzeView() {
       }
 
       // Server-side scan paths below require authentication.
-      // Browser-local scans (dropped dirHandle and hosted dashboard auto-switch above)
-      // return early before this point, so they work without signing in.
       if (isTokenExpired()) {
         setScanState('auth_required');
         setProgress(0);
@@ -1197,11 +1291,18 @@ export function AnalyzeView() {
     } finally {
       scanInFlightRef.current = false;
     }
-  }, [path, mode, appendLog, hosted, serverDefaultPath]);
+  }, [path, mode, appendLog, hosted, serverDefaultPath, ensureScanAuthorized, bridgeBase, bridgeToken, recheckBridge, persistScanResult, postBrowserError, debouncedAppendLog, isAllowedFileError]);
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
+
+    if (hostedScanRequiresAuth(hosted) && isTokenExpired()) {
+      setScanState('auth_required');
+      setLastErrorMsg('Sign in required to run analysis on the hosted dashboard.');
+      toast.error('Sign in to run analysis.');
+      return;
+    }
 
     const capturedEntries = captureDropEntries(e.dataTransfer.items);
     const dtFiles = Array.from(e.dataTransfer.files);
@@ -1301,6 +1402,13 @@ export function AnalyzeView() {
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    if (hostedScanRequiresAuth(hosted) && isTokenExpired()) {
+      setScanState('auth_required');
+      setLastErrorMsg('Sign in required to run analysis on the hosted dashboard.');
+      toast.error('Sign in to run analysis.');
+      e.target.value = '';
+      return;
+    }
     console.warn('[SimpleBeacon] handleFileSelect: files.length =', files.length, '| first.webkitRelativePath =', (files[0] as any).webkitRelativePath);
     const first = files[0];
     const rel = (first as any).webkitRelativePath;
@@ -1372,7 +1480,7 @@ export function AnalyzeView() {
     }
     // Reset input so the same folder can be selected again
     e.target.value = '';
-  }, [appendLog]);
+  }, [appendLog, hosted, persistScanResult]);
 
   const handleBrowseFolder = useCallback(async () => {
     // 1. Try extension bridge folder picker first (works in cross-origin iframes)
@@ -1875,7 +1983,7 @@ export function AnalyzeView() {
               <Lock className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <div className="text-sm font-medium">Sign in required</div>
-                <div className="text-xs text-foreground-muted truncate">{lastErrorMsg || 'Your session expired before analysis completed.'}</div>
+                <div className="text-xs text-foreground-muted truncate">{lastErrorMsg || 'Sign in to run analysis on the hosted dashboard.'}</div>
               </div>
             </div>
             <Button size="sm" className="shrink-0" onClick={() => clearAuthAndRedirect()}>Sign in again</Button>

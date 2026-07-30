@@ -12,6 +12,7 @@ import { ResultsReferralBanner } from '@/components/ResultsReferralBanner';
 import { PostScanCliNudge } from '@/components/PostScanCliNudge';
 import { PostScanShareBanner } from '@/components/PostScanShareBanner';
 import { resolveScanLetterGrade } from '@/lib/gradeFromScore';
+import { resolveReportIssues } from '@services/analyzeService.js';
 
 interface ScanResultData {
   totalFiles: number;
@@ -23,32 +24,15 @@ interface ScanResultData {
   scanScope: { profile: string; resultsViewScope: string; codeFilesAnalyzed: number };
 }
 
-function extractIssueListForSidebar(report: any): any[] {
-  if (Array.isArray(report?.rawIssues) && report.rawIssues.length) return report.rawIssues;
-  if (Array.isArray(report?.detectedIssues) && report.detectedIssues.length) return report.detectedIssues;
-  if (Array.isArray(report?.findings) && report.findings.length) {
-    return report.findings.map((f: any) => ({
-      filePath: f.filePath || f.file || '',
-      line: f.line || 1,
-      severity: f.severity || 'medium',
-      severityBand: f.severityBand || f.severity || 'medium',
-      type: f.category || f.type || 'finding',
-      description: f.message || f.description || 'Finding detected',
-      count: Number(f.count) || 1,
-    }));
-  }
-  return [];
-}
-
 function syncReportToVscodeSidebar(reportData: any, fallbackProjectPath = ''): void {
   if (!reportData || typeof window === 'undefined') return;
-  const issues = extractIssueListForSidebar(reportData);
+  const issues = resolveReportIssues(reportData);
   const sev = reportData?.severityCounts || {};
   const qualityScore = reportData?.qualityScore ?? reportData?.gate?.score ?? 0;
   const payload = {
     totalFiles: reportData?.repositoryFilesTotal || reportData?.totalFiles || reportData?.summary?.totalFiles || 0,
     ruleScopedFilesAnalyzed: reportData?.ruleScopedFilesAnalyzed || reportData?.filesAnalyzed || reportData?.summary?.codeFilesAnalyzed || 0,
-    issueCount: issues.length,
+    issueCount: reportData?.issueCount ?? issues.reduce((sum, i) => sum + (Number(i.count) || 1), 0),
     qualityScore,
     gate: reportData?.gate || { pass: false },
     issues: issues.slice(0, 200),
@@ -62,7 +46,7 @@ function syncReportToVscodeSidebar(reportData: any, fallbackProjectPath = ''): v
     },
   };
   const stats = {
-    issues: issues.length,
+    issues: payload.issueCount,
     critical: payload.severityCounts.critical,
     high: payload.severityCounts.high,
     medium: payload.severityCounts.medium,
@@ -113,7 +97,30 @@ export function ResultsView() {
     }
   }, []);
 
-  const allIssues = useMemo(() => extractIssueListForSidebar(fullReport), [fullReport]);
+  const reportForIssues = useMemo(() => {
+    if (!result && !fullReport) return null;
+    return {
+      ...(fullReport || {}),
+      severityCounts: fullReport?.severityCounts || result?.severityCounts,
+      issueCount: fullReport?.issueCount ?? result?.issueCount,
+      gate: fullReport?.gate || result?.gate,
+      projectPath: fullReport?.projectPath || fullReport?.projectRoot || result?.projectPath,
+      qualityScore: fullReport?.qualityScore ?? result?.qualityScore,
+    };
+  }, [fullReport, result]);
+
+  const allIssues = useMemo(() => {
+    if (!reportForIssues) return [];
+    return resolveReportIssues(reportForIssues);
+  }, [reportForIssues]);
+
+  const findingsDetailLimited = Boolean(
+    result && result.issueCount > 0 && (
+      fullReport?.issuesTruncated ||
+      !fullReport ||
+      !(fullReport.rawIssues?.length || fullReport.detectedIssues?.length || fullReport.findings?.length)
+    )
+  );
 
   const filteredIssues = useMemo(() => {
     let issues = allIssues;
@@ -136,7 +143,7 @@ export function ResultsView() {
     const catMap: Record<string, number> = {};
     allIssues.forEach(i => {
       const cat = i.type || 'other';
-      catMap[cat] = (catMap[cat] || 0) + 1;
+      catMap[cat] = (catMap[cat] || 0) + (Number(i.count) || 1);
     });
     return Object.entries(catMap)
       .sort((a, b) => b[1] - a[1])
@@ -230,6 +237,8 @@ export function ResultsView() {
       <PostScanShareBanner
         qualityScore={result.qualityScore}
         gatePass={result.gate.pass}
+        userEmail={user?.email}
+        currentScanGrade={currentScanGrade}
       />
 
       {/* Findings Table + Detail Tabs */}
@@ -247,7 +256,8 @@ export function ResultsView() {
               <CardHeader>
                 <CardTitle>Findings Breakdown</CardTitle>
                 <CardDescription>
-                  {allIssues.length} total issue{allIssues.length !== 1 ? 's' : ''}
+                  {(result?.issueCount ?? allIssues.reduce((sum, i) => sum + (Number(i.count) || 1), 0)).toLocaleString()} total issue{(result?.issueCount ?? allIssues.length) !== 1 ? 's' : ''}
+                  {findingsDetailLimited && ' · detailed list limited — export JSON or use CLI for full paths'}
                   {filter !== 'all' && ` · filtered by ${filter}`}
                   {searchQuery && ` · matching "${searchQuery}"`}
                 </CardDescription>
@@ -284,12 +294,25 @@ export function ResultsView() {
 
                 <Separator />
 
-                {allIssues.length === 0 ? (
+                {(result?.issueCount ?? 0) === 0 && allIssues.length === 0 ? (
                   <div className="flex items-center gap-3 py-8">
                     <CheckCircle2 className="h-8 w-8 text-success" />
                     <div>
                       <p className="text-sm font-medium">No issues detected</p>
                       <p className="text-xs text-foreground-muted">All gate rules passed with zero findings</p>
+                    </div>
+                  </div>
+                ) : (result?.issueCount ?? 0) > 0 && allIssues.length === 0 ? (
+                  <div className="flex flex-col items-center gap-3 py-8 text-center">
+                    <AlertTriangle className="h-8 w-8 text-amber-400" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {(result?.issueCount ?? 0).toLocaleString()} issues found — detailed list unavailable
+                      </p>
+                      <p className="text-xs text-foreground-muted mt-1">
+                        The findings list was too large for browser storage. Export the JSON report from the Analyze page
+                        or run <code className="font-mono bg-muted px-1 py-0.5 rounded">npx simplebeacon scan --full --gate</code> via the CLI for the complete list.
+                      </p>
                     </div>
                   </div>
                 ) : filteredIssues.length === 0 ? (
