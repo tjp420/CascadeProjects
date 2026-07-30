@@ -455,11 +455,15 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
             if (analysisType === 'roadmap') {
                 const userCredentials = await loadUserCredentials(req, getUserAiCredentials);
-                const result = await buildRoadmapFromPath(projectPath, {
-                    ...body,
-                    userCredentials,
-                    registry
-                });
+                const result = await withTimeout(
+                    buildRoadmapFromPath(projectPath, {
+                        ...body,
+                        userCredentials,
+                        registry
+                    }),
+                    30_000,
+                    'roadmap generation'
+                );
                 return res.json({
                     success: true,
                     analysisType: 'roadmap',
