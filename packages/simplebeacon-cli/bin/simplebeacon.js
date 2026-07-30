@@ -29,6 +29,7 @@ const { buildAssessmentReport } = require('../src/assessment');
 const { sanitizeReportForCloudUpload } = require('../src/lib/report-sanitizer');
 const { buildAnonymizedExport, signAnonymizedExport } = require('../src/lib/anonymized-export');
 const { runLocalRemediation } = require('../src/lib/local-remediation');
+const { runDeterministicRemediation, getSupportedPatterns } = require('../src/lib/ast-remediator');
 const { generateExecutivePdf } = require('../src/lib/pdf-generator');
 const { evaluateComplianceChecklist } = require('../src/compliance-checklist');
 const { installSimplebeaconHook } = require('../src/hook-install');
@@ -296,6 +297,7 @@ const FLAG_MAP = [
     { aliases: ['--fix'], key: 'fix', type: 'boolean' },
     { aliases: ['--fix-provider'], key: 'fixProvider', type: 'string' },
     { aliases: ['--fix-dry-run'], key: 'fixDryRun', type: 'boolean' },
+    { aliases: ['--fix-engine'], key: 'fixEngine', type: 'string' },
     { aliases: ['--with-analyzer-suite'], key: 'withAnalyzerSuite', type: 'boolean' },
     { aliases: ['--fullDirectoryScan', '--full'], key: 'fullDirectoryScan', type: 'boolean' },
     { aliases: ['--complete'], key: 'complete', type: 'boolean' },
@@ -536,8 +538,8 @@ Scan options:
   --verbose, -v       Print config warnings and scan paths
   --anonymize         Strip all file paths, descriptions, and code snippets from JSON output
                         Output contains only abstract error codes and compliance metrics.
-  --fix               Run local remediation agent against blocking findings (requires Ollama)
-  // simplebeacon-ignore: generic-naming — CLI flag name is user-facing API
+  --fix               Run remediation against blocking findings (deterministic first, then LLM)
+  --fix-engine <e>    Remediation engine: auto (default) | deterministic | llm
   --fix-provider <p>  Override remediation LLM: ollama (default) | openai | anthropic
   --fix-dry-run       Show diffs without applying patches
   --max-fixes <n>     Limit number of auto-fix attempts (default: 10)
@@ -867,25 +869,73 @@ async function executeOneScan(options, networkGuard) {
         let remediation = null;
 
         if (options.fix) {
+            const fixEngine = options.fixEngine || 'auto'; // auto | deterministic | llm
             const fixableIssues = gateResult.blockingIssues?.length > 0
                 ? gateResult.blockingIssues
                 : (report.rawIssues || []).filter((i) => i.severity === 'high' || i.severity === 'critical');
             if (fixableIssues.length > 0) {
-                console.error(`\n🔧 [Local Remediation] Running local agent on ${fixableIssues.length} finding(s)...`);
-                remediation = await runLocalRemediation(fixableIssues, {
-                    dryRun: options.fixDryRun,
-                    maxFixes: options.maxFixes,
-                    model: options.fixProvider === 'ollama' || !options.fixProvider
-                        ? process.env.SIMPLEBEACON_FIX_MODEL || 'llama3.2:latest'
-                        : null
-                });
-                console.error(`   Applied: ${remediation.applied} | Failed: ${remediation.failed} | Total: ${remediation.total}`);
-                for (const r of remediation.results) {
-                    const icon = r.applied ? '✅' : '❌';
-                    console.error(`   ${icon} ${r.issue}${r.diff ? '\n      ' + r.diff.split('\n').slice(0, 3).join('\n      ') : ''}`);
+                const remainingIssues = [...fixableIssues];
+
+                // Phase 1: Deterministic fixes (no network, no LLM)
+                if (fixEngine === 'deterministic' || fixEngine === 'auto') {
+                    const supportedPatterns = new Set(getSupportedPatterns());
+                    const deterministicIssues = remainingIssues.filter(
+                        (i) => supportedPatterns.has(i.pattern) || supportedPatterns.has(i.metadata?.patternId)
+                    );
+                    if (deterministicIssues.length > 0) {
+                        console.error(`\n🔧 [Deterministic Remediation] Attempting ${deterministicIssues.length} deterministic fix(es)...`);
+                        const detResult = runDeterministicRemediation(deterministicIssues, {
+                            dryRun: options.fixDryRun,
+                            maxFixes: options.maxFixes,
+                        });
+                        console.error(`   Applied: ${detResult.applied} | Failed: ${detResult.failed} | Total: ${detResult.total}`);
+                        for (const r of detResult.results) {
+                            const icon = r.applied ? '✅' : '❌';
+                            console.error(`   ${icon} ${r.issue}${r.diff ? '\n      ' + r.diff.split('\n').slice(0, 3).join('\n      ') : ''}`);
+                        }
+                        if (!remediation) {
+                            remediation = { total: 0, applied: 0, failed: 0, results: [] };
+                        }
+                        remediation.total += detResult.total;
+                        remediation.applied += detResult.applied;
+                        remediation.failed += detResult.failed;
+                        remediation.results.push(...detResult.results);
+
+                        // Remove fixed issues from remaining
+                        const fixedPatterns = new Set(
+                            detResult.results.filter((r) => r.applied).map((r) => r.patternId)
+                        );
+                        remainingIssues = remainingIssues.filter(
+                            (i) => !fixedPatterns.has(i.pattern) && !fixedPatterns.has(i.metadata?.patternId)
+                        );
+                    }
+                }
+
+                // Phase 2: LLM-based fixes (fallback for remaining issues)
+                if ((fixEngine === 'llm' || fixEngine === 'auto') && remainingIssues.length > 0) {
+                    console.error(`\n🔧 [LLM Remediation] Running local agent on ${remainingIssues.length} remaining finding(s)...`);
+                    const llmResult = await runLocalRemediation(remainingIssues, {
+                        dryRun: options.fixDryRun,
+                        maxFixes: options.maxFixes,
+                        model: options.fixProvider === 'ollama' || !options.fixProvider
+                            ? process.env.SIMPLEBEACON_FIX_MODEL || 'llama3.2:latest'
+                            : null
+                    });
+                    console.error(`   Applied: ${llmResult.applied} | Failed: ${llmResult.failed} | Total: ${llmResult.total}`);
+                    for (const r of llmResult.results) {
+                        const icon = r.applied ? '✅' : '❌';
+                        console.error(`   ${icon} ${r.issue}${r.diff ? '\n      ' + r.diff.split('\n').slice(0, 3).join('\n      ') : ''}`);
+                    }
+                    if (!remediation) {
+                        remediation = { total: 0, applied: 0, failed: 0, results: [] };
+                    }
+                    remediation.total += llmResult.total;
+                    remediation.applied += llmResult.applied;
+                    remediation.failed += llmResult.failed;
+                    remediation.results.push(...llmResult.results);
                 }
             } else {
-                console.error('🔧 [Local Remediation] No high-severity findings to fix.');
+                console.error('🔧 [Remediation] No high-severity findings to fix.');
             }
         }
 
