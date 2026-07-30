@@ -9,6 +9,28 @@ param(
 
 function Test-HasTxtRecord {
     param([string]$Name)
+
+    # Always query Cloudflare DoH first (authoritative, no stale cache)
+    try {
+        $dohUrl = "https://cloudflare-dns.com/dns-query?name=$Name&type=TXT"
+        $dohResponse = Invoke-RestMethod -Uri $dohUrl -Headers @{ 'Accept' = 'application/dns-json' } -TimeoutSec 10
+        $values = @()
+        if ($dohResponse.Answer) {
+            foreach ($answer in $dohResponse.Answer) {
+                $data = [string]$answer.data
+                # DoH wraps TXT values in double quotes — strip them
+                $data = $data -replace '^"', '' -replace '"$', ''
+                $values += $data
+            }
+        }
+        if ($values.Count -gt 0) {
+            return @{ exists = $true; values = $values }
+        }
+    } catch {
+        # DoH failed, fall through to local resolver
+    }
+
+    # Fallback: local resolver (may have stale cache)
     try {
         $answers = @(Resolve-DnsName -Name $Name -Type TXT -ErrorAction Stop)
         $values = @()
@@ -42,8 +64,8 @@ if (-not $spf.exists) {
     if (-not $spfRecord) {
         Write-Host "[FAIL] SPF record exists for $spfName but does not start with v=spf1" -ForegroundColor Red
         $allOk = $false
-    } elseif ($spfRecord -notmatch 'include:resend\.com') {
-        Write-Host "[FAIL] SPF record is missing include:resend.com" -ForegroundColor Red
+    } elseif ($spfRecord -notmatch 'include:(send\.|spf\.)?resend\.com') {
+        Write-Host "[FAIL] SPF record is missing include:resend.com (or include:send.resend.com)" -ForegroundColor Red
         $allOk = $false
     } else {
         Write-Host "[PASS] SPF record OK for $spfName" -ForegroundColor Green
