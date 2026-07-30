@@ -226,7 +226,7 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         scanScope: {
             profile: 'standard',
             rulesEnabled: ['credential-patterns', 'production-leak-patterns'],
-            gatePolicy: { failOn: ['high'], warnOn: ['medium', 'low'] },
+            gatePolicy: { failOn: ['critical', 'high'], warnOn: ['medium', 'low'] },
             mockSampleFilesInScanPaths: mockSampleFiles,
             productionDirsScanned: null,
             productionPaths: [],

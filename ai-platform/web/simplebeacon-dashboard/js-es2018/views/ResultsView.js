@@ -2,7 +2,7 @@
 import { escapeHtml, showToast, formatPercent, formatNumber, renderEmptyState } from '../utils.js';
 import { getScanFileMetrics, resolveDisplayScore, hydrateClientScanReport, isClientScanReport } from '../services/analyzeService.js?v=20260726sevfix1';
 import { openInIde, renderIdeFileLink, resolveProjectRootFromApp } from '../utils-lib/ideDeepLink.js';
-const SEVERITIES = ['all', 'high', 'medium', 'low'];
+const SEVERITIES = ['all', 'critical', 'high', 'medium', 'low'];
 /**
  * Results view.
  */
@@ -119,6 +119,7 @@ export class ResultsView {
         const _issuesEmptyState = report && issues.length === 0 ? renderEmptyState({
             icon: totalIssues === 0 && (report?.gate?.pass) && !filtersActive ? '✅' : '🔍',
             title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
+            body: filtersActive ? 'Try adjusting severity filter or search query.' : undefined,
             iconWrapper: 'emoji'
         }) : null;
         const _noReportEmptyHtml = _noReportEmptyState ? (typeof _noReportEmptyState === 'string' ? _noReportEmptyState : _noReportEmptyState.html) : '';

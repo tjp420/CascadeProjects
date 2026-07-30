@@ -1614,7 +1614,7 @@ export function convertSandboxReportToSimplebeacon(report, projectPath) {
 
 /** True when report was produced client-side (browser sandbox) and must not be replaced by server snapshot. */
 export function isClientScanReport(report) {
-    return Boolean(report && (report.scanSource === 'browser-sandbox' || report.clientScan === true));
+    return Boolean(report && (report.scanSource === 'browser-sandbox' || report.scanSource === 'browser-local' || report.clientScan === true));
 }
 
 /**

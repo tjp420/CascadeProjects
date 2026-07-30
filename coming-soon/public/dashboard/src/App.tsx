@@ -33,8 +33,10 @@ import { AssessmentView } from './views/AssessmentView';
 import { AboutView } from './views/AboutView';
 import { GettingStartedView } from './views/GettingStartedView';
 import { ComplianceView } from './views/ComplianceView';
+import { OrganizationView } from './views/OrganizationView';
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
+const AUTH_REQUIRED_VIEWS = new Set(['organization']);
 const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
 
 function isHostedDashboard(): boolean {
@@ -82,6 +84,7 @@ const VIEW_TITLES: Record<string, string> = {
   about: 'About',
   'getting-started': 'Getting Started',
   compliance: 'Compliance',
+  organization: 'Organization',
 };
 
 const viewMap: Record<string, React.ComponentType> = {
@@ -110,6 +113,7 @@ const viewMap: Record<string, React.ComponentType> = {
   about: AboutView,
   'getting-started': GettingStartedView,
   compliance: ComplianceView,
+  organization: OrganizationView,
 };
 
 export default function App() {
@@ -133,12 +137,17 @@ export default function App() {
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
     if (PUBLIC_VIEWS.has(route.view)) return;
+    if (AUTH_REQUIRED_VIEWS.has(route.view) && !isAuthenticated) {
+      navigate('signin');
+      setRoute(getCurrentRoute());
+      return;
+    }
     if (!WRITE_HEAVY_VIEWS.has(route.view)) return;
     if (!isHostedDashboard() || isIdeEmbedSurface()) return;
     if (!isTokenExpired()) return;
     navigate('signin');
     setRoute(getCurrentRoute());
-  }, [route.view]);
+  }, [route.view, isAuthenticated]);
 
   const handleNavigate = useCallback((view: string) => {
     navigate(view);
