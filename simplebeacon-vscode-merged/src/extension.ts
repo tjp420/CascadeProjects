@@ -28,6 +28,7 @@ import {
   TeamDashboard,
   ScanResult, ScanProfile, exportScanResultToJson,
   SlopCopQuickFixProvider,
+  LocalRemediationCodeActionProvider,
   registerReferralEngine,
   SimpleBeaconProvider, ScanIssue,
   UploadPanel,
@@ -37,6 +38,7 @@ import {
 } from './providers';
 import { CodeMapTreeProvider } from './codeMapTreeProvider';
 import { startDataServer, stopDataServer, updateServerState, getServerState, getDataServerPort, clearBrowserSessionToken, setBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback, drainNotificationQueue, setTheme } from './dataServer';
+import { SimpleBeaconFixEngine } from './fixes/fixEngine';
 import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
 import { escapeHtml } from './utils/string';
 import { openWebsiteDashboardPanel } from './sidebarMessenger';
@@ -631,11 +633,51 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(...earlyCommands);
   outputChannel.appendLine('[SimpleBeacon] Early commands registered: ' + earlyCommands.length);
 
+  // Dry-run / apply fix commands via SimpleBeacon CLI
+  const fixEngine = new SimpleBeaconFixEngine(outputChannel, resolveCliPath);
+  context.subscriptions.push(
+    vscode.commands.registerCommand('simplebeacon.dryRunFix', async (targetFile?: string) => {
+      await fixEngine.executeFixWorkflow(true, typeof targetFile === 'string' ? targetFile : undefined);
+    }),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('simplebeacon.applyFixes', async (targetFile?: string) => {
+      await fixEngine.executeFixWorkflow(false, typeof targetFile === 'string' ? targetFile : undefined);
+    }),
+  );
+
+  let dryRunSaveDebounce: NodeJS.Timeout | null = null;
+  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((doc: vscode.TextDocument) => {
+    const config = vscode.workspace.getConfiguration('simplebeacon');
+    if (!config.get<boolean>('enableDryRunOnSave', false)) {
+      return;
+    }
+    if (!fixEngine.shouldRunOnSave(doc)) {
+      return;
+    }
+    if (dryRunSaveDebounce) {
+      clearTimeout(dryRunSaveDebounce);
+    }
+    dryRunSaveDebounce = setTimeout(() => {
+      dryRunSaveDebounce = null;
+      outputChannel.appendLine(`[SAVE EVENT] File update detected on ${path.basename(doc.fileName)}.`);
+      void fixEngine.executeFixWorkflow(true, doc.fileName);
+    }, 1000);
+  }));
+
   // Register the Slop Cop quick-fix provider for line-level ignore comments
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
       { scheme: 'file', language: '*' },
       new SlopCopQuickFixProvider(),
+      { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      { scheme: 'file', language: '*' },
+      new LocalRemediationCodeActionProvider(),
       { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
     )
   );
@@ -1125,6 +1167,14 @@ export function activate(context: vscode.ExtensionContext) {
     registerCmd('simplebeacon.openSettings', async () => {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
       if (panel) { panel.showSettingsPane(); }
+    }),
+    registerCmd('simplebeacon.jumpToFinding', async (uri: vscode.Uri, line: number, character: number) => {
+      if (!uri) return;
+      const doc = await vscode.workspace.openTextDocument(uri);
+      const editor = await vscode.window.showTextDocument(doc, { preview: false });
+      const position = new vscode.Position(Math.max(0, Number(line) || 0), Math.max(0, Number(character) || 0));
+      editor.selection = new vscode.Selection(position, position);
+      editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
     }),
     registerCmd('simplebeacon.installLocalAgent', async () => {
       try {
@@ -1850,6 +1900,28 @@ export function activate(context: vscode.ExtensionContext) {
       });
       if (!query) return;
       showQuietMessage(`Sending to AI Agent: "${query}" — feature coming soon.`);
+    }),
+    registerCmd('simplebeacon.remediateDiagnostic', async (uri?: vscode.Uri, range?: vscode.Range, diagnosticCode?: string, diagnosticMessage?: string, snippet?: string) => {
+      if (!uri || !range) {
+        vscode.window.showWarningMessage('No diagnostic span was provided for remediation.');
+        return;
+      }
+
+      try {
+        const doc = await vscode.workspace.openTextDocument(uri);
+        const text = snippet || doc.getText(range);
+        const { remediateDiagnosticWithLocalOllama } = await import('./fixes/localOllamaRemediation');
+        await remediateDiagnosticWithLocalOllama({
+          uri,
+          range,
+          diagnosticCode: String(diagnosticCode || 'unknown'),
+          diagnosticMessage: String(diagnosticMessage || 'SimpleBeacon diagnostic'),
+          snippet: text,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Local Ollama remediation failed: ${message}`);
+      }
     }),
     registerCmd('simplebeacon.openAnalyzePane', async () => {
       const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
@@ -5802,11 +5874,11 @@ h1{color:var(--vscode-textLink-foreground);border-bottom:1px solid var(--vscode-
         fs.writeFileSync(aiTmpFile, aiHtml, 'utf8');
         await modernSidebarProvider.navigateToPage('aiContext');
 
-        showQuietMessage('AI analysis complete');
+        vscode.window.setStatusBarMessage('AI analysis complete', 3000);
       } catch (err: unknown) {
         const e = err instanceof Error ? err : new Error(String(err));
         if (e.name === 'AbortError') {
-          showQuietMessage('AI analysis cancelled');
+          vscode.window.setStatusBarMessage('AI analysis cancelled', 3000);
         } else {
           vscode.window.showErrorMessage(`AI model error: ${e.message}. Ensure Ollama is running at ${ollamaUrl}`);
         }
@@ -9176,9 +9248,7 @@ async function openPreviewPanel(url: string, title: string) {
           } catch (chatErr) {
             // Chat command may not be available in all IDEs
           }
-          showQuietMessage(
-            'Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V'
-          );
+          vscode.window.setStatusBarMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V', 3000);
         } catch (err) {
           vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
         }

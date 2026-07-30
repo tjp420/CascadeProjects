@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.482",
+  "version": "3.0.490",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -68,7 +68,9 @@
     "onCommand:simplebeacon.showWelcome",
     "onCommand:simplebeacon.openAnalyze",
     "onCommand:simplebeacon.installLocalAgent",
-    "onCommand:simplebeacon.startLocalAgent"
+    "onCommand:simplebeacon.startLocalAgent",
+    "onCommand:simplebeacon.dryRunFix",
+    "onCommand:simplebeacon.applyFixes"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -411,6 +413,18 @@
         "command": "simplebeacon.highlightCodeMapNode",
         "title": "Highlight Code Map Node",
         "category": "SimpleBeacon"
+      },
+      {
+        "command": "simplebeacon.dryRunFix",
+        "title": "Preview Safe AI Code Fixes (Dry Run)",
+        "category": "SimpleBeacon",
+        "icon": "$(wrench)"
+      },
+      {
+        "command": "simplebeacon.applyFixes",
+        "title": "Apply Safe AI Code Fixes",
+        "category": "SimpleBeacon",
+        "icon": "$(check-all)"
       }
     ],
     "views": {
@@ -903,6 +917,11 @@
           "type": "object",
           "default": {},
           "description": "Stored AI provider keys and Ollama settings for the extension dashboard."
+        },
+        "simplebeacon.enableDryRunOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run a fix dry-run preview in the Output panel on document save (supported source files only). No files are modified."
         }
       }
     }
