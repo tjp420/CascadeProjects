@@ -1097,6 +1097,37 @@ async function bootstrapPhase2Routes() {
     });
     app.use('/api/v2/fixes', authenticate, fixStrategiesRouter);
 
+    // Per-user AI provider keys (OpenAI, Anthropic, Ollama) — encrypted at rest
+    const { getUserAiKeysPublic, saveUserAiKeys, clearUserAiKeys } = require('./server/lib/user-ai-keys-store.cjs');
+    app.get('/api/user/ai-keys', authenticate, async (req, res) => {
+        try {
+            const email = req.user?.email || '';
+            const result = await getUserAiKeysPublic(email);
+            res.json({ success: true, ...result });
+        } catch (e) {
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+    app.put('/api/user/ai-keys', authenticate, async (req, res) => {
+        try {
+            const email = req.user?.email || '';
+            if (!email) return res.status(400).json({ success: false, error: 'User email required' });
+            const result = await saveUserAiKeys(email, req.body || {});
+            res.json({ success: true, ...result });
+        } catch (e) {
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+    app.delete('/api/user/ai-keys', authenticate, async (req, res) => {
+        try {
+            const email = req.user?.email || '';
+            const result = await clearUserAiKeys(email);
+            res.json({ success: true, ...result });
+        } catch (e) {
+            res.status(500).json({ success: false, error: e.message });
+        }
+    });
+
     const routeSetups = [
         { name: 'localModels', fn: () => setupLocalModelsAPI(app, { baseDir: __dirname }) },
         { name: 'flexibleAnalyze', fn: () => setupFlexibleAnalyzeAPI(app, {
