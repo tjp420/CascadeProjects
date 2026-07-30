@@ -55,7 +55,7 @@ const { runFileReductionScan } = require('../src/lib/file-reduction-orchestrator
 const { generateFileReductionReport } = require('../src/reporters/file-reduction-report');
 const { readGateStatus } = require('../src/lib/snippet-scanner');
 const { installDeveloperStack } = require('../src/lib/developer-onboarding');
-const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache']);
+const VALID_COMMANDS = new Set(['scan', 'fix', 'init', 'comment', 'baseline-sync', 'assess', 'compliance', 'report', 'hook-install', 'reduce', 'gate-status', 'secrets-gate', 'pdf', 'buy-clearance', 'refer', 'mcp', 'ai-plan', 'doctor', 'upload', 'cache', 'team-metrics']);
 
 let _cliDebugMode = false;
 
@@ -278,6 +278,8 @@ const FLAG_MAP = [
     { aliases: ['--secrets-only'], key: 'secretsOnly', type: 'boolean' },
     { aliases: ['--offline'], key: 'offline', type: 'boolean' },
     { aliases: ['--air-gapped'], key: 'airGapped', type: 'boolean' },
+    { aliases: ['--recursive'], key: 'recursive', type: 'boolean' },
+    { aliases: ['--anonymous'], key: 'anonymous', type: 'boolean' },
     { aliases: ['--no-trust-banner'], key: 'noTrustBanner', type: 'boolean' },
     { aliases: ['--no-referral-nudge'], key: 'noReferralNudge', type: 'boolean' },
     { aliases: ['--dry-run'], key: 'dryRun', type: 'boolean' },
@@ -360,8 +362,8 @@ function parseArgs(argv) {
 
     const options = createDefaultOptions(command);
 
-    // Collect positional args for subcommands that need them (e.g., cache export/import)
-    if (command === 'cache') {
+    // Collect positional args for subcommands that need them (e.g., cache export/import, team-metrics)
+    if (command === 'cache' || command === 'team-metrics') {
         options._positional = [];
         for (let i = flagStart; i < args.length; i += 1) {
             if (!args[i].startsWith('-')) {
@@ -491,6 +493,7 @@ Usage:
   simplebeacon refer [options]      Generate a local-only referral token and share link
   simplebeacon ai-plan [options]   Generate AI-friendly remediation plan from scan results
   simplebeacon doctor              Runs integrity diagnostics, applies auto-fixes, and generates triage packages
+  simplebeacon team-metrics [opts]  Aggregate anonymous compliance metrics across local scan reports
 
 buy-clearance options:
   --email <addr>      Email address for checkout (required)
@@ -620,6 +623,14 @@ Cache options (air-gapped support):
   simplebeacon cache stats            Show cache entry count, freshness, and file path
   simplebeacon cache clear            Delete the local registry cache
 
+Team metrics options (organizational compliance aggregation):
+  simplebeacon team-metrics report              Show aggregated team compliance metrics
+  simplebeacon team-metrics ingest              Ingest latest scan from .simplebeacon/history.json
+  simplebeacon team-metrics export <file>       Export anonymized metrics to JSON
+  simplebeacon team-metrics register [name]     Register current project with a friendly name
+  simplebeacon team-metrics set-team <id>       Set the team identifier
+  simplebeacon team-metrics clear               Delete all team metrics data
+
 Examples:
   npx simplebeacon init
   npx simplebeacon init --profile minimal
@@ -633,6 +644,11 @@ Examples:
   npx simplebeacon cache export /tmp/sb-cache.json
   npx simplebeacon cache import /tmp/sb-cache.json
   npx simplebeacon cache stats
+  npx simplebeacon team-metrics ingest
+  npx simplebeacon team-metrics report
+  npx simplebeacon team-metrics export /tmp/team-metrics.json
+  npx simplebeacon team-metrics --format json
+  npx simplebeacon team-metrics --recursive --output .simplebeacon/team-metrics.json
   npx simplebeacon assess --company "Acme" --assessor "Jane" --checklist eu-ai-act
   npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --assessor "Jane"
   npx simplebeacon report --company "Acme LLC" --client "Acme Dashboard" --enhance
@@ -1806,6 +1822,120 @@ async function runCacheCommand(options) {
     }
 }
 
+/**
+ * Execute a team metrics command for organizational compliance aggregation.
+ * Subcommands: report, ingest, export, register, clear
+ * @param {Object} options
+ * @returns {Promise<number>}
+ */
+async function runTeamMetricsCommand(options) {
+    const {
+        ingestScanHistory,
+        getTeamMetricsReport,
+        exportAnonymizedReport,
+        clearTeamMetrics,
+        registerProject,
+        setTeamId,
+        METRICS_FILE
+    } = require('../src/lib/team-metrics');
+
+    const subcommand = options._positional?.[0] || 'report';
+
+    switch (subcommand) {
+        case 'report': {
+            const report = getTeamMetricsReport();
+            const stats = report.aggregatedStats;
+            console.error('=== Team Compliance Metrics ===');
+            console.error(`Snapshots:      ${report.snapshotCount}`);
+            console.error(`Projects:       ${stats.uniqueProjects}`);
+            console.error(`Total scans:    ${stats.totalScans}`);
+            console.error(`Avg quality:    ${stats.averageQualityScore}/100`);
+            console.error(`Gate pass rate: ${stats.averageGatePassRate}%`);
+            console.error(`Total issues:   ${stats.totalIssues} (${stats.totalBlocking} blocking, ${stats.totalWarnings} warnings)`);
+            console.error(`Files scanned:  ${stats.totalFilesScanned}`);
+            console.error(`Fiction found:  ${stats.totalFictionPatterns}`);
+            console.error('');
+            console.error('Severity breakdown:');
+            console.error(`  Critical: ${stats.severityBreakdown.critical}`);
+            console.error(`  High:     ${stats.severityBreakdown.high}`);
+            console.error(`  Medium:   ${stats.severityBreakdown.medium}`);
+            console.error(`  Low:      ${stats.severityBreakdown.low}`);
+            console.error('');
+            console.error('Project breakdown:');
+            for (const proj of report.projectBreakdown) {
+                const gate = proj.latestGatePass ? 'PASS' : 'FAIL';
+                console.error(`  ${proj.friendlyName}: score=${proj.latestScore} avg=${proj.averageScore} gate=${gate} scans=${proj.scanCount}`);
+            }
+            return 0;
+        }
+        case 'ingest': {
+            const root = path.resolve(options.projectRoot || process.cwd());
+            const historyPath = path.join(root, '.simplebeacon', 'history.json');
+            if (!fs.existsSync(historyPath)) {
+                console.error(`[simplebeacon] No scan history found at ${historyPath}`);
+                console.error('Run a scan first: simplebeacon scan');
+                return 1;
+            }
+            let history;
+            try {
+                history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
+            } catch {
+                console.error('[simplebeacon] Failed to parse history.json');
+                return 1;
+            }
+            const result = ingestScanHistory(root, history, { salt: options.salt || '' });
+            console.error(`[simplebeacon] Ingested ${result.ingested} scan(s) into team metrics (${result.total} total snapshots)`);
+            if (result.duplicate) {
+                console.error('  (latest scan was already ingested — use --force to override)');
+            }
+            return 0;
+        }
+        case 'export': {
+            const outputPath = options._positional?.[1] || options.output;
+            if (!outputPath) {
+                console.error('[simplebeacon] Usage: simplebeacon team-metrics export <output-file>');
+                return 1;
+            }
+            const data = exportAnonymizedReport(outputPath);
+            console.error(`[simplebeacon] Exported anonymized team metrics to ${outputPath}`);
+            console.error(`  Projects: ${data.projectBreakdown.length}`);
+            console.error(`  Snapshots: ${data.snapshotCount}`);
+            console.error(`  Avg score: ${data.aggregatedStats.averageQualityScore}/100`);
+            return 0;
+        }
+        case 'register': {
+            const root = path.resolve(options.projectRoot || process.cwd());
+            const name = options._positional?.[1] || options.name || path.basename(root);
+            const result = registerProject(root, name, options.salt || '');
+            console.error(`[simplebeacon] Registered project '${name}' (ID: ${result.id})`);
+            return 0;
+        }
+        case 'set-team': {
+            const teamId = options._positional?.[1] || options.teamId;
+            if (!teamId) {
+                console.error('[simplebeacon] Usage: simplebeacon team-metrics set-team <team-id>');
+                return 1;
+            }
+            setTeamId(teamId);
+            console.error(`[simplebeacon] Team ID set to: ${teamId}`);
+            return 0;
+        }
+        case 'clear': {
+            const cleared = clearTeamMetrics();
+            if (cleared) {
+                console.error('[simplebeacon] Team metrics cleared.');
+            } else {
+                console.error('[simplebeacon] No team metrics file to clear.');
+            }
+            return 0;
+        }
+        default:
+            console.error(`[simplebeacon] Unknown team-metrics subcommand: ${subcommand}`);
+            console.error('Available: report, ingest, export, register, set-team, clear');
+            return 1;
+    }
+}
+
 const COMMAND_REGISTRY = {
     init: runInitCommand,
     comment: runCommentCommand,
@@ -1834,7 +1964,8 @@ const COMMAND_REGISTRY = {
     'buy-clearance': runBuyClearanceCommand,
     refer: runReferCommand,
     doctor: runDoctorCommand,
-    cache: runCacheCommand
+    cache: runCacheCommand,
+    'team-metrics': runTeamMetricsCommand
 };
 
 async function main() {
