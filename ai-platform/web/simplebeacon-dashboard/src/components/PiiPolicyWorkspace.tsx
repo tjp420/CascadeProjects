@@ -26,6 +26,8 @@ import {
   History,
   PlayCircle,
   Search,
+  Download,
+  FileDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiUrl, authHeaders } from '@/config';
@@ -205,6 +207,34 @@ export function PiiPolicyWorkspace() {
       toast.error('Failed to seed default patterns');
     } finally {
       setSeeding(false);
+    }
+  };
+
+  // ── Compliance bundle export handler ──
+  const handleExportBundle = async (format: 'csv' | 'json') => {
+    try {
+      const resp = await fetch(apiUrl(`/pii/compliance-bundle?format=${format}`), {
+        headers: authHeaders(),
+      });
+      if (!resp.ok) {
+        toast.error('Failed to export compliance bundle');
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `compliance-bundle-${dateStr}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Compliance bundle exported (${format.toUpperCase()})`, {
+        description: 'Includes PII policies, audit chain status, security monitor, and activity report',
+      });
+    } catch {
+      toast.error('Failed to export compliance bundle');
     }
   };
 
@@ -719,19 +749,37 @@ export function PiiPolicyWorkspace() {
                     Regulatory framework coverage and default pattern management
                   </CardDescription>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleSeed}
-                  disabled={seeding}
-                >
-                  {seeding ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  Seed Defaults
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleExportBundle('csv')}
+                  >
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleExportBundle('json')}
+                  >
+                    <FileDown className="h-4 w-4" />
+                    Export JSON
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSeed}
+                    disabled={seeding}
+                  >
+                    {seeding ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Seed Defaults
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">

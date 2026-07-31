@@ -19,6 +19,12 @@
 const express = require('express');
 const piiPolicyStore = require('../lib/pii-policy-store.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
+let securityMonitor;
+try {
+  securityMonitor = require('../lib/security-monitor.cjs');
+} catch {
+  securityMonitor = null;
+}
 const { authenticate } = require('../middleware/auth.cjs');
 const { authorize } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -237,6 +243,238 @@ router.get('/scrub/status', authorize('admin:all'), (req, res) => {
   } catch (err) {
     logger.warn('[PII] scrub_status_failed:', err.message);
     sendError(res, 500, 'pii_scrub_status_failed', { message: err.message });
+  }
+});
+
+// ── Compliance Bundle Export ──────────────────────────────────────────────
+// Aggregates PII policy config, audit chain status, security monitor
+// settings, and compliance report summary into a single downloadable
+// bundle for corporate data-officer verification.
+
+function buildComplianceBundle(orgId) {
+  const generatedAt = new Date().toISOString();
+
+  // Section 1: PII Policy Configuration
+  const piiPolicies = piiPolicyStore.getPolicies(orgId);
+  const piiStats = piiPolicyStore.getStats(orgId);
+
+  // Section 2: Audit Chain Integrity
+  let chainVerification = null;
+  let complianceReport = null;
+  let scrubStatus = null;
+  try {
+    chainVerification = auditLogger.verifyChain(orgId);
+  } catch {
+    chainVerification = { valid: false, reason: 'verification_failed' };
+  }
+  try {
+    complianceReport = auditLogger.generateComplianceReport(orgId);
+  } catch {
+    complianceReport = { error: 'report_generation_failed' };
+  }
+  try {
+    scrubStatus = auditLogger.getScrubStatus();
+  } catch {
+    scrubStatus = null;
+  }
+
+  // Section 3: Security Monitor Status
+  let securityStatus = null;
+  if (securityMonitor) {
+    try {
+      securityStatus = securityMonitor.getStatus();
+    } catch {
+      securityStatus = { error: 'status_unavailable' };
+    }
+  }
+
+  return {
+    bundleId: `compliance-bundle-${Date.now()}`,
+    generatedAt,
+    orgId,
+    sections: {
+      piiPolicyConfig: {
+        summary: piiStats,
+        policies: piiPolicies.map((p) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          pattern: p.pattern,
+          flags: p.flags,
+          replacement: p.replacement,
+          severity: p.severity,
+          enabled: p.enabled,
+          compliance: p.compliance || [],
+          isDefault: p.isDefault || false,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        })),
+      },
+      auditChainIntegrity: {
+        valid: chainVerification?.valid ?? false,
+        reason: chainVerification?.reason ?? null,
+        totalEntries: chainVerification?.totalEntries ?? 0,
+        verifiedEntries: chainVerification?.verifiedEntries ?? 0,
+        brokenAt: chainVerification?.brokenAt ?? null,
+        brokenEntryId: chainVerification?.brokenEntryId ?? null,
+        lastScrubOperation: scrubStatus,
+      },
+      complianceReport: {
+        orgId: complianceReport?.orgId ?? orgId,
+        generatedAt: complianceReport?.generatedAt ?? generatedAt,
+        totalEntries: complianceReport?.totalEntries ?? 0,
+        criticalActionCount: complianceReport?.criticalActionCount ?? 0,
+        summary: complianceReport?.summary ?? {},
+        topActors: complianceReport?.topActors ?? [],
+        topEntities: complianceReport?.topEntities ?? [],
+      },
+      securityMonitor: securityStatus
+        ? {
+            running: securityStatus.running,
+            pollIntervalMs: securityStatus.pollIntervalMs,
+            autoHealEnabled: securityStatus.autoHealEnabled,
+            chainIntegrityCheckEnabled: securityStatus.chainIntegrityCheckEnabled,
+            guardrailAnomalyCheckEnabled: securityStatus.guardrailAnomalyCheckEnabled,
+            lastRunAt: securityStatus.lastRunAt,
+            runCount: securityStatus.runCount,
+            orgsTracked: securityStatus.orgsTracked,
+          }
+        : { error: 'security_monitor_unavailable' },
+    },
+  };
+}
+
+function bundleToCsv(bundle) {
+  const rows = [];
+  const { sections } = bundle;
+
+  // Header
+  rows.push('# SimpleBeacon Compliance Bundle');
+  rows.push(`# Bundle ID: ${bundle.bundleId}`);
+  rows.push(`# Generated: ${bundle.generatedAt}`);
+  rows.push(`# Organization: ${bundle.orgId}`);
+  rows.push('');
+
+  // Section 1: PII Policy Summary
+  rows.push('# Section 1: PII Policy Configuration');
+  rows.push('Metric,Value');
+  rows.push(`Total Policies,${sections.piiPolicyConfig.summary.totalPolicies}`);
+  rows.push(`Enabled Policies,${sections.piiPolicyConfig.summary.enabledPolicies}`);
+  rows.push(`Default Patterns,${sections.piiPolicyConfig.summary.defaultCount}`);
+  rows.push(`High Severity,${sections.piiPolicyConfig.summary.bySeverity?.high || 0}`);
+  rows.push(`Medium Severity,${sections.piiPolicyConfig.summary.bySeverity?.medium || 0}`);
+  rows.push(`Low Severity,${sections.piiPolicyConfig.summary.bySeverity?.low || 0}`);
+  const byComp = sections.piiPolicyConfig.summary.byCompliance || {};
+  for (const [fw, count] of Object.entries(byComp)) {
+    rows.push(`Framework: ${fw},${count}`);
+  }
+  rows.push('');
+
+  // PII Policy Details
+  rows.push('Policy ID,Name,Severity,Enabled,Compliance,Is Default,Pattern,Replacement');
+  for (const p of sections.piiPolicyConfig.policies) {
+    const compStr = (p.compliance || []).join(';');
+    const pattern = `"${(p.pattern || '').replace(/"/g, '""')}"`;
+    const replacement = `"${(p.replacement || '').replace(/"/g, '""')}"`;
+    rows.push(`${p.id},${p.name},${p.severity},${p.enabled},${compStr},${p.isDefault},${pattern},${replacement}`);
+  }
+  rows.push('');
+
+  // Section 2: Audit Chain Integrity
+  rows.push('# Section 2: Audit Chain Integrity');
+  rows.push('Metric,Value');
+  rows.push(`Chain Valid,${sections.auditChainIntegrity.valid}`);
+  rows.push(`Total Entries,${sections.auditChainIntegrity.totalEntries}`);
+  rows.push(`Verified Entries,${sections.auditChainIntegrity.verifiedEntries}`);
+  rows.push(`Reason,${sections.auditChainIntegrity.reason || 'N/A'}`);
+  if (sections.auditChainIntegrity.lastScrubOperation) {
+    const scrub = sections.auditChainIntegrity.lastScrubOperation;
+    rows.push(`Last Scrub Ran At,${scrub.ranAt || 'N/A'}`);
+    rows.push(`Last Scrub Scanned,${scrub.scanned ?? 'N/A'}`);
+    rows.push(`Last Scrub Scrubbed,${scrub.scrubbed ?? 'N/A'}`);
+  }
+  rows.push('');
+
+  // Section 3: Compliance Report Summary
+  rows.push('# Section 3: Audit Activity Compliance Report');
+  rows.push('Metric,Value');
+  rows.push(`Total Audit Entries,${sections.complianceReport.totalEntries}`);
+  rows.push(`Critical Actions,${sections.complianceReport.criticalActionCount}`);
+  const byAction = sections.complianceReport.summary?.byAction || {};
+  for (const [action, count] of Object.entries(byAction)) {
+    rows.push(`Action: ${action},${count}`);
+  }
+  rows.push('');
+
+  // Top Actors
+  rows.push('# Top Actors');
+  rows.push('Actor ID,Event Count');
+  for (const a of sections.complianceReport.topActors) {
+    rows.push(`${a.actorId},${a.count}`);
+  }
+  rows.push('');
+
+  // Top Entities
+  rows.push('# Top Entities');
+  rows.push('Entity,Event Count');
+  for (const e of sections.complianceReport.topEntities) {
+    rows.push(`${e.entity},${e.count}`);
+  }
+  rows.push('');
+
+  // Section 4: Security Monitor
+  rows.push('# Section 4: Security Monitor Status');
+  rows.push('Metric,Value');
+  const sm = sections.securityMonitor;
+  if (sm.error) {
+    rows.push(`Status,${sm.error}`);
+  } else {
+    rows.push(`Running,${sm.running}`);
+    rows.push(`Poll Interval (ms),${sm.pollIntervalMs}`);
+    rows.push(`Auto-Heal Enabled,${sm.autoHealEnabled}`);
+    rows.push(`Chain Check Enabled,${sm.chainIntegrityCheckEnabled}`);
+    rows.push(`Guardrail Check Enabled,${sm.guardrailAnomalyCheckEnabled}`);
+    rows.push(`Last Run At,${sm.lastRunAt || 'N/A'}`);
+    rows.push(`Run Count,${sm.runCount}`);
+    rows.push(`Orgs Tracked,${sm.orgsTracked}`);
+  }
+  rows.push('');
+
+  return rows.join('\n');
+}
+
+// GET /api/pii/compliance-bundle — download compliance bundle (admin only)
+// Query params: format (csv|json, default csv)
+router.get('/compliance-bundle', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const format = (req.query.format || 'csv').toLowerCase();
+    const bundle = buildComplianceBundle(orgId);
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="compliance-bundle-${dateStr}.json"`
+      );
+      res.send(JSON.stringify(bundle, null, 2));
+      return;
+    }
+
+    // CSV format
+    const csv = bundleToCsv(bundle);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="compliance-bundle-${dateStr}.csv"`
+    );
+    res.send(csv);
+
+    logger.info(`[PII] Compliance bundle exported for org ${orgId} (format: ${format})`);
+  } catch (err) {
+    logger.warn('[PII] compliance_bundle_failed:', err.message);
+    sendError(res, 500, 'compliance_bundle_failed', { message: err.message });
   }
 });
 
