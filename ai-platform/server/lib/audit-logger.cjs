@@ -5,17 +5,42 @@ const path = require('path');
 const crypto = require('crypto');
 
 const { getPolicy, getArchivePath } = require('./audit-policy-store.cjs');
+const logStreamAnalyzer = require('./log-stream-analyzer.cjs');
 
 const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'audit-log.json');
 const MAX_ENTRIES_PER_ORG = 1000;
+const GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
+
+function getSigningKey() {
+  const secret =
+    process.env.AUDIT_CHAIN_SECRET ||
+    process.env.SIMPLEBEACON_ENCRYPTION_KEY ||
+    process.env.JWT_SECRET ||
+    'simplebeacon-audit-chain-dev';
+  return crypto.createHash('sha256').update(String(secret)).digest();
+}
+
+const SIGNING_KEY = getSigningKey();
+
+function canonicalEntry(entry) {
+  const { hash, previousHash, ...rest } = entry;
+  return JSON.stringify(rest, Object.keys(rest).sort());
+}
+
+function computeEntryHash(entry, previousHash) {
+  const payload = previousHash + canonicalEntry(entry);
+  return crypto.createHmac('sha256', SIGNING_KEY).update(payload).digest('hex');
+}
 
 function readStore() {
   try {
-    if (!fs.existsSync(STORE_PATH)) return { entries: {} };
+    if (!fs.existsSync(STORE_PATH)) return { entries: {}, chainHeads: {} };
     const raw = fs.readFileSync(STORE_PATH, 'utf8');
-    return JSON.parse(raw);
+    const store = JSON.parse(raw);
+    if (!store.chainHeads) store.chainHeads = {};
+    return store;
   } catch {
-    return { entries: {} };
+    return { entries: {}, chainHeads: {} };
   }
 }
 
@@ -90,7 +115,11 @@ function log(params) {
   };
 
   const key = makeKey(orgId, id);
+  const previousHash = store.chainHeads[orgId] || GENESIS_HASH;
+  entry.previousHash = previousHash;
+  entry.hash = computeEntryHash(entry, previousHash);
   store.entries[key] = entry;
+  store.chainHeads[orgId] = entry.hash;
 
   // Prune: keep only the latest MAX_ENTRIES_PER_ORG per org
   const orgEntries = Object.entries(store.entries)
@@ -103,6 +132,22 @@ function log(params) {
   }
 
   writeStore(store);
+
+  // Non-blocking stream analysis ingestion
+  setImmediate(() => {
+    try {
+      logStreamAnalyzer.ingestStreamEvent({
+        orgId,
+        action: entry.action,
+        actorId: entry.actorId,
+        entity: entry.entity,
+        timestamp: entry.timestamp,
+      });
+    } catch {
+      // Stream analysis errors must never block audit logging
+    }
+  });
+
   return entry;
 }
 
@@ -359,6 +404,67 @@ function generateComplianceReport(orgId, opts = {}) {
   };
 }
 
+/**
+ * Verify the hash chain integrity for an org's audit log.
+ * Detects tampered entries, removed entries, and inserted entries.
+ * @param {string} orgId
+ * @returns {{ valid: boolean, totalEntries: number, verifiedEntries: number, brokenAt: string|null, brokenEntryId: string|null, reason: string|null }}
+ */
+function verifyChain(orgId) {
+  const store = readStore();
+  const scopedOrgId = orgId || 'default';
+  const entries = Object.values(store.entries)
+    .filter((e) => e.orgId === scopedOrgId)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  if (entries.length === 0) {
+    return { valid: true, totalEntries: 0, verifiedEntries: 0, brokenAt: null, brokenEntryId: null, reason: null };
+  }
+
+  let previousHash = entries[0].previousHash || GENESIS_HASH;
+  let verified = 0;
+
+  for (const entry of entries) {
+    if (entry.previousHash !== previousHash) {
+      return {
+        valid: false,
+        totalEntries: entries.length,
+        verifiedEntries: verified,
+        brokenAt: entry.timestamp,
+        brokenEntryId: entry.id,
+        reason: 'previousHash mismatch — entry may have been inserted or removed',
+      };
+    }
+    const computed = computeEntryHash(entry, previousHash);
+    if (computed !== entry.hash) {
+      return {
+        valid: false,
+        totalEntries: entries.length,
+        verifiedEntries: verified,
+        brokenAt: entry.timestamp,
+        brokenEntryId: entry.id,
+        reason: 'hash mismatch — entry content may have been tampered with',
+      };
+    }
+    previousHash = entry.hash;
+    verified++;
+  }
+
+  const expectedHead = store.chainHeads[scopedOrgId];
+  if (expectedHead && expectedHead !== previousHash) {
+    return {
+      valid: false,
+      totalEntries: entries.length,
+      verifiedEntries: verified,
+      brokenAt: null,
+      brokenEntryId: null,
+      reason: 'chainHead mismatch — entries may have been removed from the end',
+    };
+  }
+
+  return { valid: true, totalEntries: entries.length, verifiedEntries: verified, brokenAt: null, brokenEntryId: null, reason: null };
+}
+
 module.exports = {
   log,
   query,
@@ -367,4 +473,5 @@ module.exports = {
   deleteEntry,
   enforceRetentionPolicy,
   generateComplianceReport,
+  verifyChain,
 };

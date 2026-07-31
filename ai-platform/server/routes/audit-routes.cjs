@@ -4,9 +4,22 @@ const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const auditPolicyStore = require('../lib/audit-policy-store.cjs');
+const logStreamAnalyzer = require('../lib/log-stream-analyzer.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../../src/lib/app-logger.cjs');
 const { processEvent } = require('../lib/alert-dispatcher.cjs');
+
+// Wire stream analyzer events to the alert dispatcher
+logStreamAnalyzer.setStreamEventCallback((event) => {
+  const eventType = event.type === 'LOG_STREAM_BURST' ? 'log_stream_burst' : 'log_stream_anomaly';
+  processEvent(event.orgId, eventType, {
+    severity: event.severity,
+    message: event.message,
+    data: event.data,
+  }).catch((err) => {
+    logger.warn('[Audit] Stream event alert trigger failed:', err.message);
+  });
+});
 
 const router = express.Router();
 
@@ -269,6 +282,29 @@ router.get('/report', (req, res) => {
   } catch (err) {
     logger.warn('[Audit] audit_report_failed:', err.message);
     sendError(res, 500, 'audit_report_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/stream/stats ─────────────────────────────────────────────
+//   Get real-time stream analyzer stats (burst detection + anomaly tracking)
+router.get('/stream/stats', (req, res) => {
+  try {
+    const stats = logStreamAnalyzer.getStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    logger.warn('[Audit] audit_stream_stats_failed:', err.message);
+    sendError(res, 500, 'audit_stream_stats_failed', { message: err.message });
+  }
+});
+
+router.get('/verify', (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const result = auditLogger.verifyChain(orgId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[Audit] audit_verify_failed:', err.message);
+    sendError(res, 500, 'audit_verify_failed', { message: err.message });
   }
 });
 
