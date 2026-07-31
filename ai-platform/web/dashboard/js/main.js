@@ -32,6 +32,7 @@ import { isDemoMode, isSignedOffMode, isLocalDevHost, demoReadOnlyMessage } from
 import { showToast } from './utils.js';
 import { LocalScanService } from './services/localScanService.js?v=20260725local1';
 import { fetchAnalyzeProviders } from './services/analyzeService.js';
+import { isEmbeddedDashboardFrame, isIdeDashboardSurface } from './utils-lib/dom.js';
 
 /**
  * Vault unlock url.
@@ -167,6 +168,7 @@ class SimplebeaconDashboard {
   async init() {
     themeService.init();
     this.setupShell();
+              const main = document.getElementById('app-main');
               requestAnimationFrame(() => {
                 this.resetMainScroll(main);
                 try {
