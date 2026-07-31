@@ -9,11 +9,29 @@ const { processEvent, deliverAlert, buildPayload } = require('../lib/alert-dispa
 const auditLogger = require('../lib/audit-logger.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
+const { maskSecret } = require('../lib/crypto-utils.cjs');
 
 const router = express.Router();
 
 function getOrgId(req) {
   return req.user?.id || req.user?.email || 'default';
+}
+
+const SENSITIVE_DEST_FIELDS = ['url', 'secret', 'routingKey', 'email', 'to', 'webhookUrl'];
+
+function maskRule(rule) {
+  if (!rule) return null;
+  const masked = { ...rule };
+  if (masked.webhookUrl) masked.webhookUrl = maskSecret(masked.webhookUrl);
+  if (masked.destination && typeof masked.destination === 'object') {
+    masked.destination = { ...masked.destination };
+    for (const field of SENSITIVE_DEST_FIELDS) {
+      if (masked.destination[field]) {
+        masked.destination[field] = maskSecret(masked.destination[field]);
+      }
+    }
+  }
+  return masked;
 }
 
 router.use(authenticate);
@@ -22,7 +40,7 @@ router.use(authenticate);
 router.get('/rules', (req, res) => {
   try {
     const orgId = getOrgId(req);
-    const rules = ruleStore.getAllRules(orgId);
+    const rules = ruleStore.getAllRules(orgId).map(maskRule);
     res.json({ success: true, rules });
   } catch (err) {
     logger.warn('[Alerts] rules_fetch_failed failed:', err.message);
@@ -36,7 +54,7 @@ router.get('/rules/:id', (req, res) => {
     const orgId = getOrgId(req);
     const rule = ruleStore.getRule(req.params.id, orgId);
     if (!rule) return sendError(res, 404, 'rule_not_found');
-    res.json({ success: true, rule });
+    res.json({ success: true, rule: maskRule(rule) });
   } catch (err) {
     logger.warn('[Alerts] rule_fetch_failed failed:', err.message);
     sendError(res, 500, 'rule_fetch_failed', { message: err.message });
@@ -96,10 +114,10 @@ router.post('/rules', authorize('admin:all'), (req, res) => {
       action: 'CREATE',
       entity: 'alert_rule',
       entityId: id,
-      newValue: rule,
+      newValue: maskRule(rule),
       metadata: { route: req.originalUrl },
     });
-    res.json({ success: true, rule });
+    res.json({ success: true, rule: maskRule(rule) });
   } catch (err) {
     logger.warn('[Alerts] rule_save_failed failed:', err.message);
     sendError(res, 500, 'rule_save_failed', { message: err.message });
