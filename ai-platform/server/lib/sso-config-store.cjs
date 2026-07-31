@@ -111,6 +111,21 @@ function maskSecret(secret) {
 }
 
 /**
+ * Get all SSO configs (secrets masked) for admin dashboard listing.
+ * @returns {Array}
+ */
+function getAllConfigs() {
+  const store = readStore();
+  return store.configs.map(c => ({
+    ...c,
+    oidc: c.oidc ? {
+      ...c.oidc,
+      clientSecret: c.oidc.clientSecret ? maskSecret(decryptSecret(c.oidc.clientSecret)) : undefined,
+    } : undefined,
+  }));
+}
+
+/**
  * Get all SSO configs for an organization (secrets masked).
  * @param {string} orgId
  * @returns {Array}
@@ -272,6 +287,7 @@ function getStats() {
 }
 
 module.exports = {
+  getAllConfigs,
   getConfigsByOrg,
   getConfig,
   getConfigDecrypted,

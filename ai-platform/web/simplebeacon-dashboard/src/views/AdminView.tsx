@@ -141,7 +141,8 @@ export function AdminView() {
   const [addSeatEmail, setAddSeatEmail] = useState<string>('');
   const [addSeatOrgId, setAddSeatOrgId] = useState<string | null>(null);
   const [showSsoForm, setShowSsoForm] = useState(false);
-  const [ssoForm, setSsoForm] = useState<{ orgId: string; displayName: string; method: 'saml' | 'oidc'; providerType: string; domain: string; enabled: boolean; samlEntryPoint: string; samlCert: string; oidcClientId: string; oidcClientSecret: string; oidcIssuer: string }>({ orgId: '', displayName: '', method: 'oidc', providerType: 'okta', domain: '', enabled: true, samlEntryPoint: '', samlCert: '', oidcClientId: '', oidcClientSecret: '', oidcIssuer: '' });
+  const [editingProviderId, setEditingProviderId] = useState<string | null>(null);
+  const [ssoForm, setSsoForm] = useState<{ orgId: string; displayName: string; method: 'saml' | 'oidc'; providerType: string; domain: string; enabled: boolean; samlEntryPoint: string; samlCert: string; samlIssuer: string; oidcClientId: string; oidcClientSecret: string; oidcIssuer: string }>({ orgId: '', displayName: '', method: 'oidc', providerType: 'okta', domain: '', enabled: true, samlEntryPoint: '', samlCert: '', samlIssuer: '', oidcClientId: '', oidcClientSecret: '', oidcIssuer: '' });
 
   const fetchSsoConfigs = useCallback(async () => {
     setSsoLoading(true);
@@ -176,18 +177,24 @@ export function AdminView() {
         enabled: ssoForm.enabled,
       };
       if (ssoForm.method === 'saml') {
-        body.saml = { entryPoint: ssoForm.samlEntryPoint, cert: ssoForm.samlCert };
+        body.saml = { entryPoint: ssoForm.samlEntryPoint, cert: ssoForm.samlCert, issuer: ssoForm.samlIssuer || undefined };
       } else {
         body.oidc = { clientId: ssoForm.oidcClientId, clientSecret: ssoForm.oidcClientSecret, issuer: ssoForm.oidcIssuer };
       }
-      const res = await fetch(enterpriseUrl('/enterprise/sso/configs'), {
-        method: 'POST',
+      const isEditing = !!editingProviderId;
+      const url = isEditing
+        ? enterpriseUrl(`/enterprise/sso/configs/${editingProviderId}`)
+        : enterpriseUrl('/enterprise/sso/configs');
+      const method = isEditing ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        toast.success('SSO configuration saved');
+        toast.success(isEditing ? 'SSO configuration updated' : 'SSO configuration saved');
         setShowSsoForm(false);
+        setEditingProviderId(null);
         fetchSsoConfigs();
       } else {
         const err = await res.json();
@@ -196,7 +203,31 @@ export function AdminView() {
     } catch {
       toast.error('Failed to save SSO config');
     }
-  }, [ssoForm, fetchSsoConfigs]);
+  }, [ssoForm, editingProviderId, fetchSsoConfigs]);
+
+  const editSsoConfig = useCallback((config: SsoConfig) => {
+    setEditingProviderId(config.providerId);
+    setSsoForm({
+      orgId: config.orgId,
+      displayName: config.displayName,
+      method: config.method,
+      providerType: config.providerType,
+      domain: config.domain,
+      enabled: config.enabled,
+      samlEntryPoint: config.saml?.entryPoint || '',
+      samlCert: config.saml?.cert || '',
+      samlIssuer: config.saml?.issuer || '',
+      oidcClientId: config.oidc?.clientId || '',
+      oidcClientSecret: '',
+      oidcIssuer: config.oidc?.issuer || '',
+    });
+    setShowSsoForm(true);
+  }, []);
+
+  const resetSsoForm = useCallback(() => {
+    setEditingProviderId(null);
+    setSsoForm({ orgId: '', displayName: '', method: 'oidc', providerType: 'okta', domain: '', enabled: true, samlEntryPoint: '', samlCert: '', samlIssuer: '', oidcClientId: '', oidcClientSecret: '', oidcIssuer: '' });
+  }, []);
 
   const deleteSsoConfig = useCallback(async (providerId: string) => {
     try {
@@ -1423,7 +1454,7 @@ export function AdminView() {
 
               {/* Add SSO Provider Button */}
               <div className="flex justify-end">
-                <Button onClick={() => setShowSsoForm(!showSsoForm)}>
+                <Button onClick={() => { if (showSsoForm) { resetSsoForm(); setShowSsoForm(false); } else { setShowSsoForm(true); } }}>
                   <Plus className="h-4 w-4" /> {showSsoForm ? 'Cancel' : 'Add SSO Provider'}
                 </Button>
               </div>
@@ -1432,8 +1463,8 @@ export function AdminView() {
               {showSsoForm && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">New SSO Provider Configuration</CardTitle>
-                    <CardDescription>Configure SAML 2.0 or OIDC for an enterprise organization</CardDescription>
+                    <CardTitle className="text-lg">{editingProviderId ? 'Edit SSO Provider Configuration' : 'New SSO Provider Configuration'}</CardTitle>
+                    <CardDescription>{editingProviderId ? 'Update existing SAML 2.0 or OIDC provider settings' : 'Configure SAML 2.0 or OIDC for an enterprise organization'}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -1529,6 +1560,16 @@ export function AdminView() {
                             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono"
                           />
                         </div>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium">SP Entity ID / Issuer (optional)</label>
+                          <input
+                            type="text"
+                            value={ssoForm.samlIssuer}
+                            onChange={(e) => setSsoForm({ ...ssoForm, samlIssuer: e.target.value })}
+                            placeholder="simplebeacon-ai (defaults to app name)"
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                          />
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-3 border-t pt-4">
@@ -1549,7 +1590,7 @@ export function AdminView() {
                               type="password"
                               value={ssoForm.oidcClientSecret}
                               onChange={(e) => setSsoForm({ ...ssoForm, oidcClientSecret: e.target.value })}
-                              placeholder="OAuth client secret"
+                              placeholder={editingProviderId ? 'Enter new secret to replace (masked)' : 'OAuth client secret'}
                               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                             />
                           </div>
@@ -1568,9 +1609,9 @@ export function AdminView() {
                     )}
 
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setShowSsoForm(false)}>Cancel</Button>
+                      <Button variant="outline" onClick={() => { setShowSsoForm(false); resetSsoForm(); }}>Cancel</Button>
                       <Button onClick={saveSsoConfig} disabled={!ssoForm.orgId || !ssoForm.displayName}>
-                        <Lock className="h-4 w-4" /> Save Configuration
+                        <Lock className="h-4 w-4" /> {editingProviderId ? 'Update Configuration' : 'Save Configuration'}
                       </Button>
                     </div>
                   </CardContent>
@@ -1611,6 +1652,9 @@ export function AdminView() {
                               <Button size="sm" variant="outline" onClick={() => testSsoConfig(config.providerId)}>
                                 <Zap className="h-3.5 w-3.5" /> Test
                               </Button>
+                              <Button size="sm" variant="outline" onClick={() => editSsoConfig(config)}>
+                                <Key className="h-3.5 w-3.5" /> Edit
+                              </Button>
                               <Button size="sm" variant="outline" onClick={() => deleteSsoConfig(config.providerId)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -1628,6 +1672,11 @@ export function AdminView() {
                             {config.saml?.entryPoint && (
                               <span>Entry: {config.saml.entryPoint.slice(0, 30)}…</span>
                             )}
+                            {config.saml?.issuer && (
+                              <span>Issuer: {config.saml.issuer}</span>
+                            )}
+                            <span>Created: {formatDate(config.createdAt)}</span>
+                            <span>Updated: {formatDate(config.updatedAt)}</span>
                           </div>
                         </div>
                       ))}

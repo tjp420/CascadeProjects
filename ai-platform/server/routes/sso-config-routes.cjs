@@ -21,7 +21,7 @@ const auditStore = require('../lib/enterprise-audit-store.cjs');
 
 const router = express.Router();
 
-// GET /api/enterprise/sso/configs — list all configs (masked secrets)
+// GET /api/enterprise/sso/configs — list all configs (masked secrets) + stats
 router.get('/configs', async (req, res) => {
   try {
     const { orgId } = req.query;
@@ -29,9 +29,9 @@ router.get('/configs', async (req, res) => {
       const configs = ssoConfigStore.getConfigsByOrg(orgId);
       return res.json({ success: true, configs });
     }
-    const store = ssoConfigStore;
+    const configs = ssoConfigStore.getAllConfigs();
     const stats = ssoConfigStore.getStats();
-    return res.json({ success: true, stats, ...stats });
+    return res.json({ success: true, configs, stats, ...stats });
   } catch (err) {
     res.status(500).json({ error: 'sso_list_failed', message: err.message });
   }
