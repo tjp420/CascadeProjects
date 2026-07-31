@@ -41,10 +41,28 @@ jest.mock('../../../server/lib/agentic-orchestration-store.cjs', () => ({
     if (id === 'agent-beta-1') return { success: false, error: 'agent_not_found' };
     return { success: true };
   },
-  executeAgentLoop: async (id, orgId, input) => ({ success: true, id, output: 'executed' }),
+  // executeAgentLoop will call the inferenceFn passed from the router to exercise the lazy-loaded provider
+  executeAgentLoop: async (id, orgId, input, inferenceFn, options) => {
+    if (typeof inferenceFn === 'function') {
+      try {
+        const inf = await inferenceFn(input || 'test', { provider: 'mock', model: 'mock' });
+        return { success: true, id, output: inf.text || '', usage: inf.usage || null };
+      } catch (e) {
+        return { success: false, error: e && e.message };
+      }
+    }
+    return { success: true, id, output: 'executed' };
+  },
   getActiveExecutions: () => [],
   getExecutionHistory: () => [],
   listTools: () => [],
+}));
+
+// Mock the cloud inference service used by the route's lazy loader
+jest.mock('../../../server/services/cloud-inference-service.cjs', () => ({
+  generateWithProvider: async (provider, prompt, opts) => {
+    return { text: `mocked:${prompt}`, usage: { total_tokens: 5 } };
+  }
 }));
 
 function buildApp() {
