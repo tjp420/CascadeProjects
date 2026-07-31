@@ -1,0 +1,45 @@
+name: Publish Procurement Field-Kit
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.simplebeacon/docs/**'
+      - 'packages/simplebeacon-cli/scripts/bundle-procurement-kit.js'
+
+jobs:
+  publish-kit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Initialize Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Runtime Dependencies
+        run: npm ci
+
+      - name: Compile Cryptographic Procurement Package
+        run: npm run enterprise:kit
+
+      - name: Publish to Rolling Release Tag
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: procurement-kit-latest
+          name: "SimpleBeacon Enterprise Procurement Kit (Latest Attested)"
+          body: |
+            ### 📡 Automated Enterprise Procurement Asset Package
+            This archive contains loopback-verified security documentation, custom rule guidelines, and cryptographic validation checksums.
+            
+            **Verification Signature Matrix:**
+            - Generated: ${{ github.event.head_commit.timestamp }}
+            - Commit Reference: ${{ github.sha }}
+          files: generated/simplebeacon-procurement-kit.zip
+          make_latest: true
+          overwrite: true
