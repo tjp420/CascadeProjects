@@ -30,6 +30,7 @@ const path = require('path');
 const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const { promptFirewall } = require('../middleware/prompt-firewall.cjs');
+const modelRoutingStore = require('../lib/model-routing-store.cjs');
 
 // Lazy-load prompt service for custom user prompts
 let promptService;
@@ -612,20 +613,55 @@ function setupChatbotAPI(app) {
         /* ignore weather path errors */
       }
 
-      // Generate response using the selected provider
+      // Model-Routing Optimizer: evaluate prompt complexity and token length
+      // to dynamically select the optimal model tier
+      let routingDecision = null;
+      let effectiveProvider = provider;
+      let effectiveModel = requestedModel;
+      try {
+        routingDecision = modelRoutingStore.selectTier(message, sanitizedHistory, {
+          requestedProvider: provider,
+          requestedModel,
+        });
+        if (routingDecision.routed && routingDecision.override) {
+          logger.info('[Chatbot API] Model routing override:', {
+            requestId,
+            from: provider,
+            to: routingDecision.provider,
+            complexity: routingDecision.complexityScore,
+            tokens: routingDecision.tokenEstimate,
+            reason: routingDecision.reason,
+          });
+          effectiveProvider = routingDecision.provider;
+          effectiveModel = routingDecision.model;
+        }
+      } catch (e) {
+        logger.warn('[Chatbot API] Model routing failed, using original provider:', e.message);
+      }
+
+      // Generate response using the selected (or routed) provider
       const inferenceStart = Date.now();
-      let response = await cloudInf.generateWithProvider(provider, messages, {
+      let response = await cloudInf.generateWithProvider(effectiveProvider, messages, {
         userCredentials,
         timeoutMs: constants.TIMEOUT_1M,
         ollamaModel:
-          provider === 'ollama' ? requestedModel || userCredentials?.ollamaModel || null : null,
+          effectiveProvider === 'ollama' ? effectiveModel || userCredentials?.ollamaModel || null : null,
         model:
-          provider === 'openai'
-            ? requestedModel || userCredentials?.openaiModel || null
-            : provider === 'anthropic'
-              ? requestedModel || userCredentials?.anthropicModel || null
+          effectiveProvider === 'openai'
+            ? effectiveModel || userCredentials?.openaiModel || null
+            : effectiveProvider === 'anthropic'
+              ? effectiveModel || userCredentials?.anthropicModel || null
               : null,
       });
+
+      // Record routing decision for stats
+      if (routingDecision) {
+        try {
+          modelRoutingStore.recordRoutingDecision(routingDecision);
+        } catch {
+          // stats errors must never block response
+        }
+      }
 
       // Server-side refusal detection: if the model returned a canned refusal, retry once
       // with an even stronger anti-refusal system prompt. If that also refuses and the

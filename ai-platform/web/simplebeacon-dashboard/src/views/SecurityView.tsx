@@ -19,6 +19,7 @@ import { PiiPolicyWorkspace } from '@/components/PiiPolicyWorkspace';
 import { KeyRotationDashboard } from '@/components/KeyRotationDashboard';
 import { EgressGuardrailWorkspace } from '@/components/EgressGuardrailWorkspace';
 import { LedgerIndexDashboard } from '@/components/LedgerIndexDashboard';
+import { ModelRoutingWorkspace } from '@/components/ModelRoutingWorkspace';
 import { PermissionGate } from '@/components/PermissionGate';
 
 type ScanResultData = {
@@ -476,6 +477,10 @@ export function SecurityView() {
 
       <PermissionGate permission="admin:all" fallback={null}>
         <LedgerIndexDashboard />
+      </PermissionGate>
+
+      <PermissionGate permission="admin:all" fallback={null}>
+        <ModelRoutingWorkspace />
       </PermissionGate>
     </div>
   );

@@ -1518,6 +1518,15 @@ async function startServer() {
     logger.error('[Routes] Security monitor settings not loaded:', err?.message || err);
   }
 
+  // Model-routing optimizer — intelligent prompt orchestration and cost controls
+  try {
+    const modelRoutingRoutes = require('./server/routes/model-routing-routes.cjs');
+    app.use('/api/model-routing', modelRoutingRoutes);
+    logger.info('[Routes] Model routing loaded at /api/model-routing');
+  } catch (err) {
+    logger.error('[Routes] Model routing not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');
