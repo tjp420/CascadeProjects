@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('../lib/app-logger.cjs');
+const ledgerIndexEngine = require('./ledger-index-engine.cjs');
 
 const STORE_PATH =
   process.env.USAGE_ANALYTICS_STORE_PATH ||
@@ -116,6 +117,13 @@ function recordScan(params) {
 
   updateOrgAggregate(store, entry);
   writeStore(store);
+
+  // Incrementally index the new scan for fast lookups
+  try {
+    ledgerIndexEngine.indexAnalyticsEntry(store.scans.length - 1, entry);
+  } catch {
+    // Index errors must never block analytics recording
+  }
 
   logger.info(
     `[Analytics] Recorded scan ${scanId} for org ${entry.orgId} — ${totalFindings} findings, posture ${postureScore}`

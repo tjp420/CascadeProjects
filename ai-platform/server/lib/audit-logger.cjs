@@ -677,6 +677,208 @@ function healChain(orgId) {
   };
 }
 
+// ── PII Retention Scrubber ──────────────────────────────────────────────
+// Retroactively applies PII redaction patterns to historical audit log
+// entries whose metadata was written before PII policies were activated.
+// Recomputes the entire hash chain for the org after scrubbing.
+
+let _lastScrubStatus = null;
+
+/**
+ * Preview (dry-run) PII scrubbing for an org.
+ * Scans all entries and reports which would be modified, without writing.
+ * @param {string} orgId
+ * @returns {{ scanned: number, wouldScrub: number, entries: Array, patterns: Array }}
+ */
+function previewPiiScrub(orgId) {
+  const scopedOrgId = orgId || 'default';
+  const store = readStore();
+  const entries = Object.values(store.entries)
+    .filter((e) => e.orgId === scopedOrgId)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  const findings = [];
+  const patternCounts = {};
+
+  for (const entry of entries) {
+    if (!entry.metadata || typeof entry.metadata !== 'string') continue;
+    try {
+      const { text, matches } = piiPolicyStore.redactText(entry.metadata, scopedOrgId);
+      if (matches.length > 0 && text !== entry.metadata) {
+        for (const m of matches) {
+          patternCounts[m.name] = (patternCounts[m.name] || 0) + m.count;
+        }
+        findings.push({
+          entryId: entry.id,
+          timestamp: entry.timestamp,
+          action: entry.action,
+          entity: entry.entity,
+          matchCount: matches.reduce((sum, m) => sum + m.count, 0),
+          patterns: matches.map((m) => m.name),
+          preview: entry.metadata.slice(0, 100),
+          redactedPreview: text.slice(0, 100),
+        });
+      }
+    } catch {
+      // Redaction errors don't block preview
+    }
+  }
+
+  return {
+    scanned: entries.length,
+    wouldScrub: findings.length,
+    entries: findings,
+    patterns: Object.entries(patternCounts).map(([name, count]) => ({ name, count })),
+  };
+}
+
+/**
+ * Run PII scrubbing on historical entries for an org.
+ * Scrubs metadata, recomputes the hash chain, and appends a seal entry.
+ * @param {string} orgId
+ * @returns {{ scrubbed: number, scanned: number, skipped: number, sealEntryId: string, backupFile: string|null }}
+ */
+function runPiiScrub(orgId) {
+  const scopedOrgId = orgId || 'default';
+  const store = readStore();
+  const entries = Object.values(store.entries)
+    .filter((e) => e.orgId === scopedOrgId)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  if (entries.length === 0) {
+    _lastScrubStatus = {
+      orgId: scopedOrgId,
+      ranAt: new Date().toISOString(),
+      scanned: 0,
+      scrubbed: 0,
+      skipped: 0,
+      sealEntryId: null,
+      backupFile: null,
+    };
+    return { scrubbed: 0, scanned: 0, skipped: 0, sealEntryId: null, backupFile: null };
+  }
+
+  // Backup original entries for forensic audit trail
+  let backupFile = null;
+  try {
+    const backupDir = path.join(process.cwd(), '.simplebeacon', 'pii-scrub-backups');
+    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+    backupFile = path.join(backupDir, `pii-scrub-backup-${scopedOrgId}-${Date.now()}.json`);
+    fs.writeFileSync(
+      backupFile,
+      JSON.stringify(
+        {
+          orgId: scopedOrgId,
+          backedUpAt: new Date().toISOString(),
+          entries: entries.map((e) => ({ ...e })),
+        },
+        null,
+        2
+      )
+    );
+  } catch {
+    // Backup failure is non-fatal
+  }
+
+  // Scrub metadata and recompute the entire hash chain
+  let scrubbed = 0;
+  let skipped = 0;
+  let previousHash = GENESIS_HASH;
+  const patternCounts = {};
+
+  for (const entry of entries) {
+    // Apply PII redaction to string metadata
+    if (entry.metadata && typeof entry.metadata === 'string') {
+      try {
+        const { text, matches } = piiPolicyStore.redactText(entry.metadata, scopedOrgId);
+        if (matches.length > 0 && text !== entry.metadata) {
+          entry.metadata = text;
+          scrubbed++;
+          for (const m of matches) {
+            patternCounts[m.name] = (patternCounts[m.name] || 0) + m.count;
+          }
+        } else {
+          skipped++;
+        }
+      } catch {
+        skipped++;
+      }
+    } else {
+      skipped++;
+    }
+
+    // Recompute hash chain link
+    entry.previousHash = previousHash;
+    entry.hash = computeEntryHash(entry, previousHash);
+    previousHash = entry.hash;
+
+    // Update store entry in-place
+    const key = makeKey(scopedOrgId, entry.id);
+    store.entries[key] = entry;
+  }
+
+  // Append a PII_SCRUBBED seal entry documenting the operation
+  const sealId = `pii-scrub-${crypto.randomBytes(6).toString('hex')}`;
+  const sealEntry = {
+    id: sealId,
+    orgId: scopedOrgId,
+    timestamp: new Date().toISOString(),
+    actorId: 'system:pii-scrubber',
+    actorEmail: 'system',
+    action: 'PII_SCRUBBED',
+    entity: 'audit_log',
+    entityId: scopedOrgId,
+    changes: [
+      { field: 'entriesScanned', oldValue: null, newValue: entries.length },
+      { field: 'entriesScrubbed', oldValue: null, newValue: scrubbed },
+      { field: 'entriesSkipped', oldValue: null, newValue: skipped },
+    ],
+    metadata: JSON.stringify({
+      scrubbedAt: new Date().toISOString(),
+      scanned: entries.length,
+      scrubbed,
+      skipped,
+      patterns: patternCounts,
+      backupFile: backupFile ? path.basename(backupFile) : null,
+    }),
+  };
+  sealEntry.previousHash = previousHash;
+  sealEntry.hash = computeEntryHash(sealEntry, previousHash);
+
+  const sealKey = makeKey(scopedOrgId, sealId);
+  store.entries[sealKey] = sealEntry;
+  store.chainHeads[scopedOrgId] = sealEntry.hash;
+
+  writeStore(store);
+
+  _lastScrubStatus = {
+    orgId: scopedOrgId,
+    ranAt: new Date().toISOString(),
+    scanned: entries.length,
+    scrubbed,
+    skipped,
+    sealEntryId: sealId,
+    backupFile: backupFile ? path.basename(backupFile) : null,
+    patterns: patternCounts,
+  };
+
+  return {
+    scrubbed,
+    scanned: entries.length,
+    skipped,
+    sealEntryId: sealId,
+    backupFile: backupFile ? path.basename(backupFile) : null,
+  };
+}
+
+/**
+ * Get the status of the last PII scrub operation.
+ * @returns {object|null}
+ */
+function getScrubStatus() {
+  return _lastScrubStatus;
+}
+
 module.exports = {
   log,
   query,
@@ -687,4 +889,7 @@ module.exports = {
   generateComplianceReport,
   verifyChain,
   healChain,
+  previewPiiScrub,
+  runPiiScrub,
+  getScrubStatus,
 };

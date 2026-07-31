@@ -1500,6 +1500,15 @@ async function startServer() {
     logger.error('[Routes] Egress guardrails not loaded:', err?.message || err);
   }
 
+  // Ledger index management — database optimization and analytics indexing
+  try {
+    const ledgerIndexRoutes = require('./server/routes/ledger-index-routes.cjs');
+    app.use('/api/ledger', ledgerIndexRoutes);
+    logger.info('[Routes] Ledger index loaded at /api/ledger');
+  } catch (err) {
+    logger.error('[Routes] Ledger index not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');
@@ -2063,6 +2072,14 @@ async function startServer() {
     keyRotationStore.initialize();
   } catch (err) {
     logger.warn('[KeyRotation] Store initialization failed:', safeErrorMessage(err));
+  }
+
+  // Initialize ledger index engine — rebuilds in-memory indexes from JSON stores
+  try {
+    const ledgerIndexEngine = require('./server/lib/ledger-index-engine.cjs');
+    ledgerIndexEngine.initialize();
+  } catch (err) {
+    logger.warn('[LedgerIndex] Initialization failed:', safeErrorMessage(err));
   }
 
   server.on('error', (err) => {
