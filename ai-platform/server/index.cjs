@@ -95,6 +95,7 @@ const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = requ
 const auditLogRouter = require('./routes/audit.cjs');
 const authRoutes = require('./routes/auth-routes.cjs');
 const DatabaseAdapter = require('./lib/database-adapter.cjs');
+const { whitelabelMiddleware, buildBrandInjection } = require('./lib/whitelabel-middleware.cjs');
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy hop for rate-limit IP accuracy
@@ -223,6 +224,10 @@ app.use((req, res, next) => {
 
 // Billing webhook must use raw body before JSON parser
 setupSimplebeaconBillingWebhook(app);
+
+// Whitelabel sub-domain routing — resolve partner brand from hostname
+// Mounted before dashboard routes so req.brand is available for HTML injection
+app.use(whitelabelMiddleware);
 
 app.use(express.json({ limit: constants.safeJsonLimit(process.env.EXPRESS_JSON_LIMIT) }));
 app.use(express.urlencoded({ extended: true }));
@@ -777,8 +782,10 @@ async function sendDashboardWithRuntimeConfig(req, res) {
     OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}` // simplebeacon-ignore hardcoded-url — default Ollama localhost URL for client-side settings
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
+  // Inject whitelabel brand config + CSS (resolved by whitelabel-middleware)
+  const brandInjection = buildBrandInjection(req.brand, req.whitelabelPartner ? req.whitelabelPartner.partnerId : null);
   // Inject after <head> (or after <base href> if already present from loadDashboardHtml)
-  html = html.replace(/<head>(\s*<base href="[^"]*">)?/, `<head>$1${injectScript}`);
+  html = html.replace(/<head>(\s*<base href="[^"]*">)?/, `<head>$1${injectScript}\n${brandInjection}`);
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   return res.send(html);
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { getCurrentRoute, navigate } from './router/HashRouter';
 import { AppShell } from './layout/AppShell';
 import { ToastProvider } from './components/ToastProvider';
+import { BrandProvider } from './contexts/BrandContext';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { isTokenExpired } from './config';
@@ -134,6 +135,14 @@ export default function App() {
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      if (params.get('sb_force_signin') === '1') {
+        navigate('signin');
+        setRoute(getCurrentRoute());
+        return;
+      }
+    } catch (_) {}
     const onHashChange = () => setRoute(getCurrentRoute());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
@@ -169,18 +178,20 @@ export default function App() {
   const isPublic = PUBLIC_VIEWS.has(route.view);
 
   return (
-    <ToastProvider>
-      <AppShell
-        currentView={route.view}
-        onNavigate={handleNavigate}
-        isAuthenticated={isAuthenticated}
-        isFreeTier={isFreeTier}
-        user={user}
-      >
-        <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-foreground-muted">Loading...</div>}>
-          <CurrentView />
-        </Suspense>
-      </AppShell>
-    </ToastProvider>
+    <BrandProvider>
+      <ToastProvider>
+        <AppShell
+          currentView={route.view}
+          onNavigate={handleNavigate}
+          isAuthenticated={isAuthenticated}
+          isFreeTier={isFreeTier}
+          user={user}
+        >
+          <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-foreground-muted">Loading...</div>}>
+            <CurrentView />
+          </Suspense>
+        </AppShell>
+      </ToastProvider>
+    </BrandProvider>
   );
 }
