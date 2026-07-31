@@ -4,6 +4,15 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// Lazy-load crypto-utils to avoid circular dependency at module init
+let _cryptoUtils = null;
+function getCryptoUtils() {
+  if (!_cryptoUtils) {
+    _cryptoUtils = require('./crypto-utils.cjs');
+  }
+  return _cryptoUtils;
+}
+
 const STORE_PATH =
   process.env.AUDIT_LOG_PATH ||
   path.join(process.cwd(), '.simplebeacon', 'audit-log.json');
@@ -432,7 +441,89 @@ const QUARANTINE_PATH =
   process.env.AUDIT_LOG_QUARANTINE_PATH ||
   (STORE_PATH.replace(/\.json$/, '-quarantine.json'));
 
+const QUARANTINE_DIR =
+  process.env.AUDIT_LOG_QUARANTINE_DIR ||
+  path.join(process.cwd(), '.simplebeacon', 'quarantine');
+
 const DEFAULT_HEAL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Get the per-tenant quarantine file path for encrypted storage.
+ * @param {string} orgId — Tenant org ID
+ * @returns {string} Absolute path to the tenant's quarantine file
+ */
+function getTenantQuarantinePath(orgId) {
+  const safeOrgId = String(orgId || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+  return path.join(QUARANTINE_DIR, `tenant-${safeOrgId}`, 'audit-quarantine.json');
+}
+
+/**
+ * Read the per-tenant encrypted quarantine store.
+ * Falls back to the legacy global quarantine file for backward compatibility.
+ * @param {string} orgId — Tenant org ID
+ * @returns {{ entries: object[], metadata: object }}
+ */
+function readTenantQuarantineStore(orgId) {
+  const orgIdNormalized = orgId || 'default';
+  const tenantPath = getTenantQuarantinePath(orgIdNormalized);
+  const { encryptForDirectory, decryptForDirectory, isDirectoryEncrypted } = getCryptoUtils();
+
+  try {
+    if (fs.existsSync(tenantPath)) {
+      const raw = fs.readFileSync(tenantPath, 'utf8');
+      // If the file is encrypted, decrypt it
+      if (isDirectoryEncrypted(raw)) {
+        const decrypted = decryptForDirectory(raw, orgIdNormalized, path.dirname(tenantPath));
+        if (decrypted) {
+          const parsed = JSON.parse(decrypted);
+          if (parsed.entries && Array.isArray(parsed.entries)) return parsed;
+        }
+        // Decryption failed — return empty store (data is inaccessible)
+        return { entries: [], metadata: { createdAt: new Date().toISOString(), encrypted: true, decryptionError: true } };
+      }
+      // Unencrypted fallback (for migration or if encryption was disabled)
+      const parsed = JSON.parse(raw);
+      if (parsed.entries && Array.isArray(parsed.entries)) return parsed;
+    }
+  } catch {
+    // Fall through to legacy
+  }
+
+  // Legacy: check the global quarantine file for entries belonging to this org
+  try {
+    if (fs.existsSync(QUARANTINE_PATH)) {
+      const raw = fs.readFileSync(QUARANTINE_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (parsed.entries && Array.isArray(parsed.entries)) {
+        const orgEntries = parsed.entries.filter((e) => e.orgId === orgIdNormalized);
+        if (orgEntries.length > 0) {
+          return { entries: orgEntries, metadata: parsed.metadata || {} };
+        }
+      }
+    }
+  } catch {}
+
+  return { entries: [], metadata: { createdAt: new Date().toISOString() } };
+}
+
+/**
+ * Write the per-tenant encrypted quarantine store.
+ * Encrypts the entire JSON payload using encryptForDirectory() with a key
+ * derived from orgId and the directory path.
+ * @param {string} orgId — Tenant org ID
+ * @param {{ entries: array, metadata: object }} store
+ */
+function writeTenantQuarantineStore(orgId, store) {
+  const orgIdNormalized = orgId || 'default';
+  const tenantPath = getTenantQuarantinePath(orgIdNormalized);
+  const dir = path.dirname(tenantPath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+  const { encryptForDirectory } = getCryptoUtils();
+  const json = JSON.stringify(store, null, 2);
+  const ciphertext = encryptForDirectory(json, orgIdNormalized, dir);
+  fs.writeFileSync(tenantPath, ciphertext, 'utf8');
+}
 
 let _healTimer = null;
 let _healRunning = false;
@@ -520,7 +611,7 @@ function healChain(orgId) {
 
   // Move broken entries to quarantine
   const quarantined = [];
-  const quarantineStore = readQuarantineStore();
+  const quarantineStore = readTenantQuarantineStore(orgIdNormalized);
 
   for (const [key, entry] of orgEntries) {
     if (brokenIds.has(entry.id)) {
@@ -535,11 +626,12 @@ function healChain(orgId) {
     }
   }
 
-  // Save quarantine store
+  // Save quarantine store (per-tenant encrypted)
   quarantineStore.entries.push(...quarantined);
   quarantineStore.metadata.lastUpdated = new Date().toISOString();
   quarantineStore.metadata.totalQuarantined = quarantineStore.entries.length;
-  writeQuarantineStore(quarantineStore);
+  quarantineStore.metadata.encrypted = true;
+  writeTenantQuarantineStore(orgIdNormalized, quarantineStore);
 
   // Re-link remaining entries with new hashes
   const remainingEntries = Object.entries(store.entries)
@@ -589,18 +681,22 @@ function healChain(orgId) {
 
 /**
  * Get the quarantine store contents, optionally filtered by orgId.
+ * Reads from per-tenant encrypted quarantine files when orgId is provided.
+ * Falls back to the legacy global quarantine file when orgId is omitted.
  * @param {string} [orgId] — Optional org filter
  * @returns {{ entries: array, metadata: object }}
  */
 function getQuarantine(orgId) {
-  const store = readQuarantineStore();
   if (orgId) {
+    // Read from per-tenant encrypted store
+    const store = readTenantQuarantineStore(orgId);
     return {
       entries: store.entries.filter((e) => e.orgId === orgId),
       metadata: store.metadata,
     };
   }
-  return store;
+  // No orgId — read from legacy global store (for backward compatibility)
+  return readQuarantineStore();
 }
 
 /**
@@ -695,5 +791,8 @@ module.exports = {
   stopAutoHeal,
   getHealStats,
   getAllOrgIds,
+  getTenantQuarantinePath,
+  readTenantQuarantineStore,
+  writeTenantQuarantineStore,
   GENESIS_HASH,
 };

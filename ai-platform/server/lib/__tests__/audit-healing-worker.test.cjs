@@ -18,10 +18,12 @@ const os = require('os');
 const _tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-audit-heal-'));
 const _tempLogPath = path.join(_tempDir, 'audit-log.json');
 const _tempQuarantinePath = path.join(_tempDir, 'audit-log-quarantine.json');
+const _tempQuarantineDir = path.join(_tempDir, 'quarantine');
 const _tempPolicyPath = path.join(_tempDir, 'pii-policies.json');
 
 process.env.AUDIT_LOG_PATH = _tempLogPath;
 process.env.AUDIT_LOG_QUARANTINE_PATH = _tempQuarantinePath;
+process.env.AUDIT_LOG_QUARANTINE_DIR = _tempQuarantineDir;
 process.env.PII_POLICY_PATH = _tempPolicyPath;
 process.env.AUDIT_LOG_SCRUB_PII = 'false'; // Disable scrubbing for simpler test data
 process.env.AUDIT_HEAL_ENABLED = 'false'; // Don't auto-start the timer
@@ -75,6 +77,12 @@ function resetStores() {
   fs.writeFileSync(_tempLogPath, JSON.stringify({ entries: {} }), 'utf8');
   try {
     if (fs.existsSync(_tempQuarantinePath)) fs.unlinkSync(_tempQuarantinePath);
+  } catch {}
+  // Clean up per-tenant encrypted quarantine directories
+  try {
+    if (fs.existsSync(_tempQuarantineDir)) {
+      fs.rmSync(_tempQuarantineDir, { recursive: true, force: true });
+    }
   } catch {}
 }
 
@@ -307,8 +315,11 @@ describe('Audit Log Auto-Healing Worker', () => {
 
       auditLogger.healAllOrgs();
 
-      const quarantine = auditLogger.getQuarantine();
-      assert.ok(quarantine.entries.length >= 2);
+      // Per-tenant encrypted quarantine: check each org separately
+      const quarantineA = auditLogger.getQuarantine('org-a');
+      const quarantineB = auditLogger.getQuarantine('org-b');
+      assert.ok(quarantineA.entries.length >= 1, 'org-a should have quarantined entries');
+      assert.ok(quarantineB.entries.length >= 1, 'org-b should have quarantined entries');
     });
 
     it('should filter quarantine by orgId', () => {

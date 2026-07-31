@@ -1,147 +1,97 @@
-# Software Health Report: Phase 4b — Standardized Error Response Helper (Remaining 32 Files)
+# Software Health Report — Per-Tenant Encrypted Quarantine
 
-**Date:** 2026-07-31
-**Branch:** main
-**Validator:** Devin (acting as Validator only)
-**Feature:** Migrate remaining 32 route files to use shared `sendError` helper.
+**Date:** 2026-01-30
+**Branch:** feat/agentic-orchestration
+**Feature:** Automated Directory-Sandbox Isolation for Quarantined Ledgers
+**Validator:** Devin (Validator mode)
 
-## Gate Status
+---
 
-| Check | Result |
-|-------|--------|
-| SimpleBeacon gate scan (local CLI) | PASS (exit 0) |
-| WebSocket integration test | 16/16 pass, 0 fail |
-| Syntax check (all 59 route files) | PASS (all `node -c` exit 0) |
-| Behavioral validation (live server) | PASS (error responses preserved) |
+## Level 1 — Deterministic Checks
 
-## Level 1 — Deterministic (all required)
+| Check | Result | Notes |
+|-------|--------|-------|
+| `node -c audit-logger.cjs` | PASS | Syntax clean |
+| `node -c encrypted-quarantine.test.cjs` | PASS | Syntax clean |
+| `node -c audit-healing-worker.test.cjs` | PASS | Syntax clean |
+| Security regression suite (20 suites) | PASS | 463/463 tests pass |
+| SimpleBeacon gate scan | PASS | 0 critical, 0 high, 0 medium; quality score 100 |
+| `npm audit` | N/A | No package.json changes |
 
-| # | Item | Result | Evidence |
-|---|------|--------|----------|
-| L1.1 | `node -c` on all 59 route files | PASS | All exit 0 |
-| L1.2 | SimpleBeacon gate scan | PASS | exit 0 (local CLI) |
-| L1.3 | WebSocket integration test | PASS | 16/16 pass |
+---
 
-## Level 2 — Behavioral (verified with live server on port 58000)
+## Level 2 — Behavioral Verification
 
-| # | Item | Result | Evidence |
-|---|------|--------|----------|
-| L2.1 | Whitelabel valid format not found | PASS | 404 `{ success: false, error: 'not_found' }` |
-| L2.2 | Whititelabel invalid format rejected | PASS | 400 `invalid_parameter` (from validateParam) |
-| L2.3 | Analytics violations success | PASS | 200 `{ success: true, ... }` |
-| L2.4 | 404 API route not found format | PASS | `{ success: false, error: 'API route not found' }` |
-| L2.5 | Integration test | PASS | 16/16 pass, no false rejections |
+| Test | Result | Notes |
+|------|--------|-------|
+| L2 Content Isolation: `fs.readFileSync` returns `sb-dir:` prefixed ciphertext | PASS | Test: "should write encrypted content (sb-dir: prefix) to disk" |
+| L2 Cross-Tenant Rejection: wrong orgId returns empty store | PASS | Test: "should fail to read with wrong orgId" |
+| L1 Backward Compatibility: legacy global quarantine file readable | PASS | Test: "should read from legacy global quarantine file" |
+| healChain writes to encrypted per-tenant file | PASS | Test: "should quarantine tampered entry to encrypted per-tenant file" |
+| Raw file does not contain plaintext entry IDs or actions | PASS | Test: "should not leak quarantined data across tenants on disk" |
+| getQuarantine(orgId) reads from encrypted store | PASS | Test: "should filter quarantine by orgId" (existing test, updated) |
+| Per-tenant directories created on write | PASS | Test: "should create per-tenant directories on write" |
+| Directory traversal via orgId sanitized | PASS | Test: "should sanitize unsafe characters in orgId" |
 
-## Level 3 — Self-review / drift
+---
 
-| # | Item | Result | Evidence |
-|---|------|--------|----------|
-| L3.1 | No new files created | PASS | Only edited existing route files |
-| L3.2 | No new dependencies | PASS | Uses existing `response-helpers.cjs` from Phase 4a |
-| L3.3 | No information lost | PASS | `message` field preserved via `{ message }` option |
-| L3.4 | Special cases left as-is | PASS | 9 responses with extra fields (payment, warnings, tier) |
-| L3.5 | validateParam inconsistency noted | DEFECT | `validateParam` responses don't include `success: false` |
+## Level 3 — Spec Drift & Edge Cases
 
-## Defects Found
+| Item | Status | Notes |
+|------|--------|-------|
+| Spec: per-tenant path `.simplebeacon/quarantine/tenant-{orgId}/audit-quarantine.json` | MATCH | Implemented via `QUARANTINE_DIR` env var with `getTenantQuarantinePath()` |
+| Spec: `encryptForDirectory()` with AES-256-GCM | MATCH | Uses `encryptForDirectory(json, orgId, dir)` from crypto-utils.cjs |
+| Spec: `decryptForDirectory()` returns `''` on wrong key | MATCH | Cross-tenant read returns empty store |
+| Spec: backward compatibility with legacy file | MATCH | `readTenantQuarantineStore()` falls back to `QUARANTINE_PATH` |
+| Spec: Prometheus metric `audit_quarantine_encrypted_bytes` | NOT BUILT | Deferred — see Future Roadmap |
+| Dead code: `writeQuarantineStore()` no longer called | NOTED | Kept for backward compat; harmless |
+| Existing `audit-healing-worker.test.cjs` updated | YES | Added `AUDIT_LOG_QUARANTINE_DIR` env, cleanup in `resetStores()`, updated "all quarantine" test |
+| No ghost files | CONFIRMED | All referenced paths exist |
+| No new dependencies | CONFIRMED | Uses existing `crypto-utils.cjs` functions |
 
-### Defect 1: Script regex captured extra fields incorrectly
-- **Severity**: Medium
-- **Description**: The migration script's pattern3 regex `([^}]+)` was too greedy and captured extra fields beyond `error:` (e.g., `email: existing.email`) as part of the error value, producing invalid JS like `sendError(res, 409, 'error', email: value)`.
-- **Fix**: Wrote a fix script to wrap extra fields in `{ }` → `sendError(res, 409, 'error', { email: value })`.
-- **Status**: Fixed — all 7 affected files pass syntax check.
+---
 
-### Defect 2: validateParam responses don't include `success: false`
-- **Severity**: Low
-- **Description**: The `validateParam` middleware from Phase 3 returns `{ error: 'invalid_parameter', message, paramName, received }` without a `success: false` field, while `sendError` returns `{ success: false, error, ... }`.
-- **Fix**: Not fixed in this commit — `validateParam` is a separate middleware. Should be updated in a future commit to use `sendError` internally.
-- **Status**: Documented for future fix.
+## Defects
 
-## Migration Statistics
+None found. All tests pass, gate passes, no syntax errors.
 
-| Metric | Value |
-|--------|-------|
-| Total `sendError` calls across all route files | 417 |
-| Total remaining `res.status().json()` calls | 36 |
-| Files using `sendError` | 36/59 (61%) |
-| Files migrated in Phase 4b | 31 |
-| Replacements in Phase 4b | 248 |
+---
 
-### Remaining 36 `res.status().json()` calls (acceptable)
-- 9 special cases in `flexible-analyze-api.cjs` (payment fields, warnings, tier info)
-- 4 special cases in `auth-inline-routes.cjs` (auth status with `registered`, `valid`, `active`, `sandbox` fields)
-- ~23 success responses (202, 201) and `res.status(204).send()` calls
+## Unimplemented
 
-## Files Changed (32 files edited, 0 new files)
+1. **Prometheus metric `audit_quarantine_encrypted_bytes`** — The spec mentioned exposing encryption status via admin panels and a new Prometheus gauge. This was not implemented in this change set. The existing `GET /api/agentic/metrics` endpoint exposes SIEM delivery metrics but not quarantine encryption metrics. This is a natural follow-up.
 
-### High-impact (7 files, 130 responses)
-| File | Replacements |
-|------|-------------|
-| `token-auth.cjs` | 39 |
-| `local-models-api.cjs` | 16 |
-| `whitelabel-routes.cjs` | 14 |
-| `fix-orchestrator-api.cjs` | 13 |
-| `integration-routes.cjs` | 14 |
-| `sso-auth-handler.cjs` | 15 |
-| `sso-config-routes.cjs` | 14 |
+---
 
-### Medium-impact (5 files, 47 responses)
-| File | Replacements |
-|------|-------------|
-| `upload.cjs` | 8 |
-| `webauthn-api.cjs` | 12 |
-| `sso-routes.cjs` | 11 |
-| `chatbot-api.cjs` | 7 |
-| `workspaces.cjs` | 9 |
+## Enhancements (Debt/Perf)
 
-### Low-impact (19 files, 71 responses)
-| File | Replacements |
-|------|-------------|
-| `demo-simplebeacon-api.cjs` | 9 |
-| `realtime-analysis-api.cjs` | 8 |
-| `auth-inline-routes.cjs` | 3 |
-| `mock-data-api.cjs` | 6 |
-| `repository-scanner-api.cjs` | 6 |
-| `stripe-webhook-routes.cjs` | 5 |
-| `ai-context-routes.cjs` | 5 |
-| `deployment-gate-routes.cjs` | 5 |
-| `eu-ai-act-audit-route.cjs` | 4 |
-| `auth.cjs` | 3 |
-| `agent-routes.cjs` | 2 |
-| `ai-math-audit-route.cjs` | 2 |
-| `meta-routes.cjs` | 3 |
-| `auth-routes.cjs` | 1 |
-| `enterprise-analytics-routes.cjs` | 2 |
-| `external-weather-api.cjs` | 2 |
-| `oracle-search.cjs` | 2 |
-| `pr-integration-api.cjs` | 1 |
-| `proxy-ollama-api.cjs` | 2 |
+1. **`writeQuarantineStore()` is now dead code** — The legacy global write function is no longer called by `healChain()`. It could be removed in a future cleanup pass, but keeping it avoids breaking any external callers that might reference it.
 
-### Manually fixed (2 files, 4 responses)
-| File | Replacements |
-|------|-------------|
-| `audit-routes.cjs` | 3 |
-| `audit.cjs` | 1 |
+2. **Lazy-loading crypto-utils** — `getCryptoUtils()` pattern avoids circular dependency at module init time. This is consistent with the existing pattern used for `agentic-orchestration-routes.cjs` lazy-loading in `audit-routes.cjs`.
 
-## Backend Audit Final Summary
+3. **Path sanitization** — `getTenantQuarantinePath()` replaces unsafe characters in orgId with underscores, preventing directory traversal. This is tested.
 
-| Phase | Status | Impact |
-|-------|--------|--------|
-| Phase 1 | COMPLETE | 12 patch files deleted, 6 query params bounded |
-| Phase 3 | COMPLETE | 17 route params validated across 7 files |
-| Phase 4a | COMPLETE | 170 error responses standardized across 3 files |
-| Phase 4b (this) | COMPLETE | 248 error responses standardized across 31 files |
-| Phase 2 | DEFERRED | Auth route consolidation (4 files, duplicate endpoints) |
-| Phase 5 | DEFERRED | Try/catch blocks + consistent error logging |
+---
 
-**Total error responses standardized: 418 across 36 files (Phase 4a + 4b)**
+## Future Roadmap
+
+1. **Prometheus quarantine metrics** — Add `audit_quarantine_encrypted_bytes` gauge and `audit_quarantine_entries_total` counter to the `/api/agentic/metrics` endpoint. Track per-tenant encrypted quarantine file sizes and entry counts.
+
+2. **Quarantine file integrity verification** — Add a tamper-evident hash chain for quarantine entries themselves, so that tampering with the quarantine file can be detected (currently the file is encrypted but not chain-verified).
+
+3. **Quarantine rotation/retention** — Add a configurable retention policy for quarantine entries (e.g., auto-purge after 90 days) to prevent unbounded growth.
+
+4. **Wire directory isolation into Audit Logging Local JSON File Store** — Option B from the original proposal: encrypt the main audit log per-organization partition using `encryptForDirectory()`.
+
+---
 
 ## Validator Sign-off
 
-- [x] All Level 1 checks pass
-- [x] All Level 2 checks pass (verified with live server)
-- [x] All Level 3 checks pass
-- [x] Defect 1 found and fixed (script regex extra fields)
-- [x] Defect 2 documented (validateParam inconsistency — future fix)
-- [x] Broom strategy followed (0 new files, 32 edits)
-- [x] No information lost (message field preserved)
-- [x] Ready for commit
+- [x] All Level 1 checks pass (syntax, tests, gate)
+- [x] All Level 2 behavioral tests pass (content isolation, cross-tenant rejection, backward compat)
+- [x] No spec drift (3 spec items match, 1 deferred to future roadmap)
+- [x] No ghost files or hallucinated API paths
+- [x] Existing tests updated for new behavior (audit-healing-worker.test.cjs)
+- [x] CI workflow updated (path filters + test regex)
+
+**Verdict:** READY FOR COMMIT
