@@ -316,12 +316,138 @@ function getCompiledPatterns(orgId) {
  * @param {string} orgId
  * @returns {{ text: string, matches: Array }}
  */
-function redactText(text, orgId) {
+// ── Context-Aware Code Block Detection ─────────────────────────────────────
+//
+// When skipCodeBlocks is enabled, PII redaction is only applied to prose
+// segments. Code blocks (fenced ``` blocks and inline `code`) are preserved
+// as-is. This prevents false positives where legitimate test data (e.g.
+// test@example.com in unit tests) or API examples (e.g. bearer tokens in
+// documentation) are redacted.
+//
+// The detector splits text into segments tagged as 'prose' or 'code',
+// applies redaction only to 'prose' segments, then reassembles.
+
+/**
+ * Split text into segments tagged as 'prose' or 'code'.
+ * Detects:
+ *   - Fenced code blocks: ```lang ... ``` (multi-line)
+ *   - Inline code: `code` (single backtick)
+ *
+ * @param {string} text — The text to segment
+ * @returns {array<{ text: string, type: 'prose'|'code' }>}
+ */
+function _splitCodeSegments(text) {
+  if (!text || typeof text !== 'string') return [{ text: '', type: 'prose' }];
+
+  const rawSegments = [];
+  let currentIndex = 0;
+
+  // Match fenced code blocks (```lang\n...\n``` or ```\n...\n```)
+  // Also matches unclosed fenced blocks (``` at end of text without closing ```)
+  const fencedRegex = /```[\w]*\n?[\s\S]*?```|```[\w]*\n?[\s\S]*$/g;
+  let match;
+
+  while ((match = fencedRegex.exec(text)) !== null) {
+    // Add prose before this code block
+    if (match.index > currentIndex) {
+      rawSegments.push({ text: text.slice(currentIndex, match.index), type: 'prose' });
+    }
+    // Add the code block
+    rawSegments.push({ text: match[0], type: 'code' });
+    currentIndex = match.index + match[0].length;
+  }
+
+  // Add remaining prose after last fenced code block
+  if (currentIndex < text.length) {
+    rawSegments.push({ text: text.slice(currentIndex), type: 'prose' });
+  }
+
+  // If no segments were created, the entire text is prose
+  if (rawSegments.length === 0) {
+    rawSegments.push({ text, type: 'prose' });
+  }
+
+  // Second pass: split each prose segment by inline code spans (`code`)
+  const segments = [];
+  for (const seg of rawSegments) {
+    if (seg.type === 'code') {
+      segments.push(seg);
+      continue;
+    }
+
+    const inlineRegex = /`[^`\n]+`/g;
+    let inlineMatch;
+    let proseStart = 0;
+    let foundInline = false;
+
+    while ((inlineMatch = inlineRegex.exec(seg.text)) !== null) {
+      foundInline = true;
+      // Add prose before this inline code
+      if (inlineMatch.index > proseStart) {
+        segments.push({ text: seg.text.slice(proseStart, inlineMatch.index), type: 'prose' });
+      }
+      // Add the inline code
+      segments.push({ text: inlineMatch[0], type: 'code' });
+      proseStart = inlineMatch.index + inlineMatch[0].length;
+    }
+
+    // Add remaining prose after last inline code (or the whole segment if no inline)
+    if (proseStart < seg.text.length || !foundInline) {
+      segments.push({ text: seg.text.slice(proseStart), type: 'prose' });
+    }
+  }
+
+  return segments;
+}
+
+/**
+ * Redact PII from text using the org's compiled patterns.
+ *
+ * @param {string} text — The text to redact
+ * @param {string} orgId — Organization ID for policy lookup
+ * @param {object} [options]
+ * @param {boolean} [options.skipCodeBlocks=false] — If true, preserve PII in
+ *   fenced code blocks (```...```) and inline code (`...`). Only redact
+ *   prose segments.
+ * @returns {{ text: string, matches: array }}
+ */
+function redactText(text, orgId, options = {}) {
   if (!text || typeof text !== 'string') return { text, matches: [] };
 
   const patterns = getCompiledPatterns(orgId);
   if (patterns.length === 0) return { text, matches: [] };
 
+  // Context-aware mode: split into code/prose segments, only redact prose
+  if (options.skipCodeBlocks) {
+    const segments = _splitCodeSegments(text);
+    let redactedText = '';
+    const allMatches = [];
+
+    for (const segment of segments) {
+      if (segment.type === 'code') {
+        redactedText += segment.text;
+      } else {
+        const result = _redactSegment(segment.text, patterns);
+        redactedText += result.text;
+        allMatches.push(...result.matches);
+      }
+    }
+
+    return { text: redactedText, matches: allMatches };
+  }
+
+  // Standard mode: redact the entire text
+  const result = _redactSegment(text, patterns);
+  return result;
+}
+
+/**
+ * Internal: redact a single prose segment using compiled patterns.
+ * @param {string} text
+ * @param {array} patterns
+ * @returns {{ text: string, matches: array }}
+ */
+function _redactSegment(text, patterns) {
   let redactedText = text;
   const matches = [];
 
@@ -616,13 +742,20 @@ const NON_REDACTED_BLOCK_TYPES = new Set(['thinking', 'redacted_thinking']);
  * through untouched. When the block type changes, the previous block's
  * buffer is flushed automatically.
  *
+ * When options.skipCodeBlocks is true, the scrubber detects fenced code
+ * blocks (```...```) in the stream and passes them through untouched.
+ * Only prose segments are redacted. This prevents false positives on
+ * test fixtures and API examples in code.
+ *
  * @param {string} orgId — Organization ID for policy lookup
  * @param {object} [options]
  * @param {number} [options.maxLookback=200] — Max chars to hold back for cross-chunk matching
+ * @param {boolean} [options.skipCodeBlocks=false] — If true, preserve PII in fenced code blocks
  * @returns {{ process: function, flush: function, getStats: function }}
  */
 function createStreamScrubber(orgId, options = {}) {
   const maxLookback = options.maxLookback || STREAM_MAX_LOOKBACK;
+  const skipCodeBlocks = !!options.skipCodeBlocks;
   const patterns = getCompiledPatterns(orgId);
 
   let _buffer = '';
@@ -630,6 +763,7 @@ function createStreamScrubber(orgId, options = {}) {
   let _totalProcessed = 0;
   let _totalRedacted = 0;
   let _blockCount = 0;
+  let _inCodeBlock = false; // Track fenced code block state across chunks
   const _matchCounts = {};
   const _blockTypeCounts = {};
 
@@ -705,11 +839,40 @@ function createStreamScrubber(orgId, options = {}) {
   }
 
   /**
-   * Redact text using the compiled patterns.
+   * Redact text using the compiled patterns. When skipCodeBlocks is enabled,
+   * uses _splitCodeSegments to preserve PII in code blocks.
    * @param {string} text
    * @returns {{ text: string, matches: array }}
    */
   function redactBuffer(text) {
+    if (skipCodeBlocks) {
+      const segments = _splitCodeSegments(text);
+      let redactedText = '';
+      const allMatches = [];
+
+      for (const segment of segments) {
+        if (segment.type === 'code') {
+          redactedText += segment.text;
+        } else {
+          const result = _redactStreamSegment(segment.text);
+          redactedText += result.text;
+          allMatches.push(...result.matches);
+        }
+      }
+
+      return { text: redactedText, matches: allMatches };
+    }
+
+    const result = _redactStreamSegment(text);
+    return result;
+  }
+
+  /**
+   * Internal: redact a single prose segment using compiled patterns.
+   * @param {string} text
+   * @returns {{ text: string, matches: array }}
+   */
+  function _redactStreamSegment(text) {
     let redactedText = text;
     const matches = [];
 
@@ -855,6 +1018,7 @@ function createStreamScrubber(orgId, options = {}) {
         blockCount: _blockCount,
         blockTypeCounts: { ..._blockTypeCounts },
         currentBlockType: _currentBlockType,
+        skipCodeBlocks,
       };
     },
   };
@@ -874,6 +1038,7 @@ module.exports = {
   getAllOrgIds,
   syncPoliciesToOrgs,
   createStreamScrubber,
+  _splitCodeSegments,
   COMPLIANCE_FRAMEWORKS,
   PII_POLICY_PATH,
 };
