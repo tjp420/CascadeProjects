@@ -36,6 +36,7 @@ on:
       - 'ai-platform/server/lib/__tests__/pii-stream-verify.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-stream-preflight.test.cjs'
       - 'ai-platform/server/lib/__tests__/canonical-request-serializer.test.cjs'
+      - 'ai-platform/server/lib/__tests__/security-telemetry.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   push:
     branches: [main]
@@ -65,6 +66,7 @@ on:
       - 'ai-platform/server/lib/__tests__/pii-stream-verify.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-stream-preflight.test.cjs'
       - 'ai-platform/server/lib/__tests__/canonical-request-serializer.test.cjs'
+      - 'ai-platform/server/lib/__tests__/security-telemetry.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   workflow_dispatch:
 
@@ -101,7 +103,7 @@ jobs:
             --verbose \
             --ci \
             --bail=1 \
-            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker|pii-context-aware|pii-scrubber-registry|pii-stream-verify|pii-stream-preflight|canonical-request-serializer)\.test\.cjs" \
+            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker|pii-context-aware|pii-scrubber-registry|pii-stream-verify|pii-stream-preflight|canonical-request-serializer|security-telemetry)\.test\.cjs" \
             --coverage \
             --coverageReporters=text-summary \
             --coverageReporters=lcov \
@@ -113,6 +115,12 @@ jobs:
             --collectCoverageFrom='server/lib/crypto-utils.cjs' \
             --collectCoverageFrom='server/routes/agentic-orchestration-routes.cjs' \
             2>&1 | tee /tmp/jest-output.txt
+
+        - name: Run SIEM Telemetry and Agentic Route Tests
+          working-directory: ai-platform
+          run: |
+            node --test server/lib/__tests__/siem-exporter.test.cjs
+            node --test server/lib/__tests__/agentic-orchestration.test.cjs
 
           # Extract pass/fail summary
           SUITES=$(grep -oP 'Test Suites:\s+\K\d+ passed' /tmp/jest-output.txt | head -1 || echo "0")

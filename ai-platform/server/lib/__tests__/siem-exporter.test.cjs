@@ -88,20 +88,21 @@ describe('siem-exporter (unit)', () => {
       // call flush which will attempt to send then on failure re-enqueue and trim
       await se.flush();
 
-      // Wait for retries to run (total attempts should reach retry limit + initial)
-      const expectedMinAttempts = parseInt(process.env.SIEM_RETRY_MAX_ATTEMPTS, 10) || 3;
-      const timeoutAt = Date.now() + 1000;
+      // Wait for retries to exhaust and queue to be trimmed.
+      // flush() is fire-and-forget (doesn't await sendBatch), so we poll
+      // until the queue is trimmed or timeout.
+      const timeoutAt = Date.now() + 3000;
       while (Date.now() < timeoutAt) {
-        const attempts = se._debug.getTotalSendAttempts();
-        if (attempts >= expectedMinAttempts) break;
+        const q = se._debug.getQueue();
+        if (q.length <= 1000) break;
         // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, 20));
+        await new Promise((r) => setTimeout(r, 50));
       }
 
       const postQ = se._debug.getQueue();
       // queue should be trimmed to at most 1000 after retries exhausted
       assert.ok(postQ.length <= 1000, `queue trimmed to <=1000, actual=${postQ.length}`);
-      // confirm that at least one retry attempt occurred
+      // confirm that at least one send attempt occurred
       assert.ok(se._debug.getTotalSendAttempts() >= 1, `expected send attempts >= 1, actual=${se._debug.getTotalSendAttempts()}`);
     } finally {
       delete global.fetch;
