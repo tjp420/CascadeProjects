@@ -1,30 +1,41 @@
-# Test Plan: Delete Dead utils-format.js Legacy File
+# Test Plan: Consolidate isRemoteDashboardHost + isAbsoluteLocalPath + normalizeSlashes
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Delete `utils-format.js` — a legacy file with 26 functions
-that is not imported by any file in the codebase.
+**Feature:** Consolidate 3 duplicate functions into their canonical
+utils-lib modules and update all consumers to import from there.
 
 ## Context
 
-The audit found `utils-format.js` contains 26 exported functions. Of these:
-- 21 are duplicates of functions in `utils-lib/` (escapeRegExp, formatNumber,
-  formatPercent, formatBytes, clamp, formatDuration, formatDate, relativeTime,
-  formatAiSummarySkipMessage, isBlank, capitalize, truncate, pluralize,
-  kebabCase, camelCase, snakeCase, stripHtml, padStart, padEnd, roundTo, noop)
-- 5 are "unique" (timeAgo, words, repeat, titleCase, slugify, inRange) but:
-  - `timeAgo` is an internal alias for `relativeTime` (same file)
-  - `slugify` has a local copy in `RemediationRoadmapView.js`
-  - `words`, `repeat`, `titleCase`, `inRange` are not used anywhere
+Three functions are duplicated across views/services:
 
-**Key finding:** `grep` confirmed 0 files import from `utils-format.js`.
-The file is completely dead code.
+1. **isRemoteDashboardHost** — 3 identical definitions:
+   - `views/AnalyzeView.js` (line 18) — used 31 times
+   - `components/ScanStatus.js` (line 7) — used 8 times
+   - `services/scanStrategy.js` (line 110) — used 1 time
+   - **Canonical:** `utils-lib/url.js` (already has `_isLoopbackHost` private)
+
+2. **isAbsoluteLocalPath** — 2 identical definitions:
+   - `views/AnalyzeView.js` (line 25) — used 8 times
+   - `components/ScanStatus.js` (line 10) — used 5 times
+   - **Canonical:** `utils-lib/path.js`
+
+3. **normalizeSlashes** — 2 definitions with different signatures:
+   - `utils-lib/string.js` (line 31) — simple: `(path)` only
+   - `utils-lib/path.js` (line 12) — extended: `(path, opts)` with stripLeadingDot/lowercase
+   - `utils.js` re-exports the SIMPLE version (bug — should be the extended one)
+   - **Canonical:** `utils-lib/path.js` (has opts parameter)
 
 ## Files to Change
 
-| File | Action |
+| File | Change |
 |------|--------|
-| `utils-format.js` | Delete (dead code, 0 imports) |
+| `utils-lib/url.js` | Add `isRemoteDashboardHost` export |
+| `utils-lib/path.js` | Add `isAbsoluteLocalPath` export |
+| `utils.js` | Re-export `isRemoteDashboardHost`, `isAbsoluteLocalPath`; fix `normalizeSlashes` to use PathUtils |
+| `views/AnalyzeView.js` | Remove local copies, import from utils.js |
+| `components/ScanStatus.js` | Remove local copies, import from utils.js |
+| `services/scanStrategy.js` | Remove local copy, import from utils.js |
 
 ## Objective Check-Items
 
@@ -32,20 +43,25 @@ The file is completely dead code.
 
 | # | Item | Expected |
 |---|------|----------|
-| L1.1 | `npx simplebeacon scan --gate` | PASS (exit 0) |
-| L1.2 | WebSocket integration test still passes | 16/16 pass |
-| L1.3 | No imports reference utils-format.js | grep returns 0 matches |
+| L1.1 | `node -c` on all 6 edited files | exit 0 |
+| L1.2 | `npx simplebeacon scan --gate` | PASS (exit 0) |
+| L1.3 | WebSocket integration test still passes | 16/16 pass |
 
 ### Level 2 — Behavioral
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | Dashboard loads without errors | No missing module errors |
+| L2.1 | `isRemoteDashboardHost()` returns true on remote hosts | Same logic as before |
+| L2.2 | `isAbsoluteLocalPath()` detects Windows/Unix absolute paths | Same logic as before |
+| L2.3 | `normalizeSlashes()` with opts still works | PathUtils version supports opts |
+| L2.4 | No duplicate function definitions remain | grep finds 0 local defs |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
-| L3.1 | No new files created | Only deletion |
-| L3.2 | File is tracked in git | git ls-files confirms |
-| L3.3 | Unique functions not used elsewhere | Verified by grep |
+| L3.1 | No new files created | Only edits to existing files |
+| L3.2 | No new dependencies | Uses existing utils.js import |
+| L3.3 | normalizeSlashes fix: PathUtils version is backward-compatible | opts param is optional |
+| L3.4 | Import paths use existing cache-busting convention | `?v=20260731audit2` |
+| L3.5 | All 3 functions have identical behavior to before | No logic changes, only relocation |

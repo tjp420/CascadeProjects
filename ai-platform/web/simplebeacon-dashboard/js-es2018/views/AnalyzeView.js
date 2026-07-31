@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
+import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState, isRemoteDashboardHost, isAbsoluteLocalPath } from '../utils.js?v=20260731audit2';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
 import { LocalScanService } from '../services/localScanService.js?v=20260725dropfix3';
@@ -15,16 +15,9 @@ const DROP_SKIP_DIRS = new Set([
     '.husky', '.windsurf', '.wrangler', 'bower_components'
 ]);
 
-function isRemoteDashboardHost() {
-    return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-}
 function isBrowserPrivateScanSource(report) {
     const src = report?.scanSource;
     return src === 'browser-local' || src === 'browser-sandbox';
-}
-function isAbsoluteLocalPath(path) {
-    const raw = String(path || '').trim();
-    return /^[a-zA-Z]:[\\/]|^\\|^\//.test(raw) && !/^https?:\/\//i.test(raw);
 }
 /** Scan context for hosted (Pages / simplebeacon.ai) vs localhost dashboard. */
 function getHostedAnalyzeContext() {

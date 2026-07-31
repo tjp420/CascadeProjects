@@ -18,6 +18,14 @@ function _isLocalDevHost() {
 function _isLoopbackHost(hostname) {
     return /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(String(hostname || ''));
 }
+/**
+ * True when the dashboard is served from a remote (non-localhost) host.
+ * Used to gate local-path features that only work on localhost.
+ * @returns {boolean}
+ */
+export function isRemoteDashboardHost() {
+    return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+}
 function _isAllowedApiBase(value) {
     if (!value) return false;
     try {

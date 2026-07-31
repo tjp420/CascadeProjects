@@ -2,6 +2,16 @@
  * @module path
  */
 /**
+ * True when the string looks like an absolute local filesystem path
+ * (Windows drive letter, UNC root, or POSIX root) and NOT a URL.
+ * @param {string} path
+ * @returns {boolean}
+ */
+export function isAbsoluteLocalPath(path) {
+    const raw = String(path || '').trim();
+    return /^[a-zA-Z]:[\\/]|^\\|^\//.test(raw) && !/^https?:\/\//i.test(raw);
+}
+/**
  * Normalize backslashes to forward slashes.
  * @param {string} path
  * @param {Object} [opts]
