@@ -8,7 +8,12 @@ const fetch = global.fetch || require('node-fetch');
 
 const SIEM_ENDPOINT = process.env.SIEM_ENDPOINT || null;
 const SIEM_API_KEY = process.env.SIEM_API_KEY || null;
-const BATCH_SIZE = parseInt(process.env.SIEM_BATCH_SIZE, 10) || 10;
+
+function getBatchSize() {
+  const v = parseInt(process.env.SIEM_BATCH_SIZE, 10);
+  return Number.isFinite(v) && v > 0 ? v : 10;
+}
+
 const FLUSH_MS = parseInt(process.env.SIEM_FLUSH_MS, 10) || 5000;
 const RETRY_BASE_MS = parseInt(process.env.SIEM_RETRY_BASE_MS, 10) || 100;
 const RETRY_MAX_MS = parseInt(process.env.SIEM_RETRY_MAX_MS, 10) || 60 * 1000;
@@ -22,7 +27,7 @@ function enqueue(event) {
   try {
     if (!event || typeof event !== 'object') return;
     queue.push(event);
-    if (queue.length >= BATCH_SIZE) flush().catch(() => {});
+    if (queue.length >= getBatchSize()) flush().catch(() => {});
   } catch (e) {
     // swallow
   }
@@ -36,7 +41,7 @@ async function flush() {
     return;
   }
   flushing = true;
-  const payload = queue.splice(0, BATCH_SIZE);
+  const payload = queue.splice(0, getBatchSize());
 
   // Non-blocking send with retries
   sendBatch(payload).catch(() => {});
@@ -95,7 +100,7 @@ module.exports = {
   _debug: {
     getQueue: () => queue,
     isFlushing: () => flushing,
-    getBatchSize: () => BATCH_SIZE,
+    getBatchSize,
     resetQueue: () => { queue = []; flushing = false; },
     getTotalSendAttempts: () => _totalSendAttempts,
   },

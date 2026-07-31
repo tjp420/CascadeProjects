@@ -25,9 +25,13 @@ function reloadSiem() {
   if (cached && cached.exports && typeof cached.exports.close === 'function') {
     cached.exports.close();
   }
-  // Use Jest's module reset instead of delete require.cache which
-  // doesn't always work in Jest's module environment
-  jest.resetModules();
+  // Use Jest's module reset if available (Jest's module cache doesn't
+  // always respect delete require.cache). Fall back to delete for node:test.
+  if (typeof jest !== 'undefined' && jest.resetModules) {
+    jest.resetModules();
+  } else {
+    delete require.cache[SIEM_PATH];
+  }
   return require(SIEM_PATH);
 }
 
