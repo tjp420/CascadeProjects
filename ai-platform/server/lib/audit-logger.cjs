@@ -747,6 +747,16 @@ function runPiiScrub(orgId) {
     .filter((e) => e.orgId === scopedOrgId)
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
+  // Debug trace: log store path and target org for investigation of test collisions
+  try {
+    console.warn('[pii-scrub-debug] runPiiScrub start', {
+      auditStorePath: process.env.AUDIT_STORE_PATH || STORE_PATH,
+      scopedOrgId,
+      entriesFound: entries.length,
+      pid: process.pid,
+    });
+  } catch (e) {}
+
   if (entries.length === 0) {
     // Do not overwrite _lastScrubStatus for an empty scrub run so a previous
     // successful scrub's status remains available. Return a no-op result.
@@ -771,6 +781,10 @@ function runPiiScrub(orgId) {
         2
       )
     );
+    // Debug trace: backup created
+    try {
+      console.warn('[pii-scrub-debug] backup-created', { auditStorePath: process.env.AUDIT_STORE_PATH || STORE_PATH, backupFile, scopedOrgId, pid: process.pid });
+    } catch (e) {}
   } catch {
     // Backup failure is non-fatal
   }
@@ -846,6 +860,11 @@ function runPiiScrub(orgId) {
 
   writeStore(store);
 
+  // Debug trace: seal appended
+  try {
+    console.warn('[pii-scrub-debug] seal-appended', { auditStorePath: process.env.AUDIT_STORE_PATH || STORE_PATH, sealId, scopedOrgId, pid: process.pid });
+  } catch (e) {}
+
   // Index the seal entry for fast lookups
   try {
     ledgerIndexEngine.indexAuditEntry(sealKey, sealEntry);
@@ -884,7 +903,12 @@ function runPiiScrub(orgId) {
  * @returns {object|null}
  */
 function getScrubStatus() {
-  if (_lastSuccessfulScrub) return _lastSuccessfulScrub;
+  if (_lastSuccessfulScrub) {
+    try {
+      console.warn('[pii-scrub-debug] getScrubStatus returning lastSuccessful', { orgId: _lastSuccessfulScrub.orgId, pid: process.pid });
+    } catch (e) {}
+    return _lastSuccessfulScrub;
+  }
 
   // Fall back to persisting-derived status: find the most recent
   // PII_SCRUBBED seal entry in the store and return a reconstructed
@@ -911,6 +935,9 @@ function getScrubStatus() {
       patterns: meta.patterns || {},
     };
   } catch (err) {
+    try {
+      console.warn('[pii-scrub-debug] getScrubStatus fallback to _lastScrubStatus', { err: String(err), pid: process.pid });
+    } catch (e) {}
     return _lastScrubStatus;
   }
 }
