@@ -127,6 +127,21 @@ async function main() {
     writeHtmlFromMd(rulesReadme, path.join(tmpDir, 'rules-readme.html'), 'Rules Authoring Guide');
   }
 
+  // Compute SHA-256 checksums for all files in tmpDir and write checksums.sha256
+  try {
+    const crypto = require('crypto');
+    const files = fs.readdirSync(tmpDir).filter(f => fs.statSync(path.join(tmpDir, f)).isFile());
+    const lines = [];
+    for (const f of files) {
+      const buf = fs.readFileSync(path.join(tmpDir, f));
+      const h = crypto.createHash('sha256').update(buf).digest('hex');
+      lines.push(`${h}  ${f}`);
+    }
+    fs.writeFileSync(path.join(tmpDir, 'checksums.sha256'), lines.join('\n') + '\n', 'utf8');
+  } catch (err) {
+    console.warn('Failed to compute checksums:', err && err.message);
+  }
+
   const zipName = path.resolve(repoRoot, 'generated', 'simplebeacon-procurement-kit.zip');
   ensureDir(path.dirname(zipName));
 
