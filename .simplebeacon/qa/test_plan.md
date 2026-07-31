@@ -1,32 +1,40 @@
-# Test Plan: Real-Time Incident Streaming + audit_delete Trigger + UI Fields
+# Test Plan: Real-Time Log Stream Analysis
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** WebSocket incident streaming, audit_delete event trigger, destination-specific UI fields.
+**Feature:** Server log streaming, burst pattern detection, and performance anomaly tracking.
 
 ## Context
 
-The alert dispatcher supports all 4 destination types (webhook, Slack, email, PagerDuty). Three remaining gaps:
-1. Incidents are persisted but not broadcast to connected dashboard clients in real-time.
-2. The `audit_delete` event type is defined but never triggered (no delete endpoint exists).
-3. The dashboard rule builder has all 4 destination types in the dropdown but only a generic `webhookUrl` field — no destination-specific config fields.
+The server uses `src/lib/app-logger.cjs` (wraps console.error/warn/info/debug) across all 44+ server modules. The main WebSocket server (`/ws` on port 58000) already broadcasts `data_update` messages in dev mode and `INCIDENT_STREAM` for alerts. No request timing middleware exists. No log streaming or burst detection exists.
 
-## Architecture Decisions
+## Architecture
 
-**WebSocket broadcasting:** The WebSocket server lives inside `simplebeacon-server.cjs` as `setupWebSocketServer(server)`. To avoid circular dependencies, we use a **callback injection pattern**: `alert-dispatcher.cjs` exposes a `setIncidentBroadcaster(fn)` function. The server registers a callback that broadcasts to all `wss.clients`. No new files needed.
+Following the Broom Strategy — extend existing files, use callback injection pattern (same as incident broadcaster):
 
-**audit_delete trigger:** No `trigger-engine.cjs` exists. We add a DELETE endpoint to `audit-routes.cjs` that calls `processEvent()` with the `audit_delete` event type — following the same pattern used for `guardrail_blocked` in `prompt-firewall.cjs` and `eval_failure` in `model-eval-routes.cjs`.
+1. **Log subscriber pattern** in `app-logger.cjs` — add `onLog(callback)` that fires on every log call. Server registers a WS broadcaster.
+2. **Burst detector + metrics aggregator** — new small module `server/lib/log-stream-metrics.cjs` (justified: self-contained analytics logic, would bloat app-logger if inline). Tracks sliding-window counts per level, detects bursts, and aggregates request metrics.
+3. **Request timing middleware** — add to `server/middleware/` (existing middleware directory). Records latency, status code, and method for each request.
+4. **Server wiring** — in `simplebeacon-server.cjs`, register log subscriber + metrics broadcaster with the WebSocket server (same pattern as incident broadcaster).
+5. **Dashboard UI** — add a log stream panel + metrics display to `UsageAnalyticsView.tsx` (existing alerting dashboard section).
 
-**UI fields:** The React dashboard (`UsageAnalyticsView.tsx`) already has the destination type dropdown. We add conditional fields that appear based on the selected destination type.
+## WebSocket Message Types
 
-## Files to Change (4 files)
+| Type | Direction | Payload |
+|------|-----------|---------|
+| `LOG_STREAM` | server→client | `{ level, message, timestamp, source }` |
+| `METRICS_UPDATE` | server→client | `{ requests, avgLatencyMs, errorRate, throughput, bursts }` |
+| `BURST_DETECTED` | server→client | `{ level, count, windowMs, threshold, timestamp }` |
+
+## Files to Change (5 files, 1 new)
 
 | File | Change |
 |------|--------|
-| `server/lib/alert-dispatcher.cjs` | Add `setIncidentBroadcaster()` callback setter. Call broadcaster after `recordIncident()` in `processEvent()`. Export setter. |
-| `simplebeacon-server.cjs` | After `setupWebSocketServer()` returns `wss`, import `setIncidentBroadcaster` and register a callback that broadcasts `INCIDENT_STREAM` to all connected WS clients. |
-| `server/routes/audit-routes.cjs` | Add `DELETE /log/:entryId` endpoint that deletes an audit entry and triggers `processEvent()` with `audit_delete` event type. |
-| `web/simplebeacon-dashboard/src/views/UsageAnalyticsView.tsx` | Add conditional fields: webhook secret (webhook), routing key (pagerduty), email recipient (email). Update form state to include `destination` object. |
+| `src/lib/app-logger.cjs` | Add `onLog(callback)` subscriber pattern. Each log call notifies subscribers with `{ level, message, timestamp }`. |
+| `server/lib/log-stream-metrics.cjs` | **NEW** — Burst detector (sliding window per level) + request metrics aggregator (latency, throughput, error rate). Emits events via callback. |
+| `server/middleware/request-timing.cjs` | **NEW** — Express middleware that records `req.startTime`, measures latency on response finish, feeds metrics aggregator. |
+| `simplebeacon-server.cjs` | Register log subscriber → WS broadcast. Register metrics broadcaster. Mount request timing middleware. |
+| `web/simplebeacon-dashboard/src/views/UsageAnalyticsView.tsx` | Add log stream panel (filtered by level, real-time) + metrics display (latency, throughput, error rate, burst alerts). |
 
 ## Objective Check-Items
 
@@ -34,30 +42,30 @@ The alert dispatcher supports all 4 destination types (webhook, Slack, email, Pa
 
 | # | Item | Expected |
 |---|------|----------|
-| L1.1 | `node -c` on alert-dispatcher.cjs | exit 0 |
-| L1.2 | `node -c` on audit-routes.cjs | exit 0 |
-| L1.3 | `npx simplebeacon scan --gate` | PASS (exit 0) |
-| L1.4 | WebSocket integration test | 16/16 pass |
-| L1.5 | Dashboard TypeScript compile | PASS (no new type errors) |
+| L1.1 | `node -c` on all changed/new .cjs files | exit 0 |
+| L1.2 | `npx simplebeacon scan --gate` | PASS (exit 0) |
+| L1.3 | WebSocket integration test | 16/16 pass |
+| L1.4 | TypeScript compile | PASS (no new errors) |
 
 ### Level 2 — Behavioral
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | Trigger alert → WebSocket client receives INCIDENT_STREAM within 500ms | Message received with correct structure |
-| L2.2 | INCIDENT_STREAM payload has required fields | id, ruleId, ruleName, status, destinationType, createdAt |
-| L2.3 | No WebSocket clients connected → no crash, incident still persisted | Incident recorded, no error |
-| L2.4 | DELETE /api/audit/log/:entryId → audit_delete event triggered | Incident recorded for audit_delete rule |
-| L2.5 | Webhook rule with secret → secret included in destination object | destination.secret populated |
-| L2.6 | PagerDuty rule with routingKey → routingKey included in destination object | destination.routingKey populated |
-| L2.7 | Email rule with email recipient → email included in destination object | destination.email populated |
-| L2.8 | Webhook/Slack/email/PagerDuty delivery still works (no regression) | All destinations still function |
+| L2.1 | Server log → WebSocket client receives LOG_STREAM within 500ms | Message received with level + message + timestamp |
+| L2.2 | LOG_STREAM respects log level filter (client sends `{ type: 'set_log_level', level: 'warn' }`) | Only warn+error messages received |
+| L2.3 | 10+ error logs in 30s → BURST_DETECTED message sent | Burst message with count + threshold |
+| L2.4 | HTTP request → METRICS_UPDATE broadcast with latency + status | Metrics update received within 5s |
+| L2.5 | Request to non-existent endpoint (404) → error rate increases | Error rate reflects 4xx/5xx responses |
+| L2.6 | No WebSocket clients → no crash, logs still work | Server healthy, no errors |
+| L2.7 | Dashboard log stream panel shows real-time logs | Logs appear in UI |
+| L2.8 | Dashboard metrics display shows latency/throughput/error rate | Metrics visible in UI |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
-| L3.1 | No circular dependencies introduced | alert-dispatcher.cjs does not import simplebeacon-server.cjs |
-| L3.2 | No new files created | Only existing files modified |
-| L3.3 | No regression in existing alert delivery | All 4 destination types still work |
-| L3.4 | WebSocket broadcast is fire-and-forget (does not block delivery) | Delivery latency unchanged |
+| L3.1 | No circular dependencies | app-logger.cjs does not import server files |
+| L3.2 | Log subscriber is fire-and-forget | Subscriber errors never block logging |
+| L3.3 | Burst detector does not leak memory | Sliding window prunes old entries |
+| L3.4 | Request timing middleware does not block responses | Metrics recorded on response 'finish' event |
+| L3.5 | No regression in existing WebSocket functionality | 16/16 integration tests pass |

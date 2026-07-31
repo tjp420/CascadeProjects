@@ -1473,6 +1473,15 @@ async function startServer() {
     logger.error('[Routes] RBAC not loaded:', err?.message || err);
   }
 
+  // PII redaction policy management — custom regex masking patterns
+  try {
+    const piiPolicyRoutes = require('./server/routes/pii-policy-routes.cjs');
+    app.use('/api/pii', piiPolicyRoutes);
+    logger.info('[Routes] PII policies loaded at /api/pii');
+  } catch (err) {
+    logger.error('[Routes] PII policies not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');

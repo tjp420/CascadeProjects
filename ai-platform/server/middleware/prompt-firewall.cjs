@@ -15,6 +15,7 @@
 
 const { analyzePrompt } = require('../lib/prompt-firewall.cjs');
 const incidentStore = require('../lib/guardrail-incident-store.cjs');
+const piiPolicyStore = require('../lib/pii-policy-store.cjs');
 const { processEvent: triggerAlert } = require('../lib/alert-dispatcher.cjs');
 
 /**
@@ -75,8 +76,15 @@ function promptFirewall(options = {}) {
     const extracted = extractPrompt(req.body);
     if (!extracted || !extracted.text) return next();
 
-    const result = analyzePrompt(extracted.text, config);
     const orgId = req.user?.id || req.user?.email || 'default';
+
+    // Load custom PII redaction patterns from the policy store
+    let customPiiPatterns = [];
+    try {
+      customPiiPatterns = piiPolicyStore.getCompiledPatterns(orgId);
+    } catch {}
+
+    const result = analyzePrompt(extracted.text, { ...config, customPiiPatterns });
 
     // Log incident if there are any matches
     if (config.logIncidents && result.matches.length > 0) {

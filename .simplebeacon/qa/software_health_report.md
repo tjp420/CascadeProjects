@@ -1,128 +1,101 @@
-# Software Health Report: Real-Time Incident Streaming + audit_delete + UI Fields
+# Software Health Report: Analytics Cache Manager + Log Stream Metrics
 
 **Date:** 2026-07-31
 **Branch:** main
+**Commit:** 643c59a4
 **Validator:** Devin (acting as Validator only)
-**Feature:** WebSocket incident streaming, audit_delete event trigger, destination-specific UI fields.
+**Feature:** Incremental analytics cache, O(1) dashboard reads, request timing middleware, log burst metrics
 
 ## Gate Status
 
 | Check | Result |
 |-------|--------|
-| SimpleBeacon gate scan | PASS (exit 0) |
-| WebSocket integration test | 16/16 pass, 0 fail |
-| Syntax checks (all 4 backend files) | PASS |
-| TypeScript compile (UsageAnalyticsView.tsx) | PASS (no new errors) |
-| Behavioral validation (live server) | PASS |
+| SimpleBeacon Gate | PASS (0 blocking issues) |
+| Syntax (`node -c`) | PASS — all 9 changed JS/CJS files |
+| Jest (audit/stream/analytics) | PASS — 177 tests, 20 suites |
+| Test Suites | 20 passed, 0 failed |
+| Tests | 177 passed, 0 failed |
 
 ## Level 1 — Deterministic
 
-| # | Item | Result | Evidence |
-|---|------|--------|----------|
-| L1.1 | `node -c` alert-dispatcher.cjs | PASS | exit 0 |
-| L1.2 | `node -c` simplebeacon-server.cjs | PASS | exit 0 |
-| L1.3 | `node -c` audit-routes.cjs | PASS | exit 0 |
-| L1.4 | `node -c` audit-logger.cjs | PASS | exit 0 |
-| L1.5 | SimpleBeacon gate scan | PASS | exit 0 |
-| L1.6 | WebSocket integration test | PASS | 16/16 pass |
-| L1.7 | TypeScript compile | PASS | no new errors |
+### Syntax Checks (all PASS)
+- `ai-platform/server/lib/analytics-cache-manager.cjs` ✓
+- `ai-platform/server/lib/audit-logger.cjs` ✓
+- `ai-platform/server/routes/audit-routes.cjs` ✓
+- `ai-platform/server/lib/log-stream-metrics.cjs` ✓
+- `ai-platform/server/middleware/request-timing.cjs` ✓
+- `ai-platform/server/lib/alert-rule-store.cjs` ✓
+- `ai-platform/server/routes/chatbot-api.cjs` ✓
+- `ai-platform/simplebeacon-server.cjs` ✓
+- `ai-platform/src/lib/app-logger.cjs` ✓
+
+### Gate Scan
+```
+Gate Exit: 0
+pass: true
+blocking: 0
+```
+
+### Test Results
+```
+Test Suites: 20 passed, 20 total
+Tests:       177 passed, 177 total
+```
 
 ## Level 2 — Behavioral
 
-| # | Item | Result | Evidence |
-|---|------|--------|----------|
-| L2.1 | Trigger alert → WebSocket client receives INCIDENT_STREAM | PASS — message received with type: 'INCIDENT_STREAM' |
-| L2.2 | INCIDENT_STREAM payload has required fields | PASS — id, ruleId, ruleName, status, destinationType, createdAt all present |
-| L2.3 | No WebSocket clients → no crash, incident still persisted | PASS — trigger succeeded, incident recorded, server healthy |
-| L2.4 | DELETE /api/audit/log/:entryId → audit_delete event triggered | PASS — incident streamed via WS AND recorded in incident store |
-| L2.5 | Webhook delivery still works (no regression) | PASS — all existing rules triggered correctly |
-| L2.6 | Server remains healthy after all tests | PASS — Health check 200 |
+### Verification Scenarios (from spec)
 
-### INCIDENT_STREAM Payload Verified
+| Scenario | Status | Notes |
+|----------|--------|-------|
+| L2 Microsecond Read (10k entries < 5ms) | PASS | Tested with 10,000-entry bucket; measured < 5ms |
+| L2 Incremental Accuracy (50 new entries) | PASS | Top-K actors update immediately, no cache invalidation |
+| L1 Pruning Sanity | PASS | Old buckets excluded from window; periodic prune functional |
+| Risk Density Index | PASS | Correct ratio for DELETE/RUN/EVALUATE actions |
+| Top-K Bounding (10) | PASS | Actors and entities capped at 10 |
+| Hourly Volume Series | PASS | Chronological ordering, correct bucket aggregation |
+| Bootstrap on cache miss | PASS | Triggers once, skips on subsequent accesses |
 
-```json
-{
-  "type": "INCIDENT_STREAM",
-  "data": {
-    "id": "alt-2ab8a0acdf71",
-    "ruleId": "webhook-test-1",
-    "ruleName": "Webhook Alert",
-    "status": "failed",
-    "destinationType": "webhook",
-    "createdAt": "2026-07-31T15:15:46.736Z",
-    "error": "fetch failed"
-  }
-}
-```
+## Level 3 — Self-Review / Drift
 
-### audit_delete Trigger Verified
+### Scope Review
 
-- DELETE /api/audit/log/audit-1c5a68058d4f → 200 `{ success: true, deleted: "audit-1c5a68058d4f" }`
-- audit_delete incident streamed via WebSocket: PASS
-- audit_delete incident recorded in store: PASS (id: alt-55cb3d2de067, eventType: audit_delete)
+The commit includes files beyond the analytics cache manager scope:
+- `log-stream-metrics.cjs` (new) — HTTP request metrics + log burst detection. Complementary to `log-stream-analyzer.cjs` but separate concern. No conflict.
+- `request-timing.cjs` (new) — Express middleware feeding `log-stream-metrics.cjs`. Clean, non-blocking on `res.finish`.
+- `alert-rule-store.cjs` — Added `audit_chain_broken` and `guardrail_anomaly_spike` event types. Aligns with hash chaining + stream analyzer.
+- `chatbot-api.cjs` — Import style change (destructuring → namespace). No behavioral change.
+- `simplebeacon-server.cjs` — Mounts request timing middleware + starts security monitor. Guarded with try/catch.
+- `app-logger.cjs` — Added log subscriber pattern (`onLog`). Fire-and-forget, error-safe.
 
-## Level 3 — Self-review / drift
+### Defects
+None found.
 
-| # | Item | Result | Evidence |
-|---|------|--------|----------|
-| L3.1 | No circular dependencies | PASS — alert-dispatcher.cjs does not import simplebeacon-server.cjs; callback injection pattern used |
-| L3.2 | No new files created | PASS — only existing files modified (5 files) |
-| L3.3 | No regression in alert delivery | PASS — all 4 destination types still work |
-| L3.4 | WebSocket broadcast is fire-and-forget | PASS — broadcast errors are caught and logged, never block delivery |
+### Unimplemented
+- `security-monitor.cjs` is referenced by `simplebeacon-server.cjs` but was not in the commit diff. Verified it exists and compiles. Should be tracked for test coverage.
+- No tests for `log-stream-metrics.cjs` or `request-timing.cjs` — these are auto-staged companion files that should get test coverage in a future pass.
 
-## Files Changed (5 files)
+### Enhancements (future debt)
+1. **Analytics cache persistence**: Currently in-memory only. On server restart, cache is rebuilt via bootstrap. Consider optional disk persistence for large orgs.
+2. **Configurable Top-K**: Currently hardcoded to 10. Could be made configurable per org or via query param.
+3. **Cache warming on startup**: Bootstrap is lazy (on first request). Could pre-warm for known active orgs.
+4. **Test coverage for `log-stream-metrics.cjs`**: Burst thresholds, metrics snapshot, broadcaster interval.
 
-| File | Change |
-|------|--------|
-| `server/lib/alert-dispatcher.cjs` | Added `setIncidentBroadcaster()` callback setter. Call broadcaster after `recordIncident()` in `processEvent()`. Exported setter. |
-| `simplebeacon-server.cjs` | After `setupWebSocketServer()`, import `setIncidentBroadcaster` and register callback that broadcasts `INCIDENT_STREAM` to all connected WS clients. |
-| `server/routes/audit-routes.cjs` | Added `DELETE /log/:entryId` endpoint. Added `logger` import (pre-existing bug fix). Added `processEvent` import. Triggers `audit_delete` alert on deletion. |
-| `server/lib/audit-logger.cjs` | Added `deleteEntry(orgId, entryId)` method. Exported it. |
-| `web/simplebeacon-dashboard/src/views/UsageAnalyticsView.tsx` | Added conditional UI fields: webhook secret (webhook), routing key (pagerduty), email recipient (email). Updated form state, save logic, and validation. |
-
-## Architecture: Callback Injection Pattern
-
-```
-simplebeacon-server.cjs
-  ├── setupWebSocketServer(server) → wss
-  └── setIncidentBroadcaster(callback)
-        ↓ (callback closes over wss)
-alert-dispatcher.cjs
-  ├── processEvent() → deliverAlert() → recordIncident()
-  └── if incidentBroadcaster: incidentBroadcaster({ type: 'INCIDENT_STREAM', data: incident })
-        ↓ (fire-and-forget, errors caught)
-WebSocket clients receive INCIDENT_STREAM message
-```
-
-No circular dependencies: `alert-dispatcher.cjs` never imports `simplebeacon-server.cjs`. The server injects the broadcast callback at startup.
-
-## Alerting System — Final Status
-
-| Feature | Status |
-|---------|--------|
-| Webhook destination | ✅ Working |
-| Slack destination | ✅ Working |
-| Email destination | ✅ Working |
-| PagerDuty destination | ✅ Working |
-| Real-time incident streaming (WebSocket) | ✅ Working (this commit) |
-| audit_delete event trigger | ✅ Working (this commit) |
-| Webhook secret UI field | ✅ Working (this commit) |
-| PagerDuty routing key UI field | ✅ Working (this commit) |
-| Email recipient UI field | ✅ Working (this commit) |
-| critical_finding event | ✅ Wired |
-| sla_breached event | ✅ Wired |
-| gate_failed event | ✅ Wired |
-| guardrail_blocked event | ✅ Wired |
-| eval_failure event | ✅ Wired |
-| audit_delete event | ✅ Wired (this commit) |
-
-**All 6 event types are now wired. All 4 destination types are implemented. Real-time streaming is live. UI fields are complete.**
+### Future Roadmap
+1. **Dashboard UI integration**: Wire `GET /api/audit/analytics/dashboard` to the React frontend with a chart for hourly volume and a Top-10 actors/entities panel.
+2. **WebSocket push for analytics**: Stream real-time metric updates to connected dashboard clients instead of polling.
+3. **Multi-window support**: Allow concurrent rolling windows (e.g., 1h, 24h, 7d) with shared underlying buckets.
+4. **Security monitor tests**: Add test coverage for `security-monitor.cjs` chain integrity polling.
 
 ## Validator Sign-off
 
-- [x] All Level 1 checks pass
-- [x] All Level 2 checks pass (verified with live server + WebSocket client)
-- [x] All Level 3 checks pass
-- [x] No circular dependencies (callback injection pattern)
-- [x] No regression in existing alert delivery or WebSocket functionality
-- [x] Ready for commit
+| Item | Status |
+|------|--------|
+| All L1 gates pass | ✓ |
+| All L2 behavioral scenarios pass | ✓ |
+| No blocking defects | ✓ |
+| No ghost files or hallucinated paths | ✓ |
+| Scope drift documented | ✓ |
+| Health report written | ✓ |
+
+**Verdict:** APPROVED for merge. No blocking issues. Future items tracked above.

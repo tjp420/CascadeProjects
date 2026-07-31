@@ -287,6 +287,25 @@ function analyzePrompt(text, options = {}) {
         scrubbedText = scrubbedText.replace(rule.pattern, rule.replacement);
       }
     }
+
+    // Apply custom PII redaction patterns from the policy store
+    if (options.customPiiPatterns && Array.isArray(options.customPiiPatterns)) {
+      for (const rule of options.customPiiPatterns) {
+        try {
+          const regex = new RegExp(rule.regex.source, rule.regex.flags);
+          if (regex.test(scrubbedText)) {
+            matches.push({
+              type: 'custom_pii',
+              id: rule.id,
+              name: rule.name,
+              severity: rule.severity,
+              desc: rule.description || rule.name,
+            });
+            scrubbedText = scrubbedText.replace(new RegExp(rule.regex.source, rule.regex.flags), rule.replacement);
+          }
+        } catch {}
+      }
+    }
   }
 
   // Determine verdict
@@ -299,10 +318,10 @@ function analyzePrompt(text, options = {}) {
       .filter((m) => m.severity === 'block' || m.severity === 'high')
       .map((m) => m.desc);
     summary = `Request blocked: ${blockReasons.join('; ')}`;
-  } else if (matches.some((m) => m.type === 'pii')) {
+  } else if (matches.some((m) => m.type === 'pii' || m.type === 'custom_pii')) {
     verdict = 'scrub';
     summary = `PII scrubbed: ${matches
-      .filter((m) => m.type === 'pii')
+      .filter((m) => m.type === 'pii' || m.type === 'custom_pii')
       .map((m) => m.desc)
       .join(', ')}`;
   } else if (matches.length > 0) {
