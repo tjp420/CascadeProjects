@@ -108,6 +108,11 @@ describe('siem-exporter (unit)', () => {
       assert.ok(postQ.length <= 1000, `queue trimmed to <=1000, actual=${postQ.length}`);
       // confirm that at least one send attempt occurred
       assert.ok(se._debug.getTotalSendAttempts() >= 1, `expected send attempts >= 1, actual=${se._debug.getTotalSendAttempts()}`);
+      // metrics should reflect observed retries and possible drops
+      const metrics = se._debug.getMetrics();
+      assert.ok(typeof metrics.siem_delivery_retries_total === 'number', 'metrics.retries_total present');
+      assert.ok(metrics.siem_delivery_retries_total >= 1, `expected retries >= 1, actual=${metrics.siem_delivery_retries_total}`);
+      assert.ok(typeof metrics.siem_delivery_dropped_total === 'number', 'metrics.dropped_total present');
     } finally {
       delete global.fetch;
       restore();

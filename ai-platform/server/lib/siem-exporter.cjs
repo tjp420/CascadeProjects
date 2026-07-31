@@ -23,6 +23,11 @@ const RETRY_MAX_ATTEMPTS = parseInt(process.env.SIEM_RETRY_MAX_ATTEMPTS, 10) || 
 let queue = [];
 let flushing = false;
 let _totalSendAttempts = 0;
+// In-memory metrics registry (thread-safe for single-node process)
+const _metrics = {
+  siem_delivery_retries_total: 0,
+  siem_delivery_dropped_total: 0,
+};
 
 function enqueue(event) {
   try {
@@ -65,6 +70,8 @@ async function sendBatch(batch, attempt = 0) {
     return true;
   } catch (e) {
     if (attempt < RETRY_MAX_ATTEMPTS) {
+      // record a retry attempt for observability
+      try { _metrics.siem_delivery_retries_total += 1; } catch (mErr) {}
       const delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * Math.pow(2, attempt));
       try {
         logger.warn('[SIEM Exporter] sendBatch failed, scheduling retry', { attempt, delay, error: e && e.message });
@@ -78,7 +85,14 @@ async function sendBatch(batch, attempt = 0) {
       // Retries exhausted: re-enqueue to head with trim
       try {
         logger.error('[SIEM Exporter] sendBatch retries exhausted, re-enqueueing batch (trim to 1000)', { attempts: attempt + 1, error: e && e.message });
-        queue = batch.concat(queue).slice(0, 1000);
+        // compute drop count when trimming to protect memory
+        const beforeConcatLen = queue.length;
+        const concatenated = batch.concat(queue);
+        queue = concatenated.slice(0, 1000);
+        const dropped = Math.max(0, concatenated.length - queue.length);
+        if (dropped > 0) {
+          try { _metrics.siem_delivery_dropped_total += dropped; } catch (mErr) {}
+        }
       } catch (err) {
         logger.error('[SIEM Exporter] failed to re-enqueue batch after retries exhausted', { error: err && err.message });
       }
@@ -108,5 +122,6 @@ module.exports = {
     getBatchSize,
     resetQueue: () => { queue = []; flushing = false; },
     getTotalSendAttempts: () => _totalSendAttempts,
+    getMetrics: () => ({ ..._metrics }),
   },
 };

@@ -29,6 +29,7 @@ const crypto = require('crypto');
 const logger = require('../lib/app-logger.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const agenticStore = require('../lib/agentic-orchestration-store.cjs');
+const siemExporter = require('../lib/siem-exporter.cjs');
 const { authorize, enforceOrgPartition } = require('../middleware/authorize.cjs');
 const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
 const { canonicalizeRequest, createReplayDetector } = require('../lib/crypto-utils.cjs');
@@ -428,6 +429,22 @@ router.get('/replay-stats', authorize('admin:all'), function (req, res) {
     res.json({ success: true, ...stats });
   } catch (err) {
     sendError(res, 500, 'replay_stats_failed', { message: err.message });
+  }
+});
+
+// GET /metrics — debug-only: expose SIEM exporter in-memory metrics
+router.get('/metrics', authorize('admin:all'), function (req, res) {
+  try {
+    let metrics = {};
+    if (siemExporter && siemExporter._debug && typeof siemExporter._debug.getMetrics === 'function') {
+      metrics = siemExporter._debug.getMetrics();
+    }
+    // return as line-delimited JSON for easy parsing
+    const lines = Object.keys(metrics).map((k) => JSON.stringify({ metric: k, value: metrics[k] })).join('\n');
+    res.setHeader('Content-Type', 'application/json-seq');
+    res.send(lines);
+  } catch (err) {
+    sendError(res, 500, 'metrics_failed', { message: err.message });
   }
 });
 
