@@ -26,6 +26,7 @@ const {
 } = require('../../server/lib/simplebeacon-subscription-store.cjs');
 const { generateLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
 const { insertLicenseToken } = require('../../server/lib/token-db.cjs');
+const auditStore = require('../../server/lib/enterprise-audit-store.cjs');
 
 const ENTERPRISE_STORE_PATH = process.env.ENTERPRISE_STORE_PATH
   || path.join(__dirname, '../../.simplebeacon', 'enterprise-orgs.json');
@@ -301,6 +302,16 @@ function setupEnterpriseOnboardingRoutes(app) {
       store.organizations[orgId] = org;
       writeEnterpriseStore(store);
 
+      auditStore.appendEntry({
+        action: 'org_created',
+        orgId,
+        actor: req.user?.email || req.body?.adminEmail || 'system',
+        actorIp: req.ip,
+        description: `Organization onboarded: ${org.companyName} with ${org.seatCount} seats`,
+        after: { orgId, companyName: org.companyName, seatCount: org.seatCount, contractValue: org.contractValue, adminEmail: org.adminEmail },
+        metadata: { contractPeriodMonths: org.contractPeriodMonths, apiKeyGenerated: true },
+      });
+
       logger.info(`[Enterprise] Onboarded ${companyName} as ${orgId} with ${org.seatsUsed}/${org.seatCount} seats`);
 
       res.status(201).json({
@@ -388,6 +399,17 @@ function setupEnterpriseOnboardingRoutes(app) {
       org.updatedAt = new Date().toISOString();
       writeEnterpriseStore(store);
 
+      auditStore.appendEntry({
+        action: 'seat_added',
+        orgId: org.orgId,
+        actor: req.user?.email || org.adminEmail || 'system',
+        actorIp: req.ip,
+        description: `Seat provisioned for ${seat.email} in ${org.companyName}`,
+        before: { seatsUsed: org.seatsUsed - 1 },
+        after: { seatsUsed: org.seatsUsed, email: seat.email },
+        metadata: { seatsRemaining: org.seatCount - org.seatsUsed },
+      });
+
       res.status(201).json({
         success: true,
         email: seat.email,
@@ -423,10 +445,22 @@ function setupEnterpriseOnboardingRoutes(app) {
       // Deactivate subscription for removed seat
       await setSubscriptionActive(seatEmail, false, { certOrgId: null });
 
+      const beforeSeats = org.seatsUsed;
       org.provisionedEmails.splice(idx, 1);
       org.seatsUsed--;
       org.updatedAt = new Date().toISOString();
       writeEnterpriseStore(store);
+
+      auditStore.appendEntry({
+        action: 'seat_removed',
+        orgId: org.orgId,
+        actor: req.user?.email || org.adminEmail || 'system',
+        actorIp: req.ip,
+        description: `Seat revoked for ${seatEmail} in ${org.companyName}`,
+        before: { seatsUsed: beforeSeats },
+        after: { seatsUsed: org.seatsUsed, email: seatEmail },
+        metadata: { seatsRemaining: org.seatCount - org.seatsUsed },
+      });
 
       res.json({
         success: true,
@@ -486,6 +520,16 @@ function setupEnterpriseOnboardingRoutes(app) {
 
       store.organizations[orgId] = org;
       writeEnterpriseStore(store);
+
+      auditStore.appendEntry({
+        action: 'trial_started',
+        orgId,
+        actor: req.user?.email || req.body?.adminEmail || 'system',
+        actorIp: req.ip,
+        description: `Enterprise trial started for ${companyName} — ${TRIAL_DURATION_DAYS} days, ${org.seatCount} seats`,
+        after: { orgId, companyName: org.companyName, trialExpiresAt: org.trialExpiresAt, seatCount: org.seatCount },
+        metadata: { trialDurationDays: TRIAL_DURATION_DAYS, apiKeyGenerated: true },
+      });
 
       logger.info(`[Enterprise] Trial started for ${companyName} as ${orgId}`);
 
@@ -549,6 +593,15 @@ function setupEnterpriseOnboardingRoutes(app) {
       const { projectPath } = req.body || {};
       const pipelineYaml = buildAzureDevOpsPipeline(org.orgId, org.apiKey, projectPath);
 
+      auditStore.appendEntry({
+        action: 'azure_devops_generated',
+        orgId: org.orgId,
+        actor: req.user?.email || org.adminEmail || 'system',
+        actorIp: req.ip,
+        description: `Azure DevOps pipeline config generated for ${org.companyName}`,
+        metadata: { projectPath: projectPath || null },
+      });
+
       res.json({
         success: true,
         orgId: org.orgId,
@@ -565,7 +618,81 @@ function setupEnterpriseOnboardingRoutes(app) {
       });
     } catch (err) {
       logger.error('[Enterprise] Azure DevOps config generation failed:', err.message);
-      res.status(500).json({ error: 'azure_devops_generation_failed', message: err.message });
+      res.status(500).json({ error: 'azure_devos_generation_failed', message: err.message });
+    }
+  });
+
+  // ── GET /api/enterprise/audit ──
+  app.get('/api/enterprise/audit', async (req, res) => {
+    try {
+      const result = auditStore.queryEntries({
+        orgId: req.query.orgId,
+        action: req.query.action,
+        actor: req.query.actor,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate,
+        limit: req.query.limit,
+        offset: req.query.offset,
+      });
+      res.json({
+        success: true,
+        entries: result.entries,
+        pagination: {
+          total: result.total,
+          limit: result.limit,
+          offset: result.offset,
+          hasNext: result.offset + result.limit < result.total,
+          hasPrev: result.offset > 0,
+        },
+      });
+    } catch (err) {
+      res.status(500).json({ error: 'audit_query_failed', message: err.message });
+    }
+  });
+
+  // ── GET /api/enterprise/audit/stats ──
+  app.get('/api/enterprise/audit/stats', async (req, res) => {
+    try {
+      const stats = auditStore.getStats();
+      res.json({ success: true, ...stats });
+    } catch (err) {
+      res.status(500).json({ error: 'audit_stats_failed', message: err.message });
+    }
+  });
+
+  // ── GET /api/enterprise/audit/verify ──
+  app.get('/api/enterprise/audit/verify', async (req, res) => {
+    try {
+      const result = auditStore.verifyChain();
+      res.json({ success: true, ...result });
+    } catch (err) {
+      res.status(500).json({ error: 'audit_verify_failed', message: err.message });
+    }
+  });
+
+  // ── GET /api/enterprise/audit/export ──
+  app.get('/api/enterprise/audit/export', async (req, res) => {
+    try {
+      const result = auditStore.queryEntries({
+        orgId: req.query.orgId,
+        action: req.query.action,
+        actor: req.query.actor,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate,
+        limit: 10000,
+        offset: 0,
+      });
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        totalEntries: result.total,
+        chainVerification: auditStore.verifyChain(),
+        entries: result.entries,
+      };
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename="enterprise-audit-export.json"');
+      res.send(JSON.stringify(exportData, null, 2));
+    } catch (err) {
+      res.status(500).json({ error: 'audit_export_failed', message: err.message });
     }
   });
 }
