@@ -121,6 +121,25 @@ type WebhookConfig = {
   updatedAt: string;
 };
 
+type ReportSchedule = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  dayOfWeek: number;
+  dayOfMonth: number;
+  hour: number;
+  minute: number;
+  format: 'csv' | 'json';
+  recipients: string[];
+  filters: Record<string, string>;
+  lastRunAt: string | null;
+  lastRunStatus: string | null;
+  lastRunError: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 const SEVERITY_COLORS = {
   critical: '#FF0000',
   high: '#FF6600',
@@ -166,6 +185,14 @@ export function UsageAnalyticsView() {
   const [showWebhookConfig, setShowWebhookConfig] = useState(false);
   const [webhookForm, setWebhookForm] = useState({ target: 'jira', apiUrl: '', authToken: '', projectKey: '', teamId: '', repoOwner: '', repoName: '' });
   const [dispatchingRow, setDispatchingRow] = useState<string | null>(null);
+  const [reportSchedules, setReportSchedules] = useState<Record<string, ReportSchedule>>({});
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    id: '', name: '', enabled: true, frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
+    dayOfWeek: 1, dayOfMonth: 1, hour: 8, minute: 0, format: 'csv' as 'csv' | 'json',
+    recipients: '', filters: '',
+  });
+  const [scheduleRunning, setScheduleRunning] = useState<string | null>(null);
   const violationsPageSize = 10;
 
   const fetchFilters = useCallback(async () => {
@@ -454,6 +481,92 @@ export function UsageAnalyticsView() {
       setDispatchingRow(null);
     }
   }, [fetchTicketStatuses, fetchViolationSummary, fetchViolations, violationsPage]);
+
+  const fetchReportSchedules = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/analytics/report/schedules'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setReportSchedules(data.schedules || {});
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
+  useEffect(() => { fetchReportSchedules(); }, [fetchReportSchedules]);
+
+  const saveReportSchedule = useCallback(async () => {
+    const recipients = scheduleForm.recipients.split(',').map(s => s.trim()).filter(Boolean);
+    if (!scheduleForm.id.trim() || recipients.length === 0) {
+      toast.error('Schedule ID and at least one recipient are required');
+      return;
+    }
+    try {
+      const filters: Record<string, string> = {};
+      if (scheduleForm.filters) {
+        scheduleForm.filters.split(',').forEach(pair => {
+          const [k, v] = pair.split(':').map(s => s.trim());
+          if (k && v) filters[k] = v;
+        });
+      }
+      const resp = await fetch(apiUrl('/analytics/report/schedules'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: scheduleForm.id.trim(),
+          name: scheduleForm.name.trim() || scheduleForm.id.trim(),
+          enabled: scheduleForm.enabled,
+          frequency: scheduleForm.frequency,
+          dayOfWeek: scheduleForm.dayOfWeek,
+          dayOfMonth: scheduleForm.dayOfMonth,
+          hour: scheduleForm.hour,
+          minute: scheduleForm.minute,
+          format: scheduleForm.format,
+          recipients,
+          filters,
+        }),
+      });
+      if (!resp.ok) throw new Error('save_failed');
+      await fetchReportSchedules();
+      toast.success(`Report schedule "${scheduleForm.id}" saved`);
+      setShowScheduleModal(false);
+    } catch {
+      toast.error('Failed to save report schedule');
+    }
+  }, [scheduleForm, fetchReportSchedules]);
+
+  const deleteReportSchedule = useCallback(async (id: string) => {
+    try {
+      const resp = await fetch(apiUrl(`/analytics/report/schedules/${id}`), {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      if (!resp.ok) throw new Error('delete_failed');
+      await fetchReportSchedules();
+      toast.success(`Report schedule "${id}" deleted`);
+    } catch {
+      toast.error('Failed to delete report schedule');
+    }
+  }, [fetchReportSchedules]);
+
+  const runReportSchedule = useCallback(async (id: string) => {
+    setScheduleRunning(id);
+    try {
+      const resp = await fetch(apiUrl(`/analytics/report/schedules/${id}/run`), {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.message || 'run_failed');
+      await fetchReportSchedules();
+      toast.success(`Report generated and dispatched for "${id}"`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to run report schedule');
+    } finally {
+      setScheduleRunning(null);
+    }
+  }, [fetchReportSchedules]);
 
   const exportLedger = useCallback(async (format: 'csv' | 'json') => {
     try {
@@ -1330,6 +1443,236 @@ export function UsageAnalyticsView() {
           )}
         </CardContent>
       </Card>
+
+      {/* Automated Report Delivery */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Automated Report Delivery</CardTitle>
+              <CardDescription>Schedule recurring compliance ledger reports delivered to SecOps mailboxes</CardDescription>
+            </div>
+            <Button size="sm" onClick={() => { setScheduleForm({ id: '', name: '', enabled: true, frequency: 'weekly', dayOfWeek: 1, dayOfMonth: 1, hour: 8, minute: 0, format: 'csv', recipients: '', filters: '' }); setShowScheduleModal(true); }}>
+              <Calendar className="h-3 w-3" /> New Schedule
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {Object.keys(reportSchedules).length === 0 ? (
+            <div className="flex h-[100px] items-center justify-center text-muted-foreground text-sm">
+              No report schedules configured. Click "New Schedule" to create one.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {Object.values(reportSchedules).map(s => (
+                <div key={s.id} className="flex items-center justify-between p-3 rounded-md border bg-muted/20">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{s.name}</span>
+                      <Badge variant="outline" className={s.enabled ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30' : 'bg-muted text-muted-foreground'}>
+                        {s.enabled ? 'Active' : 'Disabled'}
+                      </Badge>
+                      <Badge variant="outline">{s.frequency}</Badge>
+                      <Badge variant="outline">{s.format.toUpperCase()}</Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {s.frequency === 'weekly' && `Every ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][s.dayOfWeek]} `}
+                      {s.frequency === 'monthly' && `Day ${s.dayOfMonth} of each month `}
+                      {s.frequency === 'daily' && 'Daily '}
+                      at {String(s.hour).padStart(2,'0')}:{String(s.minute).padStart(2,'0')} UTC
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Recipients: {s.recipients.join(', ')}
+                    </div>
+                    {s.lastRunAt && (
+                      <div className="text-xs text-muted-foreground">
+                        Last run: {s.lastRunAt.slice(0,19).replace('T',' ')} — {s.lastRunStatus}
+                        {s.lastRunError && ` (${s.lastRunError})`}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={scheduleRunning === s.id}
+                      onClick={() => runReportSchedule(s.id)}
+                    >
+                      {scheduleRunning === s.id ? 'Running...' : 'Run Now'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setScheduleForm({
+                          id: s.id, name: s.name, enabled: s.enabled, frequency: s.frequency,
+                          dayOfWeek: s.dayOfWeek, dayOfMonth: s.dayOfMonth, hour: s.hour, minute: s.minute,
+                          format: s.format, recipients: s.recipients.join(', '),
+                          filters: Object.entries(s.filters || {}).map(([k,v]) => `${k}:${v}`).join(', '),
+                        });
+                        setShowScheduleModal(true);
+                      }}
+                    >
+                      <Settings className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteReportSchedule(s.id)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Schedule Configuration Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowScheduleModal(false)}>
+          <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-lg space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-medium">Report Schedule</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowScheduleModal(false)}><X className="h-4 w-4" /></Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Configure a recurring compliance report that generates the 22-column ledger and emails it to the specified recipients. Without SMTP configuration, reports are saved as stub files on disk.</p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Schedule ID</label>
+                  <input
+                    type="text"
+                    placeholder="weekly-secops"
+                    value={scheduleForm.id}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, id: e.target.value }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Display Name</label>
+                  <input
+                    type="text"
+                    placeholder="Weekly SecOps Report"
+                    value={scheduleForm.name}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Frequency</label>
+                  <select
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                    value={scheduleForm.frequency}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, frequency: e.target.value as any }))}
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Format</label>
+                  <select
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                    value={scheduleForm.format}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, format: e.target.value as any }))}
+                  >
+                    <option value="csv">CSV</option>
+                    <option value="json">JSON</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Enabled</label>
+                  <select
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                    value={scheduleForm.enabled ? 'true' : 'false'}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, enabled: e.target.value === 'true' }))}
+                  >
+                    <option value="true">Active</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </div>
+              </div>
+              {scheduleForm.frequency === 'weekly' && (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Day of Week</label>
+                  <select
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                    value={scheduleForm.dayOfWeek}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, dayOfWeek: Number(e.target.value) }))}
+                  >
+                    {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d, i) => <option key={i} value={i}>{d}</option>)}
+                  </select>
+                </div>
+              )}
+              {scheduleForm.frequency === 'monthly' && (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Day of Month</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={31}
+                    value={scheduleForm.dayOfMonth}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, dayOfMonth: Number(e.target.value) }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Hour (UTC)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={23}
+                    value={scheduleForm.hour}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, hour: Number(e.target.value) }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Minute</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={scheduleForm.minute}
+                    onChange={(e) => setScheduleForm(prev => ({ ...prev, minute: Number(e.target.value) }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Recipients (comma-separated emails)</label>
+                <input
+                  type="text"
+                  placeholder="secops@company.com, ciso@company.com"
+                  value={scheduleForm.recipients}
+                  onChange={(e) => setScheduleForm(prev => ({ ...prev, recipients: e.target.value }))}
+                  className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Filters (comma-separated key:value pairs, optional)</label>
+                <input
+                  type="text"
+                  placeholder="repository:myrepo, slaBreached:true"
+                  value={scheduleForm.filters}
+                  onChange={(e) => setScheduleForm(prev => ({ ...prev, filters: e.target.value }))}
+                  className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" size="sm" onClick={() => setShowScheduleModal(false)}>Cancel</Button>
+              <Button size="sm" onClick={saveReportSchedule}>
+                <Calendar className="h-3 w-3" /> Save Schedule
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

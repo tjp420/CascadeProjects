@@ -23,6 +23,10 @@
  *   GET  /api/analytics/violations/export         — Download filtered violations as CSV or JSON compliance ledger
  *   POST /api/analytics/violations/dispatch-ticket — Dispatch a ticket payload to an external tracker via webhook
  *   POST /api/analytics/violations/bulk-dispatch-ticket — Dispatch tickets to multiple violations with rate limiting and retry backoff
+ *   GET  /api/analytics/report/schedules            — Get all report schedules
+ *   POST /api/analytics/report/schedules            — Create or update a report schedule
+ *   DELETE /api/analytics/report/schedules/:id      — Delete a report schedule
+ *   POST /api/analytics/report/schedules/:id/run    — Manually trigger a report schedule
  *   GET  /api/analytics/webhook/configs            — Get all webhook configurations
  *   POST /api/analytics/webhook/configs            — Save a webhook configuration for a target platform
  *   DELETE /api/analytics/webhook/configs/:target  — Delete a webhook configuration
@@ -36,6 +40,11 @@ const logger = require('../lib/app-logger.cjs');
 const analyticsStore = require('../lib/usage-analytics-store.cjs');
 const ticketStatusStore = require('../lib/ticket-status-store.cjs');
 const webhookConfigStore = require('../lib/webhook-config-store.cjs');
+const reportScheduleStore = require('../lib/report-schedule-store.cjs');
+const reportScheduler = require('../lib/report-scheduler.cjs');
+
+reportScheduler.setAnalyticsStore(analyticsStore);
+reportScheduler.startScheduler();
 
 const router = express.Router();
 
@@ -174,8 +183,8 @@ router.get('/scans', (req, res) => {
       startDate: req.query.startDate,
       endDate: req.query.endDate,
       repository: req.query.repository,
-      limit: parseInt(req.query.limit, 10) || 50,
-      offset: parseInt(req.query.offset, 10) || 0,
+      limit: Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 1000),
+      offset: Math.max(parseInt(req.query.offset, 10) || 0, 0),
     };
     const result = analyticsStore.getScans(filters);
     res.json({
@@ -227,7 +236,7 @@ router.get('/heatmap', (req, res) => {
 // GET /api/analytics/repositories — top repositories
 router.get('/repositories', (req, res) => {
   try {
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
     const repos = analyticsStore.getTopRepositories(req.query.orgId, limit);
     res.json({ success: true, repositories: repos });
   } catch (err) {
@@ -239,7 +248,7 @@ router.get('/repositories', (req, res) => {
 router.get('/export', (req, res) => {
   try {
     const format = (req.query.format || 'csv').toLowerCase();
-    const days = parseInt(String(req.query.days || '90'), 10) || 90;
+    const days = Math.min(Math.max(parseInt(String(req.query.days || '90'), 10) || 90, 1), 365);
     const orgId = req.query.orgId || null;
     const repository = req.query.repository || null;
     const branch = req.query.branch || null;
@@ -348,8 +357,8 @@ router.get('/violations', (req, res) => {
       branch: req.query.branch,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
-      limit: parseInt(req.query.limit, 10) || 50,
-      offset: parseInt(req.query.offset, 10) || 0,
+      limit: Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 1000),
+      offset: Math.max(parseInt(req.query.offset, 10) || 0, 0),
     };
     const ticketStatusFilter = (req.query.ticketStatus || 'all').toLowerCase();
     const ticketTargetFilter = (req.query.ticketTarget || '').toLowerCase();
@@ -1119,6 +1128,63 @@ router.delete('/webhook/configs/:target', (req, res) => {
   } catch (err) {
     logger.error('[Analytics] Delete webhook config failed:', err.message);
     res.status(500).json({ error: 'webhook_config_delete_failed', message: err.message });
+  }
+});
+
+// GET /api/analytics/report/schedules — get all report schedules
+router.get('/report/schedules', (req, res) => {
+  try {
+    const schedules = reportScheduleStore.getAllSchedules();
+    res.json({ success: true, schedules });
+  } catch (err) {
+    logger.error('[Analytics] Get report schedules failed:', err.message);
+    res.status(500).json({ error: 'report_schedules_failed', message: err.message });
+  }
+});
+
+// POST /api/analytics/report/schedules — create or update a report schedule
+router.post('/report/schedules', (req, res) => {
+  try {
+    const { id, name, enabled, frequency, dayOfWeek, dayOfMonth, hour, minute, format, recipients, filters } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'id is required' });
+    if (!Array.isArray(recipients) || recipients.length === 0) return res.status(400).json({ error: 'recipients array is required' });
+    const validFreq = ['daily', 'weekly', 'monthly'];
+    if (frequency && !validFreq.includes(frequency)) return res.status(400).json({ error: 'frequency must be daily, weekly, or monthly' });
+    const schedule = reportScheduleStore.setSchedule(id, { name, enabled, frequency, dayOfWeek, dayOfMonth, hour, minute, format, recipients, filters });
+    res.json({ success: true, schedule });
+  } catch (err) {
+    logger.error('[Analytics] Save report schedule failed:', err.message);
+    res.status(500).json({ error: 'report_schedule_save_failed', message: err.message });
+  }
+});
+
+// DELETE /api/analytics/report/schedules/:id — delete a report schedule
+router.delete('/report/schedules/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    reportScheduleStore.deleteSchedule(id);
+    res.json({ success: true, deleted: id });
+  } catch (err) {
+    logger.error('[Analytics] Delete report schedule failed:', err.message);
+    res.status(500).json({ error: 'report_schedule_delete_failed', message: err.message });
+  }
+});
+
+// POST /api/analytics/report/schedules/:id/run — manually trigger a report schedule
+router.post('/report/schedules/:id/run', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const schedule = reportScheduleStore.getSchedule(id);
+    if (!schedule) return res.status(404).json({ error: 'schedule_not_found' });
+    const result = await reportScheduler.runSchedule(schedule);
+    if (result.success) {
+      res.json({ success: true, schedule: reportScheduleStore.getSchedule(id), result: result });
+    } else {
+      res.status(500).json({ success: false, error: 'run_failed', message: result.error, schedule: reportScheduleStore.getSchedule(id) });
+    }
+  } catch (err) {
+    logger.error('[Analytics] Manual report run failed:', err.message);
+    res.status(500).json({ error: 'report_run_failed', message: err.message });
   }
 });
 
