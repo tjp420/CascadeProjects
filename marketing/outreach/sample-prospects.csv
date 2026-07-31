@@ -1,0 +1,11 @@
+first_name,last_name,email,title,company,domain,sector,developers,revenue,ai_tools,regulatory_exposure,cicd,linkedin
+Sarah,Chen,sarah.chen@acmefintech.com,Chief Legal Officer,Acme FinTech,acmefintech.com,fintech,120,85000000,yes,yes,azure-devops,https://linkedin.com/in/sarahchen
+Michael,Rodriguez,mrodriguez@globalbank.com,General Counsel,Global Bank Corp,globalbank.com,banking,500,2000000000,yes,yes,github-actions,https://linkedin.com/in/mrodriguez
+Jennifer,Williams,jwilliams@healthcorp.com,Chief Compliance Officer,HealthCorp Inc,healthcorp.com,healthcare,85,120000000,yes,yes,gitlab-ci,https://linkedin.com/in/jenwilliams
+David,Kim,david.kim@techscale.io,Chief Risk Officer,TechScale,techscale.io,technology,75,65000000,yes,yes,github-actions,https://linkedin.com/in/davidkim
+Emily,Johnson,ejohnson@pharmaco.com,Chief Legal Officer,PharmaCo,pharmaco.com,pharmaceutical,200,500000000,yes,yes,azure-devops,https://linkedin.com/in/emilyj
+Robert,O'Brien,robrien@insureplus.com,Head of Compliance,InsurePlus,insureplus.com,insurance,90,95000000,yes,yes,azure-devops,https://linkedin.com/in/robrien
+Lisa,Anderson,lisa.anderson@telecomglobal.com,Chief Compliance Officer,Telecom Global,telecomglobal.com,telecommunications,300,800000000,yes,yes,github-actions,https://linkedin.com/in/lisaanderson
+James,Paterson,jpaterson@energycorp.com,Chief Risk Officer,EnergyCorp,energycorp.com,energy,150,300000000,yes,yes,gitlab-ci,https://linkedin.com/in/jpaterson
+Maria,Garcia,mgarcia@aerospace-sys.com,General Counsel,Aerospace Systems,aerospace-sys.com,aerospace,180,450000000,yes,yes,azure-devops,https://linkedin.com/in/mgarcia
+Thomas,Wright,twright@autodrive.com,Chief Legal Officer,AutoDrive Technologies,autodrive.com,automotive,110,140000000,yes,yes,github-actions,https://linkedin.com/in/twright

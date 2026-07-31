@@ -1,0 +1,24 @@
+Dear {{first_name}},
+
+This is my final check-in regarding EU AI Act compliance readiness.
+
+If your team is ready to take action, I'm offering a complimentary
+AI compliance readiness assessment that includes:
+
+- A 30-minute walkthrough of your AI governance posture
+- A sample compliance scan on a sanitized repository
+- A prioritized remediation roadmap with statutory fine risk mappings
+- An Executive Risk Certificate sample for board review
+
+No obligation. No code upload. No contract.
+
+Reply "assessment" to schedule, or book directly: {{calendly_url}}
+
+If now isn't the right time, I understand. I'll reach out again
+after the August 2026 enforcement deadline with updates on how
+the regulatory landscape has evolved.
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

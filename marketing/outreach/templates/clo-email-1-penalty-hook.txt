@@ -1,0 +1,30 @@
+Dear {{first_name}},
+
+On August 2, 2026, the EU AI Act's high-risk system obligations become
+fully enforceable. The maximum penalty for non-compliance: EUR 35 million
+or 7% of global annual turnover — whichever is higher.
+
+If your engineering teams use AI coding assistants (Copilot, Cursor,
+Claude Code), AI-generated code is entering your production systems
+without audit trails, compliance evidence, or risk classification.
+
+Most legal teams I've spoken with cannot answer this question from
+their board: "What percentage of our production codebase was generated
+by AI, and how was it validated?"
+
+SimpleBeacon is a deterministic compliance scanner that:
+- Detects AI-generated code patterns across your entire codebase
+- Generates Article 11 technical documentation automatically
+- Produces board-ready Executive Risk Certificates (PDF, signed)
+- Runs 100% locally — no source code leaves your environment
+- Integrates with Azure DevOps CI/CD pipelines for continuous compliance
+
+I'd like to schedule a 30-minute briefing to walk through the EU AI
+Act compliance gap and how SimpleBeacon closes it.
+
+Are you available the week of {{date}}?
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

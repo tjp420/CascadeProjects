@@ -1,0 +1,27 @@
+Dear {{first_name}},
+
+Cyber insurance underwriters are increasingly asking about AI
+governance practices during renewal. Key questions:
+
+- "Do you have an inventory of AI-generated code in production?"
+- "What controls prevent AI-generated vulnerabilities from reaching
+  production?"
+- "Can you demonstrate continuous compliance monitoring?"
+
+SimpleBeacon provides documented evidence for all three:
+
+1. AI code detection inventory (scan report with file-level detail)
+2. Quality gate enforcement in CI/CD (--fail-on high threshold)
+3. Continuous compliance artifacts (every pipeline run generates
+   tamper-evident scan records)
+
+Several enterprises have used SimpleBeacon reports during insurance
+renewals to negotiate favorable terms by demonstrating proactive
+AI risk management.
+
+Worth a 30-minute discussion?
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

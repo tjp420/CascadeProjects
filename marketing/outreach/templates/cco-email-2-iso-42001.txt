@@ -1,0 +1,26 @@
+Dear {{first_name}},
+
+Beyond the EU AI Act, ISO/IEC 42001:2023 (AI Management System
+certification) is becoming the international standard for AI
+governance.
+
+Both frameworks require the same core evidence:
+- AI system inventory and classification
+- Risk assessment and treatment records
+- Operational controls and monitoring evidence
+- Incident response and corrective action logs
+
+SimpleBeacon produces artifacts that map to both EU AI Act Articles
+(9, 11, 12, 14, 43) and ISO 42001 clauses (A.2, A.3, A.5, A.7).
+
+One scan. Two compliance frameworks. Zero source code exposure.
+
+I've attached a mapping document showing how SimpleBeacon findings
+translate to both regulatory frameworks.
+
+Worth a brief call to review?
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

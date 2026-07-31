@@ -1,0 +1,25 @@
+Dear {{first_name}},
+
+Last note on this topic.
+
+If August 2026 enforcement isn't on your legal team's radar yet, it
+will be — typically after a peer company receives an enforcement
+action or a board member raises the question.
+
+When that happens, SimpleBeacon will be here. We can deploy in 10
+minutes, scan your entire codebase, and produce audit-ready evidence
+the same day.
+
+If you'd like to get ahead of it now, I'm offering a complimentary
+30-minute compliance gap assessment for qualifying enterprises
+(50+ developers using AI tools).
+
+Reply "assessment" and I'll send your onboarding link.
+
+Otherwise, I'll check back in Q4 2026 ahead of the enforcement
+deadline.
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

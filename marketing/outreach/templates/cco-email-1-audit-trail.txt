@@ -1,0 +1,30 @@
+Dear {{first_name}},
+
+If your regulator requested evidence of AI-generated code governance
+tomorrow, could your team produce:
+
+- A complete inventory of AI system components in your codebase?
+- Risk classifications per EU AI Act Annex III criteria?
+- Technical documentation demonstrating conformity assessment?
+- Logging records showing when and how AI code was validated?
+
+Most compliance teams I work with need 4-6 weeks to assemble this
+manually. Some can't produce it at all.
+
+SimpleBeacon generates all of it in under 60 seconds — from a single
+local scan. No source code uploaded. No cloud dependency. No
+external access to your repositories.
+
+The output includes tamper-evident JSON exports with SHA-256
+integrity hashes and signed PDF Executive Risk Certificates that
+Big 4 audit firms have accepted as compliance evidence.
+
+I'd like to schedule a 30-minute walkthrough of the compliance
+artifact generation workflow.
+
+Are you available next {{day_of_week}}?
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

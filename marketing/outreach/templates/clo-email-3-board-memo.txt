@@ -1,0 +1,29 @@
+Dear {{first_name}},
+
+I know you're busy. Here's the 30-second version:
+
+SimpleBeacon scans your codebase locally (no cloud, no upload) and
+produces:
+
+1. Executive Risk Certificate (PDF) — signed, board-ready
+2. EU AI Act Compliance Assessment (JSON) — Article 11/12/14 aligned
+3. Remediation Roadmap — prioritized actions with statutory fine
+   risk mappings per finding
+4. Quality Gate Report — pass/fail for CI/CD integration
+
+The scan takes under 60 seconds for a 40K-file repository.
+
+Enterprise procurement includes:
+- 30-day pilot with up to 10 seats (no contract required)
+- Azure DevOps pipeline template for continuous compliance
+- Custom guardrail rule authoring for your internal policies
+- SSO/SAML integration
+- Air-gapped deployment option
+
+Start a pilot: reply "pilot" and I'll send a self-serve onboarding link.
+Or schedule a briefing: {{calendly_url}}
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

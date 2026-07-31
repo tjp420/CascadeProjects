@@ -1,0 +1,32 @@
+Dear {{first_name}},
+
+Your development teams are using AI coding assistants. The code they
+generate enters production through the same CI/CD pipelines as
+human-written code — but without the same quality controls.
+
+The operational risks:
+- Hallucinated dependencies (npm packages that don't exist) → build
+  failures, supply chain attack vectors
+- Placeholder credentials in AI boilerplate → security incidents,
+  data breaches, regulatory notification triggers
+- Copyleft license contamination from AI training data → IP litigation,
+  open-source compliance violations
+- Generic error handling that masks production failures → extended
+  outages, SLA breaches, customer churn
+
+SimpleBeacon quantifies these risks:
+- 52+ deterministic scan engines targeting AI-specific anti-patterns
+- Risk Heatmap (3x3 matrix: severity x likelihood) for board reporting
+- Executive Risk Certificate with statutory fine risk mappings
+- Continuous compliance via Azure DevOps pipeline integration
+
+The scan runs locally. No source code leaves your environment.
+
+I'd like to schedule a 30-minute risk assessment walkthrough.
+
+Available the week of {{date}}?
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

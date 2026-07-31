@@ -1,0 +1,21 @@
+Dear {{first_name}},
+
+The EU AI Act enforcement countdown continues. With 5 months
+remaining until the August 2, 2026 deadline, enterprises that
+delay risk:
+
+- Non-compliance fines up to EUR 35M or 7% of global turnover
+- Inability to produce required technical documentation (Article 11)
+- Failed conformity assessments for high-risk AI systems
+- Board and stakeholder scrutiny over AI governance gaps
+
+SimpleBeacon deploys in 10 minutes and produces audit-ready
+evidence the same day. Don't wait for an enforcement action
+to prioritize AI compliance.
+
+Schedule a 30-minute compliance gap assessment: {{calendly_url}}
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

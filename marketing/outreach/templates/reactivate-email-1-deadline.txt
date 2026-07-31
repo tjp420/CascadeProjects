@@ -1,0 +1,20 @@
+Dear {{first_name}},
+
+The EU AI Act high-risk system enforcement deadline is August 2, 2026.
+That's less than 12 months away.
+
+If your team hasn't started building AI governance evidence yet,
+now is the time. SimpleBeacon can:
+
+- Scan your entire codebase in under 60 seconds
+- Generate Article 11/12/14 compliance artifacts automatically
+- Produce a signed PDF Executive Risk Certificate for your board
+- Integrate with your CI/CD pipeline for continuous compliance
+
+30-day enterprise pilot. No contract. Up to 10 seats.
+Reply "pilot" to start, or schedule a briefing: {{calendly_url}}
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

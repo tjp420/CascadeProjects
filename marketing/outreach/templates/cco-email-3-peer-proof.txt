@@ -1,0 +1,29 @@
+Dear {{first_name}},
+
+A compliance team at a Series C fintech (50+ developers, Copilot
+and Claude Code in daily use) recently shared their experience:
+
+Before SimpleBeacon:
+- EU AI Act audit preparation: 6 weeks of manual evidence collection
+- Engineering team billable hours lost: ~120 hours
+- Audit finding: "Insufficient AI system documentation"
+- Risk rating: Elevated
+
+After SimpleBeacon:
+- Compliance scan: 47 seconds (40K-file repository)
+- Artifact generation: automatic (JSON + PDF)
+- Audit preparation: 2 days (review + sign-off only)
+- Audit finding: "Comprehensive AI governance evidence"
+- Risk rating: Standard
+
+The compliance team now runs SimpleBeacon in their Azure DevOps
+CI pipeline on every pull request — continuous compliance evidence
+with zero manual overhead.
+
+Enterprise pilot: 30 days, up to 10 seats, no contract.
+Reply "pilot" to start.
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai

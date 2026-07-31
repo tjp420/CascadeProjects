@@ -1,0 +1,29 @@
+Dear {{first_name}},
+
+Following up on my note about EU AI Act compliance.
+
+When your auditor or regulator asks for evidence of AI system
+governance, they'll want to see:
+
+1. AI system inventory (Article 11) — which components use AI
+2. Risk classification records (Article 9) — high-risk vs. limited-risk
+3. Human oversight documentation (Article 14) — who validated what
+4. Logging and traceability (Article 12) — when was AI code introduced
+5. Conformity assessment evidence (Article 43) — how compliance was verified
+
+Most enterprises have none of this for AI-generated code.
+
+SimpleBeacon generates all five artifact types from a single scan.
+The output is a tamper-evident JSON report with SHA-256 integrity
+hashes, plus a signed PDF Executive Risk Certificate suitable for
+board presentations and regulatory submissions.
+
+I've attached a sample compliance artifact from a sanitized enterprise
+scan. It shows exactly what your auditor would receive.
+
+Worth 30 minutes to review?
+
+Best regards,
+{{sender_name}}
+{{sender_title}}
+SimpleBeacon.ai
