@@ -1,0 +1,87 @@
+# Publish simplebeacon VS Code extension to the VS Code Marketplace.
+# Extension path: simplebeacon-vscode-merged (publisher: simplebeacon)
+#
+# Triggers:
+#   - GitHub Release with tag vscode-v* (e.g. vscode-v3.0.490)
+#   - workflow_dispatch (manual)
+#
+# Secrets: VSCE_PAT — Personal Access Token from Azure DevOps for VS Code Marketplace
+
+name: Publish VS Code Extension
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      pre-release:
+        description: 'Publish as pre-release version'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.tag_name, 'vscode-v') ||
+      startsWith(github.event.release.tag_name, 'vscode@')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Compile Extension
+        working-directory: simplebeacon-vscode-merged
+        run: npm run compile
+
+      - name: Sync Dashboard Web Assets
+        working-directory: simplebeacon-vscode-merged
+        run: npm run sync:dashboard-web
+
+      - name: Run Extension Tests
+        working-directory: simplebeacon-vscode-merged
+        run: npm test -- --silent
+        continue-on-error: true
+
+      - name: Package VSIX
+        working-directory: simplebeacon-vscode-merged
+        run: npx @vscode/vsce package --no-yarn --no-dependencies
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Upload VSIX Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-vscode-vsix
+          path: simplebeacon-vscode-merged/*.vsix
+          retention-days: 30
+
+      - name: Publish to VS Code Marketplace
+        working-directory: simplebeacon-vscode-merged
+        run: |
+          if [ "${{ inputs.pre-release }}" = "true" ]; then
+            npx @vscode/vsce publish --pre-release --no-dependencies
+          else
+            npx @vscode/vsce publish --no-dependencies
+          fi
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Summary
+        working-directory: simplebeacon-vscode-merged
+        run: |
+          echo "::notice::VS Code extension published successfully"
+          echo "::notice::VSIX artifact uploaded to workflow run"

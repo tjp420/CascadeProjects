@@ -1,0 +1,214 @@
+# Unified release orchestrator for SimpleBeacon.
+# Coordinates CLI npm publish + VS Code extension publish in a single pipeline.
+#
+# Triggers:
+#   - GitHub Release with tag release-v* (e.g. release-v3.0.490) for unified releases
+#   - workflow_dispatch (manual) with component selector
+#
+# Secrets:
+#   NPM_TOKEN  — granular npm token with publish + bypass 2FA
+#   VSCE_PAT   — Azure DevOps PAT for VS Code Marketplace
+#
+# Tag conventions:
+#   simplebeacon-v*  -> CLI-only release (triggers simplebeacon-npm-publish.yml)
+#   vscode-v*        -> Extension-only release (triggers vscode-extension-publish.yml)
+#   release-v*       -> Unified release (this workflow, publishes both)
+
+name: Unified Release Pipeline
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Which component to release'
+        required: true
+        type: choice
+        default: 'both'
+        options:
+          - both
+          - cli
+          - vscode
+      otp:
+        description: '6-digit npm 2FA code (only if NPM_TOKEN lacks bypass-2fa)'
+        required: false
+        type: string
+      pre-release:
+        description: 'Publish VS Code extension as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Determine release scope ──
+  resolve-scope:
+    name: Resolve Release Scope
+    runs-on: ubuntu-latest
+    outputs:
+      cli: ${{ steps.scope.outputs.cli }}
+      vscode: ${{ steps.scope.outputs.vscode }}
+      version: ${{ steps.scope.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve scope from tag or input
+        id: scope
+        run: |
+          CLI="false"
+          VSCODE="false"
+          VERSION=""
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+            echo "Release tag: $TAG"
+            if [[ "$TAG" == release-v* ]]; then
+              CLI="true"
+              VSCODE="true"
+              VERSION="${TAG#release-v}"
+            elif [[ "$TAG" == simplebeacon-v* ]]; then
+              CLI="true"
+              VERSION="${TAG#simplebeacon-v}"
+            elif [[ "$TAG" == vscode-v* ]]; then
+              VSCODE="true"
+              VERSION="${TAG#vscode-v}"
+            fi
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            COMP="${{ inputs.component }}"
+            echo "Manual dispatch component: $COMP"
+            if [[ "$COMP" == "both" ]]; then
+              CLI="true"
+              VSCODE="true"
+            elif [[ "$COMP" == "cli" ]]; then
+              CLI="true"
+            elif [[ "$COMP" == "vscode" ]]; then
+              VSCODE="true"
+            fi
+          fi
+
+          echo "cli=$CLI" >> $GITHUB_OUTPUT
+          echo "vscode=$VSCODE" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "::notice::Release scope — CLI: $CLI, VS Code: $VSCODE, Version: $VERSION"
+
+  # ── CLI: Test + Publish to npm ──
+  publish-cli:
+    name: Publish CLI to npm
+    needs: resolve-scope
+    if: needs.resolve-scope.outputs.cli == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run CLI Tests
+        working-directory: packages/simplebeacon-cli
+        run: |
+          npm test
+          npm run pack:check
+          node bin/simplebeacon-mcp.js --smoke-test
+
+      - name: Publish to npm
+        working-directory: packages/simplebeacon-cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_OTP: ${{ inputs.otp }}
+        run: npm publish --access public
+
+      - name: Verify npm publish
+        working-directory: packages/simplebeacon-cli
+        run: |
+          sleep 5
+          PUBLISHED=$(npm view simplebeacon version 2>/dev/null || echo "unknown")
+          echo "::notice::CLI published to npm — version: $PUBLISHED"
+
+  # ── VS Code: Build + Package + Publish to Marketplace ──
+  publish-vscode:
+    name: Publish VS Code Extension
+    needs: resolve-scope
+    if: needs.resolve-scope.outputs.vscode == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Compile Extension
+        working-directory: simplebeacon-vscode-merged
+        run: npm run compile
+
+      - name: Sync Dashboard Web Assets
+        working-directory: simplebeacon-vscode-merged
+        run: npm run sync:dashboard-web
+
+      - name: Run Extension Tests
+        working-directory: simplebeacon-vscode-merged
+        run: npm test -- --silent
+        continue-on-error: true
+
+      - name: Package VSIX
+        working-directory: simplebeacon-vscode-merged
+        run: npx @vscode/vsce package --no-yarn --no-dependencies
+
+      - name: Upload VSIX Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-vscode-vsix
+          path: simplebeacon-vscode-merged/*.vsix
+          retention-days: 30
+
+      - name: Publish to VS Code Marketplace
+        working-directory: simplebeacon-vscode-merged
+        run: |
+          if [ "${{ inputs.pre-release }}" = "true" ]; then
+            npx @vscode/vsce publish --pre-release --no-dependencies
+          else
+            npx @vscode/vsce publish --no-dependencies
+          fi
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Summary
+        working-directory: simplebeacon-vscode-merged
+        run: |
+          echo "::notice::VS Code extension published to Marketplace"
+
+  # ── Release Summary ──
+  release-summary:
+    name: Release Summary
+    needs: [resolve-scope, publish-cli, publish-vscode]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Emit Summary
+        run: |
+          echo "## SimpleBeacon Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CLI (npm) | ${{ needs.publish-cli.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| VS Code Extension | ${{ needs.publish-vscode.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Version: ${{ needs.resolve-scope.outputs.version }}" >> $GITHUB_STEP_SUMMARY
