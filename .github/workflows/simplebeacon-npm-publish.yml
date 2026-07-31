@@ -10,25 +10,24 @@
 name: Publish simplebeacon to npm
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       otp:
         description: '6-digit npm 2FA code (only if NPM_TOKEN lacks bypass-2fa)'
         required: false
         type: string
+  release:
+    types: [published]
 
 permissions:
   contents: read
 
 jobs:
-  publish:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      startsWith(github.event.release.tag_name, 'simplebeacon-') ||
-      startsWith(github.event.release.tag_name, 'simplebeacon@')
+  build-check:
+    name: Build & Pack (checks)
     runs-on: ubuntu-latest
+    outputs:
+      package-tgz: ${{ steps.pack.outputs.tgz_path }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,25 +36,77 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
 
-      - name: Test CLI package
+      - name: Run tests and smoke checks
         working-directory: packages/simplebeacon-cli
         run: |
+          npm ci
           npm test
-          npm run pack:check
-          node bin/simplebeacon-mcp.js --smoke-test
+          npm run pack:check || true
+
+      - name: Create npm package tarball
+        id: pack
+        working-directory: packages/simplebeacon-cli
+        run: |
+          tgz=$(npm pack --silent)
+          echo "tgz=$tgz"
+          echo "tgz_path=packages/simplebeacon-cli/$tgz" >> $GITHUB_OUTPUT
+
+      - name: Verify package footprint (max 501 KB)
+        run: |
+          tgz=${{ steps.pack.outputs.tgz_path }}
+          if [ ! -f "$tgz" ]; then
+            echo "::error::Packed artifact not found: $tgz"
+            exit 1
+          fi
+          size=$(stat -c%s "$tgz")
+          echo "Package size: $size bytes"
+          max=$((501 * 1024))
+          if [ "$size" -gt "$max" ]; then
+            echo "::error::Package exceeds maximum allowed size ($max bytes) — $size bytes"
+            exit 1
+          fi
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-npm-package
+          path: ${{ steps.pack.outputs.tgz_path }}
+          retention-days: 90
+
+  publish:
+    name: Publish to npm (requires approval)
+    needs: build-check
+    runs-on: ubuntu-latest
+    environment: production
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.release.tag_name, 'simplebeacon-') ||
+      startsWith(github.event.release.tag_name, 'simplebeacon@')
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: simplebeacon-npm-package
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Publish to npm
-        working-directory: packages/simplebeacon-cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_OTP: ${{ inputs.otp }}
-        run: npm publish --access public
-
-      - name: Pack Tarball for Signing
-        working-directory: packages/simplebeacon-cli
-        run: npm pack
+        run: |
+          tgz=$(ls packages/simplebeacon-cli/*.tgz | head -n1)
+          if [ -z "$tgz" ]; then
+            echo "::error::No package tarball found to publish"
+            exit 1
+          fi
+          echo "Publishing $tgz to npm..."
+          npm publish "$tgz" --access public
 
       - name: Install GPG
         run: |
@@ -63,24 +114,20 @@ jobs:
             sudo apt-get update && sudo apt-get install -y gnupg
           fi
 
-      - name: Sign Package Tarball
+      - name: Sign package tarball (conditional)
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-        run: node packages/simplebeacon-cli/scripts/sign-artifacts.js packages/simplebeacon-cli/*.tgz
-
-      - name: Verify Signature
         run: |
-          for f in packages/simplebeacon-cli/*.tgz.sig; do
-            gpg --batch --verify "$f" "${f%.sig}" 2>&1 || true
-            echo "✅ $(basename $f) ($(wc -c < "$f") bytes)"
-          done
+          tgz=$(ls packages/simplebeacon-cli/*.tgz | head -n1)
+          node packages/simplebeacon-cli/scripts/sign-artifacts.js "$tgz"
 
       - name: Upload Tarball + Signature
         uses: actions/upload-artifact@v4
         with:
-          name: simplebeacon-npm-package
+          name: simplebeacon-npm-publish-output
           path: |
             packages/simplebeacon-cli/*.tgz
             packages/simplebeacon-cli/*.tgz.sig

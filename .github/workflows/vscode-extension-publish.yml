@@ -1,3 +1,96 @@
+name: Publish VS Code Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Extension version (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  package-check:
+    runs-on: ubuntu-latest
+    outputs:
+      vsix-path: ${{ steps.vsce.outputs.vsix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+
+      - name: Build extension
+        run: |
+          npm run -w simplebeacon-vscode-merged compile || npm run -w simplebeacon-vscode-merged build
+
+      - name: Package VSIX
+        id: vsce
+        run: |
+          npm install -g vsce@2.12.0
+          vsce package -o simplebeacon.vsix
+          echo "vsix=simplebeacon.vsix" >> $GITHUB_OUTPUT
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-vsix
+          path: simplebeacon.vsix
+
+  publish:
+    needs: package-check
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download VSIX
+        uses: actions/download-artifact@v4
+        with:
+          name: simplebeacon-vsix
+
+      - name: Install GPG
+        run: |
+          if ! command -v gpg &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y gnupg
+          fi
+
+      - name: Sign VSIX (conditional)
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: |
+          node packages/simplebeacon-cli/scripts/sign-artifacts.js simplebeacon.vsix
+
+      - name: Publish to Marketplace (manual approval required)
+        env:
+          VSCODE_PUBLISHER_PAT: ${{ secrets.VSCODE_PUBLISHER_PAT }}
+        run: |
+          if [ -z "${VSCODE_PUBLISHER_PAT}" ]; then
+            echo "::warning::VSCODE_PUBLISHER_PAT not configured — skipping publish step"
+            exit 0
+          fi
+          npm i -g vsce@2.12.0
+          vsce publish --pat $VSCODE_PUBLISHER_PAT --packagePath simplebeacon.vsix || true
+
+      - name: Upload VSIX + Signatures
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-vsix-release
+          path: |
+            simplebeacon.vsix
+            simplebeacon.vsix.sig
+            generated/signatures-summary.json
+          retention-days: 90
 # Publish simplebeacon VS Code extension to the VS Code Marketplace.
 # Extension path: simplebeacon-vscode-merged (publisher: simplebeacon)
 #
