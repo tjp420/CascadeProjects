@@ -74,6 +74,9 @@ export function SecurityAdminView() {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [partitionStatus, setPartitionStatus] = useState<any>(null);
+  const [partitionConfig, setPartitionConfig] = useState<any>(null);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [exportingViolations, setExportingViolations] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {

@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
-const { authorize, enforceOrgPartition, getPartitionStats } = require('../middleware/authorize.cjs');
+const { authorize, enforceOrgPartition, getPartitionStats, getPartitionViolations } = require('../middleware/authorize.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const auditPolicyStore = require('../lib/audit-policy-store.cjs');
 const logStreamAnalyzer = require('../lib/log-stream-analyzer.cjs');
@@ -545,6 +545,9 @@ router.get('/partition-status', (req, res) => {
     res.json({
       success: true,
       enforcementEnabled: stats.enforcementEnabled,
+      alertOnViolation: stats.alertOnViolation,
+      violationAlertThreshold: stats.violationAlertThreshold,
+      settingsUpdatedAt: stats.settingsUpdatedAt,
       callerOrgId,
       totalViolations: stats.totalViolations,
       recentViolations: stats.recentViolations,
@@ -552,6 +555,111 @@ router.get('/partition-status', (req, res) => {
   } catch (err) {
     logger.warn('[Audit] partition_status_failed:', err.message);
     sendError(res, 500, 'partition_status_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/partition-config ─────────────────────────────────────────
+router.get('/partition-config', authorize('admin:all'), (req, res) => {
+  try {
+    const settingsStore = require('../lib/security-monitor-settings-store.cjs');
+    const settings = settingsStore.getSettings();
+    res.json({
+      success: true,
+      config: {
+        orgPartitionEnforcementEnabled: settings.orgPartitionEnforcementEnabled !== false,
+        orgPartitionAlertOnViolation: settings.orgPartitionAlertOnViolation !== false,
+        orgPartitionViolationAlertThreshold: settings.orgPartitionViolationAlertThreshold || 5,
+      },
+      updatedAt: settings.updatedAt,
+    });
+  } catch (err) {
+    logger.warn('[Audit] partition_config_get_failed:', err.message);
+    sendError(res, 500, 'partition_config_get_failed', { message: err.message });
+  }
+});
+
+// ── PUT /api/audit/partition-config ─────────────────────────────────────────
+router.put('/partition-config', authorize('admin:all'), (req, res) => {
+  try {
+    const settingsStore = require('../lib/security-monitor-settings-store.cjs');
+    const updates = {};
+    if (req.body.orgPartitionEnforcementEnabled !== undefined) {
+      updates.orgPartitionEnforcementEnabled = !!req.body.orgPartitionEnforcementEnabled;
+    }
+    if (req.body.orgPartitionAlertOnViolation !== undefined) {
+      updates.orgPartitionAlertOnViolation = !!req.body.orgPartitionAlertOnViolation;
+    }
+    if (req.body.orgPartitionViolationAlertThreshold !== undefined) {
+      updates.orgPartitionViolationAlertThreshold = parseInt(req.body.orgPartitionViolationAlertThreshold, 10);
+    }
+
+    const result = settingsStore.updateSettings(updates);
+    if (!result.success) {
+      return sendError(res, 400, 'partition_config_update_failed', { message: result.error });
+    }
+
+    logger.info(`[Audit] Partition config updated by ${req.user?.email || 'admin'}`);
+
+    try {
+      auditLogger.log({
+        orgId: getOrgId(req),
+        actorId: req.user?.id || 'unknown',
+        actorEmail: req.user?.email || 'unknown',
+        action: 'partition_config_update',
+        entity: 'security_settings',
+        entityId: 'partition',
+        metadata: updates,
+      });
+    } catch (logErr) {
+      logger.warn('[Audit] Failed to audit-log partition config update:', logErr.message);
+    }
+
+    res.json({
+      success: true,
+      config: {
+        orgPartitionEnforcementEnabled: result.settings.orgPartitionEnforcementEnabled !== false,
+        orgPartitionAlertOnViolation: result.settings.orgPartitionAlertOnViolation !== false,
+        orgPartitionViolationAlertThreshold: result.settings.orgPartitionViolationAlertThreshold || 5,
+      },
+      updatedAt: result.settings.updatedAt,
+    });
+  } catch (err) {
+    logger.warn('[Audit] partition_config_update_failed:', err.message);
+    sendError(res, 500, 'partition_config_update_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/partition-violations/export ──────────────────────────────
+router.get('/partition-violations/export', authorize('admin:all'), (req, res) => {
+  try {
+    const violations = getPartitionViolations();
+    const format = req.query.format || 'json';
+
+    if (format === 'csv') {
+      const header = 'timestamp,callerOrgId,clientOrgId,userId,method,path,ip\n';
+      const rows = violations
+        .map((v) =>
+          [v.at, v.callerOrgId, v.clientOrgId, v.userId, v.method, v.path, v.ip || '']
+            .map((val) => `"${String(val).replace(/"/g, '""')}"`)
+            .join(',')
+        )
+        .join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="partition-violations-${Date.now()}.csv"`);
+      res.send(header + rows);
+    } else {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="partition-violations-${Date.now()}.json"`);
+      res.json({
+        success: true,
+        exportedAt: new Date().toISOString(),
+        totalViolations: violations.length,
+        violations,
+      });
+    }
+  } catch (err) {
+    logger.warn('[Audit] partition_violations_export_failed:', err.message);
+    sendError(res, 500, 'partition_violations_export_failed', { message: err.message });
   }
 });
 

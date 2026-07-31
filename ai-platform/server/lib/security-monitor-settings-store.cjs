@@ -30,6 +30,9 @@ const DEFAULT_SETTINGS = {
   maxAlertsPerOrgPerHour: 20,
   webhookKeyAutoPurgeEnabled: true,
   webhookKeyGraceWindowMs: 24 * 60 * 60 * 1000,
+  orgPartitionEnforcementEnabled: true,
+  orgPartitionAlertOnViolation: true,
+  orgPartitionViolationAlertThreshold: 5,
   updatedAt: null,
 };
 
