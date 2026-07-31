@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const constants = require('../config/constants.cjs');
 const { getActiveUsers } = require('../lib/session-activity.cjs');
 const { authenticate } = require('../middleware/auth.cjs');
+const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
 const { verifyPassword } = require('../lib/auth/password-service.cjs');
 const crypto = require('crypto');
 const tokenDb = require('../lib/token-db.cjs');
@@ -716,7 +717,7 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  router.get('/users/:id/details', async (req, res) => {
+  router.get('/users/:id/details', validateParam('id', VALIDATION_PATTERNS.userId), async (req, res) => {
     if (!isAdmin(req)) {
       return res.status(403).json({ success: false, error: 'Forbidden' });
     }
@@ -1002,7 +1003,7 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  router.post('/users/:id/details', async (req, res) => {
+  router.post('/users/:id/details', validateParam('id', VALIDATION_PATTERNS.userId), async (req, res) => {
     if (!isAdmin(req)) return res.status(403).json({ success: false, error: 'Forbidden' });
     const { id } = req.params;
     const { name, email, password } = req.body || {};

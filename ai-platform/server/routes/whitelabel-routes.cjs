@@ -23,6 +23,7 @@
 const express = require('express');
 const logger = require('../lib/app-logger.cjs');
 const wlStore = require('../lib/whitelabel-config-store.cjs');
+const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
 
 const router = express.Router();
 
@@ -57,7 +58,7 @@ router.post('/partners', (req, res) => {
 });
 
 // GET /api/whitelabel/partners/:partnerId
-router.get('/partners/:partnerId', (req, res) => {
+router.get('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
   try {
     const partner = wlStore.getPartner(req.params.partnerId);
     if (!partner) return res.status(404).json({ error: 'not_found' });
@@ -68,7 +69,7 @@ router.get('/partners/:partnerId', (req, res) => {
 });
 
 // PUT /api/whitelabel/partners/:partnerId
-router.put('/partners/:partnerId', (req, res) => {
+router.put('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
   try {
     const partner = wlStore.updatePartner(req.params.partnerId, req.body || {});
     res.json({ success: true, partner });
@@ -78,7 +79,7 @@ router.put('/partners/:partnerId', (req, res) => {
 });
 
 // DELETE /api/whitelabel/partners/:partnerId
-router.delete('/partners/:partnerId', (req, res) => {
+router.delete('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
   try {
     const deleted = wlStore.deletePartner(req.params.partnerId);
     if (!deleted) return res.status(404).json({ error: 'not_found' });
@@ -103,7 +104,7 @@ router.get('/resolve', (req, res) => {
 });
 
 // GET /api/whitelabel/:partnerId/brand.css — dynamic CSS injection
-router.get('/:partnerId/brand.css', (req, res) => {
+router.get('/:partnerId/brand.css', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
   try {
     const css = wlStore.getBrandCss(req.params.partnerId);
     if (!css) return res.status(404).json({ error: 'not_found' });
@@ -135,7 +136,7 @@ router.get('/brand.css', (req, res) => {
 });
 
 // POST /api/whitelabel/partners/:partnerId/subtenants
-router.post('/partners/:partnerId/subtenants', (req, res) => {
+router.post('/partners/:partnerId/subtenants', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
   try {
     const partner = wlStore.addSubTenant(req.params.partnerId, req.body || {});
     res.status(201).json({ success: true, subTenants: partner.subTenants });
@@ -145,7 +146,7 @@ router.post('/partners/:partnerId/subtenants', (req, res) => {
 });
 
 // DELETE /api/whitelabel/partners/:partnerId/subtenants/:orgId
-router.delete('/partners/:partnerId/subtenants/:orgId', (req, res) => {
+router.delete('/partners/:partnerId/subtenants/:orgId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), validateParam('orgId', VALIDATION_PATTERNS.orgId), (req, res) => {
   try {
     const partner = wlStore.removeSubTenant(req.params.partnerId, req.params.orgId);
     res.json({ success: true, subTenants: partner.subTenants });

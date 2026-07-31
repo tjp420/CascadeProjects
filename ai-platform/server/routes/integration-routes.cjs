@@ -24,6 +24,7 @@ const rateLimit = require('express-rate-limit');
 const logger = require('../lib/app-logger.cjs');
 const integrationStore = require('../lib/integration-config-store.cjs');
 const webhookEngine = require('../lib/webhook-engine.cjs');
+const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
 
 const router = express.Router();
 
@@ -84,7 +85,7 @@ router.post('/', integrationRateLimit, (req, res) => {
 });
 
 // PUT /api/integrations/:configId — update config
-router.put('/:configId', (req, res) => {
+router.put('/:configId', validateParam('configId', VALIDATION_PATTERNS.configId), (req, res) => {
   try {
     const updated = integrationStore.updateConfig(req.params.configId, req.body || {});
     res.json({ success: true, config: updated });
@@ -94,7 +95,7 @@ router.put('/:configId', (req, res) => {
 });
 
 // DELETE /api/integrations/:configId
-router.delete('/:configId', (req, res) => {
+router.delete('/:configId', validateParam('configId', VALIDATION_PATTERNS.configId), (req, res) => {
   try {
     const deleted = integrationStore.deleteConfig(req.params.configId);
     if (!deleted) return res.status(404).json({ error: 'not_found' });
@@ -105,7 +106,7 @@ router.delete('/:configId', (req, res) => {
 });
 
 // POST /api/integrations/:configId/test — test connectivity
-router.post('/:configId/test', async (req, res) => {
+router.post('/:configId/test', validateParam('configId', VALIDATION_PATTERNS.configId), async (req, res) => {
   try {
     const config = integrationStore.getConfigDecrypted(req.params.configId);
     if (!config) return res.status(404).json({ error: 'not_found' });

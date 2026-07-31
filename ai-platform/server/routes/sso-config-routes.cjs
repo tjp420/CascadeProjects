@@ -18,6 +18,7 @@ const express = require('express');
 const logger = require('../lib/app-logger.cjs');
 const ssoConfigStore = require('../lib/sso-config-store.cjs');
 const auditStore = require('../lib/enterprise-audit-store.cjs');
+const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ router.get('/configs', async (req, res) => {
 });
 
 // GET /api/enterprise/sso/configs/:orgId — list configs for a specific org
-router.get('/configs/:orgId', async (req, res) => {
+router.get('/configs/:orgId', validateParam('orgId', VALIDATION_PATTERNS.orgId), async (req, res) => {
   try {
     const configs = ssoConfigStore.getConfigsByOrg(req.params.orgId);
     res.json({ success: true, configs });
@@ -112,7 +113,7 @@ router.post('/configs', async (req, res) => {
 });
 
 // PUT /api/enterprise/sso/configs/:providerId — update an SSO config
-router.put('/configs/:providerId', async (req, res) => {
+router.put('/configs/:providerId', validateParam('providerId', VALIDATION_PATTERNS.providerId), async (req, res) => {
   try {
     const existing = ssoConfigStore.getConfig(req.params.providerId);
     if (!existing) {
@@ -151,7 +152,7 @@ router.put('/configs/:providerId', async (req, res) => {
 });
 
 // DELETE /api/enterprise/sso/configs/:providerId — delete an SSO config
-router.delete('/configs/:providerId', async (req, res) => {
+router.delete('/configs/:providerId', validateParam('providerId', VALIDATION_PATTERNS.providerId), async (req, res) => {
   try {
     const existing = ssoConfigStore.getConfig(req.params.providerId);
     if (!existing) {
@@ -188,7 +189,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // GET /api/enterprise/sso/test/:providerId — test SSO config connectivity
-router.get('/test/:providerId', async (req, res) => {
+router.get('/test/:providerId', validateParam('providerId', VALIDATION_PATTERNS.providerId), async (req, res) => {
   try {
     const config = ssoConfigStore.getConfigDecrypted(req.params.providerId);
     if (!config) {

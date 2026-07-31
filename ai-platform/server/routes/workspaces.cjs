@@ -6,6 +6,7 @@
 const express = require('express');
 const { setWorkspaceRlsContext, requirePermission } = require('../lib/rbac.cjs');
 const logger = require('../lib/app-logger.cjs');
+const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
 
 const router = express.Router();
 
@@ -45,7 +46,7 @@ function setupWorkspaceRoutes(db) {
    * GET /api/workspaces/:id
    * Get a single workspace by ID (RLS-enforced — only returns if in scoped workspace).
    */
-  router.get('/:id', async (req, res) => {
+  router.get('/:id', validateParam('id', VALIDATION_PATTERNS.uuid), async (req, res) => {
     try {
       const client = req.scopedClient || db;
       const { rows } = await client.query(
@@ -90,7 +91,7 @@ function setupWorkspaceRoutes(db) {
    * PATCH /api/workspaces/:id
    * Update workspace (requires write permission).
    */
-  router.patch('/:id', requirePermission('write:own'), async (req, res) => {
+  router.patch('/:id', validateParam('id', VALIDATION_PATTERNS.uuid), requirePermission('write:own'), async (req, res) => {
     try {
       const { name, slug, settings } = req.body;
       const client = req.scopedClient || db;
@@ -118,7 +119,7 @@ function setupWorkspaceRoutes(db) {
    * DELETE /api/workspaces/:id
    * Delete workspace (requires admin permission).
    */
-  router.delete('/:id', requirePermission('admin:all'), async (req, res) => {
+  router.delete('/:id', validateParam('id', VALIDATION_PATTERNS.uuid), requirePermission('admin:all'), async (req, res) => {
     try {
       const client = req.scopedClient || db;
       const { rowCount } = await client.query(

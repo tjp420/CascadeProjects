@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const express = require('express');
 const router = express.Router();
 const logger = require('../lib/app-logger.cjs');
+const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
 
 function maskEmail(email) {
   const e = String(email || '');
@@ -39,7 +40,7 @@ const {
  * Initiates SSO flow. Supports ?method=saml|oidc query param.
  * Default: OIDC if configured, else SAML.
  */
-router.get('/login/:provider', async (req, res) => {
+router.get('/login/:provider', validateParam('provider', VALIDATION_PATTERNS.provider), async (req, res) => {
   try {
     const provider = String(req.params.provider).toLowerCase();
     const method = String(req.query.method || 'oidc').toLowerCase();
@@ -172,7 +173,7 @@ function buildSamlRequest(issuer, destination, state) {
 
 // GET /api/v2/auth/sso/metadata/:provider
 // Returns SAML SP metadata XML for IdP configuration (Okta, Azure AD, etc.)
-router.get('/metadata/:provider', (req, res) => {
+router.get('/metadata/:provider', validateParam('provider', VALIDATION_PATTERNS.provider), (req, res) => {
   try {
     const provider = String(req.params.provider).toLowerCase();
     const issuer = process.env.SAML_ISSUER || 'simplebeacon-ai';
