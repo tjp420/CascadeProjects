@@ -28,6 +28,7 @@ import {
   Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePrefetch } from '@/hooks/usePrefetch';
 
 interface SidebarProps {
   currentView: string;
@@ -106,6 +107,7 @@ export function Sidebar({
   isAdmin,
   isAuthenticated,
 }: SidebarProps) {
+  const { prefetchOnHover } = usePrefetch(currentView);
   return (
     <>
       {isOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />}
@@ -142,6 +144,7 @@ export function Sidebar({
               onNavigate={onNavigate}
               isAdmin={!!isAdmin}
               isAuthenticated={!!isAuthenticated}
+              onHover={prefetchOnHover}
             />
           ))}
         </nav>
@@ -202,12 +205,14 @@ function NavGroupSection({
   onNavigate,
   isAdmin,
   isAuthenticated,
+  onHover,
 }: {
   group: NavGroup;
   currentView: string;
   onNavigate: (v: string) => void;
   isAdmin: boolean;
   isAuthenticated: boolean;
+  onHover: (view: string) => void;
 }) {
   return (
     <div className="mb-2">
@@ -232,6 +237,8 @@ function NavGroupSection({
                 key={item.view}
                 type="button"
                 onClick={() => onNavigate(item.view)}
+                onMouseEnter={() => onHover(item.view)}
+                onFocus={() => onHover(item.view)}
                 className={cn(
                   'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
                   isActive
