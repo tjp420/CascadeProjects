@@ -26,9 +26,12 @@ import {
   Server,
   Calendar,
   DollarSign,
+  KeyRound,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase } from '@/config';
+import { SsoClaimMappingWorkspace } from '@/components/SsoClaimMappingWorkspace';
+import { PermissionGate } from '@/components/PermissionGate';
 
 interface EnterpriseOrg {
   orgId: string;
@@ -380,6 +383,7 @@ export function EnterpriseView() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="organizations">Organizations</TabsTrigger>
+          <TabsTrigger value="sso-mappings">SSO Mappings</TabsTrigger>
           <TabsTrigger value="onboard">Onboard</TabsTrigger>
           <TabsTrigger value="trial">Start Trial</TabsTrigger>
           {onboardResult && <TabsTrigger value="result">Provisioning Result</TabsTrigger>}
@@ -730,6 +734,20 @@ export function EnterpriseView() {
               )}
             </>
           )}
+        </TabsContent>
+
+        {/* ── SSO Mappings Tab ── */}
+        <TabsContent value="sso-mappings" className="space-y-4">
+          <PermissionGate permission="admin:all" fallback={
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 gap-3">
+                <KeyRound className="h-10 w-10 text-foreground-muted" />
+                <p className="text-sm text-foreground-muted">Admin access required to manage SSO claim mappings</p>
+              </CardContent>
+            </Card>
+          }>
+            <SsoClaimMappingWorkspace />
+          </PermissionGate>
         </TabsContent>
 
         {/* ── Onboard Tab ── */}

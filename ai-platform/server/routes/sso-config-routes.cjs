@@ -276,4 +276,88 @@ router.get(
   }
 );
 
+// ── Claim Mapping Endpoints ─────────────────────────────────────────────────
+
+// GET /api/enterprise/sso/configs/:providerId/claim-mappings
+router.get(
+  '/configs/:providerId/claim-mappings',
+  validateParam('providerId', VALIDATION_PATTERNS.providerId),
+  async (req, res) => {
+    try {
+      const config = ssoConfigStore.getConfig(req.params.providerId);
+      if (!config) return sendError(res, 404, 'sso_config_not_found');
+      res.json({
+        success: true,
+        claimMappings: config.claimMappings || null,
+        availableRoles: Object.values(require('../lib/rbac-store.cjs').ROLES),
+      });
+    } catch (err) {
+      logger.warn('[SSOConfig] claim_mappings_get_failed:', err.message);
+      sendError(res, 500, 'claim_mappings_get_failed', { message: err.message });
+    }
+  }
+);
+
+// PUT /api/enterprise/sso/configs/:providerId/claim-mappings
+router.put(
+  '/configs/:providerId/claim-mappings',
+  validateParam('providerId', VALIDATION_PATTERNS.providerId),
+  async (req, res) => {
+    try {
+      const config = ssoConfigStore.getConfig(req.params.providerId);
+      if (!config) return sendError(res, 404, 'sso_config_not_found');
+
+      const { claimPath, mappings, defaultRole } = req.body || {};
+      if (!claimPath || typeof claimPath !== 'string') {
+        return sendError(res, 400, 'claimPath is required');
+      }
+      if (!Array.isArray(mappings)) {
+        return sendError(res, 400, 'mappings must be an array');
+      }
+
+      const rbacStore = require('../lib/rbac-store.cjs');
+      const validRoles = Object.keys(rbacStore.ROLES);
+      for (const m of mappings) {
+        if (!m.matchValue || !m.role) {
+          return sendError(res, 400, 'Each mapping requires matchValue and role');
+        }
+        if (!validRoles.includes(m.role)) {
+          return sendError(res, 400, `Invalid role: ${m.role}. Valid: ${validRoles.join(', ')}`);
+        }
+      }
+      if (defaultRole && !validRoles.includes(defaultRole)) {
+        return sendError(res, 400, `Invalid defaultRole: ${defaultRole}. Valid: ${validRoles.join(', ')}`);
+      }
+
+      const claimMappings = {
+        claimPath,
+        mappings: mappings.map((m) => ({
+          matchValue: String(m.matchValue),
+          matchMode: m.matchMode || 'equals',
+          role: m.role,
+        })),
+        defaultRole: defaultRole || 'viewer',
+      };
+
+      const updated = ssoConfigStore.updateConfig(req.params.providerId, { claimMappings });
+      if (!updated) return sendError(res, 404, 'sso_config_not_found');
+
+      try {
+        auditStore.appendAuditEntry({
+          action: 'sso_claim_mappings_updated',
+          orgId: config.orgId,
+          actor: req.user?.email || 'admin',
+          details: { providerId: config.providerId, claimPath, mappingCount: mappings.length },
+          timestamp: new Date().toISOString(),
+        });
+      } catch {}
+
+      res.json({ success: true, claimMappings });
+    } catch (err) {
+      logger.warn('[SSOConfig] claim_mappings_update_failed:', err.message);
+      sendError(res, 500, 'claim_mappings_update_failed', { message: err.message });
+    }
+  }
+);
+
 module.exports = router;
