@@ -1199,6 +1199,24 @@ async function startServer() {
   // Auth routes are always registered, even if phase 2 bootstrap partially failed
   app.use('/api/auth', authRoutes);
 
+  // SSO auth handler — OIDC + SAML 2.0 protocol flows
+  try {
+    const ssoAuthHandler = require('./server/routes/sso-auth-handler.cjs');
+    app.use('/api/sso', ssoAuthHandler);
+    logger.info('[Routes] SSO auth handler loaded at /api/sso');
+  } catch (err) {
+    logger.error('[Routes] SSO auth handler not loaded:', err?.message || err);
+  }
+
+  // SSO configuration CRUD routes (admin)
+  try {
+    const ssoConfigRoutes = require('./server/routes/sso-config-routes.cjs');
+    app.use('/api/enterprise/sso', ssoConfigRoutes);
+    logger.info('[Routes] SSO config routes loaded at /api/enterprise/sso');
+  } catch (err) {
+    logger.error('[Routes] SSO config routes not loaded:', err?.message || err);
+  }
+
   // Newsletter subscription — public, no auth required (pricing page email signup)
   try {
     const subscriptionRoutes = require('../coming-soon/routes/subscriptions.cjs');
