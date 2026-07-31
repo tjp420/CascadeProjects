@@ -478,4 +478,170 @@ router.get('/compliance-bundle', authorize('admin:all'), (req, res) => {
   }
 });
 
+// ── Compliance Bundle Upload Verifier ─────────────────────────────────────
+// Validates an uploaded compliance bundle against the live system state.
+
+function verifyBundle(uploaded, orgId) {
+  const checks = [];
+  let passed = 0;
+  let failed = 0;
+  let warnings = 0;
+
+  function check(name, condition, detail) {
+    if (condition) {
+      passed++;
+      checks.push({ name, status: 'pass', detail: detail || null });
+    } else {
+      failed++;
+      checks.push({ name, status: 'fail', detail: detail || null });
+    }
+  }
+
+  function warn(name, detail) {
+    warnings++;
+    checks.push({ name, status: 'warn', detail: detail || null });
+  }
+
+  // Structural checks
+  check('bundle.hasBundleId', !!uploaded.bundleId, uploaded.bundleId || 'missing');
+  check('bundle.hasGeneratedAt', !!uploaded.generatedAt, uploaded.generatedAt || 'missing');
+  check('bundle.hasOrgId', !!uploaded.orgId, uploaded.orgId || 'missing');
+  check('bundle.hasSections', !!uploaded.sections, 'sections object present');
+
+  if (!uploaded.sections) {
+    return {
+      valid: false,
+      passed,
+      failed,
+      warnings,
+      checks,
+      summary: 'Bundle structure invalid — missing sections object',
+    };
+  }
+
+  const sections = uploaded.sections;
+
+  // Section 1: PII Policy Config
+  check('piiConfig.present', !!sections.piiPolicyConfig, 'PII policy config section present');
+  if (sections.piiPolicyConfig) {
+    const uploadedPolicies = sections.piiPolicyConfig.policies || [];
+    check('piiConfig.hasPolicies', Array.isArray(uploadedPolicies), `${uploadedPolicies.length} policies in bundle`);
+
+    // Cross-check: compare policy count with live system
+    try {
+      const livePolicies = piiPolicyStore.getPolicies(orgId);
+      const liveCount = livePolicies.length;
+      const bundleCount = uploadedPolicies.length;
+      if (bundleCount === liveCount) {
+        check('piiConfig.policyCountMatch', true, `${liveCount} policies match live system`);
+      } else {
+        warn('piiConfig.policyCountMatch', `Bundle has ${bundleCount} policies, live system has ${liveCount}`);
+      }
+
+      // Check for compliance framework coverage
+      const bundleFws = new Set();
+      for (const p of uploadedPolicies) {
+        for (const fw of p.compliance || []) bundleFws.add(fw);
+      }
+      check('piiConfig.hasComplianceTags', bundleFws.size > 0, `Frameworks: ${Array.from(bundleFws).join(', ') || 'none'}`);
+    } catch {
+      warn('piiConfig.liveCheck', 'Could not compare with live system');
+    }
+  }
+
+  // Section 2: Audit Chain Integrity
+  check('chainIntegrity.present', !!sections.auditChainIntegrity, 'Audit chain section present');
+  if (sections.auditChainIntegrity) {
+    const chain = sections.auditChainIntegrity;
+    check('chainIntegrity.hasValidField', typeof chain.valid === 'boolean', `valid=${chain.valid}`);
+
+    // Cross-check: compare with live chain verification
+    try {
+      const liveChain = auditLogger.verifyChain(orgId);
+      if (chain.valid === liveChain.valid) {
+        check('chainIntegrity.matchesLive', true, `Bundle and live both report valid=${chain.valid}`);
+      } else {
+        warn(
+          'chainIntegrity.matchesLive',
+          `Bundle reports valid=${chain.valid}, live system reports valid=${liveChain.valid}`
+        );
+      }
+
+      if (chain.totalEntries !== undefined && liveChain.totalEntries !== undefined) {
+        if (chain.totalEntries === liveChain.totalEntries) {
+          check('chainIntegrity.entryCountMatch', true, `${chain.totalEntries} entries`);
+        } else {
+          warn(
+            'chainIntegrity.entryCountMatch',
+            `Bundle: ${chain.totalEntries} entries, live: ${liveChain.totalEntries} entries`
+          );
+        }
+      }
+    } catch {
+      warn('chainIntegrity.liveCheck', 'Could not verify against live system');
+    }
+  }
+
+  // Section 3: Compliance Report
+  check('complianceReport.present', !!sections.complianceReport, 'Compliance report section present');
+  if (sections.complianceReport) {
+    const report = sections.complianceReport;
+    check('complianceReport.hasTotalEntries', typeof report.totalEntries === 'number', `${report.totalEntries} total entries`);
+    check('complianceReport.hasCriticalCount', typeof report.criticalActionCount === 'number', `${report.criticalActionCount} critical actions`);
+    check('complianceReport.hasSummary', !!report.summary, 'Summary object present');
+  }
+
+  // Section 4: Security Monitor
+  check('securityMonitor.present', !!sections.securityMonitor, 'Security monitor section present');
+  if (sections.securityMonitor) {
+    const sm = sections.securityMonitor;
+    if (sm.error) {
+      warn('securityMonitor.status', `Section reports error: ${sm.error}`);
+    } else {
+      check('securityMonitor.hasRunningField', typeof sm.running === 'boolean', `running=${sm.running}`);
+      check('securityMonitor.hasAutoHealField', typeof sm.autoHealEnabled === 'boolean', `autoHeal=${sm.autoHealEnabled}`);
+    }
+  }
+
+  // Overall validity
+  const valid = failed === 0;
+
+  return {
+    valid,
+    passed,
+    failed,
+    warnings,
+    checks,
+    bundleMetadata: {
+      bundleId: uploaded.bundleId || 'unknown',
+      generatedAt: uploaded.generatedAt || 'unknown',
+      orgId: uploaded.orgId || 'unknown',
+    },
+    summary: valid
+      ? `Bundle verified — ${passed} checks passed, ${warnings} warnings`
+      : `Bundle verification failed — ${failed} checks failed, ${warnings} warnings`,
+  };
+}
+
+// POST /api/pii/compliance-bundle/verify — verify an uploaded compliance bundle (admin only)
+router.post('/compliance-bundle/verify', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const bundle = req.body;
+
+    if (!bundle || typeof bundle !== 'object') {
+      return sendError(res, 400, 'Invalid bundle — expected JSON object');
+    }
+
+    const result = verifyBundle(bundle, orgId);
+    logger.info(
+      `[PII] Compliance bundle verified: ${result.passed} passed, ${result.failed} failed, ${result.warnings} warnings`
+    );
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[PII] bundle_verify_failed:', err.message);
+    sendError(res, 500, 'bundle_verify_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

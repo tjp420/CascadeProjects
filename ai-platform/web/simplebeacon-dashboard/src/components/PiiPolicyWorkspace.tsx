@@ -28,6 +28,9 @@ import {
   Search,
   Download,
   FileDown,
+  Upload,
+  ShieldCheck,
+  ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiUrl, authHeaders } from '@/config';
@@ -99,6 +102,26 @@ interface ScrubStatus {
   patterns?: Record<string, number>;
 }
 
+interface BundleCheck {
+  name: string;
+  status: 'pass' | 'fail' | 'warn';
+  detail: string | null;
+}
+
+interface VerificationResult {
+  valid: boolean;
+  passed: number;
+  failed: number;
+  warnings: number;
+  checks: BundleCheck[];
+  bundleMetadata: {
+    bundleId: string;
+    generatedAt: string;
+    orgId: string;
+  };
+  summary: string;
+}
+
 const SEVERITIES = ['high', 'medium', 'low'];
 
 const emptyForm = {
@@ -137,6 +160,11 @@ export function PiiPolicyWorkspace() {
   const [previewing, setPreviewing] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
   const [confirmScrub, setConfirmScrub] = useState(false);
+
+  // Bundle verification state
+  const [verification, setVerification] = useState<VerificationResult | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const fetchPolicies = useCallback(async () => {
     setLoading(true);
@@ -235,6 +263,58 @@ export function PiiPolicyWorkspace() {
       });
     } catch {
       toast.error('Failed to export compliance bundle');
+    }
+  };
+
+  // ── Bundle upload verification handler ──
+  const handleVerifyBundle = async (file: File) => {
+    setVerifying(true);
+    setVerification(null);
+    setUploadError(null);
+    try {
+      const text = await file.text();
+      let bundle;
+      try {
+        bundle = JSON.parse(text);
+      } catch {
+        setUploadError('Invalid JSON file — could not parse bundle');
+        toast.error('Invalid JSON file');
+        return;
+      }
+      const resp = await fetch(apiUrl('/pii/compliance-bundle/verify'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(bundle),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        setUploadError(data.message || 'Verification failed');
+        toast.error('Bundle verification failed');
+        return;
+      }
+      setVerification({
+        valid: data.valid,
+        passed: data.passed || 0,
+        failed: data.failed || 0,
+        warnings: data.warnings || 0,
+        checks: data.checks || [],
+        bundleMetadata: data.bundleMetadata || { bundleId: 'unknown', generatedAt: 'unknown', orgId: 'unknown' },
+        summary: data.summary || '',
+      });
+      if (data.valid) {
+        toast.success(`Bundle verified — ${data.passed} checks passed`, {
+          description: data.warnings > 0 ? `${data.warnings} warnings` : 'No warnings',
+        });
+      } else {
+        toast.error(`Verification failed — ${data.failed} checks failed`, {
+          description: data.summary,
+        });
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Unknown error');
+      toast.error('Failed to verify bundle');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -931,6 +1011,128 @@ export function PiiPolicyWorkspace() {
                     </p>
                   )}
                 </div>
+              </div>
+
+              <Separator />
+
+              {/* Bundle Upload Verifier */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Bundle Upload Verifier
+                </h3>
+                <p className="text-xs text-foreground-muted">
+                  Upload a previously exported compliance bundle (JSON) to validate its structure
+                  and cross-check against the live system state.
+                </p>
+                <div className="flex items-center gap-3">
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleVerifyBundle(file);
+                        e.target.value = '';
+                      }}
+                      disabled={verifying}
+                    />
+                    <span className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent cursor-pointer">
+                      {verifying ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                      Upload & Verify Bundle
+                    </span>
+                  </label>
+                </div>
+
+                {uploadError && (
+                  <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+
+                {verification && (
+                  <div className="space-y-3">
+                    {/* Overall result banner */}
+                    <div
+                      className={`flex items-center gap-3 rounded-md border p-4 ${
+                        verification.valid
+                          ? 'border-emerald-500/30 bg-emerald-500/5'
+                          : 'border-destructive/50 bg-destructive/5'
+                      }`}
+                    >
+                      {verification.valid ? (
+                        <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0" />
+                      ) : (
+                        <ShieldAlert className="h-5 w-5 text-destructive shrink-0" />
+                      )}
+                      <div className="flex-1">
+                        <p className={`text-sm font-medium ${verification.valid ? 'text-emerald-600' : 'text-destructive'}`}>
+                          {verification.summary}
+                        </p>
+                        <p className="text-xs text-foreground-muted mt-0.5">
+                          Bundle ID: {verification.bundleMetadata.bundleId} ·
+                          Generated: {new Date(verification.bundleMetadata.generatedAt).toLocaleString()} ·
+                          Org: {verification.bundleMetadata.orgId}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Summary KPIs */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+                        <div className="text-xs text-foreground-muted mb-1">Passed</div>
+                        <div className="text-2xl font-bold text-emerald-600">{verification.passed}</div>
+                      </div>
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+                        <div className="text-xs text-foreground-muted mb-1">Failed</div>
+                        <div className="text-2xl font-bold text-destructive">{verification.failed}</div>
+                      </div>
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                        <div className="text-xs text-foreground-muted mb-1">Warnings</div>
+                        <div className="text-2xl font-bold text-amber-600">{verification.warnings}</div>
+                      </div>
+                    </div>
+
+                    {/* Check details */}
+                    <div className="space-y-1.5">
+                      <h4 className="text-xs font-medium text-foreground-muted">Validation Checks</h4>
+                      <div className="max-h-64 overflow-y-auto space-y-1">
+                        {verification.checks.map((check, i) => (
+                          <div
+                            key={i}
+                            className={`flex items-start gap-2 rounded-md border p-2 text-xs ${
+                              check.status === 'pass'
+                                ? 'border-emerald-500/20'
+                                : check.status === 'fail'
+                                  ? 'border-destructive/30 bg-destructive/5'
+                                  : 'border-amber-500/30 bg-amber-500/5'
+                            }`}
+                          >
+                            {check.status === 'pass' ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                            ) : check.status === 'fail' ? (
+                              <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                            ) : (
+                              <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="font-mono font-medium">{check.name}</span>
+                              {check.detail && (
+                                <span className="text-foreground-muted ml-2">{check.detail}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
