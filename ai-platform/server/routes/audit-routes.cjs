@@ -3,6 +3,7 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
+const auditPolicyStore = require('../lib/audit-policy-store.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../../src/lib/app-logger.cjs');
 const { processEvent } = require('../lib/alert-dispatcher.cjs');
@@ -153,6 +154,121 @@ router.delete('/log/:entryId', async (req, res) => {
   } catch (err) {
     logger.warn('[Audit] audit_delete_failed:', err.message);
     sendError(res, 500, 'audit_delete_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/policy ───────────────────────────────────────────────────
+//   Get the current retention policy for the authenticated org
+router.get('/policy', (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const policy = auditPolicyStore.getPolicy(orgId);
+    res.json({ success: true, orgId, policy });
+  } catch (err) {
+    logger.warn('[Audit] audit_policy_get_failed:', err.message);
+    sendError(res, 500, 'audit_policy_get_failed', { message: err.message });
+  }
+});
+
+// ── PUT /api/audit/policy ───────────────────────────────────────────────────
+//   Update retention policy for the authenticated org
+//   Body: { retentionDays?, maxEntries?, archiveEnabled?, archiveAfterDays? }
+router.put('/policy', (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const updates = {};
+
+    if (req.body.retentionDays !== undefined) {
+      const v = Number(req.body.retentionDays);
+      if (!Number.isFinite(v) || v < 1 || v > 3650) {
+        sendError(res, 400, 'invalid_params', { message: 'retentionDays must be 1-3650' });
+        return;
+      }
+      updates.retentionDays = Math.floor(v);
+    }
+    if (req.body.maxEntries !== undefined) {
+      const v = Number(req.body.maxEntries);
+      if (!Number.isFinite(v) || v < 100 || v > 100000) {
+        sendError(res, 400, 'invalid_params', { message: 'maxEntries must be 100-100000' });
+        return;
+      }
+      updates.maxEntries = Math.floor(v);
+    }
+    if (req.body.archiveEnabled !== undefined) {
+      updates.archiveEnabled = Boolean(req.body.archiveEnabled);
+    }
+    if (req.body.archiveAfterDays !== undefined) {
+      const v = Number(req.body.archiveAfterDays);
+      if (!Number.isFinite(v) || v < 1 || v > 3650) {
+        sendError(res, 400, 'invalid_params', { message: 'archiveAfterDays must be 1-3650' });
+        return;
+      }
+      updates.archiveAfterDays = Math.floor(v);
+    }
+
+    const policy = auditPolicyStore.setPolicy(orgId, updates);
+    logger.info(`[Audit] Policy updated for org ${orgId}:`, updates);
+    res.json({ success: true, orgId, policy });
+  } catch (err) {
+    logger.warn('[Audit] audit_policy_update_failed:', err.message);
+    sendError(res, 500, 'audit_policy_update_failed', { message: err.message });
+  }
+});
+
+// ── POST /api/audit/policy/reset ────────────────────────────────────────────
+//   Reset retention policy to defaults for the authenticated org
+router.post('/policy/reset', (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const policy = auditPolicyStore.resetPolicy(orgId);
+    logger.info(`[Audit] Policy reset to defaults for org ${orgId}`);
+    res.json({ success: true, orgId, policy });
+  } catch (err) {
+    logger.warn('[Audit] audit_policy_reset_failed:', err.message);
+    sendError(res, 500, 'audit_policy_reset_failed', { message: err.message });
+  }
+});
+
+// ── POST /api/audit/retention/enforce ───────────────────────────────────────
+//   Manually trigger retention enforcement for the authenticated org
+router.post('/retention/enforce', (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const result = auditLogger.enforceRetentionPolicy(orgId);
+    logger.info(
+      `[Audit] Retention enforced for org ${orgId}: archived=${result.archived} deleted=${result.deleted} remaining=${result.remaining}`
+    );
+
+    // Trigger alert event for retention enforcement
+    processEvent(orgId, 'audit_retention_enforced', {
+      severity: 'medium',
+      message: `Audit retention enforced: ${result.archived} archived, ${result.deleted} deleted`,
+      data: { orgId, ...result },
+    }).catch((err) => {
+      logger.warn('[Audit] retention alert trigger failed:', err.message);
+    });
+
+    res.json({ success: true, orgId, result });
+  } catch (err) {
+    logger.warn('[Audit] audit_retention_enforce_failed:', err.message);
+    sendError(res, 500, 'audit_retention_enforce_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/report ───────────────────────────────────────────────────
+//   Generate a compliance report for the authenticated org
+//   Query params: startDate, endDate (ISO timestamps)
+router.get('/report', (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const report = auditLogger.generateComplianceReport(orgId, {
+      startDate: req.query.startDate || '',
+      endDate: req.query.endDate || '',
+    });
+    res.json({ success: true, report });
+  } catch (err) {
+    logger.warn('[Audit] audit_report_failed:', err.message);
+    sendError(res, 500, 'audit_report_failed', { message: err.message });
   }
 });
 

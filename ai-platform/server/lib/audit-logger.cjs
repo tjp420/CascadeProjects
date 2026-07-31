@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+const { getPolicy, getArchivePath } = require('./audit-policy-store.cjs');
+
 const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'audit-log.json');
 const MAX_ENTRIES_PER_ORG = 1000;
 
@@ -184,10 +186,185 @@ function deleteEntry(orgId, entryId) {
   return entry;
 }
 
+// ── Retention & Archiving ────────────────────────────────────────────────────
+
+/**
+ * Read an existing archive file (or return empty structure).
+ * @param {string} archivePath
+ * @returns {{ entries: Array }}
+ */
+function readArchive(archivePath) {
+  try {
+    if (!fs.existsSync(archivePath)) return { entries: [] };
+    const raw = fs.readFileSync(archivePath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? { entries: parsed } : parsed;
+  } catch {
+    return { entries: [] };
+  }
+}
+
+/**
+ * Append entries to an archive file.
+ * @param {string} archivePath
+ * @param {Array} entries
+ */
+function appendToArchive(archivePath, entries) {
+  const dir = path.dirname(archivePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const archive = readArchive(archivePath);
+  archive.entries.push(...entries);
+  const tmp = archivePath + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(archive, null, 2), 'utf8');
+  fs.renameSync(tmp, archivePath);
+}
+
+/**
+ * Enforce the retention policy for an org.
+ * Archives entries older than archiveAfterDays (if archiving enabled),
+ * then deletes entries older than retentionDays or exceeding maxEntries.
+ *
+ * @param {string} orgId
+ * @param {object} [policyOverride] — Override policy for testing
+ * @returns {{ archived: number, deleted: number, remaining: number }}
+ */
+function enforceRetentionPolicy(orgId, policyOverride) {
+  const policy = policyOverride || getPolicy(orgId || 'default');
+  const store = readStore();
+  const scopedOrgId = orgId || 'default';
+
+  const allEntries = Object.entries(store.entries).filter(
+    ([, v]) => v.orgId === scopedOrgId
+  );
+
+  const now = Date.now();
+  const retentionMs = policy.retentionDays * 24 * 60 * 60 * 1000;
+  const archiveMs = policy.archiveAfterDays * 24 * 60 * 60 * 1000;
+
+  let archived = 0;
+  let deleted = 0;
+  const keysToDelete = [];
+
+  // Phase 1: Archive entries older than archiveAfterDays (if enabled)
+  if (policy.archiveEnabled && allEntries.length > 0) {
+    const toArchive = [];
+    for (const [key, entry] of allEntries) {
+      const age = now - new Date(entry.timestamp).getTime();
+      if (age > archiveMs && age <= retentionMs) {
+        toArchive.push(entry);
+        keysToDelete.push(key);
+      }
+    }
+    if (toArchive.length > 0) {
+      const archivePath = getArchivePath(scopedOrgId);
+      appendToArchive(archivePath, toArchive);
+      archived = toArchive.length;
+    }
+  }
+
+  // Phase 2: Delete entries older than retentionDays
+  for (const [key, entry] of allEntries) {
+    if (keysToDelete.includes(key)) continue; // already archived
+    const age = now - new Date(entry.timestamp).getTime();
+    if (age > retentionMs) {
+      keysToDelete.push(key);
+    }
+  }
+
+  // Phase 3: Enforce maxEntries — delete oldest beyond the limit
+  const remainingEntries = allEntries
+    .filter(([k]) => !keysToDelete.includes(k))
+    .sort((a, b) => b[1].timestamp.localeCompare(a[1].timestamp));
+  if (remainingEntries.length > policy.maxEntries) {
+    const excess = remainingEntries.slice(policy.maxEntries);
+    for (const [key] of excess) {
+      keysToDelete.push(key);
+    }
+  }
+
+  // Apply deletions
+  for (const key of keysToDelete) {
+    delete store.entries[key];
+  }
+  deleted = keysToDelete.length - archived;
+
+  if (keysToDelete.length > 0) {
+    writeStore(store);
+  }
+
+  const remaining = allEntries.length - keysToDelete.length;
+  return { archived, deleted, remaining };
+}
+
+/**
+ * Generate a compliance report for an org over a date range.
+ * Summarizes audit activity by action, entity, actor, and day.
+ *
+ * @param {string} orgId
+ * @param {object} [opts]
+ * @param {string} [opts.startDate] — ISO timestamp lower bound
+ * @param {string} [opts.endDate] — ISO timestamp upper bound
+ * @returns {object} Compliance report
+ */
+function generateComplianceReport(orgId, opts = {}) {
+  const scopedOrgId = orgId || 'default';
+  const result = query({
+    orgId: scopedOrgId,
+    startDate: opts.startDate || '',
+    endDate: opts.endDate || '',
+    limit: 10000,
+    offset: 0,
+  });
+
+  const entries = result.entries;
+  const byAction = {};
+  const byEntity = {};
+  const byActor = {};
+  const byDay = {};
+  const criticalActions = ['DELETE', 'RUN', 'EVALUATE'];
+
+  let criticalCount = 0;
+  for (const e of entries) {
+    byAction[e.action] = (byAction[e.action] || 0) + 1;
+    byEntity[e.entity] = (byEntity[e.entity] || 0) + 1;
+    byActor[e.actorId] = (byActor[e.actorId] || 0) + 1;
+    const day = e.timestamp.slice(0, 10);
+    byDay[day] = (byDay[day] || 0) + 1;
+    if (criticalActions.includes(e.action)) criticalCount++;
+  }
+
+  return {
+    orgId: scopedOrgId,
+    generatedAt: new Date().toISOString(),
+    dateRange: {
+      startDate: opts.startDate || null,
+      endDate: opts.endDate || null,
+    },
+    totalEntries: entries.length,
+    criticalActionCount: criticalCount,
+    summary: {
+      byAction,
+      byEntity,
+      byActor,
+      byDay,
+    },
+    topActors: Object.entries(byActor)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([actorId, count]) => ({ actorId, count })),
+    topEntities: Object.entries(byEntity)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([entity, count]) => ({ entity, count })),
+  };
+}
+
 module.exports = {
   log,
   query,
   getStats,
   computeDiff,
   deleteEntry,
+  enforceRetentionPolicy,
+  generateComplianceReport,
 };
