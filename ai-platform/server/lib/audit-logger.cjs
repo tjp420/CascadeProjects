@@ -747,15 +747,7 @@ function runPiiScrub(orgId) {
     .filter((e) => e.orgId === scopedOrgId)
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
-  // Debug trace: log store path and target org for investigation of test collisions
-  try {
-    console.warn('[pii-scrub-debug] runPiiScrub start', {
-      auditStorePath: process.env.AUDIT_STORE_PATH || STORE_PATH,
-      scopedOrgId,
-      entriesFound: entries.length,
-      pid: process.pid,
-    });
-  } catch (e) {}
+  // (debug traces removed)
 
   if (entries.length === 0) {
     // Do not overwrite _lastScrubStatus for an empty scrub run so a previous
@@ -781,10 +773,7 @@ function runPiiScrub(orgId) {
         2
       )
     );
-    // Debug trace: backup created
-    try {
-      console.warn('[pii-scrub-debug] backup-created', { auditStorePath: process.env.AUDIT_STORE_PATH || STORE_PATH, backupFile, scopedOrgId, pid: process.pid });
-    } catch (e) {}
+    // backup created (no debug trace)
   } catch {
     // Backup failure is non-fatal
   }
@@ -860,10 +849,7 @@ function runPiiScrub(orgId) {
 
   writeStore(store);
 
-  // Debug trace: seal appended
-  try {
-    console.warn('[pii-scrub-debug] seal-appended', { auditStorePath: process.env.AUDIT_STORE_PATH || STORE_PATH, sealId, scopedOrgId, pid: process.pid });
-  } catch (e) {}
+  // seal appended (no debug trace)
 
   // Index the seal entry for fast lookups
   try {
@@ -904,9 +890,6 @@ function runPiiScrub(orgId) {
  */
 function getScrubStatus() {
   if (_lastSuccessfulScrub) {
-    try {
-      console.warn('[pii-scrub-debug] getScrubStatus returning lastSuccessful', { orgId: _lastSuccessfulScrub.orgId, pid: process.pid });
-    } catch (e) {}
     return _lastSuccessfulScrub;
   }
 
@@ -935,9 +918,6 @@ function getScrubStatus() {
       patterns: meta.patterns || {},
     };
   } catch (err) {
-    try {
-      console.warn('[pii-scrub-debug] getScrubStatus fallback to _lastScrubStatus', { err: String(err), pid: process.pid });
-    } catch (e) {}
     return _lastScrubStatus;
   }
 }
