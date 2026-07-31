@@ -24,6 +24,7 @@ const crypto = require('crypto');
 const { URLSearchParams } = require('url');
 const logger = require('./app-logger.cjs');
 const { issueAccessToken, issueRefreshToken } = require('./token-service.cjs');
+const ssoConfigStore = require('./sso-config-store.cjs');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,16 @@ function envKey(provider, suffix) {
 }
 
 function getSamlConfig(provider) {
+  // First, try persistent config store
+  const stored = ssoConfigStore.getConfigDecrypted(provider);
+  if (stored && stored.method === 'saml' && stored.enabled) {
+    return {
+      cert: stored.saml?.cert || '',
+      entryPoint: stored.saml?.entryPoint || '',
+      issuer: stored.saml?.issuer || process.env.SAML_ISSUER || 'simplebeacon-ai',
+    };
+  }
+  // Fall back to environment variables
   const cert = envKey(provider, 'SAML_CERT');
   const entryPoint = envKey(provider, 'SAML_ENTRYPOINT');
   const issuer = process.env.SAML_ISSUER || 'simplebeacon-ai';
@@ -43,6 +54,17 @@ function getSamlConfig(provider) {
 }
 
 function getOidcConfig(provider) {
+  // First, try persistent config store
+  const stored = ssoConfigStore.getConfigDecrypted(provider);
+  if (stored && stored.method === 'oidc' && stored.enabled) {
+    return {
+      clientId: stored.oidc?.clientId || '',
+      clientSecret: stored.oidc?._decryptedSecret || '',
+      redirectUri: stored.oidc?.redirectUri || process.env.OIDC_REDIRECT_URI || 'https://simplebeacon.ai/api/v2/auth/sso/oidc/callback',
+      issuer: stored.oidc?.issuer || '',
+    };
+  }
+  // Fall back to environment variables
   const clientId = envKey(provider, 'OIDC_CLIENT_ID') || process.env[`OIDC_CLIENT_ID_${provider.toUpperCase()}`];
   const clientSecret = envKey(provider, 'OIDC_CLIENT_SECRET') || process.env[`OIDC_CLIENT_SECRET_${provider.toUpperCase()}`];
   const redirectUri = process.env.OIDC_REDIRECT_URI || 'https://simplebeacon.ai/api/v2/auth/sso/oidc/callback';
@@ -90,7 +112,13 @@ async function resolveOrganizationByDomain(email, db) {
   const domain = extractDomain(email);
   if (!domain) return null;
 
-  // Wire to organizations table: SELECT id, sso_config FROM organizations WHERE domain = $1 AND sso_enabled = true
+  // First, check persistent SSO config store for domain-matched config
+  const ssoConfig = ssoConfigStore.resolveConfigByDomain(email);
+  if (ssoConfig) {
+    return { id: ssoConfig.orgId, domain, ssoEnabled: true, providerId: ssoConfig.providerId };
+  }
+
+  // Fall back to environment variable mapping
   const orgId = process.env[`SSO_ORG_${domain.replace(/\./g, '_').toUpperCase()}`];
   if (orgId) {
     return { id: orgId, domain, ssoEnabled: true };

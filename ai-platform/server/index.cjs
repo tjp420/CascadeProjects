@@ -90,6 +90,7 @@ const { registerComplianceSchemaRoute } = require('./routes/compliance-schema-ap
 const { setupPrIntegrationAPI } = require('./routes/pr-integration-api.cjs');
 const fixOrchestratorRouter = require('./routes/fix-orchestrator-api.cjs');
 const ssoRoutes = require('./routes/sso-routes.cjs');
+const ssoConfigRoutes = require('./routes/sso-config-routes.cjs');
 const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
 const auditLogRouter = require('./routes/audit.cjs');
 const authRoutes = require('./routes/auth-routes.cjs');
@@ -1104,6 +1105,10 @@ app.use('/api/v2/auth', authRoutes);
 // Enterprise SSO — SAML + OIDC callbacks
 app.use('/api/v2/auth/sso', ssoRoutes);
 logger.info('[SSO] Enterprise SSO routes mounted at /api/v2/auth/sso');
+
+// Enterprise SSO configuration — CRUD endpoints for per-org provider configs
+app.use('/api/enterprise/sso', ssoConfigRoutes);
+logger.info('[SSO] SSO config routes mounted at /api/enterprise/sso');
 
 // Dashboard stub APIs — dashboard-home, dev-tools, coverage-reports, security, quality, help
 try {

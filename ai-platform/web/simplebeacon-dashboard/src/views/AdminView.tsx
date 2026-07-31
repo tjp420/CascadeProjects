@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Users, RefreshCw, AlertCircle, Shield, UserCircle, Activity, Crown, Ban, CheckCircle2,
   Building2, Server, Clock, DollarSign, Key, TrendingUp, ChevronRight, Download,
+  Lock, Plus, Trash2, Zap, Globe,
 } from 'lucide-react';
 import { apiUrl, authHeaders, getApiBase } from '@/config';
 import { navigate } from '@/router/HashRouter';
@@ -73,6 +74,20 @@ type AuditStats = {
   last24h: number;
 };
 
+type SsoConfig = {
+  providerId: string;
+  orgId: string;
+  displayName: string;
+  method: 'saml' | 'oidc';
+  providerType: string;
+  domain: string;
+  enabled: boolean;
+  saml: { entryPoint?: string; cert?: string; issuer?: string } | null;
+  oidc: { clientId?: string; clientSecret?: string; issuer?: string; redirectUri?: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   org_created: { label: 'Org Created', color: 'text-green-600' },
   trial_started: { label: 'Trial Started', color: 'text-blue-600' },
@@ -115,6 +130,97 @@ export function AdminView() {
   const [auditFilter, setAuditFilter] = useState<string>('all');
   const [auditOrgFilter, setAuditOrgFilter] = useState<string>('all');
   const [chainValid, setChainValid] = useState<boolean | null>(null);
+  const [ssoConfigs, setSsoConfigs] = useState<SsoConfig[]>([]);
+  const [ssoLoading, setSsoLoading] = useState(false);
+  const [ssoStats, setSsoStats] = useState<{ totalConfigs: number; enabledConfigs: number; byMethod: Record<string, number>; byProvider: Record<string, number> } | null>(null);
+  const [showSsoForm, setShowSsoForm] = useState(false);
+  const [ssoForm, setSsoForm] = useState<{ orgId: string; displayName: string; method: 'saml' | 'oidc'; providerType: string; domain: string; enabled: boolean; samlEntryPoint: string; samlCert: string; oidcClientId: string; oidcClientSecret: string; oidcIssuer: string }>({ orgId: '', displayName: '', method: 'oidc', providerType: 'okta', domain: '', enabled: true, samlEntryPoint: '', samlCert: '', oidcClientId: '', oidcClientSecret: '', oidcIssuer: '' });
+
+  const fetchSsoConfigs = useCallback(async () => {
+    setSsoLoading(true);
+    try {
+      const [configsRes, statsRes] = await Promise.allSettled([
+        fetch(enterpriseUrl('/enterprise/sso/configs'), { headers: authHeaders() }),
+        fetch(enterpriseUrl('/enterprise/sso/stats'), { headers: authHeaders() }),
+      ]);
+      if (configsRes.status === 'fulfilled' && configsRes.value.ok) {
+        const data = await configsRes.value.json();
+        setSsoConfigs(data.configs || []);
+      }
+      if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
+        const data = await statsRes.value.json();
+        setSsoStats({ totalConfigs: data.totalConfigs, enabledConfigs: data.enabledConfigs, byMethod: data.byMethod, byProvider: data.byProvider });
+      }
+    } catch {
+      // SSO API may not be available
+    } finally {
+      setSsoLoading(false);
+    }
+  }, []);
+
+  const saveSsoConfig = useCallback(async () => {
+    try {
+      const body: Record<string, unknown> = {
+        orgId: ssoForm.orgId,
+        displayName: ssoForm.displayName,
+        method: ssoForm.method,
+        providerType: ssoForm.providerType,
+        domain: ssoForm.domain,
+        enabled: ssoForm.enabled,
+      };
+      if (ssoForm.method === 'saml') {
+        body.saml = { entryPoint: ssoForm.samlEntryPoint, cert: ssoForm.samlCert };
+      } else {
+        body.oidc = { clientId: ssoForm.oidcClientId, clientSecret: ssoForm.oidcClientSecret, issuer: ssoForm.oidcIssuer };
+      }
+      const res = await fetch(enterpriseUrl('/enterprise/sso/configs'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        toast.success('SSO configuration saved');
+        setShowSsoForm(false);
+        fetchSsoConfigs();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Failed to save SSO config');
+      }
+    } catch {
+      toast.error('Failed to save SSO config');
+    }
+  }, [ssoForm, fetchSsoConfigs]);
+
+  const deleteSsoConfig = useCallback(async (providerId: string) => {
+    try {
+      const res = await fetch(enterpriseUrl(`/enterprise/sso/configs/${providerId}`), {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        toast.success('SSO configuration deleted');
+        fetchSsoConfigs();
+      }
+    } catch {
+      toast.error('Failed to delete SSO config');
+    }
+  }, [fetchSsoConfigs]);
+
+  const testSsoConfig = useCallback(async (providerId: string) => {
+    try {
+      const res = await fetch(enterpriseUrl(`/enterprise/sso/test/${providerId}`), { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.overall === 'pass') {
+          toast.success(`SSO config validation passed — all checks green`);
+        } else {
+          toast.warning(`SSO config needs attention — ${data.checks.filter((c: { status: string }) => c.status !== 'pass').length} issues found`);
+        }
+      }
+    } catch {
+      toast.error('Failed to test SSO config');
+    }
+  }, []);
 
   const fetchAuditLogs = useCallback(async () => {
     setAuditLoading(true);
@@ -210,6 +316,10 @@ export function AdminView() {
   useEffect(() => {
     if (adminTab === 'audit') fetchAuditLogs();
   }, [adminTab, fetchAuditLogs]);
+
+  useEffect(() => {
+    if (adminTab === 'sso') fetchSsoConfigs();
+  }, [adminTab, fetchSsoConfigs]);
 
   if (loading) {
     return (
@@ -395,6 +505,7 @@ export function AdminView() {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="tenants">Enterprise Tenants</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
+          <TabsTrigger value="sso">SSO</TabsTrigger>
         </TabsList>
 
         {/* Users Tab */}
@@ -889,6 +1000,282 @@ export function AdminView() {
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+
+        {/* SSO Tab */}
+        <TabsContent value="sso" className="space-y-4">
+          {ssoLoading ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-3 py-12">
+                <RefreshCw className="h-8 w-8 text-foreground-muted animate-spin" />
+                <p className="text-sm text-foreground-muted">Loading SSO configurations…</p>
+              </CardContent>
+            </Card>
+          ) : ssoConfigs.length === 0 && !ssoStats ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-4 py-12">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Lock className="h-8 w-8 text-primary" />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-lg font-semibold">No SSO Configurations</h2>
+                  <p className="text-muted-foreground mt-1">Configure enterprise SSO providers (Okta, Azure AD, Ping) for your organizations.</p>
+                </div>
+                <Button onClick={() => setShowSsoForm(true)}>
+                  <Plus className="h-4 w-4" /> Add SSO Provider
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* SSO Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-1 py-4">
+                    <Lock className="h-6 w-6 text-primary" />
+                    <span className="text-lg font-bold">{ssoStats?.totalConfigs ?? 0}</span>
+                    <span className="text-xs text-foreground-muted">Total Providers</span>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-1 py-4">
+                    <CheckCircle2 className="h-6 w-6 text-green-500" />
+                    <span className="text-lg font-bold">{ssoStats?.enabledConfigs ?? 0}</span>
+                    <span className="text-xs text-foreground-muted">Enabled</span>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-1 py-4">
+                    <Globe className="h-6 w-6 text-blue-500" />
+                    <span className="text-lg font-bold">{ssoStats?.byMethod?.saml ?? 0}</span>
+                    <span className="text-xs text-foreground-muted">SAML 2.0</span>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-1 py-4">
+                    <Zap className="h-6 w-6 text-amber-500" />
+                    <span className="text-lg font-bold">{ssoStats?.byMethod?.oidc ?? 0}</span>
+                    <span className="text-xs text-foreground-muted">OIDC</span>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Add SSO Provider Button */}
+              <div className="flex justify-end">
+                <Button onClick={() => setShowSsoForm(!showSsoForm)}>
+                  <Plus className="h-4 w-4" /> {showSsoForm ? 'Cancel' : 'Add SSO Provider'}
+                </Button>
+              </div>
+
+              {/* SSO Config Form */}
+              {showSsoForm && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">New SSO Provider Configuration</CardTitle>
+                    <CardDescription>Configure SAML 2.0 or OIDC for an enterprise organization</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Organization</label>
+                        <select
+                          value={ssoForm.orgId}
+                          onChange={(e) => setSsoForm({ ...ssoForm, orgId: e.target.value })}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                        >
+                          <option value="">Select organization…</option>
+                          {enterpriseOrgs.map(o => (
+                            <option key={o.orgId} value={o.orgId}>{o.companyName}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Display Name</label>
+                        <input
+                          type="text"
+                          value={ssoForm.displayName}
+                          onChange={(e) => setSsoForm({ ...ssoForm, displayName: e.target.value })}
+                          placeholder="e.g. Acme Okta"
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Protocol</label>
+                        <select
+                          value={ssoForm.method}
+                          onChange={(e) => setSsoForm({ ...ssoForm, method: e.target.value as 'saml' | 'oidc' })}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                        >
+                          <option value="oidc">OIDC (OpenID Connect)</option>
+                          <option value="saml">SAML 2.0</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Provider Type</label>
+                        <select
+                          value={ssoForm.providerType}
+                          onChange={(e) => setSsoForm({ ...ssoForm, providerType: e.target.value })}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                        >
+                          <option value="okta">Okta</option>
+                          <option value="azuread">Azure Active Directory</option>
+                          <option value="ping">Ping Identity</option>
+                          <option value="auth0">Auth0</option>
+                          <option value="custom">Custom</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Email Domain</label>
+                        <input
+                          type="text"
+                          value={ssoForm.domain}
+                          onChange={(e) => setSsoForm({ ...ssoForm, domain: e.target.value })}
+                          placeholder="e.g. acme.com"
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pt-6">
+                        <input
+                          type="checkbox"
+                          id="sso-enabled"
+                          checked={ssoForm.enabled}
+                          onChange={(e) => setSsoForm({ ...ssoForm, enabled: e.target.checked })}
+                          className="rounded"
+                        />
+                        <label htmlFor="sso-enabled" className="text-sm font-medium">Enabled</label>
+                      </div>
+                    </div>
+
+                    {ssoForm.method === 'saml' ? (
+                      <div className="space-y-3 border-t pt-4">
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium">IdP Entry Point URL</label>
+                          <input
+                            type="text"
+                            value={ssoForm.samlEntryPoint}
+                            onChange={(e) => setSsoForm({ ...ssoForm, samlEntryPoint: e.target.value })}
+                            placeholder="https://acme.okta.com/app/simplebeacon/sso/saml"
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium">IdP Certificate (PEM)</label>
+                          <textarea
+                            value={ssoForm.samlCert}
+                            onChange={(e) => setSsoForm({ ...ssoForm, samlCert: e.target.value })}
+                            placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
+                            rows={4}
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm font-mono"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 border-t pt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium">Client ID</label>
+                            <input
+                              type="text"
+                              value={ssoForm.oidcClientId}
+                              onChange={(e) => setSsoForm({ ...ssoForm, oidcClientId: e.target.value })}
+                              placeholder="OAuth client ID"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium">Client Secret</label>
+                            <input
+                              type="password"
+                              value={ssoForm.oidcClientSecret}
+                              onChange={(e) => setSsoForm({ ...ssoForm, oidcClientSecret: e.target.value })}
+                              placeholder="OAuth client secret"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium">Issuer URL</label>
+                          <input
+                            type="text"
+                            value={ssoForm.oidcIssuer}
+                            onChange={(e) => setSsoForm({ ...ssoForm, oidcIssuer: e.target.value })}
+                            placeholder="https://acme.okta.com/oauth2/default"
+                            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setShowSsoForm(false)}>Cancel</Button>
+                      <Button onClick={saveSsoConfig} disabled={!ssoForm.orgId || !ssoForm.displayName}>
+                        <Lock className="h-4 w-4" /> Save Configuration
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* SSO Config List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Configured SSO Providers</CardTitle>
+                  <CardDescription>Enterprise identity provider configurations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {ssoConfigs.length === 0 ? (
+                    <p className="text-sm text-foreground-muted text-center py-4">No SSO providers configured yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {ssoConfigs.map((config) => (
+                        <div key={config.providerId} className="rounded-lg border p-4 space-y-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                                {config.method === 'saml' ? <Globe className="h-5 w-5 text-blue-500" /> : <Zap className="h-5 w-5 text-amber-500" />}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold">{config.displayName}</span>
+                                  <Badge variant={config.enabled ? 'default' : 'secondary'}>
+                                    {config.enabled ? 'Active' : 'Disabled'}
+                                  </Badge>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {config.method.toUpperCase()} · {config.providerType} · {config.domain || 'no domain'}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button size="sm" variant="outline" onClick={() => testSsoConfig(config.providerId)}>
+                                <Zap className="h-3.5 w-3.5" /> Test
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => deleteSsoConfig(config.providerId)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground border-t pt-2">
+                            <span className="font-mono">ID: {config.providerId}</span>
+                            <span>Org: {config.orgId}</span>
+                            {config.oidc?.clientId && (
+                              <span>Client ID: {config.oidc.clientId.slice(0, 8)}…</span>
+                            )}
+                            {config.oidc?.clientSecret && (
+                              <span>Secret: {config.oidc.clientSecret}</span>
+                            )}
+                            {config.saml?.entryPoint && (
+                              <span>Entry: {config.saml.entryPoint.slice(0, 30)}…</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </CardContent>
