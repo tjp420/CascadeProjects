@@ -68,7 +68,7 @@
     "vscode": "^1.90.0"
   },
   "dependencies": {
-    "@babel/parser": "^7.26.9",
+    "@babel/parser": "^8.0.4",
     "@babel/traverse": "^7.26.9"
   },
   "devDependencies": {
