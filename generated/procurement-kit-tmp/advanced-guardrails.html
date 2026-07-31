@@ -1,0 +1,230 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Advanced Guardrails</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  body{font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:#f6f7f9;color:#111;padding:28px}
+  .container{max-width:900px;margin:0 auto;background:#fff;padding:28px;border-radius:8px;box-shadow:0 6px 18px rgba(12,15,20,0.06)}
+  pre{background:#0b1220;color:#e6edf3;padding:12px;border-radius:6px;overflow:auto}
+  code{background:#eef2f6;padding:2px 4px;border-radius:4px}
+  h1,h2,h3{color:#0b1220}
+  a{color:#0b66ff}
+  </style></head><body><div class="container"><h1>Advanced Guardrails</h1><h1>SIMPLEBEACON: Advanced Guardrails</h1>
+<p></p>
+<p>Authoring Custom Enterprise Compliance Guardrails</p>
+<p></p>
+<p>Version: draft</p>
+<p>Date: 2026-07-30</p>
+<p></p>
+<p>---</p>
+<p></p>
+<p>Purpose</p>
+<p></p>
+<p>This guide explains how engineering teams and internal AppSec reviewers can author, register, and validate enterprise-specific guardrails for SimpleBeacon. Guardrails are first-class rule modules that the analyzer pipeline loads alongside built-in rule manifests. Custom guardrails can be simple regex-based detectors for high-velocity patterns or full AST walkers for robust, context-aware detections. Guardrails may optionally provide deterministic remediation fixes that wire into the <code>remediate</code> subcommand.</p>
+<p></p>
+<p>Directory &amp; Loading</p>
+<p></p>
+<ul>
+<li>Local rules directory (per-repo): <code>./.simplebeacon/rules/</code></li>
+<li>Built-in rules remain in the package under <code>packages/simplebeacon-cli/src/rules/</code>.</li>
+<li>Runtime load order: local rules (repo) → organization/airgap rules → built-in rules. Local rules override built-in matches by <code>id</code>.</li>
+</ul>
+<p></p>
+<p>Rule module shape (minimal example)</p>
+<p></p>
+<p>Each rule is a CommonJS module exporting an object (or array of objects). Required top-level keys:</p>
+<p></p>
+<ul>
+<li><code>id</code> (string): unique identifier, e.g. <code>ENT-SEC-001</code>.</li>
+<li><code>name</code> (string): human title.</li>
+<li><code>severity</code> ("low"|"medium"|"high").</li>
+<li><code>impact</code> ("low"|"medium"|"high").</li>
+<li><code>likelihood</code> ("low"|"medium"|"high").</li>
+<li><code>category</code> (string): grouping.</li>
+<li><code>description</code> (string): short description.</li>
+<li><code>matcher</code> (object): defines the detection strategy (see Section: matcher types).</li>
+<li><code>fix</code> (optional object): deterministic remediation instructions (see Section: remediation).</li>
+</ul>
+<p></p>
+<p>Example rule module (regex)</p>
+<p></p>
+<pre><code>
+module.exports = {
+  id: 'ENT-SEC-001',
+  name: 'Restricted Internal Model API',
+  severity: 'high',
+  impact: 'high',
+  likelihood: 'medium',
+  category: 'Enterprise Governance',
+  description: 'Detects unapproved internal model access endpoints.',
+  matcher: {
+    type: 'regex',
+    pattern: /(gpt-4-32k|claude-2\.1|unapprovedModelAPI)/g,
+    paths: ['**/*.js', '**/*.ts']
+  },
+  guidance: 'Replace with secureModelProxyGateway and run `npx simplebeacon remediate` to apply fixes.'
+};
+</code></pre>
+<p></p>
+<p>Matcher types</p>
+<p></p>
+<p>1) Regex matcher (fast)</p>
+<ul>
+<li><code>matcher.type = 'regex'</code></li>
+<li><code>matcher.pattern</code>: string or RegExp</li>
+<li><code>matcher.flags</code>: optional (e.g., <code>i</code>)</li>
+<li><code>matcher.paths</code>: glob(s) to limit scanning (defaults to project file globs)</li>
+</ul>
+<p></p>
+<p>Engine behavior: run a file-level test using the RegExp; on match, produce a finding with file/line snippet and matched groups.</p>
+<p></p>
+<p>2) AST walker (robust)</p>
+<ul>
+<li><code>matcher.type = 'ast'</code></li>
+<li><code>matcher.language</code>: <code>javascript</code> | <code>typescript</code> | <code>python</code> (future)</li>
+<li><code>matcher.visitor</code>: function or object implementing node visitors (see example)</li>
+</ul>
+<p></p>
+<p>AST walker example (JavaScript):</p>
+<p></p>
+<pre><code>
+// rule-ast-unapproved-client.js
+const { parse } = require('@babel/parser');
+module.exports = {
+  id: 'ENT-SEC-010',
+  name: 'Unapproved Model Client Instantiation',
+  severity: 'high',
+  matcher: {
+    type: 'ast',
+    language: 'javascript',
+    visitor: function({ ast, file, report }) {
+      const traverse = require('@babel/traverse').default;
+      traverse(ast, {
+        CallExpression(path) {
+          const callee = path.get('callee');
+          if (callee.isMemberExpression()) {
+            const object = callee.get('object');
+            const prop = callee.get('property');
+            if (object.isIdentifier({ name: 'unapprovedModelAPI' })) {
+              report({
+                message: 'Calls to unapprovedModelAPI detected',
+                file,
+                node: path.node
+              });
+            }
+          }
+        }
+      });
+    }
+  }
+};
+</code></pre>
+<p></p>
+<p>Notes on AST rules</p>
+<p></p>
+<ul>
+<li>The analyzer will parse files using Babel (JS/TS). Your <code>visitor</code> receives a parsed <code>ast</code> and a <code>report</code> callback. Use <code>@babel/traverse</code> helpers for robust matching.</li>
+<li>Keep visitors deterministic and avoid long-running CPU loops; prefer structural checks instead of fuzzy text searches in AST mode.</li>
+</ul>
+<p></p>
+<p>Authoring deterministic remediation fixes</p>
+<p></p>
+<p>Rules may include a <code>fix</code> object that the <code>remediate</code> subcommand understands and can apply automatically or in an interactive preview mode.</p>
+<p></p>
+<p>Supported fix types (current):</p>
+<ul>
+<li><code>replace</code> — simple RegExp-based text replacement with file/line context.</li>
+<li><code>ast-transform</code> — a JS function that returns a modified AST; the CLI will serialize back using <code>@babel/generator</code>.</li>
+</ul>
+<p></p>
+<p>Example <code>fix</code> (string replace):</p>
+<p></p>
+<pre><code>
+fix: {
+  type: 'replace',
+  pattern: /unapprovedModelAPI\.create\(/g,
+  replacement: 'secureModelProxyGateway.create('
+}
+</code></pre>
+<p></p>
+<p>Example <code>fix</code> (AST transform shim):</p>
+<p></p>
+<pre><code>
+fix: {
+  type: 'ast-transform',
+  transform: function({ ast, node }) {
+    // mutate AST nodes deterministically; return true if modified
+  }
+}
+</code></pre>
+<p></p>
+<p>Testing &amp; Local validation lifecycle</p>
+<p></p>
+<p>1. Drop your rule file(s) into <code>./.simplebeacon/rules/</code>.</p>
+<p>2. Run a local scan including custom rules:</p>
+<p></p>
+<pre><code>
+npx simplebeacon scan --rules-dir=./.simplebeacon/rules --offline --output ./.simplebeacon/report.json --full
+</code></pre>
+<p></p>
+<p>3. Use <code>--dry-run</code> with <code>remediate</code> to preview fixes:</p>
+<p></p>
+<pre><code>
+npx simplebeacon remediate --rules-dir=./.simplebeacon/rules --dry-run
+</code></pre>
+<p></p>
+<p>4. Unit testing rules</p>
+<p></p>
+<p>We recommend a small Jest harness inside your repository to assert rule behavior. Example test scaffold: <code>./.simplebeacon/rules/__tests__/rule-ENT-SEC-001.test.js</code></p>
+<p></p>
+<pre><code>
+const { runRuleOnString } = require('simplebeacon-cli/test-utils');
+const rule = require('../my-rule.js');
+
+test('flags unapproved model name', async () =&gt; {
+  const res = await runRuleOnString(rule, 'const x = unapprovedModelAPI.create("foo");', 'test.js');
+  expect(res.findings.length).toBeGreaterThan(0);
+});
+</code></pre>
+<p></p>
+<p>Registration &amp; packaging</p>
+<p></p>
+<ul>
+<li>No build step required for simple JS rules: drop them in <code>./.simplebeacon/rules/</code> and re-run a scan.</li>
+<li>For organization-wide rule distribution, place rules in an internal package and instruct CI to copy them into the repo's <code>.simplebeacon/rules/</code> during pipeline setup.</li>
+</ul>
+<p></p>
+<p>Best practices &amp; conventions</p>
+<p></p>
+<ul>
+<li>Rule <code>id</code> format: <code>ORG-AREA-###</code> (e.g., <code>ACME-AUTH-001</code>). Keep ids stable.</li>
+<li>Keep rules small and focused (single responsibility): one pattern → one rule.</li>
+<li>Add <code>tests</code> next to rule files and wire them into CI.</li>
+<li>Document each rule with an internal severity rationale and sample false-positive cases.</li>
+<li>Avoid aggressive <code>fix</code> logic that could break runtime behavior; remediation should be safe &amp; reversible.</li>
+</ul>
+<p></p>
+<p>CI tips</p>
+<p></p>
+<ul>
+<li>Add a CI step to validate rules:</li>
+</ul>
+<p>  - Run static sanity (<code>node -c</code> / <code>npm run lint</code>) on rule files.</p>
+<p>  - Execute rule unit tests.</p>
+<p>  - Run a quick <code>npx simplebeacon scan --rules-dir=./.simplebeacon/rules --offline --output /tmp/r.json --full</code> on a small fixture set.</p>
+<p></p>
+<p>Troubleshooting</p>
+<p></p>
+<ul>
+<li>If your regex rule produces too many false positives, restrict with <code>matcher.paths</code> or add contextual heuristics (e.g., require surrounding token anchors).</li>
+<li>If an AST rule is slow, reduce visited node types and prefer <code>path.get()</code> style checks to avoid full subtree traversals.</li>
+</ul>
+<p></p>
+<p>Appendix: Example rule set</p>
+<p></p>
+<ul>
+<li><code>ent-restrict-models.js</code> — regex for banned model names.</li>
+<li><code>ent-block-secret-literals.js</code> — AST walker that flags string literals in code assigned to <code>apiKey</code> variables.</li>
+<li><code>ent-replace-unapproved-client.fix.js</code> — optional AST transform fix for client replacement.</li>
+</ul>
+<p></p>
+<p>---</p>
+<p></p>
+<p>End of document.</p>
+<p></p></div></body></html>
