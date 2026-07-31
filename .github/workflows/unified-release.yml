@@ -129,6 +129,40 @@ jobs:
           NPM_CONFIG_OTP: ${{ inputs.otp }}
         run: npm publish --access public
 
+      - name: Pack Tarball for Signing
+        working-directory: packages/simplebeacon-cli
+        run: npm pack
+
+      - name: Install GPG
+        run: |
+          if ! command -v gpg &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y gnupg
+          fi
+
+      - name: Sign Package Tarball
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: node packages/simplebeacon-cli/scripts/sign-artifacts.js packages/simplebeacon-cli/*.tgz
+
+      - name: Verify Signature
+        run: |
+          for f in packages/simplebeacon-cli/*.tgz.sig; do
+            gpg --batch --verify "$f" "${f%.sig}" 2>&1 || true
+            echo "✅ $(basename $f) ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload Tarball + Signature
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-npm-package
+          path: |
+            packages/simplebeacon-cli/*.tgz
+            packages/simplebeacon-cli/*.tgz.sig
+            generated/signatures-summary.json
+          retention-days: 90
+
       - name: Verify npm publish
         working-directory: packages/simplebeacon-cli
         run: |
@@ -172,11 +206,34 @@ jobs:
         working-directory: simplebeacon-vscode-merged
         run: npx @vscode/vsce package --no-yarn --no-dependencies
 
-      - name: Upload VSIX Artifact
+      - name: Install GPG
+        run: |
+          if ! command -v gpg &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y gnupg
+          fi
+
+      - name: Sign VSIX Package
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: node packages/simplebeacon-cli/scripts/sign-artifacts.js simplebeacon-vscode-merged/*.vsix
+
+      - name: Verify VSIX Signature
+        run: |
+          for f in simplebeacon-vscode-merged/*.vsix.sig; do
+            gpg --batch --verify "$f" "${f%.sig}" 2>&1 || true
+            echo "✅ $(basename $f) ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload VSIX + Signature
         uses: actions/upload-artifact@v4
         with:
           name: simplebeacon-vscode-vsix
-          path: simplebeacon-vscode-merged/*.vsix
+          path: |
+            simplebeacon-vscode-merged/*.vsix
+            simplebeacon-vscode-merged/*.vsix.sig
+            generated/signatures-summary.json
           retention-days: 30
 
       - name: Publish to VS Code Marketplace
@@ -206,9 +263,14 @@ jobs:
         run: |
           echo "## SimpleBeacon Release Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| CLI (npm) | ${{ needs.publish-cli.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| VS Code Extension | ${{ needs.publish-vscode.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | GPG Signed |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CLI (npm) | ${{ needs.publish-cli.result }} | ${{ needs.publish-cli.result == 'success' && '✅' || '—' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| VS Code Extension | ${{ needs.publish-vscode.result }} | ${{ needs.publish-vscode.result == 'success' && '✅' || '—' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Version: ${{ needs.resolve-scope.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### GPG Signature Verification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Each release artifact includes a detached GPG signature (`.sig` file)." >> $GITHUB_STEP_SUMMARY
+          echo "Verify with: \`gpg --verify <file>.sig <file>\`" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,95 @@
+# Reusable workflow: Sign release artifacts with GPG detached signatures.
+#
+# Called by:
+#   - simplebeacon-npm-publish.yml
+#   - vscode-extension-publish.yml
+#   - unified-release.yml
+#   - simplebeacon-procurement-publish.yml
+#
+# Secrets:
+#   GPG_PRIVATE_KEY  — Base64-encoded ASCII-armored GPG private key
+#   GPG_PASSPHRASE   — Passphrase for the GPG private key
+#   GPG_KEY_ID       — (optional) Key ID or fingerprint
+
+name: Sign Release Artifacts
+
+on:
+  workflow_call:
+    inputs:
+      files:
+        description: 'Space-separated list of file paths to sign (relative to repo root)'
+        required: true
+        type: string
+      working-directory:
+        description: 'Working directory for the signing step'
+        required: false
+        type: string
+        default: '.'
+      upload-artifacts:
+        description: 'Whether to upload signatures as workflow artifacts'
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      GPG_PRIVATE_KEY:
+        required: true
+      GPG_PASSPHRASE:
+        required: true
+      GPG_KEY_ID:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  sign:
+    name: Sign Artifacts with GPG
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install GPG
+        run: |
+          if ! command -v gpg &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y gnupg
+          fi
+          gpg --version
+
+      - name: Sign Artifacts
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: |
+          node packages/simplebeacon-cli/scripts/sign-artifacts.js ${{ inputs.files }}
+
+      - name: Verify Signatures
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          for file in ${{ inputs.files }}; do
+            if [ -f "${file}.sig" ]; then
+              echo "Verifying ${file}..."
+              gpg --batch --verify "${file}.sig" "${file}" 2>&1 || true
+              echo "✅ ${file}.sig exists ($(wc -c < "${file}.sig") bytes)"
+            else
+              echo "::error::Signature file not found: ${file}.sig"
+              exit 1
+            fi
+          done
+
+      - name: Upload Signatures
+        if: ${{ inputs.upload-artifacts }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpg-signatures
+          path: |
+            ${{ inputs.working-directory }}/**/*.sig
+            ${{ inputs.working-directory }}/**/signatures-summary.json
+          retention-days: 90

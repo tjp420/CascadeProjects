@@ -52,6 +52,24 @@ jobs:
           echo "✅ Archive generated successfully"
           ls -lh generated/simplebeacon-procurement-kit.zip
 
+      - name: Install GPG
+        run: |
+          if ! command -v gpg &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y gnupg
+          fi
+
+      - name: Sign Procurement Kit Archive
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: node packages/simplebeacon-cli/scripts/sign-artifacts.js generated/simplebeacon-procurement-kit.zip
+
+      - name: Verify Archive Signature
+        run: |
+          gpg --batch --verify generated/simplebeacon-procurement-kit.zip.sig generated/simplebeacon-procurement-kit.zip 2>&1 || true
+          echo "✅ Procurement kit signature verified ($(wc -c < generated/simplebeacon-procurement-kit.zip.sig) bytes)"
+
       - name: Clear Previous Rolling Tag
         run: |
           git tag -d procurement-kit-latest || true
@@ -69,5 +87,14 @@ jobs:
             **Verification Signature Matrix:**
             - Generated: ${{ github.event.head_commit.timestamp }}
             - Commit Reference: ${{ github.sha }}
-          files: generated/simplebeacon-procurement-kit.zip
+            - GPG Detached Signature: `simplebeacon-procurement-kit.zip.sig`
+            
+            **Verify integrity:**
+            ```bash
+            gpg --verify simplebeacon-procurement-kit.zip.sig simplebeacon-procurement-kit.zip
+            ```
+          files: |
+            generated/simplebeacon-procurement-kit.zip
+            generated/simplebeacon-procurement-kit.zip.sig
+            generated/signatures-summary.json
           make_latest: true

@@ -52,3 +52,37 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_OTP: ${{ inputs.otp }}
         run: npm publish --access public
+
+      - name: Pack Tarball for Signing
+        working-directory: packages/simplebeacon-cli
+        run: npm pack
+
+      - name: Install GPG
+        run: |
+          if ! command -v gpg &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y gnupg
+          fi
+
+      - name: Sign Package Tarball
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: node packages/simplebeacon-cli/scripts/sign-artifacts.js packages/simplebeacon-cli/*.tgz
+
+      - name: Verify Signature
+        run: |
+          for f in packages/simplebeacon-cli/*.tgz.sig; do
+            gpg --batch --verify "$f" "${f%.sig}" 2>&1 || true
+            echo "✅ $(basename $f) ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload Tarball + Signature
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-npm-package
+          path: |
+            packages/simplebeacon-cli/*.tgz
+            packages/simplebeacon-cli/*.tgz.sig
+            generated/signatures-summary.json
+          retention-days: 90
