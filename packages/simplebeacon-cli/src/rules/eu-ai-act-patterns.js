@@ -137,6 +137,125 @@ const AI_SYSTEM_INDICATORS = [
     }
 ];
 
+// --- EU AI Act Articles 9-15, 26-27: Compliance Obligations ---
+
+const COMPLIANCE_OBLIGATIONS = [
+    {
+        id: 'EUAI-RM-001',
+        article: '9',
+        category: 'risk-management',
+        type: 'EU AI Act — Risk Management System (Art. 9)',
+        regex: /\b(?:risk\s*management\s*(?:system|process|framework)|risk\s*register|risk\s*identification|risk\s*mitigation\s*plan)\b/gi,
+        severity: 'medium',
+        description: 'Missing risk management system — no risk register or assessment artifacts detected',
+        fixTemplate: 'Implement a risk management system per Article 9. Create a risk-register.md documenting identified risks, mitigation measures, and residual risks. Update it throughout the AI system lifecycle.',
+        isAbsenceRule: true
+    },
+    {
+        id: 'EUAI-DG-001',
+        article: '10',
+        category: 'data-governance',
+        type: 'EU AI Act — Data Governance (Art. 10)',
+        regex: /(?:fetch|axios|http\.get|requests\.get)\s*\(\s*['"](?:https?:)?\/\/[^'"]*(?:scrape|crawl|dataset|training|corpus)/gi,
+        severity: 'medium',
+        description: 'Training or evaluation data sourced from unvalidated URLs without data governance controls',
+        fixTemplate: 'Implement data governance per Article 10. Validate all training data sources. Document data provenance, quality measures, and bias testing. Create a data-governance.md artifact.',
+        isAbsenceRule: false
+    },
+    {
+        id: 'EUAI-RK-001',
+        article: '12',
+        category: 'record-keeping',
+        type: 'EU AI Act — Record-Keeping (Art. 12)',
+        regex: /\b(?:auto(?:mated)?\s*(?:approve|reject|decision|score|rank)|automated\s*processing)\b/gi,
+        severity: 'medium',
+        description: 'Automated AI decision without automatic logging capability',
+        fixTemplate: 'Implement automatic logging per Article 12. Wrap every automated decision with an audit logger recording inputs, outputs, model version, timestamp, and human review status.',
+        isAbsenceRule: true,
+        requiresLogging: true
+    },
+    {
+        id: 'EUAI-TI-001',
+        article: '13',
+        category: 'transparency-deployers',
+        type: 'EU AI Act — Transparency to Deployers (Art. 13)',
+        regex: /\b(?:instructions\s*for\s*use|deployer\s*guide|user\s*manual|operator\s*guide)\b/gi,
+        severity: 'medium',
+        description: 'Missing transparency documentation for deployers — no instructions-for-use artifact detected',
+        fixTemplate: 'Create instructions-for-use.md per Article 13. Include: intended purpose, accuracy metrics, known limitations, human oversight measures, and expected lifetime of the AI system.',
+        isAbsenceRule: true
+    },
+    {
+        id: 'EUAI-HO-002',
+        article: '14',
+        category: 'human-oversight',
+        type: 'EU AI Act — Human Oversight Gap (Art. 14)',
+        regex: /\b(?:auto(?:matic)?\s*(?:approve|reject|decision)|fully\s*automated\s*(?:decision|approval|rejection)|no\s*human\s*(?:review|oversight|intervention))\b/gi,
+        severity: 'high',
+        description: 'Fully automated AI decision without human override mechanism',
+        fixTemplate: 'Implement human oversight per Article 14. Add a mandatory human review checkpoint before any automated decision is finalized. Provide an override mechanism and appeal process.',
+        isAbsenceRule: false
+    },
+    {
+        id: 'EUAI-RAS-001',
+        article: '15',
+        category: 'robustness',
+        type: 'EU AI Act — Robustness and Accuracy (Art. 15)',
+        regex: /\b(?:accuracy\s*test|benchmark\s*eval|model\s*evaluation|robustness\s*test|stress\s*test\s*model)\b/gi,
+        severity: 'medium',
+        description: 'Missing robustness, accuracy, and cybersecurity testing artifacts',
+        fixTemplate: 'Implement robustness testing per Article 15. Create model-evaluation.md documenting accuracy metrics, adversarial test results, and cybersecurity measures. Run benchmarks throughout the lifecycle.',
+        isAbsenceRule: true
+    },
+    {
+        id: 'EUAI-DEP-001',
+        article: '26',
+        category: 'deployer-obligations',
+        type: 'EU AI Act — Deployer Obligations (Art. 26)',
+        regex: /\b(?:deploy(?:ing|ment)?\s*(?:ai|model|system)|production\s*(?:ai|model|inference))\b/gi,
+        severity: 'medium',
+        description: 'High-risk AI system deployed without deployer obligation compliance',
+        fixTemplate: 'Fulfill deployer obligations per Article 26. Assign human oversight individuals, ensure staff are trained, and implement monitoring. Document the deployment decision and retain logs.',
+        isAbsenceRule: false
+    },
+    {
+        id: 'EUAI-FRIA-001',
+        article: '27',
+        category: 'fundamental-rights',
+        type: 'EU AI Act — Fundamental Rights Impact Assessment (Art. 27)',
+        regex: /\b(?:fundamental\s*rights\s*impact\s*assessment|fria)\b/gi,
+        severity: 'high',
+        description: 'Missing Fundamental Rights Impact Assessment (FRIA) for high-risk AI deployment',
+        fixTemplate: 'Conduct a FRIA per Article 27 before deploying high-risk AI. Document: intended use, affected groups, specific risks to fundamental rights, mitigation measures, and human oversight plan. Create fria.md.',
+        isAbsenceRule: true,
+        requiresHighRisk: true
+    }
+];
+
+const COMPLIANCE_ARTIFACT_NAMES = [
+    'risk-register.md',
+    'risk-assessment.md',
+    'data-governance.md',
+    'data-quality.md',
+    'instructions-for-use.md',
+    'deployer-guide.md',
+    'fria.md',
+    'fundamental-rights-impact-assessment.md',
+    'robustness-test.md',
+    'model-evaluation.md',
+    'audit-log.md',
+    'decision-log.md'
+];
+
+const COMPLIANCE_ARTIFACT_MARKERS = [
+    { id: 'risk-register', pattern: /risk\s*register|risk\s*management\s*system/i, label: 'Risk register' },
+    { id: 'data-governance', pattern: /data\s*governance|data\s*quality\s*plan/i, label: 'Data governance' },
+    { id: 'instructions-for-use', pattern: /instructions\s*for\s*use|deployer\s*guide/i, label: 'Instructions for use' },
+    { id: 'fria', pattern: /fundamental\s*rights\s*impact\s*assessment|fria/i, label: 'FRIA' },
+    { id: 'robustness-test', pattern: /robustness\s*test|model\s*evaluation\s*report/i, label: 'Robustness test' },
+    { id: 'audit-log', pattern: /audit\s*log|decision\s*log/i, label: 'Audit log' }
+];
+
 const TRANSPARENCY_DISCLOSURE_PATTERNS = [
     /\bai[-\s]?generated\b/i,
     /\bgenerated\s+by\s+(?:an?\s+)?ai\b/i,
@@ -625,9 +744,20 @@ async function scanEuAiActPatterns(baseDir, options = {}) {
         const hasAi = aiIssues.length > 0 || hasHighRisk;
         issues.push(...scanHumanOversightGaps(relativePath, content, hasHighRisk, severityDefault));
         issues.push(...scanLoggingGaps(relativePath, content, hasAi, severityDefault));
+
+        // --- Articles 9-27 compliance obligations ---
+        const complianceIssues = scanComplianceObligations(relativePath, content, hasHighRisk, hasAi, severityDefault);
+        issues.push(...complianceIssues);
     }
 
+    // Detect compliance documentation artifacts
+    const complianceDocs = detectComplianceArtifacts(baseDir);
     const documentation = detectDocumentationArtifacts(baseDir);
+
+    // Check for absence-rule artifacts and generate findings for missing ones
+    const absenceIssues = scanAbsenceComplianceGaps(baseDir, complianceDocs, highRiskHits > 0, severityDefault);
+    issues.push(...absenceIssues);
+
     const filteredIssues = filterDocumentedAiInventoryIssues(issues, documentation, {
         highRiskIndicators: highRiskHits,
         transparencyGaps
@@ -638,6 +768,11 @@ async function scanEuAiActPatterns(baseDir, options = {}) {
         transparencyGaps,
         documentationArtifacts: documentation.artifacts.length,
         documentationFound: documentation.paths,
+        complianceObligations: absenceIssues.length,
+        complianceArtifacts: complianceDocs.artifacts.length,
+        complianceArtifactsFound: complianceDocs.paths,
+        missingArtifacts: absenceIssues.map((i) => i.metadata?.patternId).filter(Boolean),
+        articlesCovered: ['9', '10', '11', '12', '13', '14', '15', '26', '27'],
         deadlineNote: 'High-risk AI systems must comply with EU AI Act requirements by August 2026'
     };
 
@@ -646,17 +781,189 @@ async function scanEuAiActPatterns(baseDir, options = {}) {
         findings: filteredIssues.length,
         issues: filteredIssues,
         summary,
-        patterns: [...HIGH_RISK_CATALOG, ...AI_SYSTEM_INDICATORS].map((r) => r.id)
+        patterns: [...HIGH_RISK_CATALOG, ...AI_SYSTEM_INDICATORS, ...COMPLIANCE_OBLIGATIONS].map((r) => r.id)
     };
+}
+
+// --- Compliance obligation scanning (Articles 9-27) ---
+
+function scanComplianceObligations(relativePath, content, hasHighRisk, hasAi, severityDefault) {
+    const issues = [];
+    if (!hasAi) return issues;
+
+    for (const rule of COMPLIANCE_OBLIGATIONS) {
+        if (rule.isAbsenceRule) continue; // absence rules handled by artifact detection
+        if (rule.requiresHighRisk && !hasHighRisk) continue;
+
+        const regex = new RegExp(rule.regex.source, rule.regex.flags);
+        let m;
+        while ((m = regex.exec(content)) !== null) {
+            const loc = extractLineAt(content, m.index);
+            const snippet = loc.text.slice(0, 120) || m[0].slice(0, 120);
+            if (/\/\/\s*simplebeacon-ignore/i.test(snippet)) continue;
+
+            // For rules that require logging, check if logging is present
+            if (rule.requiresLogging && LOGGING_PATTERNS.some((p) => p.test(content))) continue;
+
+            issues.push({
+                id: `${rule.id}-${relativePath}`,
+                severity: rule.severity || severityDefault,
+                type: rule.type,
+                filePath: relativePath,
+                lineNumber: loc.line,
+                count: 1,
+                description: rule.description,
+                recommendedAction: rule.fixTemplate,
+                evidence: `Matched "${rule.id}" (Art. ${rule.article}) in code: "${snippet}" — ${rule.description}`,
+                affectedFiles: [relativePath],
+                metadata: {
+                    patternId: rule.id,
+                    category: rule.category,
+                    article: rule.article,
+                    lineNumber: loc.line
+                }
+            });
+            break;
+        }
+    }
+    return issues;
+}
+
+function detectComplianceArtifacts(baseDir) {
+    const found = [];
+    const searchRoots = [
+        baseDir,
+        path.join(baseDir, 'docs'),
+        path.join(baseDir, 'documentation'),
+        path.join(baseDir, '.simplebeacon')
+    ];
+
+    try {
+        const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+        for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
+            if (SKIP_DIRS.has(entry.name)) continue;
+            searchRoots.push(path.join(baseDir, entry.name, 'docs'));
+            searchRoots.push(path.join(baseDir, entry.name, 'documentation'));
+        }
+    } catch {
+        // ignore
+    }
+
+    for (const root of searchRoots) {
+        if (!fs.existsSync(root)) continue;
+        for (const fileName of COMPLIANCE_ARTIFACT_NAMES) {
+            const filePath = path.join(root, fileName);
+            if (fs.existsSync(filePath)) {
+                found.push({ id: fileName.replace(/\.md$/, ''), label: fileName, path: normalizeRel(baseDir, filePath) });
+            }
+        }
+        let entries;
+        try {
+            entries = fs.readdirSync(root, { withFileTypes: true });
+        } catch {
+            continue;
+        }
+        for (const entry of entries) {
+            if (!entry.isFile()) continue;
+            if (/\.simplebeacon-backup\./i.test(entry.name)) continue;
+            const fullPath = path.join(root, entry.name);
+            let content;
+            try {
+                if (fs.statSync(fullPath).size > MAX_SCAN_BYTES) continue;
+                content = fs.readFileSync(fullPath, 'utf8');
+            } catch {
+                continue;
+            }
+            for (const marker of COMPLIANCE_ARTIFACT_MARKERS) {
+                if (marker.pattern.test(content) || marker.pattern.test(entry.name)) {
+                    found.push({
+                        id: marker.id,
+                        label: marker.label,
+                        path: normalizeRel(baseDir, fullPath)
+                    });
+                }
+            }
+        }
+    }
+
+    const unique = [];
+    const seen = new Set();
+    const seenPaths = new Set();
+    for (const item of found) {
+        const key = `${item.id}:${item.path}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(item);
+    }
+
+    const documentationFound = [];
+    for (const item of unique) {
+        if (seenPaths.has(item.path)) continue;
+        seenPaths.add(item.path);
+        documentationFound.push(item.path);
+    }
+
+    return { artifacts: unique, paths: documentationFound };
+}
+
+function scanAbsenceComplianceGaps(baseDir, complianceDocs, hasHighRisk, severityDefault) {
+    const issues = [];
+    const foundIds = new Set(complianceDocs.artifacts.map((a) => a.id));
+
+    for (const rule of COMPLIANCE_OBLIGATIONS) {
+        if (!rule.isAbsenceRule) continue;
+        if (rule.requiresHighRisk && !hasHighRisk) continue;
+
+        // Map rule to expected artifact IDs
+        const artifactIds = {
+            'EUAI-RM-001': ['risk-register', 'risk-register.md', 'risk-assessment', 'risk-assessment.md'],
+            'EUAI-TI-001': ['instructions-for-use', 'instructions-for-use.md', 'deployer-guide', 'deployer-guide.md'],
+            'EUAI-RAS-001': ['robustness-test', 'robustness-test.md', 'model-evaluation', 'model-evaluation.md'],
+            'EUAI-FRIA-001': ['fria', 'fria.md', 'fundamental-rights-impact-assessment', 'fundamental-rights-impact-assessment.md']
+        };
+
+        const expected = artifactIds[rule.id] || [];
+        const hasArtifact = expected.some((id) => foundIds.has(id));
+
+        if (!hasArtifact) {
+            issues.push({
+                id: `${rule.id}-missing`,
+                severity: rule.severity || severityDefault,
+                type: rule.type,
+                filePath: '(repository-root)',
+                lineNumber: undefined,
+                count: 1,
+                description: rule.description,
+                recommendedAction: rule.fixTemplate,
+                evidence: `Missing artifact for "${rule.id}" (Art. ${rule.article}) — ${rule.description}`,
+                affectedFiles: [],
+                metadata: {
+                    patternId: rule.id,
+                    category: rule.category,
+                    article: rule.article,
+                    isAbsenceRule: true
+                }
+            });
+        }
+    }
+
+    return issues;
 }
 
 module.exports = {
     HIGH_RISK_CATALOG,
     AI_SYSTEM_INDICATORS,
+    COMPLIANCE_OBLIGATIONS,
+    COMPLIANCE_ARTIFACT_NAMES,
+    COMPLIANCE_ARTIFACT_MARKERS,
     DOCUMENTATION_MARKERS,
     DOCUMENTATION_FILE_NAMES,
     detectDocumentationArtifacts,
+    detectComplianceArtifacts,
     scanEuAiActPatterns,
+    scanComplianceObligations,
+    scanAbsenceComplianceGaps,
     hasTransparencyDisclosure,
     hasDocumentedAiInventory,
     filterDocumentedAiInventoryIssues,

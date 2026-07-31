@@ -1,46 +1,72 @@
-# Test Plan: Vulnerability Trend Export Engine
+# Test Plan — Compliance Rule Expansion
 
-## Objective
-Build cross-project PDF audit report builders and CSV bulk log extractors in the dashboard views. Compliance teams get pre-packaged vulnerability trend data (CSV) and printable audit reports (PDF via browser print) without server-side PDF libraries.
+> QA Phase 1 deliverable. No implementation until approved.
+> Spec: `.simplebeacon/qa/compliance-expansion-spec.md`
 
-## Scope
+## Objective check-items
 
-### In Scope
-- **Trend CSV builder**: `buildVulnerabilityTrendCsv(report, history)` in `dashboard-export.browser.js` — aggregates severity counts over scan history into a single CSV with per-scan rows
-- **Audit PDF builder**: `buildAuditPrintableHtml(report, history)` in `dashboard-export.browser.js` — generates a self-contained printable HTML document (opens `window.print()` → Save as PDF)
-- **Bulk issues CSV**: `buildBulkIssuesCsv(reports)` — merges issues from multiple scan reports into one CSV with project column
-- **Vanilla JS ResultsView**: Add "Export Trend CSV" and "Export Audit PDF" buttons to the Actions sidebar
-- **React OrganizationView**: Add "Compliance Exports" card with CSV/PDF export buttons using the active org's scan history
-- **scanService.js**: Add `exportTrendCsv()` and `exportAuditPdf()` methods
+### OWASP LLM Top 10 Scanner (`owasp-llm-patterns.js`)
 
-### Out of Scope
-- Server-side PDF generation (no puppeteer/jspdf dependency — uses browser print-to-PDF)
-- New API endpoints (uses existing report + history data already in `app.state`)
-- Database schema changes
+| # | Check-item | Level | Pass criteria |
+|---|-----------|-------|---------------|
+| 1 | LLM01 Prompt Injection: flags `prompt += req.body.input` | L1 | Finding with ruleId `OWASP-LLM01-001`, severity `high` |
+| 2 | LLM02 Sensitive Info: flags `openai.create({prompt: user.email})` | L1 | Finding with ruleId `OWASP-LLM02-001`, severity `high` |
+| 3 | LLM03 Supply Chain: flags `require('openai')` without version pin | L1 | Finding with ruleId `OWASP-LLM03-001`, severity `medium` |
+| 4 | LLM04 Data Poisoning: flags `fetch('http://scraped-data.json')` | L1 | Finding with ruleId `OWASP-LLM04-001`, severity `medium` |
+| 5 | LLM05 Output Handling: flags `innerHTML = aiResponse` | L1 | Finding with ruleId `OWASP-LLM05-001`, severity `high` |
+| 6 | LLM06 Excessive Agency: flags `exec(aiCommand)` | L1 | Finding with ruleId `OWASP-LLM06-001`, severity `high` |
+| 7 | LLM07 System Prompt Leak: flags `role:'system', content: API_KEY` | L1 | Finding with ruleId `OWASP-LLM07-001`, severity `medium` |
+| 8 | LLM08 Vector/Embedding: flags `embeddings.create({input: userInput})` without auth | L1 | Finding with ruleId `OWASP-LLM08-001`, severity `medium` |
+| 9 | LLM09 Misinformation: flags `return aiResponse` without disclaimer in UI | L1 | Finding with ruleId `OWASP-LLM09-001`, severity `low` |
+| 10 | LLM10 Unbounded Consumption: flags `max_tokens: 999999` | L1 | Finding with ruleId `OWASP-LLM10-001`, severity `high` |
+| 11 | Suppression: `// simplebeacon-ignore owasp-llm` suppresses findings | L1 | 0 findings on suppressed lines |
+| 12 | Skip dirs: node_modules, .git, dist, build are skipped | L1 | 0 findings from skipped dirs |
+| 13 | Clean file: file with no LLM patterns produces 0 findings | L1 | 0 findings |
+| 14 | Syntax check: `node -c owasp-llm-patterns.js` passes | L1 | Exit code 0 |
 
-## Test Matrix
+### EU AI Act Articles 9-27 Extension (`eu-ai-act-patterns.js`)
 
-| ID | Description | Command | Expected | Level |
-|----|-------------|---------|----------|-------|
-| L1-01 | dashboard-export.browser.js syntax | `node -c js-es2018/utils/dashboard-export.browser.js` | Exit 0 | L1 |
-| L1-02 | ResultsView.js syntax | `node -c js-es2018/views/ResultsView.js` | Exit 0 | L1 |
-| L1-03 | scanService.js syntax | `node -c js-es2018/services/scanService.js` | Exit 0 | L1 |
-| L1-04 | OrganizationView.tsx compiles | `cd web/simplebeacon-dashboard && npx tsc --noEmit` | No errors | L1 |
-| L1-05 | Gate scan regression | `npx simplebeacon scan --full --gate` | Gate PASS | L1 |
-| L1-06 | Trend CSV builder output | Node script: call `buildVulnerabilityTrendCsv` with mock report+history | CSV string with header + rows | L1 |
-| L1-07 | Audit HTML builder output | Node script: call `buildAuditPrintableHtml` with mock report | HTML string with `<html>`, `<table>`, `window.print()` | L1 |
-| L1-08 | Bulk issues CSV builder | Node script: call `buildBulkIssuesCsv` with 2 mock reports | CSV with project column | L1 |
-| L2-01 | ResultsView export buttons render | Open dashboard Results view with a loaded report | "Export Trend CSV" and "Export Audit PDF" buttons visible | L2 |
-| L2-02 | Trend CSV download works | Click "Export Trend CSV" button | File downloads as `.csv` with trend data | L2 |
-| L2-03 | Audit PDF print dialog | Click "Export Audit PDF" button | New window opens with printable HTML, print dialog triggers | L2 |
-| L2-04 | OrgView export card renders | Open Organization view with active org | "Compliance Exports" card visible with CSV/PDF buttons | L2 |
+| # | Check-item | Level | Pass criteria |
+|---|-----------|-------|---------------|
+| 15 | Art. 9 Risk Management: flags AI system without risk register artifact | L1 | Finding with ruleId `EUAI-RM-001` |
+| 16 | Art. 10 Data Governance: flags `fetch('http://dataset.json')` without validation | L1 | Finding with ruleId `EUAI-DG-001` |
+| 17 | Art. 12 Record-keeping: flags AI decision route without logging | L1 | Finding with ruleId `EUAI-RK-001` |
+| 18 | Art. 14 Human Oversight: flags `autoApprove()` without override | L1 | Finding with ruleId `EUAI-HO-002` |
+| 19 | Art. 15 Robustness: flags missing model evaluation artifacts | L1 | Finding with ruleId `EUAI-RAS-001` |
+| 20 | Art. 27 FRIA: flags high-risk AI without FRIA (high severity when Annex III detected) | L1 | Finding with ruleId `EUAI-FRIA-001`, severity `high` |
+| 21 | Existing rules still pass: no regressions in EUAI-HR-001 through EUAI-LOG-001 | L1 | All existing tests pass |
+| 22 | Syntax check: `node -c eu-ai-act-patterns.js` passes | L1 | Exit code 0 |
 
-## Files to Modify
+### Integration
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `js-es2018/utils/dashboard-export.browser.js` | Modify | Add `buildVulnerabilityTrendCsv`, `buildAuditPrintableHtml`, `buildBulkIssuesCsv` |
-| `js-es2018/views/ResultsView.js` | Modify | Add export trend CSV + audit PDF buttons and handlers |
-| `js-es2018/services/scanService.js` | Modify | Add `exportTrendCsv()` and `exportAuditPdf()` methods |
-| `src/views/OrganizationView.tsx` | Modify | Add Compliance Exports card with CSV/PDF buttons |
-| `.simplebeacon/qa/test_plan.md` | Update | This file |
+| # | Check-item | Level | Pass criteria |
+|---|-----------|-------|---------------|
+| 23 | scan.js wires `owasp-llm-patterns` into SCANNER_REGISTRY | L1 | Scanner runs when enabled |
+| 24 | Config toggle: `rules.owasp-llm-patterns.enabled: true` enables scanner | L1 | Scanner runs |
+| 25 | Config toggle: `rules.owasp-llm-patterns.enabled: false` disables scanner | L1 | Scanner does not run |
+| 26 | Full gate scan: `npx simplebeacon scan --gate` still passes | L1 | Gate PASS |
+| 27 | Existing test suite: `npm test` in ai-platform still passes | L1 | All suites pass |
+
+## Files, routes, commands
+
+| Type | Path |
+|------|------|
+| New source | `packages/simplebeacon-cli/src/rules/owasp-llm-patterns.js` |
+| Extended source | `packages/simplebeacon-cli/src/rules/eu-ai-act-patterns.js` |
+| Extended source | `packages/simplebeacon-cli/src/scan.js` |
+| New test | `packages/simplebeacon-cli/tests/owasp-llm-patterns.test.js` |
+| New test | `packages/simplebeacon-cli/tests/eu-ai-act-compliance.test.js` |
+| New fixtures | `packages/simplebeacon-cli/tests/fixtures/owasp-llm/*.js` |
+| New fixtures | `packages/simplebeacon-cli/tests/fixtures/eu-ai-act/*.js` |
+| Updated doc | `packages/simplebeacon-cli/docs/RULE-AUTHORING.md` |
+
+## Commands
+
+```powershell
+node -c packages/simplebeacon-cli/src/rules/owasp-llm-patterns.js
+node -c packages/simplebeacon-cli/src/rules/eu-ai-act-patterns.js
+node --test packages/simplebeacon-cli/tests/owasp-llm-patterns.test.js
+node --test packages/simplebeacon-cli/tests/eu-ai-act-compliance.test.js
+cd ai-platform && npm test
+npx simplebeacon scan --gate --format json
+```
