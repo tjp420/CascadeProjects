@@ -10,6 +10,8 @@ on:
     branches: [main]
     paths:
       - 'ai-platform/web/simplebeacon-dashboard/**'
+  schedule:
+    - cron: '0 0 * * *' # nightly at 00:00 UTC
 
 jobs:
   run-e2e-tests:
