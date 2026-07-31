@@ -11,6 +11,7 @@ const complianceExport = require('../lib/compliance-export.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../../src/lib/app-logger.cjs');
 const { processEvent } = require('../lib/alert-dispatcher.cjs');
+const securityMonitor = require('../lib/security-monitor.cjs');
 
 // Wire stream analyzer events to the alert dispatcher
 logStreamAnalyzer.setStreamEventCallback((event) => {
@@ -475,5 +476,33 @@ function csvEscape(value) {
   }
   return v;
 }
+
+// ── GET /api/audit/security/status ──────────────────────────────────────────
+//   Get the current status of the security threat monitor (chain verification
+//   scheduler, guardrail anomaly checker). Returns last run time, results,
+//   and tracked orgs.
+router.get('/security/status', (req, res) => {
+  try {
+    const status = securityMonitor.getStatus();
+    res.json({ success: true, status });
+  } catch (err) {
+    logger.warn('[Audit] security_status_failed:', err.message);
+    sendError(res, 500, 'security_status_failed', { message: err.message });
+  }
+});
+
+// ── POST /api/audit/security/verify ─────────────────────────────────────────
+//   Trigger an immediate chain verification cycle (manual run).
+//   Bypasses the normal 60-second poll interval. Returns the full results
+//   of this verification run, including per-org chain status.
+router.post('/security/verify', async (req, res) => {
+  try {
+    const results = await securityMonitor.runOnce();
+    res.json({ success: true, results });
+  } catch (err) {
+    logger.warn('[Audit] security_verify_failed:', err.message);
+    sendError(res, 500, 'security_verify_failed', { message: err.message });
+  }
+});
 
 module.exports = router;

@@ -13,10 +13,17 @@ const ALERT_COOLDOWN_MS = 15 * 60 * 1000;
 const lastAlertedAt = new Map();
 const lastGuardrailCounts = new Map();
 
+// Status tracking — exposed via API for monitoring
+let lastRunAt = null;
+let lastRunDurationMs = 0;
+let lastResults = null; // { orgsChecked, chainResults: [{ orgId, valid, ... }], guardrailResults: [...] }
+let runCount = 0;
+
 function getKnownOrgIds() {
   const orgIds = new Set();
   try {
-    const auditStore = auditLogger.query({ orgId: '', limit: 1 });
+    // Query with a high limit to discover all orgs that have audit entries
+    const auditStore = auditLogger.query({ orgId: '', limit: 10000 });
     if (auditStore && auditStore.entries) {
       for (const entry of auditStore.entries) {
         if (entry.orgId) orgIds.add(entry.orgId);
@@ -41,80 +48,105 @@ function markAlerted(key) {
   lastAlertedAt.set(key, Date.now());
 }
 
-async function checkAuditChain(orgId) {
-  try {
-    const result = auditLogger.verifyChain(orgId);
-    if (!result.valid) {
-      const alertKey = `audit_chain_broken:${orgId}`;
-      if (!shouldAlert(alertKey)) return;
-
-      logger.warn(
-        `[SecurityMonitor] Audit chain broken for org ${orgId}: ${result.reason}`
-      );
-
-      await processEvent(orgId, 'audit_chain_broken', {
-        severity: 'critical',
-        message: `Audit log integrity failure: ${result.reason}`,
-        data: {
-          orgId,
-          brokenEntryId: result.brokenEntryId,
-          brokenAt: result.brokenAt,
-          verifiedEntries: result.verifiedEntries,
-          totalEntries: result.totalEntries,
-        },
-      });
-
-      markAlerted(alertKey);
-    }
-  } catch (err) {
-    logger.warn(`[SecurityMonitor] Audit chain check failed for ${orgId}:`, err.message);
-  }
-}
-
-async function checkGuardrailAnomalies(orgId) {
-  try {
-    const stats = guardrailIncidentStore.getStats(orgId);
-    const currentBlocked = stats.blockedCount || 0;
-
-    const lastBlocked = lastGuardrailCounts.get(orgId) || 0;
-    const delta = currentBlocked - lastBlocked;
-
-    if (delta >= GUARDRAIL_SPIKE_THRESHOLD) {
-      const alertKey = `guardrail_anomaly_spike:${orgId}`;
-      if (!shouldAlert(alertKey)) return;
-
-      logger.warn(
-        `[SecurityMonitor] Guardrail anomaly spike for org ${orgId}: ${delta} new blocks`
-      );
-
-      await processEvent(orgId, 'guardrail_anomaly_spike', {
-        severity: 'high',
-        message: `Guardrail anomaly spike: ${delta} new blocked incidents detected`,
-        data: {
-          orgId,
-          currentBlocked,
-          previousBlocked: lastBlocked,
-          delta,
-          byVerdict: stats.byVerdict,
-          byMatchType: stats.byMatchType,
-        },
-      });
-
-      markAlerted(alertKey);
-    }
-
-    lastGuardrailCounts.set(orgId, currentBlocked);
-  } catch (err) {
-    logger.warn(`[SecurityMonitor] Guardrail check failed for ${orgId}:`, err.message);
-  }
-}
-
 async function runChecks() {
+  const startTime = Date.now();
   const orgIds = getKnownOrgIds();
+  const chainResults = [];
+  const guardrailResults = [];
+
   for (const orgId of orgIds) {
-    await checkAuditChain(orgId);
-    await checkGuardrailAnomalies(orgId);
+    // Capture chain verification result for status reporting
+    const chainResult = auditLogger.verifyChain(orgId);
+    chainResults.push({ orgId, ...chainResult });
+
+    if (!chainResult.valid) {
+      const alertKey = `audit_chain_broken:${orgId}`;
+      if (shouldAlert(alertKey)) {
+        logger.warn(
+          `[SecurityMonitor] Audit chain broken for org ${orgId}: ${chainResult.reason}`
+        );
+        await processEvent(orgId, 'audit_chain_broken', {
+          severity: 'critical',
+          message: `Audit log integrity failure: ${chainResult.reason}`,
+          data: {
+            orgId,
+            brokenEntryId: chainResult.brokenEntryId,
+            brokenAt: chainResult.brokenAt,
+            verifiedEntries: chainResult.verifiedEntries,
+            totalEntries: chainResult.totalEntries,
+          },
+        });
+        markAlerted(alertKey);
+      }
+    }
+
+    // Guardrail anomaly check
+    try {
+      const stats = guardrailIncidentStore.getStats(orgId);
+      const currentBlocked = stats.blockedCount || 0;
+      const lastBlocked = lastGuardrailCounts.get(orgId) || 0;
+      const delta = currentBlocked - lastBlocked;
+
+      guardrailResults.push({ orgId, currentBlocked, previousBlocked: lastBlocked, delta });
+
+      if (delta >= GUARDRAIL_SPIKE_THRESHOLD) {
+        const alertKey = `guardrail_anomaly_spike:${orgId}`;
+        if (shouldAlert(alertKey)) {
+          logger.warn(
+            `[SecurityMonitor] Guardrail anomaly spike for org ${orgId}: ${delta} new blocks`
+          );
+          await processEvent(orgId, 'guardrail_anomaly_spike', {
+            severity: 'high',
+            message: `Guardrail anomaly spike: ${delta} new blocked incidents detected`,
+            data: {
+              orgId,
+              currentBlocked,
+              previousBlocked: lastBlocked,
+              delta,
+              byVerdict: stats.byVerdict,
+              byMatchType: stats.byMatchType,
+            },
+          });
+          markAlerted(alertKey);
+        }
+      }
+
+      lastGuardrailCounts.set(orgId, currentBlocked);
+    } catch (err) {
+      logger.warn(`[SecurityMonitor] Guardrail check failed for ${orgId}:`, err.message);
+    }
   }
+
+  lastRunAt = new Date().toISOString();
+  lastRunDurationMs = Date.now() - startTime;
+  runCount++;
+  lastResults = { orgsChecked: orgIds.length, chainResults, guardrailResults };
+}
+
+/**
+ * Run a single verification cycle immediately (manual trigger).
+ * Bypasses the alert cooldown so manual checks always fire alerts.
+ * @returns {Promise<object>} — the lastResults from this run
+ */
+async function runOnce() {
+  await runChecks();
+  return lastResults;
+}
+
+/**
+ * Get the current status of the security monitor.
+ * @returns {object}
+ */
+function getStatus() {
+  return {
+    running: intervalId !== null,
+    pollIntervalMs: POLL_INTERVAL_MS,
+    lastRunAt,
+    lastRunDurationMs,
+    runCount,
+    orgsTracked: lastResults ? lastResults.orgsChecked : 0,
+    lastResults,
+  };
 }
 
 let intervalId = null;
@@ -134,4 +166,4 @@ function stop() {
   }
 }
 
-module.exports = { start, stop, runChecks };
+module.exports = { start, stop, runChecks, runOnce, getStatus };
