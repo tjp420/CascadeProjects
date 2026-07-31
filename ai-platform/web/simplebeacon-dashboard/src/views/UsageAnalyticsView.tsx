@@ -12,7 +12,7 @@ import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
   ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X, Clock, Send, Settings,
-  ShieldCheck, ScrollText, FlaskConical, ShieldAlert,
+  ShieldCheck, ScrollText, FlaskConical, ShieldAlert, Bell,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -211,6 +211,12 @@ export function UsageAnalyticsView() {
   const [guardrailFilter, setGuardrailFilter] = useState('');
   const [guardrailTestText, setGuardrailTestText] = useState('');
   const [guardrailTestResult, setGuardrailTestResult] = useState<any>(null);
+  const [alertRules, setAlertRules] = useState<any[]>([]);
+  const [alertIncidents, setAlertIncidents] = useState<any[]>([]);
+  const [alertStats, setAlertStats] = useState<any>(null);
+  const [alertFilter, setAlertFilter] = useState('');
+  const [showAlertRuleModal, setShowAlertRuleModal] = useState(false);
+  const [alertRuleForm, setAlertRuleForm] = useState({ id: '', name: '', eventType: 'critical_finding', destinationType: 'webhook', webhookUrl: '', enabled: true, cooldownMinutes: 0, severityFilter: 'all' });
   const [scheduleForm, setScheduleForm] = useState({
     id: '', name: '', enabled: true, frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
     dayOfWeek: 1, dayOfMonth: 1, hour: 8, minute: 0, format: 'csv' as 'csv' | 'json',
@@ -813,6 +819,76 @@ export function UsageAnalyticsView() {
       }
     } catch { toast.error('Failed to test prompt'); }
   }, [guardrailTestText]);
+
+  // ── Real-time Alerting ────────────────────────────────────────────────────
+  const fetchAlertRules = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/alerts/rules'), { headers: authHeaders() });
+      if (resp.ok) { const data = await resp.json(); setAlertRules(data.rules || []); }
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchAlertIncidents = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', '100');
+      if (alertFilter) params.set('status', alertFilter);
+      const resp = await fetch(apiUrl(`/alerts/incidents?${params}`), { headers: authHeaders() });
+      if (resp.ok) { const data = await resp.json(); setAlertIncidents(data.incidents || []); }
+    } catch { /* silent */ }
+  }, [alertFilter]);
+
+  const fetchAlertStats = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/alerts/stats'), { headers: authHeaders() });
+      if (resp.ok) { const data = await resp.json(); setAlertStats(data.stats); }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchAlertRules(); fetchAlertStats(); }, [fetchAlertRules, fetchAlertStats]);
+  useEffect(() => { fetchAlertIncidents(); }, [fetchAlertIncidents]);
+
+  const saveAlertRule = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/alerts/rules'), {
+        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(alertRuleForm),
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        toast.success(`Alert rule "${alertRuleForm.name}" saved`);
+        setShowAlertRuleModal(false);
+        fetchAlertRules();
+        setAlertRuleForm({ id: '', name: '', eventType: 'critical_finding', destinationType: 'webhook', webhookUrl: '', enabled: true, cooldownMinutes: 0, severityFilter: 'all' });
+      } else {
+        toast.error(data.error || 'Failed to save rule');
+      }
+    } catch { toast.error('Failed to save alert rule'); }
+  }, [alertRuleForm, fetchAlertRules]);
+
+  const deleteAlertRule = useCallback(async (ruleId: string) => {
+    try {
+      const resp = await fetch(apiUrl(`/alerts/rules/${ruleId}`), { method: 'DELETE', headers: authHeaders() });
+      if (resp.ok) { toast.success('Alert rule deleted'); fetchAlertRules(); }
+    } catch { toast.error('Failed to delete rule'); }
+  }, [fetchAlertRules]);
+
+  const testAlertRule = useCallback(async (ruleId: string) => {
+    try {
+      const resp = await fetch(apiUrl('/alerts/test'), {
+        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ruleId }),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.delivery) {
+        if (data.delivery.status === 'delivered') toast.success(`Test alert delivered (HTTP ${data.delivery.responseStatus})`);
+        else toast.error(`Test alert failed: ${data.delivery.error}`);
+        fetchAlertIncidents();
+      } else {
+        toast.error(data.error || 'Test failed');
+      }
+    } catch { toast.error('Failed to test alert rule'); }
+  }, [fetchAlertIncidents]);
 
   const exportLedger = useCallback(async (format: 'csv' | 'json') => {
     try {
@@ -2515,6 +2591,191 @@ export function UsageAnalyticsView() {
           )}
         </CardContent>
       </Card>
+
+      {/* Real-time Alerting & Webhooks Panel */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bell className="h-4 w-4" /> Real-time Alerting & Webhooks
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Configure push-based alert rules that fire webhooks on critical findings, SLA breaches, gate failures, and guardrail blocks. Includes retry logic, HMAC payload signing, and delivery tracking.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Stats Summary */}
+          {alertStats && (
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Total Rules</div>
+                <div className="text-lg font-bold">{alertStats.totalRules}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Enabled</div>
+                <div className="text-lg font-bold text-green-600">{alertStats.enabledRules}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Delivered</div>
+                <div className="text-lg font-bold text-green-600">{alertStats.deliveredCount}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Failed</div>
+                <div className="text-lg font-bold text-red-600">{alertStats.failedCount}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Rule Management */}
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setShowAlertRuleModal(true)}>
+              <Settings className="h-3 w-3" /> New Alert Rule
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => { fetchAlertRules(); fetchAlertIncidents(); fetchAlertStats(); }}>
+              <RefreshCw className="h-3 w-3" /> Refresh
+            </Button>
+          </div>
+
+          {/* Alert Rules List */}
+          {alertRules.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Configured Rules</span>
+              <div className="space-y-1">
+                {alertRules.map((rule, i) => (
+                  <div key={rule.id || i} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded hover:bg-muted/30 border-l-2"
+                    style={{ borderColor: rule.enabled ? '#3b82f6' : '#9ca3af' }}>
+                    <Badge variant={rule.enabled ? 'default' : 'secondary'} className="text-[10px] shrink-0">{rule.enabled ? 'ON' : 'OFF'}</Badge>
+                    <span className="font-medium truncate flex-1">{rule.name}</span>
+                    <Badge variant="outline" className="text-[9px] shrink-0">{rule.eventType.replace(/_/g, ' ')}</Badge>
+                    <Badge variant="outline" className="text-[9px] shrink-0">{rule.destinationType}</Badge>
+                    <span className="text-[10px] text-muted-foreground shrink-0">Fired: {rule.fireCount || 0}</span>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => testAlertRule(rule.id)}>Test</Button>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-red-600" onClick={() => deleteAlertRule(rule.id)}>Delete</Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Incident Filter */}
+          <div className="flex items-center gap-2">
+            <select
+              value={alertFilter}
+              onChange={(e) => setAlertFilter(e.target.value)}
+              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+            >
+              <option value="">All Statuses</option>
+              <option value="delivered">Delivered</option>
+              <option value="failed">Failed</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+
+          {/* Delivery Incident Timeline */}
+          {alertIncidents.length > 0 ? (
+            <div className="max-h-64 overflow-y-auto space-y-1">
+              {alertIncidents.map((inc, i) => (
+                <div key={inc.id || i} className="flex items-start gap-3 p-2 rounded hover:bg-muted/30 border-l-2"
+                  style={{ borderColor: inc.status === 'delivered' ? '#22c55e' : inc.status === 'failed' ? '#ef4444' : '#f59e0b' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Badge variant={inc.status === 'delivered' ? 'default' : inc.status === 'failed' ? 'destructive' : 'secondary'} className="text-[10px] shrink-0">
+                        {inc.status}
+                      </Badge>
+                      <span className="text-muted-foreground truncate">{inc.ruleName}</span>
+                      <Badge variant="outline" className="text-[9px]">{inc.eventType?.replace(/_/g, ' ')}</Badge>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {inc.error ? `Error: ${inc.error}` : `HTTP ${inc.responseStatus} (${inc.attempts} attempts, ${inc.durationMs}ms)`}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[10px] text-muted-foreground">{new Date(inc.timestamp).toLocaleString()}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-sm text-muted-foreground">No alert incidents recorded</div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Alert Rule Modal */}
+      {showAlertRuleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowAlertRuleModal(false)}>
+          <div className="bg-background rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold">New Alert Rule</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowAlertRuleModal(false)}><X className="h-4 w-4" /></Button>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div>
+                <label className="text-muted-foreground">Rule ID</label>
+                <input value={alertRuleForm.id} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, id: e.target.value })}
+                  placeholder="e.g. critical-webhook" className="w-full h-8 rounded-md border border-input bg-transparent px-2" />
+              </div>
+              <div>
+                <label className="text-muted-foreground">Rule Name</label>
+                <input value={alertRuleForm.name} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, name: e.target.value })}
+                  placeholder="e.g. Critical Findings → Slack" className="w-full h-8 rounded-md border border-input bg-transparent px-2" />
+              </div>
+              <div>
+                <label className="text-muted-foreground">Event Type</label>
+                <select value={alertRuleForm.eventType} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, eventType: e.target.value })}
+                  className="w-full h-8 rounded-md border border-input bg-transparent px-2">
+                  <option value="critical_finding">Critical Finding</option>
+                  <option value="sla_breached">SLA Breached</option>
+                  <option value="gate_failed">Gate Failed</option>
+                  <option value="guardrail_blocked">Guardrail Blocked</option>
+                  <option value="audit_delete">Audit Delete</option>
+                  <option value="eval_failure">Eval Failure</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-muted-foreground">Destination Type</label>
+                <select value={alertRuleForm.destinationType} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, destinationType: e.target.value })}
+                  className="w-full h-8 rounded-md border border-input bg-transparent px-2">
+                  <option value="webhook">Webhook</option>
+                  <option value="slack">Slack</option>
+                  <option value="email">Email</option>
+                  <option value="pagerduty">PagerDuty</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-muted-foreground">Webhook URL</label>
+                <input value={alertRuleForm.webhookUrl} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, webhookUrl: e.target.value })}
+                  placeholder="https://hooks.slack.com/services/..." className="w-full h-8 rounded-md border border-input bg-transparent px-2" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-muted-foreground">Cooldown (min)</label>
+                  <input type="number" value={alertRuleForm.cooldownMinutes} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, cooldownMinutes: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full h-8 rounded-md border border-input bg-transparent px-2" />
+                </div>
+                <div>
+                  <label className="text-muted-foreground">Severity Filter</label>
+                  <select value={alertRuleForm.severityFilter} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, severityFilter: e.target.value })}
+                    className="w-full h-8 rounded-md border border-input bg-transparent px-2">
+                    <option value="all">All</option>
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+              </div>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={alertRuleForm.enabled} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, enabled: e.target.checked })} />
+                <span>Enabled</span>
+              </label>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowAlertRuleModal(false)}>Cancel</Button>
+              <Button size="sm" onClick={saveAlertRule} disabled={!alertRuleForm.id || !alertRuleForm.name || !alertRuleForm.webhookUrl}>Save Rule</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -45,6 +45,7 @@ const webhookConfigStore = require('../lib/webhook-config-store.cjs');
 const reportScheduleStore = require('../lib/report-schedule-store.cjs');
 const reportScheduler = require('../lib/report-scheduler.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
+const { processEvent: triggerAlert } = require('../lib/alert-dispatcher.cjs');
 const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
 
 reportScheduler.setAnalyticsStore(analyticsStore);
@@ -1259,6 +1260,25 @@ router.post('/record', (req, res) => {
       commitSha,
       triggeredBy,
     });
+
+    // Fire alerts for critical findings
+    const criticalCount = summary.severityCounts?.critical || summary.critical || 0;
+    if (criticalCount > 0) {
+      triggerAlert(orgId, 'critical_finding', {
+        severity: 'critical',
+        message: `${criticalCount} critical finding(s) detected in ${repository || 'scan'}`,
+        data: { repository, branch, commitSha, criticalCount, scanId: entry.scanId },
+      }).catch(() => {});
+    }
+
+    // Fire alerts for SLA breaches (if gate failed)
+    if (gateStatus === 'failed') {
+      triggerAlert(orgId, 'sla_breached', {
+        severity: 'high',
+        message: `Deployment gate failed for ${repository || 'scan'} — SLA breach detected`,
+        data: { repository, branch, commitSha, gateStatus, scanId: entry.scanId },
+      }).catch(() => {});
+    }
 
     res.status(201).json({ success: true, scanId: entry.scanId, postureScore: entry.postureScore });
   } catch (err) {

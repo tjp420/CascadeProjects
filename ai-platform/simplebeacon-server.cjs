@@ -1289,6 +1289,15 @@ async function startServer() {
     logger.error('[Routes] AI guardrails not loaded:', err?.message || err);
   }
 
+  // Real-time alerting — webhook dispatch & incident tracking
+  try {
+    const alertRoutes = require('./server/routes/alert-routes.cjs');
+    app.use('/api/alerts', alertRoutes);
+    logger.info('[Routes] Alerting loaded at /api/alerts');
+  } catch (err) {
+    logger.error('[Routes] Alerting not loaded:', err?.message || err);
+  }
+
   // Whitelabel partner branding — custom logos, colors, domains
   try {
     const whitelabelRoutes = require('./server/routes/whitelabel-routes.cjs');

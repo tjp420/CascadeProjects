@@ -6,6 +6,7 @@ const ruleStore = require('../lib/alert-rule-store.cjs');
 const incidentStore = require('../lib/alert-incident-store.cjs');
 const { processEvent, deliverAlert, buildPayload } = require('../lib/alert-dispatcher.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
+const logger = require('../lib/app-logger.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
@@ -139,6 +140,8 @@ router.post('/test', async (req, res) => {
       error: delivery.error,
       durationMs: delivery.durationMs,
     });
+
+    ruleStore.updateFireStats(rule.id, orgId);
 
     res.json({ success: true, delivery, incident });
   } catch (err) {
