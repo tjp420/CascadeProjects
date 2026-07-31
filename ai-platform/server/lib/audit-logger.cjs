@@ -8,6 +8,7 @@ const { getPolicy, getArchivePath } = require('./audit-policy-store.cjs');
 const logStreamAnalyzer = require('./log-stream-analyzer.cjs');
 const analyticsCacheManager = require('./analytics-cache-manager.cjs');
 const ledgerIndexEngine = require('./ledger-index-engine.cjs');
+const piiPolicyStore = require('./pii-policy-store.cjs');
 
 // Register bootstrap function so the cache manager can hydrate from the audit log
 analyticsCacheManager.setBootstrapFunction(async (orgId, entryCallback) => {
@@ -156,6 +157,13 @@ function log(params) {
 
   writeStore(store);
 
+  // Incrementally index the new entry for fast lookups
+  try {
+    ledgerIndexEngine.indexAuditEntry(key, entry);
+  } catch {
+    // Index errors must never block audit logging
+  }
+
   // Non-blocking stream analysis ingestion + analytics cache update
   setImmediate(() => {
     try {
@@ -196,6 +204,24 @@ function log(params) {
 function query(filters) {
   const store = readStore();
   const orgId = filters.orgId || 'default';
+
+  // Try indexed query first for faster lookups
+  try {
+    const indexedKeys = ledgerIndexEngine.queryAuditKeys(filters);
+    if (indexedKeys !== null && indexedKeys.length >= 0) {
+      const limit = Math.min(filters.limit || 100, 500);
+      const offset = Math.max(filters.offset || 0, 0);
+      const entries = indexedKeys
+        .map((key) => store.entries[key])
+        .filter(Boolean)
+        .slice(offset, offset + limit);
+      return { entries, total: indexedKeys.length, limit, offset };
+    }
+  } catch {
+    // Fall through to full scan
+  }
+
+  // Fallback: full scan (original implementation)
   let entries = Object.values(store.entries).filter((e) => e.orgId === orgId);
 
   if (filters.action) entries = entries.filter((e) => e.action === filters.action);
