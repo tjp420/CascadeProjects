@@ -27,10 +27,9 @@ const constants = require('./config/constants.cjs');
 
 // Prefer v1-internal env when present (mirrors simplebeacon-server.cjs)
 const v1InternalEnvPath = path.join(__dirname, '..', '.env.v1-internal');
-const envPath = process.env.DOTENV_CONFIG_PATH
-  || (fs.existsSync(v1InternalEnvPath)
-    ? v1InternalEnvPath
-    : path.join(__dirname, '..', '.env'));
+const envPath =
+  process.env.DOTENV_CONFIG_PATH ||
+  (fs.existsSync(v1InternalEnvPath) ? v1InternalEnvPath : path.join(__dirname, '..', '.env'));
 if (fs.existsSync(envPath)) {
   require('dotenv').config({ path: envPath });
 }
@@ -40,26 +39,26 @@ const { resolveCorsOptions } = require('./lib/cors-config.cjs');
 const { appendContactSubmission } = require('./lib/contact-submissions-store.cjs');
 
 // Import enhanced security middleware
-const { 
-  createRateLimiter, 
-  securityHeaders, 
-  requestLogger, 
-  ipProtection, 
-  securityErrorHandler 
+const {
+  createRateLimiter,
+  securityHeaders,
+  requestLogger,
+  ipProtection,
+  securityErrorHandler,
 } = require('./middleware/security.cjs');
-const { 
+const {
   authenticate,
   optionalAuthenticate,
-  handleLogin, 
-  handleTokenRefresh
+  handleLogin,
+  handleTokenRefresh,
 } = require('./middleware/auth.cjs');
-const { 
-  initializeAudit, 
-  auditAIOperation, 
+const {
+  initializeAudit,
+  auditAIOperation,
   auditSecurity,
   auditDataAccess,
   logSystemEvent,
-  logSecurityEvent
+  logSecurityEvent,
 } = require('./middleware/audit.cjs');
 
 // Import upload routes and security
@@ -80,7 +79,7 @@ const setupExternalWeatherAPI = require('./routes/external-weather-api.cjs');
 const setupOracleSearch = require('./routes/oracle-search.cjs');
 const {
   setupSimplebeaconBillingWebhook,
-  setupSimplebeaconBillingRoutes
+  setupSimplebeaconBillingRoutes,
 } = require('../src/api/simplebeacon-billing-api.cjs');
 const { setupEnterpriseOnboardingRoutes } = require('../src/api/enterprise-onboarding.cjs');
 const pathHealthRouter = require('./api/metrics/path-health.cjs');
@@ -91,7 +90,11 @@ const { setupPrIntegrationAPI } = require('./routes/pr-integration-api.cjs');
 const fixOrchestratorRouter = require('./routes/fix-orchestrator-api.cjs');
 const ssoRoutes = require('./routes/sso-routes.cjs');
 const ssoConfigRoutes = require('./routes/sso-config-routes.cjs');
-const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
+const {
+  setupWorkspaceRoutes,
+  requirePermission,
+  setWorkspaceRlsContext,
+} = require('./lib/rbac.cjs');
 const auditLogRouter = require('./routes/audit.cjs');
 const authRoutes = require('./routes/auth-routes.cjs');
 const DatabaseAdapter = require('./lib/database-adapter.cjs');
@@ -100,11 +103,14 @@ const { whitelabelMiddleware, buildBrandInjection } = require('./lib/whitelabel-
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy hop for rate-limit IP accuracy
 let rawPort = process.env.PORT || constants.DEFAULT_PORT;
-let PORT = Number.isFinite(Number(rawPort)) && Number(rawPort) > 0 ? Number(rawPort) : constants.DEFAULT_PORT;
+let PORT =
+  Number.isFinite(Number(rawPort)) && Number(rawPort) > 0
+    ? Number(rawPort)
+    : constants.DEFAULT_PORT;
 
 // Initialize audit system (skip in test to avoid open handles)
 if (process.env.NODE_ENV !== 'test') {
-  initializeAudit().catch(err => logger.error('Audit init failed:', err));
+  initializeAudit().catch((err) => logger.error('Audit init failed:', err));
 }
 
 // HTTPS redirect for production — respect health checks and local development
@@ -133,15 +139,21 @@ app.use(ipProtection);
 
 // Rate limiting with trust-level awareness
 // Base rate limit for general API routes (raised for dashboard dev mode)
-app.use('/api/', createRateLimiter({
-  max: constants.MAX_RATE_LIMIT // Base rate limit — dashboard fires many concurrent requests on load
-}));
+app.use(
+  '/api/',
+  createRateLimiter({
+    max: constants.MAX_RATE_LIMIT, // Base rate limit — dashboard fires many concurrent requests on load
+  })
+);
 
 // Higher rate limit for analyze endpoints (complete scan makes sequential requests)
-app.use('/api/analyze/', createRateLimiter({
-  windowMs: constants.RATE_LIMIT_WINDOW_MS,
-  max: constants.MAX_ANALYZE_RATE_LIMIT // Allow up to 1000 requests per 15 minutes for scan operations
-}));
+app.use(
+  '/api/analyze/',
+  createRateLimiter({
+    windowMs: constants.RATE_LIMIT_WINDOW_MS,
+    max: constants.MAX_ANALYZE_RATE_LIMIT, // Allow up to 1000 requests per 15 minutes for scan operations
+  })
+);
 
 // Handle Private Network Access (PNA) preflight from browsers.
 // When a secure page attempts to fetch a loopback address, browsers send
@@ -178,14 +190,21 @@ app.options('/*', (req, res) => {
   const origin = req.headers.origin || '*';
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,X-Token-Password,Access-Control-Request-Private-Network');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'Content-Type,Accept,Authorization,X-Token-Password,Access-Control-Request-Private-Network'
+  );
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   return res.sendStatus(204);
 });
 
-app.use(cors(resolveCorsOptions({
-  devFallbackOrigin: process.env.CORS_ORIGIN || process.env.SIMPLEBEACON_DEV_CORS_ORIGIN
-})));
+app.use(
+  cors(
+    resolveCorsOptions({
+      devFallbackOrigin: process.env.CORS_ORIGIN || process.env.SIMPLEBEACON_DEV_CORS_ORIGIN,
+    })
+  )
+);
 
 // Ensure local analyze backend (dev ports) are permitted by CSP connect-src.
 // This middleware augments any existing Content-Security-Policy header by
@@ -297,14 +316,20 @@ function sendDemoReport(res) {
 }
 
 // Refuse to start internal dashboard without a vault password in non-dev environments
-if (internalDashboard && !process.env.DASHBOARD_VAULT_PASSWORD && process.env.NODE_ENV !== 'development') {
-  throw new Error('DASHBOARD_VAULT_PASSWORD is required when SIMPLEBEACON_INTERNAL_DASHBOARD=true in non-development environments');
+if (
+  internalDashboard &&
+  !process.env.DASHBOARD_VAULT_PASSWORD &&
+  process.env.NODE_ENV !== 'development'
+) {
+  throw new Error(
+    'DASHBOARD_VAULT_PASSWORD is required when SIMPLEBEACON_INTERNAL_DASHBOARD=true in non-development environments'
+  );
 }
 
 const {
   isVaultAuthenticated: checkVaultAuthenticated,
   isProtectedDashboardPath,
-  setVaultSessionCookie
+  setVaultSessionCookie,
 } = require('./lib/dashboard-vault-auth.cjs');
 
 /**
@@ -315,7 +340,7 @@ const {
 function isVaultAuthenticated(req) {
   return checkVaultAuthenticated(req, {
     internalDashboard: internalDashboard || Boolean(process.env.DASHBOARD_VAULT_PASSWORD),
-    vaultPassword: process.env.DASHBOARD_VAULT_PASSWORD
+    vaultPassword: process.env.DASHBOARD_VAULT_PASSWORD,
   });
 }
 
@@ -409,7 +434,7 @@ const VAULT_AUTH_EXACT_PATHS = new Set([
   '/api/reports/upload',
   '/api/analyze',
   '/api/free-token',
-  '/api/tokens/sandbox'
+  '/api/tokens/sandbox',
 ]);
 
 const VAULT_AUTH_PREFIX_PATHS = [
@@ -436,7 +461,7 @@ const VAULT_AUTH_PREFIX_PATHS = [
   '/api/analyze/',
   '/api/find-folder',
   '/api/operator/',
-  '/api/reports/status/'
+  '/api/reports/status/',
 ];
 
 app.use((req, res, next) => {
@@ -450,7 +475,7 @@ app.use((req, res, next) => {
   if (isVaultAuthenticated(req)) return next();
   return res.status(403).json({
     error: 'vault_required',
-    message: 'Internal dashboard requires vault authentication.'
+    message: 'Internal dashboard requires vault authentication.',
   });
 });
 
@@ -465,40 +490,60 @@ if (process.env.SIMPLEBEACON_DEV_STUBS === 'true') {
     if (parts.length !== 3) return res.status(400).json({ registered: false, valid: false });
     try {
       const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-      const pad = payloadB64.length % 4; const padded = payloadB64 + (pad ? '='.repeat(4 - pad) : '');
+      const pad = payloadB64.length % 4;
+      const padded = payloadB64 + (pad ? '='.repeat(4 - pad) : '');
       const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
       const now = Math.floor(Date.now() / 1000);
       const exp = payload.exp || 0;
-      return res.json({ registered: true, valid: exp > now, email: payload.email || null, tier: payload.tier || 'dev', expiry: exp || null });
+      return res.json({
+        registered: true,
+        valid: exp > now,
+        email: payload.email || null,
+        tier: payload.tier || 'dev',
+        expiry: exp || null,
+      });
     } catch (err) {
       return res.status(400).json({ registered: false, valid: false });
     }
   });
 
   // Also allow token check via Authorization header
-  app.post('/api/auth/session', (req, res, next) => {
-    const auth = req.get('authorization') || '';
-    const m = auth.match(/^Bearer\s+(.*)$/i);
-    if (!m) return res.status(401).json({ error: 'Authorization required' });
-    req.body = req.body || {};
-    req.body.token = m[1];
-    return next();
-  }, express.json(), (req, res) => {
-    const { token } = req.body || {};
-    if (!token) return res.status(400).json({ error: 'Token required' });
-    const parts = String(token).split('.');
-    if (parts.length !== 3) return res.status(400).json({ registered: false, valid: false });
-    try {
-      const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-      const pad = payloadB64.length % 4; const padded = payloadB64 + (pad ? '='.repeat(4 - pad) : '');
-      const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
-      const now = Math.floor(Date.now() / 1000);
-      const exp = payload.exp || 0;
-      return res.json({ success: true, registered: true, valid: exp > now, email: payload.email || null, tier: payload.tier || 'dev', expiry: exp || null });
-    } catch (err) {
-      return res.status(400).json({ registered: false, valid: false });
+  app.post(
+    '/api/auth/session',
+    (req, res, next) => {
+      const auth = req.get('authorization') || '';
+      const m = auth.match(/^Bearer\s+(.*)$/i);
+      if (!m) return res.status(401).json({ error: 'Authorization required' });
+      req.body = req.body || {};
+      req.body.token = m[1];
+      return next();
+    },
+    express.json(),
+    (req, res) => {
+      const { token } = req.body || {};
+      if (!token) return res.status(400).json({ error: 'Token required' });
+      const parts = String(token).split('.');
+      if (parts.length !== 3) return res.status(400).json({ registered: false, valid: false });
+      try {
+        const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const pad = payloadB64.length % 4;
+        const padded = payloadB64 + (pad ? '='.repeat(4 - pad) : '');
+        const payload = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
+        const now = Math.floor(Date.now() / 1000);
+        const exp = payload.exp || 0;
+        return res.json({
+          success: true,
+          registered: true,
+          valid: exp > now,
+          email: payload.email || null,
+          tier: payload.tier || 'dev',
+          expiry: exp || null,
+        });
+      } catch (err) {
+        return res.status(400).json({ registered: false, valid: false });
+      }
     }
-  });
+  );
 }
 
 app.use((req, res, next) => {
@@ -523,7 +568,9 @@ app.get('/private-dashboard-vault', async (req, res) => {
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
       return res.sendFile(samplePath);
     } catch {
-      return res.status(404).send('sample-report.html not found — run: cd ai-platform && npm run build:sample-report');
+      return res
+        .status(404)
+        .send('sample-report.html not found — run: cd ai-platform && npm run build:sample-report');
     }
   } catch (err) {
     logger.error('[private-dashboard-vault] error:', err.message);
@@ -533,25 +580,31 @@ app.get('/private-dashboard-vault', async (req, res) => {
 
 // Public dashboard route (standalone coming-soon/public/dashboard copy)
 // Injects runtime env so it can reach the ai-platform server proxy regardless of the serving port.
-app.get(['/public/dashboard', '/public/dashboard/', '/public/dashboard/index.html'], async (req, res) => {
-  const indexPath = path.join(landingRoot, 'dashboard', 'index.html');
-  let html;
-  try {
-    html = await fs.promises.readFile(indexPath, 'utf8');
-  } catch {
-    return res.status(404).send('index.html not found');
+app.get(
+  ['/public/dashboard', '/public/dashboard/', '/public/dashboard/index.html'],
+  async (req, res) => {
+    const indexPath = path.join(landingRoot, 'dashboard', 'index.html');
+    let html;
+    try {
+      html = await fs.promises.readFile(indexPath, 'utf8');
+    } catch {
+      return res.status(404).send('index.html not found');
+    }
+
+    const runtimeConfig = JSON.stringify({
+      DASHBOARD_BASE_URL:
+        process.env.DASHBOARD_BASE_URL ||
+        `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
+      OLLAMA_DEFAULT_URL:
+        process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`,
+    });
+    const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
+    html = html.replace('<head>', `<head>${injectScript}`);
+
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
+    res.send(html);
   }
-
-  const runtimeConfig = JSON.stringify({
-    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
-    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`
-  });
-  const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
-  html = html.replace('<head>', `<head>${injectScript}`);
-
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
-  res.send(html);
-});
+);
 
 // Storefront static assets — serve marketing site from landing root (coming-soon/public/)
 app.use('/', express.static(landingRoot, { index: false }));
@@ -560,7 +613,10 @@ app.use('/', express.static(landingRoot, { index: false }));
 app.use((req, res, next) => {
   const ext = path.extname(req.path).toLowerCase();
   if (ext === '.html' || ext === '.js' || ext === '.mjs' || ext === '.cjs') {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, no-transform');
+    res.setHeader(
+      'Cache-Control',
+      'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, no-transform'
+    );
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
   }
@@ -570,17 +626,21 @@ app.use((req, res, next) => {
 // Dashboard-specific asset routes (serve from web/simplebeacon-dashboard/)
 const dashDir = path.join(webRoot, 'simplebeacon-dashboard');
 // JS module directories — disable etag to prevent Firefox from reusing stale cached versions
-const noStoreStatic = (dir) => express.static(dir, {
-  etag: false,
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js') || path.endsWith('.mjs')) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, no-transform');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      res.setHeader('Vary', '*');
-    }
-  }
-});
+const noStoreStatic = (dir) =>
+  express.static(dir, {
+    etag: false,
+    setHeaders: (res, path) => {
+      if (path.endsWith('.js') || path.endsWith('.mjs')) {
+        res.setHeader(
+          'Cache-Control',
+          'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, no-transform'
+        );
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Vary', '*');
+      }
+    },
+  });
 
 app.use('/js-es2018', noStoreStatic(path.join(dashDir, 'js-es2018')));
 app.use('/js', noStoreStatic(path.join(dashDir, 'js')));
@@ -603,11 +663,21 @@ const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
   ? path.join(landingRoot, 'dashboard')
   : null;
 if (dashboardFallbackDir) {
-  for (const p of ['/dashboard/css', '/dashboard/js', '/dashboard/js-es2018', '/dashboard/images', '/dashboard/fonts', '/dashboard/assets']) {
+  for (const p of [
+    '/dashboard/css',
+    '/dashboard/js',
+    '/dashboard/js-es2018',
+    '/dashboard/images',
+    '/dashboard/fonts',
+    '/dashboard/assets',
+  ]) {
     const sub = p.replace('/dashboard/', '');
     app.use(p, express.static(path.join(dashboardFallbackDir, sub), { fallthrough: false }));
   }
-  app.use('/dashboard/site-config.js', express.static(path.join(dashboardFallbackDir, 'site-config.js'), { fallthrough: false }));
+  app.use(
+    '/dashboard/site-config.js',
+    express.static(path.join(dashboardFallbackDir, 'site-config.js'), { fallthrough: false })
+  );
 }
 
 // Fallback: serve landing assets from root for pages served under /coming-soon/
@@ -778,21 +848,33 @@ async function sendDashboardWithRuntimeConfig(req, res) {
     return res.status(404).send('index.html not found');
   }
   const runtimeConfig = JSON.stringify({
-    DASHBOARD_BASE_URL: process.env.DASHBOARD_BASE_URL || `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
-    OLLAMA_DEFAULT_URL: process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}` // simplebeacon-ignore hardcoded-url — default Ollama localhost URL for client-side settings
+    DASHBOARD_BASE_URL:
+      process.env.DASHBOARD_BASE_URL ||
+      `${req.protocol}://${req.get('host') || 'localhost:' + PORT}`,
+    OLLAMA_DEFAULT_URL:
+      process.env.OLLAMA_DEFAULT_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`, // simplebeacon-ignore hardcoded-url — default Ollama localhost URL for client-side settings
   });
   const injectScript = `<script>window.__SIMPLEBEACON_ENV__=${runtimeConfig};</script>`;
   // Inject whitelabel brand config + CSS (resolved by whitelabel-middleware)
-  const brandInjection = buildBrandInjection(req.brand, req.whitelabelPartner ? req.whitelabelPartner.partnerId : null);
+  const brandInjection = buildBrandInjection(
+    req.brand,
+    req.whitelabelPartner ? req.whitelabelPartner.partnerId : null
+  );
   // Inject after <head> (or after <base href> if already present from loadDashboardHtml)
-  html = html.replace(/<head>(\s*<base href="[^"]*">)?/, `<head>$1${injectScript}\n${brandInjection}`);
+  html = html.replace(
+    /<head>(\s*<base href="[^"]*">)?/,
+    `<head>$1${injectScript}\n${brandInjection}`
+  );
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, no-transform');
   return res.send(html);
 }
 
-app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'], async (req, res) => {
-  return sendDashboardWithRuntimeConfig(req, res);
-});
+app.get(
+  ['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-dashboard/index.html'],
+  async (req, res) => {
+    return sendDashboardWithRuntimeConfig(req, res);
+  }
+);
 
 // SPA fallback for dashboard sub-routes (e.g. /simplebeacon-dashboard/analyze)
 app.get('/simplebeacon-dashboard/*', async (req, res) => {
@@ -844,6 +926,12 @@ app.use('/api', require('./routes/auth-inline-routes.cjs'));
 // License token routes (validation, registration, sandbox) — extracted from auth-inline-routes
 app.use('/api', require('./routes/license-routes.cjs'));
 
+// Real-time alerting — webhook dispatch & incident tracking
+app.use('/api/alerts', require('./routes/alert-routes.cjs'));
+
+// AI guardrails — prompt firewall incidents and test endpoint
+app.use('/api/guardrails', require('./routes/guardrail-routes.cjs'));
+
 // Token authentication routes (TAS-1.0 flat capability mesh)
 app.use('/auth', tokenAuthRoutes);
 
@@ -862,12 +950,13 @@ app.post('/api/security/npm-audit', async (req, res) => {
       success: true,
       ...npmAudit,
       projectPath: platformRoot,
-      auditRoot: platformRoot
+      auditRoot: platformRoot,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: (error && typeof error.message === 'string') ? error.message : constants.safeString(error)
+      error:
+        error && typeof error.message === 'string' ? error.message : constants.safeString(error),
     });
   }
 });
@@ -875,16 +964,16 @@ app.post('/api/security/npm-audit', async (req, res) => {
 // Flexible analyze API — codebase scan and inventory (shared path-safety with simplebeacon-server)
 // Proxy legacy bare POST /api/analyze to the flexible analysis endpoint.
 app.use((req, res, next) => {
-    if (req.method === 'POST' && req.path === '/api/analyze') {
-        req.url = '/api/analyze/flexible';
-    }
-    next();
+  if (req.method === 'POST' && req.path === '/api/analyze') {
+    req.url = '/api/analyze/flexible';
+  }
+  next();
 });
 
 const platformRoot = path.join(__dirname, '..');
 setupFlexibleAnalyzeAPI(app, {
-    baseDir: platformRoot,
-    monorepoRoot: path.join(platformRoot, '..')
+  baseDir: platformRoot,
+  monorepoRoot: path.join(platformRoot, '..'),
 });
 
 // AI Math Audit route — deterministic model-log analysis
@@ -892,25 +981,28 @@ setupAiMathAuditRoute(app, platformRoot);
 
 // Pricing config endpoint — serves Stripe URLs from environment variables
 app.get('/api/config/pricing', (_req, res) => {
-    res.json({
-        success: true,
-        pricing: {
-            instant: {
-                stripeLink: process.env.STRIPE_LINK_INSTANT || 'https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07'
-            },
-            executive: {
-                stripeLink: process.env.STRIPE_LINK_EXECUTIVE || 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05'
-            },
-            euSprint: {
-                stripeLink: process.env.STRIPE_LINK_EU_SPRINT || 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06'
-            }
-        }
-    });
+  res.json({
+    success: true,
+    pricing: {
+      instant: {
+        stripeLink:
+          process.env.STRIPE_LINK_INSTANT || 'https://buy.stripe.com/4gM28q83ZavR50P2GqeEo07',
+      },
+      executive: {
+        stripeLink:
+          process.env.STRIPE_LINK_EXECUTIVE || 'https://buy.stripe.com/00w5kCbgb47t78X1CmeEo05',
+      },
+      euSprint: {
+        stripeLink:
+          process.env.STRIPE_LINK_EU_SPRINT || 'https://buy.stripe.com/fZu28qesn6fB1ODftceEo06',
+      },
+    },
+  });
 });
 
 // Theme endpoint for the dashboard to poll the server-side default theme.
 app.get('/api/theme', (_req, res) => {
-    res.json({ theme: process.env.DEFAULT_THEME || 'dark' });
+  res.json({ theme: process.env.DEFAULT_THEME || 'dark' });
 });
 
 // Chatbot API — AI-powered code assistance
@@ -993,7 +1085,11 @@ setupWebAuthnAPI(app);
 setupAdminAPI(app, { platformRoot: path.join(__dirname, '..') });
 
 // Per-user AI provider keys (OpenAI, Anthropic, Ollama) — encrypted at rest
-const { getUserAiKeysPublic, saveUserAiKeys, clearUserAiKeys } = require('./lib/user-ai-keys-store.cjs');
+const {
+  getUserAiKeysPublic,
+  saveUserAiKeys,
+  clearUserAiKeys,
+} = require('./lib/user-ai-keys-store.cjs');
 app.get('/api/user/ai-keys', authenticate, async (req, res) => {
   try {
     const email = req.user?.email || '';
@@ -1025,27 +1121,31 @@ app.delete('/api/user/ai-keys', authenticate, async (req, res) => {
 
 // Stub endpoints for dashboard client features not available in local dev
 // Note: /api/chatbot/providers is handled by setupChatbotAPI using actual provider credentials.
-app.get('/api/prompts/get', (_req, res) => res.json({ prompts: [], userId: _req.query.userId || 'anonymous' }));
-app.get('/data/re-attestation-metadata.json', (_req, res) => res.json({ attestations: [], generatedAt: new Date().toISOString() }));
+app.get('/api/prompts/get', (_req, res) =>
+  res.json({ prompts: [], userId: _req.query.userId || 'anonymous' })
+);
+app.get('/data/re-attestation-metadata.json', (_req, res) =>
+  res.json({ attestations: [], generatedAt: new Date().toISOString() })
+);
 
 // Local models API — Ollama and local model management
 setupLocalModelsAPI(app, {
-    baseDir: platformRoot
+  baseDir: platformRoot,
 });
 
 // Workspace API — multi-tenant with RLS transaction guardrails
 // Only mount if database is configured; otherwise skip gracefully
 const { isDatabaseEnabled, getDatabaseConfig } = require('./config/database.cjs');
 if (isDatabaseEnabled()) {
-    try {
-        const dbAdapter = new DatabaseAdapter(getDatabaseConfig());
-        app.use('/api/workspaces', authenticate, setupWorkspaceRoutes(dbAdapter));
-        logger.info('[Workspaces] RLS workspace routes mounted at /api/workspaces');
-    } catch (e) {
-        logger.warn('[Workspaces] Database not configured — workspace routes skipped:', e.message);
-    }
+  try {
+    const dbAdapter = new DatabaseAdapter(getDatabaseConfig());
+    app.use('/api/workspaces', authenticate, setupWorkspaceRoutes(dbAdapter));
+    logger.info('[Workspaces] RLS workspace routes mounted at /api/workspaces');
+  } catch (e) {
+    logger.warn('[Workspaces] Database not configured — workspace routes skipped:', e.message);
+  }
 } else {
-    logger.info('[Workspaces] Database disabled — workspace routes not mounted');
+  logger.info('[Workspaces] Database disabled — workspace routes not mounted');
 }
 
 // FixOrchestrator 2.0 — auto-remediation preview / apply
@@ -1075,10 +1175,17 @@ fixStrategiesRouter.get('/strategies', (_req, res) => {
   res.json({ success: true, strategies: strategyMap });
 });
 app.use('/api/v2/fixes', authenticate, fixStrategiesRouter);
-app.use('/api/v2/fixes', authenticate, requirePermission('remediation:write'), (req, res, next) => {
+app.use(
+  '/api/v2/fixes',
+  authenticate,
+  requirePermission('remediation:write'),
+  (req, res, next) => {
     if (fixoDbAdapter) req.db = fixoDbAdapter;
     next();
-}, setWorkspaceRlsContext, fixOrchestratorRouter);
+  },
+  setWorkspaceRlsContext,
+  fixOrchestratorRouter
+);
 logger.info('[FixOrchestrator] RLS-scoped routes mounted at /api/v2/fixes');
 
 // Backward-compatible archive download endpoint used by dashboard bundles.
@@ -1089,8 +1196,10 @@ app.get('/api/v2/archive/download', (req, res) => {
     if (!name) return res.status(400).json({ success: false, error: 'Missing name' });
     const archiveDir = path.join(__dirname, '..', '.simplebeacon', 'archive');
     const filePath = path.join(archiveDir, path.basename(String(name)));
-    if (!filePath.startsWith(archiveDir)) return res.status(403).json({ success: false, error: 'Invalid path' });
-    if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, error: 'Not found' });
+    if (!filePath.startsWith(archiveDir))
+      return res.status(403).json({ success: false, error: 'Invalid path' });
+    if (!fs.existsSync(filePath))
+      return res.status(404).json({ success: false, error: 'Not found' });
     return res.sendFile(filePath);
   } catch (err) {
     logger.error('[Archive] download failed: ' + err.message);
@@ -1101,9 +1210,9 @@ app.get('/api/v2/archive/download', (req, res) => {
 // Authenticate vault sessions for user routes so req.user is populated
 app.use('/api/simplebeacon/user', authenticate);
 try {
-    setupSimplebeaconAPI(app);
+  setupSimplebeaconAPI(app);
 } catch (e) {
-    logger.warn('[Simplebeacon] simplebeacon-api setup skipped:', e.message);
+  logger.warn('[Simplebeacon] simplebeacon-api setup skipped:', e.message);
 }
 
 // Audit log retrieval API — paginated, strict memory limits (default LIMIT 50, max 200)
@@ -1131,25 +1240,31 @@ try {
 
 // Dashboard stub APIs — dashboard-home, dev-tools, coverage-reports, security, quality, help
 try {
-    setupDashboardStubAPIs(app, webRoot, { authMiddleware: optionalAuthenticate });
+  setupDashboardStubAPIs(app, webRoot, { authMiddleware: optionalAuthenticate });
 } catch (e) {
-    logger.warn('[Simplebeacon] dashboard-stub-api setup skipped:', e.message);
+  logger.warn('[Simplebeacon] dashboard-stub-api setup skipped:', e.message);
 }
 
 // Optimization API
 try {
-    require('../src/api/optimization-api.cjs').setupOptimizationAPI(app, { platformRoot: path.join(__dirname, '..'), monorepoRoot: path.join(__dirname, '../..') });
+  require('../src/api/optimization-api.cjs').setupOptimizationAPI(app, {
+    platformRoot: path.join(__dirname, '..'),
+    monorepoRoot: path.join(__dirname, '../..'),
+  });
 } catch (e) {
-    logger.warn('[Simplebeacon] optimization-api setup skipped:', e.message);
+  logger.warn('[Simplebeacon] optimization-api setup skipped:', e.message);
 }
 
 // Trust verification API
 // Public trust endpoints served without auth for badge/verify/verification
 // Gate-protected endpoints require authenticate middleware
 try {
-    setupTrustAPI(app, { platformRoot: path.join(__dirname, '..'), monorepoRoot: path.join(__dirname, '../..') });
+  setupTrustAPI(app, {
+    platformRoot: path.join(__dirname, '..'),
+    monorepoRoot: path.join(__dirname, '../..'),
+  });
 } catch (e) {
-    logger.warn('[Simplebeacon] trust-api setup skipped:', e.message);
+  logger.warn('[Simplebeacon] trust-api setup skipped:', e.message);
 }
 
 // External integrations (dev-friendly) — weather lookup
@@ -1171,55 +1286,55 @@ try {
 
 // EU AI Act sprint route
 try {
-    registerEuAiActSprintRoute(app, { projectRoot: path.join(__dirname, '..') });
+  registerEuAiActSprintRoute(app, { projectRoot: path.join(__dirname, '..') });
 } catch (e) {
-    logger.warn('[Simplebeacon] EU AI Act sprint route setup skipped:', e.message);
+  logger.warn('[Simplebeacon] EU AI Act sprint route setup skipped:', e.message);
 }
 
 // Simplebeacon billing — checkout, subscription status, license tokens
 try {
-    setupSimplebeaconBillingRoutes(app);
+  setupSimplebeaconBillingRoutes(app);
 } catch (e) {
-    logger.warn('[Simplebeacon] billing routes setup skipped:', e.message);
+  logger.warn('[Simplebeacon] billing routes setup skipped:', e.message);
 }
 
 // Enterprise onboarding — organization provisioning, seat management, Azure DevOps integration
 try {
-    setupEnterpriseOnboardingRoutes(app);
+  setupEnterpriseOnboardingRoutes(app);
 } catch (e) {
-    logger.warn('[Enterprise] onboarding routes setup skipped:', e.message);
+  logger.warn('[Enterprise] onboarding routes setup skipped:', e.message);
 }
 
 // Public compliance schema endpoint — no auth, no project access, no code upload
 try {
-    registerComplianceSchemaRoute(app);
+  registerComplianceSchemaRoute(app);
 } catch (e) {
-    logger.warn('[Simplebeacon] Compliance schema route setup skipped:', e.message);
+  logger.warn('[Simplebeacon] Compliance schema route setup skipped:', e.message);
 }
 
 // PR integration API — secure GitHub Action report ingestion
 try {
-    setupPrIntegrationAPI(app);
+  setupPrIntegrationAPI(app);
 } catch (e) {
-    logger.warn('[Simplebeacon] PR integration API setup skipped:', e.message);
+  logger.warn('[Simplebeacon] PR integration API setup skipped:', e.message);
 }
 
 // Free token routes — community/sandbox token generation from coming-soon
 try {
-    const freeTokenRouter = require('../../coming-soon/dist/routes/free-token.cjs');
-    app.use(freeTokenRouter);
+  const freeTokenRouter = require('../../coming-soon/dist/routes/free-token.cjs');
+  app.use(freeTokenRouter);
 } catch {
-    try {
-        const freeTokenRoutes = require('../../coming-soon/routes/free-token.cjs');
-        app.use(freeTokenRoutes);
-    } catch (e) {
-        logger.warn('[FreeToken] free-token routes not loaded');
-    }
+  try {
+    const freeTokenRoutes = require('../../coming-soon/routes/free-token.cjs');
+    app.use(freeTokenRoutes);
+  } catch (e) {
+    logger.warn('[FreeToken] free-token routes not loaded');
+  }
 }
 
 // Health probe endpoint (used by browser integrations)
 app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Agent routes — AI execution status
@@ -1230,10 +1345,10 @@ app.use('/api/metrics/path-health', pathHealthRouter);
 
 // Custom prompt service (user-defined analysis prompts)
 try {
-    const promptService = require('./services/prompt-service.cjs');
-    app.use('/api/prompts', promptService);
+  const promptService = require('./services/prompt-service.cjs');
+  app.use('/api/prompts', promptService);
 } catch (e) {
-    logger.warn('[PromptService] prompt-service routes not loaded');
+  logger.warn('[PromptService] prompt-service routes not loaded');
 }
 
 // Upload API disabled — source code never leaves your machine per privacy promise.
@@ -1247,13 +1362,16 @@ app.use('/api', require('./routes/ai-context-routes.cjs'));
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));
 
 // Static file serving for JavaScript files
-app.use('/src', express.static(path.join(__dirname, '../src'), {
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.js')) {
-      res.setHeader('Content-Type', 'application/javascript');
-    }
-  }
-}));
+app.use(
+  '/src',
+  express.static(path.join(__dirname, '../src'), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
+    },
+  })
+);
 
 // Enhanced error handling with security
 app.use(securityErrorHandler);
@@ -1263,47 +1381,70 @@ app.use((err, req, res, _next) => {
   logger.error(stack);
 
   // Log security-related errors
-  const status = (err && typeof err.status === 'number' && Number.isFinite(err.status)) ? err.status : 500;
+  const status =
+    err && typeof err.status === 'number' && Number.isFinite(err.status) ? err.status : 500;
   if (status >= 400) {
-    logSecurityEvent('application_error', {
-      error: err && typeof err.message === 'string' ? err.message : safeErr,
-      stack,
-      url: req.originalUrl,
-      method: req.method,
-      userId: req.user?.id
-    }, req.user, req);
+    logSecurityEvent(
+      'application_error',
+      {
+        error: err && typeof err.message === 'string' ? err.message : safeErr,
+        stack,
+        url: req.originalUrl,
+        method: req.method,
+        userId: req.user?.id,
+      },
+      req.user,
+      req
+    );
   }
 
   res.status(status).json({
     error: 'Something went wrong!',
-    message: process.env.NODE_ENV === 'development' ? (err && typeof err.message === 'string' ? err.message : safeErr) : 'Internal server error',
-    requestId: req.requestId || req.id || 'unknown'
+    message:
+      process.env.NODE_ENV === 'development'
+        ? err && typeof err.message === 'string'
+          ? err.message
+          : safeErr
+        : 'Internal server error',
+    requestId: req.requestId || req.id || 'unknown',
   });
 });
 
 // Diagnostic: simple POST echo to verify POST routing and auth behavior
 app.post('/api/_diagnostic/report-upload-test', express.json(), (req, res) => {
-  res.json({ success: true, received: true, bodyPreview: (req.body && typeof req.body === 'object') ? Object.keys(req.body).slice(0,5) : null });
+  res.json({
+    success: true,
+    received: true,
+    bodyPreview:
+      req.body && typeof req.body === 'object' ? Object.keys(req.body).slice(0, 5) : null,
+  });
 });
 
 // 404 handler with audit logging
 app.use('*', (req, res) => {
-  logSecurityEvent('route_not_found', {
-    url: req.originalUrl,
-    method: req.method
-  }, req.user, req);
-  
+  logSecurityEvent(
+    'route_not_found',
+    {
+      url: req.originalUrl,
+      method: req.method,
+    },
+    req.user,
+    req
+  );
+
   res.status(404).json({
     error: 'Route not found',
     message: `Cannot ${req.method} ${req.originalUrl}`,
-    requestId: req.requestId || req.id || 'unknown'
+    requestId: req.requestId || req.id || 'unknown',
   });
 });
 
 const { createStartupManager } = require('./lib/server-startup.cjs');
 const startup = createStartupManager({ app, logger, logSystemEvent, constants });
 if (process.env.NODE_ENV !== 'test') {
-  startup.startServer(Number(PORT), constants.MAX_RETRIES, (port) => { PORT = port; });
+  startup.startServer(Number(PORT), constants.MAX_RETRIES, (port) => {
+    PORT = port;
+  });
 }
 
 module.exports = app;

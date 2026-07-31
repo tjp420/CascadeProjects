@@ -15,6 +15,7 @@
 
 const { analyzePrompt } = require('../lib/prompt-firewall.cjs');
 const incidentStore = require('../lib/guardrail-incident-store.cjs');
+const { processEvent: triggerAlert } = require('../lib/alert-dispatcher.cjs');
 
 /**
  * Extract prompt text from common request body shapes.
@@ -31,7 +32,7 @@ function extractPrompt(body) {
 
   // Model eval run shape (inline tests)
   if (Array.isArray(body.tests)) {
-    const combined = body.tests.map(t => t.prompt || '').join('\n---\n');
+    const combined = body.tests.map((t) => t.prompt || '').join('\n---\n');
     return { text: combined, provider: body.provider || '' };
   }
 
@@ -42,7 +43,7 @@ function extractPrompt(body) {
 
   // Messages array (OpenAI-style)
   if (Array.isArray(body.messages)) {
-    const userMessages = body.messages.filter(m => m.role === 'user').map(m => m.content || '');
+    const userMessages = body.messages.filter((m) => m.role === 'user').map((m) => m.content || '');
     if (userMessages.length > 0) {
       return { text: userMessages.join('\n'), provider: body.provider || '' };
     }
@@ -92,15 +93,34 @@ function promptFirewall(options = {}) {
           originalText: extracted.text,
           scrubbedText: result.text,
         });
-      } catch { /* silent — don't block request on logging failure */ }
+      } catch {
+        /* silent — don't block request on logging failure */
+      }
     }
 
     if (result.verdict === 'block') {
+      // Fire guardrail_blocked alert for downstream webhook delivery
+      triggerAlert(orgId, 'guardrail_blocked', {
+        severity: 'high',
+        message: `Prompt blocked by guardrail: ${result.summary}`,
+        data: {
+          endpoint: req.originalUrl,
+          provider: extracted.provider,
+          matchCount: result.matches.length,
+        },
+      }).catch(() => {
+        /* silent — don't block request on alert failure */
+      });
       return res.status(403).json({
         success: false,
         error: 'guardrail_blocked',
         message: result.summary,
-        matches: result.matches.map(m => ({ type: m.type, id: m.id, severity: m.severity, desc: m.desc })),
+        matches: result.matches.map((m) => ({
+          type: m.type,
+          id: m.id,
+          severity: m.severity,
+          desc: m.desc,
+        })),
       });
     }
 

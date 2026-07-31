@@ -46,17 +46,58 @@ router.get('/rules/:id', (req, res) => {
 router.post('/rules', (req, res) => {
   try {
     const orgId = getOrgId(req);
-    const { id, name, eventType, destinationType, webhookUrl, destination, enabled, threshold, cooldownMinutes, severityFilter } = req.body || {};
+    const {
+      id,
+      name,
+      eventType,
+      destinationType,
+      webhookUrl,
+      destination,
+      enabled,
+      threshold,
+      cooldownMinutes,
+      severityFilter,
+    } = req.body || {};
     if (!id) return sendError(res, 400, 'id is required');
     if (!name) return sendError(res, 400, 'name is required');
     if (!eventType) return sendError(res, 400, 'eventType is required');
-    if (!ruleStore.EVENT_TYPES.includes(eventType)) return sendError(res, 400, `eventType must be one of: ${ruleStore.EVENT_TYPES.join(', ')}`);
+    if (!ruleStore.EVENT_TYPES.includes(eventType))
+      return sendError(res, 400, `eventType must be one of: ${ruleStore.EVENT_TYPES.join(', ')}`);
     if (!destinationType) return sendError(res, 400, 'destinationType is required');
-    if (!ruleStore.DESTINATION_TYPES.includes(destinationType)) return sendError(res, 400, `destinationType must be one of: ${ruleStore.DESTINATION_TYPES.join(', ')}`);
-    if (destinationType === 'webhook' && !webhookUrl) return sendError(res, 400, 'webhookUrl is required for webhook destination');
+    if (!ruleStore.DESTINATION_TYPES.includes(destinationType))
+      return sendError(
+        res,
+        400,
+        `destinationType must be one of: ${ruleStore.DESTINATION_TYPES.join(', ')}`
+      );
+    if (destinationType === 'webhook' && !webhookUrl)
+      return sendError(res, 400, 'webhookUrl is required for webhook destination');
 
-    const rule = ruleStore.setRule(id, { name, eventType, destinationType, webhookUrl, destination, enabled, threshold, cooldownMinutes, severityFilter }, orgId);
-    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'CREATE', entity: 'alert_rule', entityId: id, newValue: rule, metadata: { route: req.originalUrl } });
+    const rule = ruleStore.setRule(
+      id,
+      {
+        name,
+        eventType,
+        destinationType,
+        webhookUrl,
+        destination,
+        enabled,
+        threshold,
+        cooldownMinutes,
+        severityFilter,
+      },
+      orgId
+    );
+    auditLogger.log({
+      orgId,
+      actorId: req.user?.id,
+      actorEmail: req.user?.email,
+      action: 'CREATE',
+      entity: 'alert_rule',
+      entityId: id,
+      newValue: rule,
+      metadata: { route: req.originalUrl },
+    });
     res.json({ success: true, rule });
   } catch (err) {
     logger.warn('[Alerts] rule_save_failed failed:', err.message);
@@ -70,7 +111,16 @@ router.delete('/rules/:id', (req, res) => {
     const orgId = getOrgId(req);
     const oldRule = ruleStore.getRule(req.params.id, orgId);
     ruleStore.deleteRule(req.params.id, orgId);
-    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'DELETE', entity: 'alert_rule', entityId: req.params.id, oldValue: oldRule, metadata: { route: req.originalUrl } });
+    auditLogger.log({
+      orgId,
+      actorId: req.user?.id,
+      actorEmail: req.user?.email,
+      action: 'DELETE',
+      entity: 'alert_rule',
+      entityId: req.params.id,
+      oldValue: oldRule,
+      metadata: { route: req.originalUrl },
+    });
     res.json({ success: true, deleted: req.params.id });
   } catch (err) {
     logger.warn('[Alerts] rule_delete_failed failed:', err.message);
@@ -104,7 +154,14 @@ router.get('/stats', (req, res) => {
     const orgId = getOrgId(req);
     const stats = incidentStore.getStats(orgId);
     const rules = ruleStore.getAllRules(orgId);
-    res.json({ success: true, stats: { ...stats, totalRules: rules.length, enabledRules: rules.filter(r => r.enabled).length } });
+    res.json({
+      success: true,
+      stats: {
+        ...stats,
+        totalRules: rules.length,
+        enabledRules: rules.filter((r) => r.enabled).length,
+      },
+    });
   } catch (err) {
     logger.warn('[Alerts] alert_stats_failed failed:', err.message);
     sendError(res, 500, 'alert_stats_failed', { message: err.message });
@@ -122,7 +179,15 @@ router.post('/test', async (req, res) => {
     const rule = ruleStore.getRule(ruleId, orgId);
     if (!rule) return sendError(res, 404, 'rule_not_found');
 
-    const payload = buildPayload('test', { message: `Test alert for rule: ${rule.name}`, severity: 'info', data: { triggeredBy: req.user?.email } }, orgId);
+    const payload = buildPayload(
+      'test',
+      {
+        message: `Test alert for rule: ${rule.name}`,
+        severity: 'info',
+        data: { triggeredBy: req.user?.email },
+      },
+      orgId
+    );
     const delivery = await deliverAlert(rule, payload);
 
     const incident = incidentStore.recordIncident({
@@ -157,7 +222,8 @@ router.post('/trigger', async (req, res) => {
     const orgId = getOrgId(req);
     const { eventType, severity, message, data } = req.body || {};
     if (!eventType) return sendError(res, 400, 'eventType is required');
-    if (!ruleStore.EVENT_TYPES.includes(eventType)) return sendError(res, 400, `eventType must be one of: ${ruleStore.EVENT_TYPES.join(', ')}`);
+    if (!ruleStore.EVENT_TYPES.includes(eventType))
+      return sendError(res, 400, `eventType must be one of: ${ruleStore.EVENT_TYPES.join(', ')}`);
 
     const result = await processEvent(orgId, eventType, { severity, message, data });
     res.json({ success: true, ...result });
@@ -169,7 +235,11 @@ router.post('/trigger', async (req, res) => {
 
 // ── GET /api/alerts/event-types ─────────────────────────────────────────────
 router.get('/event-types', (req, res) => {
-  res.json({ success: true, eventTypes: ruleStore.EVENT_TYPES, destinationTypes: ruleStore.DESTINATION_TYPES });
+  res.json({
+    success: true,
+    eventTypes: ruleStore.EVENT_TYPES,
+    destinationTypes: ruleStore.DESTINATION_TYPES,
+  });
 });
 
 module.exports = router;

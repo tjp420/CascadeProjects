@@ -5,6 +5,7 @@ const { authenticate } = require('../middleware/auth.cjs');
 const incidentStore = require('../lib/guardrail-incident-store.cjs');
 const { analyzePrompt } = require('../lib/prompt-firewall.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
+const logger = require('../lib/app-logger.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();

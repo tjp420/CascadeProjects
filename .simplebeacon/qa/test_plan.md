@@ -1,65 +1,58 @@
-# Test Plan: Phase 5 — Error Logging Standardization
+# Test Plan: Alerting System Completion
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Add logger calls to catch blocks that send error responses without logging.
+**Feature:** Complete the alerting system — fix critical logger bug, mount routes, wire up missing event triggers.
 
 ## Context
 
-The audit found 46 catch blocks across 9 route files that call `sendError()` to send an error response to the client but do NOT log the error server-side. This makes debugging production issues impossible — the client sees an error but the server has no record of what went wrong.
+The alerting system is 80% built. The backend core (dispatcher, rule store, incident store, routes) is complete. The frontend UI in `UsageAnalyticsView.tsx` is complete. However:
 
-## Changes
+- `alert-routes.cjs` had a critical bug: used `logger.warn()` in 8 catch blocks without importing `logger`
+- `model-eval-routes.cjs` had the same missing logger import (from Phase 5)
+- Alert routes were not mounted in `index.cjs` (alternate entry point)
+- `guardrail_blocked` event was defined but never triggered
+- `eval_failure` event was defined but never triggered
 
-For each silent catch block, add a `logger.warn(...)` or `logger.error(...)` call before the `sendError(...)` call. The pattern to follow:
+## Changes (4 files, 0 new)
 
-```javascript
-// Before (silent):
-} catch (err) {
-  return sendError(res, 500, 'operation_failed', { message: err.message });
-}
-
-// After (logged):
-} catch (err) {
-  logger.warn('[ModuleName] operation failed:', err.message);
-  return sendError(res, 500, 'operation_failed', { message: err.message });
-}
-```
-
-## Files to Change (9 files, 46 catch blocks)
-
-| File | Silent Catches | Has Logger Import? |
-|------|---------------|-------------------|
-| model-eval-routes.cjs | 9 | yes |
-| alert-routes.cjs | 8 | TBD |
-| demo-simplebeacon-api.cjs | 8 | NO — need to add |
-| whitelabel-routes.cjs | 8 | yes |
-| deployment-gate-routes.cjs | 4 | yes |
-| audit-routes.cjs | 3 | yes |
-| guardrail-routes.cjs | 3 | TBD |
-| sso-config-routes.cjs | 2 | yes |
-| ai-context-routes.cjs | 1 | yes |
+| File                                    | Change                                                     |
+| --------------------------------------- | ---------------------------------------------------------- |
+| `server/routes/alert-routes.cjs`        | Add missing `logger` import (hotfix)                       |
+| `server/routes/model-eval-routes.cjs`   | Add missing `logger` import + `eval_failure` alert trigger |
+| `server/middleware/prompt-firewall.cjs` | Add `guardrail_blocked` alert trigger on block verdict     |
+| `server/index.cjs`                      | Mount alert-routes and guardrail-routes                    |
 
 ## Objective Check-Items
 
 ### Level 1 — Deterministic
 
-| # | Item | Expected |
-|---|------|----------|
-| L1.1 | `node -c` on all 9 changed files | exit 0 |
-| L1.2 | `npx simplebeacon scan --gate` | PASS (exit 0) |
-| L1.3 | WebSocket integration test | 16/16 pass |
+| #    | Item                                       | Expected       |
+| ---- | ------------------------------------------ | -------------- |
+| L1.1 | `node -c` on all 4 changed files           | exit 0         |
+| L1.2 | `npx simplebeacon scan --gate`             | PASS (exit 0)  |
+| L1.3 | WebSocket integration test                 | 16/16 pass     |
+| L1.4 | Alert integration test (`test-alerts.cjs`) | All tests pass |
 
 ### Level 2 — Behavioral
 
-| # | Item | Expected |
-|---|------|----------|
-| L2.1 | Error responses still work correctly | Same status codes and response bodies |
-| L2.2 | Server logs now contain error details | logger.warn/error calls visible in server output |
+| #    | Item                                                       | Expected                                           |
+| ---- | ---------------------------------------------------------- | -------------------------------------------------- |
+| L2.1 | `GET /api/alerts/rules` returns 200 with rules array       | `{ success: true, rules: [] }`                     |
+| L2.2 | `GET /api/alerts/event-types` returns 200 with event types | `{ success: true, eventTypes: [...] }`             |
+| L2.3 | `POST /api/alerts/rules` creates a rule                    | `{ success: true, rule: {...} }`                   |
+| L2.4 | `POST /api/alerts/trigger` dispatches event                | `{ success: true, dispatched: N, results: [...] }` |
+| L2.5 | `GET /api/alerts/incidents` returns incidents              | `{ success: true, incidents: [...] }`              |
+| L2.6 | `GET /api/alerts/stats` returns stats                      | `{ success: true, stats: {...} }`                  |
+| L2.7 | `DELETE /api/alerts/rules/:id` deletes rule                | `{ success: true, deleted: "..." }`                |
+| L2.8 | Guardrail block triggers `guardrail_blocked` alert         | Alert incident recorded                            |
+| L2.9 | Model eval failure triggers `eval_failure` alert           | Alert incident recorded                            |
 
 ### Level 3 — Self-review / drift
 
-| # | Item | Expected |
-|---|------|----------|
-| L3.1 | No response format changes | sendError calls unchanged |
-| L3.2 | No new files created | Only edits to existing files |
-| L3.3 | No new dependencies | Uses existing logger module |
+| #    | Item                            | Expected                                                |
+| ---- | ------------------------------- | ------------------------------------------------------- |
+| L3.1 | No new files created            | Only edits to existing files                            |
+| L3.2 | No response format changes      | Existing endpoints unchanged                            |
+| L3.3 | No mount path conflicts         | `/api/alerts` and `/api/guardrails` not already mounted |
+| L3.4 | Alert triggers are non-blocking | `.catch(() => {})` on all trigger calls                 |
