@@ -1,8 +1,8 @@
-# Test Plan — HSM Vault Provider Mock Implementation
+# Test Plan — Zero-Downtime Master Key Rotation Daemon
 
 **Date:** 2026-01-30
 **Branch:** feat/agentic-orchestration
-**Feature:** Software-simulated HSM provider for key derivation
+**Feature:** Key rotation store with grace-window fallback and re-keying migration
 
 ---
 
@@ -12,29 +12,34 @@
 
 | # | Check | Level | File/Route |
 |---|-------|-------|------------|
-| 1 | `deriveOrgKeyViaHsm(orgId)` returns a 32-byte Buffer | L1 | `hsm-vault.cjs` |
-| 2 | Same orgId yields deterministic key across calls | L2 | `hsm-vault.cjs` |
-| 3 | Different orgIds yield unique keys (no cross-tenant collision) | L2 | `hsm-vault.cjs` |
-| 4 | `deriveKey(orgId, context)` generic method works with context string | L1 | `hsm-vault.cjs` |
-| 5 | Different contexts yield different keys for same orgId | L2 | `hsm-vault.cjs` |
-| 6 | `HSM_PROVIDER=mock` routes `deriveOrgKey()` through HSM module | L1 | `crypto-utils.cjs` integration |
-| 7 | HSM-derived key differs from local fallback key (different root seed) | L2 | `crypto-utils.cjs` integration |
+| 1 | `key-rotation-store.cjs` loads without error | L1 | `key-rotation-store.cjs` |
+| 2 | `getActiveKeyBuffer()` returns a 32-byte Buffer | L1 | `key-rotation-store.cjs` |
+| 3 | `getDecryptionKeys()` returns array of `{ keyHex }` objects | L1 | `key-rotation-store.cjs` |
+| 4 | `rotateKey(newKey)` transitions active→previous, sets rotatedAt | L2 | `key-rotation-store.cjs` |
+| 5 | After rotation, `getDecryptionKeys()` includes the previous key | L2 | `key-rotation-store.cjs` |
+| 6 | Grace window: previous key remains in decryption set within window | L2 | `key-rotation-store.cjs` |
+| 7 | Grace window expiry: previous key removed from decryption set | L2 | `key-rotation-store.cjs` |
+| 8 | `decrypt()` falls back to previous key after rotation (continuous decryption) | L2 | `crypto-utils.cjs` integration |
+| 9 | `refreshActiveKey()` updates ENCRYPTION_KEY from rotation store | L2 | `crypto-utils.cjs` integration |
+| 10 | Re-keying migration: re-encrypts data from old key to new key | L2 | `key-rotation-store.cjs` |
 
 ### Edge Cases
 
 | # | Check | Level | File/Route |
 |---|-------|-------|------------|
-| 8 | Throws TypeError for empty/null/non-string orgId | L1 | `hsm-vault.cjs` |
-| 9 | Default context used when context is null/undefined | L2 | `hsm-vault.cjs` |
-| 10 | HSM unavailable (require fails) → crypto-utils falls back to local key | L1 | `crypto-utils.cjs` |
-| 11 | HSM throws → crypto-utils catches and falls back to local key | L2 | `crypto-utils.cjs` |
+| 11 | `rotateKey()` rejects empty/null key with TypeError | L1 | `key-rotation-store.cjs` |
+| 12 | `rotateKey()` rejects short keys (<32 chars) | L1 | `key-rotation-store.cjs` |
+| 13 | Multiple rotations: only active + previous kept (not N-1) | L2 | `key-rotation-store.cjs` |
+| 14 | `getRotationStatus()` returns correct metadata | L2 | `key-rotation-store.cjs` |
+| 15 | Re-keying migration skips already-migrated data | L2 | `key-rotation-store.cjs` |
 
 ### Security
 
 | # | Check | Level | File/Route |
 |---|-------|-------|------------|
-| 12 | HSM root key is not exposed via module exports | L2 | `hsm-vault.cjs` |
-| 13 | HSM-derived keys can be used for encrypt/decrypt round-trip | L2 | `crypto-utils.cjs` integration |
+| 16 | Rotated key material not logged or exposed in plaintext | L2 | `key-rotation-store.cjs` |
+| 17 | `verifyChain()` still passes after key rotation | L2 | `audit-logger.cjs` integration |
+| 18 | Encrypted quarantine files remain readable after rotation | L2 | `audit-logger.cjs` integration |
 
 ---
 
@@ -42,14 +47,14 @@
 
 | File | Action |
 |------|--------|
-| `ai-platform/server/lib/hsm-vault.cjs` | NEW — HSM mock provider |
-| `ai-platform/server/lib/__tests__/hsm-vault.test.cjs` | NEW — test suite |
+| `ai-platform/server/lib/key-rotation-store.cjs` | NEW — rotation store + daemon |
+| `ai-platform/server/lib/__tests__/key-rotation-store.test.cjs` | NEW — test suite |
 | `.github/workflows/security-regression-tests.yml` | UPDATE — path filters + test regex |
 
 ## Commands
 
 ```powershell
-node -c ai-platform/server/lib/hsm-vault.cjs
-cd ai-platform && npx jest --config jest.config.cjs --testPathPatterns="hsm-vault"
+node -c ai-platform/server/lib/key-rotation-store.cjs
+cd ai-platform && npx jest --config jest.config.cjs --testPathPatterns="key-rotation"
 npx simplebeacon scan --full --gate --format json
 ```
