@@ -48,7 +48,10 @@ jest.mock('../../../server/lib/agentic-orchestration-store.cjs', () => ({
 }));
 
 function buildApp() {
-  const router = require('../../../server/routes/agentic-orchestration-routes.cjs');
+  // Ensure a fresh router module (clears in-memory rate windows between tests)
+  const routerPath = require.resolve('../../../server/routes/agentic-orchestration-routes.cjs');
+  delete require.cache[routerPath];
+  const router = require(routerPath);
   const auth = require('../../../server/middleware/authorize.cjs');
   const app = express();
   app.use(express.json());
@@ -106,5 +109,18 @@ describe('agentic-orchestration routes (Jest mirror)', () => {
     await buildApp().post('/api/agentic/agents/agent-a1/execute').set('x-test-user', JSON.stringify({ id: 'op1', role: 'operator', orgId: 'org-alpha' })).send({ input: 'run' }).expect(200).then((res) => {
       expect(res.body.success).toBe(true);
     });
+  });
+
+  test('enforces rate limit for repeated execute triggers', async () => {
+    const app = buildApp();
+    const hdr = { 'x-test-user': JSON.stringify({ id: 'op1', role: 'operator', orgId: 'org-alpha' }) };
+    // Attempt up to 5 times; expect to observe a 429 within that window
+    let saw429 = false;
+    for (let i = 0; i < 5; i++) {
+      // eslint-disable-next-line no-await-in-loop
+      const res = await app.post('/api/agentic/agents/agent-a1/execute').set(hdr).send({ input: 'run' });
+      if (res.status === 429) { saw429 = true; break; }
+    }
+    expect(saw429).toBe(true);
   });
 });

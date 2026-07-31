@@ -165,4 +165,16 @@ describe('agentic-orchestration routes (static checks)', () => {
       assert.equal(res.body && res.body.success, true);
     });
   });
+
+  it('enforces rate limit for repeated execute triggers', async () => {
+    const req = await mountAppWithMocks();
+    const userHeader = { 'x-test-user': JSON.stringify({ id: 'op1', role: 'operator', orgId: 'org-alpha' }) };
+    // Repeatedly call until we observe a 429, up to 5 attempts
+    let got429 = false;
+    for (let i = 0; i < 5; i++) {
+      const r = await req.post('/api/agentic/agents/agent-a1/execute').set(userHeader).send({ input: 'run' });
+      if (r.status === 429) { got429 = true; break; }
+    }
+    assert.ok(got429, 'Expected at least one 429 rate_limited response within 5 attempts');
+  });
 });

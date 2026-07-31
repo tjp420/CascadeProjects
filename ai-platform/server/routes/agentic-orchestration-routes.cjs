@@ -48,6 +48,44 @@ function asyncHandler(fn) {
   };
 }
 
+// --- Quota & Rate Limiting (in-memory, lightweight) ---
+// These are intentionally simple and per-process. For production across multiple nodes,
+// replace with a shared datastore (Redis, etc.)
+const QUOTA = {
+  MAX_ACTIVE_EXECUTIONS_PER_ORG: 3, // max concurrent active executions per org
+  RATE_LIMIT_MAX_PER_WINDOW: 3, // max triggers per window
+  RATE_LIMIT_WINDOW_MS: 60 * 1000, // 1 minute window
+};
+
+// per-org sliding window timestamps
+const orgRateWindows = new Map(); // orgId -> [timestamp_ms, ...]
+
+function isOverActiveQuota(orgId) {
+  try {
+    const active = agenticStore.getActiveExecutions(orgId) || [];
+    return active.length >= QUOTA.MAX_ACTIVE_EXECUTIONS_PER_ORG;
+  } catch (err) {
+    // on error, fail-safe: assume not over quota
+    return false;
+  }
+}
+
+function checkAndRecordRateLimit(orgId) {
+  const now = Date.now();
+  const windowStart = now - QUOTA.RATE_LIMIT_WINDOW_MS;
+  let arr = orgRateWindows.get(orgId) || [];
+  // purge old
+  arr = arr.filter((t) => t >= windowStart);
+  if (arr.length >= QUOTA.RATE_LIMIT_MAX_PER_WINDOW) {
+    // still over limit
+    orgRateWindows.set(orgId, arr);
+    return { allowed: false, retryAfterMs: (arr[0] + QUOTA.RATE_LIMIT_WINDOW_MS) - now };
+  }
+  arr.push(now);
+  orgRateWindows.set(orgId, arr);
+  return { allowed: true };
+}
+
 // GET /stats
 router.get('/stats', function (req, res) {
   try {
@@ -126,6 +164,18 @@ router.post('/agents/:id/execute', authorize('admin:all'), asyncHandler(async fu
   var orgId = req.orgId || req.body.orgId || 'default';
   var input = req.body.input || '';
   var options = req.body.options || {};
+  // Enforce active-execution quota per org
+  if (isOverActiveQuota(orgId)) {
+    return sendError(res, 429, 'rate_limited', { message: 'max_active_executions_reached' });
+  }
+
+  // Enforce trigger rate limit per org (sliding window)
+  const rl = checkAndRecordRateLimit(orgId);
+  if (!rl.allowed) {
+    const retrySecs = Math.ceil((rl.retryAfterMs || 0) / 1000);
+    res.setHeader('Retry-After', String(retrySecs));
+    return sendError(res, 429, 'rate_limited', { message: 'rate_limit_exceeded', retryAfter: retrySecs });
+  }
 
   // Get the agent to determine provider
   var agent = agenticStore.getAgent(req.params.id, orgId);

@@ -77,6 +77,112 @@ function makeKey(orgId, id) {
   return orgId ? `${orgId}::${id}` : id;
 }
 
+// ── PII Scrubbing Integration ───────────────────────────────────────────────
+//
+// Audit log entries can contain PII in actorEmail, metadata, and changes
+// fields. When AUDIT_LOG_SCRUB_PII is enabled (default), entries are
+// scrubbed via pii-policy-store.redactText() before being written to disk
+// and before the hash chain is computed. This ensures PII never persists
+// in the audit log file.
+//
+// The scrubbing is applied per-org: the orgId from the entry is used to
+// look up the org's PII policies. If no policies exist, the entry passes
+// through unchanged.
+
+let _piiPolicyStore = null;
+let _scrubEnabled = process.env.AUDIT_LOG_SCRUB_PII !== 'false';
+
+/**
+ * Lazily load the PII policy store to avoid circular dependency issues.
+ * @returns {object|null} The pii-policy-store module, or null if unavailable
+ */
+function _getPiiPolicyStore() {
+  if (_piiPolicyStore === null) {
+    try {
+      _piiPolicyStore = require('./pii-policy-store.cjs');
+    } catch {
+      _piiPolicyStore = false; // Mark as unavailable
+    }
+  }
+  return _piiPolicyStore || null;
+}
+
+/**
+ * Scrub a string value using the org's PII policies.
+ * @param {string} text — The text to scrub
+ * @param {string} orgId — Org ID for policy lookup
+ * @returns {string} Scrubbed text
+ */
+function _scrubString(text, orgId) {
+  if (!text || typeof text !== 'string') return text;
+  const store = _getPiiPolicyStore();
+  if (!store) return text;
+  const result = store.redactText(text, orgId);
+  return result.text;
+}
+
+/**
+ * Recursively scrub all string values in an object using PII policies.
+ * @param {*} value — The value to scrub (string, object, array, or primitive)
+ * @param {string} orgId — Org ID for policy lookup
+ * @returns {*} Scrubbed value (same type as input)
+ */
+function _scrubValue(value, orgId) {
+  if (typeof value === 'string') {
+    return _scrubString(value, orgId);
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => _scrubValue(v, orgId));
+  }
+  if (value && typeof value === 'object') {
+    const scrubbed = {};
+    for (const key of Object.keys(value)) {
+      scrubbed[key] = _scrubValue(value[key], orgId);
+    }
+    return scrubbed;
+  }
+  return value;
+}
+
+/**
+ * Scrub PII from an audit log entry before it is written to disk.
+ * Scrubs: actorEmail, metadata, changes (including nested oldValue/newValue).
+ * Does NOT scrub: id, orgId, timestamp, action, entity, entityId (structural).
+ *
+ * @param {object} entry — The audit entry to scrub (mutated in place)
+ * @param {string} orgId — Org ID for PII policy lookup
+ * @returns {object} The scrubbed entry (same reference as input)
+ */
+function scrubAuditEntry(entry, orgId) {
+  if (!_scrubEnabled) return entry;
+
+  // Scrub actorEmail — often contains the user's email address
+  if (entry.actorEmail) {
+    entry.actorEmail = _scrubString(entry.actorEmail, orgId);
+  }
+
+  // Scrub actorId — frequently set to the user's email
+  if (entry.actorId) {
+    entry.actorId = _scrubString(entry.actorId, orgId);
+  }
+
+  // Scrub metadata — can contain IPs, routes, arbitrary context with PII
+  if (entry.metadata) {
+    entry.metadata = _scrubValue(entry.metadata, orgId);
+  }
+
+  // Scrub changes — oldValue/newValue can contain PII
+  if (Array.isArray(entry.changes)) {
+    entry.changes = entry.changes.map((change) => ({
+      field: change.field,
+      oldValue: _scrubValue(change.oldValue, orgId),
+      newValue: _scrubValue(change.newValue, orgId),
+    }));
+  }
+
+  return entry;
+}
+
 /**
  * Compute a shallow deep-diff between old and new values.
  * Returns an array of { field, oldValue, newValue } entries.
@@ -136,6 +242,12 @@ function log(params) {
     changes,
     metadata: params.metadata || null,
   };
+
+  // Scrub PII from entry fields before computing hash and writing to disk.
+  // The hash is computed over the scrubbed entry, so the chain remains
+  // verifiable — verifyChain() recomputes hashes from the on-disk (scrubbed)
+  // data, not from the original unscrubbed input.
+  scrubAuditEntry(entry, orgId);
 
   // Compute hash chain link
   const prevHash = getLatestHash(store, orgId);
@@ -284,5 +396,6 @@ module.exports = {
   computeDiff,
   verifyChain,
   computeEntryHash,
+  scrubAuditEntry,
   GENESIS_HASH,
 };
