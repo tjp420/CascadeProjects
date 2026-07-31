@@ -275,16 +275,20 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
     const ignoreCtx = options.ignoreCtx || null;
     let fileErrors = 0;
     const fileErrorExamples = [];
+    const SCAN_OVERALL_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes overall safeguard
     return new Promise((resolve, reject) => {
         let settled = false;
         let workerStarted = false;
         let workerStartTimer = null;
+        let overallTimer = null;
         const cleanup = (terminate = true) => {
             if (settled)
                 return;
             settled = true;
             if (workerStartTimer)
                 clearTimeout(workerStartTimer);
+            if (overallTimer)
+                clearTimeout(overallTimer);
             if (terminate)
                 worker.terminate();
         };
@@ -299,17 +303,6 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 reject(new Error(`Local scan worker failed to load from ${workerUrl}${loc}. Check your browser console for network/CSP errors.`));
             } else {
                 reject(new Error(`Worker error: ${detail}${loc} (worker: ${workerUrl})`));
-            }
-        };
-        worker.onmessage = (e) => {
-            const msg = e.data || {};
-            if (msg.type === 'file-error') {
-                try {
-                    if (options.onFileError) {
-                        options.onFileError(msg.file, { name: msg.name, message: msg.message, stack: msg.stack });
-                    }
-                }
-                catch (_a) { }
             }
         };
         worker.onmessage = async (e) => {
@@ -339,6 +332,17 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 }
                 catch (_b) { }
                 // continue processing other message types
+            }
+            if (type === 'batch-started') {
+                const batchNum = Math.floor((e.data.batchOffset || 0) / SCAN_BATCH_SIZE) + 1;
+                const totalBatches = Math.ceil(totalFiles / SCAN_BATCH_SIZE);
+                try {
+                    window["console"]["warn"](`[localScan] Batch ${batchNum}/${totalBatches} started (offset=${e.data.batchOffset}, size=${e.data.batchSize}, processed=${e.data.processed}/${e.data.total})`);
+                }
+                catch (_batchLogErr) { }
+                if (options.onProgress) {
+                    options.onProgress(e.data.processed, e.data.total, { currentFile: `Batch ${batchNum}/${totalBatches} processing...` });
+                }
             }
             if (type === 'progress' && options.onProgress) {
                     options.onProgress(processed, total, { currentFile, ignoredDir, heavyVendor, ignoredByPattern });
@@ -394,6 +398,12 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             cleanup();
             reject(new Error('Local scan worker did not initialize in time. This is often caused by blocked worker module imports in hosted/embedded mode. Reload and try again, or run via the Local Agent/CLI.'));
         }, WORKER_START_TIMEOUT_MS);
+        overallTimer = setTimeout(() => {
+            if (settled)
+                return;
+            cleanup();
+            reject(new Error(`Local scan exceeded overall timeout of ${Math.round(SCAN_OVERALL_TIMEOUT_MS / 60000)} minutes. The project may be too large for browser scanning — use the CLI for unlimited coverage.`));
+        }, SCAN_OVERALL_TIMEOUT_MS);
         (async () => {
             try {
                 for (let offset = 0; offset < workerFiles.length; offset += SCAN_BATCH_SIZE) {
