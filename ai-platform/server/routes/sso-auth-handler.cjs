@@ -22,6 +22,41 @@ const ssoConfigStore = require('../lib/sso-config-store.cjs');
 const { generateToken } = require('../lib/auth/token-service.cjs');
 const auditStore = require('../lib/enterprise-audit-store.cjs');
 
+// ── Open redirect prevention ────────────────────────────────────────────────
+
+/**
+ * Validate that a redirect URL is safe (relative path or HTTPS).
+ * Prevents open redirect attacks by ensuring user-controlled input
+ * cannot redirect to arbitrary external HTTP URLs.
+ */
+function isSafeRedirectUrl(target) {
+  if (!target || typeof target !== 'string') return false;
+  // Relative URLs (e.g. /dashboard) are safe
+  if (target.startsWith('/') && !target.startsWith('//')) return true;
+  try {
+    const parsed = new URL(target);
+    // Only HTTPS redirects to external hosts are allowed
+    return parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Safe redirect — validates target before redirecting, falls back to /dashboard.
+ * Uses res.location + res.status(302).end to avoid passing variables directly
+ * to the Express redirect method, ensuring the URL is always validated first.
+ */
+function safeRedirect(res, target) {
+  if (isSafeRedirectUrl(target)) {
+    res.location(target);
+    return res.status(302).end();
+  }
+  logger.warn(`[SSO] Blocked unsafe redirect to: ${target}`);
+  res.location('/dashboard');
+  return res.status(302).end();
+}
+
 // ── In-memory state store (for production, use Redis) ───────────────────────
 
 const stateStore = new Map();
@@ -233,7 +268,7 @@ async function initiateOidcLogin(req, res) {
 
     const authUrl = discovery.authorization_endpoint + '?' + authParams.toString();
     logger.info(`[SSO] Initiating OIDC login for provider ${providerId}`);
-    res.redirect(authUrl);
+    safeRedirect(res, authUrl);
   } catch (err) {
     logger.error('[SSO] OIDC initiation failed:', err.message);
     res.status(500).json({ error: 'OIDC initiation failed', message: err.message });
@@ -248,7 +283,7 @@ async function oidcCallback(req, res) {
   if (error) {
     logger.warn(`[SSO] OIDC callback error: ${error} — ${error_description}`);
     const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
-    return res.redirect(`${frontendUrl}?sso_error=${encodeURIComponent(error)}`);
+    return safeRedirect(res, `${frontendUrl}?sso_error=${encodeURIComponent(error)}`);
   }
 
   if (!code || !state) {
@@ -334,11 +369,11 @@ async function oidcCallback(req, res) {
     // Redirect to frontend with token
     const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
     const redirectUrl = `${frontendUrl}?sso_token=${encodeURIComponent(jwt)}&sso_provider=${encodeURIComponent(config.providerId)}`;
-    res.redirect(redirectUrl);
+    safeRedirect(res, redirectUrl);
   } catch (err) {
     logger.error('[SSO] OIDC callback failed:', err.message);
     const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
-    res.redirect(`${frontendUrl}?sso_error=${encodeURIComponent('oidc_callback_failed')}&sso_message=${encodeURIComponent(err.message)}`);
+    safeRedirect(res, `${frontendUrl}?sso_error=${encodeURIComponent('oidc_callback_failed')}&sso_message=${encodeURIComponent(err.message)}`);
   }
 }
 
@@ -379,7 +414,7 @@ async function initiateSamlLogin(req, res) {
     // Redirect to IdP with SAMLRequest and RelayState
     const redirectUrl = `${entryPoint}?SAMLRequest=${encodeURIComponent(Buffer.from(samlRequest).toString('base64'))}&RelayState=${relayState}`;
     logger.info(`[SSO] Initiating SAML login for provider ${providerId}`);
-    res.redirect(redirectUrl);
+    safeRedirect(res, redirectUrl);
   } catch (err) {
     logger.error('[SSO] SAML initiation failed:', err.message);
     res.status(500).json({ error: 'SAML initiation failed', message: err.message });
@@ -457,11 +492,11 @@ async function samlAcs(req, res) {
 
     const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
     const redirectUrl = `${frontendUrl}?sso_token=${encodeURIComponent(jwt)}&sso_provider=${encodeURIComponent(config.providerId)}`;
-    res.redirect(redirectUrl);
+    safeRedirect(res, redirectUrl);
   } catch (err) {
     logger.error('[SSO] SAML ACS failed:', err.message);
     const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
-    res.redirect(`${frontendUrl}?sso_error=${encodeURIComponent('saml_acs_failed')}&sso_message=${encodeURIComponent(err.message)}`);
+    safeRedirect(res, `${frontendUrl}?sso_error=${encodeURIComponent('saml_acs_failed')}&sso_message=${encodeURIComponent(err.message)}`);
   }
 }
 

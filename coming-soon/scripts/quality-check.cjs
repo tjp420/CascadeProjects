@@ -18,8 +18,8 @@ function run(cmd, label) {
 }
 
 const checks = [
-  ['node -c ../coming-soon/server.cjs', 'syntax:server'],
-  ['node -c ../coming-soon/scripts/email-retry-worker.cjs', 'syntax:worker']
+  ['node -c ./server.cjs', 'syntax:server'],
+  ['node -c ./scripts/email-retry-worker.cjs', 'syntax:worker']
 ];
 
 let allPassed = true;
