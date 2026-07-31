@@ -1,16 +1,16 @@
-# Test Plan: Fine-Tuning Curation Panel
+# Test Plan: Multi-Region Key Custody & HSM Handshake Vault
 
-> Dashboard management interface for the fine-tuning-telemetry-store, allowing compliance officers to filter conversation datasets by quality scores, adjust user/model dialogue labelings, and trigger exports.
+> Upgrade the server's master key architecture so per-organization sandbox encryption keys can be derived inside an external HSM or cloud KMS, rather than in application memory. This delegates the most sensitive cryptographic operations to a remote custody provider while preserving existing encrypt/decrypt interfaces.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Fine-Tuning Curation Panel |
+| Feature / change | Multi-Region Key Custody & HSM Handshake Vault |
 | Author (Builder) | Devin |
 | Date | 2026-08-01 |
 | Branch | feat/agentic-orchestration |
-| Packages touched | ai-platform (backend), web/simplebeacon-dashboard (frontend) |
+| Packages touched | ai-platform |
 
 ## Scope
 
@@ -18,32 +18,28 @@
 
 | File | Purpose |
 |------|---------|
-| `ai-platform/web/simplebeacon-dashboard/src/views/FineTuningCurationView.tsx` | New top-level view for the curation panel |
-| `ai-platform/web/simplebeacon-dashboard/src/components/FineTuningCurationPanel.tsx` | Curation UI: table, filters, label editor, export trigger |
-| `ai-platform/web/simplebeacon-dashboard/src/App.tsx` | Register `fine-tuning` route and view map |
-| `ai-platform/web/simplebeacon-dashboard/src/layout/Sidebar.tsx` | Add navigation link |
-| `ai-platform/server/lib/fine-tuning-telemetry-store.cjs` | No backend changes expected; use existing `/api/telemetry/*` routes |
+| `ai-platform/server/lib/hsm-vault.cjs` | HSM client abstraction: handshake, key derivation, decrypt helpers. Supports `mockhsm`, `cloudkms`, `azurekms` providers. |
+| `ai-platform/server/lib/__tests__/hsm-vault.test.cjs` | Jest tests for handshake, derive, decrypt, provider fallback, and error handling. |
+| `ai-platform/server/routes/hsm-vault-routes.cjs` | REST endpoints for vault status, handshake, and HSM-backed decrypt. |
+| `ai-platform/server/index.cjs` | Mount `/api/vault` router. |
+| `ai-platform/server/lib/crypto-utils.cjs` | Use `hsm-vault.cjs` for `deriveOrgKey` when `HSM_PROVIDER` is configured; otherwise fall back to local ENCRYPTION_KEY. |
 
-### Existing APIs used
+### Configuration (env-driven)
 
-- `GET /api/telemetry/collect?orgId=...&minRating=...&minTurns=...&label=...&operation=...&startDate=...&endDate=...&q=...&page=...&limit=...`
-- `POST /api/telemetry/label` body `{ eventId, label }`
-- `POST /api/telemetry/export` body `{ format, filters }`
-- `GET /api/telemetry/datasets?orgId=...`
+| Variable | Purpose |
+|----------|---------|
+| `HSM_PROVIDER` | `mockhsm` (default/off), `cloudkms`, `azurekms` |
+| `HSM_ENDPOINT` | Optional provider endpoint/region URI |
+| `HSM_KEY_ID` | Master key identifier in the HSM |
+| `HSM_REGION` | Multi-region failover selector |
 
-### Backend enhancements
+### Cryptographic handshake model
 
-- Extend `fine-tuning-telemetry-store.cjs` `listEntries` to support `q` (case-insensitive search across `input`, `output`, `model`, `userId`, `eventId`) and `page`/`limit` pagination.
-- Extend `fine-tuning-telemetry-routes.cjs` `GET /collect` to pass `q`, `page`, `limit` through `normalizeFilters` and return `page`, `limit`, `total`, `count`, `entries`.
-
-### User flow
-
-1. Compliance officer opens **Fine-Tuning** panel from sidebar.
-2. View loads entries for the active org, filtered by default to `minRating=0` and no `label=exclude`.
-3. Officer sets filters (min score, min turns, label, operation, date range).
-4. Officer selects rows and applies a label (`include`, `exclude`, `review`, `golden`).
-5. Officer clicks **Export** to generate a `jsonl`/`alpaca`/`chatml` dataset and sees the generated file in the datasets list.
-6. Datasets list updates after export.
+1. `hsmHandshake(provider, keyId, region)` performs an idempotent handshake with the HSM provider and returns a `keyHandle` and `fingerprint` (SHA-256 of the handle + region).
+2. `deriveOrgKeyViaHsm(orgId)` asks the HSM to compute `HMAC-SHA256(masterKey, "sb:org:${orgId}")` and returns the 32-byte buffer.
+3. `decryptWithHsm(orgId, stored)` is a convenience that derives the org key via the HSM, then runs the existing AES-256-GCM decrypt.
+4. `crypto-utils.cjs` `deriveOrgKey` transparently uses `hsm-vault.cjs` when `HSM_PROVIDER` is set, otherwise uses local key as today.
+5. Existing ciphertext (encrypted with the local master key) remains decryptable via the local fallback.
 
 ---
 
@@ -51,10 +47,10 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | TypeScript compile of dashboard | `cd ai-platform/web/simplebeacon-dashboard && npm run build` (or `npm run compile` if available) | [ ] |
-| L1-02 | ai-platform backend tests | `cd ai-platform && npm test` | [ ] |
+| L1-01 | Syntax on new `.cjs` files | `node -c ai-platform/server/lib/hsm-vault.cjs`, `node -c ai-platform/server/routes/hsm-vault-routes.cjs`, `node -c ai-platform/server/index.cjs`, `node -c ai-platform/server/lib/crypto-utils.cjs` | [ ] |
+| L1-02 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
 | L1-03 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-04 | No new dependencies or `npm audit` changes | `npm audit` in touched package roots | [ ] |
+| L1-04 | npm audit (no package changes expected) | `npm audit` in touched package roots | [ ] |
 
 ---
 
@@ -62,13 +58,12 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | View loads and lists entries | Open `#/fine-tuning` in dashboard | Table renders with telemetry entries and scores | [ ] |
-| L2-02 | Filters change visible rows | Set `minRating` to `7` and `label` to `pending` | Only matching rows shown | [ ] |
-| L2-03 | Search filters entries | Type a keyword in the search box | Only entries with matching input/output/model/userId/eventId shown | [ ] |
-| L2-04 | Pagination works | Click page 2 or change limit | Different page of results loaded | [ ] |
-| L2-05 | Label an entry | Select an entry, choose label, click **Apply** | Entry row updates to new label, toast confirms | [ ] |
-| L2-06 | Export a dataset | Choose `jsonl` format, click **Export** | Modal/toast shows filename and row count; datasets list updates | [ ] |
-| L2-07 | Sidebar link works | Click **Fine-Tuning** in sidebar | URL changes to `#/fine-tuning` and view renders | [ ] |
+| L2-01 | MockHSM handshake | Call `hsmVault.hsmHandshake('mockhsm', 'mk-1', 'us-east')` | Returns a stable handle and fingerprint | [ ] |
+| L2-02 | Derive org key via HSM | `hsmVault.deriveOrgKeyViaHsm('org-a')` with `HSM_PROVIDER=mockhsm` | Returns a 32-byte buffer equal to local `deriveOrgKey` if master key is the same | [ ] |
+| L2-03 | Encrypt/decrypt round-trip with HSM | `encryptForOrg(plaintext, 'org-a')` then `decryptForOrg` with `HSM_PROVIDER=mockhsm` | Returns original plaintext | [ ] |
+| L2-04 | Decrypt legacy local ciphertext with HSM off | `decryptForOrg(localCipher, 'org-a')` with `HSM_PROVIDER` unset | Returns original plaintext | [ ] |
+| L2-05 | Vault status endpoint | `GET /api/vault/status?orgId=...` | Returns provider, keyId, region, handshake status | [ ] |
+| L2-06 | HSM decrypt endpoint | `POST /api/vault/decrypt` body `{ orgId, ciphertext }` | Returns plaintext when HSM provider is `mockhsm` | [ ] |
 
 ---
 
@@ -76,11 +71,12 @@
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Empty store | Empty table with helpful message, no crash | [ ] |
-| L3-02 | Backend returns 500 | Error toast shown, table loading state cleared | [ ] |
-| L3-03 | Unauthorized (non-admin) | `authorize('admin:all')` on backend rejects; dashboard hides or disables link | [ ] |
-| L3-04 | Invalid export format | Frontend restricts to `jsonl/alpaca/chatml`; malformed request not sent | [ ] |
-| L3-05 | Select-all and label bulk | If time permits, multi-select with bulk label apply | [ ] |
+| L3-01 | Unknown HSM provider | `deriveOrgKeyViaHsm` throws `Unsupported HSM provider` | [ ] |
+| L3-02 | HSM handshake failure | Returns error without exposing master key material | [ ] |
+| L3-03 | Different orgId produces different key | `deriveOrgKeyViaHsm('org-a')` !== `deriveOrgKeyViaHsm('org-b')` | [ ] |
+| L3-04 | Ciphertext tampering | `decryptWithHsm` returns empty string for bad tag | [ ] |
+| L3-05 | HSM provider disabled (empty/undefined) | `crypto-utils.cjs` uses local key, no HSM calls | [ ] |
+| L3-06 | No key ID configured | `hsmHandshake` falls back to a default `sb-master-key` identifier | [ ] |
 
 ---
 
@@ -88,9 +84,10 @@
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | All API calls include `Authorization` header from `authHeaders()` | [ ] |
-| S-02 | No raw PII from `input`/`output` displayed in full without a toggle | [ ] |
-| S-03 | Export endpoint remains `admin:all` gated | [ ] |
+| S-01 | Master key never leaves the HSM; only derived per-org keys are materialized in app memory | [ ] |
+| S-02 | HSM routes require `admin:all` permission | [ ] |
+| S-03 | Handshake response does not contain the master key | [ ] |
+| S-04 | Provider credentials/endpoints are read from env, never hardcoded | [ ] |
 
 ---
 

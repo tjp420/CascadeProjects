@@ -95,6 +95,7 @@ const tokenBudgetRoutes = require('./routes/token-budget-allocation-routes.cjs')
 const workspaceConfigRoutes = require('./routes/workspace-config-routes.cjs');
 const fineTuningTelemetryRoutes = require('./routes/fine-tuning-telemetry-routes.cjs');
 const tokenThrottleRoutes = require('./routes/token-throttle-routes.cjs');
+const hsmVaultRoutes = require('./routes/hsm-vault-routes.cjs');
 const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
 const auditLogRouter = require('./routes/audit.cjs');
 const authRoutes = require('./routes/auth-routes.cjs');
@@ -1255,6 +1256,9 @@ app.use('/api/telemetry', fineTuningTelemetryRoutes);
 
 // Token-throttling backpressure mesh — LLM provider RPM/TPM smoothing
 app.use('/api/token-throttle', tokenThrottleRoutes);
+
+// HSM Vault — multi-region key custody handshake and decrypt
+app.use('/api/vault', hsmVaultRoutes);
 
 // Static file serving for saved scan data exports
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));

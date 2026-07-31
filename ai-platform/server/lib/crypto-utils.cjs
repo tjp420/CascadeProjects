@@ -128,6 +128,16 @@ function deriveOrgKey(orgId) {
   if (!orgId || typeof orgId !== 'string') {
     throw new TypeError('orgId must be a non-empty string');
   }
+
+  if (process.env.HSM_PROVIDER) {
+    try {
+      const hsm = require('./hsm-vault.cjs');
+      return hsm.deriveOrgKeyViaHsm(orgId);
+    } catch {
+      // HSM unavailable; fall through to local key
+    }
+  }
+
   const salt = Buffer.from(`sb:org:${orgId}`, 'utf8');
   return crypto.createHmac('sha256', ENCRYPTION_KEY).update(salt).digest();
 }
