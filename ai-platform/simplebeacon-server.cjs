@@ -1527,6 +1527,15 @@ async function startServer() {
     logger.error('[Routes] Model routing not loaded:', err?.message || err);
   }
 
+  // Session audit — conversation history capture and compliance replay
+  try {
+    const sessionAuditRoutes = require('./server/routes/session-audit-routes.cjs');
+    app.use('/api/session-audit', sessionAuditRoutes);
+    logger.info('[Routes] Session audit loaded at /api/session-audit');
+  } catch (err) {
+    logger.error('[Routes] Session audit not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');

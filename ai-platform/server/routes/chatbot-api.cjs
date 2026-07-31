@@ -31,6 +31,7 @@ const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable
 const { sendError } = require('../lib/response-helpers.cjs');
 const { promptFirewall } = require('../middleware/prompt-firewall.cjs');
 const modelRoutingStore = require('../lib/model-routing-store.cjs');
+const sessionAuditStore = require('../lib/session-audit-store.cjs');
 
 // Lazy-load prompt service for custom user prompts
 let promptService;
@@ -779,18 +780,44 @@ function setupChatbotAPI(app) {
       // AI decision logging for accountability per Article 12 requirements
       logger.info('[Chatbot API] Inference logging - AI decision audit:', {
         requestId,
-        provider: response.provider || provider,
+        provider: response.provider || effectiveProvider,
         inferenceDuration,
         responseLength: response.text?.length || 0,
         hasTiming: !!response.timing,
       });
 
+      // Record conversation turn in session audit store for compliance replay
+      const sessionId = req.body?.sessionId || sessionAuditStore.generateSessionId();
+      try {
+        sessionAuditStore.recordTurn({
+          sessionId,
+          requestId,
+          userId: userEmail || 'anonymous',
+          orgId: req.user?.orgId || 'default',
+          userMessage: message,
+          assistantResponse: response.text || response.content || '',
+          provider: response.provider || effectiveProvider,
+          model: effectiveModel || response.model || '',
+          personality,
+          conversationHistory: sanitizedHistory,
+          routingDecision: routingDecision || null,
+          timing: response.timing || null,
+          inferenceDurationMs: inferenceDuration,
+          refusalDetected: serverRefusalPattern.test(responseText),
+          retried: serverRefusalPattern.test(responseText),
+          fallbackModelUsed: null,
+        });
+      } catch (e) {
+        logger.warn('[Chatbot API] Session audit recording failed:', e.message);
+      }
+
       res.json({
         success: true,
         response: response.text || response.content || 'No response generated',
-        provider: response.provider || provider,
+        provider: response.provider || effectiveProvider,
         timing: response.timing || null,
         requestId,
+        sessionId,
       });
     } catch (error) {
       logger.error('[Chatbot API] Error:', error);
