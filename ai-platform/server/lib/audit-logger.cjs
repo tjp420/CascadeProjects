@@ -883,7 +883,35 @@ function runPiiScrub(orgId) {
  * @returns {object|null}
  */
 function getScrubStatus() {
-  return _lastSuccessfulScrub || _lastScrubStatus;
+  if (_lastSuccessfulScrub) return _lastSuccessfulScrub;
+
+  // Fall back to persisting-derived status: find the most recent
+  // PII_SCRUBBED seal entry in the store and return a reconstructed
+  // status object so parallel test workers see a deterministic value.
+  try {
+    const store = readStore();
+    const seals = Object.values(store.entries)
+      .filter((e) => e.action === 'PII_SCRUBBED')
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    if (seals.length === 0) return _lastScrubStatus;
+    const s = seals[0];
+    let meta = {};
+    try {
+      meta = typeof s.metadata === 'string' ? JSON.parse(s.metadata) : s.metadata || {};
+    } catch (_) {
+      meta = {};
+    }
+    return {
+      orgId: s.orgId,
+      ranAt: s.timestamp,
+      scrubbed: meta.scrubbed ?? null,
+      sealEntryId: s.id,
+      backupFile: meta.backupFile || null,
+      patterns: meta.patterns || {},
+    };
+  } catch (err) {
+    return _lastScrubStatus;
+  }
 }
 
 module.exports = {
