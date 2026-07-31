@@ -11,6 +11,7 @@ import {
   Lock, Plus, Trash2, Zap, Globe, UserPlus, X, Copy,
 } from 'lucide-react';
 import { IntegrationsView } from './IntegrationsView';
+import { UsageAnalyticsView } from './UsageAnalyticsView';
 import { apiUrl, authHeaders, getApiBase } from '@/config';
 import { navigate } from '@/router/HashRouter';
 import { toast } from 'sonner';
@@ -653,6 +654,7 @@ export function AdminView() {
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
           <TabsTrigger value="sso">SSO</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         {/* Users Tab */}
@@ -1693,6 +1695,11 @@ export function AdminView() {
         {/* Integrations Tab */}
         <TabsContent value="integrations" className="space-y-4">
           <IntegrationsView />
+        </TabsContent>
+
+        {/* Analytics Tab */}
+        <TabsContent value="analytics" className="space-y-4">
+          <UsageAnalyticsView />
         </TabsContent>
       </Tabs>
     </div>

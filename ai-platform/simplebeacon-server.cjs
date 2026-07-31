@@ -1226,6 +1226,15 @@ async function startServer() {
     logger.error('[Routes] Integration marketplace not loaded:', err?.message || err);
   }
 
+  // Usage analytics — scan metrics, trends, posture scores
+  try {
+    const analyticsRoutes = require('./server/routes/analytics-routes.cjs');
+    app.use('/api/analytics', analyticsRoutes);
+    logger.info('[Routes] Usage analytics loaded at /api/analytics');
+  } catch (err) {
+    logger.error('[Routes] Usage analytics not loaded:', err?.message || err);
+  }
+
   // Newsletter subscription — public, no auth required (pricing page email signup)
   try {
     const subscriptionRoutes = require('../coming-soon/routes/subscriptions.cjs');
