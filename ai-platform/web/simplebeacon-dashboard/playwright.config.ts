@@ -17,6 +17,13 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
 
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:5173/dashboard/',
+    reuseExistingServer: !process.env.CI,
+    timeout: 60_000,
+  },
+
   projects: [
     {
       name: 'chromium',
