@@ -1491,6 +1491,15 @@ async function startServer() {
     logger.error('[Routes] Key rotation not loaded:', err?.message || err);
   }
 
+  // Egress guardrail policy management — outbound leak detection
+  try {
+    const egressPolicyRoutes = require('./server/routes/egress-policy-routes.cjs');
+    app.use('/api/egress', egressPolicyRoutes);
+    logger.info('[Routes] Egress guardrails loaded at /api/egress');
+  } catch (err) {
+    logger.error('[Routes] Egress guardrails not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');

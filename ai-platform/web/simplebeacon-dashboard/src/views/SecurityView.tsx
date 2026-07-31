@@ -17,6 +17,7 @@ import {
 import { getApiBase, apiUrl, authHeaders } from '@/config';
 import { PiiPolicyWorkspace } from '@/components/PiiPolicyWorkspace';
 import { KeyRotationDashboard } from '@/components/KeyRotationDashboard';
+import { EgressGuardrailWorkspace } from '@/components/EgressGuardrailWorkspace';
 import { PermissionGate } from '@/components/PermissionGate';
 
 type ScanResultData = {
@@ -466,6 +467,10 @@ export function SecurityView() {
 
       <PermissionGate permission="admin:all" fallback={null}>
         <KeyRotationDashboard />
+      </PermissionGate>
+
+      <PermissionGate permission="admin:all" fallback={null}>
+        <EgressGuardrailWorkspace />
       </PermissionGate>
     </div>
   );
