@@ -27,6 +27,7 @@ const fs = require('fs');
 const path = require('path');
 const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
+const { promptFirewall } = require('../middleware/prompt-firewall.cjs');
 
 // Lazy-load prompt service for custom user prompts
 let promptService;
@@ -282,7 +283,7 @@ function setupChatbotAPI(app) {
     return raw;
   }
 
-  app.post('/api/chatbot/message', chatbotAuth, async (req, res) => {
+  app.post('/api/chatbot/message', chatbotAuth, promptFirewall(), async (req, res) => {
     let provider = 'ollama';
     let message = '';
     try {

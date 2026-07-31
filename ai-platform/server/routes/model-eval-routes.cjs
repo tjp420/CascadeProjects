@@ -3,6 +3,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { authenticate } = require('../middleware/auth.cjs');
+const { promptFirewall } = require('../middleware/prompt-firewall.cjs');
 const evalStore = require('../lib/model-eval-store.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -231,7 +232,7 @@ router.delete('/suites/:id', (req, res) => {
 
 // ── POST /api/model-eval/run ────────────────────────────────────────────────
 //   Body: { suiteId?, provider, model?, tests? (override suite tests) }
-router.post('/run', async (req, res) => {
+router.post('/run', promptFirewall(), async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { suiteId, provider, model, tests } = req.body || {};

@@ -12,7 +12,7 @@ import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
   ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X, Clock, Send, Settings,
-  ShieldCheck, ScrollText, FlaskConical,
+  ShieldCheck, ScrollText, FlaskConical, ShieldAlert,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -206,6 +206,11 @@ export function UsageAnalyticsView() {
   const [evalProvider, setEvalProvider] = useState('openai');
   const [evalSuiteId, setEvalSuiteId] = useState('default');
   const [evalRunDetail, setEvalRunDetail] = useState<any>(null);
+  const [guardrailIncidents, setGuardrailIncidents] = useState<any[]>([]);
+  const [guardrailStats, setGuardrailStats] = useState<any>(null);
+  const [guardrailFilter, setGuardrailFilter] = useState('');
+  const [guardrailTestText, setGuardrailTestText] = useState('');
+  const [guardrailTestResult, setGuardrailTestResult] = useState<any>(null);
   const [scheduleForm, setScheduleForm] = useState({
     id: '', name: '', enabled: true, frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
     dayOfWeek: 1, dayOfMonth: 1, hour: 8, minute: 0, format: 'csv' as 'csv' | 'json',
@@ -767,6 +772,47 @@ export function UsageAnalyticsView() {
       }
     } catch { /* silent */ }
   }, []);
+
+  // ── AI Guardrails ─────────────────────────────────────────────────────────
+  const fetchGuardrailIncidents = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', '100');
+      if (guardrailFilter) params.set('verdict', guardrailFilter);
+      const resp = await fetch(apiUrl(`/guardrails/incidents?${params}`), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setGuardrailIncidents(data.incidents || []);
+      }
+    } catch { /* silent */ }
+  }, [guardrailFilter]);
+
+  const fetchGuardrailStats = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/guardrails/stats'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setGuardrailStats(data.stats);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchGuardrailStats(); }, [fetchGuardrailStats]);
+  useEffect(() => { fetchGuardrailIncidents(); }, [fetchGuardrailIncidents]);
+
+  const testGuardrail = useCallback(async () => {
+    if (!guardrailTestText.trim()) return;
+    try {
+      const resp = await fetch(apiUrl('/guardrails/test'), {
+        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: guardrailTestText }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setGuardrailTestResult(data.result);
+      }
+    } catch { toast.error('Failed to test prompt'); }
+  }, [guardrailTestText]);
 
   const exportLedger = useCallback(async (format: 'csv' | 'json') => {
     try {
@@ -2333,6 +2379,139 @@ export function UsageAnalyticsView() {
                 ))}
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* AI Guardrails & Prompt Firewall Panel */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ShieldAlert className="h-4 w-4" /> AI Guardrails & Prompt Firewall
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Inline proxy that intercepts LLM-bound prompts, detects injection attempts, scrubs PII, and blocks harmful content. All incidents are logged to an immutable org-scoped journal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Stats Summary */}
+          {guardrailStats && (
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Total Incidents</div>
+                <div className="text-lg font-bold">{guardrailStats.total}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Blocked</div>
+                <div className="text-lg font-bold text-red-600">{guardrailStats.blockedCount}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Scrubbed</div>
+                <div className="text-lg font-bold text-amber-600">{guardrailStats.scrubbedCount}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">By Match Type</div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {Object.entries(guardrailStats.byMatchType || {}).map(([type, count]: any) => (
+                    <Badge key={type} variant="outline" className="text-[10px]">{type}: {count}</Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Prompt Tester */}
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-muted-foreground">Test a Prompt Against the Firewall</span>
+            <div className="flex gap-2">
+              <textarea
+                value={guardrailTestText}
+                onChange={(e) => setGuardrailTestText(e.target.value)}
+                placeholder="Enter a prompt to test against guardrail rules..."
+                className="flex-1 h-20 rounded-md border border-input bg-transparent px-3 py-2 text-xs resize-none"
+              />
+              <Button size="sm" onClick={testGuardrail} disabled={!guardrailTestText.trim()}>
+                <ShieldAlert className="h-3 w-3" /> Test
+              </Button>
+            </div>
+            {guardrailTestResult && (
+              <div className="p-3 rounded-lg border space-y-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <Badge variant={guardrailTestResult.verdict === 'block' ? 'destructive' : guardrailTestResult.verdict === 'scrub' ? 'secondary' : 'outline'}>
+                    {guardrailTestResult.verdict.toUpperCase()}
+                  </Badge>
+                  <span className="text-muted-foreground">{guardrailTestResult.summary}</span>
+                </div>
+                {guardrailTestResult.matches?.length > 0 && (
+                  <div className="space-y-1">
+                    {guardrailTestResult.matches.map((m: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2 text-[10px]">
+                        <Badge variant="outline" className="text-[9px]">{m.type}</Badge>
+                        <Badge variant={m.severity === 'block' || m.severity === 'high' ? 'destructive' : 'secondary'} className="text-[9px]">{m.severity}</Badge>
+                        <span>{m.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {guardrailTestResult.verdict === 'scrub' && guardrailTestResult.text !== guardrailTestText && (
+                  <div className="text-[10px] text-muted-foreground p-2 rounded bg-muted/20">
+                    <strong>Scrubbed output:</strong> {guardrailTestResult.text.slice(0, 300)}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Filter Controls */}
+          <div className="flex items-center gap-2">
+            <select
+              value={guardrailFilter}
+              onChange={(e) => setGuardrailFilter(e.target.value)}
+              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+            >
+              <option value="">All Verdicts</option>
+              <option value="block">Blocked</option>
+              <option value="scrub">Scrubbed</option>
+              <option value="allow">Allowed (with warnings)</option>
+            </select>
+            <Button variant="outline" size="sm" onClick={() => fetchGuardrailIncidents()}>
+              <RefreshCw className="h-3 w-3" /> Refresh
+            </Button>
+          </div>
+
+          {/* Incident Timeline */}
+          {guardrailIncidents.length > 0 ? (
+            <div className="max-h-80 overflow-y-auto space-y-1">
+              {guardrailIncidents.map((inc, i) => (
+                <div key={inc.id || i} className="flex items-start gap-3 p-2 rounded hover:bg-muted/30 border-l-2"
+                  style={{ borderColor: inc.verdict === 'block' ? '#ef4444' : inc.verdict === 'scrub' ? '#f59e0b' : '#3b82f6' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Badge variant={inc.verdict === 'block' ? 'destructive' : inc.verdict === 'scrub' ? 'secondary' : 'outline'} className="text-[10px] shrink-0">
+                        {inc.verdict}
+                      </Badge>
+                      <span className="text-muted-foreground truncate">{inc.endpoint}</span>
+                      {inc.provider && <Badge variant="outline" className="text-[9px]">{inc.provider}</Badge>}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{inc.summary}</div>
+                    {inc.matches?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {inc.matches.slice(0, 4).map((m: any, j: number) => (
+                          <Badge key={j} variant="outline" className="text-[9px]">{m.type}:{m.id}</Badge>
+                        ))}
+                        {inc.matches.length > 4 && <span className="text-[9px] text-muted-foreground">+{inc.matches.length - 4} more</span>}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[10px] text-muted-foreground">{inc.actorEmail}</div>
+                    <div className="text-[10px] text-muted-foreground">{new Date(inc.timestamp).toLocaleString()}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-sm text-muted-foreground">No guardrail incidents recorded</div>
           )}
         </CardContent>
       </Card>
