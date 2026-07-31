@@ -322,9 +322,17 @@ router.get('/export', (req, res) => {
   }
 });
 
+const SLA_THRESHOLDS = {
+  critical: 2,
+  high: 7,
+  medium: 30,
+  low: 60,
+};
+
 // GET /api/analytics/violations — paginated violation rows with remediation guidance
 //   Query params: orgId, repository, branch, startDate, endDate, limit, offset,
-//                 ticketStatus (all|ticketed|unticketed), ticketTarget (jira|linear|github)
+//                 ticketStatus (all|ticketed|unticketed), ticketTarget (jira|linear|github),
+//                 slaBreached (true|false)
 router.get('/violations', (req, res) => {
   try {
     const filters = {
@@ -338,6 +346,8 @@ router.get('/violations', (req, res) => {
     };
     const ticketStatusFilter = (req.query.ticketStatus || 'all').toLowerCase();
     const ticketTargetFilter = (req.query.ticketTarget || '').toLowerCase();
+    const slaBreachedFilter = (req.query.slaBreached || '').toLowerCase() === 'true';
+    const now = Date.now();
 
     const result = analyticsStore.getScans(filters);
     const ticketedKeys = ticketStatusStore.getTicketedKeys();
@@ -359,6 +369,14 @@ router.get('/violations', (req, res) => {
         if (ticketTargetFilter && (!ticketEntry || ticketEntry.ticketTarget !== ticketTargetFilter)) continue;
 
         const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
+        const slaLimit = SLA_THRESHOLDS[guidance.priority] || SLA_THRESHOLDS.medium;
+        const scanDate = new Date(scan.timestamp);
+        const daysOpen = Math.floor((now - scanDate.getTime()) / 86400000);
+        const slaBreached = !isTicketed && daysOpen > slaLimit;
+        const slaDaysOver = slaBreached ? daysOpen - slaLimit : 0;
+
+        if (slaBreachedFilter && !slaBreached) continue;
+
         violations.push({
           scanId: scan.scanId,
           orgId: scan.orgId,
@@ -376,6 +394,10 @@ router.get('/violations', (req, res) => {
           ticketRef: ticketEntry?.ticketRef || null,
           ticketTarget: ticketEntry?.ticketTarget || null,
           ticketMarkedAt: ticketEntry?.markedAt || null,
+          daysOpen,
+          slaLimit,
+          slaBreached,
+          slaDaysOver,
         });
       }
     }
@@ -605,7 +627,9 @@ router.get('/violations/summary', (req, res) => {
 
     let totalViolations = 0;
     let ticketedViolations = 0;
+    let slaBreachedCount = 0;
     const categoryMap = {};
+    const now = Date.now();
 
     for (const scan of result.scans) {
       const cats = scan.categoryCounts || {};
@@ -616,14 +640,22 @@ router.get('/violations/summary', (req, res) => {
         totalViolations++;
         if (isTicketed) ticketedViolations++;
 
+        const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
+        const slaLimit = SLA_THRESHOLDS[guidance.priority] || SLA_THRESHOLDS.medium;
+        const scanDate = new Date(scan.timestamp);
+        const daysOpen = Math.floor((now - scanDate.getTime()) / 86400000);
+        const slaBreached = !isTicketed && daysOpen > slaLimit;
+        if (slaBreached) slaBreachedCount++;
+
         if (!categoryMap[category]) {
-          categoryMap[category] = { category, total: 0, ticketed: 0, unticketed: 0 };
+          categoryMap[category] = { category, total: 0, ticketed: 0, unticketed: 0, slaBreached: 0 };
         }
         categoryMap[category].total++;
         if (isTicketed) {
           categoryMap[category].ticketed++;
         } else {
           categoryMap[category].unticketed++;
+          if (slaBreached) categoryMap[category].slaBreached++;
         }
       }
     }
@@ -643,6 +675,7 @@ router.get('/violations/summary', (req, res) => {
         totalViolations,
         ticketedViolations,
         unticketedViolations: totalViolations - ticketedViolations,
+        slaBreachedCount,
         coverage,
         categories,
       },

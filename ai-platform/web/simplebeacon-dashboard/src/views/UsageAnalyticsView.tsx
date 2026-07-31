@@ -11,7 +11,7 @@ import {
 import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
-  ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X,
+  ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X, Clock,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -77,6 +77,10 @@ type ViolationRow = {
   ticketRef: string | null;
   ticketTarget: string | null;
   ticketMarkedAt: string | null;
+  daysOpen: number;
+  slaLimit: number;
+  slaBreached: boolean;
+  slaDaysOver: number;
 };
 
 type TicketStatus = {
@@ -94,12 +98,14 @@ type CategorySummary = {
   ticketed: number;
   unticketed: number;
   coverage: number;
+  slaBreached: number;
 };
 
 type ViolationSummary = {
   totalViolations: number;
   ticketedViolations: number;
   unticketedViolations: number;
+  slaBreachedCount: number;
   coverage: number;
   categories: CategorySummary[];
 };
@@ -144,6 +150,7 @@ export function UsageAnalyticsView() {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [bulkTicketRef, setBulkTicketRef] = useState<string>('');
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [slaBreachedFilter, setSlaBreachedFilter] = useState(false);
   const violationsPageSize = 10;
 
   const fetchFilters = useCallback(async () => {
@@ -198,6 +205,7 @@ export function UsageAnalyticsView() {
       if (branchFilter) params.set('branch', branchFilter);
       if (ticketStatusFilter !== 'all') params.set('ticketStatus', ticketStatusFilter);
       if (ticketTargetFilter) params.set('ticketTarget', ticketTargetFilter);
+      if (slaBreachedFilter) params.set('slaBreached', 'true');
       const resp = await fetch(apiUrl(`/analytics/violations?${params}`), { headers: authHeaders() });
       if (resp.ok) {
         const data = await resp.json();
@@ -207,7 +215,7 @@ export function UsageAnalyticsView() {
     } catch {
       // silent — violations table is supplementary
     }
-  }, [repoFilter, branchFilter, ticketStatusFilter, ticketTargetFilter]);
+  }, [repoFilter, branchFilter, ticketStatusFilter, ticketTargetFilter, slaBreachedFilter]);
 
   useEffect(() => { fetchViolations(violationsPage); }, [fetchViolations, violationsPage]);
 
@@ -748,6 +756,12 @@ export function UsageAnalyticsView() {
                   <div className="w-3 h-3 rounded-full bg-blue-400" />
                   <span className="text-muted-foreground">Total: <span className="font-medium text-foreground">{violationSummary.totalViolations}</span></span>
                 </div>
+                {violationSummary.slaBreachedCount > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <span className="text-muted-foreground">SLA Breached: <span className="font-medium text-red-600 dark:text-red-400">{violationSummary.slaBreachedCount}</span></span>
+                  </div>
+                )}
               </div>
               {/* Overall progress bar */}
               <div className="h-2 rounded-full bg-muted overflow-hidden flex">
@@ -767,6 +781,11 @@ export function UsageAnalyticsView() {
                       <span className="w-20 text-right tabular-nums text-muted-foreground">
                         {cat.ticketed}/{cat.total} ({cat.coverage}%)
                       </span>
+                      {cat.slaBreached > 0 && (
+                        <span className="text-xs text-red-600 dark:text-red-400 font-medium" title="SLA breached violations">
+                          ⚠{cat.slaBreached}
+                        </span>
+                      )}
                     </div>
                   ))}
                   {violationSummary.categories.length > 8 && (
@@ -777,7 +796,7 @@ export function UsageAnalyticsView() {
             </div>
           )}
           {/* Ticket Status Filters */}
-          <div className="flex items-center gap-3 pb-3 mb-2 border-b">
+          <div className="flex items-center gap-3 pb-3 mb-2 border-b flex-wrap">
             <div className="flex items-center gap-2">
               <label className="text-xs font-medium text-muted-foreground">Status:</label>
               <select
@@ -790,6 +809,15 @@ export function UsageAnalyticsView() {
                 <option value="ticketed">Ticketed Only</option>
               </select>
             </div>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded"
+                checked={slaBreachedFilter}
+                onChange={(e) => { setSlaBreachedFilter(e.target.checked); setViolationsPage(0); }}
+              />
+              <Clock className="h-3 w-3" /> SLA Breached Only
+            </label>
             {ticketStatusFilter === 'ticketed' && (
               <div className="flex items-center gap-2">
                 <label className="text-xs font-medium text-muted-foreground">Target:</label>
@@ -868,8 +896,9 @@ export function UsageAnalyticsView() {
                 const isTicketed = v.ticketed;
                 const ticketKey = `${v.scanId}::${v.category}`;
                 const isSelected = selectedRows.has(ticketKey);
+                const isSlaBreached = v.slaBreached;
                 return (
-                  <div key={rowKey} className={`rounded-md ${isTicketed ? 'bg-green-500/5 border border-green-500/20' : ''} ${isSelected ? 'ring-2 ring-primary/30' : ''}`}>
+                  <div key={rowKey} className={`rounded-md ${isTicketed ? 'bg-green-500/5 border border-green-500/20' : ''} ${isSlaBreached ? 'bg-red-500/5 border border-red-500/20' : ''} ${isSelected ? 'ring-2 ring-primary/30' : ''}`}>
                     <div
                       className="grid grid-cols-[auto_auto_1fr_auto_auto_auto] gap-3 items-center py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer text-sm"
                       onClick={() => setExpandedRow(isExpanded ? null : rowKey)}
@@ -894,9 +923,15 @@ export function UsageAnalyticsView() {
                               <Ticket className="h-3 w-3" /> Ticketed
                             </span>
                           )}
+                          {isSlaBreached && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400" title={`SLA breached by ${v.slaDaysOver} day${v.slaDaysOver !== 1 ? 's' : ''} (limit: ${v.slaLimit}d for ${v.remediation.priority})`}>
+                              <Clock className="h-3 w-3" /> SLA +{v.slaDaysOver}d
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {v.repository} · {v.branch} · {new Date(v.timestamp).toLocaleDateString()}
+                          <span className="ml-1 text-muted-foreground/70">· {v.daysOpen}d open</span>
                           {isTicketed && v.ticketRef && (
                             <span className="ml-2 text-green-600 dark:text-green-400">
                               · <a href={v.ticketRef} target="_blank" rel="noopener noreferrer" className="underline">{v.ticketRef}</a>
