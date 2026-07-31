@@ -206,10 +206,16 @@ function getOrgSummary(orgId) {
   };
 }
 
-function getGlobalStats() {
+function getGlobalStats(filters = {}) {
   const store = readStore();
   const orgIds = Object.keys(store.orgs);
-  const allScans = store.scans;
+  let allScans = store.scans;
+
+  if (filters.orgId) allScans = allScans.filter(s => s.orgId === filters.orgId);
+  if (filters.repository) allScans = allScans.filter(s => s.repository === filters.repository);
+  if (filters.branch) allScans = allScans.filter(s => s.branch === filters.branch);
+  if (filters.startDate) allScans = allScans.filter(s => s.timestamp >= filters.startDate);
+  if (filters.endDate) allScans = allScans.filter(s => s.timestamp <= filters.endDate);
 
   const totalScans = allScans.length;
   const totalFiles = allScans.reduce((sum, s) => sum + s.codeFilesAnalyzed, 0);
@@ -259,6 +265,8 @@ function getTrendData(filters = {}) {
   let scans = store.scans;
 
   if (filters.orgId) scans = scans.filter(s => s.orgId === filters.orgId);
+  if (filters.repository) scans = scans.filter(s => s.repository === filters.repository);
+  if (filters.branch) scans = scans.filter(s => s.branch === filters.branch);
   if (filters.startDate) scans = scans.filter(s => s.timestamp >= filters.startDate);
   if (filters.endDate) scans = scans.filter(s => s.timestamp <= filters.endDate);
 
@@ -323,6 +331,8 @@ function getViolationHeatmap(filters = {}) {
   let scans = store.scans;
 
   if (filters.orgId) scans = scans.filter(s => s.orgId === filters.orgId);
+  if (filters.repository) scans = scans.filter(s => s.repository === filters.repository);
+  if (filters.branch) scans = scans.filter(s => s.branch === filters.branch);
   if (filters.startDate) scans = scans.filter(s => s.timestamp >= filters.startDate);
 
   const heatmap = {};
@@ -358,6 +368,23 @@ function getTopRepositories(orgId, limit = 10) {
   return Object.values(repos).sort((a, b) => b.scans - a.scans).slice(0, limit);
 }
 
+function getDistinctRepositories(orgId) {
+  const store = readStore();
+  let scans = store.scans;
+  if (orgId) scans = scans.filter(s => s.orgId === orgId);
+  const repos = [...new Set(scans.map(s => s.repository).filter(Boolean))];
+  return repos.sort();
+}
+
+function getDistinctBranches(orgId, repository) {
+  const store = readStore();
+  let scans = store.scans;
+  if (orgId) scans = scans.filter(s => s.orgId === orgId);
+  if (repository) scans = scans.filter(s => s.repository === repository);
+  const branches = [...new Set(scans.map(s => s.branch).filter(Boolean))];
+  return branches.sort();
+}
+
 module.exports = {
   recordScan,
   getScans,
@@ -366,5 +393,7 @@ module.exports = {
   getTrendData,
   getViolationHeatmap,
   getTopRepositories,
+  getDistinctRepositories,
+  getDistinctBranches,
   calculatePostureScore,
 };

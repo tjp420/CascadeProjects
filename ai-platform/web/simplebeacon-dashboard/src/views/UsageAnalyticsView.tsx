@@ -70,15 +70,38 @@ export function UsageAnalyticsView() {
   const [loading, setLoading] = useState(true);
   const [granularity, setGranularity] = useState<'day' | 'week' | 'month'>('day');
   const [days, setDays] = useState<number>(90);
+  const [repoFilter, setRepoFilter] = useState<string>('');
+  const [branchFilter, setBranchFilter] = useState<string>('');
+  const [repoOptions, setRepoOptions] = useState<string[]>([]);
+  const [branchOptions, setBranchOptions] = useState<string[]>([]);
+
+  const fetchFilters = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (repoFilter) params.set('repository', repoFilter);
+      const resp = await fetch(apiUrl(`/enterprise/analytics/filters?${params}`), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setRepoOptions(data.repositories || []);
+        setBranchOptions(data.branches || []);
+      }
+    } catch {
+      // silent — filters are optional
+    }
+  }, [repoFilter]);
+
+  useEffect(() => { fetchFilters(); }, [fetchFilters]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      // Unified enterprise analytics facade reduces roundtrips.
-      const resp = await fetch(apiUrl(`/enterprise/analytics?days=${days}`), { headers: authHeaders() });
+      const params = new URLSearchParams();
+      params.set('days', String(days));
+      if (repoFilter) params.set('repository', repoFilter);
+      if (branchFilter) params.set('branch', branchFilter);
+      const resp = await fetch(apiUrl(`/enterprise/analytics?${params}`), { headers: authHeaders() });
       if (resp.ok) {
         const data = await resp.json();
-        // facade returns { stats, trend, heatmap, repositories }
         if (data.stats) setStats(data.stats);
         if (data.trend) setTrend(data.trend || []);
         if (data.heatmap) setHeatmap(data.heatmap || []);
@@ -91,13 +114,18 @@ export function UsageAnalyticsView() {
     } finally {
       setLoading(false);
     }
-  }, [granularity, days]);
+  }, [granularity, days, repoFilter, branchFilter]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const handleExport = useCallback(async (format: 'csv' | 'json') => {
     try {
-      const resp = await fetch(apiUrl(`/analytics/export?format=${format}&days=${days}`), { headers: authHeaders() });
+      const params = new URLSearchParams();
+      params.set('format', format);
+      params.set('days', String(days));
+      if (repoFilter) params.set('repository', repoFilter);
+      if (branchFilter) params.set('branch', branchFilter);
+      const resp = await fetch(apiUrl(`/analytics/export?${params}`), { headers: authHeaders() });
       if (!resp.ok) throw new Error('export_failed');
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
@@ -112,7 +140,7 @@ export function UsageAnalyticsView() {
     } catch {
       toast.error(`Failed to export ${format.toUpperCase()}`);
     }
-  }, [days]);
+  }, [days, repoFilter, branchFilter]);
 
   const severityData = stats ? [
     { name: 'Critical', value: stats.severityTotals.critical, fill: SEVERITY_COLORS.critical },
@@ -147,7 +175,24 @@ export function UsageAnalyticsView() {
             Scan volumes, violation trends, and compliance posture across all tenants
           </p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
+          <select
+            className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            value={repoFilter}
+            onChange={(e) => { setRepoFilter(e.target.value); setBranchFilter(''); }}
+          >
+            <option value="">All Repositories</option>
+            {repoOptions.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <select
+            className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
+            disabled={!repoFilter && branchOptions.length === 0}
+          >
+            <option value="">All Branches</option>
+            {branchOptions.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
           <select
             className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
             value={granularity}

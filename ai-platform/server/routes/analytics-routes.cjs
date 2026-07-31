@@ -120,20 +120,23 @@ router.get('/export', (req, res) => {
     const format = (req.query.format || 'csv').toLowerCase();
     const days = parseInt(String(req.query.days || '90'), 10) || 90;
     const orgId = req.query.orgId || null;
+    const repository = req.query.repository || null;
+    const branch = req.query.branch || null;
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-    const stats = orgId ? analyticsStore.getOrgSummary(orgId) : analyticsStore.getGlobalStats();
-    const trend = analyticsStore.getTrendData({ orgId, startDate, granularity: 'day' });
-    const heatmap = analyticsStore.getViolationHeatmap({ orgId, startDate });
+    const filterOpts = { orgId, repository, branch, startDate };
+    const stats = orgId ? analyticsStore.getOrgSummary(orgId) : analyticsStore.getGlobalStats(filterOpts);
+    const trend = analyticsStore.getTrendData({ ...filterOpts, granularity: 'day' });
+    const heatmap = analyticsStore.getViolationHeatmap(filterOpts);
     const repositories = analyticsStore.getTopRepositories(orgId, 50);
-    const scanResult = analyticsStore.getScans({ orgId, startDate, limit: 10000, offset: 0 });
+    const scanResult = analyticsStore.getScans({ orgId, repository, branch, startDate, limit: 10000, offset: 0 });
 
     if (format === 'json') {
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Content-Disposition', `attachment; filename="analytics-export-${new Date().toISOString().slice(0, 10)}.json"`);
       res.json({
         exportedAt: new Date().toISOString(),
-        filters: { days, orgId, startDate },
+        filters: { days, orgId, repository, branch, startDate },
         stats,
         trend,
         heatmap,
