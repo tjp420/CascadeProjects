@@ -88,9 +88,9 @@ function createEventStore(options = {}) {
         }
         fs.closeSync(fd);
       } catch (err) {
-        try {
-          logger.debug && logger.debug('[StripeEventStore] openSync/fsync failed', err);
-        } catch (_) {}
+        if (logger && typeof logger.debug === 'function') {
+          logger.debug('[StripeEventStore] openSync/fsync failed', err);
+        }
       }
       try {
         await fs.promises.rename(tmpPath, STORE);
@@ -104,9 +104,9 @@ function createEventStore(options = {}) {
         try {
           await fs.promises.unlink(tmpPath).catch(() => {});
         } catch (err) {
-          try {
-            logger.debug && logger.debug('[StripeEventStore] unlink tmp failed', err);
-          } catch (_) {}
+          if (logger && typeof logger.debug === 'function') {
+            logger.debug('[StripeEventStore] unlink tmp failed', err);
+          }
         }
       }
     }
