@@ -398,6 +398,66 @@ function createReplayDetector(options = {}) {
   return { check, mark, checkAndMark, clear, getStats };
 }
 
+// ── Per-Directory Sandbox Isolation Keys ────────────────────────────────────
+
+const DIRECTORY_PREFIX = 'enc:sb:dir:';
+
+function isDirectoryEncrypted(value) {
+  return typeof value === 'string' && value.startsWith(DIRECTORY_PREFIX);
+}
+
+function deriveDirectoryKey(orgId, directory) {
+  if (!orgId || typeof orgId !== 'string') {
+    throw new TypeError('orgId must be a non-empty string');
+  }
+  if (!directory || typeof directory !== 'string') {
+    throw new TypeError('directory must be a non-empty string');
+  }
+  const salt = Buffer.from(`sb:dir:${orgId}:${directory}`, 'utf8');
+  return crypto.createHmac('sha256', ENCRYPTION_KEY).update(salt).digest();
+}
+
+function directoryKeyFingerprint(orgId, directory) {
+  const key = deriveDirectoryKey(orgId, directory);
+  return crypto.createHash('sha256').update(key).digest('hex');
+}
+
+function encryptForDirectory(plaintext, orgId, directory) {
+  if (!plaintext) return '';
+  if (typeof plaintext !== 'string') plaintext = String(plaintext);
+  const key = deriveDirectoryKey(orgId, directory);
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGO, key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `${DIRECTORY_PREFIX}${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
+}
+
+function decryptForDirectory(stored, orgId, directory) {
+  if (!stored || typeof stored !== 'string') return '';
+  if (!stored.startsWith(DIRECTORY_PREFIX)) return '';
+  const payload = stored.slice(DIRECTORY_PREFIX.length);
+  const parts = payload.split(':');
+  if (parts.length !== 3) return '';
+
+  const tryDecrypt = (key) => {
+    try {
+      const iv = Buffer.from(parts[0], 'hex');
+      const tag = Buffer.from(parts[1], 'hex');
+      const encrypted = Buffer.from(parts[2], 'hex');
+      const decipher = crypto.createDecipheriv(ALGO, key, iv);
+      decipher.setAuthTag(tag);
+      return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
+    } catch {
+      return null;
+    }
+  };
+
+  const key = deriveDirectoryKey(orgId, directory);
+  const result = tryDecrypt(key);
+  return result !== null ? result : '';
+}
+
 module.exports = {
   encrypt,
   decrypt,
@@ -413,5 +473,10 @@ module.exports = {
   refreshDecryptionKeys,
   canonicalizeRequest,
   createReplayDetector,
+  deriveDirectoryKey,
+  directoryKeyFingerprint,
+  isDirectoryEncrypted,
+  encryptForDirectory,
+  decryptForDirectory,
   ALGO,
 };

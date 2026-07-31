@@ -18,6 +18,7 @@ const ssoStore = require('../lib/sso-config-store.cjs');
 const integrationStore = require('../lib/integration-config-store.cjs');
 const webhookStore = require('../lib/webhook-config-store.cjs');
 const tokenBudget = require('../lib/token-budget-allocation-store.cjs');
+const cryptoUtils = require('../lib/crypto-utils.cjs');
 const { authorize } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
@@ -26,6 +27,27 @@ const router = express.Router();
 function resolveOrgId(req) {
   return req.orgId || req.query.orgId || req.body.orgId || 'default';
 }
+
+// GET /api/workspace/isolation-key/:directory?orgId=<orgId>
+// Returns a public SHA-256 fingerprint of the derived per-directory sandbox key.
+router.get('/isolation-key/:directory', function (req, res) {
+  try {
+    const orgId = resolveOrgId(req);
+    const directory = req.params.directory;
+    if (!orgId || orgId === 'default') return sendError(res, 400, 'missing_org_id');
+    if (!directory) return sendError(res, 400, 'missing_directory');
+
+    const fingerprint = cryptoUtils.directoryKeyFingerprint(orgId, directory);
+    res.json({
+      success: true,
+      orgId,
+      directory,
+      fingerprint,
+    });
+  } catch (err) {
+    sendError(res, 400, 'invalid_isolation_key_request', { message: err.message });
+  }
+});
 
 // GET /api/workspace/sandbox-summary?orgId=<orgId>
 // Returns metadata counts only — no decrypted values or keys.
