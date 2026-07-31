@@ -268,6 +268,28 @@ function log(params) {
   }
 
   writeStore(store);
+  // Fire-and-forget SIEM export for high-priority events
+  try {
+    const siem = require('./siem-exporter.cjs');
+    // map our entry to a SIEM-friendly event
+    const siemEvent = {
+      id: entry.id,
+      orgId: entry.orgId,
+      timestamp: entry.timestamp,
+      action: entry.action,
+      entity: entry.entity,
+      entityId: entry.entityId,
+      actorId: entry.actorId,
+      metadata: entry.metadata,
+      payloadHash: entry.metadata && entry.metadata.payloadHash || null,
+    };
+    // Only ship quota and rate-limit related events by default
+    if (['AGENTIC_QUOTA_EXHAUSTED', 'AGENTIC_RATE_LIMIT_TRIPPED', 'AGENTIC_EXECUTE_REQUEST'].includes(entry.action)) {
+      siem.enqueue(siemEvent);
+    }
+  } catch (e) {
+    // don't let SIEM errors affect core logic
+  }
   return entry;
 }
 

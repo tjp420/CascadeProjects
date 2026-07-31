@@ -102,6 +102,12 @@ describe('agentic-orchestration routes (static checks)', () => {
     require.cache[auditPath] = { id: auditPath, filename: auditPath, loaded: true, exports: mockAudit };
     global.__auditMock = mockAudit;
 
+    // Mock siem-exporter to avoid network calls during tests
+    const siemPath = require('path').resolve(process.cwd(), 'server', 'lib', 'siem-exporter.cjs');
+    const mockSiem = { events: [], enqueue: function (e) { this.events.push(e); }, flush: async function () {} };
+    delete require.cache[siemPath];
+    require.cache[siemPath] = { id: siemPath, filename: siemPath, loaded: true, exports: mockSiem };
+
     // Mock redis-rate-limiter to match new async interface used by the router
     const limiterPath = require('path').resolve(process.cwd(), 'server', 'lib', 'redis-rate-limiter.cjs');
     const WINDOW_MS = 60 * 1000;
