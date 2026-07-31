@@ -28,10 +28,25 @@ const express = require('express');
 const crypto = require('crypto');
 const logger = require('../lib/app-logger.cjs');
 const agenticStore = require('../lib/agentic-orchestration-store.cjs');
-const { authorize } = require('../middleware/authorize.cjs');
+const { authorize, enforceOrgPartition } = require('../middleware/authorize.cjs');
 const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
+
+// Apply org-partition enforcement for all agentic routes
+router.use(enforceOrgPartition());
+
+// centralized async handler wrapper to forward errors to logger and responses
+function asyncHandler(fn) {
+  return function (req, res, next) {
+    Promise.resolve(fn(req, res, next)).catch((err) => {
+      try {
+        logger.error('[AgenticOrchestration] Unexpected handler error: ' + err.message);
+      } catch {}
+      sendError(res, 500, 'internal_error', { message: err.message });
+    });
+  };
+}
 
 // GET /stats
 router.get('/stats', function (req, res) {
@@ -54,18 +69,19 @@ router.get('/agents', function (req, res) {
 });
 
 // POST /agents
-router.post('/agents', authorize('admin:all'), function (req, res) {
-  try {
-    var orgId = req.orgId || req.body.orgId || 'default';
-    var agentId = req.body.id || 'agent-' + crypto.randomBytes(4).toString('hex');
-    var result = agenticStore.createAgent(agentId, req.body, orgId);
-    if (!result.success) return sendError(res, 409, 'agent_create_failed', { message: result.error });
-    logger.info('[AgenticOrchestration] Agent created: ' + agentId + ' by ' + (req.user && req.user.email || 'admin'));
-    res.json(result);
-  } catch (err) {
-    sendError(res, 400, 'agent_create_failed', { message: err.message });
+router.post('/agents', authorize('admin:all'), asyncHandler(async function (req, res) {
+  var orgId = req.orgId || req.body.orgId || 'default';
+  // require explicit id in request body for deterministic agent ids in production
+  var agentId = req.body.id;
+  if (!agentId) {
+    // client must provide an id to avoid accidental duplicates; respond with conflict
+    return sendError(res, 409, 'agent_create_failed', { message: 'missing agent id' });
   }
-});
+  var result = agenticStore.createAgent(agentId, req.body, orgId);
+  if (!result.success) return sendError(res, 409, 'agent_create_failed', { message: result.error });
+  logger.info('[AgenticOrchestration] Agent created: ' + agentId + ' by ' + (req.user && req.user.email || 'admin'));
+  res.json(result);
+}));
 
 // GET /agents/:id
 router.get('/agents/:id', function (req, res) {
@@ -106,43 +122,40 @@ router.delete('/agents/:id', authorize('admin:all'), function (req, res) {
 });
 
 // POST /agents/:id/execute
-router.post('/agents/:id/execute', authorize('admin:all'), async function (req, res) {
+router.post('/agents/:id/execute', authorize('admin:all'), asyncHandler(async function (req, res) {
+  var orgId = req.orgId || req.body.orgId || 'default';
+  var input = req.body.input || '';
+  var options = req.body.options || {};
+
+  // Get the agent to determine provider
+  var agent = agenticStore.getAgent(req.params.id, orgId);
+  if (!agent) return sendError(res, 404, 'agent_not_found');
+
+  // Lazy-load inference service
+  var inferenceService;
   try {
-    var orgId = req.orgId || req.body.orgId || 'default';
-    var input = req.body.input || '';
-    var options = req.body.options || {};
-
-    // Get the agent to determine provider
-    var agent = agenticStore.getAgent(req.params.id, orgId);
-    if (!agent) return sendError(res, 404, 'agent_not_found');
-
-    // Lazy-load inference service
-    var inferenceService;
-    try {
-      inferenceService = require('../services/cloud-inference-service.cjs');
-    } catch (err) {
-      return sendError(res, 500, 'inference_service_unavailable', { message: err.message });
-    }
-
-    // Build inference function that uses the existing callProvider
-    var inferenceFn = async function (prompt, opts) {
-      var result = await inferenceService.generateWithProvider(
-        opts.provider || agent.config.provider || 'openai',
-        prompt,
-        { model: opts.model || agent.config.model, temperature: opts.temperature || agent.config.temperature }
-      );
-      return {
-        text: result.text || result.output || (typeof result === 'string' ? result : JSON.stringify(result)),
-        usage: result.usage || null,
-      };
-    };
-
-    var result = await agenticStore.executeAgentLoop(req.params.id, orgId, input, inferenceFn, options);
-    res.json(result);
+    inferenceService = require('../services/cloud-inference-service.cjs');
   } catch (err) {
-    sendError(res, 500, 'agent_execute_failed', { message: err.message });
+    return sendError(res, 500, 'inference_service_unavailable', { message: err.message });
   }
-});
+
+  // Build inference function that uses the existing callProvider
+  var inferenceFn = async function (prompt, opts) {
+    var result = await inferenceService.generateWithProvider(
+      opts.provider || agent.config.provider || 'openai',
+      prompt,
+      { model: opts.model || agent.config.model, temperature: opts.temperature || agent.config.temperature }
+    );
+    return {
+      text: result.text || result.output || (typeof result === 'string' ? result : JSON.stringify(result)),
+      usage: result.usage || null,
+    };
+  };
+
+  var result = await agenticStore.executeAgentLoop(req.params.id, orgId, input, inferenceFn, options);
+  if (!result || result.success === false) return sendError(res, 500, 'agent_execute_failed', { message: result && result.error });
+  res.json(result);
+}));
 
 // GET /executions
 router.get('/executions', function (req, res) {
