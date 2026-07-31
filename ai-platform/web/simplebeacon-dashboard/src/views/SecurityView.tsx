@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
 import { PiiPolicyWorkspace } from '@/components/PiiPolicyWorkspace';
+import { KeyRotationDashboard } from '@/components/KeyRotationDashboard';
 import { PermissionGate } from '@/components/PermissionGate';
 
 type ScanResultData = {
@@ -461,6 +462,10 @@ export function SecurityView() {
 
       <PermissionGate permission="admin:all" fallback={null}>
         <PiiPolicyWorkspace />
+      </PermissionGate>
+
+      <PermissionGate permission="admin:all" fallback={null}>
+        <KeyRotationDashboard />
       </PermissionGate>
     </div>
   );

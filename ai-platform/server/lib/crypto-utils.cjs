@@ -35,7 +35,44 @@ function resolveKey() {
   return key;
 }
 
-const ENCRYPTION_KEY = resolveKey();
+let ENCRYPTION_KEY = resolveKey();
+
+// ── Multi-key decryption support ────────────────────────────────────────────
+// After key rotation, data encrypted with the old key must still be decryptable.
+// We try the active key first, then fall back to retired keys from the key rotation store.
+
+let _decryptionKeys = null;
+
+function getDecryptionKeys() {
+  if (_decryptionKeys) return _decryptionKeys;
+  try {
+    const keyRotationStore = require('./key-rotation-store.cjs');
+    const versions = keyRotationStore.getDecryptionKeys();
+    _decryptionKeys = versions.map((v) => Buffer.from(v.keyHex, 'hex'));
+  } catch {
+    // key-rotation-store not available — just use the current key
+    _decryptionKeys = [];
+  }
+  return _decryptionKeys;
+}
+
+function refreshDecryptionKeys() {
+  _decryptionKeys = null;
+  getDecryptionKeys();
+}
+
+function refreshActiveKey() {
+  try {
+    const keyRotationStore = require('./key-rotation-store.cjs');
+    const active = keyRotationStore.getActiveKeyBuffer();
+    if (active) {
+      ENCRYPTION_KEY = active;
+      refreshDecryptionKeys();
+    }
+  } catch {
+    // key-rotation-store not available — keep current key
+  }
+}
 
 function encrypt(plaintext) {
   if (!plaintext) return '';
@@ -53,16 +90,32 @@ function decrypt(stored) {
   if (!stored.startsWith(PREFIX)) return stored;
   const parts = stored.split(':');
   if (parts.length !== 4) return '';
-  try {
-    const iv = Buffer.from(parts[1], 'hex');
-    const tag = Buffer.from(parts[2], 'hex');
-    const encrypted = Buffer.from(parts[3], 'hex');
-    const decipher = crypto.createDecipheriv(ALGO, ENCRYPTION_KEY, iv);
-    decipher.setAuthTag(tag);
-    return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
-  } catch {
-    return '';
+
+  const tryDecrypt = (key) => {
+    try {
+      const iv = Buffer.from(parts[1], 'hex');
+      const tag = Buffer.from(parts[2], 'hex');
+      const encrypted = Buffer.from(parts[3], 'hex');
+      const decipher = crypto.createDecipheriv(ALGO, key, iv);
+      decipher.setAuthTag(tag);
+      return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
+    } catch {
+      return null;
+    }
+  };
+
+  // Try active key first
+  const result = tryDecrypt(ENCRYPTION_KEY);
+  if (result !== null) return result;
+
+  // Fall back to retired keys for legacy data
+  for (const oldKey of getDecryptionKeys()) {
+    if (oldKey.equals(ENCRYPTION_KEY)) continue;
+    const legacyResult = tryDecrypt(oldKey);
+    if (legacyResult !== null) return legacyResult;
   }
+
+  return '';
 }
 
 function isEncrypted(value) {
@@ -104,5 +157,7 @@ module.exports = {
   encryptObject,
   decryptObject,
   maskSecret,
+  refreshActiveKey,
+  refreshDecryptionKeys,
   ALGO,
 };

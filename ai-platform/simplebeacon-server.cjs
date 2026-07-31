@@ -1482,6 +1482,15 @@ async function startServer() {
     logger.error('[Routes] PII policies not loaded:', err?.message || err);
   }
 
+  // Key rotation management — encryption key lifecycle
+  try {
+    const keyRotationRoutes = require('./server/routes/key-rotation-routes.cjs');
+    app.use('/api/key-rotation', keyRotationRoutes);
+    logger.info('[Routes] Key rotation loaded at /api/key-rotation');
+  } catch (err) {
+    logger.error('[Routes] Key rotation not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');
@@ -2037,6 +2046,14 @@ async function startServer() {
     securityMonitor.start();
   } catch (err) {
     logger.warn('[SecurityMonitor] Failed to start:', safeErrorMessage(err));
+  }
+
+  // Initialize key rotation store — records current encryption key as v0
+  try {
+    const keyRotationStore = require('./server/lib/key-rotation-store.cjs');
+    keyRotationStore.initialize();
+  } catch (err) {
+    logger.warn('[KeyRotation] Store initialization failed:', safeErrorMessage(err));
   }
 
   server.on('error', (err) => {
