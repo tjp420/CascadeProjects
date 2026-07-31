@@ -43,5 +43,7 @@ for (const dir of dirs) {
 
   const rel = path.relative('C:/Users/Trevor/CascadeProjects', dir);
   const nonzero = Object.entries(counts).filter(([, c]) => c > 0);
-  process.stdout.write(JSON.stringify({ dir: rel, counts: Object.fromEntries(nonzero) }, null, 2) + '\n');
+  process.stdout.write(
+    JSON.stringify({ dir: rel, counts: Object.fromEntries(nonzero) }, null, 2) + '\n'
+  );
 }

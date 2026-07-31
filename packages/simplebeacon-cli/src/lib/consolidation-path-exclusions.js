@@ -26,7 +26,9 @@ function isMonorepoPlatformAliasPair(pathA, pathB, platformDirName = 'ai-platfor
   if (a === b) return false;
   const prefix = `${platformDirName}/`;
   const stripPrefix = (p) => (p.startsWith(prefix) ? p.slice(prefix.length) : p);
-  return (a.startsWith(prefix) && b === stripPrefix(a)) || (b.startsWith(prefix) && a === stripPrefix(b));
+  return (
+    (a.startsWith(prefix) && b === stripPrefix(a)) || (b.startsWith(prefix) && a === stripPrefix(b))
+  );
 }
 
 function isBrowserBuildMirrorPair(pathA, pathB) {
@@ -85,14 +87,18 @@ function countExcludedFuzzyPairs(pairs = []) {
     monorepoAliasPairsExcluded,
     ephemeralPathsExcluded,
     fuzzyPairsExcluded,
-    intentionalPairsExcluded: browserMirrorPairsExcluded + mcpExamplePairsExcluded
-      + monorepoAliasPairsExcluded + ephemeralPathsExcluded
+    intentionalPairsExcluded:
+      browserMirrorPairsExcluded +
+      mcpExamplePairsExcluded +
+      monorepoAliasPairsExcluded +
+      ephemeralPathsExcluded,
   };
 }
 
 function consolidationCandidateTouchesExcluded(candidate) {
-  const paths = (candidate?.files || []).map((file) =>
-    file.path || file.relativePath || file.name).filter(Boolean);
+  const paths = (candidate?.files || [])
+    .map((file) => file.path || file.relativePath || file.name)
+    .filter(Boolean);
   if (paths.length === 2 && isConsolidationExcludedPair(paths[0], paths[1])) return true;
   return paths.some((p) => isEphemeralConsolidationPath(p));
 }
@@ -103,8 +109,9 @@ function countIntentionalPairExclusions(candidates = []) {
   let monorepoAliasPairsExcluded = 0;
   let ephemeralPathsExcluded = 0;
   for (const candidate of candidates) {
-    const paths = (candidate?.files || []).map((file) =>
-      file.path || file.relativePath || file.name).filter(Boolean);
+    const paths = (candidate?.files || [])
+      .map((file) => file.path || file.relativePath || file.name)
+      .filter(Boolean);
     if (paths.some(isEphemeralConsolidationPath)) {
       ephemeralPathsExcluded += 1;
       continue;
@@ -123,8 +130,11 @@ function countIntentionalPairExclusions(candidates = []) {
     mcpExamplePairsExcluded,
     monorepoAliasPairsExcluded,
     ephemeralPathsExcluded,
-    intentionalPairsExcluded: browserMirrorPairsExcluded + mcpExamplePairsExcluded
-      + monorepoAliasPairsExcluded + ephemeralPathsExcluded
+    intentionalPairsExcluded:
+      browserMirrorPairsExcluded +
+      mcpExamplePairsExcluded +
+      monorepoAliasPairsExcluded +
+      ephemeralPathsExcluded,
   };
 }
 
@@ -137,5 +147,5 @@ module.exports = {
   countExcludedFuzzyPairs,
   isBrowserBuildMirrorPair,
   isIntentionalMcpExamplePair,
-  isMonorepoPlatformAliasPair
+  isMonorepoPlatformAliasPair,
 };

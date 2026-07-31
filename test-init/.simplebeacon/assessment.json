@@ -183,10 +183,7 @@
     ]
   },
   "complementaryStack": {
-    "keepUsing": [
-      "Snyk or GitHub Advanced Security for CVEs",
-      "SonarQube for code smells"
-    ],
+    "keepUsing": ["Snyk or GitHub Advanced Security for CVEs", "SonarQube for code smells"],
     "addSimplebeaconFor": [
       "Mock/fiction drift in sample JSON",
       "Hardcoded sample paths in production directories"
@@ -203,9 +200,7 @@
   ],
   "sourceReport": {
     "generatedAt": "2026-07-18T22:27:17.908Z",
-    "scanPaths": [
-      "C:\\Users\\Trevor\\CascadeProjects\\test-init"
-    ],
+    "scanPaths": ["C:\\Users\\Trevor\\CascadeProjects\\test-init"],
     "duplicateGroups": 0
   },
   "sanitized": true,

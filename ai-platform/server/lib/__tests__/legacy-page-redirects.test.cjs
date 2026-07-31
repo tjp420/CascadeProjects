@@ -1,6 +1,10 @@
 'use strict';
 
-const { registerLegacyPageRedirects, LEGACY_REDIRECTS, resolveLegacyTarget } = require('../legacy-page-redirects.cjs');
+const {
+  registerLegacyPageRedirects,
+  LEGACY_REDIRECTS,
+  resolveLegacyTarget,
+} = require('../legacy-page-redirects.cjs');
 
 describe('legacy-page-redirects', () => {
   test('exports expected functions and constants', () => {

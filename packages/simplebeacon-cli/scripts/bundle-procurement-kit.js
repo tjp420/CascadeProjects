@@ -33,12 +33,18 @@ function markdownToHtml(md) {
       continue;
     }
     if (/^[*-]\s+/.test(line)) {
-      if (!inList) { out.push('<ul>'); inList = true; }
+      if (!inList) {
+        out.push('<ul>');
+        inList = true;
+      }
       const item = line.replace(/^[*-]\s+/, '');
       out.push(`<li>${inlineFormat(item)}</li>`);
       continue;
     } else {
-      if (inList) { out.push('</ul>'); inList = false; }
+      if (inList) {
+        out.push('</ul>');
+        inList = false;
+      }
     }
     if (line.trim() === '') {
       out.push('<p></p>');
@@ -64,7 +70,10 @@ function escapeHtml(str) {
 
 function escapeHtmlExceptHtml(str) {
   // very naive: do not escape existing tags produced above
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
     .replace(/&lt;(\/)?(h[1-6]|p|a|code|pre|ul|li|strong|em)([^&]*)&gt;/g, '<$1$2$3>');
 }
 
@@ -92,7 +101,9 @@ function writeHtmlFromMd(srcPath, destPath, titleFallback) {
   return true;
 }
 
-function ensureDir(p) { if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true }); }
+function ensureDir(p) {
+  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+}
 
 async function main() {
   const repoRoot = process.cwd();
@@ -101,8 +112,16 @@ async function main() {
   ensureDir(tmpDir);
 
   const sources = [
-    { src: path.resolve(repoRoot, '.simplebeacon/docs/security-whitepaper.md'), name: 'security-whitepaper.html', title: 'Security Whitepaper' },
-    { src: path.resolve(repoRoot, '.simplebeacon/docs/advanced-guardrails.md'), name: 'advanced-guardrails.html', title: 'Advanced Guardrails' }
+    {
+      src: path.resolve(repoRoot, '.simplebeacon/docs/security-whitepaper.md'),
+      name: 'security-whitepaper.html',
+      title: 'Security Whitepaper',
+    },
+    {
+      src: path.resolve(repoRoot, '.simplebeacon/docs/advanced-guardrails.md'),
+      name: 'advanced-guardrails.html',
+      title: 'Advanced Guardrails',
+    },
   ];
 
   // populate HTML
@@ -137,9 +156,10 @@ async function main() {
   try {
     const crypto = require('crypto');
     // Exclude the manifest itself from the checksum list to avoid the self-checksum paradox
-    const files = fs.readdirSync(tmpDir)
-      .filter(f => fs.statSync(path.join(tmpDir, f)).isFile())
-      .filter(f => f !== 'checksums.sha256');
+    const files = fs
+      .readdirSync(tmpDir)
+      .filter((f) => fs.statSync(path.join(tmpDir, f)).isFile())
+      .filter((f) => f !== 'checksums.sha256');
     const lines = [];
     for (const f of files) {
       const buf = fs.readFileSync(path.join(tmpDir, f));
@@ -165,7 +185,11 @@ async function main() {
         execSync(`zip -r '${zipName}' .`, { cwd: tmpDir, stdio: 'inherit' });
       } catch (e) {
         // fallback to node-streaming zip unavailable; write a simple tar.gz instead
-        const tar = require('child_process').spawnSync('tar', ['-czf', zipName.replace(/\.zip$/, '.tar.gz'), '.'], { cwd: tmpDir, stdio: 'inherit' });
+        const tar = require('child_process').spawnSync(
+          'tar',
+          ['-czf', zipName.replace(/\.zip$/, '.tar.gz'), '.'],
+          { cwd: tmpDir, stdio: 'inherit' }
+        );
         if (tar.status !== 0) throw new Error('Failed to create archive');
       }
     }
@@ -177,4 +201,7 @@ async function main() {
   }
 }
 
-main().catch(err => { console.error(err); process.exit(2); });
+main().catch((err) => {
+  console.error(err);
+  process.exit(2);
+});

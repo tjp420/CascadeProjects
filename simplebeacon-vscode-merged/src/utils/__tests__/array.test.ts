@@ -1,7 +1,28 @@
 import {
-  unique, compact, flatten, range, sortBy, keyBy, chunk, times, randomChoice,
-  intersection, difference, groupBy, partition, sample, shuffle, zip, head, tail,
-  flattenDeep, take, drop, last, initial, findIndex
+  unique,
+  compact,
+  flatten,
+  range,
+  sortBy,
+  keyBy,
+  chunk,
+  times,
+  randomChoice,
+  intersection,
+  difference,
+  groupBy,
+  partition,
+  sample,
+  shuffle,
+  zip,
+  head,
+  tail,
+  flattenDeep,
+  take,
+  drop,
+  last,
+  initial,
+  findIndex,
 } from '../array';
 
 describe('array utilities', () => {
@@ -64,7 +85,10 @@ describe('array utilities', () => {
 
   describe('chunk', () => {
     test('splits into chunks', () => {
-      expect(chunk([1, 2, 3, 4], 2)).toEqual([[1, 2], [3, 4]]);
+      expect(chunk([1, 2, 3, 4], 2)).toEqual([
+        [1, 2],
+        [3, 4],
+      ]);
     });
     test('handles non-array', () => {
       expect(chunk(null as any, 2)).toEqual([]);
@@ -108,7 +132,10 @@ describe('array utilities', () => {
 
   describe('partition', () => {
     test('splits by predicate', () => {
-      expect(partition([1, 2, 3, 4], (x) => x % 2 === 0)).toEqual([[2, 4], [1, 3]]);
+      expect(partition([1, 2, 3, 4], (x) => x % 2 === 0)).toEqual([
+        [2, 4],
+        [1, 3],
+      ]);
     });
   });
 
@@ -132,7 +159,10 @@ describe('array utilities', () => {
 
   describe('zip', () => {
     test('zips arrays', () => {
-      expect(zip<any>([1, 2], ['a', 'b'])).toEqual([[1, 'a'], [2, 'b']]);
+      expect(zip<any>([1, 2], ['a', 'b'])).toEqual([
+        [1, 'a'],
+        [2, 'b'],
+      ]);
     });
   });
 

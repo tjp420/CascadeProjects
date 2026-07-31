@@ -8,17 +8,25 @@
 const fs = require('fs');
 const path = require('path');
 
-const SCANNABLE_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.go'
-]);
+const SCANNABLE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.go']);
 
 const MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'fixtures', 'docs', 'coming-soon', 'reports',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures',
-  'ai-platform/web/simplebeacon-dashboard/js-es2018'
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'archive',
+  '.simplebeacon',
+  'fixtures',
+  'docs',
+  'coming-soon',
+  'reports',
+  'simplebeacon-rule-tests',
+  'simplebeacon-toxic-fixtures',
+  'ai-platform/web/simplebeacon-dashboard/js-es2018',
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
@@ -32,7 +40,8 @@ const LEAK_PATTERNS = [
     regex: /\.(addEventListener|on)\s*\(\s*['"`][^'"`]+['"`]/g,
     removalCheck: /\.removeEventListener|\.off\s*\(/,
     severity: 'medium',
-    description: 'Event listener added but no corresponding removeEventListener found in the same scope'
+    description:
+      'Event listener added but no corresponding removeEventListener found in the same scope',
   },
   {
     id: 'SB-PERF-002b',
@@ -40,24 +49,27 @@ const LEAK_PATTERNS = [
     regex: /\bsetInterval\s*\(/g,
     removalCheck: /\bclearInterval\s*\(/,
     severity: 'medium',
-    description: 'setInterval created but no clearInterval found — timer continues after component/function disposal'
+    description:
+      'setInterval created but no clearInterval found — timer continues after component/function disposal',
   },
   // setTimeout removed — one-off timers are overwhelmingly not leaks
   {
     id: 'SB-PERF-002d',
     name: 'Unbounded Cache / Growing Array',
     // Only flag .push/.unshift when inside a loop body (for/while/forEach)
-    regex: /\b(for\s*\(|while\s*\(|forEach\s*\(|\.forEach\s*\()[\s\S]{0,500}\.(push|unshift)\s*\([^)]*\)/g,
+    regex:
+      /\b(for\s*\(|while\s*\(|forEach\s*\(|\.forEach\s*\()[\s\S]{0,500}\.(push|unshift)\s*\([^)]*\)/g,
     severity: 'medium',
-    description: 'Array push inside a loop without corresponding pop/shift — potential unbounded growth'
+    description:
+      'Array push inside a loop without corresponding pop/shift — potential unbounded growth',
   },
   {
     id: 'SB-PERF-002e',
     name: 'Global Variable Accumulation',
     regex: /(?:global|globalThis|window)\.[a-zA-Z_$][a-zA-Z0-9_$]*\s*=\s*(?:\[|{)/g,
     severity: 'low',
-    description: 'Global object storing mutable state — risk of unbounded growth across sessions'
-  }
+    description: 'Global object storing mutable state — risk of unbounded growth across sessions',
+  },
 ];
 
 function isScannable(filePath) {
@@ -83,15 +95,34 @@ function isExcludedPath(filePath, rootDir) {
 async function scanFile(filePath) {
   // Skip CLI entry points, scripts, and temp files more aggressively
   const basename = path.basename(filePath);
-  if (/^(bin|scripts|test)/.test(basename) || basename.endsWith('.test.js') || basename.endsWith('.spec.js')) {
+  if (
+    /^(bin|scripts|test)/.test(basename) ||
+    basename.endsWith('.test.js') ||
+    basename.endsWith('.spec.js')
+  ) {
     return null;
   }
-  if (/^_tmp_/.test(basename) || /^_merged_js/.test(basename) || /^_test_/.test(basename) || /^_test_welcome/.test(basename) || /^inspect_vsix/.test(basename) || /^temp_codemap/.test(basename) || /^tmp-check/.test(basename) || /^__tmp_script/.test(basename) || /^debug-/.test(basename) || /^__test_server/.test(basename)) {
+  if (
+    /^_tmp_/.test(basename) ||
+    /^_merged_js/.test(basename) ||
+    /^_test_/.test(basename) ||
+    /^_test_welcome/.test(basename) ||
+    /^inspect_vsix/.test(basename) ||
+    /^temp_codemap/.test(basename) ||
+    /^tmp-check/.test(basename) ||
+    /^__tmp_script/.test(basename) ||
+    /^debug-/.test(basename) ||
+    /^__test_server/.test(basename)
+  ) {
     return null;
   }
 
   let stats;
-  try { stats = await fs.promises.stat(filePath); } catch { return null; }
+  try {
+    stats = await fs.promises.stat(filePath);
+  } catch {
+    return null;
+  }
   if (stats.size > MAX_SCAN_BYTES) return null;
 
   let content;
@@ -141,7 +172,10 @@ async function scanFile(filePath) {
         if (eventMatch) {
           const eventType = eventMatch[1];
           // Only skip if removeEventListener for the SAME event type is found
-          const removalRegex = new RegExp(`removeEventListener|\\.off\\s*\\(\\s*['"\`]${eventType}['"\`]`, 'i');
+          const removalRegex = new RegExp(
+            `removeEventListener|\\.off\\s*\\(\\s*['"\`]${eventType}['"\`]`,
+            'i'
+          );
           if (removalRegex.test(content)) continue;
         }
       } else if (rule.removalCheck && rule.removalCheck.test(content)) {
@@ -159,7 +193,7 @@ async function scanFile(filePath) {
         severity: rule.severity,
         line: lineNum,
         match: match[0],
-        snippet: snippet.replace(/\s+/g, ' ').trim().slice(0, 120)
+        snippet: snippet.replace(/\s+/g, ' ').trim().slice(0, 120),
       });
     }
   }
@@ -203,7 +237,7 @@ async function scanMemoryLeaks(rootDir, options = {}) {
       if (fileFindings) {
         results.push({
           filePath: fullPath,
-          findings: fileFindings
+          findings: fileFindings,
         });
       }
     }
@@ -217,7 +251,7 @@ async function scanMemoryLeaks(rootDir, options = {}) {
     results,
     humanReadable: results.length
       ? `Potential memory leak patterns found in ${results.length} file(s). Review event listeners, intervals, and unbounded collections.`
-      : 'No obvious memory leak patterns detected.'
+      : 'No obvious memory leak patterns detected.',
   };
 }
 

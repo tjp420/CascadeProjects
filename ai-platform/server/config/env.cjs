@@ -86,7 +86,10 @@ function envBool(key, fallback) {
 function envArray(key, fallback) {
   const val = env(key);
   if (val === undefined) return fallback || [];
-  return val.split(',').map((s) => s.trim()).filter(Boolean);
+  return val
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /**
@@ -116,5 +119,5 @@ module.exports = Object.freeze({
   envFloat,
   envBool,
   envArray,
-  envJson
+  envJson,
 });

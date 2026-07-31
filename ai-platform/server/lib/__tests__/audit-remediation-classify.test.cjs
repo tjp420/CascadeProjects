@@ -6,7 +6,7 @@ const {
   impactBandClass,
   buildImpactRisk,
   buildCodeRecipe,
-  buildVerificationCommand
+  buildVerificationCommand,
 } = require('../audit-remediation-recipes/classify.cjs');
 const { IMPACT_BY_KIND, DEFAULT_RECIPES } = require('../audit-remediation-recipes/data.cjs');
 
@@ -20,7 +20,9 @@ describe('audit-remediation-recipes/classify', () => {
   });
 
   test('classifyRowKind detects debug artifacts', () => {
-    expect(classifyRowKind({ rule: 'console_or_debugger', snippet: 'console.log("x")' })).toBe('debug-artifact');
+    expect(classifyRowKind({ rule: 'console_or_debugger', snippet: 'console.log("x")' })).toBe(
+      'debug-artifact'
+    );
   });
 
   test('classifyRowKind detects credentials', () => {

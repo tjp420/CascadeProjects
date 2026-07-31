@@ -5,20 +5,24 @@
 The project has automated pre-commit hooks configured to ensure code quality before commits:
 
 ### Root Pre-Commit Hooks
+
 - **Unix/Linux/Mac**: `.husky/pre-commit` - Syntax checks staged JS/CJS files + runs SimpleBeacon gate scan
 - **Windows**: `.husky/pre-commit.cmd` - Runs SimpleBeacon gate scan with high severity failure threshold
 
 ### ai-platform Pre-Commit Hook
+
 - **Location**: `ai-platform/.husky/pre-commit`
 - **Current**: Runs `npm test`
 - **Enhancement Needed**: Should also include SimpleBeacon gate scan for consistency
 
 ### coming-soon Pre-Commit Hook
+
 - **Location**: `coming-soon/pre-commit-hook.sh`
 - **Current**: Comprehensive with syntax checks + SimpleBeacon gate scan
 - **Status**: Well-configured, can be installed to `.git/hooks/pre-commit`
 
 ### Installation Commands
+
 ```bash
 # Install root hooks (if husky is set up)
 npx husky install
@@ -29,6 +33,7 @@ chmod +x .git/hooks/pre-commit
 ```
 
 ### Hook Enhancement Recommendations
+
 1. ✅ **ai-platform**: Added SimpleBeacon gate scan to existing test run
 2. ✅ **Standardize**: All hooks now run syntax checks and quality gates (root `.husky/pre-commit`, `.husky/pre-commit.cmd`, `ai-platform/.husky/pre-commit`, `coming-soon/pre-commit-hook.sh`)
 3. ✅ **CI Integration**: GitHub Actions run `npm audit` on every PR (builds fail on high/critical); SimpleBeacon gate scan runs in CI via `npx simplebeacon scan --gate --format json`
@@ -38,6 +43,7 @@ chmod +x .git/hooks/pre-commit
 ## Monthly Quality Gate Review Schedule
 
 ### Review Cadence
+
 - **Frequency**: Monthly (first business day of each month)
 - **Owner**: Engineering Team Lead
 - **Duration**: 1-2 hours
@@ -46,28 +52,33 @@ chmod +x .git/hooks/pre-commit
 ### Review Agenda
 
 #### 1. Gate Status Review (15 min)
+
 - Review previous month's gate pass/fail rates
 - Analyze trends in blocking issues
 - Identify recurring patterns or false positives
 
 #### 2. Dependency Health Check (20 min)
+
 - Run `npm audit` across all packages
 - Review DEPENDENCY-POLICY.md compliance
 - Plan dependency updates for the month
 - Address any security vulnerabilities
 
 #### 3. Test Coverage Analysis (20 min)
+
 - Review test coverage reports
 - Identify modules with low coverage
 - Plan test additions for uncovered modules
 - Review test flakiness and reliability
 
 #### 4. Documentation Updates (15 min)
+
 - Update AGENTS.md with any new learnings
 - Review and update technical documentation
 - Ensure all TODOs are addressed or documented
 
 #### 5. Action Items (10 min)
+
 - Assign owners to identified issues
 - Set deadlines for remediation
 - Schedule follow-up reviews if needed
@@ -95,6 +106,7 @@ npm run quality:check
 ```
 
 This runs:
+
 - SimpleBeacon gate scan
 - Dependency audit
 - Test coverage analysis
@@ -109,26 +121,31 @@ This runs:
 # Monthly Quality Review - [Month Year]
 
 ## Executive Summary
+
 - Gate Pass Rate: X%
 - Critical Issues: X
 - High Severity Issues: X
 - Test Coverage: X%
 
 ## Dependency Health
+
 - Vulnerabilities Found: X
 - Packages Updated: X
 - Deprecated Packages: X
 
 ## Test Coverage
+
 - Overall Coverage: X%
 - Modules Below Threshold: X
 - New Tests Added: X
 
 ## Action Items
+
 1. [ ] Issue description - Owner - Due date
 2. [ ] Issue description - Owner - Due date
 
 ## Next Month Focus
+
 - Priority areas for improvement
 - Planned tooling upgrades
 - Team training needs
@@ -138,13 +155,13 @@ This runs:
 
 Track these metrics month-over-month:
 
-| Metric | Month 1 | Month 2 | Month 3 | Trend |
-|--------|---------|---------|---------|-------|
-| Gate Pass Rate | % | % | % | ↗/↘ |
-| Critical Issues | # | # | # | ↗/↘ |
-| Test Coverage | % | % | % | ↗/↘ |
-| Vulnerabilities | # | # | # | ↗/↘ |
-| False Positive Rate | % | % | % | ↗/↘ |
+| Metric              | Month 1 | Month 2 | Month 3 | Trend |
+| ------------------- | ------- | ------- | ------- | ----- |
+| Gate Pass Rate      | %       | %       | %       | ↗/↘   |
+| Critical Issues     | #       | #       | #       | ↗/↘   |
+| Test Coverage       | %       | %       | %       | ↗/↘   |
+| Vulnerabilities     | #       | #       | #       | ↗/↘   |
+| False Positive Rate | %       | %       | %       | ↗/↘   |
 
 ### Escalation Procedures
 
@@ -161,16 +178,16 @@ If critical issues are found during monthly review:
 
 Cursor rule: **`.cursor/rules/qa-framework.mdc`** (`alwaysApply: true`).
 
-| Phase | Role | Artifact |
-|-------|------|----------|
-| 1 Spec | Builder | `.simplebeacon/qa/test_plan.md` (from `templates/qa/test_plan.template.md`) |
-| 2 Build | Builder | Code — only after plan approval |
-| 3 Validate | Validator (separate chat) | Run Level 1 gates/tests; adversarial review |
-| 4 Report | Validator | `.simplebeacon/qa/software_health_report.md` |
+| Phase      | Role                      | Artifact                                                                    |
+| ---------- | ------------------------- | --------------------------------------------------------------------------- |
+| 1 Spec     | Builder                   | `.simplebeacon/qa/test_plan.md` (from `templates/qa/test_plan.template.md`) |
+| 2 Build    | Builder                   | Code — only after plan approval                                             |
+| 3 Validate | Validator (separate chat) | Run Level 1 gates/tests; adversarial review                                 |
+| 4 Report   | Validator                 | `.simplebeacon/qa/software_health_report.md`                                |
 
 **Level 1 commands:** `node -c`, `npm test` (ai-platform), `npm run compile` (extension), `npx simplebeacon scan --full --gate`.
 
-Switch roles explicitly: *"Act as Validator only"* — Validator must not write feature code.
+Switch roles explicitly: _"Act as Validator only"_ — Validator must not write feature code.
 
 ---
 
@@ -212,16 +229,17 @@ This walks the entire repository tree (excluding `node_modules`, `.git`, `github
 
 ### Before vs After
 
-| Metric | Default Scan | `--full` Scan |
-|--------|-------------|---------------|
-| Total files | 576 | 692 |
-| Content-scanned | 294 (51%) | 685 (99.1%) |
-| Metadata-only skipped | 282 (49%) | 0 |
-| Binary files | unknown | 4 |
+| Metric                | Default Scan | `--full` Scan |
+| --------------------- | ------------ | ------------- |
+| Total files           | 576          | 692           |
+| Content-scanned       | 294 (51%)    | 685 (99.1%)   |
+| Metadata-only skipped | 282 (49%)    | 0             |
+| Binary files          | unknown      | 4             |
 
 ### Enabling All Rule Engines
 
 Some rule engines are opt-in and disabled by default:
+
 - `token-bleed-patterns`
 - `architecture-drift-patterns`
 - `python-ast-patterns`
@@ -260,14 +278,14 @@ Simplebeacon includes a built-in MCP stdio server compatible with Cursor, AI ass
 
 **Tools exposed:**
 
-| Tool | Purpose |
-|------|---------|
-| `scan_snippet` | Scan pasted code for leaks, credentials, fiction KPIs |
-| `scan_file` | Scan a single file on disk |
-| `scan_project` | Run a full project scan with gate evaluation |
-| `gate_status` | Read latest gate pass/fail from `.simplebeacon/report.json` |
-| `suggest_fixes` | Get prioritized remediation steps from scan results |
-| `explain_finding` | Look up deterministic rule metadata for any pattern ID |
+| Tool              | Purpose                                                     |
+| ----------------- | ----------------------------------------------------------- |
+| `scan_snippet`    | Scan pasted code for leaks, credentials, fiction KPIs       |
+| `scan_file`       | Scan a single file on disk                                  |
+| `scan_project`    | Run a full project scan with gate evaluation                |
+| `gate_status`     | Read latest gate pass/fail from `.simplebeacon/report.json` |
+| `suggest_fixes`   | Get prioritized remediation steps from scan results         |
+| `explain_finding` | Look up deterministic rule metadata for any pattern ID      |
 
 **Start the MCP server:**
 
@@ -316,16 +334,16 @@ const blog = controller.generateMarketing('blog');
 
 **Available methods:**
 
-| Method | Description |
-|--------|-------------|
-| `scan(options)` | Run full scan, returns normalized report |
-| `getGateStatus()` | Read gate pass/fail, blocking counts |
-| `getSummary()` | Structured summary for AI consumption |
-| `suggestFixes()` | Prioritized list of remediation actions |
-| `checkHandoffReadiness()` | Is the project ready for delivery? |
-| `generateMarketing(channel)` | Create blog/twitter/linkedin content |
-| `exportReport(path)` | Write report to JSON file |
-| `watchAndScan(options)` | Watch files and auto-scan on change |
+| Method                       | Description                              |
+| ---------------------------- | ---------------------------------------- |
+| `scan(options)`              | Run full scan, returns normalized report |
+| `getGateStatus()`            | Read gate pass/fail, blocking counts     |
+| `getSummary()`               | Structured summary for AI consumption    |
+| `suggestFixes()`             | Prioritized list of remediation actions  |
+| `checkHandoffReadiness()`    | Is the project ready for delivery?       |
+| `generateMarketing(channel)` | Create blog/twitter/linkedin content     |
+| `exportReport(path)`         | Write report to JSON file                |
+| `watchAndScan(options)`      | Watch files and auto-scan on change      |
 
 ### 3. Server REST API
 
@@ -354,9 +372,9 @@ For the lowest-level control, import from `scan.js` directly:
 const { runScan, scanMockDataDirectories } = require('simplebeacon/src/scan');
 
 const report = await runScan('/path/to/project', {
-    offline: true,
-    gate: true,
-    fullDirectoryScan: true
+  offline: true,
+  gate: true,
+  fullDirectoryScan: true,
 });
 ```
 
@@ -386,27 +404,27 @@ Recommended workflow for an AI assistant controlling Simplebeacon:
 const { AiAgentController } = require('simplebeacon/src/lib/ai-agent-controller');
 
 async function aiSimplebeaconWorkflow(projectRoot) {
-    const ctrl = new AiAgentController(projectRoot, { offline: true });
-    
-    // 1. Scan
-    const report = await ctrl.scan({ gate: true });
-    
-    // 2. Assess
-    const summary = ctrl.getSummary();
-    if (!summary.gatePass) {
-        const fixes = ctrl.suggestFixes();
-        console.log(`${fixes.total} fixes needed:`, fixes.all.slice(0, 5));
-        return { status: 'needs-fixes', fixes };
-    }
-    
-    // 3. Handoff check
-    const readiness = ctrl.checkHandoffReadiness();
-    if (readiness.ready) {
-        ctrl.exportReport('.simplebeacon/handoff-report.json');
-        return { status: 'ready-for-handoff', report };
-    }
-    
-    return { status: 'unknown', summary };
+  const ctrl = new AiAgentController(projectRoot, { offline: true });
+
+  // 1. Scan
+  const report = await ctrl.scan({ gate: true });
+
+  // 2. Assess
+  const summary = ctrl.getSummary();
+  if (!summary.gatePass) {
+    const fixes = ctrl.suggestFixes();
+    console.log(`${fixes.total} fixes needed:`, fixes.all.slice(0, 5));
+    return { status: 'needs-fixes', fixes };
+  }
+
+  // 3. Handoff check
+  const readiness = ctrl.checkHandoffReadiness();
+  if (readiness.ready) {
+    ctrl.exportReport('.simplebeacon/handoff-report.json');
+    return { status: 'ready-for-handoff', report };
+  }
+
+  return { status: 'unknown', summary };
 }
 ```
 
@@ -417,15 +435,18 @@ async function aiSimplebeaconWorkflow(projectRoot) {
 These rules exist to keep the AI focused on practical, grounded engineering instead of generating over-engineered architectures. Follow them strictly.
 
 ### 1. Start with the Code, Not the Architecture
-**Wrong:** *"Let's design a microservices event bus with Kafka..."*
-**Right:** *"Show me the exact file that handles the webhook already."*
+
+**Wrong:** _"Let's design a microservices event bus with Kafka..."_
+**Right:** _"Show me the exact file that handles the webhook already."_
 
 **Action:** Use `grep` to find existing patterns, read actual files, then extend what's there. Never build a new system before understanding the current one.
 
 ### 2. The "One-File Rule"
-Before creating any new file, ask: *"Can I add this to an existing file instead?"*
+
+Before creating any new file, ask: _"Can I add this to an existing file instead?"_
 
 **Examples from this codebase:**
+
 - Needed a scan lock? Added `let isScanRunning` to existing `simplebeacon-api.cjs` — no new module.
 - Needed dashboard polling? Added methods to existing `main.js` — no new component.
 - Needed dynamic project path? Added one line to existing webhook handler — no new service.
@@ -433,18 +454,23 @@ Before creating any new file, ask: *"Can I add this to an existing file instead?
 **Result:** 5 files touched, 0 new modules created, 0 dependencies added.
 
 ### 3. Verify Before You Believe
+
 Every change gets a syntax check immediately:
+
 ```bash
 node -c path/to/file.js
 ```
 
 Every assumption gets tested against reality:
+
 - AI claims a file exists? `ls` or `Test-Path` to confirm.
 - AI claims an API endpoint works? Read the route handler.
 - AI claims a test passes? Run `node --test` and see.
 
 ### 4. The "Ghost File" Trap
+
 The AI will reference files that do not exist, especially from:
+
 - `.simplebeacon/config.json` at the repo root (gitignored — may or may not exist)
 - `src/main.js` (generic template — check if it actually exists)
 - `test-login.json` (likely never existed)
@@ -453,16 +479,20 @@ The AI will reference files that do not exist, especially from:
 **Defense:** Before editing, confirm the file path exists. If the AI quotes code from a file you haven't read, read it yourself.
 
 ### 5. When the AI Hallucinates, Call It Out
+
 If the AI:
+
 - Invents a vulnerability in a non-existent file
 - Proposes a 12-step enterprise architecture for a 2-line fix
 - Recommends adding Redis/Kafka/queues for a file-based system
 - Starts generating boilerplate "modules" you didn't ask for
 
-**Stop.** Ask: *"What file currently handles this? Show me the actual code."*
+**Stop.** Ask: _"What file currently handles this? Show me the actual code."_
 
 ### 6. The Checklist for "Done"
+
 Before ending a session:
+
 - [ ] All modified files pass `node -c` syntax check
 - [ ] Relevant tests pass (`node --test`)
 - [ ] No ghost files are referenced in the summary
@@ -471,13 +501,13 @@ Before ending a session:
 
 ### 7. Castle vs. Broom Comparison
 
-| Task | Castle (Wrong) | Broom (Right) |
-|------|---------------|---------------|
-| Stripe webhook → scan | Build message queue + worker + Docker | Fire-and-forget `child_process.exec` in existing handler |
-| Concurrent scan safety | Redis distributed locks | Module-level `let isScanRunning = false` |
-| Dashboard sees new results | WebSockets, server-sent events | `setInterval` polling for 2 min max |
-| Test fixture false positives | Rewrite rule engine | Add exclusion paths to existing config |
-| Export a report module | New npm package with 3 files | Use existing exports, import from real code |
+| Task                         | Castle (Wrong)                        | Broom (Right)                                            |
+| ---------------------------- | ------------------------------------- | -------------------------------------------------------- |
+| Stripe webhook → scan        | Build message queue + worker + Docker | Fire-and-forget `child_process.exec` in existing handler |
+| Concurrent scan safety       | Redis distributed locks               | Module-level `let isScanRunning = false`                 |
+| Dashboard sees new results   | WebSockets, server-sent events        | `setInterval` polling for 2 min max                      |
+| Test fixture false positives | Rewrite rule engine                   | Add exclusion paths to existing config                   |
+| Export a report module       | New npm package with 3 files          | Use existing exports, import from real code              |
 
 ### Bottom Line
 
@@ -489,33 +519,33 @@ The best fix is the one that uses the existing patterns, the existing imports, a
 
 ### Package Directories
 
-| Package | Canonical Path | Notes |
-|---------|---------------|-------|
-| simplebeacon-cli | `packages/simplebeacon-cli/` | Root-level canonical package |
+| Package                   | Canonical Path                                    | Notes                                |
+| ------------------------- | ------------------------------------------------- | ------------------------------------ |
+| simplebeacon-cli          | `packages/simplebeacon-cli/`                      | Root-level canonical package         |
 | simplebeacon-intelligence | `ai-platform/packages/simplebeacon-intelligence/` | Optional tree-sitter grammar package |
-| ai-platform | `ai-platform/` | Main platform workspace |
-| ai-agent | `ai-agent/` | 0-dependency local agent |
-| ai-tools | `ai-tools/` | 0-dependency syntax/test wrapper |
-| coming-soon | `coming-soon/` | Landing page with backend |
-| vscode-extension | `vscode-extension/` | VS Code extension |
+| ai-platform               | `ai-platform/`                                    | Main platform workspace              |
+| ai-agent                  | `ai-agent/`                                       | 0-dependency local agent             |
+| ai-tools                  | `ai-tools/`                                       | 0-dependency syntax/test wrapper     |
+| coming-soon               | `coming-soon/`                                    | Landing page with backend            |
+| vscode-extension          | `vscode-extension/`                               | VS Code extension                    |
 
 ### Generated Artifacts
 
-| Artifact Type | Canonical Location | Archive Location |
-|---------------|-------------------|------------------|
-| SimpleBeacon reports | `.simplebeacon/report.json` | `.simplebeacon/archive/` |
-| Scan outputs | `.simplebeacon/scan-*.json` | `.simplebeacon/archive/` |
-| Gate test reports | `.simplebeacon/gate-test-report.json` | `.simplebeacon/archive/` |
-| Backup files | N/A — do not commit | `.simplebeacon/archive/` |
-| Phase export files | Root `phase-*.json` (temporary) | `.simplebeacon/archive/` after completion |
+| Artifact Type        | Canonical Location                    | Archive Location                          |
+| -------------------- | ------------------------------------- | ----------------------------------------- |
+| SimpleBeacon reports | `.simplebeacon/report.json`           | `.simplebeacon/archive/`                  |
+| Scan outputs         | `.simplebeacon/scan-*.json`           | `.simplebeacon/archive/`                  |
+| Gate test reports    | `.simplebeacon/gate-test-report.json` | `.simplebeacon/archive/`                  |
+| Backup files         | N/A — do not commit                   | `.simplebeacon/archive/`                  |
+| Phase export files   | Root `phase-*.json` (temporary)       | `.simplebeacon/archive/` after completion |
 
 ### Deprecated / Removed Locations
 
-| Old Location | Reason | Action Taken |
-|-------------|--------|--------------|
-| `ai-platform/.github-sync/simplebeacon/` | Sync artifact, duplicate of `packages/simplebeacon-cli/` | Removed 2026-06-10 |
-| `ai-platform/github-cache/tjp420-simplebeacon/` | Cache artifact | Previously removed |
-| Root `*-report.json`, `scan_*.json` | Generated artifacts cluttering root | Archived to `.simplebeacon/archive/` 2026-06-10 |
+| Old Location                                    | Reason                                                   | Action Taken                                    |
+| ----------------------------------------------- | -------------------------------------------------------- | ----------------------------------------------- |
+| `ai-platform/.github-sync/simplebeacon/`        | Sync artifact, duplicate of `packages/simplebeacon-cli/` | Removed 2026-06-10                              |
+| `ai-platform/github-cache/tjp420-simplebeacon/` | Cache artifact                                           | Previously removed                              |
+| Root `*-report.json`, `scan_*.json`             | Generated artifacts cluttering root                      | Archived to `.simplebeacon/archive/` 2026-06-10 |
 
 ---
 
@@ -523,23 +553,23 @@ The best fix is the one that uses the existing patterns, the existing imports, a
 
 ### Files
 
-| Type | Convention | Examples |
-|------|-----------|----------|
-| Source files (JS/CJS) | kebab-case | `scan-engine.js`, `path-sanitizer.cjs` |
-| Test files | kebab-case with `.test.` suffix | `scan-engine.test.js` |
-| Config files | kebab-case | `config.json`, `config-full-coverage.json` |
-| Documentation | UPPER-KEBAB-CASE for top-level | `DEPENDENCY-POLICY.md`, `AGENTS.md` |
-| Scripts (shell/batch) | kebab-case | `scan-website.sh`, `start-all-servers.bat` |
-| Generated reports | kebab-case with type prefix | `report.json`, `gate-test-report.json`, `scan-clean.json` |
-| Phase export files | `phase-{phase}-{project}-{date}.json` | `phase-npmaudit-ai_agent-2026-06-10.json` |
+| Type                  | Convention                            | Examples                                                  |
+| --------------------- | ------------------------------------- | --------------------------------------------------------- |
+| Source files (JS/CJS) | kebab-case                            | `scan-engine.js`, `path-sanitizer.cjs`                    |
+| Test files            | kebab-case with `.test.` suffix       | `scan-engine.test.js`                                     |
+| Config files          | kebab-case                            | `config.json`, `config-full-coverage.json`                |
+| Documentation         | UPPER-KEBAB-CASE for top-level        | `DEPENDENCY-POLICY.md`, `AGENTS.md`                       |
+| Scripts (shell/batch) | kebab-case                            | `scan-website.sh`, `start-all-servers.bat`                |
+| Generated reports     | kebab-case with type prefix           | `report.json`, `gate-test-report.json`, `scan-clean.json` |
+| Phase export files    | `phase-{phase}-{project}-{date}.json` | `phase-npmaudit-ai_agent-2026-06-10.json`                 |
 
 ### Directories
 
-| Type | Convention | Examples |
-|------|-----------|----------|
-| Packages | kebab-case | `simplebeacon-cli`, `coming-soon` |
-| Source | kebab-case or plural | `src/`, `tests/`, `docs/` |
-| Config | dot-prefixed | `.simplebeacon/`, `.husky/` |
+| Type     | Convention           | Examples                          |
+| -------- | -------------------- | --------------------------------- |
+| Packages | kebab-case           | `simplebeacon-cli`, `coming-soon` |
+| Source   | kebab-case or plural | `src/`, `tests/`, `docs/`         |
+| Config   | dot-prefixed         | `.simplebeacon/`, `.husky/`       |
 
 ### Inconsistencies to Avoid
 

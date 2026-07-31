@@ -42,35 +42,39 @@ The Simplebeacon Platform is a modular AI safety scanning and audit platform bui
 ## Core Components
 
 ### 1. Authentication System
+
 - JWT-based authentication with refresh tokens
 - Vault authentication for local development
 - Role-based access control (RBAC)
 
 ### 2. Scan Engine
+
 - Multi-engine analysis pipeline
 - File system walker with path safety validation
 - Pattern matching for credentials, leaks, fiction KPI
 
 ### 3. Dashboard
+
 - Real-time metrics and analytics
 - Interactive scan results visualization
 - Audit trail and compliance reporting
 
 ### 4. CI/CD Integration
+
 - GitHub Actions workflows
 - Automated hygiene gates
 - Coverage reporting with Istanbul
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Vanilla JS, HTML5, CSS3 |
-| Backend | Node.js, Express |
-| Database | PostgreSQL, Redis |
-| Testing | Jest, node:test |
-| CI/CD | GitHub Actions |
-| Deployment | Docker Compose |
+| Layer      | Technology              |
+| ---------- | ----------------------- |
+| Frontend   | Vanilla JS, HTML5, CSS3 |
+| Backend    | Node.js, Express        |
+| Database   | PostgreSQL, Redis       |
+| Testing    | Jest, node:test         |
+| CI/CD      | GitHub Actions          |
+| Deployment | Docker Compose          |
 
 ## Security Features
 
@@ -101,6 +105,7 @@ Production Environment:
 ## Configuration
 
 Key configuration files:
+
 - `.env.v1-internal` - Development environment
 - `.env.production` - Production environment
 - `docker-compose.phase2.yml` - Infrastructure services

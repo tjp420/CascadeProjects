@@ -36,7 +36,9 @@ function writeCache(projectRoot, cache) {
   const cachePath = resolveCachePath(projectRoot);
   try {
     fs.mkdirSync(path.dirname(cachePath), { recursive: true });
-    const entries = Object.entries(cache).sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
+    const entries = Object.entries(cache).sort(
+      (a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0)
+    );
     const trimmed = Object.fromEntries(entries.slice(0, MAX_CACHE_ENTRIES));
     fs.writeFileSync(cachePath, `${JSON.stringify(trimmed, null, 2)}\n`, 'utf8');
   } catch {
@@ -75,5 +77,5 @@ module.exports = {
   getCachedAnalysis,
   setCachedAnalysis,
   clearCache,
-  resolveCachePath
+  resolveCachePath,
 };

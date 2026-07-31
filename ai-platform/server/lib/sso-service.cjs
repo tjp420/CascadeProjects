@@ -29,7 +29,9 @@ const ssoConfigStore = require('./sso-config-store.cjs');
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function envKey(provider, suffix) {
-  const clean = String(provider).replace(/[^a-zA-Z0-9_-]/g, '').toUpperCase();
+  const clean = String(provider)
+    .replace(/[^a-zA-Z0-9_-]/g, '')
+    .toUpperCase();
   return process.env[`${clean}_${suffix}`] || process.env[`${suffix}_${clean}`];
 }
 
@@ -60,14 +62,21 @@ function getOidcConfig(provider) {
     return {
       clientId: stored.oidc?.clientId || '',
       clientSecret: stored.oidc?._decryptedSecret || '',
-      redirectUri: stored.oidc?.redirectUri || process.env.OIDC_REDIRECT_URI || 'https://simplebeacon.ai/api/v2/auth/sso/oidc/callback',
+      redirectUri:
+        stored.oidc?.redirectUri ||
+        process.env.OIDC_REDIRECT_URI ||
+        'https://simplebeacon.ai/api/v2/auth/sso/oidc/callback',
       issuer: stored.oidc?.issuer || '',
     };
   }
   // Fall back to environment variables
-  const clientId = envKey(provider, 'OIDC_CLIENT_ID') || process.env[`OIDC_CLIENT_ID_${provider.toUpperCase()}`];
-  const clientSecret = envKey(provider, 'OIDC_CLIENT_SECRET') || process.env[`OIDC_CLIENT_SECRET_${provider.toUpperCase()}`];
-  const redirectUri = process.env.OIDC_REDIRECT_URI || 'https://simplebeacon.ai/api/v2/auth/sso/oidc/callback';
+  const clientId =
+    envKey(provider, 'OIDC_CLIENT_ID') || process.env[`OIDC_CLIENT_ID_${provider.toUpperCase()}`];
+  const clientSecret =
+    envKey(provider, 'OIDC_CLIENT_SECRET') ||
+    process.env[`OIDC_CLIENT_SECRET_${provider.toUpperCase()}`];
+  const redirectUri =
+    process.env.OIDC_REDIRECT_URI || 'https://simplebeacon.ai/api/v2/auth/sso/oidc/callback';
   const issuer = envKey(provider, 'OIDC_ISSUER');
   if (!clientId || !clientSecret || !issuer) {
     throw new Error(`OIDC not configured for provider: ${provider}`);
@@ -137,7 +146,9 @@ function parseSamlAssertion(samlResponseBody) {
     const nameIdMatch = decoded.match(/<saml2?:NameID[^>]*>([^<]+)<\/saml2?:NameID>/i);
     const nameId = nameIdMatch ? nameIdMatch[1].trim() : '';
 
-    const emailMatch = decoded.match(/<saml2?:AttributeValue[^>]*>([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})<\/saml2?:AttributeValue>/i);
+    const emailMatch = decoded.match(
+      /<saml2?:AttributeValue[^>]*>([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})<\/saml2?:AttributeValue>/i
+    );
     const email = emailMatch ? emailMatch[1].trim() : nameId;
 
     return { nameId, email, rawAssertion: decoded };
@@ -163,7 +174,7 @@ function buildOidcAuthorizeUrl(provider, state) {
     response_type: 'code',
     scope: 'openid email profile',
     redirect_uri: cfg.redirectUri,
-    state
+    state,
   });
   return `${cfg.issuer}/authorize?${params.toString()}`;
 }
@@ -179,7 +190,7 @@ async function exchangeOidcCode(provider, code) {
     accessToken: 'placeholder',
     email: 'user@' + provider + '.com',
     externalId: 'ext-' + provider + '-123',
-    provider
+    provider,
   };
 }
 
@@ -192,10 +203,10 @@ async function issueTokensForSsoUser(email, externalId, provider, organizationId
     email: user.email,
     trustLevel: user.trustLevel || 1,
     workspaceId: user.organizationId || organizationId,
-    permissions: user.permissions || ['user:read']
+    permissions: user.permissions || ['user:read'],
   });
   const refreshToken = await issueRefreshToken(user.id, {
-    workspaceId: user.organizationId || organizationId
+    workspaceId: user.organizationId || organizationId,
   });
   return { user, accessToken, refreshToken };
 }
@@ -209,7 +220,7 @@ async function findOrCreateSsoUser(email, externalId, provider, organizationId, 
     externalId,
     organizationId,
     trustLevel: 2,
-    permissions: ['user:read', 'workspace:read']
+    permissions: ['user:read', 'workspace:read'],
   };
 }
 
@@ -227,5 +238,5 @@ module.exports = {
   resolveOrganizationByDomain,
   issueTokensForSsoUser,
   findOrCreateSsoUser,
-  extractDomain
+  extractDomain,
 };

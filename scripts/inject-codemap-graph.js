@@ -26,14 +26,14 @@ const codemap = JSON.parse(fs.readFileSync(CODEMAP_JSON, 'utf8'));
 const graph = codemap.dependencyGraph || { nodes: [], edges: [] };
 
 // Compute leaves: nodes with no outgoing edges
-const sourceSet = new Set(graph.edges.map(e => e.source));
-const leaves = graph.nodes.filter(n => !sourceSet.has(n.id)).map(n => n.label || n.id);
+const sourceSet = new Set(graph.edges.map((e) => e.source));
+const leaves = graph.nodes.filter((n) => !sourceSet.has(n.id)).map((n) => n.label || n.id);
 
 // Build data payloads
-const graphData    = JSON.stringify({ nodes: graph.nodes, edges: graph.edges });
-const cyclesData   = JSON.stringify(codemap.cycles || []);
-const entriesData  = JSON.stringify(codemap.entryPoints || []);
-const leavesData   = JSON.stringify(leaves);
+const graphData = JSON.stringify({ nodes: graph.nodes, edges: graph.edges });
+const cyclesData = JSON.stringify(codemap.cycles || []);
+const entriesData = JSON.stringify(codemap.entryPoints || []);
+const leavesData = JSON.stringify(leaves);
 const connectedData = JSON.stringify(codemap.mostConnected || []);
 
 function injectInto(htmlPath) {
@@ -50,10 +50,10 @@ function injectInto(htmlPath) {
   }
 
   let ok = true;
-  ok = inject('graphData',    graphData)    && ok;
-  ok = inject('cyclesData',   cyclesData)   && ok;
-  ok = inject('entriesData',  entriesData)  && ok;
-  ok = inject('leavesData',   leavesData)   && ok;
+  ok = inject('graphData', graphData) && ok;
+  ok = inject('cyclesData', cyclesData) && ok;
+  ok = inject('entriesData', entriesData) && ok;
+  ok = inject('leavesData', leavesData) && ok;
   ok = inject('connectedData', connectedData) && ok;
 
   if (!ok) {
@@ -72,12 +72,26 @@ if (fs.existsSync(HTML_ROOT)) targets.push(HTML_ROOT);
 for (const target of targets) {
   if (injectInto(target)) {
     process.stdout.write(
-      '[codemap] Data injected into ' + target + ':\n' +
-      '  - ' + graph.nodes.length + ' nodes, ' + graph.edges.length + ' edges\n' +
-      '  - ' + (codemap.cycles || []).length + ' cycles\n' +
-      '  - ' + (codemap.entryPoints || []).length + ' entry points\n' +
-      '  - ' + leaves.length + ' leaves\n' +
-      '  - ' + (codemap.mostConnected || []).length + ' most connected\n'
+      '[codemap] Data injected into ' +
+        target +
+        ':\n' +
+        '  - ' +
+        graph.nodes.length +
+        ' nodes, ' +
+        graph.edges.length +
+        ' edges\n' +
+        '  - ' +
+        (codemap.cycles || []).length +
+        ' cycles\n' +
+        '  - ' +
+        (codemap.entryPoints || []).length +
+        ' entry points\n' +
+        '  - ' +
+        leaves.length +
+        ' leaves\n' +
+        '  - ' +
+        (codemap.mostConnected || []).length +
+        ' most connected\n'
     );
   }
 }

@@ -5,7 +5,7 @@ const {
   resolveProjectFile,
   assessMergeRisk,
   CONFIRMATION_PHRASE,
-  PREVIEW_TTL_MS
+  PREVIEW_TTL_MS,
 } = require('../merge-preview.cjs');
 
 describe('merge-preview', () => {
@@ -25,7 +25,9 @@ describe('merge-preview', () => {
   });
 
   test('resolveProjectFile throws on path escaping root', () => {
-    expect(() => resolveProjectFile('/project', '../../etc/passwd')).toThrow(/escapes project root/);
+    expect(() => resolveProjectFile('/project', '../../etc/passwd')).toThrow(
+      /escapes project root/
+    );
   });
 
   test('resolveProjectFile handles backslash paths', () => {
@@ -69,6 +71,8 @@ describe('merge-preview', () => {
   });
 
   test('buildMergePreview throws when no files provided', async () => {
-    await expect(buildMergePreview({ projectRoot: '/tmp', candidate: { files: [] } })).rejects.toThrow(/at least one file/);
+    await expect(
+      buildMergePreview({ projectRoot: '/tmp', candidate: { files: [] } })
+    ).rejects.toThrow(/at least one file/);
   });
 });

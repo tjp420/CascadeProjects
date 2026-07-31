@@ -60,7 +60,9 @@ if (fs.existsSync(faviconSrc)) {
 
 // Root entry point redirects into /dashboard/index.html.
 const rootIndex = path.join(dst, 'index.html');
-fs.writeFileSync(rootIndex, `<!DOCTYPE html>
+fs.writeFileSync(
+  rootIndex,
+  `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -70,6 +72,7 @@ fs.writeFileSync(rootIndex, `<!DOCTYPE html>
 <body>
   <p>Loading SimpleBeacon Desktop...</p>
 </body>
-</html>`);
+</html>`
+);
 
-process.stdout.write([`Frontend build complete: ${dst}`].join(" ") + "\n");
+process.stdout.write([`Frontend build complete: ${dst}`].join(' ') + '\n');

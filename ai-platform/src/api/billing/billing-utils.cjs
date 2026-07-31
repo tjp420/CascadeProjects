@@ -6,13 +6,17 @@ const logger = require('../../../server/lib/app-logger.cjs');
 
 function safeStringify(obj, space = 2) {
   const seen = new WeakSet();
-  return JSON.stringify(obj, (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (seen.has(value)) return '[Circular]';
-      seen.add(value);
-    }
-    return value;
-  }, space);
+  return JSON.stringify(
+    obj,
+    (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) return '[Circular]';
+        seen.add(value);
+      }
+      return value;
+    },
+    space
+  );
 }
 
 function safeJsonParse(str, fallback = null) {
@@ -39,7 +43,7 @@ function formatCurrency(amount, currency = 'usd') {
 }
 
 function formatDateISO(date) {
-  const d = date instanceof Date ? date : (date ? new Date(date) : new Date());
+  const d = date instanceof Date ? date : date ? new Date(date) : new Date();
   if (Number.isNaN(d.getTime())) return new Date().toISOString();
   return d.toISOString();
 }
@@ -58,7 +62,12 @@ function maskEmail(email) {
 
 function sanitizeFilename(name) {
   if (typeof name !== 'string') return 'unknown';
-  return name.replace(/[<>:"\/\\|?*\x00-\x1f]/g, '-').replace(/\s+/g, '_').slice(0, 200) || 'unknown';
+  return (
+    name
+      .replace(/[<>:"\/\\|?*\x00-\x1f]/g, '-')
+      .replace(/\s+/g, '_')
+      .slice(0, 200) || 'unknown'
+  );
 }
 
 function pick(obj, keys) {
@@ -99,8 +108,8 @@ function groupBy(arr, keyFn) {
   return map;
 }
 
-const REPORT_STORE_DIR = process.env.REPORT_STORE_DIR
-  || path.join(process.cwd(), '.simplebeacon', 'report-deliveries');
+const REPORT_STORE_DIR =
+  process.env.REPORT_STORE_DIR || path.join(process.cwd(), '.simplebeacon', 'report-deliveries');
 
 function ensureReportDir() {
   const fs = require('fs');
@@ -139,5 +148,5 @@ module.exports = {
   ensureReportDir,
   streamToBuffer,
   logBilling,
-  REPORT_STORE_DIR
+  REPORT_STORE_DIR,
 };

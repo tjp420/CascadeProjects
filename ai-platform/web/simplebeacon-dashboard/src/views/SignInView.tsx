@@ -37,7 +37,11 @@ export function SignInView() {
       localStorage.setItem('sb_token', ssoToken);
       const ssoProviderId = params.get('sso_provider') || '';
       localStorage.setItem('sb_sso_provider', ssoProviderId);
-      try { window.dispatchEvent(new Event('sb:login')); } catch { /* ignore */ }
+      try {
+        window.dispatchEvent(new Event('sb:login'));
+      } catch {
+        /* ignore */
+      }
       toast.success('SSO authentication successful');
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
@@ -81,7 +85,9 @@ export function SignInView() {
     if (!ssoProvider?.providerId) return;
     const method = ssoProvider.method || 'oidc';
     const loginPath = method === 'saml' ? '/sso/saml/login' : '/sso/oidc/login';
-    window.location.href = apiUrl(`${loginPath}?providerId=${encodeURIComponent(ssoProvider.providerId)}`);
+    window.location.href = apiUrl(
+      `${loginPath}?providerId=${encodeURIComponent(ssoProvider.providerId)}`
+    );
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -113,14 +119,20 @@ export function SignInView() {
         try {
           const errData = await resp.json();
           friendlyMsg = errData.message || errData.error || errData.detail || friendlyMsg;
-        } catch { /* response was not JSON — use default message */ }
+        } catch {
+          /* response was not JSON — use default message */
+        }
         throw new Error(friendlyMsg);
       }
       const data = await resp.json();
       if (data.token) {
         localStorage.setItem('sb_token', data.token);
         if (data.user) localStorage.setItem('sb_user', JSON.stringify(data.user));
-        try { window.dispatchEvent(new Event('sb:login')); } catch { /* ignore */ }
+        try {
+          window.dispatchEvent(new Event('sb:login'));
+        } catch {
+          /* ignore */
+        }
         toast.success(mode === 'signin' ? 'Signed in' : 'Account created');
         navigate('dashboard');
       } else {
@@ -156,7 +168,9 @@ export function SignInView() {
         try {
           const errData = await resp.json();
           friendlyMsg = errData.message || errData.error || errData.detail || friendlyMsg;
-        } catch { /* response was not JSON */ }
+        } catch {
+          /* response was not JSON */
+        }
         throw new Error(friendlyMsg);
       }
       const data = await resp.json();
@@ -169,7 +183,11 @@ export function SignInView() {
           role: 'user',
         };
         localStorage.setItem('sb_user', JSON.stringify(userData));
-        try { window.dispatchEvent(new Event('sb:login')); } catch { /* ignore */ }
+        try {
+          window.dispatchEvent(new Event('sb:login'));
+        } catch {
+          /* ignore */
+        }
         toast.success(`License activated — ${data.tier} tier`);
         navigate('dashboard');
       } else if (data.registered && !data.valid) {
@@ -184,12 +202,14 @@ export function SignInView() {
     }
   };
 
-  const title = mode === 'signin' ? 'Sign In' : mode === 'register' ? 'Create Account' : 'Activate License';
-  const description = mode === 'signin'
-    ? 'Sign in to your SimpleBeacon account'
-    : mode === 'register'
-    ? 'Register for a free SimpleBeacon account'
-    : 'Paste the license key from your confirmation email';
+  const title =
+    mode === 'signin' ? 'Sign In' : mode === 'register' ? 'Create Account' : 'Activate License';
+  const description =
+    mode === 'signin'
+      ? 'Sign in to your SimpleBeacon account'
+      : mode === 'register'
+        ? 'Register for a free SimpleBeacon account'
+        : 'Paste the license key from your confirmation email';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
@@ -199,7 +219,13 @@ export function SignInView() {
             {mode === 'license' ? (
               <KeyRound className="h-7 w-7 text-primary-foreground" />
             ) : (
-              <svg viewBox="0 0 24 24" className="h-7 w-7 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-7 w-7 text-primary-foreground"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 <polyline points="9 12 12 15 16 10" />
               </svg>
@@ -212,7 +238,8 @@ export function SignInView() {
           {mode === 'license' ? (
             <>
               <div className="mb-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground-muted">
-                Your source code never leaves this machine. The license key unlocks dashboard features — no code is uploaded during scans.
+                Your source code never leaves this machine. The license key unlocks dashboard
+                features — no code is uploaded during scans.
               </div>
               <form onSubmit={handleLicenseSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -232,7 +259,9 @@ export function SignInView() {
                   {loading ? (
                     <span className="animate-pulse">Validating...</span>
                   ) : (
-                    <><KeyRound className="h-4 w-4" /> Activate License</>
+                    <>
+                      <KeyRound className="h-4 w-4" /> Activate License
+                    </>
                   )}
                 </Button>
               </form>
@@ -256,16 +285,24 @@ export function SignInView() {
                     <span>{ssoProvider.displayName || 'Enterprise SSO'} detected</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Your organization uses {ssoProvider.method?.toUpperCase() || 'SSO'} for authentication.
+                    Your organization uses {ssoProvider.method?.toUpperCase() || 'SSO'} for
+                    authentication.
                   </p>
-                  <Button type="button" variant="outline" className="w-full" onClick={handleSsoLogin}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleSsoLogin}
+                  >
                     <Fingerprint className="h-4 w-4" />
                     Continue with {ssoProvider.displayName || 'Enterprise SSO'}
                   </Button>
                 </div>
               )}
               {ssoChecking && email.includes('@') && (
-                <p className="text-xs text-muted-foreground animate-pulse">Checking for enterprise SSO...</p>
+                <p className="text-xs text-muted-foreground animate-pulse">
+                  Checking for enterprise SSO...
+                </p>
               )}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
@@ -277,18 +314,20 @@ export function SignInView() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 {mode === 'register' && (
-                  <p className="text-xs text-muted-foreground">
-                    Must be at least 8 characters
-                  </p>
+                  <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
                 )}
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <span className="animate-pulse">Loading...</span>
                 ) : mode === 'signin' ? (
-                  <><LogIn className="h-4 w-4" /> Sign In</>
+                  <>
+                    <LogIn className="h-4 w-4" /> Sign In
+                  </>
                 ) : (
-                  <><UserPlus className="h-4 w-4" /> Register</>
+                  <>
+                    <UserPlus className="h-4 w-4" /> Register
+                  </>
                 )}
               </Button>
             </form>
@@ -301,8 +340,14 @@ export function SignInView() {
               </Button>
             ) : (
               <>
-                <Button variant="link" size="sm" onClick={() => setMode(mode === 'signin' ? 'register' : 'signin')}>
-                  {mode === 'signin' ? "Don't have an account? Register" : 'Already have an account? Sign in'}
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setMode(mode === 'signin' ? 'register' : 'signin')}
+                >
+                  {mode === 'signin'
+                    ? "Don't have an account? Register"
+                    : 'Already have an account? Sign in'}
                 </Button>
                 <Button variant="link" size="sm" onClick={() => setMode('license')}>
                   <KeyRound className="h-3 w-3" /> Activate a license key

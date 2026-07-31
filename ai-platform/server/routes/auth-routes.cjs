@@ -16,7 +16,7 @@ const { authenticate } = require('../middleware/auth.cjs');
 const {
   rotateRefreshToken,
   revokeRefreshToken,
-  blacklistAccessToken
+  blacklistAccessToken,
 } = require('../lib/token-service.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -36,7 +36,7 @@ router.post('/refresh', async (req, res) => {
     const result = await rotateRefreshToken(refreshToken, {
       deviceFingerprint: req.headers['x-device-fingerprint'],
       ipAddress: req.ip,
-      accessPayload: { ip: req.ip }
+      accessPayload: { ip: req.ip },
     });
 
     logger.info('[auth] Token rotated');
@@ -45,7 +45,7 @@ router.post('/refresh', async (req, res) => {
       success: true,
       accessToken: result.newAccessToken,
       refreshToken: result.newRefreshToken,
-      expiresAt: result.expiresAt
+      expiresAt: result.expiresAt,
     });
   } catch (error) {
     const statusCode = error.statusCode || 401;
@@ -53,7 +53,7 @@ router.post('/refresh', async (req, res) => {
     res.status(statusCode).json({
       success: false,
       error: error.message,
-      code: error.code || 'REFRESH_FAILED'
+      code: error.code || 'REFRESH_FAILED',
     });
   }
 });
@@ -85,14 +85,14 @@ router.post('/logout', authenticate, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Logged out successfully',
     });
   } catch (error) {
     logger.error('[auth] Logout error:', error.message);
     res.status(500).json({
       success: false,
       error: 'Logout failed',
-      message: error.message
+      message: error.message,
     });
   }
 });

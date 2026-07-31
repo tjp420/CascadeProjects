@@ -60,28 +60,46 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
       <div class="metric-chip"><strong>${s.eslintWarnings ?? 0}</strong> eslint warnings</div>
       <div class="metric-chip"><strong>${analyzerCounts.debugArtifacts ?? 0}</strong> debug artifacts</div>
       <div class="metric-chip"><strong>${analyzerCounts.placeholderOrFictionalData ?? 0}</strong> placeholder/fiction hits</div>
-      ${scan.scanScope?.scanProfile ? `
+      ${
+        scan.scanScope?.scanProfile
+          ? `
         <div class="metric-chip" title="Extension profile for this scan">
           <strong>${escapeHtml(scan.scanScope.scanProfile)}</strong> profile
         </div>
-      ` : ''}
-      ${scan.codeUnderstanding?.mode && scan.codeUnderstanding.mode !== 'off' ? `
+      `
+          : ''
+      }
+      ${
+        scan.codeUnderstanding?.mode && scan.codeUnderstanding.mode !== 'off'
+          ? `
         <div class="metric-chip" title="Semantic/context understanding layer">
           <strong>${escapeHtml(scan.codeUnderstanding.mode)}</strong> understanding
         </div>
-      ` : ''}
-      ${scan.structureInsights?.summary?.sampledFiles ? `
+      `
+          : ''
+      }
+      ${
+        scan.structureInsights?.summary?.sampledFiles
+          ? `
         <div class="metric-chip" title="Tier-1 structure hints from language plugins">
           <strong>${formatNumber(scan.structureInsights.summary.sampledFiles)}</strong> structure samples
         </div>
-      ` : ''}
-      ${scan.scanScope?.universalLanguageCount ? `
+      `
+          : ''
+      }
+      ${
+        scan.scanScope?.universalLanguageCount
+          ? `
         <div class="metric-chip" title="Registered language analyzer plugins">
           <strong>${formatNumber(scan.scanScope.universalLanguageCount)}</strong> language plugins
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
-    ${rubric?.severityBands ? `
+    ${
+      rubric?.severityBands
+        ? `
       <div class="card mb-4">
         <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;">Severity rubric</p>
         <p class="text-muted" style="font-size: var(--font-size-sm); margin: 0;">
@@ -90,8 +108,12 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
           <strong>Low</strong>: ${escapeHtml(rubric.severityBands.low)}
         </p>
       </div>
-    ` : ''}
-    ${eslintSummary?.totalIssues ? `
+    `
+        : ''
+    }
+    ${
+      eslintSummary?.totalIssues
+        ? `
       <div class="card mb-4">
         <p class="text-muted mb-2" style="font-size: var(--font-size-xs); margin-top: 0;">
           ESLint integration ${eslintSummary.source === 'artifact' ? '(report artifact)' : '(live command)'}
@@ -100,35 +122,60 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
           <div class="metric-chip"><strong>${formatNumber(eslintSummary.totalIssues)}</strong> total eslint issues</div>
           <div class="metric-chip"><strong>${formatNumber(eslintSummary.filesWithIssues)}</strong> files with issues</div>
         </div>
-        ${eslintSummary.categorizedWarnings?.length ? `
+        ${
+          eslintSummary.categorizedWarnings?.length
+            ? `
           <p class="text-muted" style="font-size: var(--font-size-sm); margin: 0;">
-            Categories: ${eslintSummary.categorizedWarnings.slice(0, 5).map((c) => `${escapeHtml(c.category)} (${c.count})`).join(' · ')}
+            Categories: ${eslintSummary.categorizedWarnings
+              .slice(0, 5)
+              .map((c) => `${escapeHtml(c.category)} (${c.count})`)
+              .join(' · ')}
           </p>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
-    ` : ''}
-    ${scan.scanScope?.description ? `
+    `
+        : ''
+    }
+    ${
+      scan.scanScope?.description
+        ? `
       <p class="text-muted mb-4" style="font-size: var(--font-size-xs);">
         ${escapeHtml(scan.scanScope.description)}
       </p>
-    ` : ''}
-    ${categories.length ? `
+    `
+        : ''
+    }
+    ${
+      categories.length
+        ? `
       <h3 class="mb-2" style="font-size: var(--font-size-base);">Finding categories</h3>
       <div class="consolidation-list mb-4">
-        ${categories.map((cat) => `
+        ${categories
+          .map(
+            (cat) => `
           <div class="consolidation-card card">
             <div class="consolidation-meta">${escapeHtml(cat.label || cat.category)} · ${cat.count} hit(s) · ${cat.fileCount} file(s)</div>
             <p class="text-muted" style="font-size: var(--font-size-sm); margin: 0;">
               ${cat.topFiles?.length ? cat.topFiles.map((f) => `<code>${escapeHtml(f)}</code>`).join(', ') : '—'}
             </p>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
-    ` : ''}
-    ${findings.length ? `
+    `
+        : ''
+    }
+    ${
+      findings.length
+        ? `
       <h3 class="mb-2" style="font-size: var(--font-size-base);">Top findings</h3>
       <div class="consolidation-list">
-        ${findings.map((item) => `
+        ${findings
+          .map(
+            (item) => `
           <div class="consolidation-card card">
             <div class="consolidation-meta">
               <span class="gate-badge ${severityClass(item.severity)}">${escapeHtml(item.severity || '—')}</span>
@@ -139,19 +186,28 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
             <p class="text-muted" style="font-size: var(--font-size-sm);">${escapeHtml(item.description || '')}</p>
             ${item.recommendedAction ? `<p class="text-muted" style="font-size: var(--font-size-xs);">${escapeHtml(item.recommendedAction)}</p>` : ''}
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
-    ` : `
+    `
+        : `
       <p class="text-muted card">No significant issues found in analyzed code files.</p>
-    `}
-    ${scan.structureInsights?.samples?.length ? `
+    `
+    }
+    ${
+      scan.structureInsights?.samples?.length
+        ? `
       <div class="card mb-4">
         <h3 class="section-title">Structure hints (Tier-1)</h3>
         <p class="text-muted" style="font-size: var(--font-size-sm);">
           Regex-based estimates from language plugins — ${formatNumber(scan.structureInsights.summary?.sampledFiles)} file(s) sampled.
         </p>
         <div class="consolidation-list">
-          ${scan.structureInsights.samples.slice(0, 6).map((item) => `
+          ${scan.structureInsights.samples
+            .slice(0, 6)
+            .map(
+              (item) => `
             <div class="consolidation-item">
               <div class="consolidation-meta">
                 <span class="gate-badge pass">${escapeHtml(item.language || 'generic')}</span>
@@ -160,10 +216,14 @@ export function renderCodebasePanel({ scan, loading, error } = {}) {
               </div>
               <p><code>${escapeHtml(item.filePath || '—')}</code></p>
             </div>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       </div>
-    ` : ''}
+    `
+        : ''
+    }
   `;
 }
 
@@ -180,9 +240,10 @@ export function buildCodebaseConclusion(scan) {
   const medium = s.severityCounts?.medium ?? 0;
   const low = s.severityCounts?.low ?? 0;
   const repo = s.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles;
-  const repoNote = repo != null
-    ? ` Repository inventory: ${Number(repo).toLocaleString()} files; ${Number(s.codeFilesAnalyzed ?? 0).toLocaleString()} code files content-scanned.`
-    : '';
+  const repoNote =
+    repo != null
+      ? ` Repository inventory: ${Number(repo).toLocaleString()} files; ${Number(s.codeFilesAnalyzed ?? 0).toLocaleString()} code files content-scanned.`
+      : '';
   if (!s.findingsTotal) {
     return `No codebase issues detected in ${s.codeFilesAnalyzed ?? 0} analyzed files.${repoNote} Health score: ${s.healthScore ?? 100}%.`;
   }

@@ -2,7 +2,18 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BarChart3, RefreshCw, AlertCircle, Server, Activity, Cpu, HardDrive, Globe, Zap, CheckCircle2 } from 'lucide-react';
+import {
+  BarChart3,
+  RefreshCw,
+  AlertCircle,
+  Server,
+  Activity,
+  Cpu,
+  HardDrive,
+  Globe,
+  Zap,
+  CheckCircle2,
+} from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 
 type PlatformStatus = {
@@ -57,7 +68,9 @@ export function PlatformView() {
   }, []);
 
   // fetch on mount
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   if (loading) {
     return (
@@ -117,9 +130,7 @@ export function PlatformView() {
               {healthData.status}
             </Badge>
           )}
-          {healthData?.version && (
-            <Badge variant="outline">v{healthData.version}</Badge>
-          )}
+          {healthData?.version && <Badge variant="outline">v{healthData.version}</Badge>}
           <Button size="sm" variant="outline" onClick={fetchData}>
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
@@ -138,7 +149,9 @@ export function PlatformView() {
         <Card>
           <CardContent className="flex flex-col items-center gap-1 py-4">
             <Activity className="h-6 w-6 text-green-500" />
-            <span className="text-lg font-bold capitalize">{platformData?.status || healthData?.status || '—'}</span>
+            <span className="text-lg font-bold capitalize">
+              {platformData?.status || healthData?.status || '—'}
+            </span>
             <span className="text-xs text-foreground-muted">Status</span>
           </CardContent>
         </Card>
@@ -173,7 +186,13 @@ export function PlatformView() {
                   <div className="flex-1">
                     <span className="text-sm font-medium capitalize">{key.replace(/_/g, ' ')}</span>
                   </div>
-                  <Badge variant={value === 'ready' || value === 'active' || value === 'available' ? 'success' : 'outline'}>
+                  <Badge
+                    variant={
+                      value === 'ready' || value === 'active' || value === 'available'
+                        ? 'success'
+                        : 'outline'
+                    }
+                  >
                     {value}
                   </Badge>
                 </div>
@@ -200,11 +219,15 @@ export function PlatformView() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-foreground-muted">Timestamp</span>
-              <span className="font-medium">{healthData.timestamp ? new Date(healthData.timestamp).toLocaleString() : '—'}</span>
+              <span className="font-medium">
+                {healthData.timestamp ? new Date(healthData.timestamp).toLocaleString() : '—'}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-foreground-muted">Consolidation</span>
-              <span className="font-medium">{stats.consolidation_complete ? 'Complete' : 'In Progress'}</span>
+              <span className="font-medium">
+                {stats.consolidation_complete ? 'Complete' : 'In Progress'}
+              </span>
             </div>
           </CardContent>
         </Card>

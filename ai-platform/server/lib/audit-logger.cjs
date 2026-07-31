@@ -120,13 +120,13 @@ function log(params) {
 function query(filters) {
   const store = readStore();
   const orgId = filters.orgId || 'default';
-  let entries = Object.values(store.entries).filter(e => e.orgId === orgId);
+  let entries = Object.values(store.entries).filter((e) => e.orgId === orgId);
 
-  if (filters.action) entries = entries.filter(e => e.action === filters.action);
-  if (filters.entity) entries = entries.filter(e => e.entity === filters.entity);
-  if (filters.actorId) entries = entries.filter(e => e.actorId === filters.actorId);
-  if (filters.startDate) entries = entries.filter(e => e.timestamp >= filters.startDate);
-  if (filters.endDate) entries = entries.filter(e => e.timestamp <= filters.endDate);
+  if (filters.action) entries = entries.filter((e) => e.action === filters.action);
+  if (filters.entity) entries = entries.filter((e) => e.entity === filters.entity);
+  if (filters.actorId) entries = entries.filter((e) => e.actorId === filters.actorId);
+  if (filters.startDate) entries = entries.filter((e) => e.timestamp >= filters.startDate);
+  if (filters.endDate) entries = entries.filter((e) => e.timestamp <= filters.endDate);
 
   entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
@@ -145,7 +145,7 @@ function query(filters) {
  */
 function getStats(orgId) {
   const store = readStore();
-  const scoped = Object.values(store.entries).filter(e => e.orgId === (orgId || 'default'));
+  const scoped = Object.values(store.entries).filter((e) => e.orgId === (orgId || 'default'));
   const byAction = {};
   const byEntity = {};
   const actorSet = new Map();
@@ -153,7 +153,8 @@ function getStats(orgId) {
   for (const e of scoped) {
     byAction[e.action] = (byAction[e.action] || 0) + 1;
     byEntity[e.entity] = (byEntity[e.entity] || 0) + 1;
-    if (!actorSet.has(e.actorId)) actorSet.set(e.actorId, { actorId: e.actorId, actorEmail: e.actorEmail, count: 0 });
+    if (!actorSet.has(e.actorId))
+      actorSet.set(e.actorId, { actorId: e.actorId, actorEmail: e.actorEmail, count: 0 });
     actorSet.get(e.actorId).count++;
   }
 

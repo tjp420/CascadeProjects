@@ -29,6 +29,7 @@ After installation, VSCode may prompt you to restart. Click "Restart Now".
 ### Step 1: Download VSIX
 
 Download the latest VSIX file from:
+
 - GitHub Releases: https://github.com/tjp420/simplebeacon/releases
 - Or direct download link
 
@@ -112,6 +113,7 @@ npx simplebeacon scan --gate --format json
 **Problem:** AI Slop Cop doesn't show in Activity Bar
 
 **Solution:**
+
 1. Check Extensions panel to verify installation
 2. Disable other extensions that might conflict
 3. Restart VSCode
@@ -122,6 +124,7 @@ npx simplebeacon scan --gate --format json
 **Problem:** Scan button doesn't trigger scan
 
 **Solution:**
+
 1. Check you have a workspace open
 2. Verify file has supported extension (.js, .ts, .py, etc.)
 3. Check VSCode Output panel for errors
@@ -132,6 +135,7 @@ npx simplebeacon scan --gate --format json
 **Problem:** License token shows as invalid
 
 **Solution:**
+
 1. Verify token is copied correctly (no extra spaces)
 2. Check token hasn't expired
 3. Contact support@simplebeacon.com if issue persists
@@ -141,6 +145,7 @@ npx simplebeacon scan --gate --format json
 **Problem:** `npx simplebeacon` command not found
 
 **Solution:**
+
 1. Verify npm is installed: `npm --version`
 2. Try installing globally: `npm install -g simplebeacon`
 3. Check PATH includes npm global packages
@@ -171,6 +176,7 @@ npm uninstall -g simplebeacon
 ## Support
 
 If you encounter issues not covered here:
+
 - Email: support@simplebeacon.com
 - GitHub Issues: https://github.com/tjp420/simplebeacon/issues
 - Documentation: https://simplebeacon.com/docs

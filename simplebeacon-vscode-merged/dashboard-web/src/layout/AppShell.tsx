@@ -30,14 +30,8 @@ export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier,
         onClose={() => setSidebarOpen(false)}
       />
       <div className="flex flex-1 flex-col overflow-hidden min-h-0">
-        <Header
-          isAuthenticated={isAuthenticated}
-          isFreeTier={isFreeTier}
-          onMenuClick={() => setSidebarOpen(true)}
-        />
-        <main className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
-          {children}
-        </main>
+        <Header isAuthenticated={isAuthenticated} isFreeTier={isFreeTier} onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto scrollbar-thin min-h-0">{children}</main>
       </div>
     </div>
   );

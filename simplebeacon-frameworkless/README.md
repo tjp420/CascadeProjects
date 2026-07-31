@@ -16,12 +16,9 @@ To make the lead capture form actually send emails:
 4. The form will now send submissions directly to your email!
 
 Example:
+
 ```html
-<form 
-  action="https://formspree.io/f/mrbkrllz" 
-  method="POST"
-  ...
->
+<form action="https://formspree.io/f/mrbkrllz" method="POST" ...></form>
 ```
 
 ## 🎯 Features
@@ -40,6 +37,7 @@ Example:
 ## 🔧 Customization
 
 ### Colors
+
 Edit the Tailwind config in `index.html` to customize the color scheme:
 
 ```javascript
@@ -48,18 +46,19 @@ tailwind.config = {
     extend: {
       colors: {
         dark: {
-          bg: '#0B0F19',      // Main background
-          card: '#161B22',    // Card background
-          border: '#30363D',  // Border color
+          bg: '#0B0F19', // Main background
+          card: '#161B22', // Card background
+          border: '#30363D', // Border color
           // ... more colors
-        }
-      }
-    }
-  }
-}
+        },
+      },
+    },
+  },
+};
 ```
 
 ### Diagnostic Patterns
+
 Expand the regex patterns in `app.js` to catch more code anomalies:
 
 ```javascript
@@ -72,30 +71,34 @@ const patterns = {
   ],
   fictionKPIs: [
     // Add more fake metric patterns
-  ]
+  ],
 };
 ```
 
 ## 📦 Deployment
 
 ### Netlify (Recommended - Drag & Drop)
+
 1. Go to [Netlify Drop](https://app.netlify.com/drop)
 2. Drag and drop the entire `simplebeacon-frameworkless` folder
 3. Your site will be live in seconds with a URL like: `https://your-site-name.netlify.app`
 
 ### Netlify (Git Integration)
+
 1. Push your code to GitHub
 2. Go to [Netlify](https://app.netlify.com) and click "Add new site"
 3. Connect your GitHub repository
 4. Deploy settings are pre-configured in `netlify.toml`
 
 ### Vercel
+
 1. Go to [Vercel](https://vercel.com) and sign up
 2. Click "New Project" and import your GitHub repository
 3. Deploy settings are pre-configured in `vercel.json`
 4. Or use CLI: `npm i -g vercel` then run `vercel` in the project directory
 
 ### GitHub Pages
+
 1. Push to GitHub repository
 2. Go to repository Settings → Pages
 3. Select `main` branch as source
@@ -104,6 +107,7 @@ const patterns = {
 ## 🔒 Security Headers
 
 Both `netlify.toml` and `vercel.json` include security headers:
+
 - X-Frame-Options: DENY
 - X-Content-Type-Options: nosniff
 - Referrer-Policy: strict-origin-when-cross-origin

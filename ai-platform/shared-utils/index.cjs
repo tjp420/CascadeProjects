@@ -8,7 +8,7 @@ const clientErrorModule = require('./src/client-error.cjs');
 const requireProject = require('./src/project-require.cjs');
 
 module.exports = {
-    ...formatBytesModule,
-    ...clientErrorModule,
-    requireProject
+  ...formatBytesModule,
+  ...clientErrorModule,
+  requireProject,
 };

@@ -37,7 +37,12 @@ describe('production-logger', () => {
 
   it('warn and error always write when no node logger is present', () => {
     const calls = [];
-    global.window = { logger: { warn: (...args) => calls.push(['warn', args]), error: (...args) => calls.push(['error', args]) } };
+    global.window = {
+      logger: {
+        warn: (...args) => calls.push(['warn', args]),
+        error: (...args) => calls.push(['error', args]),
+      },
+    };
     logger.warn('a warning');
     logger.error('an error');
     delete global.window;
@@ -51,7 +56,9 @@ describe('production-logger', () => {
     process.env.NODE_ENV = 'production';
     const prodLogger = require('./production-logger.cjs');
     const calls = [];
-    global.window = { logger: { debug: () => calls.push('debug'), info: () => calls.push('info') } };
+    global.window = {
+      logger: { debug: () => calls.push('debug'), info: () => calls.push('info') },
+    };
     prodLogger.debug('debug message');
     prodLogger.info('info message');
     delete global.window;

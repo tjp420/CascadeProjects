@@ -7,29 +7,26 @@
 
 const crypto = require('crypto');
 
-const LICENSE_SECRET = process.env.LICENSE_SECRET || 'fb578fe0edf57520edd3b1b53477fbafb20a43ee3d0162feb02974ca990cca54';
+const LICENSE_SECRET =
+  process.env.LICENSE_SECRET || 'fb578fe0edf57520edd3b1b53477fbafb20a43ee3d0162feb02974ca990cca54';
 
 function base64urlEncode(buffer) {
-  return buffer
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+  return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 function generateToken(tier) {
   const header = {
     alg: 'HS256',
-    typ: 'JWT'
+    typ: 'JWT',
   };
 
   const now = Math.floor(Date.now() / 1000);
-  const expires = now + (365 * 24 * 60 * 60); // 1 year
+  const expires = now + 365 * 24 * 60 * 60; // 1 year
 
   const payload = {
     tier: tier,
     iat: now,
-    exp: expires
+    exp: expires,
   };
 
   const headerEncoded = base64urlEncode(Buffer.from(JSON.stringify(header)));

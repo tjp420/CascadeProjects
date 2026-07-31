@@ -32,7 +32,10 @@ describe('mfa-service', () => {
   });
 
   describe('verifyMFA middleware', () => {
-    const mockRes = () => ({ status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() });
+    const mockRes = () => ({
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
+    });
 
     test('passes when MFA not required', () => {
       const req = { user: { trustLevel: 'bronze' } };

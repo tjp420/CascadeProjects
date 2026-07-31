@@ -41,7 +41,9 @@ function recordIncident(params) {
     eventType: params.eventType || '',
     destinationType: params.destinationType || 'webhook',
     destination: params.destination || {},
-    payload: (params.payload || {}).slice ? params.payload : JSON.stringify(params.payload || {}).slice(0, 1000),
+    payload: (params.payload || {}).slice
+      ? params.payload
+      : JSON.stringify(params.payload || {}).slice(0, 1000),
     status: params.status || 'pending',
     attempts: params.attempts || 0,
     responseStatus: params.responseStatus || null,
@@ -70,11 +72,11 @@ function recordIncident(params) {
 function query(filters) {
   const store = readStore();
   const orgId = filters.orgId || 'default';
-  let incidents = Object.values(store.incidents).filter(i => i.orgId === orgId);
+  let incidents = Object.values(store.incidents).filter((i) => i.orgId === orgId);
 
-  if (filters.status) incidents = incidents.filter(i => i.status === filters.status);
-  if (filters.eventType) incidents = incidents.filter(i => i.eventType === filters.eventType);
-  if (filters.ruleId) incidents = incidents.filter(i => i.ruleId === filters.ruleId);
+  if (filters.status) incidents = incidents.filter((i) => i.status === filters.status);
+  if (filters.eventType) incidents = incidents.filter((i) => i.eventType === filters.eventType);
+  if (filters.ruleId) incidents = incidents.filter((i) => i.ruleId === filters.ruleId);
 
   incidents.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
@@ -88,7 +90,7 @@ function query(filters) {
 
 function getStats(orgId) {
   const store = readStore();
-  const scoped = Object.values(store.incidents).filter(i => i.orgId === (orgId || 'default'));
+  const scoped = Object.values(store.incidents).filter((i) => i.orgId === (orgId || 'default'));
   const byStatus = { delivered: 0, failed: 0, pending: 0 };
   const byEventType = {};
   const byDestination = {};

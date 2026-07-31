@@ -1,11 +1,7 @@
 {
   "profile": "eu-ai-act",
-  "scanPaths": [
-    "."
-  ],
-  "productionPaths": [
-    "src/"
-  ],
+  "scanPaths": ["."],
+  "productionPaths": ["src/"],
   "allowedAnalysisRoots": [
     "C:/Users/Trevor/CascadeProjects",
     "C:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged",
@@ -99,13 +95,7 @@
     }
   },
   "gate": {
-    "failOn": [
-      "critical"
-    ],
-    "warnOn": [
-      "high",
-      "medium",
-      "low"
-    ]
+    "failOn": ["critical"],
+    "warnOn": ["high", "medium", "low"]
   }
 }

@@ -11,9 +11,18 @@ const db = require('../lib/db.cjs');
 const { processReferralSignup } = require('../lib/referral-webhook.cjs');
 
 const logger = {
-    info: (...a) => { const c = globalThis.console; c.info(...a); },
-    warn: (...a) => { const c = globalThis.console; c.warn(...a); },
-    error: (...a) => { const c = globalThis.console; c.error(...a); }
+    info: (...a) => {
+        const c = globalThis.console;
+        c.info(...a);
+    },
+    warn: (...a) => {
+        const c = globalThis.console;
+        c.warn(...a);
+    },
+    error: (...a) => {
+        const c = globalThis.console;
+        c.error(...a);
+    }
 };
 
 const SESSION_EXPIRY_HOURS = 24;
@@ -53,8 +62,18 @@ function verifySessionToken(token) {
 // Seed demo users for local development so the dashboard sign-in page works out of the box.
 function seedDemoUsers() {
     const demoUsers = [
-        { email: 'dev@simplebeacon.ai', password: process.env.DEV_DEMO_PASSWORD || 'demo123', name: 'Dev User', tier: 'silver' }, // simplebeacon-ignore credential-pattern — demo seed user, password hashed via scrypt before storage
-        { email: 'admin@simplebeacon.ai', password: process.env.ADMIN_DEMO_PASSWORD || 'admin123', name: 'Admin User', tier: 'admin' } // simplebeacon-ignore credential-pattern — demo seed user, password hashed via scrypt before storage
+        {
+            email: 'dev@simplebeacon.ai',
+            password: process.env.DEV_DEMO_PASSWORD || 'demo123',
+            name: 'Dev User',
+            tier: 'silver'
+        }, // simplebeacon-ignore credential-pattern — demo seed user, password hashed via scrypt before storage
+        {
+            email: 'admin@simplebeacon.ai',
+            password: process.env.ADMIN_DEMO_PASSWORD || 'admin123',
+            name: 'Admin User',
+            tier: 'admin'
+        } // simplebeacon-ignore credential-pattern — demo seed user, password hashed via scrypt before storage
     ];
     for (const u of demoUsers) {
         if (db.getUserByEmail(u.email)) continue;

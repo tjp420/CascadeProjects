@@ -15,7 +15,8 @@ function setupOracleSearch(app) {
   // GET /api/oracle/search?q=...&max_results=3
   router.get('/search', optionalAuthenticate, async (req, res) => {
     const q = String(req.query.q || '').trim();
-    if (!q) return sendError(res, 400, 'missing_query', { message: 'Query parameter "q" is required' });
+    if (!q)
+      return sendError(res, 400, 'missing_query', { message: 'Query parameter "q" is required' });
     const max = Math.min(5, Math.max(1, parseInt(req.query.max_results || '3', 10) || 3));
     const delay = parseFloat(req.query.delay_between_fetch || '0.5');
     try {

@@ -11,7 +11,7 @@ const API_KEY = 'sk_live_51ABC123XYZ789DEF456GHI789JKL012MNO345PQR678STU901VWX23
 const productionConfig = {
   databaseUrl: 'postgresql://admin:SuperSecretPass123!@prod-db.example.com:5432/appdb',
   awsSecretKey: 'AKIAIOSFODNN7EXAMPLE',
-  awsSecretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+  awsSecretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
 };
 
 function authenticateUser(username, password) {

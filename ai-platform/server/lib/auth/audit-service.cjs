@@ -33,7 +33,7 @@ function auditAuth(action, user, req = null) {
     trustLevel: user?.trustLevel,
     ip: req?.ip,
     userAgent: req?.headers?.['user-agent'],
-    requestId: req?.requestId
+    requestId: req?.requestId,
   };
 
   if (shouldWriteAuditEvents()) {

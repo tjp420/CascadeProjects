@@ -19,7 +19,7 @@ function deleteUserUnsafe(table, id) {
 
 // SB-JS-SQL-002: Unparameterized query (variable SQL without param array)
 function searchUsers(searchTerm) {
-  const query = 'SELECT * FROM users WHERE name LIKE \'%' + searchTerm + '%\'';
+  const query = "SELECT * FROM users WHERE name LIKE '%" + searchTerm + "%'";
   return db.query(query);
 }
 

@@ -8,11 +8,11 @@
  * @returns {any}
  */
 function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /**
@@ -21,51 +21,73 @@ function escapeHtml(value) {
  * @returns {any}
  */
 function renderExecutiveHtml(roadmap) {
-    const es = roadmap.executiveSummary || {};
-    const po = roadmap.projectOverview || {};
-    const phases = roadmap.developmentPhases || [];
-    const phase2 = roadmap.codeAnalysis?.phase2 || {};
-    const resources = phase2.resourceEstimate || roadmap.resourceEstimate || {};
-    const cycles = phase2.dependencyGraph?.circularDependencies || [];
-    const fuzzy = phase2.fuzzySimilarity?.pairs || [];
-    const semanticHints = phase2.semanticHints || {};
+  const es = roadmap.executiveSummary || {};
+  const po = roadmap.projectOverview || {};
+  const phases = roadmap.developmentPhases || [];
+  const phase2 = roadmap.codeAnalysis?.phase2 || {};
+  const resources = phase2.resourceEstimate || roadmap.resourceEstimate || {};
+  const cycles = phase2.dependencyGraph?.circularDependencies || [];
+  const fuzzy = phase2.fuzzySimilarity?.pairs || [];
+  const semanticHints = phase2.semanticHints || {};
 
-    const phaseRows = phases.map((phase) => `
+  const phaseRows = phases
+    .map(
+      (phase) => `
         <tr>
             <td>${escapeHtml(phase.phase || phase.title)}</td>
             <td class="${escapeHtml(phase.status || '')}">${escapeHtml(phase.status || '—')}</td>
             <td>${Math.round(phase.progress || 0)}%</td>
             <td>${escapeHtml(phase.description || '')}</td>
         </tr>
-    `).join('');
+    `
+    )
+    .join('');
 
-    const cycleRows = cycles.slice(0, 10).map((cycle) => `
+  const cycleRows =
+    cycles
+      .slice(0, 10)
+      .map(
+        (cycle) => `
         <tr>
             <td>${cycle.length}</td>
             <td>${escapeHtml(cycle.impact || 'low')}</td>
             <td><code>${escapeHtml(cycle.path.join(' → '))}</code></td>
         </tr>
-    `).join('') || '<tr><td colspan="3">No require cycles detected in scanned JS graph</td></tr>';
+    `
+      )
+      .join('') || '<tr><td colspan="3">No require cycles detected in scanned JS graph</td></tr>';
 
-    const fuzzyRows = fuzzy.slice(0, 8).map((pair) => `
+  const fuzzyRows =
+    fuzzy
+      .slice(0, 8)
+      .map(
+        (pair) => `
         <tr>
             <td>${Math.round(pair.similarity * 100)}%</td>
             <td><code>${escapeHtml(pair.fileA)}</code></td>
             <td><code>${escapeHtml(pair.fileB)}</code></td>
         </tr>
-    `).join('') || '<tr><td colspan="3">No high-similarity pairs above threshold</td></tr>';
+    `
+      )
+      .join('') || '<tr><td colspan="3">No high-similarity pairs above threshold</td></tr>';
 
-    const hintRows = semanticHints.enabled && semanticHints.hints?.length
-        ? semanticHints.hints.slice(0, 8).map((hint) => `
+  const hintRows =
+    semanticHints.enabled && semanticHints.hints?.length
+      ? semanticHints.hints
+          .slice(0, 8)
+          .map(
+            (hint) => `
         <tr>
             <td>${escapeHtml(hint.priority || 'low')}</td>
             <td><code>${escapeHtml((hint.files || []).join(' ↔ '))}</code></td>
             <td>${escapeHtml(hint.suggestion || 'Review for consolidation')}</td>
         </tr>
-    `).join('')
-        : `<tr><td colspan="3">${escapeHtml(semanticHints.note || 'Set LLAMA_CPP_BIN for optional semantic review hints')}</td></tr>`;
+    `
+          )
+          .join('')
+      : `<tr><td colspan="3">${escapeHtml(semanticHints.note || 'Set LLAMA_CPP_BIN for optional semantic review hints')}</td></tr>`;
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -131,6 +153,6 @@ function renderExecutiveHtml(roadmap) {
 }
 
 module.exports = {
-    renderExecutiveHtml,
-    escapeHtml
+  renderExecutiveHtml,
+  escapeHtml,
 };

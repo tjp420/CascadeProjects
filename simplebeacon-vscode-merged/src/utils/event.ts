@@ -35,7 +35,11 @@ export function createEventBus(): {
       const set = listeners.get(event);
       if (!set) return;
       for (const handler of set) {
-        try { handler(payload); } catch { /* ignore */ }
+        try {
+          handler(payload);
+        } catch {
+          /* ignore */
+        }
       }
     },
     once<T>(event: string, handler: (payload: T) => void): () => void {
@@ -47,7 +51,7 @@ export function createEventBus(): {
       };
       (wrapped as any).__original = handler;
       return this.on(event, wrapped as any);
-    }
+    },
   };
 }
 
@@ -66,10 +70,18 @@ export function createBroadcastChannel(name: string): {
   if (typeof (globalThis as any).BroadcastChannel !== 'undefined') {
     const bc = new (globalThis as any).BroadcastChannel(name);
     return {
-      post(data: unknown) { bc.postMessage(data); },
-      on(handler: (data: unknown) => void) { bc.onmessage = (e: any) => handler(e.data); },
-      off() { bc.onmessage = undefined; },
-      close() { bc.close(); }
+      post(data: unknown) {
+        bc.postMessage(data);
+      },
+      on(handler: (data: unknown) => void) {
+        bc.onmessage = (e: any) => handler(e.data);
+      },
+      off() {
+        bc.onmessage = undefined;
+      },
+      close() {
+        bc.close();
+      },
     };
   }
   const key = '__broadcast_' + name;
@@ -79,14 +91,18 @@ export function createBroadcastChannel(name: string): {
       try {
         const parsed = JSON.parse(e.newValue || '{}');
         currentHandler(parsed.data);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   };
   return {
     post(data: unknown) {
       try {
         (globalThis as any).localStorage?.setItem(key, JSON.stringify({ data, __ts: Date.now() }));
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     },
     on(handler: (data: unknown) => void) {
       currentHandler = handler;
@@ -98,6 +114,6 @@ export function createBroadcastChannel(name: string): {
     },
     close() {
       this.off();
-    }
+    },
   };
 }

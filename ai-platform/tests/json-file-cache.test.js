@@ -9,7 +9,7 @@ const os = require('os');
 const {
   readJsonFileCached,
   readTextFileCached,
-  clearJsonFileCache
+  clearJsonFileCache,
 } = require('../server/lib/json-file-cache.cjs');
 
 describe('json-file-cache', () => {

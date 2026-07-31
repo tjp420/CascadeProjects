@@ -8,9 +8,24 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Building2, Users, Crown, Shield, CheckCircle2, Clock, Mail,
-  UserPlus, Trash2, Download, FileText, AlertCircle, Key,
-  Rocket, Copy, Server, Calendar, DollarSign,
+  Building2,
+  Users,
+  Crown,
+  Shield,
+  CheckCircle2,
+  Clock,
+  Mail,
+  UserPlus,
+  Trash2,
+  Download,
+  FileText,
+  AlertCircle,
+  Key,
+  Rocket,
+  Copy,
+  Server,
+  Calendar,
+  DollarSign,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiBase } from '@/config';
@@ -96,7 +111,9 @@ function copyToClipboard(text: string, label: string) {
 function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   } catch {
     return iso;
@@ -249,7 +266,11 @@ export function EnterpriseView() {
       setNewSeatEmail('');
       await fetchOrgs();
       if (selectedOrg) {
-        const updated = { ...selectedOrg, seatsUsed: data.seatsUsed, provisionedEmails: [...selectedOrg.provisionedEmails, data.email] };
+        const updated = {
+          ...selectedOrg,
+          seatsUsed: data.seatsUsed,
+          provisionedEmails: [...selectedOrg.provisionedEmails, data.email],
+        };
         setSelectedOrg(updated);
       }
     } catch (err: any) {
@@ -263,9 +284,12 @@ export function EnterpriseView() {
     if (!selectedOrg) return;
     if (!confirm(`Remove ${email} from this organization?`)) return;
     try {
-      const res = await fetch(apiUrl(`/enterprise/organizations/${selectedOrg.orgId}/seats/${encodeURIComponent(email)}`), {
-        method: 'DELETE',
-      });
+      const res = await fetch(
+        apiUrl(`/enterprise/organizations/${selectedOrg.orgId}/seats/${encodeURIComponent(email)}`),
+        {
+          method: 'DELETE',
+        }
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || `HTTP ${res.status}`);
@@ -277,7 +301,7 @@ export function EnterpriseView() {
         const updated = {
           ...selectedOrg,
           seatsUsed: data.seatsUsed,
-          provisionedEmails: selectedOrg.provisionedEmails.filter(e => e !== email),
+          provisionedEmails: selectedOrg.provisionedEmails.filter((e) => e !== email),
         };
         setSelectedOrg(updated);
       }
@@ -290,11 +314,14 @@ export function EnterpriseView() {
     if (!selectedOrg) return;
     setGeneratingAzure(true);
     try {
-      const res = await fetch(apiUrl(`/enterprise/organizations/${selectedOrg.orgId}/azure-devops`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectPath: '$(Build.SourcesDirectory)' }),
-      });
+      const res = await fetch(
+        apiUrl(`/enterprise/organizations/${selectedOrg.orgId}/azure-devops`),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectPath: '$(Build.SourcesDirectory)' }),
+        }
+      );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || `HTTP ${res.status}`);
@@ -312,7 +339,9 @@ export function EnterpriseView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-pulse text-muted-foreground">Loading enterprise organizations...</div>
+        <div className="animate-pulse text-muted-foreground">
+          Loading enterprise organizations...
+        </div>
       </div>
     );
   }
@@ -322,7 +351,9 @@ export function EnterpriseView() {
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <AlertCircle className="h-10 w-10 text-muted-foreground" />
         <p className="text-muted-foreground">{error}</p>
-        <Button variant="outline" onClick={fetchOrgs}>Retry</Button>
+        <Button variant="outline" onClick={fetchOrgs}>
+          Retry
+        </Button>
       </div>
     );
   }
@@ -336,7 +367,8 @@ export function EnterpriseView() {
             Enterprise Management
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Provision enterprise organizations, manage seat pools, and configure Azure DevOps CI/CD pipelines
+            Provision enterprise organizations, manage seat pools, and configure Azure DevOps CI/CD
+            pipelines
           </p>
         </div>
         <Badge variant="secondary" className="gap-1.5">
@@ -364,7 +396,9 @@ export function EnterpriseView() {
                   </div>
                   <div className="text-center">
                     <h2 className="text-lg font-semibold">No Enterprise Organizations</h2>
-                    <p className="text-muted-foreground mt-1">Onboard your first enterprise client or start a trial.</p>
+                    <p className="text-muted-foreground mt-1">
+                      Onboard your first enterprise client or start a trial.
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={() => setActiveTab('onboard')}>
@@ -384,7 +418,9 @@ export function EnterpriseView() {
                 {orgs.map((org) => (
                   <Card
                     key={org.orgId}
-                    className={selectedOrg?.orgId === org.orgId ? 'border-primary ring-1 ring-primary' : ''}
+                    className={
+                      selectedOrg?.orgId === org.orgId ? 'border-primary ring-1 ring-primary' : ''
+                    }
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
@@ -416,7 +452,9 @@ export function EnterpriseView() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">Seats</span>
-                          <p className="font-medium">{org.seatsUsed} / {org.seatCount}</p>
+                          <p className="font-medium">
+                            {org.seatsUsed} / {org.seatCount}
+                          </p>
                         </div>
                         <div>
                           <span className="text-muted-foreground">Created</span>
@@ -431,11 +469,15 @@ export function EnterpriseView() {
                         <div className="space-y-1">
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">Trial remaining</span>
-                            <span className="font-medium">{daysUntil(org.trialExpiresAt)} days</span>
+                            <span className="font-medium">
+                              {daysUntil(org.trialExpiresAt)} days
+                            </span>
                           </div>
                           <Progress
                             value={Math.max(0, (daysUntil(org.trialExpiresAt) / 30) * 100)}
-                            indicatorClassName={daysUntil(org.trialExpiresAt) < 7 ? 'bg-amber-500' : 'bg-primary'}
+                            indicatorClassName={
+                              daysUntil(org.trialExpiresAt) < 7 ? 'bg-amber-500' : 'bg-primary'
+                            }
                           />
                         </div>
                       )}
@@ -472,7 +514,11 @@ export function EnterpriseView() {
                     <CardContent className="space-y-4">
                       <Progress
                         value={(selectedOrg.seatsUsed / selectedOrg.seatCount) * 100}
-                        indicatorClassName={selectedOrg.seatsUsed >= selectedOrg.seatCount ? 'bg-destructive' : 'bg-primary'}
+                        indicatorClassName={
+                          selectedOrg.seatsUsed >= selectedOrg.seatCount
+                            ? 'bg-destructive'
+                            : 'bg-primary'
+                        }
                       />
 
                       {/* Add Seat Form */}
@@ -549,7 +595,9 @@ export function EnterpriseView() {
                             <DollarSign className="h-3.5 w-3.5" /> Contract Value
                           </span>
                           <p className="font-medium">
-                            {selectedOrg.contractValue ? `$${selectedOrg.contractValue.toLocaleString()}` : 'Custom'}
+                            {selectedOrg.contractValue
+                              ? `$${selectedOrg.contractValue.toLocaleString()}`
+                              : 'Custom'}
                           </p>
                         </div>
                         <div>
@@ -628,7 +676,9 @@ export function EnterpriseView() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => copyToClipboard(azureConfig.pipelineYaml, 'Pipeline YAML')}
+                                onClick={() =>
+                                  copyToClipboard(azureConfig.pipelineYaml, 'Pipeline YAML')
+                                }
                               >
                                 <Copy className="h-3.5 w-3.5" /> Copy YAML
                               </Button>
@@ -645,7 +695,9 @@ export function EnterpriseView() {
                             <ol className="space-y-1.5">
                               {azureConfig.instructions.map((step, i) => (
                                 <li key={i} className="text-sm text-muted-foreground flex gap-2">
-                                  <span className="font-medium text-foreground shrink-0">{i + 1}.</span>
+                                  <span className="font-medium text-foreground shrink-0">
+                                    {i + 1}.
+                                  </span>
                                   <span>{step}</span>
                                 </li>
                               ))}
@@ -656,7 +708,9 @@ export function EnterpriseView() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const blob = new Blob([azureConfig.pipelineYaml], { type: 'text/yaml' });
+                              const blob = new Blob([azureConfig.pipelineYaml], {
+                                type: 'text/yaml',
+                              });
                               const url = URL.createObjectURL(blob);
                               const a = document.createElement('a');
                               a.href = url;
@@ -739,7 +793,9 @@ export function EnterpriseView() {
                     min={0}
                     placeholder="25000"
                     value={contractValue}
-                    onChange={(e) => setContractValue(e.target.value ? parseInt(e.target.value) : '')}
+                    onChange={(e) =>
+                      setContractValue(e.target.value ? parseInt(e.target.value) : '')
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -768,15 +824,18 @@ export function EnterpriseView() {
                   <Building2 className="h-4 w-4" />
                   {onboarding ? 'Provisioning...' : 'Provision Organization'}
                 </Button>
-                <Button variant="outline" onClick={() => {
-                  setCompanyName('');
-                  setAdminEmail('');
-                  setContactName('');
-                  setSeatCount(10);
-                  setContractValue('');
-                  setContractMonths(12);
-                  setAzureDevOpsOrg('');
-                }}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setCompanyName('');
+                    setAdminEmail('');
+                    setContactName('');
+                    setSeatCount(10);
+                    setContractValue('');
+                    setContractMonths(12);
+                    setAzureDevOpsOrg('');
+                  }}
+                >
                   Clear Form
                 </Button>
               </div>
@@ -838,11 +897,14 @@ export function EnterpriseView() {
                   <Rocket className="h-4 w-4" />
                   {trialing ? 'Starting Trial...' : 'Start 30-Day Trial'}
                 </Button>
-                <Button variant="outline" onClick={() => {
-                  setTrialCompany('');
-                  setTrialEmail('');
-                  setTrialSeats(5);
-                }}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setTrialCompany('');
+                    setTrialEmail('');
+                    setTrialSeats(5);
+                  }}
+                >
                   Clear Form
                 </Button>
               </div>
@@ -860,7 +922,8 @@ export function EnterpriseView() {
                   Provisioning Successful
                 </CardTitle>
                 <CardDescription>
-                  {onboardResult.companyName} has been onboarded with {onboardResult.seatsUsed} of {onboardResult.seatCount} seats provisioned
+                  {onboardResult.companyName} has been onboarded with {onboardResult.seatsUsed} of{' '}
+                  {onboardResult.seatCount} seats provisioned
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -879,7 +942,9 @@ export function EnterpriseView() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Seats</span>
-                    <p className="font-medium">{onboardResult.seatsUsed} / {onboardResult.seatCount}</p>
+                    <p className="font-medium">
+                      {onboardResult.seatsUsed} / {onboardResult.seatCount}
+                    </p>
                   </div>
                 </div>
 
@@ -894,7 +959,12 @@ export function EnterpriseView() {
                       <Copy className="h-3.5 w-3.5" /> Copy
                     </Button>
                   </div>
-                  <Input id="result-api-key" readOnly value={onboardResult.apiKey} className="font-mono text-xs" />
+                  <Input
+                    id="result-api-key"
+                    readOnly
+                    value={onboardResult.apiKey}
+                    className="font-mono text-xs"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -903,7 +973,9 @@ export function EnterpriseView() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => copyToClipboard(onboardResult.adminLicenseToken, 'License Token')}
+                      onClick={() =>
+                        copyToClipboard(onboardResult.adminLicenseToken, 'License Token')
+                      }
                     >
                       <Copy className="h-3.5 w-3.5" /> Copy
                     </Button>
@@ -922,7 +994,11 @@ export function EnterpriseView() {
                     <div className="space-y-1">
                       {onboardResult.provisionedEmails.map((email, i) => (
                         <div key={email} className="flex items-center gap-2 text-sm">
-                          {i === 0 ? <Crown className="h-3.5 w-3.5 text-amber-500" /> : <Shield className="h-3.5 w-3.5 text-muted-foreground" />}
+                          {i === 0 ? (
+                            <Crown className="h-3.5 w-3.5 text-amber-500" />
+                          ) : (
+                            <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
                           <span>{email}</span>
                         </div>
                       ))}
@@ -931,16 +1007,21 @@ export function EnterpriseView() {
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  <Button onClick={() => {
-                    setSelectedOrg(orgs.find(o => o.orgId === onboardResult.orgId) || null);
-                    setActiveTab('organizations');
-                  }}>
+                  <Button
+                    onClick={() => {
+                      setSelectedOrg(orgs.find((o) => o.orgId === onboardResult.orgId) || null);
+                      setActiveTab('organizations');
+                    }}
+                  >
                     <Building2 className="h-4 w-4" /> Manage Organization
                   </Button>
-                  <Button variant="outline" onClick={() => {
-                    setOnboardResult(null);
-                    setActiveTab('onboard');
-                  }}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setOnboardResult(null);
+                      setActiveTab('onboard');
+                    }}
+                  >
                     Onboard Another
                   </Button>
                 </div>
@@ -977,14 +1058,20 @@ export function EnterpriseView() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Seats</span>
-                    <p className="font-medium">{trialResult.seatsUsed} / {trialResult.seatCount}</p>
+                    <p className="font-medium">
+                      {trialResult.seatsUsed} / {trialResult.seatCount}
+                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>API Key</Label>
-                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(trialResult.apiKey, 'API Key')}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(trialResult.apiKey, 'API Key')}
+                    >
                       <Copy className="h-3.5 w-3.5" /> Copy
                     </Button>
                   </div>
@@ -994,24 +1081,39 @@ export function EnterpriseView() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Admin License Token</Label>
-                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(trialResult.adminLicenseToken, 'License Token')}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        copyToClipboard(trialResult.adminLicenseToken, 'License Token')
+                      }
+                    >
                       <Copy className="h-3.5 w-3.5" /> Copy
                     </Button>
                   </div>
-                  <Textarea readOnly value={trialResult.adminLicenseToken} className="font-mono text-xs min-h-[80px]" />
+                  <Textarea
+                    readOnly
+                    value={trialResult.adminLicenseToken}
+                    className="font-mono text-xs min-h-[80px]"
+                  />
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button onClick={() => {
-                    setSelectedOrg(orgs.find(o => o.orgId === trialResult.orgId) || null);
-                    setActiveTab('organizations');
-                  }}>
+                  <Button
+                    onClick={() => {
+                      setSelectedOrg(orgs.find((o) => o.orgId === trialResult.orgId) || null);
+                      setActiveTab('organizations');
+                    }}
+                  >
                     <Building2 className="h-4 w-4" /> Manage Organization
                   </Button>
-                  <Button variant="outline" onClick={() => {
-                    setTrialResult(null);
-                    setActiveTab('trial');
-                  }}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setTrialResult(null);
+                      setActiveTab('trial');
+                    }}
+                  >
                     Start Another Trial
                   </Button>
                 </div>

@@ -25,7 +25,7 @@ function filterAndRecalculate(reportPath, outputPath) {
 
     // 1. Traverse and filter nested detectedIssues → findings → matches
     report.detectedIssues = report.detectedIssues
-        .map((category) => {
+        .map(category => {
             if (!category.findings || !Array.isArray(category.findings)) {
                 return category;
             }
@@ -33,7 +33,7 @@ function filterAndRecalculate(reportPath, outputPath) {
             initialFindingCount += category.findings.length;
 
             const filteredFindings = category.findings
-                .map((finding) => {
+                .map(finding => {
                     // Count ALL matches before any filtering
                     if (finding.matches && Array.isArray(finding.matches)) {
                         initialMatchCount += finding.matches.length;
@@ -53,8 +53,8 @@ function filterAndRecalculate(reportPath, outputPath) {
 
                     // Filter out individual matches with inline suppression
                     if (finding.matches && Array.isArray(finding.matches)) {
-                        const cleanMatches = finding.matches.filter((match) => {
-                            const snippet = (match.snippet || '');
+                        const cleanMatches = finding.matches.filter(match => {
+                            const snippet = match.snippet || '';
                             return !snippet.includes('simplebeacon-ignore');
                         });
 
@@ -75,10 +75,7 @@ function filterAndRecalculate(reportPath, outputPath) {
             finalFindingCount += filteredFindings.length;
 
             // Recalculate category-level count
-            const newCount = filteredFindings.reduce(
-                (sum, f) => sum + (f.matches ? f.matches.length : 1),
-                0
-            );
+            const newCount = filteredFindings.reduce((sum, f) => sum + (f.matches ? f.matches.length : 1), 0);
 
             // Tally severity for gate scoring
             const sev = (category.severity || 'low').toLowerCase();
@@ -88,7 +85,7 @@ function filterAndRecalculate(reportPath, outputPath) {
 
             return { ...category, findings: filteredFindings, count: newCount };
         })
-        .filter((category) => category.findings && category.findings.length > 0);
+        .filter(category => category.findings && category.findings.length > 0);
 
     const finalCategoryCount = report.detectedIssues.length;
 
@@ -124,7 +121,7 @@ function filterAndRecalculate(reportPath, outputPath) {
         lowCount: severityCounts.low,
         filteredCategories: initialCategoryCount - finalCategoryCount,
         filteredFindings: initialFindingCount - finalFindingCount,
-        filteredMatches: initialMatchCount - finalMatchCount,
+        filteredMatches: initialMatchCount - finalMatchCount
     };
 
     const outFile = outputPath || reportPath;
@@ -135,7 +132,7 @@ function filterAndRecalculate(reportPath, outputPath) {
 
 // CLI / direct execution support
 if (require.main === module) {
-    const [,, reportPath, outputPath] = process.argv;
+    const [, , reportPath, outputPath] = process.argv;
     if (!reportPath) {
         console.error('Usage: node FilterAndRecalculate.js <report.json> [output.json]'); // simplebeacon-ignore debug-artifact — CLI usage message
         process.exit(1);

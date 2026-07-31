@@ -1,749 +1,744 @@
 {
-  "type": "simplebeacon-assessment-report",
-  "title": "Simplebeacon EU AI Act Readiness — coming-soon",
-  "generatedAt": "2026-06-16T08:09:31.148Z",
-  "generatedBy": "Simplebeacon",
-  "assessor": "SimpleBeacon Operator",
-  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
-  "assessmentProfile": "eu-ai-act",
-  "deadline": "2026-08-02",
-  "euAiActSummary": {
-    "highRiskIndicators": 0,
-    "aiSystemIndicators": 0,
-    "transparencyGaps": 0,
-    "documentationArtifacts": 83,
-    "documentationFound": [
-      "model-card.md",
-      "risk-assessment.md",
-      "conformity-declaration.md",
-      ".simplebeaconignore",
-      "AI-SYSTEM.md",
-      "app-links.js",
-      "AUTOPILOT_ROADMAP.md",
-      "bin-roadmap.json",
-      "CERTIFICATE-REMEDIATION-PLAN.md",
-      "certificate-upload.html",
-      "certification-post-fix.html",
-      "CHANGELOG.md",
-      "coming-soon-roadmap.json",
-      "contact.html",
-      "contact.js",
-      "cross-reference-report.md",
-      "EU_AI_ACT_SPRINT_IMPLEMENTATION_PLAN.md",
-      "generate-token.js",
-      "github-issues-ai_agent.md",
-      "jira-ai_agent.csv",
-      "jira-row-vulns.csv",
-      "local-scanner-bridge.cjs",
-      "pricing.html",
-      "README.md",
-      "refund.html",
-      "roadmap.html",
-      "sample-certificate.html",
-      "scan-status.html",
-      "simplebeacon-platform-gate.json",
-      "simplebeacon-platform-roadmap.json",
-      "site-config.js",
-      "styles.css",
-      "technical-documentation.md",
-      "terms.html",
-      "test-generate-roadmap.js",
-      "test-report.json",
-      "trello-ai_agent-1780863316487.json",
-      "trello-board-ai_agent-full.json",
-      "trello-board-ai_agent.json",
-      "trello-export-1780859087255.json",
-      "trello-roadmap-export.js",
-      "unlock.html",
-      "upload-file-list.txt",
-      "upload.html",
-      ".simplebeacon/bridge-report-scan-1781164483194.json",
-      ".simplebeacon/config.json",
-      ".simplebeacon/report.json"
-    ],
-    "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
-  },
-  "executiveSummary": {
-    "gateResult": "PASS",
-    "qualityScore": 100,
-    "filesScanned": 1,
-    "criticalIssues": 0,
-    "highIssues": 0,
-    "mediumIssues": 0,
-    "lowIssues": 3,
-    "warningCount": 0,
-    "blockingCount": 0,
-    "headline": "Clean scan — no blocking mock/fiction findings in configured paths.",
-    "complianceScore": 100,
-    "complianceReady": true
-  },
-  "complianceChecklist": {
-    "type": "simplebeacon-compliance-checklist",
-    "version": "1.0.0",
-    "title": "Simplebeacon EU AI Act Readiness Checklist",
-    "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
-    "evaluatedAt": "2026-06-16T08:09:31.148Z",
+    "type": "simplebeacon-assessment-report",
+    "title": "Simplebeacon EU AI Act Readiness — coming-soon",
+    "generatedAt": "2026-06-16T08:09:31.148Z",
+    "generatedBy": "Simplebeacon",
+    "assessor": "SimpleBeacon Operator",
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
-    "summary": {
-      "passed": 9,
-      "failed": 0,
-      "skipped": 0,
-      "total": 9,
-      "score": 100,
-      "readyForAutomation": true,
-      "checklistProfile": "eu-ai-act",
-      "headline": "9/9 EU AI Act readiness rules pass — review legal classification before August 2026"
+    "assessmentProfile": "eu-ai-act",
+    "deadline": "2026-08-02",
+    "euAiActSummary": {
+        "highRiskIndicators": 0,
+        "aiSystemIndicators": 0,
+        "transparencyGaps": 0,
+        "documentationArtifacts": 83,
+        "documentationFound": [
+            "model-card.md",
+            "risk-assessment.md",
+            "conformity-declaration.md",
+            ".simplebeaconignore",
+            "AI-SYSTEM.md",
+            "app-links.js",
+            "AUTOPILOT_ROADMAP.md",
+            "bin-roadmap.json",
+            "CERTIFICATE-REMEDIATION-PLAN.md",
+            "certificate-upload.html",
+            "certification-post-fix.html",
+            "CHANGELOG.md",
+            "coming-soon-roadmap.json",
+            "contact.html",
+            "contact.js",
+            "cross-reference-report.md",
+            "EU_AI_ACT_SPRINT_IMPLEMENTATION_PLAN.md",
+            "generate-token.js",
+            "github-issues-ai_agent.md",
+            "jira-ai_agent.csv",
+            "jira-row-vulns.csv",
+            "local-scanner-bridge.cjs",
+            "pricing.html",
+            "README.md",
+            "refund.html",
+            "roadmap.html",
+            "sample-certificate.html",
+            "scan-status.html",
+            "simplebeacon-platform-gate.json",
+            "simplebeacon-platform-roadmap.json",
+            "site-config.js",
+            "styles.css",
+            "technical-documentation.md",
+            "terms.html",
+            "test-generate-roadmap.js",
+            "test-report.json",
+            "trello-ai_agent-1780863316487.json",
+            "trello-board-ai_agent-full.json",
+            "trello-board-ai_agent.json",
+            "trello-export-1780859087255.json",
+            "trello-roadmap-export.js",
+            "unlock.html",
+            "upload-file-list.txt",
+            "upload.html",
+            ".simplebeacon/bridge-report-scan-1781164483194.json",
+            ".simplebeacon/config.json",
+            ".simplebeacon/report.json"
+        ],
+        "deadlineNote": "High-risk AI systems must comply with EU AI Act requirements by August 2026"
     },
-    "rules": [
-      {
-        "id": "GATE-001",
-        "title": "Merge gate passes on configured severities",
-        "category": "Automation",
-        "severity": "critical",
-        "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
-        "status": "pass",
-        "evidence": "Gate pass — no blocking issues at configured severities"
-      },
-      {
-        "id": "CRED-001",
-        "title": "No credential or secret patterns in scanned paths",
-        "category": "Security",
-        "severity": "critical",
-        "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
-        "status": "pass",
-        "evidence": "Scanned 12 path(s) — no credential patterns"
-      },
-      {
-        "id": "LEAK-001",
-        "title": "No mock/sample JSON paths referenced from production directories",
-        "category": "Data integrity",
-        "severity": "high",
-        "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
-        "status": "pass",
-        "evidence": "Scanned 11 production file(s) — no sample-path leaks"
-      },
-      {
-        "id": "EUAI-001",
-        "title": "High-risk AI indicators documented or absent",
-        "category": "EU AI Act — Classification",
-        "severity": "critical",
-        "remediation": "Conduct Annex III classification review; add risk-assessment.md and conformity documentation for high-risk systems",
-        "status": "pass",
-        "evidence": "No Annex III high-risk AI patterns detected in scanned paths"
-      },
-      {
-        "id": "EUAI-002",
-        "title": "Article 50 transparency — AI outputs disclosed to users",
-        "category": "EU AI Act — Transparency",
-        "severity": "high",
-        "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
-        "status": "pass",
-        "evidence": "No generative AI integrations detected in user-facing paths"
-      },
-      {
-        "id": "EUAI-003",
-        "title": "AI system documentation present when AI integrations detected",
-        "category": "EU AI Act — Documentation",
-        "severity": "high",
-        "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
-        "status": "pass",
-        "evidence": "No AI system indicators — documentation not required by scan"
-      },
-      {
-        "id": "EUAI-004",
-        "title": "Human oversight signals for high-risk AI decision paths",
-        "category": "EU AI Act — Human oversight",
-        "severity": "high",
-        "remediation": "Implement human-in-the-loop review, manual override, or appeal mechanism for automated decisions",
-        "status": "pass",
-        "evidence": "No high-risk AI patterns — human oversight rule not applicable"
-      },
-      {
-        "id": "EUAI-005",
-        "title": "AI decision logging for accountability",
-        "category": "EU AI Act — Record-keeping",
-        "severity": "medium",
-        "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
-        "status": "pass",
-        "evidence": "No AI decision paths detected"
-      },
-      {
-        "id": "SUPPLY-001",
-        "title": "No critical or high npm audit vulnerabilities",
-        "category": "Supply chain",
-        "severity": "critical",
-        "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
-        "status": "pass",
-        "evidence": "npm audit: 0 critical, 0 high (lockfile-heuristic)"
-      }
-    ]
-  },
-  "findings": {
-    "credentials": {
-      "scanned": 12,
-      "findings": 0,
-      "severity": "high",
-      "items": [],
-      "summary": "No credential patterns detected in scanned paths."
+    "executiveSummary": {
+        "gateResult": "PASS",
+        "qualityScore": 100,
+        "filesScanned": 1,
+        "criticalIssues": 0,
+        "highIssues": 0,
+        "mediumIssues": 0,
+        "lowIssues": 3,
+        "warningCount": 0,
+        "blockingCount": 0,
+        "headline": "Clean scan — no blocking mock/fiction findings in configured paths.",
+        "complianceScore": 100,
+        "complianceReady": true
     },
-    "fictionKpis": {
-      "scanned": 29,
-      "findings": 0,
-      "severity": "high",
-      "items": [],
-      "summary": "No fiction KPI or consistency drift detected."
+    "complianceChecklist": {
+        "type": "simplebeacon-compliance-checklist",
+        "version": "1.0.0",
+        "title": "Simplebeacon EU AI Act Readiness Checklist",
+        "description": "Automated technical signals for EU AI Act readiness — August 2026 deadline. Static scan only; not legal advice.",
+        "evaluatedAt": "2026-06-16T08:09:31.148Z",
+        "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
+        "summary": {
+            "passed": 9,
+            "failed": 0,
+            "skipped": 0,
+            "total": 9,
+            "score": 100,
+            "readyForAutomation": true,
+            "checklistProfile": "eu-ai-act",
+            "headline": "9/9 EU AI Act readiness rules pass — review legal classification before August 2026"
+        },
+        "rules": [
+            {
+                "id": "GATE-001",
+                "title": "Merge gate passes on configured severities",
+                "category": "Automation",
+                "severity": "critical",
+                "remediation": "Fix blocking findings and re-run: npx simplebeacon scan --gate",
+                "status": "pass",
+                "evidence": "Gate pass — no blocking issues at configured severities"
+            },
+            {
+                "id": "CRED-001",
+                "title": "No credential or secret patterns in scanned paths",
+                "category": "Security",
+                "severity": "critical",
+                "remediation": "Remove secrets from the repo, rotate exposed credentials, add patterns to .gitignore",
+                "status": "pass",
+                "evidence": "Scanned 12 path(s) — no credential patterns"
+            },
+            {
+                "id": "LEAK-001",
+                "title": "No mock/sample JSON paths referenced from production directories",
+                "category": "Data integrity",
+                "severity": "high",
+                "remediation": "Replace hardcoded *-sample.json paths with repository-audit APIs or env-based config",
+                "status": "pass",
+                "evidence": "Scanned 11 production file(s) — no sample-path leaks"
+            },
+            {
+                "id": "EUAI-001",
+                "title": "High-risk AI indicators documented or absent",
+                "category": "EU AI Act — Classification",
+                "severity": "critical",
+                "remediation": "Conduct Annex III classification review; add risk-assessment.md and conformity documentation for high-risk systems",
+                "status": "pass",
+                "evidence": "No Annex III high-risk AI patterns detected in scanned paths"
+            },
+            {
+                "id": "EUAI-002",
+                "title": "Article 50 transparency — AI outputs disclosed to users",
+                "category": "EU AI Act — Transparency",
+                "severity": "high",
+                "remediation": "Add user-facing disclosure that content is AI-generated or that users interact with an AI system",
+                "status": "pass",
+                "evidence": "No generative AI integrations detected in user-facing paths"
+            },
+            {
+                "id": "EUAI-003",
+                "title": "AI system documentation present when AI integrations detected",
+                "category": "EU AI Act — Documentation",
+                "severity": "high",
+                "remediation": "Add model-card.md, technical documentation, and risk assessment artifacts under docs/ or .simplebeacon/",
+                "status": "pass",
+                "evidence": "No AI system indicators — documentation not required by scan"
+            },
+            {
+                "id": "EUAI-004",
+                "title": "Human oversight signals for high-risk AI decision paths",
+                "category": "EU AI Act — Human oversight",
+                "severity": "high",
+                "remediation": "Implement human-in-the-loop review, manual override, or appeal mechanism for automated decisions",
+                "status": "pass",
+                "evidence": "No high-risk AI patterns — human oversight rule not applicable"
+            },
+            {
+                "id": "EUAI-005",
+                "title": "AI decision logging for accountability",
+                "category": "EU AI Act — Record-keeping",
+                "severity": "medium",
+                "remediation": "Log AI system inputs, outputs, and decision rationale for audit trails",
+                "status": "pass",
+                "evidence": "No AI decision paths detected"
+            },
+            {
+                "id": "SUPPLY-001",
+                "title": "No critical or high npm audit vulnerabilities",
+                "category": "Supply chain",
+                "severity": "critical",
+                "remediation": "Run npm audit fix; upgrade transitive dependencies blocking CVEs",
+                "status": "pass",
+                "evidence": "npm audit: 0 critical, 0 high (lockfile-heuristic)"
+            }
+        ]
     },
-    "productionLeaks": {
-      "scanned": 11,
-      "findings": 0,
-      "severity": "medium",
-      "items": [],
-      "summary": "No mock/sample path references in production directories."
-    },
-    "schemaDrift": {
-      "checked": 0,
-      "passed": 0,
-      "severity": "high",
-      "items": [],
-      "summary": "All registered page samples match schema specs."
-    },
-    "euAiAct": {
-      "scanned": 11,
-      "findings": 0,
-      "severity": "high",
-      "items": [],
-      "summary": "No EU AI Act high-risk or transparency gaps detected."
-    },
-    "other": {
-      "items": [
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "missing-env-key finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".eslintrc.cjs",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "404.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "ai-agent-gate.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "ai-agent-roadmap.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "ai-agent-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "ai-slop-cop-report.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "ai-tools-roadmap.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "bin-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "blog-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "certification-post-fix.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "coming-soon-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "count-all-files.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "count-files.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "dashboard.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "demo-report.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "downloads/diagnostic-prep.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "downloads/repo-handoff.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "generate-account-token.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "generate-token.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "js/scan-worker.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "lib/account-types.cjs",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "local-scanner-bridge.cjs",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "report-editor.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "run-cli-scan.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "sample-clearance-pdf.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "scan-directory.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "scripts-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "services/certificate-generator.cjs",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "simplebeacon-frameworkless-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "simplebeacon-platform-gate.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "simplebeacon-platform-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "src-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "subscriptions.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-all-patterns.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-certificate.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-generate-roadmap.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-normalize.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-renderPreview.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-report.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-roadmap.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-technical-audit.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "test-zip-data.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "trello-ai_agent-1780863316487.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "trello-board-ai_agent-full.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "trello-board-ai_agent-v2.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "trello-board-ai_agent.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "trello-card-consistency.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "trello-card-vulns.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "trello-export-1780859087255.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "trello-export-ai_agent-1780863207806.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "trello-roadmap-export.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "unlock.html",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "update-cache.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "vscode-extension-roadmap.json",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "zip-for-upload.js",
-          "description": "unused-file finding",
-          "severity": "medium",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": ".env",
-          "description": "unused-env-key finding",
-          "severity": "low",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "js/dashboard/phase-registry.js",
-          "description": "orphaned-export finding",
-          "severity": "low",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
-        },
-        {
-          "file": "js/dashboard/phase-registry.js",
-          "description": "orphaned-export finding",
-          "severity": "low",
-          "count": 1,
-          "recommendedAction": "Review file-reduction report"
+    "findings": {
+        "credentials": {
+            "scanned": 12,
+            "findings": 0,
+            "severity": "high",
+            "items": [],
+            "summary": "No credential patterns detected in scanned paths."
+        },
+        "fictionKpis": {
+            "scanned": 29,
+            "findings": 0,
+            "severity": "high",
+            "items": [],
+            "summary": "No fiction KPI or consistency drift detected."
+        },
+        "productionLeaks": {
+            "scanned": 11,
+            "findings": 0,
+            "severity": "medium",
+            "items": [],
+            "summary": "No mock/sample path references in production directories."
+        },
+        "schemaDrift": {
+            "checked": 0,
+            "passed": 0,
+            "severity": "high",
+            "items": [],
+            "summary": "All registered page samples match schema specs."
+        },
+        "euAiAct": {
+            "scanned": 11,
+            "findings": 0,
+            "severity": "high",
+            "items": [],
+            "summary": "No EU AI Act high-risk or transparency gaps detected."
+        },
+        "other": {
+            "items": [
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "missing-env-key finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".eslintrc.cjs",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "404.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "ai-agent-gate.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "ai-agent-roadmap.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "ai-agent-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "ai-slop-cop-report.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "ai-tools-roadmap.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "bin-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "blog-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "certification-post-fix.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "coming-soon-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "count-all-files.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "count-files.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "dashboard.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "demo-report.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "downloads/diagnostic-prep.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "downloads/repo-handoff.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "generate-account-token.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "generate-token.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "js/scan-worker.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "lib/account-types.cjs",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "local-scanner-bridge.cjs",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "report-editor.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "run-cli-scan.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "sample-clearance-pdf.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "scan-directory.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "scripts-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "services/certificate-generator.cjs",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "simplebeacon-frameworkless-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "simplebeacon-platform-gate.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "simplebeacon-platform-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "src-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "subscriptions.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-all-patterns.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-certificate.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-generate-roadmap.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-normalize.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-renderPreview.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-report.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-roadmap.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-technical-audit.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "test-zip-data.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "trello-ai_agent-1780863316487.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "trello-board-ai_agent-full.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "trello-board-ai_agent-v2.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "trello-board-ai_agent.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "trello-card-consistency.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "trello-card-vulns.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "trello-export-1780859087255.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "trello-export-ai_agent-1780863207806.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "trello-roadmap-export.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "unlock.html",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "update-cache.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "vscode-extension-roadmap.json",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "zip-for-upload.js",
+                    "description": "unused-file finding",
+                    "severity": "medium",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": ".env",
+                    "description": "unused-env-key finding",
+                    "severity": "low",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "js/dashboard/phase-registry.js",
+                    "description": "orphaned-export finding",
+                    "severity": "low",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                },
+                {
+                    "file": "js/dashboard/phase-registry.js",
+                    "description": "orphaned-export finding",
+                    "severity": "low",
+                    "count": 1,
+                    "recommendedAction": "Review file-reduction report"
+                }
+            ],
+            "summary": ".env: missing-env-key finding; .env: missing-env-key finding; .env: missing-env-key finding; .env: missing-env-key finding; .env: missing-env-key finding"
         }
-      ],
-      "summary": ".env: missing-env-key finding; .env: missing-env-key finding; .env: missing-env-key finding; .env: missing-env-key finding; .env: missing-env-key finding"
-    }
-  },
-  "recommendedActions": {
-    "immediate": [
-      "Add docs/model-card.md and docs/risk-assessment.md for AI integrations",
-      "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
+    },
+    "recommendedActions": {
+        "immediate": [
+            "Add docs/model-card.md and docs/risk-assessment.md for AI integrations",
+            "Add simplebeacon scan --gate to PR workflow (see docs/GITHUB-ACTION-QUICKSTART.md)"
+        ],
+        "next30Days": [
+            "Conduct formal Annex III classification with legal counsel",
+            "Implement human-in-the-loop review for high-risk automated decisions",
+            "Wire simplebeacon compliance --checklist eu-ai-act into CI",
+            "Sync .simplebeacon/baseline.json after green test runs"
+        ]
+    },
+    "complementaryStack": {
+        "keepUsing": ["Legal counsel for formal conformity assessment", "Snyk or GitHub Advanced Security for CVEs"],
+        "addSimplebeaconFor": [
+            "Annex III high-risk pattern detection in source code",
+            "Article 50 transparency gap detection in user-facing surfaces",
+            "Documentation completeness signals before August 2026"
+        ]
+    },
+    "pilotProposal": {
+        "offer": "EU AI Act readiness audit + 30-day remediation sprint",
+        "pricePlaceholder": "$2,499–9,999 depending on AI system scope",
+        "ask": "Will you run simplebeacon scan --gate with --checklist eu-ai-act on every PR until August 2026?"
+    },
+    "disclaimer": "Static technical pattern review — not legal advice or formal conformity assessment under Regulation (EU) 2024/1689.",
+    "commandsRun": [
+        "npx simplebeacon scan --format json --output .simplebeacon/report.json",
+        "npx simplebeacon scan --gate",
+        "npx simplebeacon assess --report .simplebeacon/report.json"
     ],
-    "next30Days": [
-      "Conduct formal Annex III classification with legal counsel",
-      "Implement human-in-the-loop review for high-risk automated decisions",
-      "Wire simplebeacon compliance --checklist eu-ai-act into CI",
-      "Sync .simplebeacon/baseline.json after green test runs"
-    ]
-  },
-  "complementaryStack": {
-    "keepUsing": [
-      "Legal counsel for formal conformity assessment",
-      "Snyk or GitHub Advanced Security for CVEs"
-    ],
-    "addSimplebeaconFor": [
-      "Annex III high-risk pattern detection in source code",
-      "Article 50 transparency gap detection in user-facing surfaces",
-      "Documentation completeness signals before August 2026"
-    ]
-  },
-  "pilotProposal": {
-    "offer": "EU AI Act readiness audit + 30-day remediation sprint",
-    "pricePlaceholder": "$2,499–9,999 depending on AI system scope",
-    "ask": "Will you run simplebeacon scan --gate with --checklist eu-ai-act on every PR until August 2026?"
-  },
-  "disclaimer": "Static technical pattern review — not legal advice or formal conformity assessment under Regulation (EU) 2024/1689.",
-  "commandsRun": [
-    "npx simplebeacon scan --format json --output .simplebeacon/report.json",
-    "npx simplebeacon scan --gate",
-    "npx simplebeacon assess --report .simplebeacon/report.json"
-  ],
-  "sourceReport": {
-    "generatedAt": "2026-06-16T08:09:31.124Z",
-    "scanPaths": [
-      "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\data"
-    ],
-    "duplicateGroups": 0
-  },
-  "sanitized": true,
-  "sanitizedAt": "2026-06-16T08:09:31.149Z"
+    "sourceReport": {
+        "generatedAt": "2026-06-16T08:09:31.124Z",
+        "scanPaths": ["C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\data"],
+        "duplicateGroups": 0
+    },
+    "sanitized": true,
+    "sanitizedAt": "2026-06-16T08:09:31.149Z"
 }

@@ -9,11 +9,10 @@ const path = require('path');
 const { readJsonFileCached } = require('./json-file-cache.cjs');
 const { resolvePlatformRoot } = require('./simplebeacon-proxy.cjs');
 
-
 const ARTIFACT_NAMES = {
   report: 'eu-ai-act-report.json',
   compliance: 'eu-ai-act-compliance.json',
-  assessment: 'eu-ai-act-assessment.json'
+  assessment: 'eu-ai-act-assessment.json',
 };
 
 /**
@@ -69,8 +68,8 @@ async function loadEuAiActArtifacts(options = {}) {
 
   if (!report && !compliance && !assessment) {
     const err = new Error(
-      'No EU AI Act sprint artifacts found. Run Analyze → EU AI Act sprint first '
-      + '(writes .simplebeacon/eu-ai-act-*.json).'
+      'No EU AI Act sprint artifacts found. Run Analyze → EU AI Act sprint first ' +
+        '(writes .simplebeacon/eu-ai-act-*.json).'
     );
     err.code = 'eu_ai_act_artifacts_missing';
     throw err;
@@ -112,11 +111,18 @@ function collectEuFindingItems(report, assessment) {
   const raw = report?.rawIssues || report?.detectedIssues || [];
   return uniqueEuItems(
     raw
-      .filter((issue) => /eu ai act|ai system|semantic integration/i.test(String(issue.type || issue.description || '')))
+      .filter((issue) =>
+        /eu ai act|ai system|semantic integration/i.test(
+          String(issue.type || issue.description || '')
+        )
+      )
       .map((issue) => ({
         file: issue.file || issue.filePath || (issue.affectedFiles || [])[0] || '—',
         description: issue.description || issue.type || 'EU AI Act signal',
-        recommendedAction: issue.recommendedAction || issue.recommendation || 'Review EU AI Act transparency obligations'
+        recommendedAction:
+          issue.recommendedAction ||
+          issue.recommendation ||
+          'Review EU AI Act transparency obligations',
       })),
     8
   );
@@ -161,7 +167,11 @@ function buildEuAiActAuditHtml(input = {}) {
     compliance?.evaluatedAt || assessment?.generatedAt || report?.generatedAt || Date.now()
   ).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const creds = input.credentials || {};
-  const title = resolveClientLabel({ clientName: creds.projectName || clientName }, report, assessment);
+  const title = resolveClientLabel(
+    { clientName: creds.projectName || clientName },
+    report,
+    assessment
+  );
   const id = reportId || buildReportId();
   const gatePass = report?.gate?.pass === true;
 
@@ -176,37 +186,80 @@ function buildEuAiActAuditHtml(input = {}) {
 
   if (!rawSummary || !rawRules) {
     const syntheticRules = [
-      { id: 'GATE-01', title: 'SimpleBeacon gate pass', status: gatePass ? 'pass' : 'fail', evidence: gatePass ? 'Gate passed with no blocking issues' : `Gate failed — ${gateBlocking} blocking, ${gateWarnings} warnings` },
-      { id: 'EUAI-01', title: 'EU AI Act scan executed', status: (report?.euAiActScanned ?? 0) > 0 ? 'pass' : 'skip', evidence: `${report?.euAiActScanned ?? 0} files scanned for EU AI Act patterns` },
-      { id: 'EUAI-02', title: 'Documentation artifacts present', status: docCount > 0 ? 'pass' : 'warn', evidence: `${docCount} documentation artifact(s) detected` },
-      { id: 'EUAI-03', title: 'No critical/high security findings', status: gateBlocking === 0 ? 'pass' : 'fail', evidence: gateBlocking === 0 ? 'Zero blocking findings in gate' : `${gateBlocking} blocking issue(s) require remediation` }
+      {
+        id: 'GATE-01',
+        title: 'SimpleBeacon gate pass',
+        status: gatePass ? 'pass' : 'fail',
+        evidence: gatePass
+          ? 'Gate passed with no blocking issues'
+          : `Gate failed — ${gateBlocking} blocking, ${gateWarnings} warnings`,
+      },
+      {
+        id: 'EUAI-01',
+        title: 'EU AI Act scan executed',
+        status: (report?.euAiActScanned ?? 0) > 0 ? 'pass' : 'skip',
+        evidence: `${report?.euAiActScanned ?? 0} files scanned for EU AI Act patterns`,
+      },
+      {
+        id: 'EUAI-02',
+        title: 'Documentation artifacts present',
+        status: docCount > 0 ? 'pass' : 'warn',
+        evidence: `${docCount} documentation artifact(s) detected`,
+      },
+      {
+        id: 'EUAI-03',
+        title: 'No critical/high security findings',
+        status: gateBlocking === 0 ? 'pass' : 'fail',
+        evidence:
+          gateBlocking === 0
+            ? 'Zero blocking findings in gate'
+            : `${gateBlocking} blocking issue(s) require remediation`,
+      },
     ];
-    const passed = syntheticRules.filter(r => r.status === 'pass').length;
-    const failed = syntheticRules.filter(r => r.status === 'fail').length;
+    const passed = syntheticRules.filter((r) => r.status === 'pass').length;
+    const failed = syntheticRules.filter((r) => r.status === 'fail').length;
     const total = syntheticRules.length;
-    summary = { score: qualityScore ?? Math.round((passed / total) * 100), passed, failed, total, headline: `Gate ${gatePass ? 'PASS' : 'FAIL'} · ${gateBlocking} blocking · ${gateWarnings} warning(s)` };
+    summary = {
+      score: qualityScore ?? Math.round((passed / total) * 100),
+      passed,
+      failed,
+      total,
+      headline: `Gate ${gatePass ? 'PASS' : 'FAIL'} · ${gateBlocking} blocking · ${gateWarnings} warning(s)`,
+    };
     rules = syntheticRules;
   }
 
   const score = summary.score ?? qualityScore ?? '—';
 
-  const ruleRows = rules.map((rule) => {
-    const statusClass = rule.status === 'pass' ? 'badge-pass' : rule.status === 'fail' ? 'badge-blocked' : 'badge-warn';
-    const statusLabel = rule.status === 'pass' ? 'PASS' : rule.status === 'fail' ? 'FAIL' : 'SKIP';
-    return `<tr>
+  const ruleRows = rules
+    .map((rule) => {
+      const statusClass =
+        rule.status === 'pass'
+          ? 'badge-pass'
+          : rule.status === 'fail'
+            ? 'badge-blocked'
+            : 'badge-warn';
+      const statusLabel =
+        rule.status === 'pass' ? 'PASS' : rule.status === 'fail' ? 'FAIL' : 'SKIP';
+      return `<tr>
       <td><code>${escapeHtml(rule.id)}</code> ${escapeHtml(rule.title)}</td>
       <td><span class="badge ${statusClass}">${statusLabel}</span></td>
       <td>${escapeHtml(rule.evidence)}</td>
     </tr>`;
-  }).join('\n');
+    })
+    .join('\n');
 
   const findingRows = euItems.length
-    ? euItems.map((item) => `<tr>
+    ? euItems
+        .map(
+          (item) => `<tr>
       <td><span class="sev sev-medium">MEDIUM</span></td>
       <td><code>${escapeHtml(item.file)}</code></td>
       <td>${escapeHtml(item.description)}</td>
       <td>${escapeHtml(item.recommendedAction)}</td>
-    </tr>`).join('\n')
+    </tr>`
+        )
+        .join('\n')
     : '<tr><td colspan="4" class="text-muted">No prioritized EU pattern findings in sprint artifacts.</td></tr>';
 
   const gateBannerClass = Number(summary.failed) > 0 || !gatePass ? 'fail' : '';
@@ -331,7 +384,7 @@ async function buildEuAiActAuditReport(options = {}) {
       platformRoot,
       report: options.artifacts.report || null,
       compliance: options.artifacts.complianceChecklist || options.artifacts.compliance || null,
-      assessment: options.artifacts.assessment || null
+      assessment: options.artifacts.assessment || null,
     };
   } else {
     artifacts = await loadEuAiActArtifacts(options);
@@ -340,7 +393,7 @@ async function buildEuAiActAuditReport(options = {}) {
   const html = buildEuAiActAuditHtml({
     ...artifacts,
     clientName: options.clientName,
-    reportId
+    reportId,
   });
   return {
     html,
@@ -348,7 +401,7 @@ async function buildEuAiActAuditReport(options = {}) {
     reportId,
     exportTier: 'eu-ai-act',
     exportTierLabel: 'EU AI Act readiness (reference)',
-    platformRoot: artifacts.platformRoot
+    platformRoot: artifacts.platformRoot,
   };
 }
 
@@ -356,5 +409,5 @@ module.exports = {
   ARTIFACT_NAMES,
   loadEuAiActArtifacts,
   buildEuAiActAuditHtml,
-  buildEuAiActAuditReport
+  buildEuAiActAuditReport,
 };

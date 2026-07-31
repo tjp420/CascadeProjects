@@ -3,10 +3,6 @@
   "overview": {
     "openTickets": 15
   },
-  "tickets": [
-    {}
-  ],
-  "agents": [
-    {}
-  ]
+  "tickets": [{}],
+  "agents": [{}]
 }

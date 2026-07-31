@@ -22,7 +22,7 @@ try {
   execSync('npm run verify:predeploy', {
     cwd: projectRoot,
     stdio: 'inherit',
-    shell: isWindows ? 'powershell.exe' : true
+    shell: isWindows ? 'powershell.exe' : true,
   });
 } catch {
   console.error('❌ Deploy gate failed: predeploy sequence checks did not pass.');
@@ -35,7 +35,7 @@ try {
   execSync('npm run verify:production-deploy', {
     cwd: projectRoot,
     stdio: 'inherit',
-    shell: isWindows ? 'powershell.exe' : true
+    shell: isWindows ? 'powershell.exe' : true,
   });
 } catch {
   console.error('❌ Deploy gate failed: production readiness checks did not pass.');
@@ -48,7 +48,7 @@ try {
   execSync('npm run verify:v1-internal-profile', {
     cwd: projectRoot,
     stdio: 'inherit',
-    shell: isWindows ? 'powershell.exe' : true
+    shell: isWindows ? 'powershell.exe' : true,
   });
 } catch {
   console.error('❌ Deploy gate failed: v1-internal profile checks did not pass.');
@@ -63,7 +63,7 @@ try {
   execSync('npm run smoke:test:production', {
     cwd: projectRoot,
     stdio: 'inherit',
-    shell: isWindows ? 'powershell.exe' : true
+    shell: isWindows ? 'powershell.exe' : true,
   });
 } catch {
   console.warn('⚠️  Smoke tests had warnings. Review before continuing.');
@@ -71,7 +71,7 @@ try {
     deployPending = false;
     const readline = require('readline').createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
     readline.question('Continue deploy despite smoke test warnings? (y/N): ', (answer) => {
       readline.close();
@@ -98,12 +98,12 @@ function runDeploy() {
     if (isWindows) {
       execSync(`powershell.exe -ExecutionPolicy Bypass -File "${deployScript}"`, {
         cwd: projectRoot,
-        stdio: 'inherit'
+        stdio: 'inherit',
       });
     } else {
       execSync(`bash "${deployScript}"`, {
         cwd: projectRoot,
-        stdio: 'inherit'
+        stdio: 'inherit',
       });
     }
   } catch {

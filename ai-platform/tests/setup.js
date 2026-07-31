@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Jest Test Setup
- * 
+ *
  * This file sets up the test environment for all Jest tests.
  */
 
@@ -16,7 +16,7 @@ if (process.env.MOCK_CONSTANTS === '1') {
     TIMEOUT_12S: 12000,
     TIMEOUT_1M: 60000,
     MAX_RATE_LIMIT: 1000,
-    safeJsonLimit: () => '1mb'
+    safeJsonLimit: () => '1mb',
   }));
 }
 const constants = require('../server/config/constants.cjs');
@@ -26,7 +26,7 @@ const constants = require('../server/config/constants.cjs');
 try {
   jest.mock('minimatch', () => {
     // Defer to the real package and wrap it if needed
-    // eslint-disable-next-line global-require
+     
     const real = require('minimatch');
     if (typeof real === 'function') return real;
     // v9+ exports named functions; expose a callable signature compatible with older code
@@ -65,8 +65,10 @@ afterAll(() => {
 });
 
 // Mock environment variables that might be missing in test environment
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-32chars-minimum';
-process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test-jwt-refresh-secret-key-for-testing-32chars';
+process.env.JWT_SECRET =
+  process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-32chars-minimum';
+process.env.JWT_REFRESH_SECRET =
+  process.env.JWT_REFRESH_SECRET || 'test-jwt-refresh-secret-key-for-testing-32chars';
 process.env.REQUIRE_AUTH = process.env.REQUIRE_AUTH || 'true';
 process.env.SIMPLEBEACON_INTERNAL_DASHBOARD = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || 'true';
 
@@ -82,9 +84,9 @@ global.testUtils = {
     query: {},
     headers: {},
     user: null,
-    ...overrides
+    ...overrides,
   }),
-  
+
   // Helper to create mock response objects
   mockResponse: () => {
     const res = {
@@ -95,17 +97,17 @@ global.testUtils = {
       cookie: jest.fn().mockReturnThis(),
       clearCookie: jest.fn().mockReturnThis(),
       redirect: jest.fn().mockReturnThis(),
-      end: jest.fn().mockReturnThis()
+      end: jest.fn().mockReturnThis(),
     };
     return res;
   },
-  
+
   // Helper to create mock next function
   mockNext: () => jest.fn(),
-  
+
   // Helper to wait for async operations
-  waitFor: (ms = 100) => new Promise(resolve => setTimeout(resolve, ms)),
-  
+  waitFor: (ms = 100) => new Promise((resolve) => setTimeout(resolve, ms)),
+
   // Helper to generate test JWT tokens
   generateTestToken: (payload = {}) => {
     const jwt = require('jsonwebtoken');
@@ -114,22 +116,22 @@ global.testUtils = {
       email: 'test@example.com',
       name: 'Test User',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+      exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour
     };
     return jwt.sign({ ...defaultPayload, ...payload }, process.env.JWT_SECRET);
   },
-  
+
   // Helper to create test database connection
   createTestDb: async () => {
     // This would be implemented when database is available
     return null;
   },
-  
+
   // Helper to clean up test data
   cleanupTestData: async () => {
     // This would be implemented to clean up test data
     return Promise.resolve();
-  }
+  },
 };
 
 // Setup and teardown hooks
@@ -166,8 +168,8 @@ jest.mock('redis', () => ({
     del: jest.fn().mockResolvedValue(1),
     exists: jest.fn().mockResolvedValue(0),
     quit: jest.fn().mockResolvedValue(true),
-    disconnect: jest.fn().mockResolvedValue(true)
-  }))
+    disconnect: jest.fn().mockResolvedValue(true),
+  })),
 }));
 
 // Mock PostgreSQL client
@@ -175,18 +177,18 @@ jest.mock('pg', () => ({
   Client: jest.fn(() => ({
     connect: jest.fn().mockResolvedValue(true),
     query: jest.fn().mockResolvedValue({ rows: [] }),
-    end: jest.fn().mockResolvedValue(true)
+    end: jest.fn().mockResolvedValue(true),
   })),
   Pool: jest.fn(() => ({
     connect: jest.fn().mockResolvedValue({
       query: jest.fn().mockResolvedValue({ rows: [] }),
-      release: jest.fn()
+      release: jest.fn(),
     }),
-    end: jest.fn().mockResolvedValue(true)
-  }))
+    end: jest.fn().mockResolvedValue(true),
+  })),
 }));
 
 // Export setup for use in other files
 module.exports = {
-  testUtils: global.testUtils
+  testUtils: global.testUtils,
 };

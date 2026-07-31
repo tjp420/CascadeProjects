@@ -2,13 +2,27 @@
 import { escapeHtml, showToast, setHtml } from '../utils.js?v=20260725profile1';
 import { isIdeDashboardSurface, isExtensionHostedTab } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { authService } from '../services/authService.js?v=20260722bridgefix1';
-import { activateStockpileEntry, addToStockpile, BUY_TIME_TOKENS_URL, decodeTokenMeta, listStockpiled, stockpileCount, tokenHint, } from '../services/tokenStockpileService.js';
+import {
+    activateStockpileEntry,
+    addToStockpile,
+    BUY_TIME_TOKENS_URL,
+    decodeTokenMeta,
+    listStockpiled,
+    stockpileCount,
+    tokenHint
+} from '../services/tokenStockpileService.js';
 
 function loadProfile() {
-    try { const raw = localStorage.getItem('sb_profile'); return raw ? JSON.parse(raw) : {}; }
-    catch { return {}; }
+    try {
+        const raw = localStorage.getItem('sb_profile');
+        return raw ? JSON.parse(raw) : {};
+    } catch {
+        return {};
+    }
 }
-function saveProfile(data) { localStorage.setItem('sb_profile', JSON.stringify(data)); }
+function saveProfile(data) {
+    localStorage.setItem('sb_profile', JSON.stringify(data));
+}
 
 function decodeJwtPayload(token) {
     if (!token || typeof token !== 'string') return null;
@@ -16,9 +30,11 @@ function decodeJwtPayload(token) {
     if (parts.length !== 3) return null;
     try {
         const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const pad = '='.repeat((4 - b64.length % 4) % 4);
+        const pad = '='.repeat((4 - (b64.length % 4)) % 4);
         return JSON.parse(atob(b64 + pad));
-    } catch { return null; }
+    } catch {
+        return null;
+    }
 }
 
 function formatTimeAgo(dateString) {
@@ -50,12 +66,18 @@ function formatExpiry(exp) {
 }
 
 function getTokenRegistry() {
-    try { const raw = localStorage.getItem('sb-token-registry'); return raw ? JSON.parse(raw) : {}; }
-    catch { return {}; }
+    try {
+        const raw = localStorage.getItem('sb-token-registry');
+        return raw ? JSON.parse(raw) : {};
+    } catch {
+        return {};
+    }
 }
 
 export class ProfileView {
-    constructor(app) { this.app = app; }
+    constructor(app) {
+        this.app = app;
+    }
 
     mount(container) {
         const user = authService.getUser() || this.app.state?.user || {};
@@ -75,13 +97,18 @@ export class ProfileView {
         const tokenIat = payload?.iat || null;
         const expiryInfo = formatExpiry(tokenExp);
         const boundAt = binding?.boundAt || null;
-        const accountAge = boundAt ? formatTimeAgo(boundAt) : (tokenIat ? formatTimeAgo(new Date(tokenIat * 1000).toISOString()) : 'Unknown');
+        const accountAge = boundAt
+            ? formatTimeAgo(boundAt)
+            : tokenIat
+              ? formatTimeAgo(new Date(tokenIat * 1000).toISOString())
+              : 'Unknown';
         const isActive = token ? (tokenExp ? tokenExp * 1000 > Date.now() : true) : false;
         const subLabel = payload?.sub || payload?.email || email || 'Not set';
         const reservedCount = stockpileCount(token);
-        const stockpiledRows = listStockpiled(token).map(({ entry, index }) => {
-            const meta = entry.meta || decodeTokenMeta(entry.token);
-            return `
+        const stockpiledRows = listStockpiled(token)
+            .map(({ entry, index }) => {
+                const meta = entry.meta || decodeTokenMeta(entry.token);
+                return `
               <div class="profile-stockpile-row" data-stockpile-index="${index}">
                 <div class="profile-stockpile-meta">
                   <code>${escapeHtml(tokenHint(entry.token))}</code>
@@ -90,34 +117,46 @@ export class ProfileView {
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm profile-stockpile-load" data-stockpile-load="${index}">Load</button>
               </div>`;
-        }).join('');
+            })
+            .join('');
 
-        const isIde = (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface())
-          && !document.documentElement.hasAttribute('data-embed-full-nav');
+        const isIde =
+            typeof isIdeDashboardSurface === 'function' &&
+            isIdeDashboardSurface() &&
+            !document.documentElement.hasAttribute('data-embed-full-nav');
 
         // Detect IDE/embed query params and expose lightweight flags for host integration.
         try {
-          const params = new URLSearchParams(window.location.search || '');
-          const sbParent = params.get('sb_parent_urlbar') === '1';
-          const sbWebsite = params.get('sb_website_mode') === '1';
-          const sbApi = params.get('sb_api_base') || params.get('sb_api');
-          if (sbParent || sbWebsite) {
-            try { document.documentElement.setAttribute('data-parent-urlbar', '1'); } catch (e) { }
-            window.__SB_PARENT_URL_BAR__ = true;
-            // Only set data-ide-embed when actually inside an iframe (IDE webview).
-            // Setting it in a top-level browser tab applies compact IDE styles that break the layout.
-            if (window.__SB_IDE_EMBED__ || (window.parent && window.parent !== window)) {
-              try { document.documentElement.setAttribute('data-ide-embed', '1'); } catch (e) { }
-              window.__SB_IDE_EMBED__ = true;
+            const params = new URLSearchParams(window.location.search || '');
+            const sbParent = params.get('sb_parent_urlbar') === '1';
+            const sbWebsite = params.get('sb_website_mode') === '1';
+            const sbApi = params.get('sb_api_base') || params.get('sb_api');
+            if (sbParent || sbWebsite) {
+                try {
+                    document.documentElement.setAttribute('data-parent-urlbar', '1');
+                } catch (e) {}
+                window.__SB_PARENT_URL_BAR__ = true;
+                // Only set data-ide-embed when actually inside an iframe (IDE webview).
+                // Setting it in a top-level browser tab applies compact IDE styles that break the layout.
+                if (window.__SB_IDE_EMBED__ || (window.parent && window.parent !== window)) {
+                    try {
+                        document.documentElement.setAttribute('data-ide-embed', '1');
+                    } catch (e) {}
+                    window.__SB_IDE_EMBED__ = true;
+                }
             }
-          }
-          if (sbApi && typeof isExtensionHostedTab === 'function' && isExtensionHostedTab()) {
-            try { window.__SB_BRIDGE_HOST__ = sbApi; } catch (e) { }
-          }
-        } catch (_e) { }
-        const avatarHtml = (user && (user.avatarUrl || user.picture))
-            ? `<img class="profile-avatar-img" src="${escapeHtml((user.avatarUrl || user.picture) || '')}" alt="Avatar" />`
-            : (email ? escapeHtml(email[0].toUpperCase()) : '?');
+            if (sbApi && typeof isExtensionHostedTab === 'function' && isExtensionHostedTab()) {
+                try {
+                    window.__SB_BRIDGE_HOST__ = sbApi;
+                } catch (e) {}
+            }
+        } catch (_e) {}
+        const avatarHtml =
+            user && (user.avatarUrl || user.picture)
+                ? `<img class="profile-avatar-img" src="${escapeHtml(user.avatarUrl || user.picture || '')}" alt="Avatar" />`
+                : email
+                  ? escapeHtml(email[0].toUpperCase())
+                  : '?';
 
         const fragment = document.createRange().createContextualFragment(`
       <div class="profile-page profile-page-v2">
@@ -232,46 +271,55 @@ export class ProfileView {
             container.classList.add('ide-embed');
         }
         if (typeof window.lucide !== 'undefined') window.lucide.createIcons();
-        if (isIde) setTimeout(() => { if (typeof window.lucide !== 'undefined') window.lucide.createIcons(); }, 50);
+        if (isIde)
+            setTimeout(() => {
+                if (typeof window.lucide !== 'undefined') window.lucide.createIcons();
+            }, 50);
 
         // Render IDE connection banner when opened from extension-hosted tab with bridge info
         try {
-          const isExt = typeof isExtensionHostedTab === 'function' && isExtensionHostedTab();
-          const apiHost = window.__SB_BRIDGE_HOST__ || (new URLSearchParams(window.location.search || '')).get('sb_api_base');
-          if (isExt && apiHost) {
-            const banner = document.createElement('div');
-            banner.className = 'profile-ide-banner';
-            banner.style.cssText = 'margin-top:12px;padding:8px;border-radius:6px;background:var(--card-bg);border:1px solid rgba(0,0,0,0.06);font-size:0.95rem;';
-            banner.innerHTML = `Connected to IDE bridge · API: <code style="background:transparent;padding:0;border-radius:3px;">${escapeHtml(apiHost)}</code>`;
-            const hero = container.querySelector('.profile-hero-card');
-            if (hero && hero.parentNode) hero.parentNode.insertBefore(banner, hero.nextSibling);
-          }
-        } catch (_e) { }
+            const isExt = typeof isExtensionHostedTab === 'function' && isExtensionHostedTab();
+            const apiHost =
+                window.__SB_BRIDGE_HOST__ || new URLSearchParams(window.location.search || '').get('sb_api_base');
+            if (isExt && apiHost) {
+                const banner = document.createElement('div');
+                banner.className = 'profile-ide-banner';
+                banner.style.cssText =
+                    'margin-top:12px;padding:8px;border-radius:6px;background:var(--card-bg);border:1px solid rgba(0,0,0,0.06);font-size:0.95rem;';
+                banner.innerHTML = `Connected to IDE bridge · API: <code style="background:transparent;padding:0;border-radius:3px;">${escapeHtml(apiHost)}</code>`;
+                const hero = container.querySelector('.profile-hero-card');
+                if (hero && hero.parentNode) hero.parentNode.insertBefore(banner, hero.nextSibling);
+            }
+        } catch (_e) {}
 
         // Login method styles
         const updateLoginMethodStyles = () => {
-            container.querySelectorAll('.login-method-card').forEach((card) => {
+            container.querySelectorAll('.login-method-card').forEach(card => {
                 card.classList.toggle('active', card.querySelector('input[type="radio"]')?.checked);
             });
         };
-        container.querySelectorAll('input[name="loginMethod"]').forEach((radio) => {
+        container.querySelectorAll('input[name="loginMethod"]').forEach(radio => {
             radio.addEventListener('change', updateLoginMethodStyles);
         });
         updateLoginMethodStyles();
 
         // Track changes
         let hasChanges = false;
-        ['#profile-email', '#profile-email-password', '#profile-token', '#profile-token-password'].forEach((sel) => {
-            container.querySelector(sel)?.addEventListener('input', () => { hasChanges = true; });
+        ['#profile-email', '#profile-email-password', '#profile-token', '#profile-token-password'].forEach(sel => {
+            container.querySelector(sel)?.addEventListener('input', () => {
+                hasChanges = true;
+            });
         });
 
         // Password confirmation modal
         function promptForConfirmPassword(message) {
-            return new Promise((resolve) => {
+            return new Promise(resolve => {
                 const overlay = document.createElement('div');
                 overlay.className = 'modal-overlay';
                 overlay.style.zIndex = '300';
-                setHtml(overlay, `
+                setHtml(
+                    overlay,
+                    `
           <div class="modal-card" role="dialog" aria-modal="true" style="max-width:360px;">
             <div class="modal-header" style="text-align:center;">
               <h2 style="font-size:1.25rem;margin-bottom:var(--space-1);">Confirm Password</h2>
@@ -290,15 +338,23 @@ export class ProfileView {
               <button type="button" class="btn btn-secondary" id="profile-confirm-password-cancel">Cancel</button>
               <button type="button" class="btn btn-primary" id="profile-confirm-password-ok">Confirm</button>
             </div>
-          </div>`);
+          </div>`
+                );
                 document.body.appendChild(overlay);
                 if (typeof window.lucide !== 'undefined') window.lucide.createIcons();
                 const input = overlay.querySelector('#profile-confirm-password-input');
                 if (input) input.focus();
-                const finish = (val) => { overlay.remove(); resolve(val); };
-                overlay.querySelector('#profile-confirm-password-ok')?.addEventListener('click', () => finish(input?.value || ''));
-                overlay.querySelector('#profile-confirm-password-cancel')?.addEventListener('click', () => finish(null));
-                input?.addEventListener('keydown', (e) => {
+                const finish = val => {
+                    overlay.remove();
+                    resolve(val);
+                };
+                overlay
+                    .querySelector('#profile-confirm-password-ok')
+                    ?.addEventListener('click', () => finish(input?.value || ''));
+                overlay
+                    .querySelector('#profile-confirm-password-cancel')
+                    ?.addEventListener('click', () => finish(null));
+                input?.addEventListener('keydown', e => {
                     if (e.key === 'Enter') finish(input.value);
                     if (e.key === 'Escape') finish(null);
                 });
@@ -327,20 +383,29 @@ export class ProfileView {
             };
             if (hasChanges) {
                 const stored = loadProfile();
-                const currentPassword = data.emailPassword || data.tokenPassword || stored.emailPassword || stored.tokenPassword || '';
-                const confirmed = await promptForConfirmPassword('Changes detected. Enter your password to confirm save.');
+                const currentPassword =
+                    data.emailPassword || data.tokenPassword || stored.emailPassword || stored.tokenPassword || '';
+                const confirmed = await promptForConfirmPassword(
+                    'Changes detected. Enter your password to confirm save.'
+                );
                 if (confirmed === null) {
                     const status = container.querySelector('#profile-save-status');
                     status.textContent = 'Save cancelled.';
                     status.style.color = 'var(--warning)';
-                    setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+                    setTimeout(() => {
+                        status.textContent = '';
+                        status.style.color = '';
+                    }, 3000);
                     return;
                 }
                 if (confirmed !== currentPassword) {
                     const status = container.querySelector('#profile-save-status');
                     status.textContent = 'Password mismatch — changes not saved.';
                     status.style.color = 'var(--danger)';
-                    setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+                    setTimeout(() => {
+                        status.textContent = '';
+                        status.style.color = '';
+                    }, 3000);
                     return;
                 }
             }
@@ -352,14 +417,27 @@ export class ProfileView {
             const status = container.querySelector('#profile-save-status');
             status.textContent = 'Profile saved successfully.';
             status.style.color = 'var(--success)';
-            setTimeout(() => { status.textContent = ''; status.style.color = ''; }, 3000);
+            setTimeout(() => {
+                status.textContent = '';
+                status.style.color = '';
+            }, 3000);
         });
 
         // Sign out
         container.querySelector('#profile-signout-btn')?.addEventListener('click', () => {
-            const keys = ['cascadeAuthToken', 'cascadeAuthUser', 'access_token', 'token', 'authToken', 'simplebeacon_token', 'sb-token-vault'];
-            keys.forEach((k) => localStorage.removeItem(k));
-            keys.forEach((k) => { document.cookie = k + '=;path=/;max-age=0;SameSite=Lax;'; });
+            const keys = [
+                'cascadeAuthToken',
+                'cascadeAuthUser',
+                'access_token',
+                'token',
+                'authToken',
+                'simplebeacon_token',
+                'sb-token-vault'
+            ];
+            keys.forEach(k => localStorage.removeItem(k));
+            keys.forEach(k => {
+                document.cookie = k + '=;path=/;max-age=0;SameSite=Lax;';
+            });
             sessionStorage.clear();
             this.app.navigate('dashboard');
             window.location.reload();
@@ -386,15 +464,25 @@ export class ProfileView {
         const copyBtn = container.querySelector('#profile-token-copy');
         copyBtn?.addEventListener('click', async () => {
             const input = container.querySelector('#profile-token');
-            if (!input?.value) { this.app.showToast?.('No token to copy', 'error'); return; }
+            if (!input?.value) {
+                this.app.showToast?.('No token to copy', 'error');
+                return;
+            }
             let copied = false;
             if (navigator.clipboard?.writeText) {
-                try { await navigator.clipboard.writeText(input.value); copied = true; } catch {}
+                try {
+                    await navigator.clipboard.writeText(input.value);
+                    copied = true;
+                } catch {}
             }
             if (!copied) {
                 try {
-                    const prev = input.type; input.type = 'text'; input.focus(); input.select();
-                    copied = document.execCommand('copy'); input.type = prev;
+                    const prev = input.type;
+                    input.type = 'text';
+                    input.focus();
+                    input.select();
+                    copied = document.execCommand('copy');
+                    input.type = prev;
                 } catch {}
             }
             if (copied) {
@@ -412,7 +500,9 @@ export class ProfileView {
 
         // Clear cache
         container.querySelector('#profile-clear-cache-btn')?.addEventListener('click', () => {
-            Object.keys(localStorage).filter((k) => k.startsWith('sb_') || k.includes('simplebeacon')).forEach((k) => localStorage.removeItem(k));
+            Object.keys(localStorage)
+                .filter(k => k.startsWith('sb_') || k.includes('simplebeacon'))
+                .forEach(k => localStorage.removeItem(k));
             this.app.showToast?.('Local cache cleared', 'success');
         });
 
@@ -420,7 +510,10 @@ export class ProfileView {
         container.querySelector('#profile-stockpile-add')?.addEventListener('click', () => {
             const input = container.querySelector('#profile-stockpile-input');
             const value = input?.value?.trim() || '';
-            if (!value) { showToast('Paste a token to stockpile', 'error'); return; }
+            if (!value) {
+                showToast('Paste a token to stockpile', 'error');
+                return;
+            }
             const result = addToStockpile(value, { email, tier: tokenTier });
             if (result.ok) {
                 showToast(result.duplicate ? 'Token already stockpiled' : 'Time token added to loader', 'success');
@@ -433,16 +526,22 @@ export class ProfileView {
 
         // Buy tokens
         container.querySelector('#profile-buy-tokens')?.addEventListener('click', () => {
-            try { window.open(BUY_TIME_TOKENS_URL(), '_blank', 'noopener,noreferrer'); }
-            catch { window.open('/checkout/tokens?ref=dashboard', '_blank', 'noopener,noreferrer'); }
+            try {
+                window.open(BUY_TIME_TOKENS_URL(), '_blank', 'noopener,noreferrer');
+            } catch {
+                window.open('/checkout/tokens?ref=dashboard', '_blank', 'noopener,noreferrer');
+            }
         });
 
         // Stockpile load
-        container.querySelectorAll('[data-stockpile-load]').forEach((btn) => {
+        container.querySelectorAll('[data-stockpile-load]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const index = parseInt(btn.getAttribute('data-stockpile-load') || '-1', 10);
                 const result = activateStockpileEntry(index, authService);
-                if (!result.ok) { showToast(result.error || 'Could not load token', 'error'); return; }
+                if (!result.ok) {
+                    showToast(result.error || 'Could not load token', 'error');
+                    return;
+                }
                 showToast('Time token loaded — session updated', 'success');
                 this.mount(container);
                 this.app.updateAuthUi?.();
@@ -450,5 +549,5 @@ export class ProfileView {
         });
     }
 
-    destroy() { }
+    destroy() {}
 }

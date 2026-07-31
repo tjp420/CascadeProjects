@@ -12,14 +12,17 @@ jest.mock('../server/lib/simplebeacon-proxy.cjs', () => ({
     executiveSummary: 'Test summary',
     complianceChecklist: { summary: 'pass' },
     findings: { critical: { findings: 0 } },
-    metadata: opts
+    metadata: opts,
   })),
   evaluateGate: jest.fn(() => ({ pass: true, blockingCount: 0 })),
   formatJsonReport: jest.fn((report) => report),
-  loadSimplebeaconConfig: jest.fn(() => ({ configPath: '/tmp/.simplebeacon/config.json', gate: { failOn: ['high'] } })),
+  loadSimplebeaconConfig: jest.fn(() => ({
+    configPath: '/tmp/.simplebeacon/config.json',
+    gate: { failOn: ['high'] },
+  })),
   resolvePlatformRoot: jest.fn((p) => ({ platformRoot: p })),
   runScan: jest.fn(async () => ({ type: 'simplebeacon-report', issueCount: 0 })),
-  sanitizeScanReport: jest.fn((r) => r)
+  sanitizeScanReport: jest.fn((r) => r),
 }));
 
 jest.mock('../server/lib/path-safety.cjs', () => ({
@@ -28,16 +31,16 @@ jest.mock('../server/lib/path-safety.cjs', () => ({
   assertSafeProjectPath: jest.fn((_p, _roots, label) => {
     if (_p.includes('unsafe')) throw new Error('outside allowed');
     return _p;
-  })
+  }),
 }));
 
 jest.mock('../shared-utils/index.cjs', () => ({
-  toClientError: jest.fn((err, fallback) => err.message || fallback)
+  toClientError: jest.fn((err, fallback) => err.message || fallback),
 }));
 
 jest.mock('../server/lib/assessment-retention.cjs', () => ({
   startAssessmentRetentionJob: jest.fn(),
-  resolveAssessmentTtlMs: jest.fn(() => 7 * 24 * 60 * 60 * 1000)
+  resolveAssessmentTtlMs: jest.fn(() => 7 * 24 * 60 * 60 * 1000),
 }));
 
 const AssessmentController = require('../server/api/assessment/AssessmentController.cjs');
@@ -53,7 +56,9 @@ describe('AssessmentController', () => {
     });
 
     test('returns params.assessmentId as fallback', () => {
-      expect(AssessmentController.resolveAssessmentId({ params: { assessmentId: 'xyz' } })).toBe('xyz');
+      expect(AssessmentController.resolveAssessmentId({ params: { assessmentId: 'xyz' } })).toBe(
+        'xyz'
+      );
     });
   });
 
@@ -98,10 +103,12 @@ describe('AssessmentController', () => {
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
       await AssessmentController.createAssessment(req, res);
       expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        success: false,
-        error: 'projectPath requires sign-in; use repoUrl for public assessments'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: 'projectPath requires sign-in; use repoUrl for public assessments',
+        })
+      );
     });
 
     test('returns 400 when repoUrl missing and no auth', async () => {
@@ -109,10 +116,12 @@ describe('AssessmentController', () => {
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
       await AssessmentController.createAssessment(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        success: false,
-        error: 'repoUrl is required for public assessments'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          error: 'repoUrl is required for public assessments',
+        })
+      );
     });
   });
 
@@ -135,11 +144,13 @@ describe('AssessmentController', () => {
       jest.spyOn(AssessmentController, 'readAssessment').mockResolvedValue({ score: 95 });
 
       await AssessmentController.getAssessment(req, res);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        success: true,
-        assessmentId: 'found-id',
-        assessment: { score: 95 }
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          assessmentId: 'found-id',
+          assessment: { score: 95 },
+        })
+      );
     });
   });
 
@@ -163,7 +174,7 @@ describe('AssessmentController', () => {
         setHeader: jest.fn(),
         send: jest.fn(),
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       const origReadFile = fs.promises.readFile;
@@ -182,7 +193,7 @@ describe('AssessmentController', () => {
         setHeader: jest.fn(),
         send: jest.fn(),
         status: jest.fn().mockReturnThis(),
-        json: jest.fn()
+        json: jest.fn(),
       };
 
       const origReadFile = fs.promises.readFile;
@@ -210,7 +221,9 @@ describe('AssessmentController', () => {
       const origReadFile = fs.promises.readFile;
       fs.promises.readFile = jest.fn().mockRejectedValue({ code: 'ENOENT', message: 'not found' });
 
-      await expect(AssessmentController.readAssessment('gone')).rejects.toMatchObject({ code: 'ENOENT' });
+      await expect(AssessmentController.readAssessment('gone')).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
 
       fs.promises.readFile = origReadFile;
     });
@@ -219,8 +232,13 @@ describe('AssessmentController', () => {
   describe('createAssessment — authenticated success', () => {
     test('creates assessment with repoUrl', async () => {
       const req = {
-        body: { repoUrl: 'https://github.com/user/repo', company: 'Acme', email: 'a@b.com', assessmentType: 'full' },
-        user: { id: 'u1', email: 'a@b.com' }
+        body: {
+          repoUrl: 'https://github.com/user/repo',
+          company: 'Acme',
+          email: 'a@b.com',
+          assessmentType: 'full',
+        },
+        user: { id: 'u1', email: 'a@b.com' },
       };
       const res = { json: jest.fn() };
 
@@ -237,11 +255,13 @@ describe('AssessmentController', () => {
 
       await AssessmentController.createAssessment(req, res);
 
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        success: true,
-        assessmentId: expect.stringMatching(/^assessment_\d+$/),
-        reportUrl: expect.stringMatching(/\/api\/assessment\/report\/assessment_\d+$/)
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: true,
+          assessmentId: expect.stringMatching(/^assessment_\d+$/),
+          reportUrl: expect.stringMatching(/\/api\/assessment\/report\/assessment_\d+$/),
+        })
+      );
 
       AssessmentController.cloneRepo = origCloneRepo;
       AssessmentController.removeClonedSource = origRemoveClonedSource;
@@ -253,7 +273,7 @@ describe('AssessmentController', () => {
     test('creates assessment with bodyPath when authenticated', async () => {
       const req = {
         body: { projectPath: '/allowed/root', company: 'TestCo' },
-        user: { id: 'u2' }
+        user: { id: 'u2' },
       };
       const res = { json: jest.fn() };
 
@@ -276,7 +296,7 @@ describe('AssessmentController', () => {
     test('handles scan failure gracefully', async () => {
       const req = {
         body: { repoUrl: 'https://github.com/user/repo' },
-        user: { id: 'u3' }
+        user: { id: 'u3' },
       };
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
 
@@ -285,7 +305,9 @@ describe('AssessmentController', () => {
       const origRemoveClonedSource = AssessmentController.removeClonedSource;
       AssessmentController.removeClonedSource = jest.fn().mockResolvedValue();
       const origRunScan = AssessmentController.runSimplebeaconScan;
-      AssessmentController.runSimplebeaconScan = jest.fn().mockRejectedValue(new Error('scan failed'));
+      AssessmentController.runSimplebeaconScan = jest
+        .fn()
+        .mockRejectedValue(new Error('scan failed'));
       const origMkdir = fs.promises.mkdir;
       fs.promises.mkdir = jest.fn().mockResolvedValue();
 
@@ -306,7 +328,9 @@ describe('AssessmentController', () => {
       const origReadFile = fs.promises.readFile;
       fs.promises.readFile = jest.fn().mockRejectedValue(new Error('disk full'));
 
-      await expect(AssessmentController.readAssessment('bad')).rejects.toThrow(/Failed to read assessment/);
+      await expect(AssessmentController.readAssessment('bad')).rejects.toThrow(
+        /Failed to read assessment/
+      );
 
       fs.promises.readFile = origReadFile;
     });

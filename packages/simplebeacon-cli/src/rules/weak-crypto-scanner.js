@@ -8,16 +8,40 @@ const fs = require('fs');
 const path = require('path');
 
 const SCANNABLE_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.go', '.java', '.rb', '.php'
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.py',
+  '.go',
+  '.java',
+  '.rb',
+  '.php',
 ]);
 
 const MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs',
-  'coming-soon', 'reports', 'security-reports', 'templates',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'archive',
+  '.simplebeacon',
+  'tests',
+  'test',
+  '__tests__',
+  'fixtures',
+  'docs',
+  'coming-soon',
+  'reports',
+  'security-reports',
+  'templates',
+  'simplebeacon-rule-tests',
+  'simplebeacon-toxic-fixtures',
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
@@ -25,42 +49,45 @@ const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
 const SUPPRESS_PATTERN = /\/\/\s*simplebeacon-ignore\s+weak-crypto/i;
 
 // Security-related keywords — only flag Math.random near these contexts
-const SECURITY_CONTEXT = /\b(password|token|salt|nonce|secret|key|auth|cipher|encrypt|crypt|hash|uuid|session|csrf|otp|pin|credential)\b/i;
+const SECURITY_CONTEXT =
+  /\b(password|token|salt|nonce|secret|key|auth|cipher|encrypt|crypt|hash|uuid|session|csrf|otp|pin|credential)\b/i;
 
 const RULES = [
   {
     id: 'SB-SEC-006',
     name: 'Weak Hash Algorithm',
-    regex: /(?:createHash|Hash|\.hash)\s*\(\s*['"`](md5|sha1|ripemd160)['"`]|(?:md5|sha1)\s*\(|require\(['"`](crypto-js\/md5|crypto-js\/sha1)['"`]/gi,
+    regex:
+      /(?:createHash|Hash|\.hash)\s*\(\s*['"`](md5|sha1|ripemd160)['"`]|(?:md5|sha1)\s*\(|require\(['"`](crypto-js\/md5|crypto-js\/sha1)['"`]/gi,
     severity: 'medium',
     description: 'MD5, SHA1, or RIPEMD160 are cryptographically broken — use SHA-256 or SHA-3',
     skipPatterns: [
       /\/\/\s*(?:simplebeacon-ignore|eslint-disable)/i,
-      /legacy|backward.?compat|compatibility/i
-    ]
+      /legacy|backward.?compat|compatibility/i,
+    ],
   },
   {
     id: 'SB-SEC-006b',
     name: 'Weak Random for Security',
     regex: /(?:Math\.random\(\)|Math\.floor\s*\(\s*Math\.random|parseInt\([^)]*Math\.random)/gi,
     severity: 'medium',
-    description: 'Math.random() is not cryptographically secure — use crypto.randomBytes() or crypto.getRandomValues() for tokens/IDs',
+    description:
+      'Math.random() is not cryptographically secure — use crypto.randomBytes() or crypto.getRandomValues() for tokens/IDs',
     skipPatterns: [
       /\/\/\s*(?:simplebeacon-ignore|eslint-disable)/i,
-      /test|spec|fixture|demo|example|sample|visual|animation|game|position|color|style|css|height|width|opacity/i
+      /test|spec|fixture|demo|example|sample|visual|animation|game|position|color|style|css|height|width|opacity/i,
     ],
-    requireSecurityContext: true
+    requireSecurityContext: true,
   },
   {
     id: 'SB-SEC-006c',
     name: 'Insecure Token Generation',
-    regex: /(?:uuidv1\(|uuid\.v1\(|uuidv4.*Math\.random|crypto\.createHash\(['"`]sha1['"`]\).*update)/gi,
+    regex:
+      /(?:uuidv1\(|uuid\.v1\(|uuidv4.*Math\.random|crypto\.createHash\(['"`]sha1['"`]\).*update)/gi,
     severity: 'medium',
-    description: 'Token or ID generation using weak or predictable sources — use crypto.randomUUID() or crypto.randomBytes()',
-    skipPatterns: [
-      /\/\/\s*(?:simplebeacon-ignore|eslint-disable)/i
-    ]
-  }
+    description:
+      'Token or ID generation using weak or predictable sources — use crypto.randomUUID() or crypto.randomBytes()',
+    skipPatterns: [/\/\/\s*(?:simplebeacon-ignore|eslint-disable)/i],
+  },
 ];
 
 function isScannable(filePath) {
@@ -80,7 +107,11 @@ function isExcludedPath(filePath, rootDir) {
 
 async function scanFile(filePath) {
   let stats;
-  try { stats = await fs.promises.stat(filePath); } catch { return null; }
+  try {
+    stats = await fs.promises.stat(filePath);
+  } catch {
+    return null;
+  }
   if (stats.size > MAX_SCAN_BYTES) return null;
 
   let content;
@@ -124,7 +155,7 @@ async function scanFile(filePath) {
         severity: rule.severity,
         line: lineNum,
         match: match[0],
-        snippet: snippet.replace(/\s+/g, ' ').trim().slice(0, 120)
+        snippet: snippet.replace(/\s+/g, ' ').trim().slice(0, 120),
       });
     }
   }
@@ -168,7 +199,7 @@ async function scanWeakCrypto(rootDir, options = {}) {
       if (fileFindings) {
         results.push({
           filePath: fullPath,
-          findings: fileFindings
+          findings: fileFindings,
         });
       }
     }
@@ -182,7 +213,7 @@ async function scanWeakCrypto(rootDir, options = {}) {
     results,
     humanReadable: results.length
       ? `Weak crypto or insecure random usage found in ${results.length} file(s). Replace with cryptographically secure alternatives.`
-      : 'No weak crypto or insecure random usage detected.'
+      : 'No weak crypto or insecure random usage detected.',
   };
 }
 

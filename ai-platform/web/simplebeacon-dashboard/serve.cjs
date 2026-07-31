@@ -22,7 +22,7 @@ const mimeTypes = {
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
   '.wasm': 'application/wasm',
-  '.map': 'application/json'
+  '.map': 'application/json',
 };
 
 const server = http.createServer((req, res) => {
@@ -47,24 +47,28 @@ const server = http.createServer((req, res) => {
   }
   if (urlPath === '/api/simplebeacon/config') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, features: { scan: true, analyze: true }, env: 'local' }));
+    res.end(
+      JSON.stringify({ success: true, features: { scan: true, analyze: true }, env: 'local' })
+    );
     return;
   }
   if (urlPath === '/api/simplebeacon/report') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      success: true,
-      reportVersion: 2,
-      rawIssues: [],
-      findings: [],
-      issueCount: 0,
-      gate: { pass: true, blockingCount: 0 },
-      qualityScore: 100,
-      projectRoot: '',
-      repositoryFilesTotal: 0,
-      filesAnalyzed: 0,
-      summary: { status: 'ok' }
-    }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        reportVersion: 2,
+        rawIssues: [],
+        findings: [],
+        issueCount: 0,
+        gate: { pass: true, blockingCount: 0 },
+        qualityScore: 100,
+        projectRoot: '',
+        repositoryFilesTotal: 0,
+        filesAnalyzed: 0,
+        summary: { status: 'ok' },
+      })
+    );
     return;
   }
   if (urlPath === '/api/simplebeacon/baseline') {
@@ -84,7 +88,14 @@ const server = http.createServer((req, res) => {
   }
   if (urlPath === '/api/simplebeacon/user/ai-keys') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, providers: { openai: { available: true, models: ['gpt-4', 'gpt-3.5-turbo'] } }, ollamaBaseUrl: '', ollamaModel: '' }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        providers: { openai: { available: true, models: ['gpt-4', 'gpt-3.5-turbo'] } },
+        ollamaBaseUrl: '',
+        ollamaModel: '',
+      })
+    );
     return;
   }
   if (urlPath === '/api/dev-tools/tools') {
@@ -114,7 +125,14 @@ const server = http.createServer((req, res) => {
   }
   if (urlPath === '/api/models/test-ollama') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, ok: true, availableModels: ['llama3.2:latest'], message: 'Ollama connected' }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        ok: true,
+        availableModels: ['llama3.2:latest'],
+        message: 'Ollama connected',
+      })
+    );
     return;
   }
   if (urlPath === '/api/analyze/providers') {
@@ -126,19 +144,22 @@ const server = http.createServer((req, res) => {
       const configPath = path.join(repoRoot, '.simplebeacon', 'config.json');
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       allowedRoots = Array.isArray(cfg.allowedAnalysisRoots) ? cfg.allowedAnalysisRoots : [];
-      defaultProjectPath = Array.isArray(allowedRoots) && allowedRoots[0] ? allowedRoots[0] : repoRoot;
+      defaultProjectPath =
+        Array.isArray(allowedRoots) && allowedRoots[0] ? allowedRoots[0] : repoRoot;
     } catch {
       allowedRoots = [repoRoot];
       defaultProjectPath = repoRoot;
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      success: true,
-      providers: [],
-      allowedAnalysisRoots: allowedRoots,
-      allowedAnalysisRootsSummary: allowedRoots.slice(0, 3).join('; '),
-      defaultProjectPath
-    }));
+    res.end(
+      JSON.stringify({
+        success: true,
+        providers: [],
+        allowedAnalysisRoots: allowedRoots,
+        allowedAnalysisRootsSummary: allowedRoots.slice(0, 3).join('; '),
+        defaultProjectPath,
+      })
+    );
     return;
   }
   if (urlPath === '/audit.html') {

@@ -13,7 +13,7 @@ const {
   hashPassword,
   verifyPassword,
   evaluateTrustLevel,
-  trustLevels
+  trustLevels,
 } = require('../server/middleware/auth.cjs');
 
 describe('Auth Middleware', () => {
@@ -23,7 +23,7 @@ describe('Auth Middleware', () => {
         id: 'u-123',
         email: 'test@example.com',
         name: 'Test User',
-        trustLevel: 'bronze'
+        trustLevel: 'bronze',
       };
       const token = generateToken(user);
       expect(typeof token).toBe('string');
@@ -48,11 +48,11 @@ describe('Auth Middleware', () => {
         body: { email: 'admin@example.com', password: 'any' },
         ip: '127.0.0.1',
         headers: {},
-        requestId: 'req-1'
+        requestId: 'req-1',
       };
       const res = {
         json: jest.fn(),
-        status: jest.fn().mockReturnThis()
+        status: jest.fn().mockReturnThis(),
       };
       const next = jest.fn();
 
@@ -73,7 +73,7 @@ describe('Auth Middleware', () => {
         body: { email: 'user@example.com', password: 'any' },
         ip: '127.0.0.1',
         headers: {},
-        requestId: 'req-2'
+        requestId: 'req-2',
       };
       const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
       const next = jest.fn();
@@ -90,7 +90,7 @@ describe('Auth Middleware', () => {
         body: { email: '', password: '' },
         ip: '127.0.0.1',
         headers: {},
-        requestId: 'req-3'
+        requestId: 'req-3',
       };
       const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
       const next = jest.fn();
@@ -107,11 +107,11 @@ describe('Auth Middleware', () => {
         id: 'u-456',
         email: 'auth@example.com',
         name: 'Auth User',
-        trustLevel: 'silver'
+        trustLevel: 'silver',
       });
       const req = {
         headers: { authorization: `Bearer ${token}` },
-        ip: '127.0.0.1'
+        ip: '127.0.0.1',
       };
       const res = {};
       const next = jest.fn();
@@ -136,7 +136,7 @@ describe('Auth Middleware', () => {
     test('returns 401 for expired/invalid token', async () => {
       const req = {
         headers: { authorization: 'Bearer invalid-token' },
-        ip: '127.0.0.1'
+        ip: '127.0.0.1',
       };
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn(), setHeader: jest.fn() };
       const next = jest.fn();
@@ -198,7 +198,7 @@ describe('Auth Middleware', () => {
         successfulAnalyses: 0,
         securityIncidents: 0,
         communityContributions: 0,
-        verificationStatus: 'none'
+        verificationStatus: 'none',
       };
       expect(evaluateTrustLevel(user)).toBe('bronze');
     });
@@ -209,7 +209,7 @@ describe('Auth Middleware', () => {
         successfulAnalyses: 100,
         securityIncidents: 0,
         communityContributions: 20,
-        verificationStatus: 'enterprise'
+        verificationStatus: 'enterprise',
       };
       expect(evaluateTrustLevel(user)).toBe('gold');
     });

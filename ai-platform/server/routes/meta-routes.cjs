@@ -67,7 +67,7 @@ router.get('/project-structure', async (req, res) => {
             type: getFileType(item.name, content),
             status,
             lastModified: item.mtime,
-            size: item.size
+            size: item.size,
           };
         }
       }
@@ -91,22 +91,22 @@ router.get('/releases', (req, res) => {
         name: 'Current Release',
         description: 'AI Data Processing Platform with technical debt management',
         date: new Date().toISOString().split('T')[0],
-        status: 'released'
+        status: 'released',
       },
       {
         version: '2.1.0',
         name: 'Enhanced Analytics',
         description: 'Enhanced analytics and reporting features with mock data analyzer',
         date: '2026-06-15',
-        status: 'upcoming'
+        status: 'upcoming',
       },
       {
         version: '2.2.0',
         name: 'Mobile & Performance',
         description: 'Mobile interface and performance improvements',
         date: '2026-08-01',
-        status: 'planned'
-      }
+        status: 'planned',
+      },
     ];
     res.json(releases);
   } catch (error) {
@@ -139,9 +139,13 @@ router.get('/backlog', async (req, res) => {
                   title: line.split(/\s+/).slice(1).join(' ').substring(0, 50),
                   file: item.name,
                   line: index + 1,
-                  priority: line.includes('TODO') ? 'medium' : line.includes('FIXME') ? 'high' : 'low',
+                  priority: line.includes('TODO')
+                    ? 'medium'
+                    : line.includes('FIXME')
+                      ? 'high'
+                      : 'low',
                   status: 'planned',
-                  estimate: estimateWork(line)
+                  estimate: estimateWork(line),
                 });
               }
             });

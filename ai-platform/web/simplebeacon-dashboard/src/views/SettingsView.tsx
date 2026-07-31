@@ -1,5 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Settings, Key, FolderTree, Cpu, Palette, Bell, Check, Loader2, Trash2, Sun, Moon, Monitor } from 'lucide-react';
+import {
+  Settings,
+  Key,
+  FolderTree,
+  Cpu,
+  Palette,
+  Bell,
+  Check,
+  Loader2,
+  Trash2,
+  Sun,
+  Moon,
+  Monitor,
+} from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +22,10 @@ import { Badge } from '@/components/ui/badge';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { apiUrl, authHeaders, waitForApiBase } from '@/config';
-import { isNotificationsEnabled, setNotificationsEnabled as setNotificationsPreference } from '@utils/utils-lib/dom';
+import {
+  isNotificationsEnabled,
+  setNotificationsEnabled as setNotificationsPreference,
+} from '@utils/utils-lib/dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { ReferralAnalyticsPanel } from '@/components/ReferralAnalyticsPanel';
@@ -60,7 +76,9 @@ function readProviderDiscoveryCache(): string[] {
     if (typeof parsed.fetchedAt !== 'number') return [];
     if (Date.now() - parsed.fetchedAt > PROVIDER_DISCOVERY_TTL_MS) return [];
     return Array.isArray(parsed.ollamaModels)
-      ? parsed.ollamaModels.filter((m: unknown): m is string => typeof m === 'string' && m.trim().length > 0)
+      ? parsed.ollamaModels.filter(
+          (m: unknown): m is string => typeof m === 'string' && m.trim().length > 0
+        )
       : [];
   } catch {
     return [];
@@ -70,10 +88,13 @@ function readProviderDiscoveryCache(): string[] {
 function writeProviderDiscoveryCache(ollamaModels: string[]) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(PROVIDER_DISCOVERY_CACHE_KEY, JSON.stringify({
-      fetchedAt: Date.now(),
-      ollamaModels,
-    }));
+    localStorage.setItem(
+      PROVIDER_DISCOVERY_CACHE_KEY,
+      JSON.stringify({
+        fetchedAt: Date.now(),
+        ollamaModels,
+      })
+    );
   } catch {
     // best-effort only
   }
@@ -87,7 +108,9 @@ export function SettingsView() {
     <div className="mx-auto max-w-4xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-foreground-muted">Configure API keys, scan paths, AI providers, and preferences</p>
+        <p className="text-foreground-muted">
+          Configure API keys, scan paths, AI providers, and preferences
+        </p>
       </div>
 
       <Tabs defaultValue="ai">
@@ -190,7 +213,9 @@ function ApiKeysTab() {
     }
   }, []);
 
-  useEffect(() => { void loadKeys(); }, [loadKeys]);
+  useEffect(() => {
+    void loadKeys();
+  }, [loadKeys]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -250,7 +275,9 @@ function ApiKeysTab() {
     <Card>
       <CardHeader>
         <CardTitle>API Keys</CardTitle>
-        <CardDescription>Manage API keys for scanning and analysis. Keys are encrypted at rest.</CardDescription>
+        <CardDescription>
+          Manage API keys for scanning and analysis. Keys are encrypted at rest.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {loading ? (
@@ -286,7 +313,9 @@ function ApiKeysTab() {
               </div>
               <Input
                 type="password"
-                placeholder={anthropicHint ? 'sk-ant-… (configured — enter new key to replace)' : 'sk-ant-...'}
+                placeholder={
+                  anthropicHint ? 'sk-ant-… (configured — enter new key to replace)' : 'sk-ant-...'
+                }
                 value={anthropicKey}
                 onChange={(e) => setAnthropicKey(e.target.value)}
               />
@@ -319,7 +348,9 @@ function AiProvidersTab() {
   const [openaiConfigured, setOpenaiConfigured] = useState(false);
   const [anthropicConfigured, setAnthropicConfigured] = useState(false);
   const [dynamicOllamaModels, setDynamicOllamaModels] = useState<string[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState<'ollama' | 'openai' | 'anthropic'>('ollama');
+  const [selectedProvider, setSelectedProvider] = useState<'ollama' | 'openai' | 'anthropic'>(
+    'ollama'
+  );
   const [selectedModel, setSelectedModel] = useState('');
   const [modelPrefs, setModelPrefs] = useState<Record<string, string>>(() => readModelPrefs());
   const [saving, setSaving] = useState(false);
@@ -357,7 +388,9 @@ function AiProvidersTab() {
         });
         if (providersResp.ok) {
           const providersData = await providersResp.json();
-          const providerList = Array.isArray(providersData.providers) ? providersData.providers : [];
+          const providerList = Array.isArray(providersData.providers)
+            ? providersData.providers
+            : [];
           const ollamaMeta = providerList.find((p: any) => p?.id === 'ollama');
           const discoveredModels = Array.isArray(ollamaMeta?.models)
             ? ollamaMeta.models.filter((m: any) => typeof m === 'string' && m.trim())
@@ -373,25 +406,30 @@ function AiProvidersTab() {
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   useEffect(() => {
     const fromPrefs = modelPrefs[selectedProvider] || '';
-    const fallbackOptions = selectedProvider === 'ollama' && dynamicOllamaModels.length > 0
-      ? dynamicOllamaModels
-      : PROVIDER_MODEL_OPTIONS[selectedProvider];
+    const fallbackOptions =
+      selectedProvider === 'ollama' && dynamicOllamaModels.length > 0
+        ? dynamicOllamaModels
+        : PROVIDER_MODEL_OPTIONS[selectedProvider];
     const fallback = fallbackOptions[0] || '';
-    const stored = selectedProvider === 'ollama'
-      ? ollamaModel
-      : selectedProvider === 'openai'
-        ? openaiModel
-        : anthropicModel;
+    const stored =
+      selectedProvider === 'ollama'
+        ? ollamaModel
+        : selectedProvider === 'openai'
+          ? openaiModel
+          : anthropicModel;
     setSelectedModel(fromPrefs || stored || fallback);
   }, [selectedProvider, modelPrefs, ollamaModel, openaiModel, anthropicModel, dynamicOllamaModels]);
 
-  const availableModelOptions = selectedProvider === 'ollama' && dynamicOllamaModels.length > 0
-    ? dynamicOllamaModels
-    : PROVIDER_MODEL_OPTIONS[selectedProvider];
+  const availableModelOptions =
+    selectedProvider === 'ollama' && dynamicOllamaModels.length > 0
+      ? dynamicOllamaModels
+      : PROVIDER_MODEL_OPTIONS[selectedProvider];
   const isCustomModel = Boolean(selectedModel) && !availableModelOptions.includes(selectedModel);
 
   const handleSave = async () => {
@@ -402,11 +440,12 @@ function AiProvidersTab() {
       writeModelPrefs(nextPrefs);
 
       await waitForApiBase();
-      const payload = selectedProvider === 'ollama'
-        ? { ollamaBaseUrl: ollamaUrl, ollamaModel: selectedModel || ollamaModel }
-        : selectedProvider === 'openai'
-          ? { openaiModel: selectedModel }
-          : { anthropicModel: selectedModel };
+      const payload =
+        selectedProvider === 'ollama'
+          ? { ollamaBaseUrl: ollamaUrl, ollamaModel: selectedModel || ollamaModel }
+          : selectedProvider === 'openai'
+            ? { openaiModel: selectedModel }
+            : { anthropicModel: selectedModel };
       const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
@@ -417,7 +456,9 @@ function AiProvidersTab() {
         setOllamaModel(result.ollamaModel || selectedModel || ollamaModel);
         setOpenaiModel(result.openaiModel || openaiModel);
         setAnthropicModel(result.anthropicModel || anthropicModel);
-        toast.success(selectedProvider === 'ollama' ? 'Ollama configuration saved' : 'Model preference saved');
+        toast.success(
+          selectedProvider === 'ollama' ? 'Ollama configuration saved' : 'Model preference saved'
+        );
       } else {
         toast.error('Failed to save model configuration');
       }
@@ -442,13 +483,24 @@ function AiProvidersTab() {
     <Card>
       <CardHeader>
         <CardTitle>AI Providers</CardTitle>
-        <CardDescription>Configure AI analysis providers for the chatbot and narrative summaries. Outputs are AI-generated — EU AI Act Article 50 disclosure.</CardDescription>
+        <CardDescription>
+          Configure AI analysis providers for the chatbot and narrative summaries. Outputs are
+          AI-generated — EU AI Act Article 50 disclosure.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Provider Status */}
         <div className="grid gap-3 sm:grid-cols-3">
-          <ProviderStatusCard label="OpenAI" configured={openaiConfigured} hint="Configure in API Keys tab" />
-          <ProviderStatusCard label="Anthropic" configured={anthropicConfigured} hint="Configure in API Keys tab" />
+          <ProviderStatusCard
+            label="OpenAI"
+            configured={openaiConfigured}
+            hint="Configure in API Keys tab"
+          />
+          <ProviderStatusCard
+            label="Anthropic"
+            configured={anthropicConfigured}
+            hint="Configure in API Keys tab"
+          />
           <ProviderStatusCard label="Ollama" configured={!!ollamaUrl} hint="Configure below" />
         </div>
 
@@ -465,7 +517,9 @@ function AiProvidersTab() {
               <Label>AI Provider</Label>
               <select
                 value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value as 'ollama' | 'openai' | 'anthropic')}
+                onChange={(e) =>
+                  setSelectedProvider(e.target.value as 'ollama' | 'openai' | 'anthropic')
+                }
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="ollama">Ollama (Local)</option>
@@ -484,7 +538,9 @@ function AiProvidersTab() {
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {availableModelOptions.map((model) => (
-                  <option key={model} value={model}>{model}</option>
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
                 ))}
                 <option value="__custom__">Custom model…</option>
               </select>
@@ -498,7 +554,9 @@ function AiProvidersTab() {
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
             />
-            <p className="text-xs text-foreground-muted">Use this if your exact model name is not listed in the dropdown.</p>
+            <p className="text-xs text-foreground-muted">
+              Use this if your exact model name is not listed in the dropdown.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -509,7 +567,9 @@ function AiProvidersTab() {
               onChange={(e) => setOllamaUrl(e.target.value)}
               disabled={selectedProvider !== 'ollama'}
             />
-            <p className="text-xs text-foreground-muted">Default: http://localhost:11434 — only used when provider is set to Ollama</p>
+            <p className="text-xs text-foreground-muted">
+              Default: http://localhost:11434 — only used when provider is set to Ollama
+            </p>
           </div>
 
           <Button onClick={handleSave} disabled={saving}>
@@ -521,23 +581,38 @@ function AiProvidersTab() {
         <Separator />
 
         <div className="text-xs text-foreground-muted space-y-1">
-          <p><strong>OpenAI</strong> and <strong>Anthropic</strong> keys are managed in the API Keys tab.</p>
+          <p>
+            <strong>OpenAI</strong> and <strong>Anthropic</strong> keys are managed in the API Keys
+            tab.
+          </p>
           <p>Keys are encrypted at rest (AES-256-GCM) and never exposed back to the browser.</p>
-          <p>The chatbot will use the first available provider in order: Ollama → OpenAI → Anthropic.</p>
+          <p>
+            The chatbot will use the first available provider in order: Ollama → OpenAI → Anthropic.
+          </p>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function ProviderStatusCard({ label, configured, hint }: { label: string; configured: boolean; hint: string }) {
+function ProviderStatusCard({
+  label,
+  configured,
+  hint,
+}: {
+  label: string;
+  configured: boolean;
+  hint: string;
+}) {
   return (
     <div className="flex flex-col gap-1 rounded-lg border border-border p-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{label}</span>
         <Badge variant={configured ? 'default' : 'secondary'} className="text-xs">
           {configured ? (
-            <><Check className="h-3 w-3 mr-1" /> Ready</>
+            <>
+              <Check className="h-3 w-3 mr-1" /> Ready
+            </>
           ) : (
             'Not configured'
           )}
@@ -557,7 +632,9 @@ function ThemeTab() {
     try {
       const stored = localStorage.getItem('sb_theme');
       setFollowSystem(!stored);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const applyTheme = (next: 'light' | 'dark') => {
@@ -628,7 +705,8 @@ function ThemeTab() {
           </div>
           {followSystem && (
             <p className="text-xs text-foreground-muted">
-              Dashboard will match your OS preference. Currently using <strong>{theme}</strong> mode.
+              Dashboard will match your OS preference. Currently using <strong>{theme}</strong>{' '}
+              mode.
             </p>
           )}
         </div>

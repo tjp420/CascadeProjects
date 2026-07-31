@@ -6,10 +6,14 @@ const ROOT = path.resolve(__dirname, '../..');
 
 const { runDoctor } = require(path.join(ROOT, 'packages/simplebeacon-cli/src/doctor.js'));
 const { signLicense } = require(path.join(ROOT, 'sales/license/generator.js'));
-const { validateLicenseLocally } = require(path.join(ROOT, 'simplebeacon-vscode-merged/src/licenseManager.ts'));
+const { validateLicenseLocally } = require(
+  path.join(ROOT, 'simplebeacon-vscode-merged/src/licenseManager.ts')
+);
 const { checkExpiringLicenses } = require(path.join(ROOT, 'sales/license/renewal-tracker.js'));
 const { decryptSupportToken } = require(path.join(ROOT, 'sales/support/decrypt-token.js'));
-const { evaluateFunnelMetrics } = require(path.join(ROOT, 'ai-platform/web/simplebeacon-dashboard/js/utils/funnelTrigger.js'));
+const { evaluateFunnelMetrics } = require(
+  path.join(ROOT, 'ai-platform/web/simplebeacon-dashboard/js/utils/funnelTrigger.js')
+);
 
 let pass = 0;
 let fail = 0;
@@ -55,9 +59,10 @@ step('Renewal Tracker', () => {
   const future = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
   const expires = future.toISOString().split('T')[0];
   // simplebeacon-ignore sensitive-data — mock test data, not real credentials
-  const alerts = checkExpiringLicenses([
-    { companyId: 'test-corp', customerEmail: 'a@test.com', expiresAt: expires, tier: 'team' }
-  ], 30);
+  const alerts = checkExpiringLicenses(
+    [{ companyId: 'test-corp', customerEmail: 'a@test.com', expiresAt: expires, tier: 'team' }],
+    30
+  );
   if (alerts.length !== 1 || alerts[0].companyId !== 'test-corp') {
     throw new Error('Renewal tracker returned unexpected results');
   }
@@ -65,8 +70,18 @@ step('Renewal Tracker', () => {
 
 // 4. Funnel Trigger
 step('Funnel Trigger', () => {
-  const large = evaluateFunnelMetrics({ files_scanned: 6000, total_files: 16000, quality_score: 90, findings: [] });
-  const small = evaluateFunnelMetrics({ files_scanned: 100, total_files: 200, quality_score: 90, findings: [] });
+  const large = evaluateFunnelMetrics({
+    files_scanned: 6000,
+    total_files: 16000,
+    quality_score: 90,
+    findings: [],
+  });
+  const small = evaluateFunnelMetrics({
+    files_scanned: 100,
+    total_files: 200,
+    quality_score: 90,
+    findings: [],
+  });
   if (!large.shouldPromptUpgrade || large.targetTier !== 'enterprise') {
     throw new Error('Large repo did not trigger enterprise upsell');
   }

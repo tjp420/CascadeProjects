@@ -11,7 +11,7 @@ name: SimpleBeacon Gate
 
 on:
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
 
 permissions:
   contents: read
@@ -50,30 +50,30 @@ If you see errors like `unknown revision` or `bad revision` during diff scans, y
 ## npx alternative (no Marketplace action)
 
 ```yaml
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+- uses: actions/checkout@v4
+  with:
+    fetch-depth: 0
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+- uses: actions/setup-node@v4
+  with:
+    node-version: '22'
 
-      - name: Run SimpleBeacon gate
-        env:
-          SIMPLEBEACON_LICENSE_TOKEN: ${{ secrets.SIMPLEBEACON_LICENSE_TOKEN }}
-        run: |
-          npx --yes simplebeacon scan --gate --diff \
-            --fail-on high \
-            --format json \
-            --output .simplebeacon/report.json
+- name: Run SimpleBeacon gate
+  env:
+    SIMPLEBEACON_LICENSE_TOKEN: ${{ secrets.SIMPLEBEACON_LICENSE_TOKEN }}
+  run: |
+    npx --yes simplebeacon scan --gate --diff \
+      --fail-on high \
+      --format json \
+      --output .simplebeacon/report.json
 
-      - name: Post PR comment
-        if: github.event_name == 'pull_request'
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
-        run: npx --yes simplebeacon comment --report .simplebeacon/report.json
+- name: Post PR comment
+  if: github.event_name == 'pull_request'
+  env:
+    GITHUB_TOKEN: ${{ github.token }}
+    GITHUB_REPOSITORY: ${{ github.repository }}
+    GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+  run: npx --yes simplebeacon comment --report .simplebeacon/report.json
 ```
 
 ## Team dashboard metric

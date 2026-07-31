@@ -3,7 +3,16 @@
 const fs = require('fs');
 const path = require('path');
 
-const SENSITIVE_KEYS = ['password', 'secret', 'token', 'api_key', 'apikey', 'auth_token', 'access_token', 'refresh_token'];
+const SENSITIVE_KEYS = [
+  'password',
+  'secret',
+  'token',
+  'api_key',
+  'apikey',
+  'auth_token',
+  'access_token',
+  'refresh_token',
+];
 const EXCLUDED_DIRS = ['node_modules', '.git'];
 const EXCLUDED_FILES = ['.env.example', '.env.v1-internal.example', 'constants.cjs'];
 
@@ -31,7 +40,7 @@ walk('C:/Users/Trevor/CascadeProjects/ai-platform/server', (file) => {
     if (trimmed.startsWith('//') || trimmed.startsWith('*')) return;
 
     // Skip constants.cjs (legitimate centralization)
-    if (EXCLUDED_FILES.some(f => file.endsWith(f))) return;
+    if (EXCLUDED_FILES.some((f) => file.endsWith(f))) return;
 
     // Pattern: key = 'value' or "value" where value looks like a secret
     for (const key of SENSITIVE_KEYS) {
@@ -40,14 +49,20 @@ walk('C:/Users/Trevor/CascadeProjects/ai-platform/server', (file) => {
       if (match) {
         const val = match[1];
         // Skip obviously fake/test values
-        if (/^(test|demo|example|fake|mock|placeholder|changeme|your|default|dev|prod)/i.test(val)) return;
+        if (/^(test|demo|example|fake|mock|placeholder|changeme|your|default|dev|prod)/i.test(val))
+          return;
         // Skip environment variable references
         if (/^process\.env\./.test(val)) return;
-        findings.push({ file: path.relative('C:/Users/Trevor/CascadeProjects', file), line: i + 1, key, value: val.slice(0, 30) });
+        findings.push({
+          file: path.relative('C:/Users/Trevor/CascadeProjects', file),
+          line: i + 1,
+          key,
+          value: val.slice(0, 30),
+        });
       }
     }
   });
 });
 
 console.log(`Found ${findings.length} potential token-bleed findings:\n`); // simplebeacon-ignore pii-logging — CLI tool output, not personal data
-findings.forEach(f => console.log(`${f.file}:${f.line}  ${f.key} = '${f.value}...'`));
+findings.forEach((f) => console.log(`${f.file}:${f.line}  ${f.key} = '${f.value}...'`));

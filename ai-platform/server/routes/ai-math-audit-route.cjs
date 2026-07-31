@@ -14,10 +14,7 @@ const path = require('path');
 const fs = require('fs');
 
 const logger = require('../lib/app-logger.cjs');
-const {
-  assertSafeProjectPath,
-  resolveDefaultAllowedRoots
-} = require('../lib/path-safety.cjs');
+const { assertSafeProjectPath, resolveDefaultAllowedRoots } = require('../lib/path-safety.cjs');
 const { toClientError } = require('../../shared-utils/index.cjs');
 const { runAudit } = require('../lib/ai-math-audit.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -35,7 +32,7 @@ function resolveLogDir(projectPath) {
   for (const dir of candidates) {
     if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
       // Prefer the first candidate that has at least one .json / .jsonl file
-      const hasLogs = fs.readdirSync(dir).some(f => /\.jsonl?$/.test(f));
+      const hasLogs = fs.readdirSync(dir).some((f) => /\.jsonl?$/.test(f));
       if (hasLogs) return dir;
     }
   }

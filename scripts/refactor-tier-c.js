@@ -2,7 +2,8 @@
 const fs = require('fs');
 
 // === structural-intent-scanner.js ===
-const scannerFile = 'C:/Users/Trevor/CascadeProjects/ai-platform/packages/simplebeacon-intelligence/src/structural-intent-scanner.js';
+const scannerFile =
+  'C:/Users/Trevor/CascadeProjects/ai-platform/packages/simplebeacon-intelligence/src/structural-intent-scanner.js';
 let scanner = fs.readFileSync(scannerFile, 'utf8');
 
 // 1. Extract findMatchingBrace before extractJsFunctions
@@ -76,7 +77,8 @@ fs.writeFileSync(scannerFile, scanner, 'utf8');
 console.log('✓ structural-intent-scanner.js');
 
 // === vector-cache.js ===
-const vectorFile = 'C:/Users/Trevor/CascadeProjects/ai-platform/packages/simplebeacon-intelligence/src/vector-cache.js';
+const vectorFile =
+  'C:/Users/Trevor/CascadeProjects/ai-platform/packages/simplebeacon-intelligence/src/vector-cache.js';
 let vector = fs.readFileSync(vectorFile, 'utf8');
 
 // Extract countMatches helper

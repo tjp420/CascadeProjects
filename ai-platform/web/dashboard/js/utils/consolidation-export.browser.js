@@ -23,8 +23,12 @@ function projectLabelFromPath(projectPath) {
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
-  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-    || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
+  if (
+    /^[a-zA-Z]:\//.test(normalized) ||
+    normalized.startsWith('/Users/') ||
+    normalized.startsWith('/home/') ||
+    normalized.includes('CascadeProjects')
+  ) {
     return projectLabel;
   }
   return normalized;
@@ -60,11 +64,11 @@ function redactConsolidationProjectPath(value, options = {}) {
 function applyRedactedConsolidationPaths(scan, projectPath, productPlatformRoot) {
   const projectLabel = projectLabelFromPath(productPlatformRoot || projectPath || 'ai-platform');
   const pathOptions = { projectLabel, productPlatformLabel: projectLabel };
-/**
- * Redact.
- * @param {any} value
- * @returns {any}
- */
+  /**
+   * Redact.
+   * @param {any} value
+   * @returns {any}
+   */
   const redact = (value) => redactConsolidationProjectPath(value, pathOptions);
   return {
     ...scan,
@@ -74,12 +78,14 @@ function applyRedactedConsolidationPaths(scan, projectPath, productPlatformRoot)
     ...(scan.productPlatformRoot ? { productPlatformRoot: redact(scan.productPlatformRoot) } : {}),
     ...(scan.repositoryInventory
       ? {
-        repositoryInventory: {
-          ...scan.repositoryInventory,
-          projectRoot: redact(scan.repositoryInventory.projectRoot || scan.projectRoot || projectPath)
+          repositoryInventory: {
+            ...scan.repositoryInventory,
+            projectRoot: redact(
+              scan.repositoryInventory.projectRoot || scan.projectRoot || projectPath
+            ),
+          },
         }
-      }
-      : {})
+      : {}),
   };
 }
 
@@ -89,14 +95,13 @@ function applyRedactedConsolidationPaths(scan, projectPath, productPlatformRoot)
  * @returns {any}
  */
 function isBenchmarkPath(filePath) {
-  const rel = String(filePath || '').replace(/\\/g, '/').toLowerCase();
+  const rel = String(filePath || '')
+    .replace(/\\/g, '/')
+    .toLowerCase();
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/');
 }
 
-const PRODUCT_PATH_MARKERS = [
-  /^web\/data\b/i,
-  /^data\/roadmap\b/i
-];
+const PRODUCT_PATH_MARKERS = [/^web\/data\b/i, /^data\/roadmap\b/i];
 
 /**
  * Normalize relative path.
@@ -138,13 +143,15 @@ function isMonorepoPlatformAliasPair(pathA, pathB, platformDirName = 'ai-platfor
   const b = normalizeRelativePath(pathB);
   if (a === b) return false;
   const prefix = `${platformDirName}/`;
-/**
- * Strip prefix.
- * @param {any} p
- * @returns {any}
- */
+  /**
+   * Strip prefix.
+   * @param {any} p
+   * @returns {any}
+   */
   const stripPrefix = (p) => (p.startsWith(prefix) ? p.slice(prefix.length) : p);
-  return (a.startsWith(prefix) && b === stripPrefix(a)) || (b.startsWith(prefix) && a === stripPrefix(b));
+  return (
+    (a.startsWith(prefix) && b === stripPrefix(a)) || (b.startsWith(prefix) && a === stripPrefix(b))
+  );
 }
 
 /**
@@ -158,11 +165,11 @@ function isBrowserBuildMirrorPair(pathA, pathB) {
   const b = normalizeRelativePath(pathB);
   const browserRe = /\.browser\.(js|mjs|cjs|ts|tsx)$/i;
   if (!browserRe.test(a) && !browserRe.test(b)) return false;
-/**
- * To source.
- * @param {any} p
- * @returns {any}
- */
+  /**
+   * To source.
+   * @param {any} p
+   * @returns {any}
+   */
   const toSource = (p) => p.replace(/\.browser\.(js|mjs|cjs|ts|tsx)$/i, '.$1');
   return toSource(a) === b || toSource(b) === a;
 }
@@ -176,11 +183,11 @@ function isBrowserBuildMirrorPair(pathA, pathB) {
 function isIntentionalMcpExamplePair(pathA, pathB) {
   const a = normalizeRelativePath(pathA);
   const b = normalizeRelativePath(pathB);
-/**
- * Is mcp config.
- * @param {any} p
- * @returns {any}
- */
+  /**
+   * Is mcp config.
+   * @param {any} p
+   * @returns {any}
+   */
   const isMcpConfig = (p) => p.endsWith('mcp.json') || /\/examples\/mcp\//.test(p);
   return isMcpConfig(a) && isMcpConfig(b);
 }
@@ -241,8 +248,11 @@ function countExcludedFuzzyPairs(pairs = []) {
     monorepoAliasPairsExcluded,
     ephemeralPathsExcluded,
     fuzzyPairsExcluded,
-    intentionalPairsExcluded: browserMirrorPairsExcluded + mcpExamplePairsExcluded
-      + monorepoAliasPairsExcluded + ephemeralPathsExcluded
+    intentionalPairsExcluded:
+      browserMirrorPairsExcluded +
+      mcpExamplePairsExcluded +
+      monorepoAliasPairsExcluded +
+      ephemeralPathsExcluded,
   };
 }
 
@@ -253,12 +263,14 @@ function countExcludedFuzzyPairs(pairs = []) {
  */
 function consolidationPathTouchesExcluded(filePath) {
   const rel = String(filePath || '').replace(/\\/g, '/');
-  return isEphemeralConsolidationPath(rel)
-    || isBenchmarkPath(rel)
-    || rel.startsWith('deliverables/')
-    || rel.includes('/deliverables/')
-    || rel.startsWith('.github-sync/')
-    || rel.includes('/.github-sync/');
+  return (
+    isEphemeralConsolidationPath(rel) ||
+    isBenchmarkPath(rel) ||
+    rel.startsWith('deliverables/') ||
+    rel.includes('/deliverables/') ||
+    rel.startsWith('.github-sync/') ||
+    rel.includes('/.github-sync/')
+  );
 }
 
 /**
@@ -281,14 +293,14 @@ function resolveProductPlatformRoot(projectPath) {
  */
 function resolveConsolidationProjectPath(scan, options = {}) {
   const explicit = String(
-    options.projectPath
-    || options.scanTargetRoot
-    || options.requestedProjectPath
-    || scan.scanTargetRoot
-    || scan.projectPath
-    || scan.projectRoot
-    || scan.repositoryInventory?.projectRoot
-    || ''
+    options.projectPath ||
+      options.scanTargetRoot ||
+      options.requestedProjectPath ||
+      scan.scanTargetRoot ||
+      scan.projectPath ||
+      scan.projectRoot ||
+      scan.repositoryInventory?.projectRoot ||
+      ''
   ).replace(/\\/g, '/');
   if (isBenchmarkPath(explicit)) return explicit;
   const inferred = inferConsolidationScanTargetFromHints(scan, options);
@@ -304,15 +316,18 @@ function resolveConsolidationProjectPath(scan, options = {}) {
 function inferConsolidationScanTargetFromHints(scan, options = {}) {
   const filename = String(options.exportFilename || options.filename || '').toLowerCase();
   if (!filename.includes('github-cache')) return '';
-  const slugMatch = filename.match(/github-cache[-_]([a-z0-9._-]+?)(?:-\d{4}-\d{2}-\d{2}|\(\d+\)|\.json)/i);
+  const slugMatch = filename.match(
+    /github-cache[-_]([a-z0-9._-]+?)(?:-\d{4}-\d{2}-\d{2}|\(\d+\)|\.json)/i
+  );
   if (!slugMatch) return '';
   const cloneName = slugMatch[1];
   const sourceRoot = String(
     options.projectPath || scan.projectRoot || scan.repositoryInventory?.projectRoot || ''
   ).replace(/\\/g, '/');
   if (isBenchmarkPath(sourceRoot)) return '';
-  const platformRoot = resolveProductPlatformRoot(`${sourceRoot.replace(/\/$/, '')}/github-cache/${cloneName}`)
-    || sourceRoot;
+  const platformRoot =
+    resolveProductPlatformRoot(`${sourceRoot.replace(/\/$/, '')}/github-cache/${cloneName}`) ||
+    sourceRoot;
   return `${platformRoot.replace(/\/$/, '')}/github-cache/${cloneName}`;
 }
 
@@ -360,9 +375,15 @@ function dedupeExportNotes(notes = []) {
  * @param {number} mergeCandidatesLength
  * @returns {any}
  */
-function resolveIntentionalPairsExcludedCount(summaryBase, pairExclusions, rawMergeCount, mergeCandidatesLength) {
+function resolveIntentionalPairsExcludedCount(
+  summaryBase,
+  pairExclusions,
+  rawMergeCount,
+  mergeCandidatesLength
+) {
   const fromPairs = pairExclusions?.intentionalPairsExcluded ?? 0;
-  const fromDiff = rawMergeCount > mergeCandidatesLength ? rawMergeCount - mergeCandidatesLength : 0;
+  const fromDiff =
+    rawMergeCount > mergeCandidatesLength ? rawMergeCount - mergeCandidatesLength : 0;
   const fromSummary = summaryBase.intentionalPairsExcluded ?? 0;
   const fromFuzzy = summaryBase.fuzzyPairsExcluded ?? 0;
   return Math.max(fromSummary, fromPairs, fromDiff, fromFuzzy);
@@ -376,9 +397,11 @@ function resolveIntentionalPairsExcludedCount(summaryBase, pairExclusions, rawMe
 function reconcileLegacyConsolidationCounts(summary = {}) {
   let benchmarkCacheCandidatesExcluded = summary.benchmarkCacheCandidatesExcluded ?? 0;
   let fuzzyPairsExcluded = summary.fuzzyPairsExcluded ?? 0;
-  if (benchmarkCacheCandidatesExcluded > 0
-    && (summary.exactDuplicateGroups ?? 0) === 0
-    && fuzzyPairsExcluded === 0) {
+  if (
+    benchmarkCacheCandidatesExcluded > 0 &&
+    (summary.exactDuplicateGroups ?? 0) === 0 &&
+    fuzzyPairsExcluded === 0
+  ) {
     fuzzyPairsExcluded = benchmarkCacheCandidatesExcluded;
     benchmarkCacheCandidatesExcluded = 0;
   }
@@ -393,14 +416,18 @@ function reconcileLegacyConsolidationCounts(summary = {}) {
  */
 function refreshProductConsolidationScopeLimitations(scanScope, summary = {}) {
   if (!scanScope) return scanScope;
-  const { benchmarkCacheCandidatesExcluded, fuzzyPairsExcluded } = reconcileLegacyConsolidationCounts(summary);
-  const staleLimitationRe = /benchmark-clone candidate|near-duplicate pair\(s\) excluded \(MCP|duplicate group\(s\) under github-cache/i;
-/**
- * Base.
- * @param {number} scanScope.limitations || []
- * @returns {any}
- */
-  const base = (scanScope.limitations || []).filter((line) => !staleLimitationRe.test(String(line)));
+  const { benchmarkCacheCandidatesExcluded, fuzzyPairsExcluded } =
+    reconcileLegacyConsolidationCounts(summary);
+  const staleLimitationRe =
+    /benchmark-clone candidate|near-duplicate pair\(s\) excluded \(MCP|duplicate group\(s\) under github-cache/i;
+  /**
+   * Base.
+   * @param {number} scanScope.limitations || []
+   * @returns {any}
+   */
+  const base = (scanScope.limitations || []).filter(
+    (line) => !staleLimitationRe.test(String(line))
+  );
   const extra = [];
   if (benchmarkCacheCandidatesExcluded > 0) {
     extra.push(
@@ -435,9 +462,14 @@ function isBenchmarkConsolidation(scan, options = {}) {
 function rewriteProductScopedText(text, benchmarkScan) {
   if (!benchmarkScan || text == null) return text;
   return String(text)
-    .replace(/trim or archive for dashboard load/gi, 'trim or archive if no longer needed in this OSS clone')
-    .replace(/Restart the dashboard server and re-run consolidation for platform-scoped counts \(~2,200 files\)\./gi,
-      'Re-run consolidation on ai-platform root for Simplebeacon product sample-path metrics.')
+    .replace(
+      /trim or archive for dashboard load/gi,
+      'trim or archive if no longer needed in this OSS clone'
+    )
+    .replace(
+      /Restart the dashboard server and re-run consolidation for platform-scoped counts \(~2,200 files\)\./gi,
+      'Re-run consolidation on ai-platform root for Simplebeacon product sample-path metrics.'
+    )
     .replace(/\(includes github-cache\/\)/gi, '(OSS clone under github-cache/)');
 }
 
@@ -447,13 +479,14 @@ function rewriteProductScopedText(text, benchmarkScan) {
  * @returns {any}
  */
 function consolidationCandidateTouchesExcludedExport(candidate) {
-/**
- * Paths.
- * @param {string} candidate?.files || []
- * @returns {any}
- */
-  const paths = (candidate?.files || []).map((file) =>
-    file.path || file.relativePath || file.name).filter(Boolean);
+  /**
+   * Paths.
+   * @param {string} candidate?.files || []
+   * @returns {any}
+   */
+  const paths = (candidate?.files || [])
+    .map((file) => file.path || file.relativePath || file.name)
+    .filter(Boolean);
   if (consolidationCandidateTouchesExcluded(candidate)) return true;
   if (paths.length === 2 && isConsolidationExcludedPair(paths[0], paths[1])) return true;
   return paths.some((p) => consolidationPathTouchesExcluded(p));
@@ -481,13 +514,14 @@ function countIntentionalPairExclusions(candidates = []) {
   let mcpExamplePairsExcluded = 0;
   let intentionalPairsExcluded = 0;
   for (const candidate of candidates) {
-/**
- * Paths.
- * @param {string} candidate?.files || []
- * @returns {any}
- */
-    const paths = (candidate?.files || []).map((file) =>
-      file.path || file.relativePath || file.name).filter(Boolean);
+    /**
+     * Paths.
+     * @param {string} candidate?.files || []
+     * @returns {any}
+     */
+    const paths = (candidate?.files || [])
+      .map((file) => file.path || file.relativePath || file.name)
+      .filter(Boolean);
     if (paths.length !== 2) continue;
     if (isBrowserBuildMirrorPair(paths[0], paths[1])) {
       browserMirrorPairsExcluded += 1;
@@ -540,8 +574,7 @@ function buildBenchmarkConsolidationExportNotes(summary, pairExclusions) {
   const intentional = Math.max(
     pairExclusions?.intentionalPairsExcluded ?? 0,
     summary?.intentionalPairsExcluded ?? 0,
-    (summary?.browserMirrorPairsExcluded ?? 0)
-      + (summary?.mcpExamplePairsExcluded ?? 0)
+    (summary?.browserMirrorPairsExcluded ?? 0) + (summary?.mcpExamplePairsExcluded ?? 0)
   );
   if (intentional > 0) {
     notes.push(
@@ -549,12 +582,16 @@ function buildBenchmarkConsolidationExportNotes(summary, pairExclusions) {
     );
   }
   if ((summary?.mergeCandidates ?? 0) === 0) {
-    notes.push('No actionable merge candidates on this OSS clone — consolidation is inventory hygiene only.');
+    notes.push(
+      'No actionable merge candidates on this OSS clone — consolidation is inventory hygiene only.'
+    );
   }
   if ((summary?.potentialSavingsBytes ?? 0) === 0) {
     notes.push('Measured potential savings are 0B — not a delete/merge approval.');
   }
-  notes.push('Re-run consolidation on ai-platform root for Simplebeacon product sample-path deduplication.');
+  notes.push(
+    'Re-run consolidation on ai-platform root for Simplebeacon product sample-path deduplication.'
+  );
   return notes;
 }
 
@@ -569,7 +606,7 @@ function assembleBenchmarkConsolidationExportNotes(existingNotes = [], summary, 
   const dynamic = buildBenchmarkConsolidationExportNotes(summary, pairExclusions);
   const scopeNotes = [
     'Consolidation export scoped to github-cache/ OSS clone — not Simplebeacon platform product code.',
-    'Product sample paths (web/data, data/roadmap) do not apply on this benchmark target.'
+    'Product sample paths (web/data, data/roadmap) do not apply on this benchmark target.',
   ];
   const skipPatterns = [
     /consolidation export scoped to github-cache/i,
@@ -577,14 +614,16 @@ function assembleBenchmarkConsolidationExportNotes(existingNotes = [], summary, 
     /no actionable merge candidates/i,
     /measured potential savings are 0b/i,
     /re-run consolidation on ai-platform root/i,
-    /intentional cjs\/browser mirrors/i
+    /intentional cjs\/browser mirrors/i,
   ];
   const filtered = dedupeExportNotes(existingNotes).filter((note) => {
     const text = String(note);
     if (/Restart the dashboard|~2,200 files|includes github-cache\/\)/i.test(text)) return false;
     const lowered = text.toLowerCase();
-    return !skipPatterns.some((re) => re.test(lowered))
-      && !dynamic.some((entry) => entry.toLowerCase() === lowered);
+    return (
+      !skipPatterns.some((re) => re.test(lowered)) &&
+      !dynamic.some((entry) => entry.toLowerCase() === lowered)
+    );
   });
   return dedupeExportNotes([...filtered, ...dynamic, ...scopeNotes]);
 }
@@ -595,13 +634,14 @@ function assembleBenchmarkConsolidationExportNotes(existingNotes = [], summary, 
  * @returns {any}
  */
 function consolidationCandidateTouchesExcluded(candidate) {
-/**
- * Paths.
- * @param {string} candidate?.files || []
- * @returns {any}
- */
-  const paths = (candidate?.files || []).map((file) =>
-    file.path || file.relativePath || file.name).filter(Boolean);
+  /**
+   * Paths.
+   * @param {string} candidate?.files || []
+   * @returns {any}
+   */
+  const paths = (candidate?.files || [])
+    .map((file) => file.path || file.relativePath || file.name)
+    .filter(Boolean);
   if (paths.length === 2 && isConsolidationExcludedPair(paths[0], paths[1])) return true;
   return paths.some((p) => isEphemeralConsolidationPath(p));
 }
@@ -614,24 +654,29 @@ function consolidationCandidateTouchesExcluded(candidate) {
  */
 function filterAdvancedAnalysis(analysis, benchmarkScan) {
   if (!analysis) return analysis;
-  const fuzzyPairs = filterFuzzyPairs(analysis.fuzzyNearDuplicates?.pairs || [])
-    .filter((pair) => benchmarkScan
-      || (!consolidationPathTouchesExcluded(pair.fileA) && !consolidationPathTouchesExcluded(pair.fileB)));
-  const patternGroups = (analysis.patternConsolidation?.recommendations || [])
-    .filter((group) => benchmarkScan
-      || !(group.files || []).every((file) => consolidationPathTouchesExcluded(file.path)));
+  const fuzzyPairs = filterFuzzyPairs(analysis.fuzzyNearDuplicates?.pairs || []).filter(
+    (pair) =>
+      benchmarkScan ||
+      (!consolidationPathTouchesExcluded(pair.fileA) &&
+        !consolidationPathTouchesExcluded(pair.fileB))
+  );
+  const patternGroups = (analysis.patternConsolidation?.recommendations || []).filter(
+    (group) =>
+      benchmarkScan ||
+      !(group.files || []).every((file) => consolidationPathTouchesExcluded(file.path))
+  );
   return {
     ...analysis,
     fuzzyNearDuplicates: {
       ...analysis.fuzzyNearDuplicates,
       pairsFound: fuzzyPairs.length,
-      pairs: fuzzyPairs
+      pairs: fuzzyPairs,
     },
     patternConsolidation: {
       ...analysis.patternConsolidation,
       groupsFound: patternGroups.length,
-      recommendations: patternGroups
-    }
+      recommendations: patternGroups,
+    },
   };
 }
 
@@ -656,41 +701,47 @@ function resolveProductConsolidationHealth(summary) {
  */
 function resolveConsolidationGateContext(scan, options = {}) {
   const gateReport = options.gateReport || {};
-  const repositoryFilesTotal = options.repositoryFilesTotal
-    ?? gateReport.repositoryFilesTotal
-    ?? gateReport.repositoryInventory?.totalFiles
-    ?? scan.hygieneSummary?.gateRepositoryFilesTotal
-    ?? scan.scanScope?.gateRepositoryFilesTotal
-    ?? null;
-  const credentialScanned = gateReport.credentialScanned
-    ?? gateReport.productionLeakScanned
-    ?? gateReport.scanScope?.productionDirsScanned
-    ?? scan.hygieneSummary?.credentialScanned
-    ?? null;
-  const contentScanned = gateReport.scanScope?.fullDirectoryStats?.contentScanned
-    ?? gateReport.scanScope?.fullDirectoryStats?.filesContentScanned
-    ?? gateReport.credentialScanned
-    ?? scan.hygieneSummary?.contentFilesScanned
-    ?? null;
-  const gateProfile = gateReport.scanScope?.profile
-    ?? scan.scanScope?.gateRuleBundleProfile
-    ?? scan.hygieneSummary?.gateRuleBundleProfile
-    ?? null;
+  const repositoryFilesTotal =
+    options.repositoryFilesTotal ??
+    gateReport.repositoryFilesTotal ??
+    gateReport.repositoryInventory?.totalFiles ??
+    scan.hygieneSummary?.gateRepositoryFilesTotal ??
+    scan.scanScope?.gateRepositoryFilesTotal ??
+    null;
+  const credentialScanned =
+    gateReport.credentialScanned ??
+    gateReport.productionLeakScanned ??
+    gateReport.scanScope?.productionDirsScanned ??
+    scan.hygieneSummary?.credentialScanned ??
+    null;
+  const contentScanned =
+    gateReport.scanScope?.fullDirectoryStats?.contentScanned ??
+    gateReport.scanScope?.fullDirectoryStats?.filesContentScanned ??
+    gateReport.credentialScanned ??
+    scan.hygieneSummary?.contentFilesScanned ??
+    null;
+  const gateProfile =
+    gateReport.scanScope?.profile ??
+    scan.scanScope?.gateRuleBundleProfile ??
+    scan.hygieneSummary?.gateRuleBundleProfile ??
+    null;
   return {
     gateReport,
     repositoryFilesTotal,
     credentialScanned,
     contentScanned,
     gateProfile,
-    fictionJsonFilesScanned: gateReport.fictionJsonFilesScanned
-      ?? gateReport.scanScope?.fictionJsonFilesScanned
-      ?? scan.hygieneSummary?.fictionJsonFilesScanned
-      ?? null,
-    fictionSampleFilesScanned: gateReport.fictionSampleFilesScanned
-      ?? gateReport.mockSampleFiles
-      ?? gateReport.scanScope?.fictionSampleFilesScanned
-      ?? scan.hygieneSummary?.fictionSampleFilesScanned
-      ?? null
+    fictionJsonFilesScanned:
+      gateReport.fictionJsonFilesScanned ??
+      gateReport.scanScope?.fictionJsonFilesScanned ??
+      scan.hygieneSummary?.fictionJsonFilesScanned ??
+      null,
+    fictionSampleFilesScanned:
+      gateReport.fictionSampleFilesScanned ??
+      gateReport.mockSampleFiles ??
+      gateReport.scanScope?.fictionSampleFilesScanned ??
+      scan.hygieneSummary?.fictionSampleFilesScanned ??
+      null,
   };
 }
 
@@ -703,17 +754,27 @@ function resolveConsolidationGateContext(scan, options = {}) {
  */
 function buildProductConsolidationHygieneSummary(summaryBase, scan, options = {}) {
   const gateContext = resolveConsolidationGateContext(scan, options);
-  const { repositoryFilesTotal: gateTotal, credentialScanned, contentScanned, gateProfile, gateReport,
-    fictionJsonFilesScanned, fictionSampleFilesScanned } = gateContext;
-  const repoTotal = summaryBase.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles ?? null;
-  const repoAudited = summaryBase.repositoryFilesAudited ?? scan.scanScope?.repositoryFilesAudited ?? null;
+  const {
+    repositoryFilesTotal: gateTotal,
+    credentialScanned,
+    contentScanned,
+    gateProfile,
+    gateReport,
+    fictionJsonFilesScanned,
+    fictionSampleFilesScanned,
+  } = gateContext;
+  const repoTotal =
+    summaryBase.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles ?? null;
+  const repoAudited =
+    summaryBase.repositoryFilesAudited ?? scan.scanScope?.repositoryFilesAudited ?? null;
   return {
     consolidationHealthStatus: resolveProductConsolidationHealth(summaryBase),
     mergeCandidates: summaryBase.mergeCandidates ?? 0,
     potentialSavingsBytes: summaryBase.potentialSavingsBytes ?? 0,
     exactDuplicateGroups: summaryBase.exactDuplicateGroups ?? 0,
     jsonFilesAnalyzed: summaryBase.jsonFilesAnalyzed ?? scan.scanScope?.jsonFilesAnalyzed ?? null,
-    sampleDataFilesAnalyzed: summaryBase.sampleDataFilesAnalyzed ?? scan.scanScope?.sampleDataFilesAnalyzed ?? null,
+    sampleDataFilesAnalyzed:
+      summaryBase.sampleDataFilesAnalyzed ?? scan.scanScope?.sampleDataFilesAnalyzed ?? null,
     repositoryFilesTotal: repoTotal,
     ...(repoAudited != null ? { repositoryFilesAudited: repoAudited } : {}),
     ...(repoTotal != null && repoAudited != null && repoTotal > repoAudited
@@ -727,13 +788,14 @@ function buildProductConsolidationHygieneSummary(summaryBase, scan, options = {}
     ...(fictionJsonFilesScanned != null ? { fictionJsonFilesScanned } : {}),
     ...(fictionSampleFilesScanned != null ? { fictionSampleFilesScanned } : {}),
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
-    intentionalPairsExcluded: summaryBase.intentionalPairsExcluded
-      ?? summaryBase.fuzzyPairsExcluded
-      ?? 0,
-    ...(gateReport.jestBaselineChecked === false || scan.hygieneSummary?.jestBaselineChecked === false
+    intentionalPairsExcluded:
+      summaryBase.intentionalPairsExcluded ?? summaryBase.fuzzyPairsExcluded ?? 0,
+    ...(gateReport.jestBaselineChecked === false ||
+    scan.hygieneSummary?.jestBaselineChecked === false
       ? { jestBaselineChecked: false }
       : {}),
-    attestationNote: 'File merger/reduction hygiene — not gate pass or vendor handoff certification.'
+    attestationNote:
+      'File merger/reduction hygiene — not gate pass or vendor handoff certification.',
   };
 }
 
@@ -754,9 +816,10 @@ function enrichProductConsolidationScanScope(scanScope, scan, options = {}) {
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
     mergeWalkFiles: summary.repositoryFilesAudited ?? scanScope?.repositoryFilesAudited ?? null,
     jsonFilesHashed: summary.jsonFilesAnalyzed ?? scanScope?.jsonFilesAnalyzed ?? null,
-    sampleDataFilesAnalyzed: summary.sampleDataFilesAnalyzed ?? scanScope?.sampleDataFilesAnalyzed ?? null,
+    sampleDataFilesAnalyzed:
+      summary.sampleDataFilesAnalyzed ?? scanScope?.sampleDataFilesAnalyzed ?? null,
     resultsViewScope: scanScope?.resultsViewScope || 'platform-only',
-    securityHandoffEligible: false
+    securityHandoffEligible: false,
   };
 }
 
@@ -770,7 +833,7 @@ function enrichProductConsolidationScanScope(scanScope, scan, options = {}) {
 function buildProductConsolidationExportNotes(scan, ephemeralExcluded, context = {}) {
   const notes = [
     'securityHandoffEligible is false — consolidation is measured duplicate hygiene only, not vendor security handoff.',
-    'Absolute scan paths are redacted to project label in operator exports.'
+    'Absolute scan paths are redacted to project label in operator exports.',
   ];
   const scope = scan.scanScope || {};
   const repoTotal = scan.summary?.repositoryFilesTotal ?? scan.repositoryInventory?.totalFiles;
@@ -781,8 +844,14 @@ function buildProductConsolidationExportNotes(scan, ephemeralExcluded, context =
     );
   }
   const gateContext = resolveConsolidationGateContext(scan, context);
-  const { repositoryFilesTotal: gateTotal, credentialScanned, gateProfile, gateReport,
-    fictionJsonFilesScanned, fictionSampleFilesScanned } = gateContext;
+  const {
+    repositoryFilesTotal: gateTotal,
+    credentialScanned,
+    gateProfile,
+    gateReport,
+    fictionJsonFilesScanned,
+    fictionSampleFilesScanned,
+  } = gateContext;
   const profile = scan.repositoryInventory?.profile || scope.repositoryInventoryProfile || 'audit';
   if (gateTotal != null && repoTotal != null && gateTotal !== repoTotal) {
     notes.push(
@@ -806,34 +875,53 @@ function buildProductConsolidationExportNotes(scan, ephemeralExcluded, context =
       `${ephemeralExcluded} near-duplicate pair(s) involving vault/session cookie temps (.tmp-*, cookies.txt) excluded — not merge candidates.`
     );
   }
-  const aliasExcluded = (scan.summary?.monorepoAliasPairsExcluded ?? 0)
-    + (scan.summary?.browserMirrorPairsExcluded ?? 0)
-    + (scan.summary?.mcpExamplePairsExcluded ?? 0);
+  const aliasExcluded =
+    (scan.summary?.monorepoAliasPairsExcluded ?? 0) +
+    (scan.summary?.browserMirrorPairsExcluded ?? 0) +
+    (scan.summary?.mcpExamplePairsExcluded ?? 0);
   if (aliasExcluded > 0) {
     notes.push(
       `${aliasExcluded} pair(s) excluded as monorepo path aliases, browser build mirrors, or intentional MCP example configs.`
     );
   }
-  if ((scan.summary?.exactDuplicateGroups ?? 0) === 0 && (scan.summary?.mergeCandidates ?? 0) === 0) {
+  if (
+    (scan.summary?.exactDuplicateGroups ?? 0) === 0 &&
+    (scan.summary?.mergeCandidates ?? 0) === 0
+  ) {
     notes.push('No exact duplicate groups or actionable merge candidates in this export.');
   }
   if ((scan.summary?.potentialSavingsBytes ?? 0) === 0) {
-    notes.push('Measured potential savings are 0B — consolidation is informational hygiene, not a delete/merge approval.');
+    notes.push(
+      'Measured potential savings are 0B — consolidation is informational hygiene, not a delete/merge approval.'
+    );
   }
-  if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null && fictionJsonFilesScanned > fictionSampleFilesScanned) {
+  if (
+    fictionJsonFilesScanned != null &&
+    fictionSampleFilesScanned != null &&
+    fictionJsonFilesScanned > fictionSampleFilesScanned
+  ) {
     notes.push(
       // simplebeacon:production-leak-intent - legitimate KPI reference for consolidation reporting
       `DATA-002 evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) — ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched in paired gate scan.`
     );
   }
   if (gateProfile) {
-    notes.push(`Gate rule bundle profile: ${gateProfile} — pair consolidation report with json/simplebeacon-gate.json for handoff evidence.`);
+    notes.push(
+      `Gate rule bundle profile: ${gateProfile} — pair consolidation report with json/simplebeacon-gate.json for handoff evidence.`
+    );
   }
-  if (gateReport.jestBaselineChecked === false || scan.hygieneSummary?.jestBaselineChecked === false) {
-    notes.push('Consolidation scan does not run Jest — use gate/complete scan for test attestation.');
+  if (
+    gateReport.jestBaselineChecked === false ||
+    scan.hygieneSummary?.jestBaselineChecked === false
+  ) {
+    notes.push(
+      'Consolidation scan does not run Jest — use gate/complete scan for test attestation.'
+    );
   }
   if (scan.rejectedFiction?.warning) {
-    notes.push(`Marketing throughput claims in rejectedFiction are not implemented (${scan.rejectedFiction.warning}).`);
+    notes.push(
+      `Marketing throughput claims in rejectedFiction are not implemented (${scan.rejectedFiction.warning}).`
+    );
   }
   return [...new Set(notes)].slice(0, 12);
 }
@@ -857,8 +945,10 @@ function buildProductConsolidationAiSummary(scan) {
     repoAudited != null && repoAudited !== repoTotal
       ? `${Number(repoAudited).toLocaleString()} audit-scoped for merge logic`
       : null,
-    s.potentialSavingsLabel ? `potential savings ${s.potentialSavingsLabel}` : '0B measured savings',
-    'hygiene only — not vendor handoff clearance'
+    s.potentialSavingsLabel
+      ? `potential savings ${s.potentialSavingsLabel}`
+      : '0B measured savings',
+    'hygiene only — not vendor handoff clearance',
   ].filter(Boolean);
   return `${parts.join('; ')}.`;
 }
@@ -870,17 +960,20 @@ function buildProductConsolidationAiSummary(scan) {
  */
 function buildBenchmarkConsolidationConclusion(scan) {
   const s = scan.summary || {};
-  const repoFiles = s.repositoryFilesTotal ?? s.repositoryFilesAudited ?? scan.repositoryInventory?.totalFiles;
+  const repoFiles =
+    s.repositoryFilesTotal ?? s.repositoryFilesAudited ?? scan.repositoryInventory?.totalFiles;
   const candidates = (s.mergeCandidates || 0) + (s.reductionOpportunities || 0);
   const parts = [
     'OSS benchmark clone under github-cache/ — consolidation hygiene for the clone only',
-    candidates ? `${candidates} merge/reduction candidate(s) inside this clone` : 'No merge/reduction candidates',
+    candidates
+      ? `${candidates} merge/reduction candidate(s) inside this clone`
+      : 'No merge/reduction candidates',
     (s.sampleDataFilesAnalyzed ?? 0) === 0
       ? 'Simplebeacon sample paths (web/data, data/roadmap) are not on this clone'
       : `${s.sampleDataFilesAnalyzed} sample JSON under configured paths`,
     repoFiles != null ? `Clone inventory: ${Number(repoFiles).toLocaleString()} files` : null,
     s.potentialSavingsLabel ? `Potential savings: ${s.potentialSavingsLabel}` : null,
-    'Re-run on ai-platform root for product handoff evidence'
+    'Re-run on ai-platform root for product handoff evidence',
   ].filter(Boolean);
   return `${parts.join('. ')}.`;
 }
@@ -900,45 +993,55 @@ export function sanitizeConsolidationExport(scan, options = {}) {
   const staleProductInventory = !benchmarkScan && repoRaw != null && repoRaw > 10000;
 
   const productPlatformRoot = benchmarkScan
-    ? (options.productPlatformRoot || resolveProductPlatformRoot(projectPath))
+    ? options.productPlatformRoot || resolveProductPlatformRoot(projectPath)
     : null;
   const scanTargetRoot = projectPath || undefined;
   const rawMergeList = scan.mergeCandidates || [];
   const pairExclusions = countIntentionalPairExclusions(rawMergeList);
-  let mergeCandidates = rawMergeList.filter((c) => !shouldExcludeConsolidationCandidate(c, benchmarkScan));
+  let mergeCandidates = rawMergeList.filter(
+    (c) => !shouldExcludeConsolidationCandidate(c, benchmarkScan)
+  );
   mergeCandidates = mergeCandidates.map((c) => ({
     ...c,
-    recommendation: rewriteProductScopedText(c.recommendation, benchmarkScan)
+    recommendation: rewriteProductScopedText(c.recommendation, benchmarkScan),
   }));
-  let reductionOpportunities = (scan.reductionOpportunities || []).filter((o) =>
-    !shouldExcludeConsolidationCandidate(o, benchmarkScan));
+  let reductionOpportunities = (scan.reductionOpportunities || []).filter(
+    (o) => !shouldExcludeConsolidationCandidate(o, benchmarkScan)
+  );
   reductionOpportunities = reductionOpportunities.map((o) => ({
     ...o,
-    description: rewriteProductScopedText(o.description, benchmarkScan)
+    description: rewriteProductScopedText(o.description, benchmarkScan),
   }));
   const benchmarkMergeExcluded = rawMergeList.length - mergeCandidates.length;
   const rawAdvanced = scan.advancedAnalysis;
   const advancedAnalysis = filterAdvancedAnalysis(rawAdvanced, benchmarkScan);
   const rawFuzzyPairExclusions = !benchmarkScan
     ? countExcludedFuzzyPairs(rawAdvanced?.fuzzyNearDuplicates?.pairs || [])
-    : { fuzzyPairsExcluded: 0, intentionalPairsExcluded: 0, browserMirrorPairsExcluded: 0,
-        mcpExamplePairsExcluded: 0, monorepoAliasPairsExcluded: 0, ephemeralPathsExcluded: 0 };
+    : {
+        fuzzyPairsExcluded: 0,
+        intentionalPairsExcluded: 0,
+        browserMirrorPairsExcluded: 0,
+        mcpExamplePairsExcluded: 0,
+        monorepoAliasPairsExcluded: 0,
+        ephemeralPathsExcluded: 0,
+      };
   const ephemeralFuzzyExcluded = rawFuzzyPairExclusions.ephemeralPathsExcluded;
   const legacyCounts = reconcileLegacyConsolidationCounts(scan.summary);
-  const benchmarkCacheCandidatesExcluded = legacyCounts.benchmarkCacheCandidatesExcluded
-    + (benchmarkScan ? benchmarkMergeExcluded : 0);
-  const fuzzyPairsExcluded = legacyCounts.fuzzyPairsExcluded || rawFuzzyPairExclusions.fuzzyPairsExcluded;
+  const benchmarkCacheCandidatesExcluded =
+    legacyCounts.benchmarkCacheCandidatesExcluded + (benchmarkScan ? benchmarkMergeExcluded : 0);
+  const fuzzyPairsExcluded =
+    legacyCounts.fuzzyPairsExcluded || rawFuzzyPairExclusions.fuzzyPairsExcluded;
   let recommendations = filterConsolidationRecommendations(scan.recommendations, benchmarkScan);
   recommendations = recommendations.map((r) => ({
     ...r,
-    description: rewriteProductScopedText(r.description, benchmarkScan)
+    description: rewriteProductScopedText(r.description, benchmarkScan),
   }));
 
   const intentionalPairsExcluded = resolveIntentionalPairsExcludedCount(
     {
       ...scan.summary,
       benchmarkCacheCandidatesExcluded,
-      fuzzyPairsExcluded
+      fuzzyPairsExcluded,
     },
     pairExclusions,
     rawMergeList.length,
@@ -948,90 +1051,111 @@ export function sanitizeConsolidationExport(scan, options = {}) {
     ...scan.summary,
     mergeCandidates: mergeCandidates.length,
     reductionOpportunities: reductionOpportunities.length,
-    fuzzyNearDuplicatePairs: advancedAnalysis?.fuzzyNearDuplicates?.pairsFound
-      ?? scan.summary.fuzzyNearDuplicatePairs,
+    fuzzyNearDuplicatePairs:
+      advancedAnalysis?.fuzzyNearDuplicates?.pairsFound ?? scan.summary.fuzzyNearDuplicatePairs,
     benchmarkCacheCandidatesExcluded,
     fuzzyPairsExcluded,
     ...(intentionalPairsExcluded > 0
       ? {
           intentionalPairsExcluded,
-          browserMirrorPairsExcluded: (scan.summary.browserMirrorPairsExcluded ?? 0)
-            + pairExclusions.browserMirrorPairsExcluded
-            + rawFuzzyPairExclusions.browserMirrorPairsExcluded,
-          mcpExamplePairsExcluded: (scan.summary.mcpExamplePairsExcluded ?? 0)
-            + pairExclusions.mcpExamplePairsExcluded
-            + rawFuzzyPairExclusions.mcpExamplePairsExcluded
+          browserMirrorPairsExcluded:
+            (scan.summary.browserMirrorPairsExcluded ?? 0) +
+            pairExclusions.browserMirrorPairsExcluded +
+            rawFuzzyPairExclusions.browserMirrorPairsExcluded,
+          mcpExamplePairsExcluded:
+            (scan.summary.mcpExamplePairsExcluded ?? 0) +
+            pairExclusions.mcpExamplePairsExcluded +
+            rawFuzzyPairExclusions.mcpExamplePairsExcluded,
         }
       : {}),
     ...(ephemeralFuzzyExcluded > 0 || rawFuzzyPairExclusions.ephemeralPathsExcluded > 0
-      ? { ephemeralPathsExcluded: ephemeralFuzzyExcluded || rawFuzzyPairExclusions.ephemeralPathsExcluded }
-      : {})
+      ? {
+          ephemeralPathsExcluded:
+            ephemeralFuzzyExcluded || rawFuzzyPairExclusions.ephemeralPathsExcluded,
+        }
+      : {}),
   };
 
   const exportNotes = benchmarkScan
     ? assembleBenchmarkConsolidationExportNotes(scan.exportNotes, summaryBase, pairExclusions)
-    : dedupeExportNotes((scan.exportSanitized || scan.exportNormalized ? [] : (scan.exportNotes || [])).filter((note) => {
-      if (!benchmarkScan) return true;
-      return !/Restart the dashboard|~2,200 files|includes github-cache\/\)/i.test(String(note));
-    }).concat(buildProductConsolidationExportNotes(
-      { ...scan, summary: summaryBase, advancedAnalysis },
-      ephemeralFuzzyExcluded,
-      {
-        repositoryFilesTotal: options.repositoryFilesTotal ?? null,
-        gateReport: options.gateReport || null
-      }
-    ), benchmarkMergeExcluded > 0
-      ? [`${benchmarkMergeExcluded} merge candidate(s) from github-cache/, deliverables/, or ephemeral session paths excluded from export.`]
-      : []));
+    : dedupeExportNotes(
+        (scan.exportSanitized || scan.exportNormalized ? [] : scan.exportNotes || [])
+          .filter((note) => {
+            if (!benchmarkScan) return true;
+            return !/Restart the dashboard|~2,200 files|includes github-cache\/\)/i.test(
+              String(note)
+            );
+          })
+          .concat(
+            buildProductConsolidationExportNotes(
+              { ...scan, summary: summaryBase, advancedAnalysis },
+              ephemeralFuzzyExcluded,
+              {
+                repositoryFilesTotal: options.repositoryFilesTotal ?? null,
+                gateReport: options.gateReport || null,
+              }
+            ),
+            benchmarkMergeExcluded > 0
+              ? [
+                  `${benchmarkMergeExcluded} merge candidate(s) from github-cache/, deliverables/, or ephemeral session paths excluded from export.`,
+                ]
+              : []
+          )
+      );
 
-  const productScanPathsOnBenchmark = benchmarkScan
-    && (scan.scanPaths || []).some((p) => PRODUCT_PATH_MARKERS.some((re) => re.test(String(p))))
-    && (scan.summary?.sampleDataFilesAnalyzed ?? 0) === 0;
+  const productScanPathsOnBenchmark =
+    benchmarkScan &&
+    (scan.scanPaths || []).some((p) => PRODUCT_PATH_MARKERS.some((re) => re.test(String(p)))) &&
+    (scan.summary?.sampleDataFilesAnalyzed ?? 0) === 0;
 
   const result = {
     ...scan,
-    projectRoot: (scan.projectRoot || projectPath || undefined)
-      ? String(scan.projectRoot || projectPath).replace(/\\/g, '/')
-      : undefined,
-    platformRoot: productPlatformRoot || (scan.platformRoot
-      ? String(scan.platformRoot).replace(/\\/g, '/')
-      : undefined),
-    scanTargetRoot: scanTargetRoot
-      ? String(scanTargetRoot).replace(/\\/g, '/')
-      : undefined,
+    projectRoot:
+      scan.projectRoot || projectPath || undefined
+        ? String(scan.projectRoot || projectPath).replace(/\\/g, '/')
+        : undefined,
+    platformRoot:
+      productPlatformRoot ||
+      (scan.platformRoot ? String(scan.platformRoot).replace(/\\/g, '/') : undefined),
+    scanTargetRoot: scanTargetRoot ? String(scanTargetRoot).replace(/\\/g, '/') : undefined,
     ...(scan.repositoryInventory
       ? {
-        repositoryInventory: {
-          ...scan.repositoryInventory,
-          projectRoot: String(
-            scan.repositoryInventory.projectRoot || scan.projectRoot || projectPath || ''
-          ).replace(/\\/g, '/')
+          repositoryInventory: {
+            ...scan.repositoryInventory,
+            projectRoot: String(
+              scan.repositoryInventory.projectRoot || scan.projectRoot || projectPath || ''
+            ).replace(/\\/g, '/'),
+          },
         }
-      }
       : {}),
-    advancedAnalysis: benchmarkScan && advancedAnalysis?.semanticHints
-      ? {
-          ...advancedAnalysis,
-          semanticHints: {
-            ...advancedAnalysis.semanticHints,
-            note: 'Semantic hints disabled on OSS benchmark clone — not used for handoff.'
+    advancedAnalysis:
+      benchmarkScan && advancedAnalysis?.semanticHints
+        ? {
+            ...advancedAnalysis,
+            semanticHints: {
+              ...advancedAnalysis.semanticHints,
+              note: 'Semantic hints disabled on OSS benchmark clone — not used for handoff.',
+            },
           }
-        }
-      : advancedAnalysis,
+        : advancedAnalysis,
     mergeCandidates,
     reductionOpportunities,
     recommendations,
     summary: {
       ...summaryBase,
       ...(benchmarkScan
-        ? { repositoryFilesTotal: repoRaw, staleInventoryNote: undefined, repositoryFilesTotalRaw: undefined }
+        ? {
+            repositoryFilesTotal: repoRaw,
+            staleInventoryNote: undefined,
+            repositoryFilesTotalRaw: undefined,
+          }
         : staleProductInventory
           ? {
               repositoryFilesTotalRaw: repoRaw,
               repositoryFilesTotal: scan.scanScope?.platformRepositoryFilesTotal ?? null,
-              staleInventoryNote: rewriteProductScopedText(scan.summary.staleInventoryNote, false)
+              staleInventoryNote: rewriteProductScopedText(scan.summary.staleInventoryNote, false),
             }
-          : {})
+          : {}),
     },
     scanScope: benchmarkScan
       ? {
@@ -1045,26 +1169,34 @@ export function sanitizeConsolidationExport(scan, options = {}) {
           limitations: [
             `OSS benchmark clone inventory: ${repoRaw != null ? Number(repoRaw).toLocaleString() : '—'} files.`,
             'Simplebeacon product sample paths (web/data, data/roadmap) are absent on this clone.',
-            'Merge candidates are informational for OSS hygiene — not ai-platform handoff approval.'
-          ]
+            'Merge candidates are informational for OSS hygiene — not ai-platform handoff approval.',
+          ],
         }
-      : enrichProductConsolidationScanScope(refreshProductConsolidationScopeLimitations({
-          ...(scan.scanScope || {}),
-          resultsViewScope: 'platform-only',
-          reportHealth: staleProductInventory
-            ? 'stale-explorer-inventory'
-            : resolveProductConsolidationHealth(summaryBase),
-          securityHandoffEligible: false,
-          consolidationNote: 'Measured duplicate/fuzzy merge scan — not Complete scan clearance bundle.'
-        }, summaryBase), { ...scan, summary: summaryBase }, {
-          repositoryFilesTotal: options.repositoryFilesTotal ?? null,
-          gateReport: options.gateReport || null
-        }),
+      : enrichProductConsolidationScanScope(
+          refreshProductConsolidationScopeLimitations(
+            {
+              ...(scan.scanScope || {}),
+              resultsViewScope: 'platform-only',
+              reportHealth: staleProductInventory
+                ? 'stale-explorer-inventory'
+                : resolveProductConsolidationHealth(summaryBase),
+              securityHandoffEligible: false,
+              consolidationNote:
+                'Measured duplicate/fuzzy merge scan — not Complete scan clearance bundle.',
+            },
+            summaryBase
+          ),
+          { ...scan, summary: summaryBase },
+          {
+            repositoryFilesTotal: options.repositoryFilesTotal ?? null,
+            gateReport: options.gateReport || null,
+          }
+        ),
     aiSummary: benchmarkScan
       ? buildBenchmarkConsolidationConclusion({ ...scan, summary: summaryBase })
-      : (mergeCandidates.length === 0 && (summaryBase.potentialSavingsBytes ?? 0) === 0
-          ? buildProductConsolidationAiSummary({ ...scan, summary: summaryBase })
-          : rewriteProductScopedText(scan.aiSummary, false)),
+      : mergeCandidates.length === 0 && (summaryBase.potentialSavingsBytes ?? 0) === 0
+        ? buildProductConsolidationAiSummary({ ...scan, summary: summaryBase })
+        : rewriteProductScopedText(scan.aiSummary, false),
     aiSummaryProvider: scan.aiSummaryProvider
       ? String(scan.aiSummaryProvider).replace(/\bSimplebeacon\b/g, 'SimpleBeacon')
       : scan.aiSummaryProvider,
@@ -1086,8 +1218,9 @@ export function sanitizeConsolidationExport(scan, options = {}) {
             intentionalPairsExcluded,
             repositoryFilesTotal: repoRaw ?? summaryBase.repositoryFilesTotal ?? null,
             jsonFilesAnalyzed: summaryBase.jsonFilesAnalyzed ?? null,
-            attestationNote: 'OSS clone consolidation hygiene — not Simplebeacon product handoff clearance.'
-          }
+            attestationNote:
+              'OSS clone consolidation hygiene — not Simplebeacon product handoff clearance.',
+          },
         }
       : {
           exportNormalized: true,
@@ -1097,22 +1230,23 @@ export function sanitizeConsolidationExport(scan, options = {}) {
           consolidationHealthStatus: resolveProductConsolidationHealth(summaryBase),
           hygieneSummary: buildProductConsolidationHygieneSummary(summaryBase, scan, {
             repositoryFilesTotal: options.repositoryFilesTotal ?? null,
-            gateReport: options.gateReport || null
-          })
+            gateReport: options.gateReport || null,
+          }),
         }),
     exportSanitized: true,
-    exportNotes
+    exportNotes,
   };
 
   if (productScanPathsOnBenchmark) {
     result.scanPaths = [];
     result.scanPathsProductDefaultsOmitted = scan.scanPaths;
-    result.scanPathsNote = 'Simplebeacon product sample paths (web/data, data/roadmap) are not walked on OSS benchmark clones.';
+    result.scanPathsNote =
+      'Simplebeacon product sample paths (web/data, data/roadmap) are not walked on OSS benchmark clones.';
     if (result.scanScope) {
       result.scanScope = {
         ...result.scanScope,
         sampleDataPaths: [],
-        sampleDataPathsOmitted: scan.scanPaths || result.scanScope?.sampleDataPaths || []
+        sampleDataPathsOmitted: scan.scanPaths || result.scanScope?.sampleDataPaths || [],
       };
     }
   }

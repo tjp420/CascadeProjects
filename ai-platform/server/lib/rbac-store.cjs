@@ -1,0 +1,227 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'rbac-assignments.json');
+const MAX_ASSIGNMENTS_PER_ORG = 200;
+
+// ── Role definitions ────────────────────────────────────────────────────────
+
+const ROLES = {
+  admin: {
+    id: 'admin',
+    name: 'Administrator',
+    description: 'Full access to all platform features and settings',
+    permissions: ['read:all', 'write:all', 'delete:all', 'admin:all'],
+  },
+  auditor: {
+    id: 'auditor',
+    name: 'Auditor',
+    description: 'Read-only access to analytics, audit logs, and compliance reports',
+    permissions: ['read:all', 'export:audit', 'read:audit'],
+  },
+  operator: {
+    id: 'operator',
+    name: 'Operator',
+    description: 'Can run scans, manage tickets, trigger evaluations, and view analytics',
+    permissions: ['read:all', 'write:tickets', 'write:scans', 'write:evals', 'trigger:gates'],
+  },
+  viewer: {
+    id: 'viewer',
+    name: 'Viewer',
+    description: 'Read-only access to dashboards and analytics',
+    permissions: ['read:analytics', 'read:violations'],
+  },
+};
+
+const ALL_ROLE_IDS = Object.keys(ROLES);
+
+// ── Permission catalog ──────────────────────────────────────────────────────
+
+const PERMISSIONS = {
+  'read:all': 'Read all data across the platform',
+  'write:all': 'Write/create all data across the platform',
+  'delete:all': 'Delete any data across the platform',
+  'admin:all': 'Administrative access — manage users, roles, and settings',
+  'read:audit': 'Read audit log entries',
+  'export:audit': 'Export audit logs in CSV/JSON',
+  'read:analytics': 'View analytics dashboards',
+  'read:violations': 'View violation listings',
+  'write:tickets': 'Create/update ticket statuses',
+  'write:scans': 'Record scan results',
+  'write:evals': 'Run model evaluations',
+  'trigger:gates': 'Trigger deployment gate evaluations',
+};
+
+// ── Store helpers ───────────────────────────────────────────────────────────
+
+function readStore() {
+  try {
+    if (!fs.existsSync(STORE_PATH)) return { assignments: {} };
+    const raw = fs.readFileSync(STORE_PATH, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return { assignments: {} };
+  }
+}
+
+function writeStore(store) {
+  const dir = path.dirname(STORE_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
+}
+
+function makeKey(orgId, userId) {
+  return orgId ? `${orgId}::${userId}` : userId;
+}
+
+// ── Assignment CRUD ─────────────────────────────────────────────────────────
+
+/**
+ * Get a user's role assignment.
+ * @returns {object|null} assignment or null
+ */
+function getAssignment(userId, orgId) {
+  const store = readStore();
+  return store.assignments[makeKey(orgId, userId)] || null;
+}
+
+/**
+ * Get all role assignments for an org.
+ */
+function getAllAssignments(orgId) {
+  const store = readStore();
+  return Object.values(store.assignments).filter((a) => a.orgId === orgId);
+}
+
+/**
+ * Set a user's role. If role is null/empty, removes the assignment.
+ */
+function setAssignment(userId, role, orgId, actorEmail) {
+  if (!userId) throw new Error('userId is required');
+  if (!role) throw new Error('role is required');
+  if (!ROLES[role])
+    throw new Error(`Invalid role: ${role}. Valid roles: ${ALL_ROLE_IDS.join(', ')}`);
+
+  const store = readStore();
+  const key = makeKey(orgId, userId);
+  const existing = store.assignments[key];
+
+  store.assignments[key] = {
+    userId,
+    orgId,
+    role,
+    roleName: ROLES[role].name,
+    permissions: ROLES[role].permissions,
+    assignedBy: actorEmail || 'system',
+    assignedAt: existing?.assignedAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Prune
+  const orgAssignments = Object.entries(store.assignments).filter(([, v]) => v.orgId === orgId);
+  if (orgAssignments.length > MAX_ASSIGNMENTS_PER_ORG) {
+    const sorted = orgAssignments.sort((a, b) => b[1].updatedAt.localeCompare(a[1].updatedAt));
+    for (const [k] of sorted.slice(MAX_ASSIGNMENTS_PER_ORG)) {
+      delete store.assignments[k];
+    }
+  }
+
+  writeStore(store);
+  return store.assignments[key];
+}
+
+/**
+ * Remove a user's role assignment.
+ */
+function deleteAssignment(userId, orgId) {
+  const store = readStore();
+  const key = makeKey(orgId, userId);
+  const existing = store.assignments[key];
+  delete store.assignments[key];
+  writeStore(store);
+  return existing;
+}
+
+// ── Permission checking ─────────────────────────────────────────────────────
+
+/**
+ * Resolve a user's effective role and permissions.
+ * Falls back to req.user.role from JWT if no explicit assignment exists.
+ * In development mode, returns admin permissions.
+ */
+function resolveUserRole(userId, orgId, fallbackRole) {
+  const assignment = getAssignment(userId, orgId);
+  if (assignment) {
+    return {
+      role: assignment.role,
+      permissions: assignment.permissions,
+      source: 'assignment',
+    };
+  }
+
+  // Fallback to JWT role
+  if (fallbackRole && ROLES[fallbackRole]) {
+    return {
+      role: fallbackRole,
+      permissions: ROLES[fallbackRole].permissions,
+      source: 'jwt',
+    };
+  }
+
+  // Default: viewer for authenticated users with no role
+  return {
+    role: 'viewer',
+    permissions: ROLES.viewer.permissions,
+    source: 'default',
+  };
+}
+
+/**
+ * Check if a user has a specific permission.
+ * Admin role always has all permissions.
+ */
+function hasPermission(userPermissions, requiredPermission) {
+  if (!userPermissions || !Array.isArray(userPermissions)) return false;
+  // admin:all grants everything
+  if (userPermissions.includes('admin:all')) return true;
+  // read:all covers all read:* permissions
+  if (requiredPermission.startsWith('read:') && userPermissions.includes('read:all')) return true;
+  // write:all covers all write:* permissions
+  if (requiredPermission.startsWith('write:') && userPermissions.includes('write:all')) return true;
+  // delete:all covers all delete:* permissions
+  if (requiredPermission.startsWith('delete:') && userPermissions.includes('delete:all'))
+    return true;
+  return userPermissions.includes(requiredPermission);
+}
+
+/**
+ * Get aggregate stats for an org.
+ */
+function getStats(orgId) {
+  const assignments = getAllAssignments(orgId);
+  const byRole = {};
+  for (const a of assignments) {
+    byRole[a.role] = (byRole[a.role] || 0) + 1;
+  }
+  return {
+    totalAssignments: assignments.length,
+    byRole,
+    availableRoles: ALL_ROLE_IDS.length,
+  };
+}
+
+module.exports = {
+  ROLES,
+  ALL_ROLE_IDS,
+  PERMISSIONS,
+  getAssignment,
+  getAllAssignments,
+  setAssignment,
+  deleteAssignment,
+  resolveUserRole,
+  hasPermission,
+  getStats,
+};

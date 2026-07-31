@@ -5,6 +5,7 @@
 **Total Issues:** 42
 
 **Severity Breakdown:**
+
 - Critical: 0
 - High: 1
 - Medium: 20
@@ -14,6 +15,7 @@
 **Project:** N/A
 
 **Top Findings:**
+
 - [low] Debug Artifact: Development-only debug artifact. Remove before production builds.
 - [low] Debug Artifact: Development-only debug artifact. Remove before production builds.
 - [low] Debug Artifact: Development-only debug artifact. Remove before production builds.

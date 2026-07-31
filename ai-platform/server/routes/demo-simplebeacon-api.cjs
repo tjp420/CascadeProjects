@@ -8,12 +8,12 @@ const logger = require('../lib/app-logger.cjs');
 const {
   buildAssessmentReport,
   buildAuditPayload,
-  buildFictionPatternCatalog
+  buildFictionPatternCatalog,
 } = require('../../server/lib/simplebeacon-proxy.cjs');
 const {
   buildDashboardPayload,
   buildScanResults,
-  findHistoryEntry
+  findHistoryEntry,
 } = require('../../server/lib/simplebeacon-proxy.cjs');
 
 const PROJECT_ROOT = path.join(__dirname, '../..');
@@ -43,7 +43,7 @@ async function loadDemoContext() {
   const [report, baseline, history] = await Promise.all([
     readJson(path.join(DEMO_DIR, 'report.json')),
     readJson(path.join(DEMO_DIR, 'baseline.json')),
-    readJson(path.join(DEMO_DIR, 'history.json'), [])
+    readJson(path.join(DEMO_DIR, 'history.json'), []),
   ]);
   const fictionCatalog = buildFictionPatternCatalog(baseline);
   return { report, baseline, history, fictionCatalog };
@@ -56,7 +56,10 @@ async function loadDemoContext() {
  * @returns {any}
  */
 function demoReadonly(_req, res) {
-  return sendError(res, 403, 'demo_readonly', { message: 'Demo dashboard is read-only. Run npx simplebeacon locally or sign in at /app for your workspace.' });
+  return sendError(res, 403, 'demo_readonly', {
+    message:
+      'Demo dashboard is read-only. Run npx simplebeacon locally or sign in at /app for your workspace.',
+  });
 }
 
 /**
@@ -130,7 +133,7 @@ function setupSimplebeaconDemoAPI(app) {
       const context = await loadDemoContext();
       const assessment = buildAssessmentReport(context.report, {
         company: 'Acme Corp (demo honey-pot)',
-        projectRoot: context.report.projectRoot || '/demo/toxic-honeypot'
+        projectRoot: context.report.projectRoot || '/demo/toxic-honeypot',
       });
       res.json(assessment);
     } catch (err) {
@@ -144,12 +147,14 @@ function setupSimplebeaconDemoAPI(app) {
       const context = await loadDemoContext();
       const assessment = buildAssessmentReport(context.report, {
         company: 'Acme Corp (demo honey-pot)',
-        projectRoot: context.report.projectRoot || '/demo/toxic-honeypot'
+        projectRoot: context.report.projectRoot || '/demo/toxic-honeypot',
       });
-      res.json(buildAuditPayload(
-        { ...context, assessment, pageSamples: {}, npmAudit: null },
-        { assessment, npmAudit: null, pageSamples: {} }
-      ));
+      res.json(
+        buildAuditPayload(
+          { ...context, assessment, pageSamples: {}, npmAudit: null },
+          { assessment, npmAudit: null, pageSamples: {} }
+        )
+      );
     } catch (err) {
       logger.warn('[Demo] Demo audit not found failed:', err.message);
       sendError(res, 404, 'Demo audit not found', { message: err.message });
@@ -171,7 +176,7 @@ function setupSimplebeaconDemoAPI(app) {
 
   registerOutreachRoutes(app, {
     dataDir: path.join(PROJECT_ROOT, 'data'),
-    prefixes: ['/api/simplebeacon/outreach']
+    prefixes: ['/api/simplebeacon/outreach'],
   });
 }
 

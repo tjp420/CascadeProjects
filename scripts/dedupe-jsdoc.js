@@ -17,7 +17,7 @@ if (!DRY_RUN && !APPLY) {
 const TARGET_DIRS = [
   path.join(__dirname, '..', 'ai-platform', 'server'),
   path.join(__dirname, '..', 'ai-platform', 'src'),
-  path.join(__dirname, '..', 'ai-platform', 'packages')
+  path.join(__dirname, '..', 'ai-platform', 'packages'),
 ];
 
 const EXCLUDED = ['node_modules', '.git', 'dist', 'build'];
@@ -56,7 +56,7 @@ function dedupeJsdoc(content) {
       while (j < lines.length && !lines[j].trim().endsWith('*/')) {
         j++;
       }
-      removed += (j - i + 1);
+      removed += j - i + 1;
       i = j; // skip the whole block
       continue;
     }
@@ -83,7 +83,9 @@ function main() {
       totalFiles++;
       totalRemoved += result.removed;
       if (DRY_RUN) {
-        console.log(`Would dedupe ${path.relative(process.cwd(), file)} (-${result.removed} lines)`);
+        console.log(
+          `Would dedupe ${path.relative(process.cwd(), file)} (-${result.removed} lines)`
+        );
       }
       if (APPLY) {
         fs.writeFileSync(file, result.content, 'utf8');
@@ -92,7 +94,9 @@ function main() {
     }
   }
 
-  console.log(`\n${DRY_RUN ? 'Would fix' : 'Fixed'} ${totalFiles} files, removed ${totalRemoved} duplicate JSDoc lines.`);
+  console.log(
+    `\n${DRY_RUN ? 'Would fix' : 'Fixed'} ${totalFiles} files, removed ${totalRemoved} duplicate JSDoc lines.`
+  );
 }
 
 main();

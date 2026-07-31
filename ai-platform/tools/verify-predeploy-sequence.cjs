@@ -26,14 +26,15 @@ class PreDeployGate {
     this.results = {
       passed: [],
       failed: [],
-      warnings: []
+      warnings: [],
     };
     this.isProduction = process.env.NODE_ENV === 'production';
   }
 
   log(message, type = 'info') {
-    const prefix = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
-    process.stdout.write([`${prefix} ${message}`].join(" ") + "\n");
+    const prefix =
+      type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+    process.stdout.write([`${prefix} ${message}`].join(' ') + '\n');
   }
 
   // Gate 1: Simplebeacon gate must pass
@@ -72,7 +73,7 @@ class PreDeployGate {
       execSync('npm audit --audit-level=high', {
         cwd: projectRoot,
         encoding: 'utf8',
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
       this.log('npm audit passed (no high/critical vulnerabilities)', 'success');
       this.results.passed.push('npm audit clean');
@@ -91,7 +92,7 @@ class PreDeployGate {
         cwd: projectRoot,
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: constants.TIMEOUT_2M
+        timeout: constants.TIMEOUT_2M,
       });
       this.log('Tests passed', 'success');
       this.results.passed.push('Tests passing');
@@ -108,7 +109,7 @@ class PreDeployGate {
       '.env.production',
       'docker-compose.phase2.yml',
       'scripts/deploy-simplebeacon.sh',
-      'docs/v1-internal-runbook.md'
+      'docs/v1-internal-runbook.md',
     ];
 
     for (const file of requiredFiles) {
@@ -131,7 +132,7 @@ class PreDeployGate {
         cwd: projectRoot,
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: constants.TIMEOUT_1M
+        timeout: constants.TIMEOUT_1M,
       });
       this.log('Lint passed', 'success');
       this.results.passed.push('Lint clean');
@@ -149,10 +150,13 @@ class PreDeployGate {
         cwd: projectRoot,
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: constants.TIMEOUT_2M
+        timeout: constants.TIMEOUT_2M,
       });
 
-      if (fs.existsSync(resolveProjectPath('dist')) && fs.readdirSync(resolveProjectPath('dist')).length > 0) {
+      if (
+        fs.existsSync(resolveProjectPath('dist')) &&
+        fs.readdirSync(resolveProjectPath('dist')).length > 0
+      ) {
         this.log('Build succeeded with artifacts', 'success');
         this.results.passed.push('Build successful');
       } else {
@@ -166,9 +170,9 @@ class PreDeployGate {
   }
 
   runAllChecks() {
-    process.stdout.write(['🚪 Pre-Deploy Gate Sequence\n'].join(" ") + "\n");
+    process.stdout.write(['🚪 Pre-Deploy Gate Sequence\n'].join(' ') + '\n');
     process.stdout.write(
-      ['This gate must pass before ANY production deployment.\n'].join(" ") + "\n"
+      ['This gate must pass before ANY production deployment.\n'].join(' ') + '\n'
     );
 
     this.checkSimplebeaconGate();
@@ -182,36 +186,40 @@ class PreDeployGate {
   }
 
   generateReport() {
-    process.stdout.write(['\n📊 Pre-Deploy Gate Report'].join(" ") + "\n");
-    process.stdout.write(['==========================\n'].join(" ") + "\n");
+    process.stdout.write(['\n📊 Pre-Deploy Gate Report'].join(' ') + '\n');
+    process.stdout.write(['==========================\n'].join(' ') + '\n');
 
-    const totalChecks = this.results.passed.length + this.results.failed.length + this.results.warnings.length;
-    const passRate = totalChecks > 0 ? (this.results.passed.length / totalChecks * 100).toFixed(1) : 0;
+    const totalChecks =
+      this.results.passed.length + this.results.failed.length + this.results.warnings.length;
+    const passRate =
+      totalChecks > 0 ? ((this.results.passed.length / totalChecks) * 100).toFixed(1) : 0;
 
-    process.stdout.write([`✅ Passed: ${this.results.passed.length}`].join(" ") + "\n");
-    process.stdout.write([`❌ Failed: ${this.results.failed.length}`].join(" ") + "\n");
-    process.stdout.write([`⚠️  Warnings: ${this.results.warnings.length}`].join(" ") + "\n");
-    process.stdout.write([`📈 Pass Rate: ${passRate}%\n`].join(" ") + "\n");
+    process.stdout.write([`✅ Passed: ${this.results.passed.length}`].join(' ') + '\n');
+    process.stdout.write([`❌ Failed: ${this.results.failed.length}`].join(' ') + '\n');
+    process.stdout.write([`⚠️  Warnings: ${this.results.warnings.length}`].join(' ') + '\n');
+    process.stdout.write([`📈 Pass Rate: ${passRate}%\n`].join(' ') + '\n');
 
     if (this.results.failed.length > 0) {
-      process.stdout.write(['🚨 DEPLOY BLOCKED — Fix these before deploying:'].join(" ") + "\n");
-      this.results.failed.forEach(issue => void 0);
-      process.stdout.write([''].join(" ") + "\n");
+      process.stdout.write(['🚨 DEPLOY BLOCKED — Fix these before deploying:'].join(' ') + '\n');
+      this.results.failed.forEach((issue) => void 0);
+      process.stdout.write([''].join(' ') + '\n');
     }
 
     if (this.results.warnings.length > 0) {
-      process.stdout.write(['⚠️  WARNINGS:'].join(" ") + "\n");
-      this.results.warnings.forEach(warning => void 0);
-      process.stdout.write([''].join(" ") + "\n");
+      process.stdout.write(['⚠️  WARNINGS:'].join(' ') + '\n');
+      this.results.warnings.forEach((warning) => void 0);
+      process.stdout.write([''].join(' ') + '\n');
     }
 
     if (this.results.failed.length === 0) {
-      process.stdout.write(['🎉 DEPLOY GATE PASSED'].join(" ") + "\n");
-      process.stdout.write(['All critical checks passed. Proceed with deployment.'].join(" ") + "\n");
+      process.stdout.write(['🎉 DEPLOY GATE PASSED'].join(' ') + '\n');
+      process.stdout.write(
+        ['All critical checks passed. Proceed with deployment.'].join(' ') + '\n'
+      );
       process.exit(0);
     } else {
-      process.stdout.write(['🚫 DEPLOY GATE FAILED'].join(" ") + "\n");
-      process.stdout.write(['Address all critical issues before deploying.'].join(" ") + "\n");
+      process.stdout.write(['🚫 DEPLOY GATE FAILED'].join(' ') + '\n');
+      process.stdout.write(['Address all critical issues before deploying.'].join(' ') + '\n');
       process.exit(1);
     }
   }

@@ -23,8 +23,15 @@ import { getApiBase, apiUrl, authHeaders } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 
 type Message = { role: 'user' | 'assistant'; content: string };
-type Provider = { id: string; label: string; available: boolean; model?: string; models?: string[] };
-type Personality = 'helpful' | 'professional' | 'casual' | 'sarcastic' | 'technical' | 'creative' | 'oracle';
+type Provider = {
+  id: string;
+  label: string;
+  available: boolean;
+  model?: string;
+  models?: string[];
+};
+type Personality =
+  'helpful' | 'professional' | 'casual' | 'sarcastic' | 'technical' | 'creative' | 'oracle';
 
 const MODEL_PREFS_STORAGE_KEY = 'simplebeacon_ai_model_preferences';
 const PROVIDER_REFRESH_MIN_INTERVAL_MS = 15000;
@@ -87,11 +94,13 @@ function formatMessage(content: string): string {
     return `__INLINECODE_${i}__`;
   });
   processed = escapeHtml(processed);
-  processed = processed.replace(/__CODEBLOCK_(\d+)__/g, (_, i) =>
-    `<pre class="chatbot-code-block"><code>${codeBlocks[Number(i)]}</code></pre>`
+  processed = processed.replace(
+    /__CODEBLOCK_(\d+)__/g,
+    (_, i) => `<pre class="chatbot-code-block"><code>${codeBlocks[Number(i)]}</code></pre>`
   );
-  processed = processed.replace(/__INLINECODE_(\d+)__/g, (_, i) =>
-    `<code class="chatbot-inline-code">${inlineCodes[Number(i)]}</code>`
+  processed = processed.replace(
+    /__INLINECODE_(\d+)__/g,
+    (_, i) => `<code class="chatbot-inline-code">${inlineCodes[Number(i)]}</code>`
   );
   processed = processed.replace(/<pre class="chatbot-code-block">[\s\S]*?<\/pre>/g, (m) =>
     m.replace(/\n/g, '&#10;')
@@ -117,7 +126,9 @@ export function ChatbotView() {
   const [selectedProvider, setSelectedProvider] = useState('');
   const [modelPrefs, setModelPrefs] = useState<Record<string, string>>(() => readModelPrefs());
   const [selectedModel, setSelectedModel] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'online' | 'offline'>(
+    'checking'
+  );
   const [connectionText, setConnectionText] = useState('Checking…');
   const [localNetworkDenied, setLocalNetworkDenied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -162,7 +173,9 @@ export function ChatbotView() {
       }
     };
     setTimeout(check, 500);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [apiBase]);
 
   const scrollToBottom = useCallback(() => {
@@ -185,10 +198,13 @@ export function ChatbotView() {
   }, [messages]);
 
   const saveSettings = useCallback((p: Personality, rf: boolean) => {
-    localStorage.setItem('simplebeacon_chatbot_settings', JSON.stringify({
-      personality: p,
-      removeFilters: rf,
-    }));
+    localStorage.setItem(
+      'simplebeacon_chatbot_settings',
+      JSON.stringify({
+        personality: p,
+        removeFilters: rf,
+      })
+    );
   }, []);
 
   const loadCustomPrompt = useCallback(async () => {
@@ -210,87 +226,102 @@ export function ChatbotView() {
     if (local) setCustomPrompt(local);
   }, [apiBase]);
 
-  const refreshProviders = useCallback(async (force = false) => {
-    if (!force && providers.length > 0 && Date.now() - providersFetchedAtRef.current < PROVIDER_REFRESH_MIN_INTERVAL_MS) {
-      return;
-    }
-    if (providerFetchInFlightRef.current) {
-      await providerFetchInFlightRef.current;
-      return;
-    }
-
-    const job = (async () => {
-    setConnectionStatus('checking');
-    setConnectionText('Checking…');
-    try {
-      const res = await fetch(apiUrl('/chatbot/providers'), {
-        method: 'GET',
-        headers: authHeaders(),
-        signal: AbortSignal.timeout(5000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const all: Provider[] = Array.isArray(data.providers) ? data.providers : [];
-        const modelMap: Record<string, string[]> = {};
-        for (const provider of all) {
-          modelMap[provider.id] = Array.isArray(provider.models)
-            ? provider.models.filter((m): m is string => typeof m === 'string' && m.trim().length > 0)
-            : [];
-        }
-        if (data.modelsByProvider && typeof data.modelsByProvider === 'object') {
-          for (const [providerId, models] of Object.entries(data.modelsByProvider as Record<string, unknown>)) {
-            if (!Array.isArray(models)) continue;
-            modelMap[providerId] = models.filter((m): m is string => typeof m === 'string' && m.trim().length > 0);
-          }
-        }
-        setProviderModels(modelMap);
-        const available = all.filter((p) => p.available);
-        setProviders(all);
-        providersFetchedAtRef.current = Date.now();
-        if (available.length > 0) {
-          const activeProvider = available[0];
-          setSelectedProvider(activeProvider.id);
-          const activeModel = (activeProvider.model || '').trim();
-          if (activeModel) {
-            setModelPrefs((prev) => {
-              const next = { ...prev, [activeProvider.id]: activeModel };
-              writeModelPrefs(next);
-              return next;
-            });
-          }
-          setConnectionStatus('online');
-          setConnectionText(`Ready — ${available.map((p) => p.label).join(', ')}`);
-          setError(null);
-        } else {
-          setSelectedProvider('');
-          setConnectionStatus('offline');
-          setConnectionText('No AI provider configured');
-          setError('No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.');
-        }
+  const refreshProviders = useCallback(
+    async (force = false) => {
+      if (
+        !force &&
+        providers.length > 0 &&
+        Date.now() - providersFetchedAtRef.current < PROVIDER_REFRESH_MIN_INTERVAL_MS
+      ) {
         return;
       }
-    } catch {
-      // API unreachable
-    }
-    const hardcoded: Provider[] = [
-      { id: 'ollama', label: 'Ollama', available: false },
-      { id: 'openai', label: 'OpenAI', available: false },
-      { id: 'anthropic', label: 'Anthropic', available: false },
-    ];
-    setProviders(hardcoded);
-    setSelectedProvider('');
-    setConnectionStatus('offline');
-    setConnectionText('Chatbot API unavailable');
-    setError('Chatbot API unavailable. Ensure the ai-platform server is running.');
-    })();
+      if (providerFetchInFlightRef.current) {
+        await providerFetchInFlightRef.current;
+        return;
+      }
 
-    providerFetchInFlightRef.current = job;
-    try {
-      await job;
-    } finally {
-      providerFetchInFlightRef.current = null;
-    }
-  }, [apiBase, providers.length]);
+      const job = (async () => {
+        setConnectionStatus('checking');
+        setConnectionText('Checking…');
+        try {
+          const res = await fetch(apiUrl('/chatbot/providers'), {
+            method: 'GET',
+            headers: authHeaders(),
+            signal: AbortSignal.timeout(5000),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const all: Provider[] = Array.isArray(data.providers) ? data.providers : [];
+            const modelMap: Record<string, string[]> = {};
+            for (const provider of all) {
+              modelMap[provider.id] = Array.isArray(provider.models)
+                ? provider.models.filter(
+                    (m): m is string => typeof m === 'string' && m.trim().length > 0
+                  )
+                : [];
+            }
+            if (data.modelsByProvider && typeof data.modelsByProvider === 'object') {
+              for (const [providerId, models] of Object.entries(
+                data.modelsByProvider as Record<string, unknown>
+              )) {
+                if (!Array.isArray(models)) continue;
+                modelMap[providerId] = models.filter(
+                  (m): m is string => typeof m === 'string' && m.trim().length > 0
+                );
+              }
+            }
+            setProviderModels(modelMap);
+            const available = all.filter((p) => p.available);
+            setProviders(all);
+            providersFetchedAtRef.current = Date.now();
+            if (available.length > 0) {
+              const activeProvider = available[0];
+              setSelectedProvider(activeProvider.id);
+              const activeModel = (activeProvider.model || '').trim();
+              if (activeModel) {
+                setModelPrefs((prev) => {
+                  const next = { ...prev, [activeProvider.id]: activeModel };
+                  writeModelPrefs(next);
+                  return next;
+                });
+              }
+              setConnectionStatus('online');
+              setConnectionText(`Ready — ${available.map((p) => p.label).join(', ')}`);
+              setError(null);
+            } else {
+              setSelectedProvider('');
+              setConnectionStatus('offline');
+              setConnectionText('No AI provider configured');
+              setError(
+                'No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.'
+              );
+            }
+            return;
+          }
+        } catch {
+          // API unreachable
+        }
+        const hardcoded: Provider[] = [
+          { id: 'ollama', label: 'Ollama', available: false },
+          { id: 'openai', label: 'OpenAI', available: false },
+          { id: 'anthropic', label: 'Anthropic', available: false },
+        ];
+        setProviders(hardcoded);
+        setSelectedProvider('');
+        setConnectionStatus('offline');
+        setConnectionText('Chatbot API unavailable');
+        setError('Chatbot API unavailable. Ensure the ai-platform server is running.');
+      })();
+
+      providerFetchInFlightRef.current = job;
+      try {
+        await job;
+      } finally {
+        providerFetchInFlightRef.current = null;
+      }
+    },
+    [apiBase, providers.length]
+  );
 
   useEffect(() => {
     if (!selectedProvider) {
@@ -299,34 +330,40 @@ export function ChatbotView() {
     }
     const providerOptions = providerModels[selectedProvider]?.length
       ? providerModels[selectedProvider]
-      : (PROVIDER_MODEL_OPTIONS[selectedProvider] || []);
+      : PROVIDER_MODEL_OPTIONS[selectedProvider] || [];
     const providerModel = providers.find((p) => p.id === selectedProvider)?.model || '';
     const fromPrefs = modelPrefs[selectedProvider] || '';
     setSelectedModel(fromPrefs || providerModel || providerOptions[0] || '');
   }, [selectedProvider, modelPrefs, providerModels, providers]);
 
   const modelOptions = selectedProvider
-    ? (providerModels[selectedProvider]?.length
+    ? providerModels[selectedProvider]?.length
       ? providerModels[selectedProvider]
-      : (PROVIDER_MODEL_OPTIONS[selectedProvider] || []))
+      : PROVIDER_MODEL_OPTIONS[selectedProvider] || []
     : [];
   const isCustomModel = Boolean(selectedModel) && !modelOptions.includes(selectedModel);
 
-  const handleModelSelectChange = useCallback((nextModel: string) => {
-    if (!selectedProvider || nextModel === '__custom__') return;
-    const nextPrefs = { ...modelPrefs, [selectedProvider]: nextModel };
-    setModelPrefs(nextPrefs);
-    writeModelPrefs(nextPrefs);
-    setSelectedModel(nextModel);
-  }, [selectedProvider, modelPrefs]);
+  const handleModelSelectChange = useCallback(
+    (nextModel: string) => {
+      if (!selectedProvider || nextModel === '__custom__') return;
+      const nextPrefs = { ...modelPrefs, [selectedProvider]: nextModel };
+      setModelPrefs(nextPrefs);
+      writeModelPrefs(nextPrefs);
+      setSelectedModel(nextModel);
+    },
+    [selectedProvider, modelPrefs]
+  );
 
-  const handleCustomModelChange = useCallback((nextModel: string) => {
-    setSelectedModel(nextModel);
-    if (!selectedProvider) return;
-    const nextPrefs = { ...modelPrefs, [selectedProvider]: nextModel };
-    setModelPrefs(nextPrefs);
-    writeModelPrefs(nextPrefs);
-  }, [selectedProvider, modelPrefs]);
+  const handleCustomModelChange = useCallback(
+    (nextModel: string) => {
+      setSelectedModel(nextModel);
+      if (!selectedProvider) return;
+      const nextPrefs = { ...modelPrefs, [selectedProvider]: nextModel };
+      setModelPrefs(nextPrefs);
+      writeModelPrefs(nextPrefs);
+    },
+    [selectedProvider, modelPrefs]
+  );
 
   // simplebeacon-ignore: framework-practices
   useEffect(() => {
@@ -341,7 +378,9 @@ export function ChatbotView() {
             setLocalNetworkDenied(true);
             setConnectionStatus('offline');
             setConnectionText('Local Network Access blocked — permission required');
-            setError('Local Network Access blocked. Please allow access in your browser and retry.');
+            setError(
+              'Local Network Access blocked. Please allow access in your browser and retry.'
+            );
             return;
           }
           setLocalNetworkDenied(false);
@@ -366,7 +405,9 @@ export function ChatbotView() {
       setLocalNetworkDenied(true);
       setConnectionStatus('offline');
       setConnectionText('Local Network Access blocked — permission required');
-      setError('Local Network Access still blocked. Check browser Site Settings and grant permission, then retry.');
+      setError(
+        'Local Network Access still blocked. Check browser Site Settings and grant permission, then retry.'
+      );
     }
   };
 
@@ -374,7 +415,9 @@ export function ChatbotView() {
     const msg = input.trim();
     if (!msg || isLoading) return;
     if (!selectedProvider) {
-      setError('No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.');
+      setError(
+        'No AI provider configured. Add an OpenAI or Anthropic API key in Settings → AI providers, or run Ollama locally.'
+      );
       return;
     }
 
@@ -409,7 +452,9 @@ export function ChatbotView() {
           throw new Error('Chatbot API not found. Ensure the ai-platform server is running.');
         }
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || errData.error || `HTTP ${res.status}: ${res.statusText}`);
+        throw new Error(
+          errData.message || errData.error || `HTTP ${res.status}: ${res.statusText}`
+        );
       }
 
       const reader = res.body?.getReader();
@@ -473,7 +518,8 @@ export function ChatbotView() {
         }
       }
       // Auto-retry once if the assistant returned a canned refusal message.
-      const refusalPattern = /I(?:'|[\u2019])?m sorry, but I can(?:'|[\u2019])?t (?:assist|help|provide)|I cannot (?:provide|assist|help)|I(?:'|[\u2019])?m unable to|I will not (?:assist|help|provide)|I can(?:'|[\u2019])?t (?:help|provide|answer)/i;
+      const refusalPattern =
+        /I(?:'|[\u2019])?m sorry, but I can(?:'|[\u2019])?t (?:assist|help|provide)|I cannot (?:provide|assist|help)|I(?:'|[\u2019])?m unable to|I will not (?:assist|help|provide)|I can(?:'|[\u2019])?t (?:help|provide|answer)/i;
       if (refusalPattern.test(accumulated)) {
         try {
           const retryRes = await fetch(apiUrl('/chatbot/message'), {
@@ -516,7 +562,16 @@ export function ChatbotView() {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, selectedProvider, selectedModel, messages, apiBase, personality, removeFilters]);
+  }, [
+    input,
+    isLoading,
+    selectedProvider,
+    selectedModel,
+    messages,
+    apiBase,
+    personality,
+    removeFilters,
+  ]);
 
   const handleClear = useCallback(() => {
     setMessages([]);
@@ -554,12 +609,15 @@ export function ChatbotView() {
     setShowSettings(false);
   }, [personality, removeFilters, saveSettings]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      void handleSend();
-    }
-  }, [handleSend]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        void handleSend();
+      }
+    },
+    [handleSend]
+  );
 
   const isOracle = personality === 'oracle';
 
@@ -570,22 +628,34 @@ export function ChatbotView() {
           <h1 className="text-3xl font-bold tracking-tight">
             {isOracle ? '🔮 The Unbreakable Oracle' : '🤖 Chatbot'}
           </h1>
-          <Badge variant={connectionStatus === 'online' ? 'default' : 'secondary'} className="gap-1.5">
-            <span className={`inline-block h-2 w-2 rounded-full ${
-              connectionStatus === 'online' ? 'bg-green-500' :
-              connectionStatus === 'checking' ? 'bg-yellow-500' : 'bg-red-500'
-            }`} />
+          <Badge
+            variant={connectionStatus === 'online' ? 'default' : 'secondary'}
+            className="gap-1.5"
+          >
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${
+                connectionStatus === 'online'
+                  ? 'bg-green-500'
+                  : connectionStatus === 'checking'
+                    ? 'bg-yellow-500'
+                    : 'bg-red-500'
+              }`}
+            />
             {connectionText}
           </Badge>
         </div>
         <p className="text-foreground-muted">
-          {isOracle ? 'Mortal, seek divine wisdom about your codebase' : 'AI-powered assistance for your codebase'}
+          {isOracle
+            ? 'Mortal, seek divine wisdom about your codebase'
+            : 'AI-powered assistance for your codebase'}
         </p>
         <div className="flex items-center gap-2 text-sm text-foreground-muted bg-muted/50 rounded-lg px-3 py-2">
           <Sparkles className="h-4 w-4 shrink-0" />
-          <span>{isOracle
-            ? 'You commune with The Unbreakable Oracle, an omniscient AI entity. Revelations may contain divine inaccuracies.'
-            : 'You are interacting with an AI system. Responses are generated by AI models and may contain inaccuracies.'}</span>
+          <span>
+            {isOracle
+              ? 'You commune with The Unbreakable Oracle, an omniscient AI entity. Revelations may contain divine inaccuracies.'
+              : 'You are interacting with an AI system. Responses are generated by AI models and may contain inaccuracies.'}
+          </span>
         </div>
       </div>
 
@@ -593,7 +663,9 @@ export function ChatbotView() {
         <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
           <AlertCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
           <span className="flex-1">{error}</span>
-          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setError(null)}>×</Button>
+          <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setError(null)}>
+            ×
+          </Button>
         </div>
       )}
 
@@ -603,14 +675,28 @@ export function ChatbotView() {
             <AlertCircle className="h-4 w-4 shrink-0 text-yellow-600 mt-0.5" />
             <div>
               <div className="font-medium">Local Network Access required</div>
-              <div className="text-xs text-foreground-muted">This hosted dashboard needs permission to access your local SimpleBeacon bridge.</div>
+              <div className="text-xs text-foreground-muted">
+                This hosted dashboard needs permission to access your local SimpleBeacon bridge.
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={handleRetryLocalNetwork}>Retry</Button>
-            <Button variant="ghost" size="sm" onClick={() => {
-              window.open('https://support.google.com/chrome/answer/14227606', '_blank', 'noopener');
-            }}>How to allow</Button>
+            <Button size="sm" onClick={handleRetryLocalNetwork}>
+              Retry
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                window.open(
+                  'https://support.google.com/chrome/answer/14227606',
+                  '_blank',
+                  'noopener'
+                );
+              }}
+            >
+              How to allow
+            </Button>
           </div>
         </div>
       )}
@@ -628,10 +714,15 @@ export function ChatbotView() {
               className="h-8 rounded-md border border-input bg-background px-2 text-sm"
               aria-label="AI Provider"
             >
-              {providers.length === 0 && <option value="" disabled>Loading providers…</option>}
+              {providers.length === 0 && (
+                <option value="" disabled>
+                  Loading providers…
+                </option>
+              )}
               {providers.map((p) => (
                 <option key={p.id} value={p.id} disabled={!p.available}>
-                  {p.label}{p.available ? '' : ' (not configured)'}
+                  {p.label}
+                  {p.available ? '' : ' (not configured)'}
                 </option>
               ))}
             </select>
@@ -643,9 +734,15 @@ export function ChatbotView() {
               disabled={!selectedProvider}
               title="Select AI model"
             >
-              {!selectedProvider && <option value="" disabled>Select provider first</option>}
+              {!selectedProvider && (
+                <option value="" disabled>
+                  Select provider first
+                </option>
+              )}
               {modelOptions.map((model) => (
-                <option key={model} value={model}>{model}</option>
+                <option key={model} value={model}>
+                  {model}
+                </option>
               ))}
               {selectedProvider && <option value="__custom__">Custom model…</option>}
             </select>
@@ -657,10 +754,20 @@ export function ChatbotView() {
               placeholder="Custom model"
               disabled={!selectedProvider}
             />
-            <Button variant="ghost" size="sm" onClick={() => setShowPrompt(!showPrompt)} title="Custom system prompt">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowPrompt(!showPrompt)}
+              title="Custom system prompt"
+            >
               <FileText className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowSettings(!showSettings)} title="Settings">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSettings(!showSettings)}
+              title="Settings"
+            >
               <Settings2 className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={handleClear} title="Clear history">
@@ -678,9 +785,13 @@ export function ChatbotView() {
                 onChange={(e) => setPersonality(e.target.value as Personality)}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                {(Object.entries(PERSONALITY_LABELS) as [Personality, string][]).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
+                {(Object.entries(PERSONALITY_LABELS) as [Personality, string][]).map(
+                  ([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  )
+                )}
               </select>
             </div>
             <label className="flex items-center gap-2 text-sm">
@@ -691,9 +802,13 @@ export function ChatbotView() {
                 className="h-4 w-4 rounded border-input"
                 title="This disables the LLM's safety/content filters, not convolutional filters in a neural network."
               />
-              <span title="This disables the LLM's safety/content filters, not convolutional filters in a neural network.">Disable safety / content filters</span>
+              <span title="This disables the LLM's safety/content filters, not convolutional filters in a neural network.">
+                Disable safety / content filters
+              </span>
             </label>
-            <Button size="sm" onClick={handleSaveSettings}>Save Settings</Button>
+            <Button size="sm" onClick={handleSaveSettings}>
+              Save Settings
+            </Button>
           </div>
         )}
 
@@ -702,13 +817,27 @@ export function ChatbotView() {
             <label className="text-sm font-medium">Custom System Prompt</label>
             <Textarea
               value={customPrompt}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCustomPrompt(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setCustomPrompt(e.target.value)
+              }
               rows={3}
               placeholder="e.g. Focus on security vulnerabilities and OWASP compliance..."
             />
             <div className="flex gap-2">
-              <Button size="sm" onClick={handleSavePrompt}>Save Prompt</Button>
-              <Button variant="ghost" size="sm" onClick={() => { setCustomPrompt(''); localStorage.removeItem('chatbot_custom_prompt'); toast.success('Prompt reset'); }}>Reset</Button>
+              <Button size="sm" onClick={handleSavePrompt}>
+                Save Prompt
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCustomPrompt('');
+                  localStorage.removeItem('chatbot_custom_prompt');
+                  toast.success('Prompt reset');
+                }}
+              >
+                Reset
+              </Button>
             </div>
           </div>
         )}
@@ -729,11 +858,11 @@ export function ChatbotView() {
                   key={index}
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                    msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}>
+                  <div
+                    className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                      msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    }`}
+                  >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-medium opacity-70">
                         {msg.role === 'user' ? 'You' : 'AI'}
@@ -744,7 +873,11 @@ export function ChatbotView() {
                           className="text-xs opacity-50 hover:opacity-100 transition-opacity"
                           title="Copy response"
                         >
-                          {copiedIndex === index ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          {copiedIndex === index ? (
+                            <Check className="h-3 w-3" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
                         </button>
                       )}
                     </div>

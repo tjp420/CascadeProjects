@@ -11,7 +11,7 @@ function createMockReq(overrides = {}) {
     params: {},
     body: {},
     headers: {},
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -30,7 +30,7 @@ function createMockRes() {
     },
     setHeader(key, value) {
       this._headers[key] = value;
-    }
+    },
   };
   return res;
 }
@@ -93,8 +93,8 @@ describe('assessment router', () => {
         downloadReport: (req, res) => {
           controllerCalls.push({ method: 'downloadReport', req, res });
           res.json({ success: true, action: 'downloadReport' });
-        }
-      }
+        },
+      },
     };
 
     const indexPath = require.resolve('../index.cjs');
@@ -130,9 +130,19 @@ describe('assessment router', () => {
 
     const middlewareNames = scanLayer.route.stack.map((layer) => layer.handle.name || '');
     // express-rate-limit returns anonymous middleware; verify there are 3+ layers
-    assert.strictEqual(scanLayer.route.stack.length >= 3, true, 'scan should have rate limit + validation + handler');
-    assert.ok(middlewareNames.some((n) => n === 'validateScanBody'), 'scan should have validation');
-    assert.ok(middlewareNames.some((n) => n === ''), 'scan should have async handler');
+    assert.strictEqual(
+      scanLayer.route.stack.length >= 3,
+      true,
+      'scan should have rate limit + validation + handler'
+    );
+    assert.ok(
+      middlewareNames.some((n) => n === 'validateScanBody'),
+      'scan should have validation'
+    );
+    assert.ok(
+      middlewareNames.some((n) => n === ''),
+      'scan should have async handler'
+    );
   });
 
   it('report/:id endpoint has rate limit and validation', async () => {
@@ -141,23 +151,42 @@ describe('assessment router', () => {
     assert.strictEqual(reportLayer.route.methods.get, true);
 
     const middlewareNames = reportLayer.route.stack.map((layer) => layer.handle.name || '');
-    assert.strictEqual(reportLayer.route.stack.length >= 3, true, 'report should have rate limit + validation + handler');
-    assert.ok(middlewareNames.some((n) => n === 'validateReportId'), 'report should have validation');
+    assert.strictEqual(
+      reportLayer.route.stack.length >= 3,
+      true,
+      'report should have rate limit + validation + handler'
+    );
+    assert.ok(
+      middlewareNames.some((n) => n === 'validateReportId'),
+      'report should have validation'
+    );
   });
 
   it('download endpoint has rate limit and format validation', async () => {
-    const dlLayer = router.stack.find((layer) => layer.route?.path === '/report/:id/download/:format');
+    const dlLayer = router.stack.find(
+      (layer) => layer.route?.path === '/report/:id/download/:format'
+    );
     assert.ok(dlLayer, 'download route should exist');
     assert.strictEqual(dlLayer.route.methods.get, true);
 
     const middlewareNames = dlLayer.route.stack.map((layer) => layer.handle.name || '');
-    assert.strictEqual(dlLayer.route.stack.length >= 3, true, 'download should have rate limit + validation + handler');
-    assert.ok(middlewareNames.some((n) => n === 'validateDownloadParams'), 'download should have validation');
+    assert.strictEqual(
+      dlLayer.route.stack.length >= 3,
+      true,
+      'download should have rate limit + validation + handler'
+    );
+    assert.ok(
+      middlewareNames.some((n) => n === 'validateDownloadParams'),
+      'download should have validation'
+    );
   });
 
   it('router has error handler registered last', () => {
     const lastLayer = router.stack[router.stack.length - 1];
     const lastName = lastLayer.handle.name || '';
-    assert.ok(lastName.includes('assessmentErrorHandler') || lastLayer.handle.length === 4, 'last middleware should be error handler');
+    assert.ok(
+      lastName.includes('assessmentErrorHandler') || lastLayer.handle.length === 4,
+      'last middleware should be error handler'
+    );
   });
 });

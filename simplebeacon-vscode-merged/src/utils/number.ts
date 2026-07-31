@@ -29,7 +29,7 @@ export function formatBytes(bytes: number | null | undefined, fractionDigits = 1
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   const k = 1024;
   const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), units.length - 1);
-  const value = Number((bytes / (k ** i)).toFixed(digits));
+  const value = Number((bytes / k ** i).toFixed(digits));
   return `${value} ${units[i]}`;
 }
 

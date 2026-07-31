@@ -1,58 +1,49 @@
-# Test Plan: Alerting System Completion
+# Test Plan: Slack Destination for Alert Dispatcher
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Complete the alerting system — fix critical logger bug, mount routes, wire up missing event triggers.
+**Feature:** Implement Slack Incoming Webhook message formatting for alert delivery.
 
 ## Context
 
-The alerting system is 80% built. The backend core (dispatcher, rule store, incident store, routes) is complete. The frontend UI in `UsageAnalyticsView.tsx` is complete. However:
+The alert dispatcher (`alert-dispatcher.cjs`) currently sends raw JSON payloads to all destination types. Slack Incoming Webhooks expect a specific message format with `text` field and optional `blocks` for rich formatting. The current "Slack-specific formatting" code (line 62-64) only sets the Content-Type header — it doesn't format the body.
 
-- `alert-routes.cjs` had a critical bug: used `logger.warn()` in 8 catch blocks without importing `logger`
-- `model-eval-routes.cjs` had the same missing logger import (from Phase 5)
-- Alert routes were not mounted in `index.cjs` (alternate entry point)
-- `guardrail_blocked` event was defined but never triggered
-- `eval_failure` event was defined but never triggered
+## Change
 
-## Changes (4 files, 0 new)
+**Single file:** `server/lib/alert-dispatcher.cjs`
 
-| File                                    | Change                                                     |
-| --------------------------------------- | ---------------------------------------------------------- |
-| `server/routes/alert-routes.cjs`        | Add missing `logger` import (hotfix)                       |
-| `server/routes/model-eval-routes.cjs`   | Add missing `logger` import + `eval_failure` alert trigger |
-| `server/middleware/prompt-firewall.cjs` | Add `guardrail_blocked` alert trigger on block verdict     |
-| `server/index.cjs`                      | Mount alert-routes and guardrail-routes                    |
+Add a `formatSlackMessage(payload)` function that converts the alert payload into a Slack message with:
+- Severity-colored attachment (red=critical, orange=high, yellow=medium, blue=info)
+- Event type as title
+- Message as main text
+- Data fields as attachment fields
+- Timestamp
+
+Modify `deliverAlert()` to use the formatted Slack message body when `destinationType === 'slack'`.
 
 ## Objective Check-Items
 
 ### Level 1 — Deterministic
 
-| #    | Item                                       | Expected       |
-| ---- | ------------------------------------------ | -------------- |
-| L1.1 | `node -c` on all 4 changed files           | exit 0         |
-| L1.2 | `npx simplebeacon scan --gate`             | PASS (exit 0)  |
-| L1.3 | WebSocket integration test                 | 16/16 pass     |
-| L1.4 | Alert integration test (`test-alerts.cjs`) | All tests pass |
+| # | Item | Expected |
+|---|------|----------|
+| L1.1 | `node -c` on alert-dispatcher.cjs | exit 0 |
+| L1.2 | `npx simplebeacon scan --gate` | PASS (exit 0) |
+| L1.3 | WebSocket integration test | 16/16 pass |
 
 ### Level 2 — Behavioral
 
-| #    | Item                                                       | Expected                                           |
-| ---- | ---------------------------------------------------------- | -------------------------------------------------- |
-| L2.1 | `GET /api/alerts/rules` returns 200 with rules array       | `{ success: true, rules: [] }`                     |
-| L2.2 | `GET /api/alerts/event-types` returns 200 with event types | `{ success: true, eventTypes: [...] }`             |
-| L2.3 | `POST /api/alerts/rules` creates a rule                    | `{ success: true, rule: {...} }`                   |
-| L2.4 | `POST /api/alerts/trigger` dispatches event                | `{ success: true, dispatched: N, results: [...] }` |
-| L2.5 | `GET /api/alerts/incidents` returns incidents              | `{ success: true, incidents: [...] }`              |
-| L2.6 | `GET /api/alerts/stats` returns stats                      | `{ success: true, stats: {...} }`                  |
-| L2.7 | `DELETE /api/alerts/rules/:id` deletes rule                | `{ success: true, deleted: "..." }`                |
-| L2.8 | Guardrail block triggers `guardrail_blocked` alert         | Alert incident recorded                            |
-| L2.9 | Model eval failure triggers `eval_failure` alert           | Alert incident recorded                            |
+| # | Item | Expected |
+|---|------|----------|
+| L2.1 | Create Slack rule + trigger → dispatcher sends Slack-formatted body | Body contains `text` and `attachments` fields |
+| L2.2 | Slack message has severity-colored attachment | Color matches severity |
+| L2.3 | Webhook destination still sends raw JSON (no regression) | Body is raw JSON payload |
+| L2.4 | Slack delivery to non-existent URL records incident as failed | Status: failed |
 
 ### Level 3 — Self-review / drift
 
-| #    | Item                            | Expected                                                |
-| ---- | ------------------------------- | ------------------------------------------------------- |
-| L3.1 | No new files created            | Only edits to existing files                            |
-| L3.2 | No response format changes      | Existing endpoints unchanged                            |
-| L3.3 | No mount path conflicts         | `/api/alerts` and `/api/guardrails` not already mounted |
-| L3.4 | Alert triggers are non-blocking | `.catch(() => {})` on all trigger calls                 |
+| # | Item | Expected |
+|---|------|----------|
+| L3.1 | Single file changed | Only alert-dispatcher.cjs |
+| L3.2 | No new dependencies | Uses built-in fetch |
+| L3.3 | Webhook destination unchanged | Raw JSON body preserved for non-Slack |

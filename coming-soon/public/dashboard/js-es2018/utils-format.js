@@ -14,11 +14,9 @@ export function escapeRegExp(str) {
  * @returns {string}
  */
 export function formatNumber(n) {
-    if (n == null)
-        return '—';
+    if (n == null) return '—';
     const numericCount = Number(n);
-    if (!Number.isFinite(numericCount))
-        return '—';
+    if (!Number.isFinite(numericCount)) return '—';
     return numericCount.toLocaleString();
 }
 
@@ -29,14 +27,11 @@ export function formatNumber(n) {
  * @returns {string}
  */
 export function formatPercent(value, fractionDigits = 1) {
-    if (value == null || value === '')
-        return '—';
+    if (value == null || value === '') return '—';
     const str = String(value).trim();
-    if (str.endsWith('%'))
-        return str;
+    if (str.endsWith('%')) return str;
     const num = Number(str);
-    if (!Number.isFinite(num))
-        return '—';
+    if (!Number.isFinite(num)) return '—';
     const digits = Number.isFinite(fractionDigits)
         ? Math.max(0, Math.min(20, Math.floor(Number(fractionDigits) || 0)))
         : 1;
@@ -50,13 +45,10 @@ export function formatPercent(value, fractionDigits = 1) {
  * @returns {string}
  */
 export function formatBytes(bytes, decimals = 2) {
-    if (bytes == null || !Number.isFinite(bytes) || bytes < 0)
-        return '—';
-    if (bytes === 0)
-        return '0 B';
+    if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return '—';
+    if (bytes === 0) return '0 B';
     const digits = Number.isFinite(decimals) ? Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0))) : 2;
-    if (bytes < 1)
-        return `${bytes.toFixed(digits)} B`;
+    if (bytes < 1) return `${bytes.toFixed(digits)} B`;
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
@@ -117,7 +109,7 @@ export function formatDate(date, opts = {}) {
     if (date == null || date === '') return '—';
     const d = new Date(date);
     if (Number.isNaN(d.getTime())) return '—';
-    const safeOpts = (opts && typeof opts === 'object' && !Array.isArray(opts)) ? opts : {};
+    const safeOpts = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts : {};
     const { time = false } = safeOpts;
     const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     if (!time) return dateStr;
@@ -177,11 +169,26 @@ const FINDINGS_NOTE = '(findings unchanged)';
 const AI_SKIP_PATTERNS = [
     { test: /openai is not configured/i, msg: 'add your OpenAI key in Settings → AI providers' },
     { test: /anthropic is not configured/i, msg: 'add your Anthropic key in Settings → AI providers' },
-    { test: /ollama is not configured/i, msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env' },
-    { test: /ollama is unreachable/i, msg: 'Ollama is not running. Start it with `ollama serve`, pull a model (`ollama pull llama3.2`), then set the model in Settings → AI providers' },
-    { test: /ollama has no models/i, msg: 'Ollama is running but has no models. Run `ollama pull llama3.2` or pick a model in Settings → AI providers' },
-    { test: /OLLAMA_MODEL|Local AI Models/i, msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env' },
-    { test: /Filesystem scan only|Active local model is filesystem/i, msg: 'choose Ollama or a cloud provider in the AI provider dropdown' },
+    {
+        test: /ollama is not configured/i,
+        msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env'
+    },
+    {
+        test: /ollama is unreachable/i,
+        msg: 'Ollama is not running. Start it with `ollama serve`, pull a model (`ollama pull llama3.2`), then set the model in Settings → AI providers'
+    },
+    {
+        test: /ollama has no models/i,
+        msg: 'Ollama is running but has no models. Run `ollama pull llama3.2` or pick a model in Settings → AI providers'
+    },
+    {
+        test: /OLLAMA_MODEL|Local AI Models/i,
+        msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env'
+    },
+    {
+        test: /Filesystem scan only|Active local model is filesystem/i,
+        msg: 'choose Ollama or a cloud provider in the AI provider dropdown'
+    }
 ];
 
 /**
@@ -211,7 +218,9 @@ export function formatAiSummarySkipMessage(errorMessage) {
  * No-op function. Useful as a default for optional callbacks.
  * @returns {void}
  */
-export function noop() { /* intentionally empty */ }
+export function noop() {
+    /* intentionally empty */
+}
 
 /**
  * True when the value is null, undefined, or a whitespace-only string.
@@ -367,7 +376,7 @@ export function repeat(str, count) {
 export function titleCase(str) {
     return String(str ?? '')
         .toLowerCase()
-        .replace(/(?:^|\s)\S/g, (ch) => ch.toUpperCase());
+        .replace(/(?:^|\s)\S/g, ch => ch.toUpperCase());
 }
 
 /**

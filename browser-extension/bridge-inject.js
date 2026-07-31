@@ -39,7 +39,7 @@
       window.dispatchEvent(
         new CustomEvent('simplebeacon-agent-request', {
           detail: { id, method, url, body },
-          bubbles: true
+          bubbles: true,
         })
       );
     });
@@ -55,14 +55,16 @@
         ok: response.ok,
         status: response.status,
         headers: {
-          get: () => 'application/json'
+          get: () => 'application/json',
         },
         json: async () => response.body,
-        text: async () => JSON.stringify(response.body)
+        text: async () => JSON.stringify(response.body),
       };
-    }
+    },
   };
 
   // Notify the dashboard that the bridge is ready.
-  window.dispatchEvent(new CustomEvent('simplebeacon-agent-bridge-ready', { detail: { version: '1.0.0' } }));
-}());
+  window.dispatchEvent(
+    new CustomEvent('simplebeacon-agent-bridge-ready', { detail: { version: '1.0.0' } })
+  );
+})();

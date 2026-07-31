@@ -34,7 +34,9 @@ export class DebugReporter {
     const folders = vscode.workspace.workspaceFolders;
     if (folders && folders.length > 0) {
       const dir = path.join(folders[0].uri.fsPath, '.simplebeacon');
-      if (!fs.existsSync(dir)) { fs.mkdirSync(dir, { recursive: true }); }
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
       this._outputPath = path.join(dir, 'debug-report.json');
     } else {
       this._outputPath = path.join(os.tmpdir(), 'simplebeacon-debug-report.json');
@@ -43,17 +45,21 @@ export class DebugReporter {
   }
 
   public static getInstance(): DebugReporter {
-    if (!DebugReporter._instance) { DebugReporter._instance = new DebugReporter(); }
+    if (!DebugReporter._instance) {
+      DebugReporter._instance = new DebugReporter();
+    }
     return DebugReporter._instance;
   }
 
   public log(type: DebugEntry['type'], source: string, detail: Record<string, unknown>) {
-    if (!this._enabled) { return; }
+    if (!this._enabled) {
+      return;
+    }
     const entry: DebugEntry = {
       timestamp: new Date().toISOString(),
       type,
       source,
-      detail
+      detail,
     };
     this._entries.push(entry);
     if (this._entries.length > this._maxEntries) {
@@ -75,10 +81,19 @@ export class DebugReporter {
     // Redact body and URL to avoid logging PII/sensitive data
     const safeBody = typeof body === 'string' && body.length > 200 ? body.substring(0, 200) + '...' : body;
     const safeUrl = url ? url.split('?')[0] : url;
-    this.log('relay', 'relay-server', { method, url: safeUrl, status, bodySize: typeof safeBody === 'string' ? safeBody.length : 0 });
+    this.log('relay', 'relay-server', {
+      method,
+      url: safeUrl,
+      status,
+      bodySize: typeof safeBody === 'string' ? safeBody.length : 0,
+    });
   }
 
-  public logPanel(action: 'create' | 'reveal' | 'dispose' | 'update' | 'reuse', panelId: string, extra?: Record<string, unknown>) {
+  public logPanel(
+    action: 'create' | 'reveal' | 'dispose' | 'update' | 'reuse',
+    panelId: string,
+    extra?: Record<string, unknown>
+  ) {
     this.log('panel', 'panel-manager', { action, panelId, ...extra });
   }
 
@@ -86,7 +101,7 @@ export class DebugReporter {
     this.log('error', context ?? 'unknown', {
       message: err.message,
       stack: err.stack,
-      name: err.name
+      name: err.name,
     });
     // Flag as issue in reporting system
     const issue: ErrorIssue = {
@@ -96,7 +111,7 @@ export class DebugReporter {
       severity: 'high',
       message: err.message,
       context: context ?? 'unknown',
-      stack: err.stack
+      stack: err.stack,
     };
     DebugReporter.errorIssues.push(issue);
     // Also write to a dedicated error-issues file for the scanner to pick up
@@ -107,7 +122,9 @@ export class DebugReporter {
         const errorFile = path.join(dir, 'error-issues.json');
         await fs.promises.writeFile(errorFile, JSON.stringify(DebugReporter.errorIssues, null, 2), 'utf8');
       }
-    } catch { /* ignore write failures */ }
+    } catch {
+      /* ignore write failures */
+    }
   }
 
   public logState(label: string, state: Record<string, unknown>) {
@@ -121,13 +138,18 @@ export class DebugReporter {
   }
 
   public dumpReport(): string {
-    return JSON.stringify({
-      generatedAt: new Date().toISOString(),
-      extensionVersion: vscode.extensions.getExtension('simplebeacon.simplebeacon-vscode')?.packageJSON?.version ?? 'unknown',
-      vscodeVersion: vscode.version,
-      entryCount: this._entries.length,
-      entries: this._entries
-    }, null, 2);
+    return JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        extensionVersion:
+          vscode.extensions.getExtension('simplebeacon.simplebeacon-vscode')?.packageJSON?.version ?? 'unknown',
+        vscodeVersion: vscode.version,
+        entryCount: this._entries.length,
+        entries: this._entries,
+      },
+      null,
+      2
+    );
   }
 
   private _flush() {
@@ -143,7 +165,12 @@ export class DebugReporter {
   }
 
   public show() {
-    const panel = vscode.window.createWebviewPanel('simplebeaconDebug', 'SimpleBeacon Debug Report', vscode.ViewColumn.Three, { enableScripts: true });
+    const panel = vscode.window.createWebviewPanel(
+      'simplebeaconDebug',
+      'SimpleBeacon Debug Report',
+      vscode.ViewColumn.Three,
+      { enableScripts: true }
+    );
     panel.webview.html = `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><style>

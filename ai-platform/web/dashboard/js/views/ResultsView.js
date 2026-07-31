@@ -29,8 +29,15 @@ export class ResultsView {
     let issues = source.map((issue, index) => ({
       ...issue,
       id: issue.id || `${issue.severity}|${issue.type}|${issue.description}|${index}`,
-      filePaths: issue.filePaths || issue.metadata?.duplicatePaths || (issue.filePath ? [issue.filePath] : []),
-      filePath: issue.filePath || issue.filePaths?.[0] || issue.metadata?.duplicatePaths?.[0] || issue.affectedFiles?.[0]
+      filePaths:
+        issue.filePaths ||
+        issue.metadata?.duplicatePaths ||
+        (issue.filePath ? [issue.filePath] : []),
+      filePath:
+        issue.filePath ||
+        issue.filePaths?.[0] ||
+        issue.metadata?.duplicatePaths?.[0] ||
+        issue.affectedFiles?.[0],
     }));
     const query = this.app.state.routeParams?.q;
 
@@ -76,7 +83,9 @@ export class ResultsView {
         <div class="metric-chip"><strong>${formatPercent(report.schemaCompliance)}</strong> schema</div>
         <div class="metric-chip"><strong>${report.issueCount ?? 0}</strong> issue groups</div>
       </div>
-      ${telemetry ? `
+      ${
+        telemetry
+          ? `
         <div class="card mb-4" style="padding:var(--space-3);">
           <h4 style="margin:0 0 8px;">Scan breakdown</h4>
           <div class="metrics-row">
@@ -86,7 +95,9 @@ export class ResultsView {
             <div class="metric-chip">Ignored by pattern: <strong>${formatNumber(telemetry.ignoredByPattern || 0)}</strong></div>
           </div>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
     `;
   }
 
@@ -99,27 +110,41 @@ export class ResultsView {
       0
     );
     const activeCategory = categories.find((c) => c.id === this.filterCategory);
-    const filtersActive = this.filterSeverity !== 'all'
-      || this.filterCategory !== 'all'
-      || Boolean(this.app.state.routeParams?.q);
+    const filtersActive =
+      this.filterSeverity !== 'all' ||
+      this.filterCategory !== 'all' ||
+      Boolean(this.app.state.routeParams?.q);
     const fromAudit = this.app.state.routeParams?.from === 'audit';
 
     const el = document.createElement('div');
     el.className = 'fade-in';
-    const _noReportEmptyState = !report ? renderEmptyState({
-      icon: '📋',
-      title: 'No scan report loaded yet',
-      body: 'Run a Simplebeacon or Complete scan from Analyze, or use Dashboard → Run scan.',
-      iconWrapper: 'emoji',
-      actions: [{ label: 'Go to Analyze', onClick: () => this.app.navigate('analyze') }]
-    }) : null;
-    const _issuesEmptyState = report && issues.length === 0 ? renderEmptyState({
-      icon: totalIssues === 0 && report.gate?.pass && !filtersActive ? '✅' : '🔍',
-      title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
-      iconWrapper: 'emoji'
-    }) : null;
-    const _noReportEmptyHtml = _noReportEmptyState ? (typeof _noReportEmptyState === 'string' ? _noReportEmptyState : _noReportEmptyState.html) : '';
-    const _issuesEmptyHtml = _issuesEmptyState ? (typeof _issuesEmptyState === 'string' ? _issuesEmptyState : _issuesEmptyState.html) : '';
+    const _noReportEmptyState = !report
+      ? renderEmptyState({
+          icon: '📋',
+          title: 'No scan report loaded yet',
+          body: 'Run a Simplebeacon or Complete scan from Analyze, or use Dashboard → Run scan.',
+          iconWrapper: 'emoji',
+          actions: [{ label: 'Go to Analyze', onClick: () => this.app.navigate('analyze') }],
+        })
+      : null;
+    const _issuesEmptyState =
+      report && issues.length === 0
+        ? renderEmptyState({
+            icon: totalIssues === 0 && report.gate?.pass && !filtersActive ? '✅' : '🔍',
+            title: this.emptyStateMessage(report, totalIssues, filtersActive, activeCategory),
+            iconWrapper: 'emoji',
+          })
+        : null;
+    const _noReportEmptyHtml = _noReportEmptyState
+      ? typeof _noReportEmptyState === 'string'
+        ? _noReportEmptyState
+        : _noReportEmptyState.html
+      : '';
+    const _issuesEmptyHtml = _issuesEmptyState
+      ? typeof _issuesEmptyState === 'string'
+        ? _issuesEmptyState
+        : _issuesEmptyState.html
+      : '';
 
     el.innerHTML = `
       <div class="section-heading mb-4">
@@ -140,41 +165,60 @@ export class ResultsView {
         </div>
         <div id="ai-send-status" style="margin-top:8px;font-size:0.8rem;display:none;"></div>
       </div>
-      ${fromAudit && report ? `
+      ${
+        fromAudit && report
+          ? `
         <div class="card mb-4" style="padding:var(--space-4)">
           <p style="margin:0">
             Opened from Compliance Audit.
-            ${totalIssues === 0 && report.gate?.pass
-    ? 'The gate passed with <strong>0 blocking issues</strong> — that is a successful result. Browse sample files below or return to <a href="/dashboard/audit">Compliance Audit</a> for layer breakdown.'
-    : `Showing ${totalIssues} issue group(s) from the latest scan.`}
+            ${
+              totalIssues === 0 && report.gate?.pass
+                ? 'The gate passed with <strong>0 blocking issues</strong> — that is a successful result. Browse sample files below or return to <a href="/dashboard/audit">Compliance Audit</a> for layer breakdown.'
+                : `Showing ${totalIssues} issue group(s) from the latest scan.`
+            }
           </p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       ${report ? this.renderScanSummary(report) : ''}
       ${this.app.state.routeParams?.q ? `<p class="text-muted mb-4">Search: “${escapeHtml(this.app.state.routeParams.q)}”</p>` : ''}
       <div class="results-toolbar" id="severity-filters">
-        ${SEVERITIES.map((s) => `
+        ${SEVERITIES.map(
+          (s) => `
           <button type="button" class="filter-chip ${this.filterSeverity === s ? 'active' : ''}" data-severity="${s}">
             ${s === 'all' ? 'All severities' : s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
-        `).join('')}
+        `
+        ).join('')}
       </div>
       <div class="results-toolbar" id="category-filters">
         <button type="button" class="filter-chip ${this.filterCategory === 'all' ? 'active' : ''}" data-category="all">All types</button>
-        ${categories.map((c) => `
+        ${categories
+          .map(
+            (c) => `
           <button type="button" class="filter-chip ${this.filterCategory === c.id ? 'active' : ''}" data-category="${c.id}">
           ${typeof c.icon === 'string' ? c.icon : ''} ${escapeHtml(c.title)} (${c.count})
         </button>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
-      ${!report ? `
+      ${
+        !report
+          ? `
         <div id="results-no-report-empty">${_noReportEmptyHtml}</div>
-      ` : issues.length === 0 ? `
+      `
+          : issues.length === 0
+            ? `
         <div class="results-empty-wrap"><div id="results-empty-state">${_issuesEmptyHtml}</div></div>
-        ${filtersActive
-    ? '<p class="text-muted" style="margin-top:var(--space-2)"><button type="button" class="btn btn-secondary btn-sm" id="clear-results-filters">Clear filters</button></p>'
-    : ''}
-      ` : `
+        ${
+          filtersActive
+            ? '<p class="text-muted" style="margin-top:var(--space-2)"><button type="button" class="btn btn-secondary btn-sm" id="clear-results-filters">Clear filters</button></p>'
+            : ''
+        }
+      `
+            : `
         <div class="card" style="padding: 0; overflow: hidden;">
           <table class="results-table">
             <thead>
@@ -190,22 +234,30 @@ export class ResultsView {
           </table>
         </div>
         <div id="issue-detail"></div>
-      `}
+      `
+      }
 
       ${this.renderSampleFiles()}
     `;
 
     try {
-      if (_noReportEmptyState && typeof _noReportEmptyState !== 'string' && typeof _noReportEmptyState.attach === 'function') {
+      if (
+        _noReportEmptyState &&
+        typeof _noReportEmptyState !== 'string' &&
+        typeof _noReportEmptyState.attach === 'function'
+      ) {
         const c = el.querySelector('#results-no-report-empty');
         if (c) _noReportEmptyState.attach(c);
       }
-      if (_issuesEmptyState && typeof _issuesEmptyState !== 'string' && typeof _issuesEmptyState.attach === 'function') {
+      if (
+        _issuesEmptyState &&
+        typeof _issuesEmptyState !== 'string' &&
+        typeof _issuesEmptyState.attach === 'function'
+      ) {
         const c2 = el.querySelector('#results-empty-state');
         if (c2) _issuesEmptyState.attach(c2);
       }
-    } catch (e) {
-    }
+    } catch (e) {}
 
     this.bindFilters(el);
     this.bindExport(el, issues);
@@ -222,7 +274,7 @@ export class ResultsView {
       issues.forEach((issue) => {
         const tr = document.createElement('tr');
         tr.dataset.issueId = issue.id;
-tr.innerHTML = `
+        tr.innerHTML = `
           <td><span class="severity-pill ${issue.severity}">${issue.severity}</span></td>
           <td>${escapeHtml(issue.type)}</td>
           <td>${escapeHtml(issue.description)}</td>
@@ -255,7 +307,7 @@ tr.innerHTML = `
     const meta = {
       severity: this.filterSeverity,
       category: this.filterCategory,
-      query: this.app.state.routeParams?.q || null
+      query: this.app.state.routeParams?.q || null,
     };
 
     el.querySelector('#export-full-btn')?.addEventListener('click', async () => {
@@ -292,18 +344,22 @@ tr.innerHTML = `
 
     const doSendToAi = async (notes = '') => {
       const report = this.app.state.report;
-      if (!report) { showToast('No report loaded — run a scan first', 'error'); return; }
+      if (!report) {
+        showToast('No report loaded — run a scan first', 'error');
+        return;
+      }
       const allIssues = report.rawIssues || report.detectedIssues || [];
       const reportSummary = {
         gatePass: report.gate?.pass ?? 'N/A',
         qualityScore: report.qualityScore ?? 'N/A',
         totalIssues: allIssues.length,
         filesScanned: report.repositoryFilesTotal ?? report.totalFiles ?? 'N/A',
-        reportType: report.type || 'simplebeacon'
+        reportType: report.type || 'simplebeacon',
       };
 
       // If running inside a VS Code-family webview, message the extension directly
-      const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
+      const hasVsCodeApi =
+        typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
       if (hasVsCodeApi) {
         try {
           const vscode = window.acquireVsCodeApi();
@@ -313,13 +369,16 @@ tr.innerHTML = `
               projectPath: report.projectRoot || report.projectPath || window.location.origin,
               notes,
               reportSummary,
-              issues: allIssues
-            }
+              issues: allIssues,
+            },
           });
-          showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
+          showToast(
+            'Scan data sent to your AI coding agent. Check the editor chat panel.',
+            'success'
+          );
           return;
         } catch (err) {
-          window["console"]["warn"]('[AI-Send] vscode.postMessage failed:', err);
+          window['console']['warn']('[AI-Send] vscode.postMessage failed:', err);
         }
       }
 
@@ -331,17 +390,23 @@ tr.innerHTML = `
             projectPath: report.projectRoot || report.projectPath || window.location.origin,
             notes,
             reportSummary,
-            issues: allIssues
-          })
+            issues: allIssues,
+          }),
         });
         const json = await res.json();
         if (json.success) {
           if (json.content) {
             try {
               await navigator.clipboard.writeText(json.content);
-              showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+              showToast(
+                'Copied to clipboard — paste into your AI coding agent with Ctrl+V',
+                'success'
+              );
             } catch (clipErr) {
-              showToast('AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md', 'success');
+              showToast(
+                'AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md',
+                'success'
+              );
             }
           } else {
             showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
@@ -360,13 +425,18 @@ tr.innerHTML = `
     el.querySelector('#ai-send-cancel')?.addEventListener('click', () => {
       if (aiPanel) aiPanel.style.display = 'none';
       if (aiNotesInput) aiNotesInput.value = '';
-      if (aiSendStatus) { aiSendStatus.style.display = 'none'; aiSendStatus.textContent = ''; }
+      if (aiSendStatus) {
+        aiSendStatus.style.display = 'none';
+        aiSendStatus.textContent = '';
+      }
     });
     el.querySelector('#ai-send-confirm')?.addEventListener('click', async () => {
       const btn = el.querySelector('#ai-send-confirm');
-      btn.disabled = true; btn.textContent = 'Sending…';
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
       await doSendToAi(aiNotesInput?.value || '');
-      btn.disabled = false; btn.textContent = 'Confirm Send';
+      btn.disabled = false;
+      btn.textContent = 'Confirm Send';
     });
   }
 
@@ -408,19 +478,23 @@ tr.innerHTML = `
   showDetail(container, issue) {
     const slot = container.querySelector('#issue-detail');
     if (!slot) return;
-slot.innerHTML = `
+    slot.innerHTML = `
       <div class="detail-panel">
         <h3>${escapeHtml(issue.type)}</h3>
         <p>${escapeHtml(issue.description)}</p>
         <p><strong>Recommended:</strong> ${escapeHtml(issue.recommendedAction || 'Review and fix manually')}</p>
         <p><strong>File:</strong> <code>${escapeHtml(issue.filePath)}</code></p>
         ${issue.affectedFiles?.length ? `<p><strong>Affected:</strong> ${issue.affectedFiles.map(escapeHtml).join(', ')}</p>` : ''}
-        ${issue.metadata?.duplicatePaths?.length ? `
+        ${
+          issue.metadata?.duplicatePaths?.length
+            ? `
           <p><strong>Duplicate paths:</strong></p>
           <ul class="settings-path-list">
             ${issue.metadata.duplicatePaths.map((p) => `<li><code>${escapeHtml(p)}</code></li>`).join('')}
           </ul>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
     slot.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -429,7 +503,7 @@ slot.innerHTML = `
   paint(container = this._container) {
     if (!container) return;
     this._container = container;
-container.innerHTML = '';
+    container.innerHTML = '';
     container.appendChild(this.render());
   }
 

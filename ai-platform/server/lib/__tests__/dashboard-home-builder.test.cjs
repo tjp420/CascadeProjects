@@ -23,7 +23,7 @@ describe('dashboard-home-builder smoke', () => {
       comparativeAnalysis: [],
       insights: [],
       kpis: [],
-      healthSummary: { highlights: [] }
+      healthSummary: { highlights: [] },
     };
     const result = mod.buildDashboardHomeModel(sample);
     assert.ok(typeof result === 'object');

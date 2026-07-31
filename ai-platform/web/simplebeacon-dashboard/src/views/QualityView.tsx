@@ -1,7 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Award, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info, TrendingUp, Download } from 'lucide-react';
+import {
+  Award,
+  FileCode,
+  AlertTriangle,
+  Shield,
+  CheckCircle2,
+  Play,
+  Info,
+  TrendingUp,
+  Download,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { navigate } from '@/router/HashRouter';
 
@@ -47,7 +57,9 @@ export function QualityView() {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const root = ((result && result.projectPath) || 'quality').replace(/[\/:\\\s]+/g, '-').slice(0, 60);
+    const root = ((result && result.projectPath) || 'quality')
+      .replace(/[\/:\\\s]+/g, '-')
+      .slice(0, 60);
     a.href = url;
     a.download = `quality-${root || 'quality'}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
     document.body.appendChild(a);
@@ -67,7 +79,9 @@ export function QualityView() {
           <CardContent className="flex flex-col items-center gap-3 py-16">
             <Award className="h-12 w-12 text-foreground-muted" />
             <p className="text-sm text-foreground-muted">No quality metrics to display</p>
-            <p className="text-xs text-foreground-muted">Run a scan from the Analyze page to see quality metrics</p>
+            <p className="text-xs text-foreground-muted">
+              Run a scan from the Analyze page to see quality metrics
+            </p>
             <div className="mt-2 flex gap-2">
               <Button onClick={() => navigate('analyze')}>
                 <Play className="h-4 w-4 mr-2" /> Go to Analyze
@@ -185,7 +199,9 @@ export function QualityView() {
                     style={{ width: `${Math.max(pct, item.value > 0 ? 8 : 0)}%` }}
                   />
                 </div>
-                <div className={`w-10 text-sm font-semibold text-right ${item.color}`}>{item.value}</div>
+                <div className={`w-10 text-sm font-semibold text-right ${item.color}`}>
+                  {item.value}
+                </div>
               </div>
             );
           })}

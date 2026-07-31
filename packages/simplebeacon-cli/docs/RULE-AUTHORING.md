@@ -33,9 +33,9 @@ const RULES = [
     severity: 'medium',
     description: 'What this pattern detects and why it matters',
     skipPatterns: [
-      /\/\/\s*simplebeacon-ignore\s+custom-rule/i  // suppression comment
-    ]
-  }
+      /\/\/\s*simplebeacon-ignore\s+custom-rule/i, // suppression comment
+    ],
+  },
 ];
 
 async function scanMyRule(baseDir, options = {}) {
@@ -48,20 +48,20 @@ module.exports = { scanMyRule, RULES };
 
 ### Required Rule Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` | Unique rule ID (prefix with `SB-`) |
-| `name` | `string` | Human-readable rule name |
-| `regex` | `RegExp` | Detection pattern |
-| `severity` | `'critical' \| 'high' \| 'medium' \| 'low'` | Default severity |
-| `description` | `string` | What the rule detects |
+| Field         | Type                                        | Description                        |
+| ------------- | ------------------------------------------- | ---------------------------------- |
+| `id`          | `string`                                    | Unique rule ID (prefix with `SB-`) |
+| `name`        | `string`                                    | Human-readable rule name           |
+| `regex`       | `RegExp`                                    | Detection pattern                  |
+| `severity`    | `'critical' \| 'high' \| 'medium' \| 'low'` | Default severity                   |
+| `description` | `string`                                    | What the rule detects              |
 
 ### Optional Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `skipPatterns` | `RegExp[]` | Patterns that disqualify a match |
-| `pathRegex` | `RegExp` | Only run on files matching this path |
+| Field          | Type       | Description                          |
+| -------------- | ---------- | ------------------------------------ |
+| `skipPatterns` | `RegExp[]` | Patterns that disqualify a match     |
+| `pathRegex`    | `RegExp`   | Only run on files matching this path |
 
 ### Suppression Comments
 
@@ -90,7 +90,7 @@ AST rules require `@babel/parser` and `@babel/traverse`:
 function analyzeMyPattern(ast, relativePath) {
   if (!ast || !babelTraverse) return [];
   const findings = [];
-  
+
   babelTraverse(ast, {
     FunctionDeclaration(path) {
       const node = path.node;
@@ -101,12 +101,12 @@ function analyzeMyPattern(ast, relativePath) {
           severity: 'low',
           line: node.loc ? node.loc.start.line : 0,
           match: node.id ? node.id.name : 'anonymous',
-          snippet: `Function has ${node.body.body.length} statements`
+          snippet: `Function has ${node.body.body.length} statements`,
         });
       }
-    }
+    },
   });
-  
+
   return findings;
 }
 ```
@@ -129,13 +129,15 @@ Find the `scanPromises` block and add:
 
 ```javascript
 if (isRuleEnabled(config, 'my-rule')) {
-    const myOpts = getRuleOptions(config, 'my-rule');
-    scanPromises.push(scanMyRule(root, {
-        sourcePaths: myOpts.sourcePaths || config.sourceCodeScanPaths,
-        productionPaths: myOpts.productionPaths || config.productionPaths,
-        ignoreGlobs: myOpts.ignoreGlobs || config.ignore
-    }));
-    scanKeys.push('my-rule');
+  const myOpts = getRuleOptions(config, 'my-rule');
+  scanPromises.push(
+    scanMyRule(root, {
+      sourcePaths: myOpts.sourcePaths || config.sourceCodeScanPaths,
+      productionPaths: myOpts.productionPaths || config.productionPaths,
+      ignoreGlobs: myOpts.ignoreGlobs || config.ignore,
+    })
+  );
+  scanKeys.push('my-rule');
 }
 ```
 
@@ -151,20 +153,21 @@ Add to the issues push block:
 
 ```javascript
 if (myRuleScan.results?.length) {
-    for (const r of myRuleScan.results) {
-        for (const f of r.findings || []) {
-            issues.push({
-                id: f.ruleId || 'SB-CUSTOM-001',
-                severity: f.severity === 'critical' || f.severity === 'high' ? 'medium' : (f.severity || 'medium'),
-                type: 'My Rule Name',
-                filePath: r.filePath,
-                line: f.line,
-                count: 1,
-                description: f.snippet || f.description || 'Custom rule finding',
-                match: f.match
-            });
-        }
+  for (const r of myRuleScan.results) {
+    for (const f of r.findings || []) {
+      issues.push({
+        id: f.ruleId || 'SB-CUSTOM-001',
+        severity:
+          f.severity === 'critical' || f.severity === 'high' ? 'medium' : f.severity || 'medium',
+        type: 'My Rule Name',
+        filePath: r.filePath,
+        line: f.line,
+        count: 1,
+        description: f.snippet || f.description || 'Custom rule finding',
+        match: f.match,
+      });
     }
+  }
 }
 ```
 
@@ -192,7 +195,7 @@ describe('My rule', () => {
   it('flags the pattern', async () => {
     // Create temp file, scan it, assert findings
   });
-  
+
   it('respects suppression comments', async () => {
     // Verify // simplebeacon-ignore my-rule suppresses the finding
   });
@@ -219,4 +222,4 @@ node --test tests/my-rule.test.js
 
 ---
 
-*Last updated: June 2026*
+_Last updated: June 2026_

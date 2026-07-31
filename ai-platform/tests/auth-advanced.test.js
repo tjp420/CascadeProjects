@@ -11,7 +11,7 @@ const {
   trustDevice,
   verifyMFA,
   verifyDeviceTrust,
-  handleTokenRefresh
+  handleTokenRefresh,
 } = require('../server/middleware/auth.cjs');
 
 describe('auth-advanced', () => {
@@ -57,7 +57,7 @@ describe('auth-advanced', () => {
     test('returns sha256 hex from user-agent + ip', () => {
       const req = {
         headers: { 'user-agent': 'Mozilla/5.0' },
-        ip: '127.0.0.1'
+        ip: '127.0.0.1',
       };
       const fp = generateDeviceFingerprint(req);
       expect(typeof fp).toBe('string');
@@ -67,7 +67,7 @@ describe('auth-advanced', () => {
     test('returns consistent fingerprint for same inputs', () => {
       const req = {
         headers: { 'user-agent': 'TestAgent/1.0' },
-        ip: '192.168.1.1'
+        ip: '192.168.1.1',
       };
       const fp1 = generateDeviceFingerprint(req);
       const fp2 = generateDeviceFingerprint(req);
@@ -95,7 +95,7 @@ describe('auth-advanced', () => {
       const req = {
         user: { id: 'u1', trustLevel: 'gold' },
         headers: { 'user-agent': 'x' },
-        ip: '1.1.1.1'
+        ip: '1.1.1.1',
       };
       // Compute actual fingerprint from request, then trust it
       const fp = generateDeviceFingerprint(req);
@@ -114,23 +114,25 @@ describe('auth-advanced', () => {
       const req = {
         user: { id: 'u-untrusted', trustLevel: 'gold' },
         headers: { 'user-agent': 'unknown' },
-        ip: '9.9.9.9'
+        ip: '9.9.9.9',
       };
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
       const next = jest.fn();
       verifyDeviceTrust(req, res, next);
       expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: 'Device Not Trusted',
-        deviceTrustRequired: true
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Device Not Trusted',
+          deviceTrustRequired: true,
+        })
+      );
     });
 
     test('allows bronze user on untrusted device', () => {
       const req = {
         user: { id: 'u-bronze', trustLevel: 'bronze' },
         headers: { 'user-agent': 'any' },
-        ip: '1.1.1.1'
+        ip: '1.1.1.1',
       };
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
       const next = jest.fn();
@@ -144,7 +146,7 @@ describe('auth-advanced', () => {
       const req = {
         user: { id: 'u-gold', trustLevel: 'gold' },
         headers: { 'user-agent': 'TrustedAgent/1.0' },
-        ip: '10.0.0.1'
+        ip: '10.0.0.1',
       };
       const fp = generateDeviceFingerprint(req);
       trustDevice('u-gold', fp);
@@ -172,10 +174,12 @@ describe('auth-advanced', () => {
       const next = jest.fn();
       verifyMFA(req, res, next);
       expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: 'MFA Required',
-        mfaRequired: true
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'MFA Required',
+          mfaRequired: true,
+        })
+      );
     });
 
     test('allows gold user with MFA verified', () => {
@@ -193,7 +197,9 @@ describe('auth-advanced', () => {
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
       await handleTokenRefresh(req, res);
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Authentication required' }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'Authentication required' })
+      );
     });
   });
 });

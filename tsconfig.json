@@ -20,12 +20,7 @@
       "simplebeacon": ["packages/simplebeacon-cli/src/index.js"]
     }
   },
-  "include": [
-    "packages/**/*",
-    "ai-platform/**/*",
-    "coming-soon/**/*",
-    "scripts/**/*"
-  ],
+  "include": ["packages/**/*", "ai-platform/**/*", "coming-soon/**/*", "scripts/**/*"],
   "exclude": [
     "**/node_modules",
     "**/.simplebeacon",

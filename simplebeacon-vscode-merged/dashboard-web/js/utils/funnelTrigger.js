@@ -8,7 +8,7 @@ export function evaluateFunnelMetrics(reportData) {
   const triggers = {
     shouldPromptUpgrade: false,
     reason: null,
-    targetTier: 'team'
+    targetTier: 'team',
   };
 
   if (!reportData) return triggers;
@@ -22,7 +22,7 @@ export function evaluateFunnelMetrics(reportData) {
   }
 
   // 2. Multi-Team Check: Stale TODO items or varying metadata flags
-  if (reportData.quality_score < 80 && reportData.findings?.some(f => f.rule_id === 'SB-FICTION-003')) {
+  if (reportData.quality_score < 80 && reportData.findings?.some((f) => f.rule_id === 'SB-FICTION-003')) {
     triggers.shouldPromptUpgrade = true;
     triggers.reason = 'hallucinated_dependency_risk';
     triggers.targetTier = 'team';
@@ -40,18 +40,20 @@ export function getFunnelCopy(reason) {
     monorepo_scale: {
       title: 'Scaling SimpleBeacon for Large Monorepos',
       body: 'Your repository size exceeds the standard developer free tier limits. Unlock premium multi-threaded scan processing, custom rule profiles, and centralized compliance reporting.',
-      cta: 'Contact Enterprise Sales'
+      cta: 'Contact Enterprise Sales',
     },
     hallucinated_dependency_risk: {
       title: 'Protect Your Supply Chain',
       body: 'We detected suspicious or unverified dependency footprints in this workspace. Upgrade to the Team plan to activate automated real-time npm registry 404 validation gates.',
-      cta: 'Upgrade to Team ($149/mo)'
-    }
+      cta: 'Upgrade to Team ($149/mo)',
+    },
   };
 
-  return copyMap[reason] || {
-    title: 'Unlock Advanced Analytics',
-    body: 'Get deep KPI tracking, code history metrics, and cryptographically signed release certificates.',
-    cta: 'View Premium Tiers'
-  };
+  return (
+    copyMap[reason] || {
+      title: 'Unlock Advanced Analytics',
+      body: 'Get deep KPI tracking, code history metrics, and cryptographically signed release certificates.',
+      cta: 'View Premium Tiers',
+    }
+  );
 }

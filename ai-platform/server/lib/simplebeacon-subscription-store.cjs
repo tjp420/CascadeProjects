@@ -11,8 +11,9 @@ const logger = require('../../src/lib/app-logger.cjs');
 
 const constants = require('../config/constants.cjs');
 const PROJECT_ROOT = path.join(__dirname, '../..');
-const STORE_PATH = process.env.SIMPLEBEACON_SUBSCRIPTION_STORE
-  || path.join(PROJECT_ROOT, '.simplebeacon', 'subscriptions.json');
+const STORE_PATH =
+  process.env.SIMPLEBEACON_SUBSCRIPTION_STORE ||
+  path.join(PROJECT_ROOT, '.simplebeacon', 'subscriptions.json');
 const PAID_API_LIMIT = Number(process.env.SIMPLEBEACON_PAID_API_LIMIT || 100);
 const PAID_PERIOD_MS = 30 * 24 * 60 * constants.ONE_MINUTE_MS;
 
@@ -42,7 +43,7 @@ const SCAN_QUOTA_MAP = {
   enterprise: Infinity,
   free: Infinity,
   pro: 2500,
-  team: 10000
+  team: 10000,
 };
 
 /**
@@ -132,7 +133,7 @@ async function readStore() {
     const parsed = JSON.parse(raw);
     _cache = {
       subscriptions: parsed.subscriptions || {},
-      byApiToken: parsed.byApiToken || {}
+      byApiToken: parsed.byApiToken || {},
     };
     _cacheDirty = false;
     return _cache;
@@ -206,7 +207,9 @@ async function _doWrite(store) {
  * @returns {string} Normalized email or empty string if invalid.
  */
 function normalizeEmail(email) {
-  const s = String(email || '').trim().toLowerCase();
+  const s = String(email || '')
+    .trim()
+    .toLowerCase();
   if (!s || !EMAIL_RE.test(s)) return '';
   return s;
 }
@@ -225,9 +228,9 @@ function createApiToken() {
  * @returns {boolean}
  */
 function isValidApiTokenFormat(token) {
-  return typeof token === 'string'
-    && token.startsWith(TOKEN_PREFIX)
-    && token.length === TOKEN_FULL_LEN;
+  return (
+    typeof token === 'string' && token.startsWith(TOKEN_PREFIX) && token.length === TOKEN_FULL_LEN
+  );
 }
 
 /**
@@ -262,7 +265,7 @@ function subscriptionRecord(email, overrides = {}) {
     certOrgId: 'default',
     customConfigEnabled: false,
     allowlistEnabled: false,
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -310,7 +313,7 @@ async function upsertSubscription(email, patch = {}) {
     ...existing,
     email: normalized,
     ...patch,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 
   if (existing.apiToken && existing.apiToken !== next.apiToken) {
@@ -336,7 +339,7 @@ async function upsertSubscription(email, patch = {}) {
 async function setSubscriptionActive(email, active, stripeFields = {}) {
   return upsertSubscription(email, {
     subscriptionActive: Boolean(active),
-    ...stripeFields
+    ...stripeFields,
   });
 }
 
@@ -353,7 +356,7 @@ function resetPeriodIfNeeded(record) {
       apiCallsThisPeriod: 0,
       scansThisPeriod: 0,
       complianceCertsThisPeriod: 0,
-      periodStart: new Date().toISOString()
+      periodStart: new Date().toISOString(),
     };
   }
   return record;
@@ -388,7 +391,7 @@ async function consumeApiCall(token) {
       reason: 'rate_limit',
       limit: PAID_API_LIMIT,
       remaining: 0,
-      periodStart: record.periodStart
+      periodStart: record.periodStart,
     };
   }
 
@@ -401,7 +404,7 @@ async function consumeApiCall(token) {
     allowed: true,
     remaining: PAID_API_LIMIT - record.apiCallsThisPeriod,
     limit: PAID_API_LIMIT,
-    periodStart: record.periodStart
+    periodStart: record.periodStart,
   };
 }
 
@@ -425,7 +428,7 @@ async function consumeScan(email, scanType = 'local') {
   record = resetPeriodIfNeeded(record);
   const quota = Number.isFinite(record.scanQuota)
     ? record.scanQuota
-    : (SCAN_QUOTA_MAP[record.tier] || SCAN_QUOTA_MAP.developer);
+    : SCAN_QUOTA_MAP[record.tier] || SCAN_QUOTA_MAP.developer;
 
   if (quota !== Infinity && record.scansThisPeriod >= quota) {
     store.subscriptions[normalized] = record;
@@ -435,7 +438,7 @@ async function consumeScan(email, scanType = 'local') {
       reason: 'scan_quota_exceeded',
       limit: quota,
       remaining: 0,
-      periodStart: record.periodStart
+      periodStart: record.periodStart,
     };
   }
 
@@ -449,7 +452,7 @@ async function consumeScan(email, scanType = 'local') {
     allowed: true,
     remaining: quota === Infinity ? Infinity : Math.max(0, quota - record.scansThisPeriod),
     limit: quota,
-    periodStart: record.periodStart
+    periodStart: record.periodStart,
   };
 }
 
@@ -477,7 +480,13 @@ async function consumeComplianceCert(email) {
   if (record.complianceCertsThisPeriod >= limit) {
     store.subscriptions[normalized] = record;
     await writeStore(store);
-    return { allowed: false, reason: 'cert_limit_reached', limit, remaining: 0, periodStart: record.periodStart };
+    return {
+      allowed: false,
+      reason: 'cert_limit_reached',
+      limit,
+      remaining: 0,
+      periodStart: record.periodStart,
+    };
   }
 
   record.complianceCertsThisPeriod += 1;
@@ -485,7 +494,12 @@ async function consumeComplianceCert(email) {
   store.subscriptions[normalized] = record;
   await writeStore(store);
 
-  return { allowed: true, remaining: limit - record.complianceCertsThisPeriod, limit, periodStart: record.periodStart };
+  return {
+    allowed: true,
+    remaining: limit - record.complianceCertsThisPeriod,
+    limit,
+    periodStart: record.periodStart,
+  };
 }
 
 /**
@@ -509,7 +523,7 @@ async function syncSubscriptionToDb(db, record) {
         record.subscriptionActive,
         record.stripeCustomerId,
         record.subscriptionId,
-        record.apiToken
+        record.apiToken,
       ]
     );
   } catch (error) {
@@ -527,7 +541,7 @@ function publicSubscriptionStatus(record) {
     return {
       tier: 'free',
       subscriptionActive: false,
-      apiLimit: PAID_API_LIMIT
+      apiLimit: PAID_API_LIMIT,
     };
   }
 
@@ -535,9 +549,9 @@ function publicSubscriptionStatus(record) {
   const certLimit = reset.complianceCertLimit || 0;
   const scanQuota = Number.isFinite(reset.scanQuota)
     ? reset.scanQuota
-    : (SCAN_QUOTA_MAP[reset.tier] || SCAN_QUOTA_MAP.developer);
+    : SCAN_QUOTA_MAP[reset.tier] || SCAN_QUOTA_MAP.developer;
   return {
-    tier: reset.subscriptionActive ? (reset.product || reset.tier || 'paid') : 'free',
+    tier: reset.subscriptionActive ? reset.product || reset.tier || 'paid' : 'free',
     email: reset.email,
     subscriptionActive: Boolean(reset.subscriptionActive),
     apiToken: reset.subscriptionActive ? reset.apiToken : null,
@@ -546,7 +560,8 @@ function publicSubscriptionStatus(record) {
     apiRemaining: Math.max(0, PAID_API_LIMIT - reset.apiCallsThisPeriod),
     scanQuota: scanQuota === Infinity ? 'unlimited' : scanQuota,
     scansThisPeriod: reset.scansThisPeriod || 0,
-    scansRemaining: scanQuota === Infinity ? 'unlimited' : Math.max(0, scanQuota - (reset.scansThisPeriod || 0)),
+    scansRemaining:
+      scanQuota === Infinity ? 'unlimited' : Math.max(0, scanQuota - (reset.scansThisPeriod || 0)),
     scanType: reset.scanType || 'local',
     customConfigEnabled: Boolean(reset.customConfigEnabled),
     allowlistEnabled: Boolean(reset.allowlistEnabled),
@@ -558,7 +573,7 @@ function publicSubscriptionStatus(record) {
     certClientName: reset.certClientName || null,
     certProjectName: reset.certProjectName || null,
     certMilestone: reset.certMilestone || 'release',
-    certOrgId: reset.certOrgId || 'default'
+    certOrgId: reset.certOrgId || 'default',
   };
 }
 
@@ -585,5 +600,5 @@ module.exports = {
   createApiToken,
   isValidApiTokenFormat,
   subscriptionRecord,
-  resetPeriodIfNeeded
+  resetPeriodIfNeeded,
 };

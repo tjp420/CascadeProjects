@@ -7,15 +7,9 @@ const express = require('express');
 const rateLimit = require('express-rate-limit');
 const constants = require('../config/constants.cjs');
 const logger = require('../lib/app-logger.cjs');
-const {
-  authenticate,
-  optionalAuthenticate
-} = require('../middleware/auth.cjs');
+const { authenticate, optionalAuthenticate } = require('../middleware/auth.cjs');
 
-const {
-  handleLogin,
-  handleTokenRefresh
-} = require('../lib/auth/login-service.cjs');
+const { handleLogin, handleTokenRefresh } = require('../lib/auth/login-service.cjs');
 const { validateInput } = require('../middleware/security.cjs');
 const { isDatabaseEnabled, getDatabaseConfig } = require('../config/database.cjs');
 const DatabaseAdapter = require('../lib/database-adapter.cjs');
@@ -38,14 +32,20 @@ const authLoginRateLimit = rateLimit({
   legacyHeaders: false,
   message: {
     error: 'Too many authentication attempts',
-    message: 'Please wait before trying to sign in again.'
-  }
+    message: 'Please wait before trying to sign in again.',
+  },
 });
 
-router.post('/auth/login', authLoginRateLimit, validateInput('login'), (req, res, next) => {
-  if (dbAdapter) req.db = dbAdapter;
-  next();
-}, handleLogin);
+router.post(
+  '/auth/login',
+  authLoginRateLimit,
+  validateInput('login'),
+  (req, res, next) => {
+    if (dbAdapter) req.db = dbAdapter;
+    next();
+  },
+  handleLogin
+);
 
 router.post('/auth/register', authLoginRateLimit, async (req, res, next) => {
   try {
@@ -63,13 +63,13 @@ router.get('/auth/me', optionalAuthenticate, (req, res) => {
     res.json({
       user: req.user,
       authenticated: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } else {
     res.json({
       user: null,
       authenticated: false,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });

@@ -21,8 +21,18 @@ for (const file of walk('C:/Users/Trevor/CascadeProjects/packages/simplebeacon-c
   const lines = content.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/\bconstants\.[A-Z]/.test(line) && !line.trim().startsWith('//') && !line.includes('const constants')) {
-      console.log(path.relative('C:/Users/Trevor/CascadeProjects', file) + ':' + (i+1) + ' ' + line.trim().slice(0, 120));
+    if (
+      /\bconstants\.[A-Z]/.test(line) &&
+      !line.trim().startsWith('//') &&
+      !line.includes('const constants')
+    ) {
+      console.log(
+        path.relative('C:/Users/Trevor/CascadeProjects', file) +
+          ':' +
+          (i + 1) +
+          ' ' +
+          line.trim().slice(0, 120)
+      );
       break;
     }
   }

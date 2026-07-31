@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..', 'coming-soon');
-const htmlFiles = fs.readdirSync(ROOT).filter(f => f.endsWith('.html'));
+const htmlFiles = fs.readdirSync(ROOT).filter((f) => f.endsWith('.html'));
 let issues = [];
 let checked = 0;
 
@@ -13,7 +13,13 @@ for (const file of htmlFiles) {
   const matches = content.match(/href=["']([^"']+)["']/g) || [];
   for (const m of matches) {
     let href = m.replace(/^href=["']/, '').replace(/["']$/, '');
-    if (href.startsWith('http') || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) continue;
+    if (
+      href.startsWith('http') ||
+      href.startsWith('#') ||
+      href.startsWith('mailto:') ||
+      href.startsWith('tel:')
+    )
+      continue;
     // Strip query strings and hash fragments
     href = href.split('?')[0].split('#')[0];
     if (!href) continue;

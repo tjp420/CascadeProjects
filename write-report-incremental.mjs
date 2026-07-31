@@ -4,18 +4,20 @@ import path from 'path';
 
 const IGNORES = new Set(['node_modules', '.git', '.simplebeacon', 'dist', 'build']);
 
-(async ()=>{
+(async () => {
   try {
     const root = process.cwd();
     const entries = fs.readdirSync(root, { withFileTypes: true });
-    const folders = entries.filter(e => e.isDirectory() && !IGNORES.has(e.name)).map(e => e.name);
+    const folders = entries
+      .filter((e) => e.isDirectory() && !IGNORES.has(e.name))
+      .map((e) => e.name);
     console.log('Found folders to scan:', folders.join(', '));
 
     const aggregate = {
       reconciledMetrics: { totalFiles: 0, totalLines: 0, extensionBreakdown: {} },
       architecturalCyclesCount: 0,
       detectedCycles: [],
-      complianceFindings: []
+      complianceFindings: [],
     };
 
     for (const f of folders) {
@@ -23,11 +25,14 @@ const IGNORES = new Set(['node_modules', '.git', '.simplebeacon', 'dist', 'build
       console.log('\n--- Scanning', f, '---');
       try {
         const r = await runSimpleBeaconAudit(full);
-        console.log(`  -> Files: ${r.reconciledMetrics.totalFiles}, Lines: ${r.reconciledMetrics.totalLines}, Cycles: ${r.architecturalCyclesCount}, Findings: ${r.complianceFindings.length}`);
+        console.log(
+          `  -> Files: ${r.reconciledMetrics.totalFiles}, Lines: ${r.reconciledMetrics.totalLines}, Cycles: ${r.architecturalCyclesCount}, Findings: ${r.complianceFindings.length}`
+        );
         aggregate.reconciledMetrics.totalFiles += r.reconciledMetrics.totalFiles || 0;
         aggregate.reconciledMetrics.totalLines += r.reconciledMetrics.totalLines || 0;
-        for (const [k,v] of Object.entries(r.reconciledMetrics.extensionBreakdown || {})) {
-          aggregate.reconciledMetrics.extensionBreakdown[k] = (aggregate.reconciledMetrics.extensionBreakdown[k] || 0) + v;
+        for (const [k, v] of Object.entries(r.reconciledMetrics.extensionBreakdown || {})) {
+          aggregate.reconciledMetrics.extensionBreakdown[k] =
+            (aggregate.reconciledMetrics.extensionBreakdown[k] || 0) + v;
         }
         if (r.architecturalCyclesCount && r.detectedCycles && r.detectedCycles.length) {
           aggregate.architecturalCyclesCount += r.architecturalCyclesCount || 0;
@@ -37,7 +42,7 @@ const IGNORES = new Set(['node_modules', '.git', '.simplebeacon', 'dist', 'build
           aggregate.complianceFindings.push(...r.complianceFindings);
         }
       } catch (e) {
-        console.error('Scan failed for', f, e && e.stack || e);
+        console.error('Scan failed for', f, (e && e.stack) || e);
       }
     }
 
@@ -46,7 +51,7 @@ const IGNORES = new Set(['node_modules', '.git', '.simplebeacon', 'dist', 'build
     fs.writeFileSync(out, JSON.stringify(aggregate, null, 2));
     console.log('\nWrote', out);
   } catch (e) {
-    console.error('Error', e && e.stack || e);
+    console.error('Error', (e && e.stack) || e);
     process.exit(1);
   }
 })();

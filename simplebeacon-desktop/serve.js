@@ -23,7 +23,7 @@ const MIME_TYPES = {
   '.woff': 'font/woff',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
-  '.map': 'application/json'
+  '.map': 'application/json',
 };
 
 const server = http.createServer((req, res) => {
@@ -43,7 +43,7 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache',
     });
     res.end(data);
   });
@@ -51,6 +51,6 @@ const server = http.createServer((req, res) => {
 
 server.listen(port, () => {
   process.stdout.write(
-    [`[SimpleBeacon Desktop] serving ${root} at http://localhost:${port}`].join(" ") + "\n"
+    [`[SimpleBeacon Desktop] serving ${root} at http://localhost:${port}`].join(' ') + '\n'
   );
 });

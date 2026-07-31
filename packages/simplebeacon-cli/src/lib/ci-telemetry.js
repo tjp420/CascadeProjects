@@ -3,8 +3,9 @@
  * Never transmits source code, file paths, or issue descriptions.
  */
 
-const DEFAULT_TELEMETRY_URL = process.env.SIMPLEBEACON_CI_TELEMETRY_URL
-  || 'https://simplebeacon.ai/api/simplebeacon/ci/telemetry';
+const DEFAULT_TELEMETRY_URL =
+  process.env.SIMPLEBEACON_CI_TELEMETRY_URL ||
+  'https://simplebeacon.ai/api/simplebeacon/ci/telemetry';
 
 /**
  * @param {Object} report
@@ -34,7 +35,7 @@ function buildCiTelemetryPayload(report, license, context = {}) {
     files_scanned: report.totalFiles || report.filesAnalyzed || 0,
     diff_only: Boolean(report.scanScope?.diffOnly),
     diff_files: report.scanScope?.diffFileCount || 0,
-    quality_score: report.qualityScore ?? null
+    quality_score: report.qualityScore ?? null,
   };
 }
 
@@ -71,10 +72,10 @@ async function postCiTelemetry(report, license, options = {}) {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
-      signal: controller.signal
+      signal: controller.signal,
     });
     if (!response.ok) {
       const text = await response.text().catch(() => '');
@@ -92,5 +93,5 @@ async function postCiTelemetry(report, license, options = {}) {
 module.exports = {
   buildCiTelemetryPayload,
   postCiTelemetry,
-  DEFAULT_TELEMETRY_URL
+  DEFAULT_TELEMETRY_URL,
 };

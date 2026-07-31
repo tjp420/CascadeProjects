@@ -7,10 +7,10 @@ jest.mock('../outreach-mail.cjs', () => ({
   loadSentLog: jest.fn().mockResolvedValue([]),
   removeSentLogEntry: jest.fn(),
   sentEntryId: jest.fn().mockReturnValue('id-1'),
-  sendOutreachEmail: jest.fn()
+  sendOutreachEmail: jest.fn(),
 }));
 jest.mock('../outreach-resend-webhook.cjs', () => ({
-  setupOutreachResendWebhook: jest.fn()
+  setupOutreachResendWebhook: jest.fn(),
 }));
 
 const {
@@ -19,9 +19,14 @@ const {
   handleOutreachConfig,
   handleOutreachSend,
   handleOutreachSent,
-  handleOutreachSentDelete
+  handleOutreachSentDelete,
 } = require('../outreach-route.cjs');
-const { isOutreachConfigured, getOutreachFrom, loadSentLog, sendOutreachEmail } = require('../outreach-mail.cjs');
+const {
+  isOutreachConfigured,
+  getOutreachFrom,
+  loadSentLog,
+  sendOutreachEmail,
+} = require('../outreach-mail.cjs');
 
 function mockRes() {
   return { json: jest.fn().mockReturnThis(), status: jest.fn().mockReturnThis() };
@@ -42,20 +47,27 @@ describe('outreach-route', () => {
   test('handleOutreachConfig returns config JSON', async () => {
     const res = mockRes();
     await handleOutreachConfig({}, res);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      configured: false,
-      from: 'outreach@simplebeacon.ai'
-    }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configured: false,
+        from: 'outreach@simplebeacon.ai',
+      })
+    );
   });
 
   test('handleOutreachSent returns sent log items', async () => {
-    loadSentLog.mockResolvedValue([{ id: '1', to: 'a@b.com' }, { id: '2', to: 'c@d.com' }]);
+    loadSentLog.mockResolvedValue([
+      { id: '1', to: 'a@b.com' },
+      { id: '2', to: 'c@d.com' },
+    ]);
     const res = mockRes();
     await handleOutreachSent({ query: { limit: '10' } }, res, {});
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      total: 2,
-      items: expect.any(Array)
-    }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        total: 2,
+        items: expect.any(Array),
+      })
+    );
   });
 
   test('handleOutreachSent respects limit', async () => {

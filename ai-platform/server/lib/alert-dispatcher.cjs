@@ -33,15 +33,70 @@ function buildPayload(eventType, context, orgId) {
 }
 
 /**
+ * Map severity to Slack attachment color hex codes.
+ */
+const SEVERITY_COLORS = {
+  critical: '#FF0000', // red
+  high: '#FF8C00',     // dark orange
+  medium: '#FFD700',   // gold
+  low: '#00BFFF',      // deep sky blue
+  info: '#36A2EB',     // blue
+};
+
+/**
+ * Format an alert payload as a Slack Incoming Webhook message.
+ * Returns a JSON string ready to POST to a Slack webhook URL.
+ * @param {object} payload — the alert payload from buildPayload()
+ * @returns {string} JSON string for Slack webhook
+ */
+function formatSlackMessage(payload) {
+  const color = SEVERITY_COLORS[payload.severity] || SEVERITY_COLORS.info;
+  const severityEmoji = payload.severity === 'critical' ? ':rotating_light:'
+    : payload.severity === 'high' ? ':warning:'
+    : payload.severity === 'medium' ? ':yellow_heart:'
+    : ':information_source:';
+
+  const fields = [];
+  if (payload.data && typeof payload.data === 'object') {
+    for (const [key, value] of Object.entries(payload.data)) {
+      const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+      fields.push({ title: key, value: displayValue, short: displayValue.length <= 25 });
+    }
+  }
+
+  return JSON.stringify({
+    text: `${severityEmoji} *SimpleBeacon Alert*: ${payload.event}`,
+    attachments: [
+      {
+        color,
+        title: payload.event,
+        text: payload.message,
+        fields: fields.length > 0 ? fields.slice(0, 10) : undefined,
+        footer: payload.source,
+        ts: Math.floor(new Date(payload.timestamp).getTime() / 1000),
+      },
+    ],
+  });
+}
+
+/**
  * Deliver a single alert to its destination with retry logic.
  */
 async function deliverAlert(rule, payload) {
   const url = rule.webhookUrl || rule.destination?.url;
   if (!url) {
-    return { status: 'failed', error: 'No webhook URL configured', attempts: 0, responseStatus: null, responseBody: '', durationMs: 0 };
+    return {
+      status: 'failed',
+      error: 'No webhook URL configured',
+      attempts: 0,
+      responseStatus: null,
+      responseBody: '',
+      durationMs: 0,
+    };
   }
 
-  const body = JSON.stringify(payload);
+  const isSlack = rule.destinationType === 'slack';
+  const body = isSlack ? formatSlackMessage(payload) : JSON.stringify(payload);
   const secret = rule.destination?.secret || '';
   const signature = signPayload(body, secret);
 
@@ -50,11 +105,6 @@ async function deliverAlert(rule, payload) {
     'X-SimpleBeacon-Event': payload.event,
     'X-SimpleBeacon-Signature': signature,
   };
-
-  // Slack-specific formatting
-  if (rule.destinationType === 'slack') {
-    headers['Content-Type'] = 'application/json';
-  }
 
   let lastError = '';
   let attempts = 0;
@@ -78,14 +128,28 @@ async function deliverAlert(rule, payload) {
       const durationMs = Date.now() - startTime;
 
       if (response.ok) {
-        return { status: 'delivered', error: '', attempts, responseStatus: response.status, responseBody: responseText.slice(0, 500), durationMs };
+        return {
+          status: 'delivered',
+          error: '',
+          attempts,
+          responseStatus: response.status,
+          responseBody: responseText.slice(0, 500),
+          durationMs,
+        };
       }
 
       lastError = `HTTP ${response.status}: ${responseText.slice(0, 200)}`;
 
       // 4xx errors are not retryable
       if (response.status >= 400 && response.status < 500) {
-        return { status: 'failed', error: lastError, attempts, responseStatus: response.status, responseBody: responseText.slice(0, 500), durationMs };
+        return {
+          status: 'failed',
+          error: lastError,
+          attempts,
+          responseStatus: response.status,
+          responseBody: responseText.slice(0, 500),
+          durationMs,
+        };
       }
     } catch (err) {
       lastError = err.message;
@@ -94,12 +158,19 @@ async function deliverAlert(rule, payload) {
     // Exponential backoff
     if (attempt < MAX_RETRIES - 1) {
       const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise((r) => setTimeout(r, delay));
     }
   }
 
   const durationMs = Date.now() - startTime;
-  return { status: 'failed', error: lastError, attempts, responseStatus: null, responseBody: '', durationMs };
+  return {
+    status: 'failed',
+    error: lastError,
+    attempts,
+    responseStatus: null,
+    responseBody: '',
+    durationMs,
+  };
 }
 
 /**
@@ -144,9 +215,13 @@ async function processEvent(orgId, eventType, context = {}) {
     results.push({ ruleId: rule.id, incidentId: incident.id, status: delivery.status });
 
     if (delivery.status === 'delivered') {
-      logger.info(`[AlertDispatcher] Delivered alert for rule "${rule.name}" to ${rule.destinationType}`);
+      logger.info(
+        `[AlertDispatcher] Delivered alert for rule "${rule.name}" to ${rule.destinationType}`
+      );
     } else {
-      logger.warn(`[AlertDispatcher] Failed to deliver alert for rule "${rule.name}": ${delivery.error}`);
+      logger.warn(
+        `[AlertDispatcher] Failed to deliver alert for rule "${rule.name}": ${delivery.error}`
+      );
     }
   }
 
@@ -158,4 +233,5 @@ module.exports = {
   deliverAlert,
   buildPayload,
   signPayload,
+  formatSlackMessage,
 };

@@ -3,7 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ClipboardCheck, Download, CheckCircle2, XCircle, AlertCircle, FileCode, AlertTriangle, Play } from 'lucide-react';
+import {
+  ClipboardCheck,
+  Download,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  FileCode,
+  AlertTriangle,
+  Play,
+} from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 
 interface ScanResultData {
@@ -41,13 +50,17 @@ export function AuditView() {
       <div className="mx-auto max-w-5xl p-6 space-y-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-bold tracking-tight">Audit Report</h1>
-          <p className="text-foreground-muted">Compliance audit with gate status and export options</p>
+          <p className="text-foreground-muted">
+            Compliance audit with gate status and export options
+          </p>
         </div>
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-16">
             <ClipboardCheck className="h-12 w-12 text-foreground-muted" />
             <p className="text-sm text-foreground-muted">No scan results loaded</p>
-            <p className="text-xs text-foreground-muted">Run a scan from the Analyze page to see audit results here</p>
+            <p className="text-xs text-foreground-muted">
+              Run a scan from the Analyze page to see audit results here
+            </p>
             <Button className="mt-2" onClick={() => navigate('analyze')}>
               <Play className="h-4 w-4" /> Go to Analyze
             </Button>
@@ -113,14 +126,18 @@ export function AuditView() {
               )}
               <div>
                 <p className="text-xs text-foreground-muted">Blocking / Warnings</p>
-                <p className="text-lg font-bold">{result.gate.blockingCount} / {result.gate.warningCount}</p>
+                <p className="text-lg font-bold">
+                  {result.gate.blockingCount} / {result.gate.warningCount}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5 text-info" />
               <div>
                 <p className="text-xs text-foreground-muted">Quality Score</p>
-                <p className="text-lg font-bold">{result.qualityScore !== null ? `${result.qualityScore}%` : '—'}</p>
+                <p className="text-lg font-bold">
+                  {result.qualityScore !== null ? `${result.qualityScore}%` : '—'}
+                </p>
               </div>
             </div>
           </div>
@@ -132,10 +149,15 @@ export function AuditView() {
               <Badge
                 key={sev}
                 variant={
-                  sev === 'critical' ? 'danger' :
-                  sev === 'high' ? 'warning' :
-                  sev === 'medium' ? 'info' :
-                  sev === 'low' ? 'secondary' : 'outline'
+                  sev === 'critical'
+                    ? 'danger'
+                    : sev === 'high'
+                      ? 'warning'
+                      : sev === 'medium'
+                        ? 'info'
+                        : sev === 'low'
+                          ? 'secondary'
+                          : 'outline'
                 }
                 className="capitalize gap-1.5"
               >

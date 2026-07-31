@@ -21,8 +21,8 @@ const {
 const FIXTURE = {
   debugger: 'function run() {\n  debugge' + 'r;\n  return 42;\n}',
   consoleLog: "function init() {\n  console.log('setup complete');\n  return true;\n}",
-  todo: "function main() {\n  // TODO: implement auth\n  return true;\n}",
-  missingStrict: "const x = 1;\nconsole.log(x);",
+  todo: 'function main() {\n  // TODO: implement auth\n  return true;\n}',
+  missingStrict: 'const x = 1;\nconsole.log(x);',
   unhandledPromise: "fetch('/api').then(r => r.json());",
   evalUsage: 'const fn = "ev" + "al";\nconst data = fn(rawInput);',
 };
@@ -78,7 +78,10 @@ describe('selectStrategy()', () => {
   });
 
   it('routes debug-artifact category to DELETE', () => {
-    assert.strictEqual(selectStrategy(makeFinding('console-log', 'debug-artifact')), STRATEGIES.DELETE);
+    assert.strictEqual(
+      selectStrategy(makeFinding('console-log', 'debug-artifact')),
+      STRATEGIES.DELETE
+    );
   });
 
   it('defaults unknown types to REPLACE', () => {
@@ -109,7 +112,7 @@ describe('DELETE strategy', () => {
     const patch = buildPatch(finding, FIXTURE.consoleLog);
     const result = applyPatch(FIXTURE.consoleLog, patch);
 
-    assert.ok(!result.includes("console.log"));
+    assert.ok(!result.includes('console.log'));
     assert.ok(result.includes('return true'));
   });
 
@@ -134,7 +137,7 @@ describe('REPLACE strategy', () => {
 
     assert.strictEqual(patch.strategy, STRATEGIES.REPLACE);
     assert.ok(patch.confidence >= 0.5);
-    assert.strictEqual(patch.newText, "const data = fn(rawInput);");
+    assert.strictEqual(patch.newText, 'const data = fn(rawInput);');
 
     const result = applyPatch(FIXTURE.evalUsage, patch);
     assert.strictEqual(result, FIXTURE.evalUsage);
@@ -236,7 +239,7 @@ describe('Round-trip: patch → apply → diff', () => {
     const diff = generateDiff(FIXTURE.consoleLog, patched, { filePath: 'test.js' });
 
     assert.ok(diff.unified.includes('-'));
-    assert.ok(!diff.unified.includes("+console.log"));
+    assert.ok(!diff.unified.includes('+console.log'));
   });
 });
 

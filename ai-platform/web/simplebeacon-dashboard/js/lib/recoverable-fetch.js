@@ -7,7 +7,7 @@
  */
 export function logRecoverableDashboardError(contextLabel, error) {
   const message = error instanceof Error ? error.message : String(error);
-  window["console"]["debug"](`[Simplebeacon dashboard] ${contextLabel}: ${message}`);
+  window['console']['debug'](`[Simplebeacon dashboard] ${contextLabel}: ${message}`);
 }
 
 /**
@@ -68,7 +68,7 @@ export async function fetchApi(url, options = {}) {
     retries = 2,
     retryDelay = 300,
     timeoutMs = 10000,
-    retryOn = [502, 503, 504]
+    retryOn = [502, 503, 504],
   } = options;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
@@ -80,7 +80,7 @@ export async function fetchApi(url, options = {}) {
         method,
         headers,
         body,
-        signal: controller ? controller.signal : undefined
+        signal: controller ? controller.signal : undefined,
       });
       if (timeoutId) clearTimeout(timeoutId);
 
@@ -93,10 +93,13 @@ export async function fetchApi(url, options = {}) {
       return resp; // non-retriable HTTP error (e.g. 404, 4xx)
     } catch (err) {
       if (timeoutId) clearTimeout(timeoutId);
-      const isAbort = (err && err.name === 'AbortError');
+      const isAbort = err && err.name === 'AbortError';
       if (isAbort) {
         if (attempt === retries) {
-          logRecoverableDashboardError('fetchApi network', new Error('Request timed out after retries'));
+          logRecoverableDashboardError(
+            'fetchApi network',
+            new Error('Request timed out after retries')
+          );
         }
       } else if (attempt === retries) {
         logRecoverableDashboardError('fetchApi network', err);

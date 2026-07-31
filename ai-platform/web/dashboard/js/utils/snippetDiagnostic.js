@@ -8,22 +8,66 @@ const MAX_SNIPPET_BYTES = 512 * 1024;
 
 const PATTERNS = [
   // simplebeacon-ignore hardcoded-key — scanner pattern definition, not a real credential
-  { id: 'aws-access-key', category: 'credentials', severity: 'critical', label: 'AWS access key pattern', regex: new RegExp('\\b' + 'AK' + 'IA' + '[0-9A-Z]{16}\\b', 'g') },
-  { id: 'openai-key', category: 'credentials', severity: 'critical', label: 'OpenAI-style API key', regex: /\bsk-[A-Za-z0-9]{20,}\b/g },
-  { id: 'github-pat', category: 'credentials', severity: 'critical', label: 'GitHub token pattern', regex: /\bghp_[A-Za-z0-9]{20,}\b/g },
-  { id: 'stripe-key', category: 'credentials', severity: 'critical', label: 'Stripe secret key pattern', regex: /\b(sk|pk)_(test|live)_[A-Za-z0-9]{16,}\b/g },
+  {
+    id: 'aws-access-key',
+    category: 'credentials',
+    severity: 'critical',
+    label: 'AWS access key pattern',
+    regex: new RegExp('\\b' + 'AK' + 'IA' + '[0-9A-Z]{16}\\b', 'g'),
+  },
+  {
+    id: 'openai-key',
+    category: 'credentials',
+    severity: 'critical',
+    label: 'OpenAI-style API key',
+    regex: /\bsk-[A-Za-z0-9]{20,}\b/g,
+  },
+  {
+    id: 'github-pat',
+    category: 'credentials',
+    severity: 'critical',
+    label: 'GitHub token pattern',
+    regex: /\bghp_[A-Za-z0-9]{20,}\b/g,
+  },
+  {
+    id: 'stripe-key',
+    category: 'credentials',
+    severity: 'critical',
+    label: 'Stripe secret key pattern',
+    regex: /\b(sk|pk)_(test|live)_[A-Za-z0-9]{16,}\b/g,
+  },
   // simplebeacon-ignore redos-risk — PEM header regex matches short fixed-length strings, not user-controlled input
-  { id: 'pem-block', category: 'credentials', severity: 'critical', label: 'Private key block', regex: new RegExp('-----BEGIN (RSA |EC |OPENSSH )?P' + 'RIVATE K' + 'EY-----', 'g') },
-  { id: 'fiction-metrics', category: 'fiction', severity: 'high', label: 'AI fiction KPI placeholder', regex: /(?:completion_rate|completionRate|aiConfidence|confidence_score|success_rate)"?\s*[:=]\s*["']?(?:98\.5%?|94\.3%?|99\.1%?|87\.5%?)/gi },
+  {
+    id: 'pem-block',
+    category: 'credentials',
+    severity: 'critical',
+    label: 'Private key block',
+    regex: new RegExp('-----BEGIN (RSA |EC |OPENSSH )?P' + 'RIVATE K' + 'EY-----', 'g'),
+  },
+  {
+    id: 'fiction-metrics',
+    category: 'fiction',
+    severity: 'high',
+    label: 'AI fiction KPI placeholder',
+    regex:
+      /(?:completion_rate|completionRate|aiConfidence|confidence_score|success_rate)"?\s*[:=]\s*["']?(?:98\.5%?|94\.3%?|99\.1%?|87\.5%?)/gi,
+  },
   {
     id: 'mock-path',
     category: 'mock-leak',
     severity: 'high',
     label: 'Production mock/sample path',
     // simplebeacon:production-leak-intent - legitimate diagnostic pattern for snippet analysis
-    regex: /(?:['"`][^'"`]*-sample\.json['"`]|\/mock\/|\\mock\\|(?<![a-zA-Z-])mockData(?![a-zA-Z-])|fixtures\/)/gi
+    regex:
+      /(?:['"`][^'"`]*-sample\.json['"`]|\/mock\/|\\mock\\|(?<![a-zA-Z-])mockData(?![a-zA-Z-])|fixtures\/)/gi,
   },
-  { id: 'generic-secret', category: 'credentials', severity: 'medium', label: 'Hardcoded secret assignment', regex: /\b(api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]\s*['"][^'"\s]{12,}['"]/gi }
+  {
+    id: 'generic-secret',
+    category: 'credentials',
+    severity: 'medium',
+    label: 'Hardcoded secret assignment',
+    regex: /\b(api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]\s*['"][^'"\s]{12,}['"]/gi,
+  },
 ];
 
 const ALLOWLIST = [
@@ -36,24 +80,25 @@ const ALLOWLIST = [
   'changeme',
   'replace_me',
   'not-a-real',
-  'pk_test_1234567890abcdef'
+  'pk_test_1234567890abcdef',
 ];
 
-const SOURCE_FILE_RE = /\.(json|js|mjs|cjs|ts|tsx|jsx|py|env|yaml|yml|txt|md|html|css|xml|svg|toml|ini|config|sh|ps1|bat|zsc|zs)$/i;
+const SOURCE_FILE_RE =
+  /\.(json|js|mjs|cjs|ts|tsx|jsx|py|env|yaml|yml|txt|md|html|css|xml|svg|toml|ini|config|sh|ps1|bat|zsc|zs)$/i;
 
 const SCANNER_META_FILENAMES = new Set([
   'analyzer-cache.json',
   'history.json',
   'trust-history.json',
   'source-kpi-findings.json',
-  'source-kpi-findings-with-docs.json'
+  'source-kpi-findings-with-docs.json',
 ]);
 
 const LOCKFILE_NAMES = new Set([
   'package-lock.json',
   'npm-shrinkwrap.json',
   'yarn.lock',
-  'pnpm-lock.yaml'
+  'pnpm-lock.yaml',
 ]);
 
 const TEST_CONFIG_FILENAMES = new Set([
@@ -61,7 +106,7 @@ const TEST_CONFIG_FILENAMES = new Set([
   'vite.config.js',
   'vitest.config.js',
   'jest.config.js',
-  'rollup.config.js'
+  'rollup.config.js',
 ]);
 
 export { MAX_SNIPPET_BYTES };
@@ -72,7 +117,10 @@ export { MAX_SNIPPET_BYTES };
  * @returns {any}
  */
 export function isScannerMetaFileName(name) {
-  const base = String(name || '').split(/[/\\]/).pop().toLowerCase();
+  const base = String(name || '')
+    .split(/[/\\]/)
+    .pop()
+    .toLowerCase();
   if (SCANNER_META_FILENAMES.has(base)) return true;
   if (base.startsWith('cleanup-export-') && base.endsWith('.json')) return true;
   if (base.startsWith('fiction-digest-') && base.endsWith('.json')) return true;
@@ -86,8 +134,11 @@ export function isScannerMetaFileName(name) {
  */
 export function isFictionDigestJson(parsed) {
   if (!parsed || typeof parsed !== 'object') return false;
-  return String(parsed.type || '') === 'simplebeacon-fiction-digest'
-    && parsed.sourceReport && typeof parsed.sourceReport === 'object';
+  return (
+    String(parsed.type || '') === 'simplebeacon-fiction-digest' &&
+    parsed.sourceReport &&
+    typeof parsed.sourceReport === 'object'
+  );
 }
 
 /**
@@ -112,9 +163,9 @@ export function isAnalyzerCacheJson(parsed) {
   }
   const entries = Object.values(parsed.files);
   if (entries.length === 0) return false;
-  return entries.slice(0, 8).every(
-    (entry) => entry && typeof entry === 'object' && typeof entry.hash === 'string'
-  );
+  return entries
+    .slice(0, 8)
+    .every((entry) => entry && typeof entry === 'object' && typeof entry.hash === 'string');
 }
 
 /**
@@ -133,7 +184,9 @@ export function isSupportedSourceFile(name) {
  * @returns {any}
  */
 function isAllowlisted(text, match) {
-  const snippet = text.slice(Math.max(0, match.index - 24), match.index + match[0].length + 24).toLowerCase();
+  const snippet = text
+    .slice(Math.max(0, match.index - 24), match.index + match[0].length + 24)
+    .toLowerCase();
   return ALLOWLIST.some((allowed) => snippet.indexOf(allowed.toLowerCase()) !== -1);
 }
 
@@ -206,12 +259,18 @@ function isSampleCatalogLine(line) {
  * @returns {any}
  */
 function looksLikeAuditReportHtml(text, fileName) {
-  const base = String(fileName || '').split(/[/\\]/).pop();
+  const base = String(fileName || '')
+    .split(/[/\\]/)
+    .pop();
   if (/^SB-AUD-\d{8}-[A-Z0-9]+.*\.html$/i.test(base)) return true;
   const sample = String(text || '').slice(0, 6000);
   if (!/<html[\s>]/i.test(sample)) return false;
-  return /SB-AUD-\d{8}/.test(sample)
-    && /(?:remediation-recipe-table|Simplebeacon Security Audit|gate-attestation|Developer Action Plan)/i.test(sample);
+  return (
+    /SB-AUD-\d{8}/.test(sample) &&
+    /(?:remediation-recipe-table|Simplebeacon Security Audit|gate-attestation|Developer Action Plan)/i.test(
+      sample
+    )
+  );
 }
 
 /**
@@ -231,7 +290,10 @@ function isAuditReportFindingLine(line) {
  * @returns {any}
  */
 export function isLockfileName(fileName) {
-  const base = String(fileName || '').split(/[/\\]/).pop().toLowerCase();
+  const base = String(fileName || '')
+    .split(/[/\\]/)
+    .pop()
+    .toLowerCase();
   return LOCKFILE_NAMES.has(base);
 }
 
@@ -251,7 +313,11 @@ function isPackageManifestPathLine(line) {
  * @returns {any}
  */
 export function isMarkdownFileName(fileName) {
-  return /\.(?:md|markdown)$/i.test(String(fileName || '').split(/[/\\]/).pop());
+  return /\.(?:md|markdown)$/i.test(
+    String(fileName || '')
+      .split(/[/\\]/)
+      .pop()
+  );
 }
 
 /**
@@ -274,7 +340,10 @@ export function filterSnippetFindingsForFile(findings, fileName) {
  * @returns {any}
  */
 function isTestConfigFileName(fileName) {
-  const base = String(fileName || '').split(/[/\\]/).pop().toLowerCase();
+  const base = String(fileName || '')
+    .split(/[/\\]/)
+    .pop()
+    .toLowerCase();
   return TEST_CONFIG_FILENAMES.has(base);
 }
 
@@ -340,9 +409,15 @@ function shouldSkipMockPathMatch(text, match, options = {}) {
   if (isInventoryPathLine(line)) return true;
   if (isSampleCatalogLine(line)) return true;
   if (isPackageManifestPathLine(line)) return true;
-  if (looksLikeAuditReportHtml(text, options.fileName) && isAuditReportFindingLine(line)) return true;
+  if (looksLikeAuditReportHtml(text, options.fileName) && isAuditReportFindingLine(line))
+    return true;
   const lower = line.toLowerCase();
-  if (/__tests__[/\\]|(?:^|[/\\'"])tests[/\\]|\/temp\/|\\temp\\|\/\.simplebeacon\/|github-cache[/\\]/i.test(lower)) return true;
+  if (
+    /__tests__[/\\]|(?:^|[/\\'"])tests[/\\]|\/temp\/|\\temp\\|\/\.simplebeacon\/|github-cache[/\\]/i.test(
+      lower
+    )
+  )
+    return true;
   if (/['"]tests[/\\]fixtures[/\\]/i.test(lower)) return true;
   if (/\/scripts\/.*mock/i.test(lower)) return true;
   return false;
@@ -406,7 +481,7 @@ export function scanSnippetText(text, options = {}) {
         severity: pattern.severity,
         label: pattern.label,
         line: lineAt(text, match.index),
-        match: match[0]
+        match: match[0],
       });
     }
   });

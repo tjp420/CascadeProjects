@@ -13,6 +13,7 @@ This project includes an AI-powered code analysis assistant that helps developer
 ## Human Involvement
 
 **All code changes require human review and approval.** The AI assistant:
+
 - Cannot modify code without explicit developer consent
 - Cannot deploy or push code to repositories
 - Cannot make autonomous decisions about code changes
@@ -26,6 +27,7 @@ This project includes an AI-powered code analysis assistant that helps developer
 ## User Rights
 
 As a developer using this tool, you have full control:
+
 - Review all suggestions before applying them
 - Reject any suggestion you disagree with
 - Disable the AI assistant at any time

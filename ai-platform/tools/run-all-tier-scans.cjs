@@ -17,7 +17,7 @@ const SUBSCRIPTION_STORE = path.join(PLATFORM_ROOT, '.simplebeacon', 'subscripti
 
 function log(step, msg) {
   const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
-  process.stdout.write([`[${ts}]  ${step.padEnd(24)}  ${msg}`].join(" ") + "\n");
+  process.stdout.write([`[${ts}]  ${step.padEnd(24)}  ${msg}`].join(' ') + '\n');
 }
 
 function readStore() {
@@ -53,7 +53,7 @@ function seedSubscription(tier) {
     certClientName: tier.clientName,
     certProjectName: tier.projectName,
     certMilestone: 'release',
-    certOrgId: tier.orgId
+    certOrgId: tier.orgId,
   };
   store.byApiToken[store.subscriptions[TARGET_EMAIL].apiToken] = TARGET_EMAIL;
   writeStore(store);
@@ -69,14 +69,39 @@ function generateWebsiteSecurityReport() {
     overallGrade: 'B+',
     overallScore: 87,
     sections: {
-      ssl: { pass: true, grade: 'A', details: 'Valid Let\'s Encrypt cert, TLS 1.3, expires 2026-09-15' },
-      securityHeaders: { pass: false, grade: 'C', details: 'HSTS present, X-Frame-Options OK. Missing: CSP, X-Content-Type-Options' },
-      seo: { pass: true, grade: 'B', details: 'Title and description present. Missing: canonical URL, incomplete Open Graph' },
-      mobile: { pass: true, grade: 'A-', details: 'Viewport OK, no overflow. Warning: 3 tap targets < 48px' },
-      speed: { pass: true, grade: 'B', details: 'FCP 0.8s, TTI 2.1s. Warning: LCP 2.9s, TBT 450ms' },
-      accessibility: { pass: true, grade: 'A', details: 'Alt text on all images, color contrast OK. Missing: 2 form labels, 1 skipped heading level' }
+      ssl: {
+        pass: true,
+        grade: 'A',
+        details: "Valid Let's Encrypt cert, TLS 1.3, expires 2026-09-15",
+      },
+      securityHeaders: {
+        pass: false,
+        grade: 'C',
+        details: 'HSTS present, X-Frame-Options OK. Missing: CSP, X-Content-Type-Options',
+      },
+      seo: {
+        pass: true,
+        grade: 'B',
+        details: 'Title and description present. Missing: canonical URL, incomplete Open Graph',
+      },
+      mobile: {
+        pass: true,
+        grade: 'A-',
+        details: 'Viewport OK, no overflow. Warning: 3 tap targets < 48px',
+      },
+      speed: {
+        pass: true,
+        grade: 'B',
+        details: 'FCP 0.8s, TTI 2.1s. Warning: LCP 2.9s, TBT 450ms',
+      },
+      accessibility: {
+        pass: true,
+        grade: 'A',
+        details:
+          'Alt text on all images, color contrast OK. Missing: 2 form labels, 1 skipped heading level',
+      },
     },
-    summary: '6 categories scanned · 4 passed · 2 partial · 0 critical failures'
+    summary: '6 categories scanned · 4 passed · 2 partial · 0 critical failures',
   };
 }
 
@@ -106,7 +131,11 @@ function uploadReport(report, licenseToken) {
     );
     return JSON.parse(output);
   } finally {
-    try { fs.unlinkSync(payloadPath); } catch { /* ignore cleanup errors */ }
+    try {
+      fs.unlinkSync(payloadPath);
+    } catch {
+      /* ignore cleanup errors */
+    }
   }
 }
 
@@ -131,7 +160,7 @@ const TIERS = [
     projectName: 'example.com Security Audit',
     orgId: 'website-audit',
     timeout: constants.TIMEOUT_2M,
-    isWebsiteReport: true
+    isWebsiteReport: true,
   },
   {
     id: 'community',
@@ -143,7 +172,7 @@ const TIERS = [
     clientName: 'Community User',
     projectName: 'Open Source Evaluation',
     orgId: 'community',
-    timeout: constants.TIMEOUT_2M
+    timeout: constants.TIMEOUT_2M,
   },
   {
     id: 'clearance499',
@@ -155,7 +184,7 @@ const TIERS = [
     clientName: 'Acme Corp',
     projectName: 'Executive Audit',
     orgId: 'acme-corp',
-    timeout: constants.TIMEOUT_2M
+    timeout: constants.TIMEOUT_2M,
   },
   {
     id: 'agency999',
@@ -167,7 +196,7 @@ const TIERS = [
     clientName: 'Pixel Studios',
     projectName: 'Agency Client Portal',
     orgId: 'pixel-studios',
-    timeout: 300000
+    timeout: 300000,
   },
   {
     id: 'agency1499',
@@ -179,7 +208,7 @@ const TIERS = [
     clientName: 'Nova Digital',
     projectName: 'Enterprise Platform',
     orgId: 'nova-digital',
-    timeout: 300000
+    timeout: 300000,
   },
   {
     id: 'euai2499',
@@ -191,7 +220,7 @@ const TIERS = [
     clientName: 'Aether Dynamics',
     projectName: 'PropTech Compliance Suite',
     orgId: 'aether-dynamics',
-    timeout: 300000
+    timeout: 300000,
   },
   {
     id: 'warranty199',
@@ -203,27 +232,30 @@ const TIERS = [
     clientName: 'Zenith Systems',
     projectName: 'Warranty Re-scan',
     orgId: 'zenith-systems',
-    timeout: constants.TIMEOUT_2M
-  }
+    timeout: constants.TIMEOUT_2M,
+  },
 ];
 
 async function main() {
-  process.stdout.write(['\n=== Simplebeacon Tier Scan Suite ==='].join(" ") + "\n");
-  process.stdout.write(['Customer: configured'].join(" ") + "\n");
+  process.stdout.write(['\n=== Simplebeacon Tier Scan Suite ==='].join(' ') + '\n');
+  process.stdout.write(['Customer: configured'].join(' ') + '\n');
 
   if (!checkServer()) {
-    process.stderr.write(['ERROR: Server not running on port', PORT].join(" ") + "\n");
+    process.stderr.write(['ERROR: Server not running on port', PORT].join(' ') + '\n');
     process.exit(1);
   }
   log('SERVER', `Responding on port ${PORT}`);
 
   for (const tier of TIERS) {
-    process.stdout.write([`\n--- ${tier.name} (${tier.price}) ---`].join(" ") + "\n");
+    process.stdout.write([`\n--- ${tier.name} (${tier.price}) ---`].join(' ') + '\n');
 
     // 1. Run scan
     log('SCAN', `Running ${tier.name} scan...`);
     const report = runScan(tier);
-    log('SCAN', `Done. Files: ${report.repositoryFilesTotal ?? '—'}, Issues: ${report.issueCount ?? 0}`);
+    log(
+      'SCAN',
+      `Done. Files: ${report.repositoryFilesTotal ?? '—'}, Issues: ${report.issueCount ?? 0}`
+    );
 
     // 2. Seed subscription
     log('BILLING', `Creating ${tier.name} subscription...`);
@@ -241,11 +273,11 @@ async function main() {
     }
   }
 
-  process.stdout.write(['\n=== All tiers complete ==='].join(" ") + "\n");
-  process.stdout.write(['Check your inbox for results\n'].join(" ") + "\n");
+  process.stdout.write(['\n=== All tiers complete ==='].join(' ') + '\n');
+  process.stdout.write(['Check your inbox for results\n'].join(' ') + '\n');
 }
 
 main().catch((err) => {
-  process.stderr.write(['\nFatal error:', err.message].join(" ") + "\n");
+  process.stderr.write(['\nFatal error:', err.message].join(' ') + '\n');
   process.exit(1);
 });

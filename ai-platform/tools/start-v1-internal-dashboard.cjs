@@ -3,16 +3,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const envPath = process.env.DOTENV_CONFIG_PATH
-    || path.join(__dirname, '..', '.env.v1-internal');
+const envPath = process.env.DOTENV_CONFIG_PATH || path.join(__dirname, '..', '.env.v1-internal');
 
 if (fs.existsSync(envPath)) {
-    require('dotenv').config({ path: envPath, override: true });
+  require('dotenv').config({ path: envPath, override: true });
 } else {
-    process.stderr.write(
-        [`[v1-internal] Missing ${envPath} — copy .env.v1-internal.example first`].join(" ") + "\n"
-    );
-    process.env.REQUIRE_AUTH = process.env.REQUIRE_AUTH || 'true';
+  process.stderr.write(
+    [`[v1-internal] Missing ${envPath} — copy .env.v1-internal.example first`].join(' ') + '\n'
+  );
+  process.env.REQUIRE_AUTH = process.env.REQUIRE_AUTH || 'true';
 }
 
 process.env.SIMPLEBEACON_INTERNAL_DASHBOARD = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD || 'true';

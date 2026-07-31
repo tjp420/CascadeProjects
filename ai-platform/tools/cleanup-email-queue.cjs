@@ -19,7 +19,9 @@ const fs = require('fs');
 
 // Resolve project root so we can import the email service
 const projectRoot = path.resolve(__dirname, '..');
-const { sendEmail, QUEUE_DIR } = require(path.join(projectRoot, 'server', 'lib', 'email-service.cjs'));
+const { sendEmail, QUEUE_DIR } = require(
+  path.join(projectRoot, 'server', 'lib', 'email-service.cjs')
+);
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
@@ -33,7 +35,8 @@ function log(...msgs) {
 
 function listQueueFiles() {
   if (!fs.existsSync(QUEUE_DIR)) return [];
-  return fs.readdirSync(QUEUE_DIR)
+  return fs
+    .readdirSync(QUEUE_DIR)
     .filter((name) => name.endsWith('.json'))
     .map((name) => path.join(QUEUE_DIR, name));
 }
@@ -71,7 +74,11 @@ async function processQueue() {
     if (payload._parseError) {
       log('Skipping corrupt file:', path.basename(filePath), '-', payload._parseError);
       if (!dryRun) {
-        try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          /* ignore */
+        }
       }
       purgeCount++;
       continue;
@@ -84,7 +91,11 @@ async function processQueue() {
     if (!to || !subject) {
       log('Skipping incomplete payload:', id);
       if (!dryRun) {
-        try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          /* ignore */
+        }
       }
       purgeCount++;
       continue;
@@ -93,7 +104,11 @@ async function processQueue() {
     if (isStale(payload.queuedAt)) {
       log('Purging stale queue item');
       if (!dryRun) {
-        try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          /* ignore */
+        }
       }
       purgeCount++;
       continue;
@@ -112,13 +127,17 @@ async function processQueue() {
         html: payload.html || undefined,
         attachments: (payload.attachments || []).map((a) => ({
           filename: a.filename,
-          content: a.content
-        }))
+          content: a.content,
+        })),
       });
 
       if (result.sent) {
         log('Sent and removed from queue:', id, '→', to);
-        try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+        try {
+          fs.unlinkSync(filePath);
+        } catch {
+          /* ignore */
+        }
         sentCount++;
       } else if (result.queued) {
         log('Re-queued to disk (no live transport):', id, '→', to);

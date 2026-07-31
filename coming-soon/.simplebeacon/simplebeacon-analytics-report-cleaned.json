@@ -1,57 +1,57 @@
 {
-  "reportType": "SimpleBeacon Analytics - Cleaned",
-  "generatedAt": "2026-06-23T03:02:23.812Z",
-  "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
-  "qualityScore": 94,
-  "status": "FAILED",
-  "blockMerge": true,
-  "summary": {
-    "totalFiles": 39936,
-    "totalFolders": 6164,
-    "totalSize": "1.1GB",
-    "filesAnalyzed": 39936,
-    "issueCount": 358,
-    "severityBreakdown": {
-      "critical": 0,
-      "high": 1,
-      "medium": 41,
-      "low": 316
-    }
-  },
-  "highSeverityFindings": [
-    {
-      "type": "Invalid JSON",
-      "severity": "high",
-      "description": "launch.json: Expected property name or '}' in JSON at position 5 (line 2 column 3)",
-      "file": "simplebeacon-vscode-merged/.vscode-test/vscode-win32-x64-archive-1.125.1/fcf604774b/resources/app/extensions/debug-auto-launch/.vscode/launch.json",
-      "recommendation": "Fix JSON syntax errors in mock data",
-      "count": 1
-    }
-  ],
-  "keyMetrics": {
-    "schemaCompliance": "100%",
-    "consistencyScore": 100,
-    "duplicateGroups": 0,
-    "credentialScanned": 802,
-    "credentialFindings": 0,
-    "securityPatternFilesScanned": 240,
-    "securityPatternFindings": 0,
-    "euAiActScanned": 38,
-    "euAiActFindings": 0,
-    "llmSlopFilesScanned": 341,
-    "llmSlopPatternHits": 0,
-    "productionLeakScanned": 158,
-    "productionLeakFindings": 0
-  },
-  "aiIndicators": {
-    "aiSystemIndicators": 7,
-    "highRiskIndicators": 0,
-    "transparencyGaps": 0,
-    "documentationArtifacts": 116
-  },
-  "recommendations": [
-    "Fix the Invalid JSON in .vscode-test launch.json",
-    "Review 41 medium severity findings",
-    "Address 316 low severity items"
-  ]
+    "reportType": "SimpleBeacon Analytics - Cleaned",
+    "generatedAt": "2026-06-23T03:02:23.812Z",
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
+    "qualityScore": 94,
+    "status": "FAILED",
+    "blockMerge": true,
+    "summary": {
+        "totalFiles": 39936,
+        "totalFolders": 6164,
+        "totalSize": "1.1GB",
+        "filesAnalyzed": 39936,
+        "issueCount": 358,
+        "severityBreakdown": {
+            "critical": 0,
+            "high": 1,
+            "medium": 41,
+            "low": 316
+        }
+    },
+    "highSeverityFindings": [
+        {
+            "type": "Invalid JSON",
+            "severity": "high",
+            "description": "launch.json: Expected property name or '}' in JSON at position 5 (line 2 column 3)",
+            "file": "simplebeacon-vscode-merged/.vscode-test/vscode-win32-x64-archive-1.125.1/fcf604774b/resources/app/extensions/debug-auto-launch/.vscode/launch.json",
+            "recommendation": "Fix JSON syntax errors in mock data",
+            "count": 1
+        }
+    ],
+    "keyMetrics": {
+        "schemaCompliance": "100%",
+        "consistencyScore": 100,
+        "duplicateGroups": 0,
+        "credentialScanned": 802,
+        "credentialFindings": 0,
+        "securityPatternFilesScanned": 240,
+        "securityPatternFindings": 0,
+        "euAiActScanned": 38,
+        "euAiActFindings": 0,
+        "llmSlopFilesScanned": 341,
+        "llmSlopPatternHits": 0,
+        "productionLeakScanned": 158,
+        "productionLeakFindings": 0
+    },
+    "aiIndicators": {
+        "aiSystemIndicators": 7,
+        "highRiskIndicators": 0,
+        "transparencyGaps": 0,
+        "documentationArtifacts": 116
+    },
+    "recommendations": [
+        "Fix the Invalid JSON in .vscode-test launch.json",
+        "Review 41 medium severity findings",
+        "Address 316 low severity items"
+    ]
 }

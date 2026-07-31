@@ -57,7 +57,7 @@ export function notifyDownloadComplete(filename, filePath) {
   const pseudoPath = filePath || `browser://${filename}?t=${Date.now()}.${++_downloadNotifyId}`;
   notifyVSCode({
     type: 'downloadComplete',
-    payload: { filename, filePath: pseudoPath }
+    payload: { filename, filePath: pseudoPath },
   });
 }
 
@@ -76,8 +76,8 @@ export function notifyAuthState(signedIn, tier, token, isAdmin) {
       signedIn: signedIn === true,
       tier: tier || '',
       token: token || '',
-      isAdmin: isAdmin === true
-    }
+      isAdmin: isAdmin === true,
+    },
   });
 }
 
@@ -98,7 +98,13 @@ function _redactPayload(obj) {
   const out = {};
   for (const key of Object.keys(obj)) {
     const lower = key.toLowerCase();
-    if (lower === 'token' || lower === 'password' || lower === 'apikey' || lower === 'api_key' || lower === 'secret') {
+    if (
+      lower === 'token' ||
+      lower === 'password' ||
+      lower === 'apikey' ||
+      lower === 'api_key' ||
+      lower === 'secret'
+    ) {
       out[key] = '[REDACTED]';
     } else {
       out[key] = _redactPayload(obj[key]);
@@ -110,12 +116,17 @@ function _redactPayload(obj) {
 function _postNotifyBeacon(url, entry) {
   try {
     const payload = _redactPayload(entry.payload || {});
-    const beaconUrl = String(url).replace(/\/api\/notify\/?$/, '/api/notify/beacon')
-      + '?type=' + encodeURIComponent(entry.type)
-      + '&payload=' + encodeURIComponent(JSON.stringify(payload));
+    const beaconUrl =
+      String(url).replace(/\/api\/notify\/?$/, '/api/notify/beacon') +
+      '?type=' +
+      encodeURIComponent(entry.type) +
+      '&payload=' +
+      encodeURIComponent(JSON.stringify(payload));
     const img = new Image();
     img.src = beaconUrl;
-  } catch (_) { /* ignore */ }
+  } catch (_) {
+    /* ignore */
+  }
 }
 
 function _notifyUrlFromBase(notifyBase) {
@@ -140,15 +151,21 @@ function _postNotify(entry) {
     if (notifyBase) {
       url = _notifyUrlFromBase(notifyBase) || url;
     }
-  } catch (_) { /* ignore malformed bridge URL */ }
+  } catch (_) {
+    /* ignore malformed bridge URL */
+  }
   if (!notifyBase && apiBaseUrl() === '/') {
     return;
   }
-  
+
   if (Date.now() < _notifyDisabledUntil) return;
   (async () => {
     try {
-      const resp = await fetchApi(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
+      const resp = await fetchApi(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry),
+      });
       if (resp === null) {
         _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
         if (!_isHostedHttps()) _postNotifyBeacon(url, entry);
@@ -159,8 +176,6 @@ function _postNotify(entry) {
           _notifyDisabledUntil = Date.now() + 5 * 60 * 1000;
         }
       }
-    }
-    catch (err) {
-    }
+    } catch (err) {}
   })();
 }

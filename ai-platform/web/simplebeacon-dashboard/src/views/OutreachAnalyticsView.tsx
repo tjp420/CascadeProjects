@@ -5,13 +5,33 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
-  AreaChart, Area,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  AreaChart,
+  Area,
 } from 'recharts';
 import {
-  Mail, Users, TrendingUp, CheckCircle2, Calendar, DollarSign,
-  Target, Send, RefreshCw, Inbox,
+  Mail,
+  Users,
+  TrendingUp,
+  CheckCircle2,
+  Calendar,
+  DollarSign,
+  Target,
+  Send,
+  RefreshCw,
+  Inbox,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -125,12 +145,12 @@ const COLORS = {
 };
 
 const FUNNEL_COLORS = [
-  COLORS.blue,    // Prospects
-  COLORS.cyan,    // Contacted
-  COLORS.purple,  // Replied
-  COLORS.amber,   // Meetings
-  COLORS.pink,    // Pilots
-  COLORS.green,   // Closed
+  COLORS.blue, // Prospects
+  COLORS.cyan, // Contacted
+  COLORS.purple, // Replied
+  COLORS.amber, // Meetings
+  COLORS.pink, // Pilots
+  COLORS.green, // Closed
 ];
 
 const SEQUENCE_COLORS: Record<string, string> = {
@@ -150,11 +170,13 @@ const SEQUENCE_LABELS: Record<string, string> = {
 function computeFunnelData(campaign: CampaignState): FunnelStage[] {
   const prospects = Object.values(campaign.prospects || {});
   const total = prospects.length;
-  const contacted = prospects.filter(p => p.status === 'contacted' || (p.emailHistory?.length ?? 0) > 0).length;
-  const replied = prospects.filter(p => p.replied).length;
-  const meetings = prospects.filter(p => p.meetingBooked).length;
-  const pilots = prospects.filter(p => p.pilotStarted).length;
-  const closed = prospects.filter(p => p.closed).length;
+  const contacted = prospects.filter(
+    (p) => p.status === 'contacted' || (p.emailHistory?.length ?? 0) > 0
+  ).length;
+  const replied = prospects.filter((p) => p.replied).length;
+  const meetings = prospects.filter((p) => p.meetingBooked).length;
+  const pilots = prospects.filter((p) => p.pilotStarted).length;
+  const closed = prospects.filter((p) => p.closed).length;
   return [
     { stage: 'Prospects', count: total, fill: FUNNEL_COLORS[0] },
     { stage: 'Contacted', count: contacted, fill: FUNNEL_COLORS[1] },
@@ -168,12 +190,12 @@ function computeFunnelData(campaign: CampaignState): FunnelStage[] {
 function computeSequenceMetrics(campaign: CampaignState): SequenceMetric[] {
   const prospects = Object.values(campaign.prospects || {});
   const sequences = ['A', 'B', 'C'];
-  return sequences.map(seq => {
-    const inSeq = prospects.filter(p => p.sequence === seq);
+  return sequences.map((seq) => {
+    const inSeq = prospects.filter((p) => p.sequence === seq);
     const sent = inSeq.reduce((sum, p) => sum + (p.emailHistory?.length ?? 0), 0);
-    const replies = inSeq.filter(p => p.replied).length;
-    const meetings = inSeq.filter(p => p.meetingBooked).length;
-    const closes = inSeq.filter(p => p.closed).length;
+    const replies = inSeq.filter((p) => p.replied).length;
+    const meetings = inSeq.filter((p) => p.meetingBooked).length;
+    const closes = inSeq.filter((p) => p.closed).length;
     const denom = inSeq.length || 1;
     return {
       sequence: seq,
@@ -209,7 +231,7 @@ function computeTimelineData(campaign: CampaignState): TimelinePoint[] {
 
   const sorted = Object.keys(byDate).sort();
   let cumulative = 0;
-  return sorted.map(d => {
+  return sorted.map((d) => {
     cumulative += byDate[d].replies;
     return {
       date: d,
@@ -221,7 +243,7 @@ function computeTimelineData(campaign: CampaignState): TimelinePoint[] {
 
 function computeRecentActivity(
   campaign: CampaignState,
-  prospects: ProspectRecord[],
+  prospects: ProspectRecord[]
 ): ActivityRow[] {
   const prospectMap: Record<string, ProspectRecord> = {};
   for (const p of prospects) {
@@ -263,9 +285,9 @@ function computeOverviewStats(campaign: CampaignState): OverviewStats {
   const prospects = Object.values(campaign.prospects || {});
   const total = prospects.length;
   const emailsSent = prospects.reduce((sum, p) => sum + (p.emailHistory?.length ?? 0), 0);
-  const replies = prospects.filter(p => p.replied).length;
-  const meetings = prospects.filter(p => p.meetingBooked).length;
-  const closed = prospects.filter(p => p.closed).length;
+  const replies = prospects.filter((p) => p.replied).length;
+  const meetings = prospects.filter((p) => p.meetingBooked).length;
+  const closed = prospects.filter((p) => p.closed).length;
   const pipelineValue = prospects.reduce((sum, p) => sum + (p.closedValue || 0), 0);
   return {
     totalProspects: total,
@@ -364,7 +386,7 @@ export function OutreachAnalyticsView() {
     for (const p of prospectsList) {
       if (p.sequence in counts) counts[p.sequence] += 1;
     }
-    return (['A', 'B', 'C'] as const).map(seq => ({
+    return (['A', 'B', 'C'] as const).map((seq) => ({
       name: SEQUENCE_LABELS[seq],
       value: counts[seq],
       fill: SEQUENCE_COLORS[seq],
@@ -387,7 +409,9 @@ export function OutreachAnalyticsView() {
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold">Outreach Analytics</h3>
-          <p className="text-sm text-muted-foreground">Campaign performance and prospect engagement</p>
+          <p className="text-sm text-muted-foreground">
+            Campaign performance and prospect engagement
+          </p>
         </div>
         <div className="flex items-center justify-center p-20 text-sm text-muted-foreground">
           <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Loading campaign data…
@@ -402,7 +426,9 @@ export function OutreachAnalyticsView() {
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold">Outreach Analytics</h3>
-          <p className="text-sm text-muted-foreground">Campaign performance and prospect engagement</p>
+          <p className="text-sm text-muted-foreground">
+            Campaign performance and prospect engagement
+          </p>
         </div>
         <Card>
           <CardContent className="pt-6">
@@ -422,14 +448,16 @@ export function OutreachAnalyticsView() {
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold">Outreach Analytics</h3>
-          <p className="text-sm text-muted-foreground">Campaign performance and prospect engagement</p>
+          <p className="text-sm text-muted-foreground">
+            Campaign performance and prospect engagement
+          </p>
         </div>
         <Card>
           <CardContent className="pt-6 flex flex-col items-center gap-3 py-12">
             <Inbox className="h-10 w-10 text-muted-foreground" />
             <p className="text-sm text-muted-foreground text-center max-w-md">
-              No outreach campaign data found. Run the outreach pipeline to populate
-              prospect sequences and start tracking campaign analytics here.
+              No outreach campaign data found. Run the outreach pipeline to populate prospect
+              sequences and start tracking campaign analytics here.
             </p>
             <Button variant="outline" size="sm" onClick={loadData}>
               <RefreshCw className="h-4 w-4" /> Refresh
@@ -446,7 +474,9 @@ export function OutreachAnalyticsView() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Outreach Analytics</h3>
-          <p className="text-sm text-muted-foreground">Campaign performance and prospect engagement</p>
+          <p className="text-sm text-muted-foreground">
+            Campaign performance and prospect engagement
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
@@ -505,9 +535,7 @@ export function OutreachAnalyticsView() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${overview.pipelineValue.toLocaleString()}
-            </div>
+            <div className="text-2xl font-bold">${overview.pipelineValue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">closed value</p>
           </CardContent>
         </Card>
@@ -581,9 +609,7 @@ export function OutreachAnalyticsView() {
                       </div>
                       <span className="text-xl font-bold">{stage.count}</span>
                       {idx > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          {rate}% from previous
-                        </span>
+                        <span className="text-xs text-muted-foreground">{rate}% from previous</span>
                       )}
                     </div>
                   );
@@ -605,15 +631,33 @@ export function OutreachAnalyticsView() {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={sequenceMetrics} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+                  <BarChart
+                    data={sequenceMetrics}
+                    margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="label" />
                     <YAxis allowDecimals={false} />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="sent" name="Emails Sent" fill={COLORS.blue} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="replies" name="Replies" fill={COLORS.purple} radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="meetings" name="Meetings" fill={COLORS.amber} radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="sent"
+                      name="Emails Sent"
+                      fill={COLORS.blue}
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="replies"
+                      name="Replies"
+                      fill={COLORS.purple}
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="meetings"
+                      name="Meetings"
+                      fill={COLORS.amber}
+                      radius={[4, 4, 0, 0]}
+                    />
                     <Bar dataKey="closes" name="Closes" fill={COLORS.green} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -664,9 +708,24 @@ export function OutreachAnalyticsView() {
                   <YAxis unit="%" />
                   <Tooltip formatter={(v) => `${v}%`} />
                   <Legend />
-                  <Bar dataKey="replyRate" name="Reply Rate" fill={COLORS.purple} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="meetingRate" name="Meeting Rate" fill={COLORS.amber} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="closeRate" name="Close Rate" fill={COLORS.green} radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="replyRate"
+                    name="Reply Rate"
+                    fill={COLORS.purple}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="meetingRate"
+                    name="Meeting Rate"
+                    fill={COLORS.amber}
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="closeRate"
+                    name="Close Rate"
+                    fill={COLORS.green}
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -772,7 +831,10 @@ export function OutreachAnalyticsView() {
                               {SEQUENCE_LABELS[row.sequence] || row.sequence} · Step {row.step}
                             </Badge>
                           </td>
-                          <td className="py-2 pr-4 max-w-xs truncate text-muted-foreground" title={row.subject}>
+                          <td
+                            className="py-2 pr-4 max-w-xs truncate text-muted-foreground"
+                            title={row.subject}
+                          >
                             {row.subject}
                           </td>
                           <td className="py-2 pr-4 whitespace-nowrap text-muted-foreground">

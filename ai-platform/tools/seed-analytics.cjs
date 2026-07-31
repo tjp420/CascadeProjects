@@ -35,9 +35,10 @@ const DAYS = parseInt(cliArgs.days, 10) || 90;
 const NUM_ORGS = parseInt(cliArgs.orgs, 10) || 4;
 const CLEAR = !!cliArgs.clear;
 
-const STORE_PATH = cliArgs.storePath
-  || process.env.USAGE_ANALYTICS_STORE_PATH
-  || path.join(__dirname, '..', '.simplebeacon', 'usage-analytics.json');
+const STORE_PATH =
+  cliArgs.storePath ||
+  process.env.USAGE_ANALYTICS_STORE_PATH ||
+  path.join(__dirname, '..', '.simplebeacon', 'usage-analytics.json');
 
 // ── Enterprise Org Profiles ─────────────────────────────────────────────────
 
@@ -46,7 +47,12 @@ const ORG_PROFILES = [
     orgId: 'acme-corp',
     companyName: 'Acme Corporation',
     industry: 'Financial Services',
-    repos: ['acme-payment-gateway', 'acme-risk-engine', 'acme-compliance-api', 'acme-trading-platform'],
+    repos: [
+      'acme-payment-gateway',
+      'acme-risk-engine',
+      'acme-compliance-api',
+      'acme-trading-platform',
+    ],
     languages: { JavaScript: 35, TypeScript: 30, Python: 20, Java: 10, Go: 5 },
     baseFiles: 850,
     baseFindings: 45,
@@ -58,7 +64,12 @@ const ORG_PROFILES = [
     orgId: 'globex-health',
     companyName: 'Globex Health Systems',
     industry: 'Healthcare / HIPAA',
-    repos: ['globex-patient-portal', 'globex-ehr-backend', 'globex-medical-ml', 'globex-claims-processor'],
+    repos: [
+      'globex-patient-portal',
+      'globex-ehr-backend',
+      'globex-medical-ml',
+      'globex-claims-processor',
+    ],
     languages: { Python: 40, TypeScript: 25, JavaScript: 15, Java: 15, SQL: 5 },
     baseFiles: 620,
     baseFindings: 38,
@@ -70,7 +81,12 @@ const ORG_PROFILES = [
     orgId: 'initech-ai',
     companyName: 'Initech AI Labs',
     industry: 'AI / ML Platform',
-    repos: ['initech-model-training', 'initech-inference-api', 'initech-data-pipeline', 'initech-feature-store'],
+    repos: [
+      'initech-model-training',
+      'initech-inference-api',
+      'initech-data-pipeline',
+      'initech-feature-store',
+    ],
     languages: { Python: 50, TypeScript: 20, Go: 15, JavaScript: 10, Rust: 5 },
     baseFiles: 480,
     baseFindings: 28,
@@ -94,7 +110,12 @@ const ORG_PROFILES = [
     orgId: 'stark-industries',
     companyName: 'Stark Industries',
     industry: 'Defense / Aerospace',
-    repos: ['stark-guidance-system', 'stark-telemetry-processor', 'stark-mission-control', 'stark-sim-engine'],
+    repos: [
+      'stark-guidance-system',
+      'stark-telemetry-processor',
+      'stark-mission-control',
+      'stark-sim-engine',
+    ],
     languages: { C: 30, Python: 25, TypeScript: 20, Java: 15, Rust: 10 },
     baseFiles: 720,
     baseFindings: 52,
@@ -247,17 +268,25 @@ function generateScans() {
         const fileVariance = randomFloat(0.7, 1.3);
         const filesAnalyzed = Math.round(profile.baseFiles * fileVariance);
         const findingsVariance = randomFloat(0.6, 1.4);
-        const totalFindings = Math.max(0, Math.round(profile.baseFindings * findingsVariance * (1 - (1 - trendFactor) * 0.3)));
+        const totalFindings = Math.max(
+          0,
+          Math.round(profile.baseFindings * findingsVariance * (1 - (1 - trendFactor) * 0.3))
+        );
 
         const severityCounts = generateSeverityCounts(totalFindings, trendFactor);
         const postureScore = postureForDay(profile, DAYS - dayOffset, DAYS);
 
         // Adjust findings to match posture score roughly
-        const adjustedFindings = severityCounts.critical + severityCounts.high + severityCounts.medium + severityCounts.low + severityCounts.info;
+        const adjustedFindings =
+          severityCounts.critical +
+          severityCounts.high +
+          severityCounts.medium +
+          severityCounts.low +
+          severityCounts.info;
 
         const branch = pick(profile.branches);
         const triggeredBy = pick(profile.triggerSources);
-        const gateStatus = postureScore >= 70 ? 'pass' : (postureScore >= 50 ? 'warn' : 'fail');
+        const gateStatus = postureScore >= 70 ? 'pass' : postureScore >= 50 ? 'warn' : 'fail';
 
         scans.push({
           scanId: `scan-${crypto.randomBytes(4).toString('hex')}`,
@@ -353,21 +382,29 @@ function main() {
   console.log(`  [generate] Created ${scans.length} scan records across ${NUM_ORGS} orgs.\n`);
 
   // Print per-org summary
-  const orgIds = [...new Set(scans.map(s => s.orgId))];
+  const orgIds = [...new Set(scans.map((s) => s.orgId))];
   for (const orgId of orgIds) {
-    const orgScans = scans.filter(s => s.orgId === orgId);
-    const profile = ORG_PROFILES.find(p => p.orgId === orgId);
-    const avgPosture = Math.round(orgScans.reduce((a, s) => a + s.postureScore, 0) / orgScans.length);
+    const orgScans = scans.filter((s) => s.orgId === orgId);
+    const profile = ORG_PROFILES.find((p) => p.orgId === orgId);
+    const avgPosture = Math.round(
+      orgScans.reduce((a, s) => a + s.postureScore, 0) / orgScans.length
+    );
     const firstScore = orgScans[0]?.postureScore || 0;
     const lastScore = orgScans[orgScans.length - 1]?.postureScore || 0;
     const totalFiles = orgScans.reduce((a, s) => a + s.codeFilesAnalyzed, 0);
     const totalFindings = orgScans.reduce((a, s) => a + s.totalFindings, 0);
-    const repos = [...new Set(orgScans.map(s => s.repository))];
+    const repos = [...new Set(orgScans.map((s) => s.repository))];
 
     console.log(`  ${profile?.companyName || orgId} (${profile?.industry || 'Unknown'})`);
-    console.log(`    Scans: ${orgScans.length} | Files: ${totalFiles.toLocaleString()} | Findings: ${totalFindings.toLocaleString()}`);
-    console.log(`    Posture: ${firstScore} → ${lastScore} (avg ${avgPosture}) | Repos: ${repos.length}`);
-    console.log(`    First: ${orgScans[0]?.timestamp?.slice(0, 10)} | Last: ${orgScans[orgScans.length - 1]?.timestamp?.slice(0, 10)}\n`);
+    console.log(
+      `    Scans: ${orgScans.length} | Files: ${totalFiles.toLocaleString()} | Findings: ${totalFindings.toLocaleString()}`
+    );
+    console.log(
+      `    Posture: ${firstScore} → ${lastScore} (avg ${avgPosture}) | Repos: ${repos.length}`
+    );
+    console.log(
+      `    First: ${orgScans[0]?.timestamp?.slice(0, 10)} | Last: ${orgScans[orgScans.length - 1]?.timestamp?.slice(0, 10)}\n`
+    );
   }
 
   console.log('  [write] Building store with org aggregates...');

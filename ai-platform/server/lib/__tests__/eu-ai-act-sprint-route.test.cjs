@@ -1,10 +1,10 @@
 'use strict';
 
 jest.mock('../eu-ai-act-sprint-service.cjs', () => ({
-  runEuAiActSprint: jest.fn()
+  runEuAiActSprint: jest.fn(),
 }));
 jest.mock('../flexible-analyze-utils.cjs', () => ({
-  resolveProjectPath: jest.fn()
+  resolveProjectPath: jest.fn(),
 }));
 
 const { registerEuAiActSprintRoute } = require('../eu-ai-act-sprint-route.cjs');
@@ -14,9 +14,13 @@ const { resolveProjectPath } = require('../flexible-analyze-utils.cjs');
 function createMockApp() {
   const routes = {};
   return {
-    get: jest.fn((path, handler) => { routes[`GET ${path}`] = handler; }),
-    post: jest.fn((path, handler) => { routes[`POST ${path}`] = handler; }),
-    _routes: routes
+    get: jest.fn((path, handler) => {
+      routes[`GET ${path}`] = handler;
+    }),
+    post: jest.fn((path, handler) => {
+      routes[`POST ${path}`] = handler;
+    }),
+    _routes: routes,
   };
 }
 
@@ -38,11 +42,13 @@ describe('eu-ai-act-sprint-route', () => {
     const handler = app._routes['GET /api/operator/eu-ai-act/bootstrap'];
     const res = { json: jest.fn() };
     handler({}, res);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      ok: true,
-      sku: 'euai2499',
-      label: expect.stringContaining('EU AI Act')
-    }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: true,
+        sku: 'euai2499',
+        label: expect.stringContaining('EU AI Act'),
+      })
+    );
   });
 
   test('sprint POST returns 400 when no path provided', async () => {

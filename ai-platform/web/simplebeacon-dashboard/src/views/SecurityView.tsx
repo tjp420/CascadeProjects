@@ -2,7 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Shield, ShieldAlert, ShieldCheck, RefreshCw, AlertCircle, Bug, Lock, FileWarning, Database, KeyRound } from 'lucide-react';
+import {
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  RefreshCw,
+  AlertCircle,
+  Bug,
+  Lock,
+  FileWarning,
+  Database,
+  KeyRound,
+} from 'lucide-react';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
 
 type ScanResultData = {
@@ -65,11 +76,16 @@ const SECURITY_CATEGORIES = new Set([
 
 function severityColor(sev: string): string {
   switch (sev.toLowerCase()) {
-    case 'critical': return 'bg-red-500/15 text-red-500 border-red-500/30';
-    case 'high': return 'bg-orange-500/15 text-orange-500 border-orange-500/30';
-    case 'medium': return 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30';
-    case 'low': return 'bg-blue-500/15 text-blue-500 border-blue-500/30';
-    default: return 'bg-gray-500/15 text-gray-500 border-gray-500/30';
+    case 'critical':
+      return 'bg-red-500/15 text-red-500 border-red-500/30';
+    case 'high':
+      return 'bg-orange-500/15 text-orange-500 border-orange-500/30';
+    case 'medium':
+      return 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30';
+    case 'low':
+      return 'bg-blue-500/15 text-blue-500 border-blue-500/30';
+    default:
+      return 'bg-gray-500/15 text-gray-500 border-gray-500/30';
   }
 }
 
@@ -78,7 +94,8 @@ function categoryIcon(cat: string) {
   if (c.includes('database')) return <Database className="h-4 w-4" />;
   if (c.includes('token') || c.includes('credential')) return <KeyRound className="h-4 w-4" />;
   if (c.includes('broken') || c.includes('invalid')) return <FileWarning className="h-4 w-4" />;
-  if (c.includes('prototype') || c.includes('pollution')) return <ShieldAlert className="h-4 w-4" />;
+  if (c.includes('prototype') || c.includes('pollution'))
+    return <ShieldAlert className="h-4 w-4" />;
   return <Lock className="h-4 w-4" />;
 }
 
@@ -98,7 +115,9 @@ export function SecurityView() {
     try {
       const stored = localStorage.getItem('sb_last_scan_full');
       if (stored) scan = JSON.parse(stored);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // Fetch codebase analysis (contains categories with security findings) and npm-audit in parallel
     {
@@ -157,7 +176,9 @@ export function SecurityView() {
   }, [apiBase]);
 
   // simplebeacon-ignore: framework-practices
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const securityFindings = (scanData?.categories || []).filter(
     (c) => SECURITY_CATEGORIES.has(c.category) || SECURITY_CATEGORIES.has(c.category.toLowerCase())
@@ -194,8 +215,10 @@ export function SecurityView() {
   }, [scanData, npmAudit, securityFindings, securitySeverityCounts]);
 
   const totalSecurityFindings = securityFindings.reduce((sum, f) => sum + f.count, 0);
-  const vulnTotal = npmAudit?.vulnerabilities?.total ?? npmAudit?.metadata?.vulnerabilities?.total ?? 0;
-  const vulnBySev = npmAudit?.vulnerabilities?.bySeverity ?? npmAudit?.metadata?.vulnerabilities ?? {};
+  const vulnTotal =
+    npmAudit?.vulnerabilities?.total ?? npmAudit?.metadata?.vulnerabilities?.total ?? 0;
+  const vulnBySev =
+    npmAudit?.vulnerabilities?.bySeverity ?? npmAudit?.metadata?.vulnerabilities ?? {};
 
   if (loading) {
     return (
@@ -221,7 +244,10 @@ export function SecurityView() {
           <h1 className="text-3xl font-bold tracking-tight">Security</h1>
           <p className="text-foreground-muted">Security findings and vulnerability assessment</p>
           {scanData?.projectPath && (
-            <p className="text-xs text-foreground-muted">{scanData.projectPath}{scanData.timestamp ? ` — ${new Date(scanData.timestamp).toLocaleString()}` : ''}</p>
+            <p className="text-xs text-foreground-muted">
+              {scanData.projectPath}
+              {scanData.timestamp ? ` — ${new Date(scanData.timestamp).toLocaleString()}` : ''}
+            </p>
           )}
         </div>
         <div className="ml-4">
@@ -250,7 +276,13 @@ export function SecurityView() {
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-6">
             <ShieldCheck className="h-8 w-8 text-foreground-muted" />
-            <span className="text-3xl font-bold">{scanData?.gate?.pass === true ? 'PASS' : scanData?.gate?.pass === false ? 'FAIL' : '—'}</span>
+            <span className="text-3xl font-bold">
+              {scanData?.gate?.pass === true
+                ? 'PASS'
+                : scanData?.gate?.pass === false
+                  ? 'FAIL'
+                  : '—'}
+            </span>
             <span className="text-xs text-foreground-muted">Gate Status</span>
           </CardContent>
         </Card>
@@ -264,12 +296,16 @@ export function SecurityView() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              {['critical', 'high', 'medium', 'low', 'info'].filter((s) => securitySeverityCounts[s]).map((sev) => (
-                <div key={sev} className="flex items-center gap-2">
-                  <Badge className={severityColor(sev)} variant="outline">{sev}</Badge>
-                  <span className="text-sm font-medium">{securitySeverityCounts[sev]}</span>
-                </div>
-              ))}
+              {['critical', 'high', 'medium', 'low', 'info']
+                .filter((s) => securitySeverityCounts[s])
+                .map((sev) => (
+                  <div key={sev} className="flex items-center gap-2">
+                    <Badge className={severityColor(sev)} variant="outline">
+                      {sev}
+                    </Badge>
+                    <span className="text-sm font-medium">{securitySeverityCounts[sev]}</span>
+                  </div>
+                ))}
             </div>
           </CardContent>
         </Card>
@@ -284,22 +320,35 @@ export function SecurityView() {
           <CardContent className="space-y-3">
             {securityFindings
               .sort((a, b) => {
-                const order: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+                const order: Record<string, number> = {
+                  critical: 0,
+                  high: 1,
+                  medium: 2,
+                  low: 3,
+                  info: 4,
+                };
                 return (order[a.severity] ?? 5) - (order[b.severity] ?? 5);
               })
               .map((cat) => (
-                <div key={cat.category} className="flex items-center justify-between rounded-lg border p-3">
+                <div
+                  key={cat.category}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
                   <div className="flex items-center gap-3">
                     {categoryIcon(cat.category)}
                     <div>
                       <p className="text-sm font-medium">{cat.label || cat.category}</p>
                       {cat.fileCount != null && (
-                        <p className="text-xs text-foreground-muted">{cat.fileCount} file{cat.fileCount !== 1 ? 's' : ''}</p>
+                        <p className="text-xs text-foreground-muted">
+                          {cat.fileCount} file{cat.fileCount !== 1 ? 's' : ''}
+                        </p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={severityColor(cat.severity)} variant="outline">{cat.severity}</Badge>
+                    <Badge className={severityColor(cat.severity)} variant="outline">
+                      {cat.severity}
+                    </Badge>
                     <span className="text-sm font-bold">{cat.count}</span>
                   </div>
                 </div>
@@ -316,35 +365,65 @@ export function SecurityView() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-3">
-              {['critical', 'high', 'moderate', 'low', 'info'].filter((s) => vulnBySev[s]).map((sev) => (
-                <div key={sev} className="flex items-center gap-2">
-                  <Badge className={severityColor(sev === 'moderate' ? 'medium' : sev)} variant="outline">{sev}</Badge>
-                  <span className="text-sm font-medium">{vulnBySev[sev]}</span>
-                </div>
-              ))}
+              {['critical', 'high', 'moderate', 'low', 'info']
+                .filter((s) => vulnBySev[s])
+                .map((sev) => (
+                  <div key={sev} className="flex items-center gap-2">
+                    <Badge
+                      className={severityColor(sev === 'moderate' ? 'medium' : sev)}
+                      variant="outline"
+                    >
+                      {sev}
+                    </Badge>
+                    <span className="text-sm font-medium">{vulnBySev[sev]}</span>
+                  </div>
+                ))}
             </div>
             {npmAudit?.advisories && npmAudit.advisories.length > 0 && (
               <div className="space-y-2">
                 {npmAudit.advisories.slice(0, 20).map((adv, i) => (
                   <div key={adv.id || i} className="rounded-lg border p-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{adv.title || adv.id || 'Vulnerability'}</span>
-                      <Badge className={severityColor(adv.severity || 'info')} variant="outline">{adv.severity || 'info'}</Badge>
+                      <span className="text-sm font-medium">
+                        {adv.title || adv.id || 'Vulnerability'}
+                      </span>
+                      <Badge className={severityColor(adv.severity || 'info')} variant="outline">
+                        {adv.severity || 'info'}
+                      </Badge>
                     </div>
                     <div className="mt-1 flex items-center gap-4 text-xs text-foreground-muted">
-                      {adv.package && <span>Package: <code className="font-mono">{adv.package}</code></span>}
-                      {adv.vulnerableVersions && <span>Affected: <code className="font-mono">{adv.vulnerableVersions}</code></span>}
-                      {adv.patchedVersions && <span>Patch: <code className="font-mono">{adv.patchedVersions}</code></span>}
+                      {adv.package && (
+                        <span>
+                          Package: <code className="font-mono">{adv.package}</code>
+                        </span>
+                      )}
+                      {adv.vulnerableVersions && (
+                        <span>
+                          Affected: <code className="font-mono">{adv.vulnerableVersions}</code>
+                        </span>
+                      )}
+                      {adv.patchedVersions && (
+                        <span>
+                          Patch: <code className="font-mono">{adv.patchedVersions}</code>
+                        </span>
+                      )}
                     </div>
                     {adv.url && (
-                      <a href={adv.url} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs text-blue-500 hover:underline">
+                      <a
+                        href={adv.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 text-xs text-blue-500 hover:underline"
+                      >
                         More info →
                       </a>
                     )}
                   </div>
                 ))}
                 {npmAudit.advisories.length > 20 && (
-                  <p className="text-xs text-foreground-muted">Showing 20 of {npmAudit.advisories.length} advisories</p>
+                  <p className="text-xs text-foreground-muted">
+                    Showing 20 of {npmAudit.advisories.length} advisories
+                  </p>
                 )}
               </div>
             )}

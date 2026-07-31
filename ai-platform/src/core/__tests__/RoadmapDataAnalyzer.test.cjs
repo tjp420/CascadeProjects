@@ -34,14 +34,15 @@ class RoadmapDataAnalyzer {
     return {
       size: this.analysisCache.size,
       lastAnalysisTime: this.lastAnalysisTime,
-      keys: [...this.analysisCache.keys()]
+      keys: [...this.analysisCache.keys()],
     };
   }
 
   invalidateCache(keyPattern) {
     let removed = 0;
     for (const key of this.analysisCache.keys()) {
-      const matches = keyPattern instanceof RegExp ? keyPattern.test(key) : key.includes(keyPattern);
+      const matches =
+        keyPattern instanceof RegExp ? keyPattern.test(key) : key.includes(keyPattern);
       if (matches) {
         this.analysisCache.delete(key);
         removed++;
@@ -53,9 +54,22 @@ class RoadmapDataAnalyzer {
 
   shouldSkipDirectory(name) {
     const skip = new Set([
-      'node_modules', '.git', '.svn', 'dist', 'build', 'coverage',
-      'htmlcov', '__pycache__', '.next', '.nuxt', 'vendor', '.cache',
-      'docs', 'archive', 'backups', 'security-reports'
+      'node_modules',
+      '.git',
+      '.svn',
+      'dist',
+      'build',
+      'coverage',
+      'htmlcov',
+      '__pycache__',
+      '.next',
+      '.nuxt',
+      'vendor',
+      '.cache',
+      'docs',
+      'archive',
+      'backups',
+      'security-reports',
     ]);
     this.excludePatterns.forEach((pattern) => skip.add(pattern));
     return skip.has(name) || name.startsWith('.');
@@ -74,7 +88,7 @@ class RoadmapDataAnalyzer {
   filterFeaturesByCategory(features, category) {
     if (!Array.isArray(features) || typeof category !== 'string') return [];
     const term = category.toLowerCase();
-    return features.filter(f => (f.category || '').toLowerCase() === term);
+    return features.filter((f) => (f.category || '').toLowerCase() === term);
   }
 
   mergeRecommendations(...sources) {
@@ -89,7 +103,9 @@ class RoadmapDataAnalyzer {
       if (src.priorities && typeof src.priorities === 'object') {
         for (const [level, items] of Object.entries(src.priorities)) {
           const existing = result.priorities[level] || [];
-          result.priorities[level] = [...new Set([...existing, ...(Array.isArray(items) ? items : [])])];
+          result.priorities[level] = [
+            ...new Set([...existing, ...(Array.isArray(items) ? items : [])]),
+          ];
         }
       }
     }
@@ -113,7 +129,7 @@ describe('RoadmapDataAnalyzer', () => {
         maxStructureDepth: 5,
         maxKeyFilesPerDir: 20,
         includePaths: ['src'],
-        excludePatterns: ['test']
+        excludePatterns: ['test'],
       });
       assert.strictEqual(analyzer.projectRoot, '/tmp');
       assert.strictEqual(analyzer.maxStructureDepth, 5);
@@ -202,10 +218,13 @@ describe('RoadmapDataAnalyzer', () => {
         { status: 'pending' },
         { status: 'implemented' },
         { status: 'partial' },
-        { status: 'planned' }
+        { status: 'planned' },
       ];
       const sorted = analyzer.sortFeaturesByStatus(features);
-      assert.deepStrictEqual(sorted.map(f => f.status), ['implemented', 'partial', 'planned', 'pending']);
+      assert.deepStrictEqual(
+        sorted.map((f) => f.status),
+        ['implemented', 'partial', 'planned', 'pending']
+      );
     });
 
     it('returns empty array for non-array input', () => {
@@ -218,7 +237,10 @@ describe('RoadmapDataAnalyzer', () => {
       const analyzer = new RoadmapDataAnalyzer(null, {});
       const features = [{ status: 'unknown' }, { status: 'implemented' }];
       const sorted = analyzer.sortFeaturesByStatus(features);
-      assert.deepStrictEqual(sorted.map(f => f.status), ['implemented', 'unknown']);
+      assert.deepStrictEqual(
+        sorted.map((f) => f.status),
+        ['implemented', 'unknown']
+      );
     });
   });
 
@@ -228,7 +250,7 @@ describe('RoadmapDataAnalyzer', () => {
       const features = [
         { category: 'Security' },
         { category: 'Performance' },
-        { category: 'security' }
+        { category: 'security' },
       ];
       const filtered = analyzer.filterFeaturesByCategory(features, 'security');
       assert.strictEqual(filtered.length, 2);
@@ -255,10 +277,7 @@ describe('RoadmapDataAnalyzer', () => {
 
     it('deduplicates merged arrays', () => {
       const analyzer = new RoadmapDataAnalyzer(null, {});
-      const result = analyzer.mergeRecommendations(
-        { immediate: ['a', 'a'] },
-        { immediate: ['a'] }
-      );
+      const result = analyzer.mergeRecommendations({ immediate: ['a', 'a'] }, { immediate: ['a'] });
       assert.deepStrictEqual(result.immediate, ['a']);
     });
 

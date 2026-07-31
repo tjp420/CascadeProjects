@@ -1,5 +1,8 @@
 // simplebeacon-ignore documentation
-import { fetchAnalyzeProviders, normalizeProjectPath } from '../services/analyzeService.js?v=20260726sevfix1';
+import {
+  fetchAnalyzeProviders,
+  normalizeProjectPath,
+} from '../services/analyzeService.js?v=20260726sevfix1';
 import { isRemoteRepoUrl } from './analyzePathSources.js';
 
 /**
@@ -38,13 +41,17 @@ export function isPathWithinAllowedRoots(projectPath, allowedRoots = []) {
  * @returns {any}
  */
 export function pathAllowlistMessage(projectPath, allowedRoots, summary) {
-  const rootsText = summary
-    || (allowedRoots || []).slice(0, 4).map((entry) => String(entry).replace(/\\/g, '/')).join('; ');
+  const rootsText =
+    summary ||
+    (allowedRoots || [])
+      .slice(0, 4)
+      .map((entry) => String(entry).replace(/\\/g, '/'))
+      .join('; ');
   const requested = String(projectPath || '').replace(/\\/g, '/');
   return (
-    `Path is outside allowed analysis roots. Requested: ${requested}. `
-    + `Allowed: ${rootsText || '(none)'}. `
-    + 'Add the folder to ANALYZE_ALLOWED_ROOTS in .env.v1-internal or allowedAnalysisRoots in .simplebeacon/config.json, then restart the dashboard.'
+    `Path is outside allowed analysis roots. Requested: ${requested}. ` +
+    `Allowed: ${rootsText || '(none)'}. ` +
+    'Add the folder to ANALYZE_ALLOWED_ROOTS in .env.v1-internal or allowedAnalysisRoots in .simplebeacon/config.json, then restart the dashboard.'
   );
 }
 

@@ -12,24 +12,20 @@
  * @returns {{start:Function,stop:Function,isRunning:Function}}
  */
 export function createPoller(fn, intervalMs, opts = {}) {
-    if (typeof fn !== 'function')
-        throw new TypeError('createPoller requires a function');
+    if (typeof fn !== 'function') throw new TypeError('createPoller requires a function');
     const interval = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 1000;
     let timer = null;
     let running = false;
     let errorCount = 0;
     const maxRetries = Number.isFinite(opts.maxRetries) ? Math.max(0, opts.maxRetries) : 0;
     const tick = async () => {
-        if (!running)
-            return;
+        if (!running) return;
         try {
             await fn();
             errorCount = 0;
-        }
-        catch (err) {
+        } catch (err) {
             errorCount++;
-            if (typeof opts.onError === 'function')
-                opts.onError(err, errorCount);
+            if (typeof opts.onError === 'function') opts.onError(err, errorCount);
             if (maxRetries > 0 && errorCount >= maxRetries) {
                 stop();
                 return;
@@ -40,14 +36,12 @@ export function createPoller(fn, intervalMs, opts = {}) {
         }
     };
     const start = () => {
-        if (running)
-            return;
+        if (running) return;
         running = true;
         errorCount = 0;
         if (opts.immediate) {
             tick();
-        }
-        else {
+        } else {
             timer = setTimeout(tick, interval);
         }
     };

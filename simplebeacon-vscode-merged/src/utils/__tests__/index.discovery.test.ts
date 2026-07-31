@@ -1,6 +1,10 @@
 import {
-  getExportNames, getNamespaceNames, freezeNamespace,
-  validateBarrelIntegrity, __barrel__, Utils
+  getExportNames,
+  getNamespaceNames,
+  freezeNamespace,
+  validateBarrelIntegrity,
+  __barrel__,
+  Utils,
 } from '../index';
 
 describe('getExportNames discovery helper', () => {
@@ -31,19 +35,19 @@ describe('getExportNames discovery helper', () => {
 
   test('auto-generation includes exports from every sub-module', () => {
     const names = getExportNames();
-    expect(names).toContain('getNonce');       // vscode
-    expect(names).toContain('escapeHtml');     // string
-    expect(names).toContain('clamp');          // number
-    expect(names).toContain('deepClone');      // object
-    expect(names).toContain('unique');         // array
-    expect(names).toContain('sleep');          // async
-    expect(names).toContain('sha256');         // fs
-    expect(names).toContain('isValidUrl');     // network
-    expect(names).toContain('relativePath');  // path
-    expect(names).toContain('noop');           // misc
-    expect(names).toContain('parseJsonSafe');  // json
-    expect(names).toContain('isDefined');      // typeGuards
-    expect(names).toContain('compose');        // inline
+    expect(names).toContain('getNonce'); // vscode
+    expect(names).toContain('escapeHtml'); // string
+    expect(names).toContain('clamp'); // number
+    expect(names).toContain('deepClone'); // object
+    expect(names).toContain('unique'); // array
+    expect(names).toContain('sleep'); // async
+    expect(names).toContain('sha256'); // fs
+    expect(names).toContain('isValidUrl'); // network
+    expect(names).toContain('relativePath'); // path
+    expect(names).toContain('noop'); // misc
+    expect(names).toContain('parseJsonSafe'); // json
+    expect(names).toContain('isDefined'); // typeGuards
+    expect(names).toContain('compose'); // inline
   });
 });
 
@@ -201,7 +205,9 @@ describe('inline namespace', () => {
 
   test('tap runs side effects and returns original value', () => {
     let sideEffect = 0;
-    const result = (Utils as any).inline.tap(5, (x: number) => { sideEffect = x; });
+    const result = (Utils as any).inline.tap(5, (x: number) => {
+      sideEffect = x;
+    });
     expect(result).toBe(5);
     expect(sideEffect).toBe(5);
   });

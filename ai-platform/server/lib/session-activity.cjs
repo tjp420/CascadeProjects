@@ -14,9 +14,10 @@ function recordActivity(userId, email, name) {
 
 function getActiveUsers(offlineThresholdMs = DEFAULT_OFFLINE_MS) {
   const now = Date.now();
-  const threshold = typeof offlineThresholdMs === 'number' && offlineThresholdMs > 0
-    ? offlineThresholdMs
-    : DEFAULT_OFFLINE_MS;
+  const threshold =
+    typeof offlineThresholdMs === 'number' && offlineThresholdMs > 0
+      ? offlineThresholdMs
+      : DEFAULT_OFFLINE_MS;
   const result = [];
   for (const [userId, entry] of activity.entries()) {
     const online = entry.lastSeen && now - entry.lastSeen < threshold;
@@ -25,7 +26,7 @@ function getActiveUsers(offlineThresholdMs = DEFAULT_OFFLINE_MS) {
       email: entry.email,
       name: entry.name,
       lastSeen: entry.lastSeen,
-      online
+      online,
     });
   }
   return result.sort((a, b) => b.lastSeen - a.lastSeen);

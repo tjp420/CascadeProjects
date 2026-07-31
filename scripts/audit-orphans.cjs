@@ -13,17 +13,18 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const JSON_PATH = process.argv[2] || 'j:/Downloads/cascadeprojects-codemap-analysis-2026-06-30.json';
+const JSON_PATH =
+  process.argv[2] || 'j:/Downloads/cascadeprojects-codemap-analysis-2026-06-30.json';
 const ROOT = process.argv[3] || 'c:/Users/Trevor/CascadeProjects';
 const SIX_MONTHS_MS = 180 * 24 * 60 * 60 * 1000;
 const CUTOFF = Date.now() - SIX_MONTHS_MS;
 
 function gitLastCommit(filePath) {
   try {
-    const out = execSync(
-      `git -C "${ROOT}" log -1 --format=%ct -- "${filePath}"`,
-      { encoding: 'utf8', timeout: 5000 }
-    );
+    const out = execSync(`git -C "${ROOT}" log -1 --format=%ct -- "${filePath}"`, {
+      encoding: 'utf8',
+      timeout: 5000,
+    });
     const ts = parseInt(out.trim(), 10);
     return Number.isFinite(ts) ? ts * 1000 : null;
   } catch {
@@ -38,9 +39,9 @@ function main() {
   }
 
   const raw = JSON.parse(fs.readFileSync(JSON_PATH, 'utf8'));
-  const orphans = raw.analysis?.improvements?.find(
-    (i) => i.title === 'Potential Orphan / Unused Files'
-  )?.files || [];
+  const orphans =
+    raw.analysis?.improvements?.find((i) => i.title === 'Potential Orphan / Unused Files')?.files ||
+    [];
 
   const stale = [];
   const recent = [];
@@ -80,7 +81,10 @@ function main() {
   console.log();
 
   const summaryPath = path.join(ROOT, 'orphan-audit-summary.json');
-  fs.writeFileSync(summaryPath, JSON.stringify({ stale, recent, missing, total: orphans.length }, null, 2));
+  fs.writeFileSync(
+    summaryPath,
+    JSON.stringify({ stale, recent, missing, total: orphans.length }, null, 2)
+  );
   console.log(`Summary written to: ${summaryPath}`);
 }
 

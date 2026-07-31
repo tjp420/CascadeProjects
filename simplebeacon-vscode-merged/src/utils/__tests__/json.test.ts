@@ -37,7 +37,7 @@ describe('json utilities', () => {
     test('parses JSON response', async () => {
       const res = {
         headers: { get: () => 'application/json' },
-        text: async () => '{"a":1}'
+        text: async () => '{"a":1}',
       } as any as Response;
       const data = await parseResponseJson(res);
       expect(data).toEqual({ a: 1 });
@@ -46,7 +46,7 @@ describe('json utilities', () => {
     test('returns fallback for non-JSON content type', async () => {
       const res = {
         headers: { get: () => 'text/html' },
-        text: async () => '<html></html>'
+        text: async () => '<html></html>',
       } as any as Response;
       const data = await parseResponseJson(res);
       expect(data).toEqual({});
@@ -55,7 +55,7 @@ describe('json utilities', () => {
     test('returns fallback on JSON parse error', async () => {
       const res = {
         headers: { get: () => 'application/json' },
-        text: async () => 'not valid json'
+        text: async () => 'not valid json',
       } as any as Response;
       const data = await parseResponseJson(res, 'fallback');
       expect(data).toBe('fallback');
@@ -64,7 +64,7 @@ describe('json utilities', () => {
     test('returns custom fallback when body empty', async () => {
       const res = {
         headers: { get: () => 'application/json' },
-        text: async () => ''
+        text: async () => '',
       } as any as Response;
       const data = await parseResponseJson(res, { empty: true });
       expect(data).toEqual({ empty: true });

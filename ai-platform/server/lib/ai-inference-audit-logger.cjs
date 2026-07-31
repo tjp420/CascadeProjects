@@ -19,18 +19,18 @@ const logger = require('./app-logger.cjs');
  * @returns {string} The assigned traceId.
  */
 function logInferenceEvent(event = {}) {
-    const traceId = event.traceId || crypto.randomUUID();
-    logger.info('[ai-audit] inference decision', {
-        traceId,
-        provider: event.provider || 'unknown',
-        operation: event.operation || 'inference',
-        projectLabel: event.projectLabel || null,
-        outcome: event.outcome || 'ok',
-        ...(event.metadata && typeof event.metadata === 'object' ? event.metadata : {})
-    });
-    return traceId;
+  const traceId = event.traceId || crypto.randomUUID();
+  logger.info('[ai-audit] inference decision', {
+    traceId,
+    provider: event.provider || 'unknown',
+    operation: event.operation || 'inference',
+    projectLabel: event.projectLabel || null,
+    outcome: event.outcome || 'ok',
+    ...(event.metadata && typeof event.metadata === 'object' ? event.metadata : {}),
+  });
+  return traceId;
 }
 
 module.exports = {
-    logInferenceEvent
+  logInferenceEvent,
 };

@@ -33,7 +33,8 @@ export function createPoller(
       errorCount = 0;
     } catch (err) {
       errorCount++;
-      if (typeof opts?.onError === 'function') opts.onError(err instanceof Error ? err : new Error(String(err)), errorCount);
+      if (typeof opts?.onError === 'function')
+        opts.onError(err instanceof Error ? err : new Error(String(err)), errorCount);
       if (maxRetries > 0 && errorCount >= maxRetries) {
         stop();
         return;
@@ -57,7 +58,10 @@ export function createPoller(
 
   const stop = () => {
     running = false;
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
   };
 
   const isRunning = () => running;

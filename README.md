@@ -60,21 +60,21 @@ npx simplebeacon gate-status
 
 All commands are available via `npx simplebeacon <command>` or `node packages/simplebeacon-cli/bin/simplebeacon.js <command>`.
 
-| Command | Description | Key Flags |
-|---------|-------------|-----------|
-| `scan` | Run a full project scan | `--gate`, `--format json`, `--output`, `--path`, `--config`, `--verbose` |
-| `init` | Create `.simplebeacon/` config | `--dry-run`, `--starter` |
-| `gate-status` | Read latest gate from report | (none) |
-| `doctor` | System integrity audit | `--path` |
-| `ai-plan` | Generate AI remediation plan | `--output`, `--path` |
-| `reduce` | File reduction / cleanup scan | `--format text`, `--path` |
-| `report` | Generate human-readable audit report | `--report`, `--output`, `--company`, `--assessor` |
-| `compliance` | Compliance checklist from report | `--report`, `--format`, `--output` |
-| `assess` | Risk assessment from report | `--report`, `--output`, `--company`, `--assessor` |
-| `baseline sync` | Sync Jest test baselines | `--path` |
-| `hook install` | Install pre-commit hooks | `--dry-run`, `--path` |
-| `pdf` | Export certificate PDF (Pro) | `--report`, `--output` |
-| `mcp` | MCP server stdio mode | `--help` |
+| Command         | Description                          | Key Flags                                                                |
+| --------------- | ------------------------------------ | ------------------------------------------------------------------------ |
+| `scan`          | Run a full project scan              | `--gate`, `--format json`, `--output`, `--path`, `--config`, `--verbose` |
+| `init`          | Create `.simplebeacon/` config       | `--dry-run`, `--starter`                                                 |
+| `gate-status`   | Read latest gate from report         | (none)                                                                   |
+| `doctor`        | System integrity audit               | `--path`                                                                 |
+| `ai-plan`       | Generate AI remediation plan         | `--output`, `--path`                                                     |
+| `reduce`        | File reduction / cleanup scan        | `--format text`, `--path`                                                |
+| `report`        | Generate human-readable audit report | `--report`, `--output`, `--company`, `--assessor`                        |
+| `compliance`    | Compliance checklist from report     | `--report`, `--format`, `--output`                                       |
+| `assess`        | Risk assessment from report          | `--report`, `--output`, `--company`, `--assessor`                        |
+| `baseline sync` | Sync Jest test baselines             | `--path`                                                                 |
+| `hook install`  | Install pre-commit hooks             | `--dry-run`, `--path`                                                    |
+| `pdf`           | Export certificate PDF (Pro)         | `--report`, `--output`                                                   |
+| `mcp`           | MCP server stdio mode                | `--help`                                                                 |
 
 ### CLI Examples
 
@@ -100,21 +100,22 @@ The VS Code: extension (`simplebeacon-vscode-merged/`) provides real-time scanni
 
 ### Extension Commands
 
-| Command | Action |
-|---------|--------|
-| `SimpleBeacon: Scan Workspace` | Run full workspace scan |
-| `SimpleBeacon: Open Dashboard` | Open the web dashboard |
-| `SimpleBeacon: Generate Code Map` | Build interactive dependency graph |
-| `SimpleBeacon: Open Code Map HTML` | Open codemap.html in browser |
-| `SimpleBeacon: Real-time Monitoring` | Toggle live file watching |
-| `SimpleBeacon: Toggle Sidebar` | Show/hide the activity-bar panel |
-| `SimpleBeacon: Open Settings` | Configure scanners & thresholds |
+| Command                              | Action                             |
+| ------------------------------------ | ---------------------------------- |
+| `SimpleBeacon: Scan Workspace`       | Run full workspace scan            |
+| `SimpleBeacon: Open Dashboard`       | Open the web dashboard             |
+| `SimpleBeacon: Generate Code Map`    | Build interactive dependency graph |
+| `SimpleBeacon: Open Code Map HTML`   | Open codemap.html in browser       |
+| `SimpleBeacon: Real-time Monitoring` | Toggle live file watching          |
+| `SimpleBeacon: Toggle Sidebar`       | Show/hide the activity-bar panel   |
+| `SimpleBeacon: Open Settings`        | Configure scanners & thresholds    |
 
 ### Dashboard Web SPA
 
 The dashboard is served from `dashboard-web/` at `http://127.0.0.1:54358/dashboard/`.
 
 **Routes** (all serve `index.html` as SPA fallback):
+
 - `/dashboard/signin` — Authentication entry
 - `/dashboard` — Main dashboard
 - `/dashboard/audit` — Audit view
@@ -133,6 +134,7 @@ The dashboard is served from `dashboard-web/` at `http://127.0.0.1:54358/dashboa
 An interactive Canvas 2D/3D dependency graph generated after each scan.
 
 **Controls:**
+
 - **Left-click drag** — Pan (2D) / Orbit (3D)
 - **Right-click drag** — Pan
 - **Middle-click drag** — Zoom
@@ -144,6 +146,7 @@ An interactive Canvas 2D/3D dependency graph generated after each scan.
 - **`L`** — Lock mouse pointer
 
 **3D Mode Features:**
+
 - Architectural layers by file path (entry, ui, business, data, utils, tests)
 - Depth-sorted rendering (back-to-front)
 - Depth fog on edges
@@ -157,20 +160,20 @@ An interactive Canvas 2D/3D dependency graph generated after each scan.
 
 Static marketing site at `coming-soon/`.
 
-| Page | Path | Description |
-|------|------|-------------|
-| Home | `index.html` | Landing page |
-| Pricing | `pricing.html` | Plans (Free/Pro/Team/Enterprise) with monthly toggle |
-| Audit | `audit.html` | Standalone audit SPA with token auth |
-| Roadmap | `roadmap.html` | Feature roadmap |
-| Contact | `contact.html` | Contact form |
-| Refund | `refund.html` | Refund policy |
-| Privacy | `privacy.html` | Privacy policy |
-| Terms | `terms.html` | Terms of service |
-| Community | `community.html` | Discord/community links |
-| FAQ | `faq.html` | Frequently asked questions |
-| Security | `security.html` | Security policy |
-| Unlock | `unlock.html` | License activation |
+| Page      | Path             | Description                                          |
+| --------- | ---------------- | ---------------------------------------------------- |
+| Home      | `index.html`     | Landing page                                         |
+| Pricing   | `pricing.html`   | Plans (Free/Pro/Team/Enterprise) with monthly toggle |
+| Audit     | `audit.html`     | Standalone audit SPA with token auth                 |
+| Roadmap   | `roadmap.html`   | Feature roadmap                                      |
+| Contact   | `contact.html`   | Contact form                                         |
+| Refund    | `refund.html`    | Refund policy                                        |
+| Privacy   | `privacy.html`   | Privacy policy                                       |
+| Terms     | `terms.html`     | Terms of service                                     |
+| Community | `community.html` | Discord/community links                              |
+| FAQ       | `faq.html`       | Frequently asked questions                           |
+| Security  | `security.html`  | Security policy                                      |
+| Unlock    | `unlock.html`    | License activation                                   |
 
 ---
 
@@ -178,14 +181,15 @@ Static marketing site at `coming-soon/`.
 
 SimpleBeacon supports multiple auth flows:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| License Token | `POST /api/auth/login` | RSA-validated license key |
-| JWT Session | `GET /api/auth/me` | Check current session |
-| Sandbox Token | `POST /api/tokens/sandbox` | Dev/test token (gated in prod) |
-| Email/Password | `POST /api/auth/login` | Standard credential login |
+| Method         | Endpoint                   | Description                    |
+| -------------- | -------------------------- | ------------------------------ |
+| License Token  | `POST /api/auth/login`     | RSA-validated license key      |
+| JWT Session    | `GET /api/auth/me`         | Check current session          |
+| Sandbox Token  | `POST /api/tokens/sandbox` | Dev/test token (gated in prod) |
+| Email/Password | `POST /api/auth/login`     | Standard credential login      |
 
 **Token Validation:**
+
 - License tokens use 2-part `payload.signature` format
 - JWT tokens use standard 3-part format with expiry
 - Server-side validation via `/api/auth/login`
@@ -201,6 +205,7 @@ SimpleBeacon supports multiple auth flows:
 See [`FEATURE_CHECKLIST.md`](./FEATURE_CHECKLIST.md) for a comprehensive map of all features with test results.
 
 **Test Coverage Summary:**
+
 - **112 features tested** across CLI, dashboard, coming-soon, API, and VS Code: extension
 - **109 PASS (97.3%)**, **3 expected failures**
 - All 23 dashboard routes verified (HTTP 200)
@@ -210,24 +215,24 @@ See [`FEATURE_CHECKLIST.md`](./FEATURE_CHECKLIST.md) for a comprehensive map of 
 
 ### Known Issues
 
-| Issue | Status | Notes |
-|-------|--------|-------|
-| `baseline sync` fails without Jest | Expected | Works when `package.json` has Jest configured |
-| `pdf` requires license token | Expected | Gated Pro feature; set `SIMPLEBEACON_LICENSE_TOKEN` |
+| Issue                                | Status          | Notes                                                      |
+| ------------------------------------ | --------------- | ---------------------------------------------------------- |
+| `baseline sync` fails without Jest   | Expected        | Works when `package.json` has Jest configured              |
+| `pdf` requires license token         | Expected        | Gated Pro feature; set `SIMPLEBEACON_LICENSE_TOKEN`        |
 | `POST /api/certificate/download` 404 | Fixed in source | Added endpoint to `dataServer.ts`; requires server restart |
 
 ---
 
 ## What It Catches
 
-| Artifact | Example | Risk |
-|----------|---------|------|
-| Fiction KPIs | `completion_rate: 98.5%` | Dashboards show fake metrics |
-| Dummy URLs | `https://api.example.com/v1` | Production hits placeholders |
-| Mock paths in prod | `web/data/status-sample.json` | App loads demo data at runtime |
-| Demo credentials | `sk-...`, `AKIA...` in source | Security incidents, failed audits |
-| Dead code | Unused imports, unreachable branches | Bundle bloat, maintenance burden |
-| Console logs | `console.log` in production | Performance leaks, info disclosure |
+| Artifact           | Example                              | Risk                               |
+| ------------------ | ------------------------------------ | ---------------------------------- |
+| Fiction KPIs       | `completion_rate: 98.5%`             | Dashboards show fake metrics       |
+| Dummy URLs         | `https://api.example.com/v1`         | Production hits placeholders       |
+| Mock paths in prod | `web/data/status-sample.json`        | App loads demo data at runtime     |
+| Demo credentials   | `sk-...`, `AKIA...` in source        | Security incidents, failed audits  |
+| Dead code          | Unused imports, unreachable branches | Bundle bloat, maintenance burden   |
+| Console logs       | `console.log` in production          | Performance leaks, info disclosure |
 
 ---
 
@@ -299,31 +304,31 @@ http://127.0.0.1:54358/coming-soon/
 
 The data server exposes these REST endpoints:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/health` | GET | Server health |
-| `/api/status` | GET | Scan status |
-| `/api/config` | GET | Extension config |
-| `/api/workspace` | GET | Workspace info |
-| `/api/data` | GET | Full server state |
-| `/api/findings` | GET | All findings |
-| `/api/simplebeacon/report` | GET | Scan report JSON |
-| `/api/simplebeacon/scan/progress` | GET | Scan progress |
-| `/api/simplebeacon/config` | GET | Scanner config |
-| `/api/simplebeacon/config/presets` | GET | Config presets |
-| `/api/simplebeacon/baseline` | GET | Baseline status |
-| `/api/simplebeacon/history` | GET | Scan history |
-| `/api/analyze/flexible` | POST | Flexible analysis |
-| `/api/analyze/compliance-checklist` | POST | Compliance checklist |
-| `/api/analyze/inventory` | GET | File inventory |
-| `/api/analyze/list-directories` | GET | Directory listing |
-| `/api/analyze/resolve-folder-name` | GET | Resolve folder path |
-| `/api/file-content` | GET | Read file contents |
-| `/api/certificate/download` | POST | Generate certificate HTML |
-| `/api/auth/login` | POST | Authenticate |
-| `/api/auth/me` | GET | Current user |
-| `/api/auth/register` | POST | Register (extension: returns local dev token) |
-| `/api/tokens/sandbox` | POST | Generate sandbox token |
+| Endpoint                            | Method | Description                                   |
+| ----------------------------------- | ------ | --------------------------------------------- |
+| `/api/health`                       | GET    | Server health                                 |
+| `/api/status`                       | GET    | Scan status                                   |
+| `/api/config`                       | GET    | Extension config                              |
+| `/api/workspace`                    | GET    | Workspace info                                |
+| `/api/data`                         | GET    | Full server state                             |
+| `/api/findings`                     | GET    | All findings                                  |
+| `/api/simplebeacon/report`          | GET    | Scan report JSON                              |
+| `/api/simplebeacon/scan/progress`   | GET    | Scan progress                                 |
+| `/api/simplebeacon/config`          | GET    | Scanner config                                |
+| `/api/simplebeacon/config/presets`  | GET    | Config presets                                |
+| `/api/simplebeacon/baseline`        | GET    | Baseline status                               |
+| `/api/simplebeacon/history`         | GET    | Scan history                                  |
+| `/api/analyze/flexible`             | POST   | Flexible analysis                             |
+| `/api/analyze/compliance-checklist` | POST   | Compliance checklist                          |
+| `/api/analyze/inventory`            | GET    | File inventory                                |
+| `/api/analyze/list-directories`     | GET    | Directory listing                             |
+| `/api/analyze/resolve-folder-name`  | GET    | Resolve folder path                           |
+| `/api/file-content`                 | GET    | Read file contents                            |
+| `/api/certificate/download`         | POST   | Generate certificate HTML                     |
+| `/api/auth/login`                   | POST   | Authenticate                                  |
+| `/api/auth/me`                      | GET    | Current user                                  |
+| `/api/auth/register`                | POST   | Register (extension: returns local dev token) |
+| `/api/tokens/sandbox`               | POST   | Generate sandbox token                        |
 
 ---
 

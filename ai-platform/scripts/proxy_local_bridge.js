@@ -7,7 +7,7 @@ const http = require('http');
 const { URL } = require('url');
 
 const TARGET = process.env.TARGET || 'http://127.0.0.1:58000';
-const PORTS = process.env.PORTS ? process.env.PORTS.split(',').map(Number) : [3001,54358];
+const PORTS = process.env.PORTS ? process.env.PORTS.split(',').map(Number) : [3001, 54358];
 
 function makeHandler(port) {
   return async (req, res) => {
@@ -18,10 +18,11 @@ function makeHandler(port) {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type,Accept,Authorization,Access-Control-Request-Private-Network',
+          'Access-Control-Allow-Headers':
+            'Content-Type,Accept,Authorization,Access-Control-Request-Private-Network',
           'Access-Control-Allow-Credentials': 'true',
           'Access-Control-Allow-Private-Network': 'true',
-          'Access-Control-Max-Age': '86400'
+          'Access-Control-Max-Age': '86400',
         });
         return res.end();
       }
@@ -35,15 +36,15 @@ function makeHandler(port) {
       }
 
       const bodyChunks = [];
-      req.on('data', c => bodyChunks.push(c));
-      await new Promise(r => req.on('end', r));
+      req.on('data', (c) => bodyChunks.push(c));
+      await new Promise((r) => req.on('end', r));
       const body = Buffer.concat(bodyChunks);
 
       const fetchOpts = {
         method: req.method,
         headers,
         body: body.length ? body : undefined,
-        redirect: 'manual'
+        redirect: 'manual',
       };
 
       const out = await fetch(url.toString(), fetchOpts);
@@ -52,7 +53,7 @@ function makeHandler(port) {
       // Copy response headers
       out.headers.forEach((v, k) => {
         // Avoid hop-by-hop
-        if (['connection','keep-alive','transfer-encoding'].includes(k.toLowerCase())) return;
+        if (['connection', 'keep-alive', 'transfer-encoding'].includes(k.toLowerCase())) return;
         res.setHeader(k, v);
       });
 
@@ -60,7 +61,10 @@ function makeHandler(port) {
       const origin = req.headers.origin || '*';
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept,Authorization,Access-Control-Request-Private-Network');
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type,Accept,Authorization,Access-Control-Request-Private-Network'
+      );
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
       res.setHeader('Access-Control-Allow-Private-Network', 'true');
 
@@ -68,7 +72,7 @@ function makeHandler(port) {
       const buffer = await out.arrayBuffer();
       res.end(Buffer.from(buffer));
     } catch (err) {
-      res.writeHead(502, {'Content-Type':'application/json'});
+      res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'proxy_error', message: String(err) }));
     }
   };
@@ -79,7 +83,7 @@ for (const p of PORTS) {
   server.listen(p, '127.0.0.1', () => {
     console.log(`proxy_local_bridge listening on http://127.0.0.1:${p} -> ${TARGET}`);
   });
-  server.on('error', e => console.error(`proxy error on ${p}:`, e && e.message));
+  server.on('error', (e) => console.error(`proxy error on ${p}:`, e && e.message));
 }
 
 // Keep process alive

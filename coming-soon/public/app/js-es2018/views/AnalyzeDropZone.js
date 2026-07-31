@@ -4,8 +4,7 @@ import { ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 function readDataTransferData(dt, type) {
     try {
         return dt.getData(type) || '';
-    }
-    catch (_a) {
+    } catch (_a) {
         return '';
     }
 }
@@ -29,11 +28,17 @@ function extractFolderFromFilePath(filePath, folderName) {
         const fname = folderName.toLowerCase();
         const idx = lower.indexOf(`/${fname}/`);
         if (idx >= 0) {
-            return norm.slice(0, idx + fname.length + 1).replace(/\/+$/, '').replace(/\//g, '\\');
+            return norm
+                .slice(0, idx + fname.length + 1)
+                .replace(/\/+$/, '')
+                .replace(/\//g, '\\');
         }
         const endIdx = lower.lastIndexOf(`/${fname}`);
         if (endIdx >= 0) {
-            return norm.slice(0, endIdx + fname.length).replace(/\/+$/, '').replace(/\//g, '\\');
+            return norm
+                .slice(0, endIdx + fname.length)
+                .replace(/\/+$/, '')
+                .replace(/\//g, '\\');
         }
     }
     return deriveDirFromFilePath(filePath).replace(/\/+$/, '').replace(/\//g, '\\');
@@ -48,8 +53,7 @@ function extractFileUri(data) {
         let p = uri.slice(8).replace(/\/$/, '');
         try {
             p = decodeURIComponent(p);
-        }
-        catch (_a) {
+        } catch (_a) {
             // ignore
         }
         return p.replace(/\//g, '\\');
@@ -92,8 +96,7 @@ function getDroppedFolderPath(dt, folderName, files, items) {
             if (file?.path) {
                 return extractFolderFromFilePath(String(file.path), folderName);
             }
-        }
-        catch (_a) {
+        } catch (_a) {
             // getAsFile may throw for directories
         }
     }
@@ -102,20 +105,20 @@ function getDroppedFolderPath(dt, folderName, files, items) {
 
 function bindDragHighlight(dropzone) {
     let dragDepth = 0;
-    const enter = (event) => {
+    const enter = event => {
         event.preventDefault();
         event.stopPropagation();
         dragDepth++;
         dropzone.classList.add('drag-active');
     };
-    const over = (event) => {
+    const over = event => {
         event.preventDefault();
         event.stopPropagation();
         if (event.dataTransfer) {
             event.dataTransfer.dropEffect = 'copy';
         }
     };
-    const leave = (event) => {
+    const leave = event => {
         event.preventDefault();
         event.stopPropagation();
         dragDepth--;
@@ -142,19 +145,18 @@ export function bindPathDropzone(root, ctx) {
         return;
     }
     const { enter, over, leave } = bindDragHighlight(dropzone);
-    const drop = async (event) => {
+    const drop = async event => {
         event.preventDefault();
         event.stopPropagation();
         dropzone.classList.remove('drag-active');
         try {
             await ensureAllowedAnalysisRoots(ctx.app);
-        }
-        catch (_a) {
+        } catch (_a) {
             // ignore
         }
         const items = event.dataTransfer?.items;
         const files = event.dataTransfer?.files;
-        const resolve = (name) => {
+        const resolve = name => {
             const actualDir = getDroppedFolderPath(event.dataTransfer, name, files, items);
             if (actualDir) {
                 return actualDir;
@@ -167,9 +169,7 @@ export function bindPathDropzone(root, ctx) {
             const rawDefault = String(ctx.app?.state?.defaultProjectPath || '')
                 .replace(/\\/g, '/')
                 .replace(/\/+$/, '');
-            const fallbackBase = String(ctx.deriveFallbackBase())
-                .replace(/\\/g, '/')
-                .replace(/\/+$/, '');
+            const fallbackBase = String(ctx.deriveFallbackBase()).replace(/\\/g, '/').replace(/\/+$/, '');
             const base = rawDefault || currentBase || fallbackBase;
             return base ? `${base}/${name}` : name;
         };
@@ -228,7 +228,7 @@ export function bindReportDropzone(root, ctx) {
         return;
     }
     const { enter, over, leave } = bindDragHighlight(dropzone);
-    const drop = async (event) => {
+    const drop = async event => {
         event.preventDefault();
         event.stopPropagation();
         dropzone.classList.remove('drag-active');
@@ -237,7 +237,10 @@ export function bindReportDropzone(root, ctx) {
         if (dt?.items && dt.items.length > 0) {
             const entry = dt.items[0].webkitGetAsEntry?.();
             if (entry?.isDirectory) {
-                showToast(`Directory "${entry.name || ''}" detected. Use Browse Folder or type the full path for best results.`, 'warning');
+                showToast(
+                    `Directory "${entry.name || ''}" detected. Use Browse Folder or type the full path for best results.`,
+                    'warning'
+                );
                 return;
             }
         }
@@ -253,8 +256,7 @@ export function bindReportDropzone(root, ctx) {
                 const report = JSON.parse(text);
                 ctx.onLoadReport(report);
                 showToast(`Report "${file.name}" loaded`, 'success');
-            }
-            catch {
+            } catch {
                 showToast('Failed to parse report JSON', 'error');
             }
             return;
@@ -281,7 +283,7 @@ export function bindFileDropzone(root, ctx) {
         return;
     }
     const { enter, over, leave } = bindDragHighlight(dropzone);
-    const drop = async (event) => {
+    const drop = async event => {
         event.preventDefault();
         event.stopPropagation();
         dropzone.classList.remove('drag-active');
@@ -300,20 +302,20 @@ export function bindFileDropzone(root, ctx) {
                 const rawDefault = String(ctx.app?.state?.defaultProjectPath || '')
                     .replace(/\\/g, '/')
                     .replace(/\/+$/, '');
-                const fallbackBase = String(ctx.deriveFallbackBase())
-                    .replace(/\\/g, '/')
-                    .replace(/\/+$/, '');
+                const fallbackBase = String(ctx.deriveFallbackBase()).replace(/\\/g, '/').replace(/\/+$/, '');
                 const base = rawDefault || currentBase || fallbackBase;
                 const resolvedPath = actualDir || (base ? `${base}/${name}` : name);
                 ctx.onSetPath(resolvedPath, name, false);
-                showToast(`Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Analyze to start.`, 'info');
+                showToast(
+                    `Folder "${name}" dropped — path set to ${resolvedPath}. Press Enter or click Analyze to start.`,
+                    'info'
+                );
                 return;
             }
         }
         if (files?.length) {
             ctx.onHandleFiles(files);
-        }
-        else {
+        } else {
             showToast('No file detected. Try dropping a source file or JSON report.', 'warning');
         }
     };

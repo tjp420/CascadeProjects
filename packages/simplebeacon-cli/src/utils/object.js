@@ -9,13 +9,13 @@
  * @returns {Object}
  */
 function pick(obj, keys) {
-    if (!obj || typeof obj !== 'object') return {};
-    const result = {};
-    const keySet = new Set(Array.isArray(keys) ? keys : []);
-    for (const key of keySet) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) result[key] = obj[key];
-    }
-    return result;
+  if (!obj || typeof obj !== 'object') return {};
+  const result = {};
+  const keySet = new Set(Array.isArray(keys) ? keys : []);
+  for (const key of keySet) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) result[key] = obj[key];
+  }
+  return result;
 }
 
 /**
@@ -25,11 +25,11 @@ function pick(obj, keys) {
  * @returns {Object}
  */
 function omit(obj, keys) {
-    if (!obj || typeof obj !== 'object') return {};
-    const result = { ...obj };
-    const keySet = new Set(Array.isArray(keys) ? keys : []);
-    for (const key of keySet) delete result[key];
-    return result;
+  if (!obj || typeof obj !== 'object') return {};
+  const result = { ...obj };
+  const keySet = new Set(Array.isArray(keys) ? keys : []);
+  for (const key of keySet) delete result[key];
+  return result;
 }
 
 /**
@@ -38,8 +38,8 @@ function omit(obj, keys) {
  * @returns {any[]}
  */
 function compact(arr) {
-    if (!Array.isArray(arr)) return [];
-    return arr.filter(Boolean);
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(Boolean);
 }
 
 /**
@@ -49,15 +49,15 @@ function compact(arr) {
  * @returns {Object}
  */
 function groupBy(arr, keyFn) {
-    if (typeof keyFn !== 'function') throw new TypeError('groupBy expects a function');
-    const result = {};
-    if (!Array.isArray(arr)) return result;
-    for (const item of arr) {
-        const key = String(keyFn(item));
-        if (!result[key]) result[key] = [];
-        result[key].push(item);
-    }
-    return result;
+  if (typeof keyFn !== 'function') throw new TypeError('groupBy expects a function');
+  const result = {};
+  if (!Array.isArray(arr)) return result;
+  for (const item of arr) {
+    const key = String(keyFn(item));
+    if (!result[key]) result[key] = [];
+    result[key].push(item);
+  }
+  return result;
 }
 
 /**
@@ -67,14 +67,14 @@ function groupBy(arr, keyFn) {
  * @returns {Object}
  */
 function keyBy(arr, keyFn) {
-    if (typeof keyFn !== 'function') throw new TypeError('keyBy expects a function');
-    const result = {};
-    if (!Array.isArray(arr)) return result;
-    for (const item of arr) {
-        const key = String(keyFn(item));
-        result[key] = item;
-    }
-    return result;
+  if (typeof keyFn !== 'function') throw new TypeError('keyBy expects a function');
+  const result = {};
+  if (!Array.isArray(arr)) return result;
+  for (const item of arr) {
+    const key = String(keyFn(item));
+    result[key] = item;
+  }
+  return result;
 }
 
 /**
@@ -84,12 +84,12 @@ function keyBy(arr, keyFn) {
  * @returns {Object}
  */
 function zipObject(keys, values) {
-    if (!Array.isArray(keys)) return {};
-    const result = {};
-    for (let i = 0; i < keys.length; i++) {
-        result[keys[i]] = i < (values || []).length ? values[i] : undefined;
-    }
-    return result;
+  if (!Array.isArray(keys)) return {};
+  const result = {};
+  for (let i = 0; i < keys.length; i++) {
+    result[keys[i]] = i < (values || []).length ? values[i] : undefined;
+  }
+  return result;
 }
 
 module.exports = { pick, omit, compact, groupBy, keyBy, zipObject };

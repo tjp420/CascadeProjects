@@ -30,26 +30,26 @@ function createTestApp(options = {}) {
     openaiModel: 'gpt-4.1-mini',
     anthropicModel: 'claude-3-5-sonnet-latest',
     ollamaBaseUrl: 'http://127.0.0.1:11434',
-    ollamaModel: 'llama3.2'
+    ollamaModel: 'llama3.2',
   };
 
   const stubs = {
     '../../src/lib/app-logger.cjs': {
       info() {},
       warn() {},
-      error() {}
+      error() {},
     },
     'express-rate-limit': () => (_req, _res, next) => next(),
     '../lib/user-ai-keys-store.cjs': {
-      getUserAiCredentials: async () => credentials
+      getUserAiCredentials: async () => credentials,
     },
     '../middleware/auth.cjs': {
-      resolveAuth: async () => ({ user: null })
+      resolveAuth: async () => ({ user: null }),
     },
     '../config/constants.cjs': {
       TIMEOUT_8S: 8000,
       TIMEOUT_12S: 12000,
-      TIMEOUT_1M: 60000
+      TIMEOUT_1M: 60000,
     },
     '../services/cloud-inference-service.cjs': {
       generateWithProvider: async (provider, messages, providerOptions) => {
@@ -60,25 +60,25 @@ function createTestApp(options = {}) {
         return {
           text: options.responseText || `response:${provider}`,
           provider,
-          timing: { durationMs: 5 }
+          timing: { durationMs: 5 },
         };
-      }
+      },
     },
     '../services/ollama-client.cjs': {
       DEFAULT_OLLAMA_URL: 'http://127.0.0.1:11434',
-      ollamaListModels: async () => options.ollamaModels || ['llama3.2', 'qwen2.5-coder']
+      ollamaListModels: async () => options.ollamaModels || ['llama3.2', 'qwen2.5-coder'],
     },
     '../lib/auth/token-service.cjs': {
-      verifyToken: async () => ({})
+      verifyToken: async () => ({}),
     },
     '../middleware/audit.cjs': {
       logSecurityEvent() {},
-      logUserAction() {}
+      logUserAction() {},
     },
     '../lib/recoverable-io.cjs': {
       readTextFileWithLimit: async () => '',
-      redactTextSecrets: (text) => text
-    }
+      redactTextSecrets: (text) => text,
+    },
   };
 
   const mod = loadChatbotModule(stubs);
@@ -109,9 +109,9 @@ describe('chatbot-api contract', () => {
         openaiModel: 'gpt-4.1',
         anthropicModel: 'claude-3-7-sonnet-latest',
         ollamaBaseUrl: 'http://127.0.0.1:11434',
-        ollamaModel: 'llama3.2'
+        ollamaModel: 'llama3.2',
       },
-      ollamaModels: ['llama3.2', 'qwen2.5-coder']
+      ollamaModels: ['llama3.2', 'qwen2.5-coder'],
     });
 
     const res = await request(app).get('/api/chatbot/providers');
@@ -136,7 +136,12 @@ describe('chatbot-api contract', () => {
     const { app, calls } = createTestApp();
     const res = await request(app)
       .post('/api/chatbot/message')
-      .send({ message: 'hello', provider: 'openai', model: 'gpt-4o-mini', conversationHistory: [] });
+      .send({
+        message: 'hello',
+        provider: 'openai',
+        model: 'gpt-4o-mini',
+        conversationHistory: [],
+      });
 
     assert.strictEqual(res.status, 200);
     assert.strictEqual(calls.length, 1);
@@ -152,13 +157,18 @@ describe('chatbot-api contract', () => {
     const { app, calls } = createTestApp({
       credentials: {
         anthropic: 'sk-anthropic-test',
-        anthropicModel: 'claude-3-5-haiku-latest'
-      }
+        anthropicModel: 'claude-3-5-haiku-latest',
+      },
     });
 
     const res = await request(app)
       .post('/api/chatbot/message')
-      .send({ message: 'hello', provider: 'anthropic', model: 'bad model!!', conversationHistory: [] });
+      .send({
+        message: 'hello',
+        provider: 'anthropic',
+        model: 'bad model!!',
+        conversationHistory: [],
+      });
 
     assert.strictEqual(res.status, 200);
     assert.strictEqual(calls.length, 1);

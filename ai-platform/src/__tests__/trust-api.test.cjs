@@ -6,21 +6,21 @@ jest.mock('../../server/lib/trust-verification-payload.cjs', () => ({
   buildTrustBadgeSvg: jest.fn().mockReturnValue('<svg></svg>'),
   buildTrustVerifyHtml: jest.fn().mockReturnValue('<html></html>'),
   buildTrustVerifyCompact: jest.fn().mockReturnValue('<div></div>'),
-  buildTrustBadgeHtml: jest.fn().mockReturnValue('<div></div>')
+  buildTrustBadgeHtml: jest.fn().mockReturnValue('<div></div>'),
 }));
 jest.mock('../../server/lib/trust-history-store.cjs', () => ({
   resolveTrustHistoryPath: jest.fn(),
   readTrustHistory: jest.fn().mockReturnValue([]),
-  buildTrustTrend: jest.fn().mockReturnValue([])
+  buildTrustTrend: jest.fn().mockReturnValue([]),
 }));
 jest.mock('../../server/lib/json-file-cache.cjs', () => ({
-  readJsonFileCached: jest.fn().mockReturnValue(null)
+  readJsonFileCached: jest.fn().mockReturnValue(null),
 }));
 jest.mock('../lib/production-logger.cjs', () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
-  debug: jest.fn()
+  debug: jest.fn(),
 }));
 
 const { setupTrustAPI, PUBLIC_TRUST_PATH } = require('../api/trust-api.cjs');

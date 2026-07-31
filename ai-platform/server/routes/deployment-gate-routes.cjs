@@ -7,6 +7,7 @@ const deploymentGateStore = require('../lib/deployment-gate-store.cjs');
 const ticketStatusStore = require('../lib/ticket-status-store.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const { processEvent: triggerAlert } = require('../lib/alert-dispatcher.cjs');
+const { authorize } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
 // Lazy-load analytics store to avoid circular deps
@@ -59,7 +60,7 @@ function findLatestScan(orgId, repository, branch, commitSha) {
   const result = store.getScans(filters);
   let scans = result.scans || [];
   if (commitSha) {
-    const matched = scans.filter(s => s.commitSha === commitSha);
+    const matched = scans.filter((s) => s.commitSha === commitSha);
     if (matched.length > 0) scans = matched;
   }
   if (scans.length === 0) return null;
@@ -116,7 +117,12 @@ function evaluateGate(orgId, scan, policy, overrides) {
   if (!scan) {
     return {
       pass: false,
-      failures: [{ rule: 'no_scan_found', message: 'No scan record found for the specified repository/branch/commit' }],
+      failures: [
+        {
+          rule: 'no_scan_found',
+          message: 'No scan record found for the specified repository/branch/commit',
+        },
+      ],
       scan: null,
     };
   }
@@ -245,20 +251,27 @@ router.get('/evaluate', (req, res) => {
     const { repository, branch, commitSha, triggeredBy } = req.query;
 
     if (!repository) {
-      return sendError(res, 400, 'repository is required', { message: 'Specify the repository to evaluate' });
+      return sendError(res, 400, 'repository is required', {
+        message: 'Specify the repository to evaluate',
+      });
     }
 
     // Load org policy, then apply any query-param overrides
     const policy = deploymentGateStore.getPolicy(orgId);
     const overrides = {};
-    if (req.query.minPostureScore !== undefined) overrides.minPostureScore = parseInt(req.query.minPostureScore, 10);
-    if (req.query.maxCritical !== undefined) overrides.maxCritical = parseInt(req.query.maxCritical, 10);
+    if (req.query.minPostureScore !== undefined)
+      overrides.minPostureScore = parseInt(req.query.minPostureScore, 10);
+    if (req.query.maxCritical !== undefined)
+      overrides.maxCritical = parseInt(req.query.maxCritical, 10);
     if (req.query.maxHigh !== undefined) overrides.maxHigh = parseInt(req.query.maxHigh, 10);
     if (req.query.maxMedium !== undefined) overrides.maxMedium = parseInt(req.query.maxMedium, 10);
     if (req.query.maxLow !== undefined) overrides.maxLow = parseInt(req.query.maxLow, 10);
-    if (req.query.blockOnGateFail !== undefined) overrides.blockOnGateFail = req.query.blockOnGateFail === 'true';
-    if (req.query.blockOnSlaBreached !== undefined) overrides.blockOnSlaBreached = req.query.blockOnSlaBreached === 'true';
-    if (req.query.blockOnUnticketedCritical !== undefined) overrides.blockOnUnticketedCritical = req.query.blockOnUnticketedCritical === 'true';
+    if (req.query.blockOnGateFail !== undefined)
+      overrides.blockOnGateFail = req.query.blockOnGateFail === 'true';
+    if (req.query.blockOnSlaBreached !== undefined)
+      overrides.blockOnSlaBreached = req.query.blockOnSlaBreached === 'true';
+    if (req.query.blockOnUnticketedCritical !== undefined)
+      overrides.blockOnUnticketedCritical = req.query.blockOnUnticketedCritical === 'true';
 
     const scan = findLatestScan(orgId, repository, branch || null, commitSha || null);
     const result = evaluateGate(orgId, scan, policy, overrides);
@@ -281,7 +294,14 @@ router.get('/evaluate', (req, res) => {
       triggerAlert(orgId, 'gate_failed', {
         severity: 'high',
         message: `Deployment gate failed for ${repository || 'unknown repo'}`,
-        data: { repository, branch, commitSha, evaluationId, violations: result.violations, triggeredBy },
+        data: {
+          repository,
+          branch,
+          commitSha,
+          evaluationId,
+          violations: result.violations,
+          triggeredBy,
+        },
       }).catch(() => {});
     }
 
@@ -306,16 +326,41 @@ router.get('/policy', (req, res) => {
 });
 
 // ── POST /api/deployment-gate/policy ────────────────────────────────────────
-router.post('/policy', (req, res) => {
+router.post('/policy', authorize('admin:all'), (req, res) => {
   try {
     const orgId = getOrgId(req);
-    const { minPostureScore, maxCritical, maxHigh, maxMedium, maxLow, blockOnGateFail, blockOnSlaBreached, blockOnUnticketedCritical } = req.body || {};
+    const {
+      minPostureScore,
+      maxCritical,
+      maxHigh,
+      maxMedium,
+      maxLow,
+      blockOnGateFail,
+      blockOnSlaBreached,
+      blockOnUnticketedCritical,
+    } = req.body || {};
     const oldPolicy = deploymentGateStore.getPolicy(orgId);
     const policy = deploymentGateStore.setPolicy(orgId, {
-      minPostureScore, maxCritical, maxHigh, maxMedium, maxLow,
-      blockOnGateFail, blockOnSlaBreached, blockOnUnticketedCritical,
+      minPostureScore,
+      maxCritical,
+      maxHigh,
+      maxMedium,
+      maxLow,
+      blockOnGateFail,
+      blockOnSlaBreached,
+      blockOnUnticketedCritical,
     });
-    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'UPDATE', entity: 'deployment_gate_policy', entityId: orgId, oldValue: oldPolicy, newValue: policy, metadata: { route: req.originalUrl } });
+    auditLogger.log({
+      orgId,
+      actorId: req.user?.id,
+      actorEmail: req.user?.email,
+      action: 'UPDATE',
+      entity: 'deployment_gate_policy',
+      entityId: orgId,
+      oldValue: oldPolicy,
+      newValue: policy,
+      metadata: { route: req.originalUrl },
+    });
     res.json({ success: true, policy });
   } catch (err) {
     logger.warn(`[DeploymentGate] policy_save_failed: ${err.message}`);

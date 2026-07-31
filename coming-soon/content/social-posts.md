@@ -10,7 +10,7 @@
 
 After 8 months of building with Cursor and Copilot, I realized my production code was full of AI-generated placeholders, markdown fences that leaked into source files, and hardcoded "99.99% uptime" metrics that looked real but weren't.
 
-Existing linters don't catch this because it's not a syntax error — it's *slop*. Commented-out placeholders that say "AI: implement this later." Empty catch blocks the AI suggested to "handle errors gracefully." Copy-pasted GPL code blocks from StackOverflow hybrids.
+Existing linters don't catch this because it's not a syntax error — it's _slop_. Commented-out placeholders that say "AI: implement this later." Empty catch blocks the AI suggested to "handle errors gracefully." Copy-pasted GPL code blocks from StackOverflow hybrids.
 
 So I built AI Slop Cop — a VS Code extension with 53 deterministic rules that catch this stuff as you type:
 
@@ -43,18 +43,20 @@ Happy to answer questions.
 AI coding assistants are fast. They're also sloppy.
 
 In the last 6 months I've found:
+
 - A `// placeholder: AI implement this` comment that made it to production
 - A markdown code fence (```) that Copilot inserted into a .js file
 - A hardcoded `confidence: 0.95` that was supposed to be dynamic
 - An empty catch block that swallowed a payment processing error
 
-None of these are bugs that `eslint` catches. They're not syntax errors. They're *slop* — the residue of an AI assistant that generates plausible-looking garbage.
+None of these are bugs that `eslint` catches. They're not syntax errors. They're _slop_ — the residue of an AI assistant that generates plausible-looking garbage.
 
 ## The Solution
 
 AI Slop Cop is a VS Code extension with 53 deterministic regex rules that catch this in real time:
 
 **Free tier (15 rules):**
+
 - AI placeholder comments (`// placeholder: AI`, `// FIXME: implement`)
 - Markdown fences leaked into source (`^```javascript$`)
 - Empty stubs (`function foo() {}`)
@@ -62,12 +64,14 @@ AI Slop Cop is a VS Code extension with 53 deterministic regex rules that catch 
 - Hardcoded fiction KPIs (`99.99% Uptime`, `Lorem Ipsum`)
 
 **Team tier ($49/mo, 24 more rules):**
+
 - Credential patterns (`api_key = "..."`, `password = "..."`)
 - Mock/fixture paths in production code
 - Debug artifacts (`console.log`, `debugger`)
 - Hardcoded confidence scores and completion rates
 
 **Enterprise tier ($499/mo, 14 more rules):**
+
 - AI SDK imports (OpenAI, Anthropic, LangChain — EU AI Act compliance)
 - Missing accessibility labels (`<img>` without `alt`)
 - Hardcoded UI strings not wrapped for i18n
@@ -76,7 +80,7 @@ AI Slop Cop is a VS Code extension with 53 deterministic regex rules that catch 
 
 ## How It Works
 
-```typescript
+````typescript
 // One of the 53 rules
 { id: 'markdown-fence-leak',
   pattern: /^```\w*$/m,
@@ -85,7 +89,7 @@ AI Slop Cop is a VS Code extension with 53 deterministic regex rules that catch 
   fixSuggestion: 'Remove markdown fence lines',
   autoFixable: true,
   tier: 'free' }
-```
+````
 
 Rules are tiered. No token = free rules only. Paste a license token = Team/Enterprise rules unlock instantly.
 
@@ -114,7 +118,7 @@ We also built SimpleBeacon — a deep scanner that produces board-ready complian
 
 ---
 
-*Full disclosure: I built this. The free tier is actually free — no signup, no credit card, no code upload. Upgrade only if the 15 free rules save you time.*
+_Full disclosure: I built this. The free tier is actually free — no signup, no credit card, no code upload. Upgrade only if the 15 free rules save you time._
 
 ---
 
@@ -131,11 +135,12 @@ Hey r/vscode — after 8 months of using Cursor/Copilot, I kept shipping AI-gene
 - `catch(e) {}` — "handle errors gracefully" according to the AI
 - `99.99% Uptime` — hardcoded metric in a landing page component
 
-ESLint doesn't catch these. Neither does TypeScript. They're not syntax errors — they're *slop*.
+ESLint doesn't catch these. Neither does TypeScript. They're not syntax errors — they're _slop_.
 
 So I built AI Slop Cop: 53 deterministic rules that flag this stuff as you type.
 
 **Free tier (no signup, actually free):**
+
 - 15 rules: placeholders, markdown fences, stubs, empty catches, hardcoded KPIs
 - 50 files per workspace scan
 - Works entirely offline
@@ -158,7 +163,7 @@ Happy to take feature requests or answer questions.
 
 **Body:**
 
-The EU AI Act enforcement deadline is 6 months away. Boards are now asking CCOs: *"How much AI-generated code is in production that we don't know about?"*
+The EU AI Act enforcement deadline is 6 months away. Boards are now asking CCOs: _"How much AI-generated code is in production that we don't know about?"_
 
 Most DLP and SAST tools don't catch AI slop because it doesn't look like a bug. It looks like:
 
@@ -195,7 +200,7 @@ It looks like a `// placeholder: implement` comment that Copilot inserted and we
 It looks like a `99.99% Uptime` metric that sounded impressive.
 It looks like an empty `catch(e) {}` block that the AI suggested to "handle errors gracefully."
 
-None of these are caught by ESLint. None are TypeScript errors. They're *slop* — the residue of AI-assisted coding that slips through every review process.
+None of these are caught by ESLint. None are TypeScript errors. They're _slop_ — the residue of AI-assisted coding that slips through every review process.
 
 So I built AI Slop Cop.
 
@@ -249,6 +254,7 @@ If it saves you from shipping one `Lorem Ipsum` to production, it's worth it.
 We also built SimpleBeacon for deep compliance scanning.
 
 One fintech found $1.25M in exposure:
+
 - 23 placeholder diagnostics
 - 4 exposed staging keys
 - 1 unapproved Anthropic integration
@@ -266,4 +272,3 @@ Install AI Slop Cop free → https://marketplace.visualstudio.com/items?itemName
 Run deep scan → `npx simplebeacon scan --gate`
 
 Case study → https://simplebeacon.ai/blog/case-study-ai-slop-1-25m
-

@@ -5,7 +5,11 @@
  * applies SimpleBeacon heuristic rules, and produces an A-F compliance certificate.
  */
 
-import { canUseDirectoryPicker, filePickerBlockedMessage, isFilePickerBlockedError } from '../utils-lib/dom.js?v=20260721corsfix1';
+import {
+  canUseDirectoryPicker,
+  filePickerBlockedMessage,
+  isFilePickerBlockedError,
+} from '../utils-lib/dom.js?v=20260721corsfix1';
 import {
   createIgnoreContext,
   extractIgnorePatternsFromLegacyFiles,
@@ -13,7 +17,7 @@ import {
   isIgnoredVirtualPath,
   loadIgnorePatternsFromDirHandle,
   shouldSkipSandboxComplianceDrift,
-  shouldSkipSandboxScanFile
+  shouldSkipSandboxScanFile,
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
 
 /**
@@ -27,9 +31,17 @@ function detectSimplebeaconMonorepo(scanRootName, fileQueue) {
   }
   if (Array.isArray(fileQueue)) {
     for (let i = 0; i < Math.min(fileQueue.length, 500); i++) {
-      const p = String((fileQueue[i] && (fileQueue[i].virtualPath || fileQueue[i].path || fileQueue[i].webkitRelativePath || fileQueue[i].name)) || '').replace(/\\/g, '/');
-      if (/\/(coming-soon|ai-platform|simplebeacon-vscode-merged|packages\/simplebeacon-cli|simplebeacon-frameworkless)\//i.test(p)
-          || /^CascadeProjects(?:_BACKUP_\d+)?\//i.test(p)) {
+      const p = String(
+        (fileQueue[i] &&
+          (fileQueue[i].virtualPath || fileQueue[i].path || fileQueue[i].webkitRelativePath || fileQueue[i].name)) ||
+          ''
+      ).replace(/\\/g, '/');
+      if (
+        /\/(coming-soon|ai-platform|simplebeacon-vscode-merged|packages\/simplebeacon-cli|simplebeacon-frameworkless)\//i.test(
+          p
+        ) ||
+        /^CascadeProjects(?:_BACKUP_\d+)?\//i.test(p)
+      ) {
         return true;
       }
     }
@@ -43,39 +55,146 @@ const MAX_FINDINGS = 100000;
 
 // Hidden/artifact directories that bloat scans with false positives (reports, caches, binaries).
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'build', '.simplebeacon', '.github', '.vscode',
-  '.vscode-test', 'coverage', 'lcov-report', '.husky', '.windsurf', '.wrangler',
-  'bower_components'
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  '.simplebeacon',
+  '.github',
+  '.vscode',
+  '.vscode-test',
+  'coverage',
+  'lcov-report',
+  '.husky',
+  '.windsurf',
+  '.wrangler',
+  'bower_components',
 ]);
 // Dotfile directories that should be skipped during crawl (not ALL dotfiles).
 const SKIP_DOT_DIRS = new Set([
-  '.git', '.github', '.vscode', '.vscode-test', '.simplebeacon', '.husky',
-  '.windsurf', '.wrangler', '.idea', '.cursor', '.cursor-tutor', '.nyc_output',
-  '.cache', '.parcel-cache', '.next', '.nuxt', '.turbo', '.svelte-kit'
+  '.git',
+  '.github',
+  '.vscode',
+  '.vscode-test',
+  '.simplebeacon',
+  '.husky',
+  '.windsurf',
+  '.wrangler',
+  '.idea',
+  '.cursor',
+  '.cursor-tutor',
+  '.nyc_output',
+  '.cache',
+  '.parcel-cache',
+  '.next',
+  '.nuxt',
+  '.turbo',
+  '.svelte-kit',
 ]);
 // Source/config file types only; skip .md and .html to avoid flagging documentation/coverage output.
 const ALLOWED_EXTENSIONS = new Set([
-  '.js', '.json', '.txt', '.ini', '.cfg', '.log', '.py', '.cs', '.cjs', '.mjs',
-  '.ts', '.tsx', '.jsx', '.env', '.yml', '.yaml', '.xml', '.css',
-  '.sh', '.tf', '.sql', '.vue', '.svelte', '.go', '.rs', '.java', '.rb', '.php',
-  '.c', '.h', '.cpp', '.cc', '.hpp', '.cxx', '.hxx', '.swift', '.kt', '.kts',
-  '.scala', '.clj', '.cljs', '.cljc', '.edn', '.elm', '.dart', '.lua',
-  '.r', '.pl', '.pm', '.tcl', '.asm', '.s', '.bat', '.cmd', '.ps1',
-  '.gradle', '.sbt', '.toml', '.properties', '.conf', '.dockerfile',
-  '.makefile', '.cmake', '.groovy', '.jenkinsfile', '.dockerignore',
-  '.gitignore', '.gitattributes', '.editorconfig', '.babelrc',
-  '.eslintrc', '.prettierrc', '.npmrc', '.nvmrc', '.python-version',
-  '.ruby-version', '.csproj', '.fsproj', '.vbproj', '.sln', '.proj',
-  '.props', '.targets', '.manifest', '.appxmanifest', '.wxs', '.wxl', '.wxi',
-  '.feature', '.story', '.spec.ts', '.spec.js', '.test.ts', '.test.js',
-  '.lock', '.html', '.htm', '.md', '.rst'
+  '.js',
+  '.json',
+  '.txt',
+  '.ini',
+  '.cfg',
+  '.log',
+  '.py',
+  '.cs',
+  '.cjs',
+  '.mjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.env',
+  '.yml',
+  '.yaml',
+  '.xml',
+  '.css',
+  '.sh',
+  '.tf',
+  '.sql',
+  '.vue',
+  '.svelte',
+  '.go',
+  '.rs',
+  '.java',
+  '.rb',
+  '.php',
+  '.c',
+  '.h',
+  '.cpp',
+  '.cc',
+  '.hpp',
+  '.cxx',
+  '.hxx',
+  '.swift',
+  '.kt',
+  '.kts',
+  '.scala',
+  '.clj',
+  '.cljs',
+  '.cljc',
+  '.edn',
+  '.elm',
+  '.dart',
+  '.lua',
+  '.r',
+  '.pl',
+  '.pm',
+  '.tcl',
+  '.asm',
+  '.s',
+  '.bat',
+  '.cmd',
+  '.ps1',
+  '.gradle',
+  '.sbt',
+  '.toml',
+  '.properties',
+  '.conf',
+  '.dockerfile',
+  '.makefile',
+  '.cmake',
+  '.groovy',
+  '.jenkinsfile',
+  '.dockerignore',
+  '.gitignore',
+  '.gitattributes',
+  '.editorconfig',
+  '.babelrc',
+  '.eslintrc',
+  '.prettierrc',
+  '.npmrc',
+  '.nvmrc',
+  '.python-version',
+  '.ruby-version',
+  '.csproj',
+  '.fsproj',
+  '.vbproj',
+  '.sln',
+  '.proj',
+  '.props',
+  '.targets',
+  '.manifest',
+  '.appxmanifest',
+  '.wxs',
+  '.wxl',
+  '.wxi',
+  '.feature',
+  '.story',
+  '.spec.ts',
+  '.spec.js',
+  '.test.ts',
+  '.test.js',
+  '.lock',
+  '.html',
+  '.htm',
+  '.md',
+  '.rst',
 ]);
 // Files that are generated/test artifacts and should not be scanned.
-const SKIP_FILE_PATTERNS = [
-  /^headers\d*\.txt$/i,
-  /^audit\.log$/i,
-  /^.*\.log$/i
-];
+const SKIP_FILE_PATTERNS = [/^headers\d*\.txt$/i, /^audit\.log$/i, /^.*\.log$/i];
 
 // Build rule patterns from split fragments so the scanner doesn't flag this file itself.
 const BS = String.fromCharCode(92);
@@ -87,14 +206,120 @@ const _SB02 = [
   BS + 'b' + 'your-' + 'api-' + 'key' + '-here' + BS + 'b',
   BS + 'b' + 'YOUR_' + 'API_' + 'KEY' + BS + 'b',
   BS + 'b' + 'example_' + 'api_' + 'key' + BS + 'b',
-  BS + 'b' + 'insert_' + 'secret_' + 'here' + BS + 'b'
+  BS + 'b' + 'insert_' + 'secret_' + 'here' + BS + 'b',
 ];
-const _SB03 = [BT + BT + BT + 'javascript', BT + BT + BT + 'json', BT + BT + BT + 'html', BT + BT + BT + 'css', BT + BT + BT + 'python', BT + BT + BT + 'typescript', BT + BT + BT + 'jsx', BT + BT + BT + 'tsx', BT + BT + BT];
+const _SB03 = [
+  BT + BT + BT + 'javascript',
+  BT + BT + BT + 'json',
+  BT + BT + BT + 'html',
+  BT + BT + BT + 'css',
+  BT + BT + BT + 'python',
+  BT + BT + BT + 'typescript',
+  BT + BT + BT + 'jsx',
+  BT + BT + BT + 'tsx',
+  BT + BT + BT,
+];
 const _SB04 = [
-  '(?:' + BS + '/' + BS + '*' + BS + '*' + BS + 's*' + BS + 'n' + BS + 's*' + BS + '*' + BS + 's+' + '.*' + BS + 'n' + BS + 's*' + BS + '*' + BS + '/' + BS + 's*' + BS + 'n){3,}',
-  '(?:' + BS + 'b' + 'import' + BS + 's+' + BS + '{' + BS + 's*' + '[^}]+' + BS + '}' + BS + 's*' + 'from' + BS + 's+' + '[' + String.fromCharCode(39, 34) + ']' + 'npm-[a-z0-9-]+' + '[' + String.fromCharCode(39, 34) + '])',
-  '(' + BS + 'b' + 'ale' + 'rt' + BS + 's*' + BS + '(' + BS + 's*' + String.fromCharCode(39) + 'T' + 'O' + 'D' + 'O' + String.fromCharCode(39) + BS + 's*' + BS + ')' + ')',
-  '(' + BS + 'b' + 'console' + BS + '.' + 'log' + BS + 's*' + BS + '(' + BS + 's*' + String.fromCharCode(39) + 'A' + 'I' + ' generated' + String.fromCharCode(39) + BS + 's*' + BS + ')' + ')'
+  '(?:' +
+    BS +
+    '/' +
+    BS +
+    '*' +
+    BS +
+    '*' +
+    BS +
+    's*' +
+    BS +
+    'n' +
+    BS +
+    's*' +
+    BS +
+    '*' +
+    BS +
+    's+' +
+    '.*' +
+    BS +
+    'n' +
+    BS +
+    's*' +
+    BS +
+    '*' +
+    BS +
+    '/' +
+    BS +
+    's*' +
+    BS +
+    'n){3,}',
+  '(?:' +
+    BS +
+    'b' +
+    'import' +
+    BS +
+    's+' +
+    BS +
+    '{' +
+    BS +
+    's*' +
+    '[^}]+' +
+    BS +
+    '}' +
+    BS +
+    's*' +
+    'from' +
+    BS +
+    's+' +
+    '[' +
+    String.fromCharCode(39, 34) +
+    ']' +
+    'npm-[a-z0-9-]+' +
+    '[' +
+    String.fromCharCode(39, 34) +
+    '])',
+  '(' +
+    BS +
+    'b' +
+    'ale' +
+    'rt' +
+    BS +
+    's*' +
+    BS +
+    '(' +
+    BS +
+    's*' +
+    String.fromCharCode(39) +
+    'T' +
+    'O' +
+    'D' +
+    'O' +
+    String.fromCharCode(39) +
+    BS +
+    's*' +
+    BS +
+    ')' +
+    ')',
+  '(' +
+    BS +
+    'b' +
+    'console' +
+    BS +
+    '.' +
+    'log' +
+    BS +
+    's*' +
+    BS +
+    '(' +
+    BS +
+    's*' +
+    String.fromCharCode(39) +
+    'A' +
+    'I' +
+    ' generated' +
+    String.fromCharCode(39) +
+    BS +
+    's*' +
+    BS +
+    ')' +
+    ')',
 ];
 const _SB05 = [
   'eval' + BS + 's*' + BS + '(',
@@ -103,124 +328,171 @@ const _SB05 = [
   'document' + BS + '.' + 'write' + BS + 's*' + BS + '(',
   'child_' + 'process',
   'ex' + 'ec' + BS + 's*' + BS + '(',
-  'sp' + 'awn' + BS + 's*' + BS + '('
+  'sp' + 'awn' + BS + 's*' + BS + '(',
 ];
 const _SB06 = [
-  'catch' + BS + 's*' + BS + '(' + BS + 's*' + BS + 'w+' + BS + 's*' + BS + ')' + BS + 's*' + BS + '{' + BS + 's*' + BS + '/' + BS + '*' + BS + 's*' + '(' + 'T' + 'O' + 'D' + 'O' + '|F' + 'I' + 'X' + 'M' + 'E' + '|ignore)?' + BS + 's*' + BS + '*' + BS + '/' + BS + 's*' + BS + '}'
+  'catch' +
+    BS +
+    's*' +
+    BS +
+    '(' +
+    BS +
+    's*' +
+    BS +
+    'w+' +
+    BS +
+    's*' +
+    BS +
+    ')' +
+    BS +
+    's*' +
+    BS +
+    '{' +
+    BS +
+    's*' +
+    BS +
+    '/' +
+    BS +
+    '*' +
+    BS +
+    's*' +
+    '(' +
+    'T' +
+    'O' +
+    'D' +
+    'O' +
+    '|F' +
+    'I' +
+    'X' +
+    'M' +
+    'E' +
+    '|ignore)?' +
+    BS +
+    's*' +
+    BS +
+    '*' +
+    BS +
+    '/' +
+    BS +
+    's*' +
+    BS +
+    '}',
 ];
 const RULES = [
   {
     id: 'SB-01',
     type: 'Exposed Credentials',
     severity: 'HIGH',
-    regex: /(sk_live_[a-zA-Z0-9]{24,}|sk_test_[a-zA-Z0-9]{24,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{22,}|xoxb-[0-9]{10,}-[0-9]{10,}-[a-zA-Z0-9]{24}|xoxp-[0-9]{10,}-[0-9]{10,}-[a-zA-Z0-9]{24}|SG\.[a-zA-Z0-9_\-]{22}\.[a-zA-Z0-9_\-]{43}|private[_\-]?key|-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----)/gi,
-    msg: 'Hardcoded API key, token, or private key detected.'
+    regex:
+      /(sk_live_[a-zA-Z0-9]{24,}|sk_test_[a-zA-Z0-9]{24,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{22,}|xoxb-[0-9]{10,}-[0-9]{10,}-[a-zA-Z0-9]{24}|xoxp-[0-9]{10,}-[0-9]{10,}-[a-zA-Z0-9]{24}|SG\.[a-zA-Z0-9_\-]{22}\.[a-zA-Z0-9_\-]{43}|private[_\-]?key|-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----)/gi,
+    msg: 'Hardcoded API key, token, or private key detected.',
   },
   {
     id: 'SBD-AWS',
     type: 'AWS Access Key ID',
     severity: 'CRITICAL',
     regex: /(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}/g,
-    msg: 'AWS access key ID detected.'
+    msg: 'AWS access key ID detected.',
   },
   {
     id: 'SBD-GENERIC-SECRET',
     type: 'Generic Secret/Token',
     severity: 'HIGH',
     regex: /(secret|token|password|passwd|api_key|apikey|auth_token)\s*[:=]\s*['"`][A-Za-z0-9_\-.~+=/]{16,}['"`]/gi,
-    msg: 'Generic secret/token assignment detected.'
+    msg: 'Generic secret/token assignment detected.',
   },
   {
     id: 'SBD-PRIVATE-KEY',
     type: 'Private Cryptographic Key',
     severity: 'CRITICAL',
     regex: /-----BEGIN\s+(RSA|EC|DSA|OPENSSH|PRIVATE)\s+KEY-----/g,
-    msg: 'Private cryptographic key detected.'
+    msg: 'Private cryptographic key detected.',
   },
   {
     id: 'SBD-SLACK',
     type: 'Slack API Token',
     severity: 'HIGH',
     regex: /xox[bapr]-[0-9]{12}-[0-9]{12}-[a-zA-Z0-9]{24}/g,
-    msg: 'Slack API token detected.'
+    msg: 'Slack API token detected.',
   },
   {
     id: 'SBD-CONNECTION-STRING',
     type: 'Hardcoded Connection String',
     severity: 'HIGH',
     regex: /(mongodb|postgres|postgresql|mysql|redis|amqp):\/\/[^\s'"`]{3,}:[^\s'"`]{3,}@[^\s'"`]+/gi,
-    msg: 'Hardcoded database/message-broker connection string with credentials detected.'
+    msg: 'Hardcoded database/message-broker connection string with credentials detected.',
   },
   {
     id: 'SBD-JWT',
     type: 'Hardcoded JWT',
     severity: 'HIGH',
     regex: /eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}/g,
-    msg: 'Hardcoded JWT token detected.'
+    msg: 'Hardcoded JWT token detected.',
   },
   {
     id: 'SB-02',
     type: 'Placeholder Debris',
     severity: 'MEDIUM',
     regex: new RegExp('(' + _SB02.join('|') + ')', 'gi'),
-    msg: 'Unimplemented stub or placeholder left by AI generation.'
+    msg: 'Unimplemented stub or placeholder left by AI generation.',
   },
   {
     id: 'SB-03',
     type: 'Markdown Fences',
     severity: 'MEDIUM',
     regex: new RegExp('(' + _SB03.join('|') + ')', 'g'),
-    msg: 'Raw markdown formatting left behind from an AI chat interaction wrapper.'
+    msg: 'Raw markdown formatting left behind from an AI chat interaction wrapper.',
   },
   {
     id: 'SB-04',
     type: 'AI Slop / Repetitive Boilerplate',
     severity: 'MEDIUM',
     regex: new RegExp('(' + _SB04.join('|') + ')', 'gi'),
-    msg: 'Repetitive AI-generated boilerplate or hallucinated dependency.'
+    msg: 'Repetitive AI-generated boilerplate or hallucinated dependency.',
   },
   {
     id: 'SB-05',
     type: 'Compliance Drift',
     severity: 'MEDIUM',
     regex: new RegExp('(' + _SB05.join('|') + ')', 'g'),
-    msg: 'Code pattern that may violate security/compliance controls (unsafe eval, innerHTML injection, process spawning).'
+    msg: 'Code pattern that may violate security/compliance controls (unsafe eval, innerHTML injection, process spawning).',
   },
   {
     id: 'SB-06',
     type: 'Generic Error Swallowing',
     severity: 'LOW',
     regex: new RegExp('(' + _SB06.join('|') + ')', 'g'),
-    msg: 'Error handler silently swallows exceptions.'
+    msg: 'Error handler silently swallows exceptions.',
   },
   {
     id: 'SB-07',
     type: 'TODO/FIXME Accumulation',
     severity: 'LOW',
     regex: /\b(TODO|FIXME|HACK|XXX|BUG)\b/gi,
-    msg: 'TODO/FIXME marker found — track technical debt.'
+    msg: 'TODO/FIXME marker found — track technical debt.',
   },
   {
     id: 'SB-08',
     type: 'Debug Console Statements',
     severity: 'LOW',
     regex: /\bconsole\.(log|debug|info|warn|error|trace)\s*\(/g,
-    msg: 'Debug console statement found — remove before production.'
+    msg: 'Debug console statement found — remove before production.',
   },
   {
     id: 'SB-09',
     type: 'Hardcoded IP Address',
     severity: 'MEDIUM',
     regex: /\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b/g,
-    msg: 'Hardcoded IP address found — use environment variables for configuration.'
+    msg: 'Hardcoded IP address found — use environment variables for configuration.',
   },
   {
     id: 'SB-10',
     type: 'Disabled Security Control',
     severity: 'HIGH',
-    regex: /(verifyTLS\s*[:=]\s*false|rejectUnauthorized\s*[:=]\s*false|disableSSL|sslVerify\s*[:=]\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*[:=]\s*['"`]?0)/gi,
-    msg: 'TLS/SSL verification disabled — security control bypassed.'
-  }
+    regex:
+      /(verifyTLS\s*[:=]\s*false|rejectUnauthorized\s*[:=]\s*false|disableSSL|sslVerify\s*[:=]\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*[:=]\s*['"`]?0)/gi,
+    msg: 'TLS/SSL verification disabled — security control bypassed.',
+  },
 ];
 
 function isSupported() {
@@ -294,19 +566,28 @@ function countMatches(content, regex) {
 function gradeFindings(highRiskCount, mediumRiskCount, criticalCount, lowRiskCount) {
   const crit = criticalCount || 0;
   const low = lowRiskCount || 0;
-  let score = 100 - (crit * 25) - (highRiskCount * 15) - (mediumRiskCount * 4);
+  let score = 100 - crit * 25 - highRiskCount * 15 - mediumRiskCount * 4;
   if (score < 0) score = 0;
   if (crit > 0) score = Math.min(score, 30);
   else if (highRiskCount > 0) score = Math.min(score, 55);
 
   let letterGrade = 'F';
   let badgeColor = '#dc3545';
-  if (score >= 90) { letterGrade = 'A'; badgeColor = '#28a745'; }
-  else if (score >= 80) { letterGrade = 'B'; badgeColor = '#0366d6'; }
-  else if (score >= 70) { letterGrade = 'C'; badgeColor = '#ffc107'; }
-  else if (score >= 60) { letterGrade = 'D'; badgeColor = '#fd7e14'; }
+  if (score >= 90) {
+    letterGrade = 'A';
+    badgeColor = '#28a745';
+  } else if (score >= 80) {
+    letterGrade = 'B';
+    badgeColor = '#0366d6';
+  } else if (score >= 70) {
+    letterGrade = 'C';
+    badgeColor = '#ffc107';
+  } else if (score >= 60) {
+    letterGrade = 'D';
+    badgeColor = '#fd7e14';
+  }
 
-  const estimatedLiability = (crit * 100000) + (highRiskCount * 25000) + (mediumRiskCount * 1250);
+  const estimatedLiability = crit * 100000 + highRiskCount * 25000 + mediumRiskCount * 1250;
 
   return {
     score,
@@ -317,9 +598,7 @@ function gradeFindings(highRiskCount, mediumRiskCount, criticalCount, lowRiskCou
     lowRiskCount: low,
     criticalCount: crit,
     liabilityStr: `$${estimatedLiability.toLocaleString()}`,
-    complianceStatus: letterGrade === 'F'
-      ? 'NON-COMPLIANT (CRITICAL DEBT)'
-      : 'APPROVED FOR PRODUCTION RELEASE'
+    complianceStatus: letterGrade === 'F' ? 'NON-COMPLIANT (CRITICAL DEBT)' : 'APPROVED FOR PRODUCTION RELEASE',
   };
 }
 
@@ -344,7 +623,7 @@ function analyzeFile(content, virtualPath) {
         filePath: virtualPath,
         message: rule.msg,
         type: rule.type,
-        count: matchCount
+        count: matchCount,
       });
     }
   }
@@ -359,8 +638,7 @@ async function pickFileSystemAccessDirectory({ maxFiles, onLog }) {
   let directoryHandle;
   try {
     directoryHandle = await window.showDirectoryPicker({ mode: 'read' });
-  }
-  catch (err) {
+  } catch (err) {
     if (isFilePickerBlockedError(err)) {
       throw new Error(filePickerBlockedMessage());
     }
@@ -369,7 +647,12 @@ async function pickFileSystemAccessDirectory({ maxFiles, onLog }) {
   const rootName = directoryHandle.name;
   logLine(onLog, `Access granted. Initializing scan over boundary: ${rootName}`, 'info');
   const ignoreLoad = await loadIgnorePatternsFromDirHandle(directoryHandle);
-  const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, rootName, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
+  const ignoreCtx = createIgnoreContext(
+    ignoreLoad.patterns,
+    rootName,
+    ignoreLoad.source,
+    ignoreLoad.isSimplebeaconMonorepo
+  );
   logLine(
     onLog,
     ignoreCtx.source === 'simplebeaconignore'
@@ -405,7 +688,12 @@ function pickLegacyDirectory({ maxFiles, onLog }) {
       const rootName = (files[0].webkitRelativePath || files[0].name).split('/')[0] || 'selected-folder';
       logLine(onLog, `Legacy directory input selected. Streaming analysis over ${files.length} items...`, 'info');
       const ignoreLoad = await extractIgnorePatternsFromLegacyFiles(files);
-      const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, rootName, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
+      const ignoreCtx = createIgnoreContext(
+        ignoreLoad.patterns,
+        rootName,
+        ignoreLoad.source,
+        ignoreLoad.isSimplebeaconMonorepo
+      );
       logLine(
         onLog,
         ignoreCtx.source === 'simplebeaconignore'
@@ -458,12 +746,8 @@ function createScanWorker() {
   if (typeof window === 'undefined' || typeof Worker === 'undefined') return null;
   try {
     return new Worker(new URL('./scanWorker.js', import.meta.url));
-  }
-  catch (err) {
-    window["console"]["warn"](
-      '[SimpleBeacon] Scan worker unavailable; falling back to main-thread scan.',
-      err
-    );
+  } catch (err) {
+    window['console']['warn']('[SimpleBeacon] Scan worker unavailable; falling back to main-thread scan.', err);
     return null;
   }
 }
@@ -501,17 +785,29 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
     };
 
     worker.onerror = (err) => {
-      window["console"]["error"]('[SimpleBeacon] Scan worker error:', err);
+      window['console']['error']('[SimpleBeacon] Scan worker error:', err);
       for (const [virtualPath, resolve] of pending) {
-        resolve({ name: virtualPath.split('/').pop() || virtualPath, virtualPath, size: 0, fileIssues: [], fileFindings: [] });
+        resolve({
+          name: virtualPath.split('/').pop() || virtualPath,
+          virtualPath,
+          size: 0,
+          fileIssues: [],
+          fileFindings: [],
+        });
       }
       pending.clear();
     };
 
     worker.onmessageerror = (err) => {
-      window["console"]["error"]('[SimpleBeacon] Scan worker message error:', err);
+      window['console']['error']('[SimpleBeacon] Scan worker message error:', err);
       for (const [virtualPath, resolve] of pending) {
-        resolve({ name: virtualPath.split('/').pop() || virtualPath, virtualPath, size: 0, fileIssues: [], fileFindings: [] });
+        resolve({
+          name: virtualPath.split('/').pop() || virtualPath,
+          virtualPath,
+          size: 0,
+          fileIssues: [],
+          fileFindings: [],
+        });
       }
       pending.clear();
     };
@@ -532,7 +828,13 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
           setTimeout(() => {
             if (pending.has(item.virtualPath)) {
               pending.delete(item.virtualPath);
-              resolve({ name: file.name, virtualPath: item.virtualPath, size: file.size, fileIssues: [], fileFindings: [] });
+              resolve({
+                name: file.name,
+                virtualPath: item.virtualPath,
+                size: file.size,
+                fileIssues: [],
+                fileFindings: [],
+              });
             }
           }, 10000);
         });
@@ -543,8 +845,8 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
             name: file.name,
             virtualPath: item.virtualPath,
             content,
-            size: file.size
-          }
+            size: file.size,
+          },
         });
 
         const result = await promise;
@@ -556,16 +858,14 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
         if (processed > 0 && processed % 50 === 0) {
           await yieldToBrowser();
         }
-      }
-      catch (err) {
+      } catch (err) {
         skippedError += 1;
         logLine(onLog, `Could not read ${item.virtualPath}: ${err.message}`, 'warning');
       }
     }
 
     worker.terminate();
-  }
-  else {
+  } else {
     // Fallback: scan directly on the main thread when Workers are unavailable.
     logLine(onLog, 'Scan worker not available; running scan on the main thread.', 'warning');
     for (let i = 0; i < filteredQueue.length; i++) {
@@ -585,7 +885,7 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
           virtualPath: item.virtualPath,
           size: file.size,
           fileIssues,
-          fileFindings
+          fileFindings,
         });
 
         processed += 1;
@@ -595,8 +895,7 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
         if (processed > 0 && processed % YIELD_EVERY === 0) {
           await yieldToBrowser();
         }
-      }
-      catch (err) {
+      } catch (err) {
         skippedError += 1;
         logLine(onLog, `Could not read ${item.virtualPath}: ${err.message}`, 'warning');
       }
@@ -616,14 +915,16 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
       name: item.virtualPath.split('/').pop() || item.virtualPath,
       absolutePath: item.virtualPath,
       size: result.size,
-      status: result.fileIssues.length > 0 ? `Issues Flagged: ${result.fileIssues.join(', ')}` : 'Clean'
+      status: result.fileIssues.length > 0 ? `Issues Flagged: ${result.fileIssues.join(', ')}` : 'Clean',
     });
 
     for (const finding of result.fileFindings) {
       if (globalIssuesQueue.length >= MAX_FINDINGS) break;
       globalIssuesQueue.push(finding);
-      if (finding.severity === 'CRITICAL') { criticalCount += 1; highRiskCount += 1; }
-      else if (finding.severity === 'HIGH') highRiskCount += 1;
+      if (finding.severity === 'CRITICAL') {
+        criticalCount += 1;
+        highRiskCount += 1;
+      } else if (finding.severity === 'HIGH') highRiskCount += 1;
       else if (finding.severity === 'MEDIUM') mediumRiskCount += 1;
       else if (finding.severity === 'LOW') lowRiskCount += 1;
     }
@@ -633,10 +934,18 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
   certificate.logs = globalIssuesQueue;
   if (globalIssuesQueue.length >= MAX_FINDINGS) {
     certificate.findingsTruncated = true;
-    logLine(onLog, `Findings capped at ${MAX_FINDINGS.toLocaleString()} for browser memory. Use CLI export for full list.`, 'warning');
+    logLine(
+      onLog,
+      `Findings capped at ${MAX_FINDINGS.toLocaleString()} for browser memory. Use CLI export for full list.`,
+      'warning'
+    );
   }
 
-  logLine(onLog, `Sandboxed drive sweep complete. Grade ${certificate.letterGrade} | ${fileReport.length}/${filteredQueue.length} files (${skippedLarge + skippedError} skipped).`, 'success');
+  logLine(
+    onLog,
+    `Sandboxed drive sweep complete. Grade ${certificate.letterGrade} | ${fileReport.length}/${filteredQueue.length} files (${skippedLarge + skippedError} skipped).`,
+    'success'
+  );
 
   return {
     success: true,
@@ -647,7 +956,7 @@ async function analyzeDirectory({ rootName, fileQueue, ignoreCtx }, { maxFileSiz
     skippedFiles: skippedLarge + skippedError,
     skippedLarge,
     skippedError,
-    certificate
+    certificate,
   };
 }
 
@@ -663,8 +972,7 @@ export function captureDroppedEntry(items) {
   if (typeof first.webkitGetAsEntry !== 'function') return null;
   try {
     return first.webkitGetAsEntry();
-  }
-  catch (_a) {
+  } catch (_a) {
     return null;
   }
 }
@@ -693,8 +1001,9 @@ export async function isDroppedFolder(items) {
       const handle = await first.getAsFileSystemHandle();
       if (handle && handle.kind === 'directory') return true;
       if (handle && handle.kind === 'file') return false;
+    } catch (_a) {
+      /* ignore */
     }
-    catch (_a) { /* ignore */ }
   }
   return false;
 }
@@ -714,8 +1023,9 @@ export async function captureDroppedDirectoryHandle(items) {
   try {
     const handle = await first.getAsFileSystemHandle();
     if (handle && handle.kind === 'directory') return handle;
+  } catch (_a) {
+    /* ignore */
   }
-  catch (_a) { /* ignore */ }
   return null;
 }
 
@@ -735,18 +1045,15 @@ export async function runSandboxedDirectoryScan(options = {}) {
   if (isSupported()) {
     try {
       picked = await pickFileSystemAccessDirectory({ maxFiles, onLog });
-    }
-    catch (err) {
+    } catch (err) {
       if (isFilePickerBlockedError(err)) {
         logLine(onLog, 'Native folder picker blocked in embed — using legacy folder dialog.', 'warning');
         picked = await pickLegacyDirectory({ maxFiles, onLog });
-      }
-      else {
+      } else {
         throw err;
       }
     }
-  }
-  else {
+  } else {
     picked = await pickLegacyDirectory({ maxFiles, onLog });
   }
 
@@ -767,7 +1074,7 @@ export async function scanDroppedItems(items, options = {}) {
     maxFiles = DEFAULT_MAX_FILES,
     onLog,
     onProgress,
-    webkitEntry: capturedEntry = null
+    webkitEntry: capturedEntry = null,
   } = options;
 
   if (!items || items.length === 0) {
@@ -778,8 +1085,9 @@ export async function scanDroppedItems(items, options = {}) {
   let firstFile = null;
   try {
     firstFile = first && typeof first.getAsFile === 'function' ? first.getAsFile() : null;
+  } catch (_a) {
+    firstFile = null;
   }
-  catch (_a) { firstFile = null; }
   const name = (firstFile && firstFile.name) || 'dropped-folder';
 
   // Use a synchronously captured webkit entry first — async hops invalidate DataTransfer items.
@@ -802,7 +1110,12 @@ export async function scanDroppedItems(items, options = {}) {
       const handle = await first.getAsFileSystemHandle();
       if (handle && handle.kind === 'directory') {
         const ignoreLoad = await loadIgnorePatternsFromDirHandle(handle);
-        const ignoreCtx = createIgnoreContext(ignoreLoad.patterns, handle.name, ignoreLoad.source, ignoreLoad.isSimplebeaconMonorepo);
+        const ignoreCtx = createIgnoreContext(
+          ignoreLoad.patterns,
+          handle.name,
+          ignoreLoad.source,
+          ignoreLoad.isSimplebeaconMonorepo
+        );
         const fileQueue = [];
         await crawlSandboxedTree(handle, handle.name, fileQueue, { maxFiles, onLog, ignoreCtx });
         if (fileQueue.length === 0) {
@@ -811,8 +1124,9 @@ export async function scanDroppedItems(items, options = {}) {
         logLine(onLog, `Dropped directory "${handle.name}" — ${fileQueue.length} targets queued.`, 'info');
         return analyzeDirectory({ rootName: handle.name, fileQueue, ignoreCtx }, { maxFileSize, onLog, onProgress });
       }
+    } catch (_a) {
+      /* fall through to stale webkit entry / file fallback */
     }
-    catch (_a) { /* fall through to stale webkit entry / file fallback */ }
   }
 
   // Fallback: webkitGetAsEntry traversal (may already be stale if not captured synchronously).
@@ -883,7 +1197,12 @@ async function crawlWebkitEntryTree(entry, currentPath, queue, options) {
   const reader = entry.createReader();
   let batch;
   do {
-    batch = await new Promise((resolve, reject) => reader.readEntries(resolve, (err) => { logLine(onLog, `readEntries error at ${currentPath}: ${err}`, 'warning'); resolve([]); }));
+    batch = await new Promise((resolve, reject) =>
+      reader.readEntries(resolve, (err) => {
+        logLine(onLog, `readEntries error at ${currentPath}: ${err}`, 'warning');
+        resolve([]);
+      })
+    );
     for (const child of batch) {
       if (queue.length >= maxFiles) {
         logLine(onLog, `Reached max file limit (${maxFiles}); stopping traversal.`, 'warning');

@@ -3,7 +3,14 @@
 
 const path = require('path');
 
-const EMAIL_TEMPLATE_PATH = path.join(__dirname, '..', '..', '..', 'coming-soon', 'email-template-universal.html');
+const EMAIL_TEMPLATE_PATH = path.join(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  'coming-soon',
+  'email-template-universal.html'
+);
 let emailTemplateHtml = null;
 try {
   emailTemplateHtml = require('fs').readFileSync(EMAIL_TEMPLATE_PATH, 'utf8');
@@ -19,7 +26,7 @@ const TIER_EMAIL_CONFIG = {
     paymentMethod: 'Paid via Stripe',
     receiptClass: '',
     primaryCta: 'Download Report →',
-    stepsTitle: "What you get",
+    stepsTitle: 'What you get',
     stepsList: `<li>SEO, SSL, mobile, speed, accessibility, headers audit</li>
       <li>PDF report delivered instantly — download now</li>
       <li>No account, no subscription, no recurring fees</li>`,
@@ -27,12 +34,13 @@ const TIER_EMAIL_CONFIG = {
       <li>Executive PDF report</li>
       <li>Remediation checklist</li>
       <li>Zero-retention guarantee</li>`,
-    privacyText: 'Your domain and report only exist in server RAM during processing. After download, data is explicitly deleted. We do not store or log it.',
+    privacyText:
+      'Your domain and report only exist in server RAM during processing. After download, data is explicitly deleted. We do not store or log it.',
     supportText: 'Questions about your report? Email',
     tokenVisible: false,
     featuresVisible: true,
     deliveryVisible: false,
-    secondaryVisible: false
+    secondaryVisible: false,
   },
   executive_clearance: {
     headline: 'Payment Confirmed',
@@ -46,14 +54,16 @@ const TIER_EMAIL_CONFIG = {
       <li>Upload the generated <code>.simplebeacon/report.json</code></li>
       <li>Our analyst reviews and generates your signed certificate</li>
       <li>Receive your Executive Risk Certificate within 48 hours</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Lost your token? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: true,
     deliveryHeadline: '48-Hour Delivery',
-    deliveryDetail: 'A compliance analyst will review your scan and generate your signed certificate within 2 business days.',
-    secondaryVisible: false
+    deliveryDetail:
+      'A compliance analyst will review your scan and generate your signed certificate within 2 business days.',
+    secondaryVisible: false,
   },
   eu_ai_act_sprint: {
     headline: 'Payment Confirmed',
@@ -68,12 +78,13 @@ const TIER_EMAIL_CONFIG = {
       <li>Upload source code zip or select a local directory</li>
       <li>The scan runs locally — no code leaves your machine</li>
       <li>Download your EU AI Act Readiness PDF instantly</li>`,
-    privacyText: 'Your source code never leaves your machine. The scan runs entirely locally in your browser and Node.js process. Only anonymized findings are uploaded for PDF generation.',
+    privacyText:
+      'Your source code never leaves your machine. The scan runs entirely locally in your browser and Node.js process. Only anonymized findings are uploaded for PDF generation.',
     supportText: 'EU AI Act questions? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: false,
-    secondaryVisible: false
+    secondaryVisible: false,
   },
   pro_monthly: {
     headline: 'Subscription Active',
@@ -87,12 +98,13 @@ const TIER_EMAIL_CONFIG = {
       <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
       <li>Unlock all 38 analyzer engines and exportable reports</li>
       <li>Install the GitHub Action for automatic PR gating</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: false,
-    secondaryVisible: false
+    secondaryVisible: false,
   },
   pro_annual: {
     headline: 'Subscription Active',
@@ -106,12 +118,13 @@ const TIER_EMAIL_CONFIG = {
       <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
       <li>Unlock all 38 analyzer engines and exportable reports</li>
       <li>Install the GitHub Action for automatic PR gating</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: false,
-    secondaryVisible: false
+    secondaryVisible: false,
   },
   team_monthly: {
     headline: 'Subscription Active',
@@ -125,12 +138,13 @@ const TIER_EMAIL_CONFIG = {
       <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
       <li>Share team configs and manage seats from your dashboard</li>
       <li>Install the GitHub Action for automatic PR gating</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: false,
-    secondaryVisible: false
+    secondaryVisible: false,
   },
   team_annual: {
     headline: 'Subscription Active',
@@ -144,12 +158,13 @@ const TIER_EMAIL_CONFIG = {
       <li>Run <code>npx simplebeacon scan --gate --offline</code> locally</li>
       <li>Share team configs and manage seats from your dashboard</li>
       <li>Install the GitHub Action for automatic PR gating</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: false,
-    secondaryVisible: false
+    secondaryVisible: false,
   },
   startup_shield: {
     headline: 'Your Team License is Active',
@@ -163,12 +178,13 @@ const TIER_EMAIL_CONFIG = {
       <li>Add <code>simplebeacon/guardrails@v1</code> to your workflow with <code>fetch-depth: 0</code></li>
       <li>Open a PR — SimpleBeacon posts an AI Circuit Breaker comment and blocks merge on gate failure</li>
       <li>View <strong>Merges Blocked This Week</strong> on your team dashboard</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: false,
-    secondaryVisible: false
+    secondaryVisible: false,
   },
   growth_shield: {
     headline: 'Your Team License is Active',
@@ -182,12 +198,13 @@ const TIER_EMAIL_CONFIG = {
       <li>Install <code>simplebeacon/guardrails@v1</code> on every repo that merges to main</li>
       <li>Consolidated telemetry: scans, gates tripped, and criticals blocked across all repos</li>
       <li>Share dashboard link with your engineering manager for ROI reporting</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: false,
-    secondaryVisible: false
+    secondaryVisible: false,
   },
   continuous_shield: {
     headline: 'Subscription Active',
@@ -201,12 +218,13 @@ const TIER_EMAIL_CONFIG = {
       <li>Upload the generated <code>.simplebeacon/report.json</code></li>
       <li>Generate certificates up to 3 times per month</li>
       <li>Install the GitHub Action for automatic PR gating</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: false,
-    secondaryVisible: false
+    secondaryVisible: false,
   },
   runtime_shield: {
     headline: 'Subscription Active',
@@ -220,13 +238,14 @@ const TIER_EMAIL_CONFIG = {
       <li>Upload the generated <code>.simplebeacon/report.json</code></li>
       <li>Generate certificates up to 5 times per month</li>
       <li>Install the Runtime Sentinel for live monitoring</li>`,
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Questions about your subscription? Email',
     tokenVisible: true,
     featuresVisible: false,
     deliveryVisible: false,
-    secondaryVisible: false
-  }
+    secondaryVisible: false,
+  },
 };
 
 function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
@@ -239,11 +258,15 @@ function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
     growth_monthly: 'growth_shield',
     growth_annual: 'growth_shield',
     teams_monthly: 'team_monthly',
-    teams_annual: 'team_monthly'
+    teams_annual: 'team_monthly',
   };
   const cfgKey = PRODUCT_EMAIL_ALIAS[product] || product;
   const cfg = TIER_EMAIL_CONFIG[cfgKey] || TIER_EMAIL_CONFIG.executive_clearance;
-  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
   const invoiceId = 'INV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
 
   const { getAppBaseUrl } = require('./license-utils.cjs');
@@ -262,13 +285,28 @@ function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
   r('{{INVOICE_LINE}}', cfg.price === 'Free' ? 'Community Access' : `Invoice #${invoiceId}`);
   r('{{RECEIPT_CLASS}}', cfg.receiptClass);
   r('{{LICENSE_TOKEN}}', licenseToken || '');
-  const teamProducts = new Set(['startup', 'startup_monthly', 'startup_annual', 'growth', 'growth_monthly', 'growth_annual', 'teams_monthly', 'teams_annual', 'team_monthly', 'team_annual']);
-  const dashboardUrl = teamProducts.has(product) || teamProducts.has(cfgKey)
-    ? `${baseUrl}/dashboard/settings?checkout=success&session_id=${sessionId}`
-    : `${certUploadUrl}?session_id=${sessionId}`;
+  const teamProducts = new Set([
+    'startup',
+    'startup_monthly',
+    'startup_annual',
+    'growth',
+    'growth_monthly',
+    'growth_annual',
+    'teams_monthly',
+    'teams_annual',
+    'team_monthly',
+    'team_annual',
+  ]);
+  const dashboardUrl =
+    teamProducts.has(product) || teamProducts.has(cfgKey)
+      ? `${baseUrl}/dashboard/settings?checkout=success&session_id=${sessionId}`
+      : `${certUploadUrl}?session_id=${sessionId}`;
   r('{{PRIMARY_URL}}', dashboardUrl);
   r('{{PRIMARY_CTA}}', cfg.primaryCta);
-  r('{{SECONDARY_URL}}', 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md');
+  r(
+    '{{SECONDARY_URL}}',
+    'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md'
+  );
   r('{{SECONDARY_CTA}}', cfg.secondaryCta || '');
   r('{{STEPS_TITLE}}', cfg.stepsTitle);
   r('{{STEPS_LIST}}', cfg.stepsList);
@@ -294,8 +332,10 @@ function buildTierEmail(product, licenseToken, certUploadUrl, sessionId) {
     '',
     `Dashboard: ${certUploadUrl}?session_id=${sessionId}`,
     '',
-    cfg.privacyText
-  ].filter(Boolean).join('\n');
+    cfg.privacyText,
+  ]
+    .filter(Boolean)
+    .join('\n');
 
   return { html, text: textLines };
 }
@@ -312,16 +352,16 @@ function buildResendEmail(product, record, certUploadUrl) {
   const map = {
     instant_report: {
       subject: 'Your SimpleBeacon Instant Report — Token Resent',
-      body: `Here is your license token again:\n\n${token}\n\nYour instant report was sent to this email. If you did not receive it, check your spam folder or contact support.`
+      body: `Here is your license token again:\n\n${token}\n\nYour instant report was sent to this email. If you did not receive it, check your spam folder or contact support.`,
     },
     executive_clearance: {
       subject: 'Your SimpleBeacon Executive Risk Certificate — Token Resent',
-      body: `Here is your license token again:\n\n${token}\n\nUpload your scan report at: ${certUploadUrl}\n\n1. Run the scan locally: npx simplebeacon scan --gate --offline\n2. Upload your report JSON and paste the token above.\n3. We will generate your certificate within 48 hours.`
+      body: `Here is your license token again:\n\n${token}\n\nUpload your scan report at: ${certUploadUrl}\n\n1. Run the scan locally: npx simplebeacon scan --gate --offline\n2. Upload your report JSON and paste the token above.\n3. We will generate your certificate within 48 hours.`,
     },
     eu_ai_act_sprint: {
       subject: 'Your SimpleBeacon EU AI Act Sprint — Token Resent',
-      body: `Here is your license token again:\n\n${token}\n\nUpload your scan at: ${certUploadUrl}\n\n1. Run the EU AI Act scan: npx simplebeacon scan --gate --offline --config .simplebeacon/config-full-coverage.json\n2. Upload your report JSON and paste the token above.\n3. We will generate your EU AI Act Readiness Report within 48 hours.`
-    }
+      body: `Here is your license token again:\n\n${token}\n\nUpload your scan at: ${certUploadUrl}\n\n1. Run the EU AI Act scan: npx simplebeacon scan --gate --offline --config .simplebeacon/config-full-coverage.json\n2. Upload your report JSON and paste the token above.\n3. We will generate your EU AI Act Readiness Report within 48 hours.`,
+    },
   };
   const fallback = map.executive_clearance;
   return map[product] || fallback;
@@ -331,5 +371,5 @@ module.exports = {
   TIER_EMAIL_CONFIG,
   buildTierEmail,
   buildResendEmail,
-  emailTemplateHtml
+  emailTemplateHtml,
 };

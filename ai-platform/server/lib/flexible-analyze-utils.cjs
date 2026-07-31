@@ -12,10 +12,10 @@ const fs = require('fs');
  * @returns {string}
  */
 function sanitizeHttpHeaderValue(value) {
-    return String(value ?? '')
-        .replace(/[\r\n]+/g, ' ')
-        .replace(/[^\t\x20-\x7e]/g, '')
-        .slice(0, 4096);
+  return String(value ?? '')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[^\t\x20-\x7e]/g, '')
+    .slice(0, 4096);
 }
 
 /**
@@ -23,7 +23,7 @@ function sanitizeHttpHeaderValue(value) {
  * @returns {boolean}
  */
 function shouldLogRuntimeInfo() {
-    return process.env.LOG_RUNTIME_INFO === 'true' || process.env.RUNTIME_DEBUG === 'true';
+  return process.env.LOG_RUNTIME_INFO === 'true' || process.env.RUNTIME_DEBUG === 'true';
 }
 
 /**
@@ -35,14 +35,23 @@ function shouldLogRuntimeInfo() {
  * @template T
  */
 function withTimeout(promise, ms, label) {
-    const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 30000;
-    return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
-        Promise.resolve(promise).then(
-            (val) => { clearTimeout(timer); resolve(val); },
-            (err) => { clearTimeout(timer); reject(err); }
-        );
-    });
+  const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 30000;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    );
+    Promise.resolve(promise).then(
+      (val) => {
+        clearTimeout(timer);
+        resolve(val);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
 }
 
 /**
@@ -52,12 +61,12 @@ function withTimeout(promise, ms, label) {
  * @returns {string}
  */
 function safeBasename(p, fallback = '') {
-    if (typeof p !== 'string') return fallback;
-    try {
-        return path.basename(p) || fallback;
-    } catch {
-        return fallback;
-    }
+  if (typeof p !== 'string') return fallback;
+  try {
+    return path.basename(p) || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 /**
@@ -66,8 +75,8 @@ function safeBasename(p, fallback = '') {
  * @returns {string[]}
  */
 function normalizeStringList(value) {
-    if (!Array.isArray(value)) return [];
-    return value.map((item) => String(item || '').trim()).filter(Boolean);
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item || '').trim()).filter(Boolean);
 }
 
 /**
@@ -78,12 +87,12 @@ function normalizeStringList(value) {
  * @returns {string|null}
  */
 function findExistingPlatformDir(baseDir, monorepoRoot) {
-    if (baseDir && fs.existsSync(baseDir)) return baseDir;
-    if (monorepoRoot) {
-        const candidate = path.join(monorepoRoot, 'ai-platform');
-        if (fs.existsSync(candidate)) return candidate;
-    }
-    return null;
+  if (baseDir && fs.existsSync(baseDir)) return baseDir;
+  if (monorepoRoot) {
+    const candidate = path.join(monorepoRoot, 'ai-platform');
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return null;
 }
 
 /**
@@ -95,116 +104,118 @@ function findExistingPlatformDir(baseDir, monorepoRoot) {
  * @returns {string|null} Resolved absolute path, or null if input is empty.
  */
 function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
-    if (baseDir == null || typeof baseDir !== 'string') {
-        throw new TypeError('baseDir must be a non-empty string');
-    }
-    const trimmedPath = String(rawPath || '').trim();
-    if (!trimmedPath) return null;
-    // Dashboard default sentinel: a bare "/" means "use the default platform root".
-    if (trimmedPath === '/' || trimmedPath === path.sep) {
-        return path.resolve(baseDir);
-    }
-    if (/^https?:\/\//i.test(trimmedPath) || /^file:\/\//i.test(trimmedPath)) {
-        throw new Error(
-            'projectPath must be a local folder path, not a URL. '
-            + 'If you want to analyze a remote repository, use a git clone URL from GitHub, GitLab, Bitbucket, or Codeberg. '
-            + `Received: ${trimmedPath.slice(0, 120)}`
-        );
-    }
-    if (path.isAbsolute(trimmedPath)) {
-        const normalized = path.normalize(trimmedPath);
-        // Render deployment fallback: the dashboard may cache a stale path like
-        // /opt/render/project/src/ai-platform/CascadeProjects. If the absolute path
-        // does not exist and contains ai-platform, fall back to the server's actual
-        // platform directory or monorepo root.
-        if (!fs.existsSync(normalized)) {
-            const normalizedKey = normalized.replace(/\\/g, '/').toLowerCase();
-            if (normalizedKey.includes('/ai-platform')) {
-                const serverPlatformKey = baseDir.replace(/\\/g, '/').toLowerCase();
-                if (serverPlatformKey.includes('/ai-platform')) {
-                    const effectiveMonoRoot = monorepoRoot || path.join(baseDir, '..');
-                    const existingPlatform = findExistingPlatformDir(baseDir, effectiveMonoRoot);
-                    if (normalizedKey.endsWith('/ai-platform')) {
-                        // The platform directory itself was requested; use the server's actual platform dir.
-                        return existingPlatform || baseDir;
-                    }
-                    const repoName = path.basename(effectiveMonoRoot).toLowerCase();
-                    if (repoName && normalizedKey.endsWith('/ai-platform/' + repoName)) {
-                        // The monorepo root was requested via the stale path; use the server's actual monorepo root.
-                        return existingPlatform ? path.resolve(path.dirname(existingPlatform)) : effectiveMonoRoot;
-                    }
-                    // Fallback: any stale subpath under /ai-platform/ (e.g., /ai-platform/CascadeProjects)
-                    // resolves to the server's actual platform directory.
-                    if (existingPlatform) {
-                        const existingPlatformKey = existingPlatform.replace(/\\/g, '/').toLowerCase();
-                        if (normalizedKey.startsWith(existingPlatformKey + '/')) {
-                            return existingPlatform;
-                        }
-                    }
-                }
-            }
-            // Third fallback: the path may be a stale ai-platform prefix concatenated
-            // with an absolute target path (e.g. /opt/render/project/src/ai-platform/opt/render/Foo).
-            // When the suffix after /ai-platform/ is an absolute path that exists, use it.
-            const platformIdx = normalizedKey.indexOf('/ai-platform/');
-            if (platformIdx !== -1) {
-                const afterPlatform = normalized.slice(platformIdx + '/ai-platform/'.length);
-                if (afterPlatform && path.isAbsolute(afterPlatform)) {
-                    const afterNormalized = path.normalize(afterPlatform);
-                    if (fs.existsSync(afterNormalized)) {
-                        return afterNormalized;
-                    }
-                }
-            }
-        }
-        return normalized;
-    }
-    // If the relative path matches the basename of the monorepo root or base dir,
-    // return that root directly instead of creating a nested self-referential path.
-    const monoBasename = monorepoRoot ? path.basename(monorepoRoot).toLowerCase() : '';
-    const baseBasename = path.basename(baseDir).toLowerCase();
-    const trimmedLower = trimmedPath.toLowerCase();
-    if (monoBasename && trimmedLower === monoBasename && fs.existsSync(monorepoRoot)) {
-        return monorepoRoot;
-    }
-    if (trimmedLower === baseBasename && fs.existsSync(baseDir)) {
-        return baseDir;
-    }
-
-    const fromBase = path.normalize(path.join(baseDir, trimmedPath));
-    if (fs.existsSync(fromBase)) return fromBase;
-    if (monorepoRoot) {
-        const fromMono = path.normalize(path.join(monorepoRoot, trimmedPath));
-        if (fs.existsSync(fromMono)) return fromMono;
-    }
-
+  if (baseDir == null || typeof baseDir !== 'string') {
+    throw new TypeError('baseDir must be a non-empty string');
+  }
+  const trimmedPath = String(rawPath || '').trim();
+  if (!trimmedPath) return null;
+  // Dashboard default sentinel: a bare "/" means "use the default platform root".
+  if (trimmedPath === '/' || trimmedPath === path.sep) {
+    return path.resolve(baseDir);
+  }
+  if (/^https?:\/\//i.test(trimmedPath) || /^file:\/\//i.test(trimmedPath)) {
+    throw new Error(
+      'projectPath must be a local folder path, not a URL. ' +
+        'If you want to analyze a remote repository, use a git clone URL from GitHub, GitLab, Bitbucket, or Codeberg. ' +
+        `Received: ${trimmedPath.slice(0, 120)}`
+    );
+  }
+  if (path.isAbsolute(trimmedPath)) {
+    const normalized = path.normalize(trimmedPath);
     // Render deployment fallback: the dashboard may cache a stale path like
-    // /opt/render/project/src/ai-platform/CascadeProjects. If the resolved path
-    // does not exist and we are inside a Render-style monorepo checkout, fall back
-    // to the monorepo root so the scan can still run against the actual project.
-    if (!fs.existsSync(fromBase) && monorepoRoot && fromBase.startsWith(monorepoRoot)) {
-        const platformDir = path.join(monorepoRoot, 'ai-platform');
-        if (fs.existsSync(platformDir)) {
-            return monorepoRoot;
+    // /opt/render/project/src/ai-platform/CascadeProjects. If the absolute path
+    // does not exist and contains ai-platform, fall back to the server's actual
+    // platform directory or monorepo root.
+    if (!fs.existsSync(normalized)) {
+      const normalizedKey = normalized.replace(/\\/g, '/').toLowerCase();
+      if (normalizedKey.includes('/ai-platform')) {
+        const serverPlatformKey = baseDir.replace(/\\/g, '/').toLowerCase();
+        if (serverPlatformKey.includes('/ai-platform')) {
+          const effectiveMonoRoot = monorepoRoot || path.join(baseDir, '..');
+          const existingPlatform = findExistingPlatformDir(baseDir, effectiveMonoRoot);
+          if (normalizedKey.endsWith('/ai-platform')) {
+            // The platform directory itself was requested; use the server's actual platform dir.
+            return existingPlatform || baseDir;
+          }
+          const repoName = path.basename(effectiveMonoRoot).toLowerCase();
+          if (repoName && normalizedKey.endsWith('/ai-platform/' + repoName)) {
+            // The monorepo root was requested via the stale path; use the server's actual monorepo root.
+            return existingPlatform
+              ? path.resolve(path.dirname(existingPlatform))
+              : effectiveMonoRoot;
+          }
+          // Fallback: any stale subpath under /ai-platform/ (e.g., /ai-platform/CascadeProjects)
+          // resolves to the server's actual platform directory.
+          if (existingPlatform) {
+            const existingPlatformKey = existingPlatform.replace(/\\/g, '/').toLowerCase();
+            if (normalizedKey.startsWith(existingPlatformKey + '/')) {
+              return existingPlatform;
+            }
+          }
         }
-    }
-
-    // Final fallback for stale ai-platform concatenations in the relative case.
-    // The client may have sent a path that was intended as absolute Unix (e.g.
-    // /opt/render/Foo) but lost its leading slash, so the server joined it with
-    // baseDir. If the joined path ends with the exact relative input and
-    // prepending '/' produces an existing absolute path, use that path.
-    const baseKey = fromBase.replace(/\\/g, '/');
-    const trimmedKey = trimmedPath.replace(/\\/g, '/');
-    const platformIdx = baseKey.toLowerCase().indexOf('/ai-platform/');
-    if (platformIdx !== -1 && baseKey.endsWith('/' + trimmedKey)) {
-        const absoluteGuess = path.normalize('/' + trimmedKey);
-        if (fs.existsSync(absoluteGuess)) {
-            return absoluteGuess;
+      }
+      // Third fallback: the path may be a stale ai-platform prefix concatenated
+      // with an absolute target path (e.g. /opt/render/project/src/ai-platform/opt/render/Foo).
+      // When the suffix after /ai-platform/ is an absolute path that exists, use it.
+      const platformIdx = normalizedKey.indexOf('/ai-platform/');
+      if (platformIdx !== -1) {
+        const afterPlatform = normalized.slice(platformIdx + '/ai-platform/'.length);
+        if (afterPlatform && path.isAbsolute(afterPlatform)) {
+          const afterNormalized = path.normalize(afterPlatform);
+          if (fs.existsSync(afterNormalized)) {
+            return afterNormalized;
+          }
         }
+      }
     }
+    return normalized;
+  }
+  // If the relative path matches the basename of the monorepo root or base dir,
+  // return that root directly instead of creating a nested self-referential path.
+  const monoBasename = monorepoRoot ? path.basename(monorepoRoot).toLowerCase() : '';
+  const baseBasename = path.basename(baseDir).toLowerCase();
+  const trimmedLower = trimmedPath.toLowerCase();
+  if (monoBasename && trimmedLower === monoBasename && fs.existsSync(monorepoRoot)) {
+    return monorepoRoot;
+  }
+  if (trimmedLower === baseBasename && fs.existsSync(baseDir)) {
+    return baseDir;
+  }
 
-    return fromBase;
+  const fromBase = path.normalize(path.join(baseDir, trimmedPath));
+  if (fs.existsSync(fromBase)) return fromBase;
+  if (monorepoRoot) {
+    const fromMono = path.normalize(path.join(monorepoRoot, trimmedPath));
+    if (fs.existsSync(fromMono)) return fromMono;
+  }
+
+  // Render deployment fallback: the dashboard may cache a stale path like
+  // /opt/render/project/src/ai-platform/CascadeProjects. If the resolved path
+  // does not exist and we are inside a Render-style monorepo checkout, fall back
+  // to the monorepo root so the scan can still run against the actual project.
+  if (!fs.existsSync(fromBase) && monorepoRoot && fromBase.startsWith(monorepoRoot)) {
+    const platformDir = path.join(monorepoRoot, 'ai-platform');
+    if (fs.existsSync(platformDir)) {
+      return monorepoRoot;
+    }
+  }
+
+  // Final fallback for stale ai-platform concatenations in the relative case.
+  // The client may have sent a path that was intended as absolute Unix (e.g.
+  // /opt/render/Foo) but lost its leading slash, so the server joined it with
+  // baseDir. If the joined path ends with the exact relative input and
+  // prepending '/' produces an existing absolute path, use that path.
+  const baseKey = fromBase.replace(/\\/g, '/');
+  const trimmedKey = trimmedPath.replace(/\\/g, '/');
+  const platformIdx = baseKey.toLowerCase().indexOf('/ai-platform/');
+  if (platformIdx !== -1 && baseKey.endsWith('/' + trimmedKey)) {
+    const absoluteGuess = path.normalize('/' + trimmedKey);
+    if (fs.existsSync(absoluteGuess)) {
+      return absoluteGuess;
+    }
+  }
+
+  return fromBase;
 }
 
 /**
@@ -214,8 +225,10 @@ function resolveProjectPath(baseDir, rawPath, monorepoRoot) {
  * @returns {boolean}
  */
 function isSameResolvedPath(a, b) {
-    return path.resolve(a).replace(/\\/g, '/').toLowerCase()
-        === path.resolve(b).replace(/\\/g, '/').toLowerCase();
+  return (
+    path.resolve(a).replace(/\\/g, '/').toLowerCase() ===
+    path.resolve(b).replace(/\\/g, '/').toLowerCase()
+  );
 }
 
 /**
@@ -224,14 +237,14 @@ function isSameResolvedPath(a, b) {
  * @returns {{critical:number, high:number, medium:number, low:number, info:number}}
  */
 function deriveSeverityCounts(findings) {
-    const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
-    if (!Array.isArray(findings)) return counts;
-    for (const issue of findings) {
-        const band = String(issue.severity || issue.severityBand || 'low').toLowerCase();
-        const increment = typeof issue.count === 'number' && issue.count > 0 ? issue.count : 1;
-        if (counts[band] !== undefined) counts[band] += increment;
-    }
-    return counts;
+  const counts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  if (!Array.isArray(findings)) return counts;
+  for (const issue of findings) {
+    const band = String(issue.severity || issue.severityBand || 'low').toLowerCase();
+    const increment = typeof issue.count === 'number' && issue.count > 0 ? issue.count : 1;
+    if (counts[band] !== undefined) counts[band] += increment;
+  }
+  return counts;
 }
 
 /**
@@ -241,20 +254,20 @@ function deriveSeverityCounts(findings) {
  * @returns {string}
  */
 function resolveModelId(registry, aiProvider) {
-    if (!registry || typeof registry !== 'object') {
-        throw new TypeError('registry must be a valid object');
-    }
-    const provider = String(aiProvider || 'active').toLowerCase();
-    if (provider === 'demo') {
-        return registry.models?.find((m) => m.provider === 'demo')?.id || registry.activeModelId;
-    }
-    if (provider === 'active') {
-        return registry.activeModelId;
-    }
-    if (provider === 'ollama') {
-        return registry.models?.find((m) => m.provider === 'ollama')?.id || registry.activeModelId;
-    }
+  if (!registry || typeof registry !== 'object') {
+    throw new TypeError('registry must be a valid object');
+  }
+  const provider = String(aiProvider || 'active').toLowerCase();
+  if (provider === 'demo') {
+    return registry.models?.find((m) => m.provider === 'demo')?.id || registry.activeModelId;
+  }
+  if (provider === 'active') {
     return registry.activeModelId;
+  }
+  if (provider === 'ollama') {
+    return registry.models?.find((m) => m.provider === 'ollama')?.id || registry.activeModelId;
+  }
+  return registry.activeModelId;
 }
 
 /**
@@ -264,11 +277,11 @@ function resolveModelId(registry, aiProvider) {
  * @returns {number}
  */
 function countIssuesByKind(issues, pattern) {
-    if (!Array.isArray(issues)) return 0;
-    if (!(pattern instanceof RegExp)) return 0;
-    return issues
-        .filter((item) => pattern.test(String(item.type || '')))
-        .reduce((sum, item) => sum + (item.count || 1), 0);
+  if (!Array.isArray(issues)) return 0;
+  if (!(pattern instanceof RegExp)) return 0;
+  return issues
+    .filter((item) => pattern.test(String(item.type || '')))
+    .reduce((sum, item) => sum + (item.count || 1), 0);
 }
 
 /**
@@ -277,12 +290,12 @@ function countIssuesByKind(issues, pattern) {
  * @returns {{productionLeaks:number, credentials:number, schema:number, fiction:number}}
  */
 function issueBreakdownFromList(issues) {
-    return {
-        productionLeaks: countIssuesByKind(issues, /production leak/i),
-        credentials: countIssuesByKind(issues, /credential/i),
-        schema: countIssuesByKind(issues, /schema/i),
-        fiction: countIssuesByKind(issues, /fiction|fictional|consistency|kpi/i)
-    };
+  return {
+    productionLeaks: countIssuesByKind(issues, /production leak/i),
+    credentials: countIssuesByKind(issues, /credential/i),
+    schema: countIssuesByKind(issues, /schema/i),
+    fiction: countIssuesByKind(issues, /fiction|fictional|consistency|kpi/i),
+  };
 }
 
 /**
@@ -292,128 +305,137 @@ function issueBreakdownFromList(issues) {
  * @returns {Object}
  */
 function normalizeReportForSummary(report, reportType = '') {
-    if (!report || typeof report !== 'object') return { reportKind: reportType || 'simplebeacon-report', detectedIssues: [] };
-    const type = reportType || report.type || '';
+  if (!report || typeof report !== 'object')
+    return { reportKind: reportType || 'simplebeacon-report', detectedIssues: [] };
+  const type = reportType || report.type || '';
 
-    if (type === 'codebase-analyzer-report') {
-        const summary = report.summary || {};
-        return {
-            reportKind: type,
-            repositoryInventory: report.repositoryInventory || null,
-            scanScope: report.scanScope || null,
-            codebaseSummary: summary,
-            analysisOverview: {
-                repositoryFilesTotal: summary.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles,
-                codeFilesAnalyzed: summary.codeFilesAnalyzed,
-                dataQualityScore: summary.healthScore,
-                issuesDetected: summary.findingsTotal,
-                eslintErrors: summary.eslintErrors,
-                eslintWarnings: summary.eslintWarnings
-            },
-            detectedIssues: (report.findings || []).slice(0, 12).map((item) => ({
-                type: item.category || item.type,
-                severity: item.severity,
-                description: item.description
-            }))
-        };
-    }
-
-    if (type === 'file-merger-reduction-report') {
-        return {
-            reportKind: type,
-            scanPaths: report.scanPaths || [],
-            repositoryInventory: report.repositoryInventory || null,
-            scanScope: report.scanScope || null,
-            mergerSummary: {
-                filesAnalyzed: report.summary?.filesAnalyzed,
-                sampleDataFilesAnalyzed: report.summary?.sampleDataFilesAnalyzed ?? report.summary?.filesAnalyzed,
-                jsonFilesAnalyzed: report.summary?.jsonFilesAnalyzed,
-                repositoryFilesTotal: report.summary?.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles,
-                repositoryFoldersTotal: report.summary?.repositoryFoldersTotal ?? report.repositoryInventory?.totalFolders,
-                totalSizeLabel: report.summary?.totalSizeLabel,
-                mergeCandidates: report.summary?.mergeCandidates,
-                exactDuplicateGroups: report.summary?.exactDuplicateGroups,
-                potentialSavingsLabel: report.summary?.potentialSavingsLabel,
-                oversizedFiles: report.summary?.oversizedFiles
-            },
-            analysisOverview: {
-                totalMockFiles: report.summary?.filesAnalyzed,
-                dataQualityScore: null,
-                issuesDetected: (report.summary?.mergeCandidates || 0)
-                    + (report.summary?.reductionOpportunities || 0)
-            },
-            detectedIssues: [
-                ...(report.mergeCandidates || []),
-                ...(report.reductionOpportunities || [])
-            ].slice(0, 8).map((item) => ({
-                type: item.mergeType || item.type || 'consolidation',
-                description: item.description || item.id
-            }))
-        };
-    }
-
-    if (type === 'data-cleanup-report') {
-        const summary = report.summary || {};
-        const inv = report.inventory || {};
-        const exec = report.executiveSummary || {};
-        return {
-            reportKind: type,
-            scanProfile: report.scanProfile || '',
-            repositoryInventory: inv,
-            dataCleanupSummary: {
-                totalFindings: summary.totalFindings,
-                reclaimableBytes: summary.reclaimableBytes,
-                configFindings: summary.configFindings,
-                dependencyFindings: summary.dependencyFindings,
-                environmentFindings: summary.environmentFindings,
-                dataPrivacyFindings: summary.dataPrivacyFindings,
-                dataLineageFindings: summary.dataLineageFindings,
-                dataAccessFindings: summary.dataAccessFindings,
-                buildArtifactFindings: summary.buildArtifactFindings,
-                unusedFileCandidates: summary.unusedFileCandidates
-            },
-            executiveSummary: {
-                priorityActions: exec.priorityActions || [],
-                workspace: exec.workspace || null,
-                security: exec.security || null,
-                data: exec.data || null
-            },
-            aggregation: report.aggregation || null,
-            analysisOverview: {
-                repositoryFilesTotal: inv.totalFiles,
-                repositoryFoldersTotal: inv.totalDirectories,
-                issuesDetected: summary.totalFindings
-            },
-            detectedIssues: (report.allFindings || []).slice(0, 12).map((item) => ({
-                type: item.type,
-                severity: item.severity,
-                description: item.reason || item.path
-            }))
-        };
-    }
-
-    const rawIssues = Array.isArray(report.rawIssues) ? report.rawIssues
-        : Array.isArray(report.detectedIssues) ? report.detectedIssues
-        : [];
+  if (type === 'codebase-analyzer-report') {
+    const summary = report.summary || {};
     return {
-        reportKind: type || report.type || 'simplebeacon-report',
-        gatePass: report.gate?.pass,
-        issueBreakdown: issueBreakdownFromList(rawIssues),
-        analysisOverview: {
-            totalMockFiles: report.mockSampleFiles ?? report.totalFiles ?? report.summary?.filesAnalyzed,
-            repositoryFilesTotal: report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles,
-            ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed
-                ?? (report.filesAnalyzed !== report.repositoryFilesTotal ? report.filesAnalyzed : null)
-                ?? Math.max(report.mockSampleFiles ?? 0, report.credentialScanned ?? 0),
-            fictionJsonFilesScanned: report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned,
-            fictionSampleFilesScanned: report.fictionSampleFilesScanned ?? report.scanScope?.fictionSampleFilesScanned,
-            dataQualityScore: report.qualityScore,
-            issuesDetected: report.issueCount ?? rawIssues.length,
-            schemaFilesPassed: report.schemaPassed,
-            schemaFilesChecked: report.schemaChecked
-        },
-        detectedIssues: rawIssues.slice(0, 12)
+      reportKind: type,
+      repositoryInventory: report.repositoryInventory || null,
+      scanScope: report.scanScope || null,
+      codebaseSummary: summary,
+      analysisOverview: {
+        repositoryFilesTotal:
+          summary.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles,
+        codeFilesAnalyzed: summary.codeFilesAnalyzed,
+        dataQualityScore: summary.healthScore,
+        issuesDetected: summary.findingsTotal,
+        eslintErrors: summary.eslintErrors,
+        eslintWarnings: summary.eslintWarnings,
+      },
+      detectedIssues: (report.findings || []).slice(0, 12).map((item) => ({
+        type: item.category || item.type,
+        severity: item.severity,
+        description: item.description,
+      })),
     };
+  }
+
+  if (type === 'file-merger-reduction-report') {
+    return {
+      reportKind: type,
+      scanPaths: report.scanPaths || [],
+      repositoryInventory: report.repositoryInventory || null,
+      scanScope: report.scanScope || null,
+      mergerSummary: {
+        filesAnalyzed: report.summary?.filesAnalyzed,
+        sampleDataFilesAnalyzed:
+          report.summary?.sampleDataFilesAnalyzed ?? report.summary?.filesAnalyzed,
+        jsonFilesAnalyzed: report.summary?.jsonFilesAnalyzed,
+        repositoryFilesTotal:
+          report.summary?.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles,
+        repositoryFoldersTotal:
+          report.summary?.repositoryFoldersTotal ?? report.repositoryInventory?.totalFolders,
+        totalSizeLabel: report.summary?.totalSizeLabel,
+        mergeCandidates: report.summary?.mergeCandidates,
+        exactDuplicateGroups: report.summary?.exactDuplicateGroups,
+        potentialSavingsLabel: report.summary?.potentialSavingsLabel,
+        oversizedFiles: report.summary?.oversizedFiles,
+      },
+      analysisOverview: {
+        totalMockFiles: report.summary?.filesAnalyzed,
+        dataQualityScore: null,
+        issuesDetected:
+          (report.summary?.mergeCandidates || 0) + (report.summary?.reductionOpportunities || 0),
+      },
+      detectedIssues: [...(report.mergeCandidates || []), ...(report.reductionOpportunities || [])]
+        .slice(0, 8)
+        .map((item) => ({
+          type: item.mergeType || item.type || 'consolidation',
+          description: item.description || item.id,
+        })),
+    };
+  }
+
+  if (type === 'data-cleanup-report') {
+    const summary = report.summary || {};
+    const inv = report.inventory || {};
+    const exec = report.executiveSummary || {};
+    return {
+      reportKind: type,
+      scanProfile: report.scanProfile || '',
+      repositoryInventory: inv,
+      dataCleanupSummary: {
+        totalFindings: summary.totalFindings,
+        reclaimableBytes: summary.reclaimableBytes,
+        configFindings: summary.configFindings,
+        dependencyFindings: summary.dependencyFindings,
+        environmentFindings: summary.environmentFindings,
+        dataPrivacyFindings: summary.dataPrivacyFindings,
+        dataLineageFindings: summary.dataLineageFindings,
+        dataAccessFindings: summary.dataAccessFindings,
+        buildArtifactFindings: summary.buildArtifactFindings,
+        unusedFileCandidates: summary.unusedFileCandidates,
+      },
+      executiveSummary: {
+        priorityActions: exec.priorityActions || [],
+        workspace: exec.workspace || null,
+        security: exec.security || null,
+        data: exec.data || null,
+      },
+      aggregation: report.aggregation || null,
+      analysisOverview: {
+        repositoryFilesTotal: inv.totalFiles,
+        repositoryFoldersTotal: inv.totalDirectories,
+        issuesDetected: summary.totalFindings,
+      },
+      detectedIssues: (report.allFindings || []).slice(0, 12).map((item) => ({
+        type: item.type,
+        severity: item.severity,
+        description: item.reason || item.path,
+      })),
+    };
+  }
+
+  const rawIssues = Array.isArray(report.rawIssues)
+    ? report.rawIssues
+    : Array.isArray(report.detectedIssues)
+      ? report.detectedIssues
+      : [];
+  return {
+    reportKind: type || report.type || 'simplebeacon-report',
+    gatePass: report.gate?.pass,
+    issueBreakdown: issueBreakdownFromList(rawIssues),
+    analysisOverview: {
+      totalMockFiles: report.mockSampleFiles ?? report.totalFiles ?? report.summary?.filesAnalyzed,
+      repositoryFilesTotal: report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles,
+      ruleScopedFilesAnalyzed:
+        report.ruleScopedFilesAnalyzed ??
+        (report.filesAnalyzed !== report.repositoryFilesTotal ? report.filesAnalyzed : null) ??
+        Math.max(report.mockSampleFiles ?? 0, report.credentialScanned ?? 0),
+      fictionJsonFilesScanned:
+        report.fictionJsonFilesScanned ?? report.scanScope?.fictionJsonFilesScanned,
+      fictionSampleFilesScanned:
+        report.fictionSampleFilesScanned ?? report.scanScope?.fictionSampleFilesScanned,
+      dataQualityScore: report.qualityScore,
+      issuesDetected: report.issueCount ?? rawIssues.length,
+      schemaFilesPassed: report.schemaPassed,
+      schemaFilesChecked: report.schemaChecked,
+    },
+    detectedIssues: rawIssues.slice(0, 12),
+  };
 }
 
 /**
@@ -422,7 +444,11 @@ function normalizeReportForSummary(report, reportType = '') {
  * @returns {string}
  */
 function safeString(value) {
-    try { return String(value); } catch { return '[unstringable error]'; }
+  try {
+    return String(value);
+  } catch {
+    return '[unstringable error]';
+  }
 }
 
 /**
@@ -431,8 +457,8 @@ function safeString(value) {
  * @returns {string}
  */
 function safeErrorMessage(err) {
-    if (err && typeof err.message === 'string') return err.message;
-    return safeString(err);
+  if (err && typeof err.message === 'string') return err.message;
+  return safeString(err);
 }
 
 /**
@@ -443,25 +469,27 @@ function safeErrorMessage(err) {
  * @returns {number}
  */
 async function countFiles(dirPath, max = 100_000, maxDepth = 32) {
-    if (typeof dirPath !== 'string') return 0;
-    let count = 0;
-    const queue = [{ dir: dirPath, depth: 0 }];
-    const skip = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.cache']);
-    while (queue.length && count < max) {
-        const { dir: cur, depth } = queue.pop();
-        if (depth >= maxDepth) continue;
-        try {
-            const entries = await fs.promises.readdir(cur, { withFileTypes: true });
-            for (const ent of entries) {
-                if (ent.isDirectory()) {
-                    if (!skip.has(ent.name)) queue.push({ dir: path.join(cur, ent.name), depth: depth + 1 });
-                } else {
-                    count++;
-                }
-            }
-        } catch { /* ignore permission errors */ }
+  if (typeof dirPath !== 'string') return 0;
+  let count = 0;
+  const queue = [{ dir: dirPath, depth: 0 }];
+  const skip = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '.next', '.cache']);
+  while (queue.length && count < max) {
+    const { dir: cur, depth } = queue.pop();
+    if (depth >= maxDepth) continue;
+    try {
+      const entries = await fs.promises.readdir(cur, { withFileTypes: true });
+      for (const ent of entries) {
+        if (ent.isDirectory()) {
+          if (!skip.has(ent.name)) queue.push({ dir: path.join(cur, ent.name), depth: depth + 1 });
+        } else {
+          count++;
+        }
+      }
+    } catch {
+      /* ignore permission errors */
     }
-    return Math.min(count, max);
+  }
+  return Math.min(count, max);
 }
 
 /**
@@ -470,18 +498,18 @@ async function countFiles(dirPath, max = 100_000, maxDepth = 32) {
  * @returns {string}
  */
 function sanitizeUploadPath(rawPath) {
-    let sanitized = String(rawPath || '')
-        .replace(/^[/\\]+/, '')
-        .replace(/\.\.(?:[/\\]|$)/g, '')
-        .replace(/[^a-zA-Z0-9_\-./\\]/g, '_');
-    while (sanitized.includes('..')) {
-        sanitized = sanitized.replace(/\.\./g, '');
-    }
-    const normalized = path.normalize(sanitized);
-    if (normalized.includes('..') || path.isAbsolute(normalized)) {
-        return '_unsafe_path_';
-    }
-    return normalized;
+  let sanitized = String(rawPath || '')
+    .replace(/^[/\\]+/, '')
+    .replace(/\.\.(?:[/\\]|$)/g, '')
+    .replace(/[^a-zA-Z0-9_\-./\\]/g, '_');
+  while (sanitized.includes('..')) {
+    sanitized = sanitized.replace(/\.\./g, '');
+  }
+  const normalized = path.normalize(sanitized);
+  if (normalized.includes('..') || path.isAbsolute(normalized)) {
+    return '_unsafe_path_';
+  }
+  return normalized;
 }
 
 /**
@@ -491,38 +519,38 @@ function sanitizeUploadPath(rawPath) {
  * @returns {any}
  */
 function sanitizeReportForAi(report) {
-    if (!report || typeof report !== 'object') return report;
-    let clone;
-    try {
-        clone = JSON.parse(JSON.stringify(report));
-    } catch {
-        clone = report;
+  if (!report || typeof report !== 'object') return report;
+  let clone;
+  try {
+    clone = JSON.parse(JSON.stringify(report));
+  } catch {
+    clone = report;
+  }
+  const pathRegex = /[A-Z]:\\Users\\[^\\]+|\\home\\[^/]+|C:\\\\Users\\\\[^\\\\]+/gi;
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  function scrub(obj) {
+    if (typeof obj === 'string') {
+      return obj
+        .replace(pathRegex, '<local-path-redacted>')
+        .replace(emailRegex, '<email-redacted>');
     }
-    const pathRegex = /[A-Z]:\\Users\\[^\\]+|\\home\\[^/]+|C:\\\\Users\\\\[^\\\\]+/gi;
-    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-    function scrub(obj) {
-        if (typeof obj === 'string') {
-            return obj
-                .replace(pathRegex, '<local-path-redacted>')
-                .replace(emailRegex, '<email-redacted>');
-        }
-        if (Array.isArray(obj)) {
-            return obj.map(scrub);
-        }
-        if (obj && typeof obj === 'object') {
-            const out = {};
-            for (const key of Object.keys(obj)) {
-                if (['projectRoot', 'scanTargetRoot', 'configPath'].includes(key)) {
-                    out[key] = '<path-redacted>';
-                } else {
-                    out[key] = scrub(obj[key]);
-                }
-            }
-            return out;
-        }
-        return obj;
+    if (Array.isArray(obj)) {
+      return obj.map(scrub);
     }
-    return scrub(clone);
+    if (obj && typeof obj === 'object') {
+      const out = {};
+      for (const key of Object.keys(obj)) {
+        if (['projectRoot', 'scanTargetRoot', 'configPath'].includes(key)) {
+          out[key] = '<path-redacted>';
+        } else {
+          out[key] = scrub(obj[key]);
+        }
+      }
+      return out;
+    }
+    return obj;
+  }
+  return scrub(clone);
 }
 
 // ── Response Builders ─────────────────────────────────────────
@@ -538,29 +566,33 @@ function sanitizeReportForAi(report) {
  * @returns {import('express').Response}
  */
 function sendAnalyzeJson(res, payload, statusCode = 200, opts = {}) {
-    if (!res || typeof res.status !== 'function' || typeof res.json !== 'function') {
-        throw new TypeError('sendAnalyzeJson requires a valid Express response object');
-    }
-    const code = Number.isFinite(statusCode) && statusCode >= 100 && statusCode < 600 ? Math.floor(statusCode) : 200;
-    let stripped;
-    try {
-        stripped = JSON.parse(JSON.stringify(payload));
-    } catch {
-        stripped = payload;
-    }
-    delete stripped.projectPath;
-    if (stripped.data && typeof stripped.data === 'object') {
-        delete stripped.data.projectPath;
-        delete stripped.data.sourceProjectPath;
-    }
-    if (stripped.report && typeof stripped.report === 'object') {
-        delete stripped.report.projectPath;
-        delete stripped.report.sourceProjectPath;
-    }
-    const body = opts.publicGateEnabled && typeof opts.applyPublicGateToAnalyzeResponse === 'function'
-        ? opts.applyPublicGateToAnalyzeResponse(stripped)
-        : stripped;
-    return res.status(code).json(body);
+  if (!res || typeof res.status !== 'function' || typeof res.json !== 'function') {
+    throw new TypeError('sendAnalyzeJson requires a valid Express response object');
+  }
+  const code =
+    Number.isFinite(statusCode) && statusCode >= 100 && statusCode < 600
+      ? Math.floor(statusCode)
+      : 200;
+  let stripped;
+  try {
+    stripped = JSON.parse(JSON.stringify(payload));
+  } catch {
+    stripped = payload;
+  }
+  delete stripped.projectPath;
+  if (stripped.data && typeof stripped.data === 'object') {
+    delete stripped.data.projectPath;
+    delete stripped.data.sourceProjectPath;
+  }
+  if (stripped.report && typeof stripped.report === 'object') {
+    delete stripped.report.projectPath;
+    delete stripped.report.sourceProjectPath;
+  }
+  const body =
+    opts.publicGateEnabled && typeof opts.applyPublicGateToAnalyzeResponse === 'function'
+      ? opts.applyPublicGateToAnalyzeResponse(stripped)
+      : stripped;
+  return res.status(code).json(body);
 }
 
 /**
@@ -570,16 +602,19 @@ function sendAnalyzeJson(res, payload, statusCode = 200, opts = {}) {
  * @returns {import('express').Response}
  */
 function rejectPaidDeliverable(res, auditCheckoutUrl) {
-    if (!res || typeof res.status !== 'function') {
-        throw new TypeError('rejectPaidDeliverable requires a valid Express response object');
-    }
-    return res.status(402).json({
-        success: false,
-        publicGateLocked: true,
-        error: 'Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.',
-        checkoutUrl: auditCheckoutUrl || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report',
-        auditPriceLabel: '$499'
-    });
+  if (!res || typeof res.status !== 'function') {
+    throw new TypeError('rejectPaidDeliverable requires a valid Express response object');
+  }
+  return res.status(402).json({
+    success: false,
+    publicGateLocked: true,
+    error:
+      'Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.',
+    checkoutUrl:
+      auditCheckoutUrl ||
+      'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report',
+    auditPriceLabel: '$499',
+  });
 }
 
 /**
@@ -589,14 +624,14 @@ function rejectPaidDeliverable(res, auditCheckoutUrl) {
  * @returns {Object}
  */
 function buildSuccessResponse(data, meta) {
-    const result = { success: true };
-    if (data && typeof data === 'object' && !Array.isArray(data)) {
-        Object.assign(result, data);
-    }
-    if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
-        Object.assign(result, meta);
-    }
-    return result;
+  const result = { success: true };
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    Object.assign(result, data);
+  }
+  if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
+    Object.assign(result, meta);
+  }
+  return result;
 }
 
 /**
@@ -606,10 +641,10 @@ function buildSuccessResponse(data, meta) {
  * @returns {Object}
  */
 function buildErrorResponse(error, context) {
-    const message = error && typeof error.message === 'string' ? error.message : safeString(error);
-    const result = { success: false, error: message };
-    if (context) result.context = context;
-    return result;
+  const message = error && typeof error.message === 'string' ? error.message : safeString(error);
+  const result = { success: false, error: message };
+  if (context) result.context = context;
+  return result;
 }
 
 // ── Input / Request Helpers ───────────────────────────────────
@@ -622,8 +657,8 @@ function buildErrorResponse(error, context) {
  * @returns {any}
  */
 function pickBodyField(body, key, fallback) {
-    if (!body || typeof body !== 'object') return fallback;
-    return key in body ? body[key] : fallback;
+  if (!body || typeof body !== 'object') return fallback;
+  return key in body ? body[key] : fallback;
 }
 
 /**
@@ -632,10 +667,10 @@ function pickBodyField(body, key, fallback) {
  * @returns {boolean}
  */
 function coerceBoolean(value) {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'string') return value.toLowerCase() === 'true' || value === '1';
-    if (typeof value === 'number') return value !== 0;
-    return Boolean(value);
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value.toLowerCase() === 'true' || value === '1';
+  if (typeof value === 'number') return value !== 0;
+  return Boolean(value);
 }
 
 /**
@@ -647,9 +682,9 @@ function coerceBoolean(value) {
  * @returns {number}
  */
 function limitValue(value, min, max, fallback) {
-    const num = Number(value);
-    if (!Number.isFinite(num)) return Number.isFinite(fallback) ? fallback : min;
-    return Math.min(Math.max(num, min), max);
+  const num = Number(value);
+  if (!Number.isFinite(num)) return Number.isFinite(fallback) ? fallback : min;
+  return Math.min(Math.max(num, min), max);
 }
 
 /**
@@ -658,14 +693,14 @@ function limitValue(value, min, max, fallback) {
  * @returns {any|null}
  */
 function requireIfExists(modulePath) {
-    try {
-        if (fs.existsSync(require.resolve(modulePath))) {
-            return require(modulePath);
-        }
-    } catch {
-        // module not found
+  try {
+    if (fs.existsSync(require.resolve(modulePath))) {
+      return require(modulePath);
     }
-    return null;
+  } catch {
+    // module not found
+  }
+  return null;
 }
 
 /**
@@ -675,13 +710,13 @@ function requireIfExists(modulePath) {
  * @throws {Error} If invalid or private.
  */
 function sanitizeUrl(rawUrl) {
-    const url = String(rawUrl || '').trim();
-    if (!url) throw new Error('URL is required');
-    const parsed = new URL(url);
-    if (isPrivateHostname(parsed.hostname)) {
-        throw new Error('Fetching from private/internal addresses is not allowed');
-    }
-    return parsed;
+  const url = String(rawUrl || '').trim();
+  if (!url) throw new Error('URL is required');
+  const parsed = new URL(url);
+  if (isPrivateHostname(parsed.hostname)) {
+    throw new Error('Fetching from private/internal addresses is not allowed');
+  }
+  return parsed;
 }
 
 // ── Analysis Path Resolution ────────────────────────────────────
@@ -693,13 +728,13 @@ function sanitizeUrl(rawUrl) {
  * @returns {Promise<Object|null>}
  */
 async function loadUserCredentials(req, getUserAiCredentials) {
-    const email = req?.user?.email;
-    if (!email) return null;
-    try {
-        return await getUserAiCredentials(email);
-    } catch {
-        return null;
-    }
+  const email = req?.user?.email;
+  if (!email) return null;
+  try {
+    return await getUserAiCredentials(email);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -712,26 +747,34 @@ async function loadUserCredentials(req, getUserAiCredentials) {
  * @returns {string[]}
  */
 function resolveMockScanPaths(baseDir, projectPath, helpers = {}) {
-    if (typeof baseDir !== 'string' || typeof projectPath !== 'string') return [];
-    if (!projectPath || (typeof helpers.isSameResolvedPath === 'function' && helpers.isSameResolvedPath(projectPath, baseDir))) {
-        return [];
-    }
-    const { scanRoot, platformRoot } = typeof helpers.resolvePlatformRoot === 'function'
-        ? helpers.resolvePlatformRoot(projectPath)
-        : { scanRoot: projectPath, platformRoot: projectPath };
-    const projectKey = path.resolve(projectPath).replace(/\\/g, '/').toLowerCase();
-    const platformKey = path.resolve(platformRoot).replace(/\\/g, '/').toLowerCase();
-    const baseKey = path.resolve(baseDir).replace(/\\/g, '/').toLowerCase();
-    if (projectKey === platformKey || projectKey === baseKey) {
-        return [];
-    }
-    if (platformKey.startsWith(`${projectKey}/`)) {
-        return [];
-    }
-    if (projectKey === path.resolve(scanRoot).replace(/\\/g, '/').toLowerCase() && scanRoot !== platformRoot) {
-        return [];
-    }
-    return [projectPath];
+  if (typeof baseDir !== 'string' || typeof projectPath !== 'string') return [];
+  if (
+    !projectPath ||
+    (typeof helpers.isSameResolvedPath === 'function' &&
+      helpers.isSameResolvedPath(projectPath, baseDir))
+  ) {
+    return [];
+  }
+  const { scanRoot, platformRoot } =
+    typeof helpers.resolvePlatformRoot === 'function'
+      ? helpers.resolvePlatformRoot(projectPath)
+      : { scanRoot: projectPath, platformRoot: projectPath };
+  const projectKey = path.resolve(projectPath).replace(/\\/g, '/').toLowerCase();
+  const platformKey = path.resolve(platformRoot).replace(/\\/g, '/').toLowerCase();
+  const baseKey = path.resolve(baseDir).replace(/\\/g, '/').toLowerCase();
+  if (projectKey === platformKey || projectKey === baseKey) {
+    return [];
+  }
+  if (platformKey.startsWith(`${projectKey}/`)) {
+    return [];
+  }
+  if (
+    projectKey === path.resolve(scanRoot).replace(/\\/g, '/').toLowerCase() &&
+    scanRoot !== platformRoot
+  ) {
+    return [];
+  }
+  return [projectPath];
 }
 
 /**
@@ -740,21 +783,21 @@ function resolveMockScanPaths(baseDir, projectPath, helpers = {}) {
  * @returns {Promise<boolean>}
  */
 async function pathLooksLikeMockScan(targetPath) {
-    try {
-        const stat = await fs.promises.stat(targetPath);
-        if (!stat.isDirectory()) return false;
-        const entries = await fs.promises.readdir(targetPath, { withFileTypes: true });
-        const files = entries.filter((e) => e.isFile()).map((e) => e.name);
-        const jsonCount = files.filter((n) => n.endsWith('.json')).length;
-        const sourceCount = files.filter((n) => /\.(js|ts|jsx|tsx|py|cjs|mjs)$/.test(n)).length;
-        if (jsonCount === 0) return false;
-        if (sourceCount > 0) return false;
-        if (files.length === 0) return false;
-        const mockNamedCount = files.filter((n) => /mock|sample|demo|fixture/i.test(n)).length;
-        return mockNamedCount > 0 || (jsonCount / files.length) > 0.7;
-    } catch {
-        return false;
-    }
+  try {
+    const stat = await fs.promises.stat(targetPath);
+    if (!stat.isDirectory()) return false;
+    const entries = await fs.promises.readdir(targetPath, { withFileTypes: true });
+    const files = entries.filter((e) => e.isFile()).map((e) => e.name);
+    const jsonCount = files.filter((n) => n.endsWith('.json')).length;
+    const sourceCount = files.filter((n) => /\.(js|ts|jsx|tsx|py|cjs|mjs)$/.test(n)).length;
+    if (jsonCount === 0) return false;
+    if (sourceCount > 0) return false;
+    if (files.length === 0) return false;
+    const mockNamedCount = files.filter((n) => /mock|sample|demo|fixture/i.test(n)).length;
+    return mockNamedCount > 0 || jsonCount / files.length > 0.7;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -765,15 +808,27 @@ async function pathLooksLikeMockScan(targetPath) {
  * @returns {Promise<string>}
  */
 async function resolveAnalysisType(requestedType, targetPath, pathLooksLikeMockScan) {
-    const type = String(requestedType || 'auto').toLowerCase();
-    const knownTypes = [
-        'roadmap', 'mock-scan', 'codebase', 'complete',
-        'npm-audit', 'compliance', 'data-cleanup', 'data-quality',
-        'cleanup-assistant', 'file-reduction', 'consolidation', 'eu-ai-act',
-        'workspace-health', 'removable-files'
-    ];
-    if (knownTypes.includes(type)) return type;
-    return (typeof pathLooksLikeMockScan === 'function' && await pathLooksLikeMockScan(targetPath)) ? 'mock-scan' : 'roadmap';
+  const type = String(requestedType || 'auto').toLowerCase();
+  const knownTypes = [
+    'roadmap',
+    'mock-scan',
+    'codebase',
+    'complete',
+    'npm-audit',
+    'compliance',
+    'data-cleanup',
+    'data-quality',
+    'cleanup-assistant',
+    'file-reduction',
+    'consolidation',
+    'eu-ai-act',
+    'workspace-health',
+    'removable-files',
+  ];
+  if (knownTypes.includes(type)) return type;
+  return typeof pathLooksLikeMockScan === 'function' && (await pathLooksLikeMockScan(targetPath))
+    ? 'mock-scan'
+    : 'roadmap';
 }
 
 // ── AI Provider Resolution ────────────────────────────────────
@@ -786,20 +841,21 @@ async function resolveAnalysisType(requestedType, targetPath, pathLooksLikeMockS
  * @returns {Object|null}
  */
 function resolveOllamaSummaryProvider(registry, userCredentials = null, defaultOllamaUrl) {
-    if (!registry || typeof registry !== 'object') return null;
-    const ollamaModel = userCredentials?.ollamaModel
-        || process.env.OLLAMA_MODEL
-        || registry?.models?.find((m) => m.id === registry.activeModelId && m.provider === 'ollama')?.ollamaModel
-        || registry?.models?.find((m) => m.provider === 'ollama' && m.ollamaModel)?.ollamaModel
-        || null;
-    const baseUrl = userCredentials?.ollamaBaseUrl
-        || registry?.ollamaBaseUrl
-        || process.env.OLLAMA_BASE_URL
-        || defaultOllamaUrl;
-    if (!baseUrl) return null;
-    return ollamaModel
-        ? { providerId: 'ollama', ollamaModel }
-        : { providerId: 'ollama' };
+  if (!registry || typeof registry !== 'object') return null;
+  const ollamaModel =
+    userCredentials?.ollamaModel ||
+    process.env.OLLAMA_MODEL ||
+    registry?.models?.find((m) => m.id === registry.activeModelId && m.provider === 'ollama')
+      ?.ollamaModel ||
+    registry?.models?.find((m) => m.provider === 'ollama' && m.ollamaModel)?.ollamaModel ||
+    null;
+  const baseUrl =
+    userCredentials?.ollamaBaseUrl ||
+    registry?.ollamaBaseUrl ||
+    process.env.OLLAMA_BASE_URL ||
+    defaultOllamaUrl;
+  if (!baseUrl) return null;
+  return ollamaModel ? { providerId: 'ollama', ollamaModel } : { providerId: 'ollama' };
 }
 
 /**
@@ -811,19 +867,19 @@ function resolveOllamaSummaryProvider(registry, userCredentials = null, defaultO
  * @returns {Object|null}
  */
 function resolveSummaryProvider(aiProvider, registry, userCredentials = null, defaultOllamaUrl) {
-    if (!registry || typeof registry !== 'object') return null;
-    if (aiProvider === 'demo') return null;
-    if (aiProvider === 'active') {
-        const model = registry.models?.find((m) => m.id === registry.activeModelId);
-        if (model?.provider === 'ollama' && model.ollamaModel) {
-            return { providerId: 'ollama', ollamaModel: model.ollamaModel };
-        }
-        return resolveOllamaSummaryProvider(registry, userCredentials, defaultOllamaUrl);
+  if (!registry || typeof registry !== 'object') return null;
+  if (aiProvider === 'demo') return null;
+  if (aiProvider === 'active') {
+    const model = registry.models?.find((m) => m.id === registry.activeModelId);
+    if (model?.provider === 'ollama' && model.ollamaModel) {
+      return { providerId: 'ollama', ollamaModel: model.ollamaModel };
     }
-    if (aiProvider === 'ollama') {
-        return resolveOllamaSummaryProvider(registry, userCredentials, defaultOllamaUrl);
-    }
-    return { providerId: aiProvider };
+    return resolveOllamaSummaryProvider(registry, userCredentials, defaultOllamaUrl);
+  }
+  if (aiProvider === 'ollama') {
+    return resolveOllamaSummaryProvider(registry, userCredentials, defaultOllamaUrl);
+  }
+  return { providerId: aiProvider };
 }
 
 // ── Website Fetcher ───────────────────────────────────────────
@@ -838,108 +894,136 @@ const { URL: NodeURL } = require('url');
  * @returns {Promise<string>} Path to the temp directory containing fetched assets.
  */
 async function fetchWebsiteToTemp(rawUrl) {
-    const url = String(rawUrl || '').trim();
-    if (!url) throw new Error('URL is required');
-    const parsed = new NodeURL(url);
-    if (isPrivateHostname(parsed.hostname)) {
-        throw new Error('Fetching from private/internal addresses is not allowed');
-    }
-    const os = require('os');
-    const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'sb-web-'));
-    const domain = parsed.hostname.replace(/[^a-z0-9.-]/gi, '_');
-    const fetchDir = path.join(tempDir, domain);
-    await fs.promises.mkdir(fetchDir, { recursive: true });
-    const indexPath = path.join(fetchDir, 'index.html');
+  const url = String(rawUrl || '').trim();
+  if (!url) throw new Error('URL is required');
+  const parsed = new NodeURL(url);
+  if (isPrivateHostname(parsed.hostname)) {
+    throw new Error('Fetching from private/internal addresses is not allowed');
+  }
+  const os = require('os');
+  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'sb-web-'));
+  const domain = parsed.hostname.replace(/[^a-z0-9.-]/gi, '_');
+  const fetchDir = path.join(tempDir, domain);
+  await fs.promises.mkdir(fetchDir, { recursive: true });
+  const indexPath = path.join(fetchDir, 'index.html');
 
-    await new Promise((resolve, reject) => {
-        const MAX_REDIRECTS = 5;
-        const fetchIndex = (currentUrl, redirects = 0) => {
-            if (redirects > MAX_REDIRECTS) {
-                return reject(new Error('Too many redirects'));
-            }
-            const parsedUrl = new NodeURL(currentUrl);
-            const client = parsedUrl.protocol === 'https:' ? https : http;
-            const request = client.get(currentUrl, { timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' } }, (response) => {
-                if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-                    const location = response.headers.location;
-                    let redirectUrl;
-                    try {
-                        redirectUrl = location.startsWith('http') ? location : new NodeURL(location, currentUrl).href;
-                        const redirectParsed = new NodeURL(redirectUrl);
-                        if (redirectParsed.protocol !== 'http:' && redirectParsed.protocol !== 'https:') {
-                            return reject(new Error(`Blocked redirect to non-HTTP protocol: ${redirectParsed.protocol}`));
-                        }
-                        if (isPrivateHostname(redirectParsed.hostname)) {
-                            return reject(new Error('Blocked redirect to private/internal address'));
-                        }
-                    } catch {
-                        return reject(new Error(`Invalid redirect location: ${location.slice(0, 120)}`));
-                    }
-                    return fetchIndex(redirectUrl, redirects + 1);
-                }
-                if (response.statusCode !== 200) {
-                    return reject(new Error(`HTTP ${response.statusCode}`));
-                }
-                const stream = fs.createWriteStream(indexPath);
-                response.on('error', (err) => { stream.destroy(); reject(err); });
-                response.pipe(stream);
-                stream.on('finish', () => resolve(fetchDir));
-                stream.on('error', (err) => { response.destroy(); reject(err); });
-            });
-            request.on('error', reject);
-            request.on('timeout', () => {
-                request.destroy();
-                reject(new Error('Request timeout'));
-            });
-        };
-        fetchIndex(url);
-    });
-
-    // Extract and fetch linked CSS/JS assets
-    try {
-        const html = await fs.promises.readFile(indexPath, 'utf8');
-        const assetMatches = html.matchAll(/(href|src)="([^"]+\.(css|js))"/gi);
-        const seen = new Set();
-        for (const match of assetMatches) {
-            const asset = match[2];
-            if (seen.has(asset)) continue;
-            seen.add(asset);
-            if (asset.startsWith('data:') || asset.startsWith('//')) continue;
-            let assetUrl;
+  await new Promise((resolve, reject) => {
+    const MAX_REDIRECTS = 5;
+    const fetchIndex = (currentUrl, redirects = 0) => {
+      if (redirects > MAX_REDIRECTS) {
+        return reject(new Error('Too many redirects'));
+      }
+      const parsedUrl = new NodeURL(currentUrl);
+      const client = parsedUrl.protocol === 'https:' ? https : http;
+      const request = client.get(
+        currentUrl,
+        {
+          timeout: 30000,
+          headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36' },
+        },
+        (response) => {
+          if (
+            response.statusCode >= 300 &&
+            response.statusCode < 400 &&
+            response.headers.location
+          ) {
+            const location = response.headers.location;
+            let redirectUrl;
             try {
-                assetUrl = new NodeURL(asset, url).href;
+              redirectUrl = location.startsWith('http')
+                ? location
+                : new NodeURL(location, currentUrl).href;
+              const redirectParsed = new NodeURL(redirectUrl);
+              if (redirectParsed.protocol !== 'http:' && redirectParsed.protocol !== 'https:') {
+                return reject(
+                  new Error(`Blocked redirect to non-HTTP protocol: ${redirectParsed.protocol}`)
+                );
+              }
+              if (isPrivateHostname(redirectParsed.hostname)) {
+                return reject(new Error('Blocked redirect to private/internal address'));
+              }
             } catch {
-                continue;
+              return reject(new Error(`Invalid redirect location: ${location.slice(0, 120)}`));
             }
-            let assetFile;
-            try {
-                assetFile = path.basename(asset.replace(/[?#].*$/, ''));
-            } catch {
-                continue;
-            }
-            if (!assetFile) continue;
-            const outPath = path.join(fetchDir, assetFile);
-            try {
-                const client2 = new NodeURL(assetUrl).protocol === 'https:' ? https : http;
-                await new Promise((res2) => {
-                    const req2 = client2.get(assetUrl, { timeout: 15000, headers: { 'User-Agent': 'Mozilla/5.0' } }, (resp2) => {
-                        if (resp2.statusCode !== 200) return res2();
-                        const s2 = fs.createWriteStream(outPath);
-                        resp2.pipe(s2);
-                        s2.on('finish', res2);
-                        s2.on('error', () => res2());
-                    });
-                    req2.on('error', () => res2());
-                    req2.on('timeout', () => { req2.destroy(); res2(); });
-                });
-            } catch {
-                // ignore asset fetch failures
-            }
+            return fetchIndex(redirectUrl, redirects + 1);
+          }
+          if (response.statusCode !== 200) {
+            return reject(new Error(`HTTP ${response.statusCode}`));
+          }
+          const stream = fs.createWriteStream(indexPath);
+          response.on('error', (err) => {
+            stream.destroy();
+            reject(err);
+          });
+          response.pipe(stream);
+          stream.on('finish', () => resolve(fetchDir));
+          stream.on('error', (err) => {
+            response.destroy();
+            reject(err);
+          });
         }
-    } catch {
-        // ignore parse failures
+      );
+      request.on('error', reject);
+      request.on('timeout', () => {
+        request.destroy();
+        reject(new Error('Request timeout'));
+      });
+    };
+    fetchIndex(url);
+  });
+
+  // Extract and fetch linked CSS/JS assets
+  try {
+    const html = await fs.promises.readFile(indexPath, 'utf8');
+    const assetMatches = html.matchAll(/(href|src)="([^"]+\.(css|js))"/gi);
+    const seen = new Set();
+    for (const match of assetMatches) {
+      const asset = match[2];
+      if (seen.has(asset)) continue;
+      seen.add(asset);
+      if (asset.startsWith('data:') || asset.startsWith('//')) continue;
+      let assetUrl;
+      try {
+        assetUrl = new NodeURL(asset, url).href;
+      } catch {
+        continue;
+      }
+      let assetFile;
+      try {
+        assetFile = path.basename(asset.replace(/[?#].*$/, ''));
+      } catch {
+        continue;
+      }
+      if (!assetFile) continue;
+      const outPath = path.join(fetchDir, assetFile);
+      try {
+        const client2 = new NodeURL(assetUrl).protocol === 'https:' ? https : http;
+        await new Promise((res2) => {
+          const req2 = client2.get(
+            assetUrl,
+            { timeout: 15000, headers: { 'User-Agent': 'Mozilla/5.0' } },
+            (resp2) => {
+              if (resp2.statusCode !== 200) return res2();
+              const s2 = fs.createWriteStream(outPath);
+              resp2.pipe(s2);
+              s2.on('finish', res2);
+              s2.on('error', () => res2());
+            }
+          );
+          req2.on('error', () => res2());
+          req2.on('timeout', () => {
+            req2.destroy();
+            res2();
+          });
+        });
+      } catch {
+        // ignore asset fetch failures
+      }
     }
-    return fetchDir;
+  } catch {
+    // ignore parse failures
+  }
+  return fetchDir;
 }
 
 // ── Security ──────────────────────────────────────────────────
@@ -950,19 +1034,19 @@ async function fetchWebsiteToTemp(rawUrl) {
  * @returns {boolean}
  */
 function isPrivateHostname(hostname) {
-    if (typeof hostname !== 'string') return true;
-    const h = hostname.toLowerCase();
-    if (h === 'localhost') return true;
-    if (h.endsWith('.localhost')) return true;
-    if (h === '0.0.0.0') return true;
-    if (h === '::1' || h === '0:0:0:0:0:0:0:1') return true;
-    if (/^127\./.test(h)) return true;
-    if (/^10\./.test(h)) return true;
-    if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(h)) return true;
-    if (/^192\.168\./.test(h)) return true;
-    if (/^169\.254\./.test(h)) return true;
-    if (/^fc00:/i.test(h) || /^fe80:/i.test(h)) return true;
-    return false;
+  if (typeof hostname !== 'string') return true;
+  const h = hostname.toLowerCase();
+  if (h === 'localhost') return true;
+  if (h.endsWith('.localhost')) return true;
+  if (h === '0.0.0.0') return true;
+  if (h === '::1' || h === '0:0:0:0:0:0:0:1') return true;
+  if (/^127\./.test(h)) return true;
+  if (/^10\./.test(h)) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(h)) return true;
+  if (/^192\.168\./.test(h)) return true;
+  if (/^169\.254\./.test(h)) return true;
+  if (/^fc00:/i.test(h) || /^fe80:/i.test(h)) return true;
+  return false;
 }
 
 /**
@@ -971,53 +1055,53 @@ function isPrivateHostname(hostname) {
  * @returns {Promise<void>}
  */
 async function cleanupWebsiteTemp(tempDir) {
-    if (typeof tempDir !== 'string' || !tempDir) return;
-    try {
-        await fs.promises.rm(tempDir, { recursive: true, force: true });
-    } catch {
-        // ignore cleanup failures
-    }
+  if (typeof tempDir !== 'string' || !tempDir) return;
+  try {
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
+  } catch {
+    // ignore cleanup failures
+  }
 }
 
 module.exports = {
-    sanitizeHttpHeaderValue,
-    shouldLogRuntimeInfo,
-    withTimeout,
-    safeBasename,
-    normalizeStringList,
-    resolveProjectPath,
-    isSameResolvedPath,
-    deriveSeverityCounts,
-    resolveModelId,
-    countIssuesByKind,
-    issueBreakdownFromList,
-    normalizeReportForSummary,
-    safeString,
-    safeErrorMessage,
-    countFiles,
-    sanitizeUploadPath,
-    sanitizeReportForAi,
-    isPrivateHostname,
-    cleanupWebsiteTemp,
-    // Response builders
-    sendAnalyzeJson,
-    rejectPaidDeliverable,
-    buildSuccessResponse,
-    buildErrorResponse,
-    // Input helpers
-    pickBodyField,
-    coerceBoolean,
-    limitValue,
-    requireIfExists,
-    sanitizeUrl,
-    // Analysis path resolution
-    loadUserCredentials,
-    resolveMockScanPaths,
-    pathLooksLikeMockScan,
-    resolveAnalysisType,
-    // AI provider resolution
-    resolveOllamaSummaryProvider,
-    resolveSummaryProvider,
-    // Website fetcher
-    fetchWebsiteToTemp
+  sanitizeHttpHeaderValue,
+  shouldLogRuntimeInfo,
+  withTimeout,
+  safeBasename,
+  normalizeStringList,
+  resolveProjectPath,
+  isSameResolvedPath,
+  deriveSeverityCounts,
+  resolveModelId,
+  countIssuesByKind,
+  issueBreakdownFromList,
+  normalizeReportForSummary,
+  safeString,
+  safeErrorMessage,
+  countFiles,
+  sanitizeUploadPath,
+  sanitizeReportForAi,
+  isPrivateHostname,
+  cleanupWebsiteTemp,
+  // Response builders
+  sendAnalyzeJson,
+  rejectPaidDeliverable,
+  buildSuccessResponse,
+  buildErrorResponse,
+  // Input helpers
+  pickBodyField,
+  coerceBoolean,
+  limitValue,
+  requireIfExists,
+  sanitizeUrl,
+  // Analysis path resolution
+  loadUserCredentials,
+  resolveMockScanPaths,
+  pathLooksLikeMockScan,
+  resolveAnalysisType,
+  // AI provider resolution
+  resolveOllamaSummaryProvider,
+  resolveSummaryProvider,
+  // Website fetcher
+  fetchWebsiteToTemp,
 };

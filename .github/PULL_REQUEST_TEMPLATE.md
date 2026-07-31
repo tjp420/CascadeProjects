@@ -18,12 +18,14 @@
 ---
 
 > **Tip:** Run the full hygiene gate before opening a PR:
+>
 > ```bash
 > cd ai-platform
 > npm run simplebeacon:hygiene-gate
 > ```
 >
 > Install git hooks for automatic pre-commit checks:
+>
 > ```bash
 > npx simplebeacon hook install
 > ```

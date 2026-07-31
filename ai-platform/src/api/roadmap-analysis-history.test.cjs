@@ -8,7 +8,7 @@ const {
   loadRoadmapHistoryFromDb,
   appendHistoryEntry,
   clearHistory,
-  setupRoadmapAnalysisHistoryRoutes
+  setupRoadmapAnalysisHistoryRoutes,
 } = require('./roadmap-analysis-history.cjs');
 
 function mockDb(rows) {
@@ -18,7 +18,7 @@ function mockDb(rows) {
         return { rows: rows || [] };
       }
       return { rows: [] };
-    }
+    },
   };
 }
 
@@ -33,7 +33,7 @@ function mockRes() {
     json(body) {
       this.jsonBody = body;
       return this;
-    }
+    },
   };
   return res;
 }
@@ -41,10 +41,16 @@ function mockRes() {
 function mockApp() {
   const routes = {};
   return {
-    get(path, handler) { routes[`GET ${path}`] = handler; },
-    post(path, handler) { routes[`POST ${path}`] = handler; },
-    delete(path, handler) { routes[`DELETE ${path}`] = handler; },
-    routes
+    get(path, handler) {
+      routes[`GET ${path}`] = handler;
+    },
+    post(path, handler) {
+      routes[`POST ${path}`] = handler;
+    },
+    delete(path, handler) {
+      routes[`DELETE ${path}`] = handler;
+    },
+    routes,
   };
 }
 
@@ -88,7 +94,7 @@ describe('roadmap-analysis-history', () => {
           return { rows: [] };
         }
         return { rows: [] };
-      }
+      },
     };
 
     for (let i = 0; i < MAX_ENTRIES + 3; i++) {
@@ -107,7 +113,7 @@ describe('roadmap-analysis-history', () => {
           capturedEntries = JSON.parse(params[1]).entries;
         }
         return { rows: [] };
-      }
+      },
     };
     const result = await clearHistory(db);
     assert.deepStrictEqual(result, []);

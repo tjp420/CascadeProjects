@@ -2,10 +2,14 @@
 
 jest.mock('../../services/cloud-inference-service.cjs', () => ({
   explainCodeWithProvider: jest.fn(),
-  providerConfigured: jest.fn().mockReturnValue(false)
+  providerConfigured: jest.fn().mockReturnValue(false),
 }));
 
-const { understandCodeSnippet, understandFile, attachUnderstandingToCodebaseReport } = require('../code-understanding/code-understanding-engine.cjs');
+const {
+  understandCodeSnippet,
+  understandFile,
+  attachUnderstandingToCodebaseReport,
+} = require('../code-understanding/code-understanding-engine.cjs');
 
 describe('code-understanding/code-understanding-engine', () => {
   test('exports expected functions', () => {

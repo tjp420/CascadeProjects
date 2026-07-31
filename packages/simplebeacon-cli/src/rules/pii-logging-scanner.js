@@ -8,15 +8,35 @@ const fs = require('fs');
 const path = require('path');
 
 const SCANNABLE_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.go', '.java', '.rb', '.php'
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.py',
+  '.go',
+  '.java',
+  '.rb',
+  '.php',
 ]);
 
 const MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'fixtures', 'docs', 'coming-soon', 'reports',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'archive',
+  '.simplebeacon',
+  'fixtures',
+  'docs',
+  'coming-soon',
+  'reports',
+  'simplebeacon-rule-tests',
+  'simplebeacon-toxic-fixtures',
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
@@ -25,45 +45,51 @@ const PII_PATTERNS = [
   {
     id: 'SB-SEC-010',
     name: 'Email Address Logged',
-    regex: /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:email|mail|e_mail)[^;]*/i,
+    regex:
+      /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:email|mail|e_mail)[^;]*/i,
     severity: 'medium',
-    description: 'Email address may be logged — GDPR/privacy violation risk'
+    description: 'Email address may be logged — GDPR/privacy violation risk',
   },
   {
     id: 'SB-SEC-010b',
     name: 'Password Logged',
-    regex: /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:password|passwd|pwd|secret|token|api_key|apikey)[^;]*/i,
+    regex:
+      /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:password|passwd|pwd|secret|token|api_key|apikey)[^;]*/i,
     severity: 'high',
-    description: 'Credential field may be logged — rotate and remove immediately'
+    description: 'Credential field may be logged — rotate and remove immediately',
   },
   {
     id: 'SB-SEC-010c',
     name: 'SSN / National ID Logged',
-    regex: /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:ssn|social[_-]?security|national[_-]?id|passport)[^;]*/i,
+    regex:
+      /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:ssn|social[_-]?security|national[_-]?id|passport)[^;]*/i,
     severity: 'critical',
-    description: 'Government ID logged — severe compliance violation'
+    description: 'Government ID logged — severe compliance violation',
   },
   {
     id: 'SB-SEC-010d',
     name: 'Credit Card Logged',
-    regex: /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:credit[_-]?card|cc[_-]?num|card[_-]?num|cvv|cvc)[^;]*/i,
+    regex:
+      /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:credit[_-]?card|cc[_-]?num|card[_-]?num|cvv|cvc)[^;]*/i,
     severity: 'critical',
-    description: 'Payment card data logged — PCI-DSS violation'
+    description: 'Payment card data logged — PCI-DSS violation',
   },
   {
     id: 'SB-SEC-010e',
     name: 'Phone Number Logged',
-    regex: /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:phone|mobile|cell|tel)[^;]*/i,
+    regex:
+      /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:phone|mobile|cell|tel)[^;]*/i,
     severity: 'medium',
-    description: 'Phone number may be logged — privacy/data minimization concern'
+    description: 'Phone number may be logged — privacy/data minimization concern',
   },
   {
     id: 'SB-SEC-010f',
     name: 'Full Request Body Logged',
-    regex: /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:req\.body|request\.body|body\b)[^;]*/i,
+    regex:
+      /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*(?:req\.body|request\.body|body\b)[^;]*/i,
     severity: 'medium',
-    description: 'Full request body logged — may contain unfiltered PII/sensitive data'
-  }
+    description: 'Full request body logged — may contain unfiltered PII/sensitive data',
+  },
 ];
 
 const SAFE_PATTERNS = [
@@ -75,13 +101,15 @@ const SAFE_PATTERNS = [
   // Skip static strings that are clearly help text or usage messages
   /console\.(log|warn|error|info|debug)\s*\(\s*['"`][^'"`]*(?:Usage|usage|help|deprecated|deprecated|warn|warning|info|debug)/i,
   // Skip error constructor calls (new Error('Email not found'))
-  /new\s+(Error|TypeError|RangeError)\s*\(/i
+  /new\s+(Error|TypeError|RangeError)\s*\(/i,
 ];
 
 // Skip if the log only contains static string literals (no variables)
 function isStaticStringOnly(line) {
   // Match console.log('something') or logger.info("something") — only quoted strings, no variables or interpolation
-  return /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*\(\s*['"`][^'"`${]*['"`]\s*\)/.test(line);
+  return /(?:console\.(log|warn|error|info|debug)|logger\.|log\(|winston\.|pino\.|bunyan\.)[^;]*\(\s*['"`][^'"`${]*['"`]\s*\)/.test(
+    line
+  );
 }
 
 function isScannable(filePath) {
@@ -106,7 +134,11 @@ function isSafeLogging(line) {
 
 async function scanFile(filePath) {
   let stats;
-  try { stats = await fs.promises.stat(filePath); } catch { return null; }
+  try {
+    stats = await fs.promises.stat(filePath);
+  } catch {
+    return null;
+  }
   if (stats.size > MAX_SCAN_BYTES) return null;
 
   let content;
@@ -143,7 +175,7 @@ async function scanFile(filePath) {
           severity: rule.severity,
           line: i + 1,
           match: line.slice(0, 80),
-          snippet: line.replace(/\s+/g, ' ').trim().slice(0, 120)
+          snippet: line.replace(/\s+/g, ' ').trim().slice(0, 120),
         });
       }
     }
@@ -188,7 +220,7 @@ async function scanPiiLogging(rootDir, options = {}) {
       if (fileFindings) {
         results.push({
           filePath: fullPath,
-          findings: fileFindings
+          findings: fileFindings,
         });
       }
     }
@@ -202,7 +234,7 @@ async function scanPiiLogging(rootDir, options = {}) {
     results,
     humanReadable: results.length
       ? `Potential PII logging found in ${results.length} file(s). Review logging for email, passwords, SSN, or credit card data.`
-      : 'No PII logging patterns detected.'
+      : 'No PII logging patterns detected.',
   };
 }
 

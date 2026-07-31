@@ -3,11 +3,23 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const dir = path.join(process.env.USERPROFILE, '.cursor/projects/c-Users-Trevor-CascadeProjects/agent-transcripts');
+const dir = path.join(
+  process.env.USERPROFILE,
+  '.cursor/projects/c-Users-Trevor-CascadeProjects/agent-transcripts'
+);
 const files = [
-  { suffix: 'web/simplebeacon-dashboard/js/views/OutreachView.js', match: (fp) => fp.endsWith('OutreachView.js') },
-  { suffix: 'web/simplebeacon-dashboard/js/views/DeliverablesView.js', match: (fp) => fp.endsWith('DeliverablesView.js') },
-  { suffix: 'web/simplebeacon-dashboard/js/data/outreach-prospects.js', match: (fp) => fp.endsWith('outreach-prospects.js') }
+  {
+    suffix: 'web/simplebeacon-dashboard/js/views/OutreachView.js',
+    match: (fp) => fp.endsWith('OutreachView.js'),
+  },
+  {
+    suffix: 'web/simplebeacon-dashboard/js/views/DeliverablesView.js',
+    match: (fp) => fp.endsWith('DeliverablesView.js'),
+  },
+  {
+    suffix: 'web/simplebeacon-dashboard/js/data/outreach-prospects.js',
+    match: (fp) => fp.endsWith('outreach-prospects.js'),
+  },
 ];
 
 const found = {};
@@ -40,11 +52,11 @@ for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
 for (const spec of files) {
   const hit = found[spec.suffix];
   if (!hit) {
-    process.stderr.write(['MISSING', spec.suffix].join(" ") + "\n");
+    process.stderr.write(['MISSING', spec.suffix].join(' ') + '\n');
     continue;
   }
   const out = path.join(root, spec.suffix);
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, hit.contents, 'utf8');
-  process.stdout.write(['WROTE', spec.suffix, hit.len, 'from', hit.transcript].join(" ") + "\n");
+  process.stdout.write(['WROTE', spec.suffix, hit.len, 'from', hit.transcript].join(' ') + '\n');
 }

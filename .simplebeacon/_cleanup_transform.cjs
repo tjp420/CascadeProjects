@@ -2,7 +2,9 @@ function transform(fileInfo, api) {
   const j = api.jscodeshift;
   const root = j(fileInfo.source);
   const filePath = fileInfo.path.replace(/\\/g, '/');
-  const isBrowser = /simplebeacon-dashboard\/(js|js-es2018)\//.test(filePath) || /simplebeacon-frameworkless\/app\.js$/.test(filePath);
+  const isBrowser =
+    /simplebeacon-dashboard\/(js|js-es2018)\//.test(filePath) ||
+    /simplebeacon-frameworkless\/app\.js$/.test(filePath);
   const consoleMethods = new Set(['log', 'warn', 'error', 'info', 'debug']);
   const dialogMethods = new Set(['alert', 'confirm']);
   const todoRe = /^\s*(TODO|FIXME|HACK|XXX|BUG)\b/i;
@@ -27,10 +29,9 @@ function transform(fileInfo, api) {
     } else {
       const stream = method === 'log' || method === 'info' ? 'stdout' : 'stderr';
       const arr = j.arrayExpression(args);
-      const joinCall = j.callExpression(
-        j.memberExpression(arr, j.identifier('join')),
-        [j.literal(' ')]
-      );
+      const joinCall = j.callExpression(j.memberExpression(arr, j.identifier('join')), [
+        j.literal(' '),
+      ]);
       const withNewline = j.binaryExpression('+', joinCall, j.literal('\n'));
       const writeCall = j.callExpression(
         j.memberExpression(
@@ -49,12 +50,21 @@ function transform(fileInfo, api) {
     let method = null;
     let kind = null;
 
-    if (callee && callee.type === 'MemberExpression' && callee.object && callee.object.type === 'Identifier' && callee.object.name === 'console') {
+    if (
+      callee &&
+      callee.type === 'MemberExpression' &&
+      callee.object &&
+      callee.object.type === 'Identifier' &&
+      callee.object.name === 'console'
+    ) {
       if (callee.property) {
         if (callee.property.type === 'Identifier' && consoleMethods.has(callee.property.name)) {
           method = callee.property.name;
           kind = 'console';
-        } else if ((callee.property.type === 'StringLiteral' || callee.property.type === 'Literal') && consoleMethods.has(callee.property.value)) {
+        } else if (
+          (callee.property.type === 'StringLiteral' || callee.property.type === 'Literal') &&
+          consoleMethods.has(callee.property.value)
+        ) {
           method = callee.property.value;
           kind = 'console';
         }

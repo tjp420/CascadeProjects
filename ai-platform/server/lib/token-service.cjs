@@ -16,9 +16,9 @@ const logger = require('./app-logger.cjs');
 const { jwtConfig, refreshConfig } = require('./jwt-config.cjs');
 
 // In-memory fallback stores (used when PostgreSQL is unavailable)
-const _refreshStore = new Map();      // tokenHash -> tokenRecord
-const _blacklistStore = new Map();    // tokenHash -> expiryTimestamp
-const _familyStore = new Map();       // familyId -> { userId, revoked }
+const _refreshStore = new Map(); // tokenHash -> tokenRecord
+const _blacklistStore = new Map(); // tokenHash -> expiryTimestamp
+const _familyStore = new Map(); // familyId -> { userId, revoked }
 
 const USE_DB = process.env.ENABLE_DATABASE === 'true' || process.env.DATABASE_URL;
 
@@ -38,7 +38,7 @@ function generateAccessToken(payload) {
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,
     audience: jwtConfig.audience,
-    expiresIn: jwtConfig.expiresIn
+    expiresIn: jwtConfig.expiresIn,
   });
 }
 
@@ -47,7 +47,7 @@ function verifyAccessToken(token) {
   return jwt.verify(token, jwtConfig.secret, {
     algorithms: [jwtConfig.algorithm],
     issuer: jwtConfig.issuer,
-    audience: jwtConfig.audience
+    audience: jwtConfig.audience,
   });
 }
 
@@ -56,7 +56,7 @@ function verifyRefreshToken(token) {
   return jwt.verify(token, refreshConfig.secret, {
     algorithms: [refreshConfig.algorithm],
     issuer: refreshConfig.issuer,
-    audience: refreshConfig.audience
+    audience: refreshConfig.audience,
   });
 }
 
@@ -80,21 +80,43 @@ async function issueRefreshToken(userId, options = {}) {
         `INSERT INTO refresh_tokens
          (user_id, token_hash, token_family, parent_token_id, device_fingerprint, ip_address, expires_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [userId, tokenHash, family, parentId, options.deviceFingerprint || null, options.ipAddress || null, expiresAt]
+        [
+          userId,
+          tokenHash,
+          family,
+          parentId,
+          options.deviceFingerprint || null,
+          options.ipAddress || null,
+          expiresAt,
+        ]
       );
     } catch (err) {
       logger.warn('[token-service] DB insert failed, falling back to memory');
       _refreshStore.set(tokenHash, {
-        userId, tokenHash, tokenFamily: family, parentTokenId: parentId,
-        deviceFingerprint: options.deviceFingerprint, ipAddress: options.ipAddress,
-        expiresAt, consumedAt: null, revoked: false, createdAt: new Date()
+        userId,
+        tokenHash,
+        tokenFamily: family,
+        parentTokenId: parentId,
+        deviceFingerprint: options.deviceFingerprint,
+        ipAddress: options.ipAddress,
+        expiresAt,
+        consumedAt: null,
+        revoked: false,
+        createdAt: new Date(),
       });
     }
   } else {
     _refreshStore.set(tokenHash, {
-      userId, tokenHash, tokenFamily: family, parentTokenId: parentId,
-      deviceFingerprint: options.deviceFingerprint, ipAddress: options.ipAddress,
-      expiresAt, consumedAt: null, revoked: false, createdAt: new Date()
+      userId,
+      tokenHash,
+      tokenFamily: family,
+      parentTokenId: parentId,
+      deviceFingerprint: options.deviceFingerprint,
+      ipAddress: options.ipAddress,
+      expiresAt,
+      consumedAt: null,
+      revoked: false,
+      createdAt: new Date(),
     });
   }
 
@@ -130,16 +152,25 @@ async function rotateRefreshToken(refreshToken, options = {}) {
   }
 
   if (!record) {
-    throw Object.assign(new Error('Refresh token not found'), { statusCode: 401, code: 'TOKEN_NOT_FOUND' });
+    throw Object.assign(new Error('Refresh token not found'), {
+      statusCode: 401,
+      code: 'TOKEN_NOT_FOUND',
+    });
   }
 
   const now = new Date();
   const expiresAt = new Date(record.expires_at || record.expiresAt);
   if (expiresAt < now) {
-    throw Object.assign(new Error('Refresh token expired'), { statusCode: 401, code: 'TOKEN_EXPIRED' });
+    throw Object.assign(new Error('Refresh token expired'), {
+      statusCode: 401,
+      code: 'TOKEN_EXPIRED',
+    });
   }
   if (record.revoked) {
-    throw Object.assign(new Error('Refresh token revoked'), { statusCode: 401, code: 'TOKEN_REVOKED' });
+    throw Object.assign(new Error('Refresh token revoked'), {
+      statusCode: 401,
+      code: 'TOKEN_REVOKED',
+    });
   }
 
   const family = record.token_family || record.tokenFamily;
@@ -148,17 +179,19 @@ async function rotateRefreshToken(refreshToken, options = {}) {
   if (record.consumed_at || record.consumedAt) {
     logger.warn('[token-service] Reuse detected — revoking entire family');
     await revokeTokenFamily(family, 'reuse_detected');
-    throw Object.assign(new Error('Token reuse detected — session terminated'), { statusCode: 401, code: 'TOKEN_REUSE' });
+    throw Object.assign(new Error('Token reuse detected — session terminated'), {
+      statusCode: 401,
+      code: 'TOKEN_REUSE',
+    });
   }
 
   // Mark current token as consumed
   if (USE_DB) {
     try {
       const { query } = require('./database-adapter.cjs');
-      await query(
-        `UPDATE refresh_tokens SET consumed_at = NOW() WHERE token_hash = $1`,
-        [tokenHash]
-      );
+      await query(`UPDATE refresh_tokens SET consumed_at = NOW() WHERE token_hash = $1`, [
+        tokenHash,
+      ]);
     } catch (err) {
       logger.warn('[token-service] DB consume failed, updating memory');
       const mem = _refreshStore.get(tokenHash);
@@ -175,7 +208,7 @@ async function rotateRefreshToken(refreshToken, options = {}) {
     family,
     parentId: record.id || null,
     deviceFingerprint: options.deviceFingerprint,
-    ipAddress: options.ipAddress
+    ipAddress: options.ipAddress,
   });
 
   const accessPayload = { userId, ...options.accessPayload };
@@ -185,7 +218,7 @@ async function rotateRefreshToken(refreshToken, options = {}) {
     newRefreshToken: newRefresh.refreshToken,
     newAccessToken: newAccess,
     family,
-    expiresAt: newRefresh.expiresAt
+    expiresAt: newRefresh.expiresAt,
   };
 }
 
@@ -206,12 +239,18 @@ async function revokeTokenFamily(family, reason = 'manual_revoke') {
     } catch (err) {
       logger.warn('[token-service] DB family revoke failed, updating memory');
       for (const [, rec] of _refreshStore) {
-        if (rec.tokenFamily === family) { rec.revoked = true; rec.revokedReason = reason; }
+        if (rec.tokenFamily === family) {
+          rec.revoked = true;
+          rec.revokedReason = reason;
+        }
       }
     }
   } else {
     for (const [, rec] of _refreshStore) {
-      if (rec.tokenFamily === family) { rec.revoked = true; rec.revokedReason = reason; }
+      if (rec.tokenFamily === family) {
+        rec.revoked = true;
+        rec.revokedReason = reason;
+      }
     }
   }
 }
@@ -233,11 +272,17 @@ async function revokeRefreshToken(tokenHash, reason = 'logout') {
     } catch (err) {
       logger.warn('[token-service] DB single revoke failed, updating memory');
       const mem = _refreshStore.get(tokenHash);
-      if (mem) { mem.revoked = true; mem.revokedReason = reason; }
+      if (mem) {
+        mem.revoked = true;
+        mem.revokedReason = reason;
+      }
     }
   } else {
     const mem = _refreshStore.get(tokenHash);
-    if (mem) { mem.revoked = true; mem.revokedReason = reason; }
+    if (mem) {
+      mem.revoked = true;
+      mem.revokedReason = reason;
+    }
   }
 }
 
@@ -337,5 +382,5 @@ module.exports = {
   revokeRefreshToken,
   blacklistAccessToken,
   isAccessTokenBlacklisted,
-  cleanupMemoryStores
+  cleanupMemoryStores,
 };

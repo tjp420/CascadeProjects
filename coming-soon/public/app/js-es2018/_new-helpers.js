@@ -1,4 +1,3 @@
-
 /**
  * Return a random element from an array.
  * @template T
@@ -67,7 +66,10 @@ export function maxBy(arr, keyFn) {
     let maxVal = keyFn(maxItem);
     for (let i = 1; i < arr.length; i++) {
         const val = keyFn(arr[i]);
-        if (val > maxVal) { maxVal = val; maxItem = arr[i]; }
+        if (val > maxVal) {
+            maxVal = val;
+            maxItem = arr[i];
+        }
     }
     return maxItem;
 }
@@ -85,7 +87,10 @@ export function minBy(arr, keyFn) {
     let minVal = keyFn(minItem);
     for (let i = 1; i < arr.length; i++) {
         const val = keyFn(arr[i]);
-        if (val < minVal) { minVal = val; minItem = arr[i]; }
+        if (val < minVal) {
+            minVal = val;
+            minItem = arr[i];
+        }
     }
     return minItem;
 }
@@ -183,11 +188,15 @@ export function defaultsDeep(target, ...sources) {
         for (const key of Object.keys(src)) {
             if (result[key] === undefined) {
                 const val = src[key];
-                result[key] = (val && typeof val === 'object' && !Array.isArray(val))
-                    ? defaultsDeep({}, val)
-                    : val;
-            } else if (result[key] && typeof result[key] === 'object' && !Array.isArray(result[key]) &&
-                       src[key] && typeof src[key] === 'object' && !Array.isArray(src[key])) {
+                result[key] = val && typeof val === 'object' && !Array.isArray(val) ? defaultsDeep({}, val) : val;
+            } else if (
+                result[key] &&
+                typeof result[key] === 'object' &&
+                !Array.isArray(result[key]) &&
+                src[key] &&
+                typeof src[key] === 'object' &&
+                !Array.isArray(src[key])
+            ) {
                 result[key] = defaultsDeep(result[key], src[key]);
             }
         }
@@ -203,7 +212,7 @@ export function defaultsDeep(target, ...sources) {
  */
 export function at(obj, paths) {
     if (!obj || typeof obj !== 'object' || !Array.isArray(paths)) return [];
-    return paths.map((path) => get(obj, path));
+    return paths.map(path => get(obj, path));
 }
 
 /**
@@ -235,7 +244,7 @@ export function unset(obj, path) {
  * @returns {Function}
  */
 export function flow(...fns) {
-    return (value) => fns.reduceRight((v, fn) => fn(v), value);
+    return value => fns.reduceRight((v, fn) => fn(v), value);
 }
 
 /**

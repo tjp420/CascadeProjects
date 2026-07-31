@@ -11,23 +11,70 @@ const path = require('path');
 const SCANNABLE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx']);
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'out', 'archive',
-  '.simplebeacon', '.vscode-test', 'tests', 'test', '__tests__', 'fixtures', 'docs'
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'out',
+  'archive',
+  '.simplebeacon',
+  '.vscode-test',
+  'tests',
+  'test',
+  '__tests__',
+  'fixtures',
+  'docs',
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
 
 // Node.js built-in modules that don't need resolution
 const NODE_BUILTINS = new Set([
-  'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'console',
-  'constants', 'crypto', 'dgram', 'dns', 'domain', 'events', 'fs', 'http',
-  'http2', 'https', 'inspector', 'module', 'net', 'os', 'path', 'perf_hooks',
-  'process', 'punycode', 'querystring', 'readline', 'repl', 'stream', 'string_decoder',
-  'sys', 'timers', 'tls', 'trace_events', 'tty', 'url', 'util', 'v8', 'vm',
-  'worker_threads', 'zlib'
+  'assert',
+  'async_hooks',
+  'buffer',
+  'child_process',
+  'cluster',
+  'console',
+  'constants',
+  'crypto',
+  'dgram',
+  'dns',
+  'domain',
+  'events',
+  'fs',
+  'http',
+  'http2',
+  'https',
+  'inspector',
+  'module',
+  'net',
+  'os',
+  'path',
+  'perf_hooks',
+  'process',
+  'punycode',
+  'querystring',
+  'readline',
+  'repl',
+  'stream',
+  'string_decoder',
+  'sys',
+  'timers',
+  'tls',
+  'trace_events',
+  'tty',
+  'url',
+  'util',
+  'v8',
+  'vm',
+  'worker_threads',
+  'zlib',
 ]);
 
-const IMPORT_REGEX = /(?:^|;|\s)import\s+(?:(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+)?['"]([^'"\s]+)['"]|(?:^|;|\s)require\s*\(\s*['"]([^'"\s]+)['"]\s*\)/gm;
+const IMPORT_REGEX =
+  /(?:^|;|\s)import\s+(?:(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+)?['"]([^'"\s]+)['"]|(?:^|;|\s)require\s*\(\s*['"]([^'"\s]+)['"]\s*\)/gm;
 
 const EXPORT_NAMED_REGEX = /export\s+(?:const|let|var|function|class|type|interface)\s+(\w+)/gm;
 const EXPORT_DEFAULT_REGEX = /export\s+default\s+(?:class|function)?\s*(\w+)?/gm;
@@ -107,7 +154,16 @@ function extractExports(content) {
   EXPORT_LIST_REGEX.lastIndex = 0;
   while ((match = EXPORT_LIST_REGEX.exec(content)) !== null) {
     const list = match[1];
-    const names = list.split(',').map(s => s.trim().split(/\s+as\s+/i).pop().trim()).filter(Boolean);
+    const names = list
+      .split(',')
+      .map((s) =>
+        s
+          .trim()
+          .split(/\s+as\s+/i)
+          .pop()
+          .trim()
+      )
+      .filter(Boolean);
     for (const name of names) exports.push({ name, type: 'named' });
   }
 
@@ -133,7 +189,16 @@ function extractImportNames(content) {
   // import { foo, bar as baz } from '...'
   const namedImportRegex = /import\s*\{([^}]+)\}\s*from\s*['"][^'"]+['"]/gm;
   while ((match = namedImportRegex.exec(content)) !== null) {
-    const items = match[1].split(',').map(s => s.trim().split(/\s+as\s+/i).pop().trim()).filter(Boolean);
+    const items = match[1]
+      .split(',')
+      .map((s) =>
+        s
+          .trim()
+          .split(/\s+as\s+/i)
+          .pop()
+          .trim()
+      )
+      .filter(Boolean);
     for (const item of items) names.add(item);
   }
 
@@ -152,7 +217,10 @@ function extractImportNames(content) {
   // const foo = require('...')
   const requireRegex = /(?:const|let|var)\s*\{?\s*([^}=]+)\s*\}?\s*=\s*require\s*\(/gm;
   while ((match = requireRegex.exec(content)) !== null) {
-    const items = match[1].split(',').map(s => s.trim()).filter(Boolean);
+    const items = match[1]
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     for (const item of items) names.add(item);
   }
 
@@ -163,12 +231,17 @@ async function walkFiles(dir, files, options) {
   let entries;
   try {
     entries = await fs.promises.readdir(dir, { withFileTypes: true });
-  } catch { return; }
+  } catch {
+    return;
+  }
 
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      const rel = path.relative(options.baseDir || dir, full).split(path.sep).join('/');
+      const rel = path
+        .relative(options.baseDir || dir, full)
+        .split(path.sep)
+        .join('/');
       const firstDir = rel.split('/')[0];
       if (SKIP_DIRS.has(firstDir)) continue;
       if (entry.name.startsWith('.')) continue;
@@ -176,9 +249,12 @@ async function walkFiles(dir, files, options) {
     } else if (entry.isFile()) {
       files.push({
         path: full,
-        relativePath: path.relative(options.baseDir || dir, full).split(path.sep).join('/'),
+        relativePath: path
+          .relative(options.baseDir || dir, full)
+          .split(path.sep)
+          .join('/'),
         ext: path.extname(full).toLowerCase(),
-        size: (await fs.promises.stat(full)).size
+        size: (await fs.promises.stat(full)).size,
       });
     }
   }
@@ -194,7 +270,7 @@ function detectCycles(graph, rootDir) {
       // Found cycle — extract the cycle from pathStack
       const cycleStart = pathStack.indexOf(node);
       const cycle = pathStack.slice(cycleStart).concat(node);
-      const relCycle = cycle.map(p => path.relative(rootDir, p).replace(/\\/g, '/'));
+      const relCycle = cycle.map((p) => path.relative(rootDir, p).replace(/\\/g, '/'));
       cycles.push({
         id: 'SB-DEPS-001',
         severity: 'high',
@@ -203,9 +279,10 @@ function detectCycles(graph, rootDir) {
         line: 1,
         count: 1,
         description: `Circular dependency detected: ${relCycle.join(' → ')}`,
-        recommendedAction: 'Refactor to break the circular dependency — extract shared logic to a separate module or use dependency inversion.',
+        recommendedAction:
+          'Refactor to break the circular dependency — extract shared logic to a separate module or use dependency inversion.',
         affectedFiles: relCycle,
-        metadata: { cycle: relCycle }
+        metadata: { cycle: relCycle },
       });
       return;
     }
@@ -246,9 +323,10 @@ function detectUnusedExports(fileExports, allImports) {
           line: 1,
           count: 1,
           description: `Export "${exp.name}" in ${filePath} is not imported by any other module in the scan scope`,
-          recommendedAction: 'Remove the unused export or verify it is consumed by external consumers (e.g., test files, CLI entry points).',
+          recommendedAction:
+            'Remove the unused export or verify it is consumed by external consumers (e.g., test files, CLI entry points).',
           affectedFiles: [filePath],
-          metadata: { unusedExports: [exp.name] }
+          metadata: { unusedExports: [exp.name] },
         });
       }
     }
@@ -266,7 +344,10 @@ function detectOrphanedModules(fileGraph, fileExports, rootDir) {
     let isImported = false;
     for (const [otherPath, otherDeps] of fileGraph.entries()) {
       if (otherPath === filePath) continue;
-      if (otherDeps.includes(filePath)) { isImported = true; break; }
+      if (otherDeps.includes(filePath)) {
+        isImported = true;
+        break;
+      }
     }
 
     if (!isImported && exports.length > 0) {
@@ -279,9 +360,10 @@ function detectOrphanedModules(fileGraph, fileExports, rootDir) {
         line: 1,
         count: 1,
         description: `Module ${relPath} is not imported by any other module in the scan scope`,
-        recommendedAction: 'Check if this is an entry point (expected) or dead code that should be removed.',
+        recommendedAction:
+          'Check if this is an entry point (expected) or dead code that should be removed.',
         affectedFiles: [relPath],
-        metadata: { orphan: true }
+        metadata: { orphan: true },
       });
     }
   }
@@ -304,7 +386,7 @@ async function scanDependencyGraph(baseDir, options = {}) {
   // Build dependency graph
   const fileGraph = new Map(); // filePath -> [dependencyPaths]
   const fileExports = new Map(); // filePath -> [{name, type}]
-  const allImports = new Map();  // importingFilePath -> Set(importedNames)
+  const allImports = new Map(); // importingFilePath -> Set(importedNames)
 
   for (const file of files) {
     if (!isScannable(file.path)) continue;
@@ -313,7 +395,9 @@ async function scanDependencyGraph(baseDir, options = {}) {
     let content;
     try {
       content = await fs.promises.readFile(file.path, 'utf8');
-    } catch { continue; }
+    } catch {
+      continue;
+    }
 
     const imports = extractImports(content);
     const exports = extractExports(content);
@@ -336,7 +420,8 @@ async function scanDependencyGraph(baseDir, options = {}) {
   for (const [importingFile, depPaths] of fileGraph.entries()) {
     for (const depPath of depPaths) {
       const depRel = path.relative(baseDir, depPath).replace(/\\/g, '/');
-      const names = allImports.get(path.relative(baseDir, importingFile).replace(/\\/g, '/')) || new Set();
+      const names =
+        allImports.get(path.relative(baseDir, importingFile).replace(/\\/g, '/')) || new Set();
       if (!importsFromFile.has(depRel)) importsFromFile.set(depRel, new Set());
       for (const name of names) importsFromFile.get(depRel).add(name);
     }
@@ -362,11 +447,14 @@ async function scanDependencyGraph(baseDir, options = {}) {
     issues,
     results: [],
     dependencyGraph: {
-      nodes: Array.from(fileGraph.keys()).map(p => path.relative(baseDir, p).replace(/\\/g, '/')),
+      nodes: Array.from(fileGraph.keys()).map((p) => path.relative(baseDir, p).replace(/\\/g, '/')),
       edges: Array.from(fileGraph.entries()).flatMap(([from, tos]) =>
-        tos.map(to => ({ from: path.relative(baseDir, from).replace(/\\/g, '/'), to: path.relative(baseDir, to).replace(/\\/g, '/') }))
-      )
-    }
+        tos.map((to) => ({
+          from: path.relative(baseDir, from).replace(/\\/g, '/'),
+          to: path.relative(baseDir, to).replace(/\\/g, '/'),
+        }))
+      ),
+    },
   };
 }
 

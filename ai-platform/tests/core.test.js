@@ -1,4 +1,4 @@
-/* eslint-disable no-constant-binary-expression */
+ 
 /**
  * Core JavaScript Tests
  *
@@ -82,13 +82,13 @@ describe('Core JavaScript Tests', () => {
 
     test('should filter arrays', () => {
       const arr = [1, 2, 3, 4, 5];
-      const filtered = arr.filter(x => x > 2);
+      const filtered = arr.filter((x) => x > 2);
       expect(filtered).toEqual([3, 4, 5]);
     });
 
     test('should map arrays', () => {
       const arr = [1, 2, 3];
-      const mapped = arr.map(x => x * 2);
+      const mapped = arr.map((x) => x * 2);
       expect(mapped).toEqual([2, 4, 6]);
     });
   });
@@ -162,7 +162,7 @@ describe('Core JavaScript Tests', () => {
       const value = null;
       expect(value === null).toBe(true);
       expect(value === undefined).toBe(false);
-      
+
       const undef = undefined;
       expect(undef === null).toBe(false);
       expect(undef === undefined).toBe(true);
@@ -317,11 +317,7 @@ describe('Core JavaScript Tests', () => {
     });
 
     test('should use Promise.all', async () => {
-      const promises = [
-        Promise.resolve(1),
-        Promise.resolve(2),
-        Promise.resolve(3)
-      ];
+      const promises = [Promise.resolve(1), Promise.resolve(2), Promise.resolve(3)];
       const results = await Promise.all(promises);
       expect(results).toEqual([1, 2, 3]);
     });
@@ -356,7 +352,10 @@ describe('Core JavaScript Tests', () => {
 
   describe('Map Operations', () => {
     test('should create maps', () => {
-      const map = new Map([['a', 1], ['b', 2]]);
+      const map = new Map([
+        ['a', 1],
+        ['b', 2],
+      ]);
       expect(map.size).toBe(2);
       expect(map.get('a')).toBe(1);
       expect(map.get('b')).toBe(2);

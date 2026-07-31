@@ -16,76 +16,76 @@
 
 const STRIPE_TIER_MAP = {
   // --- New 4-tier metered products ---
-  'price_pro_monthly': {
+  price_pro_monthly: {
     tier: 'pro',
     expiryDays: 30,
     product: 'pro',
     basePrice: 900, // cents
-    metered: false
+    metered: false,
   },
-  'price_pro_annual': {
+  price_pro_annual: {
     tier: 'pro',
     expiryDays: 365,
     product: 'pro_annual',
     basePrice: 7900, // cents ($79/yr)
-    metered: false
+    metered: false,
   },
-  'price_team_monthly': {
+  price_team_monthly: {
     tier: 'team',
     expiryDays: 30,
     product: 'team',
     basePrice: 1500, // cents per seat
-    metered: true
+    metered: true,
   },
-  'price_team_annual': {
+  price_team_annual: {
     tier: 'team',
     expiryDays: 365,
     product: 'team_annual',
     basePrice: 15000, // cents per seat ($150/yr)
-    metered: false
+    metered: false,
   },
-  'price_startup_monthly': {
+  price_startup_monthly: {
     tier: 'pro', // mapped to pro tier
     expiryDays: 30,
     product: 'startup',
     basePrice: 4900, // cents
     metered: true,
-    legacy: true
+    legacy: true,
   },
-  'price_growth_monthly': {
+  price_growth_monthly: {
     tier: 'team', // mapped to team tier
     expiryDays: 30,
     product: 'growth',
     basePrice: 14900, // cents
     metered: true,
-    legacy: true
+    legacy: true,
   },
-  'price_enterprise_annual': {
+  price_enterprise_annual: {
     tier: 'enterprise',
     expiryDays: 365,
     product: 'enterprise',
     basePrice: null, // custom negotiated
-    metered: false
+    metered: false,
   },
   // --- Legacy (pre-2026-06) — preserved for migration ---
-  'price_19_instant_id': {
+  price_19_instant_id: {
     tier: 'startup', // migrated from instant_report
     expiryDays: 7,
     product: 'instant_report',
-    legacy: true
+    legacy: true,
   },
-  'price_499_executive_id': {
+  price_499_executive_id: {
     tier: 'startup', // migrated from executive
     expiryDays: 90,
     product: 'executive_clearance',
-    legacy: true
+    legacy: true,
   },
-  'price_2499_eusprint_id': {
+  price_2499_eusprint_id: {
     tier: 'growth', // migrated from eusprint
     expiryDays: 30,
     product: 'eu_ai_act_sprint',
-    legacy: true
-  }
+    legacy: true,
+  },
 };
 
 /**
@@ -105,9 +105,7 @@ function getTierConfigByPriceId(priceId) {
  * @returns {{tier:string,expiryDays:number,product:string}|null}
  */
 function getTierConfigByProduct(product) {
-  const entry = Object.values(STRIPE_TIER_MAP).find(
-    (cfg) => cfg.product === product
-  );
+  const entry = Object.values(STRIPE_TIER_MAP).find((cfg) => cfg.product === product);
   return entry || null;
 }
 
@@ -120,14 +118,19 @@ function getTierConfigByProduct(product) {
  * @returns {Promise<Object>} Stripe API response.
  */
 async function reportScanUsageToStripe(stripeSecretKey, subscriptionItemId, scanCount) {
-  if (!stripeSecretKey || !subscriptionItemId || typeof scanCount !== 'number' || !Number.isFinite(scanCount)) {
+  if (
+    !stripeSecretKey ||
+    !subscriptionItemId ||
+    typeof scanCount !== 'number' ||
+    !Number.isFinite(scanCount)
+  ) {
     throw new Error('stripeSecretKey, subscriptionItemId, and scanCount are required');
   }
   const stripe = require('stripe')(stripeSecretKey);
   const usageRecord = await stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
     quantity: Math.max(0, Math.round(scanCount)),
     timestamp: Math.floor(Date.now() / 1000),
-    action: 'set'
+    action: 'set',
   });
   return usageRecord;
 }
@@ -136,5 +139,5 @@ module.exports = {
   STRIPE_TIER_MAP,
   getTierConfigByPriceId,
   getTierConfigByProduct,
-  reportScanUsageToStripe
+  reportScanUsageToStripe,
 };

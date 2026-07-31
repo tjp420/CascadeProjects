@@ -5,7 +5,7 @@ const {
   createDeliverableWorkspace,
   listProducts,
   vaultUrls,
-  inferProductFromBooking
+  inferProductFromBooking,
 } = require('./operator-deliverable-service.cjs');
 const { loadBookings } = require('./audit-booking-route.cjs');
 
@@ -17,8 +17,9 @@ const { loadBookings } = require('./audit-booking-route.cjs');
  */
 function registerOperatorDeliverableRoute(app, options = {}) {
   const projectRoot = options.projectRoot || path.join(__dirname, '../..');
-  const bookingsPath = options.bookingsPath
-    || path.join(options.dataDir || path.join(projectRoot, 'data'), 'audit-bookings.json');
+  const bookingsPath =
+    options.bookingsPath ||
+    path.join(options.dataDir || path.join(projectRoot, 'data'), 'audit-bookings.json');
 
   app.get('/api/operator/products', (_req, res) => {
     res.json({ ok: true, products: listProducts() });
@@ -30,7 +31,7 @@ function registerOperatorDeliverableRoute(app, options = {}) {
       ok: true,
       internal: process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true',
       urls,
-      defaultProduct: 'clearance499'
+      defaultProduct: 'clearance499',
     });
   });
 
@@ -62,15 +63,18 @@ function registerOperatorDeliverableRoute(app, options = {}) {
           bookingEmail: body.bookingEmail || booking?.contactEmail,
           reportPath: body.reportPath || body.report,
           projectId: body.projectId,
-          milestone: body.milestone
+          milestone: body.milestone,
         },
         { projectRoot, bookingsPath }
       );
 
       if (!result.ok) {
-        const status = result.error === 'unknown_product' ? 400
-          : result.error === 'project_not_found' ? 404
-          : 400;
+        const status =
+          result.error === 'unknown_product'
+            ? 400
+            : result.error === 'project_not_found'
+              ? 404
+              : 400;
         return res.status(status).json(result);
       }
 
@@ -83,7 +87,7 @@ function registerOperatorDeliverableRoute(app, options = {}) {
         gate: result.gate,
         gateWarning: result.gateWarning === true,
         urls: result.urls,
-        vaultSteps: result.product.vaultSteps
+        vaultSteps: result.product.vaultSteps,
       });
     } catch (err) {
       logger.warn('[operator-deliverable] failed:', err.message);

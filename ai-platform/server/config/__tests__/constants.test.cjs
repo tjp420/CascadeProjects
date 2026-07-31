@@ -95,7 +95,10 @@ describe('Facade loads', () => {
 
   it('resolve returns expected values', () => {
     assert.strictEqual(constants.resolve('parseSize'), constants.categories.format.parseSize);
-    assert.deepStrictEqual(constants.resolve('CODE_EXTENSIONS'), constants.categories.fileTypes.EXTENSIONS.CODE);
+    assert.deepStrictEqual(
+      constants.resolve('CODE_EXTENSIONS'),
+      constants.categories.fileTypes.EXTENSIONS.CODE
+    );
     assert.strictEqual(constants.resolve('nonExistent'), undefined);
     assert.strictEqual(constants.resolve(123), undefined);
   });
@@ -149,7 +152,10 @@ describe('Facade loads', () => {
     assert.strictEqual(typeof stats.arrays, 'number');
     assert.strictEqual(typeof stats.primitives, 'number');
     assert.ok(stats.total > 50);
-    assert.strictEqual(stats.total, stats.functions + stats.objects + stats.arrays + stats.primitives);
+    assert.strictEqual(
+      stats.total,
+      stats.functions + stats.objects + stats.arrays + stats.primitives
+    );
   });
 
   it('toJSON returns serializable metadata snapshot', () => {
@@ -164,7 +170,11 @@ describe('Facade loads', () => {
     assert.ok(json.statistics);
     assert.strictEqual(typeof json.statistics.total, 'number');
     assert.ok(typeof json.timestamp === 'string');
-    assert.strictEqual(JSON.stringify(json), JSON.stringify(JSON.parse(JSON.stringify(json))), 'should round-trip through JSON');
+    assert.strictEqual(
+      JSON.stringify(json),
+      JSON.stringify(JSON.parse(JSON.stringify(json))),
+      'should round-trip through JSON'
+    );
   });
 
   it('exportNames is frozen and contains expected keys', () => {
@@ -485,7 +495,7 @@ describe('strings', () => {
 
 describe('arrays', () => {
   it('countBy counts', () => {
-    const result = constants.countBy([1, 2, 2, 3], (x) => x % 2 === 0 ? 'even' : 'odd');
+    const result = constants.countBy([1, 2, 2, 3], (x) => (x % 2 === 0 ? 'even' : 'odd'));
     assert.strictEqual(result.even, 2);
     assert.strictEqual(result.odd, 2);
   });
@@ -499,13 +509,22 @@ describe('arrays', () => {
   });
 
   it('findIndex finds index', () => {
-    assert.strictEqual(constants.findIndex([1, 2, 3], (x) => x === 2), 1);
-    assert.strictEqual(constants.findIndex([1, 2, 3], (x) => x === 5), -1);
+    assert.strictEqual(
+      constants.findIndex([1, 2, 3], (x) => x === 2),
+      1
+    );
+    assert.strictEqual(
+      constants.findIndex([1, 2, 3], (x) => x === 5),
+      -1
+    );
   });
 
   it('sum adds numbers', () => {
     assert.strictEqual(constants.sum([1, 2, 3]), 6);
-    assert.strictEqual(constants.sum([{ v: 1 }, { v: 2 }], (x) => x.v), 3);
+    assert.strictEqual(
+      constants.sum([{ v: 1 }, { v: 2 }], (x) => x.v),
+      3
+    );
   });
 
   it('mean calculates average', () => {
@@ -521,15 +540,21 @@ describe('objects', () => {
   });
 
   it('mapValues maps values', () => {
-    assert.deepStrictEqual(constants.mapValues({ a: 1, b: 2 }, (v) => v * 2), { a: 2, b: 4 });
+    assert.deepStrictEqual(
+      constants.mapValues({ a: 1, b: 2 }, (v) => v * 2),
+      { a: 2, b: 4 }
+    );
   });
 
   it('mapKeys maps keys', () => {
-    assert.deepStrictEqual(constants.mapKeys({ a: 1 }, (k) => k.toUpperCase()), { A: 1 });
+    assert.deepStrictEqual(
+      constants.mapKeys({ a: 1 }, (k) => k.toUpperCase()),
+      { A: 1 }
+    );
   });
 
   it('invert inverts keys/values', () => {
-    assert.deepStrictEqual(constants.invert({ a: '1', b: '2' }), { '1': 'a', '2': 'b' });
+    assert.deepStrictEqual(constants.invert({ a: '1', b: '2' }), { 1: 'a', 2: 'b' });
   });
 });
 

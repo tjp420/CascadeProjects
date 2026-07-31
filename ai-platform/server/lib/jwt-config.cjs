@@ -8,7 +8,7 @@ const jwtConfig = {
   expiresIn: process.env.JWT_EXPIRES_IN || '15m',
   algorithm: 'HS256',
   issuer: 'cascade-ai-platform',
-  audience: 'cascade-ai-users'
+  audience: 'cascade-ai-users',
 };
 
 const refreshConfig = {
@@ -16,7 +16,7 @@ const refreshConfig = {
   expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   algorithm: 'HS256',
   issuer: 'cascade-ai-platform',
-  audience: 'cascade-ai-refresh'
+  audience: 'cascade-ai-refresh',
 };
 
 module.exports = { jwtConfig, refreshConfig };

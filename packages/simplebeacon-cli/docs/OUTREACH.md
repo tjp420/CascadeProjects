@@ -4,9 +4,9 @@
 
 **Public proof:**
 
-- Site: https://simplebeacon.ai  
-- CLI: https://github.com/tjp420/simplebeacon  
-- Sample deliverable: https://simplebeacon.ai/sample-report  
+- Site: https://simplebeacon.ai
+- CLI: https://github.com/tjp420/simplebeacon
+- Sample deliverable: https://simplebeacon.ai/sample-report
 - Business inbox: **audit@simplebeacon.ai**
 
 ---
@@ -15,17 +15,17 @@
 
 **Code never leaves the client's infrastructure by default.**
 
-| Model | Who scans | Client sends you |
-|-------|-----------|------------------|
-| **CLI in CI / Docker** (default) | Client on their runner or VPC | Optional: sanitized JSON report for PDF |
-| **On-prem dashboard** | Client Docker stack | Nothing — see `docs/simplebeacon-on-premises-deployment.md` |
-| ~~ZIP to founder~~ | ~~Deprecated~~ | ~~Do not offer as primary~~ |
+| Model                            | Who scans                     | Client sends you                                            |
+| -------------------------------- | ----------------------------- | ----------------------------------------------------------- |
+| **CLI in CI / Docker** (default) | Client on their runner or VPC | Optional: sanitized JSON report for PDF                     |
+| **On-prem dashboard**            | Client Docker stack           | Nothing — see `docs/simplebeacon-on-premises-deployment.md` |
+| ~~ZIP to founder~~               | ~~Deprecated~~                | ~~Do not offer as primary~~                                 |
 
 **Workflow (recommended):**
 
-1. Client runs `npx simplebeacon scan --gate --offline` or Docker equivalent  
-2. Client tunes `.simplebeacon/config.json` allowlists for false positives  
-3. Optional: client shares `.simplebeacon/report.json` (secrets redacted) for executive PDF  
+1. Client runs `npx simplebeacon scan --gate --offline` or Docker equivalent
+2. Client tunes `.simplebeacon/config.json` allowlists for false positives
+3. Optional: client shares `.simplebeacon/report.json` (secrets redacted) for executive PDF
 4. You never need their source tree
 
 ---
@@ -72,7 +72,7 @@ Response: Raw counts without triage are noise. Simplebeacon is strict by design 
 
 ## Do not
 
-- Link paid prospects to "send us a zip" as the primary path  
-- Copy-paste Reddit/HN scripts from old templates  
-- Claim SOC 2, zero false positives, or "AI Safety platform"  
+- Link paid prospects to "send us a zip" as the primary path
+- Copy-paste Reddit/HN scripts from old templates
+- Claim SOC 2, zero false positives, or "AI Safety platform"
 - Hide the open-source CLI from paying customers

@@ -4,8 +4,7 @@
  * @returns {string}
  */
 export function escapeHtml(str) {
-    if (str == null)
-        return '';
+    if (str == null) return '';
     return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -41,8 +40,7 @@ export function normalizeSlashes(path) {
 export function truncate(str, maxLen = 80, suffix = '…') {
     const s = String(str !== null && str !== void 0 ? str : '');
     const limit = Number.isFinite(maxLen) && maxLen > 0 ? Math.floor(maxLen) : 80;
-    if (s.length <= limit)
-        return s;
+    if (s.length <= limit) return s;
     const endLen = Math.max(0, limit - String(suffix !== null && suffix !== void 0 ? suffix : '…').length);
     return s.slice(0, endLen) + String(suffix !== null && suffix !== void 0 ? suffix : '…');
 }
@@ -53,8 +51,7 @@ export function truncate(str, maxLen = 80, suffix = '…') {
  */
 export function capitalize(str) {
     const s = String(str !== null && str !== void 0 ? str : '');
-    if (!s)
-        return s;
+    if (!s) return s;
     return s[0].toUpperCase() + s.slice(1);
 }
 /**
@@ -89,7 +86,7 @@ export function kebabCase(str) {
 export function camelCase(str) {
     return String(str !== null && str !== void 0 ? str : '')
         .replace(/[-_\s]+(.)?/g, (_, ch) => (ch ? ch.toUpperCase() : ''))
-        .replace(/^[A-Z]/, (ch) => ch.toLowerCase());
+        .replace(/^[A-Z]/, ch => ch.toLowerCase());
 }
 /**
  * Convert a string to snake_case.
@@ -113,8 +110,7 @@ export function padStart(str, len, char = ' ') {
     const s = String(str);
     const targetLen = Math.max(0, Math.floor(Number(len) || 0));
     const padChar = String(char || ' ').slice(0, 1);
-    if (s.length >= targetLen)
-        return s;
+    if (s.length >= targetLen) return s;
     const pad = padChar.repeat(targetLen - s.length);
     return pad + s;
 }
@@ -129,8 +125,7 @@ export function padEnd(str, len, char = ' ') {
     const s = String(str);
     const targetLen = Math.max(0, Math.floor(Number(len) || 0));
     const padChar = String(char || ' ').slice(0, 1);
-    if (s.length >= targetLen)
-        return s;
+    if (s.length >= targetLen) return s;
     const pad = padChar.repeat(targetLen - s.length);
     return s + pad;
 }
@@ -140,8 +135,7 @@ export function padEnd(str, len, char = ' ') {
  * @returns {string}
  */
 export function stripHtml(str) {
-    if (str == null || typeof str !== 'string')
-        return '';
+    if (str == null || typeof str !== 'string') return '';
     return str.replace(/<[^>]*>/g, '');
 }
 /**
@@ -153,8 +147,7 @@ export function stripHtml(str) {
  */
 export function pluralize(count, singular, plural) {
     const n = Number(count);
-    if (!Number.isFinite(n))
-        return `${count} ${singular}`;
-    const word = n === 1 ? singular : (plural !== null && plural !== void 0 ? plural : `${singular}s`);
+    if (!Number.isFinite(n)) return `${count} ${singular}`;
+    const word = n === 1 ? singular : plural !== null && plural !== void 0 ? plural : `${singular}s`;
     return `${n} ${word}`;
 }

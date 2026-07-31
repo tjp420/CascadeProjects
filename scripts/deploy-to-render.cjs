@@ -4,12 +4,12 @@
 'use strict';
 /**
  * Deploy SimpleBeacon to Render
- * 
+ *
  * Prerequisites:
  * 1. Install Render CLI: npm install -g @render/cli
  * 2. Login: render login
  * 3. Set env vars in Render dashboard or via CLI
- * 
+ *
  * Usage:
  *   node scripts/deploy-to-render.cjs
  */
@@ -51,7 +51,10 @@ function main() {
   // 2. Verify TypeScript compilation
   console.log('\n📦 Verifying extension build...');
   try {
-    execSync('npm run compile', { cwd: path.join(ROOT, 'simplebeacon-vscode-merged'), stdio: 'pipe' });
+    execSync('npm run compile', {
+      cwd: path.join(ROOT, 'simplebeacon-vscode-merged'),
+      stdio: 'pipe',
+    });
     console.log('✅ Extension compiled');
   } catch {
     console.error('❌ Extension compilation failed');
@@ -64,7 +67,7 @@ function main() {
     'ai-platform/simplebeacon-server.cjs',
     'ai-platform/src/api/simplebeacon-billing-api.cjs',
     'coming-soon/routes/checkout.cjs',
-    'coming-soon/services/email.cjs'
+    'coming-soon/services/email.cjs',
   ];
   for (const file of serverFiles) {
     try {
@@ -86,9 +89,9 @@ function main() {
     'SIMPLEBEACON_LICENSE_SECRET',
     'RESEND_API_KEY',
     'PUBLIC_URL',
-    'SIMPLEBEACON_APP_URL'
+    'SIMPLEBEACON_APP_URL',
   ];
-  const missing = requiredVars.filter(v => !envContent.includes(v));
+  const missing = requiredVars.filter((v) => !envContent.includes(v));
   if (missing.length) {
     console.warn(`⚠️ Missing from .env.example: ${missing.join(', ')}`);
   } else {
@@ -99,7 +102,7 @@ function main() {
   console.log('\n🌐 Deploying to Render...');
   console.log('   (Ensure Render CLI is installed: npm install -g @render/cli)');
   console.log('   (Ensure you are logged in: render login)');
-  
+
   try {
     run('render deploy --preview .', ROOT);
   } catch {

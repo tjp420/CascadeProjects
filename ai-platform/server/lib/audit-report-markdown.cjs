@@ -14,7 +14,10 @@ function markdownToHtml(markdown) {
     if (!tableRows.length) return;
     html.push('<table class="data-table"><tbody>');
     tableRows.forEach((row, index) => {
-      const cells = row.split('|').map((c) => c.trim()).filter(Boolean);
+      const cells = row
+        .split('|')
+        .map((c) => c.trim())
+        .filter(Boolean);
       if (!cells.length) return;
       if (index === 1 && cells.every((c) => /^[-:]+$/.test(c))) return;
       const tag = index === 0 ? 'th' : 'td';

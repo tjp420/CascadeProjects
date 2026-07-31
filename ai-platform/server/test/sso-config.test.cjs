@@ -20,7 +20,11 @@ describe('SSO Config Routes', () => {
 
   after(async () => {
     // clean up
-    try { await fs.unlink(TEST_STORE); } catch (e) { /* ignore */ }
+    try {
+      await fs.unlink(TEST_STORE);
+    } catch (e) {
+      /* ignore */
+    }
   });
 
   it('should create an OIDC config, list it, test it, update and delete it', async () => {
@@ -34,7 +38,7 @@ describe('SSO Config Routes', () => {
         providerType: 'auth0',
         domain: 'example.com',
         enabled: true,
-        oidc: { clientId: 'cid', clientSecret: 'csecret', issuer: 'https://issuer.example' }
+        oidc: { clientId: 'cid', clientSecret: 'csecret', issuer: 'https://issuer.example' },
       })
       .expect(201);
     assert.ok(createRes.body.providerId, 'providerId returned');
@@ -43,7 +47,7 @@ describe('SSO Config Routes', () => {
     // List all
     const listRes = await request(app).get('/api/enterprise/sso/configs').expect(200);
     assert.ok(Array.isArray(listRes.body.configs));
-    assert.ok(listRes.body.configs.find(c => c.providerId === pid));
+    assert.ok(listRes.body.configs.find((c) => c.providerId === pid));
 
     // Test endpoint
     const testRes = await request(app).get(`/api/enterprise/sso/test/${pid}`).expect(200);
@@ -62,6 +66,6 @@ describe('SSO Config Routes', () => {
 
     // Confirm deleted
     const postDel = await request(app).get('/api/enterprise/sso/configs').expect(200);
-    assert.ok(!postDel.body.configs.find(c => c.providerId === pid));
+    assert.ok(!postDel.body.configs.find((c) => c.providerId === pid));
   });
 });

@@ -47,11 +47,25 @@ ${removedNodes.length === 0 ? '_None_' : removedNodes.map((id) => `- \`${id}\``)
 ## Edge Changes
 
 **Added Edges (${addedEdges.length}):**
-${addedEdges.length === 0 ? '_None_' : addedEdges.slice(0, 20).map((e) => `- \`${e.replace('|', ' → ')}\``).join('\n')}
+${
+  addedEdges.length === 0
+    ? '_None_'
+    : addedEdges
+        .slice(0, 20)
+        .map((e) => `- \`${e.replace('|', ' → ')}\``)
+        .join('\n')
+}
 ${addedEdges.length > 20 ? `\n_... and ${addedEdges.length - 20} more_` : ''}
 
 **Removed Edges (${removedEdges.length}):**
-${removedEdges.length === 0 ? '_None_' : removedEdges.slice(0, 20).map((e) => `- \`${e.replace('|', ' → ')}\``).join('\n')}
+${
+  removedEdges.length === 0
+    ? '_None_'
+    : removedEdges
+        .slice(0, 20)
+        .map((e) => `- \`${e.replace('|', ' → ')}\``)
+        .join('\n')
+}
 ${removedEdges.length > 20 ? `\n_... and ${removedEdges.length - 20} more_` : ''}
 
 ## Summary
@@ -62,8 +76,24 @@ The two exports are **${addedNodes.length === 0 && removedNodes.length === 0 && 
 fs.mkdirSync(OUTDIR, { recursive: true });
 fs.writeFileSync(path.join(OUTDIR, 'codemap-diff-report-v3.md'), diff, 'utf8');
 
-console.log('[diff-codemap] Nodes:', v1.graph.nodes.length, '→', v2.graph.nodes.length, '(Δ', v2.graph.nodes.length - v1.graph.nodes.length, ')');
-console.log('[diff-codemap] Edges:', v1.graph.edges.length, '→', v2.graph.edges.length, '(Δ', v2.graph.edges.length - v1.graph.edges.length, ')');
+console.log(
+  '[diff-codemap] Nodes:',
+  v1.graph.nodes.length,
+  '→',
+  v2.graph.nodes.length,
+  '(Δ',
+  v2.graph.nodes.length - v1.graph.nodes.length,
+  ')'
+);
+console.log(
+  '[diff-codemap] Edges:',
+  v1.graph.edges.length,
+  '→',
+  v2.graph.edges.length,
+  '(Δ',
+  v2.graph.edges.length - v1.graph.edges.length,
+  ')'
+);
 console.log('[diff-codemap] Added nodes:', addedNodes.length);
 console.log('[diff-codemap] Removed nodes:', removedNodes.length);
 console.log('[diff-codemap] Added edges:', addedEdges.length);

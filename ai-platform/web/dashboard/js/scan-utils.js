@@ -27,7 +27,7 @@ window.ScanUtils = {
         issues: report.rawIssues || report.detectedIssues || [],
         projectPath: report.projectRoot || null,
         timestamp: report.timestamp || null,
-        gateFailed: report.gateFailed || false
+        gateFailed: report.gateFailed || false,
       };
     }
     // Try fetching the report from the server if none cached
@@ -37,7 +37,7 @@ window.ScanUtils = {
         issues: scanService.report?.rawIssues || scanService.report?.detectedIssues || [],
         projectPath: scanService.report?.projectRoot || null,
         timestamp: scanService.report?.timestamp || null,
-        gateFailed: scanService.report?.gateFailed || false
+        gateFailed: scanService.report?.gateFailed || false,
       };
     } catch {
       return { issues: [] };
@@ -66,5 +66,5 @@ window.ScanUtils = {
    */
   getIssueCategories() {
     return scanService.getIssueCategories();
-  }
+  },
 };

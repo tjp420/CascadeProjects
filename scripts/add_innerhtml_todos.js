@@ -7,10 +7,11 @@ const roots = [
   'coming-soon/public/dashboard/js-es2018/views',
   'coming-soon/public/dashboard/js/views',
   'simplebeacon-vscode-merged/dashboard-web/js-es2018/views',
-  'simplebeacon-vscode-merged/dashboard-web/js/views'
+  'simplebeacon-vscode-merged/dashboard-web/js/views',
 ];
 
-const todo = '// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.';
+const todo =
+  '// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.';
 
 function walk(dir) {
   let files = [];
@@ -32,7 +33,7 @@ let touchedFiles = [];
 const workspaceRoot = process.argv[2] || process.cwd();
 for (const root of roots) {
   const fullRoot = path.join(workspaceRoot, root.replace(/\//g, path.sep));
-  const all = walk(fullRoot).filter(f => f.endsWith('.js'));
+  const all = walk(fullRoot).filter((f) => f.endsWith('.js'));
   for (const file of all) {
     let s = fs.readFileSync(file, 'utf8');
     const lines = s.split(/\r?\n/);

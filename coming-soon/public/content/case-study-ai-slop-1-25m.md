@@ -1,10 +1,10 @@
 # How We Found $1.25M in AI Slop Inside a Fintech Codebase
 
-> *A real audit of a Series B fintech's production codebase, run entirely offline in under 5 minutes.*
+> _A real audit of a Series B fintech's production codebase, run entirely offline in under 5 minutes._
 
 ## The Setup
 
-Last month a VP of Engineering at a 120-person fintech reached out. Their board had asked a simple question: *"How much AI-generated code is in production that we don't know about?"*
+Last month a VP of Engineering at a 120-person fintech reached out. Their board had asked a simple question: _"How much AI-generated code is in production that we don't know about?"_
 
 They had used Cursor, GitHub Copilot, and Claude for 8 months. The engineering team assumed everything was fine — code reviews caught the obvious stuff, right?
 
@@ -22,7 +22,7 @@ const API_URL = 'https://api.staging.example.com'; // placeholder: update before
 const HEALTH_CHECK = 'Lorem ipsum dolor sit amet'; // AI-generated placeholder
 ```
 
-These weren't caught in code review because they *looked* like normal strings. One was even in a health-check endpoint that returned a 200 OK with Latin text. A compliance auditor would flag this as incomplete testing documentation.
+These weren't caught in code review because they _looked_ like normal strings. One was even in a health-check endpoint that returned a 200 OK with Latin text. A compliance auditor would flag this as incomplete testing documentation.
 
 ### 2. Exposed Staging API Keys — 4 instances ($250K liability)
 
@@ -50,7 +50,7 @@ Under the EU AI Act, any AI system processing financial risk data requires docum
 // utils/hash.js
 // Copied from StackOverflow / ChatGPT hybrid
 function sha256(str) {
-  // ...implementation matching GPL-licensed reference...
+    // ...implementation matching GPL-licensed reference...
 }
 ```
 
@@ -60,13 +60,13 @@ The developer asked ChatGPT for "a fast SHA-256 implementation in JavaScript." T
 
 ## The Numbers
 
-| Finding | Count | Est. Regulatory / Legal Liability |
-|---------|-------|-----------------------------------|
-| Hardcoded placeholder diagnostics | 23 | $150,000 |
-| Exposed staging API keys | 4 | $250,000 |
-| Unapproved Anthropic integration | 1 | $350,000 |
-| Copy-pasted GPL code block | 2 | $500,000 |
-| **Total estimated exposure** | | **$1,250,000** |
+| Finding                           | Count | Est. Regulatory / Legal Liability |
+| --------------------------------- | ----- | --------------------------------- |
+| Hardcoded placeholder diagnostics | 23    | $150,000                          |
+| Exposed staging API keys          | 4     | $250,000                          |
+| Unapproved Anthropic integration  | 1     | $350,000                          |
+| Copy-pasted GPL code block        | 2     | $500,000                          |
+| **Total estimated exposure**      |       | **$1,250,000**                    |
 
 The fix took 3 days. The certificate bought the CCO board credibility.
 
@@ -126,4 +126,4 @@ Or install the [VS Code extension](https://marketplace.visualstudio.com/items?it
 
 ---
 
-*SimpleBeacon is a deterministic code-scanning and audit tool. All scan results are reviewed by qualified personnel before any compliance certification is issued. Clients retain full authority to override, challenge, or disregard any automated finding.*
+_SimpleBeacon is a deterministic code-scanning and audit tool. All scan results are reviewed by qualified personnel before any compliance certification is issued. Clients retain full authority to override, challenge, or disregard any automated finding._

@@ -50,13 +50,18 @@ function main() {
   check('Screenshots directory exists', fs.existsSync(screenshotsDir));
 
   const screenshotPngs = fs.existsSync(screenshotsDir)
-    ? fs.readdirSync(screenshotsDir).filter(f => f.endsWith('.png'))
+    ? fs.readdirSync(screenshotsDir).filter((f) => f.endsWith('.png'))
     : [];
-  check('At least 1 screenshot PNG present', screenshotPngs.length > 0,
-    `${screenshotPngs.length} found — need 5 for marketplace`);
+  check(
+    'At least 1 screenshot PNG present',
+    screenshotPngs.length > 0,
+    `${screenshotPngs.length} found — need 5 for marketplace`
+  );
 
-  check('Extension README exists',
-    fs.existsSync(path.join(ROOT, 'simplebeacon-vscode-merged', 'README.md')));
+  check(
+    'Extension README exists',
+    fs.existsSync(path.join(ROOT, 'simplebeacon-vscode-merged', 'README.md'))
+  );
 
   // ── Phase 2: Code Quality ──
   section('Phase 2: Code Quality');
@@ -66,7 +71,7 @@ function main() {
     'ai-platform/src/api/simplebeacon-billing-api.cjs',
     'coming-soon/routes/checkout.cjs',
     'coming-soon/services/email.cjs',
-    'coming-soon/server.cjs'
+    'coming-soon/server.cjs',
   ];
   for (const file of serverFiles) {
     const fullPath = path.join(ROOT, file);
@@ -110,7 +115,7 @@ function main() {
       'SIMPLEBEACON_LICENSE_SECRET',
       'PUBLIC_URL',
       'SIMPLEBEACON_APP_URL',
-      'RESEND_API_KEY'
+      'RESEND_API_KEY',
     ];
     for (const key of critical) {
       check(`.env.example documents ${key}`, env.includes(key));
@@ -124,11 +129,23 @@ function main() {
   section('Phase 5: Documentation & Legal');
 
   check('EULA exists', fs.existsSync(path.join(ROOT, 'sales', 'legal', 'EULA.md')));
-  check('Privacy Policy exists', fs.existsSync(path.join(ROOT, 'sales', 'legal', 'PRIVACY_POLICY.md')));
-  check('Terms of Service exists', fs.existsSync(path.join(ROOT, 'sales', 'legal', 'TERMS_OF_SERVICE.md')));
-  check('Installation guide exists', fs.existsSync(path.join(ROOT, 'sales', 'docs', 'installation.md')));
+  check(
+    'Privacy Policy exists',
+    fs.existsSync(path.join(ROOT, 'sales', 'legal', 'PRIVACY_POLICY.md'))
+  );
+  check(
+    'Terms of Service exists',
+    fs.existsSync(path.join(ROOT, 'sales', 'legal', 'TERMS_OF_SERVICE.md'))
+  );
+  check(
+    'Installation guide exists',
+    fs.existsSync(path.join(ROOT, 'sales', 'docs', 'installation.md'))
+  );
   check('User guide exists', fs.existsSync(path.join(ROOT, 'sales', 'docs', 'user-guide.md')));
-  check('LLM modes doc exists', fs.existsSync(path.join(ROOT, 'packages', 'simplebeacon-cli', 'docs', 'LLM-MODES.md')));
+  check(
+    'LLM modes doc exists',
+    fs.existsSync(path.join(ROOT, 'packages', 'simplebeacon-cli', 'docs', 'LLM-MODES.md'))
+  );
 
   // ── Phase 6: GitHub Action ──
   section('Phase 6: GitHub Action');

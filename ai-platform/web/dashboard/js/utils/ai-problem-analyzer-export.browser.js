@@ -9,7 +9,7 @@ const RISK_BAND_LEGEND = {
   High: 'critical',
   Elevated: 'high',
   Moderate: 'medium',
-  Low: 'low'
+  Low: 'low',
 };
 const TAXONOMY_VERSION = 'final-48-analyzers';
 const ANALYSIS_VERSION = '2.0.0';
@@ -17,7 +17,7 @@ const ANALYSIS_VERSION = '2.0.0';
 const SHARED_MITIGATION_THEMES = [
   'Use deterministic evaluation fixtures and regression tests.',
   'Track category-specific metrics in release gates.',
-  'Escalate high-risk findings with clear remediation owners.'
+  'Escalate high-risk findings with clear remediation owners.',
 ];
 
 /**
@@ -49,10 +49,12 @@ function isBenchmarkPath(projectPath) {
 function redactPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
-  if (/^[a-zA-Z]:\//.test(normalized)
-    || normalized.startsWith('/Users/')
-    || normalized.startsWith('/home/')
-    || normalized.includes('CascadeProjects')) {
+  if (
+    /^[a-zA-Z]:\//.test(normalized) ||
+    normalized.startsWith('/Users/') ||
+    normalized.startsWith('/home/') ||
+    normalized.includes('CascadeProjects')
+  ) {
     return projectLabel;
   }
   return normalized;
@@ -101,7 +103,10 @@ function inferScoringDirection(result = {}) {
   const score = Number(result.score);
   if (!Number.isFinite(score)) return 'lower_better';
   const inverted = clampScore(100 - score);
-  if (severityFromRisk(inverted) === result.severity && severityFromRisk(clampScore(score)) !== result.severity) {
+  if (
+    severityFromRisk(inverted) === result.severity &&
+    severityFromRisk(clampScore(score)) !== result.severity
+  ) {
     return 'higher_better';
   }
   const metrics = result.metrics || [];
@@ -121,20 +126,24 @@ function enrichAnalyzerResultForExport(result) {
   const hasLegacyScore = Number.isFinite(Number(result.score));
   const metricScore = hasLegacyScore
     ? clampScore(result.score)
-    : clampScore(result.metricScore ?? (scoringDirection === 'higher_better' && Number.isFinite(Number(result.riskScore))
-      ? 100 - Number(result.riskScore)
-      : result.riskScore));
-  const riskScore = Number.isFinite(Number(result.riskScore)) && !hasLegacyScore
-    ? clampScore(result.riskScore)
-    : scoringDirection === 'higher_better'
-      ? clampScore(100 - metricScore)
-      : metricScore;
+    : clampScore(
+        result.metricScore ??
+          (scoringDirection === 'higher_better' && Number.isFinite(Number(result.riskScore))
+            ? 100 - Number(result.riskScore)
+            : result.riskScore)
+      );
+  const riskScore =
+    Number.isFinite(Number(result.riskScore)) && !hasLegacyScore
+      ? clampScore(result.riskScore)
+      : scoringDirection === 'higher_better'
+        ? clampScore(100 - metricScore)
+        : metricScore;
   const { score: _score, ...rest } = result;
   return {
     ...rest,
     metricScore,
     riskScore,
-    scoringDirection
+    scoringDirection,
   };
 }
 
@@ -165,7 +174,7 @@ function enrichTopPriorityIssuesForExport(issues = [], analyzerResults = []) {
       riskScore,
       ...(metricScore != null ? { metricScore } : {}),
       ...(scoringDirection ? { scoringDirection } : {}),
-      priorityScore: riskScore
+      priorityScore: riskScore,
     };
   });
 }
@@ -179,7 +188,7 @@ function slimMitigationThemes(themes = []) {
   if (!themes.length) return { sharedThemes: SHARED_MITIGATION_THEMES, categories: [] };
   const categories = themes.map((item) => ({
     categoryId: item.categoryId,
-    categoryName: item.categoryName
+    categoryName: item.categoryName,
   }));
   return { sharedThemes: SHARED_MITIGATION_THEMES, categories };
 }
@@ -251,7 +260,7 @@ function reconcileRiskSummary(riskSummary = {}) {
     peakSeverity,
     overallRiskLevelBasis: 'average-risk-score',
     riskBandLegend: RISK_BAND_LEGEND,
-    ...(overallRiskLevelNote ? { overallRiskLevelNote } : {})
+    ...(overallRiskLevelNote ? { overallRiskLevelNote } : {}),
   };
 }
 
@@ -300,7 +309,8 @@ function buildHygieneSummary(summary, riskSummary, healthScore) {
     peakSeverity: riskSummary?.peakSeverity ?? null,
     overallRiskLevel: riskSummary?.overallRiskLevel ?? null,
     healthScore: healthScore ?? null,
-    attestationNote: 'healthScore reflects SimpleBeacon gate scan quality — analyzer riskScore/peakSeverity are separate signals.'
+    attestationNote:
+      'healthScore reflects SimpleBeacon gate scan quality — analyzer riskScore/peakSeverity are separate signals.',
   };
 }
 
@@ -315,13 +325,18 @@ function buildExportNotes(analysisResult, options = {}) {
   const risk = analysisResult?.riskSummary || {};
   const summary = analysisResult?.summary || {};
   const execution = risk.executionStatus || {};
-  const totalRun = (execution.measured || 0) + (execution.insufficientData || 0) + (execution.stub || 0);
+  const totalRun =
+    (execution.measured || 0) + (execution.insufficientData || 0) + (execution.stub || 0);
 
   if ((execution.insufficientData || 0) > 0) {
-    notes.push(`${execution.insufficientData} of ${totalRun || summary.selectedIssueCount || '?'} analyzer(s) lacked sufficient input — run codebase or complete scan, then re-run the suite.`);
+    notes.push(
+      `${execution.insufficientData} of ${totalRun || summary.selectedIssueCount || '?'} analyzer(s) lacked sufficient input — run codebase or complete scan, then re-run the suite.`
+    );
   }
   if ((summary.stubCount || 0) > 0) {
-    notes.push(`${summary.stubCount} analyzer(s) returned contract stubs — deterministic logic not yet implemented for those IDs.`);
+    notes.push(
+      `${summary.stubCount} analyzer(s) returned contract stubs — deterministic logic not yet implemented for those IDs.`
+    );
   }
   if (options.context?.inputKind) {
     notes.push(`Input context: ${options.context.inputKind}.`);
@@ -331,7 +346,9 @@ function buildExportNotes(analysisResult, options = {}) {
   if (hasPeakRisk) {
     const peakParts = [`peakSeverity ${risk.peakSeverity}`];
     if (risk.overallRiskLevelNote) {
-      peakParts.push('overallRiskLevel is an average — use topPriorityIssues.riskScore (not metricScore for higher_better analyzers)');
+      peakParts.push(
+        'overallRiskLevel is an average — use topPriorityIssues.riskScore (not metricScore for higher_better analyzers)'
+      );
     } else {
       peakParts.push('review topPriorityIssues.riskScore');
     }
@@ -344,9 +361,13 @@ function buildExportNotes(analysisResult, options = {}) {
     const gapCount = analysisResult.coverageGaps.length;
     const insufficient = execution.insufficientData || 0;
     if (insufficient > gapCount) {
-      notes.push(`${gapCount} prioritized coverage gap(s) listed (${insufficient} total insufficient_data analyzers) — supply missing scan/codebase fields and re-run.`);
+      notes.push(
+        `${gapCount} prioritized coverage gap(s) listed (${insufficient} total insufficient_data analyzers) — supply missing scan/codebase fields and re-run.`
+      );
     } else {
-      notes.push(`${gapCount} coverage gap(s) listed — supply missing scan/codebase fields to improve measured analyzer count.`);
+      notes.push(
+        `${gapCount} coverage gap(s) listed — supply missing scan/codebase fields to improve measured analyzer count.`
+      );
     }
   }
   return [...new Set(notes)].slice(0, 8);
@@ -370,8 +391,8 @@ function buildSlimPayload(sanitized, summary) {
       catalogSize: source.registry?.length ?? 48,
       implementedInRun: summary?.implementedCount ?? null,
       stubsInRun: summary?.stubCount ?? 0,
-      note: 'Full ANALYZER_CATALOG omitted from exports — use dashboard suite reference or docs/archive/historical/planning/ai-problem-analyzer-suite/.'
-    }
+      note: 'Full ANALYZER_CATALOG omitted from exports — use dashboard suite reference or docs/archive/historical/planning/ai-problem-analyzer-suite/.',
+    },
   };
 }
 
@@ -401,10 +422,10 @@ export function sanitizeAiProblemAnalyzerExport(analysisResult, options = {}) {
   if (!analysisResult || typeof analysisResult !== 'object') return null;
 
   const projectLabel = projectLabelFromPath(
-    options.projectPath
-    || options.context?.report?.projectRoot
-    || analysisResult.projectPath
-    || 'ai-platform'
+    options.projectPath ||
+      options.context?.report?.projectRoot ||
+      analysisResult.projectPath ||
+      'ai-platform'
   );
   const benchmarkScan = isBenchmarkPath(
     options.projectPath || options.context?.report?.projectRoot || analysisResult.projectPath
@@ -420,16 +441,21 @@ export function sanitizeAiProblemAnalyzerExport(analysisResult, options = {}) {
     analyzerResults
   );
   const mitigationThemes = slimMitigationThemes(sanitized.mitigationThemes || []);
-  const healthScore = options.context?.healthScore ?? options.context?.report?.qualityScore ?? sanitized.healthScore ?? null;
+  const healthScore =
+    options.context?.healthScore ??
+    options.context?.report?.qualityScore ??
+    sanitized.healthScore ??
+    null;
   const forNotes = { ...sanitized, riskSummary, analyzerResults };
   const exportNotes = buildExportNotes(forNotes, options);
   const payload = buildSlimPayload(sanitized, summary);
   const architecture = slimArchitectureForExport(sanitized.architecture, summary);
-  const analysisGeneratedAt = options.context?.analysisGeneratedAt
-    || sanitized.analysisGeneratedAt
-    || sanitized.generatedAt
-    || options.context?.report?.analysisGeneratedAt
-    || null;
+  const analysisGeneratedAt =
+    options.context?.analysisGeneratedAt ||
+    sanitized.analysisGeneratedAt ||
+    sanitized.generatedAt ||
+    options.context?.report?.analysisGeneratedAt ||
+    null;
 
   return {
     type: 'ai-problem-analyzer-suite-export',
@@ -444,7 +470,11 @@ export function sanitizeAiProblemAnalyzerExport(analysisResult, options = {}) {
     scanTargetProfile: benchmarkScan ? 'benchmark-cache' : 'product',
     handoffEligible: false,
     inputKind: options.context?.inputKind || sanitized.inputKind || null,
-    scannedAt: options.context?.scannedAt || options.context?.report?.generatedAt || sanitized.scannedAt || null,
+    scannedAt:
+      options.context?.scannedAt ||
+      options.context?.report?.generatedAt ||
+      sanitized.scannedAt ||
+      null,
     analysisGeneratedAt,
     healthScore,
     selectedIssueIds,
@@ -470,10 +500,10 @@ export function sanitizeAiProblemAnalyzerExport(analysisResult, options = {}) {
       'Stub analyzers return contract-valid placeholders until implementation lands.',
       'Absolute host paths are redacted to project label in exports.',
       'payload omits registry and duplicate selectedIssueIds — see root.selectedIssueIds.',
-      'handoffEligible remains false — Complete scan clearance requires operator sign-off.'
+      'handoffEligible remains false — Complete scan clearance requires operator sign-off.',
     ],
     sanitized: true,
-    sanitizedAt: new Date().toISOString()
+    sanitizedAt: new Date().toISOString(),
   };
 }
 
@@ -484,10 +514,11 @@ export function sanitizeAiProblemAnalyzerExport(analysisResult, options = {}) {
  * @returns {any}
  */
 export function aiProblemAnalyzerExportFilename(projectPath, date = new Date()) {
-  const slug = projectLabelFromPath(projectPath)
-    .replace(/[^a-z0-9]+/gi, '-')
-    .replace(/^-|-$/g, '')
-    .toLowerCase() || 'scan';
+  const slug =
+    projectLabelFromPath(projectPath)
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/^-|-$/g, '')
+      .toLowerCase() || 'scan';
   return `ai-problem-analyzer-${slug}-${date.toISOString().slice(0, 10)}.json`;
 }
 
@@ -497,7 +528,21 @@ export function aiProblemAnalyzerExportFilename(projectPath, date = new Date()) 
  * @returns {any}
  */
 export function buildAiProblemAnalyzerCsv(exportPayload) {
-  const rows = [['id', 'analyzerId', 'title', 'status', 'severity', 'metricScore', 'riskScore', 'scoringDirection', 'riskBand', 'evidenceStatus', 'countsTowardRiskSummary']];
+  const rows = [
+    [
+      'id',
+      'analyzerId',
+      'title',
+      'status',
+      'severity',
+      'metricScore',
+      'riskScore',
+      'scoringDirection',
+      'riskBand',
+      'evidenceStatus',
+      'countsTowardRiskSummary',
+    ],
+  ];
   for (const result of exportPayload?.analyzerResults || []) {
     rows.push([
       result.id || '',
@@ -510,11 +555,17 @@ export function buildAiProblemAnalyzerCsv(exportPayload) {
       result.scoringDirection || '',
       result.riskBand || '',
       result.evidenceStatus || '',
-      result.countsTowardRiskSummary === false ? 'false' : 'true'
+      result.countsTowardRiskSummary === false ? 'false' : 'true',
     ]);
   }
-  return rows.map((row) => row.map((cell) => {
-    const text = String(cell ?? '');
-    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-  }).join(',')).join('\n');
+  return rows
+    .map((row) =>
+      row
+        .map((cell) => {
+          const text = String(cell ?? '');
+          return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+        })
+        .join(',')
+    )
+    .join('\n');
 }

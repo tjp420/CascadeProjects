@@ -9,6 +9,6 @@ Here is your monthly Simplebeacon hygiene summary for ai-platform:
 **Blocking issues:** 0
 **Warnings:** 0
 
-Want the full report? Run:  npx simplebeacon scan --gate  in your repo root.
+Want the full report? Run: npx simplebeacon scan --gate in your repo root.
 
 — The Simplebeacon Team

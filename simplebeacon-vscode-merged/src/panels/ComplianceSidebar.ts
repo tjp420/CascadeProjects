@@ -71,14 +71,27 @@ export class ComplianceSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   /** Called by extension.ts when a scan completes — pushes fresh data to the webview. */
-  updateScanResults(issues: Array<{ severity?: string; type?: string; filePath?: string; description?: string; line?: number; count?: number }>, remediation?: { total: number; applied: number; failed: number }) {
+  updateScanResults(
+    issues: Array<{
+      severity?: string;
+      type?: string;
+      filePath?: string;
+      description?: string;
+      line?: number;
+      count?: number;
+    }>,
+    remediation?: { total: number; applied: number; failed: number }
+  ) {
     const heatmap: Record<string, Record<string, number>> = {
       high: { high: 0, medium: 0, low: 0 },
       medium: { high: 0, medium: 0, low: 0 },
       low: { high: 0, medium: 0, low: 0 },
     };
 
-    let criticalCount = 0, highCount = 0, mediumCount = 0, lowCount = 0;
+    let criticalCount = 0,
+      highCount = 0,
+      mediumCount = 0,
+      lowCount = 0;
     const topFindings: ScanSummary['topFindings'] = [];
 
     for (const issue of issues) {
@@ -106,7 +119,10 @@ export class ComplianceSidebarProvider implements vscode.WebviewViewProvider {
 
     this.currentSummary = {
       totalIssues: criticalCount + highCount + mediumCount + lowCount,
-      criticalCount, highCount, mediumCount, lowCount,
+      criticalCount,
+      highCount,
+      mediumCount,
+      lowCount,
       heatmap,
       remediation: remediation || { total: 0, applied: 0, failed: 0 },
       topFindings,

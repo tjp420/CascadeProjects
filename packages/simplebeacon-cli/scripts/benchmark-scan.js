@@ -17,7 +17,7 @@ async function benchmark() {
   try {
     const report = await scanMockDataDirectories(targetPath, [], {
       quiet: true,
-      fullDirectoryScan: true
+      fullDirectoryScan: true,
     });
 
     const end = process.hrtime.bigint();

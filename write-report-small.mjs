@@ -2,7 +2,7 @@ import { runSimpleBeaconAudit } from './SimpleBeaconPoC.mjs';
 import fs from 'fs';
 import path from 'path';
 
-(async ()=>{
+(async () => {
   try {
     const target = path.resolve('./local-analyzer');
     console.log('Running audit on', target);
@@ -12,7 +12,7 @@ import path from 'path';
     fs.writeFileSync(out, JSON.stringify(report, null, 2));
     console.log('Wrote', out);
   } catch (e) {
-    console.error('Error running audit', e && e.stack || e);
+    console.error('Error running audit', (e && e.stack) || e);
     process.exit(1);
   }
 })();

@@ -55,10 +55,10 @@ export function renderIssueList(categories, { onSelect } = {}) {
 
   if (onSelect) {
     wrapper.querySelectorAll('.issue-card').forEach((card) => {
-/**
- * Handler.
- * @returns {any}
- */
+      /**
+       * Handler.
+       * @returns {any}
+       */
       const handler = () => onSelect(card.dataset.category);
       card.addEventListener('click', handler);
       card.addEventListener('keydown', (e) => {

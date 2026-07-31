@@ -6,8 +6,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const STORE_PATH = process.env.SIMPLEBEACON_CI_TELEMETRY_STORE
-  || path.join(__dirname, '../../.simplebeacon', 'ci-telemetry.json');
+const STORE_PATH =
+  process.env.SIMPLEBEACON_CI_TELEMETRY_STORE ||
+  path.join(__dirname, '../../.simplebeacon', 'ci-telemetry.json');
 const MAX_EVENTS = Number(process.env.SIMPLEBEACON_CI_TELEMETRY_MAX || 50000);
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -29,7 +30,11 @@ function writeStore(store) {
 }
 
 function accountKey(email) {
-  return crypto.createHash('sha256').update(String(email || '').toLowerCase()).digest('hex').slice(0, 16);
+  return crypto
+    .createHash('sha256')
+    .update(String(email || '').toLowerCase())
+    .digest('hex')
+    .slice(0, 16);
 }
 
 /**
@@ -43,7 +48,7 @@ function recordCiTelemetryEvent(email, payload) {
     accountKey: accountKey(email),
     email: String(email || '').toLowerCase(),
     recordedAt: new Date().toISOString(),
-    ...payload
+    ...payload,
   };
   store.events.push(event);
   if (store.events.length > MAX_EVENTS) {
@@ -59,7 +64,7 @@ function recordCiTelemetryEvent(email, payload) {
  */
 function summarizeCiTelemetry(email, options = {}) {
   const days = Number(options.days) || 7;
-  const since = Date.now() - (days * 24 * 60 * 60 * 1000);
+  const since = Date.now() - days * 24 * 60 * 60 * 1000;
   const key = accountKey(email);
   const events = readStore().events.filter((ev) => {
     if (ev.accountKey !== key) return false;
@@ -87,12 +92,12 @@ function summarizeCiTelemetry(email, options = {}) {
     gates_tripped: gatesTripped,
     criticals_blocked: criticalsBlocked,
     merges_blocked_this_week: gatesTripped,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 }
 
 module.exports = {
   recordCiTelemetryEvent,
   summarizeCiTelemetry,
-  accountKey
+  accountKey,
 };

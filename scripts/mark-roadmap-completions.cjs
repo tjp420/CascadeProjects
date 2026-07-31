@@ -7,7 +7,17 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROADMAP_PATH = process.argv[2] || path.join(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard', 'data', 'roadmap-ai-agent-2026-06-12.json');
+const ROADMAP_PATH =
+  process.argv[2] ||
+  path.join(
+    __dirname,
+    '..',
+    'ai-platform',
+    'web',
+    'simplebeacon-dashboard',
+    'data',
+    'roadmap-ai-agent-2026-06-12.json'
+  );
 
 const data = JSON.parse(fs.readFileSync(ROADMAP_PATH, 'utf8'));
 
@@ -16,16 +26,18 @@ let completedCount = 0;
 
 // Helper to mark a task by phase id + task description substring
 function markTaskDone(phaseId, descSubstring) {
-  const phase = data.phases.find(p => p.id === phaseId);
+  const phase = data.phases.find((p) => p.id === phaseId);
   if (!phase) return false;
-  const task = phase.tasks.find(t => t.description.includes(descSubstring));
+  const task = phase.tasks.find((t) => t.description.includes(descSubstring));
   if (!task) return false;
   if (!task.done) {
     task.done = true;
     completedCount++;
     phase.taskSummary.done = (phase.taskSummary.done || 0) + 1;
     phase.taskSummary.todo = Math.max(0, phase.taskSummary.total - phase.taskSummary.done);
-    phase.taskSummary.percent = Math.round((phase.taskSummary.done / phase.taskSummary.total) * 100);
+    phase.taskSummary.percent = Math.round(
+      (phase.taskSummary.done / phase.taskSummary.total) * 100
+    );
     // Update phase status based on progress
     if (phase.taskSummary.percent === 100) {
       phase.status = 'completed';
@@ -94,7 +106,10 @@ markTaskDone('optimization', 'Address TODO in sales/support/support-setup.md');
 markTaskDone('optimization', 'Address TODO in ai-platform/docs/eu-ai-act-compliance.md');
 markTaskDone('optimization', 'Address TODO in ai-platform/docs/risk-assessment.md');
 markTaskDone('optimization', 'Address TODO in coming-soon/content/social-posts.md');
-markTaskDone('optimization', 'Address TODO in coming-soon/downloads/ai-readiness-audit-checklist.md');
+markTaskDone(
+  'optimization',
+  'Address TODO in coming-soon/downloads/ai-readiness-audit-checklist.md'
+);
 markTaskDone('optimization', 'Add test coverage');
 markTaskDone('optimization', 'Install pre-commit hooks');
 markTaskDone('optimization', 'Schedule monthly quality gate reviews');
@@ -118,7 +133,7 @@ markTaskDone('junkfiles', 'Schedule monthly cleanup sweep');
 // Evaluate dependsOn — unblock phases whose dependency is completed
 for (const phase of data.phases) {
   if (phase.dependsOn) {
-    const dep = data.phases.find(p => p.id === phase.dependsOn);
+    const dep = data.phases.find((p) => p.id === phase.dependsOn);
     if (dep && dep.status === 'completed') {
       phase.dependsOn = null;
       phase.dependsOnTitle = null;
@@ -135,9 +150,9 @@ const totalDone = data.phases.reduce((sum, p) => sum + (p.taskSummary?.done || 0
 data.summary.tasks.completed = totalDone;
 data.summary.tasks.remaining = data.summary.tasks.total - totalDone;
 
-const completedPhases = data.phases.filter(p => p.status === 'completed').length;
-const inProgressPhases = data.phases.filter(p => p.status === 'inProgress').length;
-const pendingPhases = data.phases.filter(p => p.status === 'pending').length;
+const completedPhases = data.phases.filter((p) => p.status === 'completed').length;
+const inProgressPhases = data.phases.filter((p) => p.status === 'inProgress').length;
+const pendingPhases = data.phases.filter((p) => p.status === 'pending').length;
 
 data.summary.phases.completed = completedPhases;
 data.summary.phases.inProgress = inProgressPhases;
@@ -162,8 +177,12 @@ data.summary.healthScore = maxScore > 0 ? Math.round((score / maxScore) * 100) :
 fs.writeFileSync(ROADMAP_PATH, JSON.stringify(data, null, 2), 'utf8');
 console.log(`Marked ${completedCount} tasks as completed.`);
 console.log(`Health score: ${data.summary.healthScore}/100`);
-console.log(`Phases: ${completedPhases} completed, ${inProgressPhases} inProgress, ${pendingPhases} pending`);
-console.log(`Tasks: ${data.summary.tasks.completed} done, ${data.summary.tasks.remaining} remaining`);
+console.log(
+  `Phases: ${completedPhases} completed, ${inProgressPhases} inProgress, ${pendingPhases} pending`
+);
+console.log(
+  `Tasks: ${data.summary.tasks.completed} done, ${data.summary.tasks.remaining} remaining`
+);
 
 // Generate browser localStorage injection snippet
 const issues = [];
@@ -172,12 +191,23 @@ for (const phase of data.phases) {
   for (const task of phase.tasks) {
     issues.push({
       id: 'roadmap-' + phase.id + '-' + idx++,
-      severity: ['critical','high','medium','low','info'].includes(phase.severity) ? phase.severity : 'medium',
+      severity: ['critical', 'high', 'medium', 'low', 'info'].includes(phase.severity)
+        ? phase.severity
+        : 'medium',
       type: phase.id,
       category: (phase.title || '').replace(/^Phase \d+:\s*/, '') || phase.id,
       description: task.description,
       filePath: task.location || '-',
-      action: task.type === 'fix' ? 'Fix required' : task.type === 'verify' ? 'Verify' : task.type === 'audit' ? 'Audit' : task.type === 'doc' ? 'Document' : 'Review',
+      action:
+        task.type === 'fix'
+          ? 'Fix required'
+          : task.type === 'verify'
+            ? 'Verify'
+            : task.type === 'audit'
+              ? 'Audit'
+              : task.type === 'doc'
+                ? 'Document'
+                : 'Review',
       _phaseId: phase.id,
       _phaseTitle: phase.title,
       _phaseDependsOn: phase.dependsOn,
@@ -186,12 +216,12 @@ for (const phase of data.phases) {
       _codeSnippet: task.codeSnippet,
       _isStructured: task.isStructured,
       effort: phase.effort || '20 min',
-      completed: task.done || false
+      completed: task.done || false,
     });
   }
 }
 
-const completedIds = issues.filter(i => i.completed).map(i => i.id);
+const completedIds = issues.filter((i) => i.completed).map((i) => i.id);
 
 const snippet = `
 // Paste this into the browser console on the Remediation Roadmap page
@@ -201,6 +231,13 @@ localStorage.setItem('sb-remediation-completed', JSON.stringify(${JSON.stringify
 window.location.reload();
 `;
 
-const SNIPPET_PATH = path.join(__dirname, '..', 'ai-platform', 'web', 'data', 'roadmap-ai-agent-localstorage-inject.js');
+const SNIPPET_PATH = path.join(
+  __dirname,
+  '..',
+  'ai-platform',
+  'web',
+  'data',
+  'roadmap-ai-agent-localstorage-inject.js'
+);
 fs.writeFileSync(SNIPPET_PATH, snippet, 'utf8');
 console.log(`localStorage inject script saved to: ${SNIPPET_PATH}`);

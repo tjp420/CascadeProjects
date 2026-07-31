@@ -3,7 +3,5 @@
   "overview": {
     "debtScore": 0
   },
-  "categories": [
-    { "name": "technical-debt", "score": 0, "items": [] }
-  ]
+  "categories": [{ "name": "technical-debt", "score": 0, "items": [] }]
 }

@@ -1,1 +1,939 @@
-{"success":true,"data":{"type":"codebase-analyzer-report","reportVersion":1,"title":"Codebase Analysis Report","dataSource":"repository-audit","generatedAt":"2026-06-10T04:51:33.136Z","generatedBy":"codebase-analyzer","projectRoot":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","repositoryInventory":{"projectRoot":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","totalFiles":700,"totalFolders":95,"profile":"audit"},"summary":{"repositoryFilesTotal":700,"repositoryFoldersTotal":95,"codeFilesAnalyzed":406,"codeFilesDiscovered":406,"findingsTotal":3,"findingsReturned":3,"findingsTruncated":false,"scanContext":"dashboard","healthScore":98,"severityCounts":{"high":1,"medium":0,"low":2},"tierCounts":{"production":1,"documentation":2,"general":0},"eslintErrors":0,"eslintWarnings":0,"eslintSource":"none","eslintReportPath":null,"eslintSkipped":"ESLint command disabled by default in request path; set includeEslint=true to run CLI scan.","categoryCounts":{"meaningless-data":2,"tech-debt":1},"analyzerCounts":{"debugArtifacts":0,"placeholderOrFictionalData":2,"eslintFindings":0}},"rubric":{"version":"phase1.0","severityBands":{"high":"Merge-risk issue or reliability/security concern in production-relevant paths","medium":"Should-fix quality issue with direct maintainability/runtime impact","low":"Hygiene issue; track and clean as capacity allows"},"categoryMapping":{"debug-artifact":"Debug Artifact Analyzer","meaningless-data":"Placeholder & Fictional Data Analyzer","eslint":"ESLint Integration Analyzer","tech-debt":"Technical debt markers (TODO/FIXME/HACK)","broken":"Broken or invalid files","artifact":"Backup/generated artifacts in tree","empty":"Empty or whitespace-only files","oversized":"Oversized source files","duplicate":"Duplicate basenames"}},"eslintSummary":{"source":"none","reportPath":null,"filesWithIssues":0,"totalIssues":0,"errors":0,"warnings":0,"warningTrend":[{"bucket":"errors","count":0},{"bucket":"warnings","count":0}],"topRules":[],"categorizedWarnings":[],"topDirectories":[]},"categories":[{"category":"meaningless-data","label":"Placeholder or fictional KPI text","count":2,"severity":"low","fileCount":1,"topFiles":["THUMB-DRIVE-README.md"]},{"category":"tech-debt","label":"Technical debt markers (TODO/FIXME/HACK)","count":1,"severity":"high","fileCount":1,"topFiles":["server/lib/codebase-analyzer.cjs"]}],"findings":[{"category":"tech-debt","type":"dynamic-eval","severity":"high","filePath":"server/lib/codebase-analyzer.cjs","line":1,"description":"Dynamic eval/Function in production path: server/lib/codebase-analyzer.cjs","recommendedAction":"Replace eval/Function with safe alternatives"},{"category":"meaningless-data","type":"example-domain","severity":"low","filePath":"THUMB-DRIVE-README.md","line":38,"description":"example.* domain placeholder in THUMB-DRIVE-README.md","match":"example.com","recommendedAction":"Replace placeholder text with verified production content"},{"category":"meaningless-data","type":"example-domain","severity":"low","filePath":"THUMB-DRIVE-README.md","line":52,"description":"example.* domain placeholder in THUMB-DRIVE-README.md","match":"example.com","recommendedAction":"Replace placeholder text with verified production content"}],"structureInsights":{"summary":{"sampledFiles":50,"byLanguage":{"markdown":28,"yaml":4,"html":9,"bash":1,"sql":3,"css":5},"approximateFunctions":28,"approximateClasses":5,"tier":"baseline"},"samples":[{"filePath":".github/README.md","language":"markdown","lineCount":21,"approximateFunctions":1,"approximateClasses":0,"importOrIncludeCount":4,"complexity":"low","tier":"baseline"},{"filePath":".github/workflows/dashboard-ci.yml","language":"yaml","lineCount":471,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"high","tier":"baseline"},{"filePath":"ai-assistant-report.md","language":"markdown","lineCount":64,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"AUTOMATED_SERVICE_README.md","language":"markdown","lineCount":191,"approximateFunctions":5,"approximateClasses":0,"importOrIncludeCount":5,"complexity":"medium","tier":"baseline"},{"filePath":"CHANGELOG.md","language":"markdown","lineCount":364,"approximateFunctions":0,"approximateClasses":1,"importOrIncludeCount":4,"complexity":"medium","tier":"baseline"},{"filePath":"coming-soon/contact.html","language":"html","lineCount":23,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"coming-soon/pricing.html","language":"html","lineCount":53,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"coming-soon/privacy.html","language":"html","lineCount":34,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"coming-soon/refund.html","language":"html","lineCount":34,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"coming-soon/sample-report.html","language":"html","lineCount":85,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"coming-soon/terms.html","language":"html","lineCount":34,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":2,"complexity":"low","tier":"baseline"},{"filePath":"docker/cloudflared/config.yml","language":"yaml","lineCount":13,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"docker-compose.phase2.yml","language":"yaml","lineCount":116,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"docs/ai-system-documentation.md","language":"markdown","lineCount":43,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"docs/api/README.md","language":"markdown","lineCount":649,"approximateFunctions":10,"approximateClasses":2,"importOrIncludeCount":3,"complexity":"high","tier":"baseline"},{"filePath":"docs/ARCHITECTURE.md","language":"markdown","lineCount":108,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"docs/audit-terms-of-service.md","language":"markdown","lineCount":45,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":2,"complexity":"low","tier":"baseline"},{"filePath":"docs/conformity-declaration.md","language":"markdown","lineCount":77,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"docs/CONTRIBUTING.md","language":"markdown","lineCount":48,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"docs/DEPLOY-GATE.md","language":"markdown","lineCount":45,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"docs/enterprise-positioning.md","language":"markdown","lineCount":41,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":1,"complexity":"low","tier":"baseline"},{"filePath":"docs/eu-ai-act-compliance.md","language":"markdown","lineCount":33,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":2,"complexity":"low","tier":"baseline"},{"filePath":"docs/free-slop-audit-offer.md","language":"markdown","lineCount":64,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"docs/GGUF-INTEGRATION.md","language":"markdown","lineCount":76,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":1,"complexity":"low","tier":"baseline"},{"filePath":"docs/model-card.md","language":"markdown","lineCount":123,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":1,"complexity":"medium","tier":"baseline"},{"filePath":"docs/outreach-cc-campaign.md","language":"markdown","lineCount":137,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":2,"complexity":"medium","tier":"baseline"},{"filePath":"docs/prospect-list.md","language":"markdown","lineCount":136,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":2,"complexity":"medium","tier":"baseline"},{"filePath":"docs/risk-assessment.md","language":"markdown","lineCount":66,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":3,"complexity":"low","tier":"baseline"},{"filePath":"docs/SECURITY.md","language":"markdown","lineCount":39,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"docs/v1-internal-runbook.md","language":"markdown","lineCount":353,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":3,"complexity":"medium","tier":"baseline"},{"filePath":"eu-ai-act-report-print.html","language":"html","lineCount":237,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"medium","tier":"baseline"},{"filePath":"GOVERNANCE.md","language":"markdown","lineCount":47,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":1,"complexity":"low","tier":"baseline"},{"filePath":"packages/simplebeacon-intelligence/README.md","language":"markdown","lineCount":56,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"pipeline/render.yaml","language":"yaml","lineCount":12,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"README.md","language":"markdown","lineCount":391,"approximateFunctions":0,"approximateClasses":1,"importOrIncludeCount":0,"complexity":"medium","tier":"baseline"},{"filePath":"risk-assessment.md","language":"markdown","lineCount":105,"approximateFunctions":0,"approximateClasses":1,"importOrIncludeCount":3,"complexity":"low","tier":"baseline"},{"filePath":"scripts/deploy-simplebeacon.sh","language":"bash","lineCount":40,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"SECURITY.md","language":"markdown","lineCount":56,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":2,"complexity":"low","tier":"baseline"},{"filePath":"server/db/init/01-create-database.sql","language":"sql","lineCount":222,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"medium","tier":"baseline"},{"filePath":"server/db/schema-phase2.sql","language":"sql","lineCount":29,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"server/db/schema-subscription.sql","language":"sql","lineCount":20,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"server/README-DLP.md","language":"markdown","lineCount":88,"approximateFunctions":2,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"THUMB-DRIVE-README.md","language":"markdown","lineCount":54,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":1,"complexity":"low","tier":"baseline"},{"filePath":"web/simplebeacon-dashboard/css/components.css","language":"css","lineCount":2734,"approximateFunctions":8,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"high","tier":"baseline"},{"filePath":"web/simplebeacon-dashboard/css/layout.css","language":"css","lineCount":278,"approximateFunctions":2,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"medium","tier":"baseline"},{"filePath":"web/simplebeacon-dashboard/css/reset.css","language":"css","lineCount":73,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"web/simplebeacon-dashboard/css/utilities.css","language":"css","lineCount":29,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"web/simplebeacon-dashboard/css/variables.css","language":"css","lineCount":62,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"},{"filePath":"web/simplebeacon-dashboard/index.html","language":"html","lineCount":146,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":1,"complexity":"medium","tier":"baseline"},{"filePath":"web/upload.html","language":"html","lineCount":12,"approximateFunctions":0,"approximateClasses":0,"importOrIncludeCount":0,"complexity":"low","tier":"baseline"}]},"scanScope":{"mode":"codebase-audit","scanProfile":"universal","scanContext":"dashboard","universalLanguageCount":52,"dedicatedLanguagePlugins":["zscript","acs","decorate","glsl","lua","python","rust","go","sql"],"description":"Walks source-like files under the project root (audit profile ΓÇö skips node_modules, .git, coverage). Uses universal language registry + plugins for domain scripts (ZScript, ACS, GLSL, etc.).","limitations":["Deep content analysis capped at 2,000 files (dashboard quick profile ΓÇö use Complete scan for full codebase pass); 406 code-like files discovered.","Extension profile: universal (dashboard default: universal; complete/CLI: default; override with SCAN_PROFILE or scanProfile).","52 language plugins (51 registry languages; Tier-2: Python, Rust, Go, SQL).","Context-aware filtering reduces false positives in tests, docs, and example paths.","Structure hints are regex-based Tier-1 estimates ΓÇö not AST parsing.","ESLint not run in this request ΓÇö set includeEslint=true or use Complete scan.","Does not prove dead-code elimination ΓÇö flags debt markers and broken files only."]},"codeUnderstanding":{"mode":"deterministic","projectSummary":"Sampled 2 high-signal file(s) for semantic/contextual understanding.","fileInsights":[{"filePath":"server/lib/codebase-analyzer.cjs","understanding":{"type":"code-understanding-report","reportVersion":1,"filePath":"server/lib/codebase-analyzer.cjs","projectPath":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","generatedAt":"2026-06-10T04:51:33.306Z","layers":{"static":{"layer":"static","language":"javascript","languageLabel":"JavaScript","confidence":1,"method":"extension","pluginId":"javascript-baseline-v1","findingCount":1,"topFindings":[{"category":"tech-debt","type":"dynamic-eval","severity":"high","description":"Dynamic eval/Function in production path: server/lib/codebase-analyzer.cjs"}]},"semantic":{"layer":"semantic","language":"javascript","languageConfidence":1,"detectionMethod":"extension","purpose":"Exposes or handles HTTP/API behavior for the application.","purposeTags":["api"],"purposeConfidence":0.72,"businessLogic":{"domains":["web-api","auth","billing","data-pipeline","testing"],"patterns":[{"domain":"web-api","domainLabel":"Web API / HTTP handler","patternId":"validation","label":"Input validation","matchCount":6,"confidence":0.85},{"domain":"auth","domainLabel":"Authentication & authorization","patternId":"login-flow","label":"Login / credential flow","matchCount":9,"confidence":0.65},{"domain":"billing","domainLabel":"Billing & subscriptions","patternId":"quota","label":"Usage quota or plan tier","matchCount":8,"confidence":0.65},{"domain":"data-pipeline","domainLabel":"Data processing pipeline","patternId":"etl","label":"Data transform pipeline","matchCount":4,"confidence":0.65},{"domain":"data-pipeline","domainLabel":"Data processing pipeline","patternId":"schema-check","label":"Schema validation","matchCount":17,"confidence":0.65},{"domain":"testing","domainLabel":"Test & quality gates","patternId":"unit-test","label":"Unit test structure","matchCount":20,"confidence":0.65},{"domain":"testing","domainLabel":"Test & quality gates","patternId":"mock-fixture","label":"Test doubles","matchCount":20,"confidence":0.65}],"primaryDomain":"web-api"},"assumptions":["Relies on environment variables at runtime.","Contains unfinished work markers (TODO/FIXME/HACK)."],"aiEnhanced":false,"aiSummary":null,"aiError":null},"contextual":{"layer":"contextual","gitHistory":{"available":true,"lastCommit":{"hash":"c551fdead2e5b20566e85f072f04d85a5bcbd27b","author":"Your Name","date":"2026-06-05","message":"Prepare for Render deployment"},"recentCommits":["c551fdea 2026-06-05 Prepare for Render deployment","cb24c7f1 2026-06-02 Fix scanner false positives and harden test fixture exclusions.","065c1b8f 2026-06-02 Clean up unused files, fix env false positives, and refactor sync I/O."],"decisionHistory":[{"summary":"c551fdea 2026-06-05 Prepare for Render deployment","inferredIntent":"General change ΓÇö review commit message for details"},{"summary":"cb24c7f1 2026-06-02 Fix scanner false positives and harden test fixture exclusions.","inferredIntent":"Bug fix or regression repair"},{"summary":"065c1b8f 2026-06-02 Clean up unused files, fix env false positives, and refactor sync I/O.","inferredIntent":"Bug fix or regression repair"}]},"documentation":[],"contextSummary":"Last change: \"Prepare for Render deployment\" (2026-06-05).","confidence":0.6},"expert":{"layer":"expert","reviews":[],"consensus":{"count":0,"consensus":null,"confidence":0}}},"summary":"Exposes or handles HTTP/API behavior for the application. Last change: \"Prepare for Render deployment\" (2026-06-05).","overallConfidence":0.58,"limitations":["Semantic layer uses heuristics ΓÇö analysis mode optional via understandingMode=semantic.","Runtime behavior (Layer 3) not included in this release.","Expert reviews are local-only until a shared review service is configured."]}},{"filePath":"THUMB-DRIVE-README.md","understanding":{"type":"code-understanding-report","reportVersion":1,"filePath":"THUMB-DRIVE-README.md","projectPath":"C:\\Users\\Trevor\\CascadeProjects\\ai-platform","generatedAt":"2026-06-10T04:51:33.475Z","layers":{"static":{"layer":"static","language":"markdown","languageLabel":"Markdown","confidence":1,"method":"extension","pluginId":"markdown-baseline-v1","findingCount":2,"topFindings":[{"category":"meaningless-data","type":"example-domain","severity":"low","description":"example.* domain placeholder in THUMB-DRIVE-README.md"},{"category":"meaningless-data","type":"example-domain","severity":"low","description":"example.* domain placeholder in THUMB-DRIVE-README.md"}]},"semantic":{"layer":"semantic","language":"markdown","languageConfidence":1,"detectionMethod":"extension","purpose":"Appears to implement auth domain logic.","purposeTags":[],"purposeConfidence":0.45,"businessLogic":{"domains":["auth"],"patterns":[{"domain":"auth","domainLabel":"Authentication & authorization","patternId":"rbac","label":"Role-based access","matchCount":1,"confidence":0.65}],"primaryDomain":"auth"},"assumptions":["References local development hosts."],"aiEnhanced":false,"aiSummary":null,"aiError":null},"contextual":{"layer":"contextual","gitHistory":{"available":true,"lastCommit":{"hash":"c551fdead2e5b20566e85f072f04d85a5bcbd27b","author":"Your Name","date":"2026-06-05","message":"Prepare for Render deployment"},"recentCommits":["c551fdea 2026-06-05 Prepare for Render deployment"],"decisionHistory":[{"summary":"c551fdea 2026-06-05 Prepare for Render deployment","inferredIntent":"General change ΓÇö review commit message for details"}]},"documentation":[{"name":"README.md","relativePath":"README.md","excerpt":"# Simplebeacon Platform\n\n[![CI Status](https://github.com/tjp420/simplebeacon/workflows/Simplebeacon%20AI%20Hygiene%20Gate/badge.svg)](https://github.com/tjp420/simplebeacon/actions)\n[![Coverage](https://codecov.io/gh/tjp420/simplebeacon/branch/main/graph/badge.svg)](https://codecov.io/gh/tjp420/simplebeacon)\n[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)\n\n≡ƒ¢í∩╕Å **Simplebeacon** is an AI safety scanning and audit platform designed for enterprise codebases, providing comprehensive security analysis, compliance checking, and quality assurance for AI-powered applications.\n\n## ≡ƒÜÇ Features\n\n### ≡ƒöì AI Safety Scanning\n- **Multi-Engine Analysis**: Credential detection, production leaks, fiction KPI patterns\n- **EU AI Act Compliance**: Automated compliance checking for AI sy"},{"name":"readme.md","relativePath":"readme.md","excerpt":"# Simplebeacon Platform\n\n[![CI Status](https://github.com/tjp420/simplebeacon/workflows/Simplebeacon%20AI%20Hygiene%20Gate/badge.svg)](https://github.com/tjp420/simplebeacon/actions)\n[![Coverage](https://codecov.io/gh/tjp420/simplebeacon/branch/main/graph/badge.svg)](https://codecov.io/gh/tjp420/simplebeacon)\n[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)\n\n≡ƒ¢í∩╕Å **Simplebeacon** is an AI safety scanning and audit platform designed for enterprise codebases, providing comprehensive security analysis, compliance checking, and quality assurance for AI-powered applications.\n\n## ≡ƒÜÇ Features\n\n### ≡ƒöì AI Safety Scanning\n- **Multi-Engine Analysis**: Credential detection, production leaks, fiction KPI patterns\n- **EU AI Act Compliance**: Automated compliance checking for AI sy"},{"name":"CHANGELOG.md","relativePath":"CHANGELOG.md","excerpt":"# Changelog\n\nAll notable changes to the Simplebeacon Platform will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n## [Unreleased]\n\n### Added\n- Comprehensive test suite with integration tests\n- Complete API documentation\n- Production deployment readiness verification\n- Enhanced security configuration\n- Docker Phase 2 infrastructure\n\n### Changed\n- Improved Jest configuration with realistic coverage thresholds\n- Enhanced error handling and logging\n- Updated authentication middleware\n\n### Fixed\n- Module loading issues in test environment\n- Environment variable validation\n- Path safety validation improvements\n\n## [1.0.0-internal] - 2026-06-03\n\n#"}],"contextSummary":"Last change: \"Prepare for Render deployment\" (2026-06-05). Adjacent docs: README.md, readme.md, CHANGELOG.md.","confidence":0.6},"expert":{"layer":"expert","reviews":[],"consensus":{"count":0,"consensus":null,"confidence":0}}},"summary":"Appears to implement auth domain logic. Last change: \"Prepare for Render deployment\" (2026-06-05). Adjacent docs: README.md, readme.md, CHANGELOG.md.","overallConfidence":0.51,"limitations":["Semantic layer uses heuristics ΓÇö analysis mode optional via understandingMode=semantic.","Runtime behavior (Layer 3) not included in this release.","Expert reviews are local-only until a shared review service is configured."]}}],"layersAvailable":["static","semantic","contextual","expert"],"layersPlanned":["runtime"]}},"scanProfile":"universal","scanContext":"dashboard","understandingMode":"deterministic"}
+{
+  "success": true,
+  "data": {
+    "type": "codebase-analyzer-report",
+    "reportVersion": 1,
+    "title": "Codebase Analysis Report",
+    "dataSource": "repository-audit",
+    "generatedAt": "2026-06-10T04:51:33.136Z",
+    "generatedBy": "codebase-analyzer",
+    "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+    "repositoryInventory": {
+      "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+      "totalFiles": 700,
+      "totalFolders": 95,
+      "profile": "audit"
+    },
+    "summary": {
+      "repositoryFilesTotal": 700,
+      "repositoryFoldersTotal": 95,
+      "codeFilesAnalyzed": 406,
+      "codeFilesDiscovered": 406,
+      "findingsTotal": 3,
+      "findingsReturned": 3,
+      "findingsTruncated": false,
+      "scanContext": "dashboard",
+      "healthScore": 98,
+      "severityCounts": { "high": 1, "medium": 0, "low": 2 },
+      "tierCounts": { "production": 1, "documentation": 2, "general": 0 },
+      "eslintErrors": 0,
+      "eslintWarnings": 0,
+      "eslintSource": "none",
+      "eslintReportPath": null,
+      "eslintSkipped": "ESLint command disabled by default in request path; set includeEslint=true to run CLI scan.",
+      "categoryCounts": { "meaningless-data": 2, "tech-debt": 1 },
+      "analyzerCounts": {
+        "debugArtifacts": 0,
+        "placeholderOrFictionalData": 2,
+        "eslintFindings": 0
+      }
+    },
+    "rubric": {
+      "version": "phase1.0",
+      "severityBands": {
+        "high": "Merge-risk issue or reliability/security concern in production-relevant paths",
+        "medium": "Should-fix quality issue with direct maintainability/runtime impact",
+        "low": "Hygiene issue; track and clean as capacity allows"
+      },
+      "categoryMapping": {
+        "debug-artifact": "Debug Artifact Analyzer",
+        "meaningless-data": "Placeholder & Fictional Data Analyzer",
+        "eslint": "ESLint Integration Analyzer",
+        "tech-debt": "Technical debt markers (TODO/FIXME/HACK)",
+        "broken": "Broken or invalid files",
+        "artifact": "Backup/generated artifacts in tree",
+        "empty": "Empty or whitespace-only files",
+        "oversized": "Oversized source files",
+        "duplicate": "Duplicate basenames"
+      }
+    },
+    "eslintSummary": {
+      "source": "none",
+      "reportPath": null,
+      "filesWithIssues": 0,
+      "totalIssues": 0,
+      "errors": 0,
+      "warnings": 0,
+      "warningTrend": [
+        { "bucket": "errors", "count": 0 },
+        { "bucket": "warnings", "count": 0 }
+      ],
+      "topRules": [],
+      "categorizedWarnings": [],
+      "topDirectories": []
+    },
+    "categories": [
+      {
+        "category": "meaningless-data",
+        "label": "Placeholder or fictional KPI text",
+        "count": 2,
+        "severity": "low",
+        "fileCount": 1,
+        "topFiles": ["THUMB-DRIVE-README.md"]
+      },
+      {
+        "category": "tech-debt",
+        "label": "Technical debt markers (TODO/FIXME/HACK)",
+        "count": 1,
+        "severity": "high",
+        "fileCount": 1,
+        "topFiles": ["server/lib/codebase-analyzer.cjs"]
+      }
+    ],
+    "findings": [
+      {
+        "category": "tech-debt",
+        "type": "dynamic-eval",
+        "severity": "high",
+        "filePath": "server/lib/codebase-analyzer.cjs",
+        "line": 1,
+        "description": "Dynamic eval/Function in production path: server/lib/codebase-analyzer.cjs",
+        "recommendedAction": "Replace eval/Function with safe alternatives"
+      },
+      {
+        "category": "meaningless-data",
+        "type": "example-domain",
+        "severity": "low",
+        "filePath": "THUMB-DRIVE-README.md",
+        "line": 38,
+        "description": "example.* domain placeholder in THUMB-DRIVE-README.md",
+        "match": "example.com",
+        "recommendedAction": "Replace placeholder text with verified production content"
+      },
+      {
+        "category": "meaningless-data",
+        "type": "example-domain",
+        "severity": "low",
+        "filePath": "THUMB-DRIVE-README.md",
+        "line": 52,
+        "description": "example.* domain placeholder in THUMB-DRIVE-README.md",
+        "match": "example.com",
+        "recommendedAction": "Replace placeholder text with verified production content"
+      }
+    ],
+    "structureInsights": {
+      "summary": {
+        "sampledFiles": 50,
+        "byLanguage": { "markdown": 28, "yaml": 4, "html": 9, "bash": 1, "sql": 3, "css": 5 },
+        "approximateFunctions": 28,
+        "approximateClasses": 5,
+        "tier": "baseline"
+      },
+      "samples": [
+        {
+          "filePath": ".github/README.md",
+          "language": "markdown",
+          "lineCount": 21,
+          "approximateFunctions": 1,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 4,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": ".github/workflows/dashboard-ci.yml",
+          "language": "yaml",
+          "lineCount": 471,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "high",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "ai-assistant-report.md",
+          "language": "markdown",
+          "lineCount": 64,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "AUTOMATED_SERVICE_README.md",
+          "language": "markdown",
+          "lineCount": 191,
+          "approximateFunctions": 5,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 5,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "CHANGELOG.md",
+          "language": "markdown",
+          "lineCount": 364,
+          "approximateFunctions": 0,
+          "approximateClasses": 1,
+          "importOrIncludeCount": 4,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "coming-soon/contact.html",
+          "language": "html",
+          "lineCount": 23,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "coming-soon/pricing.html",
+          "language": "html",
+          "lineCount": 53,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "coming-soon/privacy.html",
+          "language": "html",
+          "lineCount": 34,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "coming-soon/refund.html",
+          "language": "html",
+          "lineCount": 34,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "coming-soon/sample-report.html",
+          "language": "html",
+          "lineCount": 85,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "coming-soon/terms.html",
+          "language": "html",
+          "lineCount": 34,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 2,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docker/cloudflared/config.yml",
+          "language": "yaml",
+          "lineCount": 13,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docker-compose.phase2.yml",
+          "language": "yaml",
+          "lineCount": 116,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/ai-system-documentation.md",
+          "language": "markdown",
+          "lineCount": 43,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/api/README.md",
+          "language": "markdown",
+          "lineCount": 649,
+          "approximateFunctions": 10,
+          "approximateClasses": 2,
+          "importOrIncludeCount": 3,
+          "complexity": "high",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/ARCHITECTURE.md",
+          "language": "markdown",
+          "lineCount": 108,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/audit-terms-of-service.md",
+          "language": "markdown",
+          "lineCount": 45,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 2,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/conformity-declaration.md",
+          "language": "markdown",
+          "lineCount": 77,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/CONTRIBUTING.md",
+          "language": "markdown",
+          "lineCount": 48,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/DEPLOY-GATE.md",
+          "language": "markdown",
+          "lineCount": 45,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/enterprise-positioning.md",
+          "language": "markdown",
+          "lineCount": 41,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 1,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/eu-ai-act-compliance.md",
+          "language": "markdown",
+          "lineCount": 33,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 2,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/free-slop-audit-offer.md",
+          "language": "markdown",
+          "lineCount": 64,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/GGUF-INTEGRATION.md",
+          "language": "markdown",
+          "lineCount": 76,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 1,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/model-card.md",
+          "language": "markdown",
+          "lineCount": 123,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 1,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/outreach-cc-campaign.md",
+          "language": "markdown",
+          "lineCount": 137,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 2,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/prospect-list.md",
+          "language": "markdown",
+          "lineCount": 136,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 2,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/risk-assessment.md",
+          "language": "markdown",
+          "lineCount": 66,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 3,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/SECURITY.md",
+          "language": "markdown",
+          "lineCount": 39,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "docs/v1-internal-runbook.md",
+          "language": "markdown",
+          "lineCount": 353,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 3,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "eu-ai-act-report-print.html",
+          "language": "html",
+          "lineCount": 237,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "GOVERNANCE.md",
+          "language": "markdown",
+          "lineCount": 47,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 1,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "packages/simplebeacon-intelligence/README.md",
+          "language": "markdown",
+          "lineCount": 56,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "pipeline/render.yaml",
+          "language": "yaml",
+          "lineCount": 12,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "README.md",
+          "language": "markdown",
+          "lineCount": 391,
+          "approximateFunctions": 0,
+          "approximateClasses": 1,
+          "importOrIncludeCount": 0,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "risk-assessment.md",
+          "language": "markdown",
+          "lineCount": 105,
+          "approximateFunctions": 0,
+          "approximateClasses": 1,
+          "importOrIncludeCount": 3,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "scripts/deploy-simplebeacon.sh",
+          "language": "bash",
+          "lineCount": 40,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "SECURITY.md",
+          "language": "markdown",
+          "lineCount": 56,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 2,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "server/db/init/01-create-database.sql",
+          "language": "sql",
+          "lineCount": 222,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "server/db/schema-phase2.sql",
+          "language": "sql",
+          "lineCount": 29,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "server/db/schema-subscription.sql",
+          "language": "sql",
+          "lineCount": 20,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "server/README-DLP.md",
+          "language": "markdown",
+          "lineCount": 88,
+          "approximateFunctions": 2,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "THUMB-DRIVE-README.md",
+          "language": "markdown",
+          "lineCount": 54,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 1,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "web/simplebeacon-dashboard/css/components.css",
+          "language": "css",
+          "lineCount": 2734,
+          "approximateFunctions": 8,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "high",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "web/simplebeacon-dashboard/css/layout.css",
+          "language": "css",
+          "lineCount": 278,
+          "approximateFunctions": 2,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "web/simplebeacon-dashboard/css/reset.css",
+          "language": "css",
+          "lineCount": 73,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "web/simplebeacon-dashboard/css/utilities.css",
+          "language": "css",
+          "lineCount": 29,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "web/simplebeacon-dashboard/css/variables.css",
+          "language": "css",
+          "lineCount": 62,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "web/simplebeacon-dashboard/index.html",
+          "language": "html",
+          "lineCount": 146,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 1,
+          "complexity": "medium",
+          "tier": "baseline"
+        },
+        {
+          "filePath": "web/upload.html",
+          "language": "html",
+          "lineCount": 12,
+          "approximateFunctions": 0,
+          "approximateClasses": 0,
+          "importOrIncludeCount": 0,
+          "complexity": "low",
+          "tier": "baseline"
+        }
+      ]
+    },
+    "scanScope": {
+      "mode": "codebase-audit",
+      "scanProfile": "universal",
+      "scanContext": "dashboard",
+      "universalLanguageCount": 52,
+      "dedicatedLanguagePlugins": [
+        "zscript",
+        "acs",
+        "decorate",
+        "glsl",
+        "lua",
+        "python",
+        "rust",
+        "go",
+        "sql"
+      ],
+      "description": "Walks source-like files under the project root (audit profile ΓÇö skips node_modules, .git, coverage). Uses universal language registry + plugins for domain scripts (ZScript, ACS, GLSL, etc.).",
+      "limitations": [
+        "Deep content analysis capped at 2,000 files (dashboard quick profile ΓÇö use Complete scan for full codebase pass); 406 code-like files discovered.",
+        "Extension profile: universal (dashboard default: universal; complete/CLI: default; override with SCAN_PROFILE or scanProfile).",
+        "52 language plugins (51 registry languages; Tier-2: Python, Rust, Go, SQL).",
+        "Context-aware filtering reduces false positives in tests, docs, and example paths.",
+        "Structure hints are regex-based Tier-1 estimates ΓÇö not AST parsing.",
+        "ESLint not run in this request ΓÇö set includeEslint=true or use Complete scan.",
+        "Does not prove dead-code elimination ΓÇö flags debt markers and broken files only."
+      ]
+    },
+    "codeUnderstanding": {
+      "mode": "deterministic",
+      "projectSummary": "Sampled 2 high-signal file(s) for semantic/contextual understanding.",
+      "fileInsights": [
+        {
+          "filePath": "server/lib/codebase-analyzer.cjs",
+          "understanding": {
+            "type": "code-understanding-report",
+            "reportVersion": 1,
+            "filePath": "server/lib/codebase-analyzer.cjs",
+            "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+            "generatedAt": "2026-06-10T04:51:33.306Z",
+            "layers": {
+              "static": {
+                "layer": "static",
+                "language": "javascript",
+                "languageLabel": "JavaScript",
+                "confidence": 1,
+                "method": "extension",
+                "pluginId": "javascript-baseline-v1",
+                "findingCount": 1,
+                "topFindings": [
+                  {
+                    "category": "tech-debt",
+                    "type": "dynamic-eval",
+                    "severity": "high",
+                    "description": "Dynamic eval/Function in production path: server/lib/codebase-analyzer.cjs"
+                  }
+                ]
+              },
+              "semantic": {
+                "layer": "semantic",
+                "language": "javascript",
+                "languageConfidence": 1,
+                "detectionMethod": "extension",
+                "purpose": "Exposes or handles HTTP/API behavior for the application.",
+                "purposeTags": ["api"],
+                "purposeConfidence": 0.72,
+                "businessLogic": {
+                  "domains": ["web-api", "auth", "billing", "data-pipeline", "testing"],
+                  "patterns": [
+                    {
+                      "domain": "web-api",
+                      "domainLabel": "Web API / HTTP handler",
+                      "patternId": "validation",
+                      "label": "Input validation",
+                      "matchCount": 6,
+                      "confidence": 0.85
+                    },
+                    {
+                      "domain": "auth",
+                      "domainLabel": "Authentication & authorization",
+                      "patternId": "login-flow",
+                      "label": "Login / credential flow",
+                      "matchCount": 9,
+                      "confidence": 0.65
+                    },
+                    {
+                      "domain": "billing",
+                      "domainLabel": "Billing & subscriptions",
+                      "patternId": "quota",
+                      "label": "Usage quota or plan tier",
+                      "matchCount": 8,
+                      "confidence": 0.65
+                    },
+                    {
+                      "domain": "data-pipeline",
+                      "domainLabel": "Data processing pipeline",
+                      "patternId": "etl",
+                      "label": "Data transform pipeline",
+                      "matchCount": 4,
+                      "confidence": 0.65
+                    },
+                    {
+                      "domain": "data-pipeline",
+                      "domainLabel": "Data processing pipeline",
+                      "patternId": "schema-check",
+                      "label": "Schema validation",
+                      "matchCount": 17,
+                      "confidence": 0.65
+                    },
+                    {
+                      "domain": "testing",
+                      "domainLabel": "Test & quality gates",
+                      "patternId": "unit-test",
+                      "label": "Unit test structure",
+                      "matchCount": 20,
+                      "confidence": 0.65
+                    },
+                    {
+                      "domain": "testing",
+                      "domainLabel": "Test & quality gates",
+                      "patternId": "mock-fixture",
+                      "label": "Test doubles",
+                      "matchCount": 20,
+                      "confidence": 0.65
+                    }
+                  ],
+                  "primaryDomain": "web-api"
+                },
+                "assumptions": [
+                  "Relies on environment variables at runtime.",
+                  "Contains unfinished work markers (TODO/FIXME/HACK)."
+                ],
+                "aiEnhanced": false,
+                "aiSummary": null,
+                "aiError": null
+              },
+              "contextual": {
+                "layer": "contextual",
+                "gitHistory": {
+                  "available": true,
+                  "lastCommit": {
+                    "hash": "c551fdead2e5b20566e85f072f04d85a5bcbd27b",
+                    "author": "Your Name",
+                    "date": "2026-06-05",
+                    "message": "Prepare for Render deployment"
+                  },
+                  "recentCommits": [
+                    "c551fdea 2026-06-05 Prepare for Render deployment",
+                    "cb24c7f1 2026-06-02 Fix scanner false positives and harden test fixture exclusions.",
+                    "065c1b8f 2026-06-02 Clean up unused files, fix env false positives, and refactor sync I/O."
+                  ],
+                  "decisionHistory": [
+                    {
+                      "summary": "c551fdea 2026-06-05 Prepare for Render deployment",
+                      "inferredIntent": "General change ΓÇö review commit message for details"
+                    },
+                    {
+                      "summary": "cb24c7f1 2026-06-02 Fix scanner false positives and harden test fixture exclusions.",
+                      "inferredIntent": "Bug fix or regression repair"
+                    },
+                    {
+                      "summary": "065c1b8f 2026-06-02 Clean up unused files, fix env false positives, and refactor sync I/O.",
+                      "inferredIntent": "Bug fix or regression repair"
+                    }
+                  ]
+                },
+                "documentation": [],
+                "contextSummary": "Last change: \"Prepare for Render deployment\" (2026-06-05).",
+                "confidence": 0.6
+              },
+              "expert": {
+                "layer": "expert",
+                "reviews": [],
+                "consensus": { "count": 0, "consensus": null, "confidence": 0 }
+              }
+            },
+            "summary": "Exposes or handles HTTP/API behavior for the application. Last change: \"Prepare for Render deployment\" (2026-06-05).",
+            "overallConfidence": 0.58,
+            "limitations": [
+              "Semantic layer uses heuristics ΓÇö analysis mode optional via understandingMode=semantic.",
+              "Runtime behavior (Layer 3) not included in this release.",
+              "Expert reviews are local-only until a shared review service is configured."
+            ]
+          }
+        },
+        {
+          "filePath": "THUMB-DRIVE-README.md",
+          "understanding": {
+            "type": "code-understanding-report",
+            "reportVersion": 1,
+            "filePath": "THUMB-DRIVE-README.md",
+            "projectPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform",
+            "generatedAt": "2026-06-10T04:51:33.475Z",
+            "layers": {
+              "static": {
+                "layer": "static",
+                "language": "markdown",
+                "languageLabel": "Markdown",
+                "confidence": 1,
+                "method": "extension",
+                "pluginId": "markdown-baseline-v1",
+                "findingCount": 2,
+                "topFindings": [
+                  {
+                    "category": "meaningless-data",
+                    "type": "example-domain",
+                    "severity": "low",
+                    "description": "example.* domain placeholder in THUMB-DRIVE-README.md"
+                  },
+                  {
+                    "category": "meaningless-data",
+                    "type": "example-domain",
+                    "severity": "low",
+                    "description": "example.* domain placeholder in THUMB-DRIVE-README.md"
+                  }
+                ]
+              },
+              "semantic": {
+                "layer": "semantic",
+                "language": "markdown",
+                "languageConfidence": 1,
+                "detectionMethod": "extension",
+                "purpose": "Appears to implement auth domain logic.",
+                "purposeTags": [],
+                "purposeConfidence": 0.45,
+                "businessLogic": {
+                  "domains": ["auth"],
+                  "patterns": [
+                    {
+                      "domain": "auth",
+                      "domainLabel": "Authentication & authorization",
+                      "patternId": "rbac",
+                      "label": "Role-based access",
+                      "matchCount": 1,
+                      "confidence": 0.65
+                    }
+                  ],
+                  "primaryDomain": "auth"
+                },
+                "assumptions": ["References local development hosts."],
+                "aiEnhanced": false,
+                "aiSummary": null,
+                "aiError": null
+              },
+              "contextual": {
+                "layer": "contextual",
+                "gitHistory": {
+                  "available": true,
+                  "lastCommit": {
+                    "hash": "c551fdead2e5b20566e85f072f04d85a5bcbd27b",
+                    "author": "Your Name",
+                    "date": "2026-06-05",
+                    "message": "Prepare for Render deployment"
+                  },
+                  "recentCommits": ["c551fdea 2026-06-05 Prepare for Render deployment"],
+                  "decisionHistory": [
+                    {
+                      "summary": "c551fdea 2026-06-05 Prepare for Render deployment",
+                      "inferredIntent": "General change ΓÇö review commit message for details"
+                    }
+                  ]
+                },
+                "documentation": [
+                  {
+                    "name": "README.md",
+                    "relativePath": "README.md",
+                    "excerpt": "# Simplebeacon Platform\n\n[![CI Status](https://github.com/tjp420/simplebeacon/workflows/Simplebeacon%20AI%20Hygiene%20Gate/badge.svg)](https://github.com/tjp420/simplebeacon/actions)\n[![Coverage](https://codecov.io/gh/tjp420/simplebeacon/branch/main/graph/badge.svg)](https://codecov.io/gh/tjp420/simplebeacon)\n[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)\n\n≡ƒ¢í∩╕Å **Simplebeacon** is an AI safety scanning and audit platform designed for enterprise codebases, providing comprehensive security analysis, compliance checking, and quality assurance for AI-powered applications.\n\n## ≡ƒÜÇ Features\n\n### ≡ƒöì AI Safety Scanning\n- **Multi-Engine Analysis**: Credential detection, production leaks, fiction KPI patterns\n- **EU AI Act Compliance**: Automated compliance checking for AI sy"
+                  },
+                  {
+                    "name": "readme.md",
+                    "relativePath": "readme.md",
+                    "excerpt": "# Simplebeacon Platform\n\n[![CI Status](https://github.com/tjp420/simplebeacon/workflows/Simplebeacon%20AI%20Hygiene%20Gate/badge.svg)](https://github.com/tjp420/simplebeacon/actions)\n[![Coverage](https://codecov.io/gh/tjp420/simplebeacon/branch/main/graph/badge.svg)](https://codecov.io/gh/tjp420/simplebeacon)\n[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)\n\n≡ƒ¢í∩╕Å **Simplebeacon** is an AI safety scanning and audit platform designed for enterprise codebases, providing comprehensive security analysis, compliance checking, and quality assurance for AI-powered applications.\n\n## ≡ƒÜÇ Features\n\n### ≡ƒöì AI Safety Scanning\n- **Multi-Engine Analysis**: Credential detection, production leaks, fiction KPI patterns\n- **EU AI Act Compliance**: Automated compliance checking for AI sy"
+                  },
+                  {
+                    "name": "CHANGELOG.md",
+                    "relativePath": "CHANGELOG.md",
+                    "excerpt": "# Changelog\n\nAll notable changes to the Simplebeacon Platform will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n\n## [Unreleased]\n\n### Added\n- Comprehensive test suite with integration tests\n- Complete API documentation\n- Production deployment readiness verification\n- Enhanced security configuration\n- Docker Phase 2 infrastructure\n\n### Changed\n- Improved Jest configuration with realistic coverage thresholds\n- Enhanced error handling and logging\n- Updated authentication middleware\n\n### Fixed\n- Module loading issues in test environment\n- Environment variable validation\n- Path safety validation improvements\n\n## [1.0.0-internal] - 2026-06-03\n\n#"
+                  }
+                ],
+                "contextSummary": "Last change: \"Prepare for Render deployment\" (2026-06-05). Adjacent docs: README.md, readme.md, CHANGELOG.md.",
+                "confidence": 0.6
+              },
+              "expert": {
+                "layer": "expert",
+                "reviews": [],
+                "consensus": { "count": 0, "consensus": null, "confidence": 0 }
+              }
+            },
+            "summary": "Appears to implement auth domain logic. Last change: \"Prepare for Render deployment\" (2026-06-05). Adjacent docs: README.md, readme.md, CHANGELOG.md.",
+            "overallConfidence": 0.51,
+            "limitations": [
+              "Semantic layer uses heuristics ΓÇö analysis mode optional via understandingMode=semantic.",
+              "Runtime behavior (Layer 3) not included in this release.",
+              "Expert reviews are local-only until a shared review service is configured."
+            ]
+          }
+        }
+      ],
+      "layersAvailable": ["static", "semantic", "contextual", "expert"],
+      "layersPlanned": ["runtime"]
+    }
+  },
+  "scanProfile": "universal",
+  "scanContext": "dashboard",
+  "understandingMode": "deterministic"
+}

@@ -17,10 +17,6 @@
     { "metric": "averageScanTimeMs", "value": 120 },
     { "metric": "falsePositiveRate", "value": 2 }
   ],
-  "insights": [
-    { "title": "All tools operational", "description": "No issues detected" }
-  ],
-  "activity": [
-    { "event": "scan", "timestamp": "2026-07-18T00:00:00Z" }
-  ]
+  "insights": [{ "title": "All tools operational", "description": "No issues detected" }],
+  "activity": [{ "event": "scan", "timestamp": "2026-07-18T00:00:00Z" }]
 }

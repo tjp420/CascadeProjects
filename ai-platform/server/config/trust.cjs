@@ -10,7 +10,7 @@ const TRUST_LEVELS = Object.freeze(['bronze', 'silver', 'gold']);
 const UPLOAD_LIMITS_BY_TRUST = Object.freeze({
   bronze: 10,
   silver: 25,
-  gold: 100
+  gold: 100,
 });
 
 /**
@@ -38,7 +38,7 @@ const AI_TIMEOUTS = Object.freeze({
   OLLAMA_STREAMING: 120_000,
   PROXY_DEFAULT: 60_000,
   MODEL_INFERENCE: 90_000,
-  EMBEDDING: 15_000
+  EMBEDDING: 15_000,
 });
 
 module.exports = Object.freeze({
@@ -46,5 +46,5 @@ module.exports = Object.freeze({
   UPLOAD_LIMITS_BY_TRUST,
   AI_TIMEOUTS,
   getUploadLimitForTrust,
-  isValidTrustLevel
+  isValidTrustLevel,
 });

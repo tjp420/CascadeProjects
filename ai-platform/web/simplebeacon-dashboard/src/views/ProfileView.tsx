@@ -4,7 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Mail, Shield, Crown, LogOut, Settings as SettingsIcon, Download, RefreshCw } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Shield,
+  Crown,
+  LogOut,
+  Settings as SettingsIcon,
+  Download,
+  RefreshCw,
+} from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { apiUrl, authHeaders, getApiBase } from '@/config';
 
@@ -19,7 +28,11 @@ interface UserData {
 export function ProfileView() {
   const [user, setUser] = useState<UserData | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [subscription, setSubscription] = useState<{ plan?: string; scansRemaining?: string | number; apiAccess?: string } | null>(null);
+  const [subscription, setSubscription] = useState<{
+    plan?: string;
+    scansRemaining?: string | number;
+    apiAccess?: string;
+  } | null>(null);
   const [subscriptionUnavailable, setSubscriptionUnavailable] = useState(false);
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
@@ -67,7 +80,8 @@ export function ProfileView() {
     try {
       const profile = user || {};
       const email = profile.email || 'unknown';
-      const host = typeof window !== 'undefined' ? (window.location?.hostname || 'localhost') : 'localhost';
+      const host =
+        typeof window !== 'undefined' ? window.location?.hostname || 'localhost' : 'localhost';
       const timestamp = Date.now();
 
       // Gather data from localStorage
@@ -75,43 +89,57 @@ export function ProfileView() {
       try {
         const raw = localStorage.getItem('sb_scan_history');
         if (raw) scanHistory = JSON.parse(raw);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       let report: unknown = null;
       try {
         const raw = localStorage.getItem('sb_last_scan_full');
         if (raw) report = JSON.parse(raw);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       let baseline: unknown = null;
       try {
         const raw = localStorage.getItem('sb_baseline');
         if (raw) baseline = JSON.parse(raw);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       let config: unknown = null;
       try {
         const raw = localStorage.getItem('sb_config');
         if (raw) config = JSON.parse(raw);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       let assessment: unknown = null;
       try {
         const raw = localStorage.getItem('sb_assessment');
         if (raw) assessment = JSON.parse(raw);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       // Fetch AI keys from API
       let aiKeys: unknown = null;
       try {
         const resp = await fetch(apiUrl('/simplebeacon/user/ai-keys'), { headers: authHeaders() });
         if (resp.ok) aiKeys = await resp.json();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       // If scan history is empty, try fetching from API
       if (scanHistory.length === 0) {
         try {
-          const resp = await fetch(apiUrl('/simplebeacon/history?limit=50'), { headers: authHeaders() });
+          const resp = await fetch(apiUrl('/simplebeacon/history?limit=50'), {
+            headers: authHeaders(),
+          });
           if (resp.ok) {
             const body = await resp.json();
             if (Array.isArray(body)) {
@@ -120,7 +148,9 @@ export function ProfileView() {
               scanHistory = body.history;
             }
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       const bundle = {
@@ -181,7 +211,10 @@ export function ProfileView() {
 
   const displayName = user?.name || user?.email || 'User';
   const initials = displayName.charAt(0).toUpperCase();
-  const plan = user?.plan || user?.tier || (user?.role === 'admin' || user?.role === 'superuser' ? 'enterprise' : 'free');
+  const plan =
+    user?.plan ||
+    user?.tier ||
+    (user?.role === 'admin' || user?.role === 'superuser' ? 'enterprise' : 'free');
   const role = user?.role || 'user';
   const displayedPlan = subscription?.plan || plan;
 
@@ -236,7 +269,10 @@ export function ProfileView() {
               </Badge>
             </div>
             {displayedPlan === 'free' && (
-              <Button size="sm" onClick={() => subscriptionUnavailable ? navigate('help') : navigate('settings')}>
+              <Button
+                size="sm"
+                onClick={() => (subscriptionUnavailable ? navigate('help') : navigate('settings'))}
+              >
                 <Crown className="h-4 w-4" /> Upgrade
               </Button>
             )}
@@ -244,11 +280,15 @@ export function ProfileView() {
           <Separator />
           <div className="flex items-center justify-between">
             <span className="text-sm text-foreground-muted">Scans remaining</span>
-            <span className="text-sm font-medium">{subscription?.scansRemaining ?? 'Unlimited'}</span>
+            <span className="text-sm font-medium">
+              {subscription?.scansRemaining ?? 'Unlimited'}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-foreground-muted">API access</span>
-            <span className="text-sm font-medium">{subscription?.apiAccess ?? (plan === 'free' ? 'Limited' : 'Full')}</span>
+            <span className="text-sm font-medium">
+              {subscription?.apiAccess ?? (plan === 'free' ? 'Limited' : 'Full')}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -287,16 +327,21 @@ export function ProfileView() {
               <Download className="h-4 w-4 text-foreground-muted" />
               <div>
                 <p className="text-sm font-medium">Export Data</p>
-                <p className="text-xs text-foreground-muted">Download your scan history and reports</p>
+                <p className="text-xs text-foreground-muted">
+                  Download your scan history and reports
+                </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={exporting}
-              onClick={handleExport}
-            >
-              {exporting ? <><RefreshCw className="h-4 w-4 animate-spin" /> Exporting…</> : <><Download className="h-4 w-4" /> Export</>}
+            <Button variant="outline" size="sm" disabled={exporting} onClick={handleExport}>
+              {exporting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" /> Exporting…
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" /> Export
+                </>
+              )}
             </Button>
           </div>
           <div className="flex items-center justify-between rounded-md border border-danger/30 px-4 py-3">

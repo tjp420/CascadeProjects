@@ -40,134 +40,136 @@ const AUTH_REQUIRED_VIEWS = new Set(['organization']);
 const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
 
 function isHostedDashboard(): boolean {
-  if (typeof window === 'undefined') return false;
-  return !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
+    if (typeof window === 'undefined') return false;
+    return !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 }
 
 function isIdeEmbedSurface(): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const win = window as any;
-    if (win.__SB_IDE_EMBED__) return true;
-    if (document.documentElement.hasAttribute('data-ide-embed')) return true;
-    if (typeof win.acquireVsCodeApi === 'function') return true;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
-  } catch { /* ignore */ }
-  return window.self !== window.top;
+    if (typeof window === 'undefined') return false;
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const win = window as any;
+        if (win.__SB_IDE_EMBED__) return true;
+        if (document.documentElement.hasAttribute('data-ide-embed')) return true;
+        if (typeof win.acquireVsCodeApi === 'function') return true;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
+    } catch {
+        /* ignore */
+    }
+    return window.self !== window.top;
 }
 
 const VIEW_TITLES: Record<string, string> = {
-  dashboard: 'Dashboard',
-  analyze: 'Analyze',
-  results: 'Results',
-  settings: 'Settings',
-  audit: 'Audit Report',
-  security: 'Security',
-  quality: 'Quality',
-  chatbot: 'Chatbot',
-  trust: 'Trust',
-  remediation: 'Remediation',
-  roadmap: 'Remediation Roadmap',
-  profile: 'Profile',
-  platform: 'Platform',
-  tools: 'Tools',
-  'repository-health': 'Repo Health',
-  signin: 'Sign In',
-  register: 'Create Account',
-  admin: 'Admin',
-  upload: 'Upload',
-  help: 'Help',
-  features: 'Features',
-  assessments: 'Assessments',
-  about: 'About',
-  'getting-started': 'Getting Started',
-  compliance: 'Compliance',
-  organization: 'Organization',
+    dashboard: 'Dashboard',
+    analyze: 'Analyze',
+    results: 'Results',
+    settings: 'Settings',
+    audit: 'Audit Report',
+    security: 'Security',
+    quality: 'Quality',
+    chatbot: 'Chatbot',
+    trust: 'Trust',
+    remediation: 'Remediation',
+    roadmap: 'Remediation Roadmap',
+    profile: 'Profile',
+    platform: 'Platform',
+    tools: 'Tools',
+    'repository-health': 'Repo Health',
+    signin: 'Sign In',
+    register: 'Create Account',
+    admin: 'Admin',
+    upload: 'Upload',
+    help: 'Help',
+    features: 'Features',
+    assessments: 'Assessments',
+    about: 'About',
+    'getting-started': 'Getting Started',
+    compliance: 'Compliance',
+    organization: 'Organization'
 };
 
 const viewMap: Record<string, React.ComponentType> = {
-  dashboard: DashboardView,
-  analyze: AnalyzeView,
-  results: ResultsView,
-  settings: SettingsView,
-  audit: AuditView,
-  security: SecurityView,
-  quality: QualityView,
-  chatbot: ChatbotView,
-  trust: TrustView,
-  remediation: RemediationView,
-  roadmap: RemediationView,
-  profile: ProfileView,
-  platform: PlatformView,
-  tools: ToolsView,
-  'repository-health': RepoHealthView,
-  signin: SignInView,
-  register: SignInView,
-  admin: AdminView,
-  upload: UploadView,
-  help: HelpView,
-  features: HelpView,
-  assessments: AssessmentView,
-  about: AboutView,
-  'getting-started': GettingStartedView,
-  compliance: ComplianceView,
-  organization: OrganizationView,
+    dashboard: DashboardView,
+    analyze: AnalyzeView,
+    results: ResultsView,
+    settings: SettingsView,
+    audit: AuditView,
+    security: SecurityView,
+    quality: QualityView,
+    chatbot: ChatbotView,
+    trust: TrustView,
+    remediation: RemediationView,
+    roadmap: RemediationView,
+    profile: ProfileView,
+    platform: PlatformView,
+    tools: ToolsView,
+    'repository-health': RepoHealthView,
+    signin: SignInView,
+    register: SignInView,
+    admin: AdminView,
+    upload: UploadView,
+    help: HelpView,
+    features: HelpView,
+    assessments: AssessmentView,
+    about: AboutView,
+    'getting-started': GettingStartedView,
+    compliance: ComplianceView,
+    organization: OrganizationView
 };
 
 export default function App() {
-  const [route, setRoute] = useState(getCurrentRoute());
-  const { isAuthenticated, isFreeTier, user } = useAuth();
-  useTheme();
+    const [route, setRoute] = useState(getCurrentRoute());
+    const { isAuthenticated, isFreeTier, user } = useAuth();
+    useTheme();
 
-  // simplebeacon-ignore: framework-practices — standard React useEffect hook
-  useEffect(() => {
-    const onHashChange = () => setRoute(getCurrentRoute());
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
+    // simplebeacon-ignore: framework-practices — standard React useEffect hook
+    useEffect(() => {
+        const onHashChange = () => setRoute(getCurrentRoute());
+        window.addEventListener('hashchange', onHashChange);
+        return () => window.removeEventListener('hashchange', onHashChange);
+    }, []);
 
-  // simplebeacon-ignore: framework-practices — standard React useEffect hook
-  useEffect(() => {
-    const label = VIEW_TITLES[route.view] || 'Dashboard';
-    document.title = `${label} — SimpleBeacon`;
-  }, [route.view]);
+    // simplebeacon-ignore: framework-practices — standard React useEffect hook
+    useEffect(() => {
+        const label = VIEW_TITLES[route.view] || 'Dashboard';
+        document.title = `${label} — SimpleBeacon`;
+    }, [route.view]);
 
-  // simplebeacon-ignore: framework-practices — standard React useEffect hook
-  useEffect(() => {
-    if (PUBLIC_VIEWS.has(route.view)) return;
-    if (AUTH_REQUIRED_VIEWS.has(route.view) && !isAuthenticated) {
-      navigate('signin');
-      setRoute(getCurrentRoute());
-      return;
-    }
-    if (!WRITE_HEAVY_VIEWS.has(route.view)) return;
-    if (!isHostedDashboard() || isIdeEmbedSurface()) return;
-    if (!isTokenExpired()) return;
-    navigate('signin');
-    setRoute(getCurrentRoute());
-  }, [route.view, isAuthenticated]);
+    // simplebeacon-ignore: framework-practices — standard React useEffect hook
+    useEffect(() => {
+        if (PUBLIC_VIEWS.has(route.view)) return;
+        if (AUTH_REQUIRED_VIEWS.has(route.view) && !isAuthenticated) {
+            navigate('signin');
+            setRoute(getCurrentRoute());
+            return;
+        }
+        if (!WRITE_HEAVY_VIEWS.has(route.view)) return;
+        if (!isHostedDashboard() || isIdeEmbedSurface()) return;
+        if (!isTokenExpired()) return;
+        navigate('signin');
+        setRoute(getCurrentRoute());
+    }, [route.view, isAuthenticated]);
 
-  const handleNavigate = useCallback((view: string) => {
-    navigate(view);
-    setRoute(getCurrentRoute());
-  }, []);
+    const handleNavigate = useCallback((view: string) => {
+        navigate(view);
+        setRoute(getCurrentRoute());
+    }, []);
 
-  const CurrentView = viewMap[route.view] || DashboardView;
-  const isPublic = PUBLIC_VIEWS.has(route.view);
+    const CurrentView = viewMap[route.view] || DashboardView;
+    const isPublic = PUBLIC_VIEWS.has(route.view);
 
-  return (
-    <ToastProvider>
-      <AppShell
-        currentView={route.view}
-        onNavigate={handleNavigate}
-        isAuthenticated={isAuthenticated}
-        isFreeTier={isFreeTier}
-        user={user}
-      >
-        <CurrentView />
-      </AppShell>
-    </ToastProvider>
-  );
+    return (
+        <ToastProvider>
+            <AppShell
+                currentView={route.view}
+                onNavigate={handleNavigate}
+                isAuthenticated={isAuthenticated}
+                isFreeTier={isFreeTier}
+                user={user}
+            >
+                <CurrentView />
+            </AppShell>
+        </ToastProvider>
+    );
 }

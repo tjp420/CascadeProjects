@@ -1,6 +1,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 const fs = require('fs');
-const content = fs.readFileSync('c:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/out/modernSidebarProvider.js', 'utf8');
+const content = fs.readFileSync(
+  'c:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/out/modernSidebarProvider.js',
+  'utf8'
+);
 
 const startMarker = 'const layoutHtml = `';
 const startIdx = content.indexOf(startMarker);
@@ -18,49 +21,49 @@ let escapeNext = false;
 
 while (i < content.length) {
   const ch = content[i];
-  
+
   if (escapeNext) {
     escapeNext = false;
     i++;
     continue;
   }
-  
+
   if (ch === '\\') {
     escapeNext = true;
     i++;
     continue;
   }
-  
+
   if (!inString && ch === '`' && depth === 0) {
     break;
   }
-  
-  if (!inString && ch === '$' && content[i+1] === '{') {
+
+  if (!inString && ch === '$' && content[i + 1] === '{') {
     depth++;
     i += 2;
     continue;
   }
-  
+
   if (!inString && ch === '}') {
     depth--;
     i++;
     continue;
   }
-  
+
   if (!inString && (ch === '"' || ch === "'" || ch === '`')) {
     inString = true;
     stringChar = ch;
     i++;
     continue;
   }
-  
+
   if (inString && ch === stringChar) {
     inString = false;
     stringChar = null;
     i++;
     continue;
   }
-  
+
   i++;
 }
 
@@ -84,17 +87,17 @@ for (let j = 0; j < lines.length; j++) {
 
   let quoteCount = 0;
   for (let k = 0; k < line.length; k++) {
-    if (line[k] === "'" && (k === 0 || line[k-1] !== '\\')) {
+    if (line[k] === "'" && (k === 0 || line[k - 1] !== '\\')) {
       quoteCount++;
     }
   }
 
   if (prevLineOddQuotes) {
     console.log('MULTI-LINE at HTML line', j + 1, ':');
-    console.log('  PREV:', lines[j-1].substring(0, 200));
+    console.log('  PREV:', lines[j - 1].substring(0, 200));
     console.log('  THIS:', line.substring(0, 200));
   }
-  prevLineOddQuotes = (quoteCount % 2 !== 0);
+  prevLineOddQuotes = quoteCount % 2 !== 0;
 }
 
 console.log('Total lines:', lines.length);

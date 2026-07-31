@@ -5,23 +5,32 @@ jest.mock('../analyze-deliverable-access.cjs', () => ({
   resolveDeliverableTier: jest.fn(),
   DELIVERABLE_TIERS: {
     operator: { tier: 'operator', label: 'Operator', requiresCompleteScan: false },
-    handoff: { tier: 'handoff', label: 'Handoff', requiresCompleteScan: true, minScanKind: ['complete'] }
-  }
+    handoff: {
+      tier: 'handoff',
+      label: 'Handoff',
+      requiresCompleteScan: true,
+      minScanKind: ['complete'],
+    },
+  },
 }));
 jest.mock('../simplebeacon-proxy.cjs', () => ({
-  applyPublicGateToAnalyzeResponse: jest.fn().mockReturnValue({ publicSummary: { summary: { gatePass: true } } }),
+  applyPublicGateToAnalyzeResponse: jest
+    .fn()
+    .mockReturnValue({ publicSummary: { summary: { gatePass: true } } }),
   sanitizePublicOutput: jest.fn().mockReturnValue({ summary: {} }),
-  sanitizePublicSummaryArtifactExport: jest.fn().mockReturnValue({ type: 'simplebeacon-public-summary' }),
+  sanitizePublicSummaryArtifactExport: jest
+    .fn()
+    .mockReturnValue({ type: 'simplebeacon-public-summary' }),
   sanitizeCompleteScanExport: jest.fn().mockImplementation((scan) => scan),
   projectLabelFromPath: jest.fn().mockReturnValue('project'),
-  redactProjectPathForExport: jest.fn().mockReturnValue('/redacted/project')
+  redactProjectPathForExport: jest.fn().mockReturnValue('/redacted/project'),
 }));
 
 const {
   enrichExportBundleManifest,
   resolveCompleteScanExportBundle,
   buildPublicSummary,
-  validateScanForTier
+  validateScanForTier,
 } = require('../analyze-export-bundle/validation.cjs');
 
 describe('analyze-export-bundle/validation', () => {
@@ -34,7 +43,10 @@ describe('analyze-export-bundle/validation', () => {
 
   test('enrichExportBundleManifest adds export metadata', () => {
     const manifest = { type: 'test', projectPath: '/orig' };
-    const result = enrichExportBundleManifest(manifest, { tierId: 'operator', projectPath: '/project' });
+    const result = enrichExportBundleManifest(manifest, {
+      tierId: 'operator',
+      projectPath: '/project',
+    });
     expect(result.exportNormalized).toBe(true);
     expect(result.exportSanitized).toBe(true);
     expect(result.securityHandoffEligible).toBe(false);
@@ -61,7 +73,10 @@ describe('analyze-export-bundle/validation', () => {
   });
 
   test('buildPublicSummary returns a public summary object', () => {
-    const scan = { type: 'simplebeacon-complete-scan', results: { simplebeacon: { summary: { gatePass: true } } } };
+    const scan = {
+      type: 'simplebeacon-complete-scan',
+      results: { simplebeacon: { summary: { gatePass: true } } },
+    };
     const result = buildPublicSummary(scan);
     expect(result).toBeDefined();
     expect(result.type).toBe('simplebeacon-public-summary');

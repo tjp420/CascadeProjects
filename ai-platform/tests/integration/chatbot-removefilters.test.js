@@ -9,7 +9,7 @@ jest.mock('../../server/config/constants.cjs', () => ({
   TIMEOUT_12S: 12000,
   TIMEOUT_1M: 60000,
   MAX_RATE_LIMIT: 1000,
-  safeJsonLimit: () => '1mb'
+  safeJsonLimit: () => '1mb',
 }));
 
 describe('Chatbot removeFilters gating', () => {
@@ -30,7 +30,12 @@ describe('Chatbot removeFilters gating', () => {
     serverApp.use((req, res, next) => {
       const testUser = req.get('x-test-user');
       if (testUser === 'admin') {
-        req.user = { email: 'admin@example.com', role: 'admin', tier: 'admin', permissions: ['admin:all'] };
+        req.user = {
+          email: 'admin@example.com',
+          role: 'admin',
+          tier: 'admin',
+          permissions: ['admin:all'],
+        };
       } else if (testUser === 'user') {
         req.user = { email: 'user@example.com', role: 'user', tier: 'community', permissions: [] };
       }

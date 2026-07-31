@@ -29,37 +29,37 @@ describe('Server API', () => {
 
   describe('GET /pricing.html', () => {
     it('should serve the pricing page', async () => {
-      const res = await request(app)
-        .get('/pricing.html')
-        .expect(200);
-      assert.ok(res.text.includes('pricing') || res.text.includes('Pricing'), 'Response should contain pricing content');
+      const res = await request(app).get('/pricing.html').expect(200);
+      assert.ok(
+        res.text.includes('pricing') || res.text.includes('Pricing'),
+        'Response should contain pricing content'
+      );
     });
   });
 
   describe('GET /index.html', () => {
     it('should serve the index page', async () => {
-      const res = await request(app)
-        .get('/index.html')
-        .expect(200);
-      assert.ok(res.text.includes('<!DOCTYPE html>') || res.text.includes('<html'), 'Response should be HTML');
+      const res = await request(app).get('/index.html').expect(200);
+      assert.ok(
+        res.text.includes('<!DOCTYPE html>') || res.text.includes('<html'),
+        'Response should be HTML'
+      );
     });
   });
 
   describe('GET /', () => {
     it('should fallback to index.html for unknown routes', async () => {
-      const res = await request(app)
-        .get('/')
-        .expect(200);
-      assert.ok(res.text.includes('<!DOCTYPE html>') || res.text.includes('<html'), 'Fallback should serve HTML');
+      const res = await request(app).get('/').expect(200);
+      assert.ok(
+        res.text.includes('<!DOCTYPE html>') || res.text.includes('<html'),
+        'Fallback should serve HTML'
+      );
     });
   });
 
   describe('POST /api/subscribe', () => {
     it('should reject missing email', async () => {
-      const res = await request(app)
-        .post('/api/subscribe')
-        .send({})
-        .expect(400);
+      const res = await request(app).post('/api/subscribe').send({}).expect(400);
       assert.strictEqual(res.body.error, 'A valid email address is required.');
     });
 

@@ -18,7 +18,7 @@ function recordSandboxRequest(jti) {
   if (jti == null) return { allowed: false, remaining: 0 };
   const now = Date.now();
   const entry = sandboxTokenUsage.get(jti);
-  if (!entry || (now - entry.windowStart) > SANDBOX_WINDOW_MS) {
+  if (!entry || now - entry.windowStart > SANDBOX_WINDOW_MS) {
     sandboxTokenUsage.set(jti, { count: 1, windowStart: now });
     return { allowed: true, remaining: SANDBOX_DAILY_LIMIT - 1 };
   }
@@ -29,14 +29,23 @@ function recordSandboxRequest(jti) {
 
 function getSandboxLimitHeaders(jti) {
   if (jti == null) {
-    return { 'X-Sandbox-Limit': String(SANDBOX_DAILY_LIMIT), 'X-Sandbox-Remaining': String(SANDBOX_DAILY_LIMIT) };
+    return {
+      'X-Sandbox-Limit': String(SANDBOX_DAILY_LIMIT),
+      'X-Sandbox-Remaining': String(SANDBOX_DAILY_LIMIT),
+    };
   }
   const entry = sandboxTokenUsage.get(jti);
   if (!entry) {
-    return { 'X-Sandbox-Limit': String(SANDBOX_DAILY_LIMIT), 'X-Sandbox-Remaining': String(SANDBOX_DAILY_LIMIT) };
+    return {
+      'X-Sandbox-Limit': String(SANDBOX_DAILY_LIMIT),
+      'X-Sandbox-Remaining': String(SANDBOX_DAILY_LIMIT),
+    };
   }
   const remaining = Math.max(0, SANDBOX_DAILY_LIMIT - entry.count);
-  return { 'X-Sandbox-Limit': String(SANDBOX_DAILY_LIMIT), 'X-Sandbox-Remaining': String(remaining) };
+  return {
+    'X-Sandbox-Limit': String(SANDBOX_DAILY_LIMIT),
+    'X-Sandbox-Remaining': String(remaining),
+  };
 }
 
 // Periodic cleanup of stale sandbox usage records
@@ -50,13 +59,17 @@ const sandboxCleanupInterval = setInterval(() => {
 }, 60 * constants.ONE_MINUTE_MS);
 sandboxCleanupInterval.unref();
 
-process.on('SIGINT', () => { clearInterval(sandboxCleanupInterval); });
-process.on('SIGTERM', () => { clearInterval(sandboxCleanupInterval); });
+process.on('SIGINT', () => {
+  clearInterval(sandboxCleanupInterval);
+});
+process.on('SIGTERM', () => {
+  clearInterval(sandboxCleanupInterval);
+});
 
 module.exports = {
   isSandboxToken,
   recordSandboxRequest,
   getSandboxLimitHeaders,
   SANDBOX_DAILY_LIMIT,
-  SANDBOX_WINDOW_MS
+  SANDBOX_WINDOW_MS,
 };

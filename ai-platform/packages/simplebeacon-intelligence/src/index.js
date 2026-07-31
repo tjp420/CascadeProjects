@@ -10,33 +10,65 @@
  */
 
 import {
-    scanIntent, scanIntentAsync, resolveLanguage, isLanguageSupported, ENGINE as engine
+  scanIntent,
+  scanIntentAsync,
+  resolveLanguage,
+  isLanguageSupported,
+  ENGINE as engine,
 } from './intent-scanner.js';
 
 import {
-    scanStructuralIntent, scanCredentialDictStubs,
-    extractPythonFunctions, extractJsFunctions, analyzeFunctionBlock,
-    isGenericName, credentialKeyMatch, isPlaceholderCredentialValue, hasPlaceholderReturn
+  scanStructuralIntent,
+  scanCredentialDictStubs,
+  extractPythonFunctions,
+  extractJsFunctions,
+  analyzeFunctionBlock,
+  isGenericName,
+  credentialKeyMatch,
+  isPlaceholderCredentialValue,
+  hasPlaceholderReturn,
 } from './structural-intent-scanner.js';
 
 import {
-    GRAMMAR_MAP, initParser, createLanguageParser, parseWithTreeSitter,
-    isGrammarAvailable, getTreeSitterStatus, resolveWasmDir
+  GRAMMAR_MAP,
+  initParser,
+  createLanguageParser,
+  parseWithTreeSitter,
+  isGrammarAvailable,
+  getTreeSitterStatus,
+  resolveWasmDir,
 } from './tree-sitter-loader.js';
 
 import {
-    probeSlmBin, canRunSlm, buildSlmPrompt, parseSlmResponse,
-    validateSlmResult, runSlmReview, runSlmReviewAsync
+  probeSlmBin,
+  canRunSlm,
+  buildSlmPrompt,
+  parseSlmResponse,
+  validateSlmResult,
+  runSlmReview,
+  runSlmReviewAsync,
 } from './slm-bridge.js';
 
-import { GENERIC_AI_MARKERS, CREDENTIAL_KEY_FRAGMENTS, INTENT_RULE_IDS, LANGUAGE_BY_EXT } from './constants.js';
+import {
+  GENERIC_AI_MARKERS,
+  CREDENTIAL_KEY_FRAGMENTS,
+  INTENT_RULE_IDS,
+  LANGUAGE_BY_EXT,
+} from './constants.js';
 
 import {
-    FUNCTION_NODE_TYPES, extractFunctionsFromTree, scanStructuralFromTree, scanWithTreeSitter
+  FUNCTION_NODE_TYPES,
+  extractFunctionsFromTree,
+  scanStructuralFromTree,
+  scanWithTreeSitter,
 } from './tree-sitter-queries.js';
 
 import {
-    loadFingerprints, extractFeatureVector, matchFingerprints, fingerprintFindings, cosineSimilarity
+  loadFingerprints,
+  extractFeatureVector,
+  matchFingerprints,
+  fingerprintFindings,
+  cosineSimilarity,
 } from './vector-cache.js';
 
 // ── JSDoc Type Definitions ────────────────────────────────────
@@ -94,120 +126,124 @@ import {
 // ── IntelligenceEngine Facade ─────────────────────────────────
 
 class IntelligenceEngine {
-    /**
-     * @param {IntelligenceEngineOptions} [options]
-     */
-    constructor(options = {}) {
-        this._options = options;
-        this._initialized = false;
-        this._slmProbe = null;
-    }
+  /**
+   * @param {IntelligenceEngineOptions} [options]
+   */
+  constructor(options = {}) {
+    this._options = options;
+    this._initialized = false;
+    this._slmProbe = null;
+  }
 
-    /**
-     * Initialize the engine. Optionally warms tree-sitter and probes SLM.
-     * @returns {IntelligenceEngine}
-     */
-    initialize() {
-        if (this._initialized) return this;
-        if (this._options.warmTreeSitter) {
-            try { initParser(); } catch { /* tree-sitter optional */ }
-        }
-        if (this._options.probeSlm) {
-            this._slmProbe = probeSlmBin();
-        }
-        this._initialized = true;
-        return this;
+  /**
+   * Initialize the engine. Optionally warms tree-sitter and probes SLM.
+   * @returns {IntelligenceEngine}
+   */
+  initialize() {
+    if (this._initialized) return this;
+    if (this._options.warmTreeSitter) {
+      try {
+        initParser();
+      } catch {
+        /* tree-sitter optional */
+      }
     }
+    if (this._options.probeSlm) {
+      this._slmProbe = probeSlmBin();
+    }
+    this._initialized = true;
+    return this;
+  }
 
-    /**
-     * Run a full intent scan (Tier 1a/1b/1c + optional Tier 2).
-     * @param {string} content
-     * @param {Object} [options]
-     * @returns {Promise<IntelligenceScanResult>}
-     */
-    async scan(content, options = {}) {
-        return scanIntentAsync(content, options);
-    }
+  /**
+   * Run a full intent scan (Tier 1a/1b/1c + optional Tier 2).
+   * @param {string} content
+   * @param {Object} [options]
+   * @returns {Promise<IntelligenceScanResult>}
+   */
+  async scan(content, options = {}) {
+    return scanIntentAsync(content, options);
+  }
 
-    /**
-     * Synchronous intent scan.
-     * @param {string} content
-     * @param {Object} [options]
-     * @returns {IntelligenceScanResult}
-     */
-    scanSync(content, options = {}) {
-        return scanIntent(content, options);
-    }
+  /**
+   * Synchronous intent scan.
+   * @param {string} content
+   * @param {Object} [options]
+   * @returns {IntelligenceScanResult}
+   */
+  scanSync(content, options = {}) {
+    return scanIntent(content, options);
+  }
 
-    /**
-     * Whether the SLM bridge is runnable.
-     * @returns {boolean}
-     */
-    canRunSlm() {
-        return canRunSlm();
-    }
+  /**
+   * Whether the SLM bridge is runnable.
+   * @returns {boolean}
+   */
+  canRunSlm() {
+    return canRunSlm();
+  }
 
-    /**
-     * Run a synchronous SLM review.
-     * @param {string} content
-     * @param {Object} [options]
-     * @returns {SlmReviewResult}
-     */
-    slmReview(content, options = {}) {
-        return runSlmReview(content, options);
-    }
+  /**
+   * Run a synchronous SLM review.
+   * @param {string} content
+   * @param {Object} [options]
+   * @returns {SlmReviewResult}
+   */
+  slmReview(content, options = {}) {
+    return runSlmReview(content, options);
+  }
 
-    /**
-     * Run an asynchronous SLM review.
-     * @param {string} content
-     * @param {Object} [options]
-     * @returns {Promise<SlmReviewResult>}
-     */
-    async slmReviewAsync(content, options = {}) {
-        return runSlmReviewAsync(content, options);
-    }
+  /**
+   * Run an asynchronous SLM review.
+   * @param {string} content
+   * @param {Object} [options]
+   * @returns {Promise<SlmReviewResult>}
+   */
+  async slmReviewAsync(content, options = {}) {
+    return runSlmReviewAsync(content, options);
+  }
 
-    /**
-     * Resolve language from a file path.
-     * @param {string} filePath
-     * @param {Object} [options]
-     * @returns {string}
-     */
-    resolveLanguage(filePath, options = {}) {
-        return resolveLanguage(filePath, options);
-    }
+  /**
+   * Resolve language from a file path.
+   * @param {string} filePath
+   * @param {Object} [options]
+   * @returns {string}
+   */
+  resolveLanguage(filePath, options = {}) {
+    return resolveLanguage(filePath, options);
+  }
 
-    /**
-     * Check if a language is supported.
-     * @param {string} language
-     * @param {Object} [options]
-     * @returns {boolean}
-     */
-    isLanguageSupported(language, options = {}) {
-        return isLanguageSupported(language, options);
-    }
+  /**
+   * Check if a language is supported.
+   * @param {string} language
+   * @param {Object} [options]
+   * @returns {boolean}
+   */
+  isLanguageSupported(language, options = {}) {
+    return isLanguageSupported(language, options);
+  }
 
-    /**
-     * Return aggregated engine status.
-     * @returns {IntelligenceEngineStatus}
-     */
-    getStatus() {
-        return {
-            initialized: this._initialized,
-            treeSitter: getTreeSitterStatus(),
-            slm: this._slmProbe || probeSlmBin(),
-            grammarCount: Object.keys(GRAMMAR_MAP || {}).length,
-            loadedModules: [
-                './intent-scanner.js',
-                './structural-intent-scanner.js',
-                './tree-sitter-loader.js',
-                './slm-bridge.js',
-                './constants.js',
-                './tree-sitter-queries.js',
-                './vector-cache.js'
-            ]
-        };
-    }
+  /**
+   * Return aggregated engine status.
+   * @returns {IntelligenceEngineStatus}
+   */
+  getStatus() {
+    return {
+      initialized: this._initialized,
+      treeSitter: getTreeSitterStatus(),
+      slm: this._slmProbe || probeSlmBin(),
+      grammarCount: Object.keys(GRAMMAR_MAP || {}).length,
+      loadedModules: [
+        './intent-scanner.js',
+        './structural-intent-scanner.js',
+        './tree-sitter-loader.js',
+        './slm-bridge.js',
+        './constants.js',
+        './tree-sitter-queries.js',
+        './vector-cache.js',
+      ],
+    };
+  }
 }
 
 // ── Singleton & Factory ───────────────────────────────────────
@@ -220,7 +256,7 @@ let _singleton = null;
  * @returns {IntelligenceEngine}
  */
 function createIntelligenceEngine(options) {
-    return new IntelligenceEngine(options);
+  return new IntelligenceEngine(options);
 }
 
 /**
@@ -229,74 +265,74 @@ function createIntelligenceEngine(options) {
  * @returns {IntelligenceEngine}
  */
 function getIntelligenceEngine(options = {}) {
-    if (!_singleton) {
-        _singleton = new IntelligenceEngine(options);
-        _singleton.initialize();
-    }
-    return _singleton;
+  if (!_singleton) {
+    _singleton = new IntelligenceEngine(options);
+    _singleton.initialize();
+  }
+  return _singleton;
 }
 
 // ── Module Exports ────────────────────────────────────────────
 // Static explicit exports for bundler tree-shaking and static analysis.
 
 export {
-    // ── Facade
-    IntelligenceEngine,
-    createIntelligenceEngine,
-    getIntelligenceEngine,
+  // ── Facade
+  IntelligenceEngine,
+  createIntelligenceEngine,
+  getIntelligenceEngine,
 
-    // ── intent-scanner
-    scanIntent,
-    scanIntentAsync,
-    resolveLanguage,
-    isLanguageSupported,
-    engine,
+  // ── intent-scanner
+  scanIntent,
+  scanIntentAsync,
+  resolveLanguage,
+  isLanguageSupported,
+  engine,
 
-    // ── structural-intent-scanner
-    scanStructuralIntent,
-    scanCredentialDictStubs,
-    extractPythonFunctions,
-    extractJsFunctions,
-    analyzeFunctionBlock,
-    isGenericName,
-    credentialKeyMatch,
-    isPlaceholderCredentialValue,
-    hasPlaceholderReturn,
+  // ── structural-intent-scanner
+  scanStructuralIntent,
+  scanCredentialDictStubs,
+  extractPythonFunctions,
+  extractJsFunctions,
+  analyzeFunctionBlock,
+  isGenericName,
+  credentialKeyMatch,
+  isPlaceholderCredentialValue,
+  hasPlaceholderReturn,
 
-    // ── tree-sitter-loader
-    GRAMMAR_MAP,
-    initParser,
-    createLanguageParser,
-    parseWithTreeSitter,
-    isGrammarAvailable,
-    getTreeSitterStatus,
-    resolveWasmDir,
+  // ── tree-sitter-loader
+  GRAMMAR_MAP,
+  initParser,
+  createLanguageParser,
+  parseWithTreeSitter,
+  isGrammarAvailable,
+  getTreeSitterStatus,
+  resolveWasmDir,
 
-    // ── slm-bridge
-    probeSlmBin,
-    canRunSlm,
-    buildSlmPrompt,
-    parseSlmResponse,
-    validateSlmResult,
-    runSlmReview,
-    runSlmReviewAsync,
+  // ── slm-bridge
+  probeSlmBin,
+  canRunSlm,
+  buildSlmPrompt,
+  parseSlmResponse,
+  validateSlmResult,
+  runSlmReview,
+  runSlmReviewAsync,
 
-    // ── constants
-    GENERIC_AI_MARKERS,
-    CREDENTIAL_KEY_FRAGMENTS,
-    INTENT_RULE_IDS,
-    LANGUAGE_BY_EXT,
+  // ── constants
+  GENERIC_AI_MARKERS,
+  CREDENTIAL_KEY_FRAGMENTS,
+  INTENT_RULE_IDS,
+  LANGUAGE_BY_EXT,
 
-    // ── tree-sitter-queries
-    FUNCTION_NODE_TYPES,
-    extractFunctionsFromTree,
-    scanStructuralFromTree,
-    scanWithTreeSitter,
+  // ── tree-sitter-queries
+  FUNCTION_NODE_TYPES,
+  extractFunctionsFromTree,
+  scanStructuralFromTree,
+  scanWithTreeSitter,
 
-    // ── vector-cache
-    loadFingerprints,
-    extractFeatureVector,
-    matchFingerprints,
-    fingerprintFindings,
-    cosineSimilarity
+  // ── vector-cache
+  loadFingerprints,
+  extractFeatureVector,
+  matchFingerprints,
+  fingerprintFindings,
+  cosineSimilarity,
 };

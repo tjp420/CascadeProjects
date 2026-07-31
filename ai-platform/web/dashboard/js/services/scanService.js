@@ -16,7 +16,9 @@ function _isUnreachableLoopbackHost(value) {
     const url = new URL(value, location.href);
     if (location.protocol === 'https:' && url.protocol === 'http:') return true;
     if (!isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) return true;
-  } catch (_a) { /* ignore malformed */ }
+  } catch (_a) {
+    /* ignore malformed */
+  }
   return false;
 }
 /**
@@ -54,8 +56,8 @@ async function fetchSimplebeacon(url, options = {}, timeout = 30000) {
   } catch (error) {
     const detail = error?.message ? ` (${error.message})` : '';
     throw new Error(
-      `Network request failed for ${url}${detail}. `
-      + 'Verify the dashboard API server is running and reachable, then retry.'
+      `Network request failed for ${url}${detail}. ` +
+        'Verify the dashboard API server is running and reachable, then retry.'
     );
   }
   if (res.status === 403) {
@@ -66,7 +68,9 @@ async function fetchSimplebeacon(url, options = {}, timeout = 30000) {
       throw err;
     }
     if (forbiddenBody.error === 'vault_required') {
-      const err = new Error(forbiddenBody.message || 'Internal dashboard requires vault authentication.');
+      const err = new Error(
+        forbiddenBody.message || 'Internal dashboard requires vault authentication.'
+      );
       err.code = 'vault_required';
       throw err;
     }
@@ -99,7 +103,7 @@ export class ScanService {
       this.fetchReport(projectPath),
       this.fetchBaseline(),
       this.fetchConfig(projectPath),
-      this.fetchHistory()
+      this.fetchHistory(),
     ]);
 
     const firstError = [reportR, baselineR, configR].find((r) => r.status === 'rejected');
@@ -111,7 +115,7 @@ export class ScanService {
       report: reportR.status === 'fulfilled' ? reportR.value : null,
       baseline: baselineR.status === 'fulfilled' ? baselineR.value : null,
       config: configR.status === 'fulfilled' ? configR.value : null,
-      history: historyR.status === 'fulfilled' ? historyR.value : []
+      history: historyR.status === 'fulfilled' ? historyR.value : [],
     };
   }
 
@@ -139,11 +143,15 @@ export class ScanService {
     }
     const body = { report };
     if (projectPath) body.projectPath = projectPath;
-    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report/import`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    }, 60000);
+    const res = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/report/import`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      60000
+    );
     const data = await readJsonResponseBody(res, null);
     if (!res.ok || !data || !data.success) {
       throw new Error(data?.error || `Report import failed (${res.status})`);
@@ -155,11 +163,16 @@ export class ScanService {
   async fetchRepositoryInventory(projectPath) {
     const path = String(projectPath || '').trim();
     if (!path) return null;
-    if (/^https?:\/\//i.test(path) && !/^(git@|ssh:\/\/|https:\/\/(github|gitlab|bitbucket|codeberg)\.)/i.test(path)) {
+    if (
+      /^https?:\/\//i.test(path) &&
+      !/^(git@|ssh:\/\/|https:\/\/(github|gitlab|bitbucket|codeberg)\.)/i.test(path)
+    ) {
       return null;
     }
     const params = new URLSearchParams({ projectPath: path, profile: 'explorer' });
-    const inventoryHttpResponse = await fetchWithTimeout(`/api/analyze/inventory?${params}`, { headers: mergeAuthHeaders() });
+    const inventoryHttpResponse = await fetchWithTimeout(`/api/analyze/inventory?${params}`, {
+      headers: mergeAuthHeaders(),
+    });
     const inventoryPayload = await readJsonResponseBody(inventoryHttpResponse, {});
     if (!inventoryHttpResponse.ok || !inventoryPayload.success) return null;
     return inventoryPayload.inventory;
@@ -175,7 +188,9 @@ export class ScanService {
   }
 
   async fetchBaseline() {
-    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/baseline`, { headers: mergeAuthHeaders() });
+    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/baseline`, {
+      headers: mergeAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Failed to load baseline');
     this.baseline = await readJsonResponseBody(res, null);
     if (!this.baseline || typeof this.baseline !== 'object') {
@@ -186,7 +201,9 @@ export class ScanService {
 
   async fetchConfig(projectPath = null) {
     const qs = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
-    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config${qs}`, { headers: mergeAuthHeaders() });
+    const res = await fetchWithTimeout(`${simplebeaconApiBase()}/config${qs}`, {
+      headers: mergeAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Failed to load config');
     this.config = await readJsonResponseBody(res, null);
     if (!this.config || typeof this.config !== 'object') {
@@ -196,18 +213,24 @@ export class ScanService {
   }
 
   async fetchConfigPresets() {
-    const presetsHttpResponse = await fetchWithTimeout(`${simplebeaconApiBase()}/config/presets`, { headers: mergeAuthHeaders() });
+    const presetsHttpResponse = await fetchWithTimeout(`${simplebeaconApiBase()}/config/presets`, {
+      headers: mergeAuthHeaders(),
+    });
     if (!presetsHttpResponse.ok) throw new Error('Failed to load config presets');
     const presetsPayload = await readJsonResponseBody(presetsHttpResponse, {});
     return presetsPayload.presets || {};
   }
 
   async saveConfig(config) {
-    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/config`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config)
-    }, 30000);
+    const res = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/config`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      },
+      30000
+    );
     const data = await readJsonResponseBody(res, {});
     if (!res.ok) {
       const detail = data.errors?.join('; ') || data.message || 'Failed to save config';
@@ -236,7 +259,9 @@ export class ScanService {
   }
 
   async fetchScanResults(scanId = 'latest') {
-    const resultsHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/results/${encodeURIComponent(scanId)}`);
+    const resultsHttpResponse = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/results/${encodeURIComponent(scanId)}`
+    );
     if (!resultsHttpResponse.ok) throw new Error('Failed to load scan results');
     const scanResultsPayload = await readJsonResponseBody(resultsHttpResponse, null);
     if (!scanResultsPayload || typeof scanResultsPayload !== 'object') {
@@ -247,7 +272,11 @@ export class ScanService {
 
   async fetchAudit(includeNpmAudit = false) {
     const query = includeNpmAudit ? '?npmAudit=1' : '';
-    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/audit${query}`, {}, includeNpmAudit ? 120000 : 30000);
+    const res = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/audit${query}`,
+      {},
+      includeNpmAudit ? 120000 : 30000
+    );
     if (!res.ok) throw new Error('Failed to load compliance audit');
     const data = await readJsonResponseBody(res, null);
     if (!data || typeof data !== 'object') {
@@ -257,16 +286,26 @@ export class ScanService {
   }
 
   async runAssess() {
-    const assessHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/assess`, { method: 'POST' }, 60000);
+    const assessHttpResponse = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/assess`,
+      { method: 'POST' },
+      60000
+    );
     const assessResponse = await readJsonResponseBody(assessHttpResponse, {});
-    if (!assessHttpResponse.ok) throw new Error(assessResponse.error || assessResponse.message || 'Assessment failed');
+    if (!assessHttpResponse.ok)
+      throw new Error(assessResponse.error || assessResponse.message || 'Assessment failed');
     return assessResponse;
   }
 
   async runNpmAudit() {
-    const npmAuditHttpResponse = await fetchSimplebeacon(`${simplebeaconApiBase()}/npm-audit`, { method: 'POST' }, 120000);
+    const npmAuditHttpResponse = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/npm-audit`,
+      { method: 'POST' },
+      120000
+    );
     const npmAuditResponse = await readJsonResponseBody(npmAuditHttpResponse, {});
-    if (!npmAuditHttpResponse.ok) throw new Error(npmAuditResponse.error || npmAuditResponse.message || 'npm audit failed');
+    if (!npmAuditHttpResponse.ok)
+      throw new Error(npmAuditResponse.error || npmAuditResponse.message || 'npm audit failed');
     return npmAuditResponse;
   }
 
@@ -306,11 +345,18 @@ export class ScanService {
       err.code = 'demo_readonly';
       throw err;
     }
-    const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/scan`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectPath: projectPath || undefined, fullDirectoryScan: options.fullDirectoryScan !== false })
-    }, 600000);
+    const res = await fetchSimplebeacon(
+      `${simplebeaconApiBase()}/scan`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectPath: projectPath || undefined,
+          fullDirectoryScan: options.fullDirectoryScan !== false,
+        }),
+      },
+      600000
+    );
     const data = await readJsonResponseBody(res, {});
     if (!res.ok) {
       if (data.partialReport) {
@@ -319,7 +365,7 @@ export class ScanService {
           ...data,
           report: this.report,
           projectPath: projectPath || data.projectPath,
-          gateFailed: true
+          gateFailed: true,
         };
       }
       throw new Error(data.error || data.message || data.warning || 'Scan failed');
@@ -338,7 +384,7 @@ export class ScanService {
       ...data,
       report: this.report,
       projectPath: resolvedPath || data.projectPath,
-      gateFailed: Boolean(data.gateFailed)
+      gateFailed: Boolean(data.gateFailed),
     };
   }
 
@@ -348,7 +394,9 @@ export class ScanService {
       const res = await fetchSimplebeacon(`${simplebeaconApiBase()}/report`);
       data = await readJsonResponseBody(res, null);
       if (!data || typeof data !== 'object') {
-        throw new Error('Scan report API unavailable on this host (received HTML instead of JSON).');
+        throw new Error(
+          'Scan report API unavailable on this host (received HTML instead of JSON).'
+        );
       }
     }
     downloadJson(data, `simplebeacon-report-${new Date().toISOString().slice(0, 10)}.json`);
@@ -361,9 +409,15 @@ export class ScanService {
       config: options.config || null,
       history: options.history || this.history || [],
       dashboardHome: options.dashboardHome || null,
-      exportFilename: options.exportFilename || `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`
+      exportFilename:
+        options.exportFilename ||
+        `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`,
     });
-    downloadJson(bundle, bundle.exportFilename || `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`);
+    downloadJson(
+      bundle,
+      bundle.exportFilename ||
+        `simplebeacon-dashboard-${new Date().toISOString().slice(0, 10)}.json`
+    );
   }
 
   exportFilteredIssues(issues, meta = {}) {
@@ -372,58 +426,63 @@ export class ScanService {
       exportedAt: new Date().toISOString(),
       filters: meta,
       issueCount: issues.length,
-      issues
+      issues,
     };
     downloadJson(payload, `simplebeacon-results-${new Date().toISOString().slice(0, 10)}.json`);
   }
 
   exportIssuesCsv(issues) {
     const header = ['severity', 'type', 'description', 'file', 'count', 'recommendedAction'];
-/**
- * Escape.
- * @param {any} v
- * @returns {any}
- */
+    /**
+     * Escape.
+     * @param {any} v
+     * @returns {any}
+     */
     const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const rows = issues.map((i) => [
-      i.severity,
-      i.type,
-      i.description,
-      i.filePath,
-      i.count ?? 1,
-      i.recommendedAction
-    ].map(escape).join(','));
-    downloadText([header.join(','), ...rows].join('\n'), `simplebeacon-results-${new Date().toISOString().slice(0, 10)}.csv`, 'text/csv');
+    const rows = issues.map((i) =>
+      [i.severity, i.type, i.description, i.filePath, i.count ?? 1, i.recommendedAction]
+        .map(escape)
+        .join(',')
+    );
+    downloadText(
+      [header.join(','), ...rows].join('\n'),
+      `simplebeacon-results-${new Date().toISOString().slice(0, 10)}.csv`,
+      'text/csv'
+    );
   }
 
   getIssueCategories(report = this.report) {
     if (!report) return [];
 
     const raw = report.rawIssues || report.detectedIssues || [];
-/**
- * Count by type.
- * @param {any} typeMatch
- * @returns {any}
- */
+    /**
+     * Count by type.
+     * @param {any} typeMatch
+     * @returns {any}
+     */
     const countByType = (typeMatch) =>
       raw.filter((i) => typeMatch(i.type)).reduce((s, i) => s + (i.count || 1), 0);
 
     const credCount = report.credentialFindings ?? countByType((t) => /credential/i.test(t));
     const schemaCount = countByType((t) => /schema/i.test(t));
-    const prodCount = report.productionLeakFindings ?? countByType((t) => /production leak/i.test(t));
+    const prodCount =
+      report.productionLeakFindings ?? countByType((t) => /production leak/i.test(t));
     const fictionCount = countByType((t) => /fiction|consistency|kpi/i.test(t));
     const dupCount = countByType((t) => /duplicate/i.test(t));
-    const typeSafetyCount = countByType((t) => /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(t));
-    const categorizedCount = credCount + schemaCount + prodCount + fictionCount + dupCount + typeSafetyCount;
+    const typeSafetyCount = countByType((t) =>
+      /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(t)
+    );
+    const categorizedCount =
+      credCount + schemaCount + prodCount + fictionCount + dupCount + typeSafetyCount;
     const totalRaw = raw.reduce((s, i) => s + (i.count || 1), 0);
     const otherCount = Math.max(0, totalRaw - categorizedCount);
 
-/**
- * Max severity.
- * @param {number} count
- * @param {any} defaultSev
- * @returns {any}
- */
+    /**
+     * Max severity.
+     * @param {number} count
+     * @param {any} defaultSev
+     * @returns {any}
+     */
     const maxSeverity = (count, defaultSev) => {
       if (count === 0) return 'none';
       const issues = raw.filter((i) => i.count > 0 || i.severity);
@@ -441,7 +500,7 @@ export class ScanService {
         title: 'Credential Patterns',
         count: credCount,
         severity: credCount ? 'high' : 'none',
-        filter: (i) => /credential/i.test(i.type)
+        filter: (i) => /credential/i.test(i.type),
       },
       {
         id: 'schema',
@@ -449,7 +508,7 @@ export class ScanService {
         title: 'Schema Violations',
         count: schemaCount,
         severity: schemaCount ? 'high' : 'none',
-        filter: (i) => /schema/i.test(i.type)
+        filter: (i) => /schema/i.test(i.type),
       },
       {
         id: 'production',
@@ -457,7 +516,7 @@ export class ScanService {
         title: 'Production Leaks',
         count: prodCount,
         severity: prodCount ? 'medium' : 'none',
-        filter: (i) => /production leak/i.test(i.type)
+        filter: (i) => /production leak/i.test(i.type),
       },
       {
         id: 'consistency',
@@ -465,7 +524,7 @@ export class ScanService {
         title: 'Consistency Issues',
         count: fictionCount,
         severity: fictionCount ? maxSeverity(fictionCount, 'medium') : 'none',
-        filter: (i) => /fiction|consistency|kpi/i.test(i.type)
+        filter: (i) => /fiction|consistency|kpi/i.test(i.type),
       },
       {
         id: 'consolidation',
@@ -473,7 +532,7 @@ export class ScanService {
         title: 'Duplicate Data',
         count: dupCount,
         severity: dupCount ? 'low' : 'none',
-        filter: (i) => /duplicate/i.test(i.type)
+        filter: (i) => /duplicate/i.test(i.type),
       },
       {
         id: 'type-safety',
@@ -481,7 +540,10 @@ export class ScanService {
         title: 'Type Safety',
         count: typeSafetyCount,
         severity: typeSafetyCount ? maxSeverity(typeSafetyCount, 'low') : 'none',
-        filter: (i) => /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(i.type)
+        filter: (i) =>
+          /type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(
+            i.type
+          ),
       },
       {
         id: 'other',
@@ -490,8 +552,10 @@ export class ScanService {
         count: otherCount,
         severity: otherCount ? 'low' : 'none',
         filter: (i) =>
-          !/credential|schema|production leak|fiction|consistency|kpi|duplicate|type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(i.type)
-      }
+          !/credential|schema|production leak|fiction|consistency|kpi|duplicate|type-safety|prop-types|any-type|ts-ignore|ts-expect-error|unsafe-type-assertion/i.test(
+            i.type
+          ),
+      },
     ];
   }
 

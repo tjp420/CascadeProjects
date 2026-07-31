@@ -55,7 +55,7 @@ function buildExportSourceMap() {
     { name: 'arrays', exports: arrays },
     { name: 'objects', exports: objects },
     { name: 'type-guards', exports: typeGuards },
-    { name: 'paths', exports: paths }
+    { name: 'paths', exports: paths },
   ];
   for (const mod of modules) {
     const src = mod.exports;
@@ -64,7 +64,7 @@ function buildExportSourceMap() {
       if (seen.has(key)) {
         throw new Error(
           `[constants.cjs] Namespace collision detected: "${key}" exists in both "${seen.get(key)}" and "${mod.name}". ` +
-          'Overlapping keys between submodules are not allowed.'
+            'Overlapping keys between submodules are not allowed.'
         );
       } else {
         seen.set(key, mod.name);
@@ -96,7 +96,7 @@ const categories = deepFreeze({
   arrays: arrays,
   objects: objects,
   typeGuards: typeGuards,
-  paths: paths
+  paths: paths,
 });
 
 // Legacy flat-access deprecation shim — prefer categories.* or direct sub-module imports
@@ -105,17 +105,41 @@ function warnOnce(key) {
   if (warned.has(key)) return;
   warned.add(key);
   if (process.env.SIMPLEBEACON_DEBUG) {
-    logger.warn(`[constants.cjs] DEPRECATED: flat access to "${key}" — use categories.* or require('./config/<module>.cjs') directly`);
+    logger.warn(
+      `[constants.cjs] DEPRECATED: flat access to "${key}" — use categories.* or require('./config/<module>.cjs') directly`
+    );
   }
 }
 
 const allFlat = {};
-const flatSources = { ...time, ...network, ...sizes, ...limits, ...mock, ...fileTypes, ...http, ...trust, ...language, ...format, ...env, ...platform, ...encoding, ...strings, ...arrays, ...objects, ...typeGuards, ...paths };
+const flatSources = {
+  ...time,
+  ...network,
+  ...sizes,
+  ...limits,
+  ...mock,
+  ...fileTypes,
+  ...http,
+  ...trust,
+  ...language,
+  ...format,
+  ...env,
+  ...platform,
+  ...encoding,
+  ...strings,
+  ...arrays,
+  ...objects,
+  ...typeGuards,
+  ...paths,
+};
 for (const key of Object.keys(flatSources)) {
   Object.defineProperty(allFlat, key, {
     enumerable: true,
     configurable: true,
-    get() { warnOnce(key); return flatSources[key]; }
+    get() {
+      warnOnce(key);
+      return flatSources[key];
+    },
   });
 }
 
@@ -129,7 +153,7 @@ const legacyAliases = deepFreeze({
   STYLESHEET_EXTENSIONS: fileTypes.EXTENSIONS.STYLESHEET,
   IMAGE_EXTENSIONS: fileTypes.EXTENSIONS.IMAGE,
   MEDIA_EXTENSIONS: fileTypes.EXTENSIONS.MEDIA,
-  BINARY_EXTENSIONS: fileTypes.EXTENSIONS.BINARY
+  BINARY_EXTENSIONS: fileTypes.EXTENSIONS.BINARY,
 });
 
 // exportNames is auto-generated after exportObj is fully built (see end of file).
@@ -173,7 +197,17 @@ function validateFacadeIntegrity(facade) {
   if (!target.__facade__) {
     errors.push('Missing __facade__ metadata');
   } else {
-    const requiredMetaKeys = ['name', 'description', 'moduleCount', 'exportCount', 'namespaceCount', 'version', 'timestamp', 'exports', 'namespaces'];
+    const requiredMetaKeys = [
+      'name',
+      'description',
+      'moduleCount',
+      'exportCount',
+      'namespaceCount',
+      'version',
+      'timestamp',
+      'exports',
+      'namespaces',
+    ];
     for (const metaKey of requiredMetaKeys) {
       if (!(metaKey in target.__facade__)) {
         errors.push(`Missing __facade__ key: "${metaKey}"`);
@@ -274,7 +308,7 @@ function getStatistics() {
     functions,
     objects,
     arrays,
-    primitives
+    primitives,
   });
   return cachedStatistics;
 }
@@ -294,7 +328,7 @@ function toJSON() {
     timestamp: new Date().toISOString(),
     namespaces: getNamespaceNames(),
     exports: getExportNames(),
-    statistics: getStatistics()
+    statistics: getStatistics(),
   });
 }
 
@@ -315,7 +349,7 @@ function describeExport(name) {
     type: typeof value,
     namespace,
     source: source || 'legacy',
-    value
+    value,
   });
 }
 
@@ -377,30 +411,52 @@ function assertIntegrity() {
   }
 }
 
-const exportObj = { ...legacyAliases, categories, getExportNames, getNamespaceNames, validateFacadeIntegrity, resolve, hasExport, getNamespace, getExportSource, isNamespace, getExportsByNamespace, getStatistics, toJSON, describeExport, searchExports, batchResolve, getExportsByType, assertIntegrity };
+const exportObj = {
+  ...legacyAliases,
+  categories,
+  getExportNames,
+  getNamespaceNames,
+  validateFacadeIntegrity,
+  resolve,
+  hasExport,
+  getNamespace,
+  getExportSource,
+  isNamespace,
+  getExportsByNamespace,
+  getStatistics,
+  toJSON,
+  describeExport,
+  searchExports,
+  batchResolve,
+  getExportsByType,
+  assertIntegrity,
+};
 for (const key of Object.keys(allFlat)) {
   Object.defineProperty(exportObj, key, {
     enumerable: true,
     configurable: true,
-    get() { return allFlat[key]; }
+    get() {
+      return allFlat[key];
+    },
   });
 }
 
 // Auto-generate exportNames from the fully-built facade (minus __facade__ metadata)
-exportNames = Object.freeze(Object.keys(exportObj).filter(k => k !== '__facade__'));
+exportNames = Object.freeze(Object.keys(exportObj).filter((k) => k !== '__facade__'));
 exportObj.exportNames = exportNames;
 
 /** Frozen facade metadata for runtime introspection. */
 exportObj.__facade__ = Object.freeze({
   name: 'simplebeacon-server-config',
-  description: 'Shared constants facade. Re-exports time, network, sizes, limits, mock constants, plus focused sub-modules for file types, HTTP, formatting, environment, platform, trust, encoding, strings, arrays, objects, type-guards, and paths.',
+  description:
+    'Shared constants facade. Re-exports time, network, sizes, limits, mock constants, plus focused sub-modules for file types, HTTP, formatting, environment, platform, trust, encoding, strings, arrays, objects, type-guards, and paths.',
   moduleCount: Object.keys(categories).length,
   exportCount: getExportNames().length,
   namespaceCount: getNamespaceNames().length,
   version: '1.0.0',
   timestamp: new Date().toISOString(),
   exports: getExportNames(),
-  namespaces: getNamespaceNames()
+  namespaces: getNamespaceNames(),
 });
 
 module.exports = Object.freeze(exportObj);

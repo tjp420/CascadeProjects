@@ -1,5 +1,11 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, formatNumber, redactPathForDisplay, showToast, downloadJson } from '../utils.js';
+import {
+  escapeHtml,
+  formatNumber,
+  redactPathForDisplay,
+  showToast,
+  downloadJson,
+} from '../utils.js';
 import { renderRepositoryHealthSection } from './RepositoryHealthView.js';
 
 /**
@@ -11,15 +17,15 @@ function normalizeStaticTrustPayload(data) {
   if (!data || typeof data !== 'object') return null;
   const live = {
     verificationId: data.verificationId,
-        headlineSource: data.headlineSource || null,
-        headlineReason: data.headlineReason || null,
-        headline: data.headline || null,
+    headlineSource: data.headlineSource || null,
+    headlineReason: data.headlineReason || null,
+    headline: data.headline || null,
     platform: data.platform || null,
     monorepo: data.monorepo || null,
     repositoryHealth: data.repositoryHealth || null,
     disclaimers: Array.isArray(data.disclaimers) ? data.disclaimers : [],
     methodology: Array.isArray(data.methodology) ? data.methodology : [],
-    fictionScope: data.fictionScope || null
+    fictionScope: data.fictionScope || null,
   };
   return { success: true, live, staticHost: true, staticPayload: true };
 }
@@ -29,7 +35,9 @@ function normalizeStaticTrustPayload(data) {
  * @returns {any}
  */
 async function fetchStaticTrustFallback() {
-  const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
+  const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(
+    () => null
+  );
   if (!trustHttpResponse || !trustHttpResponse.ok) return null;
   const trustVerificationDocument = await trustHttpResponse.json().catch(() => null);
   return normalizeStaticTrustPayload(trustVerificationDocument);
@@ -60,9 +68,9 @@ function normalizeTrustApiPayload(data) {
       repositoryHealth: data.repositoryHealth || null,
       disclaimers: Array.isArray(data.disclaimers) ? data.disclaimers : [],
       methodology: Array.isArray(data.methodology) ? data.methodology : [],
-      fictionScope: data.fictionScope || null
+      fictionScope: data.fictionScope || null,
     },
-    publishedAt: data.publishedAt || null
+    publishedAt: data.publishedAt || null,
   };
 }
 
@@ -136,19 +144,27 @@ function renderReAttestation(meta) {
       <p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 0.5rem;">
         <strong>Scope note:</strong> ${escapeHtml(scope.workflowNote || meta.message || '')}
       </p>
-      ${meta.attestationNote || hygiene.attestationNote ? `
+      ${
+        meta.attestationNote || hygiene.attestationNote
+          ? `
         <p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 0.5rem;">
           <strong>Attestation note:</strong> ${escapeHtml(meta.attestationNote || hygiene.attestationNote || '')}
         </p>
-      ` : ''}
-      ${Array.isArray(meta.exportNotes) && meta.exportNotes.length ? `
+      `
+          : ''
+      }
+      ${
+        Array.isArray(meta.exportNotes) && meta.exportNotes.length
+          ? `
         <details style="margin-top:var(--space-3);">
           <summary style="cursor:pointer;font-size:var(--font-size-sm);font-weight:600;color:var(--text-secondary);">Export notes (${meta.exportNotes.length})</summary>
           <ul style="margin:var(--space-2) 0 0;padding-left:1.25rem;font-size:var(--font-size-xs);color:var(--text-muted);">
             ${meta.exportNotes.map((n) => `<li class="mb-1">${escapeHtml(n)}</li>`).join('')}
           </ul>
         </details>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
 }
@@ -251,13 +267,17 @@ export class TrustView {
         </div>
       </div>
 
-      ${staticHost ? `
+      ${
+        staticHost
+          ? `
         <div class="card mb-4" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2);">
           <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
             Static-host preview: trust APIs require <code>npm run dashboard</code> locally.
           </p>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <div class="card mb-4">
         <p style="margin:0 0 0.75rem;font-size:var(--font-size-sm);color:var(--text-secondary);">
@@ -284,21 +304,29 @@ export class TrustView {
             <h3 style="margin:0;font-size:var(--font-size-base);">Repository optimization</h3>
             <a class="btn btn-secondary btn-sm" href="/dashboard/repository-health">Full health report →</a>
           </div>
-          ${live?.repositoryHealth?.headline
-            ? renderRepositoryHealthSection(live.repositoryHealth, { compact: true })
-            : '<p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">Run consolidation scan to publish repo health metrics.</p>'}
+          ${
+            live?.repositoryHealth?.headline
+              ? renderRepositoryHealthSection(live.repositoryHealth, { compact: true })
+              : '<p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">Run consolidation scan to publish repo health metrics.</p>'
+          }
         </div>
 
-        ${disclaimers.length ? `
+        ${
+          disclaimers.length
+            ? `
           <div class="card mb-4">
             <h3 class="mb-2" style="font-size:var(--font-size-base);">Scope disclaimers</h3>
             <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
               ${disclaimers.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
             </ul>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${fictionScope ? `
+        ${
+          fictionScope
+            ? `
           <div class="card mb-4">
             <h3 class="mb-2" style="font-size:var(--font-size-base);">Fiction / KPI scope</h3>
             <div class="metrics-row mb-3">
@@ -311,16 +339,22 @@ export class TrustView {
               · Pattern matching only (config.ignore applied)
             </p>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
-        ${methodology.length ? `
+        ${
+          methodology.length
+            ? `
           <div class="card mb-4">
             <h3 class="mb-2" style="font-size:var(--font-size-base);">Methodology</h3>
             <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
               ${methodology.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
             </ul>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <div class="card">
           <h3 class="mb-2" style="font-size:var(--font-size-base);">Embed badge</h3>
@@ -337,7 +371,7 @@ export class TrustView {
     if (!this.data) return;
     const payload = {
       exportedAt: new Date().toISOString(),
-      ...this.data
+      ...this.data,
     };
     downloadJson(payload, `trust-verification-${new Date().toISOString().slice(0, 10)}.json`);
   }
@@ -345,18 +379,23 @@ export class TrustView {
   async mount(container) {
     this.loading = true;
     this.error = null;
-container.innerHTML = this.render();
+    container.innerHTML = this.render();
     try {
       this.data = await fetchTrustVerification();
     } catch (err) {
       this.error = err.message;
     } finally {
       this.loading = false;
-container.innerHTML = this.render();
-      container.querySelector('#trust-download-json')?.addEventListener('click', () => this.downloadTrustData());
+      container.innerHTML = this.render();
+      container
+        .querySelector('#trust-download-json')
+        ?.addEventListener('click', () => this.downloadTrustData());
       container.querySelector('#trust-send-ai-btn')?.addEventListener('click', async () => {
         const data = this.data;
-        if (!data) { showToast('No trust data to send', 'error'); return; }
+        if (!data) {
+          showToast('No trust data to send', 'error');
+          return;
+        }
         const live = data.live || {};
         const payload = {
           projectPath: this.app.state.lastProjectPath || window.location.origin,
@@ -367,21 +406,39 @@ container.innerHTML = this.render();
             headlineReason: live.headlineReason,
             platform: live.platform,
             monorepo: live.monorepo,
-            repositoryHealthScore: live.repositoryHealth?.headline?.repositoryHealthScore ?? 'N/A'
+            repositoryHealthScore: live.repositoryHealth?.headline?.repositoryHealthScore ?? 'N/A',
           },
-          notes: 'Trust Verification — scoped scan results and repository health'
+          notes: 'Trust Verification — scoped scan results and repository health',
         };
         const vscode = this._getVscodeApi();
         if (vscode) {
-          try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Trust verification sent to AI agent', 'success'); return; }
-          catch (err) { window["console"]["warn"]('[Trust-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+          try {
+            vscode.postMessage({ command: 'sendToAI', data: payload });
+            showToast('Trust verification sent to AI agent', 'success');
+            return;
+          } catch (err) {
+            window['console']['warn']('[Trust-AI] vscode.postMessage failed:', err);
+          } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
         }
         try {
-          const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const res = await fetch('/api/ai-context', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
           const json = await res.json();
-          if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
-          else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
-        } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
+          if (json.success && json.content) {
+            await navigator.clipboard.writeText(json.content);
+            showToast(
+              'Copied to clipboard — paste into your AI coding agent with Ctrl+V',
+              'success'
+            );
+          } else {
+            showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+          }
+        } catch (err) {
+          showToast('Failed to send: ' + err.message, 'error');
+        }
       });
     }
   }

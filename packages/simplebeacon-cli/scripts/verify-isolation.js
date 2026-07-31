@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-"use strict";
+'use strict';
 const { exec } = require('child_process');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -21,15 +21,24 @@ async function captureSockets() {
   try {
     if (process.platform === 'win32') {
       const out = await runCmd('netstat -ano');
-      return out.split('\n').map(l => l.trim()).filter(Boolean);
+      return out
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
     }
     // prefer ss if available
     try {
       const out = await runCmd('ss -tuna');
-      return out.split('\n').map(l => l.trim()).filter(Boolean);
+      return out
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
     } catch (e) {
       const out = await runCmd('netstat -tuna');
-      return out.split('\n').map(l => l.trim()).filter(Boolean);
+      return out
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
     }
   } catch (e) {
     return [];
@@ -59,7 +68,7 @@ function isPrivateOrLoopback(ip) {
   // IPv4
   const parts = ip.split('.');
   if (parts.length === 4) {
-    const [a, b] = parts.map(n => parseInt(n, 10));
+    const [a, b] = parts.map((n) => parseInt(n, 10));
     if (a === 10) return true;
     if (a === 127) return true;
     if (a === 169 && b === 254) return true;
@@ -88,12 +97,16 @@ async function main() {
     const baseline = extractAddresses(await captureSockets());
     console.log('baseline addresses:', baseline.slice(0, 10));
 
-    const scanner = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['simplebeacon', '--offline', '--output', './.simplebeacon/report.json'], {
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
+    const scanner = spawn(
+      process.platform === 'win32' ? 'npx.cmd' : 'npx',
+      ['simplebeacon', '--offline', '--output', './.simplebeacon/report.json'],
+      {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }
+    );
 
-    scanner.stdout.on('data', d => process.stdout.write(`[scanner] ${d}`));
-    scanner.stderr.on('data', d => process.stderr.write(`[scanner] ${d}`));
+    scanner.stdout.on('data', (d) => process.stdout.write(`[scanner] ${d}`));
+    scanner.stderr.on('data', (d) => process.stderr.write(`[scanner] ${d}`));
 
     const observed = new Set();
     const start = Date.now();
@@ -129,12 +142,15 @@ async function main() {
     for (const ip of after) observed.add(ip);
 
     // compute newly observed addresses not in baseline
-    const newAddrs = Array.from(observed).filter(a => !baseline.includes(a));
-    const external = newAddrs.filter(a => !isPrivateOrLoopback(a));
+    const newAddrs = Array.from(observed).filter((a) => !baseline.includes(a));
+    const external = newAddrs.filter((a) => !isPrivateOrLoopback(a));
 
     const result = { baseline, observed: Array.from(observed), newAddrs, external };
     fs.mkdirSync(path.dirname(absReport), { recursive: true });
-    fs.writeFileSync(path.resolve(process.cwd(), '.simplebeacon', 'verify-isolation.json'), JSON.stringify(result, null, 2));
+    fs.writeFileSync(
+      path.resolve(process.cwd(), '.simplebeacon', 'verify-isolation.json'),
+      JSON.stringify(result, null, 2)
+    );
 
     if (external.length > 0) {
       console.error('verify-isolation: detected external network endpoints during scan:', external);

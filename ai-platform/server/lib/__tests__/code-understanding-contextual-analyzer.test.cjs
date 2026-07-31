@@ -1,6 +1,10 @@
 'use strict';
 
-const { analyzeContextualLayer, analyzeGitContext, findAdjacentDocumentation } = require('../code-understanding/contextual-analyzer.cjs');
+const {
+  analyzeContextualLayer,
+  analyzeGitContext,
+  findAdjacentDocumentation,
+} = require('../code-understanding/contextual-analyzer.cjs');
 
 describe('code-understanding/contextual-analyzer', () => {
   test('exports expected functions', () => {

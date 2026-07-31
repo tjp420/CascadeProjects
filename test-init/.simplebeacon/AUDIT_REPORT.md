@@ -12,19 +12,19 @@
 
 Simplebeacon performed a read-only static analysis on the provided repository root. The scan targeted hardcoded credentials, production mock data leaks, AI-generated fiction patterns, and schema consistency in configured sample paths.
 
-| Metric | Value |
-|--------|-------|
-| **Total files scanned** | 0 |
-| **Gate result** | **PASS** — no blocking issues at configured severities |
+| Metric                  | Value                                                  |
+| ----------------------- | ------------------------------------------------------ |
+| **Total files scanned** | 0                                                      |
+| **Gate result**         | **PASS** — no blocking issues at configured severities |
 
 ### Vulnerability count by severity
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 13 |
-| Low | 4 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 13    |
+| Low      | 4     |
 
 **Headline:** 13 medium issues detected. Gate passes under current failOn policy — review medium/low findings before go-live.
 
@@ -34,19 +34,19 @@ Simplebeacon performed a read-only static analysis on the provided repository ro
 
 ### Medium — Memory Leak
 
-| Field | Detail |
-|-------|--------|
-| **File** | `c:/Users/Trevor/CascadeProjects/inspect_vsix.js` (line 29) |
-| **Rule** | `Memory Leak` |
-| **Risk** | h); let offset = 0; const entries = []; while (offset < data.length - 30) { if (data[offset] === 0x50 && data[offset + 1 |
-| **Remediation** | Review and remediate before enabling `--gate` on main. |
+| Field           | Detail                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **File**        | `c:/Users/Trevor/CascadeProjects/inspect_vsix.js` (line 29)                                                              |
+| **Rule**        | `Memory Leak`                                                                                                            |
+| **Risk**        | h); let offset = 0; const entries = []; while (offset < data.length - 30) { if (data[offset] === 0x50 && data[offset + 1 |
+| **Remediation** | Review and remediate before enabling `--gate` on main.                                                                   |
 
 ### Medium — Additional schema and consistency notes (summary)
 
 - **12 medium findings** across sample JSON under `c:/Users/Trevor/CascadeProjects/sales/license` — missing required page-spec keys and cross-file KPI drift vs baseline.
 - **4 low findings** — informational roadmap template pattern (no gate block by default).
 
-*(Full machine-readable output available as `.simplebeacon/report.json` and assessment JSON on delivery.)*
+_(Full machine-readable output available as `.simplebeacon/report.json` and assessment JSON on delivery.)_
 
 ---
 
@@ -64,12 +64,12 @@ No prioritized remediation queue — scan is clean under configured paths. Sched
 
 ## Compliance and gate recommendations
 
-| Checklist item | Status | Notes |
-|----------------|--------|-------|
-| Zero hardcoded credential patterns | **PASS** | Scanned 52 path(s) — no credential patterns |
-| Production path separation | **PASS** | Scanned 182 production file(s) — no sample-path leaks |
-| Schema conformity (configured samples) | N/A | No registered page samples in this project |
-| Fiction KPI baseline (sample JSON) | N/A | Consistency anchors not configured for this profile |
+| Checklist item                         | Status   | Notes                                                 |
+| -------------------------------------- | -------- | ----------------------------------------------------- |
+| Zero hardcoded credential patterns     | **PASS** | Scanned 52 path(s) — no credential patterns           |
+| Production path separation             | **PASS** | Scanned 182 production file(s) — no sample-path leaks |
+| Schema conformity (configured samples) | N/A      | No registered page samples in this project            |
+| Fiction KPI baseline (sample JSON)     | N/A      | Consistency anchors not configured for this profile   |
 
 **Recommended CI action**
 

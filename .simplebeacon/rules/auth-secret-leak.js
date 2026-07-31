@@ -26,7 +26,8 @@ module.exports = {
 
   matcher: {
     type: 'regex',
-    pattern: /(?:apiKey|api_key|authToken|auth_token|secretKey|secret_key|bearerToken|bearer_token|authorization)\s*[:=]\s*["'][^"']{8,}["']/g,
+    pattern:
+      /(?:apiKey|api_key|authToken|auth_token|secretKey|secret_key|bearerToken|bearer_token|authorization)\s*[:=]\s*["'][^"']{8,}["']/g,
     fileGlobs: ['**/*.js', '**/*.cjs', '**/*.mjs', '**/*.ts', '**/*.tsx', '**/*.jsx', '**/*.py'],
     ignorePatterns: [
       /process\.env\./,
@@ -50,19 +51,19 @@ module.exports = {
   examples: [
     {
       bad: "const openai = new OpenAI({ apiKey: 'sk-proj-abc123def456ghi789' });",
-      good: "const openai = new OpenAI({ apiKey: process.env.SB_SECRET_KEY });",
+      good: 'const openai = new OpenAI({ apiKey: process.env.SB_SECRET_KEY });',
     },
     {
       bad: "const client = new Anthropic({ apiKey: 'sk-ant-api03-xyz789abc456' });",
-      good: "const client = new Anthropic({ apiKey: process.env.SB_SECRET_KEY });",
+      good: 'const client = new Anthropic({ apiKey: process.env.SB_SECRET_KEY });',
     },
     {
       bad: "const config = { secretKey: 'my-hardcoded-secret-value' };",
-      good: "const config = { secretKey: process.env.SB_SECRET_KEY };",
+      good: 'const config = { secretKey: process.env.SB_SECRET_KEY };',
     },
     {
       bad: "headers: { Authorization: 'Bearer dGhpcyBpcyBhIHRva2Vu' }",
-      good: "headers: { Authorization: `Bearer ${process.env.SB_SECRET_KEY}` }",
+      good: 'headers: { Authorization: `Bearer ${process.env.SB_SECRET_KEY}` }',
     },
   ],
 };

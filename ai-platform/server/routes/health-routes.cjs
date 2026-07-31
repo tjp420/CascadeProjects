@@ -17,8 +17,15 @@ router.post('/vscode-heartbeat', express.json({ limit: '1kb' }), (req, res) => {
 
 router.get('/vscode-status', (_req, res) => {
   const now = Date.now();
-  const isActive = vscodeExtensionStatus.active && (now - vscodeExtensionStatus.lastPing) < VSCODE_HEARTBEAT_TIMEOUT_MS;
-  res.json({ active: isActive, lastPing: vscodeExtensionStatus.lastPing, version: vscodeExtensionStatus.version, enhancedScanAvailable: isActive });
+  const isActive =
+    vscodeExtensionStatus.active &&
+    now - vscodeExtensionStatus.lastPing < VSCODE_HEARTBEAT_TIMEOUT_MS;
+  res.json({
+    active: isActive,
+    lastPing: vscodeExtensionStatus.lastPing,
+    version: vscodeExtensionStatus.version,
+    enhancedScanAvailable: isActive,
+  });
 });
 
 router.get('/status', (req, res) => {
@@ -29,13 +36,13 @@ router.get('/status', (req, res) => {
       ai_scan: 'ready',
       web_interface: 'active',
       api_endpoints: 'available',
-      tools: 'integrated'
+      tools: 'integrated',
     },
     statistics: {
       files_processed: constants.FILES_PROCESSED_STAT,
       consolidation_complete: true,
-      reduction_rate: constants.REDUCTION_RATE_STAT
-    }
+      reduction_rate: constants.REDUCTION_RATE_STAT,
+    },
   });
 });
 
@@ -44,7 +51,7 @@ router.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     platform: 'Simplebeacon',
-    version: '1.0.0'
+    version: '1.0.0',
   });
 });
 

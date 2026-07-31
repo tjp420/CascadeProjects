@@ -11,7 +11,11 @@ async function fetchJson(url, opts) {
   const res = await fetch(url, opts);
   const text = await res.text();
   let json = null;
-  try { json = JSON.parse(text); } catch (e) { return { ok: false, status: res.status, text }; }
+  try {
+    json = JSON.parse(text);
+  } catch (e) {
+    return { ok: false, status: res.status, text };
+  }
   return { ok: res.ok, status: res.status, json };
 }
 
@@ -33,7 +37,11 @@ async function fetchPageText(url, timeoutMs = 10000) {
   try {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(url, { method: 'GET', headers: { 'User-Agent': 'Simplebeacon-Oracle/1.0 (+https://simplebeacon.ai)' }, signal: controller.signal });
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Simplebeacon-Oracle/1.0 (+https://simplebeacon.ai)' },
+      signal: controller.signal,
+    });
     clearTimeout(id);
     if (!res.ok) {
       return { url, ok: false, status: res.status, error: `HTTP ${res.status}` };
@@ -52,12 +60,18 @@ async function fetchPageText(url, timeoutMs = 10000) {
  */
 module.exports = async function oracleSearch(query, options = {}) {
   if (!query || typeof query !== 'string') throw new Error('query required');
-  const maxResults = Number.isFinite(Number(options.maxResults)) ? Number(options.maxResults) : DEFAULT_MAX_RESULTS;
-  const delayMs = Number.isFinite(Number(options.delayBetweenFetch)) ? Math.max(0, Math.floor(Number(options.delayBetweenFetch) * 1000)) : DEFAULT_DELAY_MS;
+  const maxResults = Number.isFinite(Number(options.maxResults))
+    ? Number(options.maxResults)
+    : DEFAULT_MAX_RESULTS;
+  const delayMs = Number.isFinite(Number(options.delayBetweenFetch))
+    ? Math.max(0, Math.floor(Number(options.delayBetweenFetch) * 1000))
+    : DEFAULT_DELAY_MS;
 
   // Dev stub: return canned response when enabled
   if (String(process.env.SIMPLEBEACON_DEV_STUBS) === 'true') {
-    return [{ url: 'https://example.com/mock', ok: true, text: `DEV STUB: results for query="${query}"` }];
+    return [
+      { url: 'https://example.com/mock', ok: true, text: `DEV STUB: results for query="${query}"` },
+    ];
   }
 
   const serpKey = process.env.SERPAPI_KEY;
@@ -73,18 +87,21 @@ module.exports = async function oracleSearch(query, options = {}) {
 
   const data = searchResp.json;
   const results = data.organic_results || data.orgic || data.organic || [];
-  const links = (Array.isArray(results) ? results : []).map(r => r.link || r.url).filter(Boolean).slice(0, maxResults);
+  const links = (Array.isArray(results) ? results : [])
+    .map((r) => r.link || r.url)
+    .filter(Boolean)
+    .slice(0, maxResults);
 
   const outputs = [];
   for (let i = 0; i < links.length; i++) {
     const link = links[i];
     // fetch page text
-    // eslint-disable-next-line no-await-in-loop
+     
     const page = await fetchPageText(link, 10000);
     outputs.push(page);
     if (i < links.length - 1 && delayMs > 0) {
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise(r => setTimeout(r, delayMs));
+       
+      await new Promise((r) => setTimeout(r, delayMs));
     }
   }
   return outputs;

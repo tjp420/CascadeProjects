@@ -1,8 +1,29 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import {
-  escapeHtml, escapeRegExp, truncate, capitalize, camelCase, kebabCase, snakeCase,
-  padStart, padEnd, pluralize, formatPercent, formatDate, relativeTime, formatDuration,
-  titleCase, reverse, slugify, repeat, startsWith, endsWith, trim, splitLines, stripAnsi, wordCount
+  escapeHtml,
+  escapeRegExp,
+  truncate,
+  capitalize,
+  camelCase,
+  kebabCase,
+  snakeCase,
+  padStart,
+  padEnd,
+  pluralize,
+  formatPercent,
+  formatDate,
+  relativeTime,
+  formatDuration,
+  titleCase,
+  reverse,
+  slugify,
+  repeat,
+  startsWith,
+  endsWith,
+  trim,
+  splitLines,
+  stripAnsi,
+  wordCount,
 } from '../string';
 
 describe('string utilities', () => {
@@ -18,7 +39,9 @@ describe('string utilities', () => {
 
   describe('escapeRegExp', () => {
     test('escapes regex metacharacters', () => {
-      expect(escapeRegExp('a.b*c+d?e[f]g(h)i{j}k|l^m$n\\o')).toBe('a\\.b\\*c\\+d\\?e\\[f\\]g\\(h\\)i\\{j\\}k\\|l\\^m\\$n\\\\o');
+      expect(escapeRegExp('a.b*c+d?e[f]g(h)i{j}k|l^m$n\\o')).toBe(
+        'a\\.b\\*c\\+d\\?e\\[f\\]g\\(h\\)i\\{j\\}k\\|l\\^m\\$n\\\\o'
+      );
     });
   });
 

@@ -7,11 +7,13 @@ The production deploy gate ensures all critical checks pass before deployment to
 ## Verification Tools
 
 ### Pre-Deploy Gate (runs before every deployment)
+
 ```bash
 npm run verify:predeploy
 ```
 
 This gate checks:
+
 - Simplebeacon scan gate passes (no blocking issues)
 - npm audit clean (no high/critical vulnerabilities)
 - Tests passing
@@ -20,11 +22,13 @@ This gate checks:
 - Build succeeds with artifacts
 
 ### Local Verification
+
 ```bash
 npm run verify:v1-internal-profile
 ```
 
 ### Production Verification
+
 ```bash
 npm run verify:production-deploy
 ```
@@ -40,6 +44,7 @@ npm run simplebeacon:deploy
 The `predeploy-gate` job runs in GitHub Actions on the `main` branch after all upstream checks (hygiene, tests, security audit) complete. It blocks the `build-test` job if any gate fails.
 
 ### Pipeline Flow
+
 ```
 hygiene-gate → test-coverage → phase2-tests → security-audit
                                                     ↓
@@ -67,6 +72,7 @@ hygiene-gate → test-coverage → phase2-tests → security-audit
 ## Production Environment
 
 Required files:
+
 - `.env.production` — ✅ configured
 - `docker-compose.phase2.yml` — ✅ present
 - `scripts/deploy-simplebeacon.sh` — ✅ present

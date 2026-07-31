@@ -19,9 +19,16 @@ for (let i = 0; i < phases.length; i++) {
       category: (phase.title || '').replace(/^Phase \d+:\s*/, '') || phase.id,
       description: task.description,
       filePath: task.location || '-',
-      action: task.type === 'fix' ? 'Fix required' : task.type === 'verify' ? 'Verify' : task.type === 'audit' ? 'Audit' : 'Review',
+      action:
+        task.type === 'fix'
+          ? 'Fix required'
+          : task.type === 'verify'
+            ? 'Verify'
+            : task.type === 'audit'
+              ? 'Audit'
+              : 'Review',
       effort: phase.effort || '20 min',
-      completed: task.done || false
+      completed: task.done || false,
     });
   }
 }
@@ -33,9 +40,9 @@ const payload = {
     sourceReport: raw.summary?.sourceReport,
     reportVersion: 2,
     totalIssues: issues.length,
-    completed: issues.filter(i => i.completed).length
+    completed: issues.filter((i) => i.completed).length,
   },
-  issues
+  issues,
 };
 
 const outPath = path.join(baseDir, 'remediation-roadmap-from-scan-2026-06-11.json');

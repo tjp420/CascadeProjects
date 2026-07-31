@@ -4,7 +4,10 @@
  * `.simplebeacon/config.json` at the workspace root.
  */
 const path = require('path');
-const { getConsistencyAnchorSamples, getRepositoryAuditBaseline } = require('../../../packages/simplebeacon-cli/src/index.js');
+const {
+  getConsistencyAnchorSamples,
+  getRepositoryAuditBaseline,
+} = require('../../../packages/simplebeacon-cli/src/index.js');
 
 /** Workspace root — three levels up from ai-platform/server/lib/. */
 const ROOT = path.join(__dirname, '../../..');
@@ -43,6 +46,10 @@ function getAnchors() {
 }
 
 module.exports = {
-  get REPOSITORY_AUDIT_BASELINE() { return getBaseline(); },
-  get CONSISTENCY_ANCHOR_SAMPLES() { return getAnchors(); }
+  get REPOSITORY_AUDIT_BASELINE() {
+    return getBaseline();
+  },
+  get CONSISTENCY_ANCHOR_SAMPLES() {
+    return getAnchors();
+  },
 };

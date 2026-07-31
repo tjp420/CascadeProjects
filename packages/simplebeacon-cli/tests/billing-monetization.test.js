@@ -4,10 +4,7 @@
 const { describe, test } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('crypto');
-const {
-  generateLicenseToken,
-  validateLicenseToken
-} = require('../src/lib/license-token.js');
+const { generateLicenseToken, validateLicenseToken } = require('../src/lib/license-token.js');
 
 describe('billing monetization loop', () => {
   const secret = 'test_monetization_secret_key_2050';
@@ -17,13 +14,16 @@ describe('billing monetization loop', () => {
       {
         email: 'lead@enterprise-dev.com',
         tier: 'team',
-        features: ['team-management', 'pdf-generation']
+        features: ['team-management', 'pdf-generation'],
       },
       secret,
       365 * 24 * 60
     );
     assert.ok(token.includes('.'));
-    assert.ok(!token.startsWith('sb_live_'), 'uses existing JWT format, not parallel sb_live_ prefix');
+    assert.ok(
+      !token.startsWith('sb_live_'),
+      'uses existing JWT format, not parallel sb_live_ prefix'
+    );
 
     const result = validateLicenseToken(token, secret);
     assert.equal(result.valid, true);

@@ -3,7 +3,7 @@ const {
   authLog,
   authWarn,
   shouldWriteAuditEvents,
-  auditAuth
+  auditAuth,
 } = require('../../lib/auth/audit-service.cjs');
 
 describe('audit-service', () => {
@@ -50,7 +50,9 @@ describe('audit-service', () => {
     });
     test('does not throw with full args', () => {
       const req = { ip: '127.0.0.1', headers: { 'user-agent': 'test' }, requestId: 'r1' };
-      expect(() => auditAuth('login_success', { id: 'u1', email: 'a@b.com', trustLevel: 'gold' }, req)).not.toThrow();
+      expect(() =>
+        auditAuth('login_success', { id: 'u1', email: 'a@b.com', trustLevel: 'gold' }, req)
+      ).not.toThrow();
     });
     test('ignores non-string action', () => {
       expect(() => auditAuth(123)).not.toThrow();

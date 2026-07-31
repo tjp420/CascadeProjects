@@ -85,7 +85,10 @@ function replaceStrategy({ finding, content }) {
       confidence = 0.85;
       break;
     case 'hardcoded-secret':
-      newText = lineText.replace(/['"`]\s*sk_(?:live|test)_[a-zA-Z0-9_]+\s*['"`]/g, "process.env.STRIPE_SECRET_KEY");
+      newText = lineText.replace(
+        /['"`]\s*sk_(?:live|test)_[a-zA-Z0-9_]+\s*['"`]/g,
+        'process.env.STRIPE_SECRET_KEY'
+      );
       confidence = 0.75;
       break;
     default:
@@ -218,17 +221,11 @@ function selectStrategy(finding) {
   if (replaceTypes.includes(type)) return STRATEGIES.REPLACE;
 
   // WRAP candidates
-  const wrapTypes = [
-    'unhandled-promise',
-    'missing-strict-mode',
-    'unvalidated-redirect',
-  ];
+  const wrapTypes = ['unhandled-promise', 'missing-strict-mode', 'unvalidated-redirect'];
   if (wrapTypes.includes(type)) return STRATEGIES.WRAP;
 
   // INSERT candidates
-  const insertTypes = [
-    'missing-rate-limit',
-  ];
+  const insertTypes = ['missing-rate-limit'];
   if (insertTypes.includes(type)) return STRATEGIES.INSERT;
 
   // Default by category
@@ -282,7 +279,11 @@ function applyPatch(content, patch) {
 
 // ── Diff Generation ────────────────────────────────────────────────────────
 
-function generateDiff(original, patched, { filePath, context = 3 } = { filePath: 'unknown', context: 3 }) {
+function generateDiff(
+  original,
+  patched,
+  { filePath, context = 3 } = { filePath: 'unknown', context: 3 }
+) {
   const origLines = allLines(original);
   const patchLines = allLines(patched);
   const hunks = [];
@@ -330,8 +331,8 @@ function generateDiff(original, patched, { filePath, context = 3 } = { filePath:
 function hunksToUnified(hunks, filePath) {
   const lines = [`--- a/${filePath}`, `+++ b/${filePath}`];
   for (const hunk of hunks) {
-    const oldCount = hunk.lines.filter(l => l.type !== 'add').length;
-    const newCount = hunk.lines.filter(l => l.type !== 'remove').length;
+    const oldCount = hunk.lines.filter((l) => l.type !== 'add').length;
+    const newCount = hunk.lines.filter((l) => l.type !== 'remove').length;
     lines.push(`@@ -${hunk.oldStart},${oldCount} +${hunk.newStart},${newCount} @@`);
     for (const line of hunk.lines) {
       const prefix = line.type === 'remove' ? '-' : line.type === 'add' ? '+' : ' ';

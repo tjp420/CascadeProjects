@@ -10,7 +10,11 @@ const assert = require('node:assert');
  * @param {number} [fallbackMinConfidence] - numeric fallback when manualThreshold is unknown
  * @returns {number} effective minimum confidence floor
  */
-function getEffectiveMinConfidence(preset, manualThreshold = 'medium', fallbackMinConfidence = 0.6) {
+function getEffectiveMinConfidence(
+  preset,
+  manualThreshold = 'medium',
+  fallbackMinConfidence = 0.6
+) {
   const thresholdMap = {
     low: 0.4,
     medium: 0.6,
@@ -69,7 +73,10 @@ test('filterRulesByConfidence keeps only rules at or above the floor', () => {
 
   const mediumAndAbove = filterRulesByConfidence(sampleRules, 0.6);
   assert.strictEqual(mediumAndAbove.length, 2);
-  assert.deepStrictEqual(mediumAndAbove.map((r) => r.id), ['SB-FICTION-001', 'SB-FICTION-003']);
+  assert.deepStrictEqual(
+    mediumAndAbove.map((r) => r.id),
+    ['SB-FICTION-001', 'SB-FICTION-003']
+  );
 });
 
 test('rules without a confidence property are treated as zero confidence and filtered out', () => {

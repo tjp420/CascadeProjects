@@ -59,14 +59,18 @@ function loadProgress() {
     try {
         const raw = localStorage.getItem(PROGRESS_KEY);
         if (raw) return JSON.parse(raw);
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
     return {};
 }
 
 function saveProgress(progress) {
     try {
         localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
 }
 
 function isTaskComplete(taskId, appState) {
@@ -123,13 +127,17 @@ export class GettingStartedView {
                 <div class="gs-progress-bar-fill" style="width:${pct}%"></div>
             </div>
 
-            ${allDone ? `
+            ${
+                allDone
+                    ? `
                 <div class="gs-complete-banner">
                     <span class="gs-complete-icon">🎉</span>
                     <span class="gs-complete-text">All done! You're ready to use SimpleBeacon like a pro.</span>
                     <button class="btn btn-ghost btn-sm" id="gs-reset">Reset progress</button>
                 </div>
-            ` : ''}
+            `
+                    : ''
+            }
 
             <div class="gs-tasks-grid">
                 ${TASKS.map((task, i) => {
@@ -141,9 +149,11 @@ export class GettingStartedView {
                                     <i data-lucide="${task.icon}" class="gs-task-icon"></i>
                                 </div>
                                 <div class="gs-task-status">
-                                    ${done
-                                        ? '<span class="gs-status-badge gs-status-done">✓ Done</span>'
-                                        : `<span class="gs-status-badge gs-status-todo">${i + 1}</span>`}
+                                    ${
+                                        done
+                                            ? '<span class="gs-status-badge gs-status-done">✓ Done</span>'
+                                            : `<span class="gs-status-badge gs-status-todo">${i + 1}</span>`
+                                    }
                                 </div>
                             </div>
                             <h3 class="gs-task-title">${task.title}</h3>
@@ -195,12 +205,18 @@ export class GettingStartedView {
         const resetBtns = view.querySelectorAll('#gs-reset, #gs-reset-bottom');
         resetBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                try { localStorage.removeItem(PROGRESS_KEY); } catch { /* ignore */ }
+                try {
+                    localStorage.removeItem(PROGRESS_KEY);
+                } catch {
+                    /* ignore */
+                }
                 showToast('Progress reset', 'info');
                 this.mount(document.getElementById('app-main'));
             });
         });
     }
 
-    destroy() { /* no-op */ }
+    destroy() {
+        /* no-op */
+    }
 }

@@ -6,7 +6,7 @@ const {
   collectRepositoryFiles,
   buildConsolidationConclusion,
   OVERSIZED_THRESHOLD_BYTES,
-  STRUCTURE_SIMILARITY_THRESHOLD
+  STRUCTURE_SIMILARITY_THRESHOLD,
 } = require('../file-merger-reduction-scanner.cjs');
 
 describe('file-merger-reduction-scanner', () => {
@@ -29,8 +29,8 @@ describe('file-merger-reduction-scanner', () => {
         reductionOpportunities: 1,
         filesAnalyzed: 100,
         sampleDataFilesAnalyzed: 10,
-        potentialSavingsLabel: '5.2MB'
-      }
+        potentialSavingsLabel: '5.2MB',
+      },
     };
     const result = buildConsolidationConclusion(report);
     expect(typeof result).toBe('string');

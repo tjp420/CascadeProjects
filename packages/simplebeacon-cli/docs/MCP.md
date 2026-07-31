@@ -4,12 +4,12 @@ Local **Model Context Protocol** integration for Cursor, Claude Desktop, and oth
 
 ## Tools
 
-| Tool | Purpose |
-|------|---------|
-| `scan_snippet` | Scan pasted/generated code for fiction KPIs, mock paths, credentials, LLM slop |
-| `scan_file` | Scan one file within the project root |
-| `gate_status` | Read `.simplebeacon/report.json` gate pass/fail + top blocking issues |
-| `explain_finding` | Deterministic rule metadata for a pattern ID (not LLM inference) |
+| Tool              | Purpose                                                                        |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `scan_snippet`    | Scan pasted/generated code for fiction KPIs, mock paths, credentials, LLM slop |
+| `scan_file`       | Scan one file within the project root                                          |
+| `gate_status`     | Read `.simplebeacon/report.json` gate pass/fail + top blocking issues          |
+| `explain_finding` | Deterministic rule metadata for a pattern ID (not LLM inference)               |
 
 ## Quick start (Cursor)
 
@@ -58,11 +58,11 @@ Do **not** run `simplebeacon:mcp` manually unless debugging — let Cursor launc
 
 Three phases — **local only**, no source upload:
 
-| Phase | When | Action |
-|-------|------|--------|
-| **1. While coding** | Before accepting AI-generated edits | MCP **`scan_snippet`** (`content` + virtual `filePath`) |
-| **2. On save** | After editing a file | MCP **`scan_file`** (relative path) |
-| **3. Before PR** | Pre-merge / CI | `npm run simplebeacon:pre-pr` or `scan --gate --offline` + **`gate status`** / MCP **`gate_status`** |
+| Phase               | When                                | Action                                                                                               |
+| ------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **1. While coding** | Before accepting AI-generated edits | MCP **`scan_snippet`** (`content` + virtual `filePath`)                                              |
+| **2. On save**      | After editing a file                | MCP **`scan_file`** (relative path)                                                                  |
+| **3. Before PR**    | Pre-merge / CI                      | `npm run simplebeacon:pre-pr` or `scan --gate --offline` + **`gate status`** / MCP **`gate_status`** |
 
 Cursor: enable MCP via [`.cursor/mcp.json`](../../.cursor/mcp.json) (project root). Agent behavior: [`.cursor/rules/simplebeacon-scan-workflow.mdc`](../../.cursor/rules/simplebeacon-scan-workflow.mdc).
 
@@ -70,10 +70,10 @@ MCP gives **fast feedback on snippets**; the CLI **`--gate`** remains the **sour
 
 ## Environment
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SIMPLEBEACON_PROJECT_ROOT` | `process.cwd()` | Repo root for baseline + report paths |
-| `SIMPLEBEACON_OFFLINE` | off | Set `1` to fail if any outbound network occurs |
+| Variable                    | Default         | Description                                    |
+| --------------------------- | --------------- | ---------------------------------------------- |
+| `SIMPLEBEACON_PROJECT_ROOT` | `process.cwd()` | Repo root for baseline + report paths          |
+| `SIMPLEBEACON_OFFLINE`      | off             | Set `1` to fail if any outbound network occurs |
 
 ## Architecture
 
@@ -89,8 +89,8 @@ Zero additional npm dependencies — same engines as `simplebeacon scan` and `si
 
 ## Honest limits
 
-- Snippet scan does **not** replace a full repo walk (no cross-file consistency, no jest baseline)  
-- Regex rules produce false positives — tune `.simplebeacon/config.json`  
-- Not SOC2, not semantic AI review  
+- Snippet scan does **not** replace a full repo walk (no cross-file consistency, no jest baseline)
+- Regex rules produce false positives — tune `.simplebeacon/config.json`
+- Not SOC2, not semantic AI review
 
 See [TRUST.md](./TRUST.md) for privacy guarantees.

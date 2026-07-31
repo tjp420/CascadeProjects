@@ -8,7 +8,7 @@ jest.mock('../simplebeacon-proxy.cjs', () => ({
   initSimplebeacon: jest.fn(),
   loadSimplebeaconConfig: jest.fn().mockReturnValue({ gate: {} }),
   resolvePlatformRoot: jest.fn().mockReturnValue({ platformRoot: '/test' }),
-  runScan: jest.fn().mockResolvedValue({ rawIssues: [], detectedIssues: [] })
+  runScan: jest.fn().mockResolvedValue({ rawIssues: [], detectedIssues: [] }),
 }));
 
 const { ARTIFACT_NAMES, runEuAiActSprint } = require('../eu-ai-act-sprint-service.cjs');
@@ -27,7 +27,9 @@ describe('eu-ai-act-sprint-service', () => {
   });
 
   test('runEuAiActSprint throws on nonexistent path', async () => {
-    await expect(runEuAiActSprint({ projectPath: '/nonexistent/path/xyz' })).rejects.toThrow('does not exist');
+    await expect(runEuAiActSprint({ projectPath: '/nonexistent/path/xyz' })).rejects.toThrow(
+      'does not exist'
+    );
   });
 
   test('runEuAiActSprint throws when path is a file not directory', async () => {
@@ -37,7 +39,9 @@ describe('eu-ai-act-sprint-service', () => {
     const tmpFile = path.join(os.tmpdir(), `euai-test-${Date.now()}.txt`);
     fs.writeFileSync(tmpFile, 'test');
     try {
-      await expect(runEuAiActSprint({ projectPath: tmpFile })).rejects.toThrow('must be a directory');
+      await expect(runEuAiActSprint({ projectPath: tmpFile })).rejects.toThrow(
+        'must be a directory'
+      );
     } finally {
       fs.unlinkSync(tmpFile);
     }

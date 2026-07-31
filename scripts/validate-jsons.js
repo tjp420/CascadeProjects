@@ -10,14 +10,15 @@ function walk(dir) {
     try {
       const st = fs.statSync(p);
       if (st.isDirectory()) {
-        if (['node_modules', '.git', '.simplebeacon', 'vscode-extension/out'].includes(name)) continue;
+        if (['node_modules', '.git', '.simplebeacon', 'vscode-extension/out'].includes(name))
+          continue;
         walk(p);
       } else if (st.isFile() && p.endsWith('.json')) {
         try {
           const s = fs.readFileSync(p, 'utf8');
           JSON.parse(s);
         } catch (e) {
-          errors.push({file: p, message: e.message});
+          errors.push({ file: p, message: e.message });
         }
       }
     } catch (err) {

@@ -33,7 +33,7 @@ export class TrendChart {
     const points = data.map((d, i) => ({
       x: pad.left + (i / Math.max(data.length - 1, 1)) * chartW,
       y: pad.top + chartH - ((d.issueCount ?? 0) / maxIssues) * chartH,
-      label: d.date ? new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
+      label: d.date ? new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '',
     }));
 
     // Grid lines
@@ -138,12 +138,11 @@ export function mountTrendChart(container, history) {
   if (!canvas) return null;
   const chart = new TrendChart(canvas);
   chart.render(history);
-/**
- * On resize.
- * @returns {any}
- */
+  /**
+   * On resize.
+   * @returns {any}
+   */
   const onResize = () => chart.render(history);
   window.addEventListener('resize', onResize);
   return () => window.removeEventListener('resize', onResize);
 }
-

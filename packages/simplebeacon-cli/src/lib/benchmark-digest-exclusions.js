@@ -2,15 +2,21 @@
  * Benchmark gate issue exclusions for fiction-digest and gate exports.
  */
 
-const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
-const OSS_SCANNER_ROOT_FILES = new Set(['src/scan.js', 'src/config.js', 'src/project-detect.js', 'src/index.js']);
+const SCANNER_IMPL_PATH_RE =
+  /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
+const OSS_SCANNER_ROOT_FILES = new Set([
+  'src/scan.js',
+  'src/config.js',
+  'src/project-detect.js',
+  'src/index.js',
+]);
 
 const SUPPRESSED_PRODUCTION_LEAK_INTENTS = new Set([
   'scanner-meta',
   'repository-audit-loader',
   'repository-audit-stub-loader',
   'config-metadata',
-  'demo-tool-sample'
+  'demo-tool-sample',
 ]);
 
 function normalizeRel(filePath) {
@@ -53,5 +59,5 @@ module.exports = {
   isScannerImplementationPath,
   isBenchmarkCloneNoiseIssue,
   isBenchmarkScannerMetaIssue,
-  isBenchmarkDigestExcludedIssue
+  isBenchmarkDigestExcludedIssue,
 };

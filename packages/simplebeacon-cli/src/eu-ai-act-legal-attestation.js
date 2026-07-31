@@ -9,5 +9,5 @@ function isLegalReviewAttestation(attestation) {
 }
 
 module.exports = {
-  isLegalReviewAttestation
+  isLegalReviewAttestation,
 };

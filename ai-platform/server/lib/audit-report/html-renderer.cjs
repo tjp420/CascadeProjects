@@ -6,28 +6,23 @@
 const { escapeHtml } = require('../code-roadmap-export.cjs');
 const { getAuditReportStyles } = require('../audit-report-styles.cjs');
 const { markdownToHtml } = require('../audit-report-markdown.cjs');
-const {
-    formatReportTimestamp,
-    formatScanDuration,
-} = require('../audit-report-utils.cjs');
+const { formatReportTimestamp, formatScanDuration } = require('../audit-report-utils.cjs');
 const { buildVerificationCommand } = require('../audit-remediation-recipes.cjs');
 const {
-    renderCategoryRollupRows,
-    renderDeveloperRemediationRows,
+  renderCategoryRollupRows,
+  renderDeveloperRemediationRows,
 } = require('../audit-report-html-rows.cjs');
+const { buildDeterministicExecutive } = require('./executive.cjs');
 const {
-    buildDeterministicExecutive,
-} = require('./executive.cjs');
-const {
-    MAX_REMEDIATION_ROWS,
-    buildBusinessRiskCounts,
-    redactPathForDisplay,
-    formatLedgerFilesScanned,
+  MAX_REMEDIATION_ROWS,
+  buildBusinessRiskCounts,
+  redactPathForDisplay,
+  formatLedgerFilesScanned,
 } = require('./finding-utils.cjs');
 const {
-    buildCoverPresentation,
-    buildExecutiveDashboardBanner,
-    buildExecutiveKpiStrip,
+  buildCoverPresentation,
+  buildExecutiveDashboardBanner,
+  buildExecutiveKpiStrip,
 } = require('./html-sections.cjs');
 
 /**
@@ -37,46 +32,60 @@ const {
  * @returns {any}
  */
 function renderCompleteAuditHtml(model, options = {}) {
-    const exec = options.executive || buildDeterministicExecutive(model);
-    const s = model.summary;
-    const risk = model.businessRiskCounts || buildBusinessRiskCounts(model);
-    const cover = buildCoverPresentation(model);
-    const tier = cover.tier;
-    const executiveBanner = buildExecutiveDashboardBanner(model);
-    const executiveKpis = buildExecutiveKpiStrip(model);
-    const verificationCommand = buildVerificationCommand(model.projectPath);
-    const narrativeLine = options.aiEnhanced
-        ? `Executive narrative refined by ${escapeHtml(options.aiProvider || 'AI')} · all metrics and remediation rows are deterministic from scan JSON`
-        : 'Deterministic executive narrative and remediation mapping generated directly from complete scan JSON — no AI inference on counts or findings.';
+  const exec = options.executive || buildDeterministicExecutive(model);
+  const s = model.summary;
+  const risk = model.businessRiskCounts || buildBusinessRiskCounts(model);
+  const cover = buildCoverPresentation(model);
+  const tier = cover.tier;
+  const executiveBanner = buildExecutiveDashboardBanner(model);
+  const executiveKpis = buildExecutiveKpiStrip(model);
+  const verificationCommand = buildVerificationCommand(model.projectPath);
+  const narrativeLine = options.aiEnhanced
+    ? `Executive narrative refined by ${escapeHtml(options.aiProvider || 'AI')} · all metrics and remediation rows are deterministic from scan JSON`
+    : 'Deterministic executive narrative and remediation mapping generated directly from complete scan JSON — no AI inference on counts or findings.';
 
-    const platformCell = model.platformRoot
-        ? ' · platform <code>' + escapeHtml(redactPathForDisplay(model.platformRoot)) + '</code>'
-        : '';
-    const scanDurationNote = model.scanDurationMs
-        ? ' · execution ' + escapeHtml(formatScanDuration(model.scanDurationMs))
-        : '';
-    const qualityScoreCell = (s.qualityScore != null ? escapeHtml(String(s.qualityScore)) + '%' : '—')
-        + ' · code health '
-        + (s.codebaseHealth != null ? escapeHtml(String(s.codebaseHealth)) + '%' : '—')
-        + ' · audit confidence '
-        + (s.confidenceScore != null ? escapeHtml(String(s.confidenceScore)) + '/100' : '—');
-    const section03IntroSuffix = s.codebaseFindingsRaw > (model.remediationRows?.length || 0)
-        ? ' from ' + Number(s.codebaseFindingsRaw).toLocaleString() + ' total scan match(es)'
-        : '';
-    const section03CapCallout = (model.remediationRows || []).length >= MAX_REMEDIATION_ROWS
-        ? '<div class="callout">Section 03 lists the first <strong>' + MAX_REMEDIATION_ROWS + '</strong> prioritized runtime-path rows. Every row is complete — nothing is cut mid-sentence. Export the complete-scan JSON for the full match list.</div>'
-        : '';
-    const tierExclusionCallout = s.documentationFindings > 0 || s.generalFindings > 0
-        ? '<div class="callout"><strong>' + s.documentationFindings.toLocaleString() + ' documentation-tier</strong> and <strong>' + (s.generalFindings || 0).toLocaleString() + ' tooling/script-tier</strong> markers were excluded from Section 03 — they are tracked for hygiene but not release blockers.</div>'
-        : '';
-    const categoryScopeNote = s.findingsTruncated
-        ? ' (' + Number(s.codebaseFindingsRaw).toLocaleString() + ' total scan matches before cap)'
-        : '';
-    const consolidationMeta = model.consolidationSummary
-        ? '<p class="meta">Consolidation: ' + escapeHtml(String(model.consolidationSummary.exactDuplicateGroups ?? 0)) + ' duplicate group(s) · ' + escapeHtml(String(model.consolidationSummary.jsonFilesAnalyzed ?? '—')) + ' JSON files hashed.</p>'
-        : '';
+  const platformCell = model.platformRoot
+    ? ' · platform <code>' + escapeHtml(redactPathForDisplay(model.platformRoot)) + '</code>'
+    : '';
+  const scanDurationNote = model.scanDurationMs
+    ? ' · execution ' + escapeHtml(formatScanDuration(model.scanDurationMs))
+    : '';
+  const qualityScoreCell =
+    (s.qualityScore != null ? escapeHtml(String(s.qualityScore)) + '%' : '—') +
+    ' · code health ' +
+    (s.codebaseHealth != null ? escapeHtml(String(s.codebaseHealth)) + '%' : '—') +
+    ' · audit confidence ' +
+    (s.confidenceScore != null ? escapeHtml(String(s.confidenceScore)) + '/100' : '—');
+  const section03IntroSuffix =
+    s.codebaseFindingsRaw > (model.remediationRows?.length || 0)
+      ? ' from ' + Number(s.codebaseFindingsRaw).toLocaleString() + ' total scan match(es)'
+      : '';
+  const section03CapCallout =
+    (model.remediationRows || []).length >= MAX_REMEDIATION_ROWS
+      ? '<div class="callout">Section 03 lists the first <strong>' +
+        MAX_REMEDIATION_ROWS +
+        '</strong> prioritized runtime-path rows. Every row is complete — nothing is cut mid-sentence. Export the complete-scan JSON for the full match list.</div>'
+      : '';
+  const tierExclusionCallout =
+    s.documentationFindings > 0 || s.generalFindings > 0
+      ? '<div class="callout"><strong>' +
+        s.documentationFindings.toLocaleString() +
+        ' documentation-tier</strong> and <strong>' +
+        (s.generalFindings || 0).toLocaleString() +
+        ' tooling/script-tier</strong> markers were excluded from Section 03 — they are tracked for hygiene but not release blockers.</div>'
+      : '';
+  const categoryScopeNote = s.findingsTruncated
+    ? ' (' + Number(s.codebaseFindingsRaw).toLocaleString() + ' total scan matches before cap)'
+    : '';
+  const consolidationMeta = model.consolidationSummary
+    ? '<p class="meta">Consolidation: ' +
+      escapeHtml(String(model.consolidationSummary.exactDuplicateGroups ?? 0)) +
+      ' duplicate group(s) · ' +
+      escapeHtml(String(model.consolidationSummary.jsonFilesAnalyzed ?? '—')) +
+      ' JSON files hashed.</p>'
+    : '';
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -199,7 +208,9 @@ function renderCompleteAuditHtml(model, options = {}) {
       </div>
     </section>
 
-    ${tier.showSignOffBlock ? `
+    ${
+      tier.showSignOffBlock
+        ? `
     <section class="section signoff-section">
       <div class="section-num">Section 05</div>
       <h2>Simplebeacon production compliance sign-off</h2>
@@ -214,13 +225,15 @@ function renderCompleteAuditHtml(model, options = {}) {
         <span class="signoff-role">CTO / Lead Architect · Date: _______________</span>
       </div>
     </section>
-    ` : `
+    `
+        : `
     <section class="section signoff-section">
       <div class="section-num">Section 05</div>
       <h2>Production compliance sign-off</h2>
       <p class="meta">Not applicable for supplementary deliverables. Run Analyze → Complete (gate + codebase) for a unified handoff PDF, or combine gate attestation and codebase audit exports.</p>
     </section>
-    `}
+    `
+    }
 
     <section class="section">
       <div class="section-num">Appendix</div>
@@ -239,5 +252,5 @@ function renderCompleteAuditHtml(model, options = {}) {
 }
 
 module.exports = {
-    renderCompleteAuditHtml
+  renderCompleteAuditHtml,
 };

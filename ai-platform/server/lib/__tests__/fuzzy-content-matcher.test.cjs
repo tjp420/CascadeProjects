@@ -8,7 +8,7 @@ const {
   isCiLogFragmentPath,
   isCiLogFragmentPair,
   DEFAULT_FUZZY_THRESHOLD,
-  MAX_FUZZY_PAIRS
+  MAX_FUZZY_PAIRS,
 } = require('../fuzzy-content-matcher.cjs');
 
 describe('fuzzy-content-matcher', () => {

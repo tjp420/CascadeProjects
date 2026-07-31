@@ -6,12 +6,22 @@
  * @param {{count?:number,delay?:number,maxDelay?:number}} [retry]
  * @returns {Promise<Response>}
  */
-export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { count: 0, delay: 1000, maxDelay: 30000 }) {
+export async function fetchWithTimeout(
+    url,
+    options = {},
+    ms = 10000,
+    retry = { count: 0, delay: 1000, maxDelay: 30000 }
+) {
     const target = String(url || '');
-    let opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+    let opts = options && typeof options === 'object' && !Array.isArray(options) ? options : {};
     const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 10000;
-    const retryCfg = { count: 0, delay: 1000, maxDelay: 30000, ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {}) };
-    const attempt = async (attemptNum) => {
+    const retryCfg = {
+        count: 0,
+        delay: 1000,
+        maxDelay: 30000,
+        ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {})
+    };
+    const attempt = async attemptNum => {
         const controller = new AbortController();
         let cleanup = null;
         if (opts.signal && typeof opts.signal.addEventListener === 'function') {
@@ -67,16 +77,22 @@ export function sanitizePrivacyData(text) {
     // Emails — require word boundaries to avoid matching version strings like v1.2.3@scope
     cleaned = cleaned.replace(/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, '[REDACTED_EMAIL]');
     // IPv4 addresses — capture the prefix character so we can preserve it
-    cleaned = cleaned.replace(/(^|[^\w.])((?:(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?))(?![\w.])/g, '$1[REDACTED_IP]');
+    cleaned = cleaned.replace(
+        /(^|[^\w.])((?:(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?))(?![\w.])/g,
+        '$1[REDACTED_IP]'
+    );
     // MAC addresses
     cleaned = cleaned.replace(/\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/g, '[REDACTED_MAC]');
     // Phone numbers (tightened: require plausible length and structure)
     cleaned = cleaned.replace(/\b(?:\+\d{1,3}[-.\s])?\(?\d{2,4}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, '[REDACTED_PHONE]');
     // Quoted credentials
-    cleaned = cleaned.replace(/(([a-zA-Z0-9_-]*(?:secret|token|key|pwd|password|auth))(=|:)\s*['"][^'"]+['"])/gi, '$2$3"[REDACTED_CREDENTIAL]"');
+    cleaned = cleaned.replace(
+        /(([a-zA-Z0-9_-]*(?:secret|token|key|pwd|password|auth))(=|:)\s*['"][^'"]+['"])/gi,
+        '$2$3"[REDACTED_CREDENTIAL]"'
+    );
     // Bearer tokens and Authorization headers
     cleaned = cleaned.replace(/\b(Bearer\s+)[a-zA-Z0-9_\-\.]+/gi, '$1[REDACTED_TOKEN]');
-    cleaned = cleaned.replace(/\b(Authorization[:\s]+).*?$/gmi, '$1[REDACTED_HEADER]');
+    cleaned = cleaned.replace(/\b(Authorization[:\s]+).*?$/gim, '$1[REDACTED_HEADER]');
     // Credit card numbers — grouped (13-24 digits with optional separators) or plain (13-19 digits)
     cleaned = cleaned.replace(/\b(?:\d{4}[-\s]?){3,5}\d{1,4}\b|\b\d{13,19}\b/g, '[REDACTED_CC]');
     return cleaned;
@@ -101,8 +117,16 @@ export function withTimeout(promise, ms, message = 'Operation timed out') {
             if (!settled) reject(new Error(message));
         }, timeoutMs);
         promise.then(
-            (value) => { settled = true; clearTimeout(timer); resolve(value); },
-            (err) => { settled = true; clearTimeout(timer); reject(err); }
+            value => {
+                settled = true;
+                clearTimeout(timer);
+                resolve(value);
+            },
+            err => {
+                settled = true;
+                clearTimeout(timer);
+                reject(err);
+            }
         );
     });
 }
@@ -135,7 +159,8 @@ export function parseQueryString(queryString) {
 export function stringifyQueryString(params) {
     if (!params || typeof params !== 'object') return '';
     const pairs = [];
-    for (const [key, value] of Object.entries(params)) { // simplebeacon-ignore memory-leak
+    for (const [key, value] of Object.entries(params)) {
+        // simplebeacon-ignore memory-leak
         if (value == null || value === '') continue;
         pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
     }

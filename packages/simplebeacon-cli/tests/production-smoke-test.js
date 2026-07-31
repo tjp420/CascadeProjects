@@ -27,7 +27,9 @@ function resolveTelemetryUrl() {
     return new URL(process.env.SIMPLEBEACON_CI_TELEMETRY_URL);
   }
   const host = process.env.SIMPLEBEACON_API_HOST || 'simplebeacon.ai';
-  const port = process.env.SIMPLEBEACON_API_PORT || (host === 'localhost' || host === '127.0.0.1' ? '3000' : '');
+  const port =
+    process.env.SIMPLEBEACON_API_PORT ||
+    (host === 'localhost' || host === '127.0.0.1' ? '3000' : '');
   const protocol = port === '443' || (!port && host.includes('.')) ? 'https:' : 'http:';
   const path = '/api/simplebeacon/ci/telemetry';
   if (port) {
@@ -43,7 +45,11 @@ function resolveToken() {
   const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
   if (secret) {
     return generateLicenseToken(
-      { email: process.env.SIMPLEBEACON_SMOKE_EMAIL || 'smoke-test@simplebeacon.ai', tier: 'team', plan: 'team' },
+      {
+        email: process.env.SIMPLEBEACON_SMOKE_EMAIL || 'smoke-test@simplebeacon.ai',
+        tier: 'team',
+        plan: 'team',
+      },
       secret,
       60 * 24
     );
@@ -57,14 +63,18 @@ function buildSmokePayload() {
     severityCounts: { critical: 164, high: 384, medium: 1921, low: 0 },
     totalFiles: 2567,
     qualityScore: 0,
-    scanScope: { diffOnly: true, diffFileCount: 542 }
+    scanScope: { diffOnly: true, diffFileCount: 542 },
   };
-  return buildCiTelemetryPayload(report, { paid: true, tier: 'team' }, {
-    repository: process.env.GITHUB_REPOSITORY || 'simplebeacon/smoke-test',
-    workflow: 'SimpleBeacon Gate',
-    runId: String(Date.now()),
-    ref: 'refs/pull/1/merge'
-  });
+  return buildCiTelemetryPayload(
+    report,
+    { paid: true, tier: 'team' },
+    {
+      repository: process.env.GITHUB_REPOSITORY || 'simplebeacon/smoke-test',
+      workflow: 'SimpleBeacon Gate',
+      runId: String(Date.now()),
+      ref: 'refs/pull/1/merge',
+    }
+  );
 }
 
 function postJson(url, body, token) {
@@ -73,7 +83,7 @@ function postJson(url, body, token) {
   const headers = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    'Content-Length': Buffer.byteLength(payload)
+    'Content-Length': Buffer.byteLength(payload),
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -86,12 +96,14 @@ function postJson(url, body, token) {
         path: url.pathname + url.search,
         method: 'POST',
         headers,
-        timeout: 15000
+        timeout: 15000,
       },
       (res) => {
         let data = '';
         res.setEncoding('utf8');
-        res.on('data', (chunk) => { data += chunk; });
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
         res.on('end', () => {
           let parsed = data;
           try {
@@ -121,11 +133,15 @@ async function verifyProductionIngestion() {
 
   console.log('🧪 SimpleBeacon CI telemetry smoke test');
   console.log(`   Target: ${url.href}`);
-  console.log(`   Mode: ${routingOnly ? 'routing-only' : token ? 'full ingest' : 'routing-only (no token)'}`);
+  console.log(
+    `   Mode: ${routingOnly ? 'routing-only' : token ? 'full ingest' : 'routing-only (no token)'}`
+  );
 
   const result = await postJson(url, payload, token);
   console.log(`- Server response: ${result.status}`);
-  console.log(`- Body: ${typeof result.body === 'string' ? result.body : JSON.stringify(result.body)}`);
+  console.log(
+    `- Body: ${typeof result.body === 'string' ? result.body : JSON.stringify(result.body)}`
+  );
 
   if (result.status === 200 && result.body && result.body.ok === true) {
     console.log('✅ SMOKE TEST PASSED: Telemetry ingested (id:', result.body.id, ')');
@@ -133,7 +149,9 @@ async function verifyProductionIngestion() {
   }
 
   if ((routingOnly || !token) && (result.status === 401 || result.status === 403)) {
-    console.log('✅ ROUTING SMOKE PASSED: Telemetry route is live (auth rejected as expected without a registered token).');
+    console.log(
+      '✅ ROUTING SMOKE PASSED: Telemetry route is live (auth rejected as expected without a registered token).'
+    );
     console.log('   Set SIMPLEBEACON_LICENSE_TOKEN to a paid JWT for full ingest verification.');
     process.exit(0);
   }

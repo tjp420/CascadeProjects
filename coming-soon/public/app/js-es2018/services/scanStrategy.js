@@ -5,7 +5,14 @@
  */
 
 import { isLocalPath, hasExtensionBridgeConfigured } from './localAgentService.js?v=20260722scanfix2';
-import { shouldProbeAgent4000, probeAgent4000, shouldProbeLocalAgent, probeAgent, shouldUseAgent, isIntegratedLocalDashboard } from './localAgentService.js?v=20260722scanfix2';
+import {
+    shouldProbeAgent4000,
+    probeAgent4000,
+    shouldProbeLocalAgent,
+    probeAgent,
+    shouldUseAgent,
+    isIntegratedLocalDashboard
+} from './localAgentService.js?v=20260722scanfix2';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
 
 /**
@@ -40,7 +47,9 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
                 }
                 return { strategy: 'agent-4000', path: typedPath, reason: 'IDE scan bridge available' };
             }
-        } catch (_a) { /* fall through */ }
+        } catch (_a) {
+            /* fall through */
+        }
     }
 
     // 3. Hosted dashboard with local path → use configured sb_api_base server,
@@ -56,7 +65,11 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
                 return { strategy: 'local-agent', path: typedPath, reason: 'Local agent available for local path' };
             }
             if (ctx.hasBrowserScanFiles) {
-                return { strategy: 'browser-sandbox', path: ctx.lastProjectPath || typedPath, reason: 'Re-scan cached browser files' };
+                return {
+                    strategy: 'browser-sandbox',
+                    path: ctx.lastProjectPath || typedPath,
+                    reason: 'Re-scan cached browser files'
+                };
             }
             return { strategy: 'server', path: typedPath, reason: 'sb_api_base bridge configured — use server scan' };
         }
@@ -64,9 +77,17 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
             return { strategy: 'local-agent', path: typedPath, reason: 'Local agent available for local path' };
         }
         if (ctx.hasBrowserScanFiles) {
-            return { strategy: 'browser-sandbox', path: ctx.lastProjectPath || typedPath, reason: 'Re-scan cached browser files' };
+            return {
+                strategy: 'browser-sandbox',
+                path: ctx.lastProjectPath || typedPath,
+                reason: 'Re-scan cached browser files'
+            };
         }
-        return { strategy: 'prompt-folder', path: typedPath, reason: 'Hosted site cannot read local paths — prompt for folder selection' };
+        return {
+            strategy: 'prompt-folder',
+            path: typedPath,
+            reason: 'Hosted site cannot read local paths — prompt for folder selection'
+        };
     }
 
     // 4. Privacy mode → browser sandbox
@@ -98,7 +119,11 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
     // 7. Server path → server-side scan (only on local/integrated dashboards)
     if (!isLocal && typedPath) {
         if (isRemote) {
-            return { strategy: 'prompt-folder', path: typedPath, reason: 'Hosted site cannot read local paths — prompt for folder selection' };
+            return {
+                strategy: 'prompt-folder',
+                path: typedPath,
+                reason: 'Hosted site cannot read local paths — prompt for folder selection'
+            };
         }
         return { strategy: 'server', path: typedPath, reason: 'Server-side path' };
     }
@@ -123,7 +148,9 @@ function isRemoteDashboardHost() {
  * @returns {string} - 'simplebeacon', 'complete', or 'roadmap'
  */
 export function resolveAutoAnalysisModeSmart(projectPath, hints = {}) {
-    const normalized = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
+    const normalized = String(projectPath || '')
+        .replace(/\\/g, '/')
+        .toLowerCase();
 
     // If we have structural hints, use them
     if (hints.hasSimplebeaconConfig || hints.hasWebData || normalized.includes(['web', 'data'].join('/'))) {

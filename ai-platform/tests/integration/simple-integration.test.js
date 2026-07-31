@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 /**
  * Simple Integration Tests
- * 
+ *
  * Focus on testing working modules to achieve coverage thresholds
  * without complex module loading issues.
  */
@@ -27,7 +27,7 @@ describe('Simple Integration Tests', () => {
       const arr = [1, 2, 3, 4, 5];
       expect(arr.length).toBe(5);
       expect(arr.includes(3)).toBe(true);
-      expect(arr.filter(x => x > 2)).toEqual([3, 4, 5]);
+      expect(arr.filter((x) => x > 2)).toEqual([3, 4, 5]);
     });
 
     it('should work with objects', () => {
@@ -79,7 +79,7 @@ describe('Simple Integration Tests', () => {
 
     it('should have required environment variables', () => {
       const requiredVars = ['NODE_ENV', 'REQUIRE_AUTH'];
-      requiredVars.forEach(varName => {
+      requiredVars.forEach((varName) => {
         expect(process.env[varName]).toBeDefined();
       });
     });
@@ -89,11 +89,11 @@ describe('Simple Integration Tests', () => {
     it('should create and verify JWT tokens', () => {
       const jwt = require('jsonwebtoken');
       const payload = { userId: 'test', email: 'test@example.com' };
-      
+
       const token = jwt.sign(payload, process.env.JWT_SECRET || 'test-secret');
       expect(typeof token).toBe('string');
       expect(token.split('.')).toHaveLength(3); // Header, Payload, Signature
-      
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'test-secret');
       expect(decoded.userId).toBe('test');
       expect(decoded.email).toBe('test@example.com');
@@ -101,7 +101,7 @@ describe('Simple Integration Tests', () => {
 
     it('should reject invalid JWT tokens', () => {
       const jwt = require('jsonwebtoken');
-      
+
       expect(() => {
         jwt.verify('invalid-token', 'test-secret');
       }).toThrow(jwt.JsonWebTokenError);
@@ -111,19 +111,19 @@ describe('Simple Integration Tests', () => {
   describe('HTTP Operations', () => {
     it('should create HTTP server mock', (done) => {
       const http = require('http');
-      
+
       const server = http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'ok' }));
         server.close();
         done();
       });
-      
+
       server.listen(0, () => {
         const port = server.address().port;
         http.get(`http://localhost:${port}`, (res) => {
           let data = '';
-          res.on('data', chunk => data += chunk);
+          res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
             expect(data).toContain('ok');
             done();
@@ -138,7 +138,7 @@ describe('Simple Integration Tests', () => {
       // Mock database operations without actual database
       const mockQuery = jest.fn().mockResolvedValue({ rows: [] });
       const mockPool = { query: mockQuery };
-      
+
       expect(typeof mockQuery).toBe('function');
       expect(mockPool.query).toBeDefined();
     });
@@ -149,7 +149,7 @@ describe('Simple Integration Tests', () => {
       const crypto = require('crypto');
       const password = 'test-password';
       const hash = crypto.createHash('sha256').update(password).digest('hex');
-      
+
       expect(hash).toBeDefined();
       expect(hash.length).toBe(64);
       expect(hash).not.toBe(password);
@@ -158,7 +158,7 @@ describe('Simple Integration Tests', () => {
     it('should generate random tokens', () => {
       const crypto = require('crypto');
       const token = crypto.randomBytes(32).toString('hex');
-      
+
       expect(token).toBeDefined();
       expect(token.length).toBe(64);
       expect(typeof token).toBe('string');
@@ -186,7 +186,7 @@ describe('Simple Integration Tests', () => {
       const obj = { name: 'test', value: 42, active: true };
       const json = JSON.stringify(obj);
       const parsed = JSON.parse(json);
-      
+
       expect(parsed).toEqual(obj);
       expect(json).toContain('"name":"test"');
     });
@@ -206,7 +206,7 @@ describe('Simple Integration Tests', () => {
           this.name = 'CustomError';
         }
       }
-      
+
       const error = new CustomError('Test error');
       expect(error instanceof Error).toBe(true);
       expect(error.name).toBe('CustomError');
@@ -234,7 +234,7 @@ describe('Simple Integration Tests', () => {
 
     it('should reject promises', async () => {
       const promise = Promise.reject(new Error('failure'));
-      
+
       try {
         await promise;
         throw new Error('Should have thrown');
@@ -244,11 +244,7 @@ describe('Simple Integration Tests', () => {
     });
 
     it('should handle Promise.all', async () => {
-      const promises = [
-        Promise.resolve(1),
-        Promise.resolve(2),
-        Promise.resolve(3)
-      ];
+      const promises = [Promise.resolve(1), Promise.resolve(2), Promise.resolve(3)];
       const results = await Promise.all(promises);
       expect(results).toEqual([1, 2, 3]);
     });
@@ -291,7 +287,7 @@ describe('Simple Integration Tests', () => {
     it('should create readable streams', () => {
       const { Readable } = require('stream');
       const stream = Readable.from(['test', 'data']);
-      
+
       expect(typeof stream).toBe('object');
       expect(stream.readable).toBe(true);
     });
@@ -299,7 +295,7 @@ describe('Simple Integration Tests', () => {
     it('should handle stream data', async () => {
       const { Readable } = require('stream');
       const stream = Readable.from(['a', 'b', 'c']);
-      
+
       const chunks = [];
       for await (const chunk of stream) {
         chunks.push(chunk);
@@ -332,9 +328,9 @@ describe('Simple Integration Tests', () => {
     it('should handle large arrays efficiently', () => {
       const largeArray = Array.from({ length: 10000 }, (_, i) => i);
       const start = Date.now();
-      const filtered = largeArray.filter(x => x % 2 === 0);
+      const filtered = largeArray.filter((x) => x % 2 === 0);
       const end = Date.now();
-      
+
       expect(filtered.length).toBe(constants.TIMEOUT_5S);
       expect(end - start).toBeLessThan(100); // Should be fast
     });
@@ -344,7 +340,7 @@ describe('Simple Integration Tests', () => {
       const start = Date.now();
       const result = longString.toUpperCase();
       const end = Date.now();
-      
+
       expect(result).toBe('A'.repeat(10000));
       expect(end - start).toBeLessThan(50); // Should be fast
     });

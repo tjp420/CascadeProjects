@@ -15,7 +15,10 @@ describe('devsecops-compliance-payload smoke', () => {
   it('optimizationComplianceLabel maps scores correctly', () => {
     assert.strictEqual(mod.optimizationComplianceLabel({ repositoryHealthScore: 90 }), 'good');
     assert.strictEqual(mod.optimizationComplianceLabel({ repositoryHealthScore: 75 }), 'partial');
-    assert.strictEqual(mod.optimizationComplianceLabel({ repositoryHealthScore: 50 }), 'needs_attention');
+    assert.strictEqual(
+      mod.optimizationComplianceLabel({ repositoryHealthScore: 50 }),
+      'needs_attention'
+    );
     assert.strictEqual(mod.optimizationComplianceLabel(null), 'unknown');
   });
 

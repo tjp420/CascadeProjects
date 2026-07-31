@@ -14,8 +14,12 @@ try {
   formatBytes = scan.formatBytes;
 } catch (err) {
   const msg = `Failed to load simplebeacon scan module: ${err?.message || String(err)}`;
-  scanMockDataDirectories = async () => { throw new Error(msg); };
-  formatBytes = () => { throw new Error(msg); };
+  scanMockDataDirectories = async () => {
+    throw new Error(msg);
+  };
+  formatBytes = () => {
+    throw new Error(msg);
+  };
 }
 
 /**
@@ -27,5 +31,5 @@ try {
  */
 module.exports = {
   scanMockDataDirectories,
-  formatBytes
+  formatBytes,
 };

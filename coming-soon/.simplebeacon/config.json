@@ -1,148 +1,141 @@
 {
-  "profile": "eu-ai-act",
-  "scanPaths": [
-    "."
-  ],
-  "productionPaths": [
-    "lib/",
-    "services/",
-    "js/",
-    "src/",
-    "server/",
-    "ai-platform/",
-    "simplebeacon-vscode-merged/",
-    "simplebeacon-vscode/",
-    "packages/"
-  ],
-  "allowedAnalysisRoots": [
-    "C:/Users/user",
-    "C:/Users/user/CascadeProjects",
-    "C:/Users/user/CascadeProjects/coming-soon",
-    "C:/Users/user/CascadeProjects/simplebeacon-vscode",
-    "J:/AI project backup",
-    "c:\\Users\\user\\CascadeProjects\\coming-soon",
-    "c:\\Users\\user\\CascadeProjects"
-  ],
-  "fullDirectoryScan": true,
-  "fullDirectoryScanMaxFiles": 100000,
-  "sampleDir": "data",
-  "consistencyAnchorSamples": [],
-  "ignore": [
-    "node_modules/**",
-    "coverage/**",
-    "dist/**",
-    "build/**",
-    "**/*.test.js",
-    "**/*.spec.js",
-    "**/*.test.ts",
-    "**/*.spec.ts",
-    "tests/**",
-    "test/**",
-    "coming-soon/node_modules/**",
-    "coming-soon-dev/**",
-    "scripts/**",
-    "simplebeacon-frameworkless/**",
-    "sales/**",
-    "marketing/**",
-    "logs/**",
-    "github-action/**",
-    "browser-local/**",
-    "cjs/**",
-    "esm/**",
-    "packages/**",
-    "simplebeacon-vscode/**",
-    "simplebeacon-vscode-merged/**",
-    "ai-platform/**",
-    "report.json",
-    "cli-test-report*.json",
-    "test-output.txt",
-    "js/dashboard/pattern-documentation.js",
-    "js/dashboard/quick-actions.js",
-    "js/dashboard/scanner-patterns.js",
-    "js/dashboard/certificate-module.js",
-    "js/dashboard/scanner-engine.js",
-    "js/dashboard/ui-renderer.js",
-    "js/dashboard/main.js",
-    "js/vendor/jszip.min.js",
-    "js/vendor/html2canvas.min.js",
-    "trello-*.json",
-    "trello-*.js",
-    "landing.html",
-    "unlock.html",
-    "update-cache.js",
-    "zip-for-upload.js",
-    "vscode-extension-roadmap.json",
-    "vscode-report.json",
-    ".simplebeacon/vscode-report.json",
-    ".simplebeacon/report.json",
-    ".simplebeacon/report-fresh.json",
-    ".simplebeacon/logs/system.json",
-    "system.json",
-    "unlock.html",
-    "public/unlock.html",
-    "public/**",
-    "build-public.js",
-    "routes/token-validate.cjs"
-  ],
-  "rules": {
-    "credentials": {
-      "enabled": true,
-      "scanProduction": true
-    },
-    "json-schema": {
-      "enabled": true
-    },
-    "sample-consistency": {
-      "enabled": true
-    },
-    "roadmap": {
-      "enabled": true
-    },
-    "production-leak": {
-      "enabled": true,
-      "severity": "high"
-    },
-    "fiction-kpi-patterns": {
-      "enabled": true,
-      "severity": "medium"
-    },
-    "llm-slop-patterns": {
-      "enabled": true,
-      "severity": "low",
-      "registryCheck": false
-    },
-    "agency-handoff-patterns": {
-      "enabled": true,
-      "severity": "medium"
-    },
-    "eu-ai-act-patterns": {
-      "enabled": true,
-      "severity": "medium"
-    },
-    "jest-baseline": {
-      "enabled": false,
-      "runTests": false
-    },
-    "token-bleed-patterns": {
-      "enabled": true,
-      "severity": "medium"
-    },
-    "architecture-drift-patterns": {
-      "enabled": true,
-      "severity": "medium"
-    },
-    "file-reduction": {
-      "enabled": false,
-      "dryRun": true
-    }
-  },
-  "gate": {
-    "failOn": [
-      "high"
+    "profile": "eu-ai-act",
+    "scanPaths": ["."],
+    "productionPaths": [
+        "lib/",
+        "services/",
+        "js/",
+        "src/",
+        "server/",
+        "ai-platform/",
+        "simplebeacon-vscode-merged/",
+        "simplebeacon-vscode/",
+        "packages/"
     ],
-    "warnOn": [
-      "medium",
-      "low"
-    ]
-  }
+    "allowedAnalysisRoots": [
+        "C:/Users/user",
+        "C:/Users/user/CascadeProjects",
+        "C:/Users/user/CascadeProjects/coming-soon",
+        "C:/Users/user/CascadeProjects/simplebeacon-vscode",
+        "J:/AI project backup",
+        "c:\\Users\\user\\CascadeProjects\\coming-soon",
+        "c:\\Users\\user\\CascadeProjects"
+    ],
+    "fullDirectoryScan": true,
+    "fullDirectoryScanMaxFiles": 100000,
+    "sampleDir": "data",
+    "consistencyAnchorSamples": [],
+    "ignore": [
+        "node_modules/**",
+        "coverage/**",
+        "dist/**",
+        "build/**",
+        "**/*.test.js",
+        "**/*.spec.js",
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "tests/**",
+        "test/**",
+        "coming-soon/node_modules/**",
+        "coming-soon-dev/**",
+        "scripts/**",
+        "simplebeacon-frameworkless/**",
+        "sales/**",
+        "marketing/**",
+        "logs/**",
+        "github-action/**",
+        "browser-local/**",
+        "cjs/**",
+        "esm/**",
+        "packages/**",
+        "simplebeacon-vscode/**",
+        "simplebeacon-vscode-merged/**",
+        "ai-platform/**",
+        "report.json",
+        "cli-test-report*.json",
+        "test-output.txt",
+        "js/dashboard/pattern-documentation.js",
+        "js/dashboard/quick-actions.js",
+        "js/dashboard/scanner-patterns.js",
+        "js/dashboard/certificate-module.js",
+        "js/dashboard/scanner-engine.js",
+        "js/dashboard/ui-renderer.js",
+        "js/dashboard/main.js",
+        "js/vendor/jszip.min.js",
+        "js/vendor/html2canvas.min.js",
+        "trello-*.json",
+        "trello-*.js",
+        "landing.html",
+        "unlock.html",
+        "update-cache.js",
+        "zip-for-upload.js",
+        "vscode-extension-roadmap.json",
+        "vscode-report.json",
+        ".simplebeacon/vscode-report.json",
+        ".simplebeacon/report.json",
+        ".simplebeacon/report-fresh.json",
+        ".simplebeacon/logs/system.json",
+        "system.json",
+        "unlock.html",
+        "public/unlock.html",
+        "public/**",
+        "build-public.js",
+        "routes/token-validate.cjs"
+    ],
+    "rules": {
+        "credentials": {
+            "enabled": true,
+            "scanProduction": true
+        },
+        "json-schema": {
+            "enabled": true
+        },
+        "sample-consistency": {
+            "enabled": true
+        },
+        "roadmap": {
+            "enabled": true
+        },
+        "production-leak": {
+            "enabled": true,
+            "severity": "high"
+        },
+        "fiction-kpi-patterns": {
+            "enabled": true,
+            "severity": "medium"
+        },
+        "llm-slop-patterns": {
+            "enabled": true,
+            "severity": "low",
+            "registryCheck": false
+        },
+        "agency-handoff-patterns": {
+            "enabled": true,
+            "severity": "medium"
+        },
+        "eu-ai-act-patterns": {
+            "enabled": true,
+            "severity": "medium"
+        },
+        "jest-baseline": {
+            "enabled": false,
+            "runTests": false
+        },
+        "token-bleed-patterns": {
+            "enabled": true,
+            "severity": "medium"
+        },
+        "architecture-drift-patterns": {
+            "enabled": true,
+            "severity": "medium"
+        },
+        "file-reduction": {
+            "enabled": false,
+            "dryRun": true
+        }
+    },
+    "gate": {
+        "failOn": ["high"],
+        "warnOn": ["medium", "low"]
+    }
 }

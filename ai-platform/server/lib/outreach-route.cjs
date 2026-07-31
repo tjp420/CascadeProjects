@@ -6,7 +6,7 @@ const {
   loadSentLog,
   removeSentLogEntry,
   sentEntryId,
-  sendOutreachEmail
+  sendOutreachEmail,
 } = require('./outreach-mail.cjs');
 const logger = require('./app-logger.cjs');
 const { sendClientError, ERROR_CODES } = require('../../shared-utils/index.cjs');
@@ -22,7 +22,7 @@ async function handleOutreachConfig(_req, res) {
   return res.json({
     configured: isOutreachConfigured(),
     from: getOutreachFrom(),
-    replyTo: getOutreachReplyTo()
+    replyTo: getOutreachReplyTo(),
   });
 }
 
@@ -38,7 +38,7 @@ async function handleOutreachSent(req, res, options = {}) {
   const rows = await loadSentLog(options);
   return res.json({
     total: rows.length,
-    items: rows.slice(-limit).reverse()
+    items: rows.slice(-limit).reverse(),
   });
 }
 
@@ -59,20 +59,20 @@ async function handleOutreachSentDelete(req, res, options = {}) {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_OUTREACH_MISSING_ID,
         fallback: 'Missing send log id.',
-        req
+        req,
       });
     }
     if (err.code === 'not_found') {
       return sendClientError(res, 404, err, {
         errorLabel: ERROR_CODES.ERR_OUTREACH_LOG_NOT_FOUND,
         fallback: 'Send log entry not found.',
-        req
+        req,
       });
     }
     return sendClientError(res, 500, err, {
       errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
       fallback: 'Outreach request failed',
-      req
+      req,
     });
   }
 }
@@ -96,7 +96,7 @@ async function handleOutreachSend(req, res, options = {}) {
         subject: req.body?.subject,
         text: req.body?.text || req.body?.message,
         company: req.body?.company,
-        prospectId: req.body?.prospectId
+        prospectId: req.body?.prospectId,
       },
       options
     );
@@ -107,7 +107,7 @@ async function handleOutreachSend(req, res, options = {}) {
       to: result.to,
       from: result.from,
       replyTo: getOutreachReplyTo(),
-      sentAt: result.entry.sentAt
+      sentAt: result.entry.sentAt,
     });
   } catch (err) {
     const code = err.code || 'send_failed';
@@ -115,50 +115,48 @@ async function handleOutreachSend(req, res, options = {}) {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_INVALID_EMAIL,
         fallback: 'Enter a valid recipient email.',
-        req
+        req,
       });
     }
     if (code === 'subject_too_short') {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_SUBJECT_TOO_SHORT,
         fallback: 'Subject must be at least 3 characters.',
-        req
+        req,
       });
     }
     if (code === 'message_too_short') {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_MESSAGE_TOO_SHORT,
         fallback: 'Message must be at least 20 characters.',
-        req
+        req,
       });
     }
     if (code === 'message_too_long') {
       return sendClientError(res, 400, err, {
         errorLabel: ERROR_CODES.ERR_MESSAGE_TOO_LONG,
         fallback: 'Message exceeds 12,000 characters.',
-        req
+        req,
       });
     }
     if (code === 'missing_api_key' || code === 'email_not_configured') {
       return sendClientError(res, 503, err, {
         errorLabel: ERROR_CODES.ERR_EMAIL_NOT_CONFIGURED,
-        fallback: 'Set RESEND_API_KEY in .env.v1-internal and restart npm run dashboard:v1-internal.',
-        req
+        fallback:
+          'Set RESEND_API_KEY in .env.v1-internal and restart npm run dashboard:v1-internal.',
+        req,
       });
     }
     logger.warn('[outreach] send failed:', err.message);
     return sendClientError(res, 502, err, {
       errorLabel: ERROR_CODES.ERR_EMAIL_SEND_FAILED,
       fallback: 'Outreach email send failed',
-      req
+      req,
     });
   }
 }
 
-const OUTREACH_ROUTE_PREFIXES = [
-  '/api/outreach',
-  '/api/simplebeacon/outreach'
-];
+const OUTREACH_ROUTE_PREFIXES = ['/api/outreach', '/api/simplebeacon/outreach'];
 
 /**
  * Register outreach routes.
@@ -177,7 +175,7 @@ function registerOutreachRoutes(app, options = {}) {
         sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
           fallback: 'Outreach request failed',
-          req
+          req,
         });
       });
     });
@@ -187,7 +185,7 @@ function registerOutreachRoutes(app, options = {}) {
         sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
           fallback: 'Outreach request failed',
-          req
+          req,
         });
       });
     });
@@ -197,7 +195,7 @@ function registerOutreachRoutes(app, options = {}) {
         sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
           fallback: 'Outreach request failed',
-          req
+          req,
         });
       });
     });
@@ -207,7 +205,7 @@ function registerOutreachRoutes(app, options = {}) {
         sendClientError(res, 500, err, {
           errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
           fallback: 'Outreach request failed',
-          req
+          req,
         });
       });
     });
@@ -222,5 +220,5 @@ module.exports = {
   handleOutreachConfig,
   handleOutreachSend,
   handleOutreachSent,
-  handleOutreachSentDelete
+  handleOutreachSentDelete,
 };

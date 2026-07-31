@@ -1,14 +1,14 @@
 'use strict';
 
 jest.mock('../simplebeacon-proxy.cjs', () => ({
-  collectIssues: jest.fn().mockReturnValue([])
+  collectIssues: jest.fn().mockReturnValue([]),
 }));
 
 const {
   normalizeScanFinding,
   flattenDataQualityFindings,
   normalizeDataQualityFinding,
-  extractFixInputsFromScan
+  extractFixInputsFromScan,
 } = require('../audit-remediation-recipes/normalize.cjs');
 
 describe('audit-remediation-recipes/normalize', () => {
@@ -26,7 +26,7 @@ describe('audit-remediation-recipes/normalize', () => {
       severity: 'high',
       type: 'credential',
       description: 'Hardcoded API key',
-      recommendedAction: 'Use env var'
+      recommendedAction: 'Use env var',
     };
     const result = normalizeScanFinding(issue);
     expect(result.severity).toBe('high');
@@ -69,7 +69,7 @@ describe('audit-remediation-recipes/normalize', () => {
       severity: 'low',
       type: 'schema',
       reason: 'Missing required key',
-      action: 'Add the key'
+      action: 'Add the key',
     };
     const result = normalizeDataQualityFinding(finding);
     expect(result.severity).toBe('low');

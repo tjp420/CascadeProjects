@@ -42,7 +42,7 @@ export function UploadView() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
-    if (!file || file.type !== 'application/json' && !file.name.endsWith('.json')) {
+    if (!file || (file.type !== 'application/json' && !file.name.endsWith('.json'))) {
       setStatus({ type: 'error', message: 'Please select a JSON report file.' });
       return;
     }
@@ -56,13 +56,19 @@ export function UploadView() {
         }
         const normalized = normalizeReport(raw);
         localStorage.setItem('sb_last_scan_full', JSON.stringify(normalized));
-        localStorage.setItem('sb_last_scan', JSON.stringify({
-          files: normalized.totalFiles,
-          issues: normalized.issueCount,
-          gate: normalized.gate.pass,
-        }));
+        localStorage.setItem(
+          'sb_last_scan',
+          JSON.stringify({
+            files: normalized.totalFiles,
+            issues: normalized.issueCount,
+            gate: normalized.gate.pass,
+          })
+        );
         localStorage.setItem('sb_last_scan_time', raw.generatedAt || new Date().toISOString());
-        setStatus({ type: 'success', message: `Loaded report: ${normalized.issueCount} issues, gate ${normalized.gate.pass ? 'PASS' : 'FAIL'}.` });
+        setStatus({
+          type: 'success',
+          message: `Loaded report: ${normalized.issueCount} issues, gate ${normalized.gate.pass ? 'PASS' : 'FAIL'}.`,
+        });
         setTimeout(() => navigate('results'), 600);
       } catch (e: any) {
         setStatus({ type: 'error', message: e?.message || 'Failed to parse JSON.' });

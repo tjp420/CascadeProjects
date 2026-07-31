@@ -3,15 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO_ROOT = 'C:/Users/Trevor/CascadeProjects';
-const EXCLUDES = [
-  'node_modules',
-  '.git',
-  'coverage',
-  'dist',
-  'build',
-  '.simplebeacon',
-  'archive'
-];
+const EXCLUDES = ['node_modules', '.git', 'coverage', 'dist', 'build', '.simplebeacon', 'archive'];
 
 function shouldSkip(dir) {
   const base = path.basename(dir);

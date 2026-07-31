@@ -7,7 +7,7 @@ const {
   toClientError,
   clientErrorPayload,
   sendClientError,
-  ERROR_CODES
+  ERROR_CODES,
 } = require('../server/lib/client-error.cjs');
 
 describe('client-error', () => {
@@ -123,25 +123,29 @@ describe('client-error', () => {
     test('sends JSON with status', () => {
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis()
+        json: jest.fn().mockReturnThis(),
       };
       sendClientError(res, 400, new Error('bad'));
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: 'Request failed',
-        message: expect.any(String)
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Request failed',
+          message: expect.any(String),
+        })
+      );
     });
 
     test('passes options through', () => {
       const res = {
         status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis()
+        json: jest.fn().mockReturnThis(),
       };
       sendClientError(res, 500, new Error('fail'), { errorLabel: 'Server error' });
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        error: 'Server error'
-      }));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Server error',
+        })
+      );
     });
   });
 

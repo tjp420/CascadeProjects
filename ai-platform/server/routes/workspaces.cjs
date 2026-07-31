@@ -79,7 +79,12 @@ function setupWorkspaceRoutes(db) {
         `INSERT INTO workspaces (name, slug, organization_id, settings, created_at, updated_at)
          VALUES ($1, $2, $3, $4, NOW(), NOW())
          RETURNING id, name, slug, organization_id, settings, created_at, updated_at`,
-        [name, slug || null, req.user?.organizationId || null, settings ? JSON.stringify(settings) : '{}']
+        [
+          name,
+          slug || null,
+          req.user?.organizationId || null,
+          settings ? JSON.stringify(settings) : '{}',
+        ]
       );
       res.status(201).json({ workspace: rows[0] });
     } catch (error) {
@@ -92,50 +97,59 @@ function setupWorkspaceRoutes(db) {
    * PATCH /api/workspaces/:id
    * Update workspace (requires write permission).
    */
-  router.patch('/:id', validateParam('id', VALIDATION_PATTERNS.uuid), requirePermission('write:own'), async (req, res) => {
-    try {
-      const { name, slug, settings } = req.body;
-      const client = req.scopedClient || db;
-      const { rows } = await client.query(
-        `UPDATE workspaces
+  router.patch(
+    '/:id',
+    validateParam('id', VALIDATION_PATTERNS.uuid),
+    requirePermission('write:own'),
+    async (req, res) => {
+      try {
+        const { name, slug, settings } = req.body;
+        const client = req.scopedClient || db;
+        const { rows } = await client.query(
+          `UPDATE workspaces
          SET name = COALESCE($1, name),
              slug = COALESCE($2, slug),
              settings = COALESCE($3, settings),
              updated_at = NOW()
          WHERE id = $4
          RETURNING id, name, slug, organization_id, settings, created_at, updated_at`,
-        [name || null, slug || null, settings ? JSON.stringify(settings) : null, req.params.id]
-      );
-      if (rows.length === 0) {
-        return sendError(res, 404, 'Workspace not found');
+          [name || null, slug || null, settings ? JSON.stringify(settings) : null, req.params.id]
+        );
+        if (rows.length === 0) {
+          return sendError(res, 404, 'Workspace not found');
+        }
+        res.json({ workspace: rows[0] });
+      } catch (error) {
+        logger.error('[Workspaces] PATCH /:id failed:', error.message);
+        sendError(res, 500, 'Failed to update workspace');
       }
-      res.json({ workspace: rows[0] });
-    } catch (error) {
-      logger.error('[Workspaces] PATCH /:id failed:', error.message);
-      sendError(res, 500, 'Failed to update workspace');
     }
-  });
+  );
 
   /**
    * DELETE /api/workspaces/:id
    * Delete workspace (requires admin permission).
    */
-  router.delete('/:id', validateParam('id', VALIDATION_PATTERNS.uuid), requirePermission('admin:all'), async (req, res) => {
-    try {
-      const client = req.scopedClient || db;
-      const { rowCount } = await client.query(
-        'DELETE FROM workspaces WHERE id = $1',
-        [req.params.id]
-      );
-      if (rowCount === 0) {
-        return sendError(res, 404, 'Workspace not found');
+  router.delete(
+    '/:id',
+    validateParam('id', VALIDATION_PATTERNS.uuid),
+    requirePermission('admin:all'),
+    async (req, res) => {
+      try {
+        const client = req.scopedClient || db;
+        const { rowCount } = await client.query('DELETE FROM workspaces WHERE id = $1', [
+          req.params.id,
+        ]);
+        if (rowCount === 0) {
+          return sendError(res, 404, 'Workspace not found');
+        }
+        res.status(204).send();
+      } catch (error) {
+        logger.error('[Workspaces] DELETE /:id failed:', error.message);
+        sendError(res, 500, 'Failed to delete workspace');
       }
-      res.status(204).send();
-    } catch (error) {
-      logger.error('[Workspaces] DELETE /:id failed:', error.message);
-      sendError(res, 500, 'Failed to delete workspace');
     }
-  });
+  );
 
   return router;
 }

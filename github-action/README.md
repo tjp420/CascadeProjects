@@ -8,7 +8,7 @@
 name: SimpleBeacon Gate
 on:
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
 
 permissions:
   contents: read
@@ -40,27 +40,27 @@ jobs:
 
 ## Tiers
 
-| Feature | Community (no token) | Team ($49–199/mo) |
-|---------|----------------------|-------------------|
-| PR diff scan | ✅ | ✅ |
-| PR comments | ✅ | ✅ |
-| Fail-open on license outage | ✅ | ✅ |
-| Team dashboard metrics | — | ✅ |
-| Multi-repo centralization | — | ✅ |
-| Custom policies & alerts | — | ✅ |
+| Feature                     | Community (no token) | Team ($49–199/mo) |
+| --------------------------- | -------------------- | ----------------- |
+| PR diff scan                | ✅                   | ✅                |
+| PR comments                 | ✅                   | ✅                |
+| Fail-open on license outage | ✅                   | ✅                |
+| Team dashboard metrics      | —                    | ✅                |
+| Multi-repo centralization   | —                    | ✅                |
+| Custom policies & alerts    | —                    | ✅                |
 
 Invalid tokens **fail closed**. Missing tokens or license server outages **fail open** to community sandbox.
 
 ## Inputs
 
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `token` | Yes | `github.token` | GitHub token for posting comments |
-| `license-token` | No | — | Team license token from simplebeacon.ai |
-| `fail-on` | No | `high` | Minimum severity to block merge |
-| `full-scan` | No | `false` | Scan entire repo instead of PR diff |
-| `scan-args` | No | `--gate --diff` | Extra CLI arguments |
-| `base-ref` | No | PR base | Override diff base ref |
+| Input           | Required | Default         | Description                             |
+| --------------- | -------- | --------------- | --------------------------------------- |
+| `token`         | Yes      | `github.token`  | GitHub token for posting comments       |
+| `license-token` | No       | —               | Team license token from simplebeacon.ai |
+| `fail-on`       | No       | `high`          | Minimum severity to block merge         |
+| `full-scan`     | No       | `false`         | Scan entire repo instead of PR diff     |
+| `scan-args`     | No       | `--gate --diff` | Extra CLI arguments                     |
+| `base-ref`      | No       | PR base         | Override diff base ref                  |
 
 ## Publication
 

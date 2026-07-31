@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 // Defensive: ensure escapeHtml is available even if utils.js fails to load
 if (typeof window !== 'undefined' && !window.escapeHtml) {
-    window.escapeHtml = function(str) {
+    window.escapeHtml = function (str) {
         if (!str) return '';
         return String(str)
             .replace(/&/g, '&amp;')
@@ -16,53 +16,382 @@ if (typeof window !== 'undefined' && !window.escapeHtml) {
 // ZIP Markdown Template Schema — drives uniform module report generation
 // ============================================================================
 const ZIP_MARKDOWN_TEMPLATES = [
-    { moduleId: '17', section: 'aiResidue', title: 'AI Residue', metricLabel: 'AI Residue Hits', advice: 'Review stubs, deprecated APIs, error swallowing, and dead code blocks before production.', filename: 'ai-residue.md' },
-    { moduleId: '18', section: 'performance', title: 'Performance', metricLabel: 'Performance Hits', advice: 'Review nested loops, leaked event listeners, and inefficient regex patterns.', filename: 'performance.md' },
-    { moduleId: '19', section: 'typeSafety', title: 'Type Safety', metricLabel: 'Type Safety Hits', advice: 'Replace `any` types, add PropTypes, and reduce excessive parameters.', filename: 'type-safety.md' },
-    { moduleId: '20', section: 'documentation', title: 'Documentation', metricLabel: 'Documentation Gaps', advice: 'Add JSDoc to public functions and keep README in sync with code changes.', filename: 'documentation.md' },
-    { moduleId: '21', section: 'testCoverage', title: 'Test Coverage', metricLabel: 'Test Coverage Gaps', advice: 'Ensure all production code has active test coverage; remove or fix skipped tests.', filename: 'test-coverage.md' },
-    { moduleId: '22', section: 'accessibility', title: 'Accessibility', metricLabel: 'Accessibility Gaps', advice: 'Add alt text to images, label all inputs, and ensure buttons have accessible names.', filename: 'accessibility.md' },
-    { moduleId: '23', section: 'i18n', title: 'i18n Readiness', metricLabel: 'i18n Issues', advice: 'Wrap UI strings with i18n functions and use locale-aware formatting.', filename: 'i18n.md' },
-    { moduleId: '24', section: 'sensitiveData', title: 'Sensitive Data Exposure', metricLabel: 'Sensitive Data Hits', advice: 'Remove PII from logs and source code; never store tokens or passwords in localStorage.', filename: 'sensitive-data.md' },
-    { moduleId: '25', section: 'configDrift', title: 'Configuration Drift', metricLabel: 'Config Drift Hits', advice: 'Move secrets to environment variables; avoid committing .env files to version control.', filename: 'config-drift.md' },
-    { moduleId: '26', section: 'securityHeaders', title: 'Security Headers', metricLabel: 'Security Header References', advice: 'Verify CSP, X-Frame-Options, HSTS, and Referrer-Policy are configured on all responses.', filename: 'security-headers.md' },
-    { moduleId: '27', section: 'databasePatterns', title: 'Database Patterns', metricLabel: 'Database Anti-Patterns', advice: 'Use parameterized queries, add pagination, and ensure transactions have rollback.', filename: 'database-patterns.md' },
-    { moduleId: '28', section: 'frameworkPractices', title: 'Framework Practices', metricLabel: 'Framework Issues', advice: 'Fix React hook dependency arrays, avoid direct DOM access, and clean up subscriptions.', filename: 'framework-practices.md' },
-    { moduleId: '29', section: 'workspaceHealth', title: 'Workspace Health', metricLabel: 'Workspace Issues', advice: 'Review circular imports and ensure dependency versions are consistent across packages.', filename: 'workspace-health.md' },
-    { moduleId: '30', section: 'unusedDeps', title: 'Unused Dependencies', metricLabel: 'Unused Dependency Flags', advice: 'Cross-reference package.json against source imports to remove unused packages.', filename: 'unused-deps.md' },
-    { moduleId: '31', section: 'apiContract', title: 'API Contract', metricLabel: 'API Contract Drifts', advice: 'Verify all REST endpoints have frontend consumers and OpenAPI specs are current.', filename: 'api-contract.md' },
-    { moduleId: '32', section: 'complexity', title: 'Complexity Metrics', metricLabel: 'High Complexity Patterns', advice: 'Break down long functions, reduce nesting depth, and extract helper functions.', filename: 'complexity.md' },
-    { moduleId: '33', section: 'llmSlop', title: 'LLM Slop', metricLabel: 'LLM Slop Patterns', advice: 'Remove placeholder debris, leaked markdown fences, and hardcoded AI-default metrics.', filename: 'llm-slop.md' },
-    { moduleId: '34', section: 'tokenBleed', title: 'Token Bleed', metricLabel: 'Token Bleed Risks', advice: 'Add max_tokens limits to LLM calls and chunk long string literals in prompts.', filename: 'token-bleed.md' },
-    { moduleId: '35', section: 'productionLeak', title: 'Production Data Leak', metricLabel: 'Production Data Leaks', advice: 'Remove mock, fixture, and sample data path references from production source.', filename: 'production-leak.md' },
-    { moduleId: '36', section: 'fictionKpi', title: 'Fiction KPI', metricLabel: 'Fiction KPI Hits', advice: 'Replace hardcoded metrics with real data sources or remove unverified KPI values.', filename: 'fiction-kpi.md' },
-    { moduleId: '37', section: 'architectureDrift', title: 'Architecture Drift', metricLabel: 'Architecture Drift Findings', advice: 'Add schema validators for hybrid/state-space models and enforce max_tokens on all LLM API calls.', filename: 'architecture-drift.md' },
-    { moduleId: '38', section: 'fixPreview', title: 'Fix Preview', metricLabel: 'Fix Patches Available', advice: 'Review generated code diffs and apply copyable patches for each remediation task.', filename: 'fix-preview.md' },
-    { moduleId: '39', section: 'syncIo', title: 'Sync I/O', metricLabel: 'Sync I/O Patterns', advice: 'Replace synchronous fs operations with async equivalents to avoid blocking the event loop.', filename: 'sync-io.md' },
-    { moduleId: '40', section: 'evalDanger', title: 'Eval Danger', metricLabel: 'Eval Risks', advice: 'Avoid eval() and new Function(). Use JSON.parse or safe expression evaluators instead.', filename: 'eval-danger.md' },
-    { moduleId: '41', section: 'innerHtmlXss', title: 'innerHTML XSS', metricLabel: 'innerHTML XSS Risks', advice: 'Sanitize all innerHTML assignments. Use textContent or DOMPurify instead.', filename: 'inner-html-xss.md' },
-    { moduleId: '42', section: 'prototypePollution', title: 'Prototype Pollution', metricLabel: 'Prototype Pollution Risks', advice: 'Avoid modifying Object.prototype or __proto__. Use Object.create(null) or Map.', filename: 'prototype-pollution.md' },
-    { moduleId: '43', section: 'unhandledPromise', title: 'Unhandled Promise', metricLabel: 'Unhandled Promises', advice: 'Add .catch() handlers to all promise chains to prevent unhandled rejections.', filename: 'unhandled-promise.md' },
-    { moduleId: '44', section: 'magicNumber', title: 'Magic Numbers', metricLabel: 'Magic Numbers', advice: 'Extract hardcoded numeric literals into named constants.', filename: 'magic-number.md' },
-    { moduleId: '45', section: 'missingStrictMode', title: 'Missing Strict Mode', metricLabel: 'Missing Strict Mode Files', advice: "Add 'use strict' to the top of each file to prevent implicit globals.", filename: 'missing-strict-mode.md' },
-    { moduleId: '46', section: 'uninitializedRead', title: 'Uninitialized Read', metricLabel: 'Uninitialized Reads', advice: 'Initialize variables at declaration to avoid reading undefined values.', filename: 'uninitialized-read.md' },
-    { moduleId: '47', section: 'unvalidatedRedirect', title: 'Unvalidated Redirect', metricLabel: 'Unvalidated Redirects', advice: 'Whitelist redirect destinations and validate all user-controlled URLs.', filename: 'unvalidated-redirect.md' },
-    { moduleId: '48', section: 'missingRateLimit', title: 'Missing Rate Limit', metricLabel: 'Missing Rate Limits', advice: 'Add rate limiting to all API endpoints to prevent DoS attacks.', filename: 'missing-rate-limit.md' },
-    { moduleId: '49', section: 'insecureRandom', title: 'Insecure Random', metricLabel: 'Insecure Random Uses', advice: 'Replace Math.random() with crypto.randomBytes() for security-sensitive operations.', filename: 'insecure-random.md' },
-    { moduleId: '50', section: 'loggingSecrets', title: 'Logging Secrets', metricLabel: 'Secret Log Leaks', advice: 'Remove passwords, tokens, and secrets from log statements.', filename: 'logging-secrets.md' },
-    { moduleId: '51', section: 'hardcodedConfidence', title: 'Hardcoded Confidence', metricLabel: 'Hardcoded Confidence Scores', advice: 'Replace static confidence scores with dynamic computed values.', filename: 'hardcoded-confidence.md' },
-    { moduleId: '52', section: 'hardcodedCompletion', title: 'Hardcoded Completion', metricLabel: 'Hardcoded Completion Rates', advice: 'Replace static completion rates with real-time metrics.', filename: 'hardcoded-completion.md' },
-    { moduleId: '53', section: 'mockPathLeak', title: 'Mock Path Leak', metricLabel: 'Mock Path Leaks', advice: 'Remove mock and fixture path references from production source code.', filename: 'mock-path-leak.md' },
-    { moduleId: '54', section: 'sampleJsonRef', title: 'Sample JSON Reference', metricLabel: 'Sample JSON References', advice: 'Replace sample JSON file references with production data sources.', filename: 'sample-json-ref.md' },
-    { moduleId: '55', section: 'governanceMarker', title: 'Governance Marker', metricLabel: 'Governance Markers', advice: 'Verify license compatibility with your product distribution model.', filename: 'governance-marker.md' },
-    { moduleId: '56', section: 'aiPlaceholderComment', title: 'AI Placeholder Comment', metricLabel: 'AI Placeholder Comments', advice: 'Replace AI-generated placeholder comments with actual implementation.', filename: 'ai-placeholder-comment.md' },
-    { moduleId: '57', section: 'aiPlaceholderBlock', title: 'AI Placeholder Block', metricLabel: 'AI Placeholder Blocks', advice: 'Remove or implement AI-generated placeholder block comments.', filename: 'ai-placeholder-block.md' },
-    { moduleId: '58', section: 'markdownFenceLeak', title: 'Markdown Fence Leak', metricLabel: 'Markdown Fence Leaks', advice: 'Remove markdown code fences (```) that leaked into source files.', filename: 'markdown-fence-leak.md' },
-    { moduleId: '59', section: 'emptyStubFunction', title: 'Empty Stub Function', metricLabel: 'Empty Stub Functions', advice: 'Implement empty function bodies or remove unused stubs.', filename: 'empty-stub-function.md' },
-    { moduleId: '60', section: 'arrowStub', title: 'Arrow Stub', metricLabel: 'Arrow Function Stubs', advice: 'Implement arrow functions that return empty objects.', filename: 'arrow-stub.md' },
-    { moduleId: '61', section: 'roadmapMarker', title: 'Roadmap Marker', metricLabel: 'Roadmap Markers', advice: 'Resolve HACK, XXX, and WORKAROUND markers or track them in your issue tracker.', filename: 'roadmap-marker.md' },
-    { moduleId: '62', section: 'fileNaming', title: 'File Naming', metricLabel: 'File Naming Issues', advice: 'Standardize naming conventions, remove spaces/special chars, and use descriptive names for data files.', filename: 'file-naming.md' },
-    { moduleId: '63', section: 'removableFiles', title: 'Removable Files', metricLabel: 'Removable Files', advice: 'Remove node_modules, build artifacts, caches, logs, and temp files. Add .gitignore entries to prevent recurrence.', filename: 'removable-files.md' }
+    {
+        moduleId: '17',
+        section: 'aiResidue',
+        title: 'AI Residue',
+        metricLabel: 'AI Residue Hits',
+        advice: 'Review stubs, deprecated APIs, error swallowing, and dead code blocks before production.',
+        filename: 'ai-residue.md'
+    },
+    {
+        moduleId: '18',
+        section: 'performance',
+        title: 'Performance',
+        metricLabel: 'Performance Hits',
+        advice: 'Review nested loops, leaked event listeners, and inefficient regex patterns.',
+        filename: 'performance.md'
+    },
+    {
+        moduleId: '19',
+        section: 'typeSafety',
+        title: 'Type Safety',
+        metricLabel: 'Type Safety Hits',
+        advice: 'Replace `any` types, add PropTypes, and reduce excessive parameters.',
+        filename: 'type-safety.md'
+    },
+    {
+        moduleId: '20',
+        section: 'documentation',
+        title: 'Documentation',
+        metricLabel: 'Documentation Gaps',
+        advice: 'Add JSDoc to public functions and keep README in sync with code changes.',
+        filename: 'documentation.md'
+    },
+    {
+        moduleId: '21',
+        section: 'testCoverage',
+        title: 'Test Coverage',
+        metricLabel: 'Test Coverage Gaps',
+        advice: 'Ensure all production code has active test coverage; remove or fix skipped tests.',
+        filename: 'test-coverage.md'
+    },
+    {
+        moduleId: '22',
+        section: 'accessibility',
+        title: 'Accessibility',
+        metricLabel: 'Accessibility Gaps',
+        advice: 'Add alt text to images, label all inputs, and ensure buttons have accessible names.',
+        filename: 'accessibility.md'
+    },
+    {
+        moduleId: '23',
+        section: 'i18n',
+        title: 'i18n Readiness',
+        metricLabel: 'i18n Issues',
+        advice: 'Wrap UI strings with i18n functions and use locale-aware formatting.',
+        filename: 'i18n.md'
+    },
+    {
+        moduleId: '24',
+        section: 'sensitiveData',
+        title: 'Sensitive Data Exposure',
+        metricLabel: 'Sensitive Data Hits',
+        advice: 'Remove PII from logs and source code; never store tokens or passwords in localStorage.',
+        filename: 'sensitive-data.md'
+    },
+    {
+        moduleId: '25',
+        section: 'configDrift',
+        title: 'Configuration Drift',
+        metricLabel: 'Config Drift Hits',
+        advice: 'Move secrets to environment variables; avoid committing .env files to version control.',
+        filename: 'config-drift.md'
+    },
+    {
+        moduleId: '26',
+        section: 'securityHeaders',
+        title: 'Security Headers',
+        metricLabel: 'Security Header References',
+        advice: 'Verify CSP, X-Frame-Options, HSTS, and Referrer-Policy are configured on all responses.',
+        filename: 'security-headers.md'
+    },
+    {
+        moduleId: '27',
+        section: 'databasePatterns',
+        title: 'Database Patterns',
+        metricLabel: 'Database Anti-Patterns',
+        advice: 'Use parameterized queries, add pagination, and ensure transactions have rollback.',
+        filename: 'database-patterns.md'
+    },
+    {
+        moduleId: '28',
+        section: 'frameworkPractices',
+        title: 'Framework Practices',
+        metricLabel: 'Framework Issues',
+        advice: 'Fix React hook dependency arrays, avoid direct DOM access, and clean up subscriptions.',
+        filename: 'framework-practices.md'
+    },
+    {
+        moduleId: '29',
+        section: 'workspaceHealth',
+        title: 'Workspace Health',
+        metricLabel: 'Workspace Issues',
+        advice: 'Review circular imports and ensure dependency versions are consistent across packages.',
+        filename: 'workspace-health.md'
+    },
+    {
+        moduleId: '30',
+        section: 'unusedDeps',
+        title: 'Unused Dependencies',
+        metricLabel: 'Unused Dependency Flags',
+        advice: 'Cross-reference package.json against source imports to remove unused packages.',
+        filename: 'unused-deps.md'
+    },
+    {
+        moduleId: '31',
+        section: 'apiContract',
+        title: 'API Contract',
+        metricLabel: 'API Contract Drifts',
+        advice: 'Verify all REST endpoints have frontend consumers and OpenAPI specs are current.',
+        filename: 'api-contract.md'
+    },
+    {
+        moduleId: '32',
+        section: 'complexity',
+        title: 'Complexity Metrics',
+        metricLabel: 'High Complexity Patterns',
+        advice: 'Break down long functions, reduce nesting depth, and extract helper functions.',
+        filename: 'complexity.md'
+    },
+    {
+        moduleId: '33',
+        section: 'llmSlop',
+        title: 'LLM Slop',
+        metricLabel: 'LLM Slop Patterns',
+        advice: 'Remove placeholder debris, leaked markdown fences, and hardcoded AI-default metrics.',
+        filename: 'llm-slop.md'
+    },
+    {
+        moduleId: '34',
+        section: 'tokenBleed',
+        title: 'Token Bleed',
+        metricLabel: 'Token Bleed Risks',
+        advice: 'Add max_tokens limits to LLM calls and chunk long string literals in prompts.',
+        filename: 'token-bleed.md'
+    },
+    {
+        moduleId: '35',
+        section: 'productionLeak',
+        title: 'Production Data Leak',
+        metricLabel: 'Production Data Leaks',
+        advice: 'Remove mock, fixture, and sample data path references from production source.',
+        filename: 'production-leak.md'
+    },
+    {
+        moduleId: '36',
+        section: 'fictionKpi',
+        title: 'Fiction KPI',
+        metricLabel: 'Fiction KPI Hits',
+        advice: 'Replace hardcoded metrics with real data sources or remove unverified KPI values.',
+        filename: 'fiction-kpi.md'
+    },
+    {
+        moduleId: '37',
+        section: 'architectureDrift',
+        title: 'Architecture Drift',
+        metricLabel: 'Architecture Drift Findings',
+        advice: 'Add schema validators for hybrid/state-space models and enforce max_tokens on all LLM API calls.',
+        filename: 'architecture-drift.md'
+    },
+    {
+        moduleId: '38',
+        section: 'fixPreview',
+        title: 'Fix Preview',
+        metricLabel: 'Fix Patches Available',
+        advice: 'Review generated code diffs and apply copyable patches for each remediation task.',
+        filename: 'fix-preview.md'
+    },
+    {
+        moduleId: '39',
+        section: 'syncIo',
+        title: 'Sync I/O',
+        metricLabel: 'Sync I/O Patterns',
+        advice: 'Replace synchronous fs operations with async equivalents to avoid blocking the event loop.',
+        filename: 'sync-io.md'
+    },
+    {
+        moduleId: '40',
+        section: 'evalDanger',
+        title: 'Eval Danger',
+        metricLabel: 'Eval Risks',
+        advice: 'Avoid eval() and new Function(). Use JSON.parse or safe expression evaluators instead.',
+        filename: 'eval-danger.md'
+    },
+    {
+        moduleId: '41',
+        section: 'innerHtmlXss',
+        title: 'innerHTML XSS',
+        metricLabel: 'innerHTML XSS Risks',
+        advice: 'Sanitize all innerHTML assignments. Use textContent or DOMPurify instead.',
+        filename: 'inner-html-xss.md'
+    },
+    {
+        moduleId: '42',
+        section: 'prototypePollution',
+        title: 'Prototype Pollution',
+        metricLabel: 'Prototype Pollution Risks',
+        advice: 'Avoid modifying Object.prototype or __proto__. Use Object.create(null) or Map.',
+        filename: 'prototype-pollution.md'
+    },
+    {
+        moduleId: '43',
+        section: 'unhandledPromise',
+        title: 'Unhandled Promise',
+        metricLabel: 'Unhandled Promises',
+        advice: 'Add .catch() handlers to all promise chains to prevent unhandled rejections.',
+        filename: 'unhandled-promise.md'
+    },
+    {
+        moduleId: '44',
+        section: 'magicNumber',
+        title: 'Magic Numbers',
+        metricLabel: 'Magic Numbers',
+        advice: 'Extract hardcoded numeric literals into named constants.',
+        filename: 'magic-number.md'
+    },
+    {
+        moduleId: '45',
+        section: 'missingStrictMode',
+        title: 'Missing Strict Mode',
+        metricLabel: 'Missing Strict Mode Files',
+        advice: "Add 'use strict' to the top of each file to prevent implicit globals.",
+        filename: 'missing-strict-mode.md'
+    },
+    {
+        moduleId: '46',
+        section: 'uninitializedRead',
+        title: 'Uninitialized Read',
+        metricLabel: 'Uninitialized Reads',
+        advice: 'Initialize variables at declaration to avoid reading undefined values.',
+        filename: 'uninitialized-read.md'
+    },
+    {
+        moduleId: '47',
+        section: 'unvalidatedRedirect',
+        title: 'Unvalidated Redirect',
+        metricLabel: 'Unvalidated Redirects',
+        advice: 'Whitelist redirect destinations and validate all user-controlled URLs.',
+        filename: 'unvalidated-redirect.md'
+    },
+    {
+        moduleId: '48',
+        section: 'missingRateLimit',
+        title: 'Missing Rate Limit',
+        metricLabel: 'Missing Rate Limits',
+        advice: 'Add rate limiting to all API endpoints to prevent DoS attacks.',
+        filename: 'missing-rate-limit.md'
+    },
+    {
+        moduleId: '49',
+        section: 'insecureRandom',
+        title: 'Insecure Random',
+        metricLabel: 'Insecure Random Uses',
+        advice: 'Replace Math.random() with crypto.randomBytes() for security-sensitive operations.',
+        filename: 'insecure-random.md'
+    },
+    {
+        moduleId: '50',
+        section: 'loggingSecrets',
+        title: 'Logging Secrets',
+        metricLabel: 'Secret Log Leaks',
+        advice: 'Remove passwords, tokens, and secrets from log statements.',
+        filename: 'logging-secrets.md'
+    },
+    {
+        moduleId: '51',
+        section: 'hardcodedConfidence',
+        title: 'Hardcoded Confidence',
+        metricLabel: 'Hardcoded Confidence Scores',
+        advice: 'Replace static confidence scores with dynamic computed values.',
+        filename: 'hardcoded-confidence.md'
+    },
+    {
+        moduleId: '52',
+        section: 'hardcodedCompletion',
+        title: 'Hardcoded Completion',
+        metricLabel: 'Hardcoded Completion Rates',
+        advice: 'Replace static completion rates with real-time metrics.',
+        filename: 'hardcoded-completion.md'
+    },
+    {
+        moduleId: '53',
+        section: 'mockPathLeak',
+        title: 'Mock Path Leak',
+        metricLabel: 'Mock Path Leaks',
+        advice: 'Remove mock and fixture path references from production source code.',
+        filename: 'mock-path-leak.md'
+    },
+    {
+        moduleId: '54',
+        section: 'sampleJsonRef',
+        title: 'Sample JSON Reference',
+        metricLabel: 'Sample JSON References',
+        advice: 'Replace sample JSON file references with production data sources.',
+        filename: 'sample-json-ref.md'
+    },
+    {
+        moduleId: '55',
+        section: 'governanceMarker',
+        title: 'Governance Marker',
+        metricLabel: 'Governance Markers',
+        advice: 'Verify license compatibility with your product distribution model.',
+        filename: 'governance-marker.md'
+    },
+    {
+        moduleId: '56',
+        section: 'aiPlaceholderComment',
+        title: 'AI Placeholder Comment',
+        metricLabel: 'AI Placeholder Comments',
+        advice: 'Replace AI-generated placeholder comments with actual implementation.',
+        filename: 'ai-placeholder-comment.md'
+    },
+    {
+        moduleId: '57',
+        section: 'aiPlaceholderBlock',
+        title: 'AI Placeholder Block',
+        metricLabel: 'AI Placeholder Blocks',
+        advice: 'Remove or implement AI-generated placeholder block comments.',
+        filename: 'ai-placeholder-block.md'
+    },
+    {
+        moduleId: '58',
+        section: 'markdownFenceLeak',
+        title: 'Markdown Fence Leak',
+        metricLabel: 'Markdown Fence Leaks',
+        advice: 'Remove markdown code fences (```) that leaked into source files.',
+        filename: 'markdown-fence-leak.md'
+    },
+    {
+        moduleId: '59',
+        section: 'emptyStubFunction',
+        title: 'Empty Stub Function',
+        metricLabel: 'Empty Stub Functions',
+        advice: 'Implement empty function bodies or remove unused stubs.',
+        filename: 'empty-stub-function.md'
+    },
+    {
+        moduleId: '60',
+        section: 'arrowStub',
+        title: 'Arrow Stub',
+        metricLabel: 'Arrow Function Stubs',
+        advice: 'Implement arrow functions that return empty objects.',
+        filename: 'arrow-stub.md'
+    },
+    {
+        moduleId: '61',
+        section: 'roadmapMarker',
+        title: 'Roadmap Marker',
+        metricLabel: 'Roadmap Markers',
+        advice: 'Resolve HACK, XXX, and WORKAROUND markers or track them in your issue tracker.',
+        filename: 'roadmap-marker.md'
+    },
+    {
+        moduleId: '62',
+        section: 'fileNaming',
+        title: 'File Naming',
+        metricLabel: 'File Naming Issues',
+        advice: 'Standardize naming conventions, remove spaces/special chars, and use descriptive names for data files.',
+        filename: 'file-naming.md'
+    },
+    {
+        moduleId: '63',
+        section: 'removableFiles',
+        title: 'Removable Files',
+        metricLabel: 'Removable Files',
+        advice: 'Remove node_modules, build artifacts, caches, logs, and temp files. Add .gitignore entries to prevent recurrence.',
+        filename: 'removable-files.md'
+    }
 ];
 
 function fmtCertBytes(bytes) {
@@ -93,13 +422,17 @@ function generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectN
     if (template.section === 'removableFiles') {
         const cats = (data.categories || []).filter(c => c.removable);
         hits = data.totalRemovable || 0;
-        const catMd = cats.length ? `## Removable Categories\n\n${cats.map(c => `- **${c.label}**: ${c.count.toLocaleString()} files${c.bytes ? ' (' + fmtCertBytes(c.bytes) + ')' : ''}\n  - Action: ${c.action}\n  - Examples: ${c.examples.slice(0, 3).join(', ') || 'N/A'}`).join('\n\n')}\n` : '';
+        const catMd = cats.length
+            ? `## Removable Categories\n\n${cats.map(c => `- **${c.label}**: ${c.count.toLocaleString()} files${c.bytes ? ' (' + fmtCertBytes(c.bytes) + ')' : ''}\n  - Action: ${c.action}\n  - Examples: ${c.examples.slice(0, 3).join(', ') || 'N/A'}`).join('\n\n')}\n`
+            : '';
         const md = `# ${template.title} Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Total Files Scanned | ${data.totalFiles || 0} |\n| Removable Files | ${hits} |\n| Estimated Savings | ${data.totalRemovableFormatted || '0 B'} |\n\n${catMd}> ${template.advice}\n`;
         zip.file(template.filename, md);
         return;
     }
     const list = Array.isArray(rawList) ? rawList.slice(0, 10) : [];
-    const findingsMd = list.length ? `## Findings\n\n${list.map(f => `- ${f.file || 'N/A'} (${f.type || 'N/A'})`).join('\n')}\n` : '';
+    const findingsMd = list.length
+        ? `## Findings\n\n${list.map(f => `- ${f.file || 'N/A'} (${f.type || 'N/A'})`).join('\n')}\n`
+        : '';
     const md = `# ${template.title} Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| ${template.metricLabel} | ${hits} |\n\n${findingsMd}> ${template.advice}\n`;
     zip.file(template.filename, md);
 }
@@ -112,13 +445,17 @@ async function certComputeSha256(text) {
     const encoder = new TextEncoder();
     const data = encoder.encode(String(text));
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
 }
 
 function certIsModulePaidFor(moduleNum) {
     try {
         if (typeof isModulePaidFor === 'function') return isModulePaidFor(moduleNum);
-    } catch (_) { /* main.js may still be loading */ }
+    } catch (_) {
+        /* main.js may still be loading */
+    }
     const numStr = String(moduleNum);
     return numStr === '1' || numStr === '3';
 }
@@ -127,7 +464,8 @@ async function generateSovereignCertificate(report, token, options = {}) {
     if (!window.JSZip) {
         throw new Error('Certificate libraries not loaded. Check your network connection.');
     }
-    if (false) { /* token optional for certificate generation */
+    if (false) {
+        /* token optional for certificate generation */
         throw new Error('Invalid or malformed license token. Please paste a valid token.');
     }
     if (!report || typeof report !== 'object' || Object.keys(report).length === 0) {
@@ -149,47 +487,169 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const lineCount = report.totalLines || report.linesOfCode || 0;
     const gateReport = report.gateReport || report.gate || {};
     const issueCount = (gateReport.blockingIssues || []).length + (gateReport.warningIssues || []).length;
-    const qs = Number.isFinite(report.qualityScore) ? report.qualityScore : (report.qualityScore || 0);
+    const qs = Number.isFinite(report.qualityScore) ? report.qualityScore : report.qualityScore || 0;
     let grade = 'F';
     let gradeColor = '#EF4444';
-    if (qs >= 95) { grade = 'A'; gradeColor = '#34D399'; }
-    else if (qs >= 85) { grade = 'B'; gradeColor = '#60A5FA'; }
-    else if (qs >= 70) { grade = 'C'; gradeColor = '#F59E0B'; }
-    else if (qs >= 50) { grade = 'D'; gradeColor = '#F97316'; }
+    if (qs >= 95) {
+        grade = 'A';
+        gradeColor = '#34D399';
+    } else if (qs >= 85) {
+        grade = 'B';
+        gradeColor = '#60A5FA';
+    } else if (qs >= 70) {
+        grade = 'C';
+        gradeColor = '#F59E0B';
+    } else if (qs >= 50) {
+        grade = 'D';
+        gradeColor = '#F97316';
+    }
 
     const gatePassed = report.gate?.pass === true || report.gate?.status === 'PASS';
     // Sync summary.gatePass so downstream consumers see consistent state
     if (report.summary && typeof report.summary === 'object') {
         report.summary.gatePass = gatePassed;
     }
-    const gateLabel = gatePassed ? 'PASS' : (report.gate?.blockingCount ? 'BLOCKED' : 'REVIEW');
+    const gateLabel = gatePassed ? 'PASS' : report.gate?.blockingCount ? 'BLOCKED' : 'REVIEW';
     const gateColor = gatePassed ? '#34D399' : '#EF4444';
-    const profileLabel = profileLabelOverride || (window._tokenPayload?.tier || window._tokenPayload?.product || 'executive').toUpperCase();
+    const profileLabel =
+        profileLabelOverride ||
+        (window._tokenPayload?.tier || window._tokenPayload?.product || 'executive').toUpperCase();
 
     // Map UI module IDs (from analyzer dropdown) to certificate numeric module IDs
     const UI_TO_CERT_MODULE = {
-        'gate': '1', 'consolidation': '2', 'mock-data': '3', 'roadmap': '4',
-        'codebase': '5', 'file-reduction': '6', 'data-quality': '7', 'cleanup': '8',
-        'npm-audit': '9', 'compliance': '10', 'eu-ai-act': '11', 'dependency-vulns': '12',
-        'build-readiness': '13', 'ai-indicators': '14', 'governance': '15', 'junk-files': '16', 'ai-residue': '17',
-        'performance': '18', 'type-safety': '19', 'documentation': '20', 'test-coverage': '21', 'accessibility': '22',
-        'i18n': '23', 'sensitive-data': '24', 'config-drift': '25', 'security-headers': '26', 'database-patterns': '27',
-        'framework-practices': '28', 'workspace-health': '29', 'unused-deps': '30', 'api-contract': '31', 'complexity': '32',
-        'llm-slop': '33', 'token-bleed': '34', 'production-leak': '35', 'fiction-kpi': '36', 'architecture-drift': '37',
-        'fix-preview': '38', 'sync-io': '39', 'eval-danger': '40', 'inner-html-xss': '41', 'prototype-pollution': '42',
-        'unhandled-promise': '43', 'magic-number': '44', 'missing-strict-mode': '45', 'uninitialized-read': '46',
-        'unvalidated-redirect': '47', 'missing-rate-limit': '48', 'insecure-random': '49', 'logging-secrets': '50',
-        'hardcoded-confidence': '51', 'hardcoded-completion': '52', 'mock-path-leak': '53', 'sample-json-ref': '54',
-        'governance-marker': '55', 'ai-placeholder-comment': '56', 'ai-placeholder-block': '57', 'markdown-fence-leak': '58',
-        'empty-stub-function': '59', 'arrow-stub': '60', 'roadmap-marker': '61'
+        gate: '1',
+        consolidation: '2',
+        'mock-data': '3',
+        roadmap: '4',
+        codebase: '5',
+        'file-reduction': '6',
+        'data-quality': '7',
+        cleanup: '8',
+        'npm-audit': '9',
+        compliance: '10',
+        'eu-ai-act': '11',
+        'dependency-vulns': '12',
+        'build-readiness': '13',
+        'ai-indicators': '14',
+        governance: '15',
+        'junk-files': '16',
+        'ai-residue': '17',
+        performance: '18',
+        'type-safety': '19',
+        documentation: '20',
+        'test-coverage': '21',
+        accessibility: '22',
+        i18n: '23',
+        'sensitive-data': '24',
+        'config-drift': '25',
+        'security-headers': '26',
+        'database-patterns': '27',
+        'framework-practices': '28',
+        'workspace-health': '29',
+        'unused-deps': '30',
+        'api-contract': '31',
+        complexity: '32',
+        'llm-slop': '33',
+        'token-bleed': '34',
+        'production-leak': '35',
+        'fiction-kpi': '36',
+        'architecture-drift': '37',
+        'fix-preview': '38',
+        'sync-io': '39',
+        'eval-danger': '40',
+        'inner-html-xss': '41',
+        'prototype-pollution': '42',
+        'unhandled-promise': '43',
+        'magic-number': '44',
+        'missing-strict-mode': '45',
+        'uninitialized-read': '46',
+        'unvalidated-redirect': '47',
+        'missing-rate-limit': '48',
+        'insecure-random': '49',
+        'logging-secrets': '50',
+        'hardcoded-confidence': '51',
+        'hardcoded-completion': '52',
+        'mock-path-leak': '53',
+        'sample-json-ref': '54',
+        'governance-marker': '55',
+        'ai-placeholder-comment': '56',
+        'ai-placeholder-block': '57',
+        'markdown-fence-leak': '58',
+        'empty-stub-function': '59',
+        'arrow-stub': '60',
+        'roadmap-marker': '61'
     };
     // Read selected modules from the analyzer card grid (global selectedModules Set)
     let allowedModules = [];
     if (typeof selectedModules !== 'undefined' && selectedModules instanceof Set && selectedModules.size > 0) {
-        allowedModules = Array.from(selectedModules).map(id => UI_TO_CERT_MODULE[id]).filter(Boolean);
+        allowedModules = Array.from(selectedModules)
+            .map(id => UI_TO_CERT_MODULE[id])
+            .filter(Boolean);
     }
     // Always enforce tier-based unlocking — intersect with what the user actually paid for
-    const paidModules = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56','57','58','59','60','61'].filter(m => certIsModulePaidFor(m));
+    const paidModules = [
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+        '10',
+        '11',
+        '12',
+        '13',
+        '14',
+        '15',
+        '16',
+        '17',
+        '18',
+        '19',
+        '20',
+        '21',
+        '22',
+        '23',
+        '24',
+        '25',
+        '26',
+        '27',
+        '28',
+        '29',
+        '30',
+        '31',
+        '32',
+        '33',
+        '34',
+        '35',
+        '36',
+        '37',
+        '38',
+        '39',
+        '40',
+        '41',
+        '42',
+        '43',
+        '44',
+        '45',
+        '46',
+        '47',
+        '48',
+        '49',
+        '50',
+        '51',
+        '52',
+        '53',
+        '54',
+        '55',
+        '56',
+        '57',
+        '58',
+        '59',
+        '60',
+        '61'
+    ].filter(m => certIsModulePaidFor(m));
     if (allowedModules.length > 0) {
         allowedModules = allowedModules.filter(m => paidModules.includes(m));
     } else {
@@ -197,147 +657,281 @@ async function generateSovereignCertificate(report, token, options = {}) {
     }
     // Safety net: never generate an empty module list — fall back to all modules
     if (!allowedModules.length) {
-        allowedModules = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45','46','47','48','49','50','51','52','53','54','55','56','57','58','59','60','61'];
+        allowedModules = [
+            '1',
+            '2',
+            '3',
+            '4',
+            '5',
+            '6',
+            '7',
+            '8',
+            '9',
+            '10',
+            '11',
+            '12',
+            '13',
+            '14',
+            '15',
+            '16',
+            '17',
+            '18',
+            '19',
+            '20',
+            '21',
+            '22',
+            '23',
+            '24',
+            '25',
+            '26',
+            '27',
+            '28',
+            '29',
+            '30',
+            '31',
+            '32',
+            '33',
+            '34',
+            '35',
+            '36',
+            '37',
+            '38',
+            '39',
+            '40',
+            '41',
+            '42',
+            '43',
+            '44',
+            '45',
+            '46',
+            '47',
+            '48',
+            '49',
+            '50',
+            '51',
+            '52',
+            '53',
+            '54',
+            '55',
+            '56',
+            '57',
+            '58',
+            '59',
+            '60',
+            '61'
+        ];
     }
 
     const moduleKeyMap = {
-        '1': ['gateReport', 'gate'],
-        '2': ['consolidation'],
-        '3': ['mockDataCategories', 'mockSampleFiles'],
-        '4': ['roadmap', 'remediationPhases'],
-        '5': ['codebase'],
-        '6': ['fileReduction'],
-        '7': ['dataQuality'],
-        '8': ['cleanup'],
-        '9': ['npmAudit'],
-        '10': ['compliance'],
-        '11': ['euAiActSummary', 'checkEuAi'],
-        '12': ['dependencyAudit', 'vulnerabilityAudit'],
-        '13': ['buildReadiness'],
-        '14': ['aiIndicators'],
-        '15': ['governance', 'compliance'],
-        '16': ['junkFiles'],
-        '17': ['aiResidue', 'aiResidueFindings'],
-        '18': ['performance', 'performanceFindings'],
-        '19': ['typeSafety', 'typeSafetyFindings'],
-        '20': ['documentation', 'documentationFindings'],
-        '21': ['testCoverage', 'testCoverageFindings'],
-        '22': ['accessibility', 'accessibilityFindings'],
-        '23': ['i18n', 'i18nFindings'],
-        '24': ['sensitiveData', 'sensitiveDataFindings'],
-        '25': ['configDrift', 'configDriftFindings'],
-        '26': ['securityHeaders', 'securityHeadersFindings'],
-        '27': ['databasePatterns', 'databasePatternsFindings'],
-        '28': ['frameworkPractices', 'frameworkPracticesFindings'],
-        '29': ['workspaceHealth', 'workspaceHealthFindings'],
-        '30': ['unusedDeps', 'unusedDepsFindings'],
-        '31': ['apiContract', 'apiContractFindings'],
-        '32': ['complexity', 'complexityFindings'],
-        '33': ['llmSlop', 'llmSlopFindings'],
-        '34': ['tokenBleed', 'tokenBleedFindings'],
-        '35': ['productionLeak', 'productionLeakFindings'],
-        '36': ['fictionKpi', 'fictionKpiFindings'],
-        '37': ['architectureDrift', 'architectureDriftFindings'],
-        '38': ['fixPreview'],
-        '39': ['syncIo', 'syncIoFindings'],
-        '40': ['evalDanger', 'evalDangerFindings'],
-        '41': ['innerHtmlXss', 'innerHtmlXssFindings'],
-        '42': ['prototypePollution', 'prototypePollutionFindings'],
-        '43': ['unhandledPromise', 'unhandledPromiseFindings'],
-        '44': ['magicNumber', 'magicNumberFindings'],
-        '45': ['missingStrictMode', 'missingStrictModeFindings'],
-        '46': ['uninitializedRead', 'uninitializedReadFindings'],
-        '47': ['unvalidatedRedirect', 'unvalidatedRedirectFindings'],
-        '48': ['missingRateLimit', 'missingRateLimitFindings'],
-        '49': ['insecureRandom', 'insecureRandomFindings'],
-        '50': ['loggingSecrets', 'loggingSecretsFindings'],
-        '51': ['hardcodedConfidence', 'hardcodedConfidenceFindings'],
-        '52': ['hardcodedCompletion', 'hardcodedCompletionFindings'],
-        '53': ['mockPathLeak', 'mockPathLeakFindings'],
-        '54': ['sampleJsonRef', 'sampleJsonRefFindings'],
-        '55': ['governanceMarker', 'governanceMarkerFindings'],
-        '56': ['aiPlaceholderComment', 'aiPlaceholderCommentFindings'],
-        '57': ['aiPlaceholderBlock', 'aiPlaceholderBlockFindings'],
-        '58': ['markdownFenceLeak', 'markdownFenceLeakFindings'],
-        '59': ['emptyStubFunction', 'emptyStubFunctionFindings'],
-        '60': ['arrowStub', 'arrowStubFindings'],
-        '61': ['roadmapMarker', 'roadmapMarkerFindings']
+        1: ['gateReport', 'gate'],
+        2: ['consolidation'],
+        3: ['mockDataCategories', 'mockSampleFiles'],
+        4: ['roadmap', 'remediationPhases'],
+        5: ['codebase'],
+        6: ['fileReduction'],
+        7: ['dataQuality'],
+        8: ['cleanup'],
+        9: ['npmAudit'],
+        10: ['compliance'],
+        11: ['euAiActSummary', 'checkEuAi'],
+        12: ['dependencyAudit', 'vulnerabilityAudit'],
+        13: ['buildReadiness'],
+        14: ['aiIndicators'],
+        15: ['governance', 'compliance'],
+        16: ['junkFiles'],
+        17: ['aiResidue', 'aiResidueFindings'],
+        18: ['performance', 'performanceFindings'],
+        19: ['typeSafety', 'typeSafetyFindings'],
+        20: ['documentation', 'documentationFindings'],
+        21: ['testCoverage', 'testCoverageFindings'],
+        22: ['accessibility', 'accessibilityFindings'],
+        23: ['i18n', 'i18nFindings'],
+        24: ['sensitiveData', 'sensitiveDataFindings'],
+        25: ['configDrift', 'configDriftFindings'],
+        26: ['securityHeaders', 'securityHeadersFindings'],
+        27: ['databasePatterns', 'databasePatternsFindings'],
+        28: ['frameworkPractices', 'frameworkPracticesFindings'],
+        29: ['workspaceHealth', 'workspaceHealthFindings'],
+        30: ['unusedDeps', 'unusedDepsFindings'],
+        31: ['apiContract', 'apiContractFindings'],
+        32: ['complexity', 'complexityFindings'],
+        33: ['llmSlop', 'llmSlopFindings'],
+        34: ['tokenBleed', 'tokenBleedFindings'],
+        35: ['productionLeak', 'productionLeakFindings'],
+        36: ['fictionKpi', 'fictionKpiFindings'],
+        37: ['architectureDrift', 'architectureDriftFindings'],
+        38: ['fixPreview'],
+        39: ['syncIo', 'syncIoFindings'],
+        40: ['evalDanger', 'evalDangerFindings'],
+        41: ['innerHtmlXss', 'innerHtmlXssFindings'],
+        42: ['prototypePollution', 'prototypePollutionFindings'],
+        43: ['unhandledPromise', 'unhandledPromiseFindings'],
+        44: ['magicNumber', 'magicNumberFindings'],
+        45: ['missingStrictMode', 'missingStrictModeFindings'],
+        46: ['uninitializedRead', 'uninitializedReadFindings'],
+        47: ['unvalidatedRedirect', 'unvalidatedRedirectFindings'],
+        48: ['missingRateLimit', 'missingRateLimitFindings'],
+        49: ['insecureRandom', 'insecureRandomFindings'],
+        50: ['loggingSecrets', 'loggingSecretsFindings'],
+        51: ['hardcodedConfidence', 'hardcodedConfidenceFindings'],
+        52: ['hardcodedCompletion', 'hardcodedCompletionFindings'],
+        53: ['mockPathLeak', 'mockPathLeakFindings'],
+        54: ['sampleJsonRef', 'sampleJsonRefFindings'],
+        55: ['governanceMarker', 'governanceMarkerFindings'],
+        56: ['aiPlaceholderComment', 'aiPlaceholderCommentFindings'],
+        57: ['aiPlaceholderBlock', 'aiPlaceholderBlockFindings'],
+        58: ['markdownFenceLeak', 'markdownFenceLeakFindings'],
+        59: ['emptyStubFunction', 'emptyStubFunctionFindings'],
+        60: ['arrowStub', 'arrowStubFindings'],
+        61: ['roadmapMarker', 'roadmapMarkerFindings']
     };
     const baseKeys = [
-        'type', 'reportVersion', 'version', 'generatedAt', 'generatedBy', 'scanProfileLabel',
-        'projectName', 'projectRoot', 'projectPath', 'scanTargetRoot', 'platformRoot',
-        'filesAnalyzed', 'totalFiles', 'fileCount', 'fileList', 'repositoryInventory',
-        'totalLines', 'linesOfCode', 'qualityScore', 'schemaCompliance', 'consistencyScore',
-        'duplicateGroups', 'invalidJson', 'emptyFiles', 'schemaChecked', 'schemaPassed',
-        'issues', 'issueCount', 'simplebeaconIssues', 'detectedIssues', 'severityCounts',
-        'gate', 'gateReport', 'summary',
-        'timestamp', 'metadata', 'totalModules', 'exportType',
-        'euAiActFindings', 'euAiActScanned',
+        'type',
+        'reportVersion',
+        'version',
+        'generatedAt',
+        'generatedBy',
+        'scanProfileLabel',
+        'projectName',
+        'projectRoot',
+        'projectPath',
+        'scanTargetRoot',
+        'platformRoot',
+        'filesAnalyzed',
+        'totalFiles',
+        'fileCount',
+        'fileList',
+        'repositoryInventory',
+        'totalLines',
+        'linesOfCode',
+        'qualityScore',
+        'schemaCompliance',
+        'consistencyScore',
+        'duplicateGroups',
+        'invalidJson',
+        'emptyFiles',
+        'schemaChecked',
+        'schemaPassed',
+        'issues',
+        'issueCount',
+        'simplebeaconIssues',
+        'detectedIssues',
+        'severityCounts',
+        'gate',
+        'gateReport',
+        'summary',
+        'timestamp',
+        'metadata',
+        'totalModules',
+        'exportType',
+        'euAiActFindings',
+        'euAiActScanned',
         'aiContext'
     ];
 
     const perModuleData = {
-        '1': { gateReport: report.gateReport, gate: report.gate },
-        '2': { consolidation: report.consolidation },
-        '3': { mockDataCategories: report.mockDataCategories, mockSampleFiles: report.mockSampleFiles },
-        '4': { roadmap: report.roadmap, remediationPhases: report.remediationPhases },
-        '5': { codebase: report.codebase || { totalFiles: report.filesAnalyzed || 0, totalLines: report.totalLines || 0 } },
-        '6': { fileReduction: report.fileReduction },
-        '7': { dataQuality: report.dataQuality },
-        '8': { cleanup: report.cleanup },
-        '9': { npmAudit: report.npmAudit },
-        '10': { compliance: report.compliance },
-        '11': { euAiActSummary: report.euAiActSummary, checkEuAi: report.checkEuAi, euAiActFindings: report.euAiActFindings, euAiActScanned: report.euAiActScanned },
-        '12': { dependencyAudit: report.dependencyAudit, vulnerabilityAudit: report.vulnerabilityAudit },
-        '13': { buildReadiness: report.buildReadiness },
-        '14': { aiIndicators: report.aiIndicators },
-        '15': { governance: report.governance, compliance: report.compliance },
-        '16': { junkFiles: report.junkFiles },
-        '17': { aiResidue: report.aiResidue },
-        '18': { performance: report.performance },
-        '19': { typeSafety: report.typeSafety },
-        '20': { documentation: report.documentation },
-        '21': { testCoverage: report.testCoverage },
-        '22': { accessibility: report.accessibility },
-        '23': { i18n: report.i18n },
-        '24': { sensitiveData: report.sensitiveData },
-        '25': { configDrift: report.configDrift },
-        '26': { securityHeaders: report.securityHeaders },
-        '27': { databasePatterns: report.databasePatterns },
-        '28': { frameworkPractices: report.frameworkPractices },
-        '29': { workspaceHealth: report.workspaceHealth },
-        '30': { unusedDeps: report.unusedDeps },
-        '31': { apiContract: report.apiContract },
-        '32': { complexity: report.complexity },
-        '33': { llmSlop: report.llmSlop },
-        '34': { tokenBleed: report.tokenBleed },
-        '35': { productionLeak: report.productionLeak },
-        '36': { fictionKpi: report.fictionKpi },
-        '37': { architectureDrift: report.architectureDrift },
-        '38': { fixPreview: report.fixPreview || { _note: 'Fix Preview provides copyable code patches for each remediation task. Open the dashboard to view interactive diffs.' } },
-        '39': { syncIo: report.syncIo, syncIoFindings: report.syncIoFindings },
-        '40': { evalDanger: report.evalDanger, evalDangerFindings: report.evalDangerFindings },
-        '41': { innerHtmlXss: report.innerHtmlXss, innerHtmlXssFindings: report.innerHtmlXssFindings },
-        '42': { prototypePollution: report.prototypePollution, prototypePollutionFindings: report.prototypePollutionFindings },
-        '43': { unhandledPromise: report.unhandledPromise, unhandledPromiseFindings: report.unhandledPromiseFindings },
-        '44': { magicNumber: report.magicNumber, magicNumberFindings: report.magicNumberFindings },
-        '45': { missingStrictMode: report.missingStrictMode, missingStrictModeFindings: report.missingStrictModeFindings },
-        '46': { uninitializedRead: report.uninitializedRead, uninitializedReadFindings: report.uninitializedReadFindings },
-        '47': { unvalidatedRedirect: report.unvalidatedRedirect, unvalidatedRedirectFindings: report.unvalidatedRedirectFindings },
-        '48': { missingRateLimit: report.missingRateLimit, missingRateLimitFindings: report.missingRateLimitFindings },
-        '49': { insecureRandom: report.insecureRandom, insecureRandomFindings: report.insecureRandomFindings },
-        '50': { loggingSecrets: report.loggingSecrets, loggingSecretsFindings: report.loggingSecretsFindings },
-        '51': { hardcodedConfidence: report.hardcodedConfidence, hardcodedConfidenceFindings: report.hardcodedConfidenceFindings },
-        '52': { hardcodedCompletion: report.hardcodedCompletion, hardcodedCompletionFindings: report.hardcodedCompletionFindings },
-        '53': { mockPathLeak: report.mockPathLeak, mockPathLeakFindings: report.mockPathLeakFindings },
-        '54': { sampleJsonRef: report.sampleJsonRef, sampleJsonRefFindings: report.sampleJsonRefFindings },
-        '55': { governanceMarker: report.governanceMarker, governanceMarkerFindings: report.governanceMarkerFindings },
-        '56': { aiPlaceholderComment: report.aiPlaceholderComment, aiPlaceholderCommentFindings: report.aiPlaceholderCommentFindings },
-        '57': { aiPlaceholderBlock: report.aiPlaceholderBlock, aiPlaceholderBlockFindings: report.aiPlaceholderBlockFindings },
-        '58': { markdownFenceLeak: report.markdownFenceLeak, markdownFenceLeakFindings: report.markdownFenceLeakFindings },
-        '59': { emptyStubFunction: report.emptyStubFunction, emptyStubFunctionFindings: report.emptyStubFunctionFindings },
-        '60': { arrowStub: report.arrowStub, arrowStubFindings: report.arrowStubFindings },
-        '61': { roadmapMarker: report.roadmapMarker, roadmapMarkerFindings: report.roadmapMarkerFindings }
+        1: { gateReport: report.gateReport, gate: report.gate },
+        2: { consolidation: report.consolidation },
+        3: { mockDataCategories: report.mockDataCategories, mockSampleFiles: report.mockSampleFiles },
+        4: { roadmap: report.roadmap, remediationPhases: report.remediationPhases },
+        5: {
+            codebase: report.codebase || { totalFiles: report.filesAnalyzed || 0, totalLines: report.totalLines || 0 }
+        },
+        6: { fileReduction: report.fileReduction },
+        7: { dataQuality: report.dataQuality },
+        8: { cleanup: report.cleanup },
+        9: { npmAudit: report.npmAudit },
+        10: { compliance: report.compliance },
+        11: {
+            euAiActSummary: report.euAiActSummary,
+            checkEuAi: report.checkEuAi,
+            euAiActFindings: report.euAiActFindings,
+            euAiActScanned: report.euAiActScanned
+        },
+        12: { dependencyAudit: report.dependencyAudit, vulnerabilityAudit: report.vulnerabilityAudit },
+        13: { buildReadiness: report.buildReadiness },
+        14: { aiIndicators: report.aiIndicators },
+        15: { governance: report.governance, compliance: report.compliance },
+        16: { junkFiles: report.junkFiles },
+        17: { aiResidue: report.aiResidue },
+        18: { performance: report.performance },
+        19: { typeSafety: report.typeSafety },
+        20: { documentation: report.documentation },
+        21: { testCoverage: report.testCoverage },
+        22: { accessibility: report.accessibility },
+        23: { i18n: report.i18n },
+        24: { sensitiveData: report.sensitiveData },
+        25: { configDrift: report.configDrift },
+        26: { securityHeaders: report.securityHeaders },
+        27: { databasePatterns: report.databasePatterns },
+        28: { frameworkPractices: report.frameworkPractices },
+        29: { workspaceHealth: report.workspaceHealth },
+        30: { unusedDeps: report.unusedDeps },
+        31: { apiContract: report.apiContract },
+        32: { complexity: report.complexity },
+        33: { llmSlop: report.llmSlop },
+        34: { tokenBleed: report.tokenBleed },
+        35: { productionLeak: report.productionLeak },
+        36: { fictionKpi: report.fictionKpi },
+        37: { architectureDrift: report.architectureDrift },
+        38: {
+            fixPreview: report.fixPreview || {
+                _note: 'Fix Preview provides copyable code patches for each remediation task. Open the dashboard to view interactive diffs.'
+            }
+        },
+        39: { syncIo: report.syncIo, syncIoFindings: report.syncIoFindings },
+        40: { evalDanger: report.evalDanger, evalDangerFindings: report.evalDangerFindings },
+        41: { innerHtmlXss: report.innerHtmlXss, innerHtmlXssFindings: report.innerHtmlXssFindings },
+        42: {
+            prototypePollution: report.prototypePollution,
+            prototypePollutionFindings: report.prototypePollutionFindings
+        },
+        43: { unhandledPromise: report.unhandledPromise, unhandledPromiseFindings: report.unhandledPromiseFindings },
+        44: { magicNumber: report.magicNumber, magicNumberFindings: report.magicNumberFindings },
+        45: {
+            missingStrictMode: report.missingStrictMode,
+            missingStrictModeFindings: report.missingStrictModeFindings
+        },
+        46: {
+            uninitializedRead: report.uninitializedRead,
+            uninitializedReadFindings: report.uninitializedReadFindings
+        },
+        47: {
+            unvalidatedRedirect: report.unvalidatedRedirect,
+            unvalidatedRedirectFindings: report.unvalidatedRedirectFindings
+        },
+        48: { missingRateLimit: report.missingRateLimit, missingRateLimitFindings: report.missingRateLimitFindings },
+        49: { insecureRandom: report.insecureRandom, insecureRandomFindings: report.insecureRandomFindings },
+        50: { loggingSecrets: report.loggingSecrets, loggingSecretsFindings: report.loggingSecretsFindings },
+        51: {
+            hardcodedConfidence: report.hardcodedConfidence,
+            hardcodedConfidenceFindings: report.hardcodedConfidenceFindings
+        },
+        52: {
+            hardcodedCompletion: report.hardcodedCompletion,
+            hardcodedCompletionFindings: report.hardcodedCompletionFindings
+        },
+        53: { mockPathLeak: report.mockPathLeak, mockPathLeakFindings: report.mockPathLeakFindings },
+        54: { sampleJsonRef: report.sampleJsonRef, sampleJsonRefFindings: report.sampleJsonRefFindings },
+        55: { governanceMarker: report.governanceMarker, governanceMarkerFindings: report.governanceMarkerFindings },
+        56: {
+            aiPlaceholderComment: report.aiPlaceholderComment,
+            aiPlaceholderCommentFindings: report.aiPlaceholderCommentFindings
+        },
+        57: {
+            aiPlaceholderBlock: report.aiPlaceholderBlock,
+            aiPlaceholderBlockFindings: report.aiPlaceholderBlockFindings
+        },
+        58: {
+            markdownFenceLeak: report.markdownFenceLeak,
+            markdownFenceLeakFindings: report.markdownFenceLeakFindings
+        },
+        59: {
+            emptyStubFunction: report.emptyStubFunction,
+            emptyStubFunctionFindings: report.emptyStubFunctionFindings
+        },
+        60: { arrowStub: report.arrowStub, arrowStubFindings: report.arrowStubFindings },
+        61: { roadmapMarker: report.roadmapMarker, roadmapMarkerFindings: report.roadmapMarkerFindings }
     };
 
     // Safety net: derive analyzer sections from detectedIssues when buildAnalyzerSections data is missing
@@ -390,47 +984,232 @@ async function generateSovereignCertificate(report, token, options = {}) {
             'Roadmap Marker': 'roadmapMarker'
         };
         const sectionSchema = [
-            { section: 'aiResidue', hitsVar: 'aiResidueHits', findingsVar: 'aiResidueFindings', label: 'AI residue pattern' },
-            { section: 'performance', hitsVar: 'perfHits', findingsVar: 'perfFindings', label: 'performance anti-pattern' },
-            { section: 'typeSafety', hitsVar: 'typeSafetyHits', findingsVar: 'typeSafetyFindings', label: 'type safety gap' },
+            {
+                section: 'aiResidue',
+                hitsVar: 'aiResidueHits',
+                findingsVar: 'aiResidueFindings',
+                label: 'AI residue pattern'
+            },
+            {
+                section: 'performance',
+                hitsVar: 'perfHits',
+                findingsVar: 'perfFindings',
+                label: 'performance anti-pattern'
+            },
+            {
+                section: 'typeSafety',
+                hitsVar: 'typeSafetyHits',
+                findingsVar: 'typeSafetyFindings',
+                label: 'type safety gap'
+            },
             { section: 'testCoverage', hitsVar: 'testHits', findingsVar: 'testFindings', label: 'test coverage gap' },
             { section: 'accessibility', hitsVar: 'a11yHits', findingsVar: 'a11yFindings', label: 'accessibility gap' },
             { section: 'i18n', hitsVar: 'i18nHits', findingsVar: 'i18nFindings', label: 'i18n issue' },
-            { section: 'sensitiveData', hitsVar: 'sensitiveDataHits', findingsVar: 'sensitiveDataFindings', label: 'sensitive data exposure' },
-            { section: 'configDrift', hitsVar: 'configDriftHits', findingsVar: 'configDriftFindings', label: 'configuration drift' },
-            { section: 'securityHeaders', hitsVar: 'securityHeaderHits', findingsVar: 'securityHeaderFindings', label: 'security header reference' },
-            { section: 'databasePatterns', hitsVar: 'dbPatternHits', findingsVar: 'dbPatternFindings', label: 'database anti-pattern' },
-            { section: 'frameworkPractices', hitsVar: 'frameworkHits', findingsVar: 'frameworkFindings', label: 'framework practice issue' },
-            { section: 'workspaceHealth', hitsVar: 'workspaceHits', findingsVar: 'workspaceFindings', label: 'workspace health issue' },
-            { section: 'unusedDeps', hitsVar: 'unusedDepHits', findingsVar: 'unusedDepFindings', label: 'unused dependency reference' },
-            { section: 'apiContract', hitsVar: 'apiContractHits', findingsVar: 'apiContractFindings', label: 'API contract drift' },
-            { section: 'complexity', hitsVar: 'complexityHits', findingsVar: 'complexityFindings', label: 'high complexity pattern' },
+            {
+                section: 'sensitiveData',
+                hitsVar: 'sensitiveDataHits',
+                findingsVar: 'sensitiveDataFindings',
+                label: 'sensitive data exposure'
+            },
+            {
+                section: 'configDrift',
+                hitsVar: 'configDriftHits',
+                findingsVar: 'configDriftFindings',
+                label: 'configuration drift'
+            },
+            {
+                section: 'securityHeaders',
+                hitsVar: 'securityHeaderHits',
+                findingsVar: 'securityHeaderFindings',
+                label: 'security header reference'
+            },
+            {
+                section: 'databasePatterns',
+                hitsVar: 'dbPatternHits',
+                findingsVar: 'dbPatternFindings',
+                label: 'database anti-pattern'
+            },
+            {
+                section: 'frameworkPractices',
+                hitsVar: 'frameworkHits',
+                findingsVar: 'frameworkFindings',
+                label: 'framework practice issue'
+            },
+            {
+                section: 'workspaceHealth',
+                hitsVar: 'workspaceHits',
+                findingsVar: 'workspaceFindings',
+                label: 'workspace health issue'
+            },
+            {
+                section: 'unusedDeps',
+                hitsVar: 'unusedDepHits',
+                findingsVar: 'unusedDepFindings',
+                label: 'unused dependency reference'
+            },
+            {
+                section: 'apiContract',
+                hitsVar: 'apiContractHits',
+                findingsVar: 'apiContractFindings',
+                label: 'API contract drift'
+            },
+            {
+                section: 'complexity',
+                hitsVar: 'complexityHits',
+                findingsVar: 'complexityFindings',
+                label: 'high complexity pattern'
+            },
             { section: 'llmSlop', hitsVar: 'llmSlopHits', findingsVar: 'llmSlopFindings', label: 'LLM slop pattern' },
-            { section: 'tokenBleed', hitsVar: 'tokenBleedHits', findingsVar: 'tokenBleedFindings', label: 'token bleed risk' },
-            { section: 'productionLeak', hitsVar: 'productionLeakHits', findingsVar: 'productionLeakFindings', label: 'production data leak' },
-            { section: 'fictionKpi', hitsVar: 'fictionKpiHits', findingsVar: 'fictionKpiFindings', label: 'hardcoded fiction KPI' },
-            { section: 'evalDanger', hitsVar: 'evalDangerHits', findingsVar: 'evalDangerFindings', label: 'dangerous eval usage' },
-            { section: 'innerHtmlXss', hitsVar: 'innerHtmlXssHits', findingsVar: 'innerHtmlXssFindings', label: 'innerHTML XSS risk' },
-            { section: 'prototypePollution', hitsVar: 'prototypePollutionHits', findingsVar: 'prototypePollutionFindings', label: 'prototype pollution risk' },
-            { section: 'unhandledPromise', hitsVar: 'unhandledPromiseHits', findingsVar: 'unhandledPromiseFindings', label: 'unhandled promise' },
-            { section: 'magicNumber', hitsVar: 'magicNumberHits', findingsVar: 'magicNumberFindings', label: 'magic number' },
-            { section: 'missingStrictMode', hitsVar: 'missingStrictModeHits', findingsVar: 'missingStrictModeFindings', label: 'missing strict mode' },
-            { section: 'uninitializedRead', hitsVar: 'uninitializedReadHits', findingsVar: 'uninitializedReadFindings', label: 'uninitialized variable read' },
-            { section: 'unvalidatedRedirect', hitsVar: 'unvalidatedRedirectHits', findingsVar: 'unvalidatedRedirectFindings', label: 'unvalidated redirect' },
-            { section: 'missingRateLimit', hitsVar: 'missingRateLimitHits', findingsVar: 'missingRateLimitFindings', label: 'missing rate limiting' },
-            { section: 'insecureRandom', hitsVar: 'insecureRandomHits', findingsVar: 'insecureRandomFindings', label: 'insecure random usage' },
-            { section: 'loggingSecrets', hitsVar: 'loggingSecretsHits', findingsVar: 'loggingSecretsFindings', label: 'secret in logs' },
-            { section: 'hardcodedConfidence', hitsVar: 'hardcodedConfidenceHits', findingsVar: 'hardcodedConfidenceFindings', label: 'hardcoded confidence score' },
-            { section: 'hardcodedCompletion', hitsVar: 'hardcodedCompletionHits', findingsVar: 'hardcodedCompletionFindings', label: 'hardcoded completion rate' },
-            { section: 'mockPathLeak', hitsVar: 'mockPathLeakHits', findingsVar: 'mockPathLeakFindings', label: 'mock/fixture path leak' },
-            { section: 'sampleJsonRef', hitsVar: 'sampleJsonRefHits', findingsVar: 'sampleJsonRefFindings', label: 'sample JSON reference' },
-            { section: 'governanceMarker', hitsVar: 'governanceMarkerHits', findingsVar: 'governanceMarkerFindings', label: 'license/governance marker' },
-            { section: 'aiPlaceholderComment', hitsVar: 'aiPlaceholderCommentHits', findingsVar: 'aiPlaceholderCommentFindings', label: 'AI placeholder comment' },
-            { section: 'aiPlaceholderBlock', hitsVar: 'aiPlaceholderBlockHits', findingsVar: 'aiPlaceholderBlockFindings', label: 'AI placeholder block comment' },
-            { section: 'markdownFenceLeak', hitsVar: 'markdownFenceLeakHits', findingsVar: 'markdownFenceLeakFindings', label: 'markdown fence leak' },
-            { section: 'emptyStubFunction', hitsVar: 'emptyStubFunctionHits', findingsVar: 'emptyStubFunctionFindings', label: 'empty stub function' },
-            { section: 'arrowStub', hitsVar: 'arrowStubHits', findingsVar: 'arrowStubFindings', label: 'arrow function stub' },
-            { section: 'roadmapMarker', hitsVar: 'roadmapMarkerHits', findingsVar: 'roadmapMarkerFindings', label: 'roadmap marker' }
+            {
+                section: 'tokenBleed',
+                hitsVar: 'tokenBleedHits',
+                findingsVar: 'tokenBleedFindings',
+                label: 'token bleed risk'
+            },
+            {
+                section: 'productionLeak',
+                hitsVar: 'productionLeakHits',
+                findingsVar: 'productionLeakFindings',
+                label: 'production data leak'
+            },
+            {
+                section: 'fictionKpi',
+                hitsVar: 'fictionKpiHits',
+                findingsVar: 'fictionKpiFindings',
+                label: 'hardcoded fiction KPI'
+            },
+            {
+                section: 'evalDanger',
+                hitsVar: 'evalDangerHits',
+                findingsVar: 'evalDangerFindings',
+                label: 'dangerous eval usage'
+            },
+            {
+                section: 'innerHtmlXss',
+                hitsVar: 'innerHtmlXssHits',
+                findingsVar: 'innerHtmlXssFindings',
+                label: 'innerHTML XSS risk'
+            },
+            {
+                section: 'prototypePollution',
+                hitsVar: 'prototypePollutionHits',
+                findingsVar: 'prototypePollutionFindings',
+                label: 'prototype pollution risk'
+            },
+            {
+                section: 'unhandledPromise',
+                hitsVar: 'unhandledPromiseHits',
+                findingsVar: 'unhandledPromiseFindings',
+                label: 'unhandled promise'
+            },
+            {
+                section: 'magicNumber',
+                hitsVar: 'magicNumberHits',
+                findingsVar: 'magicNumberFindings',
+                label: 'magic number'
+            },
+            {
+                section: 'missingStrictMode',
+                hitsVar: 'missingStrictModeHits',
+                findingsVar: 'missingStrictModeFindings',
+                label: 'missing strict mode'
+            },
+            {
+                section: 'uninitializedRead',
+                hitsVar: 'uninitializedReadHits',
+                findingsVar: 'uninitializedReadFindings',
+                label: 'uninitialized variable read'
+            },
+            {
+                section: 'unvalidatedRedirect',
+                hitsVar: 'unvalidatedRedirectHits',
+                findingsVar: 'unvalidatedRedirectFindings',
+                label: 'unvalidated redirect'
+            },
+            {
+                section: 'missingRateLimit',
+                hitsVar: 'missingRateLimitHits',
+                findingsVar: 'missingRateLimitFindings',
+                label: 'missing rate limiting'
+            },
+            {
+                section: 'insecureRandom',
+                hitsVar: 'insecureRandomHits',
+                findingsVar: 'insecureRandomFindings',
+                label: 'insecure random usage'
+            },
+            {
+                section: 'loggingSecrets',
+                hitsVar: 'loggingSecretsHits',
+                findingsVar: 'loggingSecretsFindings',
+                label: 'secret in logs'
+            },
+            {
+                section: 'hardcodedConfidence',
+                hitsVar: 'hardcodedConfidenceHits',
+                findingsVar: 'hardcodedConfidenceFindings',
+                label: 'hardcoded confidence score'
+            },
+            {
+                section: 'hardcodedCompletion',
+                hitsVar: 'hardcodedCompletionHits',
+                findingsVar: 'hardcodedCompletionFindings',
+                label: 'hardcoded completion rate'
+            },
+            {
+                section: 'mockPathLeak',
+                hitsVar: 'mockPathLeakHits',
+                findingsVar: 'mockPathLeakFindings',
+                label: 'mock/fixture path leak'
+            },
+            {
+                section: 'sampleJsonRef',
+                hitsVar: 'sampleJsonRefHits',
+                findingsVar: 'sampleJsonRefFindings',
+                label: 'sample JSON reference'
+            },
+            {
+                section: 'governanceMarker',
+                hitsVar: 'governanceMarkerHits',
+                findingsVar: 'governanceMarkerFindings',
+                label: 'license/governance marker'
+            },
+            {
+                section: 'aiPlaceholderComment',
+                hitsVar: 'aiPlaceholderCommentHits',
+                findingsVar: 'aiPlaceholderCommentFindings',
+                label: 'AI placeholder comment'
+            },
+            {
+                section: 'aiPlaceholderBlock',
+                hitsVar: 'aiPlaceholderBlockHits',
+                findingsVar: 'aiPlaceholderBlockFindings',
+                label: 'AI placeholder block comment'
+            },
+            {
+                section: 'markdownFenceLeak',
+                hitsVar: 'markdownFenceLeakHits',
+                findingsVar: 'markdownFenceLeakFindings',
+                label: 'markdown fence leak'
+            },
+            {
+                section: 'emptyStubFunction',
+                hitsVar: 'emptyStubFunctionHits',
+                findingsVar: 'emptyStubFunctionFindings',
+                label: 'empty stub function'
+            },
+            {
+                section: 'arrowStub',
+                hitsVar: 'arrowStubHits',
+                findingsVar: 'arrowStubFindings',
+                label: 'arrow function stub'
+            },
+            {
+                section: 'roadmapMarker',
+                hitsVar: 'roadmapMarkerHits',
+                findingsVar: 'roadmapMarkerFindings',
+                label: 'roadmap marker'
+            }
         ];
         const derived = {};
         for (const issue of detectedIssues) {
@@ -439,12 +1218,14 @@ async function generateSovereignCertificate(report, token, options = {}) {
             const schema = sectionSchema.find(s => s.section === sectionName);
             if (!schema) continue;
             const findings = (issue.findings || []).map(f => ({
-                file: typeof f === 'string' ? f : (f.file || f.filePath || 'unknown'),
+                file: typeof f === 'string' ? f : f.file || f.filePath || 'unknown',
                 type: issue.type,
-                matches: Array.isArray(f.matches) ? f.matches.slice(0, 3).map(m => ({
-                    line: m.line || 0,
-                    snippet: (m.snippet || '').slice(0, 120)
-                })) : []
+                matches: Array.isArray(f.matches)
+                    ? f.matches.slice(0, 3).map(m => ({
+                          line: m.line || 0,
+                          snippet: (m.snippet || '').slice(0, 120)
+                      }))
+                    : []
             }));
             const hits = issue.count || findings.length || 0;
             if (!derived[sectionName]) {
@@ -461,9 +1242,7 @@ async function generateSovereignCertificate(report, token, options = {}) {
         for (const s of sectionSchema) {
             if (derived[s.section]) {
                 const hits = derived[s.section][s.hitsVar];
-                derived[s.section].summary = hits > 0
-                    ? `${hits} ${s.label}(s) detected.`
-                    : `No ${s.label}s detected.`;
+                derived[s.section].summary = hits > 0 ? `${hits} ${s.label}(s) detected.` : `No ${s.label}s detected.`;
             }
         }
         return derived;
@@ -481,7 +1260,9 @@ async function generateSovereignCertificate(report, token, options = {}) {
     }
     // Include ALL per-module data regardless of tier so roadmaps have full detail
     for (const data of Object.values(perModuleData)) {
-        Object.entries(data).forEach(([k, v]) => { if (v != null) assembledReport[k] = v; });
+        Object.entries(data).forEach(([k, v]) => {
+            if (v != null) assembledReport[k] = v;
+        });
     }
     const filteredReport = assembledReport;
 
@@ -499,18 +1280,33 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const hasLicense = licenseCount > 0;
     const hasSecurity = securityCount > 0;
     const gradeConfig = {
-        'A': { label: 'Excellent', ringColor: '#3fb950', cssVar: 'var(--pass)' },
-        'B': { label: 'Low-Medium Risk', ringColor: '#3fb950', cssVar: 'var(--pass)' },
-        'C': { label: 'Medium Risk', ringColor: '#d29922', cssVar: 'var(--warn)' },
-        'D': { label: 'High Risk', ringColor: '#d29922', cssVar: 'var(--warn)' },
-        'F': { label: 'Critical Risk', ringColor: '#f85149', cssVar: 'var(--blocked)' }
+        A: { label: 'Excellent', ringColor: '#3fb950', cssVar: 'var(--pass)' },
+        B: { label: 'Low-Medium Risk', ringColor: '#3fb950', cssVar: 'var(--pass)' },
+        C: { label: 'Medium Risk', ringColor: '#d29922', cssVar: 'var(--warn)' },
+        D: { label: 'High Risk', ringColor: '#d29922', cssVar: 'var(--warn)' },
+        F: { label: 'Critical Risk', ringColor: '#f85149', cssVar: 'var(--blocked)' }
     };
     const gradeInfo = gradeConfig[grade] || gradeConfig['F'];
-    const companyInitials = escapeHtml(projectName).split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'SB';
+    const companyInitials =
+        escapeHtml(projectName)
+            .split(' ')
+            .map(w => w[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase() || 'SB';
 
     // Aggregate real findings from detectedIssues when gate buckets are empty
     const detectedIssues = report.detectedIssues || [];
-    const issueCounts = { credential: 0, debug: 0, architecture: 0, maintainability: 0, governance: 0, slop: 0, sensitive: 0, other: 0 };
+    const issueCounts = {
+        credential: 0,
+        debug: 0,
+        architecture: 0,
+        maintainability: 0,
+        governance: 0,
+        slop: 0,
+        sensitive: 0,
+        other: 0
+    };
     const severityCounts = { critical: 0, high: 0, medium: 0, low: 0 };
     for (const issue of detectedIssues) {
         const type = (issue.type || '').toLowerCase();
@@ -522,12 +1318,15 @@ async function generateSovereignCertificate(report, token, options = {}) {
         else if (type.includes('architecture')) issueCounts.architecture += count;
         else if (type.includes('maintainability')) issueCounts.maintainability += count;
         else if (type.includes('license') || type.includes('governance')) issueCounts.governance += count;
-        else if (type.includes('llm slop') || type.includes('ai residue') || type.includes('fiction')) issueCounts.slop += count;
-        else if (type.includes('sensitive') || type.includes('production leak') || type.includes('token bleed')) issueCounts.sensitive += count;
+        else if (type.includes('llm slop') || type.includes('ai residue') || type.includes('fiction'))
+            issueCounts.slop += count;
+        else if (type.includes('sensitive') || type.includes('production leak') || type.includes('token bleed'))
+            issueCounts.sensitive += count;
         else issueCounts.other += count;
     }
     const aiHits = aiResidueHits || issueCounts.slop || issueCounts.debug;
-    const credentialHits = issueCounts.credential || (gateReport.blockingFindings || []).length || gateReport.blockingCount || 0;
+    const credentialHits =
+        issueCounts.credential || (gateReport.blockingFindings || []).length || gateReport.blockingCount || 0;
     const governanceHits = issueCounts.governance;
 
     // Liability based on severity (conservative per-incident estimates)
@@ -536,47 +1335,91 @@ async function generateSovereignCertificate(report, token, options = {}) {
     const LIABILITY_MULTIPLIER_MEDIUM = 100000;
     const LIABILITY_MULTIPLIER_LOW = 25000;
     const LIABILITY_FORMAT_THRESHOLD = 1000000;
-    const liabilityRaw = (severityCounts.critical * LIABILITY_MULTIPLIER_CRITICAL)
-        + (severityCounts.high * LIABILITY_MULTIPLIER_HIGH)
-        + (severityCounts.medium * LIABILITY_MULTIPLIER_MEDIUM)
-        + (severityCounts.low * LIABILITY_MULTIPLIER_LOW);
-    const liabilityFormatted = liabilityRaw > 0
-        ? (liabilityRaw >= LIABILITY_FORMAT_THRESHOLD ? '$' + (liabilityRaw / LIABILITY_FORMAT_THRESHOLD).toFixed(1) + 'M' : '$' + liabilityRaw.toLocaleString())
-        : '$0';
+    const liabilityRaw =
+        severityCounts.critical * LIABILITY_MULTIPLIER_CRITICAL +
+        severityCounts.high * LIABILITY_MULTIPLIER_HIGH +
+        severityCounts.medium * LIABILITY_MULTIPLIER_MEDIUM +
+        severityCounts.low * LIABILITY_MULTIPLIER_LOW;
+    const liabilityFormatted =
+        liabilityRaw > 0
+            ? liabilityRaw >= LIABILITY_FORMAT_THRESHOLD
+                ? '$' + (liabilityRaw / LIABILITY_FORMAT_THRESHOLD).toFixed(1) + 'M'
+                : '$' + liabilityRaw.toLocaleString()
+            : '$0';
 
     const pillars = [];
     if (aiHits === 0) {
-        pillars.push({ status: 'pass', statusText: 'PASS', name: 'AI Slop & Hallucinations', detail: 'No unresolved LLM placeholders or fake metrics detected' });
+        pillars.push({
+            status: 'pass',
+            statusText: 'PASS',
+            name: 'AI Slop & Hallucinations',
+            detail: 'No unresolved LLM placeholders or fake metrics detected'
+        });
     } else {
-        pillars.push({ status: 'warn', statusText: 'WARNING', name: 'AI Slop & Hallucinations', detail: aiHits.toLocaleString() + ' AI residue / debug pattern(s) detected in source' });
+        pillars.push({
+            status: 'warn',
+            statusText: 'WARNING',
+            name: 'AI Slop & Hallucinations',
+            detail: aiHits.toLocaleString() + ' AI residue / debug pattern(s) detected in source'
+        });
     }
     if (credentialHits === 0) {
-        pillars.push({ status: 'pass', statusText: 'PASS', name: 'Credential Leaks', detail: 'No hardcoded credentials or API keys detected in source' });
+        pillars.push({
+            status: 'pass',
+            statusText: 'PASS',
+            name: 'Credential Leaks',
+            detail: 'No hardcoded credentials or API keys detected in source'
+        });
     } else {
-        pillars.push({ status: 'warn', statusText: 'WARNING', name: 'Credential Leaks', detail: credentialHits.toLocaleString() + ' credential pattern(s) detected — review before release' });
+        pillars.push({
+            status: 'warn',
+            statusText: 'WARNING',
+            name: 'Credential Leaks',
+            detail: credentialHits.toLocaleString() + ' credential pattern(s) detected — review before release'
+        });
     }
     if (aiSdkCount === 0) {
-        pillars.push({ status: 'pass', statusText: 'PASS', name: 'Shadow AI Systems', detail: 'No undocumented AI integrations detected' });
+        pillars.push({
+            status: 'pass',
+            statusText: 'PASS',
+            name: 'Shadow AI Systems',
+            detail: 'No undocumented AI integrations detected'
+        });
     } else {
-        pillars.push({ status: gatePassed ? 'pass' : 'warn', statusText: gatePassed ? 'PASS' : 'REVIEW', name: 'Shadow AI Systems', detail: aiSdkCount.toLocaleString() + ' AI SDK reference(s) detected — verify compliance documentation' });
+        pillars.push({
+            status: gatePassed ? 'pass' : 'warn',
+            statusText: gatePassed ? 'PASS' : 'REVIEW',
+            name: 'Shadow AI Systems',
+            detail: aiSdkCount.toLocaleString() + ' AI SDK reference(s) detected — verify compliance documentation'
+        });
     }
     if (hasLicense && hasSecurity && governanceHits === 0) {
-        pillars.push({ status: 'pass', statusText: 'PASS', name: 'Licensing & IP Verification', detail: licenseCount + ' license file(s), ' + securityCount + ' governance file(s) present' });
+        pillars.push({
+            status: 'pass',
+            statusText: 'PASS',
+            name: 'Licensing & IP Verification',
+            detail: licenseCount + ' license file(s), ' + securityCount + ' governance file(s) present'
+        });
     } else {
-        const govDetail = governanceHits > 0
-            ? governanceHits.toLocaleString() + ' governance marker(s) detected — review license compatibility'
-            : 'Missing governance files — add LICENSE and SECURITY.md';
+        const govDetail =
+            governanceHits > 0
+                ? governanceHits.toLocaleString() + ' governance marker(s) detected — review license compatibility'
+                : 'Missing governance files — add LICENSE and SECURITY.md';
         pillars.push({ status: 'warn', statusText: 'REVIEW', name: 'Licensing & IP Verification', detail: govDetail });
     }
-    const pillarsHtml = pillars.map(p => `    <div class="pillar">
+    const pillarsHtml = pillars
+        .map(
+            p => `    <div class="pillar">
         <div class="status ${p.status}">${p.statusText}</div>
         <div class="name">${escapeHtml(p.name)}</div>
         <div class="detail">${escapeHtml(p.detail)}</div>
-    </div>`).join('\n');
+    </div>`
+        )
+        .join('\n');
     const validThrough = new Date(isoDate);
     validThrough.setFullYear(validThrough.getFullYear() + 1);
     const validThroughStr = validThrough.toLocaleDateString();
-    const tokenDisplay = token.length >= 12 ? token.slice(0,8) + '...' + token.slice(-4) : (token || 'N/A');
+    const tokenDisplay = token.length >= 12 ? token.slice(0, 8) + '...' + token.slice(-4) : token || 'N/A';
 
     const certHtml = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>SimpleBeacon Executive Risk Certificate — ${escapeHtml(projectName)}</title>
@@ -708,15 +1551,19 @@ Generated entirely in-browser. Zero data uploaded.
         if (blocking.length) {
             items.push('## Blocking Issues\n');
             blocking.forEach((i, idx) => {
-                const fp = Array.isArray(i.filePath) ? i.filePath.join(', ') : (i.filePath || 'N/A');
-                items.push(`${idx + 1}. **${i.type || 'Issue'}** — ${(i.severity || '').toUpperCase()}\n   - File(s): ${fp}\n   - Count: ${i.count || 0}${i.fix ? '\n   - Remediation: ' + i.fix : ''}`);
+                const fp = Array.isArray(i.filePath) ? i.filePath.join(', ') : i.filePath || 'N/A';
+                items.push(
+                    `${idx + 1}. **${i.type || 'Issue'}** — ${(i.severity || '').toUpperCase()}\n   - File(s): ${fp}\n   - Count: ${i.count || 0}${i.fix ? '\n   - Remediation: ' + i.fix : ''}`
+                );
             });
         }
         if (warnings.length) {
             items.push('## Warnings\n');
             warnings.forEach((i, idx) => {
-                const fp = Array.isArray(i.filePath) ? i.filePath.join(', ') : (i.filePath || 'N/A');
-                items.push(`${idx + 1}. **${i.type || 'Issue'}** — ${(i.severity || '').toUpperCase()}\n   - File(s): ${fp}\n   - Count: ${i.count || 0}${i.fix ? '\n   - Remediation: ' + i.fix : ''}`);
+                const fp = Array.isArray(i.filePath) ? i.filePath.join(', ') : i.filePath || 'N/A';
+                items.push(
+                    `${idx + 1}. **${i.type || 'Issue'}** — ${(i.severity || '').toUpperCase()}\n   - File(s): ${fp}\n   - Count: ${i.count || 0}${i.fix ? '\n   - Remediation: ' + i.fix : ''}`
+                );
             });
         }
         const findingsMd = `# Gate Findings Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n**Blocking:** ${blocking.length}\n**Warnings:** ${warnings.length}\n\n${items.length ? items.join('\n\n') : 'No blocking or warning issues detected.'}\n`;
@@ -744,7 +1591,9 @@ Generated entirely in-browser. Zero data uploaded.
     if (allowedModules.includes('4')) {
         const phases = filteredReport.remediationPhases || [];
         const rm = filteredReport.roadmap || {};
-        const roadmapMd = phases.length ? `# 5-Phase Compliance Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n**Todo Items:** ${rm.todoCount || 0}\n\n${phases.map((p, idx) => `## ${idx + 1}. ${p.title || 'Untitled Phase'}\n\n${p.description || ''}\n\n- **Severity:** ${p.severity || 'N/A'}\n- **Effort:** ${p.effort || 'N/A'}\n- **Status:** ${p.status || 'N/A'}\n- **Progress:** ${p.progress ?? 0}%\n\n${(p.tasks || []).map(t => `- ${t}`).join('\n')}\n`).join('\n\n')}\n` : `# Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n${rm.summary || 'No roadmap data available.'}\n`;
+        const roadmapMd = phases.length
+            ? `# 5-Phase Compliance Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n**Todo Items:** ${rm.todoCount || 0}\n\n${phases.map((p, idx) => `## ${idx + 1}. ${p.title || 'Untitled Phase'}\n\n${p.description || ''}\n\n- **Severity:** ${p.severity || 'N/A'}\n- **Effort:** ${p.effort || 'N/A'}\n- **Status:** ${p.status || 'N/A'}\n- **Progress:** ${p.progress ?? 0}%\n\n${(p.tasks || []).map(t => `- ${t}`).join('\n')}\n`).join('\n\n')}\n`
+            : `# Roadmap\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n${rm.summary || 'No roadmap data available.'}\n`;
         zip.file('roadmap.md', roadmapMd);
     }
 
@@ -760,32 +1609,76 @@ Generated entirely in-browser. Zero data uploaded.
         const daysUntil = Math.max(0, Math.ceil((deadlineDate - new Date(dateStr)) / (1000 * 60 * 60 * 24)));
 
         // Control cards
-        const controlCards = euControls.length ? euControls.map(c => `### ${c.controlId}: ${c.title}\n\n- **Article:** ${c.article || 'N/A'}\n- **Status:** ${c.status || 'N/A'}\n- **Severity:** ${c.severity || 'N/A'}\n- **Evidence:** ${c.evidence || 'N/A'}\n- **Action:** ${c.action || 'N/A'}\n`).join('\n') : 'No controls data available.';
+        const controlCards = euControls.length
+            ? euControls
+                  .map(
+                      c =>
+                          `### ${c.controlId}: ${c.title}\n\n- **Article:** ${c.article || 'N/A'}\n- **Status:** ${c.status || 'N/A'}\n- **Severity:** ${c.severity || 'N/A'}\n- **Evidence:** ${c.evidence || 'N/A'}\n- **Action:** ${c.action || 'N/A'}\n`
+                  )
+                  .join('\n')
+            : 'No controls data available.';
 
         // Risk matrix — use worst control status to drive overall risk, not just AI counts
-        const worstControl = euControls.length ? euControls.reduce((w, c) => {
-            const rank = { 'FAIL': 4, 'WARN': 3, 'REVIEW': 2, 'PASS': 1 };
-            return rank[c.status] > rank[w.status] ? c : w;
-        }, euControls[0]) : null;
-        const likelihood = aiCount > 5 ? 'High' : (aiCount > 0 ? 'Medium' : 'Low');
-        const impact = (worstControl && (worstControl.severity === 'critical' || worstControl.severity === 'high')) ? 'High' : (hrCount > 0 ? 'High' : (aiCount > 0 ? 'Medium' : 'Low'));
-        const riskLevel = (likelihood === 'High' || impact === 'High') ? 'High' : (likelihood === 'Medium' || impact === 'Medium') ? 'Medium' : 'Low';
-        const riskColor = riskLevel === 'High' ? '🔴' : (riskLevel === 'Medium' ? '🟡' : '🟢');
+        const worstControl = euControls.length
+            ? euControls.reduce((w, c) => {
+                  const rank = { FAIL: 4, WARN: 3, REVIEW: 2, PASS: 1 };
+                  return rank[c.status] > rank[w.status] ? c : w;
+              }, euControls[0])
+            : null;
+        const likelihood = aiCount > 5 ? 'High' : aiCount > 0 ? 'Medium' : 'Low';
+        const impact =
+            worstControl && (worstControl.severity === 'critical' || worstControl.severity === 'high')
+                ? 'High'
+                : hrCount > 0
+                  ? 'High'
+                  : aiCount > 0
+                    ? 'Medium'
+                    : 'Low';
+        const riskLevel =
+            likelihood === 'High' || impact === 'High'
+                ? 'High'
+                : likelihood === 'Medium' || impact === 'Medium'
+                  ? 'Medium'
+                  : 'Low';
+        const riskColor = riskLevel === 'High' ? '🔴' : riskLevel === 'Medium' ? '🟡' : '🟢';
 
         // Remediation guide — PASS = no open task; REVIEW/WARN/FAIL = open task
-        const remediationGuide = euControls.map(c => {
-            if (c.status === 'PASS') return `- [ ] **${c.controlId}** — No open action. ${c.action}`;
-            if (c.status === 'FAIL') return `- [ ] **${c.controlId}** — 🚨 **BLOCK RELEASE** until risk assessment and conformity documentation are complete.`;
-            return `- [ ] **${c.controlId}** — ${c.action}`;
-        }).join('\n');
+        const remediationGuide = euControls
+            .map(c => {
+                if (c.status === 'PASS') return `- [ ] **${c.controlId}** — No open action. ${c.action}`;
+                if (c.status === 'FAIL')
+                    return `- [ ] **${c.controlId}** — 🚨 **BLOCK RELEASE** until risk assessment and conformity documentation are complete.`;
+                return `- [ ] **${c.controlId}** — ${c.action}`;
+            })
+            .join('\n');
 
         // Documentation checklist
         const requiredDocs = [
-            { name: 'Model Card', pattern: /model[-_\s]?card/i, found: docsFound.some(d => /model[-_\s]?card/i.test(d)) },
-            { name: 'Risk Assessment / FRIA', pattern: /risk[-_\s]?assessment|fundamental[-_\s]?rights/i, found: docsFound.some(d => /risk[-_\s]?assessment|fundamental[-_\s]?rights/i.test(d)) },
-            { name: 'Technical Documentation', pattern: /technical[-_\s]?documentation|ai[-_\s]?system[-_\s]?documentation/i, found: docsFound.some(d => /technical[-_\s]?documentation/i.test(d)) },
-            { name: 'Conformity Declaration', pattern: /conformity[-_\s]?declaration/i, found: docsFound.some(d => /conformity[-_\s]?declaration/i.test(d)) },
-            { name: 'EU AI Act Reference', pattern: /eu[-_\s]?ai[-_\s]?act/i, found: docsFound.some(d => /eu[-_\s]?ai[-_\s]?act/i.test(d)) }
+            {
+                name: 'Model Card',
+                pattern: /model[-_\s]?card/i,
+                found: docsFound.some(d => /model[-_\s]?card/i.test(d))
+            },
+            {
+                name: 'Risk Assessment / FRIA',
+                pattern: /risk[-_\s]?assessment|fundamental[-_\s]?rights/i,
+                found: docsFound.some(d => /risk[-_\s]?assessment|fundamental[-_\s]?rights/i.test(d))
+            },
+            {
+                name: 'Technical Documentation',
+                pattern: /technical[-_\s]?documentation|ai[-_\s]?system[-_\s]?documentation/i,
+                found: docsFound.some(d => /technical[-_\s]?documentation/i.test(d))
+            },
+            {
+                name: 'Conformity Declaration',
+                pattern: /conformity[-_\s]?declaration/i,
+                found: docsFound.some(d => /conformity[-_\s]?declaration/i.test(d))
+            },
+            {
+                name: 'EU AI Act Reference',
+                pattern: /eu[-_\s]?ai[-_\s]?act/i,
+                found: docsFound.some(d => /eu[-_\s]?ai[-_\s]?act/i.test(d))
+            }
         ];
         const docChecklist = requiredDocs.map(d => `- [${d.found ? 'x' : ' '}] ${d.name}`).join('\n');
 
@@ -797,7 +1690,9 @@ Generated entirely in-browser. Zero data uploaded.
     if (allowedModules.includes('5')) {
         const cb = filteredReport.codebase || {};
         const langBreakdown = cb.languageBreakdown || {};
-        const langRows = Object.entries(langBreakdown).map(([lang, count]) => `| ${lang} | ${count} |`).join('\n');
+        const langRows = Object.entries(langBreakdown)
+            .map(([lang, count]) => `| ${lang} | ${count} |`)
+            .join('\n');
         const cbMd = `# Codebase Analysis\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Total Files | ${cb.totalFiles || 0} |\n| Total Lines | ${(cb.totalLines || 0).toLocaleString()} |\n| Avg Lines/File | ${cb.averageLinesPerFile || 0} |\n\n${langRows ? `## Language Breakdown\n\n| Language | Files |\n|---|---|\n${langRows}\n` : ''}\n`;
         zip.file('codebase.md', cbMd);
     }
@@ -825,7 +1720,7 @@ Generated entirely in-browser. Zero data uploaded.
         const bloatCount = cl.bloatArtifactCount || 0;
         const debugFiles = (cl.debugArtifacts || []).slice(0, 10);
         const bloatFiles = (cl.bloatArtifacts || []).slice(0, 10);
-        const clMd = `# Cleanup & Hygiene Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Debug Artifacts | ${debugCount} |\n| Bloat Files | ${bloatCount} |\n\n${debugFiles.length ? `## Debug Artifacts\n\n${debugFiles.map(f => typeof f === 'string' ? `- ${f}` : `- ${f.file || 'N/A'}`).join('\n')}\n` : ''}${bloatFiles.length ? `## Bloat Files\n\n${bloatFiles.map(f => typeof f === 'string' ? `- ${f}` : `- ${f.file || 'N/A'}`).join('\n')}\n` : ''}> Remove debug artifacts and bloat files before production builds.\n`;
+        const clMd = `# Cleanup & Hygiene Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n| Metric | Value |\n|---|---|\n| Debug Artifacts | ${debugCount} |\n| Bloat Files | ${bloatCount} |\n\n${debugFiles.length ? `## Debug Artifacts\n\n${debugFiles.map(f => (typeof f === 'string' ? `- ${f}` : `- ${f.file || 'N/A'}`)).join('\n')}\n` : ''}${bloatFiles.length ? `## Bloat Files\n\n${bloatFiles.map(f => (typeof f === 'string' ? `- ${f}` : `- ${f.file || 'N/A'}`)).join('\n')}\n` : ''}> Remove debug artifacts and bloat files before production builds.\n`;
         zip.file('cleanup.md', clMd);
     }
 
@@ -867,19 +1762,49 @@ Generated entirely in-browser. Zero data uploaded.
             { name: 'Lockfile', found: lowerPaths.some(p => /package-lock\.json|yarn\.lock|pnpm-lock\.yaml/.test(p)) },
             { name: 'README', found: lowerPaths.some(p => /readme\.?/.test(p)) },
             { name: 'CHANGELOG', found: lowerPaths.some(p => /changelog|changes|history/i.test(p)) },
-            { name: 'Tests', found: lowerPaths.some(p => /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)) },
-            { name: 'CI/CD', found: lowerPaths.some(p => /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(p)) },
+            {
+                name: 'Tests',
+                found: lowerPaths.some(p =>
+                    /test|spec|\.test\.|\.spec\.|__tests__|jest\.config|vitest\.config|cypress/i.test(p)
+                )
+            },
+            {
+                name: 'CI/CD',
+                found: lowerPaths.some(p =>
+                    /\.github\/workflows|\.gitlab-ci|jenkins|\.circleci|\.travis|azure-pipelines|build\.yml|deploy\.yml/i.test(
+                        p
+                    )
+                )
+            },
             { name: 'Docker', found: lowerPaths.some(p => /dockerfile|docker-compose|\.dockerignore/i.test(p)) },
-            { name: 'Linting/Formatting', found: lowerPaths.some(p => /eslint|prettier|\.editorconfig|lint-staged|husky/i.test(p)) },
+            {
+                name: 'Linting/Formatting',
+                found: lowerPaths.some(p => /eslint|prettier|\.editorconfig|lint-staged|husky/i.test(p))
+            },
             { name: 'TypeScript Config', found: lowerPaths.some(p => /tsconfig|\.ts$/i.test(p)) },
-            { name: 'Build Tool Config', found: lowerPaths.some(p => /(webpack|rollup|vite|esbuild|parcel|babel|gulpfile|gruntfile)/i.test(p)) },
-            { name: '.env.example', found: lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p)) },
+            {
+                name: 'Build Tool Config',
+                found: lowerPaths.some(p => /(webpack|rollup|vite|esbuild|parcel|babel|gulpfile|gruntfile)/i.test(p))
+            },
+            {
+                name: '.env.example',
+                found: lowerPaths.some(p => /\.env\.example|\.env\.sample|\.env\.template/i.test(p))
+            },
             { name: '.gitignore', found: lowerPaths.some(p => p.includes('.gitignore')) },
-            { name: 'Build artifacts ignored', found: !lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p) && !/node_modules\//.test(p)) }
+            {
+                name: 'Build artifacts ignored',
+                found: !lowerPaths.some(p => /\/(dist|build|\.next|out)\//.test(p) && !/node_modules\//.test(p))
+            }
         ];
-        const readinessScore = Math.round(((checks.filter(c => c.found).length / checks.length) * 100));
-        const present = checks.filter(c => c.found).map(c => `- [x] ${c.name}`).join('\n');
-        const missing = checks.filter(c => !c.found).map(c => `- [ ] ${c.name}`).join('\n');
+        const readinessScore = Math.round((checks.filter(c => c.found).length / checks.length) * 100);
+        const present = checks
+            .filter(c => c.found)
+            .map(c => `- [x] ${c.name}`)
+            .join('\n');
+        const missing = checks
+            .filter(c => !c.found)
+            .map(c => `- [ ] ${c.name}`)
+            .join('\n');
         const brMd = `# Build Readiness Report\n\n**Project:** ${projectName}\n**Date:** ${dateStr}\n\n**Score:** ${readinessScore}%\n\n## Present\n\n${present}\n\n## Missing\n\n${missing}\n`;
         zip.file('build-readiness.md', brMd);
     }
@@ -909,42 +1834,60 @@ Generated entirely in-browser. Zero data uploaded.
     }
 
     // Modules 17-32: schema-driven markdown generation
-    ZIP_MARKDOWN_TEMPLATES.forEach(t => generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectName, dateStr, t));
+    ZIP_MARKDOWN_TEMPLATES.forEach(t =>
+        generateZipModuleMarkdown(zip, allowedModules, filteredReport, projectName, dateStr, t)
+    );
 
     // Executive Summary — consolidated overview of all included modules
     const execSections = [];
     if (allowedModules.includes('1')) {
         const g = filteredReport.gateReport || filteredReport.gate || {};
-        execSections.push(`## Gate Scan\n- Blocking: ${(g.blockingIssues || []).length}\n- Warnings: ${(g.warningIssues || []).length}\n- Status: ${g.pass ? 'PASS' : 'BLOCKED'}`);
+        execSections.push(
+            `## Gate Scan\n- Blocking: ${(g.blockingIssues || []).length}\n- Warnings: ${(g.warningIssues || []).length}\n- Status: ${g.pass ? 'PASS' : 'BLOCKED'}`
+        );
     }
     if (allowedModules.includes('5')) {
         const cb = filteredReport.codebase || {};
-        execSections.push(`## Codebase Analysis\n- Files: ${cb.totalFiles || 0}\n- Lines: ${(cb.totalLines || 0).toLocaleString()}\n- Avg lines/file: ${cb.averageLinesPerFile || 0}`);
+        execSections.push(
+            `## Codebase Analysis\n- Files: ${cb.totalFiles || 0}\n- Lines: ${(cb.totalLines || 0).toLocaleString()}\n- Avg lines/file: ${cb.averageLinesPerFile || 0}`
+        );
     }
     if (allowedModules.includes('7')) {
         const dq = filteredReport.dataQuality || {};
-        execSections.push(`## Data Quality\n- Invalid JSON: ${dq.invalidJsonCount || 0}\n- Empty JSON: ${dq.emptyJsonCount || 0}\n- Schema compliance: ${dq.schemaCompliance != null ? dq.schemaCompliance + '%' : 'N/A'}`);
+        execSections.push(
+            `## Data Quality\n- Invalid JSON: ${dq.invalidJsonCount || 0}\n- Empty JSON: ${dq.emptyJsonCount || 0}\n- Schema compliance: ${dq.schemaCompliance != null ? dq.schemaCompliance + '%' : 'N/A'}`
+        );
     }
     if (allowedModules.includes('9')) {
         const npm = filteredReport.npmAudit || {};
-        execSections.push(`## npm Audit\n- package.json files: ${npm.packageJsonCount || 0}\n- Dependencies: ${(npm.dependencyCount || 0).toLocaleString()}`);
+        execSections.push(
+            `## npm Audit\n- package.json files: ${npm.packageJsonCount || 0}\n- Dependencies: ${(npm.dependencyCount || 0).toLocaleString()}`
+        );
     }
     if (allowedModules.includes('10')) {
         const comp = filteredReport.compliance || {};
-        execSections.push(`## Compliance\n- License files: ${comp.licenseCount || 0}\n- Security files: ${comp.securityCount || 0}`);
+        execSections.push(
+            `## Compliance\n- License files: ${comp.licenseCount || 0}\n- Security files: ${comp.securityCount || 0}`
+        );
     }
     if (allowedModules.includes('11')) {
         const eu = filteredReport.euAiActSummary || {};
         const euControls = eu.controls || [];
-        execSections.push(`## EU AI Act\n- AI indicators: ${eu.aiSystemIndicators || 0}\n- High risk: ${eu.highRiskIndicators || 0}\n- Transparency gaps: ${eu.transparencyGaps || 0}\n\n### Controls\n\n| Control ID | Article | Status | Severity | Action |\n|---|---|---|---|---|\n${euControls.map(c => `| ${c.controlId} | ${(c.article || '').split(',').pop()?.trim() || 'N/A'} | ${c.status} | ${c.severity} | ${c.action.substring(0, 60)}${c.action.length > 60 ? '...' : ''} |`).join('\n')}`);
+        execSections.push(
+            `## EU AI Act\n- AI indicators: ${eu.aiSystemIndicators || 0}\n- High risk: ${eu.highRiskIndicators || 0}\n- Transparency gaps: ${eu.transparencyGaps || 0}\n\n### Controls\n\n| Control ID | Article | Status | Severity | Action |\n|---|---|---|---|---|\n${euControls.map(c => `| ${c.controlId} | ${(c.article || '').split(',').pop()?.trim() || 'N/A'} | ${c.status} | ${c.severity} | ${c.action.substring(0, 60)}${c.action.length > 60 ? '...' : ''} |`).join('\n')}`
+        );
     }
     if (allowedModules.includes('12')) {
         const dep = filteredReport.dependencyAudit || filteredReport.vulnerabilityAudit || {};
-        execSections.push(`## Dependency Vulnerabilities\n- Total: ${dep.vulnerabilityCount || 0}\n- Critical: ${dep.critical || 0}\n- High: ${dep.high || 0}`);
+        execSections.push(
+            `## Dependency Vulnerabilities\n- Total: ${dep.vulnerabilityCount || 0}\n- Critical: ${dep.critical || 0}\n- High: ${dep.high || 0}`
+        );
     }
     if (allowedModules.includes('15')) {
         const gov = filteredReport.governance || {};
-        execSections.push(`## Governance\n- License headers: ${gov.licenseHeaders || 0}\n- Copyright notices: ${gov.copyrightNotices || 0}`);
+        execSections.push(
+            `## Governance\n- License headers: ${gov.licenseHeaders || 0}\n- Copyright notices: ${gov.copyrightNotices || 0}`
+        );
     }
     if (allowedModules.includes('16')) {
         const junk = filteredReport.junkFiles || {};
@@ -1031,17 +1974,23 @@ Generated entirely in-browser. Zero data uploaded.
         createdModules++;
     }
 
-
-    zip.file('manifest.json', JSON.stringify({
-        generator: 'SimpleBeacon Sovereign Engine v1.4.0',
-        timestamp: isoDate,
-        certificateId: certId,
-        tokenPrefix: token.slice(0,8) + '...',
-        reportIntegrity: reportHash,
-        localOnly: true,
-        zeroUpload: true,
-        includedModules: allowedModules
-    }, null, 2));
+    zip.file(
+        'manifest.json',
+        JSON.stringify(
+            {
+                generator: 'SimpleBeacon Sovereign Engine v1.4.0',
+                timestamp: isoDate,
+                certificateId: certId,
+                tokenPrefix: token.slice(0, 8) + '...',
+                reportIntegrity: reportHash,
+                localOnly: true,
+                zeroUpload: true,
+                includedModules: allowedModules
+            },
+            null,
+            2
+        )
+    );
 
     try {
         const zipBlob = await zip.generateAsync({
@@ -1060,12 +2009,19 @@ Generated entirely in-browser. Zero data uploaded.
         a.download = certFilename;
         a.style.display = 'none';
         document.body.appendChild(a);
-        try { a.click(); } catch (e) { window.open(url, '_blank'); }
+        try {
+            a.click();
+        } catch (e) {
+            window.open(url, '_blank');
+        }
         if (typeof window.notifyDownloadComplete === 'function') {
             window.notifyDownloadComplete(certFilename);
         }
         // Revoke after 30s to ensure download completes
-        setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 30000);
+        setTimeout(() => {
+            a.remove();
+            URL.revokeObjectURL(url);
+        }, 30000);
     } catch (zipErr) {
         throw new Error('Failed to generate certificate ZIP: ' + (zipErr.message || zipErr));
     }
@@ -1096,9 +2052,25 @@ async function doGenerateCertificate(buttonEl) {
 
     try {
         // #region agent log
-        fetch('http://127.0.0.1:7922/ingest/2673d1f5-1edc-4e4e-a080-b860dd66c617',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3df64e'},body:JSON.stringify({sessionId:'3df64e',hypothesisId:'A,B',location:'certificate-module.js:doGenerateCertificate',message:'cert generate start',data:{hasJSZip:Boolean(window.JSZip),hasReport:Boolean(reportData),reportType:reportData?.type||null,issueCount:reportData?.issueCount??null},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7922/ingest/2673d1f5-1edc-4e4e-a080-b860dd66c617', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3df64e' },
+            body: JSON.stringify({
+                sessionId: '3df64e',
+                hypothesisId: 'A,B',
+                location: 'certificate-module.js:doGenerateCertificate',
+                message: 'cert generate start',
+                data: {
+                    hasJSZip: Boolean(window.JSZip),
+                    hasReport: Boolean(reportData),
+                    reportType: reportData?.type || null,
+                    issueCount: reportData?.issueCount ?? null
+                },
+                timestamp: Date.now()
+            })
+        }).catch(() => {});
         // #endregion
-        const creds = (typeof getCertificateCredentials === 'function') ? getCertificateCredentials() : {};
+        const creds = typeof getCertificateCredentials === 'function' ? getCertificateCredentials() : {};
         await generateSovereignCertificate(reportData, token, creds);
         updateStepper();
         const CERT_TOAST_DURATION = 6000;
@@ -1108,7 +2080,18 @@ async function doGenerateCertificate(buttonEl) {
     } catch (err) {
         const errMsg = (err && err.message) || (typeof err === 'string' ? err : JSON.stringify(err));
         // #region agent log
-        fetch('http://127.0.0.1:7922/ingest/2673d1f5-1edc-4e4e-a080-b860dd66c617',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3df64e'},body:JSON.stringify({sessionId:'3df64e',hypothesisId:'A,B,C',location:'certificate-module.js:doGenerateCertificate',message:'cert generate failed',data:{errMsg,hasJSZip:Boolean(window.JSZip),hasReport:Boolean(reportData)},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7922/ingest/2673d1f5-1edc-4e4e-a080-b860dd66c617', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '3df64e' },
+            body: JSON.stringify({
+                sessionId: '3df64e',
+                hypothesisId: 'A,B,C',
+                location: 'certificate-module.js:doGenerateCertificate',
+                message: 'cert generate failed',
+                data: { errMsg, hasJSZip: Boolean(window.JSZip), hasReport: Boolean(reportData) },
+                timestamp: Date.now()
+            })
+        }).catch(() => {});
         // #endregion
         appendTerminalLine(`Certificate generation failed: ${errMsg || 'Unknown error'}`, 'error');
         showToast(errMsg || 'Certificate generation failed', 'error');
@@ -1121,7 +2104,8 @@ async function doGenerateCertificate(buttonEl) {
             span.textContent = errMsg || 'Unknown error';
             const btn = document.createElement('button');
             btn.id = 'retryCertBtn';
-            btn.style.cssText = 'padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;';
+            btn.style.cssText =
+                'padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;';
             btn.textContent = 'Retry';
             wrap.appendChild(span);
             wrap.appendChild(btn);

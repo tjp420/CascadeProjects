@@ -29,8 +29,8 @@ export default [
         projectPath: 'readonly',
         resolveEslintTargets: 'readonly',
         runNpmAudit: 'readonly',
-        scanCmd: 'readonly'
-      }
+        scanCmd: 'readonly',
+      },
     },
     rules: {
       'no-unused-vars': 'off',
@@ -38,13 +38,13 @@ export default [
       'no-control-regex': 'off',
       'no-empty': 'off',
       'no-unsafe-finally': 'off',
-      'semi': 'off',
-      'quotes': 'off',
-      'indent': 'off',
+      semi: 'off',
+      quotes: 'off',
+      indent: 'off',
       'no-useless-assignment': 'off',
       'no-useless-escape': 'off',
-      'preserve-caught-error': 'off'
-    }
+      'preserve-caught-error': 'off',
+    },
   },
   {
     ignores: [
@@ -65,7 +65,7 @@ export default [
       'web/simplebeacon-dashboard/pages-publish/**',
       'web/dashboard/dist/**',
       'web/dashboard/pages-publish/**',
-      'local-agent/**'
-    ]
-  }
+      'local-agent/**',
+    ],
+  },
 ];

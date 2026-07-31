@@ -16,10 +16,10 @@ export function run(): Promise<void> {
 
   return new Promise((resolve, reject) => {
     glob('**/*.test.js', { cwd: testsRoot })
-      .then(files => {
+      .then((files) => {
         // eslint-disable-next-line no-console
         console.log('[SB Test] Found test files:', files);
-        files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+        files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
 
         try {
           const runner = mocha.run((failures: number) => {
@@ -34,7 +34,9 @@ export function run(): Promise<void> {
 
           runner.on('start', () => {
             // eslint-disable-next-line no-console
-            console.log(`[SB Test] Mocha started. Suite count: ${runner.suite.suites.length}, Test count: ${runner.suite.tests.length}`);
+            console.log(
+              `[SB Test] Mocha started. Suite count: ${runner.suite.suites.length}, Test count: ${runner.suite.tests.length}`
+            );
           });
 
           runner.on('fail', (test: any, err: Error) => {
@@ -50,6 +52,6 @@ export function run(): Promise<void> {
           reject(err);
         }
       })
-      .catch(err => reject(err));
+      .catch((err) => reject(err));
   });
 }

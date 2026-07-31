@@ -24,7 +24,12 @@ function clamp(value, min, max) {
  * @returns {boolean}
  */
 function isValidEncoding(enc) {
-  return typeof enc === 'string' && enc.length > 0 && typeof Buffer !== 'undefined' && Buffer.isEncoding(enc);
+  return (
+    typeof enc === 'string' &&
+    enc.length > 0 &&
+    typeof Buffer !== 'undefined' &&
+    Buffer.isEncoding(enc)
+  );
 }
 
 /**
@@ -46,7 +51,7 @@ function getEncodingForExt(ext) {
     '.bin': 'binary',
     '.dat': 'binary',
     '.db': 'binary',
-    '.wasm': 'binary'
+    '.wasm': 'binary',
   };
   if (typeof ext !== 'string') return DEFAULT_ENCODING;
   return map[ext.toLowerCase()] || DEFAULT_ENCODING;
@@ -56,5 +61,5 @@ module.exports = Object.freeze({
   DEFAULT_ENCODING,
   clamp,
   isValidEncoding,
-  getEncodingForExt
+  getEncodingForExt,
 });

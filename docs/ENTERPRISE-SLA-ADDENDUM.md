@@ -16,16 +16,16 @@ SimpleBeacon.ai ("Provider") delivers a deterministic, locally-executed AI risk 
 
 ### 1.1 Included Services
 
-| Service Component | Description |
-|---|---|
-| **SimpleBeacon CLI** | Deterministic scanning engine — runs 100% on customer infrastructure |
-| **Executive Risk Certificate** | Cryptographically signed PDF with A–F risk grade and financial liability estimates |
-| **EU AI Act Compliance Assessment** | JSON report mapping findings to Article 11/12/14/19 obligations |
-| **Azure DevOps / GitHub Actions Integration** | CI/CD pipeline gating with configurable failure thresholds |
-| **Enterprise Admin Dashboard** | Multi-tenant management with seat pooling, trial monitoring, and KPI overlays |
-| **Immutable Audit Ledger** | SHA-256 hash-chained append-only audit trail for all administrative actions |
-| **SSO Identity Federation** | SAML 2.0 / OIDC integration with Okta, Azure AD, Ping Identity, Auth0 |
-| **Custom Rule Engine** | Regex and AST-walker rule authoring for organization-specific guardrails |
+| Service Component                             | Description                                                                        |
+| --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **SimpleBeacon CLI**                          | Deterministic scanning engine — runs 100% on customer infrastructure               |
+| **Executive Risk Certificate**                | Cryptographically signed PDF with A–F risk grade and financial liability estimates |
+| **EU AI Act Compliance Assessment**           | JSON report mapping findings to Article 11/12/14/19 obligations                    |
+| **Azure DevOps / GitHub Actions Integration** | CI/CD pipeline gating with configurable failure thresholds                         |
+| **Enterprise Admin Dashboard**                | Multi-tenant management with seat pooling, trial monitoring, and KPI overlays      |
+| **Immutable Audit Ledger**                    | SHA-256 hash-chained append-only audit trail for all administrative actions        |
+| **SSO Identity Federation**                   | SAML 2.0 / OIDC integration with Okta, Azure AD, Ping Identity, Auth0              |
+| **Custom Rule Engine**                        | Regex and AST-walker rule authoring for organization-specific guardrails           |
 
 ### 1.2 Excluded Services
 
@@ -40,36 +40,36 @@ SimpleBeacon.ai ("Provider") delivers a deterministic, locally-executed AI risk 
 
 ### 2.1 Uptime & Availability
 
-| Tier | Target | Measurement | Exclusions |
-|---|---|---|---|
-| **Platform API** | 99.9% monthly | HTTP 200 responses to authenticated health checks | Scheduled maintenance windows (announced ≥72h in advance) |
-| **Dashboard Web Application** | 99.9% monthly | Successful page load with <5s TTFB | CDN propagation delays outside Provider control |
-| **CLI Scanning Engine** | 100% (local execution) | N/A — runs on customer infrastructure | Dependent on customer hardware availability |
+| Tier                          | Target                 | Measurement                                       | Exclusions                                                |
+| ----------------------------- | ---------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| **Platform API**              | 99.9% monthly          | HTTP 200 responses to authenticated health checks | Scheduled maintenance windows (announced ≥72h in advance) |
+| **Dashboard Web Application** | 99.9% monthly          | Successful page load with <5s TTFB                | CDN propagation delays outside Provider control           |
+| **CLI Scanning Engine**       | 100% (local execution) | N/A — runs on customer infrastructure             | Dependent on customer hardware availability               |
 
 ### 2.2 Incident Response Times
 
-| Severity | Definition | Response Time | Resolution Target | Escalation |
-|---|---|---|---|---|
-| **SEV-1 (Critical)** | Platform API completely unavailable; data integrity breach suspected | 15 minutes | 4 hours | CTO + Account Manager notified immediately |
-| **SEV-2 (High)** | Core functionality degraded; scan reports failing to generate | 30 minutes | 8 hours | Engineering Lead + Account Manager |
-| **SEV-3 (Medium)** | Non-core feature broken; dashboard UI issues | 2 hours | 24 hours | Support Engineer |
-| **SEV-4 (Low)** | Cosmetic issues, documentation requests, feature questions | 4 hours | 5 business days | Support Team |
+| Severity             | Definition                                                           | Response Time | Resolution Target | Escalation                                 |
+| -------------------- | -------------------------------------------------------------------- | ------------- | ----------------- | ------------------------------------------ |
+| **SEV-1 (Critical)** | Platform API completely unavailable; data integrity breach suspected | 15 minutes    | 4 hours           | CTO + Account Manager notified immediately |
+| **SEV-2 (High)**     | Core functionality degraded; scan reports failing to generate        | 30 minutes    | 8 hours           | Engineering Lead + Account Manager         |
+| **SEV-3 (Medium)**   | Non-core feature broken; dashboard UI issues                         | 2 hours       | 24 hours          | Support Engineer                           |
+| **SEV-4 (Low)**      | Cosmetic issues, documentation requests, feature questions           | 4 hours       | 5 business days   | Support Team                               |
 
 ### 2.3 Support Channels & Hours
 
-| Plan | Hours | Channels |
-|---|---|---|
+| Plan                  | Hours                                                    | Channels                    |
+| --------------------- | -------------------------------------------------------- | --------------------------- |
 | **Enterprise Annual** | 24/7/365 for SEV-1/SEV-2; Business hours for SEV-3/SEV-4 | Email, phone, secure portal |
-| **Enterprise Trial** | Business hours (all severities) | Email, secure portal |
+| **Enterprise Trial**  | Business hours (all severities)                          | Email, secure portal        |
 
 ### 2.4 Scan Performance Benchmarks
 
-| Repository Size | Target Scan Duration | Max Acceptable |
-|---|---|---|
-| < 10,000 files | < 30 seconds | 60 seconds |
-| 10,000–50,000 files | < 2 minutes | 5 minutes |
-| 50,000–200,000 files | < 10 minutes | 20 minutes |
-| > 200,000 files | < 30 minutes | 60 minutes |
+| Repository Size      | Target Scan Duration | Max Acceptable |
+| -------------------- | -------------------- | -------------- |
+| < 10,000 files       | < 30 seconds         | 60 seconds     |
+| 10,000–50,000 files  | < 2 minutes          | 5 minutes      |
+| 50,000–200,000 files | < 10 minutes         | 20 minutes     |
+| > 200,000 files      | < 30 minutes         | 60 minutes     |
 
 Performance measured on standard Azure DevOps `ubuntu-latest` runner (4 vCPU, 16GB RAM). Customer-specific hardware may vary.
 
@@ -77,11 +77,11 @@ Performance measured on standard Azure DevOps `ubuntu-latest` runner (4 vCPU, 16
 
 If Provider fails to meet the 99.9% uptime target in any calendar month, Customer is entitled to service credits as follows:
 
-| Monthly Uptime | Credit |
-|---|---|
+| Monthly Uptime | Credit             |
+| -------------- | ------------------ |
 | 99.0% – 99.89% | 10% of monthly fee |
 | 95.0% – 98.99% | 25% of monthly fee |
-| Below 95.0% | 50% of monthly fee |
+| Below 95.0%    | 50% of monthly fee |
 
 Service credits are applied to the subsequent billing cycle and do not constitute a refund obligation. Credits must be requested within 30 days of the incident month.
 
@@ -164,45 +164,45 @@ Service credits are applied to the subsequent billing cycle and do not constitut
 
 #### Minimum Requirements (CLI Only)
 
-| Resource | Specification |
-|---|---|
-| Runtime | Node.js 20+ |
-| OS | Linux (Ubuntu 20.04+), macOS 12+, Windows 10+ |
-| RAM | 2GB free |
-| Disk | 500MB for CLI + report cache |
-| Network | None required for scanning (license validation requires periodic connectivity) |
+| Resource | Specification                                                                  |
+| -------- | ------------------------------------------------------------------------------ |
+| Runtime  | Node.js 20+                                                                    |
+| OS       | Linux (Ubuntu 20.04+), macOS 12+, Windows 10+                                  |
+| RAM      | 2GB free                                                                       |
+| Disk     | 500MB for CLI + report cache                                                   |
+| Network  | None required for scanning (license validation requires periodic connectivity) |
 
 #### Recommended Requirements (Self-Hosted Server)
 
-| Resource | Specification |
-|---|---|
-| Runtime | Node.js 22+ |
-| OS | Ubuntu 22.04 LTS or equivalent |
-| CPU | 4 vCPU minimum, 8 vCPU recommended |
-| RAM | 8GB minimum, 16GB recommended |
-| Disk | 20GB SSD (report cache + audit ledger + logs) |
-| Database | PostgreSQL 14+ (optional, for multi-tenant RBAC) |
-| Reverse Proxy | Nginx, Caddy, or Azure Application Gateway |
+| Resource      | Specification                                    |
+| ------------- | ------------------------------------------------ |
+| Runtime       | Node.js 22+                                      |
+| OS            | Ubuntu 22.04 LTS or equivalent                   |
+| CPU           | 4 vCPU minimum, 8 vCPU recommended               |
+| RAM           | 8GB minimum, 16GB recommended                    |
+| Disk          | 20GB SSD (report cache + audit ledger + logs)    |
+| Database      | PostgreSQL 14+ (optional, for multi-tenant RBAC) |
+| Reverse Proxy | Nginx, Caddy, or Azure Application Gateway       |
 
 ### 3.3 CI/CD Integration Points
 
-| Platform | Integration Method | Gate Enforcement |
-|---|---|---|
-| **Azure DevOps** | Generated pipeline YAML (Provider-supplied template) | Configurable fail-on severity (high/critical) |
-| **GitHub Actions** | Pre-built action `simplebeacon-guardrails-public` | Configurable gate + PR annotation |
-| **Bitbucket Pipelines** | CLI invocation with `--gate` flag | Configurable fail-on severity |
-| **Jenkins** | Shell step with `npx simplebeacon scan` | Configurable gate + post-build report |
+| Platform                | Integration Method                                   | Gate Enforcement                              |
+| ----------------------- | ---------------------------------------------------- | --------------------------------------------- |
+| **Azure DevOps**        | Generated pipeline YAML (Provider-supplied template) | Configurable fail-on severity (high/critical) |
+| **GitHub Actions**      | Pre-built action `simplebeacon-guardrails-public`    | Configurable gate + PR annotation             |
+| **Bitbucket Pipelines** | CLI invocation with `--gate` flag                    | Configurable fail-on severity                 |
+| **Jenkins**             | Shell step with `npx simplebeacon scan`              | Configurable gate + post-build report         |
 
 ### 3.4 Identity & Access Management
 
-| Feature | Specification |
-|---|---|
-| **SSO Protocols** | SAML 2.0, OpenID Connect 1.0 |
-| **Supported IdPs** | Okta, Azure Active Directory, Ping Identity, Auth0 |
-| **Secret Encryption** | AES-256-GCM at rest (client secrets encrypted before persistence) |
-| **Domain Routing** | Automatic email-domain → organization mapping |
-| **Session Management** | JWT access tokens (15min) + refresh tokens (7 days) |
-| **MFA** | WebAuthn passkey support (FIDO2-compliant) |
+| Feature                | Specification                                                     |
+| ---------------------- | ----------------------------------------------------------------- |
+| **SSO Protocols**      | SAML 2.0, OpenID Connect 1.0                                      |
+| **Supported IdPs**     | Okta, Azure Active Directory, Ping Identity, Auth0                |
+| **Secret Encryption**  | AES-256-GCM at rest (client secrets encrypted before persistence) |
+| **Domain Routing**     | Automatic email-domain → organization mapping                     |
+| **Session Management** | JWT access tokens (15min) + refresh tokens (7 days)               |
+| **MFA**                | WebAuthn passkey support (FIDO2-compliant)                        |
 
 ---
 
@@ -210,25 +210,25 @@ Service credits are applied to the subsequent billing cycle and do not constitut
 
 ### 4.1 Data Sovereignty Guarantee
 
-| Principle | Implementation |
-|---|---|
-| **No source code transmission** | CLI executes entirely on customer hardware; source files are never uploaded |
-| **No telemetry** | Runtime socket verification scripts (`verify-isolation.js`) prove zero outbound connections during scanning |
-| **Local report storage** | Scan reports stored on customer infrastructure by default |
-| **Encrypted secrets** | SSO client secrets encrypted with AES-256-GCM before persistence |
-| **Immutable audit trail** | SHA-256 hash-chained ledger — any tampering breaks the chain and is immediately detectable |
+| Principle                       | Implementation                                                                                              |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **No source code transmission** | CLI executes entirely on customer hardware; source files are never uploaded                                 |
+| **No telemetry**                | Runtime socket verification scripts (`verify-isolation.js`) prove zero outbound connections during scanning |
+| **Local report storage**        | Scan reports stored on customer infrastructure by default                                                   |
+| **Encrypted secrets**           | SSO client secrets encrypted with AES-256-GCM before persistence                                            |
+| **Immutable audit trail**       | SHA-256 hash-chained ledger — any tampering breaks the chain and is immediately detectable                  |
 
 ### 4.2 Compliance Alignment
 
-| Regulation | Article | SimpleBeacon Coverage |
-|---|---|---|
-| **EU AI Act** | Article 11 — Technical Documentation | Automated JSON compliance assessment with finding-to-article mapping |
-| **EU AI Act** | Article 12 — Record-Keeping | Immutable audit ledger with cryptographic hash chaining |
-| **EU AI Act** | Article 14 — Human Oversight | CI/CD gate enforcement requires human approval for flagged findings |
-| **EU AI Act** | Article 19 — Logging | Deterministic scan logs with timestamp, actor, and before/after state |
-| **GDPR** | Article 32 — Security of Processing | Local execution model; no personal data transmitted |
-| **CCPA** | §1798.150 — Data Breach | No customer data stored; no breach surface |
-| **SOX** | Section 404 — IT Controls | Audit trail provides evidence of code review and risk assessment |
+| Regulation    | Article                              | SimpleBeacon Coverage                                                 |
+| ------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| **EU AI Act** | Article 11 — Technical Documentation | Automated JSON compliance assessment with finding-to-article mapping  |
+| **EU AI Act** | Article 12 — Record-Keeping          | Immutable audit ledger with cryptographic hash chaining               |
+| **EU AI Act** | Article 14 — Human Oversight         | CI/CD gate enforcement requires human approval for flagged findings   |
+| **EU AI Act** | Article 19 — Logging                 | Deterministic scan logs with timestamp, actor, and before/after state |
+| **GDPR**      | Article 32 — Security of Processing  | Local execution model; no personal data transmitted                   |
+| **CCPA**      | §1798.150 — Data Breach              | No customer data stored; no breach surface                            |
+| **SOX**       | Section 404 — IT Controls            | Audit trail provides evidence of code review and risk assessment      |
 
 ### 4.3 Vulnerability Disclosure
 
@@ -249,14 +249,14 @@ Service credits are applied to the subsequent billing cycle and do not constitut
 
 ### 5.1 Audit Ledger Specifications
 
-| Property | Specification |
-|---|---|
-| **Storage** | Append-only JSON file (atomic writes via temp+rename) |
-| **Integrity** | SHA-256 hash chain — each entry embeds previous entry's hash |
-| **Tamper Detection** | `verifyChain()` API validates entire chain in O(n) time |
-| **Actions Tracked** | `org_created`, `trial_started`, `seat_added`, `seat_removed`, `api_key_generated`, `azure_devops_generated`, `sso_config_created`, `sso_config_updated`, `sso_config_deleted` |
-| **Entry Fields** | eventId (UUID), timestamp, action, orgId, actor, actorIp, description, before/after state, metadata, previousHash, hash |
-| **Retention** | 365 days (configurable; longer retention available on request) |
+| Property             | Specification                                                                                                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Storage**          | Append-only JSON file (atomic writes via temp+rename)                                                                                                                         |
+| **Integrity**        | SHA-256 hash chain — each entry embeds previous entry's hash                                                                                                                  |
+| **Tamper Detection** | `verifyChain()` API validates entire chain in O(n) time                                                                                                                       |
+| **Actions Tracked**  | `org_created`, `trial_started`, `seat_added`, `seat_removed`, `api_key_generated`, `azure_devops_generated`, `sso_config_created`, `sso_config_updated`, `sso_config_deleted` |
+| **Entry Fields**     | eventId (UUID), timestamp, action, orgId, actor, actorIp, description, before/after state, metadata, previousHash, hash                                                       |
+| **Retention**        | 365 days (configurable; longer retention available on request)                                                                                                                |
 
 ### 5.2 Customer Audit Rights
 
@@ -266,13 +266,13 @@ Service credits are applied to the subsequent billing cycle and do not constitut
 
 ### 5.3 Compliance Reporting Cadence
 
-| Report | Frequency | Delivery Method |
-|---|---|---|
-| **Executive Risk Certificate** | Per scan (on-demand) | PDF download from dashboard |
-| **EU AI Act Compliance Assessment** | Per scan (on-demand) | JSON download from dashboard |
-| **Audit Trail Export** | On-demand | JSON download or API pull |
-| **Chain Integrity Verification** | On-demand | API endpoint (`/api/enterprise/audit/verify`) |
-| **SSO Configuration Health** | On-demand | API endpoint (`/api/enterprise/sso/test/:providerId`) |
+| Report                              | Frequency            | Delivery Method                                       |
+| ----------------------------------- | -------------------- | ----------------------------------------------------- |
+| **Executive Risk Certificate**      | Per scan (on-demand) | PDF download from dashboard                           |
+| **EU AI Act Compliance Assessment** | Per scan (on-demand) | JSON download from dashboard                          |
+| **Audit Trail Export**              | On-demand            | JSON download or API pull                             |
+| **Chain Integrity Verification**    | On-demand            | API endpoint (`/api/enterprise/audit/verify`)         |
+| **SSO Configuration Health**        | On-demand            | API endpoint (`/api/enterprise/sso/test/:providerId`) |
 
 ---
 
@@ -281,6 +281,7 @@ Service credits are applied to the subsequent billing cycle and do not constitut
 ### 6.1 Notification Requirements
 
 Customer must notify Provider of any SLA breach within 5 business days of the incident. Notification must include:
+
 - Incident timestamp (UTC)
 - Affected service component
 - Description of business impact
@@ -311,22 +312,22 @@ Customer must notify Provider of any SLA breach within 5 business days of the in
 
 ### 7.1 Data Categories
 
-| Data Category | Collected | Stored | Retention |
-|---|---|---|---|
-| **Source code** | No | No | N/A — never leaves customer infrastructure |
-| **Scan reports** | Yes (locally) | Yes (locally by default; optionally in cloud) | Customer-controlled |
-| **License tokens** | Yes | Yes (hashed) | Contract term + 30 days |
-| **Audit log entries** | Yes | Yes (encrypted at rest) | 365 days (configurable) |
-| **SSO configuration** | Yes | Yes (AES-256-GCM encrypted) | Contract term |
-| **User email addresses** | Yes | Yes (for seat management) | Contract term + 30 days |
-| **Personal data** | Minimal | Encrypted at rest | Per GDPR Article 5(1)(e) |
+| Data Category            | Collected     | Stored                                        | Retention                                  |
+| ------------------------ | ------------- | --------------------------------------------- | ------------------------------------------ |
+| **Source code**          | No            | No                                            | N/A — never leaves customer infrastructure |
+| **Scan reports**         | Yes (locally) | Yes (locally by default; optionally in cloud) | Customer-controlled                        |
+| **License tokens**       | Yes           | Yes (hashed)                                  | Contract term + 30 days                    |
+| **Audit log entries**    | Yes           | Yes (encrypted at rest)                       | 365 days (configurable)                    |
+| **SSO configuration**    | Yes           | Yes (AES-256-GCM encrypted)                   | Contract term                              |
+| **User email addresses** | Yes           | Yes (for seat management)                     | Contract term + 30 days                    |
+| **Personal data**        | Minimal       | Encrypted at rest                             | Per GDPR Article 5(1)(e)                   |
 
 ### 7.2 Sub-Processor List
 
-| Sub-Processor | Purpose | Data Accessed |
-|---|---|---|
-| **Stripe** | Payment processing | Billing email, payment metadata (no scan data) |
-| **Cloudflare** | CDN / DDoS protection | HTTP request metadata (no scan data) |
+| Sub-Processor  | Purpose               | Data Accessed                                  |
+| -------------- | --------------------- | ---------------------------------------------- |
+| **Stripe**     | Payment processing    | Billing email, payment metadata (no scan data) |
+| **Cloudflare** | CDN / DDoS protection | HTTP request metadata (no scan data)           |
 
 Customer will be notified 30 days in advance of any new sub-processor addition and may object on reasonable grounds.
 
@@ -367,6 +368,7 @@ The following criteria must be met within 30 days of contract execution:
 ### 9.1 Data Export on Termination
 
 Upon contract termination, Customer may request:
+
 - Full audit trail export (JSON format with chain verification)
 - All scan reports (JSON + PDF)
 - SSO configuration export (secrets removed)
@@ -390,8 +392,8 @@ All exports delivered within 10 business days of termination notice.
 
 ## 10. Signatures
 
-| Role | Name | Signature | Date |
-|---|---|---|---|
+| Role         | Name            | Signature       | Date            |
+| ------------ | --------------- | --------------- | --------------- |
 | **Provider** | _______________ | _______________ | _______________ |
 | **Customer** | _______________ | _______________ | _______________ |
 
@@ -411,15 +413,15 @@ All exports delivered within 10 business days of termination notice.
 
 ## Appendix B: Related Documents
 
-| Document | Location |
-|---|---|
-| Enterprise Positioning Statement | `ai-platform/docs/enterprise-positioning.md` |
-| B2B Sales Outreach Playbook | `marketing/outreach/eu-ai-act-compliance-playbook.md` |
-| Landing Page Copy Variants | `marketing/outreach/enterprise-landing-page-copy.md` |
-| Procurement Kit | `generated/simplebeacon-procurement-kit.zip` (rolling release) |
-| Audit Ledger API | `/api/enterprise/audit` (see API documentation) |
-| SSO Configuration API | `/api/enterprise/sso` (see API documentation) |
+| Document                         | Location                                                       |
+| -------------------------------- | -------------------------------------------------------------- |
+| Enterprise Positioning Statement | `ai-platform/docs/enterprise-positioning.md`                   |
+| B2B Sales Outreach Playbook      | `marketing/outreach/eu-ai-act-compliance-playbook.md`          |
+| Landing Page Copy Variants       | `marketing/outreach/enterprise-landing-page-copy.md`           |
+| Procurement Kit                  | `generated/simplebeacon-procurement-kit.zip` (rolling release) |
+| Audit Ledger API                 | `/api/enterprise/audit` (see API documentation)                |
+| SSO Configuration API            | `/api/enterprise/sso` (see API documentation)                  |
 
 ---
 
-*This SLA Addendum is incorporated by reference into the Master Services Agreement between Provider and Customer. In the event of a conflict between this Addendum and the Master Services Agreement, this Addendum shall control with respect to service levels, availability, and support commitments.*
+_This SLA Addendum is incorporated by reference into the Master Services Agreement between Provider and Customer. In the event of a conflict between this Addendum and the Master Services Agreement, this Addendum shall control with respect to service levels, availability, and support commitments._

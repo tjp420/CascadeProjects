@@ -41,7 +41,11 @@ function isGitPath(filePath) {
 
 function isHiddenPath(filePath) {
   if (!filePath || typeof filePath !== 'string') return false;
-  return filePath.toLowerCase().replace(/\\/g, '/').split('/').some((seg) => seg.startsWith('.') && seg.length > 1);
+  return filePath
+    .toLowerCase()
+    .replace(/\\/g, '/')
+    .split('/')
+    .some((seg) => seg.startsWith('.') && seg.length > 1);
 }
 
 module.exports = Object.freeze({
@@ -51,5 +55,5 @@ module.exports = Object.freeze({
   isDockerFile,
   isNodeModulesPath,
   isGitPath,
-  isHiddenPath
+  isHiddenPath,
 });

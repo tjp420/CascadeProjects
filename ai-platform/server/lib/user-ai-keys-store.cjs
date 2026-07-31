@@ -14,11 +14,18 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECT_ROOT = path.join(__dirname, '../..');
-const STORE_PATH = process.env.SIMPLEBEACON_USER_AI_KEYS_STORE
-  || path.join(PROJECT_ROOT, '.simplebeacon', 'user-ai-keys.json');
+const STORE_PATH =
+  process.env.SIMPLEBEACON_USER_AI_KEYS_STORE ||
+  path.join(PROJECT_ROOT, '.simplebeacon', 'user-ai-keys.json');
 
 const PROVIDERS = ['openai', 'anthropic'];
-const _STRING_FIELDS = [...PROVIDERS, 'ollamaBaseUrl', 'ollamaModel', 'openaiModel', 'anthropicModel'];
+const _STRING_FIELDS = [
+  ...PROVIDERS,
+  'ollamaBaseUrl',
+  'ollamaModel',
+  'openaiModel',
+  'anthropicModel',
+];
 
 /**
  * Normalize email.
@@ -26,7 +33,9 @@ const _STRING_FIELDS = [...PROVIDERS, 'ollamaBaseUrl', 'ollamaModel', 'openaiMod
  * @returns {any}
  */
 function normalizeEmail(email) {
-  return String(email || '').trim().toLowerCase();
+  return String(email || '')
+    .trim()
+    .toLowerCase();
 }
 
 /**
@@ -34,9 +43,10 @@ function normalizeEmail(email) {
  * @returns {any}
  */
 function encryptionKey() {
-  const secret = process.env.SIMPLEBEACON_KEY_ENCRYPTION_SECRET
-    || process.env.JWT_SECRET
-    || 'simplebeacon-dev-keys-insecure';
+  const secret =
+    process.env.SIMPLEBEACON_KEY_ENCRYPTION_SECRET ||
+    process.env.JWT_SECRET ||
+    'simplebeacon-dev-keys-insecure';
   return crypto.createHash('sha256').update(String(secret)).digest();
 }
 
@@ -55,7 +65,7 @@ function encryptSecret(plaintext) {
   return {
     iv: iv.toString('base64'),
     tag: tag.toString('base64'),
-    data: encrypted.toString('base64')
+    data: encrypted.toString('base64'),
   };
 }
 
@@ -75,7 +85,7 @@ function decryptSecret(payload) {
     decipher.setAuthTag(Buffer.from(payload.tag, 'base64'));
     const decrypted = Buffer.concat([
       decipher.update(Buffer.from(payload.data, 'base64')),
-      decipher.final()
+      decipher.final(),
     ]);
     return decrypted.toString('utf8');
   } catch {
@@ -131,7 +141,7 @@ function emptyRecord() {
     ollamaModel: '',
     openaiModel: '',
     anthropicModel: '',
-    updatedAt: null
+    updatedAt: null,
   };
 }
 
@@ -186,7 +196,7 @@ async function getUserAiKeysPublic(email) {
     const value = decryptSecret(record[provider]);
     providers[provider] = {
       configured: Boolean(value),
-      hint: maskSecret(value)
+      hint: maskSecret(value),
     };
   }
   return {
@@ -196,7 +206,7 @@ async function getUserAiKeysPublic(email) {
     ollamaModel: record.ollamaModel || '',
     openaiModel: record.openaiModel || '',
     anthropicModel: record.anthropicModel || '',
-    updatedAt: record.updatedAt || null
+    updatedAt: record.updatedAt || null,
   };
 }
 
@@ -217,7 +227,7 @@ async function saveUserAiKeys(email, payload = {}) {
   const next = { ...existing };
 
   for (const provider of PROVIDERS) {
-    if (!({}).hasOwnProperty.call(payload, provider)) continue;
+    if (!{}.hasOwnProperty.call(payload, provider)) continue;
     const raw = payload[provider];
     if (raw === null || raw === '') {
       next[provider] = null;
@@ -228,19 +238,19 @@ async function saveUserAiKeys(email, payload = {}) {
     next[provider] = encryptSecret(trimmed);
   }
 
-  if (({}).hasOwnProperty.call(payload, 'ollamaBaseUrl')) {
+  if ({}.hasOwnProperty.call(payload, 'ollamaBaseUrl')) {
     next.ollamaBaseUrl = String(payload.ollamaBaseUrl || '').trim();
   }
 
-  if (({}).hasOwnProperty.call(payload, 'ollamaModel')) {
+  if ({}.hasOwnProperty.call(payload, 'ollamaModel')) {
     next.ollamaModel = String(payload.ollamaModel || '').trim();
   }
 
-  if (({}).hasOwnProperty.call(payload, 'openaiModel')) {
+  if ({}.hasOwnProperty.call(payload, 'openaiModel')) {
     next.openaiModel = String(payload.openaiModel || '').trim();
   }
 
-  if (({}).hasOwnProperty.call(payload, 'anthropicModel')) {
+  if ({}.hasOwnProperty.call(payload, 'anthropicModel')) {
     next.anthropicModel = String(payload.anthropicModel || '').trim();
   }
 
@@ -269,5 +279,5 @@ module.exports = {
   getUserAiKeysPublic,
   saveUserAiKeys,
   clearUserAiKeys,
-  maskSecret
+  maskSecret,
 };

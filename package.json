@@ -14,6 +14,8 @@
     "build": "npm run build --workspace=ai-platform",
     "lint": "npm run lint --workspaces --if-present",
     "format": "npx prettier --write \"**/*.{js,cjs,mjs,ts,json,md}\"",
+    "lint:root": "eslint . --ext .js,.cjs,.mjs,.ts,.tsx --ignore-path .gitignore",
+    "lint:fix:root": "eslint . --ext .js,.cjs,.mjs,.ts,.tsx --ignore-path .gitignore --fix",
     "quality:check": "npm run quality:check --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
     "test:coverage": "npm run test:coverage --workspaces --if-present",
@@ -57,17 +59,27 @@
     "npm": ">=10.0.0"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.61.1",
+    "@typescript-eslint/parser": "^8.61.1",
     "dotenv": "^16.3.1",
+    "eslint": "^10.8.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.6.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^4.6.2",
     "helmet": "^7.0.0",
     "husky": "^8.0.3",
     "jest": "^30.2.0",
     "playwright": "^1.61.1",
+    "prettier": "^3.9.6",
     "vite": "^8.0.16"
   },
   "overrides": {
     "serialize-javascript": ">=7.0.5",
     "minimatch": "3.1.5",
     "brace-expansion": ">=5.0.8",
-    "readdir-glob": "^2.0.3"
+    "readdir-glob": "^3.0.0"
   }
 }

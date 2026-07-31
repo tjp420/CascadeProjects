@@ -23,7 +23,10 @@ export interface IntegrityResult {
 
 export function escapeHtml(str: string | null | undefined): string;
 export function escapeRegExp(str: string | null | undefined): string;
-export function normalizeSlashes(path: string, opts?: { stripLeadingDot?: boolean; lowercase?: boolean }): string;
+export function normalizeSlashes(
+  path: string,
+  opts?: { stripLeadingDot?: boolean; lowercase?: boolean }
+): string;
 export function truncate(str: string | null | undefined, maxLen?: number, suffix?: string): string;
 export function capitalize(str: string | null | undefined): string;
 export function hash(str: string): number;
@@ -38,7 +41,10 @@ export function pluralize(count: number, singular: string, plural?: string): str
 // ── Number helpers ────────────────────────────────────────────
 
 export function formatNumber(n: number | string | null | undefined): string;
-export function formatPercent(value: number | string | null | undefined, fractionDigits?: number): string;
+export function formatPercent(
+  value: number | string | null | undefined,
+  fractionDigits?: number
+): string;
 export function formatBytes(bytes: number, decimals?: number): string;
 export function clamp(val: number | string, min: number, max: number): number;
 export function roundTo(num: number, precision?: number): number;
@@ -49,7 +55,10 @@ export function mean(arr: number[]): number;
 export function maxBy<T>(arr: T[], keyFn: (item: T) => number): T | undefined;
 export function minBy<T>(arr: T[], keyFn: (item: T) => number): T | undefined;
 export function safeParseInt(value: string | number | null | undefined, fallback?: number): number;
-export function safeParseFloat(value: string | number | null | undefined, fallback?: number): number;
+export function safeParseFloat(
+  value: string | number | null | undefined,
+  fallback?: number
+): number;
 export function random(min?: number, max?: number): number;
 export function randomId(prefix?: string): string;
 export function uid(): string;
@@ -58,16 +67,40 @@ export function uid(): string;
 
 export function sleep(ms: number): Promise<void>;
 export function delay<T>(ms: number, value?: T): Promise<T | undefined>;
-export function debounce<T extends (...args: any[]) => any>(fn: T, ms?: number): T & { cancel(): void; flush(): void; pending(): boolean };
-export function debounceAsync<T extends (...args: any[]) => any>(fn: T, ms?: number): T & { cancel(): void };
-export function debounceLeading<T extends (...args: any[]) => any>(fn: T, ms?: number): T & { cancel(): void };
-export function throttle<T extends (...args: any[]) => any>(fn: T, wait?: number): T & { cancel(): void; flush(): void; pending(): boolean };
-export function throttleAsync<T extends (...args: any[]) => any>(fn: T, wait?: number): T & { cancel(): void };
+export function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  ms?: number
+): T & { cancel(): void; flush(): void; pending(): boolean };
+export function debounceAsync<T extends (...args: any[]) => any>(
+  fn: T,
+  ms?: number
+): T & { cancel(): void };
+export function debounceLeading<T extends (...args: any[]) => any>(
+  fn: T,
+  ms?: number
+): T & { cancel(): void };
+export function throttle<T extends (...args: any[]) => any>(
+  fn: T,
+  wait?: number
+): T & { cancel(): void; flush(): void; pending(): boolean };
+export function throttleAsync<T extends (...args: any[]) => any>(
+  fn: T,
+  wait?: number
+): T & { cancel(): void };
 export function once<T extends (...args: any[]) => any>(fn: T): T;
-export function memoize<T extends (...args: any[]) => any>(fn: T, maxSize?: number): T & { clear(): void; size: number; has(...args: any[]): boolean };
-export function memoizeAsync<T extends (...args: any[]) => Promise<any>>(fn: T, maxSize?: number): T & { clear(): void };
+export function memoize<T extends (...args: any[]) => any>(
+  fn: T,
+  maxSize?: number
+): T & { clear(): void; size: number; has(...args: any[]): boolean };
+export function memoizeAsync<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  maxSize?: number
+): T & { clear(): void };
 export function withTimeout<T>(promise: Promise<T>, ms: number, message?: string): Promise<T>;
-export function tryFn<T extends (...args: any[]) => any>(fn: T, ...args: Parameters<T>): { ok: true; value: ReturnType<T> } | { ok: false; error: Error };
+export function tryFn<T extends (...args: any[]) => any>(
+  fn: T,
+  ...args: Parameters<T>
+): { ok: true; value: ReturnType<T> } | { ok: false; error: Error };
 export function seq<T>(...fns: Array<(v: T) => T>): (value: T) => T;
 export function flow<T>(...fns: Array<(v: T) => T>): (value: T) => T;
 export function negate(predicate: (...args: any[]) => boolean): (...args: any[]) => boolean;
@@ -93,7 +126,10 @@ export function keyBy<T, K>(arr: T[], keyFn: (item: T) => K): Map<K, T>;
 export function times<T>(n: number, fn: (index: number) => T): T[];
 export function randomChoice<T>(arr: T[]): T | undefined;
 export function ensureArray<T>(value: T | T[]): T[];
-export function countBy<T>(arr: T[], keyFn: (item: T) => string | number): Record<string | number, number>;
+export function countBy<T>(
+  arr: T[],
+  keyFn: (item: T) => string | number
+): Record<string | number, number>;
 
 // ── Object helpers ───────────────────────────────────────────
 
@@ -105,11 +141,25 @@ export function omit<T, K extends keyof T>(obj: T, keys: K[]): Omit<T, K>;
 export function defaults<T>(obj: T, ...sources: Partial<T>[]): T;
 export function merge<T>(target: T, ...sources: Partial<T>[]): T;
 export function invert<T extends Record<string, string>>(obj: T): Record<T[keyof T], keyof T>;
-export function mapValues<T, U>(obj: Record<string, T>, fn: (value: T, key: string) => U): Record<string, U>;
-export function mapKeys<T>(obj: Record<string, T>, fn: (key: string, value: T) => string): Record<string, T>;
+export function mapValues<T, U>(
+  obj: Record<string, T>,
+  fn: (value: T, key: string) => U
+): Record<string, U>;
+export function mapKeys<T>(
+  obj: Record<string, T>,
+  fn: (key: string, value: T) => string
+): Record<string, T>;
 export function has(obj: Record<string, unknown>, path: string | string[]): boolean;
-export function get<T>(obj: Record<string, unknown>, path: string | string[], defaultValue?: T): T | undefined;
-export function set<T extends Record<string, unknown>>(obj: T, path: string | string[], value: unknown): T;
+export function get<T>(
+  obj: Record<string, unknown>,
+  path: string | string[],
+  defaultValue?: T
+): T | undefined;
+export function set<T extends Record<string, unknown>>(
+  obj: T,
+  path: string | string[],
+  value: unknown
+): T;
 export function zipObject<T>(keys: string[], values: T[]): Record<string, T>;
 export function identity<T>(value: T): T;
 export function constant<T>(value: T): () => T;
@@ -121,7 +171,10 @@ export function defaultsDeep<T>(obj: T, ...sources: Partial<T>[]): T;
 
 export function apiBaseUrl(): string;
 export function apiUrl(path: string): string;
-export function fetchWithTimeout(url: string, options?: RequestInit & { timeout?: number }): Promise<Response>;
+export function fetchWithTimeout(
+  url: string,
+  options?: RequestInit & { timeout?: number }
+): Promise<Response>;
 export function parseQueryString(query: string): Record<string, string>;
 export function stringifyQueryString(params: Record<string, string | number | boolean>): string;
 export function getQueryParam(key: string, defaultValue?: string): string | undefined;
@@ -166,14 +219,24 @@ export function removeClass(el: Element, className: string): void;
 export function toggleClass(el: Element, className: string): void;
 export function getFocusableElements(container?: HTMLElement): HTMLElement[];
 export function focusFirst(container?: HTMLElement): void;
-export function createElement(tag: string, attrs?: Record<string, string>, children?: (Node | string)[]): HTMLElement;
+export function createElement(
+  tag: string,
+  attrs?: Record<string, string>,
+  children?: (Node | string)[]
+): HTMLElement;
 export function removeAllChildren(el: HTMLElement): void;
 export function scrollToElement(el: Element, behavior?: ScrollBehavior): void;
 export function elementInViewport(el: Element): boolean;
-export function observeIntersection(el: Element, callback: IntersectionObserverCallback, options?: IntersectionObserverInit): IntersectionObserver;
+export function observeIntersection(
+  el: Element,
+  callback: IntersectionObserverCallback,
+  options?: IntersectionObserverInit
+): IntersectionObserver;
 export function preloadImage(src: string): Promise<void>;
 export function copyToClipboard(text: string): Promise<void>;
-export function renderEmptyState(opts: Record<string, unknown>): string | { html: string; attach(container: HTMLElement): void };
+export function renderEmptyState(
+  opts: Record<string, unknown>
+): string | { html: string; attach(container: HTMLElement): void };
 
 // ── Format helpers ───────────────────────────────────────────
 
@@ -235,41 +298,221 @@ export const __barrel__: BarrelMeta;
 // ── Namespaces ───────────────────────────────────────────────
 
 export namespace string {
-  export { escapeHtml, escapeRegExp, normalizeSlashes, truncate, capitalize, hash, kebabCase, camelCase, snakeCase, padStart, padEnd, stripHtml, pluralize };
+  export {
+    escapeHtml,
+    escapeRegExp,
+    normalizeSlashes,
+    truncate,
+    capitalize,
+    hash,
+    kebabCase,
+    camelCase,
+    snakeCase,
+    padStart,
+    padEnd,
+    stripHtml,
+    pluralize,
+  };
 }
 export namespace number {
-  export { formatNumber, formatPercent, formatBytes, clamp, roundTo, toFixedNumber, formatDuration, sum, mean, maxBy, minBy, safeParseInt, safeParseFloat, random, randomId, uid };
+  export {
+    formatNumber,
+    formatPercent,
+    formatBytes,
+    clamp,
+    roundTo,
+    toFixedNumber,
+    formatDuration,
+    sum,
+    mean,
+    maxBy,
+    minBy,
+    safeParseInt,
+    safeParseFloat,
+    random,
+    randomId,
+    uid,
+  };
 }
 export namespace async {
-  export { sleep, delay, debounce, debounceAsync, debounceLeading, throttle, throttleAsync, once, memoize, memoizeAsync, withTimeout, tryFn, seq, flow, negate };
+  export {
+    sleep,
+    delay,
+    debounce,
+    debounceAsync,
+    debounceLeading,
+    throttle,
+    throttleAsync,
+    once,
+    memoize,
+    memoizeAsync,
+    withTimeout,
+    tryFn,
+    seq,
+    flow,
+    negate,
+  };
 }
 export namespace array {
-  export { unique, compact, flatten, range, chunk, sample, shuffle, reverse, union, intersection, difference, groupBy, partition, sortBy, keyBy, times, randomChoice, ensureArray, countBy };
+  export {
+    unique,
+    compact,
+    flatten,
+    range,
+    chunk,
+    sample,
+    shuffle,
+    reverse,
+    union,
+    intersection,
+    difference,
+    groupBy,
+    partition,
+    sortBy,
+    keyBy,
+    times,
+    randomChoice,
+    ensureArray,
+    countBy,
+  };
 }
 export namespace object {
-  export { deepClone, clone, deepEqual, pick, omit, defaults, merge, invert, mapValues, mapKeys, has, get, set, zipObject, identity, constant, at, unset, defaultsDeep };
+  export {
+    deepClone,
+    clone,
+    deepEqual,
+    pick,
+    omit,
+    defaults,
+    merge,
+    invert,
+    mapValues,
+    mapKeys,
+    has,
+    get,
+    set,
+    zipObject,
+    identity,
+    constant,
+    at,
+    unset,
+    defaultsDeep,
+  };
 }
 export namespace url {
-  export { apiBaseUrl, apiUrl, fetchWithTimeout, parseQueryString, stringifyQueryString, getQueryParam, setQueryParam, buildUrl, isValidUrl, isUrl };
+  export {
+    apiBaseUrl,
+    apiUrl,
+    fetchWithTimeout,
+    parseQueryString,
+    stringifyQueryString,
+    getQueryParam,
+    setQueryParam,
+    buildUrl,
+    isValidUrl,
+    isUrl,
+  };
 }
 export namespace storage {
-  export { localStorageGet, localStorageSet, localStorageRemove, localStorageGetString, localStorageSetString, sessionStorageGet, sessionStorageSet, sessionStorageRemove };
+  export {
+    localStorageGet,
+    localStorageSet,
+    localStorageRemove,
+    localStorageGetString,
+    localStorageSetString,
+    sessionStorageGet,
+    sessionStorageSet,
+    sessionStorageRemove,
+  };
 }
 export namespace theme {
-  export { hexToRgba, shadeColor, contrastColor, getCssVar, setCssVar, prefersReducedMotion, prefersDarkMode };
+  export {
+    hexToRgba,
+    shadeColor,
+    contrastColor,
+    getCssVar,
+    setCssVar,
+    prefersReducedMotion,
+    prefersDarkMode,
+  };
 }
 export namespace dom {
-  export { showToast, removeToastContainer, downloadFile, downloadJson, downloadBlob, downloadText, downloadCsv, hasClass, addClass, removeClass, toggleClass, getFocusableElements, focusFirst, createElement, removeAllChildren, scrollToElement, elementInViewport, observeIntersection, preloadImage, copyToClipboard, renderEmptyState };
+  export {
+    showToast,
+    removeToastContainer,
+    downloadFile,
+    downloadJson,
+    downloadBlob,
+    downloadText,
+    downloadCsv,
+    hasClass,
+    addClass,
+    removeClass,
+    toggleClass,
+    getFocusableElements,
+    focusFirst,
+    createElement,
+    removeAllChildren,
+    scrollToElement,
+    elementInViewport,
+    observeIntersection,
+    preloadImage,
+    copyToClipboard,
+    renderEmptyState,
+  };
 }
 export namespace format {
-  export { formatDate, relativeTime, redactPathForDisplay, isRedactedPathDisplay, formatPathInputValue, formatScanPathForDisplay, formatPathLabel, formatAiSummarySkipMessage, sanitizePrivacyData };
+  export {
+    formatDate,
+    relativeTime,
+    redactPathForDisplay,
+    isRedactedPathDisplay,
+    formatPathInputValue,
+    formatScanPathForDisplay,
+    formatPathLabel,
+    formatAiSummarySkipMessage,
+    sanitizePrivacyData,
+  };
 }
 export namespace type {
-  export { isBlank, isEmail, isNumeric, isInteger, isHexColor, isEmpty, isDefined, noop, assertNever, parseJsonSafe, parseResponseJson, isOnline, isVSCodeWebview, isStandalone, getVSCodeApi, getNonce, isNull, isUndefined, isNil, isSymbol, isMap, isSet };
+  export {
+    isBlank,
+    isEmail,
+    isNumeric,
+    isInteger,
+    isHexColor,
+    isEmpty,
+    isDefined,
+    noop,
+    assertNever,
+    parseJsonSafe,
+    parseResponseJson,
+    isOnline,
+    isVSCodeWebview,
+    isStandalone,
+    getVSCodeApi,
+    getNonce,
+    isNull,
+    isUndefined,
+    isNil,
+    isSymbol,
+    isMap,
+    isSet,
+  };
 }
 
 export namespace inline {
-  export { compose, pipe, zipWith, curry, partial, tap, parseJsonSafe, parseResponseJson, stringifySafe };
+  export {
+    compose,
+    pipe,
+    zipWith,
+    curry,
+    partial,
+    tap,
+    parseJsonSafe,
+    parseResponseJson,
+    stringifySafe,
+  };
 }
 
 // ── Default export ───────────────────────────────────────────

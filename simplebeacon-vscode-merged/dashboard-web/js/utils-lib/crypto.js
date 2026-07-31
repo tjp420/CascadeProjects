@@ -13,7 +13,7 @@ export function getNonce() {
   } else {
     for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
   }
-  return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**

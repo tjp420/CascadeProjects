@@ -302,4 +302,3 @@ document.querySelectorAll('.link-item').forEach(item=>{
 </html>`;
   }
 }
-

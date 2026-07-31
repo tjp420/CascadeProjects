@@ -13,9 +13,22 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import {
-  Building2, Plus, Users, Trash2, UserPlus, Crown, Shield,
-  CheckCircle2, Clock, Mail, Settings, BarChart3, ChevronDown, AlertCircle,
-  Download, FileText,
+  Building2,
+  Plus,
+  Users,
+  Trash2,
+  UserPlus,
+  Crown,
+  Shield,
+  CheckCircle2,
+  Clock,
+  Mail,
+  Settings,
+  BarChart3,
+  ChevronDown,
+  AlertCircle,
+  Download,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrganizations, type OrgMember } from '@/hooks/useOrganizations';
@@ -38,10 +51,21 @@ const ASSIGNABLE_ROLES = ['team_lead', 'compliance_officer', 'auditor'];
 
 export function OrganizationView() {
   const {
-    organizations, activeOrg, loading, error,
-    createOrganization, updateOrganization, deleteOrganization,
-    getMembers, inviteMember, updateMemberRole, removeMember,
-    acceptInvitation, getMetrics, switchOrg, refresh,
+    organizations,
+    activeOrg,
+    loading,
+    error,
+    createOrganization,
+    updateOrganization,
+    deleteOrganization,
+    getMembers,
+    inviteMember,
+    updateMemberRole,
+    removeMember,
+    acceptInvitation,
+    getMetrics,
+    switchOrg,
+    refresh,
   } = useOrganizations();
 
   const [showCreate, setShowCreate] = useState(false);
@@ -56,26 +80,32 @@ export function OrganizationView() {
   const [editName, setEditName] = useState('');
   const [editMaxSeats, setEditMaxSeats] = useState(10);
 
-  const loadMembers = useCallback(async (orgId: string) => {
-    setMembersLoading(true);
-    try {
-      const m = await getMembers(orgId);
-      setMembers(m);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to load members');
-    } finally {
-      setMembersLoading(false);
-    }
-  }, [getMembers]);
+  const loadMembers = useCallback(
+    async (orgId: string) => {
+      setMembersLoading(true);
+      try {
+        const m = await getMembers(orgId);
+        setMembers(m);
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to load members');
+      } finally {
+        setMembersLoading(false);
+      }
+    },
+    [getMembers]
+  );
 
-  const loadMetrics = useCallback(async (orgId: string) => {
-    try {
-      const m = await getMetrics(orgId);
-      setMetrics(m);
-    } catch {
-      setMetrics(null);
-    }
-  }, [getMetrics]);
+  const loadMetrics = useCallback(
+    async (orgId: string) => {
+      try {
+        const m = await getMetrics(orgId);
+        setMetrics(m);
+      } catch {
+        setMetrics(null);
+      }
+    },
+    [getMetrics]
+  );
 
   useEffect(() => {
     if (activeOrg) {
@@ -194,7 +224,9 @@ export function OrganizationView() {
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <AlertCircle className="h-10 w-10 text-muted-foreground" />
         <p className="text-muted-foreground">{error}</p>
-        <Button variant="outline" onClick={refresh}>Retry</Button>
+        <Button variant="outline" onClick={refresh}>
+          Retry
+        </Button>
       </div>
     );
   }
@@ -207,7 +239,9 @@ export function OrganizationView() {
         </div>
         <div className="text-center">
           <h2 className="text-xl font-semibold">No Organizations Yet</h2>
-          <p className="text-muted-foreground mt-1">Create your first organization to get started.</p>
+          <p className="text-muted-foreground mt-1">
+            Create your first organization to get started.
+          </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="h-4 w-4" /> Create Organization
@@ -294,13 +328,19 @@ export function OrganizationView() {
                 id="org-slug"
                 placeholder="acme-corp"
                 value={newSlug}
-                onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                onChange={(e) =>
+                  setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))
+                }
               />
-              <p className="text-xs text-muted-foreground">Lowercase letters, numbers, and hyphens only</p>
+              <p className="text-xs text-muted-foreground">
+                Lowercase letters, numbers, and hyphens only
+              </p>
             </div>
             <div className="flex gap-2">
               <Button onClick={handleCreate}>Create</Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)}>
+                Cancel
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -316,7 +356,11 @@ export function OrganizationView() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="edit-name">Name</Label>
-              <Input id="edit-name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-seats">Max Seats</Label>
@@ -331,7 +375,9 @@ export function OrganizationView() {
             </div>
             <div className="flex gap-2">
               <Button onClick={handleSaveSettings}>Save</Button>
-              <Button variant="outline" onClick={() => setShowSettings(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setShowSettings(false)}>
+                Cancel
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -373,7 +419,9 @@ export function OrganizationView() {
                   <BarChart3 className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{metrics.seats.used}/{metrics.seats.max}</p>
+                  <p className="text-2xl font-bold">
+                    {metrics.seats.used}/{metrics.seats.max}
+                  </p>
                   <p className="text-xs text-muted-foreground">Seats Used</p>
                 </div>
               </div>
@@ -390,7 +438,9 @@ export function OrganizationView() {
               <Mail className="h-5 w-5 text-amber-600" />
               <div>
                 <p className="font-medium">You have a pending invitation to {activeOrg.name}</p>
-                <p className="text-sm text-muted-foreground">Accept to start collaborating with your team</p>
+                <p className="text-sm text-muted-foreground">
+                  Accept to start collaborating with your team
+                </p>
               </div>
             </div>
             <Button onClick={() => handleAcceptInvitation(activeOrg.id)}>
@@ -463,7 +513,9 @@ export function OrganizationView() {
                         <p className="font-medium truncate">
                           {member.user_name || member.user_email}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">{member.user_email}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {member.user_email}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -476,33 +528,31 @@ export function OrganizationView() {
                         <Badge variant="secondary" className={ROLE_COLORS.owner}>
                           <Crown className="h-3 w-3 mr-1" /> Owner
                         </Badge>
+                      ) : activeOrg.role !== 'auditor' && member.role !== 'owner' ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="gap-1.5">
+                              <Badge variant="secondary" className={ROLE_COLORS[member.role]}>
+                                {ROLE_LABELS[member.role]}
+                              </Badge>
+                              <ChevronDown className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            {ASSIGNABLE_ROLES.map((r) => (
+                              <DropdownMenuItem
+                                key={r}
+                                onClick={() => handleRoleChange(member.user_email, r)}
+                              >
+                                {ROLE_LABELS[r]}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       ) : (
-                        activeOrg.role !== 'auditor' && member.role !== 'owner' ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="gap-1.5">
-                                <Badge variant="secondary" className={ROLE_COLORS[member.role]}>
-                                  {ROLE_LABELS[member.role]}
-                                </Badge>
-                                <ChevronDown className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              {ASSIGNABLE_ROLES.map((r) => (
-                                <DropdownMenuItem
-                                  key={r}
-                                  onClick={() => handleRoleChange(member.user_email, r)}
-                                >
-                                  {ROLE_LABELS[r]}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        ) : (
-                          <Badge variant="secondary" className={ROLE_COLORS[member.role]}>
-                            {ROLE_LABELS[member.role]}
-                          </Badge>
-                        )
+                        <Badge variant="secondary" className={ROLE_COLORS[member.role]}>
+                          {ROLE_LABELS[member.role]}
+                        </Badge>
                       )}
                       {activeOrg.role !== 'auditor' && member.role !== 'owner' && (
                         <Button
@@ -553,18 +603,67 @@ export function OrganizationView() {
                     try {
                       const histRaw = localStorage.getItem('sb_scan_history');
                       if (histRaw) history = JSON.parse(histRaw);
-                    } catch { /* ignore */ }
+                    } catch {
+                      /* ignore */
+                    }
                     const sev = report.severityCounts || {};
                     const gate = report.gate || {};
-                    const header = ['date', 'project', 'gatePass', 'qualityScore', 'issueCount', 'blockingCount', 'warningCount', 'critical', 'high', 'medium', 'low', 'totalFilesScanned'];
+                    const header = [
+                      'date',
+                      'project',
+                      'gatePass',
+                      'qualityScore',
+                      'issueCount',
+                      'blockingCount',
+                      'warningCount',
+                      'critical',
+                      'high',
+                      'medium',
+                      'low',
+                      'totalFilesScanned',
+                    ];
                     const rows: string[] = [header.join(',')];
                     const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
                     for (const entry of history) {
                       const s = entry.severityCounts || {};
-                      rows.push([entry.date, activeOrg.slug, entry.gatePass, entry.qualityScore, entry.issueCount, entry.blockingCount, entry.warningCount, s.critical || 0, s.high || 0, s.medium || 0, s.low || 0, entry.totalFilesScanned].map(esc).join(','));
+                      rows.push(
+                        [
+                          entry.date,
+                          activeOrg.slug,
+                          entry.gatePass,
+                          entry.qualityScore,
+                          entry.issueCount,
+                          entry.blockingCount,
+                          entry.warningCount,
+                          s.critical || 0,
+                          s.high || 0,
+                          s.medium || 0,
+                          s.low || 0,
+                          entry.totalFilesScanned,
+                        ]
+                          .map(esc)
+                          .join(',')
+                      );
                     }
                     const reportDate = report.generatedAt || new Date().toISOString();
-                    rows.push([reportDate, activeOrg.slug, gate.pass, report.qualityScore, report.issueCount, gate.blockingCount, gate.warningCount, sev.critical || 0, sev.high || 0, sev.medium || 0, sev.low || 0, report.totalFiles || report.repositoryFilesTotal || ''].map(esc).join(','));
+                    rows.push(
+                      [
+                        reportDate,
+                        activeOrg.slug,
+                        gate.pass,
+                        report.qualityScore,
+                        report.issueCount,
+                        gate.blockingCount,
+                        gate.warningCount,
+                        sev.critical || 0,
+                        sev.high || 0,
+                        sev.medium || 0,
+                        sev.low || 0,
+                        report.totalFiles || report.repositoryFilesTotal || '',
+                      ]
+                        .map(esc)
+                        .join(',')
+                    );
                     const csv = rows.join('\n');
                     const blob = new Blob([csv], { type: 'text/csv' });
                     const url = URL.createObjectURL(blob);
@@ -597,17 +696,36 @@ export function OrganizationView() {
                     try {
                       const histRaw = localStorage.getItem('sb_scan_history');
                       if (histRaw) history = JSON.parse(histRaw);
-                    } catch { /* ignore */ }
+                    } catch {
+                      /* ignore */
+                    }
                     const projectLabel = activeOrg.name;
                     const generatedAt = report.generatedAt || new Date().toISOString();
                     const gate = report.gate || {};
                     const sev = report.severityCounts || {};
                     const issues = report.rawIssues || report.detectedIssues || [];
                     const qualityScore = report.qualityScore != null ? report.qualityScore : 'N/A';
-                    const gatePass = gate.pass === true ? 'PASS' : (gate.blockingCount > 0 ? 'FAIL' : 'REVIEW');
-                    const e = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                    const issueRows = issues.slice(0, 200).map((issue: any) => `<tr><td class="${e(issue.severity)}">${e(issue.severity)}</td><td>${e(issue.type)}</td><td>${e(issue.description)}</td><td>${e(issue.filePath || issue.file || '—')}</td><td>${e(issue.line || '—')}</td><td>${e(issue.count || 1)}</td></tr>`).join('');
-                    const trendRows = history.map((entry: any) => { const s = entry.severityCounts || {}; return `<tr><td>${e(entry.date)}</td><td>${e(entry.gatePass === true ? 'PASS' : 'FAIL')}</td><td>${e(entry.qualityScore ?? '—')}</td><td>${e(entry.issueCount ?? '—')}</td><td>${e(s.critical || 0)}</td><td>${e(s.high || 0)}</td><td>${e(s.medium || 0)}</td><td>${e(s.low || 0)}</td></tr>`; }).join('');
+                    const gatePass =
+                      gate.pass === true ? 'PASS' : gate.blockingCount > 0 ? 'FAIL' : 'REVIEW';
+                    const e = (s: unknown) =>
+                      String(s ?? '')
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;');
+                    const issueRows = issues
+                      .slice(0, 200)
+                      .map(
+                        (issue: any) =>
+                          `<tr><td class="${e(issue.severity)}">${e(issue.severity)}</td><td>${e(issue.type)}</td><td>${e(issue.description)}</td><td>${e(issue.filePath || issue.file || '—')}</td><td>${e(issue.line || '—')}</td><td>${e(issue.count || 1)}</td></tr>`
+                      )
+                      .join('');
+                    const trendRows = history
+                      .map((entry: any) => {
+                        const s = entry.severityCounts || {};
+                        return `<tr><td>${e(entry.date)}</td><td>${e(entry.gatePass === true ? 'PASS' : 'FAIL')}</td><td>${e(entry.qualityScore ?? '—')}</td><td>${e(entry.issueCount ?? '—')}</td><td>${e(s.critical || 0)}</td><td>${e(s.high || 0)}</td><td>${e(s.medium || 0)}</td><td>${e(s.low || 0)}</td></tr>`;
+                      })
+                      .join('');
                     const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SimpleBeacon Audit — ${e(projectLabel)}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a1a;padding:40px;line-height:1.5}.header{border-bottom:2px solid #6366f1;padding-bottom:16px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end}.header h1{font-size:1.5rem}.header .meta{font-size:0.8rem;color:#666;text-align:right}.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}.summary-card{border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px}.summary-card .label{font-size:0.7rem;color:#666;text-transform:uppercase;letter-spacing:0.05em}.summary-card .value{font-size:1.5rem;font-weight:700;margin-top:4px}.gate-pass{color:#16a34a}.gate-fail{color:#dc2626}.gate-review{color:#d97706}h2{font-size:1.1rem;margin:24px 0 12px;border-bottom:1px solid #e5e7eb;padding-bottom:6px}table{width:100%;border-collapse:collapse;font-size:0.8rem}th{background:#f9fafb;text-align:left;padding:8px;border-bottom:2px solid #e5e7eb;font-weight:600}td{padding:6px 8px;border-bottom:1px solid #f3f4f6}.critical{background:#fef2f2;color:#dc2626;font-weight:600}.high{background:#fff7ed;color:#ea580c;font-weight:600}.medium{background:#fefce8;color:#ca8a04}.low{color:#6b7280}.footer{margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:0.7rem;color:#999}@media print{body{padding:20px}}</style></head><body><div class="header"><h1>SimpleBeacon Compliance Audit Report</h1><div class="meta"><div><strong>Organization:</strong> ${e(projectLabel)}</div><div><strong>Generated:</strong> ${e(generatedAt)}</div><div><strong>Gate:</strong> <span class="gate-${gatePass.toLowerCase()}">${gatePass}</span></div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Quality Score</div><div class="value">${e(qualityScore)}</div></div><div class="summary-card"><div class="label">Total Issues</div><div class="value">${e(report.issueCount)}</div></div><div class="summary-card"><div class="label">Blocking</div><div class="value gate-fail">${e(gate.blockingCount || 0)}</div></div><div class="summary-card"><div class="label">Files Scanned</div><div class="value">${e(report.totalFiles || report.repositoryFilesTotal || '—')}</div></div></div><div class="summary-grid"><div class="summary-card"><div class="label">Critical</div><div class="value" style="color:#dc2626">${e(sev.critical || 0)}</div></div><div class="summary-card"><div class="label">High</div><div class="value" style="color:#ea580c">${e(sev.high || 0)}</div></div><div class="summary-card"><div class="label">Medium</div><div class="value" style="color:#ca8a04">${e(sev.medium || 0)}</div></div><div class="summary-card"><div class="label">Low</div><div class="value" style="color:#6b7280">${e(sev.low || 0)}</div></div></div><h2>Detected Issues (${issues.length}${issues.length > 200 ? ' — showing first 200' : ''})</h2><table><thead><tr><th>Severity</th><th>Type</th><th>Description</th><th>File</th><th>Line</th><th>Count</th></tr></thead><tbody>${issueRows || '<tr><td colspan="6" style="text-align:center;color:#999;padding:16px">No issues detected</td></tr>'}</tbody></table>${trendRows ? `<h2>Vulnerability Trend (${history.length} scans)</h2><table><thead><tr><th>Date</th><th>Gate</th><th>Score</th><th>Issues</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th></tr></thead><tbody>${trendRows}</tbody></table>` : ''}<div class="footer"><p>Generated by SimpleBeacon — Compliance Audit Report</p><p>This report is auto-generated from scan data. For compliance attestation, verify with your SimpleBeacon gate configuration.</p></div><script>window.onload=function(){setTimeout(function(){window.print()},300)}</script></body></html>`;
                     const w = window.open('', '_blank');
                     if (!w) {
@@ -641,11 +759,31 @@ export function OrganizationView() {
                       toast.error('No issues in current scan report');
                       return;
                     }
-                    const header = ['project', 'severity', 'type', 'description', 'file', 'line', 'count'];
+                    const header = [
+                      'project',
+                      'severity',
+                      'type',
+                      'description',
+                      'file',
+                      'line',
+                      'count',
+                    ];
                     const rows: string[] = [header.join(',')];
                     const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
                     for (const issue of issues) {
-                      rows.push([activeOrg.slug, issue.severity, issue.type, issue.description, issue.filePath || issue.file || '', issue.line || '', issue.count || 1].map(esc).join(','));
+                      rows.push(
+                        [
+                          activeOrg.slug,
+                          issue.severity,
+                          issue.type,
+                          issue.description,
+                          issue.filePath || issue.file || '',
+                          issue.line || '',
+                          issue.count || 1,
+                        ]
+                          .map(esc)
+                          .join(',')
+                      );
                     }
                     const csv = rows.join('\n');
                     const blob = new Blob([csv], { type: 'text/csv' });
@@ -665,8 +803,9 @@ export function OrganizationView() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Exports use the latest scan report stored in your browser. Run a scan from the Analyze page to populate data.
-              The Audit PDF opens a printable view — use your browser's Print dialog to save as PDF.
+              Exports use the latest scan report stored in your browser. Run a scan from the Analyze
+              page to populate data. The Audit PDF opens a printable view — use your browser's Print
+              dialog to save as PDF.
             </p>
           </CardContent>
         </Card>

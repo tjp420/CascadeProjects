@@ -52,7 +52,9 @@ function run(label, repoPath, expectGatePass) {
       console.log(`  ✅ Gate failed as expected (blocking=${blocking})`);
       passed++;
     } else {
-      console.log(`  ❌ Unexpected gate result: pass=${pass}, blocking=${blocking} (expected pass=${expectGatePass})`);
+      console.log(
+        `  ❌ Unexpected gate result: pass=${pass}, blocking=${blocking} (expected pass=${expectGatePass})`
+      );
       failed++;
     }
   } catch (err) {
@@ -86,10 +88,7 @@ function main() {
     path.join(dirtyDir, 'fiction.json'),
     `{"completion_rate": "98.5%", "user_satisfaction": "99.9%"}\n`
   );
-  fs.writeFileSync(
-    path.join(dirtyDir, 'sample.json'),
-    `{"status": "ok", "demo": true}\n`
-  );
+  fs.writeFileSync(path.join(dirtyDir, 'sample.json'), `{"status": "ok", "demo": true}\n`);
   run('Test 2: Dirty repo (intentional leaks + fiction)', dirtyDir, false);
 
   // Test 3: Large repo — verify the scan completes without timeout/crash.
@@ -114,7 +113,9 @@ function main() {
       if (err.status !== 0 && err.stdout) {
         // Non-zero exit from gate failure is expected on large repos with
         // known CLI false positives — still counts as "completed"
-        console.log('  ✅ Scan completed (gate failed as expected due to known CLI false positives)');
+        console.log(
+          '  ✅ Scan completed (gate failed as expected due to known CLI false positives)'
+        );
         passed++;
       } else {
         console.log(`  ❌ Error: ${err.message || err}`);

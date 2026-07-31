@@ -5,8 +5,13 @@ jest.mock('../analyze-deliverable-access.cjs', () => ({
   resolveDeliverableTier: jest.fn().mockReturnValue({ tier: 'operator' }),
   DELIVERABLE_TIERS: {
     operator: { tier: 'operator', label: 'Operator', requiresCompleteScan: false },
-    handoff: { tier: 'handoff', label: 'Handoff', requiresCompleteScan: true, minScanKind: ['complete'] }
-  }
+    handoff: {
+      tier: 'handoff',
+      label: 'Handoff',
+      requiresCompleteScan: true,
+      minScanKind: ['complete'],
+    },
+  },
 }));
 jest.mock('../simplebeacon-proxy.cjs', () => ({
   sanitizeFrozenAuditDeliverableHtml: jest.fn((html) => html),
@@ -16,7 +21,9 @@ jest.mock('../simplebeacon-proxy.cjs', () => ({
   sanitizeCompleteScanExport: jest.fn((scan) => scan),
   applyPublicGateToAnalyzeResponse: jest.fn().mockReturnValue({ publicSummary: {} }),
   sanitizePublicOutput: jest.fn().mockReturnValue({ summary: {} }),
-  sanitizePublicSummaryArtifactExport: jest.fn().mockReturnValue({ type: 'simplebeacon-public-summary' }),
+  sanitizePublicSummaryArtifactExport: jest
+    .fn()
+    .mockReturnValue({ type: 'simplebeacon-public-summary' }),
   sanitizeSimplebeaconReportExport: jest.fn((v) => v),
   sanitizeFictionDigestExport: jest.fn((v) => v),
   sanitizeComplianceChecklistArtifactExport: jest.fn((v) => v),
@@ -26,7 +33,7 @@ jest.mock('../simplebeacon-proxy.cjs', () => ({
   sanitizeCleanupBriefExport: jest.fn((v) => v),
   sanitizeNpmAuditExport: jest.fn((v) => v),
   sanitizeRoadmapExport: jest.fn((v) => v),
-  buildReAttestationNoteArtifact: jest.fn().mockReturnValue({ type: 're-attestation' })
+  buildReAttestationNoteArtifact: jest.fn().mockReturnValue({ type: 're-attestation' }),
 }));
 
 const bundle = require('../analyze-export-bundle.cjs');

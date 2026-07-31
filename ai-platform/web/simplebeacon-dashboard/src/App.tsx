@@ -39,11 +39,20 @@ import { EnterpriseView } from './views/EnterpriseView';
 import { OutreachAnalyticsView } from './views/OutreachAnalyticsView';
 
 // Lazy-loaded views — code-split to keep initial bundle small
-const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
+const TeamMetricsView = lazy(() =>
+  import('./views/TeamMetricsView').then((m) => ({ default: m.TeamMetricsView }))
+);
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
 const AUTH_REQUIRED_VIEWS = new Set(['organization']);
-const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
+const WRITE_HEAVY_VIEWS = new Set([
+  'dashboard',
+  'analyze',
+  'upload',
+  'settings',
+  'admin',
+  'chatbot',
+]);
 
 function isHostedDashboard(): boolean {
   if (typeof window === 'undefined') return false;
@@ -53,14 +62,16 @@ function isHostedDashboard(): boolean {
 function isIdeEmbedSurface(): boolean {
   if (typeof window === 'undefined') return false;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const win = window as any;
     if (win.__SB_IDE_EMBED__) return true;
     if (document.documentElement.hasAttribute('data-ide-embed')) return true;
     if (typeof win.acquireVsCodeApi === 'function') return true;
     const params = new URLSearchParams(window.location.search);
     if (params.get('sb_api_base') || params.get('sb_notify_base')) return true;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return window.self !== window.top;
 }
 
@@ -187,7 +198,13 @@ export default function App() {
           isFreeTier={isFreeTier}
           user={user}
         >
-          <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-foreground-muted">Loading...</div>}>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center p-20 text-sm text-foreground-muted">
+                Loading...
+              </div>
+            }
+          >
             <CurrentView />
           </Suspense>
         </AppShell>

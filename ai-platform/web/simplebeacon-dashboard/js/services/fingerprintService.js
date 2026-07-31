@@ -17,7 +17,13 @@ const FINGERPRINT_PROFILES = [
     confidence: 95,
     requiredMatchMode: 'any',
     required: [/^package\.json$/i],
-    optional: [/^node_modules\//i, /^package-lock\.json$/i, /^yarn\.lock$/i, /^pnpm-lock\.yaml$/i, /^tsconfig\.json$/i]
+    optional: [
+      /^node_modules\//i,
+      /^package-lock\.json$/i,
+      /^yarn\.lock$/i,
+      /^pnpm-lock\.yaml$/i,
+      /^tsconfig\.json$/i,
+    ],
   },
   {
     id: 'python',
@@ -25,7 +31,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 90,
     requiredMatchMode: 'any',
     required: [/^requirements\.txt$/i, /^pyproject\.toml$/i, /^setup\.py$/i, /^setup\.cfg$/i],
-    optional: [/^\.venv\//i, /^venv\//i, /^__pycache__\//i, /^poetry\.lock$/i, /^Pipfile$/i]
+    optional: [/^\.venv\//i, /^venv\//i, /^__pycache__\//i, /^poetry\.lock$/i, /^Pipfile$/i],
   },
   {
     id: 'java-maven',
@@ -33,7 +39,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 90,
     requiredMatchMode: 'any',
     required: [/^pom\.xml$/i],
-    optional: [/^src\//i, /^target\//i, /^\.mvn\//i, /^mvnw$/i]
+    optional: [/^src\//i, /^target\//i, /^\.mvn\//i, /^mvnw$/i],
   },
   {
     id: 'dotnet',
@@ -41,7 +47,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 90,
     requiredMatchMode: 'any',
     required: [/\.csproj$/i, /\.sln$/i],
-    optional: [/\.cs$/i, /^obj\//i, /^bin\//i, /^\.vs\//i, /^global\.json$/i]
+    optional: [/\.cs$/i, /^obj\//i, /^bin\//i, /^\.vs\//i, /^global\.json$/i],
   },
   {
     id: 'golang',
@@ -49,7 +55,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 90,
     requiredMatchMode: 'any',
     required: [/^go\.mod$/i],
-    optional: [/^go\.sum$/i, /^main\.go$/i, /^cmd\//i, /^pkg\//i]
+    optional: [/^go\.sum$/i, /^main\.go$/i, /^cmd\//i, /^pkg\//i],
   },
   {
     id: 'rust',
@@ -57,7 +63,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 90,
     requiredMatchMode: 'any',
     required: [/^Cargo\.toml$/i],
-    optional: [/^Cargo\.lock$/i, /^src\//i, /^target\//i, /^rust-toolchain$/i]
+    optional: [/^Cargo\.lock$/i, /^src\//i, /^target\//i, /^rust-toolchain$/i],
   },
   {
     id: 'unity',
@@ -65,7 +71,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 95,
     requiredMatchMode: 'all',
     required: [/^Assets\//i, /^ProjectSettings\//i],
-    optional: [/^Packages\//i, /^Library\//i, /\.unity$/i, /^ProjectSettings\/Unity.*\.asset$/i]
+    optional: [/^Packages\//i, /^Library\//i, /\.unity$/i, /^ProjectSettings\/Unity.*\.asset$/i],
   },
   {
     id: 'unreal',
@@ -73,7 +79,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 95,
     requiredMatchMode: 'all',
     required: [/^Engine\//i, /\.uproject$/i],
-    optional: [/^Content\//i, /^Config\//i, /^Source\//i, /^Plugins\//i, /^Binaries\//i]
+    optional: [/^Content\//i, /^Config\//i, /^Source\//i, /^Plugins\//i, /^Binaries\//i],
   },
   {
     id: 'godot',
@@ -81,7 +87,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 95,
     requiredMatchMode: 'any',
     required: [/^project\.godot$/i],
-    optional: [/^assets\//i, /^src\//i, /^scenes\//i, /^scripts\//i, /\.tscn$/i, /\.gd$/i]
+    optional: [/^assets\//i, /^src\//i, /^scenes\//i, /^scripts\//i, /\.tscn$/i, /\.gd$/i],
   },
   {
     id: 'steam',
@@ -89,7 +95,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 100,
     requiredMatchMode: 'any',
     required: [/^steam\.exe$/i, /^steamapps\//i],
-    optional: [/^steam\.sh$/i, /^steamui\//i, /^logs\//i, /^userdata\//i]
+    optional: [/^steam\.sh$/i, /^steamui\//i, /^logs\//i, /^userdata\//i],
   },
   {
     id: 'adobe-photoshop',
@@ -97,7 +103,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 100,
     requiredMatchMode: 'all',
     required: [/^photoshop\.exe$/i, /^Required\//i],
-    optional: [/^Plug-Ins\//i, /^Presets\//i, /^Locales\//i, /^AMT\//i]
+    optional: [/^Plug-Ins\//i, /^Presets\//i, /^Locales\//i, /^AMT\//i],
   },
   {
     id: 'microsoft-office',
@@ -105,7 +111,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 100,
     requiredMatchMode: 'any',
     required: [/^winword\.exe$/i, /^excel\.exe$/i, /^powerpnt\.exe$/i, /^outlook\.exe$/i],
-    optional: [/^Office\//i, /^Office16\//i, /^Office15\//i, /\.mui$/i]
+    optional: [/^Office\//i, /^Office16\//i, /^Office15\//i, /\.mui$/i],
   },
   {
     id: 'visual-studio',
@@ -113,7 +119,7 @@ const FINGERPRINT_PROFILES = [
     confidence: 100,
     requiredMatchMode: 'all',
     required: [/^devenv\.exe$/i, /^Common7\//i],
-    optional: [/^MSBuild\//i, /^Team Tools\//i, /^VB\//i, /^VC\//i, /^Xml\//i]
+    optional: [/^MSBuild\//i, /^Team Tools\//i, /^VB\//i, /^VC\//i, /^Xml\//i],
   },
   {
     id: 'vscode',
@@ -121,7 +127,13 @@ const FINGERPRINT_PROFILES = [
     confidence: 90,
     requiredMatchMode: 'any',
     required: [/^\.vscode\//i],
-    optional: [/^code\.exe$/i, /^settings\.json$/i, /^launch\.json$/i, /^tasks\.json$/i, /^extensions\.json$/i]
+    optional: [
+      /^code\.exe$/i,
+      /^settings\.json$/i,
+      /^launch\.json$/i,
+      /^tasks\.json$/i,
+      /^extensions\.json$/i,
+    ],
   },
   {
     id: 'jetbrains',
@@ -129,8 +141,14 @@ const FINGERPRINT_PROFILES = [
     confidence: 90,
     requiredMatchMode: 'any',
     required: [/^\.idea\//i],
-    optional: [/^rider64\.exe$/i, /^webstorm64\.exe$/i, /^pycharm64\.exe$/i, /^intellij64\.exe$/i, /^\.iml$/i]
-  }
+    optional: [
+      /^rider64\.exe$/i,
+      /^webstorm64\.exe$/i,
+      /^pycharm64\.exe$/i,
+      /^intellij64\.exe$/i,
+      /^\.iml$/i,
+    ],
+  },
 ];
 
 function normalizePath(path) {
@@ -230,7 +248,8 @@ export function identifyProgram(rootName, paths) {
       }
     }
 
-    const optionalCoverage = profile.optional.length > 0 ? optionalHits / profile.optional.length : 0;
+    const optionalCoverage =
+      profile.optional.length > 0 ? optionalHits / profile.optional.length : 0;
     const score = matchMode === 'all' ? 1.0 : 0.9 + optionalCoverage * 0.1;
     const tieBreaker = optionalCoverage;
 
@@ -245,7 +264,7 @@ export function identifyProgram(rootName, paths) {
         totalFiles,
         metadata,
         matchedRequired: requiredHits,
-        matchedOptional: optionalHits
+        matchedOptional: optionalHits,
       };
     }
   }
@@ -260,7 +279,7 @@ export function identifyProgram(rootName, paths) {
     totalFiles,
     metadata,
     matchedRequired: 0,
-    matchedOptional: 0
+    matchedOptional: 0,
   };
 }
 
@@ -286,7 +305,7 @@ export function formatFingerprint(result) {
     `Detected: ${result.name}`,
     result.confidence > 0 ? `(${result.confidence}% confidence)` : '',
     `${result.totalFiles.toLocaleString()} files`,
-    exe > 0 || dll > 0 ? `${exe} .exe, ${dll} .dll` : ''
+    exe > 0 || dll > 0 ? `${exe} .exe, ${dll} .dll` : '',
   ];
   return parts.filter(Boolean).join(' · ');
 }

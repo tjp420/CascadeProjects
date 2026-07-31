@@ -15,8 +15,7 @@ const RECENT_PATHS_KEY = 'simplebeaconRecentPaths';
  * @returns {any}
  */
 function basenamePath(projectPath) {
-    if (!projectPath)
-        return '';
+    if (!projectPath) return '';
     const parts = String(projectPath).replace(/\\/g, '/').split('/').filter(Boolean);
     return parts[parts.length - 1] || projectPath;
 }
@@ -27,24 +26,18 @@ function basenamePath(projectPath) {
  */
 export function isPlausibleSuggestionPath(value) {
     const raw = String(value || '').trim();
-    if (!raw || raw.length > 280)
-        return false;
-    if (isRemoteRepoUrl(raw))
-        return true;
+    if (!raw || raw.length > 280) return false;
+    if (isRemoteRepoUrl(raw)) return true;
     if (/outside allowed analysis roots|projectPath is required|projectPath is outside/i.test(raw)) {
         return false;
     }
     if (/allowedAnalysisRoots|ANALYZE_ALLOWED_ROOTS|restart the server/i.test(raw)) {
         return false;
     }
-    if (/\.(bat|cmd|exe|ps1|sh|js|json|html?|md|txt)$/i.test(raw))
-        return false;
-    if (/^[a-zA-Z]:[\\/]/.test(raw))
-        return true;
-    if (raw.startsWith('\\\\') || raw.startsWith('/'))
-        return true;
-    if (/^[\w.-]+([\\/]|$)/.test(raw))
-        return true;
+    if (/\.(bat|cmd|exe|ps1|sh|js|json|html?|md|txt)$/i.test(raw)) return false;
+    if (/^[a-zA-Z]:[\\/]/.test(raw)) return true;
+    if (raw.startsWith('\\\\') || raw.startsWith('/')) return true;
+    if (/^[\w.-]+([\\/]|$)/.test(raw)) return true;
     return false;
 }
 /**
@@ -55,11 +48,9 @@ export function loadRecentPaths() {
     try {
         const raw = localStorage.getItem(RECENT_PATHS_KEY);
         const parsed = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(parsed))
-            return [];
+        if (!Array.isArray(parsed)) return [];
         return parsed.filter(isPlausibleSuggestionPath);
-    }
-    catch (_a) {
+    } catch (_a) {
         return [];
     }
 }
@@ -69,9 +60,8 @@ export function loadRecentPaths() {
  * @returns {any}
  */
 export function saveRecentPath(path) {
-    if (!isPlausibleSuggestionPath(path))
-        return;
-    const recent = [path, ...loadRecentPaths().filter((p) => p !== path)].slice(0, 8);
+    if (!isPlausibleSuggestionPath(path)) return;
+    const recent = [path, ...loadRecentPaths().filter(p => p !== path)].slice(0, 8);
     localStorage.setItem(RECENT_PATHS_KEY, JSON.stringify(recent));
 }
 /**
@@ -81,9 +71,8 @@ export function saveRecentPath(path) {
  */
 export function removeRecentPath(path) {
     const raw = String(path || '').trim();
-    if (!raw)
-        return;
-    const recent = loadRecentPaths().filter((p) => p !== raw);
+    if (!raw) return;
+    const recent = loadRecentPaths().filter(p => p !== raw);
     localStorage.setItem(RECENT_PATHS_KEY, JSON.stringify(recent));
 }
 /** Suggestion entries for datalist + redacted-path expansion. */
@@ -100,11 +89,9 @@ export function collectPathSuggestions(app, testSources = []) {
      */
     const add = (value, label, kind = 'path') => {
         const full = String(value || '').trim();
-        if (!full || !isPlausibleSuggestionPath(full))
-            return;
+        if (!full || !isPlausibleSuggestionPath(full)) return;
         const key = normalizeProjectPath(full);
-        if (seen.has(key))
-            return;
+        if (seen.has(key)) return;
         seen.add(key);
         entries.push({
             full,
@@ -113,17 +100,24 @@ export function collectPathSuggestions(app, testSources = []) {
             displayValue: isRemoteRepoUrl(full) ? full : redactPathForDisplay(full)
         });
     };
-    const defaultPath = String(((_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0 ? void 0 : _a.defaultProjectPath) || '').trim();
+    const defaultPath = String(
+        ((_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0
+            ? void 0
+            : _a.defaultProjectPath) || ''
+    ).trim();
     if (defaultPath) {
         add(defaultPath, `Server default · ${basenamePath(defaultPath)}`, 'default');
     }
     for (const recent of loadRecentPaths()) {
-        if (recent === defaultPath)
-            continue;
+        if (recent === defaultPath) continue;
         add(recent, formatPathLabel(recent) || basenamePath(recent), 'recent');
     }
     for (const source of testSources || []) {
-        add(source === null || source === void 0 ? void 0 : source.value, source === null || source === void 0 ? void 0 : source.label, (source === null || source === void 0 ? void 0 : source.kind) || 'preset');
+        add(
+            source === null || source === void 0 ? void 0 : source.value,
+            source === null || source === void 0 ? void 0 : source.label,
+            (source === null || source === void 0 ? void 0 : source.kind) || 'preset'
+        );
     }
     return entries;
 }
@@ -133,13 +127,14 @@ export function collectPathSuggestions(app, testSources = []) {
  * @returns {any}
  */
 export function renderPathSuggestionsDatalistHtml(entries = []) {
-    if (!entries.length)
-        return '';
-    return entries.map(({ full, label, displayValue }) => {
-        const value = displayValue || full;
-        const title = full !== value ? full : label;
-        return `<option value="${escapeHtml(value)}" label="${escapeHtml(label)}" title="${escapeHtml(title)}"></option>`;
-    }).join('');
+    if (!entries.length) return '';
+    return entries
+        .map(({ full, label, displayValue }) => {
+            const value = displayValue || full;
+            const title = full !== value ? full : label;
+            return `<option value="${escapeHtml(value)}" label="${escapeHtml(label)}" title="${escapeHtml(title)}"></option>`;
+        })
+        .join('');
 }
 function createDatalistOptions(entries) {
     const fragment = document.createDocumentFragment();
@@ -162,8 +157,7 @@ function createDatalistOptions(entries) {
  * @returns {any}
  */
 export function refreshPathSuggestionsDatalist(container, app, testSources = []) {
-    if (!container)
-        return [];
+    if (!container) return [];
     const entries = collectPathSuggestions(app, testSources);
     const datalist = container.querySelector(`#${PATH_SUGGESTIONS_LIST_ID}`);
     if (datalist) {
@@ -175,14 +169,11 @@ export function refreshPathSuggestionsDatalist(container, app, testSources = [])
 export function expandDisplayPathToFull(inputValue, app, testSources = []) {
     var _a, _b;
     const trimmed = String(inputValue || '').trim();
-    if (!trimmed)
-        return '';
-    if (!trimmed.startsWith('…') && !trimmed.startsWith('...'))
-        return trimmed;
+    if (!trimmed) return '';
+    if (!trimmed.startsWith('…') && !trimmed.startsWith('...')) return trimmed;
     const entries = collectPathSuggestions(app, testSources);
     for (const entry of entries) {
-        if (entry.displayValue === trimmed)
-            return entry.full;
+        if (entry.displayValue === trimmed) return entry.full;
     }
     const suffix = trimmed.replace(/^(?:…|\.{3})/, '').replace(/\\/g, '/');
     if (suffix) {
@@ -192,12 +183,22 @@ export function expandDisplayPathToFull(inputValue, app, testSources = []) {
                 return entry.full;
             }
         }
-        const defaultPath = String(((_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0 ? void 0 : _a.defaultProjectPath) || '').replace(/\\/g, '/');
+        const defaultPath = String(
+            ((_a = app === null || app === void 0 ? void 0 : app.state) === null || _a === void 0
+                ? void 0
+                : _a.defaultProjectPath) || ''
+        ).replace(/\\/g, '/');
         if (defaultPath && (defaultPath.endsWith(suffix) || defaultPath.toLowerCase().endsWith(suffix.toLowerCase()))) {
             return app.state.defaultProjectPath;
         }
     }
-    return String(((_b = app === null || app === void 0 ? void 0 : app.state) === null || _b === void 0 ? void 0 : _b.defaultProjectPath) || '').trim() || trimmed;
+    return (
+        String(
+            ((_b = app === null || app === void 0 ? void 0 : app.state) === null || _b === void 0
+                ? void 0
+                : _b.defaultProjectPath) || ''
+        ).trim() || trimmed
+    );
 }
 /**
  * Path input list attr.

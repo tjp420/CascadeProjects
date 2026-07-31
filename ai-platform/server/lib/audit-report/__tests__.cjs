@@ -32,7 +32,10 @@ const {
 
 describe('finding-utils.cjs', () => {
   it('normalizeFindingPath strips ai-platform prefix', () => {
-    assert.strictEqual(normalizeFindingPath('c:/Users/foo/ai-platform/server/lib/db.cjs'), 'server/lib/db.cjs');
+    assert.strictEqual(
+      normalizeFindingPath('c:/Users/foo/ai-platform/server/lib/db.cjs'),
+      'server/lib/db.cjs'
+    );
     assert.strictEqual(normalizeFindingPath('server/lib/db.cjs'), 'server/lib/db.cjs');
   });
 
@@ -66,18 +69,19 @@ describe('finding-utils.cjs', () => {
   });
 
   it('sortBySeverity orders critical > high > medium > low', () => {
-    const findings = [
-      { severity: 'low' },
-      { severity: 'critical' },
-      { severity: 'high' },
-    ];
+    const findings = [{ severity: 'low' }, { severity: 'critical' }, { severity: 'high' }];
     const sorted = sortBySeverity(findings);
-    assert.deepStrictEqual(sorted.map((f) => f.severity), ['critical', 'high', 'low']);
+    assert.deepStrictEqual(
+      sorted.map((f) => f.severity),
+      ['critical', 'high', 'low']
+    );
   });
 
   it('scoreFinding boosts production and high severity', () => {
     const highProd = { severity: 'high', filePath: 'server/lib/db.cjs', category: 'broken' };
-    assert.ok(scoreFinding(highProd) > scoreFinding({ severity: 'low', filePath: 'docs/readme.md' }));
+    assert.ok(
+      scoreFinding(highProd) > scoreFinding({ severity: 'low', filePath: 'docs/readme.md' })
+    );
   });
 
   it('enrichFindings adds tier and priority', () => {
@@ -88,11 +92,7 @@ describe('finding-utils.cjs', () => {
   });
 
   it('countByTier aggregates correctly', () => {
-    const findings = [
-      { tier: 'production' },
-      { tier: 'production' },
-      { tier: 'documentation' },
-    ];
+    const findings = [{ tier: 'production' }, { tier: 'production' }, { tier: 'documentation' }];
     const counts = countByTier(findings);
     assert.strictEqual(counts.production, 2);
     assert.strictEqual(counts.documentation, 1);
@@ -150,23 +150,38 @@ describe('finding-utils.cjs', () => {
   });
 
   it('redactPathForDisplay shortens long paths', () => {
-    assert.strictEqual(redactPathForDisplay('C:/Users/Trevor/Projects/myapp/src/index.js'), 'src/index.js');
+    assert.strictEqual(
+      redactPathForDisplay('C:/Users/Trevor/Projects/myapp/src/index.js'),
+      'src/index.js'
+    );
     assert.strictEqual(redactPathForDisplay('myapp/src/index.js'), 'src/index.js');
     assert.strictEqual(redactPathForDisplay(''), 'Project');
   });
 
   it('formatCodebaseRule maps categories', () => {
-    assert.strictEqual(formatCodebaseRule({ category: 'debug-artifact' }), 'DEBUG_ARTIFACT / CONSOLE_OR_DEBUGGER');
+    assert.strictEqual(
+      formatCodebaseRule({ category: 'debug-artifact' }),
+      'DEBUG_ARTIFACT / CONSOLE_OR_DEBUGGER'
+    );
     assert.strictEqual(formatCodebaseRule({ category: 'unknown' }), 'UNKNOWN');
   });
 
   it('classifyGateIssueBusinessTier recognizes credentials as critical', () => {
-    assert.strictEqual(classifyGateIssueBusinessTier({ type: 'AWS credential leak', severity: 'high' }), 'critical');
-    assert.strictEqual(classifyGateIssueBusinessTier({ type: 'fiction KPI', severity: 'medium' }), 'medium');
+    assert.strictEqual(
+      classifyGateIssueBusinessTier({ type: 'AWS credential leak', severity: 'high' }),
+      'critical'
+    );
+    assert.strictEqual(
+      classifyGateIssueBusinessTier({ type: 'fiction KPI', severity: 'medium' }),
+      'medium'
+    );
   });
 
   it('classifyCodebaseBusinessTier maps categories', () => {
-    assert.strictEqual(classifyCodebaseBusinessTier({ category: 'broken', severity: 'high' }), 'high');
+    assert.strictEqual(
+      classifyCodebaseBusinessTier({ category: 'broken', severity: 'high' }),
+      'high'
+    );
     assert.strictEqual(classifyCodebaseBusinessTier({ category: 'meaningless-data' }), 'medium');
   });
 });
@@ -192,18 +207,40 @@ describe('executive.cjs', () => {
   });
 
   it('buildLaunchReadiness labels blocked when gate fails', () => {
-    const readiness = buildLaunchReadiness({ summary: { gatePass: false, severityCounts: { high: 2, medium: 0, low: 0 }, productionSeverity: {} } });
+    const readiness = buildLaunchReadiness({
+      summary: {
+        gatePass: false,
+        severityCounts: { high: 2, medium: 0, low: 0 },
+        productionSeverity: {},
+      },
+    });
     assert.strictEqual(readiness.tone, 'blocked');
   });
 
   it('buildLaunchReadiness labels ready when gate passes', () => {
-    const readiness = buildLaunchReadiness({ summary: { gatePass: true, severityCounts: { high: 0, medium: 0, low: 0 }, productionSeverity: {}, productionFindings: 0, documentationFindings: 0 } });
+    const readiness = buildLaunchReadiness({
+      summary: {
+        gatePass: true,
+        severityCounts: { high: 0, medium: 0, low: 0 },
+        productionSeverity: {},
+        productionFindings: 0,
+        documentationFindings: 0,
+      },
+    });
     assert.strictEqual(readiness.tone, 'ready');
   });
 
   it('mergeExecutiveSummary prefers non-placeholder AI text', () => {
-    const deterministic = { intro: 'detailed intro', businessImpact: 'impact', headline: 'headline' };
-    const ai = { intro: 'This is a very long and meaningful executive summary paragraph.', businessImpact: 'Real business impact here.', headline: 'Priority headline for immediate action required' };
+    const deterministic = {
+      intro: 'detailed intro',
+      businessImpact: 'impact',
+      headline: 'headline',
+    };
+    const ai = {
+      intro: 'This is a very long and meaningful executive summary paragraph.',
+      businessImpact: 'Real business impact here.',
+      headline: 'Priority headline for immediate action required',
+    };
     const merged = mergeExecutiveSummary(deterministic, ai);
     assert.strictEqual(merged.intro, ai.intro);
     assert.strictEqual(merged.headline, ai.headline);
@@ -213,14 +250,30 @@ describe('executive.cjs', () => {
     const prompt = buildCompleteAuditPrompt({
       projectPath: 'myproject',
       readiness: { score: 75 },
-      summary: { gatePass: true, simplebeaconIssues: 0, severityCounts: { high: 0, medium: 0, low: 0 }, productionFindings: 0, codeSeverity: { high: 0, medium: 0, low: 0 }, documentationFindings: 0, codebaseFindingsDeduped: 0, codebaseFindingsRaw: 0, codebaseHealth: 85, codeFilesAnalyzed: 100, codeFilesDiscovered: 120, repositoryFiles: 500, duplicateGroups: 0 }
+      summary: {
+        gatePass: true,
+        simplebeaconIssues: 0,
+        severityCounts: { high: 0, medium: 0, low: 0 },
+        productionFindings: 0,
+        codeSeverity: { high: 0, medium: 0, low: 0 },
+        documentationFindings: 0,
+        codebaseFindingsDeduped: 0,
+        codebaseFindingsRaw: 0,
+        codebaseHealth: 85,
+        codeFilesAnalyzed: 100,
+        codeFilesDiscovered: 120,
+        repositoryFiles: 500,
+        duplicateGroups: 0,
+      },
     });
     assert.ok(prompt.includes('myproject'));
     assert.ok(prompt.includes('75'));
   });
 
   it('parseAiExecutive extracts JSON from markdown', () => {
-    const result = parseAiExecutive('```json\n{"summary":"hello","headline":"fix me","priorities":["a","b"]}\n```');
+    const result = parseAiExecutive(
+      '```json\n{"summary":"hello","headline":"fix me","priorities":["a","b"]}\n```'
+    );
     assert.ok(result);
     assert.strictEqual(result.headline, 'fix me');
     assert.deepStrictEqual(result.priorities, ['a', 'b']);
@@ -241,8 +294,14 @@ const {
 describe('html-sections.cjs', () => {
   it('buildExecutiveDashboardBanner returns HTML string', () => {
     const model = {
-      summary: { gatePass: true, codeFilesAnalyzed: 100, codebaseHealth: 85, productionFindings: 0, documentationFindings: 0 },
-      exportTier: { tier: 'handoff' }
+      summary: {
+        gatePass: true,
+        codeFilesAnalyzed: 100,
+        codebaseHealth: 85,
+        productionFindings: 0,
+        documentationFindings: 0,
+      },
+      exportTier: { tier: 'handoff' },
     };
     const html = buildExecutiveDashboardBanner(model);
     assert.ok(typeof html === 'string');
@@ -251,8 +310,14 @@ describe('html-sections.cjs', () => {
 
   it('buildExecutiveKpiStrip returns 5 KPIs for handoff tier', () => {
     const model = {
-      summary: { simplebeaconIssues: 0, productionFindings: 0, documentationFindings: 0, codebaseHealth: 85, codeFilesAnalyzed: 100 },
-      exportTier: { tier: 'handoff' }
+      summary: {
+        simplebeaconIssues: 0,
+        productionFindings: 0,
+        documentationFindings: 0,
+        codebaseHealth: 85,
+        codeFilesAnalyzed: 100,
+      },
+      exportTier: { tier: 'handoff' },
     };
     const html = buildExecutiveKpiStrip(model);
     assert.ok(typeof html === 'string');
@@ -271,7 +336,7 @@ describe('html-sections.cjs', () => {
       engineLabel: 'v1.0',
       branch: 'main',
       repositoryLabel: 'acme',
-      assessor: 'Simplebeacon'
+      assessor: 'Simplebeacon',
     };
     const cover = buildCoverPresentation(model);
     assert.ok(cover.kicker);
@@ -281,10 +346,7 @@ describe('html-sections.cjs', () => {
 });
 
 // ── Sample Report ─────────────────────────────────────────────────
-const {
-  buildSampleAuditReportModel,
-  wrapSampleReportForWebsite,
-} = require('./sample-report.cjs');
+const { buildSampleAuditReportModel, wrapSampleReportForWebsite } = require('./sample-report.cjs');
 
 describe('sample-report.cjs', () => {
   it('buildSampleAuditReportModel returns a model', () => {

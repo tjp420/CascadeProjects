@@ -14,13 +14,15 @@ function startServer() {
     SIMPLEBEACON_LICENSE_SECRET: '',
     JWT_SECRET: 'ci-test-jwt-secret-for-playwright-gate-only',
     JWT_REFRESH_SECRET: 'ci-test-jwt-refresh-secret-for-playwright-gate-only',
-    TOKEN_ACCOUNT_SIGNING_KEY: Buffer.from('ci-test-token-account-signing-key-for-playwright-gate-only').toString('base64')
+    TOKEN_ACCOUNT_SIGNING_KEY: Buffer.from(
+      'ci-test-token-account-signing-key-for-playwright-gate-only'
+    ).toString('base64'),
   };
 
   const server = spawn(process.execPath, ['ai-platform/server/index.cjs'], {
     cwd: process.cwd(),
     env,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
 
   server.stdout.on('data', (chunk) => {
@@ -55,24 +57,30 @@ async function runChecks() {
   const ctx = await request.newContext({ baseURL: BASE_URL });
   try {
     const validateRes = await ctx.post('/api/license/validate', {
-      data: { token: 'invalid-token' }
+      data: { token: 'invalid-token' },
     });
     const validateBody = await validateRes.json();
 
     if (validateRes.status() !== 503) {
-      throw new Error(`Expected /api/license/validate status 503 when secret missing, got ${validateRes.status()}`);
+      throw new Error(
+        `Expected /api/license/validate status 503 when secret missing, got ${validateRes.status()}`
+      );
     }
     if (validateBody.valid !== false || validateBody.active !== false) {
-      throw new Error('Expected /api/license/validate to fail closed with valid=false and active=false');
+      throw new Error(
+        'Expected /api/license/validate to fail closed with valid=false and active=false'
+      );
     }
 
     const statusRes = await ctx.post('/api/auth/token-status', {
-      data: { token: 'invalid-token' }
+      data: { token: 'invalid-token' },
     });
     const statusBody = await statusRes.json();
 
     if (statusRes.status() !== 503) {
-      throw new Error(`Expected /api/auth/token-status status 503 when secret missing, got ${statusRes.status()}`);
+      throw new Error(
+        `Expected /api/auth/token-status status 503 when secret missing, got ${statusRes.status()}`
+      );
     }
     if (statusBody.valid !== false) {
       throw new Error('Expected /api/auth/token-status to fail closed with valid=false');

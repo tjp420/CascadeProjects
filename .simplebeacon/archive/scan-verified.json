@@ -5,9 +5,7 @@
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
-  "scanPaths": [
-    "C:\\Users\\Trevor\\CascadeProjects"
-  ],
+  "scanPaths": ["C:\\Users\\Trevor\\CascadeProjects"],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
     "totalFiles": 1193,
@@ -148,9 +146,7 @@
       "line": 169,
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "pattern-documentation.js"
-      ],
+      "affectedFiles": ["pattern-documentation.js"],
       "filePaths": [
         "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js"
       ],
@@ -166,9 +162,7 @@
       "line": 171,
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "pattern-documentation.js"
-      ],
+      "affectedFiles": ["pattern-documentation.js"],
       "filePaths": [
         "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js"
       ],
@@ -184,9 +178,7 @@
       "line": 271,
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "pattern-documentation.js"
-      ],
+      "affectedFiles": ["pattern-documentation.js"],
       "filePaths": [
         "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js"
       ],
@@ -202,9 +194,7 @@
       "line": 172,
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "quick-actions.js"
-      ],
+      "affectedFiles": ["quick-actions.js"],
       "filePaths": [
         "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\quick-actions.js"
       ],
@@ -220,9 +210,7 @@
       "line": 188,
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "quick-actions.js"
-      ],
+      "affectedFiles": ["quick-actions.js"],
       "filePaths": [
         "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\quick-actions.js"
       ],
@@ -243,9 +231,7 @@
       "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js:169 possible generic api key",
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "pattern-documentation.js"
-      ],
+      "affectedFiles": ["pattern-documentation.js"],
       "metadata": {
         "patternId": "generic-api-key",
         "offset": 8410,
@@ -270,9 +256,7 @@
       "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js:171 possible generic api key",
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "pattern-documentation.js"
-      ],
+      "affectedFiles": ["pattern-documentation.js"],
       "metadata": {
         "patternId": "generic-api-key",
         "offset": 8510,
@@ -297,9 +281,7 @@
       "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js:271 possible generic api key",
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "pattern-documentation.js"
-      ],
+      "affectedFiles": ["pattern-documentation.js"],
       "metadata": {
         "patternId": "generic-api-key",
         "offset": 13330,
@@ -324,9 +306,7 @@
       "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\quick-actions.js:172 possible generic api key",
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "quick-actions.js"
-      ],
+      "affectedFiles": ["quick-actions.js"],
       "metadata": {
         "patternId": "generic-api-key",
         "offset": 7434,
@@ -351,9 +331,7 @@
       "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\quick-actions.js:188 possible generic api key",
       "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
       "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-      "affectedFiles": [
-        "quick-actions.js"
-      ],
+      "affectedFiles": ["quick-actions.js"],
       "metadata": {
         "patternId": "generic-api-key",
         "offset": 8165,
@@ -1580,13 +1558,8 @@
       "eu-ai-act-patterns"
     ],
     "gatePolicy": {
-      "failOn": [
-        "high"
-      ],
-      "warnOn": [
-        "medium",
-        "low"
-      ]
+      "failOn": ["high"],
+      "warnOn": ["medium", "low"]
     },
     "mockSampleFilesInScanPaths": 1193,
     "pageSpecCatalogSize": 50,
@@ -1594,10 +1567,7 @@
     "pageSpecsFromScanPaths": 50,
     "pageSpecsFromAliasPaths": 0,
     "productionDirsScanned": 1,
-    "productionPaths": [
-      "ai-tools/",
-      "packages/simplebeacon-cli/src/"
-    ],
+    "productionPaths": ["ai-tools/", "packages/simplebeacon-cli/src/"],
     "sourceCodeScanPaths": [],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
@@ -1631,13 +1601,8 @@
   },
   "gate": {
     "pass": true,
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ],
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"],
     "blockingCount": 0,
     "warningCount": 5,
     "blockingIssues": [],
@@ -1655,9 +1620,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js:169 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "pattern-documentation.js"
-        ],
+        "affectedFiles": ["pattern-documentation.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 8410,
@@ -1682,9 +1645,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js:171 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "pattern-documentation.js"
-        ],
+        "affectedFiles": ["pattern-documentation.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 8510,
@@ -1709,9 +1670,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js:271 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "pattern-documentation.js"
-        ],
+        "affectedFiles": ["pattern-documentation.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 13330,
@@ -1736,9 +1695,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\quick-actions.js:172 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "quick-actions.js"
-        ],
+        "affectedFiles": ["quick-actions.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 7434,
@@ -1763,9 +1720,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\quick-actions.js:188 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "quick-actions.js"
-        ],
+        "affectedFiles": ["quick-actions.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 8165,
@@ -1792,9 +1747,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js:169 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "pattern-documentation.js"
-        ],
+        "affectedFiles": ["pattern-documentation.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 8410,
@@ -1819,9 +1772,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js:171 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "pattern-documentation.js"
-        ],
+        "affectedFiles": ["pattern-documentation.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 8510,
@@ -1846,9 +1797,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\pattern-documentation.js:271 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "pattern-documentation.js"
-        ],
+        "affectedFiles": ["pattern-documentation.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 13330,
@@ -1873,9 +1822,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\quick-actions.js:172 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "quick-actions.js"
-        ],
+        "affectedFiles": ["quick-actions.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 7434,
@@ -1900,9 +1847,7 @@
         "description": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\js\\dashboard\\quick-actions.js:188 possible generic api key",
         "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
         "recommendedAction": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret",
-        "affectedFiles": [
-          "quick-actions.js"
-        ],
+        "affectedFiles": ["quick-actions.js"],
         "metadata": {
           "patternId": "generic-api-key",
           "offset": 8165,
@@ -2052,9 +1997,7 @@
       }
     ],
     "missingCritical": [],
-    "missingRecommended": [
-      "Build Tool Config"
-    ],
+    "missingRecommended": ["Build Tool Config"],
     "totalChecks": 12,
     "passedChecks": 11,
     "summary": "READY — 11 of 12 checklist items present.",
@@ -2086,10 +2029,7 @@
       "severity": "medium",
       "effort": "3–5 days",
       "description": "Consistency verified — no duplicates or naming drift.",
-      "tasks": [
-        "Standardize naming conventions",
-        "Document canonical file locations"
-      ],
+      "tasks": ["Standardize naming conventions", "Document canonical file locations"],
       "progress": 100,
       "status": "completed"
     },

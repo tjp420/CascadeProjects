@@ -1,5 +1,10 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-import { hasJsonContentType, readJsonResponseBody, withRecoverableFallback, logRecoverableDashboardError } from '../lib/recoverable-fetch.js';
+import {
+    hasJsonContentType,
+    readJsonResponseBody,
+    withRecoverableFallback,
+    logRecoverableDashboardError
+} from '../lib/recoverable-fetch.js';
 import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
 import { notifyAuthState } from '../utils-lib/notify.js?v=20260716cachefix1';
 /**
@@ -15,14 +20,21 @@ function _hasExtensionBridgeParams() {
     try {
         const params = new URLSearchParams(location.search);
         if (params.get('sb_api_base') || params.get('sb_notify_base') || params.get('sb_website_mode')) return true;
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
     try {
         if (typeof sessionStorage !== 'undefined') {
-            if (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base') || sessionStorage.getItem('sb_website_mode')) return true;
+            if (
+                sessionStorage.getItem('sb_api_base') ||
+                sessionStorage.getItem('sb_notify_base') ||
+                sessionStorage.getItem('sb_website_mode')
+            )
+                return true;
         }
+    } catch (_b) {
+        /* ignore */
     }
-    catch (_b) { /* ignore */ }
     return false;
 }
 function _isAllowedApiBase(value) {
@@ -33,15 +45,15 @@ function _isAllowedApiBase(value) {
         // Extension bridge: allow loopback HTTP on HTTPS pages when sb_api_base is present.
         // The CSP connect-src already permits http://127.0.0.1:* and browsers grant
         // Private Network Access for loopback when explicitly configured.
-        if (!isLocalDevHost() && isLoopback && _hasExtensionBridgeParams())
-            return true;
+        if (!isLocalDevHost() && isLoopback && _hasExtensionBridgeParams()) return true;
         // HTTPS pages cannot call an HTTP data server (mixed-content / LAN access).
         if (location.protocol === 'https:' && url.protocol === 'http:') return false;
         // Allow loopback bridges on non-HTTPS pages when the dashboard was opened with extension params.
         if (!isLocalDevHost() && isLoopback && !_hasExtensionBridgeParams()) return false;
         return true;
+    } catch (_a) {
+        return false;
     }
-    catch (_a) { return false; }
 }
 function _resolveExtensionBridgeApiBase() {
     let raw = '';
@@ -49,41 +61,47 @@ function _resolveExtensionBridgeApiBase() {
         const params = new URLSearchParams(location.search);
         raw = String(params.get('sb_api_base') || params.get('sb_notify_base') || '').trim();
         if (!raw && typeof sessionStorage !== 'undefined') {
-            raw = String(sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base') || '').trim();
+            raw = String(
+                sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base') || ''
+            ).trim();
         }
+    } catch (_a) {
+        /* ignore */
     }
-    catch (_a) { /* ignore */ }
-    if (!raw)
-        return '';
+    if (!raw) return '';
     raw = raw.replace(/\/+$/, '');
-    if (!/\/api$/i.test(raw))
-        raw += '/api';
+    if (!/\/api$/i.test(raw)) raw += '/api';
     return raw;
 }
 function _isCloudApiBase() {
-    if (typeof location === 'undefined')
-        return false;
+    if (typeof location === 'undefined') return false;
     try {
         const baseUrl = new URL(apiBase(), location.href);
         const host = baseUrl.hostname;
         return host === 'simplebeacon.ai' || host.endsWith('.simplebeacon.pages.dev');
+    } catch (_a) {
+        return false;
     }
-    catch (_a) { return false; }
 }
 /** True when token is a standard 3-part JWT (not a raw license key). */
 function _isJwtToken(token) {
-    if (!token || typeof token !== 'string')
-        return false;
+    if (!token || typeof token !== 'string') return false;
     const parts = token.split('.');
-    return parts.length === 3 && parts.every((p) => /^[A-Za-z0-9_-]+$/.test(p) && p.length > 0);
+    return parts.length === 3 && parts.every(p => /^[A-Za-z0-9_-]+$/.test(p) && p.length > 0);
 }
 export function apiBase() {
     if (typeof location !== 'undefined') {
         // Runtime config injected by the API server, extension bridge, or Pages _headers/site-config.
         const env = (typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__) || {};
-        const envBase = env.API_BASE_URL || env.DASHBOARD_BASE_URL || (typeof window !== 'undefined' && window.__SB_API_HOST__) || '';
+        const envBase =
+            env.API_BASE_URL ||
+            env.DASHBOARD_BASE_URL ||
+            (typeof window !== 'undefined' && window.__SB_API_HOST__) ||
+            '';
         if (envBase && _isAllowedApiBase(envBase)) {
-            return String(envBase).replace(/\/api\/?$/, '').replace(/\/+$/, '');
+            return String(envBase)
+                .replace(/\/api\/?$/, '')
+                .replace(/\/+$/, '');
         }
         // Extension / VS Code bridge — query param or sessionStorage (set by discoverAndApplyExtensionBridge).
         const bridgeBase = _resolveExtensionBridgeApiBase();
@@ -158,21 +176,31 @@ function clearCookie(name) {
 function loginErrorMessage(httpResponse, responseBody, fallback = 'Login failed') {
     if (!hasJsonContentType(httpResponse)) {
         const apiHost = apiBase() || location.origin;
-        return (`Authentication API unavailable (server returned HTML instead of JSON). `
-            + `Check that the API is running at ${apiHost}/api/auth/login. `
-            + 'For local development run npm run dashboard:v1-internal.');
+        return (
+            `Authentication API unavailable (server returned HTML instead of JSON). ` +
+            `Check that the API is running at ${apiHost}/api/auth/login. ` +
+            'For local development run npm run dashboard:v1-internal.'
+        );
     }
-    const base = (responseBody === null || responseBody === void 0 ? void 0 : responseBody.message) || (responseBody === null || responseBody === void 0 ? void 0 : responseBody.error) || fallback;
+    const base =
+        (responseBody === null || responseBody === void 0 ? void 0 : responseBody.message) ||
+        (responseBody === null || responseBody === void 0 ? void 0 : responseBody.error) ||
+        fallback;
     if (httpResponse.status === 401) {
         const hint = isLocalDevHost() ? ` — use ${DEMO_EMAIL} for local demo login.` : '';
         return `${base}${hint}`;
     }
     if (httpResponse.status === 404) {
-        return ('Login route not found — Phase 2 auth did not start. '
-            + 'Check server logs for JWT secret errors; run npm run dashboard:v1-internal.');
+        return (
+            'Login route not found — Phase 2 auth did not start. ' +
+            'Check server logs for JWT secret errors; run npm run dashboard:v1-internal.'
+        );
     }
     if (httpResponse.status === 429) {
-        return (responseBody === null || responseBody === void 0 ? void 0 : responseBody.message) || 'Too many login attempts — wait a few minutes and retry.';
+        return (
+            (responseBody === null || responseBody === void 0 ? void 0 : responseBody.message) ||
+            'Too many login attempts — wait a few minutes and retry.'
+        );
     }
     return base;
 }
@@ -187,18 +215,15 @@ export class AuthService {
         this._onCrossTabSignout = this._onCrossTabSignout.bind(this);
         if (typeof window !== 'undefined') {
             window.addEventListener('storage', this._onCrossTabSignout);
-            window.addEventListener('message', (event) => {
-                if (!event.data)
-                    return;
+            window.addEventListener('message', event => {
+                if (!event.data) return;
                 if (event.data.command === 'getAuthState') {
                     this._broadcastAuthState();
-                }
-                else if (event.data.command === 'setAuthState') {
+                } else if (event.data.command === 'setAuthState') {
                     if (event.data.signedIn === true && event.data.token) {
                         this.setSession(event.data.token, this.getUser() || {}, { notify: false });
                         window.dispatchEvent(new CustomEvent('auth-signed-in', { detail: event.data }));
-                    }
-                    else if (event.data.signedIn === false) {
+                    } else if (event.data.signedIn === false) {
                         // Ignore sign-out messages from the VS Code: wrapper/extension polls unless they are
                         // explicitly user-initiated or the dashboard has no token of its own. This prevents
                         // a no-token extension refresh from wiping a website sign-in the extension didn't see.
@@ -226,23 +251,19 @@ export class AuthService {
     }
     getToken() {
         const primary = localStorage.getItem(TOKEN_KEY);
-        if (primary)
-            return primary;
+        if (primary) return primary;
         for (const key of LEGACY_TOKEN_KEYS) {
             const val = localStorage.getItem(key);
-            if (val)
-                return val;
+            if (val) return val;
         }
         return '';
     }
     getUser() {
-        if (this.user)
-            return this.user;
+        if (this.user) return this.user;
         try {
             const raw = localStorage.getItem(USER_KEY);
             return raw ? JSON.parse(raw) : null;
-        }
-        catch (parseError) {
+        } catch (parseError) {
             logRecoverableDashboardError('auth session user parse', parseError);
             return null;
         }
@@ -255,7 +276,14 @@ export class AuthService {
         const tier = String(user.tier || '').toLowerCase();
         if (role === 'admin' || role === 'superuser') return true;
         if (tier === 'admin' || tier === 'superuser') return true;
-        if (Array.isArray(user.features) && user.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+        if (
+            Array.isArray(user.features) &&
+            user.features
+                .map(String)
+                .map(s => s.toLowerCase())
+                .includes('all_modules')
+        )
+            return true;
         try {
             const token = this.getToken();
             if (token) {
@@ -266,10 +294,16 @@ export class AuthService {
                 const tokenTier = String(payload.tier || payload.plan || '').toLowerCase();
                 if (tokenRole === 'admin' || tokenRole === 'superuser') return true;
                 if (tokenTier === 'admin' || tokenTier === 'superuser') return true;
-                if (Array.isArray(payload.features) && payload.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+                if (
+                    Array.isArray(payload.features) &&
+                    payload.features
+                        .map(String)
+                        .map(s => s.toLowerCase())
+                        .includes('all_modules')
+                )
+                    return true;
             }
-        }
-        catch (_a) {
+        } catch (_a) {
             // ignore decode errors
         }
         return false;
@@ -285,15 +319,13 @@ export class AuthService {
         localStorage.setItem(USER_KEY, userJson);
         setCookie(USER_KEY, userJson);
         this.user = user;
-        if (options.notify === false)
-            return;
+        if (options.notify === false) return;
         // Notify parent VS Code webview of auth state change
         const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
         const isAdmin = this.isAdmin();
         if (typeof window !== 'undefined' && window.parent !== window) {
             window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, token, isAdmin }, '*');
-        }
-        else if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+        } else if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
             notifyAuthState(true, tier, token, isAdmin);
         }
         // If opened from the VS Code: "Sign In via Website" flow, redirect back to the extension.
@@ -304,14 +336,14 @@ export class AuthService {
                     const finalUri = `${redirectUri}?token=${encodeURIComponent(token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
                     window.location.href = finalUri;
                 }
+            } catch (e) {
+                /* ignore malformed redirect_uri */
             }
-            catch (e) { /* ignore malformed redirect_uri */ }
         }
     }
     clearSession(options = {}) {
         const token = this.getToken();
-        if (token)
-            this.unbindToken(token);
+        if (token) this.unbindToken(token);
         localStorage.removeItem(TOKEN_KEY);
         clearCookie(TOKEN_KEY);
         for (const key of LEGACY_TOKEN_KEYS) {
@@ -321,13 +353,11 @@ export class AuthService {
         localStorage.removeItem(USER_KEY);
         clearCookie(USER_KEY);
         this.user = null;
-        if (options.notify === false)
-            return;
+        if (options.notify === false) return;
         // Notify parent VS Code webview of sign-out
         if (typeof window !== 'undefined' && window.parent !== window) {
             window.parent.postMessage({ command: 'setAuthState', signedIn: false }, '*');
-        }
-        else if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+        } else if (/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
             notifyAuthState(false);
         }
     }
@@ -375,21 +405,17 @@ export class AuthService {
         }
         // Also accept legacy tokens directly for upload.html → vault cross-port flow
         for (const key of LEGACY_TOKEN_KEYS) {
-            if (localStorage.getItem(key))
-                return !_isCloudApiBase();
+            if (localStorage.getItem(key)) return !_isCloudApiBase();
         }
         return Boolean((_a = this.user) === null || _a === void 0 ? void 0 : _a.vaultSession) && !_isCloudApiBase();
     }
     getAuthHeaders() {
         const token = this.getToken();
-        if (!token)
-            return {};
+        if (!token) return {};
         // Never send email addresses as bearer tokens.
-        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(token))
-            return {};
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(token)) return {};
         // Never send local license keys to cloud API endpoints.
-        if (!_isJwtToken(token) && _isCloudApiBase())
-            return {};
+        if (!_isJwtToken(token) && _isCloudApiBase()) return {};
         return { Authorization: `Bearer ${token}` };
     }
     async fetchPlatformStatus() {
@@ -411,7 +437,10 @@ export class AuthService {
             if (!contentType.includes('application/json')) {
                 // Static hosts can rewrite /api/* to HTML with 200.
                 // On local dev the API likely runs on a different port — bypass auth.
-                if (isLocalDevHost() || (_hasExtensionBridgeParams() && _isLoopbackHost(new URL(base, location.href).hostname))) {
+                if (
+                    isLocalDevHost() ||
+                    (_hasExtensionBridgeParams() && _isLoopbackHost(new URL(base, location.href).hostname))
+                ) {
                     this.authRequired = false;
                     return { authRequired: false };
                 }
@@ -429,8 +458,7 @@ export class AuthService {
             }
             this.authRequired = Boolean(status.authRequired);
             return status;
-        }
-        catch (_a) {
+        } catch (_a) {
             // Network errors talking to the local bridge should not lock the UI.
             if (_hasExtensionBridgeParams() && _isLoopbackHost(new URL(base, location.href).hostname)) {
                 this.authRequired = false;
@@ -448,15 +476,17 @@ export class AuthService {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
-        }
-        catch (networkErr) {
+        } catch (networkErr) {
             throw new Error('Unable to reach the account server. Check your connection and try again.');
         }
         const loginResponseBody = await readJsonResponseBody(loginHttpResponse, {});
         if (!loginHttpResponse.ok) {
             throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody));
         }
-        if (!(loginResponseBody === null || loginResponseBody === void 0 ? void 0 : loginResponseBody.token) || !(loginResponseBody === null || loginResponseBody === void 0 ? void 0 : loginResponseBody.user)) {
+        if (
+            !(loginResponseBody === null || loginResponseBody === void 0 ? void 0 : loginResponseBody.token) ||
+            !(loginResponseBody === null || loginResponseBody === void 0 ? void 0 : loginResponseBody.user)
+        ) {
             throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody, 'Login response missing token'));
         }
         this.setSession(loginResponseBody.token, loginResponseBody.user);
@@ -466,18 +496,24 @@ export class AuthService {
     }
     async register(email, password, name, username = '', confirmPassword = '', licenseToken = '') {
         const payload = { email, password, name, username, confirmPassword: confirmPassword || password };
-        if (licenseToken)
-            payload.licenseToken = licenseToken;
+        if (licenseToken) payload.licenseToken = licenseToken;
         let r;
         try {
-            r = await fetch(`${apiBase()}/api/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        }
-        catch (networkErr) {
+            r = await fetch(`${apiBase()}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } catch (networkErr) {
             throw new Error('Unable to reach the account server. Check your connection and try again.');
         }
         const b = await readJsonResponseBody(r, {});
         if (!r.ok)
-            throw new Error((b === null || b === void 0 ? void 0 : b.message) || (b === null || b === void 0 ? void 0 : b.error) || `Registration failed (${r.status})`);
+            throw new Error(
+                (b === null || b === void 0 ? void 0 : b.message) ||
+                    (b === null || b === void 0 ? void 0 : b.error) ||
+                    `Registration failed (${r.status})`
+            );
         if (b.pending) {
             return {
                 pending: true,
@@ -494,12 +530,16 @@ export class AuthService {
         return b;
     }
     async logout() {
-        await withRecoverableFallback('auth logout request', async () => {
-            await fetch(`${apiBase()}/api/auth/logout`, {
-                method: 'POST',
-                headers: this.getAuthHeaders()
-            });
-        }, null);
+        await withRecoverableFallback(
+            'auth logout request',
+            async () => {
+                await fetch(`${apiBase()}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: this.getAuthHeaders()
+                });
+            },
+            null
+        );
         this.clearSession();
     }
     async recoverPassword(email) {
@@ -536,43 +576,46 @@ export class AuthService {
     _decodeJwtPayload(token) {
         try {
             const parts = token.split('.');
-            if (parts.length !== 3)
-                return null;
+            if (parts.length !== 3) return null;
             const headerB64 = parts[0].replace(/-/g, '+').replace(/_/g, '/');
             const header = JSON.parse(atob(headerB64));
             // Reject the dangerous "none" algorithm (CVE-2015-9235)
             // Skip check in local dev since server bypasses auth in development mode
             if (header.alg === 'none' && !isLocalDevHost()) {
-                window["console"]["warn"]('[AuthService] Rejected JWT with alg:none');
+                window['console']['warn']('[AuthService] Rejected JWT with alg:none');
                 return null;
             }
             const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
             return JSON.parse(atob(payloadB64));
-        }
-        catch (_a) {
+        } catch (_a) {
             return null;
         }
     }
     getTokenTier() {
         const token = this.getToken();
-        if (!token)
-            return null;
+        if (!token) return null;
         try {
             const payload = this._decodeJwtPayload(token);
-            return (payload === null || payload === void 0 ? void 0 : payload.tier) || (payload === null || payload === void 0 ? void 0 : payload.plan) || (payload === null || payload === void 0 ? void 0 : payload.product) || null;
-        }
-        catch (_a) {
+            return (
+                (payload === null || payload === void 0 ? void 0 : payload.tier) ||
+                (payload === null || payload === void 0 ? void 0 : payload.plan) ||
+                (payload === null || payload === void 0 ? void 0 : payload.product) ||
+                null
+            );
+        } catch (_a) {
             return null;
         }
     }
     isFreeTier() {
         // Local dev hosts get full functionality regardless of token tier
-        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        if (
+            typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ) {
             return false;
         }
         const tier = this.getTokenTier();
-        if (!tier)
-            return false;
+        if (!tier) return false;
         const freeTiers = ['community', 'developer', 'sandbox', 'instant', 'free', ''];
         return freeTiers.includes(String(tier).toLowerCase());
     }
@@ -584,23 +627,22 @@ export class AuthService {
      */
     isDashboardWriteAllowed() {
         // Local dev hosts get full functionality regardless of token tier
-        if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        if (
+            typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ) {
             return true;
         }
-        if (this.isAdmin())
-            return true;
+        if (this.isAdmin()) return true;
         const user = this.getUser() || {};
         const role = String(user.role || '').toLowerCase();
-        if (role === 'admin' || role === 'superuser')
-            return true;
+        if (role === 'admin' || role === 'superuser') return true;
         const features = Array.isArray(user.features) ? user.features : [];
         const featureSet = new Set(features.map(String).map(s => s.toLowerCase()));
-        if (featureSet.has('all_modules') || featureSet.has('team_dashboard'))
-            return true;
+        if (featureSet.has('all_modules') || featureSet.has('team_dashboard')) return true;
         const tier = String(user.tier || user.plan || this.getTokenTier() || '').toLowerCase();
         const paidTiers = ['silver', 'gold', 'pro', 'startup', 'enterprise', 'compliance', 'team'];
-        if (paidTiers.includes(tier))
-            return true;
+        if (paidTiers.includes(tier)) return true;
         return false;
     }
     _setTokenSession(payload) {
@@ -615,8 +657,7 @@ export class AuthService {
         try {
             const raw = localStorage.getItem('sb-token-vault');
             return raw ? JSON.parse(raw) : [];
-        }
-        catch (_a) {
+        } catch (_a) {
             return [];
         }
     }
@@ -625,20 +666,16 @@ export class AuthService {
     }
     tryRotateVaultToken() {
         const vault = this._loadVault();
-        if (!vault.length)
-            return false;
+        if (!vault.length) return false;
         // Find a token that is not the current one and not expired
         const currentToken = this.getToken();
         const now = Date.now();
         for (let i = 0; i < vault.length; i++) {
             const entry = vault[i];
-            if (entry.token === currentToken)
-                continue;
+            if (entry.token === currentToken) continue;
             const payload = this._decodeJwtPayload(entry.token);
-            if (!payload)
-                continue;
-            if (payload.exp && payload.exp * 1000 < now)
-                continue; // skip expired
+            if (!payload) continue;
+            if (payload.exp && payload.exp * 1000 < now) continue; // skip expired
             // Rotate to this token
             this.setSession(entry.token, entry.user);
             return true;
@@ -650,8 +687,7 @@ export class AuthService {
         try {
             const raw = localStorage.getItem(TOKEN_REGISTRY_KEY);
             return raw ? JSON.parse(raw) : {};
-        }
-        catch (_a) {
+        } catch (_a) {
             return {};
         }
     }
@@ -668,13 +704,14 @@ export class AuthService {
      */
     isTokenInUseByAnotherAccount(token) {
         const binding = this.getTokenBinding(token);
-        if (!binding)
-            return null;
+        if (!binding) return null;
         const currentUser = this.getUser();
-        const currentEmail = (currentUser === null || currentUser === void 0 ? void 0 : currentUser.email) || (currentUser === null || currentUser === void 0 ? void 0 : currentUser.sub) || '';
+        const currentEmail =
+            (currentUser === null || currentUser === void 0 ? void 0 : currentUser.email) ||
+            (currentUser === null || currentUser === void 0 ? void 0 : currentUser.sub) ||
+            '';
         // If bound to same account, no conflict
-        if (binding.email === currentEmail)
-            return null;
+        if (binding.email === currentEmail) return null;
         // If token is an account token and bound elsewhere, it's in use
         if (binding.tokenClass === 'account') {
             return binding;
@@ -700,7 +737,10 @@ export class AuthService {
     bindTokenToAccount(token, tokenClass = 'account') {
         const registry = this._loadTokenRegistry();
         const user = this.getUser();
-        const email = (user === null || user === void 0 ? void 0 : user.email) || (user === null || user === void 0 ? void 0 : user.sub) || 'anonymous';
+        const email =
+            (user === null || user === void 0 ? void 0 : user.email) ||
+            (user === null || user === void 0 ? void 0 : user.sub) ||
+            'anonymous';
         // 1 account = 1 token: remove any previous token bindings for this account
         for (const [existingToken, binding] of Object.entries(registry)) {
             if (binding.email === email && existingToken !== token) {
@@ -736,8 +776,7 @@ export class AuthService {
             const registry = this._loadTokenRegistry();
             registry[token] = binding;
             this._saveTokenRegistry(registry);
-        }
-        else {
+        } else {
             this.bindTokenToAccount(token, 'account');
         }
     }
@@ -803,8 +842,7 @@ export class AuthService {
         const body = await readJsonResponseBody(res, null);
         if (res.status === 403 && (body === null || body === void 0 ? void 0 : body.error) === 'vault_required')
             return false;
-        if (!res.ok || !(body === null || body === void 0 ? void 0 : body.user))
-            return false;
+        if (!res.ok || !(body === null || body === void 0 ? void 0 : body.user)) return false;
         this.user = { ...body.user, vaultSession: true };
         return true;
     }
@@ -818,34 +856,29 @@ export class AuthService {
             }
             return true;
         }
-        if (this.getToken())
-            return this.validateSession();
-        if (isLocalDevHost())
-            return this.probeVaultOperatorSession();
+        if (this.getToken()) return this.validateSession();
+        if (isLocalDevHost()) return this.probeVaultOperatorSession();
         if (_hasExtensionBridgeParams() && !this.isAuthenticated()) {
             try {
                 await this.syncFromExtensionBridge();
+            } catch (_bridge) {
+                /* non-fatal */
             }
-            catch (_bridge) { /* non-fatal */ }
-            if (this.getToken())
-                return this.validateSession();
+            if (this.getToken()) return this.validateSession();
         }
         return false;
     }
     /** Pull license token from the VS Code extension data server when bridge params are present. */
     async syncFromExtensionBridge() {
-        if (this.isAuthenticated())
-            return true;
-        if (!_hasExtensionBridgeParams())
-            return false;
-        if (AuthService._bridgeSyncBlockedUntil > Date.now())
-            return false;
+        if (this.isAuthenticated()) return true;
+        if (!_hasExtensionBridgeParams()) return false;
+        if (AuthService._bridgeSyncBlockedUntil > Date.now()) return false;
         const apiRoot = _resolveExtensionBridgeApiBase();
-        if (!apiRoot)
-            return false;
+        if (!apiRoot) return false;
         let canUseParent = false;
         try {
-            const { getBridgeFetch, canUseParentBridgeFetch } = await import('./localAgentService.js?v=20260716cachefix1');
+            const { getBridgeFetch, canUseParentBridgeFetch } =
+                await import('./localAgentService.js?v=20260716cachefix1');
             canUseParent = canUseParentBridgeFetch();
             const hasAgent = typeof window !== 'undefined' && !!window.simplebeaconAgentBridge;
             if (!hasAgent && !canUseParent) {
@@ -865,10 +898,10 @@ export class AuthService {
                 AuthService._bridgeSyncBlockedUntil = 0;
                 return true;
             }
-        }
-        catch (err) {
+        } catch (err) {
             const msg = String((err === null || err === void 0 ? void 0 : err.message) || err).toLowerCase();
-            const lnaBlocked = msg.includes('local network access') ||
+            const lnaBlocked =
+                msg.includes('local network access') ||
                 msg.includes('private network access') ||
                 msg.includes('permission required') ||
                 msg.includes('failed to fetch');

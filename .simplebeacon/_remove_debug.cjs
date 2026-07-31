@@ -1,4 +1,4 @@
-module.exports = function(fileInfo, api) {
+module.exports = function (fileInfo, api) {
   const j = api.jscodeshift;
   const root = j(fileInfo.source);
   const debugMethods = new Set(['log', 'warn', 'error', 'info', 'debug']);
@@ -21,13 +21,15 @@ module.exports = function(fileInfo, api) {
     return false;
   }
 
-  root.find(j.CallExpression, (n) => isConsoleCall(n)).forEach((p) => {
-    if (p.parent.value.type === 'ExpressionStatement') {
-      j(p.parent).remove();
-    } else {
-      j(p).replaceWith(j.unaryExpression('void', j.literal(0)));
-    }
-  });
+  root
+    .find(j.CallExpression, (n) => isConsoleCall(n))
+    .forEach((p) => {
+      if (p.parent.value.type === 'ExpressionStatement') {
+        j(p.parent).remove();
+      } else {
+        j(p).replaceWith(j.unaryExpression('void', j.literal(0)));
+      }
+    });
 
   root.find(j.DebuggerStatement).remove();
 

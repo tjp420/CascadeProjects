@@ -22,7 +22,9 @@ export function formatPercent(value, fractionDigits = 1) {
   if (str.endsWith('%')) return str;
   const num = Number(str);
   if (!Number.isFinite(num)) return '—';
-  const digits = Number.isFinite(fractionDigits) ? Math.max(0, Math.min(20, Math.floor(Number(fractionDigits) || 0))) : 1;
+  const digits = Number.isFinite(fractionDigits)
+    ? Math.max(0, Math.min(20, Math.floor(Number(fractionDigits) || 0)))
+    : 1;
   return `${num.toFixed(digits)}%`;
 }
 
@@ -35,7 +37,9 @@ export function formatPercent(value, fractionDigits = 1) {
 export function formatBytes(bytes, decimals = 2) {
   if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return '—';
   if (bytes === 0) return '0 B';
-  const digits = Number.isFinite(decimals) ? Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0))) : 2;
+  const digits = Number.isFinite(decimals)
+    ? Math.max(0, Math.min(20, Math.floor(Number(decimals) || 0)))
+    : 2;
   if (bytes < 1) return `${bytes.toFixed(digits)} B`;
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -154,7 +158,10 @@ export function maxBy(arr, keyFn) {
   let maxVal = keyFn(maxItem);
   for (let i = 1; i < arr.length; i++) {
     const val = keyFn(arr[i]);
-    if (val > maxVal) { maxVal = val; maxItem = arr[i]; }
+    if (val > maxVal) {
+      maxVal = val;
+      maxItem = arr[i];
+    }
   }
   return maxItem;
 }
@@ -172,11 +179,13 @@ export function minBy(arr, keyFn) {
   let minVal = keyFn(minItem);
   for (let i = 1; i < arr.length; i++) {
     const val = keyFn(arr[i]);
-    if (val < minVal) { minVal = val; minItem = arr[i]; }
+    if (val < minVal) {
+      minVal = val;
+      minItem = arr[i];
+    }
   }
   return minItem;
 }
-
 
 /**
  * Safely parse an integer with a fallback on NaN.

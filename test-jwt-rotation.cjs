@@ -11,14 +11,17 @@ function request(method, path, headers = {}, body = null) {
       port: 3002,
       path,
       method,
-      headers: { 'Content-Type': 'application/json', ...headers }
+      headers: { 'Content-Type': 'application/json', ...headers },
     };
     const req = http.request(opts, (res) => {
       let data = '';
-      res.on('data', chunk => data += chunk);
+      res.on('data', (chunk) => (data += chunk));
       res.on('end', () => {
-        try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
-        catch { resolve({ status: res.statusCode, body: data }); }
+        try {
+          resolve({ status: res.statusCode, body: JSON.parse(data) });
+        } catch {
+          resolve({ status: res.statusCode, body: data });
+        }
       });
     });
     req.on('error', reject);
@@ -44,7 +47,12 @@ async function runTests() {
 
   // Test 3: Logout with valid access token (dev bypass)
   console.log('Test 3: POST /api/v2/auth/logout (with Bearer token)');
-  const r3 = await request('POST', '/api/v2/auth/logout', { Authorization: 'Bearer dev-bypass' }, {});
+  const r3 = await request(
+    'POST',
+    '/api/v2/auth/logout',
+    { Authorization: 'Bearer dev-bypass' },
+    {}
+  );
   console.log(`  Status: ${r3.status} — ${r3.body.message || r3.body.error}`);
   console.assert(r3.status === 200, 'Expected 200 for logout');
 
@@ -64,7 +72,7 @@ async function runTests() {
   console.log('\n=== All tests completed ===\n');
 }
 
-runTests().catch(err => {
+runTests().catch((err) => {
   console.error('Test failed:', err.message);
   process.exit(1);
 });

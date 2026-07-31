@@ -18,7 +18,16 @@ function runGitStatus() {
 }
 
 function parseGitStatus(output) {
-  const summary = { modified: 0, deleted: 0, added: 0, untracked: 0, renamed: 0, copied: 0, other: 0, total: 0 };
+  const summary = {
+    modified: 0,
+    deleted: 0,
+    added: 0,
+    untracked: 0,
+    renamed: 0,
+    copied: 0,
+    other: 0,
+    total: 0,
+  };
   const lines = output.split('\n').filter(Boolean);
   for (const line of lines) {
     const x = line[0];

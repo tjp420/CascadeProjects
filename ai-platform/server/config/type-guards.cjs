@@ -33,5 +33,5 @@ module.exports = Object.freeze({
   isNil,
   isSymbol,
   isMap,
-  isSet
+  isSet,
 });

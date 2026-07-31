@@ -62,14 +62,17 @@ function generateToken(user, options = {}) {
     features: Array.isArray(user.features) ? user.features : [],
     tier: user.tier || user.plan || '',
     iat: Math.floor(Date.now() / constants.MS_PER_SECOND),
-    jti: (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex'))
+    jti:
+      typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : crypto.randomBytes(16).toString('hex'),
   };
 
   return jwt.sign(payload, jwtConfig.secret, {
     algorithm: jwtConfig.algorithm,
     issuer: jwtConfig.issuer,
     audience: jwtConfig.audience,
-    expiresIn: options.expiresIn || jwtConfig.expiresIn
+    expiresIn: options.expiresIn || jwtConfig.expiresIn,
   });
 }
 
@@ -83,7 +86,7 @@ async function verifyToken(token) {
     return jwt.verify(token, jwtConfig.secret, {
       algorithms: [jwtConfig.algorithm],
       issuer: jwtConfig.issuer,
-      audience: jwtConfig.audience
+      audience: jwtConfig.audience,
     });
   } catch (err) {
     if (err.status) throw err;
@@ -99,9 +102,9 @@ if (process.env.NODE_ENV !== 'test') {
     audience: jwtConfig.audience,
     expiresIn: jwtConfig.expiresIn,
     hasSecret: Boolean(jwtConfig.secret),
-    secretSource: secretFromEnv ? 'env' : (jwtConfig.secret ? 'ephemeral' : 'none'),
+    secretSource: secretFromEnv ? 'env' : jwtConfig.secret ? 'ephemeral' : 'none',
     secretLength: jwtConfig.secret ? jwtConfig.secret.length : 0,
-    secretFromEnv
+    secretFromEnv,
   });
 }
 
@@ -111,5 +114,5 @@ module.exports = {
   recordTokenFirstUse,
   isTokenExpiredByFirstUse,
   invalidateToken,
-  TOKEN_LIFETIME_MS
+  TOKEN_LIFETIME_MS,
 };

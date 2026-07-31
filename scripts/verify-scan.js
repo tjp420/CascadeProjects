@@ -21,21 +21,26 @@ function runScan() {
       'scan',
       '--full',
       '--gate',
-      '--config', '.simplebeacon/config.json'
+      '--config',
+      '.simplebeacon/config.json',
     ];
 
     console.log(`[verify-scan] Running: npx ${args.join(' ')}`);
     const child = spawn('npx', args, {
       cwd: PROJECT_ROOT,
       shell: true,
-      env: { ...process.env, FORCE_COLOR: '0' }
+      env: { ...process.env, FORCE_COLOR: '0' },
     });
 
     let stdout = '';
     let stderr = '';
 
-    child.stdout.on('data', (data) => { stdout += data.toString(); });
-    child.stderr.on('data', (data) => { stderr += data.toString(); });
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
 
     child.on('close', (code) => {
       resolve({ stdout, stderr, code });
@@ -63,7 +68,7 @@ function extractMetrics(stdout) {
     critical: criticalMatch ? parseInt(criticalMatch[1]) : 0,
     high: highMatch ? parseInt(highMatch[1]) : 0,
     medium: mediumMatch ? parseInt(mediumMatch[1]) : 0,
-    low: lowMatch ? parseInt(lowMatch[1]) : 0
+    low: lowMatch ? parseInt(lowMatch[1]) : 0,
   };
 }
 
@@ -74,7 +79,9 @@ async function main() {
     const { stdout, stderr, code } = await runScan();
 
     if (code !== 0 && code !== null) {
-      console.log(`[verify-scan] Scan exited with code ${code} (gate failure is expected for FAIL repos)`);
+      console.log(
+        `[verify-scan] Scan exited with code ${code} (gate failure is expected for FAIL repos)`
+      );
     }
 
     const m = extractMetrics(stdout);
@@ -83,7 +90,9 @@ async function main() {
     console.log(`Repository files: ${m.totalFiles.toLocaleString()}`);
     console.log(`Gate-checked files: ${m.gateFiles.toLocaleString()}`);
     console.log(`Quality score: ${m.qualityScore ?? 'N/A'}/100`);
-    console.log(`Issues: Critical=${m.critical} High=${m.high} Medium=${m.medium} Low=${m.low} (Total=${totalIssues})\n`);
+    console.log(
+      `Issues: Critical=${m.critical} High=${m.high} Medium=${m.medium} Low=${m.low} (Total=${totalIssues})\n`
+    );
 
     let pass = true;
 
@@ -108,7 +117,6 @@ async function main() {
       console.log('\n=== SOME CHECKS FAILED ===');
       process.exit(1);
     }
-
   } catch (err) {
     console.error(`[verify-scan] Error: ${err.message}`);
     process.exit(1);

@@ -4,12 +4,12 @@ Simplebeacon MCP is **free, local, and not hosted on simplebeacon.ai**. Each use
 
 ## Requirements
 
-| Requirement | Notes |
-|-------------|--------|
-| **Node.js ≥ 16** | Same as CLI |
-| **MCP client** | Cursor, Claude Desktop, or any stdio MCP host |
-| **Simplebeacon installed** | devDependency, `npx`, or monorepo path |
-| **No SaaS account** | No API key for community MCP |
+| Requirement                | Notes                                         |
+| -------------------------- | --------------------------------------------- |
+| **Node.js ≥ 16**           | Same as CLI                                   |
+| **MCP client**             | Cursor, Claude Desktop, or any stdio MCP host |
+| **Simplebeacon installed** | devDependency, `npx`, or monorepo path        |
+| **No SaaS account**        | No API key for community MCP                  |
 
 ---
 
@@ -38,15 +38,15 @@ npx simplebeacon init --with-mcp
 
 This creates:
 
-- `.simplebeacon/config.json` — scan rules + allowlists  
+- `.simplebeacon/config.json` — scan rules + allowlists
 - `.cursor/mcp.json` — Cursor MCP wiring (`npx simplebeacon-mcp --offline`)
 
 Then:
 
-1. Open the project in **Cursor**  
-2. **Settings → MCP** → enable **simplebeacon**  
-3. **Reload window**  
-4. Ask the agent to use `scan_snippet` before accepting AI-generated edits  
+1. Open the project in **Cursor**
+2. **Settings → MCP** → enable **simplebeacon**
+3. **Reload window**
+4. Ask the agent to use `scan_snippet` before accepting AI-generated edits
 
 Verify:
 
@@ -114,12 +114,12 @@ Merge `buildClaudeDesktopMcpJson()` output into Claude's MCP config (same shape 
 
 ## What users get (four tools)
 
-| Tool | Use |
-|------|-----|
-| `scan_snippet` | Check AI-generated code before applying |
-| `scan_file` | Check a saved file |
-| `gate_status` | Read last full scan gate from `.simplebeacon/report.json` |
-| `explain_finding` | Rule metadata for a pattern id |
+| Tool              | Use                                                       |
+| ----------------- | --------------------------------------------------------- |
+| `scan_snippet`    | Check AI-generated code before applying                   |
+| `scan_file`       | Check a saved file                                        |
+| `gate_status`     | Read last full scan gate from `.simplebeacon/report.json` |
+| `explain_finding` | Rule metadata for a pattern id                            |
 
 Full repo gate before PR: `npx simplebeacon scan --gate --offline` (not MCP-only).
 
@@ -127,11 +127,11 @@ Full repo gate before PR: `npx simplebeacon scan --gate --offline` (not MCP-only
 
 ## Enterprise / air-gapped
 
-| Constraint | Approach |
-|------------|----------|
+| Constraint           | Approach                                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | No GitHub/npm egress | Vendor the `simplebeacon` package into internal registry; point MCP `command` at internal `node …/simplebeacon-mcp.js` |
-| Offline proof | Always pass `--offline` and set `SIMPLEBEACON_OFFLINE=1` |
-| No Cursor | Use CLI only: `tools/mcp-scan-snippet.js`, hooks, GitHub Action |
+| Offline proof        | Always pass `--offline` and set `SIMPLEBEACON_OFFLINE=1`                                                               |
+| No Cursor            | Use CLI only: `tools/mcp-scan-snippet.js`, hooks, GitHub Action                                                        |
 
 See [simplebeacon-on-premises-deployment.md](../../../docs/simplebeacon-on-premises-deployment.md).
 
@@ -139,9 +139,9 @@ See [simplebeacon-on-premises-deployment.md](../../../docs/simplebeacon-on-premi
 
 ## What you should **not** sell as MCP
 
-- Hosted MCP on simplebeacon.ai (not built — would contradict local-first story unless explicitly on-prem)  
-- MCP as substitute for SOC2 / zero-FP claims  
-- Requiring repo upload to enable MCP  
+- Hosted MCP on simplebeacon.ai (not built — would contradict local-first story unless explicitly on-prem)
+- MCP as substitute for SOC2 / zero-FP claims
+- Requiring repo upload to enable MCP
 
 MCP access = **install CLI + drop config**. That's the product.
 
@@ -149,9 +149,9 @@ MCP access = **install CLI + drop config**. That's the product.
 
 ## Publish checklist (for maintainers)
 
-1. [ ] Publish `simplebeacon` to npm (includes `simplebeacon-mcp` bin)  
-2. [ ] Document `npx simplebeacon init --with-mcp` on simplebeacon.ai/community  
-3. [ ] Add MCP smoke test to CI: `npm run test:mcp`  
-4. [ ] Optional: Cursor extension marketplace listing pointing at this config  
+1. [ ] Publish `simplebeacon` to npm (includes `simplebeacon-mcp` bin)
+2. [ ] Document `npx simplebeacon init --with-mcp` on simplebeacon.ai/community
+3. [ ] Add MCP smoke test to CI: `npm run test:mcp`
+4. [ ] Optional: Cursor extension marketplace listing pointing at this config
 
 See [MCP.md](./MCP.md) for protocol details.

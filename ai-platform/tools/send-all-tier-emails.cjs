@@ -2,32 +2,41 @@
 const { sendEmail } = require('../server/lib/email-service.cjs');
 const fs = require('fs');
 const path = require('path');
-const { generateLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.js');
-
+const {
+  generateLicenseToken,
+} = require('../../packages/simplebeacon-cli/src/lib/license-token.js');
 
 const templatePath = path.join(__dirname, '../../coming-soon/email-template-universal.html');
 const templateHtml = fs.readFileSync(templatePath, 'utf8');
 
 const APP_URL = process.env.SIMPLEBEACON_APP_URL;
 if (!APP_URL) {
-  process.stderr.write(['SIMPLEBEACON_APP_URL env var is required'].join(" ") + "\n");
+  process.stderr.write(['SIMPLEBEACON_APP_URL env var is required'].join(' ') + '\n');
   process.exit(1);
 }
 const BASE_URL = `${APP_URL}/coming-soon/certificate-upload.html`;
 const DASHBOARD_URL = `${APP_URL}/simplebeacon-dashboard`;
 
 function buildEmail(tier, config) {
-  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = new Date().toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
   const invoiceId = 'INV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
   const sessionId = 'sess_' + Date.now() + '_' + tier;
 
   let token = '';
   if (config.token) {
-    token = generateLicenseToken({
-      email: process.env.SIMPLEBEACON_OWNER_EMAIL || 'admin@'+'simplebeacon.local',
-      tier: tier,
-      features: config.features || []
-    }, 'simplebeacon-dev-insecure', config.expiryDays * 24 * 60);
+    token = generateLicenseToken(
+      {
+        email: process.env.SIMPLEBEACON_OWNER_EMAIL || 'admin@' + 'simplebeacon.local',
+        tier: tier,
+        features: config.features || [],
+      },
+      'simplebeacon-dev-insecure',
+      config.expiryDays * 24 * 60
+    );
   }
 
   let html = templateHtml;
@@ -88,10 +97,11 @@ const TIERS = {
       <li>Remediation checklist</li>
       <li>Zero-retention guarantee</li>
     `,
-    privacyText: 'Your domain and report only exist in server RAM during processing. After download, data is explicitly deleted. We do not store or log it.',
+    privacyText:
+      'Your domain and report only exist in server RAM during processing. After download, data is explicitly deleted. We do not store or log it.',
     supportText: 'Questions about your report? Email',
     token: false,
-    subject: 'Your SimpleBeacon Website Security Report'
+    subject: 'Your SimpleBeacon Website Security Report',
   },
 
   community: {
@@ -109,12 +119,13 @@ const TIERS = {
       <li>Upload your report.json for a complimentary risk assessment</li>
     `,
     stepsText: 'Open dashboard, paste token, run scan, upload report',
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for assessment.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for assessment.',
     supportText: 'Need help? Email',
     token: true,
     features: ['simplebeacon'],
     expiryDays: 30,
-    subject: 'Your SimpleBeacon Free Community Token'
+    subject: 'Your SimpleBeacon Free Community Token',
   },
 
   executive: {
@@ -130,14 +141,16 @@ const TIERS = {
       <li>Receive your Executive Risk Certificate within 48 hours</li>
     `,
     stepsText: 'Run scan, upload report, analyst review, receive certificate in 48h',
-    privacyText: 'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only the scan report JSON (findings summary, no code) is uploaded for certificate generation.',
     supportText: 'Lost your token? Email',
     deliveryHeadline: '48-Hour Delivery',
-    deliveryDetail: 'A compliance analyst will review your scan and generate your signed certificate within 2 business days.',
+    deliveryDetail:
+      'A compliance analyst will review your scan and generate your signed certificate within 2 business days.',
     token: true,
     features: ['simplebeacon', 'codebase', 'npm-audit', 'compliance'],
     expiryDays: 90,
-    subject: 'Your SimpleBeacon Executive Risk Certificate — Payment Confirmed'
+    subject: 'Your SimpleBeacon Executive Risk Certificate — Payment Confirmed',
   },
 
   agency: {
@@ -153,14 +166,24 @@ const TIERS = {
       <li>Full project pack delivered within 48 hours</li>
     `,
     stepsText: 'Run scan at milestones, upload reports, get co-branded certificates',
-    privacyText: 'Your source code never leaves your machine. Only scan reports are uploaded for certificate generation.',
+    privacyText:
+      'Your source code never leaves your machine. Only scan reports are uploaded for certificate generation.',
     supportText: 'Agency support:',
     deliveryHeadline: '48-Hour Turnaround',
-    deliveryDetail: 'Each milestone report is reviewed and certified within 2 business days of upload.',
+    deliveryDetail:
+      'Each milestone report is reviewed and certified within 2 business days of upload.',
     token: true,
-    features: ['simplebeacon', 'codebase', 'npm-audit', 'compliance', 'data-cleanup', 'eu-ai-act', 'complete'],
+    features: [
+      'simplebeacon',
+      'codebase',
+      'npm-audit',
+      'compliance',
+      'data-cleanup',
+      'eu-ai-act',
+      'complete',
+    ],
     expiryDays: 180,
-    subject: 'Your SimpleBeacon Agency Project Pack — Payment Confirmed'
+    subject: 'Your SimpleBeacon Agency Project Pack — Payment Confirmed',
   },
 
   annual: {
@@ -178,12 +201,21 @@ const TIERS = {
       <li>All scan types: codebase, npm, compliance, EU AI Act</li>
     `,
     stepsText: 'Priority audit, warranty re-scan, analyst access, all scan types',
-    privacyText: 'Your source code never leaves your machine. The scan runs entirely locally. Only anonymized findings are uploaded for PDF generation.',
+    privacyText:
+      'Your source code never leaves your machine. The scan runs entirely locally. Only anonymized findings are uploaded for PDF generation.',
     supportText: 'Priority support:',
     token: true,
-    features: ['simplebeacon', 'codebase', 'npm-audit', 'compliance', 'data-cleanup', 'eu-ai-act', 'complete'],
+    features: [
+      'simplebeacon',
+      'codebase',
+      'npm-audit',
+      'compliance',
+      'data-cleanup',
+      'eu-ai-act',
+      'complete',
+    ],
     expiryDays: 365,
-    subject: 'Your SimpleBeacon Annual Protection Pack — Payment Confirmed'
+    subject: 'Your SimpleBeacon Annual Protection Pack — Payment Confirmed',
   },
 
   euai: {
@@ -200,12 +232,13 @@ const TIERS = {
       <li>Download your EU AI Act Readiness PDF instantly</li>
     `,
     stepsText: 'Open dashboard, paste token, upload code, local scan, instant PDF',
-    privacyText: 'Your source code never leaves your machine. The scan runs entirely locally in your browser and Node.js process. Only anonymized findings are uploaded for PDF generation.',
+    privacyText:
+      'Your source code never leaves your machine. The scan runs entirely locally in your browser and Node.js process. Only anonymized findings are uploaded for PDF generation.',
     supportText: 'EU AI Act questions? Email',
     token: true,
     features: ['simplebeacon', 'eu-ai-act', 'compliance'],
     expiryDays: 90,
-    subject: 'Your SimpleBeacon EU AI Act Sprint — Payment Confirmed'
+    subject: 'Your SimpleBeacon EU AI Act Sprint — Payment Confirmed',
   },
 
   enterprise: {
@@ -224,34 +257,38 @@ const TIERS = {
       <li>Automated EU AI Act monitoring begins immediately</li>
     `,
     stepsText: 'Analyst contact within 24h, onboarding call, dashboard setup, monitoring begins',
-    privacyText: 'Enterprise deployments include private infrastructure options. Your data never touches shared servers unless explicitly configured.',
+    privacyText:
+      'Enterprise deployments include private infrastructure options. Your data never touches shared servers unless explicitly configured.',
     supportText: 'Dedicated support line:',
     deliveryHeadline: '24-Hour Response',
-    deliveryDetail: 'A senior analyst will reach out within one business day to schedule your onboarding.',
+    deliveryDetail:
+      'A senior analyst will reach out within one business day to schedule your onboarding.',
     token: false,
-    subject: 'Welcome to SimpleBeacon Continuous Shield'
-  }
+    subject: 'Welcome to SimpleBeacon Continuous Shield',
+  },
 };
 
 async function sendAll() {
   for (const [tier, config] of Object.entries(TIERS)) {
-    process.stdout.write([`\n--- Building tier message ---`].join(" ") + "\n");
+    process.stdout.write([`\n--- Building tier message ---`].join(' ') + '\n');
     const email = buildEmail(tier, config);
-    
+
     try {
       const result = await sendEmail({
         to: process.env.SIMPLEBEACON_OWNER_EMAIL || 'admin@simplebeacon.local',
         subject: email.subject,
         html: email.html,
-        text: email.text
+        text: email.text,
       });
-      process.stdout.write([
-        `[${tier}]`,
-        result.sent ? 'SENT' : (result.queued ? 'QUEUED' : 'FAILED'),
-        result.id || result.queuePath || result.error
-      ].join(" ") + "\n");
+      process.stdout.write(
+        [
+          `[${tier}]`,
+          result.sent ? 'SENT' : result.queued ? 'QUEUED' : 'FAILED',
+          result.id || result.queuePath || result.error,
+        ].join(' ') + '\n'
+      );
     } catch (err) {
-      process.stderr.write([`[${tier}] Error:`, err.message].join(" ") + "\n");
+      process.stderr.write([`[${tier}] Error:`, err.message].join(' ') + '\n');
     }
   }
 }

@@ -1,8 +1,25 @@
 import {
-  sleep, delay, debounce, debounceLeading, debounceAsync, once, memoize,
-  throttle, throttleAsync, withTimeout, waitFor, poll, waitForAsync,
-  memoizeAsync, retry, parallel, series, waterfall, timeout, retryWithBackoff,
-  createDeferred
+  sleep,
+  delay,
+  debounce,
+  debounceLeading,
+  debounceAsync,
+  once,
+  memoize,
+  throttle,
+  throttleAsync,
+  withTimeout,
+  waitFor,
+  poll,
+  waitForAsync,
+  memoizeAsync,
+  retry,
+  parallel,
+  series,
+  waterfall,
+  timeout,
+  retryWithBackoff,
+  createDeferred,
 } from '../async';
 
 describe('async utilities', () => {
@@ -26,14 +43,18 @@ describe('async utilities', () => {
     test('delays invocation', () => {
       let calls = 0;
       const fn = debounce(() => calls++, 10);
-      fn(); fn(); fn();
+      fn();
+      fn();
+      fn();
       expect(calls).toBe(0);
       expect(fn.pending()).toBe(true);
     });
     test('fires once after wait', (done) => {
       let calls = 0;
       const fn = debounce(() => calls++, 10);
-      fn(); fn(); fn();
+      fn();
+      fn();
+      fn();
       setTimeout(() => {
         expect(calls).toBe(1);
         done();
@@ -68,7 +89,10 @@ describe('async utilities', () => {
   describe('once', () => {
     test('only runs first call', () => {
       let calls = 0;
-      const fn = once(() => { calls++; return 42; });
+      const fn = once(() => {
+        calls++;
+        return 42;
+      });
       expect(fn()).toBe(42);
       expect(fn()).toBe(42);
       expect(calls).toBe(1);
@@ -78,7 +102,10 @@ describe('async utilities', () => {
   describe('memoize', () => {
     test('caches results', () => {
       let calls = 0;
-      const fn = memoize((x: number) => { calls++; return x * 2; });
+      const fn = memoize((x: number) => {
+        calls++;
+        return x * 2;
+      });
       expect(fn(5)).toBe(10);
       expect(fn(5)).toBe(10);
       expect(calls).toBe(1);
@@ -95,7 +122,9 @@ describe('async utilities', () => {
     test('limits rate', () => {
       let calls = 0;
       const fn = throttle(() => calls++, 50);
-      fn(); fn(); fn();
+      fn();
+      fn();
+      fn();
       expect(calls).toBe(1);
     });
   });
@@ -113,7 +142,9 @@ describe('async utilities', () => {
   describe('waitFor', () => {
     test('resolves when predicate is true', async () => {
       let flag = false;
-      setTimeout(() => { flag = true; }, 10);
+      setTimeout(() => {
+        flag = true;
+      }, 10);
       await waitFor(() => flag, 5, 500);
       expect(flag).toBe(true);
     });
@@ -122,7 +153,14 @@ describe('async utilities', () => {
   describe('poll', () => {
     test('returns when fn returns truthy', async () => {
       let count = 0;
-      const result = await poll(() => { count++; return count >= 2 ? 'done' : undefined; }, 5, 200);
+      const result = await poll(
+        () => {
+          count++;
+          return count >= 2 ? 'done' : undefined;
+        },
+        5,
+        200
+      );
       expect(result).toBe('done');
     });
   });
@@ -134,11 +172,15 @@ describe('async utilities', () => {
     });
     test('retries then succeeds', async () => {
       let calls = 0;
-      const result = await retry(async () => {
-        calls++;
-        if (calls < 3) throw new Error('fail');
-        return 'success';
-      }, 5, 1);
+      const result = await retry(
+        async () => {
+          calls++;
+          if (calls < 3) throw new Error('fail');
+          return 'success';
+        },
+        5,
+        1
+      );
       expect(result).toBe('success');
       expect(calls).toBe(3);
     });
@@ -152,13 +194,17 @@ describe('async utilities', () => {
     test('respects concurrency', async () => {
       let running = 0;
       let maxRunning = 0;
-      const results = await parallel(async (x: number) => {
-        running++;
-        maxRunning = Math.max(maxRunning, running);
-        await sleep(20);
-        running--;
-        return x;
-      }, [1, 2, 3, 4], 2);
+      const results = await parallel(
+        async (x: number) => {
+          running++;
+          maxRunning = Math.max(maxRunning, running);
+          await sleep(20);
+          running--;
+          return x;
+        },
+        [1, 2, 3, 4],
+        2
+      );
       expect(results).toEqual([1, 2, 3, 4]);
       expect(maxRunning).toBeLessThanOrEqual(2);
     });
@@ -173,10 +219,7 @@ describe('async utilities', () => {
 
   describe('waterfall', () => {
     test('chains async functions', async () => {
-      const result = await waterfall(1, [
-        async (x) => x + 1,
-        async (x) => x * 2,
-      ]);
+      const result = await waterfall(1, [async (x) => x + 1, async (x) => x * 2]);
       expect(result).toBe(4);
     });
   });
@@ -191,11 +234,15 @@ describe('async utilities', () => {
   describe('retryWithBackoff', () => {
     test('succeeds eventually', async () => {
       let calls = 0;
-      const result = await retryWithBackoff(async () => {
-        calls++;
-        if (calls < 2) throw new Error('fail');
-        return 'ok';
-      }, 3, 1);
+      const result = await retryWithBackoff(
+        async () => {
+          calls++;
+          if (calls < 2) throw new Error('fail');
+          return 'ok';
+        },
+        3,
+        1
+      );
       expect(result).toBe('ok');
     });
   });

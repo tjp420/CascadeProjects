@@ -8,18 +8,52 @@ const fs = require('fs');
 const path = require('path');
 
 const SCANNABLE_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.go', '.java', '.rb', '.php'
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.py',
+  '.go',
+  '.java',
+  '.rb',
+  '.php',
 ]);
 
 const MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs',
-  'coming-soon', 'reports', 'security-reports', 'templates', 'data-central',
-  'deployments', 'public', 'functions', 'cloudflare-deploy', 'temp', 'tests-legacy',
-  '.github-sync', '.cursor', '.vscode', 'downloads', 'findings',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'archive',
+  '.simplebeacon',
+  'tests',
+  'test',
+  '__tests__',
+  'fixtures',
+  'docs',
+  'coming-soon',
+  'reports',
+  'security-reports',
+  'templates',
+  'data-central',
+  'deployments',
+  'public',
+  'functions',
+  'cloudflare-deploy',
+  'temp',
+  'tests-legacy',
+  '.github-sync',
+  '.cursor',
+  '.vscode',
+  'downloads',
+  'findings',
+  'simplebeacon-rule-tests',
+  'simplebeacon-toxic-fixtures',
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
@@ -30,41 +64,42 @@ const RULES = [
   {
     id: 'SB-SEC-005',
     name: 'Hardcoded IP Address',
-    regex: /(?<![-+\w.])(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})(?![\w.])/g,
+    regex:
+      /(?<![-+\w.])(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})\.(?:25[0-5]|2[0-4]\d|1\d{1,2}|\d{1,2})(?![\w.])/g,
     severity: 'medium',
     description: 'Hardcoded IPv4 address — may reference dev/staging/internal infrastructure',
     skipPatterns: [
       /\b0\.0\.0\.0\b/,
       /\b127\.0\.0\.1\b/,
       /\b255\.255\.255\.255\b/,
-      /[MLCSQTAVHZmlcsqtavhz][\d.\s,-]{0,40}\d+\.\d+\.\d+\.\d+/  // SVG path data context
-    ]
+      /[MLCSQTAVHZmlcsqtavhz][\d.\s,-]{0,40}\d+\.\d+\.\d+\.\d+/, // SVG path data context
+    ],
   },
   {
     id: 'SB-SEC-005b',
     name: 'Hardcoded Localhost / Dev URL',
-    regex: /(?:https?:\/\/|wss?:\/\/|\s|=)(localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d{2,5})?(?:\/[^\s"'`,;})\]]*)?/gi,
+    regex:
+      /(?:https?:\/\/|wss?:\/\/|\s|=)(localhost|127\.0\.0\.1|0\.0\.0\.0)(?::\d{2,5})?(?:\/[^\s"'`,;})\]]*)?/gi,
     severity: 'low',
-    description: 'Localhost or loopback URL — ensure this is gated by environment and not used in production builds',
+    description:
+      'Localhost or loopback URL — ensure this is gated by environment and not used in production builds',
     skipPatterns: [
       /\/\/\s*localhost/i,
       /127\.0\.0\.1:\d+\/(health|ready|ping|status|metrics)/i,
       /localhost:\d+\/(health|ready|ping|status|metrics)/i,
-      /test|spec|fixture|mock/i
-    ]
+      /test|spec|fixture|mock/i,
+    ],
   },
   {
     id: 'SB-SEC-005c',
     name: 'Hardcoded Staging / Internal URL',
-    regex: /(?:https?:\/\/|wss?:\/\/|\s|=)(?:staging|dev|test|uat|qa|internal|private|intranet|api-staging|api-dev|dev-api|staging-api)\.[a-z0-9.-]+\.[a-z]{2,}(?::\d+)?(?:\/[^\s"'`,;})\]]*)?/gi,
+    regex:
+      /(?:https?:\/\/|wss?:\/\/|\s|=)(?:staging|dev|test|uat|qa|internal|private|intranet|api-staging|api-dev|dev-api|staging-api)\.[a-z0-9.-]+\.[a-z]{2,}(?::\d+)?(?:\/[^\s"'`,;})\]]*)?/gi,
     severity: 'medium',
-    description: 'Staging, dev, or internal domain — risk of production code hitting non-prod endpoints',
-    skipPatterns: [
-      /\/\/\s*(?:staging|dev|test)/i,
-      /process\.env\./i,
-      /config\./i
-    ]
-  }
+    description:
+      'Staging, dev, or internal domain — risk of production code hitting non-prod endpoints',
+    skipPatterns: [/\/\/\s*(?:staging|dev|test)/i, /process\.env\./i, /config\./i],
+  },
 ];
 
 function isScannable(filePath) {
@@ -84,7 +119,11 @@ function isExcludedPath(filePath, rootDir) {
 
 async function scanFile(filePath) {
   let stats;
-  try { stats = await fs.promises.stat(filePath); } catch { return null; }
+  try {
+    stats = await fs.promises.stat(filePath);
+  } catch {
+    return null;
+  }
   if (stats.size > MAX_SCAN_BYTES) return null;
 
   let content;
@@ -123,7 +162,7 @@ async function scanFile(filePath) {
         severity: rule.severity,
         line: lineNum,
         match: match[0],
-        snippet: snippet.replace(/\s+/g, ' ').trim().slice(0, 120)
+        snippet: snippet.replace(/\s+/g, ' ').trim().slice(0, 120),
       });
     }
   }
@@ -167,7 +206,7 @@ async function scanHardcodedUrls(rootDir, options = {}) {
       if (fileFindings) {
         results.push({
           filePath: fullPath,
-          findings: fileFindings
+          findings: fileFindings,
         });
       }
     }
@@ -181,7 +220,7 @@ async function scanHardcodedUrls(rootDir, options = {}) {
     results,
     humanReadable: results.length
       ? `Hardcoded IP/URL references found in ${results.length} file(s). Review for dev/staging/internal endpoint leakage.`
-      : 'No hardcoded IP/URL references detected.'
+      : 'No hardcoded IP/URL references detected.',
   };
 }
 

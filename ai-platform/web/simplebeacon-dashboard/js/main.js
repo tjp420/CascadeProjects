@@ -47,7 +47,9 @@ function vaultUnlockUrl(returnPath = '/app') {
     // Server should inject window.SIMPLEBEACON_VAULT_PASSWORD from process.env.VAULT_PASSWORD
     const vaultPassword = window.SIMPLEBEACON_VAULT_PASSWORD || '';
     if (!vaultPassword) {
-      console['warn']('Vault password not configured. Set VAULT_PASSWORD environment variable on the server.');
+      console['warn'](
+        'Vault password not configured. Set VAULT_PASSWORD environment variable on the server.'
+      );
       return `/private-dashboard-vault?returnTo=${returnTo}`;
     }
     return `/private-dashboard-vault?password=${encodeURIComponent(vaultPassword)}&returnTo=${returnTo}`;
@@ -56,7 +58,16 @@ function vaultUnlockUrl(returnPath = '/app') {
 }
 
 const CLOUD_TEAMS_VIEWS = new Set([
-  'dashboard', 'audit', 'results', 'analyze', 'security', 'tools', 'platform', 'quality', 'settings', 'assessments'
+  'dashboard',
+  'audit',
+  'results',
+  'analyze',
+  'security',
+  'tools',
+  'platform',
+  'quality',
+  'settings',
+  'assessments',
 ]);
 
 /**
@@ -91,13 +102,15 @@ function handleSubscriptionGate() {
     }
     return;
   }
-  showUpgradeModal({ onDismiss: (action) => {
-    if (action === 'signin' || isLocalSelfHosted()) {
-      this.navigate('signin');
-    } else {
-      window.location.href = '/pricing';
-    }
-  } });
+  showUpgradeModal({
+    onDismiss: (action) => {
+      if (action === 'signin' || isLocalSelfHosted()) {
+        this.navigate('signin');
+      } else {
+        window.location.href = '/pricing';
+      }
+    },
+  });
 }
 
 /**
@@ -130,7 +143,7 @@ class SimplebeaconDashboard {
       reAttestation: null,
       dataLoading: false,
       billingPlan: null,
-      billingStatus: null
+      billingStatus: null,
     };
 
     this.views = {
@@ -146,7 +159,11 @@ class SimplebeaconDashboard {
       help: new HelpView(this),
       features: new FeaturesView(this),
       settings: new SettingsView(this),
-      pricing: { mount: function() { window.location.href = '/pricing'; } },
+      pricing: {
+        mount: function () {
+          window.location.href = '/pricing';
+        },
+      },
       about: new AboutView(this),
       trust: new TrustView(this),
       'repository-health': new RepositoryHealthView(this),
@@ -154,8 +171,8 @@ class SimplebeaconDashboard {
       chatbot: new ChatbotView(this),
       upload: new UploadView(this),
       remediation: new RemediationRoadmapView(this),
-      profile: new ProfileView(this)
-      ,compliance: new EUAIActChecklistView(this)
+      profile: new ProfileView(this),
+      compliance: new EUAIActChecklistView(this),
     };
 
     this.currentView = null;
@@ -170,18 +187,26 @@ class SimplebeaconDashboard {
   async init() {
     themeService.init();
     this.setupShell();
-              const main = document.getElementById('app-main');
-              requestAnimationFrame(() => {
-                this.resetMainScroll(main);
-                try {
-                  requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                      try { if (typeof document !== 'undefined' && document.scrollingElement) document.scrollingElement.scrollTop = 0; } catch (_) { }
-                      try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0,0); } catch (_) { }
-                    });
-                  });
-                } catch (e) { /* ignore */ }
-              });
+    const main = document.getElementById('app-main');
+    requestAnimationFrame(() => {
+      this.resetMainScroll(main);
+      try {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            try {
+              if (typeof document !== 'undefined' && document.scrollingElement)
+                document.scrollingElement.scrollTop = 0;
+            } catch (_) {}
+            try {
+              if (typeof window !== 'undefined' && typeof window.scrollTo === 'function')
+                window.scrollTo(0, 0);
+            } catch (_) {}
+          });
+        });
+      } catch (e) {
+        /* ignore */
+      }
+    });
     this.setupMobileNav();
     this.cleanupDisabledElements();
     this.updateAuthUi();
@@ -228,7 +253,8 @@ class SimplebeaconDashboard {
     bar.className = 'demo-banner';
     const span = document.createElement('span');
     // simplebeacon-ignore innerhtml-usage — static demo banner markup
-    span.innerHTML = '<strong>Demo</strong> — read-only honey-pot fixture (gate FAIL). Not your workspace.';
+    span.innerHTML =
+      '<strong>Demo</strong> — read-only honey-pot fixture (gate FAIL). Not your workspace.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.dataset.pricingCta = '1';
@@ -249,7 +275,8 @@ class SimplebeaconDashboard {
     bar.style.borderBottom = '1px solid rgba(99,102,241,0.3)';
     const span = document.createElement('span');
     // simplebeacon-ignore innerhtml-usage — static demo banner markup
-    span.innerHTML = '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.';
+    span.innerHTML =
+      '<strong>Demo Mode</strong> — You are viewing with a free token. Reports are read-only. Upgrade to unlock scans, exports, and full dashboard interaction.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.dataset.pricingCta = '1';
@@ -262,25 +289,41 @@ class SimplebeaconDashboard {
   }
 
   resetMainScroll(main) {
-    const root = main || document.getElementById('app-main') || (typeof document !== 'undefined' && (document.scrollingElement || document.documentElement || document.body));
+    const root =
+      main ||
+      document.getElementById('app-main') ||
+      (typeof document !== 'undefined' &&
+        (document.scrollingElement || document.documentElement || document.body));
     if (!root) return;
     let container = root;
     try {
       for (let cur = root instanceof Element ? root : document.body; cur; cur = cur.parentElement) {
         try {
           const style = window.getComputedStyle ? window.getComputedStyle(cur) : { overflowY: '' };
-          if (cur.scrollHeight > cur.clientHeight && /(auto|scroll|overlay)/.test(style.overflowY || '')) {
+          if (
+            cur.scrollHeight > cur.clientHeight &&
+            /(auto|scroll|overlay)/.test(style.overflowY || '')
+          ) {
             container = cur;
             break;
           }
-        } catch (_inner) { /* ignore */ }
+        } catch (_inner) {
+          /* ignore */
+        }
       }
-    } catch (_a) { /* ignore */ }
+    } catch (_a) {
+      /* ignore */
+    }
     try {
-      if ((typeof isEmbeddedDashboardFrame === 'function' && isEmbeddedDashboardFrame()) || (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface())) {
+      if (
+        (typeof isEmbeddedDashboardFrame === 'function' && isEmbeddedDashboardFrame()) ||
+        (typeof isIdeDashboardSurface === 'function' && isIdeDashboardSurface())
+      ) {
         if (container.style) container.style.overflowY = container.style.overflowY || 'auto';
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
     try {
       if (typeof container.scrollTo === 'function') {
         container.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -288,24 +331,44 @@ class SimplebeaconDashboard {
         container.scrollTop = 0;
       }
     } catch (e) {
-      try { container.scrollTop = 0; } catch (_) { /* swallow */ }
+      try {
+        container.scrollTop = 0;
+      } catch (_) {
+        /* swallow */
+      }
     }
-    try { if (typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+    try {
+      if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
+    } catch (e) {
+      /* ignore */
+    }
     // Delayed reset to clear any layout-driven scroll on document after frames settle
     try {
       requestAnimationFrame(() => {
-        try { requestAnimationFrame(() => {
-          try { if (typeof document !== 'undefined' && document.scrollingElement) document.scrollingElement.scrollTop = 0; } catch (_) { }
-          try { if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') window.scrollTo(0, 0); } catch (_) { }
-        }); } catch (_) { }
+        try {
+          requestAnimationFrame(() => {
+            try {
+              if (typeof document !== 'undefined' && document.scrollingElement)
+                document.scrollingElement.scrollTop = 0;
+            } catch (_) {}
+            try {
+              if (typeof window !== 'undefined' && typeof window.scrollTo === 'function')
+                window.scrollTo(0, 0);
+            } catch (_) {}
+          });
+        } catch (_) {}
       });
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
     try {
       if (typeof document !== 'undefined') {
         if (document.documentElement) document.documentElement.scrollTop = 0;
         if (document.body) document.body.scrollTop = 0;
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   showVaultBanner() {
@@ -316,7 +379,8 @@ class SimplebeaconDashboard {
     bar.className = 'demo-banner';
     const span = document.createElement('span');
     // simplebeacon-ignore innerhtml-usage — static vault banner markup
-    span.innerHTML = '<strong>Vault locked</strong> — unlock the internal dashboard before scan/API calls work.';
+    span.innerHTML =
+      '<strong>Vault locked</strong> — unlock the internal dashboard before scan/API calls work.';
     const a = document.createElement('a');
     a.className = 'demo-banner-link';
     a.href = vaultUnlockUrl(returnPath);
@@ -383,7 +447,7 @@ class SimplebeaconDashboard {
     const tabs = overlay.querySelectorAll('.signin-tab');
     const panels = {
       email: overlay.querySelector('#prompt-panel-email'),
-      token: overlay.querySelector('#prompt-panel-token')
+      token: overlay.querySelector('#prompt-panel-token'),
     };
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -405,7 +469,10 @@ class SimplebeaconDashboard {
       const password = overlay.querySelector('#token-prompt-password')?.value || '';
       tokenSubmitBtn.disabled = true;
       tokenSubmitBtn.textContent = 'Validating…';
-      if (tokenErrorEl) { tokenErrorEl.hidden = true; tokenErrorEl.textContent = ''; }
+      if (tokenErrorEl) {
+        tokenErrorEl.hidden = true;
+        tokenErrorEl.textContent = '';
+      }
 
       if (authService.isTokenActivated(token)) {
         const emailTab = overlay.querySelector('#prompt-tab-email');
@@ -436,7 +503,8 @@ class SimplebeaconDashboard {
       try {
         authService.setSession(token, { token, source: 'modal', password });
         const valid = await authService.validateSession(password ? { password } : undefined);
-        if (!valid) throw new Error('Invalid or expired token. Check your license token and try again.');
+        if (!valid)
+          throw new Error('Invalid or expired token. Check your license token and try again.');
         overlay.remove();
         showToast('Dashboard unlocked', 'success');
         this.updateNavVisibility(true);
@@ -444,7 +512,10 @@ class SimplebeaconDashboard {
       } catch (err) {
         authService.clearSession();
         const message = err.message || 'Token validation failed';
-        if (tokenErrorEl) { tokenErrorEl.textContent = message; tokenErrorEl.hidden = false; }
+        if (tokenErrorEl) {
+          tokenErrorEl.textContent = message;
+          tokenErrorEl.hidden = false;
+        }
         showToast(message, 'error');
         tokenSubmitBtn.disabled = false;
         tokenSubmitBtn.textContent = 'Unlock with token';
@@ -461,7 +532,10 @@ class SimplebeaconDashboard {
         const password = overlay.querySelector('#token-password-input').value;
         emailSubmitBtn.disabled = true;
         emailSubmitBtn.textContent = 'Signing in…';
-        if (emailErrorEl) { emailErrorEl.hidden = true; emailErrorEl.textContent = ''; }
+        if (emailErrorEl) {
+          emailErrorEl.hidden = true;
+          emailErrorEl.textContent = '';
+        }
         try {
           await authService.login(email, password);
           overlay.remove();
@@ -470,7 +544,10 @@ class SimplebeaconDashboard {
           this.bootstrapAfterAuth();
         } catch (err) {
           const message = err.message || 'Sign in failed';
-          if (emailErrorEl) { emailErrorEl.textContent = message; emailErrorEl.hidden = false; }
+          if (emailErrorEl) {
+            emailErrorEl.textContent = message;
+            emailErrorEl.hidden = false;
+          }
           showToast(message, 'error');
           emailSubmitBtn.disabled = false;
           emailSubmitBtn.textContent = 'Sign in with email';
@@ -496,7 +573,7 @@ class SimplebeaconDashboard {
       remediation: 'Remediation',
       platform: 'Platform',
       tools: 'Tools',
-      chatbot: 'Chatbot'
+      chatbot: 'Chatbot',
     };
     const title = titles[view] || view;
 
@@ -550,7 +627,7 @@ class SimplebeaconDashboard {
     const tabs = main.querySelectorAll('.lock-tab');
     const panels = {
       email: main.querySelector('#lock-panel-email'),
-      token: main.querySelector('#lock-panel-token')
+      token: main.querySelector('#lock-panel-token'),
     };
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -583,14 +660,18 @@ class SimplebeaconDashboard {
         const errorEl = main.querySelector('#lock-token-error');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Validating…';
-        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
+        if (errorEl) {
+          errorEl.hidden = true;
+          errorEl.textContent = '';
+        }
         if (authService.isTokenActivated(token)) {
           const tabs = main.querySelectorAll('.lock-tab');
           const emailPanel = main.querySelector('#lock-panel-email');
           const tokenPanel = main.querySelector('#lock-panel-token');
           tabs.forEach((t) => {
             t.classList.toggle('active', t.dataset.tab === 'email');
-            t.style.borderBottomColor = t.dataset.tab === 'email' ? 'var(--primary)' : 'transparent';
+            t.style.borderBottomColor =
+              t.dataset.tab === 'email' ? 'var(--primary)' : 'transparent';
             t.style.color = t.dataset.tab === 'email' ? 'var(--text-primary)' : 'var(--text-muted)';
           });
           if (emailPanel) emailPanel.style.display = '';
@@ -623,7 +704,10 @@ class SimplebeaconDashboard {
         } catch (err) {
           authService.clearSession();
           const message = err.message || 'Token validation failed';
-          if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
+          if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.hidden = false;
+          }
           showToast(message, 'error');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Unlock with token';
@@ -642,7 +726,10 @@ class SimplebeaconDashboard {
         const errorEl = main.querySelector('#lock-email-error');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Signing in…';
-        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
+        if (errorEl) {
+          errorEl.hidden = true;
+          errorEl.textContent = '';
+        }
         try {
           await authService.login(email, password);
           showToast('Signed in successfully', 'success');
@@ -651,7 +738,10 @@ class SimplebeaconDashboard {
           this.router.navigate(view);
         } catch (err) {
           const message = err.message || 'Sign in failed';
-          if (errorEl) { errorEl.textContent = message; errorEl.hidden = false; }
+          if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.hidden = false;
+          }
           showToast(message, 'error');
           submitBtn.disabled = false;
           submitBtn.textContent = 'Sign in with email';
@@ -726,11 +816,11 @@ class SimplebeaconDashboard {
     const token = authService.getToken();
     const sandboxBanner = document.getElementById('sandbox-banner');
     if (sandboxBanner) {
-/**
- * Is sandbox.
- * @param {any} (
- * @returns {any}
- */
+      /**
+       * Is sandbox.
+       * @param {any} (
+       * @returns {any}
+       */
       const isSandbox = (() => {
         if (!token) return false;
         try {
@@ -767,7 +857,11 @@ class SimplebeaconDashboard {
       if (email) billingService.setEmail(email);
       const entitlement = email
         ? await billingService.resolveEntitlement(email)
-        : { plan: await billingService.fetchPlan(), status: { subscriptionActive: false }, allowed: false };
+        : {
+            plan: await billingService.fetchPlan(),
+            status: { subscriptionActive: false },
+            allowed: false,
+          };
       this.state.billingPlan = entitlement.plan;
       this.state.billingStatus = entitlement.status;
       this.state.entitlements = entitlement.status;
@@ -819,7 +913,9 @@ class SimplebeaconDashboard {
     this.refreshCurrentView();
     const safetyTimer = setTimeout(() => {
       if (this.state.dataLoading) {
-        console['warn']('[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false');
+        console['warn'](
+          '[Dashboard] loadDataInBackground safety timeout — forcing dataLoading=false'
+        );
         this.state.dataLoading = false;
         this.refreshCurrentView();
       }
@@ -921,7 +1017,10 @@ class SimplebeaconDashboard {
 
     // Inject compliance nav link if missing
     try {
-      if (document.getElementById('app-nav') && !document.querySelector('.nav-link[data-view="compliance"]')) {
+      if (
+        document.getElementById('app-nav') &&
+        !document.querySelector('.nav-link[data-view="compliance"]')
+      ) {
         const link = document.createElement('a');
         link.href = '#/compliance';
         link.className = 'nav-link';
@@ -929,7 +1028,9 @@ class SimplebeaconDashboard {
         link.innerHTML = '<span class="nav-label">Compliance</span>';
         document.getElementById('app-nav').appendChild(link);
       }
-    } catch (_e) { /* ignore */ }
+    } catch (_e) {
+      /* ignore */
+    }
 
     const searchInput = document.getElementById('global-search');
     searchInput?.addEventListener('keydown', (e) => {
@@ -958,7 +1059,7 @@ class SimplebeaconDashboard {
             baseline: this.state.baseline,
             config: this.state.config,
             history: this.state.history,
-            dashboardHome: this.state.dashboardHome
+            dashboardHome: this.state.dashboardHome,
           });
         } else {
           this.scanService.exportReport();
@@ -996,7 +1097,7 @@ class SimplebeaconDashboard {
       '.analyze-issue-analyzer-card',
       '.analyze-engines-reference',
       '.analyze-deliverable-table-wrap',
-      '.analyze-deliverable-picker'
+      '.analyze-deliverable-picker',
     ];
     selectors.forEach((sel) => {
       document.querySelectorAll(sel).forEach((el) => {
@@ -1041,7 +1142,7 @@ class SimplebeaconDashboard {
       baseline: data.baseline ?? this.state.baseline,
       config: data.config ?? this.state.config,
       history: data.history ?? this.state.history,
-      reAttestation
+      reAttestation,
     });
     await this.ensureDefaultProjectPath();
   }
@@ -1067,7 +1168,7 @@ class SimplebeaconDashboard {
       coverage: this.platformService.coverage,
       security: this.platformService.security,
       quality: this.platformService.quality,
-      help: this.platformService.help
+      help: this.platformService.help,
     });
     this.refreshCurrentView();
   }
@@ -1151,12 +1252,22 @@ class SimplebeaconDashboard {
       showToast(demoReadOnlyMessage(), 'info');
       return;
     }
-    const resolvedPath = String(projectPath || this.state.lastProjectPath || this.state.defaultProjectPath || '').trim() || undefined;
+    const resolvedPath =
+      String(
+        projectPath || this.state.lastProjectPath || this.state.defaultProjectPath || ''
+      ).trim() || undefined;
     // Auto-redirect local paths to browser local scan on deployed site
     const isWindowsLocalPath = /^[a-zA-Z]:[\\/]/.test(resolvedPath || '');
-    if (isWindowsLocalPath && (window.location.protocol === 'https:' || !isLocalDevHost()) && !new URLSearchParams(window.location.search).get('sb_api_base')) {
+    if (
+      isWindowsLocalPath &&
+      (window.location.protocol === 'https:' || !isLocalDevHost()) &&
+      !new URLSearchParams(window.location.search).get('sb_api_base')
+    ) {
       if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function') {
-        showToast('Local paths can\'t be scanned from the deployed site. Use Chrome/Edge with Privacy mode, or run the dashboard locally.', 'error');
+        showToast(
+          "Local paths can't be scanned from the deployed site. Use Chrome/Edge with Privacy mode, or run the dashboard locally.",
+          'error'
+        );
         return;
       }
       showToast('Scanning local folder in your browser — no upload to server', 'info');
@@ -1168,12 +1279,16 @@ class SimplebeaconDashboard {
           projectPath: resolvedPath,
           onProgress: (processed, total, meta = {}) => {
             this.state.scanProgress = {
-              active: true, processed, total, phase: 'local-browser',
-              label: 'Local browser scan', currentFile: meta.currentFile || '',
-              percent: Math.round((processed / Math.max(1, total)) * 100)
+              active: true,
+              processed,
+              total,
+              phase: 'local-browser',
+              label: 'Local browser scan',
+              currentFile: meta.currentFile || '',
+              percent: Math.round((processed / Math.max(1, total)) * 100),
             };
             this.refreshCurrentView();
-          }
+          },
         });
         this.state.lastProjectPath = resolvedPath;
         Object.assign(this.state, { report, scanning: false, audit: null, scanProgress: null });
@@ -1202,14 +1317,18 @@ class SimplebeaconDashboard {
         config: this.scanService.config,
         history: this.scanService.history,
         scanning: false,
-        audit: null
+        audit: null,
       });
       this.views.audit?.invalidateCache?.();
       showToast('Scan complete', 'success');
 
       // If inside VS Code webview, update sidebar with scan stats
       const report = this.scanService.report;
-      if (report && typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function') {
+      if (
+        report &&
+        typeof window !== 'undefined' &&
+        typeof window.acquireVsCodeApi === 'function'
+      ) {
         try {
           const vscode = window.acquireVsCodeApi();
           const allIssues = report.rawIssues || report.detectedIssues || [];
@@ -1225,7 +1344,7 @@ class SimplebeaconDashboard {
             high: sevCounts.high,
             medium: sevCounts.medium,
             low: sevCounts.low,
-            score: report.gate?.score ?? report.qualityScore ?? 0
+            score: report.gate?.score ?? report.qualityScore ?? 0,
           });
         } catch (err) {
           console['warn']('[VSCodeBridge] Failed to post scan stats:', err);
@@ -1310,7 +1429,7 @@ class SimplebeaconDashboard {
     document.body.appendChild(overlay);
     bindOnboarding(overlay, {
       onStart: () => this.runScan(),
-      onDismiss: () => {}
+      onDismiss: () => {},
     });
   }
 }

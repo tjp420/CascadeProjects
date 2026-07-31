@@ -15,10 +15,6 @@
     "theme": "dark",
     "notifications": true
   },
-  "systemHealth": [
-    {}
-  ],
-  "recentActivity": [
-    {}
-  ]
+  "systemHealth": [{}],
+  "recentActivity": [{}]
 }

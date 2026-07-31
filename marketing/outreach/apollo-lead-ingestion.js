@@ -49,23 +49,43 @@ const RATE_LIMIT_INTERVAL_MS = Math.ceil(60_000 / RATE_LIMIT_REQUESTS_PER_MINUTE
 // Apollo's free-text title variations.
 const TARGET_TITLES = [
   // CLO
-  'Chief Legal Officer', 'General Counsel', 'VP Legal', 'Deputy General Counsel',
-  'Head of Legal', 'Legal Director',
+  'Chief Legal Officer',
+  'General Counsel',
+  'VP Legal',
+  'Deputy General Counsel',
+  'Head of Legal',
+  'Legal Director',
   // CCO
-  'Chief Compliance Officer', 'Head of Compliance', 'Compliance Director',
-  'Head of Regulatory Affairs', 'Compliance Manager', 'VP Compliance',
+  'Chief Compliance Officer',
+  'Head of Compliance',
+  'Compliance Director',
+  'Head of Regulatory Affairs',
+  'Compliance Manager',
+  'VP Compliance',
   'Regulatory Affairs Director',
   // CRO
-  'Chief Risk Officer', 'Head of Operational Risk', 'VP Risk Management',
-  'Risk Director', 'Head of Enterprise Risk', 'Head of Risk',
+  'Chief Risk Officer',
+  'Head of Operational Risk',
+  'VP Risk Management',
+  'Risk Director',
+  'Head of Enterprise Risk',
+  'Head of Risk',
   'Operational Risk Manager',
 ];
 
 // Sectors that indicate regulatory exposure — used to set hasRegulatoryExposure.
 const REGULATED_SECTORS = [
-  'fintech', 'banking', 'insurance', 'healthcare', 'pharmaceutical',
-  'financial services', 'energy', 'telecommunications', 'aerospace',
-  'government contractor', 'automotive',
+  'fintech',
+  'banking',
+  'insurance',
+  'healthcare',
+  'pharmaceutical',
+  'financial services',
+  'energy',
+  'telecommunications',
+  'aerospace',
+  'government contractor',
+  'automotive',
 ];
 
 // ── Rate Limiter ────────────────────────────────────────────────────────────
@@ -78,7 +98,7 @@ let lastRequestTimestamp = 0;
  * @returns {Promise<void>}
  */
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -106,7 +126,7 @@ function apolloHeaders() {
   if (!apiKey) {
     throw new Error(
       'APOLLO_API_KEY environment variable is required. ' +
-      'Set it via `export APOLLO_API_KEY=xxx` (Unix) or `set APOLLO_API_KEY=xxx` (Windows).'
+        'Set it via `export APOLLO_API_KEY=xxx` (Unix) or `set APOLLO_API_KEY=xxx` (Windows).'
     );
   }
   return {
@@ -153,19 +173,23 @@ async function apolloRequest(method, endpoint, body, query) {
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         if (res.statusCode >= 400) {
           const snippet = data.slice(0, 500);
-          reject(new Error(
-            `Apollo API ${method} ${endpoint} returned ${res.statusCode}: ${snippet}`
-          ));
+          reject(
+            new Error(`Apollo API ${method} ${endpoint} returned ${res.statusCode}: ${snippet}`)
+          );
           return;
         }
         try {
           resolve(JSON.parse(data));
         } catch (err) {
-          reject(new Error(`Apollo API ${endpoint} returned non-JSON response: ${data.slice(0, 200)}`));
+          reject(
+            new Error(`Apollo API ${endpoint} returned non-JSON response: ${data.slice(0, 200)}`)
+          );
         }
       });
     });
@@ -224,9 +248,10 @@ async function searchOrganizations(keywords, options = {}) {
     }
 
     // Apollo cursor pagination — stop when no more pages.
-    cursor = response.pagination && response.pagination.next_cursor
-      ? response.pagination.next_cursor
-      : null;
+    cursor =
+      response.pagination && response.pagination.next_cursor
+        ? response.pagination.next_cursor
+        : null;
     if (!cursor || pageOrgs.length < pageSize) break;
   }
 
@@ -276,9 +301,10 @@ async function searchPeople(orgId, titles, options = {}) {
       if (people.length >= maxPeople) break;
     }
 
-    cursor = response.pagination && response.pagination.next_cursor
-      ? response.pagination.next_cursor
-      : null;
+    cursor =
+      response.pagination && response.pagination.next_cursor
+        ? response.pagination.next_cursor
+        : null;
     if (!cursor || pagePeople.length < pageSize) break;
   }
 
@@ -340,10 +366,12 @@ function estimateDevelopers(employeeCount) {
  */
 function inferCiCdPlatform(techStack) {
   if (!Array.isArray(techStack) || techStack.length === 0) return 'unknown';
-  const stack = techStack.map(t => (t || '').toLowerCase());
-  if (stack.some(t => t.includes('azure devops') || t.includes('azure-devops'))) return 'azure-devops';
-  if (stack.some(t => t.includes('github actions') || t.includes('github-actions'))) return 'github-actions';
-  if (stack.some(t => t.includes('gitlab') && t.includes('ci'))) return 'gitlab-ci';
+  const stack = techStack.map((t) => (t || '').toLowerCase());
+  if (stack.some((t) => t.includes('azure devops') || t.includes('azure-devops')))
+    return 'azure-devops';
+  if (stack.some((t) => t.includes('github actions') || t.includes('github-actions')))
+    return 'github-actions';
+  if (stack.some((t) => t.includes('gitlab') && t.includes('ci'))) return 'gitlab-ci';
   return 'unknown';
 }
 
@@ -354,11 +382,21 @@ function inferCiCdPlatform(techStack) {
  * @returns {boolean}
  */
 function detectAiToolUsage(techStack, keywords) {
-  const stack = (techStack || []).map(t => (t || '').toLowerCase());
-  const aiSignals = ['openai', 'gpt', 'copilot', 'anthropic', 'hugging face', 'huggingface', 'ai', 'ml'];
-  if (stack.some(t => aiSignals.some(s => t.includes(s)))) return true;
-  const kw = (keywords || []).map(k => (k || '').toLowerCase());
-  if (kw.some(k => k.includes('ai') || k.includes('machine learning') || k.includes('ml'))) return true;
+  const stack = (techStack || []).map((t) => (t || '').toLowerCase());
+  const aiSignals = [
+    'openai',
+    'gpt',
+    'copilot',
+    'anthropic',
+    'hugging face',
+    'huggingface',
+    'ai',
+    'ml',
+  ];
+  if (stack.some((t) => aiSignals.some((s) => t.includes(s)))) return true;
+  const kw = (keywords || []).map((k) => (k || '').toLowerCase());
+  if (kw.some((k) => k.includes('ai') || k.includes('machine learning') || k.includes('ml')))
+    return true;
   return false;
 }
 
@@ -370,7 +408,7 @@ function detectAiToolUsage(techStack, keywords) {
 function hasRegulatoryExposureBySector(sector) {
   if (!sector) return false;
   const normalized = sector.toLowerCase();
-  return REGULATED_SECTORS.some(s => normalized.includes(s));
+  return REGULATED_SECTORS.some((s) => normalized.includes(s));
 }
 
 /**
@@ -451,7 +489,9 @@ async function ingestFromApollo(options = {}) {
   const dryRun = options.dryRun || false;
   const outputPath = options.outputPath || path.join(__dirname, 'prospects.json');
 
-  console.log(`[apollo] Starting ingestion — keywords: [${keywords.join(', ')}], maxCompanies: ${maxCompanies}, maxPeople: ${maxPeoplePerCompany}, dryRun: ${dryRun}`);
+  console.log(
+    `[apollo] Starting ingestion — keywords: [${keywords.join(', ')}], maxCompanies: ${maxCompanies}, maxPeople: ${maxPeoplePerCompany}, dryRun: ${dryRun}`
+  );
 
   // 1. Search organizations
   const orgs = await searchOrganizations(keywords, { maxResults: maxCompanies });
@@ -503,23 +543,31 @@ async function ingestFromApollo(options = {}) {
       const prospect = apolloToProspect(enriched, org);
       if (!prospect) {
         if (!enriched.email) {
-          console.warn(`[apollo] Skipping person without email at ${orgName}: ${enriched.first_name || ''} ${enriched.last_name || ''}`);
+          console.warn(
+            `[apollo] Skipping person without email at ${orgName}: ${enriched.first_name || ''} ${enriched.last_name || ''}`
+          );
         }
         continue;
       }
 
       if (seenIds.has(prospect.id)) {
-        console.warn(`[apollo] Duplicate prospect skipped: ${prospect.email} @ ${prospect.company}`);
+        console.warn(
+          `[apollo] Duplicate prospect skipped: ${prospect.email} @ ${prospect.company}`
+        );
         continue;
       }
       seenIds.add(prospect.id);
       prospects.push(prospect);
-      console.log(`[apollo] + ${prospect.persona} ${prospect.firstName} ${prospect.lastName} @ ${prospect.company} (score ${prospect.qualificationScore}, ${prospect.status})`);
+      console.log(
+        `[apollo] + ${prospect.persona} ${prospect.firstName} ${prospect.lastName} @ ${prospect.company} (score ${prospect.qualificationScore}, ${prospect.status})`
+      );
     }
   }
 
-  console.log(`[apollo] Collected ${prospects.length} prospect(s) from ${orgs.length} organization(s)`);
-  const qualifiedCount = prospects.filter(p => p.status === 'qualified').length;
+  console.log(
+    `[apollo] Collected ${prospects.length} prospect(s) from ${orgs.length} organization(s)`
+  );
+  const qualifiedCount = prospects.filter((p) => p.status === 'qualified').length;
   console.log(`[apollo] Qualified: ${qualifiedCount}/${prospects.length}`);
 
   // 4. Save (unless dry-run)
@@ -528,7 +576,9 @@ async function ingestFromApollo(options = {}) {
   } else {
     const result = saveProspects(prospects, outputPath);
     console.log(`[apollo] Saved ${result.totalProspects} prospect(s) to ${outputPath}`);
-    console.log(`[apollo] By persona: CLO=${result.byPersona.CLO}, CCO=${result.byPersona.CCO}, CRO=${result.byPersona.CRO}`);
+    console.log(
+      `[apollo] By persona: CLO=${result.byPersona.CLO}, CCO=${result.byPersona.CCO}, CRO=${result.byPersona.CRO}`
+    );
   }
 
   return prospects;
@@ -572,7 +622,9 @@ async function main() {
 
   if (!process.env.APOLLO_API_KEY) {
     console.error('[apollo] ERROR: APOLLO_API_KEY environment variable is required.');
-    console.error('[apollo] Set it via: export APOLLO_API_KEY=xxx  (Unix)  or  set APOLLO_API_KEY=xxx  (Windows)');
+    console.error(
+      '[apollo] Set it via: export APOLLO_API_KEY=xxx  (Unix)  or  set APOLLO_API_KEY=xxx  (Windows)'
+    );
     process.exit(1);
   }
 
@@ -586,9 +638,15 @@ Usage:
     process.exit(1);
   }
 
-  const keywords = String(args.keywords).split(',').map(k => k.trim()).filter(Boolean);
-  const maxCompanies = parseInt(args['max-companies'] || String(DEFAULT_MAX_COMPANIES), 10) || DEFAULT_MAX_COMPANIES;
-  const maxPeoplePerCompany = parseInt(args['max-people-per-company'] || String(DEFAULT_MAX_PEOPLE_PER_COMPANY), 10) || DEFAULT_MAX_PEOPLE_PER_COMPANY;
+  const keywords = String(args.keywords)
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+  const maxCompanies =
+    parseInt(args['max-companies'] || String(DEFAULT_MAX_COMPANIES), 10) || DEFAULT_MAX_COMPANIES;
+  const maxPeoplePerCompany =
+    parseInt(args['max-people-per-company'] || String(DEFAULT_MAX_PEOPLE_PER_COMPANY), 10) ||
+    DEFAULT_MAX_PEOPLE_PER_COMPANY;
   const dryRun = args['dry-run'] === 'true' || args['dry-run'] === true;
   const outputPath = args.output || path.join(__dirname, 'prospects.json');
 
@@ -602,7 +660,7 @@ Usage:
 }
 
 if (require.main === module) {
-  main().catch(err => {
+  main().catch((err) => {
     console.error('[apollo] Error:', err.message);
     process.exit(1);
   });

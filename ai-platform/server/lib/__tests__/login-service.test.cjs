@@ -1,10 +1,10 @@
 'use strict';
 
 jest.mock('../../services/user-service.cjs', () => ({
-  authenticateUser: jest.fn()
+  authenticateUser: jest.fn(),
 }));
 jest.mock('../auth/audit-service.cjs', () => ({
-  auditAuth: jest.fn()
+  auditAuth: jest.fn(),
 }));
 
 const { handleLogin, handleTokenRefresh } = require('../auth/login-service.cjs');
@@ -15,7 +15,7 @@ function mockReqRes(body = {}, user = null) {
   const req = { body, db: null, user, headers: {} };
   const res = {
     status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis()
+    json: jest.fn().mockReturnThis(),
   };
   const next = jest.fn();
   return { req, res, next };
@@ -44,18 +44,24 @@ describe('login-service', () => {
     const { req, res, next } = mockReqRes({ email: 'bad@example.com', password: 'wrong' });
     await handleLogin(req, res, next);
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: 'Authentication failed' }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'Authentication failed' })
+    );
   });
 
   test('handleLogin returns token on success', async () => {
-    authenticateUser.mockResolvedValue({ user: { id: 'u1', email: 'test@example.com', name: 'Test' } });
+    authenticateUser.mockResolvedValue({
+      user: { id: 'u1', email: 'test@example.com', name: 'Test' },
+    });
     const { req, res, next } = mockReqRes({ email: 'test@example.com', password: 'pass' });
     await handleLogin(req, res, next);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'Login successful',
-      token: expect.any(String),
-      user: expect.objectContaining({ email: 'test@example.com' })
-    }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Login successful',
+        token: expect.any(String),
+        user: expect.objectContaining({ email: 'test@example.com' }),
+      })
+    );
     expect(auditAuth).toHaveBeenCalledWith('login_success', expect.any(Object), req);
   });
 
@@ -66,16 +72,24 @@ describe('login-service', () => {
   });
 
   test('handleTokenRefresh returns new token with req.user', () => {
-    const { req, res, next } = mockReqRes({}, { id: 'u1', email: 'test@example.com', name: 'Test' });
+    const { req, res, next } = mockReqRes(
+      {},
+      { id: 'u1', email: 'test@example.com', name: 'Test' }
+    );
     handleTokenRefresh(req, res, next);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'Token refreshed successfully',
-      token: expect.any(String)
-    }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Token refreshed successfully',
+        token: expect.any(String),
+      })
+    );
   });
 
   test('handleTokenRefresh supports longLived option', () => {
-    const { req, res, next } = mockReqRes({ longLived: true }, { id: 'u1', email: 'test@example.com', name: 'Test' });
+    const { req, res, next } = mockReqRes(
+      { longLived: true },
+      { id: 'u1', email: 'test@example.com', name: 'Test' }
+    );
     handleTokenRefresh(req, res, next);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ longLived: true }));
   });

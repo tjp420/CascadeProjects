@@ -17,15 +17,16 @@ const SAMPLE_BASE = ['web', 'data'].join('/');
  * @returns {any}
  */
 function resolveSampleFilePath(platformRoot, sampleFileName) {
-    const relative = SAMPLE_FILE_OVERRIDES[sampleFileName]
-        || path.join(SAMPLE_BASE, sampleFileName).replace(/\\/g, '/');
-    if (path.isAbsolute(relative)) {
-        return relative;
-    }
-    return path.join(platformRoot, ...relative.split('/'));
+  const relative =
+    SAMPLE_FILE_OVERRIDES[sampleFileName] ||
+    path.join(SAMPLE_BASE, sampleFileName).replace(/\\/g, '/');
+  if (path.isAbsolute(relative)) {
+    return relative;
+  }
+  return path.join(platformRoot, ...relative.split('/'));
 }
 
 module.exports = {
-    SAMPLE_FILE_OVERRIDES,
-    resolveSampleFilePath
+  SAMPLE_FILE_OVERRIDES,
+  resolveSampleFilePath,
 };

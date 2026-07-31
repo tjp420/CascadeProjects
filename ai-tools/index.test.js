@@ -16,7 +16,11 @@ function makeTmpFile(name) {
 
 function cleanup(files) {
   for (const f of files) {
-    try { fs.unlinkSync(f); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(f);
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -25,7 +29,9 @@ function cleanupDir(dir) {
     const entries = fs.readdirSync(dir);
     for (const e of entries) fs.unlinkSync(path.join(dir, e));
     fs.rmdirSync(dir);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 describe('ai-tools safety utilities', () => {
@@ -352,7 +358,7 @@ describe('ai-tools safety utilities', () => {
       try {
         const result = proposeBatchFix(tmpFile, [
           { target: 'const a = 1', replacement: 'const a = 10' },
-          { target: 'const b = 2', replacement: 'const b = 20' }
+          { target: 'const b = 2', replacement: 'const b = 20' },
         ]);
         assert.strictEqual(result.ok, true);
         assert.strictEqual(result.applied, 2);
@@ -370,7 +376,7 @@ describe('ai-tools safety utilities', () => {
       fs.writeFileSync(tmpFile, 'const a = 1;');
       try {
         const result = proposeBatchFix(tmpFile, [
-          { target: 'const a = 1', replacement: 'const a = broken {' }
+          { target: 'const a = 1', replacement: 'const a = broken {' },
         ]);
         assert.strictEqual(result.ok, false);
         assert.ok(result.error.includes('Batch patch rolled back'));
@@ -386,9 +392,7 @@ describe('ai-tools safety utilities', () => {
       const tmpFile = makeTmpFile('tmp-batch-missing-' + Date.now() + '.js');
       fs.writeFileSync(tmpFile, 'const a = 1;');
       try {
-        const result = proposeBatchFix(tmpFile, [
-          { target: 'not-found', replacement: 'replaced' }
-        ]);
+        const result = proposeBatchFix(tmpFile, [{ target: 'not-found', replacement: 'replaced' }]);
         assert.strictEqual(result.ok, false);
         assert.ok(result.error.includes('not found'));
       } finally {

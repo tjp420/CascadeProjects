@@ -13,10 +13,7 @@ interface ResultsReferralBannerProps {
 /**
  * High-visibility referral banner shown after a B-or-better scan result.
  */
-export function ResultsReferralBanner({
-  userEmail,
-  currentScanGrade,
-}: ResultsReferralBannerProps) {
+export function ResultsReferralBanner({ userEmail, currentScanGrade }: ResultsReferralBannerProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

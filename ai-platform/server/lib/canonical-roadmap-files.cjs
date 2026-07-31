@@ -24,9 +24,7 @@
  *   data/roadmap/                        — Roadmap baseline JSON
  */
 
-const DISTINCT_CANONICAL_ROADMAP_FILES = new Set([
-    'data/roadmap/ai-roadmap-report.json'
-]);
+const DISTINCT_CANONICAL_ROADMAP_FILES = new Set(['data/roadmap/ai-roadmap-report.json']);
 
 /**
  * Normalize relative path.
@@ -34,11 +32,11 @@ const DISTINCT_CANONICAL_ROADMAP_FILES = new Set([
  * @returns {any}
  */
 function normalizeRelativePath(relativePath) {
-    const rel = String(relativePath || '').replace(/\\/g, '/');
-    const marker = 'ai-platform/';
-    const idx = rel.indexOf(marker);
-    if (idx >= 0) return rel.slice(idx + marker.length);
-    return rel;
+  const rel = String(relativePath || '').replace(/\\/g, '/');
+  const marker = 'ai-platform/';
+  const idx = rel.indexOf(marker);
+  if (idx >= 0) return rel.slice(idx + marker.length);
+  return rel;
 }
 
 /**
@@ -48,17 +46,17 @@ function normalizeRelativePath(relativePath) {
  * @returns {any}
  */
 function isDistinctCanonicalRoadmapPair(fileA, fileB) {
-    const relA = normalizeRelativePath(
-        typeof fileA === 'string' ? fileA : (fileA.relativePath || fileA.path || fileA)
-    );
-    const relB = normalizeRelativePath(
-        typeof fileB === 'string' ? fileB : (fileB.relativePath || fileB.path || fileB)
-    );
-    return DISTINCT_CANONICAL_ROADMAP_FILES.has(relA) && DISTINCT_CANONICAL_ROADMAP_FILES.has(relB);
+  const relA = normalizeRelativePath(
+    typeof fileA === 'string' ? fileA : fileA.relativePath || fileA.path || fileA
+  );
+  const relB = normalizeRelativePath(
+    typeof fileB === 'string' ? fileB : fileB.relativePath || fileB.path || fileB
+  );
+  return DISTINCT_CANONICAL_ROADMAP_FILES.has(relA) && DISTINCT_CANONICAL_ROADMAP_FILES.has(relB);
 }
 
 module.exports = {
-    DISTINCT_CANONICAL_ROADMAP_FILES,
-    normalizeRelativePath,
-    isDistinctCanonicalRoadmapPair
+  DISTINCT_CANONICAL_ROADMAP_FILES,
+  normalizeRelativePath,
+  isDistinctCanonicalRoadmapPair,
 };

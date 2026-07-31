@@ -117,7 +117,9 @@ test.describe('Whitelabel Brand CSS Injection', () => {
     expect(primaryColor).toBe('#FF0000');
 
     const secondaryColor = await page.evaluate(() => {
-      return getComputedStyle(document.documentElement).getPropertyValue('--brand-secondary').trim();
+      return getComputedStyle(document.documentElement)
+        .getPropertyValue('--brand-secondary')
+        .trim();
     });
     expect(secondaryColor).toBe('#00FF00');
   });
@@ -144,11 +146,7 @@ test.describe('Whitelabel Brand CSS Injection', () => {
     const brandWithCustomCss = { ...MOCK_BRAND, customCss: '.custom-class { color: red; }' };
 
     await page.evaluate((brand) => {
-      const cssLines = [
-        ':root {',
-        `  --brand-primary: ${brand.primaryColor};`,
-        '}',
-      ];
+      const cssLines = [':root {', `  --brand-primary: ${brand.primaryColor};`, '}'];
       if (brand.customCss) {
         cssLines.push('', brand.customCss);
       }
@@ -190,9 +188,12 @@ test.describe('Whitelabel Brand CSS Injection', () => {
 test.describe('Whitelabel HTML Injection Format', () => {
   test('brand injection script sets window.__SIMPLEBEACON_BRAND__', async ({ page }) => {
     // Simulate what the Express middleware does: inject script before page loads
-    await page.addInitScript((brandData) => {
-      (window as any).__SIMPLEBEACON_BRAND__ = brandData;
-    }, { brand: MOCK_BRAND, partnerId: 'wl-test-acme', resolvedAt: new Date().toISOString() });
+    await page.addInitScript(
+      (brandData) => {
+        (window as any).__SIMPLEBEACON_BRAND__ = brandData;
+      },
+      { brand: MOCK_BRAND, partnerId: 'wl-test-acme', resolvedAt: new Date().toISOString() }
+    );
 
     await page.goto(DASHBOARD_URL);
     await page.waitForLoadState('networkidle');

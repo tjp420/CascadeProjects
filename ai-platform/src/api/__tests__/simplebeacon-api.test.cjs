@@ -18,7 +18,11 @@ describe('simplebeacon-api helpers', () => {
       for (let i = lines.length - 1; i >= 0; i--) {
         const line = lines[i].trim();
         if (line.startsWith('{') || line.startsWith('[')) {
-          try { return JSON.parse(line); } catch { /* continue */ }
+          try {
+            return JSON.parse(line);
+          } catch {
+            /* continue */
+          }
         }
       }
       return null;
@@ -65,10 +69,7 @@ describe('simplebeacon-api helpers', () => {
     });
 
     it('deep merges rules object', () => {
-      const result = mergeConfig(
-        { rules: { x: 1 } },
-        { rules: { y: 2 } }
-      );
+      const result = mergeConfig({ rules: { x: 1 } }, { rules: { y: 2 } });
       assert.deepStrictEqual(result.rules, { x: 1, y: 2 });
     });
 

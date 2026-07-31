@@ -29,18 +29,21 @@ function _isAllowedApiBase(value) {
     // HTTPS pages cannot call a local HTTP data server (mixed-content / LAN access).
     if (location.protocol === 'https:' && url.protocol === 'http:') return false;
     // Never bridge a localhost/loopback data server from a remote or non-local host.
-    if (!_isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) return false;
+    if (!_isLocalDevHost() && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname))
+      return false;
     return true;
+  } catch (_a) {
+    return false;
   }
-  catch (_a) { return false; }
 }
 
 function _readStoredApiBase() {
   if (typeof sessionStorage !== 'undefined') {
     try {
       return sessionStorage.getItem(SB_API_BASE_KEY);
+    } catch (_a) {
+      /* ignore */
     }
-    catch (_a) { /* ignore */ }
   }
   return null;
 }
@@ -49,8 +52,9 @@ function _storeApiBase(value) {
   if (typeof sessionStorage !== 'undefined' && value) {
     try {
       sessionStorage.setItem(SB_API_BASE_KEY, value);
+    } catch (_a) {
+      /* ignore */
     }
-    catch (_a) { /* ignore */ }
   }
 }
 
@@ -58,8 +62,9 @@ function _storeNotifyBase(value) {
   if (typeof sessionStorage !== 'undefined' && value) {
     try {
       sessionStorage.setItem(SB_NOTIFY_BASE_KEY, value);
+    } catch (_a) {
+      /* ignore */
     }
-    catch (_a) { /* ignore */ }
   }
 }
 
@@ -76,8 +81,7 @@ function _readEmbedApiBaseFromQuery() {
       }
       return normalized;
     }
-  }
-  catch (_a) {
+  } catch (_a) {
     return null;
   }
   return null;
@@ -110,7 +114,6 @@ export function apiUrl(path) {
   return `${base}/${segment}`;
 }
 
-
 /**
  * Fetch with timeout and caller abort support.
  * Distinguishes between caller-initiated abort and timeout expiry.
@@ -120,11 +123,21 @@ export function apiUrl(path) {
  * @param {{count?:number,delay?:number,maxDelay?:number}} [retry] Retry config.
  * @returns {Promise<Response>}
  */
-export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { count: 0, delay: 1000, maxDelay: 30000 }) {
+export async function fetchWithTimeout(
+  url,
+  options = {},
+  ms = 10000,
+  retry = { count: 0, delay: 1000, maxDelay: 30000 }
+) {
   const target = String(url || '');
-  const opts = (options && typeof options === 'object' && !Array.isArray(options)) ? options : {};
+  const opts = options && typeof options === 'object' && !Array.isArray(options) ? options : {};
   const timeoutMs = Number.isFinite(ms) && ms > 0 ? ms : 10000;
-  const retryCfg = { count: 0, delay: 1000, maxDelay: 30000, ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {}) };
+  const retryCfg = {
+    count: 0,
+    delay: 1000,
+    maxDelay: 30000,
+    ...(retry && typeof retry === 'object' && !Array.isArray(retry) ? retry : {}),
+  };
 
   const attempt = async (attemptNum) => {
     const controller = new AbortController();
@@ -145,11 +158,13 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
         const shouldRetry = retryCfg.count > 0 && attemptNum < retryCfg.count && res.status >= 500;
         if (shouldRetry) {
           const backoff = Math.min(retryCfg.delay * Math.pow(2, attemptNum), retryCfg.maxDelay);
-          await new Promise(r => setTimeout(r, backoff));
+          await new Promise((r) => setTimeout(r, backoff));
           return attempt(attemptNum + 1);
         }
         if (opts.acceptNon2xx !== true) {
-          throw new Error(`HTTP ${res.status}${res.statusText ? ' ' + res.statusText : ''} — ${target}`);
+          throw new Error(
+            `HTTP ${res.status}${res.statusText ? ' ' + res.statusText : ''} — ${target}`
+          );
         }
       }
       return res;
@@ -162,7 +177,7 @@ export async function fetchWithTimeout(url, options = {}, ms = 10000, retry = { 
       }
       if (retryCfg.count > 0 && attemptNum < retryCfg.count) {
         const backoff = Math.min(retryCfg.delay * Math.pow(2, attemptNum), retryCfg.maxDelay);
-        await new Promise(r => setTimeout(r, backoff));
+        await new Promise((r) => setTimeout(r, backoff));
         return attempt(attemptNum + 1);
       }
       throw err;
@@ -220,7 +235,8 @@ export function stringifyQueryString(params) {
     if (value == null || value === '') continue;
     if (Array.isArray(value)) {
       for (const v of value) {
-        if (v != null && v !== '') pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`);
+        if (v != null && v !== '')
+          pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(v))}`);
       }
     } else {
       pairs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);

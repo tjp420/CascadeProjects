@@ -10,7 +10,7 @@ const {
   sentEntryId,
   removeSentLogEntry,
   sendOutreachEmail,
-  validateEmail
+  validateEmail,
 } = require('../outreach-mail.cjs');
 
 describe('outreach-mail', () => {
@@ -79,22 +79,40 @@ describe('outreach-mail', () => {
   });
 
   test('removeSentLogEntry throws on missing id', async () => {
-    await expect(removeSentLogEntry('', { dataDir: '/nonexistent' })).rejects.toMatchObject({ code: 'missing_id' });
+    await expect(removeSentLogEntry('', { dataDir: '/nonexistent' })).rejects.toMatchObject({
+      code: 'missing_id',
+    });
   });
 
   test('removeSentLogEntry throws on not found', async () => {
-    await expect(removeSentLogEntry('nonexistent-id', { dataDir: '/nonexistent' })).rejects.toMatchObject({ code: 'not_found' });
+    await expect(
+      removeSentLogEntry('nonexistent-id', { dataDir: '/nonexistent' })
+    ).rejects.toMatchObject({ code: 'not_found' });
   });
 
   test('sendOutreachEmail throws on invalid email', async () => {
-    await expect(sendOutreachEmail({ to: 'bad', subject: 'Test subject', text: 'This is a long enough message body.' })).rejects.toMatchObject({ code: 'invalid_email' });
+    await expect(
+      sendOutreachEmail({
+        to: 'bad',
+        subject: 'Test subject',
+        text: 'This is a long enough message body.',
+      })
+    ).rejects.toMatchObject({ code: 'invalid_email' });
   });
 
   test('sendOutreachEmail throws on short subject', async () => {
-    await expect(sendOutreachEmail({ to: 'test@example.com', subject: 'x', text: 'This is a long enough message body.' })).rejects.toMatchObject({ code: 'subject_too_short' });
+    await expect(
+      sendOutreachEmail({
+        to: 'test@example.com',
+        subject: 'x',
+        text: 'This is a long enough message body.',
+      })
+    ).rejects.toMatchObject({ code: 'subject_too_short' });
   });
 
   test('sendOutreachEmail throws on short message', async () => {
-    await expect(sendOutreachEmail({ to: 'test@example.com', subject: 'Test subject', text: 'short' })).rejects.toMatchObject({ code: 'message_too_short' });
+    await expect(
+      sendOutreachEmail({ to: 'test@example.com', subject: 'Test subject', text: 'short' })
+    ).rejects.toMatchObject({ code: 'message_too_short' });
   });
 });

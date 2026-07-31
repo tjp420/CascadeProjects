@@ -26,8 +26,7 @@ function isJsonResponse(res) {
  */
 function normalizeStaticRepositoryHealthPayload(payload) {
     const health = payload === null || payload === void 0 ? void 0 : payload.repositoryHealth;
-    if (!health || typeof health !== 'object')
-        return null;
+    if (!health || typeof health !== 'object') return null;
     return {
         ...health,
         staticHost: true,
@@ -45,8 +44,7 @@ function normalizeStaticRepositoryHealthPayload(payload) {
  */
 async function fetchStaticRepositoryHealthFallback() {
     const trustHttpResponse = await fetch('/trust-verification.json', { cache: 'no-store' }).catch(() => null);
-    if (!trustHttpResponse || !trustHttpResponse.ok)
-        return null;
+    if (!trustHttpResponse || !trustHttpResponse.ok) return null;
     const trustVerificationDocument = await trustHttpResponse.json().catch(() => null);
     return normalizeStaticRepositoryHealthPayload(trustVerificationDocument);
 }
@@ -57,8 +55,7 @@ async function fetchStaticRepositoryHealthFallback() {
  * @returns {any}
  */
 async function readJsonOrDefault(res, defaultValue = {}) {
-    if (!isJsonResponse(res))
-        return defaultValue;
+    if (!isJsonResponse(res)) return defaultValue;
     const parsed = await res.json().catch(() => defaultValue);
     return parsed == null ? defaultValue : parsed;
 }
@@ -70,8 +67,7 @@ export async function fetchRepositoryHealth() {
     const res = await fetch('/api/optimization/health', { cache: 'no-store', headers: authHeaders() });
     if (!isJsonResponse(res)) {
         const fallback = await fetchStaticRepositoryHealthFallback();
-        if (fallback)
-            return fallback;
+        if (fallback) return fallback;
         return {
             staticHost: true,
             headline: null,
@@ -84,8 +80,7 @@ export async function fetchRepositoryHealth() {
     const data = await res.json().catch(() => null);
     if (!data) {
         const fallback = await fetchStaticRepositoryHealthFallback();
-        if (fallback)
-            return fallback;
+        if (fallback) return fallback;
         return {
             staticHost: true,
             headline: null,
@@ -267,13 +262,17 @@ export class RepositoryHealthView {
           </div>
         </div>
 
-        ${staticHost ? `
+        ${
+            staticHost
+                ? `
           <div class="card mb-4" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2);">
             <p class="text-muted" style="margin:0;font-size:var(--font-size-sm);">
               Static-host preview: optimization APIs require <code>npm run dashboard</code> locally.
             </p>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
 
         <div class="card mb-4">
           <p style="margin:0;font-size:var(--font-size-sm);color:var(--text-secondary);">
@@ -282,7 +281,9 @@ export class RepositoryHealthView {
           </p>
         </div>
 
-        ${headline ? `
+        ${
+            headline
+                ? `
           <div class="card mb-4">
             <div class="section-heading mb-2">
               <h3 style="margin:0;font-size:var(--font-size-base);">Headline metrics</h3>
@@ -299,76 +300,115 @@ export class RepositoryHealthView {
               <div class="metric-chip"><strong>${formatNumber((_e = headline.repositoryFoldersTotal) !== null && _e !== void 0 ? _e : '—')}</strong> folders</div>
             </div>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
 
         ${renderHealthSnapshot(health === null || health === void 0 ? void 0 : health.monorepo, 'Monorepo root')}
         ${(health === null || health === void 0 ? void 0 : health.platform) && (health === null || health === void 0 ? void 0 : health.monorepo) ? renderHealthSnapshot(health.platform, 'Platform (ai-platform)') : ''}
 
-        ${this.candidates.length ? `
+        ${
+            this.candidates.length
+                ? `
           <div class="card mb-4">
             <h3 class="mb-2" style="font-size:var(--font-size-base);">Merge candidates (preview only)</h3>
             <p class="text-muted text-sm">Phase 3 safety: preview → confirm → quarantine. No auto-delete. Pairs under <code>ai-platform/packages/simplebeacon-cli</code> ↔ <code>packages/simplebeacon-cli</code> are intentional npm mirrors and are not shown.</p>
             <div class="consolidation-list">
-              ${this.candidates.slice(0, 5).map((item) => `
+              ${this.candidates
+                  .slice(0, 5)
+                  .map(
+                      item => `
                 <div class="consolidation-card card">
                   <div class="consolidation-meta">${escapeHtml(item.mergeType || 'candidate')} · ${escapeHtml(item.savingsLabel || '—')} savings</div>
-                  <p><code>${escapeHtml((item.files || []).map((f) => f.path).join(' ↔ ') || '—')}</code></p>
+                  <p><code>${escapeHtml((item.files || []).map(f => f.path).join(' ↔ ') || '—')}</code></p>
                   <button type="button" class="btn btn-secondary btn-sm preview-merge-btn" data-candidate-id="${escapeHtml(item.id || '')}" ${this.previewLoading && this.previewCandidateId === item.id ? 'disabled' : ''}>
                     ${this.previewLoading && this.previewCandidateId === item.id ? 'Previewing…' : 'Preview merge'}
                   </button>
                 </div>
-              `).join('')}
+              `
+                  )
+                  .join('')}
             </div>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
 
-        ${this.previewLoading ? `
+        ${
+            this.previewLoading
+                ? `
           <div class="card mb-4" id="merge-preview-panel">
             <p class="text-muted" style="margin:0;"><span class="loading-spinner"></span> Building merge preview…</p>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
 
-        ${this.preview ? `
+        ${
+            this.preview
+                ? `
           <div class="card mb-4" id="merge-preview-panel">
             <h3 class="mb-2" style="font-size:var(--font-size-base);">Merge preview</h3>
-            <p class="text-muted text-sm">Keep: <code>${escapeHtml(this.preview.keepFile || '—')}</code> · Remove: ${(this.preview.removeFiles || []).map((f) => `<code>${escapeHtml(f)}</code>`).join(', ') || '—'}</p>
+            <p class="text-muted text-sm">Keep: <code>${escapeHtml(this.preview.keepFile || '—')}</code> · Remove: ${(this.preview.removeFiles || []).map(f => `<code>${escapeHtml(f)}</code>`).join(', ') || '—'}</p>
             <p class="text-muted text-sm">Conflicts: ${((_f = this.preview.conflicts) === null || _f === void 0 ? void 0 : _f.length) || 0} · Safe: ${this.preview.safeToExecute ? 'yes' : 'no'} · Mode: ${escapeHtml(this.preview.executionMode || '—')}</p>
-            ${this.preview.riskAssessment ? `
+            ${
+                this.preview.riskAssessment
+                    ? `
               <p class="text-muted text-sm">Risk: ${escapeHtml(this.preview.riskAssessment.level || '—')}${(this.preview.riskAssessment.factors || []).length ? ` · ${escapeHtml(this.preview.riskAssessment.factors.join('; '))}` : ''}</p>
-            ` : ''}
-            ${this.preview.safeToExecute ? `
+            `
+                    : ''
+            }
+            ${
+                this.preview.safeToExecute
+                    ? `
               <div class="flex gap-2 mt-2">
                 <button type="button" class="btn btn-danger btn-sm" id="quarantine-merge-btn">Quarantine duplicates</button>
                 <span class="text-muted text-sm" style="align-self:center;">Requires phrase: <code>${escapeHtml(this.preview.confirmationPhrase || '')}</code></span>
               </div>
-            ` : ''}
+            `
+                    : ''
+            }
           </div>
-        ` : ''}
+        `
+                : ''
+        }
 
         ${this.previewError ? `<p class="text-danger card" id="merge-preview-panel">${escapeHtml(this.previewError)}</p>` : ''}
 
-        ${((health === null || health === void 0 ? void 0 : health.recommendations) || []).length ? `
+        ${
+            ((health === null || health === void 0 ? void 0 : health.recommendations) || []).length
+                ? `
           <div class="card mb-4">
             <h3 class="mb-2" style="font-size:var(--font-size-base);">Top recommendations</h3>
             <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
-              ${health.recommendations.map((item) => `
+              ${health.recommendations
+                  .map(
+                      item => `
                 <li class="mb-2">
                   <strong>${escapeHtml(item.priority || '—')}</strong> — ${escapeHtml(item.description || item.action || '')}
                   ${item.savings ? ` · Save ${escapeHtml(item.savings)}` : ''}
                 </li>
-              `).join('')}
+              `
+                  )
+                  .join('')}
             </ul>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
 
-        ${((health === null || health === void 0 ? void 0 : health.disclaimers) || []).length ? `
+        ${
+            ((health === null || health === void 0 ? void 0 : health.disclaimers) || []).length
+                ? `
           <div class="card">
             <h3 class="mb-2" style="font-size:var(--font-size-base);">Scope</h3>
             <ul style="margin:0;padding-left:1.25rem;font-size:var(--font-size-sm);">
-              ${health.disclaimers.map((line) => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
+              ${health.disclaimers.map(line => `<li class="text-muted mb-2">${escapeHtml(line)}</li>`).join('')}
             </ul>
           </div>
-        ` : ''}
+        `
+                : ''
+        }
       </div>
     `;
     }
@@ -378,11 +418,14 @@ export class RepositoryHealthView {
          * @param {string} projectPath
          * @returns {any}
          */
-        const fetchList = async (projectPath) => {
+        const fetchList = async projectPath => {
             const params = projectPath ? `?projectPath=${encodeURIComponent(projectPath)}` : '';
-            const candRes = await fetch(`/api/optimization/candidates${params}`, { cache: 'no-store', headers: authHeaders() });
+            const candRes = await fetch(`/api/optimization/candidates${params}`, {
+                cache: 'no-store',
+                headers: authHeaders()
+            });
             const candData = await readJsonOrDefault(candRes, {});
-            return candData.success ? (candData.candidates || []) : [];
+            return candData.success ? candData.candidates || [] : [];
         };
         const projectPath = this.app.state.lastProjectPath || '';
         let candidates = await fetchList(projectPath);
@@ -417,22 +460,22 @@ export class RepositoryHealthView {
                 return;
             }
             this.candidates = await this.fetchCandidatesList();
-        }
-        catch (err) {
+        } catch (err) {
             this.error = err.message;
-        }
-        finally {
+        } finally {
             this.loading = false;
         }
     }
     paint(container) {
-      setHtml(container, this.render());
-      this.bindEvents(container);
+        setHtml(container, this.render());
+        this.bindEvents(container);
     }
     scrollPreviewIntoView(container) {
         requestAnimationFrame(() => {
             var _a;
-            (_a = container.querySelector('#merge-preview-panel')) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            (_a = container.querySelector('#merge-preview-panel')) === null || _a === void 0
+                ? void 0
+                : _a.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
     }
     async mount(container) {
@@ -441,8 +484,7 @@ export class RepositoryHealthView {
         this.loading = true;
         this.paint(container);
         await this.loadHealth();
-        if (mountSeq !== this._mountSeq)
-            return;
+        if (mountSeq !== this._mountSeq) return;
         this.paint(container);
         const retryBtn = container.querySelector('#health-retry-btn');
         if (retryBtn) {
@@ -450,14 +492,12 @@ export class RepositoryHealthView {
         }
     }
     async handlePreviewMerge(candidateId) {
-        if (!candidateId || this.previewLoading)
-            return;
+        if (!candidateId || this.previewLoading) return;
         this.previewLoading = true;
         this.previewCandidateId = candidateId;
         this.previewError = null;
         this.preview = null;
-        if (this._root)
-            this.paint(this._root);
+        if (this._root) this.paint(this._root);
         try {
             const res = await fetch('/api/optimization/merge-preview', {
                 method: 'POST',
@@ -468,16 +508,13 @@ export class RepositoryHealthView {
                 })
             });
             const data = await readJsonOrDefault(res, {});
-            if (!res.ok || !data.success)
-                throw new Error(data.error || 'Preview failed');
+            if (!res.ok || !data.success) throw new Error(data.error || 'Preview failed');
             this.preview = data.preview;
             showToast('Merge preview ready', 'success');
-        }
-        catch (err) {
+        } catch (err) {
             this.previewError = err.message;
             showToast(err.message, 'error');
-        }
-        finally {
+        } finally {
             this.previewLoading = false;
             this.previewCandidateId = null;
             if (this._root) {
@@ -489,130 +526,130 @@ export class RepositoryHealthView {
     bindEvents(container) {
         var _a, _b, _c, _d;
         this._root = container;
-        (_d = container.querySelector('#export-health-json')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.exportHealthData());
-        (_a = container.querySelector('#run-optimization-scan')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', async () => {
-            if (this.scanning)
-                return;
-            this.scanning = true;
-            this.paint(container);
-            try {
-                const res = await fetch('/api/optimization/analyze', {
-                    method: 'POST',
-                    headers: authHeaders({ 'Content-Type': 'application/json' }),
-                    body: JSON.stringify({ projectPath: this.app.state.lastProjectPath || '' })
-                });
-                const data = await readJsonOrDefault(res, {});
-                if (!res.ok || !data.success)
-                    throw new Error(data.error || 'Scan failed');
-                this.data = data.health;
-                this.candidates = await this.fetchCandidatesList();
-                this.preview = null;
-                this.previewError = null;
-            }
-            catch (err) {
-                this.error = err.message;
-                showToast(err.message, 'error');
-            }
-            finally {
-                this.scanning = false;
-                this.paint(container);
-            }
-        });
-        (_b = container.querySelector('#quarantine-merge-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', async () => {
-            if (!this.preview)
-                return;
-            const btn = container.querySelector('#quarantine-merge-btn');
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = 'Quarantining…';
-            }
-            try {
-                const res = await fetch('/api/optimization/merge-execute', {
-                    method: 'POST',
-                    headers: authHeaders({ 'Content-Type': 'application/json' }),
-                    body: JSON.stringify({
-                        projectPath: this.resolvePreviewProjectPath(),
-                        previewId: this.preview.previewId || undefined,
-                        confirmed: true,
-                        confirmationPhrase: this.preview.confirmationPhrase
-                    })
-                });
-                const data = await readJsonOrDefault(res, {});
-                if (!res.ok || !data.success)
-                    throw new Error(data.error || 'Quarantine failed');
-                showToast(data.message || 'Duplicates quarantined successfully', 'success');
-                this.preview = null;
-                this.previewError = null;
-                await this.loadHealth();
-                this.paint(container);
-            }
-            catch (err) {
-                showToast(err.message, 'error');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'Quarantine duplicates';
-                }
-            }
-        });
-        (_c = container.querySelector('#send-health-ai-btn')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', async () => {
-            const health = this.data;
-            if (!health || !health.headline) {
-                showToast('No repository health data — run a scan first', 'error');
-                return;
-            }
-            const headline = health.headline;
-            const payload = {
-                projectPath: health.projectRoot || health.projectPath || this.app.state.lastProjectPath || window.location.origin,
-                reportType: 'repository-health',
-                reportSummary: {
-                    repositoryHealthScore: headline.repositoryHealthScore,
-                    optimizationPotential: headline.optimizationPotential,
-                    duplicateGroups: headline.duplicateGroups,
-                    oversizedFiles: headline.oversizedFiles,
-                    reductionOpportunities: headline.reductionOpportunities,
-                    repositoryFilesTotal: headline.repositoryFilesTotal,
-                    repositoryFoldersTotal: headline.repositoryFoldersTotal
-                },
-                notes: ''
-            };
-            const vscode = getVsCodeApi();
-            if (vscode) {
-                try {
-                    vscode.postMessage({ command: 'sendToAI', data: payload });
-                    showToast('Repository health sent to your AI coding agent', 'success');
-                    return;
-                }
-                catch (err) {
-                    window["console"]["warn"]('[Health-AI] vscode.postMessage failed:', err);
-                }
-            }
-            // Fallback: POST to /api/ai-context and copy to clipboard
-            try {
-                const res = await fetch('/api/ai-context', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const json = await res.json();
-                if (json.success && json.content) {
-                    await navigator.clipboard.writeText(json.content);
-                    showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
-                }
-                else {
-                    showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
-                }
-            }
-            catch (err) {
-                showToast('Failed to send: ' + err.message, 'error');
-            }
-        });
-        if (this._eventsBound)
-            return;
+        (_d = container.querySelector('#export-health-json')) === null || _d === void 0
+            ? void 0
+            : _d.addEventListener('click', () => this.exportHealthData());
+        (_a = container.querySelector('#run-optimization-scan')) === null || _a === void 0
+            ? void 0
+            : _a.addEventListener('click', async () => {
+                  if (this.scanning) return;
+                  this.scanning = true;
+                  this.paint(container);
+                  try {
+                      const res = await fetch('/api/optimization/analyze', {
+                          method: 'POST',
+                          headers: authHeaders({ 'Content-Type': 'application/json' }),
+                          body: JSON.stringify({ projectPath: this.app.state.lastProjectPath || '' })
+                      });
+                      const data = await readJsonOrDefault(res, {});
+                      if (!res.ok || !data.success) throw new Error(data.error || 'Scan failed');
+                      this.data = data.health;
+                      this.candidates = await this.fetchCandidatesList();
+                      this.preview = null;
+                      this.previewError = null;
+                  } catch (err) {
+                      this.error = err.message;
+                      showToast(err.message, 'error');
+                  } finally {
+                      this.scanning = false;
+                      this.paint(container);
+                  }
+              });
+        (_b = container.querySelector('#quarantine-merge-btn')) === null || _b === void 0
+            ? void 0
+            : _b.addEventListener('click', async () => {
+                  if (!this.preview) return;
+                  const btn = container.querySelector('#quarantine-merge-btn');
+                  if (btn) {
+                      btn.disabled = true;
+                      btn.textContent = 'Quarantining…';
+                  }
+                  try {
+                      const res = await fetch('/api/optimization/merge-execute', {
+                          method: 'POST',
+                          headers: authHeaders({ 'Content-Type': 'application/json' }),
+                          body: JSON.stringify({
+                              projectPath: this.resolvePreviewProjectPath(),
+                              previewId: this.preview.previewId || undefined,
+                              confirmed: true,
+                              confirmationPhrase: this.preview.confirmationPhrase
+                          })
+                      });
+                      const data = await readJsonOrDefault(res, {});
+                      if (!res.ok || !data.success) throw new Error(data.error || 'Quarantine failed');
+                      showToast(data.message || 'Duplicates quarantined successfully', 'success');
+                      this.preview = null;
+                      this.previewError = null;
+                      await this.loadHealth();
+                      this.paint(container);
+                  } catch (err) {
+                      showToast(err.message, 'error');
+                      if (btn) {
+                          btn.disabled = false;
+                          btn.textContent = 'Quarantine duplicates';
+                      }
+                  }
+              });
+        (_c = container.querySelector('#send-health-ai-btn')) === null || _c === void 0
+            ? void 0
+            : _c.addEventListener('click', async () => {
+                  const health = this.data;
+                  if (!health || !health.headline) {
+                      showToast('No repository health data — run a scan first', 'error');
+                      return;
+                  }
+                  const headline = health.headline;
+                  const payload = {
+                      projectPath:
+                          health.projectRoot ||
+                          health.projectPath ||
+                          this.app.state.lastProjectPath ||
+                          window.location.origin,
+                      reportType: 'repository-health',
+                      reportSummary: {
+                          repositoryHealthScore: headline.repositoryHealthScore,
+                          optimizationPotential: headline.optimizationPotential,
+                          duplicateGroups: headline.duplicateGroups,
+                          oversizedFiles: headline.oversizedFiles,
+                          reductionOpportunities: headline.reductionOpportunities,
+                          repositoryFilesTotal: headline.repositoryFilesTotal,
+                          repositoryFoldersTotal: headline.repositoryFoldersTotal
+                      },
+                      notes: ''
+                  };
+                  const vscode = getVsCodeApi();
+                  if (vscode) {
+                      try {
+                          vscode.postMessage({ command: 'sendToAI', data: payload });
+                          showToast('Repository health sent to your AI coding agent', 'success');
+                          return;
+                      } catch (err) {
+                          window['console']['warn']('[Health-AI] vscode.postMessage failed:', err);
+                      }
+                  }
+                  // Fallback: POST to /api/ai-context and copy to clipboard
+                  try {
+                      const res = await fetch('/api/ai-context', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(payload)
+                      });
+                      const json = await res.json();
+                      if (json.success && json.content) {
+                          await navigator.clipboard.writeText(json.content);
+                          showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                      } else {
+                          showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+                      }
+                  } catch (err) {
+                      showToast('Failed to send: ' + err.message, 'error');
+                  }
+              });
+        if (this._eventsBound) return;
         this._eventsBound = true;
-        container.addEventListener('click', (event) => {
+        container.addEventListener('click', event => {
             const btn = event.target.closest('.preview-merge-btn');
-            if (!btn || !container.contains(btn) || btn.disabled)
-                return;
+            if (!btn || !container.contains(btn) || btn.disabled) return;
             event.preventDefault();
             const candidateId = btn.dataset.candidateId;
             if (!candidateId) {
@@ -622,5 +659,5 @@ export class RepositoryHealthView {
             this.handlePreviewMerge(candidateId);
         });
     }
-    destroy() { }
+    destroy() {}
 }

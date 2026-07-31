@@ -48,7 +48,7 @@ function normalizeIssues(body) {
     description: issue.description || issue.message || issue.title || 'No description',
     filePath: issue.filePath || issue.file || issue.path || '',
     line: issue.line || issue.lineNumber || issue.startLine || null,
-    recommendedAction: issue.recommendedAction || issue.fix || issue.suggestion || ''
+    recommendedAction: issue.recommendedAction || issue.fix || issue.suggestion || '',
   }));
 }
 
@@ -58,7 +58,8 @@ function normalizeIssues(body) {
  * @returns {any}
  */
 function toAnnotation(issue) {
-  const level = issue.severity === 'high' ? 'failure' : issue.severity === 'medium' ? 'warning' : 'notice';
+  const level =
+    issue.severity === 'high' ? 'failure' : issue.severity === 'medium' ? 'warning' : 'notice';
   return {
     path: issue.filePath,
     start_line: issue.line || 1,
@@ -66,7 +67,7 @@ function toAnnotation(issue) {
     annotation_level: level,
     message: issue.description,
     title: `${issue.type} (${issue.severity})`,
-    raw_details: issue.recommendedAction
+    raw_details: issue.recommendedAction,
   };
 }
 
@@ -100,7 +101,7 @@ function setupPrIntegrationAPI(app, _options = {}) {
       issueCount: issues.length,
       issues,
       annotations: issues.map(toAnnotation),
-      receivedAt: new Date().toISOString()
+      receivedAt: new Date().toISOString(),
     };
 
     prReportStore.set(reportKey, reportRecord);
@@ -114,8 +115,8 @@ function setupPrIntegrationAPI(app, _options = {}) {
       summary: {
         title: 'SimpleBeacon PR Scan',
         summary: `${reportRecord.issueCount} issue(s) found in this PR.`,
-        text: `Repository: ${body.repository}\nSHA: ${body.sha}\nRun: ${body.workflowRunId || 'n/a'}\nCollected: ${body.collectedAt || 'n/a'}\nReport hash: ${body.reportHash}`
-      }
+        text: `Repository: ${body.repository}\nSHA: ${body.sha}\nRun: ${body.workflowRunId || 'n/a'}\nCollected: ${body.collectedAt || 'n/a'}\nReport hash: ${body.reportHash}`,
+      },
     });
   });
 

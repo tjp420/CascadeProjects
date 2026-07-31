@@ -163,38 +163,22 @@ test('All MODULE_CARDS have either a pattern or custom handler', () => {
             missing.push(id);
         }
     }
-    assert.strictEqual(
-        missing.length,
-        0,
-        `Modules missing pattern or custom handler: ${missing.join(', ')}`
-    );
+    assert.strictEqual(missing.length, 0, `Modules missing pattern or custom handler: ${missing.join(', ')}`);
 });
 
 test('All PATTERN_REGISTRY keys have ANALYZER_SCHEMA entries', () => {
     const missing = patternKeys.filter(k => !schemaKeys.includes(k));
-    assert.strictEqual(
-        missing.length,
-        0,
-        `Patterns without ANALYZER_SCHEMA: ${missing.join(', ')}`
-    );
+    assert.strictEqual(missing.length, 0, `Patterns without ANALYZER_SCHEMA: ${missing.join(', ')}`);
 });
 
 test('All ANALYZER_SCHEMA categories have CATEGORY_COLLECTORS', () => {
     const missing = schemaCategories.filter(c => !collectorKeys.includes(c));
-    assert.strictEqual(
-        missing.length,
-        0,
-        `Schema categories without collectors: ${missing.join(', ')}`
-    );
+    assert.strictEqual(missing.length, 0, `Schema categories without collectors: ${missing.join(', ')}`);
 });
 
 test('All MODULE_CARDS IDs are present in MODULE_REPORT_KEYS', () => {
     const missing = moduleIds.filter(id => !moduleReportKeys.includes(id));
-    assert.strictEqual(
-        missing.length,
-        0,
-        `MODULE_CARDS IDs missing from MODULE_REPORT_KEYS: ${missing.join(', ')}`
-    );
+    assert.strictEqual(missing.length, 0, `MODULE_CARDS IDs missing from MODULE_REPORT_KEYS: ${missing.join(', ')}`);
 });
 
 /* ── Summary output (not a test assertion, just diagnostics) ── */
@@ -219,8 +203,6 @@ test('Coverage summary', () => {
     console.log(`  MODULE_REPORT_KEYS     : ${moduleReportKeys.length}`);
     console.log(`  ─────────────────────────\n`);
 
-    assert.strictEqual(reportCount, moduleIds.length,
-        'All modules must be present in MODULE_REPORT_KEYS');
-    assert.ok(customCount > 0,
-        'At least one custom handler should be registered');
+    assert.strictEqual(reportCount, moduleIds.length, 'All modules must be present in MODULE_REPORT_KEYS');
+    assert.ok(customCount > 0, 'At least one custom handler should be registered');
 });

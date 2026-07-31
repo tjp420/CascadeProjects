@@ -14,7 +14,7 @@ function createApp() {
   app.use('/api/auth', authRoutes);
   app.use((err, req, res, next) => {
     res.status(err.status || 500).json({
-      error: err.message || 'Internal server error'
+      error: err.message || 'Internal server error',
     });
   });
   return app;
@@ -54,9 +54,7 @@ describe('Auth Routes', () => {
     });
 
     test('rejects missing email or password with 400', async () => {
-      const res = await request(app)
-        .post('/api/auth/login')
-        .send({ email: '', password: '' });
+      const res = await request(app).post('/api/auth/login').send({ email: '', password: '' });
 
       expect(res.status).toBe(400);
       expect(res.body.error).toBeDefined();
@@ -102,9 +100,7 @@ describe('Auth Routes', () => {
         .send({ email: 'user@example.com', password: 'any' });
       const token = loginRes.body.token;
 
-      const res = await request(app)
-        .get('/api/auth/me')
-        .set('Authorization', `Bearer ${token}`);
+      const res = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
       expect(res.body.user.email).toBe('user@example.com');

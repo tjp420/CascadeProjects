@@ -19,7 +19,7 @@ const BUILD_ARTIFACT_DIRS = new Set([
   'tmp',
   '.cache',
   'cache',
-  '__pycache__'
+  '__pycache__',
 ]);
 
 const LOG_EXTENSIONS = new Set(['.log', '.logs']);
@@ -30,17 +30,19 @@ const LOG_EXTENSIONS = new Set(['.log', '.logs']);
  * @returns {any}
  */
 function shouldSkipDir(name) {
-  return name === '.git'
-    || name === '.cursor'
-    || name === '.vscode'
-    || name === '.vscode-test'
-    || name === '.simplebeacon'
-    || name === 'github-cache'
-    || name === 'deliverables'
-    || name === 'java-ai-vulnerable'
-    || name === 'data-central'
-    || name === 'security-reports'
-    || name === 'archive';
+  return (
+    name === '.git' ||
+    name === '.cursor' ||
+    name === '.vscode' ||
+    name === '.vscode-test' ||
+    name === '.simplebeacon' ||
+    name === 'github-cache' ||
+    name === 'deliverables' ||
+    name === 'java-ai-vulnerable' ||
+    name === 'data-central' ||
+    name === 'security-reports' ||
+    name === 'archive'
+  );
 }
 
 /**
@@ -87,7 +89,7 @@ async function scanDirectoryBloat(projectPath) {
     largePackageLocks: [],
     largeLogs: [],
     emptyDirs: [],
-    staleDirs: []
+    staleDirs: [],
   };
 
   const now = Date.now();
@@ -95,12 +97,12 @@ async function scanDirectoryBloat(projectPath) {
   const LARGE_PACKAGE_LOCK_BYTES = 100 * constants.BYTES_PER_KB; // 100 KB
   const LARGE_LOG_BYTES = constants.BYTES_PER_KB * constants.BYTES_PER_KB; // 1 MB
 
-/**
- * Walk.
- * @param {string} dirPath
- * @param {string} relativePath
- * @returns {any}
- */
+  /**
+   * Walk.
+   * @param {string} dirPath
+   * @param {string} relativePath
+   * @returns {any}
+   */
   async function walk(dirPath, relativePath) {
     let entries;
     try {
@@ -119,7 +121,7 @@ async function scanDirectoryBloat(projectPath) {
         kind: 'directory',
         category: 'Empty directory',
         action: 'safe-to-delete',
-        severity: 'low'
+        severity: 'low',
       });
     }
 
@@ -141,7 +143,7 @@ async function scanDirectoryBloat(projectPath) {
           action: 'review-before-delete',
           severity: stat.size > constants.BYTES_PER_KB * constants.BYTES_PER_KB ? 'high' : 'medium',
           sizeBytes: stat.size,
-          reason: `Generated lock file (${(stat.size / 1024).toFixed(1)} KB) — safe to regenerate with npm install`
+          reason: `Generated lock file (${(stat.size / 1024).toFixed(1)} KB) — safe to regenerate with npm install`,
         });
       }
 
@@ -154,7 +156,7 @@ async function scanDirectoryBloat(projectPath) {
           action: 'safe-to-delete',
           severity: 'medium',
           sizeBytes: stat.size,
-          reason: `Log file (${(stat.size / 1024 / 1024).toFixed(1)} MB) — likely safe to truncate or archive`
+          reason: `Log file (${(stat.size / 1024 / 1024).toFixed(1)} MB) — likely safe to truncate or archive`,
         });
       }
     }
@@ -176,7 +178,7 @@ async function scanDirectoryBloat(projectPath) {
           severity: fileCount > constants.TIMEOUT_5S ? 'high' : fileCount > 1000 ? 'medium' : 'low',
           sizeBytes: size,
           fileCount,
-          reason: `Dependency directory — regenerate with npm install/ci (${fileCount.toLocaleString()} files)`
+          reason: `Dependency directory — regenerate with npm install/ci (${fileCount.toLocaleString()} files)`,
         });
         // Do NOT recurse into node_modules
         continue;
@@ -192,7 +194,7 @@ async function scanDirectoryBloat(projectPath) {
           severity: fileCount > constants.DEFAULT_RANDOM_MAX ? 'medium' : 'low',
           sizeBytes: size,
           fileCount,
-          reason: `Build output — rebuilds automatically (${fileCount.toLocaleString()} files)`
+          reason: `Build output — rebuilds automatically (${fileCount.toLocaleString()} files)`,
         });
         // Do NOT recurse into build artifacts
         continue;
@@ -215,7 +217,7 @@ async function scanDirectoryBloat(projectPath) {
           severity: 'medium',
           sizeBytes: size,
           fileCount,
-          reason: `No changes in ${Math.round((now - stat.mtimeMs) / (24 * 60 * constants.ONE_MINUTE_MS))} days`
+          reason: `No changes in ${Math.round((now - stat.mtimeMs) / (24 * 60 * constants.ONE_MINUTE_MS))} days`,
         });
       }
 
@@ -231,14 +233,14 @@ async function scanDirectoryBloat(projectPath) {
     ...findings.largePackageLocks,
     ...findings.largeLogs,
     ...findings.emptyDirs,
-    ...findings.staleDirs
+    ...findings.staleDirs,
   ];
 
   const totalReclaimable = allFindings.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
 
   return {
     findings: {
-      directoryBloat: allFindings
+      directoryBloat: allFindings,
     },
     summary: {
       directoryBloatFindings: allFindings.length,
@@ -248,8 +250,8 @@ async function scanDirectoryBloat(projectPath) {
       largePackageLockCount: findings.largePackageLocks.length,
       largeLogCount: findings.largeLogs.length,
       emptyDirCount: findings.emptyDirs.length,
-      staleDirCount: findings.staleDirs.length
-    }
+      staleDirCount: findings.staleDirs.length,
+    },
   };
 }
 

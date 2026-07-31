@@ -2,7 +2,7 @@
 
 jest.mock('../../services/cloud-inference-service.cjs', () => ({
   explainCodeWithProvider: jest.fn(),
-  providerConfigured: jest.fn().mockReturnValue(false)
+  providerConfigured: jest.fn().mockReturnValue(false),
 }));
 
 const codeUnderstanding = require('../code-understanding/index.cjs');

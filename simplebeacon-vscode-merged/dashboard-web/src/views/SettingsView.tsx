@@ -82,7 +82,9 @@ export function SettingsView() {
               <CardDescription>Customize the dashboard appearance</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-foreground-muted">Use the theme toggle in the header to switch between light and dark mode.</p>
+              <p className="text-sm text-foreground-muted">
+                Use the theme toggle in the header to switch between light and dark mode.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>

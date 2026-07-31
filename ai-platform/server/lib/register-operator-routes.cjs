@@ -14,13 +14,14 @@ const { registerEuAiActSprintRoute } = require('./eu-ai-act-sprint-route.cjs');
  * @returns {any}
  */
 function registerOperatorLandingPages(app, options = {}) {
-  const landingRoot = options.landingRoot
-    || path.join(options.projectRoot || path.join(__dirname, '../..'), '..', 'coming-soon');
+  const landingRoot =
+    options.landingRoot ||
+    path.join(options.projectRoot || path.join(__dirname, '../..'), '..', 'coming-soon');
   if (!fs.existsSync(landingRoot)) return;
 
   const pages = [
     { route: '/operator/eu-ai-act', file: 'operator-eu-ai-act.html' },
-    { route: '/operator/bookings', file: 'operator-bookings.html' }
+    { route: '/operator/bookings', file: 'operator-bookings.html' },
   ];
 
   for (const page of pages) {

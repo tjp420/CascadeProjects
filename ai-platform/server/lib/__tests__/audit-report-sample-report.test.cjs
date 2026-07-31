@@ -1,6 +1,10 @@
 'use strict';
 
-const { buildSampleAuditReportModel, buildSampleAuditReportHtml, wrapSampleReportForWebsite } = require('../audit-report/sample-report.cjs');
+const {
+  buildSampleAuditReportModel,
+  buildSampleAuditReportHtml,
+  wrapSampleReportForWebsite,
+} = require('../audit-report/sample-report.cjs');
 
 describe('audit-report/sample-report', () => {
   test('exports expected functions', () => {

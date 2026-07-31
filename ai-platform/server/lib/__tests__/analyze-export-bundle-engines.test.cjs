@@ -5,7 +5,7 @@ const {
   resolveSelectedEnginesForExport,
   filterCompleteScanForEngines,
   artifactAllowedForEngines,
-  shouldIncludeEuAiActArtifacts
+  shouldIncludeEuAiActArtifacts,
 } = require('../analyze-export-bundle/engines.cjs');
 
 describe('analyze-export-bundle/engines', () => {
@@ -38,7 +38,10 @@ describe('analyze-export-bundle/engines', () => {
   });
 
   test('resolveSelectedEnginesForExport returns from options', () => {
-    expect(resolveSelectedEnginesForExport({}, { selectedEngines: ['a', 'a', 'b'] })).toEqual(['a', 'b']);
+    expect(resolveSelectedEnginesForExport({}, { selectedEngines: ['a', 'a', 'b'] })).toEqual([
+      'a',
+      'b',
+    ]);
   });
 
   test('resolveSelectedEnginesForExport returns null when none found', () => {
@@ -55,8 +58,12 @@ describe('analyze-export-bundle/engines', () => {
   });
 
   test('artifactAllowedForEngines returns true for complete-scan-bundle on complete', () => {
-    expect(artifactAllowedForEngines('complete-scan-bundle', new Set(), { scanKind: 'complete' })).toBe(true);
-    expect(artifactAllowedForEngines('complete-scan-bundle', new Set(), { scanKind: 'gate' })).toBe(false);
+    expect(
+      artifactAllowedForEngines('complete-scan-bundle', new Set(), { scanKind: 'complete' })
+    ).toBe(true);
+    expect(artifactAllowedForEngines('complete-scan-bundle', new Set(), { scanKind: 'gate' })).toBe(
+      false
+    );
   });
 
   test('artifactAllowedForEngines returns true for unknown artifact', () => {
@@ -72,15 +79,17 @@ describe('analyze-export-bundle/engines', () => {
   });
 
   test('resolveSelectedEnginesForExport reads payload enginesRun', () => {
-    expect(resolveSelectedEnginesForExport({ enginesRun: ['simplebeacon', 'roadmap'] }))
-      .toEqual(['simplebeacon', 'roadmap']);
+    expect(resolveSelectedEnginesForExport({ enginesRun: ['simplebeacon', 'roadmap'] })).toEqual([
+      'simplebeacon',
+      'roadmap',
+    ]);
   });
 
   test('filterCompleteScanForEngines filters enginesRun and steps', () => {
     const scan = {
       enginesRun: ['simplebeacon', 'roadmap', 'npm-audit'],
       steps: [{ id: 'simplebeacon' }, { id: 'roadmap' }, { id: 'npm-audit' }],
-      results: { simplebeacon: { gate: { pass: true } } }
+      results: { simplebeacon: { gate: { pass: true } } },
     };
     const filtered = filterCompleteScanForEngines(scan, ['simplebeacon', 'roadmap']);
     expect(filtered.enginesRun).toEqual(['simplebeacon', 'roadmap']);
@@ -90,9 +99,17 @@ describe('analyze-export-bundle/engines', () => {
 
   test('artifactAllowedForEngines gates EU AI Act artifacts', () => {
     const engines = new Set(['simplebeacon']);
-    expect(artifactAllowedForEngines('eu-ai-act-sprint', engines, { includeEuAiAct: false })).toBe(false);
-    expect(artifactAllowedForEngines('eu-ai-act-sprint', engines, { includeEuAiAct: true })).toBe(false);
-    expect(artifactAllowedForEngines('eu-ai-act-sprint', new Set(['eu-ai-act']), { includeEuAiAct: true })).toBe(true);
+    expect(artifactAllowedForEngines('eu-ai-act-sprint', engines, { includeEuAiAct: false })).toBe(
+      false
+    );
+    expect(artifactAllowedForEngines('eu-ai-act-sprint', engines, { includeEuAiAct: true })).toBe(
+      false
+    );
+    expect(
+      artifactAllowedForEngines('eu-ai-act-sprint', new Set(['eu-ai-act']), {
+        includeEuAiAct: true,
+      })
+    ).toBe(true);
   });
 
   test('artifactAllowedForEngines requires mapped engine for known artifacts', () => {

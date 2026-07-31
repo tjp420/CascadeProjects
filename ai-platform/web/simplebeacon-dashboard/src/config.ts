@@ -22,10 +22,11 @@ export function getApiBase(): string {
     // This allows hosted dashboards to detect a running local server and prefer it when no explicit sb_api_base is provided.
     // Detection is kicked off at module import and sets these globals asynchronously.
     // If present, prefer the detected host (do not append /api here).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const win: any = window as any;
     const detected = win.__SB_API_HOST__ || win.__SIMPLEBEACON_DETECTED_API_BASE;
-    if (detected && typeof detected === 'string' && detected.length > 0) return String(detected).replace(/\/+$/, '');
+    if (detected && typeof detected === 'string' && detected.length > 0)
+      return String(detected).replace(/\/+$/, '');
     const host = window.location.hostname || '';
     if (/^127\.0\.0\.1$|^localhost$/i.test(host)) {
       // If the probe completed and found no local server, fall back to production API
@@ -86,7 +87,9 @@ export function clearAuthAndRedirect(): void {
 
 export function apiUrl(path: string): string {
   const base = getApiBase() || '';
-  const normalized = String(base).replace(/\/+$/, '').replace(/\/api$/i, '');
+  const normalized = String(base)
+    .replace(/\/+$/, '')
+    .replace(/\/api$/i, '');
   const segment = String(path || '').replace(/^\/+/, '');
   if (!segment) return normalized || '/';
   if (normalized) return `${normalized}/api/${segment}`;
@@ -104,7 +107,7 @@ export function waitForApiBase(timeoutMs = 3000): Promise<string | null> {
 }
 
 if (typeof window !== 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const win: any = window as any;
   const _host = window.location.hostname || '';
   // Only probe for a local API server when running on localhost.
@@ -113,7 +116,11 @@ if (typeof window !== 'undefined') {
   // server without explicit browser permission. Users who need a local server can use
   // the sb_api_base query parameter instead.
   const _isLocalhost = /^127\.0\.0\.1$|^localhost$/i.test(_host);
-  if (_isLocalhost && !win.__SB_API_HOST__ && !new URLSearchParams(window.location.search).get('sb_api_base')) {
+  if (
+    _isLocalhost &&
+    !win.__SB_API_HOST__ &&
+    !new URLSearchParams(window.location.search).get('sb_api_base')
+  ) {
     // Prefer the configured default port first, then common proxy/agent ports.
     const ports = [58000, 64772, 54358, 50559, 3001, 3000, 3002, 4000, 8080];
     _apiBaseDetectPromise = (async () => {
@@ -145,7 +152,10 @@ if (typeof window !== 'undefined') {
           // requests will fail with preflight errors.
           const allowHeaders = res.headers.get('Access-Control-Allow-Headers') || '';
           if (allowHeaders && allowHeaders !== '*') {
-            const allowed = allowHeaders.toLowerCase().split(',').map(h => h.trim());
+            const allowed = allowHeaders
+              .toLowerCase()
+              .split(',')
+              .map((h) => h.trim());
             if (!allowed.includes('authorization')) {
               return false;
             }
@@ -155,7 +165,7 @@ if (typeof window !== 'undefined') {
           return false;
         }
       }
-      const results = await Promise.allSettled(ports.map(p => probePort(p)));
+      const results = await Promise.allSettled(ports.map((p) => probePort(p)));
       _probeDone = true;
       for (let i = 0; i < ports.length; i++) {
         const r = results[i];

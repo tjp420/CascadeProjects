@@ -1,7 +1,7 @@
 # Enterprise Outreach Sequences
 
 > **Personalized outreach templates for engineering leaders**  
-> *Last updated: June 20, 2026*
+> _Last updated: June 20, 2026_
 
 ---
 
@@ -216,37 +216,38 @@ No pressure if not relevant.
 
 ## Multi-touch Sequence (30-Day)
 
-| Day | Channel | Action |
-|-----|---------|--------|
-| 1 | Email | Cold email (value-first) |
-| 3 | LinkedIn | Connection request with note |
-| 5 | Email | Follow-up with social proof |
-| 7 | LinkedIn | Share relevant post, tag them |
-| 10 | Email | Case study / teardown offer |
-| 14 | LinkedIn | Comment on their post |
-| 17 | Email | "Worth a quick call?" |
-| 21 | LinkedIn | Share product update |
-| 25 | Email | Final attempt + unsubscribe |
-| 30 | — | Move to nurture sequence |
+| Day | Channel  | Action                        |
+| --- | -------- | ----------------------------- |
+| 1   | Email    | Cold email (value-first)      |
+| 3   | LinkedIn | Connection request with note  |
+| 5   | Email    | Follow-up with social proof   |
+| 7   | LinkedIn | Share relevant post, tag them |
+| 10  | Email    | Case study / teardown offer   |
+| 14  | LinkedIn | Comment on their post         |
+| 17  | Email    | "Worth a quick call?"         |
+| 21  | LinkedIn | Share product update          |
+| 25  | Email    | Final attempt + unsubscribe   |
+| 30  | —        | Move to nurture sequence      |
 
 ---
 
 ## Objection Handling Cheat Sheet
 
-| Objection | Response |
-|-----------|----------|
-| "We already have Snyk/Sonar" | "They catch CVEs. We catch AI slop. Zero overlap. Most teams use both." |
-| "We don't allow AI tools" | "Then you're ahead of most. This catches the AI code that slips in anyway (contractors, Stack Overflow, legacy)." |
-| "Too expensive" | "Free tier covers most solo devs. Team plan is $49/mo vs SonarCloud at $160." |
-| "Not a priority" | "Fair. Bookmark this for your next incident from AI-generated code. Most teams reach out within 90 days." |
-| "Need SOC 2" | "We're SOC 2 Type II in progress. Air-gapped deployment available now for Enterprise." |
-| "Show me the ROI" | "One placeholder secret in prod = $40K+ incident. One hallucinated dep = build outage. Tool pays for itself on first catch." |
+| Objection                    | Response                                                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| "We already have Snyk/Sonar" | "They catch CVEs. We catch AI slop. Zero overlap. Most teams use both."                                                      |
+| "We don't allow AI tools"    | "Then you're ahead of most. This catches the AI code that slips in anyway (contractors, Stack Overflow, legacy)."            |
+| "Too expensive"              | "Free tier covers most solo devs. Team plan is $49/mo vs SonarCloud at $160."                                                |
+| "Not a priority"             | "Fair. Bookmark this for your next incident from AI-generated code. Most teams reach out within 90 days."                    |
+| "Need SOC 2"                 | "We're SOC 2 Type II in progress. Air-gapped deployment available now for Enterprise."                                       |
+| "Show me the ROI"            | "One placeholder secret in prod = $40K+ incident. One hallucinated dep = build outage. Tool pays for itself on first catch." |
 
 ---
 
 ## Tracking & Metrics
 
 Track these in your CRM:
+
 - Open rate by segment
 - Reply rate by template variant
 - Meeting booking rate
@@ -254,6 +255,7 @@ Track these in your CRM:
 - Time-to-close (enterprise vs startup)
 
 Target benchmarks:
+
 - Cold email open rate: > 45%
 - Reply rate: > 8%
 - Meeting booking: > 2%
@@ -261,4 +263,4 @@ Target benchmarks:
 
 ---
 
-*End of Enterprise Outreach Templates*
+_End of Enterprise Outreach Templates_

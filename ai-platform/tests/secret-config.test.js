@@ -10,7 +10,7 @@ const {
   assertAuthConfiguration,
   assertProductionAuthSafety,
   applyLocalV1InternalDevProfile,
-  PLACEHOLDER_PATTERN
+  PLACEHOLDER_PATTERN,
 } = require('../server/lib/secret-config.cjs');
 
 // Mock logger to prevent app-logger console.warn failures in test environment

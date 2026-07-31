@@ -13,7 +13,7 @@ const {
   validateFileStructure,
   exportFile,
   generateDatasetFromPattern,
-  calculateRealismScore
+  calculateRealismScore,
 } = require('../lib/mock-data-helpers.cjs');
 
 /**
@@ -28,11 +28,11 @@ function setupMockDataAPI(app, options = {}) {
   app.get('/api/mock-analysis', async (_req, res) => {
     try {
       const { files, issues } = await scanForMockFiles(baseDir, baseDir);
-      const mockFiles = files.map(f => ({
+      const mockFiles = files.map((f) => ({
         path: f.path,
         name: f.name,
         size: f.size,
-        analysis: f.analysis
+        analysis: f.analysis,
       }));
 
       res.json({
@@ -41,7 +41,7 @@ function setupMockDataAPI(app, options = {}) {
         issuesDetected: issues.length,
         patternsIdentified: mockFiles.length,
         files: mockFiles,
-        issues
+        issues,
       });
     } catch (error) {
       logger.error('Mock analysis error:', error);
@@ -53,15 +53,16 @@ function setupMockDataAPI(app, options = {}) {
     try {
       const { files } = await scanForMockFiles(baseDir, baseDir);
       const conversions = files
-        .filter(f => f.analysis.needsConversion)
-        .map(f => convertFileToRealFormat(f));
+        .filter((f) => f.analysis.needsConversion)
+        .map((f) => convertFileToRealFormat(f));
 
       res.json({
         filesConverted: conversions.length,
         dataTransformed: calculateDataSize(conversions),
-        conversionsSuccessful: files.length > 0 ? ((conversions.length / files.length) * 100).toFixed(1) + '%' : '0%',
+        conversionsSuccessful:
+          files.length > 0 ? ((conversions.length / files.length) * 100).toFixed(1) + '%' : '0%',
         timeElapsed: '3.2s',
-        conversions
+        conversions,
       });
     } catch (error) {
       logger.error('Mock conversion error:', error);
@@ -72,17 +73,20 @@ function setupMockDataAPI(app, options = {}) {
   app.get('/api/mock-validation', async (_req, res) => {
     try {
       const { files, issues } = await scanForMockFiles(baseDir, baseDir);
-      const validationResults = files.map(f => validateFileStructure(f));
-      const passed = validationResults.filter(r => r.status === 'passed');
-      const failed = validationResults.filter(r => r.status === 'failed');
+      const validationResults = files.map((f) => validateFileStructure(f));
+      const passed = validationResults.filter((r) => r.status === 'passed');
+      const failed = validationResults.filter((r) => r.status === 'failed');
 
       res.json({
         filesValidated: validationResults.length,
-        validationPassed: validationResults.length > 0 ? ((passed.length / validationResults.length) * 100).toFixed(1) + '%' : '0%',
-        criticalIssues: failed.filter(r => r.severity === 'critical').length,
-        warnings: failed.filter(r => r.severity === 'warning').length,
+        validationPassed:
+          validationResults.length > 0
+            ? ((passed.length / validationResults.length) * 100).toFixed(1) + '%'
+            : '0%',
+        criticalIssues: failed.filter((r) => r.severity === 'critical').length,
+        warnings: failed.filter((r) => r.severity === 'warning').length,
         totalTests: validationResults.length,
-        results: validationResults
+        results: validationResults,
       });
     } catch (error) {
       logger.error('Mock validation error:', error);
@@ -98,9 +102,9 @@ function setupMockDataAPI(app, options = {}) {
       res.json({
         datasetsGenerated: datasets.length,
         recordsCreated: datasets.reduce((sum, d) => sum + d.recordCount, 0),
-        dataTypes: Array.from(new Set(datasets.flatMap(d => d.dataTypes))),
+        dataTypes: Array.from(new Set(datasets.flatMap((d) => d.dataTypes))),
         realismScore: calculateRealismScore(datasets),
-        datasets
+        datasets,
       });
     } catch (error) {
       logger.error('Mock generation error:', error);
@@ -129,7 +133,7 @@ function setupMockDataAPI(app, options = {}) {
         issuesResolved: issuesFixed.length,
         dataOptimized: calculateOptimization(cleanedFiles),
         duplicatesRemoved: countDuplicates(cleanedFiles),
-        cleanedFiles
+        cleanedFiles,
       });
     } catch (error) {
       logger.error('Mock cleaning error:', error);
@@ -140,16 +144,14 @@ function setupMockDataAPI(app, options = {}) {
   app.get('/api/mock-export', async (_req, res) => {
     try {
       const { files } = await scanForMockFiles(baseDir, baseDir);
-      const exportFiles = files
-        .filter(f => f.analysis.status === 'clean')
-        .map(exportFile);
+      const exportFiles = files.filter((f) => f.analysis.status === 'clean').map(exportFile);
 
       res.json({
         filesExported: exportFiles.length,
         exportFormat: ['JSON', 'CSV', 'SQL', 'XML'],
         totalSize: calculateDataSize(exportFiles),
         compressionRatio: '67.8%',
-        exportedFiles: exportFiles
+        exportedFiles: exportFiles,
       });
     } catch (error) {
       logger.error('Mock export error:', error);

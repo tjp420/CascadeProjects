@@ -17,7 +17,7 @@ class GlobalContextManager {
       totalSize: 0,
       lastScan: null,
       fileTypes: new Map(),
-      scanDuration: 0
+      scanDuration: 0,
     };
     this.isInitialized = false;
     this.watchers = new Map();
@@ -26,15 +26,43 @@ class GlobalContextManager {
 
   shouldSkipDirectory(dirName) {
     const skipDirs = [
-      'node_modules', '.git', '.vscode', 'dist', 'build', 'coverage',
-      '.nyc_output', 'logs', 'temp', 'tmp', '__pycache__', 'blobs'
+      'node_modules',
+      '.git',
+      '.vscode',
+      'dist',
+      'build',
+      'coverage',
+      '.nyc_output',
+      'logs',
+      'temp',
+      'tmp',
+      '__pycache__',
+      'blobs',
     ];
     return skipDirs.includes(dirName) || dirName.startsWith('.');
   }
 
   getFileCategory(ext) {
     const categories = {
-      code: ['.js', '.jsx', '.ts', '.tsx', '.vue', '.svelte', '.py', '.java', '.cpp', '.c', '.h', '.hpp', '.php', '.rb', '.go', '.rs', '.swift'],
+      code: [
+        '.js',
+        '.jsx',
+        '.ts',
+        '.tsx',
+        '.vue',
+        '.svelte',
+        '.py',
+        '.java',
+        '.cpp',
+        '.c',
+        '.h',
+        '.hpp',
+        '.php',
+        '.rb',
+        '.go',
+        '.rs',
+        '.swift',
+      ],
       web: ['.html', '.htm', '.css', '.scss', '.sass', '.less'],
       data: ['.json', '.xml', '.yaml', '.yml', '.toml', '.ini', '.csv'],
       docs: ['.md', '.txt', '.pdf', '.doc', '.docx'],
@@ -42,7 +70,7 @@ class GlobalContextManager {
       media: ['.mp3', '.mp4', '.avi', '.mov', '.wav'],
       archives: ['.zip', '.tar', '.gz', '.rar', '.7z'],
       databases: ['.db', '.sqlite', '.mdb'],
-      executables: ['.exe', '.dll', '.so', '.dylib']
+      executables: ['.exe', '.dll', '.so', '.dylib'],
     };
     for (const [category, extensions] of Object.entries(categories)) {
       if (extensions.includes(ext)) return category;
@@ -52,8 +80,10 @@ class GlobalContextManager {
 
   calculateMetadata() {
     this.metadata.totalFiles = this.context.size;
-    this.metadata.totalSize = Array.from(this.context.values())
-      .reduce((total, file) => total + file.size, 0);
+    this.metadata.totalSize = Array.from(this.context.values()).reduce(
+      (total, file) => total + file.size,
+      0
+    );
   }
 
   calculateFileHash(content, stats) {
@@ -62,7 +92,8 @@ class GlobalContextManager {
   }
 
   extractFunctions(content) {
-    const functionRegex = /(?:function\s+(\w+)|(\w+)\s*=\s*(?:function|\([^)]*\)\s*=>)|const\s+(\w+)\s*=\s*(?:function|\([^)]*\)\s*=>))/g;
+    const functionRegex =
+      /(?:function\s+(\w+)|(\w+)\s*=\s*(?:function|\([^)]*\)\s*=>)|const\s+(\w+)\s*=\s*(?:function|\([^)]*\)\s*=>))/g;
     const functions = [];
     let match;
     while ((match = functionRegex.exec(content)) !== null) {

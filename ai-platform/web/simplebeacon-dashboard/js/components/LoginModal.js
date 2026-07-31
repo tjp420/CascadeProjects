@@ -67,7 +67,8 @@ export function showLoginModal({ onSuccess } = {}) {
   recoveryBtn.type = 'button';
   recoveryBtn.className = 'btn btn-secondary btn-block';
   recoveryBtn.id = 'login-recovery-btn';
-  recoveryBtn.style.cssText = 'margin-top:8px;background:var(--warning-bg,#fef3c7);color:var(--warning,#f59e0b);border-color:var(--warning,#f59e0b);';
+  recoveryBtn.style.cssText =
+    'margin-top:8px;background:var(--warning-bg,#fef3c7);color:var(--warning,#f59e0b);border-color:var(--warning,#f59e0b);';
   recoveryBtn.textContent = '🔐 Account Recovery';
   form.appendChild(label);
   form.appendChild(input);
@@ -164,7 +165,8 @@ export function showLoginModal({ onSuccess } = {}) {
     hintP.className = 'text-muted';
     hintP.style.fontSize = '0.75rem';
     hintP.style.margin = '4px 0 12px';
-    hintP.textContent = 'Enter the email associated with your account. A recovery link will be sent.';
+    hintP.textContent =
+      'Enter the email associated with your account. A recovery link will be sent.';
     recoveryForm.appendChild(hintP);
 
     const submitBtn2 = document.createElement('button');
@@ -211,13 +213,15 @@ export function showLoginModal({ onSuccess } = {}) {
         const res = await fetch('/api/auth/recover', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email }),
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.success) {
           recoveryStatus.textContent = 'Recovery link sent! Check your inbox.';
           recoveryStatus.style.color = 'var(--success)';
-          setTimeout(() => { recoveryBack.click(); }, 2500);
+          setTimeout(() => {
+            recoveryBack.click();
+          }, 2500);
         } else {
           recoveryStatus.textContent = data.error || 'Failed to send recovery link.';
           recoveryStatus.style.color = 'var(--error)';

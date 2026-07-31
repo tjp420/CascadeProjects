@@ -40,7 +40,11 @@ function write(level, args) {
     nodeLogger[level](...args);
     return;
   }
-  if (typeof window !== 'undefined' && window.logger && typeof window.logger[level] === 'function') {
+  if (
+    typeof window !== 'undefined' &&
+    window.logger &&
+    typeof window.logger[level] === 'function'
+  ) {
     window.logger[level](...args);
   }
 }

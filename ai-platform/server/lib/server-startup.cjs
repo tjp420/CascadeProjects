@@ -17,7 +17,7 @@ function createStartupManager({ app, logger, logSystemEvent, constants }) {
     logSystemEvent('server_start', {
       port,
       environment: process.env.NODE_ENV || 'development',
-      security: { rateLimiting: true, authentication: true, auditLogging: true }
+      security: { rateLimiting: true, authentication: true, auditLogging: true },
     });
   }
 
@@ -51,7 +51,9 @@ function createStartupManager({ app, logger, logSystemEvent, constants }) {
       if (typeof onListen === 'function') onListen(attemptPort);
       logServerStartup(attemptPort);
     });
-    server.on('error', (err) => handleServerError(server, err, attemptPort, maxRetries, (p, r) => startServer(p, r, onListen)));
+    server.on('error', (err) =>
+      handleServerError(server, err, attemptPort, maxRetries, (p, r) => startServer(p, r, onListen))
+    );
   }
 
   return { startServer };

@@ -10,9 +10,13 @@ export function formatDate(date, opts = {}) {
   if (date == null || date === '' || typeof date === 'symbol') return '—';
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return '—';
-  const safeOpts = (opts && typeof opts === 'object' && !Array.isArray(opts)) ? opts : {};
+  const safeOpts = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts : {};
   const { time = false } = safeOpts;
-  const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  const dateStr = d.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
   if (!time) return dateStr;
   const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   return `${dateStr} ${timeStr}`;
@@ -56,12 +60,30 @@ const FINDINGS_NOTE = '(findings unchanged)';
 
 const AI_SKIP_PATTERNS = [
   { test: /openai is not configured/i, msg: 'add your OpenAI key in Settings → AI providers' },
-  { test: /anthropic is not configured/i, msg: 'add your Anthropic key in Settings → AI providers' },
-  { test: /ollama is not configured/i, msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env' },
-  { test: /ollama is unreachable/i, msg: 'Ollama is not running. Start it with `ollama serve`, pull a model (`ollama pull llama3.2`), then set the model in Settings → AI providers' },
-  { test: /ollama has no models/i, msg: 'Ollama is running but has no models. Run `ollama pull llama3.2` or pick a model in Settings → AI providers' },
-  { test: /OLLAMA_MODEL|Local AI Models/i, msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env' },
-  { test: /Filesystem scan only|Active local model is filesystem/i, msg: 'choose Ollama or a cloud provider in the AI provider dropdown' },
+  {
+    test: /anthropic is not configured/i,
+    msg: 'add your Anthropic key in Settings → AI providers',
+  },
+  {
+    test: /ollama is not configured/i,
+    msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env',
+  },
+  {
+    test: /ollama is unreachable/i,
+    msg: 'Ollama is not running. Start it with `ollama serve`, pull a model (`ollama pull llama3.2`), then set the model in Settings → AI providers',
+  },
+  {
+    test: /ollama has no models/i,
+    msg: 'Ollama is running but has no models. Run `ollama pull llama3.2` or pick a model in Settings → AI providers',
+  },
+  {
+    test: /OLLAMA_MODEL|Local AI Models/i,
+    msg: 'set Ollama model in Settings → AI providers (e.g. llama3.2), or add OLLAMA_MODEL to server .env',
+  },
+  {
+    test: /Filesystem scan only|Active local model is filesystem/i,
+    msg: 'choose Ollama or a cloud provider in the AI provider dropdown',
+  },
 ];
 
 export function formatAiSummarySkipMessage(errorMessage) {
@@ -94,24 +116,39 @@ export function sanitizePrivacyData(text) {
   let cleaned = text;
 
   // 1. Emails — require a word boundary before the local part to avoid matching version strings like v1.2.3@scope
-  cleaned = cleaned.replace(/\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g, '[REDACTED_EMAIL]');
+  cleaned = cleaned.replace(
+    /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
+    '[REDACTED_EMAIL]'
+  );
 
   // 2. IPv4 addresses (avoid matching version numbers)
-  cleaned = cleaned.replace(/(^|[^\w.])(?:(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)(?![\w.])/g, '$1[REDACTED_IP]');
+  cleaned = cleaned.replace(
+    /(^|[^\w.])(?:(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?\d\d?)(?![\w.])/g,
+    '$1[REDACTED_IP]'
+  );
 
   // 3. Quoted credential-like key/value pairs
   // simplebeacon-ignore hardcoded-api-key — detection regex for redaction, not an actual secret
-  cleaned = cleaned.replace(/(([a-zA-Z0-9_-]*(?:secret|token|key|pwd|password|auth))(=|:)\s*['"][^'"]+['"])/gi, '$2$3"[REDACTED_CREDENTIAL]"');
+  cleaned = cleaned.replace(
+    /(([a-zA-Z0-9_-]*(?:secret|token|key|pwd|password|auth))(=|:)\s*['"][^'"]+['"])/gi,
+    '$2$3"[REDACTED_CREDENTIAL]"'
+  );
 
   // 4. Bearer tokens and Authorization headers
   cleaned = cleaned.replace(/\b(Bearer\s+)[a-zA-Z0-9_\-\.]+/gi, '$1[REDACTED_TOKEN]');
-  cleaned = cleaned.replace(/\b(Authorization[:\s]+).*?$/gmi, '$1[REDACTED_HEADER]');
+  cleaned = cleaned.replace(/\b(Authorization[:\s]+).*?$/gim, '$1[REDACTED_HEADER]');
 
   // 4a. GitHub tokens (ghp_, gho_, github_pat_)
-  cleaned = cleaned.replace(/\b(gh[pousr]_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{22,})/gi, '[REDACTED_GITHUB_TOKEN]');
+  cleaned = cleaned.replace(
+    /\b(gh[pousr]_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9_]{22,})/gi,
+    '[REDACTED_GITHUB_TOKEN]'
+  );
 
   // 4b. OpenAI keys (sk-, sk-proj-)
-  cleaned = cleaned.replace(/\b(sk-[a-zA-Z0-9]{20,}|sk-proj-[a-zA-Z0-9_\-]{20,})/gi, '[REDACTED_OPENAI_KEY]');
+  cleaned = cleaned.replace(
+    /\b(sk-[a-zA-Z0-9]{20,}|sk-proj-[a-zA-Z0-9_\-]{20,})/gi,
+    '[REDACTED_OPENAI_KEY]'
+  );
 
   // 4c. AWS access keys (AKIA...)
   cleaned = cleaned.replace(/\b(AKIA[A-Z0-9]{16})\b/g, '[REDACTED_AWS_KEY]');
@@ -123,7 +160,10 @@ export function sanitizePrivacyData(text) {
   cleaned = cleaned.replace(/\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\b/g, '[REDACTED_MAC]');
 
   // 6. Phone numbers (US-style with optional separators)
-  cleaned = cleaned.replace(/\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g, '[REDACTED_PHONE]');
+  cleaned = cleaned.replace(
+    /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
+    '[REDACTED_PHONE]'
+  );
 
   // 7. Credit card numbers — grouped (13-24 digits with optional separators) or plain (13-19 digits)
   cleaned = cleaned.replace(/\b(?:\d{4}[-\s]?){3,5}\d{1,4}\b|\b\d{13,19}\b/g, '[REDACTED_CC]');
@@ -133,12 +173,16 @@ export function sanitizePrivacyData(text) {
 
 /** Pre-compiled redaction patterns for privacy-safe path display. */
 const REDACTION_PATTERNS = [
-  { regex: /^(?:…|\.{3})\/[^/]+(\/.+)?$/, replace: (m, rest) => rest ? `…${rest}` : '…' },
-  { regex: /^[a-zA-Z]:\/Users\/[^/]+(\/.+)?$/i, replace: (m, rest) => rest ? `…${rest}` : '…' },
-  { regex: /^\/Users\/[^/]+(\/.+)?$/, replace: (m, rest) => rest ? `…${rest}` : '…' },
-  { regex: /^\/home\/[^/]+(\/.+)?$/, replace: (m, rest) => rest ? `…${rest}` : '…' },
+  { regex: /^(?:…|\.{3})\/[^/]+(\/.+)?$/, replace: (m, rest) => (rest ? `…${rest}` : '…') },
+  { regex: /^[a-zA-Z]:\/Users\/[^/]+(\/.+)?$/i, replace: (m, rest) => (rest ? `…${rest}` : '…') },
+  { regex: /^\/Users\/[^/]+(\/.+)?$/, replace: (m, rest) => (rest ? `…${rest}` : '…') },
+  { regex: /^\/home\/[^/]+(\/.+)?$/, replace: (m, rest) => (rest ? `…${rest}` : '…') },
   // User-home style absolute path: hide the first segment (but not system dirs)
-  { regex: /^\/(?!usr\/|var\/|etc\/|opt\/|bin\/|sbin\/|tmp\/|dev\/|mnt\/|proc\/|sys\/|run\/)([^/]+)(\/.+)$/i, replace: (m, _, rest) => `…${rest}` },
+  {
+    regex:
+      /^\/(?!usr\/|var\/|etc\/|opt\/|bin\/|sbin\/|tmp\/|dev\/|mnt\/|proc\/|sys\/|run\/)([^/]+)(\/.+)$/i,
+    replace: (m, _, rest) => `…${rest}`,
+  },
 ];
 
 /**

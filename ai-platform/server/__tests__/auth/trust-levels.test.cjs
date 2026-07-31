@@ -5,7 +5,7 @@ const {
   authorize,
   requireTrustLevel,
   requireOwnership,
-  requirePrivateAnalysis
+  requirePrivateAnalysis,
 } = require('../../lib/auth/trust-levels.cjs');
 
 describe('trust-levels', () => {
@@ -50,7 +50,7 @@ describe('trust-levels', () => {
         successfulAnalyses: 200,
         securityIncidents: 0,
         communityContributions: 100,
-        verificationStatus: 'enterprise'
+        verificationStatus: 'enterprise',
       };
       expect(evaluateTrustLevel(user)).toBe('gold');
     });
@@ -60,7 +60,7 @@ describe('trust-levels', () => {
         successfulAnalyses: 40,
         securityIncidents: 0,
         communityContributions: 5,
-        verificationStatus: 'email'
+        verificationStatus: 'email',
       };
       expect(evaluateTrustLevel(user)).toBe('silver');
     });
@@ -99,7 +99,10 @@ describe('trust-levels', () => {
   });
 
   describe('requireTrustLevel middleware', () => {
-    const mockRes = () => ({ status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() });
+    const mockRes = () => ({
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
+    });
 
     test('allows gold user for silver requirement', () => {
       const req = { user: { trustLevel: 'gold' } };
@@ -127,7 +130,10 @@ describe('trust-levels', () => {
   });
 
   describe('requireOwnership middleware', () => {
-    const mockRes = () => ({ status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() });
+    const mockRes = () => ({
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
+    });
 
     test('allows when ownerId matches userId', async () => {
       const req = { user: { id: 'u1', permissions: ['read:own'] } };
@@ -179,14 +185,19 @@ describe('trust-levels', () => {
       const req = { user: { id: 'u1' } };
       const res = mockRes();
       const next = jest.fn();
-      const mw = requireOwnership(async () => { throw new Error('DB error'); });
+      const mw = requireOwnership(async () => {
+        throw new Error('DB error');
+      });
       await mw(req, res, next);
       expect(res.status).toHaveBeenCalledWith(500);
     });
   });
 
   describe('requirePrivateAnalysis middleware', () => {
-    const mockRes = () => ({ status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() });
+    const mockRes = () => ({
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
+    });
 
     test('allows user with analyze:private permission', () => {
       const req = { user: { id: 'u1', permissions: ['read:own', 'analyze:private'] } };
@@ -197,7 +208,14 @@ describe('trust-levels', () => {
     });
 
     test('rejects bronze user with only analyze:public', () => {
-      const req = { user: { id: 'u1', permissions: ['read:own', 'analyze:public'], trustLevel: 'bronze', tier: 'community' } };
+      const req = {
+        user: {
+          id: 'u1',
+          permissions: ['read:own', 'analyze:public'],
+          trustLevel: 'bronze',
+          tier: 'community',
+        },
+      };
       const res = mockRes();
       const next = jest.fn();
       requirePrivateAnalysis(req, res, next);

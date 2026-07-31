@@ -80,7 +80,7 @@ async function loadSentLog(options) {
     const list = Array.isArray(rows) ? rows : [];
     return list.map((row, index) => ({
       ...row,
-      id: row.id || sentEntryId(row, index)
+      id: row.id || sentEntryId(row, index),
     }));
   } catch (err) {
     if (err && err.code === 'ENOENT') return [];
@@ -145,7 +145,9 @@ function validateEmail(value) {
  * @returns {any}
  */
 async function sendOutreachEmail(payload, options = {}) {
-  const to = String(payload.to || '').trim().toLowerCase();
+  const to = String(payload.to || '')
+    .trim()
+    .toLowerCase();
   const subject = String(payload.subject || '').trim();
   const text = String(payload.text || '').trim();
 
@@ -179,7 +181,7 @@ async function sendOutreachEmail(payload, options = {}) {
     from,
     replyTo,
     subject,
-    text
+    text,
   });
 
   if (!result.sent) {
@@ -195,7 +197,7 @@ async function sendOutreachEmail(payload, options = {}) {
     replyTo,
     company: String(payload.company || '').trim() || undefined,
     prospectId: String(payload.prospectId || '').trim() || undefined,
-    sentAt: new Date().toISOString()
+    sentAt: new Date().toISOString(),
   };
 
   try {
@@ -216,5 +218,5 @@ module.exports = {
   sentEntryId,
   removeSentLogEntry,
   sendOutreachEmail,
-  validateEmail
+  validateEmail,
 };

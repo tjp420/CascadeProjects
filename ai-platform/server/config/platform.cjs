@@ -28,5 +28,5 @@ module.exports = Object.freeze({
   isMacOS,
   isLinux,
   isServer,
-  isBrowser
+  isBrowser,
 });

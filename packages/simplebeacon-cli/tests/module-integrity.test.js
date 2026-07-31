@@ -11,7 +11,9 @@ const { runDoctor } = require(path.join(ROOT, 'packages/simplebeacon-cli/src/doc
 const { signLicense } = require(path.join(ROOT, 'sales/license/generator.js'));
 const { checkExpiringLicenses } = require(path.join(ROOT, 'sales/license/renewal-tracker.js'));
 const { decryptSupportToken } = require(path.join(ROOT, 'sales/support/decrypt-token.js'));
-const { evaluateFunnelMetrics } = require(path.join(ROOT, 'ai-platform/web/simplebeacon-dashboard/js/utils/funnelTrigger.js'));
+const { evaluateFunnelMetrics } = require(
+  path.join(ROOT, 'ai-platform/web/simplebeacon-dashboard/js/utils/funnelTrigger.js')
+);
 const { rotateLicenseToken } = require(path.join(ROOT, 'sales/license/rotate-keys.js'));
 
 // License validation is authored in TypeScript; use the compiled JS output if available.
@@ -63,9 +65,10 @@ describe('Module Integrity Suite', () => {
       const future = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
       const expires = future.toISOString().split('T')[0];
 
-      const alerts = checkExpiringLicenses([
-        { companyId: 'alpha', customerEmail: 'a@test.com', expiresAt: expires, tier: 'team' }
-      ], 30);
+      const alerts = checkExpiringLicenses(
+        [{ companyId: 'alpha', customerEmail: 'a@test.com', expiresAt: expires, tier: 'team' }],
+        30
+      );
 
       assert.strictEqual(alerts.length, 1);
       assert.strictEqual(alerts[0].companyId, 'alpha');
@@ -73,9 +76,17 @@ describe('Module Integrity Suite', () => {
     });
 
     test('should ignore licenses outside the lookahead window', () => {
-      const alerts = checkExpiringLicenses([
-        { companyId: 'beta', customerEmail: 'b@test.com', expiresAt: '2027-12-31', tier: 'enterprise' }
-      ], 30);
+      const alerts = checkExpiringLicenses(
+        [
+          {
+            companyId: 'beta',
+            customerEmail: 'b@test.com',
+            expiresAt: '2027-12-31',
+            tier: 'enterprise',
+          },
+        ],
+        30
+      );
 
       assert.strictEqual(alerts.length, 0);
     });
@@ -106,7 +117,7 @@ describe('Module Integrity Suite', () => {
         files_scanned: 6000,
         total_files: 16000,
         quality_score: 90,
-        findings: []
+        findings: [],
       });
 
       assert.strictEqual(result.shouldPromptUpgrade, true);
@@ -118,7 +129,7 @@ describe('Module Integrity Suite', () => {
         files_scanned: 100,
         total_files: 200,
         quality_score: 90,
-        findings: []
+        findings: [],
       });
 
       assert.strictEqual(result.shouldPromptUpgrade, false);

@@ -4,74 +4,74 @@
  */
 
 const PUBLIC_API_PATHS = new Set([
-    'health',
-    'health/db',
-    'auth/login',
-    'auth/register',
-    'auth/refresh',
-    'auth/logout',
-    'auth/me',
-    'platform/status',
-    'mock-backend.js',
-    'simplebeacon/billing/plan',
-    'simplebeacon/billing/webhook',
-    'simplebeacon/billing/checkout',
-    'simplebeacon/config',
-    'simplebeacon/config/presets',
-    'simplebeacon/history',
-    'simplebeacon/baseline',
-    'simplebeacon/report',
-    'config/pricing',
-    'waitlist',
-    'waitlist/count',
-    'waitlist/event',
-    'audit-booking',
-    'audit-bookings',
-    'free-token',
-    'tokens/sandbox',
-    'simplebeacon/billing/resend-token',
-    'simplebeacon/billing/status',
-    'simplebeacon/billing/session',
-    'simplebeacon/billing/license',
-    'simplebeacon/billing/portal',
-    'simplebeacon/ci/telemetry',
-    'simplebeacon/ci/telemetry/summary',
-    'quota/check',
-    'quota/consume',
-    'subscribe',
-    'reports/upload',
-    'trust/verification',
-    'trust/verify',
-    'trust/history',
-    'trust/trend',
-    'trust/methodology',
-    'trust/badge.svg',
-    'trust/badge',
-    'optimization/health',
-    'optimization/compliance',
-    'optimization/candidates',
-    'analyze/upload-directory',
-    'reports/download',
-    'chatbot/disclosure',
-    'chatbot/providers',
-    'chatbot/message',
-    // Referral program — public capture, link generation, stats, invites
-    'referral/capture',
-    'referral/link',
-    'referral/stats',
-    'referral/invite',
-    // Legacy dashboard.html scanner wiring (read-only repository scans)
-    'project-structure',
-    'backlog',
-    'mock-analysis',
-    'mock-conversion',
-    'mock-validation',
-    'mock-cleaning',
-    'gguf/mock-analysis-report',
-    // Enterprise onboarding — org provisioning, seat management, trial, Azure DevOps
-    'enterprise/onboard',
-    'enterprise/organizations',
-    'enterprise/trial'
+  'health',
+  'health/db',
+  'auth/login',
+  'auth/register',
+  'auth/refresh',
+  'auth/logout',
+  'auth/me',
+  'platform/status',
+  'mock-backend.js',
+  'simplebeacon/billing/plan',
+  'simplebeacon/billing/webhook',
+  'simplebeacon/billing/checkout',
+  'simplebeacon/config',
+  'simplebeacon/config/presets',
+  'simplebeacon/history',
+  'simplebeacon/baseline',
+  'simplebeacon/report',
+  'config/pricing',
+  'waitlist',
+  'waitlist/count',
+  'waitlist/event',
+  'audit-booking',
+  'audit-bookings',
+  'free-token',
+  'tokens/sandbox',
+  'simplebeacon/billing/resend-token',
+  'simplebeacon/billing/status',
+  'simplebeacon/billing/session',
+  'simplebeacon/billing/license',
+  'simplebeacon/billing/portal',
+  'simplebeacon/ci/telemetry',
+  'simplebeacon/ci/telemetry/summary',
+  'quota/check',
+  'quota/consume',
+  'subscribe',
+  'reports/upload',
+  'trust/verification',
+  'trust/verify',
+  'trust/history',
+  'trust/trend',
+  'trust/methodology',
+  'trust/badge.svg',
+  'trust/badge',
+  'optimization/health',
+  'optimization/compliance',
+  'optimization/candidates',
+  'analyze/upload-directory',
+  'reports/download',
+  'chatbot/disclosure',
+  'chatbot/providers',
+  'chatbot/message',
+  // Referral program — public capture, link generation, stats, invites
+  'referral/capture',
+  'referral/link',
+  'referral/stats',
+  'referral/invite',
+  // Legacy dashboard.html scanner wiring (read-only repository scans)
+  'project-structure',
+  'backlog',
+  'mock-analysis',
+  'mock-conversion',
+  'mock-validation',
+  'mock-cleaning',
+  'gguf/mock-analysis-report',
+  // Enterprise onboarding — org provisioning, seat management, trial, Azure DevOps
+  'enterprise/onboard',
+  'enterprise/organizations',
+  'enterprise/trial',
 ]);
 
 /**
@@ -81,20 +81,21 @@ const PUBLIC_API_PATHS = new Set([
  * @returns {any}
  */
 function isPublicOptimizationRoute(relativePath, method) {
-    if (method === 'GET' && (
-        relativePath === 'optimization/health'
-        || relativePath === 'optimization/compliance'
-        || relativePath === 'optimization/candidates'
-    )) {
-        return true;
-    }
-    if (method === 'POST' && (
-        relativePath === 'optimization/analyze'
-        || relativePath === 'optimization/merge-preview'
-    )) {
-        return true;
-    }
-    return false;
+  if (
+    method === 'GET' &&
+    (relativePath === 'optimization/health' ||
+      relativePath === 'optimization/compliance' ||
+      relativePath === 'optimization/candidates')
+  ) {
+    return true;
+  }
+  if (
+    method === 'POST' &&
+    (relativePath === 'optimization/analyze' || relativePath === 'optimization/merge-preview')
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -104,12 +105,17 @@ function isPublicOptimizationRoute(relativePath, method) {
  * @returns {any}
  */
 function isPublicAssessmentRoute(relativePath, method) {
-    if (relativePath === 'assessments' && method === 'POST') return true;
-    if (relativePath === 'assessment/scan' && method === 'POST') return true;
-    if (relativePath === 'assessment/health' && method === 'GET') return true;
-    if (method === 'GET' && /^assessments\/assessment_\d+(?:\/download\/[\w-]+)?$/.test(relativePath)) return true;
-    if (method === 'GET' && /^assessment\/report\/assessment_\d+(?:\/download\/[\w-]+)?$/.test(relativePath)) return true;
-    return false;
+  if (relativePath === 'assessments' && method === 'POST') return true;
+  if (relativePath === 'assessment/scan' && method === 'POST') return true;
+  if (relativePath === 'assessment/health' && method === 'GET') return true;
+  if (method === 'GET' && /^assessments\/assessment_\d+(?:\/download\/[\w-]+)?$/.test(relativePath))
+    return true;
+  if (
+    method === 'GET' &&
+    /^assessment\/report\/assessment_\d+(?:\/download\/[\w-]+)?$/.test(relativePath)
+  )
+    return true;
+  return false;
 }
 
 /**
@@ -118,7 +124,7 @@ function isPublicAssessmentRoute(relativePath, method) {
  * @returns {any}
  */
 function isPublicSimplebeaconDemoRoute(relativePath) {
-    return relativePath.startsWith('simplebeacon/demo');
+  return relativePath.startsWith('simplebeacon/demo');
 }
 
 /**
@@ -127,8 +133,8 @@ function isPublicSimplebeaconDemoRoute(relativePath) {
  * @returns {boolean}
  */
 function isPublicChatbotRoute(relativePath) {
-    const pathKey = String(relativePath || '').replace(/^\/+/, '');
-    return pathKey === 'chatbot' || pathKey.startsWith('chatbot/');
+  const pathKey = String(relativePath || '').replace(/^\/+/, '');
+  return pathKey === 'chatbot' || pathKey.startsWith('chatbot/');
 }
 
 /**
@@ -138,8 +144,10 @@ function isPublicChatbotRoute(relativePath) {
  * @returns {boolean}
  */
 function isPublicWebAuthnRoute(relativePath, method) {
-    const pathKey = String(relativePath || '').replace(/^\/+/, '');
-    return method === 'POST' && (pathKey === 'webauthn/challenge' || pathKey === 'webauthn/authenticate');
+  const pathKey = String(relativePath || '').replace(/^\/+/, '');
+  return (
+    method === 'POST' && (pathKey === 'webauthn/challenge' || pathKey === 'webauthn/authenticate')
+  );
 }
 
 /**
@@ -151,32 +159,32 @@ function isPublicWebAuthnRoute(relativePath, method) {
  * @returns {boolean}
  */
 function isPublicDashboardRoute(relativePath, method) {
-    if (method !== 'GET') return false;
-    const pathKey = String(relativePath || '').replace(/^\/+/, '');
-    const publicExact = new Set(['dashboard-home', 'status']);
-    if (publicExact.has(pathKey)) return true;
-    const publicPrefixes = [
-        'dev-tools',
-        'analytics',
-        'merger-tool/merges',
-        'merger-tool/overview',
-        'merger-tool/activity',
-        'merger-tool/statistics',
-        'coverage-reports',
-        'settings',
-        'help',
-        'quality',
-        'security/overview',
-        'security/threats',
-        'security/vulnerabilities',
-        'security/incidents',
-        'security/compliance',
-        'support'
-    ];
-    for (const prefix of publicPrefixes) {
-        if (pathKey === prefix || pathKey.startsWith(prefix + '/')) return true;
-    }
-    return false;
+  if (method !== 'GET') return false;
+  const pathKey = String(relativePath || '').replace(/^\/+/, '');
+  const publicExact = new Set(['dashboard-home', 'status']);
+  if (publicExact.has(pathKey)) return true;
+  const publicPrefixes = [
+    'dev-tools',
+    'analytics',
+    'merger-tool/merges',
+    'merger-tool/overview',
+    'merger-tool/activity',
+    'merger-tool/statistics',
+    'coverage-reports',
+    'settings',
+    'help',
+    'quality',
+    'security/overview',
+    'security/threats',
+    'security/vulnerabilities',
+    'security/incidents',
+    'security/compliance',
+    'support',
+  ];
+  for (const prefix of publicPrefixes) {
+    if (pathKey === prefix || pathKey.startsWith(prefix + '/')) return true;
+  }
+  return false;
 }
 
 /**
@@ -185,10 +193,12 @@ function isPublicDashboardRoute(relativePath, method) {
  * @returns {any}
  */
 function resolveApiRelativePath(req) {
-    const mounted = String(req.path || '').replace(/^\/+/, '').replace(/^api\/?/i, '');
-    if (mounted) return mounted;
-    const raw = String(req.originalUrl || req.url || '').split('?')[0];
-    return raw.replace(/^\/api\/?/i, '').replace(/^\/+/, '');
+  const mounted = String(req.path || '')
+    .replace(/^\/+/, '')
+    .replace(/^api\/?/i, '');
+  if (mounted) return mounted;
+  const raw = String(req.originalUrl || req.url || '').split('?')[0];
+  return raw.replace(/^\/api\/?/i, '').replace(/^\/+/, '');
 }
 
 /**
@@ -198,17 +208,17 @@ function resolveApiRelativePath(req) {
  * @returns {any}
  */
 function isPublicApiRoute(relativePath, method) {
-    const pathKey = String(relativePath || '').replace(/^\/+/, '');
-    return (
-        PUBLIC_API_PATHS.has(pathKey)
-        || pathKey.startsWith('health')
-        || isPublicAssessmentRoute(pathKey, method)
-        || isPublicOptimizationRoute(pathKey, method)
-        || isPublicSimplebeaconDemoRoute(pathKey)
-        || isPublicChatbotRoute(pathKey)
-        || isPublicWebAuthnRoute(pathKey, method)
-        || isPublicDashboardRoute(pathKey, method)
-    );
+  const pathKey = String(relativePath || '').replace(/^\/+/, '');
+  return (
+    PUBLIC_API_PATHS.has(pathKey) ||
+    pathKey.startsWith('health') ||
+    isPublicAssessmentRoute(pathKey, method) ||
+    isPublicOptimizationRoute(pathKey, method) ||
+    isPublicSimplebeaconDemoRoute(pathKey) ||
+    isPublicChatbotRoute(pathKey) ||
+    isPublicWebAuthnRoute(pathKey, method) ||
+    isPublicDashboardRoute(pathKey, method)
+  );
 }
 
 /**
@@ -217,18 +227,18 @@ function isPublicApiRoute(relativePath, method) {
  * @returns {any}
  */
 function isPublicApiRequest(req) {
-    return isPublicApiRoute(resolveApiRelativePath(req), req.method);
+  return isPublicApiRoute(resolveApiRelativePath(req), req.method);
 }
 
 module.exports = {
-    PUBLIC_API_PATHS,
-    isPublicApiRoute,
-    isPublicApiRequest,
-    resolveApiRelativePath,
-    isPublicAssessmentRoute,
-    isPublicOptimizationRoute,
-    isPublicSimplebeaconDemoRoute,
-    isPublicChatbotRoute,
-    isPublicWebAuthnRoute,
-    isPublicDashboardRoute
+  PUBLIC_API_PATHS,
+  isPublicApiRoute,
+  isPublicApiRequest,
+  resolveApiRelativePath,
+  isPublicAssessmentRoute,
+  isPublicOptimizationRoute,
+  isPublicSimplebeaconDemoRoute,
+  isPublicChatbotRoute,
+  isPublicWebAuthnRoute,
+  isPublicDashboardRoute,
 };

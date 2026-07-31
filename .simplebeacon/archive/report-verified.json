@@ -5,9 +5,7 @@
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
-  "scanPaths": [
-    "C:\\Users\\Trevor\\CascadeProjects"
-  ],
+  "scanPaths": ["C:\\Users\\Trevor\\CascadeProjects"],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
     "totalFiles": 1235,
@@ -1398,13 +1396,8 @@
       "eu-ai-act-patterns"
     ],
     "gatePolicy": {
-      "failOn": [
-        "high"
-      ],
-      "warnOn": [
-        "medium",
-        "low"
-      ]
+      "failOn": ["high"],
+      "warnOn": ["medium", "low"]
     },
     "mockSampleFilesInScanPaths": 1235,
     "pageSpecCatalogSize": 50,
@@ -1412,10 +1405,7 @@
     "pageSpecsFromScanPaths": 50,
     "pageSpecsFromAliasPaths": 0,
     "productionDirsScanned": 1,
-    "productionPaths": [
-      "ai-tools/",
-      "packages/simplebeacon-cli/src/"
-    ],
+    "productionPaths": ["ai-tools/", "packages/simplebeacon-cli/src/"],
     "sourceCodeScanPaths": [],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
@@ -1449,13 +1439,8 @@
   },
   "gate": {
     "pass": true,
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ],
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"],
     "blockingCount": 0,
     "warningCount": 0,
     "blockingIssues": [],
@@ -1602,9 +1587,7 @@
     "totalChecks": 12,
     "passedChecks": 12,
     "summary": "READY — 12 of 12 checklist items present.",
-    "recommendations": [
-      "Project is fully ready for production. All checklist items present."
-    ],
+    "recommendations": ["Project is fully ready for production. All checklist items present."],
     "remediation": "No remediation needed."
   },
   "remediationPhases": [
@@ -1614,10 +1597,7 @@
       "severity": "medium",
       "effort": "2–4 days",
       "description": "Data integrity verified — no structural issues detected.",
-      "tasks": [
-        "Validate all JSON",
-        "Re-run scan"
-      ],
+      "tasks": ["Validate all JSON", "Re-run scan"],
       "progress": 100,
       "status": "completed"
     },
@@ -1627,10 +1607,7 @@
       "severity": "medium",
       "effort": "3–5 days",
       "description": "Consistency verified — no duplicates or naming drift.",
-      "tasks": [
-        "Standardize naming conventions",
-        "Document canonical file locations"
-      ],
+      "tasks": ["Standardize naming conventions", "Document canonical file locations"],
       "progress": 100,
       "status": "completed"
     },

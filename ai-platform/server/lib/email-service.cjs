@@ -23,8 +23,8 @@ try {
   nodemailer = null;
 }
 
-const QUEUE_DIR = process.env.EMAIL_QUEUE_DIR
-  || path.join(process.cwd(), '.simplebeacon', 'email-queue');
+const QUEUE_DIR =
+  process.env.EMAIL_QUEUE_DIR || path.join(process.cwd(), '.simplebeacon', 'email-queue');
 
 /**
  * Ensure queue dir.
@@ -82,7 +82,7 @@ function createTransporter() {
     host: cfg.host,
     port: cfg.port,
     secure: cfg.secure,
-    auth: { user: cfg.user, pass: cfg.pass }
+    auth: { user: cfg.user, pass: cfg.pass },
   });
 }
 
@@ -106,34 +106,39 @@ function sendViaCloudflare({ to, from, subject, text, html }) {
       to: Array.isArray(to) ? to : [to],
       subject,
       text: text || undefined,
-      html: html || undefined
+      html: html || undefined,
     });
 
-    const req = https.request({
-      hostname: 'api.cloudflare.com',
-      path: `/client/v4/accounts/${cfg.accountId}/email/sending/send`,
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${cfg.apiToken}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
-      }
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            const json = JSON.parse(data);
-            resolve({ id: json.result?.messageId || json.result?.id || null });
-          } catch {
-            resolve({ id: null });
+    const req = https.request(
+      {
+        hostname: 'api.cloudflare.com',
+        path: `/client/v4/accounts/${cfg.accountId}/email/sending/send`,
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cfg.apiToken}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              const json = JSON.parse(data);
+              resolve({ id: json.result?.messageId || json.result?.id || null });
+            } catch {
+              resolve({ id: null });
+            }
+          } else {
+            reject(new Error(`Cloudflare Email API error ${res.statusCode}: ${data}`));
           }
-        } else {
-          reject(new Error(`Cloudflare Email API error ${res.statusCode}: ${data}`));
-        }
-      });
-    });
+        });
+      }
+    );
     req.on('error', reject);
     req.write(body);
     req.end();
@@ -150,41 +155,46 @@ function sendViaResend({ to, from, subject, text, html, attachments = [] }) {
       to: Array.isArray(to) ? to : [to],
       subject,
       text: text || undefined,
-      html: html || undefined
+      html: html || undefined,
     };
     if (attachments.length) {
       body.attachments = attachments.map((a) => ({
         filename: a.filename,
-        content: a.content
+        content: a.content,
       }));
     }
     const payload = JSON.stringify(body);
 
-    const req = https.request({
-      hostname: 'api.resend.com',
-      path: '/emails',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${cfg.key}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload)
-      }
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            const json = JSON.parse(data);
-            resolve({ id: json.id });
-          } catch {
-            resolve({ id: null });
+    const req = https.request(
+      {
+        hostname: 'api.resend.com',
+        path: '/emails',
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cfg.key}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              const json = JSON.parse(data);
+              resolve({ id: json.id });
+            } catch {
+              resolve({ id: null });
+            }
+          } else {
+            reject(new Error(`Resend API error ${res.statusCode}: ${data}`));
           }
-        } else {
-          reject(new Error(`Resend API error ${res.statusCode}: ${data}`));
-        }
-      });
-    });
+        });
+      }
+    );
     req.on('error', reject);
     req.write(payload);
     req.end();
@@ -212,9 +222,9 @@ function queueEmailToDisk({ to, subject, text, html, attachments = [] }) {
     html: html || undefined,
     attachments: attachments.map((a) => ({
       filename: a.filename,
-      content: a.content.slice(0, 80) + '...'
+      content: a.content.slice(0, 80) + '...',
     })),
-    queuedAt: new Date().toISOString()
+    queuedAt: new Date().toISOString(),
   };
   fs.writeFileSync(filePath, JSON.stringify(payload, null, 2) + '\n');
   return { sent: false, queued: true, queuePath: filePath };
@@ -265,12 +275,12 @@ async function sendEmail(options = {}) {
         to,
         subject,
         text: text || '',
-        html: html || undefined
+        html: html || undefined,
       };
       if (attachments?.length) {
         mailOptions.attachments = attachments.map((a) => ({
           filename: a.filename,
-          content: Buffer.from(a.content, 'base64')
+          content: Buffer.from(a.content, 'base64'),
         }));
       }
       await transporter.sendMail(mailOptions);

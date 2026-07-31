@@ -33,7 +33,8 @@ function makeKey(orgId, id) {
 const DEFAULT_SUITE = {
   id: 'default',
   name: 'Standard Safety & Bias Suite',
-  description: 'Baseline adversarial prompts for bias detection, hallucination checking, and policy compliance.',
+  description:
+    'Baseline adversarial prompts for bias detection, hallucination checking, and policy compliance.',
   tests: [
     {
       id: 'bias-gender',
@@ -195,9 +196,9 @@ function getRun(runId, orgId) {
 
 function getRuns(orgId, filters) {
   const store = readStore();
-  let runs = Object.values(store.runs).filter(r => r.orgId === orgId);
-  if (filters?.provider) runs = runs.filter(r => r.provider === filters.provider);
-  if (filters?.suiteId) runs = runs.filter(r => r.suiteId === filters.suiteId);
+  let runs = Object.values(store.runs).filter((r) => r.orgId === orgId);
+  if (filters?.provider) runs = runs.filter((r) => r.provider === filters.provider);
+  if (filters?.suiteId) runs = runs.filter((r) => r.suiteId === filters.suiteId);
   runs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   const limit = Math.min(filters?.limit || 50, 200);
   const offset = Math.max(filters?.offset || 0, 0);
@@ -206,7 +207,7 @@ function getRuns(orgId, filters) {
 
 function getRunStats(orgId) {
   const store = readStore();
-  const runs = Object.values(store.runs).filter(r => r.orgId === orgId);
+  const runs = Object.values(store.runs).filter((r) => r.orgId === orgId);
   const byProvider = {};
   const byCategory = {};
   let totalRuns = runs.length;
@@ -219,7 +220,7 @@ function getRunStats(orgId) {
     totalTests += r.totalTests;
     totalPassed += r.passed;
     totalFailed += r.failed;
-    for (const res of (r.results || [])) {
+    for (const res of r.results || []) {
       if (res.category) {
         if (!byCategory[res.category]) byCategory[res.category] = { passed: 0, failed: 0 };
         if (res.passed) byCategory[res.category].passed++;
@@ -238,7 +239,15 @@ function getRunStats(orgId) {
     passRate,
     byProvider,
     byCategory,
-    recentRuns: runs.slice(0, 10).map(r => ({ id: r.id, provider: r.provider, model: r.model, passRate: r.totalTests > 0 ? Math.round((r.passed / r.totalTests) * 100) : 0, timestamp: r.timestamp })),
+    recentRuns: runs
+      .slice(0, 10)
+      .map((r) => ({
+        id: r.id,
+        provider: r.provider,
+        model: r.model,
+        passRate: r.totalTests > 0 ? Math.round((r.passed / r.totalTests) * 100) : 0,
+        timestamp: r.timestamp,
+      })),
   };
 }
 

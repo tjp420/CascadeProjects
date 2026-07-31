@@ -8,7 +8,7 @@ export const REMOTE_REPO_HOSTS = [
   'bitbucket.org',
   'www.bitbucket.org',
   'codeberg.org',
-  'www.codeberg.org'
+  'www.codeberg.org',
 ];
 
 /**
@@ -49,6 +49,11 @@ export function isGithubRepoUrl(value) {
  */
 export function sourceChipTitle(source) {
   const hint = source?.hint ? ` — ${source.hint}` : '';
-  const kind = source?.kind === 'remote' ? 'HTTPS clone' : source?.kind === 'cached' ? 'Cached clone' : 'Local folder';
+  const kind =
+    source?.kind === 'remote'
+      ? 'HTTPS clone'
+      : source?.kind === 'cached'
+        ? 'Cached clone'
+        : 'Local folder';
   return `${kind}${hint}`;
 }

@@ -8,7 +8,7 @@ const {
   getSubscriptionByApiToken,
   consumeApiCall,
   publicSubscriptionStatus,
-  normalizeEmail
+  normalizeEmail,
 } = require('../lib/simplebeacon-subscription-store.cjs');
 const { verifyLicenseToken } = require('../../packages/simplebeacon-cli/src/lib/license-token.cjs');
 
@@ -20,7 +20,7 @@ const PAID_VIEWS = new Set([
   'tools',
   'platform',
   'quality',
-  'settings'
+  'settings',
 ]);
 
 const FREE_TIERS = new Set(['community', 'developer', 'sandbox', 'instant', 'free', '']);
@@ -58,7 +58,11 @@ function extractEmail(req) {
  * @returns {any}
  */
 function envFlag(name) {
-  return String(process.env[name] || '').trim().toLowerCase() === 'true';
+  return (
+    String(process.env[name] || '')
+      .trim()
+      .toLowerCase() === 'true'
+  );
 }
 
 /**
@@ -72,7 +76,9 @@ function resolveLicenseSecret() {
     return secret;
   }
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: SIMPLEBEACON_LICENSE_SECRET environment variable is missing in production.');
+    throw new Error(
+      'FATAL: SIMPLEBEACON_LICENSE_SECRET environment variable is missing in production.'
+    );
   }
   return null;
 }
@@ -97,9 +103,15 @@ function upgradePayload(extra = {}) {
     upgradeUrl: '/#/pricing',
     pricing: {
       free: ['CLI local scanning', 'Text/JSON reports', 'No hosted dashboard'],
-      paid: ['Dashboard + scan history', 'Compliance Audit + Analyze UI', 'Assessment workflow', 'JSON exports', 'API quota when billing enabled']
+      paid: [
+        'Dashboard + scan history',
+        'Compliance Audit + Analyze UI',
+        'Assessment workflow',
+        'JSON exports',
+        'API quota when billing enabled',
+      ],
     },
-    ...extra
+    ...extra,
   };
 }
 
@@ -126,7 +138,11 @@ function createRequireSubscription(options = {}) {
     }
 
     if (!isMonetizationEnabled()) {
-      req.simplebeaconSubscription = { tier: 'community', subscriptionActive: false, community: true };
+      req.simplebeaconSubscription = {
+        tier: 'community',
+        subscriptionActive: false,
+        community: true,
+      };
       return next();
     }
 
@@ -139,14 +155,18 @@ function createRequireSubscription(options = {}) {
         if (consumeQuota) {
           const usage = await consumeApiCall(token);
           if (!usage.allowed) {
-            return res.status(429).json(upgradePayload({
-              error: usage.reason === 'rate_limit' ? 'rate_limit_exceeded' : 'subscription_required',
-              message: usage.reason === 'rate_limit'
-                ? `API limit reached (${usage.limit}/month). Resets ${usage.periodStart}.`
-                : upgradePayload().message,
-              limit: usage.limit,
-              remaining: usage.remaining ?? 0
-            }));
+            return res.status(429).json(
+              upgradePayload({
+                error:
+                  usage.reason === 'rate_limit' ? 'rate_limit_exceeded' : 'subscription_required',
+                message:
+                  usage.reason === 'rate_limit'
+                    ? `API limit reached (${usage.limit}/month). Resets ${usage.periodStart}.`
+                    : upgradePayload().message,
+                limit: usage.limit,
+                remaining: usage.remaining ?? 0,
+              })
+            );
           }
           req.simplebeaconUsage = usage;
         }
@@ -167,7 +187,12 @@ function createRequireSubscription(options = {}) {
     if (allowFree && token) {
       const secret = resolveLicenseSecret();
       if (!secret) {
-        return res.status(503).json({ error: 'license_secret_unconfigured', message: 'License validation is not configured.' });
+        return res
+          .status(503)
+          .json({
+            error: 'license_secret_unconfigured',
+            message: 'License validation is not configured.',
+          });
       }
       const payload = verifyLicenseToken(token, secret);
       if (payload) {
@@ -179,7 +204,7 @@ function createRequireSubscription(options = {}) {
             readOnly: true,
             freeToken: true,
             scansRemaining: 0,
-            apiRemaining: 0
+            apiRemaining: 0,
           };
           return next();
         }
@@ -204,5 +229,5 @@ module.exports = {
   extractApiToken,
   extractEmail,
   isPaidDashboardView,
-  upgradePayload
+  upgradePayload,
 };

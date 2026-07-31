@@ -28,7 +28,7 @@ const {
   requireTrustLevel,
   canAccessDashboardWrite,
   requireOwnership,
-  requirePrivateAnalysis
+  requirePrivateAnalysis,
 } = require('../lib/auth/trust-levels.cjs');
 
 const {
@@ -36,25 +36,21 @@ const {
   verifyToken,
   recordTokenFirstUse,
   isTokenExpiredByFirstUse,
-  invalidateToken
+  invalidateToken,
 } = require('../lib/auth/token-service.cjs');
 
 const {
   isSandboxToken,
   recordSandboxRequest,
-  getSandboxLimitHeaders
+  getSandboxLimitHeaders,
 } = require('../lib/auth/sandbox-service.cjs');
 
-const {
-  verifyMFA,
-  generateMFASecret,
-  verifyMFAToken
-} = require('../lib/auth/mfa-service.cjs');
+const { verifyMFA, generateMFASecret, verifyMFAToken } = require('../lib/auth/mfa-service.cjs');
 
 const {
   generateDeviceFingerprint,
   trustDevice,
-  verifyDeviceTrust
+  verifyDeviceTrust,
 } = require('../lib/auth/device-service.cjs');
 
 const {
@@ -62,23 +58,17 @@ const {
   authLog,
   authWarn,
   shouldWriteAuditEvents,
-  auditAuth
+  auditAuth,
 } = require('../lib/auth/audit-service.cjs');
 
-const {
-  hashPassword,
-  verifyPassword
-} = require('../lib/auth/password-service.cjs');
+const { hashPassword, verifyPassword } = require('../lib/auth/password-service.cjs');
 
 const {
   applyVaultOperatorUser,
-  vaultOperatorSessionActive
+  vaultOperatorSessionActive,
 } = require('../lib/auth/vault-operator.cjs');
 
-const {
-  handleLogin,
-  handleTokenRefresh
-} = require('../lib/auth/login-service.cjs');
+const { handleLogin, handleTokenRefresh } = require('../lib/auth/login-service.cjs');
 
 /**
  * Resolve authentication for a request.
@@ -153,7 +143,7 @@ async function tryToken(token, res) {
     tokenId: decoded.jti,
     sessionId: decoded.sessionId,
     isSandbox: sandbox,
-    tier: decoded.tier || decoded.plan || ''
+    tier: decoded.tier || decoded.plan || '',
   };
 
   return { user, sandbox };
@@ -168,8 +158,8 @@ async function resolveAuth(req, res) {
         name: 'Local Developer',
         role: 'admin',
         trustLevel: 'platinum',
-        permissions: ['read:all', 'write:all', 'admin:all']
-      }
+        permissions: ['read:all', 'write:all', 'admin:all'],
+      },
     };
   }
 
@@ -178,9 +168,10 @@ async function resolveAuth(req, res) {
     return { user: req.user };
   }
 
-  const headerToken = typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer ')
-    ? req.headers.authorization.substring(7)
-    : '';
+  const headerToken =
+    typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer ')
+      ? req.headers.authorization.substring(7)
+      : '';
   const cookieToken = extractTokenFromCookies(req);
 
   const attempts = [];
@@ -235,7 +226,7 @@ function requireDashboardWrite(req, res, next) {
       error: 'Forbidden',
       message: 'Paid or team dashboard access required',
       requiredTier: 'silver',
-      current: req.user.tier || req.user.plan || req.user.trustLevel || 'community'
+      current: req.user.tier || req.user.plan || req.user.trustLevel || 'community',
     });
   }
   next();
@@ -289,5 +280,5 @@ module.exports = Object.freeze({
   jwtConfig,
   isSandboxToken,
   recordSandboxRequest,
-  getSandboxLimitHeaders
+  getSandboxLimitHeaders,
 });

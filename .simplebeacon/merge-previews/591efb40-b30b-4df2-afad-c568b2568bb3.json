@@ -9,10 +9,7 @@
   "candidateId": "fuzzy-near-dup-1",
   "keepFile": "ai-agent/QUALITY.md",
   "removeFiles": [],
-  "affectedFiles": [
-    "ai-agent/QUALITY.md",
-    "ai-platform/QUALITY.md"
-  ],
+  "affectedFiles": ["ai-agent/QUALITY.md", "ai-platform/QUALITY.md"],
   "conflicts": [],
   "safeToExecute": false,
   "requiresConfirmation": true,
@@ -20,10 +17,7 @@
     "level": "medium-high",
     "autoMergeAllowed": false,
     "requiresConfirmation": true,
-    "factors": [
-      "Fuzzy similarity 97% — not byte-identical",
-      "2 invalid JSON file(s)"
-    ],
+    "factors": ["Fuzzy similarity 97% — not byte-identical", "2 invalid JSON file(s)"],
     "quarantineOnly": true
   },
   "confirmationPhrase": "QUARANTINE_DUPLICATES",

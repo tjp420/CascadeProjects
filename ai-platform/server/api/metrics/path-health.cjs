@@ -12,7 +12,7 @@ const ENGINE_VERSION = process.env.ENGINE_VERSION || '1.4.0';
 const MONITORED_DIRECTORIES = process.env.MONITORED_DIRECTORIES?.split(',') || [
   'server/lib/',
   'server/api/',
-  'src/'
+  'src/',
 ];
 
 /**
@@ -28,11 +28,11 @@ async function getDirectoryHealth(baseDir, dirPath) {
     if (!stats.isDirectory()) {
       return { path: dirPath, status: 'NOT_FOUND', findings: 0 };
     }
-    
+
     // Actually scan the directory for files
     const entries = await fs.readdir(fullPath, { withFileTypes: true });
-    const files = entries.filter(f => f.isFile()).length;
-    
+    const files = entries.filter((f) => f.isFile()).length;
+
     return { path: dirPath, status: 'CLEAN', findings: files };
   } catch {
     return { path: dirPath, status: 'NOT_FOUND', findings: 0 };
@@ -56,16 +56,17 @@ async function getScanMetrics(baseDir) {
       if (stats.isDirectory()) {
         // Actually count files in the directory
         const entries = await fs.readdir(fullPath, { withFileTypes: true });
-        const allFiles = entries.filter(f => f.isFile());
+        const allFiles = entries.filter((f) => f.isFile());
         totalFiles += allFiles.length;
-        
+
         // Count ignored files (dotfiles, test files, etc.)
-        const ignored = allFiles.filter(f => 
-          f.name.startsWith('.') || 
-          f.name.endsWith('.test.js') ||
-          f.name.endsWith('.test.cjs') ||
-          f.name.endsWith('.spec.js') ||
-          f.name === 'node_modules'
+        const ignored = allFiles.filter(
+          (f) =>
+            f.name.startsWith('.') ||
+            f.name.endsWith('.test.js') ||
+            f.name.endsWith('.test.cjs') ||
+            f.name.endsWith('.spec.js') ||
+            f.name === 'node_modules'
         ).length;
         ignoredFiles += ignored;
       }
@@ -87,24 +88,24 @@ async function getScanMetrics(baseDir) {
   }
 
   // Calculate gate status dynamically based on findings
-  const globalGate = totalFiles > 0 && (ignoredFiles / totalFiles) < 0.1 ? 'PASS' : 'FAIL';
+  const globalGate = totalFiles > 0 && ignoredFiles / totalFiles < 0.1 ? 'PASS' : 'FAIL';
 
   return {
     totalFilesScanned: totalFiles,
     totalFilesIgnored: ignoredFiles,
     activeRuleCount: activeRuleCount,
-    globalGate: globalGate
+    globalGate: globalGate,
   };
 }
 
 router.get('/', async (req, res) => {
   try {
     const baseDir = path.join(__dirname, '../../..');
-    
+
     const summary = await getScanMetrics(baseDir);
-    
+
     const directories = await Promise.all(
-      MONITORED_DIRECTORIES.map(dir => getDirectoryHealth(baseDir, dir))
+      MONITORED_DIRECTORIES.map((dir) => getDirectoryHealth(baseDir, dir))
     );
 
     const response = {
@@ -114,8 +115,8 @@ router.get('/', async (req, res) => {
       directories,
       engine: {
         version: ENGINE_VERSION,
-        suppressedFalsePositives: SUPPRESSED_FALSE_POSITIVES
-      }
+        suppressedFalsePositives: SUPPRESSED_FALSE_POSITIVES,
+      },
     };
 
     res.json(response);
@@ -124,7 +125,7 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to retrieve path health metrics',
-      error: error.message
+      error: error.message,
     });
   }
 });

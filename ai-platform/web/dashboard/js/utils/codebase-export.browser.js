@@ -32,8 +32,12 @@ function projectLabelFromPath(projectPath) {
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = normalizeExportPath(rawPath);
-  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-    || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
+  if (
+    /^[a-zA-Z]:\//.test(normalized) ||
+    normalized.startsWith('/Users/') ||
+    normalized.startsWith('/home/') ||
+    normalized.includes('CascadeProjects')
+  ) {
     return projectLabel;
   }
   return normalized;
@@ -89,8 +93,12 @@ function redactCodebaseAiSummary(text, projectLabel = 'ai-platform') {
  */
 function isBenchmarkScanTargetRoot(projectPath) {
   const rel = normalizeExportPath(projectPath).toLowerCase();
-  return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
-    || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
+  return (
+    rel.includes('/github-cache/') ||
+    rel.startsWith('github-cache/') ||
+    rel.includes('/java-ai-vulnerable/') ||
+    rel.startsWith('java-ai-vulnerable/')
+  );
 }
 
 /**
@@ -114,15 +122,17 @@ function resolveProductPlatformRoot(projectPath) {
 function inferCodebaseScanTargetFromHints(report, options = {}) {
   const filename = String(options.exportFilename || options.filename || '').toLowerCase();
   if (!filename.includes('github-cache')) return '';
-  const slugMatch = filename.match(/github-cache[-_]([a-z0-9._-]+?)(?:-\d{4}-\d{2}-\d{2}|\(\d+\)|\.json)/i);
+  const slugMatch = filename.match(
+    /github-cache[-_]([a-z0-9._-]+?)(?:-\d{4}-\d{2}-\d{2}|\(\d+\)|\.json)/i
+  );
   if (!slugMatch) return '';
   const cloneName = slugMatch[1];
   const sourceRoot = String(
-    options.projectPath
-    || options.requestedProjectPath
-    || report.projectRoot
-    || report.platformRoot
-    || ''
+    options.projectPath ||
+      options.requestedProjectPath ||
+      report.projectRoot ||
+      report.platformRoot ||
+      ''
   ).replace(/\\/g, '/');
   if (isBenchmarkScanTargetRoot(sourceRoot)) return '';
   const platformRoot = resolveProductPlatformRoot(sourceRoot) || sourceRoot;
@@ -139,28 +149,30 @@ function resolveCodebaseExportContext(report, options = {}) {
   const inferredTarget = inferCodebaseScanTargetFromHints(report, options);
   const projectRoot = normalizeExportPath(report?.projectRoot || report?.projectPath || '');
   const scanTargetRoot = normalizeExportPath(
-    options.scanTargetRoot
-    || options.requestedProjectPath
-    || report?.scanTargetRoot
-    || report?.requestedScanRoot
-    || inferredTarget
-    || ''
+    options.scanTargetRoot ||
+      options.requestedProjectPath ||
+      report?.scanTargetRoot ||
+      report?.requestedScanRoot ||
+      inferredTarget ||
+      ''
   );
   const benchmarkFromRoot = isBenchmarkScanTargetRoot(projectRoot);
   const benchmarkFromTarget = isBenchmarkScanTargetRoot(scanTargetRoot);
-  const productPlatformRoot = benchmarkFromRoot || benchmarkFromTarget
-    ? resolveProductPlatformRoot(benchmarkFromRoot ? projectRoot : scanTargetRoot)
-    : null;
-  const misscopedPlatformWalk = benchmarkFromTarget
-    && !benchmarkFromRoot
-    && Boolean(productPlatformRoot)
-    && projectRoot.toLowerCase() === productPlatformRoot.toLowerCase();
+  const productPlatformRoot =
+    benchmarkFromRoot || benchmarkFromTarget
+      ? resolveProductPlatformRoot(benchmarkFromRoot ? projectRoot : scanTargetRoot)
+      : null;
+  const misscopedPlatformWalk =
+    benchmarkFromTarget &&
+    !benchmarkFromRoot &&
+    Boolean(productPlatformRoot) &&
+    projectRoot.toLowerCase() === productPlatformRoot.toLowerCase();
 
   return {
     benchmarkScan: benchmarkFromRoot || benchmarkFromTarget,
     scanTargetRoot: scanTargetRoot || (benchmarkFromRoot ? projectRoot : ''),
     productPlatformRoot,
-    misscopedPlatformWalk
+    misscopedPlatformWalk,
   };
 }
 
@@ -173,12 +185,21 @@ function isKnownCodebaseFalsePositive(finding) {
   if (!finding || typeof finding !== 'object') return false;
   const filePath = String(finding.filePath || '').replace(/\\/g, '/');
   if (filePath === 'pdf-export.html' && finding.type === 'placeholder-token') return true;
-  if (finding.type === 'placeholder-token' && /\bplaceholder\s+patterns\b/i.test(String(finding.match || ''))) {
+  if (
+    finding.type === 'placeholder-token' &&
+    /\bplaceholder\s+patterns\b/i.test(String(finding.match || ''))
+  ) {
     return /\bfiction\b/i.test(String(finding.description || finding.match || ''));
   }
   if (finding.type === 'placeholder-token' && /^README\.md$/i.test(filePath)) return true;
   if (finding.category === 'tech-debt' && /liability-metrics\.js$/i.test(filePath)) return true;
-  if (finding.category === 'tech-debt' && finding.type === 'todo' && String(finding.match || '').toLowerCase().includes('implement')) {
+  if (
+    finding.category === 'tech-debt' &&
+    finding.type === 'todo' &&
+    String(finding.match || '')
+      .toLowerCase()
+      .includes('implement')
+  ) {
     return true;
   }
   return false;
@@ -190,11 +211,11 @@ function isKnownCodebaseFalsePositive(finding) {
  * @returns {any}
  */
 function filterKnownFalsePositiveFindings(report) {
-/**
- * Findings.
- * @param {number} report.findings || []
- * @returns {any}
- */
+  /**
+   * Findings.
+   * @param {number} report.findings || []
+   * @returns {any}
+   */
   const findings = (report.findings || []).filter((f) => !isKnownCodebaseFalsePositive(f));
   if (findings.length === (report.findings || []).length) return report;
 
@@ -208,25 +229,29 @@ function filterKnownFalsePositiveFindings(report) {
     ...report,
     findings,
     categories: findings.length
-      ? (report.categories || []).map((c) => ({ ...c, count: categoryCounts[c.category] ?? 0 })).filter((c) => c.count > 0)
+      ? (report.categories || [])
+          .map((c) => ({ ...c, count: categoryCounts[c.category] ?? 0 }))
+          .filter((c) => c.count > 0)
       : [],
     summary: {
       ...report.summary,
       findingsTotal: findings.length,
       findingsReturned: findings.length,
       healthScore: findings.length ? report.summary?.healthScore : 100,
-      severityCounts: findings.length ? report.summary?.severityCounts : { high: 0, medium: 0, low: 0 },
+      severityCounts: findings.length
+        ? report.summary?.severityCounts
+        : { high: 0, medium: 0, low: 0 },
       categoryCounts,
       analyzerCounts: {
         debugArtifacts: 0,
         placeholderOrFictionalData: 0,
-        eslintFindings: 0
-      }
+        eslintFindings: 0,
+      },
     },
     exportNotes: [
       ...(report.exportNotes || []),
-      'Removed 1 known false positive (scanner meta-reference or product README wording).'
-    ]
+      'Removed 1 known false positive (scanner meta-reference or product README wording).',
+    ],
   };
 }
 
@@ -248,11 +273,11 @@ function dedupeCodebaseExportNotes(notes = []) {
           ? 'eslint-style-note'
           : /jest was not run during the paired gate/i.test(normalized)
             ? 'jest-gate-note'
-        : /eslint/i.test(normalized)
-          ? 'eslint-note'
-          : /code-like file\(s\) deep-scanned/i.test(normalized)
-            ? 'code-files-scope-note'
-            : normalized;
+            : /eslint/i.test(normalized)
+              ? 'eslint-note'
+              : /code-like file\(s\) deep-scanned/i.test(normalized)
+                ? 'code-files-scope-note'
+                : normalized;
     if (seen.has(scopeKey)) continue;
     seen.add(scopeKey);
     out.push(String(note));
@@ -290,21 +315,27 @@ function dedupeLimitationNotes(lines = []) {
  * @returns {any}
  */
 function normalizeCodebaseExportPaths(report, scanTargetRoot = '', options = {}) {
-  const rawRoot = scanTargetRoot || report.projectRoot || report.scanTargetRoot || report.requestedScanRoot || '';
+  const rawRoot =
+    scanTargetRoot || report.projectRoot || report.scanTargetRoot || report.requestedScanRoot || '';
   const projectLabel = projectLabelFromPath(
     options.productPlatformRoot || resolveProductPlatformRoot(rawRoot) || rawRoot
   );
   const pathOptions = {
     projectLabel,
     productPlatformLabel: projectLabel,
-    benchmarkScan: options.benchmarkScan
+    benchmarkScan: options.benchmarkScan,
   };
   const redactedRoot = redactCodebasePathForExport(rawRoot, pathOptions);
   return {
     ...report,
-    projectRoot: redactCodebasePathForExport(report.projectRoot || rawRoot, pathOptions) || redactedRoot,
+    projectRoot:
+      redactCodebasePathForExport(report.projectRoot || rawRoot, pathOptions) || redactedRoot,
     ...(report.scanTargetRoot || redactedRoot
-      ? { scanTargetRoot: redactCodebasePathForExport(report.scanTargetRoot || rawRoot, pathOptions) || redactedRoot }
+      ? {
+          scanTargetRoot:
+            redactCodebasePathForExport(report.scanTargetRoot || rawRoot, pathOptions) ||
+            redactedRoot,
+        }
       : {}),
     ...(report.requestedScanRoot
       ? { requestedScanRoot: redactCodebasePathForExport(report.requestedScanRoot, pathOptions) }
@@ -316,19 +347,22 @@ function normalizeCodebaseExportPaths(report, scanTargetRoot = '', options = {})
       ? { codeAnalysisRoot: redactCodebasePathForExport(report.codeAnalysisRoot, pathOptions) }
       : {}),
     ...(report.productPlatformRoot
-      ? { productPlatformRoot: redactCodebasePathForExport(report.productPlatformRoot, pathOptions) }
+      ? {
+          productPlatformRoot: redactCodebasePathForExport(report.productPlatformRoot, pathOptions),
+        }
       : {}),
     ...(report.repositoryInventory
       ? {
-        repositoryInventory: {
-          ...report.repositoryInventory,
-          projectRoot: redactCodebasePathForExport(
-            report.repositoryInventory.projectRoot || rawRoot,
-            pathOptions
-          ) || redactedRoot
+          repositoryInventory: {
+            ...report.repositoryInventory,
+            projectRoot:
+              redactCodebasePathForExport(
+                report.repositoryInventory.projectRoot || rawRoot,
+                pathOptions
+              ) || redactedRoot,
+          },
         }
-      }
-      : {})
+      : {}),
   };
 }
 
@@ -350,8 +384,10 @@ function resolveBenchmarkCodebaseTitle(misscopedPlatformWalk) {
  * @returns {any}
  */
 function replaceMisleadingCodebaseLimitations(limitations = [], context) {
-  const canonicalBenchmark = 'OSS benchmark clone under github-cache/ — codebase hygiene comparison only, not Simplebeacon platform production certification.';
-  const canonicalEslint = 'ESLint did not run — Simplebeacon ESLint targets (server/, packages/, web/) are not present in this OSS clone root.';
+  const canonicalBenchmark =
+    'OSS benchmark clone under github-cache/ — codebase hygiene comparison only, not Simplebeacon platform production certification.';
+  const canonicalEslint =
+    'ESLint did not run — Simplebeacon ESLint targets (server/, packages/, web/) are not present in this OSS clone root.';
 
   const filtered = limitations.filter((line) => {
     if (!context.benchmarkScan) return true;
@@ -390,7 +426,7 @@ function buildTierCountsExport(summary, benchmarkScan) {
     mergeRiskHeuristic: tierCounts.production ?? 0,
     documentation: tierCounts.documentation ?? 0,
     general: tierCounts.general ?? 0,
-    note: '“production” tier is a path heuristic (e.g. paths containing /src/) within the OSS clone — not Simplebeacon ai-platform production code.'
+    note: '“production” tier is a path heuristic (e.g. paths containing /src/) within the OSS clone — not Simplebeacon ai-platform production code.',
   };
 }
 
@@ -417,41 +453,47 @@ function resolveCodebaseHealthStatus(summary) {
  */
 function resolveGateInventoryContext(report, options = {}) {
   const gateReport = options.gateReport || {};
-  const repositoryFilesTotal = options.repositoryFilesTotal
-    ?? options.gateRepositoryFilesTotal
-    ?? gateReport.repositoryFilesTotal
-    ?? gateReport.repositoryInventory?.totalFiles
-    ?? report.hygieneSummary?.gateRepositoryFilesTotal
-    ?? null;
-  const credentialScanned = gateReport.credentialScanned
-    ?? gateReport.productionLeakScanned
-    ?? gateReport.scanScope?.productionDirsScanned
-    ?? report.hygieneSummary?.credentialScanned
-    ?? null;
-  const contentScanned = gateReport.scanScope?.fullDirectoryStats?.contentScanned
-    ?? gateReport.scanScope?.fullDirectoryStats?.filesContentScanned
-    ?? gateReport.credentialScanned
-    ?? report.hygieneSummary?.contentFilesScanned
-    ?? null;
-  const gateProfile = gateReport.scanScope?.profile
-    ?? report.scanScope?.gateRuleBundleProfile
-    ?? report.hygieneSummary?.gateRuleBundleProfile
-    ?? null;
+  const repositoryFilesTotal =
+    options.repositoryFilesTotal ??
+    options.gateRepositoryFilesTotal ??
+    gateReport.repositoryFilesTotal ??
+    gateReport.repositoryInventory?.totalFiles ??
+    report.hygieneSummary?.gateRepositoryFilesTotal ??
+    null;
+  const credentialScanned =
+    gateReport.credentialScanned ??
+    gateReport.productionLeakScanned ??
+    gateReport.scanScope?.productionDirsScanned ??
+    report.hygieneSummary?.credentialScanned ??
+    null;
+  const contentScanned =
+    gateReport.scanScope?.fullDirectoryStats?.contentScanned ??
+    gateReport.scanScope?.fullDirectoryStats?.filesContentScanned ??
+    gateReport.credentialScanned ??
+    report.hygieneSummary?.contentFilesScanned ??
+    null;
+  const gateProfile =
+    gateReport.scanScope?.profile ??
+    report.scanScope?.gateRuleBundleProfile ??
+    report.hygieneSummary?.gateRuleBundleProfile ??
+    null;
   return {
     gateReport,
     repositoryFilesTotal,
     credentialScanned,
     contentScanned,
     gateProfile,
-    fictionJsonFilesScanned: gateReport.fictionJsonFilesScanned
-      ?? gateReport.scanScope?.fictionJsonFilesScanned
-      ?? report.hygieneSummary?.fictionJsonFilesScanned
-      ?? null,
-    fictionSampleFilesScanned: gateReport.fictionSampleFilesScanned
-      ?? gateReport.mockSampleFiles
-      ?? gateReport.scanScope?.fictionSampleFilesScanned
-      ?? report.hygieneSummary?.fictionSampleFilesScanned
-      ?? null
+    fictionJsonFilesScanned:
+      gateReport.fictionJsonFilesScanned ??
+      gateReport.scanScope?.fictionJsonFilesScanned ??
+      report.hygieneSummary?.fictionJsonFilesScanned ??
+      null,
+    fictionSampleFilesScanned:
+      gateReport.fictionSampleFilesScanned ??
+      gateReport.mockSampleFiles ??
+      gateReport.scanScope?.fictionSampleFilesScanned ??
+      report.hygieneSummary?.fictionSampleFilesScanned ??
+      null,
   };
 }
 
@@ -464,13 +506,15 @@ function resolveGateInventoryContext(report, options = {}) {
 function buildProductCodebaseExportNotes(report, context = {}) {
   const notes = [
     'securityHandoffEligible is false — codebase hygiene is supplementary, not vendor security handoff.',
-    'Absolute scan paths are redacted to project label in operator exports.'
+    'Absolute scan paths are redacted to project label in operator exports.',
   ];
   const eslintSource = report.summary?.eslintSource || report.eslintSummary?.source || 'none';
   if (eslintSource === 'none' && report.summary?.eslintSkipped) {
     notes.push(`ESLint was not executed: ${report.summary.eslintSkipped}`);
   } else if (eslintSource === 'command') {
-    notes.push(`ESLint ran on platform targets (${report.summary?.eslintErrors ?? 0} errors, ${report.summary?.eslintWarnings ?? 0} warnings).`);
+    notes.push(
+      `ESLint ran on platform targets (${report.summary?.eslintErrors ?? 0} errors, ${report.summary?.eslintWarnings ?? 0} warnings).`
+    );
   }
   const codeFiles = report.summary?.codeFilesAnalyzed;
   const auditFiles = report.repositoryInventory?.totalFiles ?? report.summary?.repositoryFilesTotal;
@@ -480,10 +524,19 @@ function buildProductCodebaseExportNotes(report, context = {}) {
     );
   }
   if ((report.summary?.findingsTotal ?? 0) === 0) {
-    notes.push('No actionable codebase findings in this export — hygiene score reflects analyzed source paths only.');
+    notes.push(
+      'No actionable codebase findings in this export — hygiene score reflects analyzed source paths only.'
+    );
   }
   const gateContext = resolveGateInventoryContext(report, context);
-  const { repositoryFilesTotal: gateTotal, credentialScanned, gateProfile, gateReport, fictionJsonFilesScanned, fictionSampleFilesScanned } = gateContext;
+  const {
+    repositoryFilesTotal: gateTotal,
+    credentialScanned,
+    gateProfile,
+    gateReport,
+    fictionJsonFilesScanned,
+    fictionSampleFilesScanned,
+  } = gateContext;
   if (gateTotal != null && auditFiles != null && gateTotal !== auditFiles) {
     const profile = report.repositoryInventory?.profile || 'audit';
     notes.push(
@@ -495,33 +548,49 @@ function buildProductCodebaseExportNotes(report, context = {}) {
       `CRED/LEAK rules scanned ${Number(credentialScanned).toLocaleString()} production-path file(s) — ${Number(gateTotal - credentialScanned).toLocaleString()} metadata-only path(s) in gate inventory of ${Number(gateTotal).toLocaleString()}.`
     );
   }
-  if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null && fictionJsonFilesScanned > fictionSampleFilesScanned) {
+  if (
+    fictionJsonFilesScanned != null &&
+    fictionSampleFilesScanned != null &&
+    fictionJsonFilesScanned > fictionSampleFilesScanned
+  ) {
     notes.push(
       // simplebeacon:production-leak-intent - legitimate KPI reference for codebase reporting
       `DATA-002 evaluated ${Number(fictionJsonFilesScanned).toLocaleString()} repository JSON path(s) — ${Number(fictionSampleFilesScanned).toLocaleString()} *-sample.json KPI file(s) matched in paired gate scan.`
     );
   }
   if (gateProfile) {
-    notes.push(`Gate rule bundle profile: ${gateProfile} — pair codebase report with json/simplebeacon-gate.json for handoff evidence.`);
+    notes.push(
+      `Gate rule bundle profile: ${gateProfile} — pair codebase report with json/simplebeacon-gate.json for handoff evidence.`
+    );
   }
-  if (gateReport.jestBaselineChecked === false || report.hygieneSummary?.jestBaselineChecked === false) {
-    notes.push('Jest was not run during the paired gate scan — codebase unused-file heuristics are static/ESLint only.');
+  if (
+    gateReport.jestBaselineChecked === false ||
+    report.hygieneSummary?.jestBaselineChecked === false
+  ) {
+    notes.push(
+      'Jest was not run during the paired gate scan — codebase unused-file heuristics are static/ESLint only.'
+    );
   }
   const medium = report.summary?.severityCounts?.medium ?? 0;
   const high = report.summary?.severityCounts?.high ?? 0;
   const eslintFindings = report.summary?.categoryCounts?.eslint ?? 0;
   if (medium > 0 && eslintFindings === medium && high === 0) {
-    notes.push(`${medium} medium-severity finding(s) are ESLint style-tier warnings only — no high-severity merge-risk issues.`);
+    notes.push(
+      `${medium} medium-severity finding(s) are ESLint style-tier warnings only — no high-severity merge-risk issues.`
+    );
   }
-  const mirrorSamples = (report.structureInsights?.samples || [])
-    .filter((s) => String(s.filePath || '').startsWith('.github-sync/')).length;
+  const mirrorSamples = (report.structureInsights?.samples || []).filter((s) =>
+    String(s.filePath || '').startsWith('.github-sync/')
+  ).length;
   if (mirrorSamples > 0) {
     notes.push(
       `Structure samples include ${mirrorSamples} path(s) under .github-sync/ — mirror tree, not primary product source.`
     );
   }
   if (report.aiSummaryProvider) {
-    notes.push(`AI narrative (${report.aiSummaryProvider}) is supplementary — use findings and summary for handoff.`);
+    notes.push(
+      `AI narrative (${report.aiSummaryProvider}) is supplementary — use findings and summary for handoff.`
+    );
   }
   return [...new Set(notes)].slice(0, 10);
 }
@@ -535,7 +604,13 @@ function buildProductCodebaseExportNotes(report, context = {}) {
 function buildProductCodebaseHygieneSummary(report, options = {}) {
   const summary = report.summary || {};
   const gateContext = resolveGateInventoryContext(report, options);
-  const { repositoryFilesTotal: gateTotal, credentialScanned, contentScanned, gateProfile, gateReport } = gateContext;
+  const {
+    repositoryFilesTotal: gateTotal,
+    credentialScanned,
+    contentScanned,
+    gateProfile,
+    gateReport,
+  } = gateContext;
   const auditFiles = report.repositoryInventory?.totalFiles ?? summary.repositoryFilesTotal ?? null;
   const codeFiles = summary.codeFilesAnalyzed ?? null;
   return {
@@ -563,10 +638,12 @@ function buildProductCodebaseHygieneSummary(report, options = {}) {
     eslintWarnings: summary.eslintWarnings ?? report.eslintSummary?.warnings ?? null,
     mediumSeverityFindings: summary.severityCounts?.medium ?? 0,
     highSeverityFindings: summary.severityCounts?.high ?? 0,
-    ...(gateReport.jestBaselineChecked === false || report.hygieneSummary?.jestBaselineChecked === false
+    ...(gateReport.jestBaselineChecked === false ||
+    report.hygieneSummary?.jestBaselineChecked === false
       ? { jestBaselineChecked: false }
       : {}),
-    attestationNote: 'Codebase hygiene scan — not a Simplebeacon gate pass or legal conformity certification.'
+    attestationNote:
+      'Codebase hygiene scan — not a Simplebeacon gate pass or legal conformity certification.',
   };
 }
 
@@ -586,7 +663,7 @@ function enrichProductCodebaseScanScope(report, options = {}) {
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
     resultsViewScope: base.resultsViewScope || 'platform-only',
     reportHealth: base.reportHealth || 'platform-scoped',
-    securityHandoffEligible: false
+    securityHandoffEligible: false,
   };
 }
 
@@ -597,14 +674,17 @@ function enrichProductCodebaseScanScope(report, options = {}) {
  */
 function annotateStructureInsights(structureInsights) {
   if (!structureInsights?.samples?.length) return structureInsights;
-  const mirrorCount = structureInsights.samples.filter((s) => String(s.filePath || '').startsWith('.github-sync/')).length;
+  const mirrorCount = structureInsights.samples.filter((s) =>
+    String(s.filePath || '').startsWith('.github-sync/')
+  ).length;
   const langs = structureInsights.summary?.byLanguage || {};
   const langKeys = Object.keys(langs);
   const docHeavy = langKeys.length > 0 && langKeys.every((k) => /markdown|yaml|text|md/i.test(k));
   const summaryExtras = {};
   if (mirrorCount) {
     summaryExtras.mirrorTreeSamples = mirrorCount;
-    summaryExtras.mirrorTreeNote = 'Samples may include .github-sync/ CLI mirror paths — not primary ai-platform application source.';
+    summaryExtras.mirrorTreeNote =
+      'Samples may include .github-sync/ CLI mirror paths — not primary ai-platform application source.';
   }
   if (docHeavy && structureInsights.summary?.tier === 'baseline') {
     const sampled = structureInsights.summary?.sampledFiles ?? structureInsights.samples.length;
@@ -615,8 +695,8 @@ function annotateStructureInsights(structureInsights) {
     ...structureInsights,
     summary: {
       ...(structureInsights.summary || {}),
-      ...summaryExtras
-    }
+      ...summaryExtras,
+    },
   };
 }
 
@@ -632,19 +712,17 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
   let next = filterKnownFalsePositiveFindings(report);
 
   const exportContext = resolveCodebaseExportContext(next, options);
-  const {
-    benchmarkScan,
-    scanTargetRoot,
-    productPlatformRoot,
-    misscopedPlatformWalk
-  } = exportContext;
+  const { benchmarkScan, scanTargetRoot, productPlatformRoot, misscopedPlatformWalk } =
+    exportContext;
 
   next = normalizeCodebaseExportPaths(next, scanTargetRoot || next.projectRoot, {
     benchmarkScan,
-    productPlatformRoot
+    productPlatformRoot,
   });
 
-  const projectLabel = projectLabelFromPath(productPlatformRoot || next.projectRoot || 'ai-platform');
+  const projectLabel = projectLabelFromPath(
+    productPlatformRoot || next.projectRoot || 'ai-platform'
+  );
   if (next.aiSummary) {
     next.aiSummary = redactCodebaseAiSummary(next.aiSummary, projectLabel);
   }
@@ -663,18 +741,22 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
       scanTargetRoot: scanTargetRoot || next.projectRoot || undefined,
       productPlatformRoot: productPlatformRoot || undefined,
       inventoryScope: misscopedPlatformWalk ? 'platform-walk-from-benchmark-target' : 'oss-clone',
-      ...(misscopedPlatformWalk ? {
-        misscopedPlatformCodeWalk: true,
-        codeAnalysisRoot: next.codeAnalysisRoot || next.projectRoot,
-        platformRoot: next.platformRoot || productPlatformRoot || next.projectRoot
-      } : {})
+      ...(misscopedPlatformWalk
+        ? {
+            misscopedPlatformCodeWalk: true,
+            codeAnalysisRoot: next.codeAnalysisRoot || next.projectRoot,
+            platformRoot: next.platformRoot || productPlatformRoot || next.projectRoot,
+          }
+        : {}),
     };
     if (next.summary) {
       next.summary = {
         ...next.summary,
-        codebaseHealthAttestation: misscopedPlatformWalk ? 'benchmark-target-platform-walk' : 'benchmark-hygiene',
+        codebaseHealthAttestation: misscopedPlatformWalk
+          ? 'benchmark-target-platform-walk'
+          : 'benchmark-hygiene',
         handoffEligible: false,
-        tierCountsExport: buildTierCountsExport(next.summary, true)
+        tierCountsExport: buildTierCountsExport(next.summary, true),
       };
     }
   }
@@ -682,15 +764,17 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
   if (next.scanScope) {
     next.scanScope = {
       ...next.scanScope,
-      ...(benchmarkScan ? {
-        resultsViewScope: 'benchmark-clone',
-        reportHealth: 'benchmark-clone-scan',
-        benchmarkScanTarget: true
-      } : {
-        resultsViewScope: 'platform-only',
-        reportHealth: 'platform-scoped'
-      }),
-      limitations: replaceMisleadingCodebaseLimitations(next.scanScope.limitations, context)
+      ...(benchmarkScan
+        ? {
+            resultsViewScope: 'benchmark-clone',
+            reportHealth: 'benchmark-clone-scan',
+            benchmarkScanTarget: true,
+          }
+        : {
+            resultsViewScope: 'platform-only',
+            reportHealth: 'platform-scoped',
+          }),
+      limitations: replaceMisleadingCodebaseLimitations(next.scanScope.limitations, context),
     };
   }
 
@@ -703,7 +787,7 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
       ...(next.exportNotes || []),
       misscopedPlatformWalk
         ? 'Mis-scoped complete-scan export: codebase walked Simplebeacon platform root while scan target was github-cache/ clone — re-run complete scan after updating Simplebeacon for clone-scoped hygiene.'
-        : 'Benchmark clone codebase export — not valid for Simplebeacon platform deploy handoff. Run codebase analysis on ai-platform root for product hygiene scoring.'
+        : 'Benchmark clone codebase export — not valid for Simplebeacon platform deploy handoff. Run codebase analysis on ai-platform root for product hygiene scoring.',
     ];
     next.exportNotes = dedupeCodebaseExportNotes(benchmarkNotes);
     if (next.aiSummary && !/benchmark|OSS clone|mis-scoped/i.test(String(next.aiSummary))) {
@@ -716,40 +800,43 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
       exportNormalized: true,
       exportSanitized: true,
       securityHandoffEligible: false,
-      codebaseHealthStatus: misscopedPlatformWalk ? 'benchmark-misscoped-review' : resolveCodebaseHealthStatus(next.summary),
+      codebaseHealthStatus: misscopedPlatformWalk
+        ? 'benchmark-misscoped-review'
+        : resolveCodebaseHealthStatus(next.summary),
       hygieneSummary: {
         healthScore: next.summary?.healthScore ?? null,
         findingsTotal: next.summary?.findingsTotal ?? 0,
         codeFilesAnalyzed: next.summary?.codeFilesAnalyzed ?? null,
-        repositoryFilesTotal: next.summary?.repositoryFilesTotal
-          ?? next.repositoryInventory?.totalFiles
-          ?? null,
+        repositoryFilesTotal:
+          next.summary?.repositoryFilesTotal ?? next.repositoryInventory?.totalFiles ?? null,
         eslintSource,
         scanTargetRoot: scanTargetRoot
           ? redactCodebasePathForExport(scanTargetRoot, {
-            projectLabel,
-            productPlatformLabel: projectLabel,
-            benchmarkScan: true
-          })
+              projectLabel,
+              productPlatformLabel: projectLabel,
+              benchmarkScan: true,
+            })
           : next.projectRoot || undefined,
         misscopedPlatformCodeWalk: misscopedPlatformWalk || undefined,
         attestationNote: misscopedPlatformWalk
           ? 'Scan target was an OSS github-cache/ clone but codebase analysis walked the Simplebeacon platform tree — not valid benchmark hygiene or product handoff evidence.'
-          : 'OSS benchmark clone — codebase hygiene comparison only; not a platform gate pass or deploy handoff certification.'
-      }
+          : 'OSS benchmark clone — codebase hygiene comparison only; not a platform gate pass or deploy handoff certification.',
+      },
     };
   } else {
     const builtNotes = buildProductCodebaseExportNotes(next, {
       repositoryFilesTotal: options.repositoryFilesTotal ?? null,
       gateRepositoryFilesTotal: options.repositoryFilesTotal ?? null,
-      gateReport: options.gateReport || null
+      gateReport: options.gateReport || null,
     });
-/**
- * False positive notes.
- * @param {number} next.exportNotes || []
- * @returns {any}
- */
-    const falsePositiveNotes = (next.exportNotes || []).filter((n) => /false positive/i.test(String(n)));
+    /**
+     * False positive notes.
+     * @param {number} next.exportNotes || []
+     * @returns {any}
+     */
+    const falsePositiveNotes = (next.exportNotes || []).filter((n) =>
+      /false positive/i.test(String(n))
+    );
     next = {
       ...next,
       exportNormalized: true,
@@ -761,7 +848,7 @@ export function sanitizeCodebaseReportExport(report, options = {}) {
       exportNotes: dedupeCodebaseExportNotes([...builtNotes, ...falsePositiveNotes]).slice(0, 10),
       inventoryScope: 'platform-product',
       hygieneSummary: buildProductCodebaseHygieneSummary(next, options),
-      scanScope: enrichProductCodebaseScanScope(next, options)
+      scanScope: enrichProductCodebaseScanScope(next, options),
     };
   }
 

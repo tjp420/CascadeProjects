@@ -6,15 +6,15 @@
 
 ## Feature Matrix & Tier Layout
 
-| Feature / Capability | Free / Community | Team ($149 / mo) | Enterprise (Custom Quote) |
-|---|---|---|---|
-| **Target Audience** | Individual Developers | Growing Dev Teams | FinTech, Healthcare, Enterprise |
-| **Standard Rule Scanning** | Unlimited | Unlimited | Unlimited |
-| **Real-time IDE Monitoring** | Basic Rules | Basic Rules | Custom Rule Catalog |
-| **Premium Rule Presets** | ❌ None | fiction-kpi, ai-residue | enterprise-compliance |
-| **Workspace Scanning Limits** | 1 Monorepo / Machine | Up to 5 Active Repos | Unlimited Network Monorepos |
-| **Compliance Exporting** | Plain JSON Output | Signed Markdown Audit | Signed PDF & Crypto Certificates |
-| **License Verification** | None Required | Local Cryptographic Token | Local Token + Priority Support |
+| Feature / Capability          | Free / Community      | Team ($149 / mo)          | Enterprise (Custom Quote)        |
+| ----------------------------- | --------------------- | ------------------------- | -------------------------------- |
+| **Target Audience**           | Individual Developers | Growing Dev Teams         | FinTech, Healthcare, Enterprise  |
+| **Standard Rule Scanning**    | Unlimited             | Unlimited                 | Unlimited                        |
+| **Real-time IDE Monitoring**  | Basic Rules           | Basic Rules               | Custom Rule Catalog              |
+| **Premium Rule Presets**      | ❌ None               | fiction-kpi, ai-residue   | enterprise-compliance            |
+| **Workspace Scanning Limits** | 1 Monorepo / Machine  | Up to 5 Active Repos      | Unlimited Network Monorepos      |
+| **Compliance Exporting**      | Plain JSON Output     | Signed Markdown Audit     | Signed PDF & Crypto Certificates |
+| **License Verification**      | None Required         | Local Cryptographic Token | Local Token + Priority Support   |
 
 ---
 

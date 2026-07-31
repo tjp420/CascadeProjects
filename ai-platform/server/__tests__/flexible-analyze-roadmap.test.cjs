@@ -2,13 +2,13 @@
 
 jest.mock('../lib/flexible-analyze-utils.cjs', () => ({
   normalizeStringList: jest.fn().mockReturnValue([]),
-  safeBasename: jest.fn().mockReturnValue('project')
+  safeBasename: jest.fn().mockReturnValue('project'),
 }));
 jest.mock('../lib/strategic-insights-engine.cjs', () => ({
-  analyzeStrategicInsights: jest.fn()
+  analyzeStrategicInsights: jest.fn(),
 }));
 jest.mock('../lib/roadmap-history-metrics.cjs', () => ({
-  buildHistoryEntryFromRoadmap: jest.fn().mockReturnValue({ id: 'test-entry' })
+  buildHistoryEntryFromRoadmap: jest.fn().mockReturnValue({ id: 'test-entry' }),
 }));
 
 const { buildRoadmapFromPath } = require('../routes/lib/flexible-analyze-roadmap.cjs');

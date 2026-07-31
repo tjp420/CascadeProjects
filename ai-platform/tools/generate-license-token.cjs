@@ -20,10 +20,17 @@ const path = require('path');
 
 /* ── Token engine (mirrors packages/simplebeacon-cli/src/lib/license-token.js) ── */
 
-function generateLicenseToken(payload = {}, secret = process.env.SIMPLEBEACON_LICENSE_SECRET, expiresInMinutes = 60) {
-  if (!secret) throw new Error('SIMPLEBEACON_LICENSE_SECRET is required. Set it in your environment or pass it explicitly.');
+function generateLicenseToken(
+  payload = {},
+  secret = process.env.SIMPLEBEACON_LICENSE_SECRET,
+  expiresInMinutes = 60
+) {
+  if (!secret)
+    throw new Error(
+      'SIMPLEBEACON_LICENSE_SECRET is required. Set it in your environment or pass it explicitly.'
+    );
   const issuedAt = Date.now();
-  const expiresAt = issuedAt + (expiresInMinutes * 60 * 1000);
+  const expiresAt = issuedAt + expiresInMinutes * 60 * 1000;
   const tokenPayload = {
     email: payload.email || '',
     tier: payload.tier || 'executive',
@@ -31,7 +38,7 @@ function generateLicenseToken(payload = {}, secret = process.env.SIMPLEBEACON_LI
     clientName: payload.clientName || payload.email || 'Client',
     projectName: payload.projectName || 'Project',
     iat: issuedAt,
-    exp: expiresAt
+    exp: expiresAt,
   };
   const data = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
@@ -39,7 +46,10 @@ function generateLicenseToken(payload = {}, secret = process.env.SIMPLEBEACON_LI
 }
 
 function verifyLicenseToken(token, secret = process.env.SIMPLEBEACON_LICENSE_SECRET) {
-  if (!secret) throw new Error('SIMPLEBEACON_LICENSE_SECRET is required. Set it in your environment or pass it explicitly.');
+  if (!secret)
+    throw new Error(
+      'SIMPLEBEACON_LICENSE_SECRET is required. Set it in your environment or pass it explicitly.'
+    );
   if (!token || typeof token !== 'string') return null;
   const [data, sig] = token.split('.');
   if (!data || !sig) return null;
@@ -63,7 +73,7 @@ function parseArgs() {
     if (args[i].startsWith('--')) {
       const key = args[i].slice(2);
       const next = args[i + 1];
-      flags[key] = (next && !next.startsWith('--')) ? next : true;
+      flags[key] = next && !next.startsWith('--') ? next : true;
       if (flags[key] !== true) i++;
     }
   }
@@ -74,7 +84,10 @@ function prompt(question) {
   const readline = require('readline');
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
-    rl.question(question, (answer) => { rl.close(); resolve(answer.trim()); });
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
   });
 }
 
@@ -95,7 +108,7 @@ async function runSetup() {
   const lines = [
     'SIMPLEBEACON_LICENSE_SECRET=' + (secret || ''),
     '# IMPORTANT: Replace the empty secret above with a strong random string before using in production.',
-    'SIMPLEBEACON_APP_URL=' + (appUrl || '')
+    'SIMPLEBEACON_APP_URL=' + (appUrl || ''),
   ];
 
   fs.writeFileSync(ENV_PATH, lines.join('\n') + '\n', 'utf8');
@@ -127,7 +140,9 @@ async function main() {
     const token = String(flags.verify);
     const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
     if (!secret) {
-      console.error('ERROR: SIMPLEBEACON_LICENSE_SECRET is not set. Run with --setup or set the environment variable.');
+      console.error(
+        'ERROR: SIMPLEBEACON_LICENSE_SECRET is not set. Run with --setup or set the environment variable.'
+      );
       process.exit(1);
     }
     const payload = verifyLicenseToken(token, secret);
@@ -176,15 +191,19 @@ async function main() {
 
   // Prevent EU AI Act tokens from being generated with 'Universal License' label
   const euAiIndicators = ['eu-ai-act', 'euai', 'eu-ai', 'ai-act-compliance'];
-  const hasEuAiIndicator = features.some(f => euAiIndicators.includes(f.toLowerCase()));
+  const hasEuAiIndicator = features.some((f) => euAiIndicators.includes(f.toLowerCase()));
   if (hasEuAiIndicator && tier === 'universal') {
-    console.warn('[WARN] EU AI Act features require tier "euai". Auto-correcting from "universal" to "euai".');
+    console.warn(
+      '[WARN] EU AI Act features require tier "euai". Auto-correcting from "universal" to "euai".'
+    );
     tier = 'euai';
   }
 
   const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
   if (!secret) {
-    console.error('ERROR: SIMPLEBEACON_LICENSE_SECRET is not set. Run with --setup or set the environment variable.');
+    console.error(
+      'ERROR: SIMPLEBEACON_LICENSE_SECRET is not set. Run with --setup or set the environment variable.'
+    );
     process.exit(1);
   }
   const minutes = days * 24 * 60;

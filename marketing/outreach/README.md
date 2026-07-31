@@ -42,36 +42,41 @@ node outreach-pipeline.js --status
 ## Email Sequences
 
 ### Sequence A: Chief Legal Officer (4 emails)
-| Step | Day | Subject |
-|------|-----|---------|
-| 1 | 0 | EUR 35M or 7% of turnover — is [Company] exposed? |
-| 2 | 4 | The question your auditor will ask about AI-generated code |
-| 3 | 8 | Board-ready AI risk report — 30-second demo |
-| 4 | 15 | Closing the loop on EU AI Act readiness |
+
+| Step | Day | Subject                                                    |
+| ---- | --- | ---------------------------------------------------------- |
+| 1    | 0   | EUR 35M or 7% of turnover — is [Company] exposed?          |
+| 2    | 4   | The question your auditor will ask about AI-generated code |
+| 3    | 8   | Board-ready AI risk report — 30-second demo                |
+| 4    | 15  | Closing the loop on EU AI Act readiness                    |
 
 ### Sequence B: Chief Compliance Officer (3 emails)
-| Step | Day | Subject |
-|------|-----|---------|
-| 1 | 0 | AI-generated code audit trail — can you produce one in 24 hours? |
-| 2 | 5 | ISO 42001 (AI Management System) — your evidence gap |
-| 3 | 10 | How a fintech compliance team cut audit prep from 6 weeks to 2 days |
+
+| Step | Day | Subject                                                             |
+| ---- | --- | ------------------------------------------------------------------- |
+| 1    | 0   | AI-generated code audit trail — can you produce one in 24 hours?    |
+| 2    | 5   | ISO 42001 (AI Management System) — your evidence gap                |
+| 3    | 10  | How a fintech compliance team cut audit prep from 6 weeks to 2 days |
 
 ### Sequence C: Chief Risk Officer (2 emails)
-| Step | Day | Subject |
-|------|-----|---------|
-| 1 | 0 | Quantifying AI-generated code risk in your production systems |
-| 2 | 5 | AI code risk and your cyber insurance underwriting |
+
+| Step | Day | Subject                                                       |
+| ---- | --- | ------------------------------------------------------------- |
+| 1    | 0   | Quantifying AI-generated code risk in your production systems |
+| 2    | 5   | AI code risk and your cyber insurance underwriting            |
 
 ### Reactivation Sequence (all personas, 3 emails)
-| Step | Day | Subject |
-|------|-----|---------|
-| 1 | 30 | August 2026: Is your AI governance evidence ready? |
-| 2 | 60 | EU AI Act enforcement countdown — 5 months remaining |
-| 3 | 90 | Final check-in: AI compliance readiness assessment |
+
+| Step | Day | Subject                                              |
+| ---- | --- | ---------------------------------------------------- |
+| 1    | 30  | August 2026: Is your AI governance evidence ready?   |
+| 2    | 60  | EU AI Act enforcement countdown — 5 months remaining |
+| 3    | 90  | Final check-in: AI compliance readiness assessment   |
 
 ## Qualification Criteria
 
 A prospect must score 60+ on the qualification scale:
+
 - 50+ developers: +25 points
 - $50M+ revenue: +25 points
 - Uses AI coding tools: +20 points
@@ -95,6 +100,7 @@ export CALENDLY_URL="https://calendly.com/yourname/30min"
 ## Campaign State
 
 The pipeline persists all campaign state in `campaign-state.json`, including:
+
 - Per-prospect tracking: sequence, current step, email history, reply/meeting/pilot status
 - Aggregate stats: total contacted, replies, meetings, pilots, closed deals
 - Contract value tracking

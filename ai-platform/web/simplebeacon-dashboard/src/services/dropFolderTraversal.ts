@@ -16,7 +16,9 @@ type TraversalState = {
 const DEFAULT_MAX_FILES = 100_000;
 
 /** Capture FileSystemEntry objects synchronously during the drop event. */
-export function captureDropEntries(items: DataTransferItemList | null | undefined): FileSystemEntry[] {
+export function captureDropEntries(
+  items: DataTransferItemList | null | undefined
+): FileSystemEntry[] {
   const entries: FileSystemEntry[] = [];
   if (!items || items.length === 0) return entries;
   for (let i = 0; i < items.length; i += 1) {
@@ -143,10 +145,11 @@ export async function collectFilesFromDrop(
     appendFlatDataTransferFiles(dataTransfer, files);
   }
 
-  const firstRel = files[0]?._virtualPath
-    || (files[0] as File & { webkitRelativePath?: string })?.webkitRelativePath
-    || files[0]?.name
-    || 'dropped-folder';
+  const firstRel =
+    files[0]?._virtualPath ||
+    (files[0] as File & { webkitRelativePath?: string })?.webkitRelativePath ||
+    files[0]?.name ||
+    'dropped-folder';
   const rootName = String(firstRel).split('/')[0] || 'dropped-folder';
 
   return { files, rootName, traverseErrors: state.errors };

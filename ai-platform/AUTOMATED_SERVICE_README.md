@@ -21,17 +21,20 @@ ollama serve
 ### 2. Start the Automated Service
 
 **Interactive mode (for testing):**
+
 ```cmd
 npm run auto:start
 ```
 
 **Offline mode (recommended for production):**
+
 ```cmd
 set SIMPLEBEACON_OFFLINE=true
 npm run auto:start
 ```
 
 **PM2 daemon (background service):**
+
 ```cmd
 npm run auto:start:pm2
 pm2 startup
@@ -41,6 +44,7 @@ pm2 save
 ### 3. Drop Files for Processing
 
 Place any text file into the `incoming_user_data` directory. The service will:
+
 1. Sanitize PII from the file
 2. Analyze with local Ollama (`unbreakable-oracle:latest`)
 3. Generate a JSON report in `processed_reports`
@@ -61,11 +65,11 @@ ai-platform/
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Local Ollama endpoint |
-| `OLLAMA_MODEL` | `unbreakable-oracle:latest` | Model to use for analysis |
-| `SIMPLEBEACON_OFFLINE` | `false` | Enforce offline-only mode |
+| Variable               | Default                     | Description               |
+| ---------------------- | --------------------------- | ------------------------- |
+| `OLLAMA_BASE_URL`      | `http://127.0.0.1:11434`    | Local Ollama endpoint     |
+| `OLLAMA_MODEL`         | `unbreakable-oracle:latest` | Model to use for analysis |
+| `SIMPLEBEACON_OFFLINE` | `false`                     | Enforce offline-only mode |
 
 ### Example .env
 
@@ -129,6 +133,7 @@ Each processed file generates a JSON report:
 ### Ollama Connection Failed
 
 Ensure Ollama is running:
+
 ```cmd
 curl http://127.0.0.1:11434/api/tags
 ```
@@ -140,6 +145,7 @@ Run as Administrator or adjust directory permissions for `incoming_user_data`.
 ### Files Not Processing
 
 Check the service logs:
+
 ```cmd
 npm run auto:logs
 ```
@@ -180,7 +186,7 @@ async function sendWebhook(report) {
   await fetch(process.env.WEBHOOK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(report)
+    body: JSON.stringify(report),
   });
 }
 ```

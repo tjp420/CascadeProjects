@@ -22,7 +22,12 @@ function getRemediationPlan(issue) {
   if (ruleId.includes('config-drift') || type.includes('config')) {
     return { action: 'Move to environment variables', effort: '15 min', category: 'Security' };
   }
-  if (ruleId.includes('sample-json-ref') || ruleId.includes('production-leak') || type.includes('sample') || type.includes('mock')) {
+  if (
+    ruleId.includes('sample-json-ref') ||
+    ruleId.includes('production-leak') ||
+    type.includes('sample') ||
+    type.includes('mock')
+  ) {
     return { action: 'Replace with runtime data sources', effort: '30 min', category: 'Data' };
   }
   if (ruleId.includes('missing-security-header') || type.includes('security header')) {
@@ -107,12 +112,21 @@ function convertPhasesToIssues(phases, summary) {
       for (const task of phase.tasks) {
         issues.push({
           id: 'roadmap-' + (phase.id || idx) + '-' + idx++,
-          severity: ['critical','high','medium','low','info'].includes(phase.severity) ? phase.severity : 'medium',
+          severity: ['critical', 'high', 'medium', 'low', 'info'].includes(phase.severity) ? phase.severity : 'medium',
           type: phase.id || phase.phase || 'phase',
           category: (phase.title || '').replace(/^Phase \d+:\s*/, '') || phase.id || phase.phase || 'Phase',
           description: task.description,
           filePath: task.location || '-',
-          action: task.type === 'fix' ? 'Fix required' : task.type === 'verify' ? 'Verify' : task.type === 'audit' ? 'Audit' : task.type === 'doc' ? 'Document' : 'Review',
+          action:
+            task.type === 'fix'
+              ? 'Fix required'
+              : task.type === 'verify'
+                ? 'Verify'
+                : task.type === 'audit'
+                  ? 'Audit'
+                  : task.type === 'doc'
+                    ? 'Document'
+                    : 'Review',
           _phaseId: phase.id,
           _phaseTitle: phase.title,
           _phaseDependsOn: phase.dependsOn,
@@ -121,7 +135,7 @@ function convertPhasesToIssues(phases, summary) {
           _codeSnippet: task.codeSnippet,
           _isStructured: task.isStructured,
           effort: phase.effort || '20 min',
-          completed: task.done || false
+          completed: task.done || false,
         });
       }
       continue;
@@ -129,9 +143,14 @@ function convertPhasesToIssues(phases, summary) {
 
     // Sprint-model developmentPhases (code-roadmap-generator output)
     const phaseLabel = phase.phase || phase.name || phase.title || 'Phase';
-    const severity = phase.status === 'completed' ? 'info'
-      : phase.status === 'in-progress' ? 'medium'
-      : phase.progress >= 50 ? 'medium' : 'low';
+    const severity =
+      phase.status === 'completed'
+        ? 'info'
+        : phase.status === 'in-progress'
+          ? 'medium'
+          : phase.progress >= 50
+            ? 'medium'
+            : 'low';
     const descriptionParts = [phase.description].filter(Boolean);
     if (Array.isArray(phase.features) && phase.features.length) {
       descriptionParts.push('Features: ' + phase.features.join('; '));
@@ -139,9 +158,8 @@ function convertPhasesToIssues(phases, summary) {
     if (Array.isArray(phase.milestones) && phase.milestones.length) {
       descriptionParts.push('Milestones: ' + phase.milestones.join('; '));
     }
-    const action = phase.status === 'completed' ? 'Completed'
-      : phase.status === 'in-progress' ? 'In progress'
-      : 'Planned';
+    const action =
+      phase.status === 'completed' ? 'Completed' : phase.status === 'in-progress' ? 'In progress' : 'Planned';
     issues.push({
       id: 'roadmap-' + (phase.id || slugify(phaseLabel)) + '-' + idx++,
       severity,
@@ -156,7 +174,7 @@ function convertPhasesToIssues(phases, summary) {
       _phaseProgress: phase.progress,
       _phaseStatus: phase.status,
       effort: '—',
-      completed: phase.status === 'completed' || phase.progress >= 100
+      completed: phase.status === 'completed' || phase.progress >= 100,
     });
   }
   return { issues, exportedAt: summary?.exportedAt || null };
@@ -196,17 +214,15 @@ export class RemediationRoadmapView {
     const report = this.app.state.report;
     const raw = report?.rawIssues;
     const detected = report?.detectedIssues;
-    const source = (Array.isArray(raw) && raw.length) ? raw
-                : (Array.isArray(detected) && detected.length) ? detected
-                : [];
+    const source = Array.isArray(raw) && raw.length ? raw : Array.isArray(detected) && detected.length ? detected : [];
     const liveIssues = source.map((issue, index) => ({
       ...issue,
       id: issue.id || `${issue.severity}|${issue.type}|${issue.description}|${index}`,
-      filePath: issue.filePath || issue.filePaths?.[0] || issue.affectedFiles?.[0] || '—'
+      filePath: issue.filePath || issue.filePaths?.[0] || issue.affectedFiles?.[0] || '—',
     }));
 
     // Merge imported issues that no longer appear in live scan
-    const liveIds = new Set(liveIssues.map(i => i.id));
+    const liveIds = new Set(liveIssues.map((i) => i.id));
     const merged = [...liveIssues];
     for (const imp of this.importedIssues) {
       if (!liveIds.has(imp.id)) {
@@ -223,8 +239,9 @@ export class RemediationRoadmapView {
 
   async ensureReportFresh() {
     const report = this.app.state.report;
-    const hasLive = (Array.isArray(report?.rawIssues) && report.rawIssues.length > 0)
-                 || (Array.isArray(report?.detectedIssues) && report.detectedIssues.length > 0);
+    const hasLive =
+      (Array.isArray(report?.rawIssues) && report.rawIssues.length > 0) ||
+      (Array.isArray(report?.detectedIssues) && report.detectedIssues.length > 0);
     if (hasLive) return;
 
     try {
@@ -239,7 +256,7 @@ export class RemediationRoadmapView {
 
   getSummaryStats(issues) {
     const total = issues.length;
-    const completed = issues.filter(i => this.completed.has(i.id)).length;
+    const completed = issues.filter((i) => this.completed.has(i.id)).length;
     const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
     const byCategory = {};
     let totalEffortMin = 0;
@@ -275,11 +292,15 @@ export class RemediationRoadmapView {
     const items = ['all', ...Object.keys(categories).sort()];
     return `
       <div class="roadmap-filters" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
-        ${items.map(cat => `
+        ${items
+          .map(
+            (cat) => `
           <button class="filter-chip ${cat === this.selectedCategory ? 'active' : ''}" data-filter="${escapeHtml(cat)}">
             ${escapeHtml(cat === 'all' ? 'All Categories' : cat)} ${cat !== 'all' ? `(${categories[cat]})` : ''}
           </button>
-        `).join('')}
+        `
+          )
+          .join('')}
         <label for="show-completed" style="display:flex;align-items:center;gap:6px;margin-left:auto;font-size:var(--font-size-sm);cursor:pointer;">
           <input type="checkbox" id="show-completed" aria-label="Show completed" ${this.showCompleted ? 'checked' : ''}>
           Show completed
@@ -290,7 +311,9 @@ export class RemediationRoadmapView {
 
   renderPhaseHeader(phaseId, phaseTitle, phaseDescription, phaseDependsOn) {
     if (!phaseId) return '';
-    const blocked = phaseDependsOn ? `<span class="pill" style="background:rgba(245,158,11,0.15);color:var(--warning);">Blocked by ${escapeHtml(phaseDependsOn)}</span>` : '';
+    const blocked = phaseDependsOn
+      ? `<span class="pill" style="background:rgba(245,158,11,0.15);color:var(--warning);">Blocked by ${escapeHtml(phaseDependsOn)}</span>`
+      : '';
     return `
       <div class="roadmap-phase-header" style="
         margin: var(--space-4) 0 var(--space-2);
@@ -343,7 +366,7 @@ export class RemediationRoadmapView {
       exportedAt: new Date().toISOString(),
       totalIssues: issues.length,
       completed: [...this.completed],
-      issues: issues.map(issue => {
+      issues: issues.map((issue) => {
         const plan = getRemediationPlan(issue);
         return {
           id: issue.id,
@@ -354,9 +377,9 @@ export class RemediationRoadmapView {
           filePath: issue.filePath,
           action: plan.action,
           effort: plan.effort,
-          completed: this.completed.has(issue.id)
+          completed: this.completed.has(issue.id),
         };
-      })
+      }),
     };
     downloadJson(payload, `remediation-roadmap-${new Date().toISOString().slice(0, 10)}.json`);
     showToast('Remediation roadmap exported as JSON');
@@ -396,8 +419,8 @@ export class RemediationRoadmapView {
       jsonFiles.sort((a, b) => {
         const aName = a.name.toLowerCase();
         const bName = b.name.toLowerCase();
-        const aPriority = priorityNames.some(p => aName.includes(p)) ? 1 : 0;
-        const bPriority = priorityNames.some(p => bName.includes(p)) ? 1 : 0;
+        const aPriority = priorityNames.some((p) => aName.includes(p)) ? 1 : 0;
+        const bPriority = priorityNames.some((p) => bName.includes(p)) ? 1 : 0;
         if (aPriority !== bPriority) return bPriority - aPriority;
         return (b._data.uncompressedSize || 0) - (a._data.uncompressedSize || 0);
       });
@@ -455,7 +478,7 @@ export class RemediationRoadmapView {
 
       // Normalize raw simplebeacon report with issues
       if (data.type === 'simplebeacon-report') {
-        const sourceIssues = data.rawIssues?.length ? data.rawIssues : (data.detectedIssues || []);
+        const sourceIssues = data.rawIssues?.length ? data.rawIssues : data.detectedIssues || [];
         if (sourceIssues.length) {
           data = { issues: sourceIssues, metadata: { exportedAt: data.generatedAt || data.scannedAt } };
         }
@@ -465,7 +488,7 @@ export class RemediationRoadmapView {
       if (data.type === 'simplebeacon-complete-scan' && !data.issues && !data.phases) {
         const sb = data.results?.simplebeacon;
         if (sb) {
-          const sourceIssues = sb.rawIssues?.length ? sb.rawIssues : (sb.detectedIssues || []);
+          const sourceIssues = sb.rawIssues?.length ? sb.rawIssues : sb.detectedIssues || [];
           if (sourceIssues.length) {
             data = { issues: sourceIssues, metadata: { exportedAt: data.generatedAt } };
           }
@@ -492,7 +515,7 @@ export class RemediationRoadmapView {
         return;
       }
 
-      this.importedIssues = issues.map(issue => ({
+      this.importedIssues = issues.map((issue) => ({
         id: issue.id,
         severity: issue.severity,
         type: issue.type,
@@ -501,7 +524,7 @@ export class RemediationRoadmapView {
         filePath: issue.filePath,
         action: issue.action,
         effort: issue.effort,
-        completed: issue.completed || false
+        completed: issue.completed || false,
       }));
       this.importedAt = metaExportedAt || data.exportedAt || new Date().toISOString();
       localStorage.setItem('sb-remediation-imported', JSON.stringify(this.importedIssues));
@@ -577,12 +600,14 @@ export class RemediationRoadmapView {
 
     const overlay = document.createElement('div');
     overlay.id = 'sb-import-modal-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.style.cssText =
+      'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;';
 
     const panel = document.createElement('div');
-    panel.style.cssText = 'width:90%;max-width:840px;max-height:90vh;overflow:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:30px;color:#e6edf3;font-family:sans-serif;font-size:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);';
+    panel.style.cssText =
+      'width:90%;max-width:840px;max-height:90vh;overflow:auto;background:#161b22;border:1px solid #30363d;border-radius:12px;padding:30px;color:#e6edf3;font-family:sans-serif;font-size:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);';
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     panel.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="margin:0;font-size:1.1rem;color:#e6edf3;">Import Remediation Data</h3>
@@ -613,12 +638,22 @@ export class RemediationRoadmapView {
     const importBtn = panel.querySelector('#sb-import-submit');
     const chooseBtn = panel.querySelector('#sb-import-choose');
 
-    function close() { overlay.remove(); }
+    function close() {
+      overlay.remove();
+    }
     closeBtn.addEventListener('click', close);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
 
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#58a6ff'; });
-    dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.style.borderColor = '#30363d'; });
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#58a6ff';
+    });
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#30363d';
+    });
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.style.borderColor = '#30363d';
@@ -643,13 +678,19 @@ export class RemediationRoadmapView {
 
     importBtn.addEventListener('click', () => {
       const text = jsonInput.value.trim();
-      if (!text) { showToast('Paste JSON data first', 'warning'); return; }
+      if (!text) {
+        showToast('Paste JSON data first', 'warning');
+        return;
+      }
       close();
       self.importFromText(text);
     });
 
     jsonInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); importBtn.click(); }
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        importBtn.click();
+      }
     });
   }
 
@@ -673,26 +714,25 @@ export class RemediationRoadmapView {
           icon: '🗺️',
           title: 'No scan report loaded',
           body: 'Run Simplebeacon Scan to generate a remediation roadmap.',
-          iconWrapper: 'emoji'
+          iconWrapper: 'emoji',
         })}
       `;
     }
 
     const stats = this.getSummaryStats(issues);
     const grouped = groupIssuesByCategory(issues);
-    let filtered = this.selectedCategory === 'all'
-      ? issues
-      : (grouped[this.selectedCategory] || []);
+    let filtered = this.selectedCategory === 'all' ? issues : grouped[this.selectedCategory] || [];
     if (this.searchQuery) {
       const q = this.searchQuery.toLowerCase();
-      filtered = filtered.filter(i =>
-        (i.type || '').toLowerCase().includes(q) ||
-        (i.description || '').toLowerCase().includes(q) ||
-        (i.filePath || '').toLowerCase().includes(q) ||
-        (i.category || '').toLowerCase().includes(q)
+      filtered = filtered.filter(
+        (i) =>
+          (i.type || '').toLowerCase().includes(q) ||
+          (i.description || '').toLowerCase().includes(q) ||
+          (i.filePath || '').toLowerCase().includes(q) ||
+          (i.category || '').toLowerCase().includes(q)
       );
     }
-    const visible = this.showCompleted ? filtered : filtered.filter(i => !this.completed.has(i.id));
+    const visible = this.showCompleted ? filtered : filtered.filter((i) => !this.completed.has(i.id));
     const sorted = sortBySeverity(visible);
 
     const totalPages = Math.max(1, Math.ceil(sorted.length / this.pageSize));
@@ -740,16 +780,23 @@ export class RemediationRoadmapView {
       ${this.renderCategoryFilter(Object.fromEntries(Object.entries(stats.byCategory).sort((a, b) => b[1] - a[1])))}
 
       <div class="roadmap-list">
-        ${paginated.length ? (() => {
-          let lastPhaseId = null;
-          return paginated.map(i => {
-            const header = i._phaseId && i._phaseId !== lastPhaseId
-              ? this.renderPhaseHeader(i._phaseId, i._phaseTitle, i._phaseDescription, i._phaseDependsOn)
-              : '';
-            lastPhaseId = i._phaseId || lastPhaseId;
-            return header + this.renderIssueCard(i);
-          }).join('');
-        })() : '<p class="text-muted card">All issues in this category are completed 🎉</p>'}
+        ${
+          paginated.length
+            ? (() => {
+                let lastPhaseId = null;
+                return paginated
+                  .map((i) => {
+                    const header =
+                      i._phaseId && i._phaseId !== lastPhaseId
+                        ? this.renderPhaseHeader(i._phaseId, i._phaseTitle, i._phaseDescription, i._phaseDependsOn)
+                        : '';
+                    lastPhaseId = i._phaseId || lastPhaseId;
+                    return header + this.renderIssueCard(i);
+                  })
+                  .join('');
+              })()
+            : '<p class="text-muted card">All issues in this category are completed 🎉</p>'
+        }
       </div>
 
       ${this.renderPagination(sorted.length, safePage, totalPages)}
@@ -761,7 +808,7 @@ export class RemediationRoadmapView {
     const issues = this.getIssues();
     const el = document.createElement('div');
     el.className = this._hasPainted ? '' : 'fade-in';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Remediation Roadmap</h1>
@@ -779,7 +826,7 @@ export class RemediationRoadmapView {
   }
 
   bindEvents(el) {
-    el.querySelectorAll('.filter-chip').forEach(btn => {
+    el.querySelectorAll('.filter-chip').forEach((btn) => {
       btn.addEventListener('click', () => {
         this.selectedCategory = btn.dataset.filter;
         this.currentPage = 1;
@@ -794,7 +841,7 @@ export class RemediationRoadmapView {
       this.refreshView();
     });
 
-    el.querySelectorAll('.roadmap-check').forEach(cb => {
+    el.querySelectorAll('.roadmap-check').forEach((cb) => {
       cb.addEventListener('change', (e) => {
         const id = cb.dataset.id;
         if (e.target.checked) {
@@ -849,33 +896,33 @@ export class RemediationRoadmapView {
     // Drag-and-drop handlers on main page (fallback)
     const dropZone = el.querySelector('#remediation-drop-zone');
     if (dropZone) {
-/**
- * Handle drag over.
- * @param {any} e
- * @returns {any}
- */
+      /**
+       * Handle drag over.
+       * @param {any} e
+       * @returns {any}
+       */
       const handleDragOver = (e) => {
         e.preventDefault();
         e.stopPropagation();
         dropZone.style.borderColor = 'var(--accent)';
         dropZone.style.background = 'rgba(56, 189, 248, 0.05)';
       };
-/**
- * Handle drag leave.
- * @param {any} e
- * @returns {any}
- */
+      /**
+       * Handle drag leave.
+       * @param {any} e
+       * @returns {any}
+       */
       const handleDragLeave = (e) => {
         e.preventDefault();
         e.stopPropagation();
         dropZone.style.borderColor = 'var(--border)';
         dropZone.style.background = '';
       };
-/**
- * Handle drop.
- * @param {any} e
- * @returns {any}
- */
+      /**
+       * Handle drop.
+       * @param {any} e
+       * @returns {any}
+       */
       const handleDrop = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -935,18 +982,26 @@ export class RemediationRoadmapView {
 
   copyMarkdown(issues) {
     const stats = this.getSummaryStats(issues);
-    const lines = ['# Remediation Roadmap', '', `**Total:** ${stats.total} | **Remaining:** ${stats.remaining} | **Completed:** ${stats.completed}`, ''];
+    const lines = [
+      '# Remediation Roadmap',
+      '',
+      `**Total:** ${stats.total} | **Remaining:** ${stats.remaining} | **Completed:** ${stats.completed}`,
+      '',
+    ];
     const grouped = groupIssuesByCategory(issues);
     for (const [cat, items] of Object.entries(grouped)) {
       lines.push(`## ${escapeHtml(cat)}`);
       for (const issue of sortBySeverity(items)) {
         const plan = getRemediationPlan(issue);
         const done = this.completed.has(issue.id) ? 'x' : ' ';
-        lines.push(`- [${done}] ${escapeHtml(issue.type || 'Issue')} — ${escapeHtml(plan.action)} (${escapeHtml(plan.effort)})`);
+        lines.push(
+          `- [${done}] ${escapeHtml(issue.type || 'Issue')} — ${escapeHtml(plan.action)} (${escapeHtml(plan.effort)})`
+        );
       }
       lines.push('');
     }
-    navigator.clipboard.writeText(lines.join('\n'))
+    navigator.clipboard
+      .writeText(lines.join('\n'))
       .then(() => showToast('Markdown copied to clipboard', 'success'))
       .catch(() => showToast('Clipboard unavailable', 'error'));
   }
@@ -957,14 +1012,15 @@ export class RemediationRoadmapView {
       'SimpleBeacon Remediation Summary',
       `Total: ${stats.total} | Remaining: ${stats.remaining} | Completed: ${stats.completed}`,
       `Critical: ${stats.bySeverity.critical || 0} | High: ${stats.bySeverity.high || 0} | Medium: ${stats.bySeverity.medium || 0}`,
-      ''
+      '',
     ];
     const grouped = groupIssuesByCategory(issues);
     for (const [cat, items] of Object.entries(grouped)) {
-      const remaining = items.filter(i => !this.completed.has(i.id)).length;
+      const remaining = items.filter((i) => !this.completed.has(i.id)).length;
       lines.push(`${cat}: ${remaining}/${items.length} remaining`);
     }
-    navigator.clipboard.writeText(lines.join('\n'))
+    navigator.clipboard
+      .writeText(lines.join('\n'))
       .then(() => showToast('Summary copied to clipboard', 'success'))
       .catch(() => showToast('Clipboard unavailable', 'error'));
   }
@@ -976,7 +1032,7 @@ export class RemediationRoadmapView {
   }
 
   _paint(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     container.appendChild(this.render());
     this._hasPainted = true;
@@ -987,11 +1043,11 @@ export class RemediationRoadmapView {
 
     // Auto-load server-side roadmap if no local import exists
     if (!this.importedIssues.length && !this.importedAt) {
-/**
- * Try load.
- * @param {string} url
- * @returns {any}
- */
+      /**
+       * Try load.
+       * @param {string} url
+       * @returns {any}
+       */
       const tryLoad = async (url) => {
         const res = await fetch(url, { cache: 'no-store' });
         if (!res.ok) return false;
@@ -1025,7 +1081,7 @@ export class RemediationRoadmapView {
 
         // Normalize raw simplebeacon report with issues
         if (data.type === 'simplebeacon-report') {
-          const sourceIssues = data.rawIssues?.length ? data.rawIssues : (data.detectedIssues || []);
+          const sourceIssues = data.rawIssues?.length ? data.rawIssues : data.detectedIssues || [];
           if (sourceIssues.length) {
             data = { issues: sourceIssues, metadata: { exportedAt: data.generatedAt || data.scannedAt } };
           }
@@ -1035,7 +1091,7 @@ export class RemediationRoadmapView {
         if (data.type === 'simplebeacon-complete-scan' && !data.issues && !data.phases) {
           const sb = data.results?.simplebeacon;
           if (sb) {
-            const sourceIssues = sb.rawIssues?.length ? sb.rawIssues : (sb.detectedIssues || []);
+            const sourceIssues = sb.rawIssues?.length ? sb.rawIssues : sb.detectedIssues || [];
             if (sourceIssues.length) {
               data = { issues: sourceIssues, metadata: { exportedAt: data.generatedAt } };
             }
@@ -1061,7 +1117,7 @@ export class RemediationRoadmapView {
 
         if (!issues.length) return false;
 
-        this.importedIssues = issues.map(issue => ({
+        this.importedIssues = issues.map((issue) => ({
           id: issue.id,
           severity: issue.severity,
           type: issue.type,
@@ -1070,7 +1126,7 @@ export class RemediationRoadmapView {
           filePath: issue.filePath,
           action: issue.action,
           effort: issue.effort,
-          completed: issue.completed || false
+          completed: issue.completed || false,
         }));
         this.importedAt = metaExportedAt || new Date().toISOString();
         localStorage.setItem('sb-remediation-imported', JSON.stringify(this.importedIssues));
@@ -1086,20 +1142,22 @@ export class RemediationRoadmapView {
         this._autoLoadAttempted = true;
         // Skip auto-load when served from a static file server without /data/
         if (window.location.protocol === 'file:') return;
-        const isLikelyDashboardServer = window.location.pathname.startsWith('/simplebeacon-dashboard/')
-          || window.location.port === '3000'
-          || window.location.port === '3002'
-          || window.location.port === '3001';
+        const isLikelyDashboardServer =
+          window.location.pathname.startsWith('/simplebeacon-dashboard/') ||
+          window.location.port === '3000' ||
+          window.location.port === '3002' ||
+          window.location.port === '3001';
         if (!isLikelyDashboardServer) return;
         try {
-          const loaded = await tryLoad('/data/complete-scan-ai-platform-2026-06-12.json')
-            || await tryLoad('/data/roadmap-from-scan-ai-platform-2026-06-12.json')
-            || await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12-v2.json')
-            || await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12.json')
-            || await tryLoad('/data/roadmap-from-scan-ai-agent-2026-06-12.json')
-            || await tryLoad('/data/roadmap-from-scan-2026-06-11.json')
-            || await tryLoad('/data/roadmap-ai-agent-complete-2026-06-11.json')
-            || await tryLoad('/data/roadmap-ai_agent-merged-2026-06-11.json');
+          const loaded =
+            (await tryLoad('/data/complete-scan-ai-platform-2026-06-12.json')) ||
+            (await tryLoad('/data/roadmap-from-scan-ai-platform-2026-06-12.json')) ||
+            (await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12-v2.json')) ||
+            (await tryLoad('/data/roadmap-from-scan-cascadeprojects-2026-06-12.json')) ||
+            (await tryLoad('/data/roadmap-from-scan-ai-agent-2026-06-12.json')) ||
+            (await tryLoad('/data/roadmap-from-scan-2026-06-11.json')) ||
+            (await tryLoad('/data/roadmap-ai-agent-complete-2026-06-11.json')) ||
+            (await tryLoad('/data/roadmap-ai_agent-merged-2026-06-11.json'));
           if (!loaded) {
             // Silent — user can import manually
           }

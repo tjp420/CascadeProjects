@@ -3,7 +3,13 @@ const { sendError } = require('../lib/response-helpers.cjs');
 const router = express.Router();
 
 // Agent execution status (in-memory, no castles)
-let currentAgentStatus = { status: 'idle', goal: null, startedAt: null, completedAt: null, error: null };
+let currentAgentStatus = {
+  status: 'idle',
+  goal: null,
+  startedAt: null,
+  completedAt: null,
+  error: null,
+};
 
 // POST /api/agent/execute
 router.post('/agent/execute', (req, res) => {

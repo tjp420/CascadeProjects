@@ -44,10 +44,10 @@ const assessmentRateLimit = rateLimit({
   message: {
     error: 'Too many requests',
     message: 'Assessment API rate limit exceeded. Please try again later.',
-    retryAfter: RATE_LIMIT_RETRY_SECONDS
+    retryAfter: RATE_LIMIT_RETRY_SECONDS,
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 /** Wrap async route handlers so rejected promises are forwarded to the error handler. */
@@ -95,7 +95,7 @@ function validateDownloadParams(req, res, next) {
   if (!allowedFormats.includes(req.params.format)) {
     return res.status(400).json({
       success: false,
-      error: `Invalid format. Must be one of: ${allowedFormats.join(', ')}`
+      error: `Invalid format. Must be one of: ${allowedFormats.join(', ')}`,
     });
   }
   next();
@@ -107,7 +107,7 @@ function assessmentErrorHandler(err, _req, res, _next) {
   res.status(status).json({
     success: false,
     error: err.name || 'Error',
-    message: err.message || 'Internal server error'
+    message: err.message || 'Internal server error',
   });
 }
 
@@ -118,15 +118,30 @@ router.get('/health', (_req, res) => {
     routes: [
       'POST /api/assessment/scan',
       'GET /api/assessment/report/:id',
-      'GET /api/assessment/report/:id/download/:format'
+      'GET /api/assessment/report/:id/download/:format',
     ],
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
-router.post('/scan', assessmentRateLimit, validateScanBody, asyncHandler((req, res) => controller.triggerScan(req, res)));
-router.get('/report/:id', assessmentRateLimit, validateReportId, asyncHandler((req, res) => controller.getReport(req, res)));
-router.get('/report/:id/download/:format', assessmentRateLimit, validateDownloadParams, asyncHandler((req, res) => controller.downloadReport(req, res)));
+router.post(
+  '/scan',
+  assessmentRateLimit,
+  validateScanBody,
+  asyncHandler((req, res) => controller.triggerScan(req, res))
+);
+router.get(
+  '/report/:id',
+  assessmentRateLimit,
+  validateReportId,
+  asyncHandler((req, res) => controller.getReport(req, res))
+);
+router.get(
+  '/report/:id/download/:format',
+  assessmentRateLimit,
+  validateDownloadParams,
+  asyncHandler((req, res) => controller.downloadReport(req, res))
+);
 
 router.use(assessmentErrorHandler);
 

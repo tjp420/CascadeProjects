@@ -2,21 +2,23 @@
 // SimpleBeacon Token Manager
 // Handles token parsing, tier logic, product UI, and scan profile filtering.
 
-function htmlToFragment(html) { return document.createRange().createContextualFragment(html.trim()); }
+function htmlToFragment(html) {
+    return document.createRange().createContextualFragment(html.trim());
+}
 
 function decodeJwtPayload(token) {
     if (!token || typeof token !== 'string') return null;
     const parts = token.split('.');
     if (parts.length !== 2 && parts.length !== 3) {
-
         return null;
     }
     const payloadBase64url = parts.length === 2 ? parts[0] : parts[1];
-    if (!payloadBase64url) { return null; }
+    if (!payloadBase64url) {
+        return null;
+    }
     const base64 = payloadBase64url.replace(/-/g, '+').replace(/_/g, '/');
     const rem = base64.length % 4;
     if (rem === 1) {
-
         return null;
     }
     const padded = base64 + '='.repeat((4 - rem) % 4);
@@ -56,7 +58,71 @@ const TIER_PROFILES = (window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.tier
     admin: ['gate', 'codebase', 'euai', 'compliance', 'hygiene', 'complete']
 };
 
-const ALL_MODULES = ['gate', 'consolidation', 'mock-data', 'roadmap', 'codebase', 'file-reduction', 'data-quality', 'cleanup', 'npm-audit', 'compliance', 'eu-ai-act', 'dependency-vulns', 'build-readiness', 'ai-indicators', 'governance', 'junk-files', 'ai-residue', 'performance', 'type-safety', 'documentation', 'test-coverage', 'accessibility', 'i18n', 'sensitive-data', 'config-drift', 'security-headers', 'database-patterns', 'framework-practices', 'workspace-health', 'unused-deps', 'api-contract', 'complexity', 'fix-preview', 'llm-slop', 'token-bleed', 'production-leak', 'fiction-kpi', 'architecture-drift', 'sync-io', 'eval-danger', 'inner-html-xss', 'prototype-pollution', 'unhandled-promise', 'magic-number', 'missing-strict-mode', 'uninitialized-read', 'unvalidated-redirect', 'missing-rate-limit', 'insecure-random', 'logging-secrets', 'hardcoded-confidence', 'hardcoded-completion', 'mock-path-leak', 'sample-json-ref', 'governance-marker', 'ai-placeholder-comment', 'ai-placeholder-block', 'markdown-fence-leak', 'empty-stub-function', 'arrow-stub', 'roadmap-marker', 'file-naming', 'removable-files'];
+const ALL_MODULES = [
+    'gate',
+    'consolidation',
+    'mock-data',
+    'roadmap',
+    'codebase',
+    'file-reduction',
+    'data-quality',
+    'cleanup',
+    'npm-audit',
+    'compliance',
+    'eu-ai-act',
+    'dependency-vulns',
+    'build-readiness',
+    'ai-indicators',
+    'governance',
+    'junk-files',
+    'ai-residue',
+    'performance',
+    'type-safety',
+    'documentation',
+    'test-coverage',
+    'accessibility',
+    'i18n',
+    'sensitive-data',
+    'config-drift',
+    'security-headers',
+    'database-patterns',
+    'framework-practices',
+    'workspace-health',
+    'unused-deps',
+    'api-contract',
+    'complexity',
+    'fix-preview',
+    'llm-slop',
+    'token-bleed',
+    'production-leak',
+    'fiction-kpi',
+    'architecture-drift',
+    'sync-io',
+    'eval-danger',
+    'inner-html-xss',
+    'prototype-pollution',
+    'unhandled-promise',
+    'magic-number',
+    'missing-strict-mode',
+    'uninitialized-read',
+    'unvalidated-redirect',
+    'missing-rate-limit',
+    'insecure-random',
+    'logging-secrets',
+    'hardcoded-confidence',
+    'hardcoded-completion',
+    'mock-path-leak',
+    'sample-json-ref',
+    'governance-marker',
+    'ai-placeholder-comment',
+    'ai-placeholder-block',
+    'markdown-fence-leak',
+    'empty-stub-function',
+    'arrow-stub',
+    'roadmap-marker',
+    'file-naming',
+    'removable-files'
+];
 const TIER_PRODUCT_ALIASES = {
     startup: 'pro',
     growth: 'team',
@@ -70,11 +136,29 @@ function resolveProductConfig(tier) {
     return PRODUCT_CONFIG[key] || PRODUCT_CONFIG[TIER_PRODUCT_ALIASES[key]] || PRODUCT_CONFIG.universal || {};
 }
 
-const PAID_TIERS = ['developer', 'pro', 'team', 'enterprise', 'startup', 'growth', 'executive', 'euai', 'euSprint', 'admin', 'superuser', 'operator', 'starter'];
+const PAID_TIERS = [
+    'developer',
+    'pro',
+    'team',
+    'enterprise',
+    'startup',
+    'growth',
+    'executive',
+    'euai',
+    'euSprint',
+    'admin',
+    'superuser',
+    'operator',
+    'starter'
+];
 
 function resolveAllowedModules(tier, json) {
     if (tier === 'custom' && json) {
-        const customModules = Array.isArray(json.features) ? json.features : (Array.isArray(json.modules) ? json.modules : null);
+        const customModules = Array.isArray(json.features)
+            ? json.features
+            : Array.isArray(json.modules)
+              ? json.modules
+              : null;
         if (customModules && customModules.length > 0) {
             const mapped = customModules.map(m => numToId[m] || m).filter(m => ALL_MODULES.includes(m));
             if (mapped.length > 0) return mapped;
@@ -96,21 +180,24 @@ function renderProductInfoCard(tier, config) {
     const productDetails = document.getElementById('productDetails');
     const headingEl = document.getElementById('productInfoHeading');
     if (!infoCard || !productDetails) return;
-    const isFree = ['community', 'sandbox', 'developer', 'free'].includes(tier)
-        || config.price === '$0'
-        || config.price === 'Free';
+    const isFree =
+        ['community', 'sandbox', 'developer', 'free'].includes(tier) ||
+        config.price === '$0' ||
+        config.price === 'Free';
     if (headingEl) headingEl.textContent = getProductCardTitle(tier);
     infoCard.classList.toggle('product-plan-strip--free', isFree);
     infoCard.style.display = 'block';
-    const priceLabel = isFree ? 'Included free' : (config.price || '');
+    const priceLabel = isFree ? 'Included free' : config.price || '';
     productDetails.textContent = '';
-    productDetails.appendChild(htmlToFragment(`
+    productDetails.appendChild(
+        htmlToFragment(`
         <div class="product-plan-row">
             <strong class="product-plan-name">${config.label || tier}</strong>
             ${priceLabel ? `<span class="product-plan-price">${priceLabel}</span>` : ''}
         </div>
         <p class="product-plan-desc">${config.subtitle || ''}</p>
-    `));
+    `)
+    );
 }
 
 const TIER_MODULE_MAP = {
@@ -132,23 +219,67 @@ const TIER_MODULE_MAP = {
 };
 
 const numToId = {
-    '1':'gate','2':'consolidation','3':'mock-data','4':'roadmap','5':'codebase',
-    '6':'file-reduction','7':'data-quality','8':'cleanup','9':'npm-audit',
-    '10':'compliance','11':'eu-ai-act','12':'dependency-vulns','13':'build-readiness',
-    '14':'ai-indicators','15':'governance','16':'junk-files','17':'ai-residue',
-    '18':'performance','19':'type-safety','20':'documentation','21':'test-coverage',
-    '22':'accessibility','23':'i18n','24':'sensitive-data','25':'config-drift',
-    '26':'security-headers','27':'database-patterns','28':'framework-practices',
-    '29':'workspace-health','30':'unused-deps','31':'api-contract','32':'complexity',
-    '33':'llm-slop','34':'token-bleed','35':'production-leak','36':'fiction-kpi',
-    '37':'architecture-drift','38':'fix-preview','39':'sync-io','40':'eval-danger',
-    '41':'inner-html-xss','42':'prototype-pollution','43':'unhandled-promise',
-    '44':'magic-number','45':'missing-strict-mode','46':'uninitialized-read',
-    '47':'unvalidated-redirect','48':'missing-rate-limit','49':'insecure-random',
-    '50':'logging-secrets','51':'hardcoded-confidence','52':'hardcoded-completion',
-    '53':'mock-path-leak','54':'sample-json-ref','55':'governance-marker',
-    '56':'ai-placeholder-comment','57':'ai-placeholder-block','58':'markdown-fence-leak',
-    '59':'empty-stub-function','60':'arrow-stub','61':'roadmap-marker'
+    1: 'gate',
+    2: 'consolidation',
+    3: 'mock-data',
+    4: 'roadmap',
+    5: 'codebase',
+    6: 'file-reduction',
+    7: 'data-quality',
+    8: 'cleanup',
+    9: 'npm-audit',
+    10: 'compliance',
+    11: 'eu-ai-act',
+    12: 'dependency-vulns',
+    13: 'build-readiness',
+    14: 'ai-indicators',
+    15: 'governance',
+    16: 'junk-files',
+    17: 'ai-residue',
+    18: 'performance',
+    19: 'type-safety',
+    20: 'documentation',
+    21: 'test-coverage',
+    22: 'accessibility',
+    23: 'i18n',
+    24: 'sensitive-data',
+    25: 'config-drift',
+    26: 'security-headers',
+    27: 'database-patterns',
+    28: 'framework-practices',
+    29: 'workspace-health',
+    30: 'unused-deps',
+    31: 'api-contract',
+    32: 'complexity',
+    33: 'llm-slop',
+    34: 'token-bleed',
+    35: 'production-leak',
+    36: 'fiction-kpi',
+    37: 'architecture-drift',
+    38: 'fix-preview',
+    39: 'sync-io',
+    40: 'eval-danger',
+    41: 'inner-html-xss',
+    42: 'prototype-pollution',
+    43: 'unhandled-promise',
+    44: 'magic-number',
+    45: 'missing-strict-mode',
+    46: 'uninitialized-read',
+    47: 'unvalidated-redirect',
+    48: 'missing-rate-limit',
+    49: 'insecure-random',
+    50: 'logging-secrets',
+    51: 'hardcoded-confidence',
+    52: 'hardcoded-completion',
+    53: 'mock-path-leak',
+    54: 'sample-json-ref',
+    55: 'governance-marker',
+    56: 'ai-placeholder-comment',
+    57: 'ai-placeholder-block',
+    58: 'markdown-fence-leak',
+    59: 'empty-stub-function',
+    60: 'arrow-stub',
+    61: 'roadmap-marker'
 };
 
 const selectedModules = new Set();
@@ -204,17 +335,19 @@ function resetScanProfiles() {
 
 function renderAnalyzerCards() {
     if (!analyzerCardGrid) return;
-    analyzerCardGrid.textContent = "";
+    analyzerCardGrid.textContent = '';
     MODULE_CARDS.forEach(mod => {
         const card = document.createElement('div');
         card.className = 'analyzer-card';
         card.dataset.value = mod.id;
-        card.appendChild(htmlToFragment(`
+        card.appendChild(
+            htmlToFragment(`
             <div class="card-check">&#10003;</div>
             <div class="card-icon">${mod.icon}</div>
             <div class="card-title">${mod.label}</div>
             <div class="card-desc">${mod.desc}</div>
-        `));
+        `)
+        );
         card.addEventListener('click', () => {
             if (card.classList.contains('locked')) {
                 showToast('Upgrade your token to unlock this module.', 'warning');
@@ -304,7 +437,10 @@ function renderTokenInspector(payload) {
     const moduleGrid = document.getElementById('tiModuleGrid');
     const cmdEl = document.getElementById('tiScanCommand');
     if (!panel) return;
-    if (!payload) { panel.style.display = 'none'; return; }
+    if (!payload) {
+        panel.style.display = 'none';
+        return;
+    }
 
     const tier = payload.tier || payload.product || 'community';
     const config = resolveProductConfig(tier);
@@ -316,11 +452,20 @@ function renderTokenInspector(payload) {
     tierBadge.className = 'ti-badge tier-' + tier;
 
     // Expiry
-    const totalDays = (tier === 'euai' || tier === 'euSprint') ? 30 : (tier === 'executive' ? 90 : (tier === 'instant' ? 7 : (tier === 'team' || tier === 'enterprise' ? 365 : 30)));
+    const totalDays =
+        tier === 'euai' || tier === 'euSprint'
+            ? 30
+            : tier === 'executive'
+              ? 90
+              : tier === 'instant'
+                ? 7
+                : tier === 'team' || tier === 'enterprise'
+                  ? 365
+                  : 30;
     let expiryText = '';
     let expiryClass = '';
     if (payload.exp) {
-        const msRemaining = (payload.exp * 1000) - Date.now();
+        const msRemaining = payload.exp * 1000 - Date.now();
         const daysRemaining = Math.max(0, Math.ceil(msRemaining / (24 * 60 * 60 * 1000)));
         if (daysRemaining === 0) {
             expiryText = 'EXPIRED';
@@ -345,23 +490,49 @@ function renderTokenInspector(payload) {
 
     // Module grid
     const moduleLabels = {
-        gate: 'Gate', consolidation: 'Consolidation', 'mock-data': 'Mock Data', roadmap: 'Roadmap',
-        codebase: 'Codebase', 'file-reduction': 'File Reduction', 'data-quality': 'Data Quality',
-        cleanup: 'Cleanup', 'npm-audit': 'npm Audit', compliance: 'Compliance', 'eu-ai-act': 'EU AI Act',
-        'dependency-vulns': 'Dep Vulns', 'build-readiness': 'Build Ready', 'ai-indicators': 'AI Indicators',
-        governance: 'Governance', 'junk-files': 'Junk Files', 'ai-residue': 'AI Residue',
-        performance: 'Performance', 'type-safety': 'Type Safety', documentation: 'Documentation',
-        'test-coverage': 'Test Coverage', accessibility: 'Accessibility', i18n: 'i18n',
-        'sensitive-data': 'Sensitive Data', 'config-drift': 'Config Drift', 'security-headers': 'Security Headers',
-        'database-patterns': 'Database Patterns', 'framework-practices': 'Framework Practices',
-        'workspace-health': 'Workspace Health', 'unused-deps': 'Unused Deps', 'api-contract': 'API Contract',
-        complexity: 'Complexity', 'fix-preview': 'Fix Preview'
+        gate: 'Gate',
+        consolidation: 'Consolidation',
+        'mock-data': 'Mock Data',
+        roadmap: 'Roadmap',
+        codebase: 'Codebase',
+        'file-reduction': 'File Reduction',
+        'data-quality': 'Data Quality',
+        cleanup: 'Cleanup',
+        'npm-audit': 'npm Audit',
+        compliance: 'Compliance',
+        'eu-ai-act': 'EU AI Act',
+        'dependency-vulns': 'Dep Vulns',
+        'build-readiness': 'Build Ready',
+        'ai-indicators': 'AI Indicators',
+        governance: 'Governance',
+        'junk-files': 'Junk Files',
+        'ai-residue': 'AI Residue',
+        performance: 'Performance',
+        'type-safety': 'Type Safety',
+        documentation: 'Documentation',
+        'test-coverage': 'Test Coverage',
+        accessibility: 'Accessibility',
+        i18n: 'i18n',
+        'sensitive-data': 'Sensitive Data',
+        'config-drift': 'Config Drift',
+        'security-headers': 'Security Headers',
+        'database-patterns': 'Database Patterns',
+        'framework-practices': 'Framework Practices',
+        'workspace-health': 'Workspace Health',
+        'unused-deps': 'Unused Deps',
+        'api-contract': 'API Contract',
+        complexity: 'Complexity',
+        'fix-preview': 'Fix Preview'
     };
-    moduleGrid.textContent = "";
+    moduleGrid.textContent = '';
     allModules.forEach(mod => {
         const isUnlocked = allowed.includes(mod);
         const label = moduleLabels[mod] || mod;
-        moduleGrid.appendChild(htmlToFragment(`<span class="ti-mod${isUnlocked ? '' : ' locked'}">${isUnlocked ? '&#10003;' : '&#10005;'} ${label}</span>`));
+        moduleGrid.appendChild(
+            htmlToFragment(
+                `<span class="ti-mod${isUnlocked ? '' : ' locked'}">${isUnlocked ? '&#10003;' : '&#10005;'} ${label}</span>`
+            )
+        );
     });
 
     // Scan command
@@ -395,10 +566,12 @@ function applyProductFromToken(token) {
         updateDropzoneGate();
         const infoCard = document.getElementById('productInfoCard');
         if (infoCard) infoCard.style.display = 'none';
-        document.getElementById('productLabel').textContent = "";
-        document.getElementById('pageTitle').textContent = "Upload Your Scan Report";
-        document.getElementById('pageSubtitle').textContent = "Generate an Executive Risk Certificate from your local SimpleBeacon scan.";
-        document.getElementById('tokenHelp').textContent = "Paste the license token from your payment confirmation email.";
+        document.getElementById('productLabel').textContent = '';
+        document.getElementById('pageTitle').textContent = 'Upload Your Scan Report';
+        document.getElementById('pageSubtitle').textContent =
+            'Generate an Executive Risk Certificate from your local SimpleBeacon scan.';
+        document.getElementById('tokenHelp').textContent =
+            'Paste the license token from your payment confirmation email.';
         document.getElementById('submitBtn').style.display = '';
         renderTokenInspector(null);
         return;
@@ -412,7 +585,11 @@ function applyProductFromToken(token) {
     }
     window._tokenPayload = payload;
     const tier = payload.tier || payload.product || 'executive';
-    const customFeatures = Array.isArray(payload.features) ? payload.features : (Array.isArray(payload.modules) ? payload.modules : null);
+    const customFeatures = Array.isArray(payload.features)
+        ? payload.features
+        : Array.isArray(payload.modules)
+          ? payload.modules
+          : null;
     if (customFeatures && tier === 'custom') {
         filterScanProfiles('custom');
         syncModuleSelectionFromTier();
@@ -432,7 +609,7 @@ function applyProductFromToken(token) {
         const helpTexts = document.querySelectorAll('.help-text');
         helpTexts.forEach(h => {
             if (h.textContent.includes('simplebeacon.js scan')) {
-                h.textContent = "";
+                h.textContent = '';
                 h.appendChild(htmlToFragment(`Generated by: <code>${config.scanCommand}</code>`));
             }
         });
@@ -440,8 +617,17 @@ function applyProductFromToken(token) {
     renderTokenInspector(payload);
     renderProductInfoCard(tier, config);
     if (banner && payload.exp && tier !== 'community') {
-        const totalDays = (tier === 'euai' || tier === 'euSprint') ? 30 : (tier === 'executive' ? 90 : (tier === 'instant' ? 7 : (tier === 'team' || tier === 'enterprise' ? 365 : 30)));
-        const msRemaining = (payload.exp * 1000) - Date.now();
+        const totalDays =
+            tier === 'euai' || tier === 'euSprint'
+                ? 30
+                : tier === 'executive'
+                  ? 90
+                  : tier === 'instant'
+                    ? 7
+                    : tier === 'team' || tier === 'enterprise'
+                      ? 365
+                      : 30;
+        const msRemaining = payload.exp * 1000 - Date.now();
         const daysRemaining = Math.max(0, Math.ceil(msRemaining / (24 * 60 * 60 * 1000)));
         const isExpired = daysRemaining === 0;
         const pct = isExpired ? 0 : Math.max(0, Math.min(100, (msRemaining / (totalDays * 24 * 60 * 60 * 1000)) * 100));
@@ -450,7 +636,7 @@ function applyProductFromToken(token) {
         const projEl = document.getElementById('sprintProject');
         const fill = document.getElementById('sprintExpiryFill');
         if (isExpired) {
-            daysEl.textContent = "";
+            daysEl.textContent = '';
             daysEl.appendChild(htmlToFragment('<span style="color:#EF4444;font-weight:700;">EXPIRED</span>'));
             tierEl.textContent = config.label;
             projEl.textContent = payload.projectName || 'default-project';
@@ -476,9 +662,57 @@ function applyProductFromToken(token) {
 
 // Analyzer presets for quick module selection
 const ANALYZER_PRESETS = [
-    { id: 'essential', label: 'Essential', icon: '⚡', modules: ['gate','consolidation','mock-data','roadmap','codebase','file-reduction','data-quality','cleanup','npm-audit','compliance'] },
-    { id: 'security', label: 'Security', icon: '🔒', modules: ['gate','consolidation','mock-data','roadmap','codebase','file-reduction','data-quality','cleanup','npm-audit','compliance','dependency-vulns','sensitive-data','security-headers','config-drift','eval-danger','inner-html-xss','prototype-pollution','unvalidated-redirect','missing-rate-limit','insecure-random','logging-secrets'] },
-    { id: 'full', label: 'Full', icon: '🔬', modules: (typeof MODULE_CARDS !== 'undefined' ? MODULE_CARDS : []).map(m => m.id) },
+    {
+        id: 'essential',
+        label: 'Essential',
+        icon: '⚡',
+        modules: [
+            'gate',
+            'consolidation',
+            'mock-data',
+            'roadmap',
+            'codebase',
+            'file-reduction',
+            'data-quality',
+            'cleanup',
+            'npm-audit',
+            'compliance'
+        ]
+    },
+    {
+        id: 'security',
+        label: 'Security',
+        icon: '🔒',
+        modules: [
+            'gate',
+            'consolidation',
+            'mock-data',
+            'roadmap',
+            'codebase',
+            'file-reduction',
+            'data-quality',
+            'cleanup',
+            'npm-audit',
+            'compliance',
+            'dependency-vulns',
+            'sensitive-data',
+            'security-headers',
+            'config-drift',
+            'eval-danger',
+            'inner-html-xss',
+            'prototype-pollution',
+            'unvalidated-redirect',
+            'missing-rate-limit',
+            'insecure-random',
+            'logging-secrets'
+        ]
+    },
+    {
+        id: 'full',
+        label: 'Full',
+        icon: '🔬',
+        modules: (typeof MODULE_CARDS !== 'undefined' ? MODULE_CARDS : []).map(m => m.id)
+    },
     { id: 'custom', label: 'Custom', icon: '🔧', modules: [] }
 ];
 

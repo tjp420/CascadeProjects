@@ -22,14 +22,15 @@ const {
   normalizeEmail,
   upsertSubscription,
   readStore,
-  setSubscriptionActive
+  setSubscriptionActive,
 } = require('../../server/lib/simplebeacon-subscription-store.cjs');
 const { generateLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
 const { insertLicenseToken } = require('../../server/lib/token-db.cjs');
 const auditStore = require('../../server/lib/enterprise-audit-store.cjs');
 
-const ENTERPRISE_STORE_PATH = process.env.ENTERPRISE_STORE_PATH
-  || path.join(__dirname, '../../.simplebeacon', 'enterprise-orgs.json');
+const ENTERPRISE_STORE_PATH =
+  process.env.ENTERPRISE_STORE_PATH ||
+  path.join(__dirname, '../../.simplebeacon', 'enterprise-orgs.json');
 
 const TRIAL_DURATION_DAYS = 30;
 const ENTERPRISE_TIER = 'enterprise';
@@ -44,7 +45,7 @@ const ENTERPRISE_FEATURES = [
   'custom-rules',
   'azure-devops-integration',
   'sso',
-  'audit-log-export'
+  'audit-log-export',
 ];
 
 /** In-memory cache for enterprise store. */
@@ -83,7 +84,10 @@ function writeEnterpriseStore(store) {
 }
 
 function generateOrgId(companyName) {
-  const slug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const slug = companyName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
   const rand = crypto.randomBytes(4).toString('hex');
   return `${slug}-${rand}`;
 }
@@ -103,7 +107,7 @@ function provisionSeat(orgId, email, licenseSecret) {
       product: 'enterprise_annual',
       features: ENTERPRISE_FEATURES,
       projectName: orgId,
-      clientName: orgId
+      clientName: orgId,
     },
     licenseSecret,
     365 * 24 * 60
@@ -117,14 +121,14 @@ function provisionSeat(orgId, email, licenseSecret) {
     licenseTier: ENTERPRISE_TIER,
     subscriptionActive: true,
     certOrgId: orgId,
-    scanQuota: Infinity
+    scanQuota: Infinity,
   });
 
   insertLicenseToken({
     token: licenseToken,
     email: normalizedEmail.toLowerCase(),
     tier: ENTERPRISE_TIER,
-    registered_at: new Date().toISOString()
+    registered_at: new Date().toISOString(),
   });
 
   return { email: normalizedEmail, licenseToken, record };
@@ -225,7 +229,13 @@ function setupEnterpriseOnboardingRoutes(app) {
     max: 20,
     standardHeaders: true,
     legacyHeaders: false,
-    handler: (req, res) => res.status(429).json({ error: 'too_many_requests', message: 'Too many requests, please try again later.' })
+    handler: (req, res) =>
+      res
+        .status(429)
+        .json({
+          error: 'too_many_requests',
+          message: 'Too many requests, please try again later.',
+        }),
   });
 
   // ── POST /api/enterprise/onboard ──
@@ -239,7 +249,7 @@ function setupEnterpriseOnboardingRoutes(app) {
         contractValue,
         contractPeriodMonths = 12,
         azureDevOpsOrgUrl,
-        notes
+        notes,
       } = req.body || {};
 
       if (!companyName || typeof companyName !== 'string') {
@@ -277,7 +287,7 @@ function setupEnterpriseOnboardingRoutes(app) {
         createdAt: now,
         updatedAt: now,
         expiresAt: expiryDate.toISOString(),
-        trial: false
+        trial: false,
       };
 
       // Provision admin seat
@@ -308,11 +318,19 @@ function setupEnterpriseOnboardingRoutes(app) {
         actor: req.user?.email || req.body?.adminEmail || 'system',
         actorIp: req.ip,
         description: `Organization onboarded: ${org.companyName} with ${org.seatCount} seats`,
-        after: { orgId, companyName: org.companyName, seatCount: org.seatCount, contractValue: org.contractValue, adminEmail: org.adminEmail },
+        after: {
+          orgId,
+          companyName: org.companyName,
+          seatCount: org.seatCount,
+          contractValue: org.contractValue,
+          adminEmail: org.adminEmail,
+        },
         metadata: { contractPeriodMonths: org.contractPeriodMonths, apiKeyGenerated: true },
       });
 
-      logger.info(`[Enterprise] Onboarded ${companyName} as ${orgId} with ${org.seatsUsed}/${org.seatCount} seats`);
+      logger.info(
+        `[Enterprise] Onboarded ${companyName} as ${orgId} with ${org.seatsUsed}/${org.seatCount} seats`
+      );
 
       res.status(201).json({
         success: true,
@@ -325,7 +343,7 @@ function setupEnterpriseOnboardingRoutes(app) {
         provisionedEmails: org.provisionedEmails,
         adminLicenseToken: adminSeat.licenseToken,
         expiresAt: org.expiresAt,
-        azureDevOpsPipelineUrl: `/api/enterprise/organizations/${orgId}/azure-devops`
+        azureDevOpsPipelineUrl: `/api/enterprise/organizations/${orgId}/azure-devops`,
       });
     } catch (err) {
       logger.error('[Enterprise] Onboarding failed:', err.message);
@@ -337,7 +355,7 @@ function setupEnterpriseOnboardingRoutes(app) {
   app.get('/api/enterprise/organizations', async (req, res) => {
     try {
       const store = readEnterpriseStore();
-      const orgs = Object.values(store.organizations).map(o => ({
+      const orgs = Object.values(store.organizations).map((o) => ({
         orgId: o.orgId,
         companyName: o.companyName,
         adminEmail: o.adminEmail,
@@ -347,7 +365,7 @@ function setupEnterpriseOnboardingRoutes(app) {
         seatsUsed: o.seatsUsed,
         trial: o.trial,
         createdAt: o.createdAt,
-        expiresAt: o.expiresAt
+        expiresAt: o.expiresAt,
       }));
       res.json({ organizations: orgs, total: orgs.length });
     } catch (err) {
@@ -365,7 +383,7 @@ function setupEnterpriseOnboardingRoutes(app) {
       }
       res.json({
         ...org,
-        apiKey: undefined
+        apiKey: undefined,
       });
     } catch (err) {
       res.status(500).json({ error: 'lookup_failed', message: err.message });
@@ -386,10 +404,14 @@ function setupEnterpriseOnboardingRoutes(app) {
         return res.status(404).json({ error: 'organization_not_found' });
       }
       if (org.seatsUsed >= org.seatCount) {
-        return res.status(409).json({ error: 'no_available_seats', message: `All ${org.seatCount} seats are in use` });
+        return res
+          .status(409)
+          .json({ error: 'no_available_seats', message: `All ${org.seatCount} seats are in use` });
       }
       if (org.provisionedEmails.includes(normalizeEmail(email))) {
-        return res.status(409).json({ error: 'seat_already_provisioned', message: `${email} already has a seat` });
+        return res
+          .status(409)
+          .json({ error: 'seat_already_provisioned', message: `${email} already has a seat` });
       }
 
       const licenseSecret = resolveLicenseSecret();
@@ -415,7 +437,7 @@ function setupEnterpriseOnboardingRoutes(app) {
         email: seat.email,
         licenseToken: seat.licenseToken,
         seatsUsed: org.seatsUsed,
-        seatsRemaining: org.seatCount - org.seatsUsed
+        seatsRemaining: org.seatCount - org.seatsUsed,
       });
     } catch (err) {
       logger.error('[Enterprise] Seat provisioning failed:', err.message);
@@ -439,7 +461,12 @@ function setupEnterpriseOnboardingRoutes(app) {
 
       const idx = org.provisionedEmails.indexOf(seatEmail);
       if (idx === -1) {
-        return res.status(404).json({ error: 'seat_not_found', message: `${seatEmail} is not provisioned in this organization` });
+        return res
+          .status(404)
+          .json({
+            error: 'seat_not_found',
+            message: `${seatEmail} is not provisioned in this organization`,
+          });
       }
 
       // Deactivate subscription for removed seat
@@ -466,7 +493,7 @@ function setupEnterpriseOnboardingRoutes(app) {
         success: true,
         email: seatEmail,
         seatsUsed: org.seatsUsed,
-        seatsRemaining: org.seatCount - org.seatsUsed
+        seatsRemaining: org.seatCount - org.seatsUsed,
       });
     } catch (err) {
       logger.error('[Enterprise] Seat removal failed:', err.message);
@@ -510,7 +537,7 @@ function setupEnterpriseOnboardingRoutes(app) {
         expiresAt: trialExpiry.toISOString(),
         trial: true,
         trialStartedAt: now,
-        trialExpiresAt: trialExpiry.toISOString()
+        trialExpiresAt: trialExpiry.toISOString(),
       };
 
       const licenseSecret = resolveLicenseSecret();
@@ -527,7 +554,12 @@ function setupEnterpriseOnboardingRoutes(app) {
         actor: req.user?.email || req.body?.adminEmail || 'system',
         actorIp: req.ip,
         description: `Enterprise trial started for ${companyName} — ${TRIAL_DURATION_DAYS} days, ${org.seatCount} seats`,
-        after: { orgId, companyName: org.companyName, trialExpiresAt: org.trialExpiresAt, seatCount: org.seatCount },
+        after: {
+          orgId,
+          companyName: org.companyName,
+          trialExpiresAt: org.trialExpiresAt,
+          seatCount: org.seatCount,
+        },
         metadata: { trialDurationDays: TRIAL_DURATION_DAYS, apiKeyGenerated: true },
       });
 
@@ -544,7 +576,7 @@ function setupEnterpriseOnboardingRoutes(app) {
         seatCount: org.seatCount,
         seatsUsed: org.seatsUsed,
         adminLicenseToken: adminSeat.licenseToken,
-        upgradeUrl: `/api/enterprise/onboard`
+        upgradeUrl: `/api/enterprise/onboard`,
       });
     } catch (err) {
       logger.error('[Enterprise] Trial provisioning failed:', err.message);
@@ -574,7 +606,7 @@ function setupEnterpriseOnboardingRoutes(app) {
         daysRemaining,
         seatCount: org.seatCount,
         seatsUsed: org.seatsUsed,
-        expired: daysRemaining === 0
+        expired: daysRemaining === 0,
       });
     } catch (err) {
       res.status(500).json({ error: 'trial_lookup_failed', message: err.message });
@@ -612,9 +644,9 @@ function setupEnterpriseOnboardingRoutes(app) {
           '3. Choose "Existing Azure Pipelines YAML file" or paste the YAML directly',
           '4. In Pipeline Variables, add SIMPLEBEACON_API_KEY as a secret variable',
           `5. Set the value to your organization API key (starts with "ent_")`,
-          '6. Save and run the pipeline to trigger your first SimpleBeacon compliance scan'
+          '6. Save and run the pipeline to trigger your first SimpleBeacon compliance scan',
         ],
-        apiKey: org.apiKey
+        apiKey: org.apiKey,
       });
     } catch (err) {
       logger.error('[Enterprise] Azure DevOps config generation failed:', err.message);
@@ -703,5 +735,5 @@ module.exports = {
   generateOrgId,
   generateApiKey,
   ENTERPRISE_FEATURES,
-  TRIAL_DURATION_DAYS
+  TRIAL_DURATION_DAYS,
 };

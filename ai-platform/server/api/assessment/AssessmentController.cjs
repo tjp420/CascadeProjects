@@ -11,14 +11,25 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const logger = require('../../lib/app-logger.cjs');
 
-
-
-
-const { startAssessmentRetentionJob, resolveAssessmentTtlMs } = require('../../lib/assessment-retention.cjs');
-const { validateRepoUrl, resolveDefaultAllowedRoots, assertSafeProjectPath } = require('../../lib/path-safety.cjs');
+const {
+  startAssessmentRetentionJob,
+  resolveAssessmentTtlMs,
+} = require('../../lib/assessment-retention.cjs');
+const {
+  validateRepoUrl,
+  resolveDefaultAllowedRoots,
+  assertSafeProjectPath,
+} = require('../../lib/path-safety.cjs');
 const { toClientError } = require('../../../shared-utils/index.cjs');
-const { buildAssessmentReport, evaluateGate, formatJsonReport, loadSimplebeaconConfig, resolvePlatformRoot, runScan, sanitizeScanReport } = require('../../lib/simplebeacon-proxy.cjs');
-
+const {
+  buildAssessmentReport,
+  evaluateGate,
+  formatJsonReport,
+  loadSimplebeaconConfig,
+  resolvePlatformRoot,
+  runScan,
+  sanitizeScanReport,
+} = require('../../lib/simplebeacon-proxy.cjs');
 
 const execFileAsync = promisify(execFile);
 const PROJECT_ROOT = path.join(__dirname, '../../..');
@@ -60,13 +71,13 @@ class AssessmentController {
       if (!isAuthenticated && bodyPath) {
         return res.status(403).json({
           success: false,
-          error: 'projectPath requires sign-in; use repoUrl for public assessments'
+          error: 'projectPath requires sign-in; use repoUrl for public assessments',
         });
       }
       if (!isAuthenticated && !repoUrl) {
         return res.status(400).json({
           success: false,
-          error: 'repoUrl is required for public assessments'
+          error: 'repoUrl is required for public assessments',
         });
       }
 
@@ -89,8 +100,8 @@ class AssessmentController {
         projectRoot: projectPath,
         commandsRun: [
           `node packages/simplebeacon-cli/bin/simplebeacon.js scan --path "${projectPath}" --format json --output .simplebeacon/report.json --gate`,
-          `node packages/simplebeacon-cli/bin/simplebeacon.js assess --path "${projectPath}" --company "${company || 'Unknown'}"`
-        ]
+          `node packages/simplebeacon-cli/bin/simplebeacon.js assess --path "${projectPath}" --company "${company || 'Unknown'}"`,
+        ],
       });
 
       assessment.metadata = {
@@ -101,7 +112,7 @@ class AssessmentController {
         createdAt: new Date().toISOString(),
         repoUrl: repoUrl || null,
         projectPath: repoUrl ? '[cloned-repo-redacted]' : projectPath,
-        expiresAt: new Date(Date.now() + resolveAssessmentTtlMs()).toISOString()
+        expiresAt: new Date(Date.now() + resolveAssessmentTtlMs()).toISOString(),
       };
 
       if (repoUrl) {
@@ -125,12 +136,14 @@ class AssessmentController {
           executiveSummary: assessment.executiveSummary,
           complianceChecklist: assessment.complianceChecklist?.summary,
           totalFindings,
-          status: 'completed'
-        }
+          status: 'completed',
+        },
       });
     } catch (error) {
       logger.error('[Assessment] create error:', error.message);
-      const status = /required|invalid|outside allowed|does not exist/i.test(error.message) ? 400 : 500;
+      const status = /required|invalid|outside allowed|does not exist/i.test(error.message)
+        ? 400
+        : 500;
       res.status(status).json({ success: false, error: toClientError(error, 'Assessment failed') });
     }
   }
@@ -142,7 +155,9 @@ class AssessmentController {
       res.json({ success: true, assessmentId, assessment });
     } catch (error) {
       const status = error.code === 'ENOENT' ? 404 : 500;
-      res.status(status).json({ success: false, error: toClientError(error, 'Failed to load assessment') });
+      res
+        .status(status)
+        .json({ success: false, error: toClientError(error, 'Failed to load assessment') });
     }
   }
 
@@ -162,7 +177,9 @@ class AssessmentController {
       res.json(JSON.parse(assessmentData));
     } catch (error) {
       const status = error.code === 'ENOENT' ? 404 : 500;
-      res.status(status).json({ success: false, error: toClientError(error, 'Failed to download assessment') });
+      res
+        .status(status)
+        .json({ success: false, error: toClientError(error, 'Failed to download assessment') });
     }
   }
 
@@ -189,7 +206,7 @@ class AssessmentController {
       await execFileAsync('git', ['clone', '--depth', '1', safeUrl, cloneInto], {
         cwd: PROJECT_ROOT,
         timeout: constants.TIMEOUT_2M,
-        maxBuffer: 10 * constants.BYTES_PER_KB * constants.BYTES_PER_KB
+        maxBuffer: 10 * constants.BYTES_PER_KB * constants.BYTES_PER_KB,
       });
       return cloneInto;
     } catch (error) {

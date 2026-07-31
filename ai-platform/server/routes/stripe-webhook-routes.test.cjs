@@ -20,10 +20,7 @@ function makeSignedPayload(event, secret) {
   const payload = JSON.stringify(event);
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const signedPayload = `${timestamp}.${payload}`;
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('hex');
+  const signature = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
   const header = `t=${timestamp},v1=${signature}`;
   return { payload: Buffer.from(payload), header };
 }
@@ -33,7 +30,7 @@ function makeFakeEvent(type, data) {
     id: 'evt_test_' + Math.random().toString(36).slice(2, 10),
     object: 'event',
     type,
-    data: { object: data }
+    data: { object: data },
   };
 }
 
@@ -72,7 +69,11 @@ describe('stripe-webhook-routes', () => {
   it('module exports an Express router', () => {
     const router = require('./stripe-webhook-routes.cjs');
     assert.ok(router, 'router should be exported');
-    assert.strictEqual(typeof router, 'function', 'router should be a function (Express middleware)');
+    assert.strictEqual(
+      typeof router,
+      'function',
+      'router should be a function (Express middleware)'
+    );
   });
 
   it('verifyStripeSignature accepts valid signature', () => {
@@ -82,7 +83,7 @@ describe('stripe-webhook-routes', () => {
       customer: 'cus_test_123',
       customer_email: 'customer@example.com',
       customer_details: { email: 'customer@example.com' },
-      subscription: 'sub_test_123'
+      subscription: 'sub_test_123',
     });
     const { payload, header } = makeSignedPayload(event, WEBHOOK_SECRET);
 
@@ -134,8 +135,14 @@ describe('stripe-webhook-routes', () => {
     let statusCode = null;
     let responseBody = null;
     const res = {
-      status(code) { statusCode = code; return this; },
-      json(body) { responseBody = body; return this; }
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json(body) {
+        responseBody = body;
+        return this;
+      },
     };
 
     // The router is Express middleware — we need to call it with a mock req/res
@@ -144,7 +151,7 @@ describe('stripe-webhook-routes', () => {
     await new Promise((resolve) => {
       const req = {
         headers: {},
-        body: Buffer.from('{}')
+        body: Buffer.from('{}'),
       };
       // Express router needs a next function
       const next = (err) => {
@@ -167,8 +174,10 @@ describe('stripe-webhook-routes', () => {
 
     // Should get 503 (not configured) since we deleted the secret
     // Note: this may not work perfectly with Express mock, but we verify the logic
-    assert.ok(statusCode === 503 || statusCode === null,
-      'should return 503 or defer to Express internals');
+    assert.ok(
+      statusCode === 503 || statusCode === null,
+      'should return 503 or defer to Express internals'
+    );
   });
 
   it('rejects webhook with missing signature header', async () => {
@@ -177,14 +186,20 @@ describe('stripe-webhook-routes', () => {
     let statusCode = null;
     let responseBody = null;
     const res = {
-      status(code) { statusCode = code; return this; },
-      json(body) { responseBody = body; return this; }
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json(body) {
+        responseBody = body;
+        return this;
+      },
     };
 
     await new Promise((resolve) => {
       const req = {
         headers: {}, // no stripe-signature
-        body: Buffer.from(JSON.stringify(makeFakeEvent('test', {})))
+        body: Buffer.from(JSON.stringify(makeFakeEvent('test', {}))),
       };
       const next = () => resolve();
       try {
@@ -196,8 +211,7 @@ describe('stripe-webhook-routes', () => {
     });
 
     // Should get 400 (missing_signature)
-    assert.ok(statusCode === 400 || statusCode === null,
-      'should return 400 for missing signature');
+    assert.ok(statusCode === 400 || statusCode === null, 'should return 400 for missing signature');
   });
 
   it('rejects webhook with empty body', async () => {
@@ -206,14 +220,20 @@ describe('stripe-webhook-routes', () => {
     let statusCode = null;
     let responseBody = null;
     const res = {
-      status(code) { statusCode = code; return this; },
-      json(body) { responseBody = body; return this; }
+      status(code) {
+        statusCode = code;
+        return this;
+      },
+      json(body) {
+        responseBody = body;
+        return this;
+      },
     };
 
     await new Promise((resolve) => {
       const req = {
         headers: { 'stripe-signature': 't=123,v1=abc' },
-        body: Buffer.alloc(0) // empty buffer
+        body: Buffer.alloc(0), // empty buffer
       };
       const next = () => resolve();
       try {
@@ -224,8 +244,7 @@ describe('stripe-webhook-routes', () => {
       setTimeout(resolve, 100);
     });
 
-    assert.ok(statusCode === 400 || statusCode === null,
-      'should return 400 for empty body');
+    assert.ok(statusCode === 400 || statusCode === null, 'should return 400 for empty body');
   });
 });
 
@@ -278,12 +297,12 @@ describe('stripe-webhook idempotency guard', () => {
     const results = await Promise.all([
       recordProcessedEvent('evt_concurrent_001'),
       recordProcessedEvent('evt_concurrent_001'),
-      recordProcessedEvent('evt_concurrent_001')
+      recordProcessedEvent('evt_concurrent_001'),
     ]);
 
     // At least one should be true (first seen), others should be false
-    const trueCount = results.filter(r => r === true).length;
-    const falseCount = results.filter(r => r === false).length;
+    const trueCount = results.filter((r) => r === true).length;
+    const falseCount = results.filter((r) => r === false).length;
     assert.ok(trueCount >= 1, 'at least one call should return true');
     assert.ok(falseCount >= 1, 'at least one call should return false (duplicate)');
   });
@@ -367,7 +386,9 @@ describe('stripe-webhook invoice.paid handler', () => {
     const invoiceEvent = {
       id: 'evt_invoice_no_sub',
       type: 'invoice.paid',
-      data: { object: { id: 'in_test_001', subscription: null, customer_email: 'test@example.com' } }
+      data: {
+        object: { id: 'in_test_001', subscription: null, customer_email: 'test@example.com' },
+      },
     };
 
     // The handler should return early — no subscription on the invoice
@@ -383,7 +404,7 @@ describe('stripe-webhook invoice.paid handler', () => {
     const invoiceEvent = {
       id: 'evt_invoice_no_email',
       type: 'invoice.paid',
-      data: { object: { id: 'in_test_002', subscription: 'sub_test', customer_email: null } }
+      data: { object: { id: 'in_test_002', subscription: 'sub_test', customer_email: null } },
     };
 
     const first = await recordProcessedEvent(invoiceEvent.id);
@@ -392,7 +413,11 @@ describe('stripe-webhook invoice.paid handler', () => {
 
   it('invoice.paid for already-active subscription does not re-activate', async () => {
     const { recordProcessedEvent, clearCache } = require('../lib/stripe-event-store.cjs');
-    const { upsertSubscription, getSubscriptionByEmail, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
+    const {
+      upsertSubscription,
+      getSubscriptionByEmail,
+      clearCache: clearSubCache,
+    } = require('../lib/simplebeacon-subscription-store.cjs');
     clearCache();
     clearSubCache();
 
@@ -400,7 +425,7 @@ describe('stripe-webhook invoice.paid handler', () => {
     await upsertSubscription('active@example.com', {
       subscriptionActive: true,
       tier: 'pro',
-      apiToken: 'sb_test_active_001'
+      apiToken: 'sb_test_active_001',
     });
 
     const existing = await getSubscriptionByEmail('active@example.com');
@@ -414,14 +439,19 @@ describe('stripe-webhook invoice.paid handler', () => {
   });
 
   it('invoice.paid for suspended subscription triggers re-activation', async () => {
-    const { upsertSubscription, getSubscriptionByEmail, setSubscriptionActive, clearCache: clearSubCache } = require('../lib/simplebeacon-subscription-store.cjs');
+    const {
+      upsertSubscription,
+      getSubscriptionByEmail,
+      setSubscriptionActive,
+      clearCache: clearSubCache,
+    } = require('../lib/simplebeacon-subscription-store.cjs');
     clearSubCache();
 
     // Pre-create a suspended subscription (e.g., after failed payment)
     await upsertSubscription('suspended@example.com', {
       subscriptionActive: false,
       tier: 'pro',
-      apiToken: 'sb_test_suspended_001'
+      apiToken: 'sb_test_suspended_001',
     });
 
     const suspended = await getSubscriptionByEmail('suspended@example.com');
@@ -429,7 +459,7 @@ describe('stripe-webhook invoice.paid handler', () => {
 
     // Simulate what handleInvoicePaid does: re-activate
     await setSubscriptionActive('suspended@example.com', true, {
-      periodStart: new Date().toISOString()
+      periodStart: new Date().toISOString(),
     });
 
     const reactivated = await getSubscriptionByEmail('suspended@example.com');

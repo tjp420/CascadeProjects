@@ -1,4 +1,3 @@
-
 /**
  * Check whether the code is running inside a VS Code: webview.
  * @returns {boolean}

@@ -57,13 +57,21 @@ function importPrivateKey(gpgHome) {
   fs.writeFileSync(keyFile, keyData, { mode: 0o600 });
 
   const passphrase = process.env.GPG_PASSPHRASE || '';
-  const importResult = spawnSync('gpg', [
-    '--homedir', gpgHome,
-    '--batch',
-    '--pinentry-mode', 'loopback',
-    '--passphrase', passphrase,
-    '--import', keyFile,
-  ], { encoding: 'utf8' });
+  const importResult = spawnSync(
+    'gpg',
+    [
+      '--homedir',
+      gpgHome,
+      '--batch',
+      '--pinentry-mode',
+      'loopback',
+      '--passphrase',
+      passphrase,
+      '--import',
+      keyFile,
+    ],
+    { encoding: 'utf8' }
+  );
 
   fs.unlinkSync(keyFile);
 
@@ -71,12 +79,11 @@ function importPrivateKey(gpgHome) {
     throw new Error(`GPG key import failed: ${importResult.stderr || importResult.stdout}`);
   }
 
-  const listResult = spawnSync('gpg', [
-    '--homedir', gpgHome,
-    '--batch',
-    '--list-secret-keys',
-    '--keyid-format', 'long',
-  ], { encoding: 'utf8' });
+  const listResult = spawnSync(
+    'gpg',
+    ['--homedir', gpgHome, '--batch', '--list-secret-keys', '--keyid-format', 'long'],
+    { encoding: 'utf8' }
+  );
 
   if (listResult.status !== 0 || !listResult.stdout.trim()) {
     throw new Error('No secret keys found after import');
@@ -99,14 +106,19 @@ function signFile(gpgHome, keyId, passphrase, filePath) {
 
   const sigPath = `${filePath}.sig`;
   const args = [
-    '--homedir', gpgHome,
+    '--homedir',
+    gpgHome,
     '--batch',
     '--yes',
-    '--pinentry-mode', 'loopback',
-    '--passphrase', passphrase,
-    '--local-user', keyId,
+    '--pinentry-mode',
+    'loopback',
+    '--passphrase',
+    passphrase,
+    '--local-user',
+    keyId,
     '--detach-sign',
-    '--output', sigPath,
+    '--output',
+    sigPath,
     filePath,
   ];
 
@@ -140,11 +152,11 @@ function signFile(gpgHome, keyId, passphrase, filePath) {
 }
 
 function verifySignature(gpgHome, filePath, sigPath) {
-  const result = spawnSync('gpg', [
-    '--homedir', gpgHome,
-    '--batch',
-    '--verify', sigPath, filePath,
-  ], { encoding: 'utf8' });
+  const result = spawnSync(
+    'gpg',
+    ['--homedir', gpgHome, '--batch', '--verify', sigPath, filePath],
+    { encoding: 'utf8' }
+  );
 
   return result.status === 0;
 }
@@ -212,7 +224,9 @@ function main() {
         console.error(`WARNING: Signature verification failed for ${absPath}`);
         errors.push({ file: absPath, error: 'Verification failed' });
       } else {
-        console.log(`Signed + verified: ${result.file} -> ${result.signature} (${result.signatureSize} bytes)`);
+        console.log(
+          `Signed + verified: ${result.file} -> ${result.signature} (${result.signatureSize} bytes)`
+        );
       }
 
       results.push(result);

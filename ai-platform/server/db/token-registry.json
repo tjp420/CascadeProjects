@@ -13,6 +13,12 @@
       "email": "sandbox@local.dev",
       "tier": "community",
       "registered_at": "2026-06-28T01:33:05.598Z"
+    },
+    {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzYW5kYm94LTE3ODU0ODc3Nzc3MjkiLCJlbWFpbCI6InNhbmRib3hAbG9jYWwuZGV2IiwibmFtZSI6IkRldmVsb3BlciBTYW5kYm94IiwidHJ1c3RMZXZlbCI6ImdvbGQiLCJwZXJtaXNzaW9ucyI6WyJyZWFkOm93biIsIndyaXRlOm93biIsInJlYWQ6c2hhcmVkIiwid3JpdGU6c2hhcmVkIiwiYW5hbHl6ZTpwdWJsaWMiLCJhbmFseXplOnByaXZhdGUiLCJhZG1pbjpiYXNpYyJdLCJyb2xlIjoiIiwiZmVhdHVyZXMiOltdLCJ0aWVyIjoiIiwiaWF0IjoxNzg1NDg3Nzc3LCJqdGkiOiI0MWVmYTJjOC05YTNjLTQ2NzQtOTExNS1kNDFjZTU5MGU4ZjQiLCJleHAiOjE3ODU0OTEzNzcsImF1ZCI6ImNhc2NhZGUtYWktdXNlcnMiLCJpc3MiOiJjYXNjYWRlLWFpLXBsYXRmb3JtIn0.nRhrxyg-WgY0UjD3Vhgmtqrn13mg-ztaZ4Kg5zfXU0Y",
+      "email": "sandbox@local.dev",
+      "tier": "community",
+      "registered_at": "2026-07-31T08:49:37.731Z"
     }
   ],
   "audit_log": []

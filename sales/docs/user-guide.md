@@ -69,6 +69,7 @@
 ### Finding Details
 
 Each finding shows:
+
 - **File:** File name
 - **Line:** Line number
 - **Rule:** Rule ID (e.g., `debug-artifact`)
@@ -79,26 +80,31 @@ Each finding shows:
 ### Common Rule Types
 
 #### Debug Artifacts
+
 - **Issue:** `console.log`, `debugger`, `TODO` markers
 - **Severity:** Warning
 - **Action:** Remove before production
 
 #### Credential Leaks
+
 - **Issue:** Hardcoded API keys, passwords
 - **Severity:** Error
 - **Action:** Move to environment variables
 
 #### AI Residue Stubs
+
 - **Issue:** TODO, FIXME, not implemented
 - **Severity:** Warning
 - **Action:** Complete implementation
 
 #### Production Leaks
+
 - **Issue:** Sample data in production code
 - **Severity:** Error
 - **Action:** Remove or replace with real data
 
 #### Fiction KPIs
+
 - **Issue:** Unrealistic metrics, hallucinated numbers
 - **Severity:** Warning
 - **Action:** Verify with real data
@@ -116,6 +122,7 @@ Each finding shows:
 ### Bulk Fixes
 
 For similar issues across multiple files:
+
 1. Use VSCode Find and Replace (`Ctrl+H`)
 2. Search for the pattern
 3. Replace with correct implementation
@@ -124,6 +131,7 @@ For similar issues across multiple files:
 ### Ignoring False Positives
 
 If a finding is a false positive:
+
 1. Add file to exclusions in settings
 2. Or add inline comment to suppress
 3. Or adjust rule severity
@@ -158,6 +166,7 @@ If a finding is a false positive:
 ### Understanding Gates
 
 Gates enforce quality standards:
+
 - **Fail on:** Severities that block merge
 - **Warn on:** Severities that show warnings
 - **Thresholds:** Maximum allowed counts
@@ -165,6 +174,7 @@ Gates enforce quality standards:
 ### Configuring Gates
 
 In `.simplebeacon/config.json`:
+
 ```json
 {
   "gate": {
@@ -177,11 +187,13 @@ In `.simplebeacon/config.json`:
 ### CI/CD Integration
 
 Add to your CI pipeline:
+
 ```bash
 npx simplebeacon scan --gate --format json --output report.json
 ```
 
 Exit code indicates gate status:
+
 - 0: Pass
 - 1: Fail
 
@@ -223,6 +235,7 @@ Gate: PASS
 ### Custom Rules (Enterprise)
 
 Create custom rule definitions:
+
 ```json
 {
   "rules": {
@@ -239,6 +252,7 @@ Create custom rule definitions:
 ### Severity Overrides
 
 Adjust rule severity in settings:
+
 ```json
 {
   "simplebeacon.severityOverrides": {
@@ -251,13 +265,10 @@ Adjust rule severity in settings:
 ### File Exclusions
 
 Exclude specific files or patterns:
+
 ```json
 {
-  "simplebeacon.exclusions": [
-    "**/generated/**",
-    "**/vendor/**",
-    "**/test-fixtures/**"
-  ]
+  "simplebeacon.exclusions": ["**/generated/**", "**/vendor/**", "**/test-fixtures/**"]
 }
 ```
 
@@ -294,6 +305,7 @@ Exclude specific files or patterns:
 **Problem:** Scan button doesn't work
 
 **Solution:**
+
 1. Check workspace is open
 2. Verify file has supported extension
 3. Check VSCode Output panel for errors
@@ -304,6 +316,7 @@ Exclude specific files or patterns:
 **Problem:** Scan shows many irrelevant findings
 
 **Solution:**
+
 1. Add files to exclusions
 2. Adjust rule severity
 3. Use appropriate profile
@@ -314,6 +327,7 @@ Exclude specific files or patterns:
 **Problem:** Gate fails with no obvious issues
 
 **Solution:**
+
 1. Check gate thresholds
 2. Review severity overrides
 3. Export report for details
@@ -324,6 +338,7 @@ Exclude specific files or patterns:
 **Problem:** Scan is very slow
 
 **Solution:**
+
 1. Disable full scan
 2. Add more exclusions
 3. Use selective scan paths

@@ -23,8 +23,9 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const AUDIT_STORE_PATH = process.env.ENTERPRISE_AUDIT_PATH
-  || path.join(__dirname, '../../.simplebeacon', 'enterprise-audit.json');
+const AUDIT_STORE_PATH =
+  process.env.ENTERPRISE_AUDIT_PATH ||
+  path.join(__dirname, '../../.simplebeacon', 'enterprise-audit.json');
 
 let _cache = null;
 let _cacheDirty = true;
@@ -136,28 +137,31 @@ function queryEntries(filters = {}) {
   let entries = [...store.entries];
 
   if (filters.orgId) {
-    entries = entries.filter(e => e.orgId === filters.orgId);
+    entries = entries.filter((e) => e.orgId === filters.orgId);
   }
   if (filters.action) {
-    entries = entries.filter(e => e.action === filters.action);
+    entries = entries.filter((e) => e.action === filters.action);
   }
   if (filters.actor) {
-    entries = entries.filter(e => e.actor === filters.actor);
+    entries = entries.filter((e) => e.actor === filters.actor);
   }
   if (filters.startDate) {
     const start = new Date(filters.startDate);
-    entries = entries.filter(e => new Date(e.timestamp) >= start);
+    entries = entries.filter((e) => new Date(e.timestamp) >= start);
   }
   if (filters.endDate) {
     const end = new Date(filters.endDate);
-    entries = entries.filter(e => new Date(e.timestamp) <= end);
+    entries = entries.filter((e) => new Date(e.timestamp) <= end);
   }
 
   entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   const MAX_PAGE_SIZE = 200;
   const DEFAULT_PAGE_SIZE = 50;
-  const limit = Math.min(Math.max(parseInt(filters.limit, 10) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+  const limit = Math.min(
+    Math.max(parseInt(filters.limit, 10) || DEFAULT_PAGE_SIZE, 1),
+    MAX_PAGE_SIZE
+  );
   const offset = Math.max(parseInt(filters.offset, 10) || 0, 0);
   const total = entries.length;
   const paginated = entries.slice(offset, offset + limit);

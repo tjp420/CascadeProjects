@@ -26,23 +26,24 @@ const PRODUCTS = {
       'Receive domain via Stripe checkout webhook',
       'Run instant security audit (SEO, SSL, speed, accessibility, headers)',
       'Generate PDF report via OpenAI API',
-      'Download instantly — data wiped from RAM after download'
+      'Download instantly — data wiped from RAM after download',
     ],
-    notIncluded: 'Source code scan, gate attestation, milestone certificates'
+    notIncluded: 'Source code scan, gate attestation, milestone certificates',
   },
   clearance499: {
     label: 'Executive clearance PDF ($499)',
     sku: 'clearance499',
     price: 499,
     clock: '48 business hours from gate JSON received',
-    clientSends: '`.simplebeacon/report.json` from `scan --gate --offline` (no source zip required)',
+    clientSends:
+      '`.simplebeacon/report.json` from `scan --gate --offline` (no source zip required)',
     vaultSteps: [
       'Unlock vault → /app → Analyze',
       'Load client report or project path; confirm gate blockingCount',
       'Download audit PDF (print-to-PDF)',
-      'Email PDF to billing contact; log pdf_delivered_at on booking'
+      'Email PDF to billing contact; log pdf_delivered_at on booking',
     ],
-    notIncluded: 'Hosted dashboard, milestone certificates, EU legal certification'
+    notIncluded: 'Hosted dashboard, milestone certificates, EU legal certification',
   },
   agency999: {
     label: 'Agency Project Pack ($999)',
@@ -53,9 +54,9 @@ const PRODUCTS = {
     vaultSteps: [
       'Confirm project_id in .simplebeacon/agency-projects.json (project_pack tokens)',
       'Analyze → complete scan → Agency certificate export for alpha / beta / release',
-      'Mark milestone token used after each export'
+      'Mark milestone token used after each export',
     ],
-    notIncluded: 'Single $499 PDF replaces three certificates'
+    notIncluded: 'Single $499 PDF replaces three certificates',
   },
   agency1499: {
     label: 'Agency Growth Pack ($1,499)',
@@ -66,9 +67,9 @@ const PRODUCTS = {
     vaultSteps: [
       'Same as agency999 plus hotfix + warranty tokens',
       'Create private Slack sb-{agency}-{project}; pin project_id',
-      'Use warranty token for included re-scan (do not bill $199 separately)'
+      'Use warranty token for included re-scan (do not bill $199 separately)',
     ],
-    notIncluded: 'Cloud Teams subscription'
+    notIncluded: 'Cloud Teams subscription',
   },
   euai2499: {
     label: 'EU AI Act Readiness Sprint ($2,499)',
@@ -80,9 +81,9 @@ const PRODUCTS = {
       'Run: npx simplebeacon scan --gate --offline --checklist eu-ai-act',
       'Run: npx simplebeacon compliance --checklist eu-ai-act',
       'Vault Analyze + executive PDF; attach technical remediation list',
-      'Disclaimer: technical readiness, not legal conformity'
+      'Disclaimer: technical readiness, not legal conformity',
     ],
-    notIncluded: 'Legal conformity certification'
+    notIncluded: 'Legal conformity certification',
   },
   warranty199: {
     label: 'Post-handoff re-scan ($199)',
@@ -93,10 +94,10 @@ const PRODUCTS = {
     vaultSteps: [
       'Confirm Growth pack warranty token not already consumed',
       'Same PDF workflow as clearance499 with re-attestation cover letter',
-      'Log warranty_delivered_at on agency project when applicable'
+      'Log warranty_delivered_at on agency project when applicable',
     ],
-    notIncluded: 'Free CLI re-run without operator review'
-  }
+    notIncluded: 'Free CLI re-run without operator review',
+  },
 };
 
 /**
@@ -105,11 +106,13 @@ const PRODUCTS = {
  * @returns {any}
  */
 function slugify(text) {
-  return String(text || 'client')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 48) || 'client';
+  return (
+    String(text || 'client')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 48) || 'client'
+  );
 }
 
 /**
@@ -127,7 +130,9 @@ function readJsonSafe(filePath) {
  * @returns {any}
  */
 function inferProductFromBooking(booking = {}) {
-  const explicit = String(booking.productSku || booking.product || '').trim().toLowerCase();
+  const explicit = String(booking.productSku || booking.product || '')
+    .trim()
+    .toLowerCase();
   if (explicit && PRODUCTS[explicit]) return explicit;
 
   const source = String(booking.source || '').toLowerCase();
@@ -162,7 +167,7 @@ function validateGateReport(reportPath) {
     pass: pass === true,
     blockingCount: blocking != null ? Number(blocking) : null,
     issueCount: payload.issueCount ?? payload.results?.simplebeacon?.issueCount ?? null,
-    generatedAt: payload.generatedAt || payload.results?.simplebeacon?.generatedAt || null
+    generatedAt: payload.generatedAt || payload.results?.simplebeacon?.generatedAt || null,
   };
 }
 
@@ -204,9 +209,10 @@ function loadVaultPassword(projectRoot) {
 function vaultUrls(projectRoot, options = {}) {
   const port = options.port || process.env.PORT || constants.DASHBOARD_PORT;
   const password = options.vaultPassword ?? loadVaultPassword(projectRoot);
-  const base = process.env.OPERATOR_DASHBOARD_BASE_URL
-    || process.env.PUBLIC_APP_URL
-    || `http://127.0.0.1:${port}`;
+  const base =
+    process.env.OPERATOR_DASHBOARD_BASE_URL ||
+    process.env.PUBLIC_APP_URL ||
+    `http://127.0.0.1:${port}`;
   const q = password ? `?password=${encodeURIComponent(password)}` : '';
   return {
     vault: `${base}/private-dashboard-vault${q}`,
@@ -214,7 +220,7 @@ function vaultUrls(projectRoot, options = {}) {
     bookings: `${base}/operator/bookings`,
     sampleReport: `${base}/sample-report`,
     handoffGuide: 'https://simplebeacon.ai/downloads/repo-handoff.html',
-    runbook: 'docs/operator-client-deliverables-from-vault.md'
+    runbook: 'docs/operator-client-deliverables-from-vault.md',
   };
 }
 
@@ -245,7 +251,7 @@ function buildOutboundMd(product, ctx) {
     `- **SKU:** ${product.sku}`,
     `- **SLA:** ${product.clock}`,
     `- **Workspace:** ${ctx.workspaceDir}`,
-    ''
+    '',
   ];
   if (ctx.booking) {
     lines.push('## Booking', '');
@@ -280,7 +286,9 @@ function buildOutboundMd(product, ctx) {
   product.vaultSteps.forEach((step, i) => lines.push(`${i + 1}. ${step}`));
   lines.push('', '## Email bullets', '');
   lines.push(`- Deliverable: ${product.label}`);
-  lines.push('- We reviewed your local SimpleBeacon gate report (deterministic rules, not LLM scoring).');
+  lines.push(
+    '- We reviewed your local SimpleBeacon gate report (deterministic rules, not LLM scoring).'
+  );
   if (product.sku === 'clearance499' || product.sku === 'warranty199') {
     lines.push('- Attached: executive PDF with gate verdict and developer remediations.');
   }
@@ -288,7 +296,9 @@ function buildOutboundMd(product, ctx) {
     lines.push('- Attached: co-branded hygiene certificate for this milestone.');
   }
   if (product.sku === 'euai2499') {
-    lines.push('- Attached: EU AI Act technical readiness summary (not legal conformity certification).');
+    lines.push(
+      '- Attached: EU AI Act technical readiness summary (not legal conformity certification).'
+    );
   }
   lines.push('', `*Not included: ${product.notIncluded}*`);
   return lines.join('\n');
@@ -306,7 +316,7 @@ function enrichBooking(row) {
     ...row,
     bookingKey: row.receivedAt || null,
     inferredProduct: sku,
-    inferredProductLabel: product ? product.label : sku
+    inferredProductLabel: product ? product.label : sku,
   };
 }
 
@@ -345,7 +355,9 @@ async function createDeliverableWorkspace(input, options = {}) {
   const projectRoot = path.resolve(options.projectRoot || path.join(__dirname, '../..'));
   const deliverablesRoot = path.join(projectRoot, 'deliverables', 'clients');
 
-  const productKey = String(input.product || inferProductFromBooking(input.booking || {})).toLowerCase();
+  const productKey = String(
+    input.product || inferProductFromBooking(input.booking || {})
+  ).toLowerCase();
   const product = PRODUCTS[productKey];
   if (!product) {
     return { ok: false, error: 'unknown_product', message: `Unknown product "${productKey}"` };
@@ -356,10 +368,7 @@ async function createDeliverableWorkspace(input, options = {}) {
   const projectId = String(input.projectId || '').trim();
 
   let gate = null;
-  const reportPath = resolveReportPath(
-    input.reportPath || input.report,
-    projectRoot
-  );
+  const reportPath = resolveReportPath(input.reportPath || input.report, projectRoot);
   if (reportPath) {
     gate = validateGateReport(reportPath);
     if (!gate.ok) {
@@ -377,16 +386,13 @@ async function createDeliverableWorkspace(input, options = {}) {
       return {
         ok: false,
         error: 'invalid_milestone',
-        message: `Available: ${Object.keys(agencyProject.tokens || {}).join(', ')}`
+        message: `Available: ${Object.keys(agencyProject.tokens || {}).join(', ')}`,
       };
     }
   }
 
-  const slugBase = input.company
-    || booking?.company
-    || agencyProject?.client_name
-    || input.client
-    || 'client';
+  const slugBase =
+    input.company || booking?.company || agencyProject?.client_name || input.client || 'client';
   const slug = `${slugify(slugBase)}${milestone ? `-${milestone}` : ''}-${new Date().toISOString().slice(0, 10)}`;
   const workspaceDir = path.join(deliverablesRoot, slug);
   const exportsDir = path.join(workspaceDir, 'exports');
@@ -404,7 +410,7 @@ async function createDeliverableWorkspace(input, options = {}) {
     milestone: milestone || null,
     reportPath: reportPath || null,
     gate,
-    vaultUrls: urls
+    vaultUrls: urls,
   };
 
   await fs.promises.writeFile(
@@ -422,11 +428,16 @@ async function createDeliverableWorkspace(input, options = {}) {
   );
 
   if (booking?.receivedAt) {
-    await updateBookingDeliverable(projectRoot, booking.receivedAt, {
-      deliverableWorkspace: path.relative(projectRoot, workspaceDir).replace(/\\/g, '/'),
-      deliverableProduct: product.sku,
-      deliverableStartedAt: new Date().toISOString()
-    }, options);
+    await updateBookingDeliverable(
+      projectRoot,
+      booking.receivedAt,
+      {
+        deliverableWorkspace: path.relative(projectRoot, workspaceDir).replace(/\\/g, '/'),
+        deliverableProduct: product.sku,
+        deliverableStartedAt: new Date().toISOString(),
+      },
+      options
+    );
   }
 
   return {
@@ -437,7 +448,7 @@ async function createDeliverableWorkspace(input, options = {}) {
     gate,
     urls,
     intake,
-    gateWarning: gate && gate.pass === false
+    gateWarning: gate && gate.pass === false,
   };
 }
 
@@ -449,7 +460,7 @@ function listProducts() {
   return Object.values(PRODUCTS).map((p) => ({
     sku: p.sku,
     price: p.price,
-    label: p.label
+    label: p.label,
   }));
 }
 
@@ -461,5 +472,5 @@ module.exports = {
   createDeliverableWorkspace,
   vaultUrls,
   listProducts,
-  buildOutboundMd
+  buildOutboundMd,
 };

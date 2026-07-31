@@ -33,7 +33,7 @@ export class ChatbotView {
   }
 
   mount(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = `
       <div class="view-container">
         <div class="analyze-hero" style="margin-bottom:var(--space-4);">
@@ -131,13 +131,18 @@ export class ChatbotView {
     const sendBtn = document.getElementById('chatbot-send');
 
     try {
-      const res = await fetch('/api/chatbot/providers', { method: 'GET', signal: AbortSignal.timeout(3000) });
+      const res = await fetch('/api/chatbot/providers', {
+        method: 'GET',
+        signal: AbortSignal.timeout(3000),
+      });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        const available = Array.isArray(data.providers) ? data.providers.filter(p => p.available) : [];
+        const available = Array.isArray(data.providers)
+          ? data.providers.filter((p) => p.available)
+          : [];
         if (available.length > 0) {
           if (dot) dot.className = 'chatbot-connection-dot chatbot-connection-online';
-          if (text) text.textContent = `Ready — ${available.map(p => p.label).join(', ')}`;
+          if (text) text.textContent = `Ready — ${available.map((p) => p.label).join(', ')}`;
           if (input) input.disabled = false;
           if (sendBtn) sendBtn.disabled = false;
           return;
@@ -146,7 +151,9 @@ export class ChatbotView {
         if (text) text.textContent = 'No AI provider configured';
         if (input) input.disabled = true;
         if (sendBtn) sendBtn.disabled = true;
-        this.showErrorBanner('No AI provider configured. Add your own OpenAI or Anthropic API key in Settings → AI providers — keys are stored encrypted on your account.');
+        this.showErrorBanner(
+          'No AI provider configured. Add your own OpenAI or Anthropic API key in Settings → AI providers — keys are stored encrypted on your account.'
+        );
         return;
       }
     } catch (e) {
@@ -162,7 +169,7 @@ export class ChatbotView {
   showErrorBanner(message, isRecoverable = true) {
     const banner = document.getElementById('chatbot-error-banner');
     if (!banner) return;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     banner.innerHTML = `
       <div class="chatbot-error-content">
         <span class="chatbot-error-icon">⚠️</span>
@@ -173,7 +180,9 @@ export class ChatbotView {
     banner.style.display = 'block';
     const dismiss = banner.querySelector('.chatbot-error-dismiss');
     if (dismiss) {
-      dismiss.addEventListener('click', () => { banner.style.display = 'none'; });
+      dismiss.addEventListener('click', () => {
+        banner.style.display = 'none';
+      });
     }
   }
 
@@ -189,7 +198,7 @@ export class ChatbotView {
     const providerSelect = document.getElementById('chatbot-provider');
 
     sendBtn.addEventListener('click', () => this.sendMessage());
-    
+
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -223,12 +232,15 @@ export class ChatbotView {
     if (promptSave && promptTextarea) {
       promptSave.addEventListener('click', async () => {
         const prompt = promptTextarea.value.trim();
-        const userId = this.app?.state?.user?.email || localStorage.getItem('simplebeacon_user_id') || 'anonymous';
+        const userId =
+          this.app?.state?.user?.email ||
+          localStorage.getItem('simplebeacon_user_id') ||
+          'anonymous';
         try {
           await fetch('/api/prompts/set', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, prompt })
+            body: JSON.stringify({ userId, prompt }),
           });
           this.showPromptToast('Custom prompt saved');
         } catch (e) {
@@ -294,15 +306,20 @@ export class ChatbotView {
   showPromptToast(text) {
     const toast = document.createElement('div');
     toast.textContent = text;
-    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
+    toast.style.cssText =
+      'position:fixed;bottom:24px;right:24px;padding:10px 16px;border-radius:8px;background:var(--success);color:#fff;font-size:0.875rem;z-index:9999;transition:opacity 300ms;';
     document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }, 2000);
   }
 
   async loadCustomPrompt() {
     const promptTextarea = document.getElementById('chatbot-custom-prompt');
     if (!promptTextarea) return;
-    const userId = this.app?.state?.user?.email || localStorage.getItem('simplebeacon_user_id') || 'anonymous';
+    const userId =
+      this.app?.state?.user?.email || localStorage.getItem('simplebeacon_user_id') || 'anonymous';
     try {
       const res = await fetch('/api/prompts/get?userId=' + encodeURIComponent(userId));
       if (res.ok) {
@@ -323,7 +340,7 @@ export class ChatbotView {
     const hardcoded = [
       { id: 'ollama', label: 'Ollama' },
       { id: 'openai', label: 'OpenAI' },
-      { id: 'anthropic', label: 'Anthropic' }
+      { id: 'anthropic', label: 'Anthropic' },
     ];
 
     try {
@@ -335,9 +352,9 @@ export class ChatbotView {
         throw new Error('No providers returned');
       }
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+      // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       select.innerHTML = '';
-      data.providers.forEach(provider => {
+      data.providers.forEach((provider) => {
         const option = document.createElement('option');
         option.value = provider.id;
         option.textContent = provider.label + (provider.available ? '' : ' (not configured)');
@@ -345,7 +362,7 @@ export class ChatbotView {
         select.appendChild(option);
       });
 
-      const firstAvailable = data.providers.find(p => p.available);
+      const firstAvailable = data.providers.find((p) => p.available);
       if (firstAvailable) {
         select.value = firstAvailable.id;
         this.selectedProvider = firstAvailable.id;
@@ -354,9 +371,9 @@ export class ChatbotView {
       }
     } catch (error) {
       // Fallback to hardcoded list with all disabled
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+      // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       select.innerHTML = '';
-      hardcoded.forEach(p => {
+      hardcoded.forEach((p) => {
         const option = document.createElement('option');
         option.value = p.id;
         option.textContent = p.label + ' (server offline)';
@@ -373,7 +390,9 @@ export class ChatbotView {
     if (!rawMessage || this.isLoading) return;
 
     if (!this.selectedProvider) {
-      this.showErrorBanner('No AI provider configured. Add your own OpenAI or Anthropic API key in Settings → AI providers — keys are stored encrypted on your account.');
+      this.showErrorBanner(
+        'No AI provider configured. Add your own OpenAI or Anthropic API key in Settings → AI providers — keys are stored encrypted on your account.'
+      );
       return;
     }
 
@@ -402,10 +421,13 @@ export class ChatbotView {
           conversationHistory: this.conversationHistory.slice(0, -1),
           provider: this.selectedProvider,
           projectPath: this.app.state.defaultProjectPath || null,
-          userId: this.app?.state?.user?.email || localStorage.getItem('simplebeacon_user_id') || 'anonymous',
+          userId:
+            this.app?.state?.user?.email ||
+            localStorage.getItem('simplebeacon_user_id') ||
+            'anonymous',
           personality: this.personality,
-          removeFilters: this.removeFilters
-        })
+          removeFilters: this.removeFilters,
+        }),
       });
 
       // Remove typing indicator
@@ -416,7 +438,9 @@ export class ChatbotView {
           throw new Error('Chatbot API not found. Ensure the ai-platform server is running.');
         }
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || errData.error || `HTTP ${res.status}: ${res.statusText}`);
+        throw new Error(
+          errData.message || errData.error || `HTTP ${res.status}: ${res.statusText}`
+        );
       }
 
       // Create placeholder for assistant response
@@ -426,7 +450,8 @@ export class ChatbotView {
       // Get the message container for streaming updates
       const container = document.getElementById('chatbot-messages');
       const messageElements = container.querySelectorAll('.chatbot-message');
-      const targetBubble = messageElements[assistantMessageIndex]?.querySelector('.chatbot-message-text');
+      const targetBubble =
+        messageElements[assistantMessageIndex]?.querySelector('.chatbot-message-text');
 
       if (targetBubble) {
         // Consume streaming response
@@ -440,7 +465,9 @@ export class ChatbotView {
         if (data.success) {
           this.conversationHistory[assistantMessageIndex].content = data.response;
         } else {
-          this.showErrorBanner(data.message || 'The AI provider returned an error. Check provider configuration.');
+          this.showErrorBanner(
+            data.message || 'The AI provider returned an error. Check provider configuration.'
+          );
           this.conversationHistory.pop(); // remove empty assistant placeholder
         }
       }
@@ -485,7 +512,7 @@ export class ChatbotView {
       try {
         const parsed = JSON.parse(buffered);
         if (parsed.response) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+          // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
           targetBubble.innerHTML = this.formatStreamedMessage(parsed.response);
           const container = document.getElementById('chatbot-messages');
           if (container) {
@@ -506,7 +533,7 @@ export class ChatbotView {
           const parsed = JSON.parse(line);
           if (parsed.response) {
             accumulatedText += parsed.response;
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+            // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
             targetBubble.innerHTML = this.formatStreamedMessage(accumulatedText);
             const container = document.getElementById('chatbot-messages');
             if (container) {
@@ -519,7 +546,7 @@ export class ChatbotView {
       }
     } catch (error) {
       console.error('Streaming connection interrupted:', error);
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+      // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       targetBubble.innerHTML += '<p class="error">[Stream Interrupted]</p>';
     } finally {
       reader.releaseLock();
@@ -531,7 +558,7 @@ export class ChatbotView {
     if (!container) return;
 
     if (this.conversationHistory.length === 0) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+      // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       container.innerHTML = `
         <div class="chatbot-welcome">
           <div class="chatbot-welcome-icon">🤖</div>
@@ -542,8 +569,10 @@ export class ChatbotView {
       return;
     }
 
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    container.innerHTML = this.conversationHistory.map((msg, index) => `
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    container.innerHTML = this.conversationHistory
+      .map(
+        (msg, index) => `
       <div class="chatbot-message chatbot-message-${msg.role}">
         <div class="chatbot-message-content">
           <div class="chatbot-message-role">
@@ -553,10 +582,12 @@ export class ChatbotView {
           <div class="chatbot-message-text">${this.formatMessage(msg.content)}</div>
         </div>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
 
     // Add copy button event listeners
-    container.querySelectorAll('.chatbot-copy-btn').forEach(btn => {
+    container.querySelectorAll('.chatbot-copy-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const index = parseInt(e.target.dataset.index);
         this.copyMessage(index);
@@ -665,9 +696,12 @@ export class ChatbotView {
     });
 
     // 8. Preserve line breaks (but not in code blocks)
-    processedText = processedText.replace(/<pre class="chatbot-code-block">[\s\S]*?<\/pre>/g, (match) => {
-      return match.replace(/\n/g, '&#10;');
-    });
+    processedText = processedText.replace(
+      /<pre class="chatbot-code-block">[\s\S]*?<\/pre>/g,
+      (match) => {
+        return match.replace(/\n/g, '&#10;');
+      }
+    );
     processedText = processedText.replace(/\n/g, '<br>');
 
     // 9. Restore newlines in code blocks
@@ -687,11 +721,11 @@ export class ChatbotView {
   showTypingIndicator() {
     const container = document.getElementById('chatbot-messages');
     if (!container) return;
-    
+
     const indicator = document.createElement('div');
     indicator.id = 'chatbot-typing-indicator';
     indicator.className = 'chatbot-message chatbot-message-assistant';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     indicator.innerHTML = `
       <div class="chatbot-message-content">
         <div class="chatbot-message-role">AI</div>
@@ -717,7 +751,7 @@ export class ChatbotView {
     if (!container) return;
     container.scrollTo({
       top: container.scrollHeight,
-      behavior: 'smooth'
+      behavior: 'smooth',
     });
   }
 
@@ -756,10 +790,13 @@ export class ChatbotView {
 
   saveSettings() {
     try {
-      localStorage.setItem(this.SETTINGS_KEY, JSON.stringify({
-        personality: this.personality,
-        removeFilters: this.removeFilters
-      }));
+      localStorage.setItem(
+        this.SETTINGS_KEY,
+        JSON.stringify({
+          personality: this.personality,
+          removeFilters: this.removeFilters,
+        })
+      );
     } catch (error) {
       console.error('Failed to save settings:', error);
     }
@@ -769,21 +806,24 @@ export class ChatbotView {
     const message = this.conversationHistory[index];
     if (!message || !message.content) return;
 
-    navigator.clipboard.writeText(message.content).then(() => {
-      // Show brief success feedback
-      const btn = document.querySelector(`.chatbot-copy-btn[data-index="${index}"]`);
-      if (btn) {
-        const originalText = btn.textContent;
-        btn.textContent = '✓';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = originalText;
-          btn.classList.remove('copied');
-        }, 1500);
-      }
-    }).catch(err => {
-      console.error('Failed to copy message:', err);
-    });
+    navigator.clipboard
+      .writeText(message.content)
+      .then(() => {
+        // Show brief success feedback
+        const btn = document.querySelector(`.chatbot-copy-btn[data-index="${index}"]`);
+        if (btn) {
+          const originalText = btn.textContent;
+          btn.textContent = '✓';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.classList.remove('copied');
+          }, 1500);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to copy message:', err);
+      });
   }
 
   destroy() {

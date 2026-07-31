@@ -1,6 +1,6 @@
 /**
  * Enhanced Security Middleware
- * 
+ *
  * Provides comprehensive security protection including:
  * - Rate limiting
  * - Input validation and sanitization
@@ -23,7 +23,7 @@ const securityConfig = {
   rateLimitSkipSuccessfulRequests: false,
   rateLimitSkipFailedRequests: false,
   maxRequestSize: '10mb',
-  trustedProxies: ['127.0.0.1', '::1']
+  trustedProxies: ['127.0.0.1', '::1'],
 };
 
 // Rate limiting middleware
@@ -40,19 +40,25 @@ const createRateLimiter = (options = {}) => {
       // Bypass rate limiting for localhost in development
       if (process.env.NODE_ENV !== 'production') {
         const ip = req.ip || req.connection?.remoteAddress || '';
-        return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip.startsWith('::ffff:127.');
+        return (
+          ip === '127.0.0.1' ||
+          ip === '::1' ||
+          ip === '::ffff:127.0.0.1' ||
+          ip.startsWith('::ffff:127.')
+        );
       }
       return false;
     },
     message: {
       error: 'Too many requests',
       message: 'Rate limit exceeded. Please try again later.',
-      retryAfter: Math.ceil(securityConfig.rateLimitWindowMs / constants.MS_PER_SECOND)
+      retryAfter: Math.ceil(securityConfig.rateLimitWindowMs / constants.MS_PER_SECOND),
     },
     standardHeaders: true,
     legacyHeaders: false,
-    skipSuccessfulRequests: options.skipSuccessfulRequests || securityConfig.rateLimitSkipSuccessfulRequests,
-    skipFailedRequests: options.skipFailedRequests || securityConfig.rateLimitSkipFailedRequests
+    skipSuccessfulRequests:
+      options.skipSuccessfulRequests || securityConfig.rateLimitSkipSuccessfulRequests,
+    skipFailedRequests: options.skipFailedRequests || securityConfig.rateLimitSkipFailedRequests,
   });
 };
 
@@ -61,24 +67,28 @@ const validationSchemas = {
   // Project analysis request
   projectAnalysis: Joi.object({
     targetDirectory: Joi.string().optional(),
-    mode: Joi.string().valid('security', 'performance', 'quality', 'comprehensive', 'deep', 'quick').default('comprehensive'),
+    mode: Joi.string()
+      .valid('security', 'performance', 'quality', 'comprehensive', 'deep', 'quick')
+      .default('comprehensive'),
     options: Joi.object({
       includeTests: Joi.boolean().default(true),
       includeDocs: Joi.boolean().default(true),
       maxDepth: Joi.number().integer().min(1).max(10).default(5),
-      excludePatterns: Joi.array().items(Joi.string()).default([])
-    }).optional()
+      excludePatterns: Joi.array().items(Joi.string()).default([]),
+    }).optional(),
   }),
 
   // Mock data analysis request
   mockDataAnalysis: Joi.object({
     targetDirectory: Joi.string().optional(),
-    mode: Joi.string().valid('analysis', 'conversion', 'validation', 'generation', 'cleaning', 'export').default('analysis'),
+    mode: Joi.string()
+      .valid('analysis', 'conversion', 'validation', 'generation', 'cleaning', 'export')
+      .default('analysis'),
     options: Joi.object({
       includePatterns: Joi.array().items(Joi.string()).default(['mock', 'sample', 'demo', 'test']),
       excludePatterns: Joi.array().items(Joi.string()).default([]),
-      qualityThreshold: Joi.number().min(0).max(100).default(70)
-    }).optional()
+      qualityThreshold: Joi.number().min(0).max(100).default(70),
+    }).optional(),
   }),
 
   // User registration/update
@@ -88,15 +98,15 @@ const validationSchemas = {
     preferences: Joi.object({
       trustLevel: Joi.string().valid('bronze', 'silver', 'gold').default('bronze'),
       notifications: Joi.boolean().default(true),
-      dataSharing: Joi.boolean().default(false)
-    }).optional()
+      dataSharing: Joi.boolean().default(false),
+    }).optional(),
   }),
 
   // Login
   login: Joi.object({
     email: Joi.string().email().required(),
-    password: Joi.string().min(1).required()
-  })
+    password: Joi.string().min(1).required(),
+  }),
 };
 
 // Input validation middleware
@@ -115,20 +125,20 @@ const validateInput = (schemaName) => {
     const { error, value } = schema.validate(req.body, {
       abortEarly: false,
       stripUnknown: true,
-      convert: true
+      convert: true,
     });
 
     if (error) {
-      const errorDetails = error.details.map(detail => ({
+      const errorDetails = error.details.map((detail) => ({
         field: detail.path.join('.'),
         message: detail.message,
-        value: detail.context.value
+        value: detail.context.value,
       }));
 
       return res.status(400).json({
         error: 'Validation failed',
         message: 'Request validation failed',
-        details: errorDetails
+        details: errorDetails,
       });
     }
 
@@ -140,7 +150,7 @@ const validateInput = (schemaName) => {
 
 // Build connectSrc dynamically from env — avoid hardcoding localhost in production
 const buildConnectSrc = () => {
-  const base = ["'self'", "ws:", "wss:", "https://cloudflareinsights.com"];
+  const base = ["'self'", 'ws:', 'wss:', 'https://cloudflareinsights.com'];
   const isProd = process.env.NODE_ENV === 'production';
   const publicUrl = process.env.PUBLIC_APP_URL || process.env.SIMPLEBEACON_APP_URL;
   const dashUrl = process.env.OPERATOR_DASHBOARD_BASE_URL || process.env.DASHBOARD_BASE_URL;
@@ -149,7 +159,12 @@ const buildConnectSrc = () => {
   // Render services and local dev origins. Use wildcard ports so the dashboard's
   // background port-scanning probes (which try many ports to auto-detect the local
   // API server) are not blocked by CSP.
-  base.push('https://*.onrender.com', 'http://127.0.0.1:*', 'http://localhost:*', 'https://localhost:*'); // simplebeacon-ignore hardcoded-url — Render/local origins for dashboard API and bridge probes
+  base.push(
+    'https://*.onrender.com',
+    'http://127.0.0.1:*',
+    'http://localhost:*',
+    'https://localhost:*'
+  ); // simplebeacon-ignore hardcoded-url — Render/local origins for dashboard API and bridge probes
   if (!isProd) {
     const apiPort = process.env.PORT || 3000;
     const dashPort = process.env.DASHBOARD_PORT || 3002;
@@ -169,12 +184,26 @@ const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://static.cloudflareinsights.com"],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        'https://cdn.jsdelivr.net',
+        'https://cdnjs.cloudflare.com',
+        'https://fonts.googleapis.com',
+      ],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        'https://cdn.jsdelivr.net',
+        'https://cdnjs.cloudflare.com',
+        'https://unpkg.com',
+        'https://static.cloudflareinsights.com',
+      ],
       scriptSrcAttr: null,
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", 'data:', 'https:'],
       connectSrc: buildConnectSrc(),
-      fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
+      fontSrc: ["'self'", 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
       frameSrc: ["'self'"],
@@ -182,25 +211,25 @@ const securityHeaders = helmet({
       workerSrc: ["'self'"],
       manifestSrc: ["'self'"],
       upgradeInsecureRequests: [],
-      frameAncestors: isDev ? null : ["'none'"]
-    }
+      frameAncestors: isDev ? null : ["'none'"],
+    },
   },
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   dnsPrefetchControl: { allow: false },
   frameguard: isDev ? false : { action: 'sameorigin' },
   hidePoweredBy: true,
   hsts: {
     maxAge: 31536000,
     includeSubDomains: true,
-    preload: true
+    preload: true,
   },
   ieNoOpen: true,
   noSniff: true,
   originAgentCluster: true,
   permittedCrossDomainPolicies: false,
-  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-  xssFilter: true
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  xssFilter: true,
 });
 
 // Request logging and monitoring
@@ -214,27 +243,33 @@ const securityHeaders = helmet({
 const requestLogger = (req, res, next) => {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substring(2, 15);
-  
+
   // Add request ID to request object for tracking
   req.requestId = requestId;
-  
+
   // Log request details
-  logger.debug(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Request ID: ${requestId} - IP: ${req.ip}`);
-  
+  logger.debug(
+    `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Request ID: ${requestId} - IP: ${req.ip}`
+  );
+
   // Override res.end to log response
   const originalEnd = res.end;
-  res.end = function(chunk, encoding) {
+  res.end = function (chunk, encoding) {
     const duration = Date.now() - startTime;
-    logger.debug(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Request ID: ${requestId} - Status: ${res.statusCode} - Duration: ${duration}ms`);
-    
+    logger.debug(
+      `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Request ID: ${requestId} - Status: ${res.statusCode} - Duration: ${duration}ms`
+    );
+
     // Log security events
     if (res.statusCode >= 400) {
-      logger.warn(`[SECURITY] Request ID: ${requestId} - Error response: ${res.statusCode} - IP: ${req.ip} - User-Agent: ${req.headers['user-agent']}`);
+      logger.warn(
+        `[SECURITY] Request ID: ${requestId} - Error response: ${res.statusCode} - IP: ${req.ip} - User-Agent: ${req.headers['user-agent']}`
+      );
     }
-    
+
     originalEnd.call(this, chunk, encoding);
   };
-  
+
   next();
 };
 
@@ -245,7 +280,7 @@ const BODY_SUSPICIOUS_SCAN_SKIP_PREFIXES = [
   '/api/simplebeacon/assess',
   '/api/simplebeacon/npm-audit',
   '/api/ai-validation/scan',
-  '/api/ai-validation/audit'
+  '/api/ai-validation/audit',
 ];
 
 /**
@@ -269,7 +304,7 @@ function shouldSkipBodySuspiciousScan(req) {
  */
 const ipProtection = (req, res, next) => {
   const clientIP = req.ip;
-  
+
   // Check for suspicious patterns
   const suspiciousPatterns = [
     /\b(?:sql|union|select|insert|update|delete|drop|create|alter)\b/i, // SQL injection patterns
@@ -277,18 +312,20 @@ const ipProtection = (req, res, next) => {
     /<script[^>]*>.*?<\/script>/gi, // Script tags
     /\.\.\//g, // Directory traversal
   ];
-  
-/**
- * Check suspicious content.
- * @param {any} obj
- * @returns {any}
- */
+
+  /**
+   * Check suspicious content.
+   * @param {any} obj
+   * @returns {any}
+   */
   const checkSuspiciousContent = (obj) => {
     for (const key in obj) {
       if (typeof obj[key] === 'string') {
         for (const pattern of suspiciousPatterns) {
           if (pattern.test(obj[key])) {
-            logger.warn(`[SECURITY] Suspicious content detected - IP: ${clientIP} - Field: ${key} - Pattern: ${pattern}`);
+            logger.warn(
+              `[SECURITY] Suspicious content detected - IP: ${clientIP} - Field: ${key} - Pattern: ${pattern}`
+            );
             return true;
           }
         }
@@ -300,22 +337,22 @@ const ipProtection = (req, res, next) => {
     }
     return false;
   };
-  
+
   // Check request body and query parameters
   if (!shouldSkipBodySuspiciousScan(req) && req.body && checkSuspiciousContent(req.body)) {
     return res.status(400).json({
       error: 'Security violation',
-      message: 'Suspicious content detected in request'
+      message: 'Suspicious content detected in request',
     });
   }
-  
+
   if (req.query && checkSuspiciousContent(req.query)) {
     return res.status(400).json({
       error: 'Security violation',
-      message: 'Suspicious content detected in request parameters'
+      message: 'Suspicious content detected in request parameters',
     });
   }
-  
+
   next();
 };
 
@@ -333,27 +370,27 @@ const securityErrorHandler = (err, req, res, next) => {
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Authentication required',
-      requestId: req.requestId
+      requestId: req.requestId,
     });
   }
-  
+
   if (err.name === 'ForbiddenError') {
     return res.status(403).json({
       error: 'Forbidden',
       message: 'Access denied',
-      requestId: req.requestId
+      requestId: req.requestId,
     });
   }
-  
+
   if (err.name === 'TooManyRequestsError') {
     return res.status(429).json({
       error: 'Too many requests',
       message: 'Rate limit exceeded',
       retryAfter: err.retryAfter || 60,
-      requestId: req.requestId
+      requestId: req.requestId,
     });
   }
-  
+
   next(err);
 };
 
@@ -365,5 +402,5 @@ module.exports = {
   ipProtection,
   securityErrorHandler,
   validationSchemas,
-  securityConfig
+  securityConfig,
 };

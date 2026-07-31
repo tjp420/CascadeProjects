@@ -7,6 +7,7 @@ AI Slop Cop uses JWT-based license tokens to validate subscriptions and enable P
 ## Current Implementation
 
 ### Token Generator Script
+
 Location: `packages/simplebeacon-cli/bin/generate-license-token.cjs`
 
 ### Usage
@@ -22,6 +23,7 @@ node packages/simplebeacon-cli/bin/generate-license-token.cjs enterprise
 ### Token Structure
 
 Tokens are JWTs containing:
+
 - `tier`: "free" | "pro" | "enterprise"
 - `email`: Customer email (optional)
 - `exp`: Expiration timestamp
@@ -30,6 +32,7 @@ Tokens are JWTs containing:
 ### License Secret
 
 The secret is stored in `vscode-extension/src/extension.ts`:
+
 ```typescript
 const LICENSE_SECRET = 'fb578fe0edf57520edd3b1b53477fbafb20a43ee3d0162feb02974ca990cca54';
 ```
@@ -86,22 +89,22 @@ app.use(express.raw({ type: 'application/json' }));
 app.post('/webhook/stripe', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  
+
   // Verify webhook signature
   const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-  
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const email = session.customer_details.email;
     const tier = session.metadata.tier; // 'pro' or 'enterprise'
-    
+
     // Generate token
     const token = execSync(`node generate-license-token.cjs ${tier}`).toString().trim();
-    
+
     // Send email
     await sendLicenseEmail(email, token, tier);
   }
-  
+
   res.json({ received: true });
 });
 ```
@@ -148,6 +151,7 @@ CREATE TABLE licenses (
 ### Token Revocation
 
 To revoke a token:
+
 1. Mark as revoked in database
 2. Extension checks revocation status periodically
 3. Disable features if revoked

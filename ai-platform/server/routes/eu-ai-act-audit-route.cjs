@@ -37,11 +37,11 @@ function resolveEuAiActProjectPath(rawPath, options = {}) {
   if (!value) return path.resolve(baseDir);
 
   const candidates = [];
-/**
- * Push.
- * @param {string} candidate
- * @returns {any}
- */
+  /**
+   * Push.
+   * @param {string} candidate
+   * @returns {any}
+   */
   const push = (candidate) => {
     if (!candidate) return;
     const resolved = path.resolve(candidate);
@@ -68,9 +68,9 @@ function resolveEuAiActProjectPath(rawPath, options = {}) {
   try {
     const seed = path.isAbsolute(value)
       ? value
-      : (fs.existsSync(path.join(monorepoRoot, value))
+      : fs.existsSync(path.join(monorepoRoot, value))
         ? path.join(monorepoRoot, value)
-        : monorepoRoot);
+        : monorepoRoot;
     const { platformRoot, scanRoot } = resolvePlatformRoot(seed);
     push(platformRoot);
     push(scanRoot);
@@ -108,28 +108,29 @@ function registerEuAiActAuditRoute(app, options = {}) {
   const baseDir = options.baseDir || path.join(__dirname, '..', '..');
   const monorepoRoot = options.monorepoRoot || path.resolve(path.join(baseDir, '..'));
   const publicGateEnabled = options.publicGateEnabled === true;
-  const auditCheckoutUrl = options.auditCheckoutUrl
-    || process.env.SIMPLEBEACON_AUDIT_CHECKOUT_URL
-    || 'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
+  const auditCheckoutUrl =
+    options.auditCheckoutUrl ||
+    process.env.SIMPLEBEACON_AUDIT_CHECKOUT_URL ||
+    'mailto:audit@simplebeacon.ai?subject=Unlock%20Pre-Launch%20Audit%20Report';
 
-/**
- * Get allowed roots.
- * @returns {any}
- */
+  /**
+   * Get allowed roots.
+   * @returns {any}
+   */
   function getAllowedRoots() {
     return resolveDefaultAllowedRoots(baseDir, { monorepoRoot });
   }
 
-/**
- * Resolve safe project path.
- * @param {string} rawPath
- * @returns {any}
- */
+  /**
+   * Resolve safe project path.
+   * @param {string} rawPath
+   * @returns {any}
+   */
   function resolveSafeProjectPath(rawPath) {
     return resolveEuAiActProjectPath(rawPath, {
       baseDir,
       monorepoRoot,
-      allowedRoots: getAllowedRoots()
+      allowedRoots: getAllowedRoots(),
     });
   }
 
@@ -142,9 +143,11 @@ function registerEuAiActAuditRoute(app, options = {}) {
     if (!user) return false;
     if (user.role === 'admin' || user.role === 'superadmin') return true;
     const permissions = Array.isArray(user.permissions) ? user.permissions : [];
-    return permissions.includes('admin:basic')
-      || permissions.includes('admin:full')
-      || permissions.includes('analyze:private');
+    return (
+      permissions.includes('admin:basic') ||
+      permissions.includes('admin:full') ||
+      permissions.includes('analyze:private')
+    );
   }
 
   /**
@@ -159,9 +162,10 @@ function registerEuAiActAuditRoute(app, options = {}) {
       return res.status(402).json({
         success: false,
         publicGateLocked: true,
-        error: 'Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.',
+        error:
+          'Pre-Launch Audit PDF is a paid deliverable ($499). Unlock the full remediation log and executive PDF.',
         checkoutUrl: auditCheckoutUrl,
-        auditPriceLabel: '$499'
+        auditPriceLabel: '$499',
       });
     }
 
@@ -171,15 +175,13 @@ function registerEuAiActAuditRoute(app, options = {}) {
     }
     const { buildEuAiActAuditReport } = require('../lib/eu-ai-act-audit-report.cjs');
 
-    const projectPath = params.projectPath
-      ? resolveSafeProjectPath(params.projectPath)
-      : baseDir;
+    const projectPath = params.projectPath ? resolveSafeProjectPath(params.projectPath) : baseDir;
     const report = await buildEuAiActAuditReport({
       projectPath,
       clientName: params.client || params.company || undefined,
       deliverableSku: params.deliverableSku || params.productSku || 'euai2499',
       artifacts: params.sprintArtifacts || undefined,
-      credentials: params.credentials
+      credentials: params.credentials,
     });
     res.set('Cache-Control', 'no-store');
     return res.json({
@@ -188,7 +190,7 @@ function registerEuAiActAuditRoute(app, options = {}) {
       filename: report.filename,
       reportId: report.reportId,
       tier: report.exportTier,
-      exportTierLabel: report.exportTierLabel
+      exportTierLabel: report.exportTierLabel,
     });
   }
 
@@ -223,5 +225,5 @@ function registerEuAiActAuditRoute(app, options = {}) {
 
 module.exports = {
   registerEuAiActAuditRoute,
-  resolveEuAiActProjectPath
+  resolveEuAiActProjectPath,
 };

@@ -3,7 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ClipboardCheck, Download, CheckCircle2, XCircle, AlertCircle, FileCode, AlertTriangle, Play } from 'lucide-react';
+import {
+  ClipboardCheck,
+  Download,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  FileCode,
+  AlertTriangle,
+  Play,
+} from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 
 interface ScanResultData {
@@ -113,7 +122,9 @@ export function AuditView() {
               )}
               <div>
                 <p className="text-xs text-foreground-muted">Blocking / Warnings</p>
-                <p className="text-lg font-bold">{result.gate.blockingCount} / {result.gate.warningCount}</p>
+                <p className="text-lg font-bold">
+                  {result.gate.blockingCount} / {result.gate.warningCount}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -132,10 +143,15 @@ export function AuditView() {
               <Badge
                 key={sev}
                 variant={
-                  sev === 'critical' ? 'danger' :
-                  sev === 'high' ? 'warning' :
-                  sev === 'medium' ? 'info' :
-                  sev === 'low' ? 'secondary' : 'outline'
+                  sev === 'critical'
+                    ? 'danger'
+                    : sev === 'high'
+                      ? 'warning'
+                      : sev === 'medium'
+                        ? 'info'
+                        : sev === 'low'
+                          ? 'secondary'
+                          : 'outline'
                 }
                 className="capitalize gap-1.5"
               >

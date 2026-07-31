@@ -7,7 +7,8 @@ const constants = require('../config/constants.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
 
-const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`;
+const DEFAULT_OLLAMA_URL =
+  process.env.OLLAMA_BASE_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`;
 const DEFAULT_TIMEOUT_MS = constants.TIMEOUT_2M;
 const LIST_TIMEOUT_MS = constants.TIMEOUT_5S;
 const DEFAULT_RETRY_ATTEMPTS = 1;
@@ -21,7 +22,7 @@ const tagsCache = new Map();
  * @returns {any}
  */
 function normalizeBaseUrl(baseUrl) {
-    return String(baseUrl || DEFAULT_OLLAMA_URL).replace(/\/$/, '');
+  return String(baseUrl || DEFAULT_OLLAMA_URL).replace(/\/$/, '');
 }
 
 /**
@@ -31,8 +32,8 @@ function normalizeBaseUrl(baseUrl) {
  * @returns {any}
  */
 function asPositiveInt(value, fallback) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
 }
 
 /**
@@ -41,7 +42,7 @@ function asPositiveInt(value, fallback) {
  * @returns {any}
  */
 function isAbortError(error) {
-    return error?.name === 'AbortError';
+  return error?.name === 'AbortError';
 }
 
 /**
@@ -53,10 +54,10 @@ function isAbortError(error) {
  * @returns {any}
  */
 function shouldRetry(statusCode, error, attempt, maxAttempts) {
-    if (attempt >= maxAttempts) return false;
-    if (isAbortError(error)) return true;
-    if (statusCode == null) return true;
-    return RETRYABLE_HTTP_CODES.has(statusCode);
+  if (attempt >= maxAttempts) return false;
+  if (isAbortError(error)) return true;
+  if (statusCode == null) return true;
+  return RETRYABLE_HTTP_CODES.has(statusCode);
 }
 
 /**
@@ -68,77 +69,80 @@ function shouldRetry(statusCode, error, attempt, maxAttempts) {
  * @returns {any}
  */
 async function ollamaGenerate(baseUrl, model, prompt, options = {}) {
-    const url = `${normalizeBaseUrl(baseUrl)}/api/generate`;
-    const timeoutMs = asPositiveInt(options.timeoutMs || process.env.OLLAMA_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
-    const maxRetries = asPositiveInt(options.retryAttempts, DEFAULT_RETRY_ATTEMPTS);
-    const startedAt = Date.now();
-    const body = {
-        model,
-        prompt,
-        stream: false,
-        options: {
-            temperature: options.temperature ?? 0.1,
-            top_p: options.topP ?? 0.9,
-            num_predict: options.numPredict ?? constants.BYTES_PER_KB
+  const url = `${normalizeBaseUrl(baseUrl)}/api/generate`;
+  const timeoutMs = asPositiveInt(
+    options.timeoutMs || process.env.OLLAMA_TIMEOUT_MS,
+    DEFAULT_TIMEOUT_MS
+  );
+  const maxRetries = asPositiveInt(options.retryAttempts, DEFAULT_RETRY_ATTEMPTS);
+  const startedAt = Date.now();
+  const body = {
+    model,
+    prompt,
+    stream: false,
+    options: {
+      temperature: options.temperature ?? 0.1,
+      top_p: options.topP ?? 0.9,
+      num_predict: options.numPredict ?? constants.BYTES_PER_KB,
+    },
+  };
+  if (options.format) body.format = options.format;
+  if (options.system) body.system = options.system;
+
+  let attempt = 0;
+  // Retry once by default for transient failures/timeouts.
+  while (attempt <= maxRetries) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        if (shouldRetry(response.status, null, attempt, maxRetries)) {
+          attempt += 1;
+          continue;
         }
-    };
-    if (options.format) body.format = options.format;
-    if (options.system) body.system = options.system;
+        throw new Error(`Ollama generate failed (${response.status}): ${text.slice(0, 200)}`);
+      }
 
-    let attempt = 0;
-    // Retry once by default for transient failures/timeouts.
-    while (attempt <= maxRetries) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal,
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) {
-                const text = await response.text();
-                if (shouldRetry(response.status, null, attempt, maxRetries)) {
-                    attempt += 1;
-                    continue;
-                }
-                throw new Error(`Ollama generate failed (${response.status}): ${text.slice(0, 200)}`);
-            }
-
-            const payload = await response.json().catch(() => ({}));
-            const responseText = payload.response || '';
-            if (options.includeMeta) {
-                return {
-                    response: responseText,
-                    timing: {
-                        durationMs: Date.now() - startedAt,
-                        attempts: attempt + 1
-                    }
-                };
-            }
-            return responseText;
-        } catch (error) {
-            if (shouldRetry(null, error, attempt, maxRetries)) {
-                attempt += 1;
-                continue;
-            }
-            logInferenceEvent({
-                provider: 'ollama',
-                operation: 'ollamaGenerate',
-                projectLabel: 'inference',
-                outcome: 'error',
-                metadata: { errorMessage: error.message, model, attempt }
-            });
-            if (isAbortError(error)) {
-                throw new Error(`Ollama generate timed out after ${timeoutMs}ms`);
-            }
-            throw error;
-        } finally {
-            clearTimeout(timeout);
-        }
+      const payload = await response.json().catch(() => ({}));
+      const responseText = payload.response || '';
+      if (options.includeMeta) {
+        return {
+          response: responseText,
+          timing: {
+            durationMs: Date.now() - startedAt,
+            attempts: attempt + 1,
+          },
+        };
+      }
+      return responseText;
+    } catch (error) {
+      if (shouldRetry(null, error, attempt, maxRetries)) {
+        attempt += 1;
+        continue;
+      }
+      logInferenceEvent({
+        provider: 'ollama',
+        operation: 'ollamaGenerate',
+        projectLabel: 'inference',
+        outcome: 'error',
+        metadata: { errorMessage: error.message, model, attempt },
+      });
+      if (isAbortError(error)) {
+        throw new Error(`Ollama generate timed out after ${timeoutMs}ms`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
+  }
 }
 
 /**
@@ -147,23 +151,23 @@ async function ollamaGenerate(baseUrl, model, prompt, options = {}) {
  * @returns {any}
  */
 function extractJsonObject(text) {
-    if (!text) return null;
-    const trimmed = String(text).trim();
+  if (!text) return null;
+  const trimmed = String(text).trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    /* fall through */
+  }
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start >= 0 && end > start) {
     try {
-        return JSON.parse(trimmed);
+      return JSON.parse(trimmed.slice(start, end + 1));
     } catch {
-        /* fall through */
+      return null;
     }
-    const start = trimmed.indexOf('{');
-    const end = trimmed.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-        try {
-            return JSON.parse(trimmed.slice(start, end + 1));
-        } catch {
-            return null;
-        }
-    }
-    return null;
+  }
+  return null;
 }
 
 /**
@@ -173,146 +177,152 @@ function extractJsonObject(text) {
  * @returns {any}
  */
 async function ollamaListModels(baseUrl, options = {}) {
-    const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-    const url = `${normalizedBaseUrl}/api/tags`;
-    const controller = new AbortController();
-    const timeoutMs = asPositiveInt(options.timeoutMs, LIST_TIMEOUT_MS);
-    const cacheTtlMs = asPositiveInt(options.cacheTtlMs || process.env.OLLAMA_TAGS_CACHE_TTL_MS, DEFAULT_TAGS_CACHE_TTL_MS);
-    const cacheKey = normalizedBaseUrl;
-    const now = Date.now();
-    const cached = tagsCache.get(cacheKey);
-    if (!options.forceRefresh && cached && cached.expiresAt > now) {
-        if (options.includeMeta) {
-            return {
-                models: [...cached.models],
-                timing: {
-                    durationMs: 0,
-                    source: 'cache'
-                }
-            };
-        }
-        return [...cached.models];
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+  const url = `${normalizedBaseUrl}/api/tags`;
+  const controller = new AbortController();
+  const timeoutMs = asPositiveInt(options.timeoutMs, LIST_TIMEOUT_MS);
+  const cacheTtlMs = asPositiveInt(
+    options.cacheTtlMs || process.env.OLLAMA_TAGS_CACHE_TTL_MS,
+    DEFAULT_TAGS_CACHE_TTL_MS
+  );
+  const cacheKey = normalizedBaseUrl;
+  const now = Date.now();
+  const cached = tagsCache.get(cacheKey);
+  if (!options.forceRefresh && cached && cached.expiresAt > now) {
+    if (options.includeMeta) {
+      return {
+        models: [...cached.models],
+        timing: {
+          durationMs: 0,
+          source: 'cache',
+        },
+      };
     }
+    return [...cached.models];
+  }
 
-    const startedAt = now;
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const startedAt = now;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-    try {
-        const response = await fetch(url, { signal: controller.signal });
-        if (!response.ok) {
-            throw new Error(`Ollama tags failed (${response.status})`);
-        }
-        const payload = await response.json();
-        const models = Array.from(new Set((payload.models || [])
-            .map((entry) => entry.name || entry.model)
-            .filter(Boolean)));
-        tagsCache.set(cacheKey, {
-            models,
-            expiresAt: Date.now() + cacheTtlMs
-        });
-        if (options.includeMeta) {
-            return {
-                models: [...models],
-                timing: {
-                    durationMs: Date.now() - startedAt,
-                    source: 'network'
-                }
-            };
-        }
-        return models;
-    } catch (error) {
-        if (isAbortError(error)) {
-            throw new Error(`Ollama tags timed out after ${timeoutMs}ms`);
-        }
-        logInferenceEvent({
-            provider: 'ollama',
-            operation: 'ollamaListModels',
-            projectLabel: 'inference',
-            outcome: 'error',
-            metadata: { errorMessage: error.message, baseUrl }
-        });
-        logger.error('[Ollama Client] Failed to list models:', error);
-        throw error;
-    } finally {
-        clearTimeout(timeout);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(`Ollama tags failed (${response.status})`);
     }
+    const payload = await response.json();
+    const models = Array.from(
+      new Set((payload.models || []).map((entry) => entry.name || entry.model).filter(Boolean))
+    );
+    tagsCache.set(cacheKey, {
+      models,
+      expiresAt: Date.now() + cacheTtlMs,
+    });
+    if (options.includeMeta) {
+      return {
+        models: [...models],
+        timing: {
+          durationMs: Date.now() - startedAt,
+          source: 'network',
+        },
+      };
+    }
+    return models;
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error(`Ollama tags timed out after ${timeoutMs}ms`);
+    }
+    logInferenceEvent({
+      provider: 'ollama',
+      operation: 'ollamaListModels',
+      projectLabel: 'inference',
+      outcome: 'error',
+      metadata: { errorMessage: error.message, baseUrl },
+    });
+    logger.error('[Ollama Client] Failed to list models:', error);
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function ollamaChat(baseUrl, model, messages, options = {}) {
-    const url = `${normalizeBaseUrl(baseUrl)}/api/chat`;
-    const timeoutMs = asPositiveInt(options.timeoutMs || process.env.OLLAMA_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
-    const maxRetries = asPositiveInt(options.retryAttempts, DEFAULT_RETRY_ATTEMPTS);
-    const startedAt = Date.now();
-    const body = {
-        model,
-        messages,
-        stream: false,
-        options: {
-            temperature: options.temperature ?? 0.3,
-            top_p: options.topP ?? 0.9,
-            num_predict: options.numPredict ?? 2048
+  const url = `${normalizeBaseUrl(baseUrl)}/api/chat`;
+  const timeoutMs = asPositiveInt(
+    options.timeoutMs || process.env.OLLAMA_TIMEOUT_MS,
+    DEFAULT_TIMEOUT_MS
+  );
+  const maxRetries = asPositiveInt(options.retryAttempts, DEFAULT_RETRY_ATTEMPTS);
+  const startedAt = Date.now();
+  const body = {
+    model,
+    messages,
+    stream: false,
+    options: {
+      temperature: options.temperature ?? 0.3,
+      top_p: options.topP ?? 0.9,
+      num_predict: options.numPredict ?? 2048,
+    },
+  };
+
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        if (shouldRetry(response.status, null, attempt, maxRetries)) {
+          attempt += 1;
+          continue;
         }
-    };
+        throw new Error(`Ollama chat failed (${response.status}): ${text.slice(0, 200)}`);
+      }
 
-    let attempt = 0;
-    while (attempt <= maxRetries) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal,
-                body: JSON.stringify(body)
-            });
-
-            if (!response.ok) {
-                const text = await response.text();
-                if (shouldRetry(response.status, null, attempt, maxRetries)) {
-                    attempt += 1;
-                    continue;
-                }
-                throw new Error(`Ollama chat failed (${response.status}): ${text.slice(0, 200)}`);
-            }
-
-            const payload = await response.json().catch(() => ({}));
-            const responseText = payload.message?.content || payload.response || '';
-            if (options.includeMeta) {
-                return {
-                    response: responseText,
-                    timing: {
-                        durationMs: Date.now() - startedAt,
-                        attempts: attempt + 1
-                    }
-                };
-            }
-            return responseText;
-        } catch (error) {
-            if (shouldRetry(null, error, attempt, maxRetries)) {
-                attempt += 1;
-                continue;
-            }
-            logInferenceEvent({
-                provider: 'ollama',
-                operation: 'ollamaChat',
-                projectLabel: 'inference',
-                outcome: 'error',
-                metadata: { errorMessage: error.message, model, attempt }
-            });
-            if (isAbortError(error)) {
-                throw new Error(`Ollama chat timed out after ${timeoutMs}ms`);
-            }
-            throw error;
-        } finally {
-            clearTimeout(timeout);
-        }
+      const payload = await response.json().catch(() => ({}));
+      const responseText = payload.message?.content || payload.response || '';
+      if (options.includeMeta) {
+        return {
+          response: responseText,
+          timing: {
+            durationMs: Date.now() - startedAt,
+            attempts: attempt + 1,
+          },
+        };
+      }
+      return responseText;
+    } catch (error) {
+      if (shouldRetry(null, error, attempt, maxRetries)) {
+        attempt += 1;
+        continue;
+      }
+      logInferenceEvent({
+        provider: 'ollama',
+        operation: 'ollamaChat',
+        projectLabel: 'inference',
+        outcome: 'error',
+        metadata: { errorMessage: error.message, model, attempt },
+      });
+      if (isAbortError(error)) {
+        throw new Error(`Ollama chat timed out after ${timeoutMs}ms`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
+  }
 }
 
 module.exports = {
-    ollamaGenerate,
-    ollamaChat,
-    ollamaListModels,
-    extractJsonObject,
-    DEFAULT_OLLAMA_URL
+  ollamaGenerate,
+  ollamaChat,
+  ollamaListModels,
+  extractJsonObject,
+  DEFAULT_OLLAMA_URL,
 };

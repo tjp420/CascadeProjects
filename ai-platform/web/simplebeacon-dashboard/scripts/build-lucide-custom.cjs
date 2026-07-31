@@ -3,16 +3,70 @@
 const fs = require('fs');
 const path = require('path');
 
-const iconsDir = path.resolve(__dirname, '..', 'node_modules', 'lucide-react', 'dist', 'esm', 'icons');
+const iconsDir = path.resolve(
+  __dirname,
+  '..',
+  'node_modules',
+  'lucide-react',
+  'dist',
+  'esm',
+  'icons'
+);
 
 const ICON_NAMES = [
-  'award','badge-check','bar-chart-3','book-open','bot','check','chevron-down',
-  'clipboard-list','clipboard-check','code-2','copy','download','eye','eye-off',
-  'file-text','file-up','flask-conical','folder','folder-open','folder-search',
-  'globe','help-circle','info','key-round','layers','layout-dashboard','lock',
-  'log-in','log-out','mail','map','menu','package','play','rocket','rotate-ccw',
-  'save','search','settings','shield','shield-check','shopping-cart','sun',
-  'tag','trash-2','unlock','user','user-cog','users','wifi','wrench','x','zap'
+  'award',
+  'badge-check',
+  'bar-chart-3',
+  'book-open',
+  'bot',
+  'check',
+  'chevron-down',
+  'clipboard-list',
+  'clipboard-check',
+  'code-2',
+  'copy',
+  'download',
+  'eye',
+  'eye-off',
+  'file-text',
+  'file-up',
+  'flask-conical',
+  'folder',
+  'folder-open',
+  'folder-search',
+  'globe',
+  'help-circle',
+  'info',
+  'key-round',
+  'layers',
+  'layout-dashboard',
+  'lock',
+  'log-in',
+  'log-out',
+  'mail',
+  'map',
+  'menu',
+  'package',
+  'play',
+  'rocket',
+  'rotate-ccw',
+  'save',
+  'search',
+  'settings',
+  'shield',
+  'shield-check',
+  'shopping-cart',
+  'sun',
+  'tag',
+  'trash-2',
+  'unlock',
+  'user',
+  'user-cog',
+  'users',
+  'wifi',
+  'wrench',
+  'x',
+  'zap',
 ];
 
 function resolveIconFile(filePath, depth) {
@@ -45,16 +99,32 @@ function extractIconNode(filePath) {
 }
 
 function nodeToSvgInner(nodes) {
-  return nodes.map(function(node) {
-    var tag = node[0];
-    var attrs = node[1];
-    var attrStr = Object.keys(attrs).filter(function(k) { return k !== 'key'; })
-      .map(function(k) { return k + '="' + attrs[k] + '"'; }).join(' ');
-    if (tag === 'line' || tag === 'path' || tag === 'circle' || tag === 'rect' || tag === 'polyline' || tag === 'polygon' || tag === 'ellipse') {
-      return '<' + tag + ' ' + attrStr + '/>';
-    }
-    return '<' + tag + ' ' + attrStr + '></' + tag + '>';
-  }).join('');
+  return nodes
+    .map(function (node) {
+      var tag = node[0];
+      var attrs = node[1];
+      var attrStr = Object.keys(attrs)
+        .filter(function (k) {
+          return k !== 'key';
+        })
+        .map(function (k) {
+          return k + '="' + attrs[k] + '"';
+        })
+        .join(' ');
+      if (
+        tag === 'line' ||
+        tag === 'path' ||
+        tag === 'circle' ||
+        tag === 'rect' ||
+        tag === 'polyline' ||
+        tag === 'polygon' ||
+        tag === 'ellipse'
+      ) {
+        return '<' + tag + ' ' + attrStr + '/>';
+      }
+      return '<' + tag + ' ' + attrStr + '></' + tag + '>';
+    })
+    .join('');
 }
 
 var iconMap = {};
@@ -80,7 +150,12 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-var banner = '/**\n * lucide custom bundle - ISC License\n * Generated from lucide-react v0.460.0\n * Icons: ' + ICON_NAMES.length + ' (tree-shaken from ' + ICON_NAMES.length + ')\n */\n';
+var banner =
+  '/**\n * lucide custom bundle - ISC License\n * Generated from lucide-react v0.460.0\n * Icons: ' +
+  ICON_NAMES.length +
+  ' (tree-shaken from ' +
+  ICON_NAMES.length +
+  ')\n */\n';
 
 var js = banner + '\n';
 js += '(function(global){\n';
@@ -98,7 +173,8 @@ js += '      var size=20;\n';
 js += '      var cls=el.className||"";\n';
 js += '      var m=cls.match(/icon-(\\d+)/);\n';
 js += '      if(m) size=parseInt(m[1],10);\n';
-js += '      var svg="<svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\""+size+"\\" height=\\""+size+"\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"currentColor\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\">"+inner+"</svg>";\n';
+js +=
+  '      var svg="<svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\""+size+"\\" height=\\""+size+"\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"currentColor\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\">"+inner+"</svg>";\n';
 js += '      var wrapper=document.createElement("span");\n';
 js += '      wrapper.style.display="inline-flex";\n';
 js += '      wrapper.innerHTML=svg;\n';
@@ -113,4 +189,12 @@ js += '})(typeof window!=="undefined"?window:this);\n';
 var outPath = path.resolve(__dirname, '..', 'js', 'vendor', 'lucide.min.js');
 fs.writeFileSync(outPath, js, 'utf8');
 var sizeBytes = fs.statSync(outPath).size;
-console.log('Generated ' + outPath + ' (' + (sizeBytes / 1024).toFixed(1) + ' KB, ' + ICON_NAMES.length + ' icons)');
+console.log(
+  'Generated ' +
+    outPath +
+    ' (' +
+    (sizeBytes / 1024).toFixed(1) +
+    ' KB, ' +
+    ICON_NAMES.length +
+    ' icons)'
+);

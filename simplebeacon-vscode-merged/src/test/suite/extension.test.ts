@@ -71,12 +71,12 @@ suite('SimpleBeacon Extension Test Suite', () => {
     originalError = console.error;
     originalWarn = console.warn;
     console.error = (...args: unknown[]) => {
-      const msg = args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+      const msg = args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
       consoleErrors.push(msg);
       originalError.apply(console, args);
     };
     console.warn = (...args: unknown[]) => {
-      const msg = args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+      const msg = args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
       consoleWarns.push(msg);
       originalWarn.apply(console, args);
     };
@@ -84,7 +84,7 @@ suite('SimpleBeacon Extension Test Suite', () => {
     // Ensure the extension is activated
     const ext = vscode.extensions.getExtension('simplebeacon.simplebeacon-vscode');
     if (!ext) {
-      const allExts = vscode.extensions.all.map(e => e.id).sort();
+      const allExts = vscode.extensions.all.map((e) => e.id).sort();
       console.warn('[SB Test] Available extensions:', allExts.join(', '));
     }
     assert.ok(ext, 'Extension simplebeacon.simplebeacon-vscode should be installed');
@@ -116,18 +116,14 @@ suite('SimpleBeacon Extension Test Suite', () => {
 
   test('Extension manifest commands are all registered', async () => {
     const allCommands = await vscode.commands.getCommands(true);
-    const missing = ALL_COMMANDS.filter(cmd => !allCommands.includes(cmd));
+    const missing = ALL_COMMANDS.filter((cmd) => !allCommands.includes(cmd));
     if (missing.length > 0) {
       console.warn('[SB Test] Missing commands:', missing.join(', '));
     }
     // Only fail if critical commands are missing; some may be registered dynamically
     const critical = ['simplebeacon.scanWorkspace', 'simplebeacon.showReport', 'simplebeacon.openSettings'];
-    const missingCritical = critical.filter(cmd => !allCommands.includes(cmd));
-    assert.deepStrictEqual(
-      missingCritical,
-      [],
-      `Critical commands missing: ${missingCritical.join(', ')}`
-    );
+    const missingCritical = critical.filter((cmd) => !allCommands.includes(cmd));
+    assert.deepStrictEqual(missingCritical, [], `Critical commands missing: ${missingCritical.join(', ')}`);
   });
 
   test('All commands execute without throwing', async function (this: Mocha.Context) {
@@ -160,7 +156,7 @@ suite('SimpleBeacon Extension Test Suite', () => {
           msg.includes('null') ||
           msg.includes('is not a function') ||
           msg.includes('MODULE_NOT_FOUND') ||
-          msg.includes('command') && msg.includes('not found')
+          (msg.includes('command') && msg.includes('not found'))
         ) {
           failures.push({ cmd, err: msg });
         }
@@ -169,9 +165,7 @@ suite('SimpleBeacon Extension Test Suite', () => {
     }
 
     if (failures.length > 0) {
-      const summary = failures
-        .map(f => `  - ${f.cmd}: ${f.err}`)
-        .join('\n');
+      const summary = failures.map((f) => `  - ${f.cmd}: ${f.err}`).join('\n');
       assert.fail(`The following commands crashed on execution:\n${summary}`);
     }
   });
@@ -181,11 +175,8 @@ suite('SimpleBeacon Extension Test Suite', () => {
     // We can't directly inspect the provider registry, but we can verify
     // the focus command exists (registered alongside the provider)
     const focusCmd = 'simplebeacon-modern.focus';
-    return vscode.commands.getCommands(true).then(cmds => {
-      assert.ok(
-        cmds.includes(focusCmd),
-        `Sidebar focus command ${focusCmd} should be registered`
-      );
+    return vscode.commands.getCommands(true).then((cmds) => {
+      assert.ok(cmds.includes(focusCmd), `Sidebar focus command ${focusCmd} should be registered`);
     });
   });
 
@@ -194,7 +185,7 @@ suite('SimpleBeacon Extension Test Suite', () => {
     // Focus the sidebar
     await vscode.commands.executeCommand('simplebeacon-modern.focus');
     // Give VS Code a moment to render
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 1200));
 
     // Verify the sidebar webview is visible by checking active webview panels
     const visiblePanels = vscode.window.visibleTextEditors;
@@ -208,14 +199,14 @@ suite('SimpleBeacon Extension Test Suite', () => {
     for (const cmd of PANEL_COMMANDS) {
       try {
         await vscode.commands.executeCommand(cmd);
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 800));
       } catch (err: any) {
         const msg = err?.message || String(err);
         assert.fail(`Panel command ${cmd} threw: ${msg}`);
       }
     }
     assert.strictEqual(
-      consoleErrors.filter(e => !e.includes('EADDRINUSE')).length,
+      consoleErrors.filter((e) => !e.includes('EADDRINUSE')).length,
       0,
       'No unexpected console errors during panel open'
     );
@@ -225,12 +216,12 @@ suite('SimpleBeacon Extension Test Suite', () => {
     this.timeout(20000);
     // First ensure sidebar is focused
     await vscode.commands.executeCommand('simplebeacon-modern.focus');
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 800));
 
     for (const cmd of SIDEBAR_COMMANDS) {
       try {
         await vscode.commands.executeCommand(cmd);
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 500));
       } catch (err: any) {
         const msg = err?.message || String(err);
         // Ignore prompt cancellations
@@ -244,10 +235,8 @@ suite('SimpleBeacon Extension Test Suite', () => {
   test('Refresh relay port command executes cleanly', async function (this: Mocha.Context) {
     this.timeout(10000);
     await vscode.commands.executeCommand('simplebeacon.refreshRelayPort');
-    await new Promise(r => setTimeout(r, 500));
-    const unexpected = consoleErrors.filter(
-      e => !e.includes('EADDRINUSE') && !e.includes('relay')
-    );
+    await new Promise((r) => setTimeout(r, 500));
+    const unexpected = consoleErrors.filter((e) => !e.includes('EADDRINUSE') && !e.includes('relay'));
     assert.strictEqual(unexpected.length, 0, 'refreshRelayPort should not produce errors');
   });
 
@@ -255,9 +244,7 @@ suite('SimpleBeacon Extension Test Suite', () => {
     // If we reached here, the suite completed without hard crashes.
     // Ensure no MODULE_NOT_FOUND or TypeError leaked through.
     const criticalPatterns = ['MODULE_NOT_FOUND', 'TypeError', 'Cannot read properties of undefined'];
-    const critical = consoleErrors.filter(e =>
-      criticalPatterns.some(p => e.includes(p))
-    );
+    const critical = consoleErrors.filter((e) => criticalPatterns.some((p) => e.includes(p)));
     assert.strictEqual(critical.length, 0, `Critical errors found: ${critical.join('; ')}`);
   });
 

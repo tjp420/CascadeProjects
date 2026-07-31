@@ -1,7 +1,7 @@
 {
-  "attestations": [],
-  "generatedAt": "2026-06-15T03:25:00.000Z",
-  "version": "1.0.0",
-  "count": 0,
-  "lastAttestation": null
+    "attestations": [],
+    "generatedAt": "2026-06-15T03:25:00.000Z",
+    "version": "1.0.0",
+    "count": 0,
+    "lastAttestation": null
 }

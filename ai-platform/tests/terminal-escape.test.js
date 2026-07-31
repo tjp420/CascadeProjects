@@ -16,7 +16,7 @@ const escapeHtmlMatch = mainJsSource.match(/function escapeHtml\(str\)\s*\{[^}]+
 if (!escapeHtmlMatch) {
   throw new Error('Could not extract escapeHtml from main.js');
 }
-// eslint-disable-next-line no-eval
+ 
 const escapeHtml = new Function(escapeHtmlMatch[0] + '; return escapeHtml;')();
 
 describe('Terminal line HTML escaping', () => {
@@ -40,7 +40,7 @@ describe('Terminal line HTML escaping', () => {
 
   test('appendTerminalLine pattern: isHtml=false escapes text', () => {
     // Simulate the safeText logic: isHtml ? text : escapeHtml(text)
-    const safeText = (isHtml, text) => isHtml ? text : escapeHtml(text);
+    const safeText = (isHtml, text) => (isHtml ? text : escapeHtml(text));
     expect(safeText(false, '<img src=x onerror=alert(1)>')).toBe(
       '&lt;img src=x onerror=alert(1)&gt;'
     );
@@ -48,14 +48,14 @@ describe('Terminal line HTML escaping', () => {
   });
 
   test('appendTerminalLine pattern: isHtml=true passes through trusted HTML', () => {
-    const safeText = (isHtml, text) => isHtml ? text : escapeHtml(text);
+    const safeText = (isHtml, text) => (isHtml ? text : escapeHtml(text));
     const html = '<span style="color:#10B981;">&#10003; SUCCESS:</span> Done';
     expect(safeText(true, html)).toBe(html);
   });
 
   test('appendLocalScannerLine pattern: type !== html escapes', () => {
     // Simulate the safeHtml logic: type === 'html' ? html : escapeHtml(html)
-    const safeHtml = (type, html) => type === 'html' ? html : escapeHtml(html);
+    const safeHtml = (type, html) => (type === 'html' ? html : escapeHtml(html));
     expect(safeHtml('info', '<script>alert(1)</script>')).toBe(
       '&lt;script&gt;alert(1)&lt;/script&gt;'
     );
@@ -63,7 +63,7 @@ describe('Terminal line HTML escaping', () => {
   });
 
   test('appendLocalScannerLine pattern: type === html passes through', () => {
-    const safeHtml = (type, html) => type === 'html' ? html : escapeHtml(html);
+    const safeHtml = (type, html) => (type === 'html' ? html : escapeHtml(html));
     const html = '<span style="color:#34D399;">&#10004;</span> Scan complete';
     expect(safeHtml('html', html)).toBe(html);
   });

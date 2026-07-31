@@ -2,7 +2,7 @@
 'use strict';
 
 jest.mock('../simplebeacon-proxy.cjs', () => ({
-  collectIssues: jest.fn().mockReturnValue([])
+  collectIssues: jest.fn().mockReturnValue([]),
 }));
 
 const recipes = require('../audit-remediation-recipes.cjs');
@@ -20,12 +20,15 @@ describe('audit-remediation-recipes facade', () => {
   });
 
   test('buildFixSpec produces structured fix metadata for a gate finding', () => {
-    const fixSpec = recipes.buildFixSpec({
-      severity: 'high',
-      location: 'src/auth.js:12',
-      rule: 'console_or_debugger',
-      snippet: 'console.log("debug")'
-    }, { projectPath: '/project' });
+    const fixSpec = recipes.buildFixSpec(
+      {
+        severity: 'high',
+        location: 'src/auth.js:12',
+        rule: 'console_or_debugger',
+        snippet: 'console.log("debug")',
+      },
+      { projectPath: '/project' }
+    );
 
     expect(fixSpec.version).toBe(1);
     expect(fixSpec.kind).toBe('debug-artifact');
@@ -37,14 +40,16 @@ describe('audit-remediation-recipes facade', () => {
 
   test('buildSortedRemediationRows enriches issues from scan payload', () => {
     const rows = recipes.buildSortedRemediationRows({
-      issues: [{
-        filePath: 'src/index.js',
-        line: 1,
-        severity: 'low',
-        type: 'tech-debt',
-        description: 'TODO: finish feature'
-      }],
-      gate: { pass: false }
+      issues: [
+        {
+          filePath: 'src/index.js',
+          line: 1,
+          severity: 'low',
+          type: 'tech-debt',
+          description: 'TODO: finish feature',
+        },
+      ],
+      gate: { pass: false },
     });
 
     expect(rows).toHaveLength(1);
@@ -55,14 +60,16 @@ describe('audit-remediation-recipes facade', () => {
 
   test('buildFixPlanFromScan returns summary counts', () => {
     const plan = recipes.buildFixPlanFromScan({
-      issues: [{
-        filePath: 'src/index.js',
-        line: 1,
-        severity: 'critical',
-        type: 'credential',
-        description: 'sk_live_test_key'
-      }],
-      gate: { pass: false }
+      issues: [
+        {
+          filePath: 'src/index.js',
+          line: 1,
+          severity: 'critical',
+          type: 'credential',
+          description: 'sk_live_test_key',
+        },
+      ],
+      gate: { pass: false },
     });
 
     expect(plan.fixCount).toBe(1);

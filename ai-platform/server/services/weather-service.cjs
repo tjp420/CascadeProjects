@@ -18,13 +18,17 @@ async function getWeather(city) {
   const key = q.toLowerCase();
   const now = Date.now();
   const cached = cache.get(key);
-  if (cached && (now - cached.ts) < CACHE_TTL_MS) {
+  if (cached && now - cached.ts < CACHE_TTL_MS) {
     return cached.data;
   }
   const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(q)}&appid=${apiKey}&units=metric`;
   const resp = await axios.get(url, { timeout: 5000 });
   const data = resp.data;
-  try { cache.set(key, { ts: now, data }); } catch { /* ignore cache errors */ }
+  try {
+    cache.set(key, { ts: now, data });
+  } catch {
+    /* ignore cache errors */
+  }
   return data;
 }
 

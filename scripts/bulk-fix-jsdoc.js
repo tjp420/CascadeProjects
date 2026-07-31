@@ -32,7 +32,7 @@ if (!DRY_RUN && !APPLY) {
 const TARGET_DIRS = [
   path.join(__dirname, '..', 'ai-platform', 'server'),
   path.join(__dirname, '..', 'ai-platform', 'src'),
-  path.join(__dirname, '..', 'ai-platform', 'packages')
+  path.join(__dirname, '..', 'ai-platform', 'packages'),
 ];
 
 if (INCLUDE_WEB) {
@@ -83,17 +83,57 @@ function generateJsdoc(name, params = [], returns = false) {
 }
 
 function toSentenceCase(str) {
-  return str.replace(/([A-Z])/g, ' $1').replace(/^\s+/, '').replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase());
+  return str
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^\s+/, '')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
 }
 
 function inferType(paramName) {
   const lower = paramName.toLowerCase();
-  if (lower.includes('callback') || lower.startsWith('cb') || lower.startsWith('fn')) return 'Function';
-  if (lower.includes('options') || lower.includes('config') || lower.includes('opts')) return 'Object';
+  if (lower.includes('callback') || lower.startsWith('cb') || lower.startsWith('fn'))
+    return 'Function';
+  if (lower.includes('options') || lower.includes('config') || lower.includes('opts'))
+    return 'Object';
   if (lower.includes('array') || lower.endsWith('s')) return 'Array';
-  if (lower.includes('count') || lower.includes('index') || lower.includes('num') || lower.includes('port') || lower.includes('limit') || lower.includes('size') || lower.includes('length') || lower.includes('ms') || lower.includes('timeout')) return 'number';
-  if (lower.includes('url') || lower.includes('path') || lower.includes('dir') || lower.includes('file') || lower.includes('name') || lower.includes('text') || lower.includes('str') || lower.includes('email') || lower.includes('token') || lower.includes('id') || lower.includes('password') || lower.includes('message')) return 'string';
-  if (lower.includes('bool') || lower.startsWith('is') || lower.startsWith('has') || lower.startsWith('should') || lower.startsWith('can') || lower.startsWith('enable')) return 'boolean';
+  if (
+    lower.includes('count') ||
+    lower.includes('index') ||
+    lower.includes('num') ||
+    lower.includes('port') ||
+    lower.includes('limit') ||
+    lower.includes('size') ||
+    lower.includes('length') ||
+    lower.includes('ms') ||
+    lower.includes('timeout')
+  )
+    return 'number';
+  if (
+    lower.includes('url') ||
+    lower.includes('path') ||
+    lower.includes('dir') ||
+    lower.includes('file') ||
+    lower.includes('name') ||
+    lower.includes('text') ||
+    lower.includes('str') ||
+    lower.includes('email') ||
+    lower.includes('token') ||
+    lower.includes('id') ||
+    lower.includes('password') ||
+    lower.includes('message')
+  )
+    return 'string';
+  if (
+    lower.includes('bool') ||
+    lower.startsWith('is') ||
+    lower.startsWith('has') ||
+    lower.startsWith('should') ||
+    lower.startsWith('can') ||
+    lower.startsWith('enable')
+  )
+    return 'boolean';
   if (lower.includes('req') && lower.includes('res')) return 'Object';
   return 'any';
 }
@@ -103,9 +143,9 @@ function extractParams(signature) {
   if (!match) return [];
   return match[1]
     .split(',')
-    .map(p => p.trim())
-    .filter(p => p)
-    .map(p => {
+    .map((p) => p.trim())
+    .filter((p) => p)
+    .map((p) => {
       // Handle destructuring: { a, b } or [a, b]
       if (p.startsWith('{') || p.startsWith('[')) return 'options';
       // Handle default params: param = 123
@@ -201,7 +241,9 @@ function main() {
     }
   }
 
-  console.log(`\n${DRY_RUN ? 'Would add' : 'Added'} JSDoc to ${totalFiles} files (${totalInsertions} blocks total).`);
+  console.log(
+    `\n${DRY_RUN ? 'Would add' : 'Added'} JSDoc to ${totalFiles} files (${totalInsertions} blocks total).`
+  );
   if (DRY_RUN) console.log('Run with --apply to write changes.');
 }
 

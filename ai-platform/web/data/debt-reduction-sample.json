@@ -3,10 +3,6 @@
   "overview": {
     "debtReduction": 35
   },
-  "strategies": [
-    {}
-  ],
-  "activeTasks": [
-    {}
-  ]
+  "strategies": [{}],
+  "activeTasks": [{}]
 }

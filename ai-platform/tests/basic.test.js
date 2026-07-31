@@ -1,4 +1,4 @@
-/* eslint-disable no-constant-binary-expression */
+ 
 /**
  * Basic Tests for Coverage
  *
@@ -100,13 +100,13 @@ describe('Basic Tests', () => {
 
     test('should filter arrays', () => {
       const arr = [1, 2, 3, 4, 5];
-      const filtered = arr.filter(x => x > 2);
+      const filtered = arr.filter((x) => x > 2);
       expect(filtered).toEqual([3, 4, 5]);
     });
 
     test('should map arrays', () => {
       const arr = [1, 2, 3];
-      const mapped = arr.map(x => x * 2);
+      const mapped = arr.map((x) => x * 2);
       expect(mapped).toEqual([2, 4, 6]);
     });
 
@@ -130,7 +130,11 @@ describe('Basic Tests', () => {
 
     test('should get object entries', () => {
       const obj = { a: 1, b: 2, c: 3 };
-      expect(Object.entries(obj)).toEqual([['a', 1], ['b', 2], ['c', 3]]);
+      expect(Object.entries(obj)).toEqual([
+        ['a', 1],
+        ['b', 2],
+        ['c', 3],
+      ]);
     });
 
     test('should check object properties', () => {
@@ -183,7 +187,7 @@ describe('Basic Tests', () => {
       const value = null;
       expect(value === null).toBe(true);
       expect(value === undefined).toBe(false);
-      
+
       const undef = undefined;
       expect(undef === null).toBe(false);
       expect(undef === undefined).toBe(true);
@@ -334,11 +338,7 @@ describe('Basic Tests', () => {
     });
 
     test('should use Promise.all', async () => {
-      const promises = [
-        Promise.resolve(1),
-        Promise.resolve(2),
-        Promise.resolve(3)
-      ];
+      const promises = [Promise.resolve(1), Promise.resolve(2), Promise.resolve(3)];
       const results = await Promise.all(promises);
       expect(results).toEqual([1, 2, 3]);
     });
@@ -346,7 +346,7 @@ describe('Basic Tests', () => {
     test('should use Promise.race', async () => {
       const promises = [
         new Promise((_, reject) => setTimeout(() => reject('error'), 5)),
-        new Promise(resolve => setTimeout(() => resolve('slow'), 20))
+        new Promise((resolve) => setTimeout(() => resolve('slow'), 20)),
       ];
       await expect(Promise.race(promises)).rejects.toBe('error');
     });
@@ -354,21 +354,21 @@ describe('Basic Tests', () => {
 
   describe('Async/Await Operations', () => {
     test('should use async/await', async () => {
-      const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-      
+      const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
       const result1 = await delay(10);
       const result2 = await delay(5);
-      
+
       expect(typeof result1).toBe('undefined');
       expect(typeof result2).toBe('undefined');
     });
 
     test('should handle async functions', async () => {
       const asyncFunction = async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
         return 'done';
       };
-      
+
       const result = await asyncFunction();
       expect(result).toBe('done');
     });
@@ -380,11 +380,11 @@ describe('Basic Tests', () => {
       expect(set.has(1)).toBe(true);
       expect(set.has(4)).toBe(false);
       expect(set.size).toBe(3);
-      
+
       set.add(4);
       expect(set.has(4)).toBe(true);
       expect(set.size).toBe(4);
-      
+
       set.delete(1);
       expect(set.has(1)).toBe(false);
       expect(set.size).toBe(3);
@@ -402,28 +402,37 @@ describe('Basic Tests', () => {
 
   describe('Map Operations', () => {
     test('should create and use maps', () => {
-      const map = new Map([['a', 1], ['b', 2]]);
+      const map = new Map([
+        ['a', 1],
+        ['b', 2],
+      ]);
       expect(map.get('a')).toBe(1);
       expect(map.get('b')).toBe(2);
       expect(map.get('c')).toBeUndefined();
       expect(map.size).toBe(2);
-      
+
       map.set('c', 3);
       expect(map.get('c')).toBe(3);
       expect(map.size).toBe(3);
-      
+
       map.delete('a');
       expect(map.get('a')).toBeUndefined();
       expect(map.size).toBe(2);
     });
 
     test('should iterate over maps', () => {
-      const map = new Map([['a', 1], ['b', 2]]);
+      const map = new Map([
+        ['a', 1],
+        ['b', 2],
+      ]);
       const entries = [];
       for (const [key, value] of map) {
         entries.push([key, value]);
       }
-      expect(entries).toEqual([['a', 1], ['b', 2]]);
+      expect(entries).toEqual([
+        ['a', 1],
+        ['b', 2],
+      ]);
     });
   });
 
@@ -455,9 +464,9 @@ describe('Basic Tests', () => {
     test('should handle large arrays efficiently', () => {
       const start = Date.now();
       const largeArray = Array.from({ length: 10000 }, (_, i) => i);
-      const filtered = largeArray.filter(x => x % 100 === 0);
+      const filtered = largeArray.filter((x) => x % 100 === 0);
       const end = Date.now();
-      
+
       expect(filtered.length).toBe(100);
       expect(end - start).toBeLessThan(100);
     });
@@ -467,7 +476,7 @@ describe('Basic Tests', () => {
       const longString = 'a'.repeat(10000);
       const result = longString.toUpperCase();
       const end = Date.now();
-      
+
       expect(result).toBe('A'.repeat(10000));
       expect(end - start).toBeLessThan(50);
     });

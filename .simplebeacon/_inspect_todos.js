@@ -3,7 +3,7 @@ const path = require('path');
 const base = path.resolve(__dirname, '..');
 const dirs = [
   path.join(base, 'ai-platform/web/simplebeacon-dashboard/js/views'),
-  path.join(base, 'ai-platform/web/simplebeacon-dashboard/js-es2018/views')
+  path.join(base, 'ai-platform/web/simplebeacon-dashboard/js-es2018/views'),
 ];
 const todos = {};
 for (const d of dirs) {

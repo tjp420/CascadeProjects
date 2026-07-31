@@ -3,23 +3,23 @@
 
 jest.mock('../../../server/lib/simplebeacon-proxy.cjs', () => ({
   verifyLicenseToken: jest.fn(),
-  generateLicenseToken: jest.fn()
+  generateLicenseToken: jest.fn(),
 }));
 jest.mock('../../../server/lib/simplebeacon-subscription-store.cjs', () => ({
-  readStore: jest.fn()
+  readStore: jest.fn(),
 }));
 jest.mock('../../../server/lib/code-hygiene-certificate.cjs', () => ({
   buildCertificateModel: jest.fn(),
-  renderCertificateHtml: jest.fn()
+  renderCertificateHtml: jest.fn(),
 }));
 jest.mock('../../../server/lib/complete-scan-audit-report.cjs', () => ({
-  buildCompleteAuditReport: jest.fn()
+  buildCompleteAuditReport: jest.fn(),
 }));
 jest.mock('../../../server/lib/analyze-export-bundle.cjs', () => ({
-  buildAnalyzeExportZipStream: jest.fn()
+  buildAnalyzeExportZipStream: jest.fn(),
 }));
 jest.mock('../../../server/lib/agency-branding-store.cjs', () => ({
-  loadAgencyBranding: jest.fn()
+  loadAgencyBranding: jest.fn(),
 }));
 
 const { buildReportBundle } = require('../../../src/api/billing/report-bundle-builder.cjs');
@@ -31,9 +31,12 @@ const { buildCompleteAuditReport } = require('../../../server/lib/complete-scan-
 describe('report-bundle-builder', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.SIMPLEBEACON_LICENSE_SECRET = process.env.SIMPLEBEACON_LICENSE_SECRET || 'test-secret';
+    process.env.SIMPLEBEACON_LICENSE_SECRET =
+      process.env.SIMPLEBEACON_LICENSE_SECRET || 'test-secret';
   });
-  afterEach(() => { delete process.env.SIMPLEBEACON_LICENSE_SECRET; });
+  afterEach(() => {
+    delete process.env.SIMPLEBEACON_LICENSE_SECRET;
+  });
 
   test('exports buildReportBundle function', () => {
     expect(typeof buildReportBundle).toBe('function');
@@ -52,13 +55,16 @@ describe('report-bundle-builder', () => {
       email: 'test@example.com',
       features: ['audit'],
       certClientName: 'Client',
-      certProjectName: 'Project'
+      certProjectName: 'Project',
     };
     readStore.mockResolvedValue({ subscriptions: { 'sub-1': record } });
     renderCertificateHtml.mockReturnValue('<html>cert</html>');
     buildCompleteAuditReport.mockReturnValue('<html>audit</html>');
 
-    const result = await buildReportBundle('good-token', { qualityScore: 95, scan_summary: { status: 'PASSED' } });
+    const result = await buildReportBundle('good-token', {
+      qualityScore: 95,
+      scan_summary: { status: 'PASSED' },
+    });
     expect(result.record).toBe(record);
     expect(result.email).toBe('test@example.com');
     expect(result.certificateHtml).toBe('<html>cert</html>');

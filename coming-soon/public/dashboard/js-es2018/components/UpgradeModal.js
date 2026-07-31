@@ -29,7 +29,8 @@ export function renderUpgradeModal({ onDismiss } = {}) {
     header.appendChild(closeBtn);
     const lead = document.createElement('p');
     lead.className = 'upgrade-modal-lead';
-    lead.textContent = 'Simplebeacon is an open-source, local-first scanner. No subscription required for CI gates or pre-commit hooks.';
+    lead.textContent =
+        'Simplebeacon is an open-source, local-first scanner. No subscription required for CI gates or pre-commit hooks.';
     const installBlock = document.createElement('div');
     installBlock.className = 'about-install-block';
     installBlock.style.margin = 'var(--space-4) 0';
@@ -63,19 +64,24 @@ export function renderUpgradeModal({ onDismiss } = {}) {
     modal.appendChild(installBlock);
     modal.appendChild(actions);
     overlay.appendChild(modal);
-    const close = (dismissAction) => {
+    const close = dismissAction => {
         overlay.remove();
         onDismiss === null || onDismiss === void 0 ? void 0 : onDismiss(dismissAction);
     };
-    (_a = overlay.querySelector('.upgrade-modal-close')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => close('dismiss'));
-    (_b = overlay.querySelector('.upgrade-dismiss')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => close('dismiss'));
-    (_c = overlay.querySelector('.upgrade-about')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', () => {
-        close();
-        window.location.hash = '#/about';
-    });
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay)
-            close();
+    (_a = overlay.querySelector('.upgrade-modal-close')) === null || _a === void 0
+        ? void 0
+        : _a.addEventListener('click', () => close('dismiss'));
+    (_b = overlay.querySelector('.upgrade-dismiss')) === null || _b === void 0
+        ? void 0
+        : _b.addEventListener('click', () => close('dismiss'));
+    (_c = overlay.querySelector('.upgrade-about')) === null || _c === void 0
+        ? void 0
+        : _c.addEventListener('click', () => {
+              close();
+              window.location.hash = '#/about';
+          });
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) close();
     });
     return overlay;
 }
@@ -86,8 +92,7 @@ export function renderUpgradeModal({ onDismiss } = {}) {
  */
 export function showUpgradeModal(options) {
     const existing = document.getElementById('upgrade-modal');
-    if (existing)
-        existing.remove();
+    if (existing) existing.remove();
     const overlay = renderUpgradeModal(options);
     document.body.appendChild(overlay);
     return overlay;

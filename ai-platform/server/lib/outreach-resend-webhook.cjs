@@ -39,7 +39,7 @@ function emptyEngagement() {
     bouncedAt: null,
     complainedAt: null,
     lastEventAt: null,
-    lastEventType: null
+    lastEventType: null,
   };
 }
 
@@ -152,7 +152,10 @@ function tagValue(tags, name) {
  */
 function recipientEmail(data) {
   const to = data?.to;
-  if (Array.isArray(to) && to.length) return String(to[0] || '').trim().toLowerCase();
+  if (Array.isArray(to) && to.length)
+    return String(to[0] || '')
+      .trim()
+      .toLowerCase();
   if (typeof to === 'string') return to.trim().toLowerCase();
   return '';
 }
@@ -217,7 +220,10 @@ function findSentRowIndex(rows, event) {
   if (prospectId && to) {
     for (let i = rows.length - 1; i >= 0; i -= 1) {
       const row = rows[i];
-      if (String(row.prospectId || '') === prospectId && String(row.to || '').toLowerCase() === to) {
+      if (
+        String(row.prospectId || '') === prospectId &&
+        String(row.to || '').toLowerCase() === to
+      ) {
         return i;
       }
     }
@@ -252,7 +258,7 @@ function applyEngagementPatch(row, event) {
   return {
     ...row,
     resendEmailId: row.resendEmailId || emailId || undefined,
-    engagement
+    engagement,
   };
 }
 
@@ -270,7 +276,7 @@ async function appendEventLog(event, options) {
     type: event.type,
     emailId: resendEmailIdFromData(event.data || {}),
     to: recipientEmail(event.data || {}),
-    prospectId: tagValue(event.data?.tags, 'prospect_id') || undefined
+    prospectId: tagValue(event.data?.tags, 'prospect_id') || undefined,
   });
   await fs.promises.appendFile(file, `${line}\n`, 'utf8');
 }
@@ -302,41 +308,37 @@ async function processResendWebhookEvent(event, options = {}) {
  * @returns {any}
  */
 function setupOutreachResendWebhook(app, options = {}) {
-  app.post(
-    WEBHOOK_PATH,
-    express.raw({ type: 'application/json' }),
-    async (req, res) => {
-      const secret = String(process.env.RESEND_WEBHOOK_SECRET || '').trim();
-      if (!secret) {
-        return sendClientError(res, 503, null, {
-          errorLabel: ERROR_CODES.ERR_OUTREACH_WEBHOOK_NOT_CONFIGURED,
-          fallback: 'Resend webhook secret not configured',
-          req
-        });
-      }
-
-      const event = verifySvixWebhook(req.body, req.headers, secret);
-      if (!event || !event.type) {
-        return sendClientError(res, 400, null, {
-          errorLabel: ERROR_CODES.ERR_OUTREACH_WEBHOOK_SIGNATURE_INVALID,
-          fallback: 'Invalid Resend webhook signature',
-          req
-        });
-      }
-
-      try {
-        const result = await processResendWebhookEvent(event, options);
-        return res.json({ ok: true, received: event.type, ...result });
-      } catch (err) {
-        logger.warn('[outreach-webhook] process failed:', err.message);
-        return sendClientError(res, 500, err, {
-          errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
-          fallback: 'Outreach webhook processing failed',
-          req
-        });
-      }
+  app.post(WEBHOOK_PATH, express.raw({ type: 'application/json' }), async (req, res) => {
+    const secret = String(process.env.RESEND_WEBHOOK_SECRET || '').trim();
+    if (!secret) {
+      return sendClientError(res, 503, null, {
+        errorLabel: ERROR_CODES.ERR_OUTREACH_WEBHOOK_NOT_CONFIGURED,
+        fallback: 'Resend webhook secret not configured',
+        req,
+      });
     }
-  );
+
+    const event = verifySvixWebhook(req.body, req.headers, secret);
+    if (!event || !event.type) {
+      return sendClientError(res, 400, null, {
+        errorLabel: ERROR_CODES.ERR_OUTREACH_WEBHOOK_SIGNATURE_INVALID,
+        fallback: 'Invalid Resend webhook signature',
+        req,
+      });
+    }
+
+    try {
+      const result = await processResendWebhookEvent(event, options);
+      return res.json({ ok: true, received: event.type, ...result });
+    } catch (err) {
+      logger.warn('[outreach-webhook] process failed:', err.message);
+      return sendClientError(res, 500, err, {
+        errorLabel: ERROR_CODES.ERR_OUTREACH_REQUEST_FAILED,
+        fallback: 'Outreach webhook processing failed',
+        req,
+      });
+    }
+  });
 }
 
 module.exports = {
@@ -346,5 +348,5 @@ module.exports = {
   processResendWebhookEvent,
   applyEngagementPatch,
   findSentRowIndex,
-  setupOutreachResendWebhook
+  setupOutreachResendWebhook,
 };

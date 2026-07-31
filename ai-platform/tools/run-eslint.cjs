@@ -7,15 +7,15 @@ const path = require('path');
 
 const args = process.argv.slice(2);
 const fixFlag = args.includes('--fix') ? ' --fix' : '';
-const paths = args.filter(arg => arg !== '--fix').join(' ') || 'server src web';
+const paths = args.filter((arg) => arg !== '--fix').join(' ') || 'server src web';
 
 try {
-  process.stdout.write(['Running ESLint...'].join(" ") + "\n");
+  process.stdout.write(['Running ESLint...'].join(' ') + '\n');
   const cmd = `npx eslint${fixFlag} ${paths}`;
-  process.stdout.write([`Command: ${cmd}`].join(" ") + "\n");
+  process.stdout.write([`Command: ${cmd}`].join(' ') + '\n');
   execSync(cmd, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-  process.stdout.write(['ESLint completed successfully'].join(" ") + "\n");
+  process.stdout.write(['ESLint completed successfully'].join(' ') + '\n');
 } catch {
-  process.stderr.write(['ESLint failed'].join(" ") + "\n");
+  process.stderr.write(['ESLint failed'].join(' ') + '\n');
   process.exit(1);
 }

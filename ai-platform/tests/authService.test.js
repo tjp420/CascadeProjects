@@ -28,8 +28,12 @@ function createTestAuthService() {
   let authRequired = true;
 
   return {
-    getToken() { return token; },
-    getUser() { return user; },
+    getToken() {
+      return token;
+    },
+    getUser() {
+      return user;
+    },
     getAuthHeaders() {
       const t = token;
       return t ? { Authorization: `Bearer ${t}` } : {};
@@ -64,7 +68,7 @@ function createTestAuthService() {
       user = {
         email: payload.sub || 'token-user',
         plan: payload.plan || payload.tier || 'free',
-        tokenSession: true
+        tokenSession: true,
       };
       localStorage.setItem(USER_KEY, JSON.stringify(user));
     },
@@ -82,18 +86,21 @@ function createTestAuthService() {
       }
       this._setTokenSession(payload);
       return true;
-    }
+    },
   };
 }
 
 // Valid HS256 JWT: {"tier":"universal","exp":2000000000,"sub":"all-access","plan":"Sovereign"}
-const VALID_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0aWVyIjoidW5pdmVyc2FsIiwiZXhwIjoyMDAwMDAwMDAwLCJzdWIiOiJhbGwtYWNjZXNzIiwicGxhbiI6IlNvdmVyZWlnbiJ9.dummy-signature-1';
+const VALID_JWT =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0aWVyIjoidW5pdmVyc2FsIiwiZXhwIjoyMDAwMDAwMDAwLCJzdWIiOiJhbGwtYWNjZXNzIiwicGxhbiI6IlNvdmVyZWlnbiJ9.dummy-signature-1';
 
 // Expired HS256 JWT: {"exp":1000000000,"sub":"expired"}
-const EXPIRED_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjEwMDAwMDAwMDAsInN1YiI6ImV4cGlyZWQifQ.dummy-signature-2';
+const EXPIRED_JWT =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjEwMDAwMDAwMDAsInN1YiI6ImV4cGlyZWQifQ.dummy-signature-2';
 
 // Unsigned JWT (should be rejected): {"alg":"none"}
-const UNSIGNED_JWT = 'eyJhbGciOiJub25lIiwidHlwIjoiS1dUIn0.eyJ0aWVyIjoidW5pdmVyc2FsIiwiZXhwIjoyMDAwMDAwMDAwLCJzdWIiOiJhbGwtYWNjZXNzIiwicGxhbiI6IlNvdmVyZWlnbiJ9.';
+const UNSIGNED_JWT =
+  'eyJhbGciOiJub25lIiwidHlwIjoiS1dUIn0.eyJ0aWVyIjoidW5pdmVyc2FsIiwiZXhwIjoyMDAwMDAwMDAwLCJzdWIiOiJhbGwtYWNjZXNzIiwicGxhbiI6IlNvdmVyZWlnbiJ9.';
 
 describe('AuthService', () => {
   beforeEach(() => {
@@ -126,7 +133,7 @@ describe('AuthService', () => {
         tier: 'universal',
         exp: 2000000000,
         sub: 'all-access',
-        plan: 'Sovereign'
+        plan: 'Sovereign',
       });
     });
 
@@ -155,7 +162,7 @@ describe('AuthService', () => {
       expect(auth.getUser()).toEqual({
         email: 'test-user',
         plan: 'pro',
-        tokenSession: true
+        tokenSession: true,
       });
     });
 
@@ -165,7 +172,7 @@ describe('AuthService', () => {
       expect(auth.getUser()).toEqual({
         email: 'token-user',
         plan: 'free',
-        tokenSession: true
+        tokenSession: true,
       });
     });
   });
@@ -185,7 +192,7 @@ describe('AuthService', () => {
       expect(auth.getUser()).toEqual({
         email: 'all-access',
         plan: 'Sovereign',
-        tokenSession: true
+        tokenSession: true,
       });
     });
 

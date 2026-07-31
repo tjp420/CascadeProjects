@@ -26,7 +26,9 @@ export function createEventBus() {
       const set = listeners.get(event);
       if (!set) return;
       for (const handler of set) {
-        try { handler(payload); } catch {}
+        try {
+          handler(payload);
+        } catch {}
       }
     },
     once(event, handler) {
@@ -36,7 +38,7 @@ export function createEventBus() {
         handler(payload);
       };
       return this.on(event, wrapped);
-    }
+    },
   };
 }
 
@@ -50,10 +52,18 @@ export function createBroadcastChannel(name) {
   if (typeof BroadcastChannel !== 'undefined') {
     const bc = new BroadcastChannel(name);
     return {
-      post(data) { bc.postMessage(data); },
-      on(handler) { bc.onmessage = (e) => handler(e.data); },
-      off() { bc.onmessage = null; },
-      close() { bc.close(); }
+      post(data) {
+        bc.postMessage(data);
+      },
+      on(handler) {
+        bc.onmessage = (e) => handler(e.data);
+      },
+      off() {
+        bc.onmessage = null;
+      },
+      close() {
+        bc.close();
+      },
     };
   }
   const key = `__broadcast_${name}`;
@@ -82,6 +92,6 @@ export function createBroadcastChannel(name) {
     },
     close() {
       this.off();
-    }
+    },
   };
 }

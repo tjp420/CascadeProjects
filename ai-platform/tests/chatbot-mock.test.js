@@ -7,12 +7,12 @@ jest.mock('../server/config/constants.cjs', () => ({
   TIMEOUT_12S: 12000,
   TIMEOUT_1M: 60000,
   MAX_RATE_LIMIT: 1000,
-  safeJsonLimit: () => '1mb'
+  safeJsonLimit: () => '1mb',
 }));
 
 jest.mock('../server/middleware/audit.cjs', () => ({
   logSecurityEvent: () => {},
-  logUserAction: () => {}
+  logUserAction: () => {},
 }));
 
 describe('Chatbot mock provider mode', () => {

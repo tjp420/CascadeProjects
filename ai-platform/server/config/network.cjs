@@ -15,9 +15,12 @@ const LOCALHOST = '127.0.0.1';
 const LOCALHOST_V6 = '::1';
 
 // CORS origins: configurable via env; localhost defaults only in non-production
-const envCors = (typeof process !== 'undefined' && process.env && process.env.CORS_ALLOWED_ORIGINS)
-  ? process.env.CORS_ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
-  : [];
+const envCors =
+  typeof process !== 'undefined' && process.env && process.env.CORS_ALLOWED_ORIGINS
+    ? process.env.CORS_ALLOWED_ORIGINS.split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 const DEFAULT_DEV_ORIGINS = (() => {
   const hosts = ['localhost', LOCALHOST];
   const ports = [DEFAULT_PORT, DASHBOARD_PORT];
@@ -27,7 +30,7 @@ const DEFAULT_DEV_ORIGINS = (() => {
 const CORS_ALLOWED_ORIGINS = Object.freeze(
   envCors.length > 0
     ? envCors
-    : (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production')
+    : typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'production'
       ? []
       : DEFAULT_DEV_ORIGINS
 );
@@ -45,5 +48,5 @@ module.exports = Object.freeze({
   HTTP_PORT,
   LOCALHOST,
   LOCALHOST_V6,
-  CORS_ALLOWED_ORIGINS
+  CORS_ALLOWED_ORIGINS,
 });

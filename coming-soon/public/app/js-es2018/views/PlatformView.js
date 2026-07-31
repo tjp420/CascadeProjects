@@ -1,7 +1,14 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatScanPathForDisplay, showToast, downloadJson, formatPercent } from '../utils.js';
-import { resolveJestTestsLabel, resolvePageSpecsLabel, hydrateDashboardHome } from '../services/analyzeService.js?v=20260726sevfix1';
-import { buildPlatformExportBundle, platformExportFilename } from '../utils/platform-export.browser.js?v=20260716cachefix1';
+import {
+    resolveJestTestsLabel,
+    resolvePageSpecsLabel,
+    hydrateDashboardHome
+} from '../services/analyzeService.js?v=20260726sevfix1';
+import {
+    buildPlatformExportBundle,
+    platformExportFilename
+} from '../utils/platform-export.browser.js?v=20260716cachefix1';
 import { renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';
 /**
  * Parse numeric.
@@ -9,9 +16,10 @@ import { renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=2
  * @returns {any}
  */
 function parseNumeric(value) {
-    if (value == null)
-        return null;
-    const match = String(value).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
+    if (value == null) return null;
+    const match = String(value)
+        .replace(/,/g, '')
+        .match(/-?\d+(?:\.\d+)?/);
     return match ? Number(match[0]) : null;
 }
 /**
@@ -21,8 +29,7 @@ function parseNumeric(value) {
  * @returns {any}
  */
 function formatSignedDelta(delta, unit = '') {
-    if (!Number.isFinite(delta))
-        return '—';
+    if (!Number.isFinite(delta)) return '—';
     const sign = delta > 0 ? '+' : delta < 0 ? '' : '';
     const suffix = unit ? ` ${unit}` : '';
     return `${sign}${delta}${suffix}`;
@@ -38,14 +45,40 @@ function buildPlatformMetrics(home, report, baseline) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     const overview = (home === null || home === void 0 ? void 0 : home.overview) || {};
     return {
-        mockScanFiles: (_b = (_a = report === null || report === void 0 ? void 0 : report.mockSampleFiles) !== null && _a !== void 0 ? _a : report === null || report === void 0 ? void 0 : report.totalFiles) !== null && _b !== void 0 ? _b : overview.totalFiles,
-        qualityScore: (_c = report === null || report === void 0 ? void 0 : report.qualityScore) !== null && _c !== void 0 ? _c : parseNumeric(overview.codeQuality),
-        schemaPassRate: (_d = report === null || report === void 0 ? void 0 : report.schemaCompliance) !== null && _d !== void 0 ? _d : overview.schemaPassRate,
-        scannerIssues: (_e = report === null || report === void 0 ? void 0 : report.issueCount) !== null && _e !== void 0 ? _e : overview.scannerIssues,
+        mockScanFiles:
+            (_b =
+                (_a = report === null || report === void 0 ? void 0 : report.mockSampleFiles) !== null && _a !== void 0
+                    ? _a
+                    : report === null || report === void 0
+                      ? void 0
+                      : report.totalFiles) !== null && _b !== void 0
+                ? _b
+                : overview.totalFiles,
+        qualityScore:
+            (_c = report === null || report === void 0 ? void 0 : report.qualityScore) !== null && _c !== void 0
+                ? _c
+                : parseNumeric(overview.codeQuality),
+        schemaPassRate:
+            (_d = report === null || report === void 0 ? void 0 : report.schemaCompliance) !== null && _d !== void 0
+                ? _d
+                : overview.schemaPassRate,
+        scannerIssues:
+            (_e = report === null || report === void 0 ? void 0 : report.issueCount) !== null && _e !== void 0
+                ? _e
+                : overview.scannerIssues,
         securityScore: (_f = overview.securityScore) !== null && _f !== void 0 ? _f : '80/100',
         jestTests: resolveJestTestsLabel(baseline, home, report),
-        pageSamples: (_g = resolvePageSpecsLabel(report, baseline)) !== null && _g !== void 0 ? _g : overview.pageSamplesLabel,
-        sampleJsonFiles: (_j = (_h = report === null || report === void 0 ? void 0 : report.mockSampleFiles) !== null && _h !== void 0 ? _h : report === null || report === void 0 ? void 0 : report.totalFiles) !== null && _j !== void 0 ? _j : overview.sampleJsonFiles
+        pageSamples:
+            (_g = resolvePageSpecsLabel(report, baseline)) !== null && _g !== void 0 ? _g : overview.pageSamplesLabel,
+        sampleJsonFiles:
+            (_j =
+                (_h = report === null || report === void 0 ? void 0 : report.mockSampleFiles) !== null && _h !== void 0
+                    ? _h
+                    : report === null || report === void 0
+                      ? void 0
+                      : report.totalFiles) !== null && _j !== void 0
+                ? _j
+                : overview.sampleJsonFiles
     };
 }
 /**
@@ -59,44 +92,50 @@ function buildComparativeRows(home, metrics) {
     const staticRows = (home === null || home === void 0 ? void 0 : home.comparativeAnalysis) || [];
     const liveByMetric = {
         'jest tests': {
-            current: (_b = parseNumeric((_a = metrics.jestTests) === null || _a === void 0 ? void 0 : _a.split('/')[0])) !== null && _b !== void 0 ? _b : parseNumeric(metrics.jestTests),
-            format: (v) => (v == null ? '—' : String(v))
+            current:
+                (_b = parseNumeric((_a = metrics.jestTests) === null || _a === void 0 ? void 0 : _a.split('/')[0])) !==
+                    null && _b !== void 0
+                    ? _b
+                    : parseNumeric(metrics.jestTests),
+            format: v => (v == null ? '—' : String(v))
         },
         'sample json files': {
             current: metrics.sampleJsonFiles,
-            format: (v) => (v == null ? '—' : String(v))
+            format: v => (v == null ? '—' : String(v))
         },
         'mock / sample files': {
             current: metrics.mockScanFiles,
-            format: (v) => (v == null ? '—' : String(v))
+            format: v => (v == null ? '—' : String(v))
         },
         'schema pass rate': {
             current: metrics.schemaPassRate,
-            format: (v) => (v == null ? '—' : `${v}%`)
+            format: v => (v == null ? '—' : `${v}%`)
         },
         'security posture': {
             current: metrics.securityScore,
-            format: (v) => (v == null ? '—' : String(v))
+            format: v => (v == null ? '—' : String(v))
         }
     };
-    return staticRows.map((row) => {
+    return staticRows.map(row => {
         const key = String(row.metric || '').toLowerCase();
         const live = liveByMetric[key];
         const previous = row.previous;
-        const current = (live === null || live === void 0 ? void 0 : live.current) != null ? live.format(live.current) : row.current;
+        const current =
+            (live === null || live === void 0 ? void 0 : live.current) != null
+                ? live.format(live.current)
+                : row.current;
         const prevNum = parseNumeric(previous);
-        const curNum = (live === null || live === void 0 ? void 0 : live.current) != null ? live.current : parseNumeric(current);
+        const curNum =
+            (live === null || live === void 0 ? void 0 : live.current) != null ? live.current : parseNumeric(current);
         let change = row.change;
         if (prevNum != null && curNum != null && prevNum !== curNum) {
             const unitMatch = String(row.change || '').match(/\s([a-z]+)$/i);
             const unit = (unitMatch === null || unitMatch === void 0 ? void 0 : unitMatch[1]) || '';
             if (String(row.metric).toLowerCase().includes('rate') || String(previous).includes('%')) {
                 change = formatSignedDelta(curNum - prevNum, '%');
-            }
-            else if (String(row.metric).toLowerCase().includes('security')) {
+            } else if (String(row.metric).toLowerCase().includes('security')) {
                 change = formatSignedDelta(curNum - prevNum, 'pts');
-            }
-            else {
+            } else {
                 change = formatSignedDelta(curNum - prevNum, unit);
             }
         }
@@ -141,8 +180,14 @@ export class PlatformView {
         const baseline = this.app.state.baseline;
         const metrics = buildPlatformMetrics(home, report, baseline);
         const comparativeRows = buildComparativeRows(home, metrics);
-        const scanPathProjectRoot = (report === null || report === void 0 ? void 0 : report.projectRoot) || ((_a = this.app.state.config) === null || _a === void 0 ? void 0 : _a.projectRoot) || '';
-        const scanPaths = (report === null || report === void 0 ? void 0 : report.scanPaths) || ((_b = this.app.state.config) === null || _b === void 0 ? void 0 : _b.scanPaths) || [];
+        const scanPathProjectRoot =
+            (report === null || report === void 0 ? void 0 : report.projectRoot) ||
+            ((_a = this.app.state.config) === null || _a === void 0 ? void 0 : _a.projectRoot) ||
+            '';
+        const scanPaths =
+            (report === null || report === void 0 ? void 0 : report.scanPaths) ||
+            ((_b = this.app.state.config) === null || _b === void 0 ? void 0 : _b.scanPaths) ||
+            [];
         const el = document.createElement('div');
         el.className = 'fade-in';
         if (!home && !report && !baseline) {
@@ -203,54 +248,82 @@ export class PlatformView {
         <div class="card">
           <div class="card-header"><span class="card-title">Scan Paths</span></div>
           <ul class="settings-path-list">
-            ${scanPaths.map((p) => `<li><code>${escapeHtml(formatScanPathForDisplay(typeof p === 'string' ? p : String(p), scanPathProjectRoot))}</code></li>`).join('') || '<li class="text-muted">No paths configured</li>'}
+            ${scanPaths.map(p => `<li><code>${escapeHtml(formatScanPathForDisplay(typeof p === 'string' ? p : String(p), scanPathProjectRoot))}</code></li>`).join('') || '<li class="text-muted">No paths configured</li>'}
           </ul>
         </div>
       </div>
 
-      ${comparativeRows.length ? `
+      ${
+          comparativeRows.length
+              ? `
         <div class="section-block">
           <div class="section-heading"><h2>Comparative Analysis</h2></div>
           <div class="card" style="padding:0;overflow:hidden;">
             <table class="results-table">
               <thead><tr><th>Metric</th><th>Previous</th><th>Current</th><th>Change</th></tr></thead>
               <tbody>
-                ${comparativeRows.map((r) => `
+                ${comparativeRows
+                    .map(
+                        r => `
                   <tr>
                     <td>${escapeHtml(r.metric)}</td>
                     <td>${escapeHtml(String(r.previous))}</td>
                     <td>${escapeHtml(String(r.current))}</td>
                     <td class="text-success">${escapeHtml(r.change)}</td>
                   </tr>
-                `).join('')}
+                `
+                    )
+                    .join('')}
               </tbody>
             </table>
           </div>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
-      ${((_p = home === null || home === void 0 ? void 0 : home.insights) === null || _p === void 0 ? void 0 : _p.length) ? `
+      ${
+          (
+              (_p = home === null || home === void 0 ? void 0 : home.insights) === null || _p === void 0
+                  ? void 0
+                  : _p.length
+          )
+              ? `
         <div class="section-block">
           <div class="section-heading"><h2>Insights</h2></div>
           <div class="insight-list">
-            ${home.insights.map((i) => `
+            ${home.insights
+                .map(
+                    i => `
               <div class="insight-item card">
                 <h3>${escapeHtml(i.title)}</h3>
                 <p>${escapeHtml(i.description)}</p>
               </div>
-            `).join('')}
+            `
+                )
+                .join('')}
           </div>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
 
-      ${((_q = report === null || report === void 0 ? void 0 : report.mockDataCategories) === null || _q === void 0 ? void 0 : _q.length) ? `
+      ${
+          (
+              (_q = report === null || report === void 0 ? void 0 : report.mockDataCategories) === null || _q === void 0
+                  ? void 0
+                  : _q.length
+          )
+              ? `
         <div class="section-block">
           <div class="section-heading"><h2>Mock Data Categories</h2></div>
           <div class="card" style="padding:0;overflow:hidden;">
             <table class="results-table">
               <thead><tr><th>Category</th><th>Files</th><th>Size</th><th>Quality</th><th>Issues</th></tr></thead>
               <tbody>
-                ${report.mockDataCategories.map((c) => `
+                ${report.mockDataCategories
+                    .map(
+                        c => `
                   <tr>
                     <td>${escapeHtml(c.category)}</td>
                     <td>${c.fileCount}</td>
@@ -258,14 +331,20 @@ export class PlatformView {
                     <td>${formatPercent(c.qualityScore)}</td>
                     <td>${c.issues}</td>
                   </tr>
-                `).join('')}
+                `
+                    )
+                    .join('')}
               </tbody>
             </table>
           </div>
         </div>
-      ` : ''}
+      `
+              : ''
+      }
     `;
-        (_q = el.querySelector('#platform-export-json')) === null || _q === void 0 ? void 0 : _q.addEventListener('click', () => this.exportPlatformData());
+        (_q = el.querySelector('#platform-export-json')) === null || _q === void 0
+            ? void 0
+            : _q.addEventListener('click', () => this.exportPlatformData());
         return el;
     }
     mount(container) {

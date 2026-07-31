@@ -53,7 +53,7 @@ export function showQuietMessage(message: string | null | undefined, timeoutMs =
         _lastStatusItem?.dispose();
         _lastStatusItem = null;
       }
-    }
+    },
   };
 
   return disposable;
@@ -78,7 +78,9 @@ const API_URL_DEFAULT_PORT = ':55000';
  * @returns {string}
  */
 export function normalizeApiServerUrl(url: string): string {
-  let normalized = String(url || '').replace(/\/+$/, '').trim();
+  let normalized = String(url || '')
+    .replace(/\/+$/, '')
+    .trim();
   if (!normalized) {
     normalized = 'http://127.0.0.1:55000';
   }
@@ -149,7 +151,11 @@ export async function checkCliAvailable(): Promise<boolean> {
       if (!resolved) {
         resolved = true;
         child.removeAllListeners();
-        try { child.kill('SIGTERM'); } catch { /* already exited */ }
+        try {
+          child.kill('SIGTERM');
+        } catch {
+          /* already exited */
+        }
         resolve(false);
       }
     }, CLI_CHECK_TIMEOUT_MS);
@@ -159,7 +165,11 @@ export async function checkCliAvailable(): Promise<boolean> {
         resolved = true;
         clearTimeout(timer);
         child.removeAllListeners();
-        try { child.kill('SIGTERM'); } catch { /* already exited */ }
+        try {
+          child.kill('SIGTERM');
+        } catch {
+          /* already exited */
+        }
         resolve(result);
       }
     }
@@ -223,7 +233,11 @@ export function getRecentFolders(): string[] {
     const raw = vscode.workspace.getConfiguration().get<string[]>(RECENT_FOLDERS_KEY, []);
     if (!Array.isArray(raw)) return [];
     return raw.filter((p) => {
-      try { return fs.statSync(p).isDirectory(); } catch { return false; }
+      try {
+        return fs.statSync(p).isDirectory();
+      } catch {
+        return false;
+      }
     });
   } catch {
     return [];
@@ -291,7 +305,8 @@ export async function pickWorkspaceFolder(): Promise<string | undefined> {
     items.push(...entries);
   }
 
-  addSection('Workspace Folders',
+  addSection(
+    'Workspace Folders',
     (vscode.workspace.workspaceFolders || []).map((wf) => ({
       label: `$(folder) ${wf.name}`,
       description: wf.uri.fsPath,
@@ -300,15 +315,21 @@ export async function pickWorkspaceFolder(): Promise<string | undefined> {
   );
 
   const currentFileDir = getCurrentFileDir();
-  addSection('Current File',
-    currentFileDir ? [{
-      label: '$(file) Current file\'s directory',
-      description: currentFileDir,
-      value: CURRENT_FILE,
-    }] : []
+  addSection(
+    'Current File',
+    currentFileDir
+      ? [
+          {
+            label: "$(file) Current file's directory",
+            description: currentFileDir,
+            value: CURRENT_FILE,
+          },
+        ]
+      : []
   );
 
-  addSection('Recent Folders',
+  addSection(
+    'Recent Folders',
     getRecentFolders().map((folderPath) => ({
       label: `$(history) ${path.basename(folderPath)}`,
       description: folderPath,
@@ -316,11 +337,13 @@ export async function pickWorkspaceFolder(): Promise<string | undefined> {
     }))
   );
 
-  addSection('Browse', [{
-    label: '$(folder-opened) Browse for any folder...',
-    description: 'Select any folder on your system',
-    value: BROWSE,
-  }]);
+  addSection('Browse', [
+    {
+      label: '$(folder-opened) Browse for any folder...',
+      description: 'Select any folder on your system',
+      value: BROWSE,
+    },
+  ]);
 
   let choice;
   try {
@@ -403,9 +426,15 @@ export function formatRelativePath(filePath: string): string {
     try {
       const rel = path.relative(ws, filePath);
       if (rel && !rel.startsWith('..')) return rel;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
-  try { return path.basename(filePath); } catch { return filePath; }
+  try {
+    return path.basename(filePath);
+  } catch {
+    return filePath;
+  }
 }
 
 /**
@@ -436,14 +465,24 @@ export function isInsideWorkspace(filePath: string): boolean {
  * @returns {string} Corrected path.
  */
 export function correctScanPath(incomingPath: string): string {
-  if (typeof incomingPath !== 'string' || !incomingPath) { return ''; }
+  if (typeof incomingPath !== 'string' || !incomingPath) {
+    return '';
+  }
   const mappings = getSbConfig().get<PathMapping[]>('pathMappings', []);
-  if (!Array.isArray(mappings)) { return incomingPath; }
+  if (!Array.isArray(mappings)) {
+    return incomingPath;
+  }
   const lower = incomingPath.toLowerCase();
   for (const map of mappings) {
-    if (!map || typeof map !== 'object') { continue; }
-    if (typeof map.prefix !== 'string' || typeof map.replacement !== 'string') { continue; }
-    if (!map.prefix || !map.replacement) { continue; }
+    if (!map || typeof map !== 'object') {
+      continue;
+    }
+    if (typeof map.prefix !== 'string' || typeof map.replacement !== 'string') {
+      continue;
+    }
+    if (!map.prefix || !map.replacement) {
+      continue;
+    }
     const prefixLower = map.prefix.toLowerCase();
     if (lower.startsWith(prefixLower)) {
       return map.replacement + incomingPath.slice(map.prefix.length);
@@ -451,7 +490,7 @@ export function correctScanPath(incomingPath: string): string {
     const basename = map.prefix.replace(/\\/g, '/').split('/').pop()?.toLowerCase() || '';
     if (!basename) continue;
     const segments = incomingPath.split(/[\\/]/);
-    const idx = segments.map(s => s.toLowerCase()).indexOf(basename);
+    const idx = segments.map((s) => s.toLowerCase()).indexOf(basename);
     if (idx !== -1) {
       const suffix = segments.slice(idx + 1);
       return suffix.length > 0 ? path.join(map.replacement, ...suffix) : map.replacement;
@@ -479,14 +518,27 @@ export async function runWithProgress<T>(
  * Collect multiple vscode.Disposable objects and dispose them all at once.
  * @returns {Object}
  */
-export function createDisposableStack(): { push(...items: vscode.Disposable[]): number; use<T>(fn: () => T & vscode.Disposable): T; dispose(): void; isDisposed: boolean } {
+export function createDisposableStack(): {
+  push(...items: vscode.Disposable[]): number;
+  use<T>(fn: () => T & vscode.Disposable): T;
+  dispose(): void;
+  isDisposed: boolean;
+} {
   const items: vscode.Disposable[] = [];
   let disposed = false;
   return {
-    get isDisposed() { return disposed; },
+    get isDisposed() {
+      return disposed;
+    },
     push(...newItems: vscode.Disposable[]) {
       if (disposed) {
-        newItems.forEach(d => { try { d.dispose(); } catch { /* ignore */ } });
+        newItems.forEach((d) => {
+          try {
+            d.dispose();
+          } catch {
+            /* ignore */
+          }
+        });
         return items.length;
       }
       items.push(...newItems);
@@ -502,8 +554,14 @@ export function createDisposableStack(): { push(...items: vscode.Disposable[]): 
       disposed = true;
       while (items.length) {
         const item = items.pop();
-        if (item) { try { item.dispose(); } catch { /* ignore */ } }
+        if (item) {
+          try {
+            item.dispose();
+          } catch {
+            /* ignore */
+          }
+        }
       }
-    }
+    },
   };
 }

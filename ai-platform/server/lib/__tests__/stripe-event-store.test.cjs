@@ -8,7 +8,9 @@ const os = require('os');
 
 const _debugLogPath = path.join(os.tmpdir(), 'sb-stripe-test-debug.log');
 function _debugLog(...args) {
-  try { fs.appendFileSync(_debugLogPath, args.map(a => String(a)).join(' ') + '\n'); } catch (e) {}
+  try {
+    fs.appendFileSync(_debugLogPath, args.map((a) => String(a)).join(' ') + '\n');
+  } catch (e) {}
 }
 
 // Use factory to create isolated store instances per-test
@@ -91,7 +93,7 @@ describe('stripe-event-store', () => {
     const results = await Promise.all([
       mod.recordProcessedEvent('evt_a'),
       mod.recordProcessedEvent('evt_b'),
-      mod.recordProcessedEvent('evt_c')
+      mod.recordProcessedEvent('evt_c'),
     ]);
 
     // All should be first-seen (true)

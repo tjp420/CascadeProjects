@@ -2,7 +2,7 @@
 
 jest.mock('../outreach-mail.cjs', () => ({
   loadSentLog: jest.fn().mockResolvedValue([]),
-  writeSentLog: jest.fn()
+  writeSentLog: jest.fn(),
 }));
 
 const {
@@ -12,7 +12,7 @@ const {
   processResendWebhookEvent,
   applyEngagementPatch,
   findSentRowIndex,
-  setupOutreachResendWebhook
+  setupOutreachResendWebhook,
 } = require('../outreach-resend-webhook.cjs');
 
 describe('outreach-resend-webhook', () => {

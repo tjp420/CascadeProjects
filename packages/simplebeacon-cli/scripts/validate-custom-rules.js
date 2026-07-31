@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-"use strict";
+'use strict';
 const fs = require('fs');
 const path = require('path');
 
@@ -17,7 +17,7 @@ for (let i = 0; i < rawArgs.length; i++) {
       val = a.slice(eqIdx + 1);
     } else {
       k = a.replace(/^--+/, '');
-      val = rawArgs[i+1] && !rawArgs[i+1].startsWith('--') ? rawArgs[++i] : true;
+      val = rawArgs[i + 1] && !rawArgs[i + 1].startsWith('--') ? rawArgs[++i] : true;
     }
     if (k === 'error-on-missing-fix' || k === 'strict-regex') {
       argv[k] = true;
@@ -32,17 +32,21 @@ if (!('strict-regex' in argv)) argv['strict-regex'] = false;
 
 const rulesDir = path.resolve(process.cwd(), argv['rules-dir']);
 
-function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
+function isObject(v) {
+  return v && typeof v === 'object' && !Array.isArray(v);
+}
 
 function validateRuleMeta(rule, file) {
-  const required = ['id','name','severity','impact','likelihood','category','matcher'];
-  const missing = required.filter(k => !(k in rule));
+  const required = ['id', 'name', 'severity', 'impact', 'likelihood', 'category', 'matcher'];
+  const missing = required.filter((k) => !(k in rule));
   if (missing.length) {
     throw new Error(`${file}: missing required fields: ${missing.join(', ')}`);
   }
-  if (!['low','medium','high'].includes(rule.severity)) throw new Error(`${file}: invalid severity`);
-  if (!['low','medium','high'].includes(rule.impact)) throw new Error(`${file}: invalid impact`);
-  if (!['low','medium','high'].includes(rule.likelihood)) throw new Error(`${file}: invalid likelihood`);
+  if (!['low', 'medium', 'high'].includes(rule.severity))
+    throw new Error(`${file}: invalid severity`);
+  if (!['low', 'medium', 'high'].includes(rule.impact)) throw new Error(`${file}: invalid impact`);
+  if (!['low', 'medium', 'high'].includes(rule.likelihood))
+    throw new Error(`${file}: invalid likelihood`);
 }
 
 function checkRegexSafety(pattern) {
@@ -70,7 +74,9 @@ async function main() {
     console.log(`rules-dir not found: ${rulesDir} — nothing to validate.`);
     return 0;
   }
-  const files = fs.readdirSync(rulesDir).filter(f => f.endsWith('.js') || f.endsWith('.cjs') || f.endsWith('.mjs'));
+  const files = fs
+    .readdirSync(rulesDir)
+    .filter((f) => f.endsWith('.js') || f.endsWith('.cjs') || f.endsWith('.mjs'));
   if (files.length === 0) {
     console.log('no rule files found in', rulesDir);
     return 0;
@@ -84,10 +90,12 @@ async function main() {
       const ruleModule = loadRuleFile(f);
       const rules = Array.isArray(ruleModule) ? ruleModule : [ruleModule];
       for (const rule of rules) {
-        if (!isObject(rule)) throw new Error(`${f}: exported value must be an object or array of objects`);
+        if (!isObject(rule))
+          throw new Error(`${f}: exported value must be an object or array of objects`);
         validateRuleMeta(rule, f);
         // matcher checks
-        if (!isObject(rule.matcher) || !rule.matcher.type) throw new Error(`${f}: matcher.type is required`);
+        if (!isObject(rule.matcher) || !rule.matcher.type)
+          throw new Error(`${f}: matcher.type is required`);
         if (rule.matcher.type === 'regex') {
           const p = rule.matcher.pattern;
           if (!p) throw new Error(`${f}: matcher.pattern required for regex rules`);
@@ -96,14 +104,18 @@ async function main() {
             const res = checkRegexSafety(pat);
             if (res.risky) {
               warnings++;
-              console.warn(`WARNING ${f}: regex appears risky for catastrophic backtracking: ${pat}`);
+              console.warn(
+                `WARNING ${f}: regex appears risky for catastrophic backtracking: ${pat}`
+              );
             }
           } catch (e) {
             throw new Error(`${f}: regex compile error: ${e.message}`);
           }
         } else if (rule.matcher.type === 'ast') {
-          if (!rule.matcher.language) throw new Error(`${f}: matcher.language required for ast rules`);
-          if (!rule.matcher.visitor && !rule.matcher.visitorFile) throw new Error(`${f}: ast matcher requires visitor or visitorFile`);
+          if (!rule.matcher.language)
+            throw new Error(`${f}: matcher.language required for ast rules`);
+          if (!rule.matcher.visitor && !rule.matcher.visitorFile)
+            throw new Error(`${f}: ast matcher requires visitor or visitorFile`);
         }
 
         if (!rule.id || typeof rule.id !== 'string') throw new Error(`${f}: id must be a string`);
@@ -124,7 +136,9 @@ async function main() {
     }
   }
 
-  console.log(`Validation complete: ${files.length} file(s), errors=${errors}, warnings=${warnings}`);
+  console.log(
+    `Validation complete: ${files.length} file(s), errors=${errors}, warnings=${warnings}`
+  );
   if (errors > 0) process.exit(2);
   if (warnings > 0) process.exit(0);
   return 0;

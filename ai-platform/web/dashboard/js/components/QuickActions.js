@@ -6,7 +6,13 @@
  * @param {any} _onLegacy }
  * @returns {any}
  */
-export function renderQuickActions({ _onRunScan, _onExport, _onLegacy, _onSendAi, showSendAi = true }) {
+export function renderQuickActions({
+  _onRunScan,
+  _onExport,
+  _onLegacy,
+  _onSendAi,
+  showSendAi = true,
+}) {
   const sendAiBtn = showSendAi
     ? `<button class="dashboard-action-btn" id="action-send-ai" title="Send current scan report to AI coding agent" style="background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.3);">
         <span style="font-size:1.1rem;">🤖</span>
@@ -41,7 +47,8 @@ export function renderQuickActions({ _onRunScan, _onExport, _onLegacy, _onSendAi
 export function bindQuickActions(container, handlers) {
   container.querySelector('#action-run-scan')?.addEventListener('click', handlers.onRunScan);
   container.querySelector('#action-export')?.addEventListener('click', handlers.onExport);
-  container.querySelector('#action-send-ai')?.addEventListener('click', handlers.onSendAi || (() => {}));
+  container
+    .querySelector('#action-send-ai')
+    ?.addEventListener('click', handlers.onSendAi || (() => {}));
   container.querySelector('#action-legacy')?.addEventListener('click', handlers.onLegacy);
 }
-

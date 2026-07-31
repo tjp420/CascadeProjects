@@ -10,14 +10,8 @@
     "E:/Ai",
     "/tmp"
   ],
-  "scanPaths": [
-    "web/data",
-    "data"
-  ],
-  "productionPaths": [
-    "server/",
-    "src/"
-  ],
+  "scanPaths": ["web/data", "data"],
+  "productionPaths": ["server/", "src/"],
   "sampleDir": "web/data",
   "consistencyAnchorSamples": [
     "dashboard-home-sample.json",
@@ -156,10 +150,7 @@
     "production-leak": {
       "enabled": true,
       "severity": "high",
-      "productionPaths": [
-        "server/",
-        "src/"
-      ]
+      "productionPaths": ["server/", "src/"]
     },
     "fiction-kpi-patterns": {
       "enabled": true,
@@ -269,13 +260,8 @@
     }
   },
   "gate": {
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ]
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"]
   },
   "fullDirectoryScan": true,
   "fullDirectoryScanSkipDirs": [

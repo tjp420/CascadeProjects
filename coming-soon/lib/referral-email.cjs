@@ -10,8 +10,14 @@ const { getFromAddress } = require('./email-config.cjs');
 const PUBLIC_ORIGIN = () => String(process.env.PUBLIC_URL || 'https://simplebeacon.ai').replace(/\/$/, '');
 
 const logger = {
-    info: (...a) => { const c = globalThis.console; c.info(...a); },
-    warn: (...a) => { const c = globalThis.console; c.warn(...a); }
+    info: (...a) => {
+        const c = globalThis.console;
+        c.info(...a);
+    },
+    warn: (...a) => {
+        const c = globalThis.console;
+        c.warn(...a);
+    }
 };
 
 function formatCertCredit(cents) {
@@ -117,7 +123,7 @@ async function sendReferralInviteEmail({ referrerEmail, inviteeEmail, shareUrl, 
         subject,
         text,
         html: buildReferralEmailShell({
-            headline: 'You\'re invited to scan your repo',
+            headline: "You're invited to scan your repo",
             bodyHtml,
             ctaUrl: url,
             ctaLabel: 'Accept invite & scan free'
@@ -138,7 +144,9 @@ async function sendReferralConversionEmail({ referrerEmail, refereeEmail, reward
         `Reward granted: ${credit} in certificate generation credits.`,
         '',
         `View your dashboard: ${PUBLIC_ORIGIN()}/app/#/results`
-    ].filter(Boolean).join('\n');
+    ]
+        .filter(Boolean)
+        .join('\n');
 
     const bodyHtml = `
       <p style="color:#D1D5DB;margin:0 0 12px;">A colleague you referred just completed checkout. Your partner ledger has been updated.</p>

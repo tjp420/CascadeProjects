@@ -168,7 +168,12 @@ function renderTemplate(text, prospect) {
 
 // ── Campaign State Management ───────────────────────────────────────────────
 
-const DEFAULT_CAMPAIGN_PATH = path.join(process.cwd(), 'marketing', 'outreach', 'campaign-state.json');
+const DEFAULT_CAMPAIGN_PATH = path.join(
+  process.cwd(),
+  'marketing',
+  'outreach',
+  'campaign-state.json'
+);
 
 function loadCampaignState(statePath) {
   try {
@@ -215,7 +220,9 @@ function getNextEmail(prospect, prospectState) {
       const reactivationEmail = SEQUENCES.REACTIVATION.emails[reactivationStep];
       const lastEmailDate = prospectState.lastEmailDate || prospectState.sequenceCompleteDate;
       if (!lastEmailDate) return null;
-      const daysSinceLast = Math.floor((Date.now() - new Date(lastEmailDate).getTime()) / (24 * 60 * 60 * 1000));
+      const daysSinceLast = Math.floor(
+        (Date.now() - new Date(lastEmailDate).getTime()) / (24 * 60 * 60 * 1000)
+      );
       if (daysSinceLast >= reactivationEmail.dayOffset) {
         return {
           sequence: 'REACTIVATION',
@@ -238,7 +245,9 @@ function getNextEmail(prospect, prospectState) {
     return null;
   }
 
-  const daysSinceFirst = Math.floor((Date.now() - new Date(firstEmailDate).getTime()) / (24 * 60 * 60 * 1000));
+  const daysSinceFirst = Math.floor(
+    (Date.now() - new Date(firstEmailDate).getTime()) / (24 * 60 * 60 * 1000)
+  );
   if (daysSinceFirst >= email.dayOffset && !prospectState.replied) {
     return { sequence: sequenceKey, step: currentStep + 1, email, isReactivation: false };
   }
@@ -361,7 +370,10 @@ async function sendEmail(emailPayload) {
     const templateContent = fs.readFileSync(templatePath, 'utf8');
     body = renderTemplate(templateContent, emailPayload.prospect);
   } catch {
-    body = renderTemplate(`Dear {{first_name}},\n\n[Email body for ${emailPayload.template}]\n\nBest regards,\n{{sender_name}}\n{{sender_title}}\nSimpleBeacon.ai`, emailPayload.prospect);
+    body = renderTemplate(
+      `Dear {{first_name}},\n\n[Email body for ${emailPayload.template}]\n\nBest regards,\n{{sender_name}}\n{{sender_title}}\nSimpleBeacon.ai`,
+      emailPayload.prospect
+    );
   }
 
   const info = await transporter.sendMail({
@@ -388,10 +400,10 @@ function getCampaignAnalytics(campaignState) {
     .filter(([, s]) => s.closed)
     .reduce((sum, [, s]) => sum + (s.closedValue || 0), 0);
 
-  const replyRate = contacted > 0 ? (replied / contacted * 100).toFixed(1) : '0.0';
-  const meetingRate = contacted > 0 ? (meetings / contacted * 100).toFixed(1) : '0.0';
-  const pilotRate = meetings > 0 ? (pilots / meetings * 100).toFixed(1) : '0.0';
-  const closeRate = pilots > 0 ? (closed / pilots * 100).toFixed(1) : '0.0';
+  const replyRate = contacted > 0 ? ((replied / contacted) * 100).toFixed(1) : '0.0';
+  const meetingRate = contacted > 0 ? ((meetings / contacted) * 100).toFixed(1) : '0.0';
+  const pilotRate = meetings > 0 ? ((pilots / meetings) * 100).toFixed(1) : '0.0';
+  const closeRate = pilots > 0 ? ((closed / pilots) * 100).toFixed(1) : '0.0';
 
   const bySequence = {};
   for (const [id, s] of prospects) {
@@ -454,7 +466,9 @@ async function main() {
     console.log(`Total contract value: $${analytics.totalContractValue.toLocaleString()}`);
     console.log('\nBy sequence:');
     for (const [seq, stats] of Object.entries(analytics.bySequence)) {
-      console.log(`  ${seq}: ${stats.total} prospects, ${stats.contacted} contacted, ${stats.replied} replied, ${stats.closed} closed`);
+      console.log(
+        `  ${seq}: ${stats.total} prospects, ${stats.contacted} contacted, ${stats.replied} replied, ${stats.closed} closed`
+      );
     }
     return;
   }
@@ -504,13 +518,17 @@ Sequences:
 
     if (result.action === 'send' || result.action === 'dry-run') {
       if (!shouldSend) {
-        console.log(`[dry-run] ${prospect.email} — "${result.emailPayload.subject}" (seq ${result.emailPayload.sequence}, step ${result.emailPayload.step})`);
+        console.log(
+          `[dry-run] ${prospect.email} — "${result.emailPayload.subject}" (seq ${result.emailPayload.sequence}, step ${result.emailPayload.step})`
+        );
         sent++;
       } else {
         try {
           const sendResult = await sendEmail(result.emailPayload);
           if (sendResult.success) {
-            console.log(`[sent] ${prospect.email} — "${result.emailPayload.subject}"${sendResult.simulated ? ' (simulated)' : ''}`);
+            console.log(
+              `[sent] ${prospect.email} — "${result.emailPayload.subject}"${sendResult.simulated ? ' (simulated)' : ''}`
+            );
             sent++;
           }
         } catch (err) {
@@ -533,7 +551,7 @@ Sequences:
 }
 
 if (require.main === module) {
-  main().catch(err => {
+  main().catch((err) => {
     console.error('[outreach-pipeline] Error:', err.message);
     process.exit(1);
   });

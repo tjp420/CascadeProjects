@@ -21,7 +21,7 @@ function deepEqual(a, b) {
   const ka = Object.keys(a);
   const kb = Object.keys(b);
   if (ka.length !== kb.length) return false;
-  return ka.every(k => deepEqual(a[k], b[k]));
+  return ka.every((k) => deepEqual(a[k], b[k]));
 }
 
 const assert = {
@@ -37,18 +37,24 @@ const assert = {
 
   notStrictEqual(actual, expected, message) {
     if (actual !== expected) return;
-    throw new AssertionError(message || `Expected ${String(actual)} to not equal ${String(expected)}`);
+    throw new AssertionError(
+      message || `Expected ${String(actual)} to not equal ${String(expected)}`
+    );
   },
 
   deepStrictEqual(actual, expected, message) {
     if (!deepEqual(actual, expected) || typeof actual !== typeof expected) {
-      throw new AssertionError(message || `Expected ${JSON.stringify(actual)} to deeply equal ${JSON.stringify(expected)}`);
+      throw new AssertionError(
+        message || `Expected ${JSON.stringify(actual)} to deeply equal ${JSON.stringify(expected)}`
+      );
     }
   },
 
   deepEqual(actual, expected, message) {
     if (!deepEqual(actual, expected)) {
-      throw new AssertionError(message || `Expected ${JSON.stringify(actual)} to deeply equal ${JSON.stringify(expected)}`);
+      throw new AssertionError(
+        message || `Expected ${JSON.stringify(actual)} to deeply equal ${JSON.stringify(expected)}`
+      );
     }
   },
 
@@ -76,7 +82,9 @@ const assert = {
     }
     if (expected instanceof RegExp) {
       if (!expected.test(error.message)) {
-        throw new AssertionError(message || `Expected error message "${error.message}" to match ${expected}`);
+        throw new AssertionError(
+          message || `Expected error message "${error.message}" to match ${expected}`
+        );
       }
     }
   },
@@ -85,7 +93,9 @@ const assert = {
     try {
       fn();
     } catch (e) {
-      throw new AssertionError(message || `Expected function not to throw, but threw: ${e.message}`);
+      throw new AssertionError(
+        message || `Expected function not to throw, but threw: ${e.message}`
+      );
     }
   },
 
@@ -109,7 +119,9 @@ const assert = {
     }
     if (expected instanceof RegExp) {
       if (!expected.test(error.message)) {
-        throw new AssertionError(message || `Expected rejection message "${error.message}" to match ${expected}`);
+        throw new AssertionError(
+          message || `Expected rejection message "${error.message}" to match ${expected}`
+        );
       }
     }
   },
@@ -120,7 +132,7 @@ const assert = {
 
   fail(message) {
     throw new AssertionError(message || 'Assertion failed');
-  }
+  },
 };
 
 module.exports = assert;

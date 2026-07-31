@@ -25,34 +25,34 @@ const SECRET = process.env.SIMPLEBEACON_LICENSE_SECRET || 'simplebeacon-dev-inse
 /* ────────────────────────────────────────────────────────────────────────── */
 
 const PILLARS = {
-    slop: {
-        name: 'AI Slop & Hallucination Tracking',
-        businessPitch: 'Prevents shipping fake AI-generated variables to live clients',
-        regulatoryFrameworks: ['EU AI Act Article 50', 'FTC Truth-in-Advertising'],
-        avgFinePerIncident: 150000,
-        findingTypes: ['LLM Slop Pattern', 'Fiction KPI', 'Placeholder Copy']
-    },
-    leak: {
-        name: 'Sensitive Data & API Key Leak Prevention',
-        businessPitch: 'Neutralises exposed backend access tokens before hackers find them',
-        regulatoryFrameworks: ['GDPR Article 32', 'CCPA 1798.150', 'SOX 404'],
-        avgFinePerIncident: 250000,
-        findingTypes: ['Credential Pattern', 'Production Leak', 'Secret Exposure']
-    },
-    shadowAi: {
-        name: 'Shadow AI System Detection',
-        businessPitch: 'Maps entire software structure to catch unapproved AI dependencies',
-        regulatoryFrameworks: ['EU AI Act Annex III', 'NIST AI RMF 1.0'],
-        avgFinePerIncident: 350000,
-        findingTypes: ['EU AI Act — AI System Indicator', 'Shadow AI', 'Unapproved Model']
-    },
-    licensing: {
-        name: 'Open-Source Licensing & IP Verification',
-        businessPitch: 'Ensures internal codebase remains 100% private property',
-        regulatoryFrameworks: ['GPL v3', 'Apache 2.0', 'Proprietary IP Theft'],
-        avgFinePerIncident: 500000,
-        findingTypes: ['License Conflict', 'Copy-Paste Code', 'Missing Attribution']
-    }
+  slop: {
+    name: 'AI Slop & Hallucination Tracking',
+    businessPitch: 'Prevents shipping fake AI-generated variables to live clients',
+    regulatoryFrameworks: ['EU AI Act Article 50', 'FTC Truth-in-Advertising'],
+    avgFinePerIncident: 150000,
+    findingTypes: ['LLM Slop Pattern', 'Fiction KPI', 'Placeholder Copy'],
+  },
+  leak: {
+    name: 'Sensitive Data & API Key Leak Prevention',
+    businessPitch: 'Neutralises exposed backend access tokens before hackers find them',
+    regulatoryFrameworks: ['GDPR Article 32', 'CCPA 1798.150', 'SOX 404'],
+    avgFinePerIncident: 250000,
+    findingTypes: ['Credential Pattern', 'Production Leak', 'Secret Exposure'],
+  },
+  shadowAi: {
+    name: 'Shadow AI System Detection',
+    businessPitch: 'Maps entire software structure to catch unapproved AI dependencies',
+    regulatoryFrameworks: ['EU AI Act Annex III', 'NIST AI RMF 1.0'],
+    avgFinePerIncident: 350000,
+    findingTypes: ['EU AI Act — AI System Indicator', 'Shadow AI', 'Unapproved Model'],
+  },
+  licensing: {
+    name: 'Open-Source Licensing & IP Verification',
+    businessPitch: 'Ensures internal codebase remains 100% private property',
+    regulatoryFrameworks: ['GPL v3', 'Apache 2.0', 'Proprietary IP Theft'],
+    avgFinePerIncident: 500000,
+    findingTypes: ['License Conflict', 'Copy-Paste Code', 'Missing Attribution'],
+  },
 };
 
 const SEVERITY_MULTIPLIERS = { critical: 4.0, high: 2.5, medium: 1.0, low: 0.25 };
@@ -63,20 +63,25 @@ const SEVERITY_MULTIPLIERS = { critical: 4.0, high: 2.5, medium: 1.0, low: 0.25 
  * @returns {string} pillar key (slop | leak | shadowAi | licensing)
  */
 function classifyIssue(issue) {
-    const type = (issue.type || '').toLowerCase();
-    const desc = (issue.description || '').toLowerCase();
-    const pattern = (issue.pattern || '').toLowerCase();
-    for (const [key, pillar] of Object.entries(PILLARS)) {
-        for (const ft of pillar.findingTypes) {
-            if (type.includes(ft.toLowerCase()) || desc.includes(ft.toLowerCase()) || pattern.includes(ft.toLowerCase())) {
-                return key;
-            }
-        }
+  const type = (issue.type || '').toLowerCase();
+  const desc = (issue.description || '').toLowerCase();
+  const pattern = (issue.pattern || '').toLowerCase();
+  for (const [key, pillar] of Object.entries(PILLARS)) {
+    for (const ft of pillar.findingTypes) {
+      if (
+        type.includes(ft.toLowerCase()) ||
+        desc.includes(ft.toLowerCase()) ||
+        pattern.includes(ft.toLowerCase())
+      ) {
+        return key;
+      }
     }
-    if (pattern.includes('credential') || type.includes('credential')) return 'leak';
-    if (pattern.includes('euai') || type.includes('eu ai act')) return 'shadowAi';
-    if (type.includes('slop') || desc.includes('placeholder') || desc.includes('hallucinat')) return 'slop';
+  }
+  if (pattern.includes('credential') || type.includes('credential')) return 'leak';
+  if (pattern.includes('euai') || type.includes('eu ai act')) return 'shadowAi';
+  if (type.includes('slop') || desc.includes('placeholder') || desc.includes('hallucinat'))
     return 'slop';
+  return 'slop';
 }
 
 /**
@@ -85,22 +90,22 @@ function classifyIssue(issue) {
  * @returns {Object}
  */
 function buildRiskProfile(report) {
-    const detectedIssues = report.detectedIssues || [];
-    const profile = {
-        slop: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
-        leak: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
-        shadowAi: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
-        licensing: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] }
-    };
+  const detectedIssues = report.detectedIssues || [];
+  const profile = {
+    slop: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
+    leak: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
+    shadowAi: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
+    licensing: { count: 0, critical: 0, high: 0, medium: 0, low: 0, issues: [] },
+  };
 
-    for (const issue of detectedIssues) {
-        const pillarKey = classifyIssue(issue);
-        const sev = (issue.severity || 'low').toLowerCase();
-        profile[pillarKey].count += issue.count || 1;
-        profile[pillarKey][sev] = (profile[pillarKey][sev] || 0) + (issue.count || 1);
-        profile[pillarKey].issues.push(issue);
-    }
-    return profile;
+  for (const issue of detectedIssues) {
+    const pillarKey = classifyIssue(issue);
+    const sev = (issue.severity || 'low').toLowerCase();
+    profile[pillarKey].count += issue.count || 1;
+    profile[pillarKey][sev] = (profile[pillarKey][sev] || 0) + (issue.count || 1);
+    profile[pillarKey].issues.push(issue);
+  }
+  return profile;
 }
 
 /**
@@ -109,20 +114,20 @@ function buildRiskProfile(report) {
  * @returns {{total:number, breakdown:Array<{pillar:string, amount:number, count:number}>}}
  */
 function computeFinancialLiability(profile) {
-    let total = 0;
-    const breakdown = [];
-    for (const [key, data] of Object.entries(profile)) {
-        const pillar = PILLARS[key];
-        let pillarTotal = 0;
-        for (const [sev, count] of Object.entries(data)) {
-            if (['critical','high','medium','low'].includes(sev) && count > 0) {
-                pillarTotal += count * pillar.avgFinePerIncident * (SEVERITY_MULTIPLIERS[sev] || 1);
-            }
-        }
-        total += pillarTotal;
-        breakdown.push({ pillar: pillar.name, amount: pillarTotal, count: data.count });
+  let total = 0;
+  const breakdown = [];
+  for (const [key, data] of Object.entries(profile)) {
+    const pillar = PILLARS[key];
+    let pillarTotal = 0;
+    for (const [sev, count] of Object.entries(data)) {
+      if (['critical', 'high', 'medium', 'low'].includes(sev) && count > 0) {
+        pillarTotal += count * pillar.avgFinePerIncident * (SEVERITY_MULTIPLIERS[sev] || 1);
+      }
     }
-    return { total, breakdown };
+    total += pillarTotal;
+    breakdown.push({ pillar: pillar.name, amount: pillarTotal, count: data.count });
+  }
+  return { total, breakdown };
 }
 
 /**
@@ -131,19 +136,32 @@ function computeFinancialLiability(profile) {
  * @returns {{score:number, grade:string, tier:string, color:string, totalFindings:number}}
  */
 function computeComplianceGrade(profile) {
-    let totalFindings = 0;
-    let weightedScore = 100;
-    for (const data of Object.values(profile)) {
-        totalFindings += data.count;
-        weightedScore -= (data.critical || 0) * 25 + (data.high || 0) * 10 + (data.medium || 0) * 3;
-    }
-    const score = Math.max(0, weightedScore);
-    let grade, tier, color;
-    if (score >= 90) { grade = 'A'; tier = 'Low Risk'; color = '#0f5132'; }
-    else if (score >= 70) { grade = 'B'; tier = 'Moderate Risk'; color = '#664d03'; }
-    else if (score >= 50) { grade = 'C'; tier = 'High Risk'; color = '#842029'; }
-    else { grade = 'F'; tier = 'Critical Risk'; color = '#5a0a0a'; }
-    return { score, grade, tier, color, totalFindings };
+  let totalFindings = 0;
+  let weightedScore = 100;
+  for (const data of Object.values(profile)) {
+    totalFindings += data.count;
+    weightedScore -= (data.critical || 0) * 25 + (data.high || 0) * 10 + (data.medium || 0) * 3;
+  }
+  const score = Math.max(0, weightedScore);
+  let grade, tier, color;
+  if (score >= 90) {
+    grade = 'A';
+    tier = 'Low Risk';
+    color = '#0f5132';
+  } else if (score >= 70) {
+    grade = 'B';
+    tier = 'Moderate Risk';
+    color = '#664d03';
+  } else if (score >= 50) {
+    grade = 'C';
+    tier = 'High Risk';
+    color = '#842029';
+  } else {
+    grade = 'F';
+    tier = 'Critical Risk';
+    color = '#5a0a0a';
+  }
+  return { score, grade, tier, color, totalFindings };
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -151,14 +169,15 @@ function computeComplianceGrade(profile) {
 /* ────────────────────────────────────────────────────────────────────────── */
 
 function validateLicense() {
-    const token = resolveLicenseToken();
-    if (!token) {
-        return {
-            valid: false,
-            error: 'No license token found. Set SIMPLEBEACON_LICENSE_TOKEN or run: npx simplebeacon buy-clearance'
-        };
-    }
-    return validateLicenseToken(token, SECRET);
+  const token = resolveLicenseToken();
+  if (!token) {
+    return {
+      valid: false,
+      error:
+        'No license token found. Set SIMPLEBEACON_LICENSE_TOKEN or run: npx simplebeacon buy-clearance',
+    };
+  }
+  return validateLicenseToken(token, SECRET);
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -172,17 +191,18 @@ function validateLicense() {
  * @returns {string} HTML string
  */
 function buildExecutiveHtml(report, licenseClaims) {
-    const profile = buildRiskProfile(report);
-    const liability = computeFinancialLiability(profile);
-    const grade = computeComplianceGrade(profile);
-    const gate = report.gate || {};
-    const generatedAt = new Date().toISOString();
+  const profile = buildRiskProfile(report);
+  const liability = computeFinancialLiability(profile);
+  const grade = computeComplianceGrade(profile);
+  const gate = report.gate || {};
+  const generatedAt = new Date().toISOString();
 
-    const pillarCards = Object.entries(PILLARS).map(([key, pillar]) => {
-        const data = profile[key];
-        const badgeColor = data.critical > 0 ? '#f8d7da' : data.high > 0 ? '#fff3cd' : '#d1e7dd';
-        const badgeText = data.critical > 0 ? '#842029' : data.high > 0 ? '#664d03' : '#0f5132';
-        return `
+  const pillarCards = Object.entries(PILLARS)
+    .map(([key, pillar]) => {
+      const data = profile[key];
+      const badgeColor = data.critical > 0 ? '#f8d7da' : data.high > 0 ? '#fff3cd' : '#d1e7dd';
+      const badgeText = data.critical > 0 ? '#842029' : data.high > 0 ? '#664d03' : '#0f5132';
+      return `
         <div class="pillar-card">
             <div class="pillar-header" style="background:${badgeColor};color:${badgeText}">
                 <strong>${pillar.name}</strong>
@@ -193,38 +213,60 @@ function buildExecutiveHtml(report, licenseClaims) {
                 <span>Regulatory exposure: ${pillar.regulatoryFrameworks.join(', ')}</span>
                 <span>Avg fine per incident: $${pillar.avgFinePerIncident.toLocaleString()}</span>
             </div>
-            ${data.issues.length > 0 ? '<ul class="pillar-actions">' + data.issues.slice(0,3).map(i =>
-                `<li><strong>${i.severity?.toUpperCase()}</strong> — ${(i.recommendedAction || i.recommendation || 'Review').slice(0,100)}</li>`
-            ).join('') + '</ul>' : '<p class="pillar-clean">No findings in this pillar.</p>'}
+            ${
+              data.issues.length > 0
+                ? '<ul class="pillar-actions">' +
+                  data.issues
+                    .slice(0, 3)
+                    .map(
+                      (i) =>
+                        `<li><strong>${i.severity?.toUpperCase()}</strong> — ${(i.recommendedAction || i.recommendation || 'Review').slice(0, 100)}</li>`
+                    )
+                    .join('') +
+                  '</ul>'
+                : '<p class="pillar-clean">No findings in this pillar.</p>'
+            }
         </div>`;
-    }).join('');
+    })
+    .join('');
 
-    const liabilityRows = liability.breakdown
-        .filter(b => b.amount > 0)
-        .map(b => `
+  const liabilityRows = liability.breakdown
+    .filter((b) => b.amount > 0)
+    .map(
+      (b) => `
         <tr>
             <td>${b.pillar}</td>
             <td>${b.count}</td>
             <td>$${b.amount.toLocaleString()}</td>
         </tr>
-    `).join('');
+    `
+    )
+    .join('');
 
-    const remediationSteps = [];
-    for (const [key, data] of Object.entries(profile)) {
-        if (data.count === 0) continue;
-        const pillar = PILLARS[key];
-        remediationSteps.push(`<div class="remediation-block">
+  const remediationSteps = [];
+  for (const [key, data] of Object.entries(profile)) {
+    if (data.count === 0) continue;
+    const pillar = PILLARS[key];
+    remediationSteps.push(`<div class="remediation-block">
             <h4>${pillar.name}</h4>
             <p><strong>Business impact:</strong> ${pillar.businessPitch}.</p>
-            <p><strong>Estimated financial exposure:</strong> $${liability.breakdown.find(b => b.pillar === pillar.name)?.amount.toLocaleString() || '0'}.</p>
+            <p><strong>Estimated financial exposure:</strong> $${liability.breakdown.find((b) => b.pillar === pillar.name)?.amount.toLocaleString() || '0'}.</p>
             <ol>
-                ${data.issues.slice(0, 3).map(i => '<li>Delete or replace: ' + (i.recommendedAction || i.recommendation || 'Review manually').slice(0, 120) + '.</li>').join('')}
+                ${data.issues
+                  .slice(0, 3)
+                  .map(
+                    (i) =>
+                      '<li>Delete or replace: ' +
+                      (i.recommendedAction || i.recommendation || 'Review manually').slice(0, 120) +
+                      '.</li>'
+                  )
+                  .join('')}
                 ${data.issues.length > 3 ? `<li>...and ${data.issues.length - 3} additional item(s). Run <code>npx simplebeacon scan --gate</code> for full detail.</li>` : ''}
             </ol>
         </div>`);
-    }
+  }
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -296,12 +338,16 @@ function buildExecutiveHtml(report, licenseClaims) {
 <p style="font-size:13px;color:#495057">
     These are conservative estimates based on publicly-recorded fines and settlements under the cited regulatory frameworks. Actual liability depends on jurisdiction, revenue, and legal counsel.
 </p>
-${liability.total > 0 ? `
+${
+  liability.total > 0
+    ? `
 <table>
     <thead><tr><th>Pillar</th><th>Findings</th><th>Est. Max Exposure</th></tr></thead>
     <tbody>${liabilityRows}<tr style="font-weight:700;background:#f8f9fa"><td colspan="2">Total Estimated Liability</td><td>$${liability.total.toLocaleString()}</td></tr></tbody>
 </table>
-` : '<p style="color:#0f5132;font-weight:600">No quantifiable liability detected — all pillars are clean.</p>'}
+`
+    : '<p style="color:#0f5132;font-weight:600">No quantifiable liability detected — all pillars are clean.</p>'
+}
 
 <h2>3. Actionable Executive Remediation</h2>
 ${remediationSteps.length > 0 ? remediationSteps.join('') : '<p>No remediation required — codebase meets current compliance thresholds.</p>'}
@@ -326,44 +372,44 @@ ${remediationSteps.length > 0 ? remediationSteps.join('') : '<p>No remediation r
  * @returns {Promise<{ok:boolean, htmlPath?:string, message?:string, error?:string}>}
  */
 async function generateExecutivePdf(reportPath, outputPath) {
-    const license = validateLicense();
-    if (!license.valid) {
-        return { ok: false, error: license.error };
-    }
+  const license = validateLicense();
+  if (!license.valid) {
+    return { ok: false, error: license.error };
+  }
 
-    const resolvedReport = path.resolve(reportPath || '.simplebeacon/report.json');
-    if (!fs.existsSync(resolvedReport)) {
-        return { ok: false, error: `Report not found: ${resolvedReport}` };
-    }
+  const resolvedReport = path.resolve(reportPath || '.simplebeacon/report.json');
+  if (!fs.existsSync(resolvedReport)) {
+    return { ok: false, error: `Report not found: ${resolvedReport}` };
+  }
 
-    let report;
-    try {
-        const raw = await fs.promises.readFile(resolvedReport, 'utf8');
-        report = JSON.parse(raw);
-    } catch (err) {
-        return { ok: false, error: `Invalid JSON report: ${err.message}` };
-    }
+  let report;
+  try {
+    const raw = await fs.promises.readFile(resolvedReport, 'utf8');
+    report = JSON.parse(raw);
+  } catch (err) {
+    return { ok: false, error: `Invalid JSON report: ${err.message}` };
+  }
 
-    const html = buildExecutiveHtml(report, license.claims);
-    const resolvedOutput = path.resolve(outputPath || 'simplebeacon-executive-risk-certificate.html');
-    try {
-        await fs.promises.writeFile(resolvedOutput, html, 'utf8');
-    } catch (err) {
-        return { ok: false, error: `Failed to write output: ${err.message}` };
-    }
+  const html = buildExecutiveHtml(report, license.claims);
+  const resolvedOutput = path.resolve(outputPath || 'simplebeacon-executive-risk-certificate.html');
+  try {
+    await fs.promises.writeFile(resolvedOutput, html, 'utf8');
+  } catch (err) {
+    return { ok: false, error: `Failed to write output: ${err.message}` };
+  }
 
-    return {
-        ok: true,
-        htmlPath: resolvedOutput,
-        message: `Executive Risk Certificate written to ${resolvedOutput}. Open in browser and print to PDF.`
-    };
+  return {
+    ok: true,
+    htmlPath: resolvedOutput,
+    message: `Executive Risk Certificate written to ${resolvedOutput}. Open in browser and print to PDF.`,
+  };
 }
 
 module.exports = {
-    generateExecutivePdf,
-    validateLicense,
-    buildExecutiveHtml,
-    buildRiskProfile,
-    computeFinancialLiability,
-    computeComplianceGrade
+  generateExecutivePdf,
+  validateLicense,
+  buildExecutiveHtml,
+  buildRiskProfile,
+  computeFinancialLiability,
+  computeComplianceGrade,
 };

@@ -28,14 +28,24 @@ const ENV_FILE_PATTERNS = [
   /secrets\.json$/,
   /secret\.(yaml|yml)$/,
   /aws_credentials$/,
-  /service[_-]?account.*\.json$/
+  /service[_-]?account.*\.json$/,
 ];
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'fixtures', 'docs', 'coming-soon', 'reports',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures',
-  'New folder'
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'archive',
+  '.simplebeacon',
+  'fixtures',
+  'docs',
+  'coming-soon',
+  'reports',
+  'simplebeacon-rule-tests',
+  'simplebeacon-toxic-fixtures',
+  'New folder',
 ]);
 
 function isEnvFile(basename) {
@@ -47,7 +57,7 @@ function isTrackedByGit(filePath) {
     execSync(`git check-ignore -q "${filePath}"`, {
       cwd: path.dirname(filePath),
       stdio: 'pipe',
-      timeout: 5000
+      timeout: 5000,
     });
     return false; // File is ignored
   } catch {
@@ -138,7 +148,7 @@ async function scanEnvInGit(rootDir, options = {}) {
           match: entry.name,
           snippet: `${relPath} is ${tracked ? 'tracked by git' : 'not gitignored'} — add to .gitignore and rotate any exposed secrets`,
           tracked,
-          gitignored: isIgnored
+          gitignored: isIgnored,
         });
       }
     }
@@ -151,11 +161,11 @@ async function scanEnvInGit(rootDir, options = {}) {
     fileCount: findings.length,
     results: findings.map((f) => ({
       filePath: path.join(rootDir, f.snippet.split(' ')[0]),
-      findings: [f]
+      findings: [f],
     })),
     humanReadable: findings.length
-      ? `${findings.length} secret file(s) ${findings.some(f => f.tracked) ? 'tracked by git' : 'not properly gitignored'}. Add to .gitignore immediately and rotate exposed credentials.`
-      : 'No secret files detected outside .gitignore.'
+      ? `${findings.length} secret file(s) ${findings.some((f) => f.tracked) ? 'tracked by git' : 'not properly gitignored'}. Add to .gitignore immediately and rotate exposed credentials.`
+      : 'No secret files detected outside .gitignore.',
   };
 }
 

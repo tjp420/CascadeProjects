@@ -18,7 +18,11 @@ function isBlank(value) {
  * @returns {string}
  */
 function safeString(value) {
-  try { return String(value); } catch { return '[unstringable error]'; }
+  try {
+    return String(value);
+  } catch {
+    return '[unstringable error]';
+  }
 }
 
 /**
@@ -147,5 +151,5 @@ module.exports = Object.freeze({
   pluralize,
   truncate,
   ensureArray,
-  isEmpty
+  isEmpty,
 });

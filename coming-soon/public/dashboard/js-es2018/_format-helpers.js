@@ -1,4 +1,3 @@
-
 /**
  * Split a string into an array of words.
  * @param {string} str
@@ -28,7 +27,7 @@ export function repeat(str, count) {
 export function titleCase(str) {
     return String(str ?? '')
         .toLowerCase()
-        .replace(/(?:^|\s)\S/g, (ch) => ch.toUpperCase());
+        .replace(/(?:^|\s)\S/g, ch => ch.toUpperCase());
 }
 
 /**

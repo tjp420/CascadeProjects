@@ -9,7 +9,9 @@ try {
   }
 } catch (err) {
   const msg = `Failed to load simplebeacon config module: ${err?.message || String(err)}`;
-  resolveMockDataScanPaths = () => { throw new Error(msg); };
+  resolveMockDataScanPaths = () => {
+    throw new Error(msg);
+  };
 }
 
 /**
@@ -18,5 +20,5 @@ try {
  * @returns {string[]}
  */
 module.exports = {
-  resolveMockDataScanPaths
+  resolveMockDataScanPaths,
 };

@@ -38,25 +38,51 @@ const SAMPLE_REPORT = {
     totalFiles: 1247,
     totalFolders: 89,
     codeFilesAnalyzed: 342,
-    codeFilesDiscovered: 420
+    codeFilesDiscovered: 420,
   },
   gate: {
     pass: true,
     blockingCount: 0,
     warningCount: 2,
-    severities: ['medium', 'low']
+    severities: ['medium', 'low'],
   },
   qualityScore: 94,
   issueCount: 2,
   severityCounts: { critical: 0, high: 0, medium: 2, low: 0 },
   detectedIssues: [
-    { type: 'fiction-kpi', severity: 'medium', count: 1, filePath: 'src/dashboard/metrics.js', description: 'KPI value "98.5%" appears fictional — no data source detected' },
-    { type: 'mock-sample-path', severity: 'medium', count: 1, filePath: 'server/lib/config.js', description: 'Production path references mock data directory' }
+    {
+      type: 'fiction-kpi',
+      severity: 'medium',
+      count: 1,
+      filePath: 'src/dashboard/metrics.js',
+      description: 'KPI value "98.5%" appears fictional — no data source detected',
+    },
+    {
+      type: 'mock-sample-path',
+      severity: 'medium',
+      count: 1,
+      filePath: 'server/lib/config.js',
+      description: 'Production path references mock data directory',
+    },
   ],
   rawIssues: [
-    { type: 'fiction-kpi', severity: 'medium', severityBand: 'medium', rule: 'fiction-kpi', filePath: 'src/dashboard/metrics.js', description: 'KPI value "98.5%" appears fictional' },
-    { type: 'mock-sample-path', severity: 'medium', severityBand: 'medium', rule: 'production-leak', filePath: 'server/lib/config.js', description: 'Production path references mock data directory' }
-  ]
+    {
+      type: 'fiction-kpi',
+      severity: 'medium',
+      severityBand: 'medium',
+      rule: 'fiction-kpi',
+      filePath: 'src/dashboard/metrics.js',
+      description: 'KPI value "98.5%" appears fictional',
+    },
+    {
+      type: 'mock-sample-path',
+      severity: 'medium',
+      severityBand: 'medium',
+      rule: 'production-leak',
+      filePath: 'server/lib/config.js',
+      description: 'Production path references mock data directory',
+    },
+  ],
 };
 
 // ── Helpers ──
@@ -76,12 +102,14 @@ function httpPost(pathname, payload, headers = {}) {
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body),
-        ...headers
-      }
+        ...headers,
+      },
     };
     const req = http.request(opts, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         try {
           resolve({ status: res.statusCode, body: JSON.parse(data), raw: data });
@@ -103,11 +131,13 @@ function httpGet(pathname, headers = {}) {
       port: PORT,
       path: pathname,
       method: 'GET',
-      headers
+      headers,
     };
     const req = http.request(opts, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         try {
           resolve({ status: res.statusCode, body: JSON.parse(data), raw: data });
@@ -148,20 +178,30 @@ function writeSubscriptions(store) {
 function cleanupTestArtifacts() {
   const files = [
     path.join(REPORT_STORE_DIR, `${TEST_DELIVERY_ID}.json`),
-    path.join(REPORT_STORE_DIR, `${TEST_DELIVERY_ID}.html`)
+    path.join(REPORT_STORE_DIR, `${TEST_DELIVERY_ID}.html`),
   ];
   for (const f of files) {
-    try { fs.unlinkSync(f); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(f);
+    } catch {
+      /* ignore */
+    }
   }
   // Remove email queue entries for our test
   try {
     const queueFiles = fs.readdirSync(EMAIL_QUEUE_DIR);
     for (const qf of queueFiles) {
       if (qf.includes(TEST_EMAIL.replace(/[@.]/g, '_'))) {
-        try { fs.unlinkSync(path.join(EMAIL_QUEUE_DIR, qf)); } catch { /* ignore */ }
+        try {
+          fs.unlinkSync(path.join(EMAIL_QUEUE_DIR, qf));
+        } catch {
+          /* ignore */
+        }
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 // ── Main test ──
@@ -202,7 +242,7 @@ async function main() {
     lastDeliveryId: null,
     lastDeliveredAt: null,
     lastDeliveryStatus: 'pending',
-    certificateHtmlGenerated: false
+    certificateHtmlGenerated: false,
   };
   store.byApiToken[store.subscriptions[TEST_EMAIL].apiToken] = TEST_EMAIL;
   writeSubscriptions(store);
@@ -211,7 +251,9 @@ async function main() {
 
   // 3. Check subscription status via API
   log('STEP 3/7', 'Checking license lookup API...');
-  const licenseRes = await httpGet(`/api/simplebeacon/billing/license?email=${encodeURIComponent(TEST_EMAIL)}`);
+  const licenseRes = await httpGet(
+    `/api/simplebeacon/billing/license?email=${encodeURIComponent(TEST_EMAIL)}`
+  );
   if (licenseRes.status !== 200) {
     console.error('ERROR: License lookup failed');
     process.exit(1);
@@ -222,7 +264,7 @@ async function main() {
   log('STEP 4/7', 'Uploading test scan report...');
   const uploadRes = await httpPost('/api/reports/upload', {
     reportJson: SAMPLE_REPORT,
-    licenseToken: TEST_LICENSE_TOKEN
+    licenseToken: TEST_LICENSE_TOKEN,
   });
   if (uploadRes.status !== 200) {
     console.error('ERROR: Report upload failed');
@@ -244,16 +286,19 @@ async function main() {
     console.error('ERROR: Stored report gate mismatch');
     process.exit(1);
   }
-  log('STEP 5/7', `Report stored correctly (${(fs.statSync(reportFile).size / 1024).toFixed(1)} KB)`);
+  log(
+    'STEP 5/7',
+    `Report stored correctly (${(fs.statSync(reportFile).size / 1024).toFixed(1)} KB)`
+  );
 
   // 6. Verify email was queued or sent
   log('STEP 6/7', 'Verifying email delivery...');
   let emailQueueFiles = [];
   try {
-    emailQueueFiles = fs.readdirSync(EMAIL_QUEUE_DIR).filter(
-      (f) => f.endsWith('.json')
-    );
-  } catch { /* directory may not exist if no emails have been queued yet */ }
+    emailQueueFiles = fs.readdirSync(EMAIL_QUEUE_DIR).filter((f) => f.endsWith('.json'));
+  } catch {
+    /* directory may not exist if no emails have been queued yet */
+  }
   if (emailQueueFiles.length === 0 && !uploadRes.body.emailSent) {
     console.error('ERROR: No email queued and SMTP not configured');
     process.exit(1);
@@ -282,12 +327,22 @@ async function main() {
     milestone: 'release',
     client_name: 'Acme Test Client',
     project_name: 'Billing Pipeline Test',
-    org_id: 'test-org'
+    org_id: 'test-org',
   });
   if (certRes.status === 200 && certRes.body.success) {
-    log('BONUS', `Certificate export returned HTML (${(certRes.raw?.length || 0).toLocaleString()} chars)`);
-  } else if (certRes.status === 200 && typeof certRes.body === 'string' && certRes.body.includes('<!DOCTYPE html>')) {
-    log('BONUS', `Certificate export returned HTML directly (${(certRes.raw?.length || 0).toLocaleString()} chars)`);
+    log(
+      'BONUS',
+      `Certificate export returned HTML (${(certRes.raw?.length || 0).toLocaleString()} chars)`
+    );
+  } else if (
+    certRes.status === 200 &&
+    typeof certRes.body === 'string' &&
+    certRes.body.includes('<!DOCTYPE html>')
+  ) {
+    log(
+      'BONUS',
+      `Certificate export returned HTML directly (${(certRes.raw?.length || 0).toLocaleString()} chars)`
+    );
   } else {
     log('BONUS', `Certificate export status: ${certRes.status} (may require auth)`);
   }

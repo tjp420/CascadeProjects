@@ -114,7 +114,9 @@ function httpsPost(url, body, headers = {}) {
     };
     const req = https.request(options, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
@@ -139,13 +141,15 @@ function httpsGet(url, accessToken) {
       path: parsed.pathname + parsed.search,
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
       },
     };
     const req = https.request(options, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
@@ -210,7 +214,8 @@ function provisionSsoUser(userInfo, config) {
   const email = userInfo.email || userInfo['email'] || userInfo.preferred_username;
   if (!email) throw new Error('No email returned from IdP');
 
-  const name = userInfo.name || `${userInfo.given_name || ''} ${userInfo.family_name || ''}`.trim() || email;
+  const name =
+    userInfo.name || `${userInfo.given_name || ''} ${userInfo.family_name || ''}`.trim() || email;
   const orgId = config.orgId || 'sso';
   const userId = `sso:${orgId}:${crypto.createHash('sha256').update(email).digest('hex').slice(0, 16)}`;
 
@@ -315,7 +320,9 @@ async function oidcCallback(req, res) {
     });
 
     if (tokenResponse.status !== 200) {
-      throw new Error(`Token exchange failed: ${tokenResponse.status} — ${JSON.stringify(tokenResponse.data)}`);
+      throw new Error(
+        `Token exchange failed: ${tokenResponse.status} — ${JSON.stringify(tokenResponse.data)}`
+      );
     }
 
     const tokens = tokenResponse.data;
@@ -324,7 +331,10 @@ async function oidcCallback(req, res) {
     let idTokenPayload = null;
     if (tokens.id_token) {
       idTokenPayload = await ssoHardening.validateIdTokenProduction(
-        tokens.id_token, config, discovery, stateData.nonce,
+        tokens.id_token,
+        config,
+        discovery,
+        stateData.nonce,
         config.oidc._decryptedSecret || ''
       );
     }
@@ -337,9 +347,15 @@ async function oidcCallback(req, res) {
         try {
           userInfo = await ssoHardening.fetchMicrosoftGraphUser(tokens.access_token);
         } catch (graphErr) {
-          logger.warn('[SSO] Microsoft Graph userinfo failed, falling back to OIDC userinfo:', graphErr.message);
+          logger.warn(
+            '[SSO] Microsoft Graph userinfo failed, falling back to OIDC userinfo:',
+            graphErr.message
+          );
           if (discovery.userinfo_endpoint) {
-            const userInfoResponse = await httpsGet(discovery.userinfo_endpoint, tokens.access_token);
+            const userInfoResponse = await httpsGet(
+              discovery.userinfo_endpoint,
+              tokens.access_token
+            );
             if (userInfoResponse.status === 200) userInfo = userInfoResponse.data;
           }
         }
@@ -390,7 +406,10 @@ async function oidcCallback(req, res) {
   } catch (err) {
     logger.error('[SSO] OIDC callback failed:', err.message);
     const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
-    safeRedirect(res, `${frontendUrl}?sso_error=${encodeURIComponent('oidc_callback_failed')}&sso_message=${encodeURIComponent(err.message)}`);
+    safeRedirect(
+      res,
+      `${frontendUrl}?sso_error=${encodeURIComponent('oidc_callback_failed')}&sso_message=${encodeURIComponent(err.message)}`
+    );
   }
 }
 
@@ -513,7 +532,10 @@ async function samlAcs(req, res) {
   } catch (err) {
     logger.error('[SSO] SAML ACS failed:', err.message);
     const frontendUrl = process.env.DASHBOARD_URL || '/dashboard';
-    safeRedirect(res, `${frontendUrl}?sso_error=${encodeURIComponent('saml_acs_failed')}&sso_message=${encodeURIComponent(err.message)}`);
+    safeRedirect(
+      res,
+      `${frontendUrl}?sso_error=${encodeURIComponent('saml_acs_failed')}&sso_message=${encodeURIComponent(err.message)}`
+    );
   }
 }
 
@@ -550,15 +572,18 @@ function parseSamlAssertion(xml, config) {
   }
 
   // Extract NameID (email)
-  const nameIdMatch = xml.match(/<saml:NameID[^>]*>([^<]+)<\/saml:NameID>/) ||
-                      xml.match(/<NameID[^>]*>([^<]+)<\/NameID>/);
+  const nameIdMatch =
+    xml.match(/<saml:NameID[^>]*>([^<]+)<\/saml:NameID>/) ||
+    xml.match(/<NameID[^>]*>([^<]+)<\/NameID>/);
   const email = nameIdMatch ? nameIdMatch[1] : null;
   if (!email) throw new Error('No NameID found in SAML assertion');
 
   // Extract attributes
   const attributes = {};
-  const attrRegex = /<saml:Attribute Name="([^"]+)"[^>]*>\s*<saml:AttributeValue[^>]*>([^<]+)<\/saml:AttributeValue>/g;
-  const attrRegex2 = /<Attribute Name="([^"]+)"[^>]*>\s*<AttributeValue[^>]*>([^<]+)<\/AttributeValue>/g;
+  const attrRegex =
+    /<saml:Attribute Name="([^"]+)"[^>]*>\s*<saml:AttributeValue[^>]*>([^<]+)<\/saml:AttributeValue>/g;
+  const attrRegex2 =
+    /<Attribute Name="([^"]+)"[^>]*>\s*<AttributeValue[^>]*>([^<]+)<\/AttributeValue>/g;
   for (const regex of [attrRegex, attrRegex2]) {
     let match;
     while ((match = regex.exec(xml)) !== null) {
@@ -567,20 +592,24 @@ function parseSamlAssertion(xml, config) {
   }
 
   // Check conditions (NotBefore / NotOnOrAfter)
-  const conditionsMatch = xml.match(/<saml:Conditions[^>]*NotBefore="([^"]*)"[^>]*NotOnOrAfter="([^"]*)"/) ||
-                          xml.match(/<Conditions[^>]*NotBefore="([^"]*)"[^>]*NotOnOrAfter="([^"]*)"/);
+  const conditionsMatch =
+    xml.match(/<saml:Conditions[^>]*NotBefore="([^"]*)"[^>]*NotOnOrAfter="([^"]*)"/) ||
+    xml.match(/<Conditions[^>]*NotBefore="([^"]*)"[^>]*NotOnOrAfter="([^"]*)"/);
   if (conditionsMatch) {
     const notBefore = new Date(conditionsMatch[1]);
     const notOnOrAfter = new Date(conditionsMatch[2]);
     const now = new Date();
     if (now < notBefore || now >= notOnOrAfter) {
-      throw new Error(`SAML assertion outside valid time window: ${conditionsMatch[1]} to ${conditionsMatch[2]}`);
+      throw new Error(
+        `SAML assertion outside valid time window: ${conditionsMatch[1]} to ${conditionsMatch[2]}`
+      );
     }
   }
 
   // Check audience
-  const audienceMatch = xml.match(/<saml:Audience[^>]*>([^<]+)<\/saml:Audience>/) ||
-                        xml.match(/<Audience[^>]*>([^<]+)<\/Audience>/);
+  const audienceMatch =
+    xml.match(/<saml:Audience[^>]*>([^<]+)<\/saml:Audience>/) ||
+    xml.match(/<Audience[^>]*>([^<]+)<\/Audience>/);
   if (audienceMatch) {
     const expectedAudience = config.saml.issuer || process.env.APP_NAME || 'simplebeacon';
     if (audienceMatch[1] !== expectedAudience) {
@@ -591,16 +620,25 @@ function parseSamlAssertion(xml, config) {
   // Map common SAML attribute names
   return {
     email,
-    name: attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
-          attributes.name ||
-          attributes.cn ||
-          email,
-    given_name: attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] ||
-                attributes.givenname || attributes.firstname || '',
-    family_name: attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'] ||
-                 attributes.surname || attributes.lastname || '',
-    preferred_username: attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
-                        attributes.email || email,
+    name:
+      attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
+      attributes.name ||
+      attributes.cn ||
+      email,
+    given_name:
+      attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] ||
+      attributes.givenname ||
+      attributes.firstname ||
+      '',
+    family_name:
+      attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname'] ||
+      attributes.surname ||
+      attributes.lastname ||
+      '',
+    preferred_username:
+      attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
+      attributes.email ||
+      email,
   };
 }
 

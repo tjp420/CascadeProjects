@@ -11,11 +11,11 @@ const { buildRepositoryHealthPayload } = require('./repository-health-payload.cj
  * @returns {any}
  */
 function optimizationComplianceLabel(healthHeadline) {
-    if (!healthHeadline) return 'unknown';
-    const score = healthHeadline.repositoryHealthScore ?? 0;
-    if (score >= 85) return 'good';
-    if (score >= 70) return 'partial';
-    return 'needs_attention';
+  if (!healthHeadline) return 'unknown';
+  const score = healthHeadline.repositoryHealthScore ?? 0;
+  if (score >= 85) return 'good';
+  if (score >= 70) return 'partial';
+  return 'needs_attention';
 }
 
 /**
@@ -24,36 +24,36 @@ function optimizationComplianceLabel(healthHeadline) {
  * @returns {any}
  */
 function buildDevSecOpsCompliancePayload(options = {}) {
-    const trust = buildTrustVerificationPayload(options);
-    const health = trust.repositoryHealth || buildRepositoryHealthPayload(options);
-    const gate = trust.headline || {};
-    const repo = health.headline || {};
+  const trust = buildTrustVerificationPayload(options);
+  const health = trust.repositoryHealth || buildRepositoryHealthPayload(options);
+  const gate = trust.headline || {};
+  const repo = health.headline || {};
 
-    const securityScore = gate.qualityScore ?? null;
-    const repositoryHealthScore = repo.repositoryHealthScore ?? null;
-    const optimizationCompliance = optimizationComplianceLabel(repo);
+  const securityScore = gate.qualityScore ?? null;
+  const repositoryHealthScore = repo.repositoryHealthScore ?? null;
+  const optimizationCompliance = optimizationComplianceLabel(repo);
 
-    return {
-        type: 'simplebeacon-devsecops-compliance',
-        generatedAt: new Date().toISOString(),
-        verificationId: trust.verificationId,
-        headlineSource: trust.headlineSource || null,
-        headlineReason: trust.headlineReason || null,
-        securityScore,
-        repositoryHealthScore,
-        optimizationCompliance,
-        gatePass: gate.gatePass ?? null,
-        securityIssues: gate.issueCount ?? null,
-        technicalDebtItems: repo.reductionOpportunities ?? null,
-        duplicateGroups: repo.duplicateGroups ?? null,
-        optimizationPotential: repo.optimizationPotential ?? null,
-        remediationAvailable: Boolean((repo.mergeCandidates ?? 0) > 0),
-        mergePreviewAvailable: true,
-        mergeAutoDeleteEnabled: false,
-        complianceNote: 'Repository optimization uses preview + confirmation — no auto-delete.',
-        trust,
-        repositoryHealth: health
-    };
+  return {
+    type: 'simplebeacon-devsecops-compliance',
+    generatedAt: new Date().toISOString(),
+    verificationId: trust.verificationId,
+    headlineSource: trust.headlineSource || null,
+    headlineReason: trust.headlineReason || null,
+    securityScore,
+    repositoryHealthScore,
+    optimizationCompliance,
+    gatePass: gate.gatePass ?? null,
+    securityIssues: gate.issueCount ?? null,
+    technicalDebtItems: repo.reductionOpportunities ?? null,
+    duplicateGroups: repo.duplicateGroups ?? null,
+    optimizationPotential: repo.optimizationPotential ?? null,
+    remediationAvailable: Boolean((repo.mergeCandidates ?? 0) > 0),
+    mergePreviewAvailable: true,
+    mergeAutoDeleteEnabled: false,
+    complianceNote: 'Repository optimization uses preview + confirmation — no auto-delete.',
+    trust,
+    repositoryHealth: health,
+  };
 }
 
 /**
@@ -62,11 +62,11 @@ function buildDevSecOpsCompliancePayload(options = {}) {
  * @returns {any}
  */
 function esc(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 /**
@@ -75,9 +75,9 @@ function esc(value) {
  * @returns {any}
  */
 function complianceStatusClass(label) {
-    if (label === 'good') return 'pass';
-    if (label === 'partial') return 'warn';
-    return 'review';
+  if (label === 'good') return 'pass';
+  if (label === 'partial') return 'warn';
+  return 'review';
 }
 
 /**
@@ -86,16 +86,13 @@ function complianceStatusClass(label) {
  * @returns {any}
  */
 function buildComplianceHtml(payload) {
-    const gate = payload.gatePass ? 'pass' : 'review';
-    const gateLabel = payload.gatePass ? 'GATE PASS' : 'GATE REVIEW';
-    const optClass = complianceStatusClass(payload.optimizationCompliance);
-    const trust = payload.trust || {};
-    const disclaimers = [
-        ...(trust.disclaimers || []),
-        payload.complianceNote
-    ].filter(Boolean);
+  const gate = payload.gatePass ? 'pass' : 'review';
+  const gateLabel = payload.gatePass ? 'GATE PASS' : 'GATE REVIEW';
+  const optClass = complianceStatusClass(payload.optimizationCompliance);
+  const trust = payload.trust || {};
+  const disclaimers = [...(trust.disclaimers || []), payload.complianceNote].filter(Boolean);
 
-    return `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -185,7 +182,7 @@ function buildComplianceHtml(payload) {
 }
 
 module.exports = {
-    buildDevSecOpsCompliancePayload,
-    buildComplianceHtml,
-    optimizationComplianceLabel
+  buildDevSecOpsCompliancePayload,
+  buildComplianceHtml,
+  optimizationComplianceLabel,
 };

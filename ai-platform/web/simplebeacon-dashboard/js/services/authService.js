@@ -3,7 +3,7 @@ import {
   hasJsonContentType,
   readJsonResponseBody,
   withRecoverableFallback,
-  logRecoverableDashboardError
+  logRecoverableDashboardError,
 } from '../lib/recoverable-fetch.js';
 import { isLocalDevHost, DEMO_EMAIL } from '../demoMode.js';
 import { notifyAuthState } from '../utils-lib/notify.js?v=20260716cachefix1';
@@ -21,7 +21,9 @@ const ALL_TOKEN_KEYS = [TOKEN_KEY, ...LEGACY_TOKEN_KEYS];
  * @returns {any}
  */
 function getCookie(name) {
-  const m = document.cookie.match('(?:^|; )' + name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '=([^;]*)');
+  const m = document.cookie.match(
+    '(?:^|; )' + name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '=([^;]*)'
+  );
   return m ? decodeURIComponent(m[1]) : '';
 }
 /**
@@ -32,7 +34,8 @@ function getCookie(name) {
  * @returns {any}
  */
 function setCookie(name, value, maxAge = 60 * 60 * 24 * 30) {
-  document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + maxAge + ';SameSite=Lax';
+  document.cookie =
+    name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + maxAge + ';SameSite=Lax';
 }
 /**
  * Clear cookie.
@@ -67,8 +70,8 @@ function clearCookie(name) {
 function loginErrorMessage(httpResponse, responseBody, fallback = 'Login failed') {
   if (!hasJsonContentType(httpResponse)) {
     return (
-      'Authentication API unavailable (server returned HTML instead of JSON). '
-      + 'Start with npm run dashboard:v1-internal on port 3002.'
+      'Authentication API unavailable (server returned HTML instead of JSON). ' +
+      'Start with npm run dashboard:v1-internal on port 3002.'
     );
   }
   const base = responseBody?.message || responseBody?.error || fallback;
@@ -78,8 +81,8 @@ function loginErrorMessage(httpResponse, responseBody, fallback = 'Login failed'
   }
   if (httpResponse.status === 404) {
     return (
-      'Login route not found — Phase 2 auth did not start. '
-      + 'Check server logs for JWT secret errors; run npm run dashboard:v1-internal.'
+      'Login route not found — Phase 2 auth did not start. ' +
+      'Check server logs for JWT secret errors; run npm run dashboard:v1-internal.'
     );
   }
   if (httpResponse.status === 429) {
@@ -161,7 +164,14 @@ export class AuthService {
     const tier = String(user.tier || '').toLowerCase();
     if (role === 'admin' || role === 'superuser') return true;
     if (tier === 'admin' || tier === 'superuser') return true;
-    if (Array.isArray(user.features) && user.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+    if (
+      Array.isArray(user.features) &&
+      user.features
+        .map(String)
+        .map((s) => s.toLowerCase())
+        .includes('all_modules')
+    )
+      return true;
     try {
       const token = this.getToken();
       if (token) {
@@ -170,7 +180,14 @@ export class AuthService {
         const tokenTier = String(payload.tier || payload.plan || '').toLowerCase();
         if (tokenRole === 'admin' || tokenRole === 'superuser') return true;
         if (tokenTier === 'admin' || tokenTier === 'superuser') return true;
-        if (Array.isArray(payload.features) && payload.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+        if (
+          Array.isArray(payload.features) &&
+          payload.features
+            .map(String)
+            .map((s) => s.toLowerCase())
+            .includes('all_modules')
+        )
+          return true;
       }
     } catch (_a) {
       // ignore decode errors
@@ -194,23 +211,34 @@ export class AuthService {
     const tier = (user && (user.tier || user.plan)) || this.getTokenTier() || '';
     const isAdmin = this.isAdmin();
     if (typeof window !== 'undefined' && window.parent !== window) {
-      window.parent.postMessage({ command: 'setAuthState', signedIn: true, tier, token, isAdmin }, '*');
+      window.parent.postMessage(
+        { command: 'setAuthState', signedIn: true, tier, token, isAdmin },
+        '*'
+      );
     }
     // Also bridge through the local data-server /api/notify endpoint so external
     // browsers and Simple Browser webviews can keep the sidebar in sync.
     // Only call this when running locally (localhost) where the /api/notify endpoint exists.
-    if (typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+    if (
+      typeof window !== 'undefined' &&
+      /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+    ) {
       notifyAuthState(true, tier, token, isAdmin);
     }
     // If opened from the VS Code: "Sign In via Website" flow, redirect back to the extension.
     if (typeof window !== 'undefined' && window.parent === window) {
       try {
         const redirectUri = new URLSearchParams(window.location.search).get('redirect_uri');
-        if (redirectUri && redirectUri.startsWith('vscode://simplebeacon.simplebeacon-vscode/relay/auth')) {
+        if (
+          redirectUri &&
+          redirectUri.startsWith('vscode://simplebeacon.simplebeacon-vscode/relay/auth')
+        ) {
           const finalUri = `${redirectUri}?token=${encodeURIComponent(token)}&signedIn=true&tier=${encodeURIComponent(tier)}&isAdmin=${isAdmin}`;
           window.location.href = finalUri;
         }
-      } catch (e) { /* ignore malformed redirect_uri */ }
+      } catch (e) {
+        /* ignore malformed redirect_uri */
+      }
     }
   }
 
@@ -233,7 +261,10 @@ export class AuthService {
     }
     // Also bridge through the local data-server /api/notify endpoint.
     // Only call this when running locally (localhost) where the /api/notify endpoint exists.
-    if (typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)) {
+    if (
+      typeof window !== 'undefined' &&
+      /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname)
+    ) {
       notifyAuthState(false);
     }
   }
@@ -319,14 +350,16 @@ export class AuthService {
     const loginHttpResponse = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
     });
     const loginResponseBody = await readJsonResponseBody(loginHttpResponse, {});
     if (!loginHttpResponse.ok) {
       throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody));
     }
     if (!loginResponseBody?.token || !loginResponseBody?.user) {
-      throw new Error(loginErrorMessage(loginHttpResponse, loginResponseBody, 'Login response missing token'));
+      throw new Error(
+        loginErrorMessage(loginHttpResponse, loginResponseBody, 'Login response missing token')
+      );
     }
     this.setSession(loginResponseBody.token, loginResponseBody.user);
     // Bind login token to the email account (enforces 1 account = 1 token)
@@ -337,7 +370,11 @@ export class AuthService {
   async register(email, password, name, username = '', confirmPassword = '', licenseToken = '') {
     const payload = { email, password, name, username, confirmPassword };
     if (licenseToken) payload.licenseToken = licenseToken;
-    const r = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const r = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
     const b = await readJsonResponseBody(r, {});
     if (!r.ok) throw new Error(b?.message || b?.error || 'Registration failed');
     if (!b?.token || !b?.user) throw new Error('Registration response missing token');
@@ -348,12 +385,16 @@ export class AuthService {
   }
 
   async logout() {
-    await withRecoverableFallback('auth logout request', async () => {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: this.getAuthHeaders()
-      });
-    }, null);
+    await withRecoverableFallback(
+      'auth logout request',
+      async () => {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+        });
+      },
+      null
+    );
     this.clearSession();
   }
 
@@ -368,7 +409,7 @@ export class AuthService {
     const res = await fetch('/api/auth/refresh', {
       method: 'POST',
       headers: { ...this.getAuthHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ longLived: longLived === true })
+      body: JSON.stringify({ longLived: longLived === true }),
     });
     const body = await readJsonResponseBody(res, {});
     if (!res.ok) {
@@ -390,7 +431,7 @@ export class AuthService {
       // Reject the dangerous "none" algorithm (CVE-2015-9235)
       // Skip check in local dev since server bypasses auth in development mode
       if (header.alg === 'none' && !isLocalDevHost()) {
-        window["console"]["warn"]('[AuthService] Rejected JWT with alg:none');
+        window['console']['warn']('[AuthService] Rejected JWT with alg:none');
         return null;
       }
       const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
@@ -413,7 +454,10 @@ export class AuthService {
 
   isFreeTier() {
     // Local dev hosts get full functionality regardless of token tier
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ) {
       return false;
     }
     const tier = this.getTokenTier();
@@ -426,7 +470,7 @@ export class AuthService {
     this.user = {
       email: payload.sub || 'token-user',
       plan: payload.plan || payload.tier || 'free',
-      tokenSession: true
+      tokenSession: true,
     };
     localStorage.setItem(USER_KEY, JSON.stringify(this.user));
   }
@@ -534,7 +578,7 @@ export class AuthService {
       email,
       boundAt: new Date().toISOString(),
       tokenClass,
-      locked: tokenClass === 'account'
+      locked: tokenClass === 'account',
     };
     this._saveTokenRegistry(registry);
   }

@@ -47,7 +47,7 @@ function getRule(ruleId, orgId) {
 
 function getAllRules(orgId) {
   const store = readStore();
-  return Object.values(store.rules).filter(r => r.orgId === orgId);
+  return Object.values(store.rules).filter((r) => r.orgId === orgId);
 }
 
 function setRule(ruleId, rule, orgId) {
@@ -106,7 +106,7 @@ function updateFireStats(ruleId, orgId) {
  */
 function findMatchingRules(orgId, eventType, context) {
   const store = readStore();
-  const rules = Object.values(store.rules).filter(r => {
+  const rules = Object.values(store.rules).filter((r) => {
     if (r.orgId !== orgId) return false;
     if (!r.enabled) return false;
     if (r.eventType !== eventType) return false;

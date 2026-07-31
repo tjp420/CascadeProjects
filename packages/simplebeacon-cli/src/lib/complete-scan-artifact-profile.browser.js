@@ -3,9 +3,15 @@
  */
 
 function isBenchmarkCachePath(filePath) {
-  const rel = String(filePath || '').replace(/\\/g, '/').toLowerCase();
-  return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
-    || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
+  const rel = String(filePath || '')
+    .replace(/\\/g, '/')
+    .toLowerCase();
+  return (
+    rel.includes('/github-cache/') ||
+    rel.startsWith('github-cache/') ||
+    rel.includes('/java-ai-vulnerable/') ||
+    rel.startsWith('java-ai-vulnerable/')
+  );
 }
 
 export function filterPlatformArtifactPaths(entries = []) {
@@ -17,24 +23,20 @@ const REGENERABLE_CATEGORIES = new Set([
   'coverage',
   '__pycache__',
   'dist',
-  'build'
+  'build',
 ]);
 
-const REGENERABLE_PATH_SUFFIXES = [
-  '/node_modules',
-  '/coverage',
-  '/__pycache__',
-  '/dist',
-  '/build'
-];
+const REGENERABLE_PATH_SUFFIXES = ['/node_modules', '/coverage', '/__pycache__', '/dist', '/build'];
 
 function isRegenerableDirectoryEntry(entry = {}) {
   const category = String(entry.category || '').toLowerCase();
   if (category && REGENERABLE_CATEGORIES.has(category)) return true;
-  const normalizedPath = String(entry.path || '').replace(/\\/g, '/').toLowerCase();
-  return REGENERABLE_PATH_SUFFIXES.some((suffix) => (
-    normalizedPath.endsWith(suffix) || normalizedPath.includes(`${suffix}/`)
-  ));
+  const normalizedPath = String(entry.path || '')
+    .replace(/\\/g, '/')
+    .toLowerCase();
+  return REGENERABLE_PATH_SUFFIXES.some(
+    (suffix) => normalizedPath.endsWith(suffix) || normalizedPath.includes(`${suffix}/`)
+  );
 }
 
 export function classifyRegenerableArtifacts(analysis = {}) {
@@ -67,7 +69,8 @@ export function softenPriorityActions(actions = [], artifactProfile = 'mixed') {
     return {
       ...action,
       title: 'Optional disk hygiene',
-      detail: 'Regenerable artifacts only (for example node_modules). Delete when you need space, then run npm install to restore.'
+      detail:
+        'Regenerable artifacts only (for example node_modules). Delete when you need space, then run npm install to restore.',
     };
   });
 }

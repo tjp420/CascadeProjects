@@ -11,13 +11,8 @@
   "qualityScore": 100,
   "gate": {
     "pass": true,
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ],
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"],
     "blockingCount": 0,
     "warningCount": 0,
     "blockingIssues": [],

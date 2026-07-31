@@ -1,7 +1,10 @@
 /**
  * Repository health page export bundle — browser mirror of server/lib/repository-health-export.js
  */
-import { redactProjectPathForExport, normalizeSimpleBeaconBranding } from './quality-export.browser.js?v=20260716cachefix1';
+import {
+    redactProjectPathForExport,
+    normalizeSimpleBeaconBranding
+} from './quality-export.browser.js?v=20260716cachefix1';
 /**
  * Dedupe export notes.
  * @param {Array} notes
@@ -23,16 +26,15 @@ function dedupeDisclaimers(notes = []) {
         const key = /security gate|gate results/i.test(normalized)
             ? 'not-gate-results'
             : /github-cache|audit inventory|benchmark clones/i.test(normalized)
-                ? 'audit-inventory-scope'
-                : /potential savings|opportunities — review/i.test(normalized)
-                    ? 'savings-opportunities'
-                    : /merge candidates|preview/i.test(normalized)
-                        ? 'merge-advisory'
-                        : /redacted to project label/i.test(normalized)
-                            ? 'path-redaction'
-                            : normalized;
-        if (seen.has(key))
-            continue;
+              ? 'audit-inventory-scope'
+              : /potential savings|opportunities — review/i.test(normalized)
+                ? 'savings-opportunities'
+                : /merge candidates|preview/i.test(normalized)
+                  ? 'merge-advisory'
+                  : /redacted to project label/i.test(normalized)
+                    ? 'path-redaction'
+                    : normalized;
+        if (seen.has(key)) continue;
         seen.add(key);
         out.push(String(note).trim());
     }
@@ -45,23 +47,22 @@ function dedupeDisclaimers(notes = []) {
  * @returns {any}
  */
 function redactSnapshotPath(value, defaultLabel = 'ai-platform') {
-    if (value == null || value === '')
-        return null;
+    if (value == null || value === '') return null;
     const normalized = String(value).replace(/\\/g, '/');
-    if (/ai-platform/i.test(normalized))
-        return 'ai-platform';
-    if (/cascadeprojects/i.test(normalized) && !/ai-platform/i.test(normalized))
-        return 'CascadeProjects';
-    if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-        || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
+    if (/ai-platform/i.test(normalized)) return 'ai-platform';
+    if (/cascadeprojects/i.test(normalized) && !/ai-platform/i.test(normalized)) return 'CascadeProjects';
+    if (
+        /^[a-zA-Z]:\//.test(normalized) ||
+        normalized.startsWith('/Users/') ||
+        normalized.startsWith('/home/') ||
+        normalized.includes('CascadeProjects')
+    ) {
         return redactProjectPathForExport(normalized, defaultLabel);
     }
     if (normalized.startsWith('…/')) {
         const tail = normalized.slice(2);
-        if (/ai-platform/i.test(tail))
-            return 'ai-platform';
-        if (/cascadeprojects/i.test(tail))
-            return 'CascadeProjects';
+        if (/ai-platform/i.test(tail)) return 'ai-platform';
+        if (/cascadeprojects/i.test(tail)) return 'CascadeProjects';
         const parts = tail.split('/').filter(Boolean);
         return parts[parts.length - 1] || defaultLabel;
     }
@@ -76,7 +77,9 @@ function redactSnapshotPath(value, defaultLabel = 'ai-platform') {
  */
 function resolveHeadlineMetric(headline, platform, key) {
     var _a, _b;
-    return (_b = (_a = headline[key]) !== null && _a !== void 0 ? _a : platform[key]) !== null && _b !== void 0 ? _b : null;
+    return (_b = (_a = headline[key]) !== null && _a !== void 0 ? _a : platform[key]) !== null && _b !== void 0
+        ? _b
+        : null;
 }
 /**
  * Headline monorepo metrics diverge.
@@ -86,8 +89,7 @@ function resolveHeadlineMetric(headline, platform, key) {
  * @returns {any}
  */
 function headlineMonorepoMetricsDiverge(headline, platform, monorepo) {
-    if (!(monorepo === null || monorepo === void 0 ? void 0 : monorepo.generatedAt))
-        return false;
+    if (!(monorepo === null || monorepo === void 0 ? void 0 : monorepo.generatedAt)) return false;
     const pairs = [
         ['repositoryHealthScore', resolveHeadlineMetric(headline, platform, 'repositoryHealthScore')],
         ['duplicateGroups', resolveHeadlineMetric(headline, platform, 'duplicateGroups')],
@@ -95,9 +97,9 @@ function headlineMonorepoMetricsDiverge(headline, platform, monorepo) {
         ['optimizationPotentialBytes', resolveHeadlineMetric(headline, platform, 'optimizationPotentialBytes')],
         ['reductionOpportunities', resolveHeadlineMetric(headline, platform, 'reductionOpportunities')]
     ];
-    return pairs.some(([key, headlineVal]) => headlineVal != null
-        && monorepo[key] != null
-        && headlineVal !== monorepo[key]);
+    return pairs.some(
+        ([key, headlineVal]) => headlineVal != null && monorepo[key] != null && headlineVal !== monorepo[key]
+    );
 }
 /**
  * Build repository health summary.
@@ -122,7 +124,11 @@ export function buildRepositoryHealthSummary(health = {}, { candidates, preview 
     return {
         repositoryHealthScore: resolveHeadlineMetric(headline, platform, 'repositoryHealthScore'),
         platformHealthScore: (_a = platform.repositoryHealthScore) !== null && _a !== void 0 ? _a : null,
-        monorepoHealthScore: hasMonorepo ? ((_b = monorepo.repositoryHealthScore) !== null && _b !== void 0 ? _b : null) : null,
+        monorepoHealthScore: hasMonorepo
+            ? (_b = monorepo.repositoryHealthScore) !== null && _b !== void 0
+                ? _b
+                : null
+            : null,
         optimizationPotential: resolveHeadlineMetric(headline, platform, 'optimizationPotential'),
         optimizationPotentialBytes: resolveHeadlineMetric(headline, platform, 'optimizationPotentialBytes'),
         duplicateGroups: resolveHeadlineMetric(headline, platform, 'duplicateGroups'),
@@ -131,17 +137,33 @@ export function buildRepositoryHealthSummary(health = {}, { candidates, preview 
         mergeCandidates: resolveHeadlineMetric(headline, platform, 'mergeCandidates'),
         repositoryFilesTotal: resolveHeadlineMetric(headline, platform, 'repositoryFilesTotal'),
         repositoryFoldersTotal: resolveHeadlineMetric(headline, platform, 'repositoryFoldersTotal'),
-        monorepoDuplicateGroups: hasMonorepo ? ((_c = monorepo.duplicateGroups) !== null && _c !== void 0 ? _c : null) : null,
-        monorepoMergeCandidates: hasMonorepo ? ((_d = monorepo.mergeCandidates) !== null && _d !== void 0 ? _d : null) : null,
+        monorepoDuplicateGroups: hasMonorepo
+            ? (_c = monorepo.duplicateGroups) !== null && _c !== void 0
+                ? _c
+                : null
+            : null,
+        monorepoMergeCandidates: hasMonorepo
+            ? (_d = monorepo.mergeCandidates) !== null && _d !== void 0
+                ? _d
+                : null
+            : null,
         platformLastScan: (_e = platform.generatedAt) !== null && _e !== void 0 ? _e : null,
         monorepoLastScan: hasMonorepo ? ((_f = monorepo.generatedAt) !== null && _f !== void 0 ? _f : null) : null,
-        lastScan: (_j = (_h = (_g = headline.lastScan) !== null && _g !== void 0 ? _g : platform.generatedAt) !== null && _h !== void 0 ? _h : monorepo.generatedAt) !== null && _j !== void 0 ? _j : null,
+        lastScan:
+            (_j =
+                (_h = (_g = headline.lastScan) !== null && _g !== void 0 ? _g : platform.generatedAt) !== null &&
+                _h !== void 0
+                    ? _h
+                    : monorepo.generatedAt) !== null && _j !== void 0
+                ? _j
+                : null,
         headlineScopeNote,
         scanFreshnessNote,
         mergeCandidateCount: Array.isArray(candidates) ? candidates.length : 0,
         mergePreviewAvailable: Boolean(preview),
         staticHost: Boolean(health.staticHost),
-        monorepoReportStatus: (_k = health.monorepoStatus) !== null && _k !== void 0 ? _k : (hasMonorepo ? 'loaded' : null)
+        monorepoReportStatus:
+            (_k = health.monorepoStatus) !== null && _k !== void 0 ? _k : hasMonorepo ? 'loaded' : null
     };
 }
 /**
@@ -151,8 +173,7 @@ export function buildRepositoryHealthSummary(health = {}, { candidates, preview 
  */
 function sanitizeSnapshotExport(snapshot) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
-    if (!snapshot)
-        return null;
+    if (!snapshot) return null;
     return {
         label: (_a = snapshot.label) !== null && _a !== void 0 ? _a : null,
         projectRoot: redactSnapshotPath(snapshot.projectRoot),
@@ -180,18 +201,17 @@ function sanitizeSnapshotExport(snapshot) {
  * @returns {any}
  */
 function sanitizeRecommendationsExport(recommendations = []) {
-    if (!Array.isArray(recommendations) || !recommendations.length)
-        return [];
-    return recommendations.map((item) => {
+    if (!Array.isArray(recommendations) || !recommendations.length) return [];
+    return recommendations.map(item => {
         var _a, _b, _c, _d, _e, _f;
-        return ({
+        return {
             priority: (_a = item.priority) !== null && _a !== void 0 ? _a : null,
             action: (_b = item.action) !== null && _b !== void 0 ? _b : null,
             savings: (_c = item.savings) !== null && _c !== void 0 ? _c : null,
             effort: (_d = item.effort) !== null && _d !== void 0 ? _d : null,
             risk: (_e = item.risk) !== null && _e !== void 0 ? _e : null,
             description: normalizeSimpleBeaconBranding((_f = item.description) !== null && _f !== void 0 ? _f : null)
-        });
+        };
     });
 }
 /**
@@ -200,25 +220,24 @@ function sanitizeRecommendationsExport(recommendations = []) {
  * @returns {any}
  */
 function sanitizeCandidatesExport(candidates = []) {
-    if (!Array.isArray(candidates) || !candidates.length)
-        return [];
-    return candidates.map((item) => {
+    if (!Array.isArray(candidates) || !candidates.length) return [];
+    return candidates.map(item => {
         var _a, _b, _c, _d;
-        return ({
+        return {
             id: (_a = item.id) !== null && _a !== void 0 ? _a : null,
             mergeType: (_b = item.mergeType) !== null && _b !== void 0 ? _b : null,
             savingsLabel: (_c = item.savingsLabel) !== null && _c !== void 0 ? _c : null,
             savingsBytes: (_d = item.savingsBytes) !== null && _d !== void 0 ? _d : null,
             files: Array.isArray(item.files)
-                ? item.files.map((f) => {
-                    var _a, _b;
-                    return ({
-                        path: (_a = f.path) !== null && _a !== void 0 ? _a : null,
-                        sizeLabel: (_b = f.sizeLabel) !== null && _b !== void 0 ? _b : null
-                    });
-                })
+                ? item.files.map(f => {
+                      var _a, _b;
+                      return {
+                          path: (_a = f.path) !== null && _a !== void 0 ? _a : null,
+                          sizeLabel: (_b = f.sizeLabel) !== null && _b !== void 0 ? _b : null
+                      };
+                  })
                 : []
-        });
+        };
     });
 }
 /**
@@ -228,8 +247,7 @@ function sanitizeCandidatesExport(candidates = []) {
  */
 function sanitizePreviewExport(preview) {
     var _a, _b, _c, _d, _e, _f, _g;
-    if (!preview)
-        return null;
+    if (!preview) return null;
     return {
         keepFile: (_a = preview.keepFile) !== null && _a !== void 0 ? _a : null,
         removeFiles: (_b = preview.removeFiles) !== null && _b !== void 0 ? _b : [],
@@ -238,9 +256,9 @@ function sanitizePreviewExport(preview) {
         executionMode: (_e = preview.executionMode) !== null && _e !== void 0 ? _e : null,
         riskAssessment: preview.riskAssessment
             ? {
-                level: (_f = preview.riskAssessment.level) !== null && _f !== void 0 ? _f : null,
-                factors: (_g = preview.riskAssessment.factors) !== null && _g !== void 0 ? _g : []
-            }
+                  level: (_f = preview.riskAssessment.level) !== null && _f !== void 0 ? _f : null,
+                  factors: (_g = preview.riskAssessment.factors) !== null && _g !== void 0 ? _g : []
+              }
             : null
     };
 }
@@ -256,22 +274,25 @@ function buildExportProvenance(health = {}, { candidates, preview, candidatesSco
     var _a, _b, _c, _d;
     let mergeCandidatesProvenance = 'missing';
     if (Array.isArray(candidates) && candidates.length) {
-        mergeCandidatesProvenance = candidatesScope === 'monorepo'
-            ? 'monorepo-consolidation-report'
-            : 'platform-consolidation-report';
-    }
-    else if (((_b = (_a = health.monorepo) === null || _a === void 0 ? void 0 : _a.mergeCandidates) !== null && _b !== void 0 ? _b : 0) > 0 || ((_d = (_c = health.platform) === null || _c === void 0 ? void 0 : _c.mergeCandidates) !== null && _d !== void 0 ? _d : 0) > 0) {
+        mergeCandidatesProvenance =
+            candidatesScope === 'monorepo' ? 'monorepo-consolidation-report' : 'platform-consolidation-report';
+    } else if (
+        ((_b = (_a = health.monorepo) === null || _a === void 0 ? void 0 : _a.mergeCandidates) !== null && _b !== void 0
+            ? _b
+            : 0) > 0 ||
+        ((_d = (_c = health.platform) === null || _c === void 0 ? void 0 : _c.mergeCandidates) !== null && _d !== void 0
+            ? _d
+            : 0) > 0
+    ) {
         mergeCandidatesProvenance = 'consolidation-report-count-only';
     }
     return {
-        health: health.staticHost ? 'static-fallback' : (health.headline ? 'live-consolidation-scan' : 'missing'),
+        health: health.staticHost ? 'static-fallback' : health.headline ? 'live-consolidation-scan' : 'missing',
         platform: health.platform ? 'consolidation-report' : 'missing',
         monorepo: health.monorepo ? 'consolidation-report' : 'missing',
         mergeCandidates: mergeCandidatesProvenance,
         mergePreview: preview ? 'live-merge-preview' : 'missing',
-        candidatesScope: (Array.isArray(candidates) && candidates.length && candidatesScope)
-            ? candidatesScope
-            : null
+        candidatesScope: Array.isArray(candidates) && candidates.length && candidatesScope ? candidatesScope : null
     };
 }
 /**
@@ -294,8 +315,13 @@ function buildExportNotes(health = {}, summary = {}, { candidates, candidatesSco
     if (summary.scanFreshnessNote) {
         notes.push(summary.scanFreshnessNote);
     }
-    if (((_a = monorepo.mergeCandidates) !== null && _a !== void 0 ? _a : 0) > 0 && (!Array.isArray(candidates) || !candidates.length)) {
-        notes.push(`Monorepo consolidation report lists ${monorepo.mergeCandidates} merge candidate(s) but no detail rows were attached — reload the page before export or use candidates?scope=monorepo.`);
+    if (
+        ((_a = monorepo.mergeCandidates) !== null && _a !== void 0 ? _a : 0) > 0 &&
+        (!Array.isArray(candidates) || !candidates.length)
+    ) {
+        notes.push(
+            `Monorepo consolidation report lists ${monorepo.mergeCandidates} merge candidate(s) but no detail rows were attached — reload the page before export or use candidates?scope=monorepo.`
+        );
     }
     if (Array.isArray(candidates) && candidates.length && candidatesScope === 'monorepo') {
         notes.push('Merge candidate detail rows sourced from monorepo (CascadeProjects) consolidation report.');
@@ -303,17 +329,24 @@ function buildExportNotes(health = {}, summary = {}, { candidates, candidatesSco
     if (preview) {
         notes.push('Merge preview included from active dashboard session — advisory only; confirm before executing.');
     }
-    if ((health.recommendations || []).length && !(platform.recommendations || []).length && (monorepo.recommendations || []).length) {
+    if (
+        (health.recommendations || []).length &&
+        !(platform.recommendations || []).length &&
+        (monorepo.recommendations || []).length
+    ) {
         notes.push('Recommendations sourced from monorepo consolidation report because platform scan had none.');
     }
     if (health.monorepoStatus === 'platform-scoped-copy') {
-        notes.push('Monorepo consolidation snapshot omitted — parent .simplebeacon/consolidation-report.json matches platform scope. Run consolidation scan from the monorepo root to refresh distinct monorepo metrics.');
-    }
-    else if (!health.monorepo && health.platform && health.monorepoStatus === 'missing') {
-        notes.push('Export reflects platform (ai-platform) consolidation scan only — no distinct monorepo snapshot loaded.');
+        notes.push(
+            'Monorepo consolidation snapshot omitted — parent .simplebeacon/consolidation-report.json matches platform scope. Run consolidation scan from the monorepo root to refresh distinct monorepo metrics.'
+        );
+    } else if (!health.monorepo && health.platform && health.monorepoStatus === 'missing') {
+        notes.push(
+            'Export reflects platform (ai-platform) consolidation scan only — no distinct monorepo snapshot loaded.'
+        );
     }
     notes.push('Repository health export — consolidation metrics only, not SimpleBeacon vendor handoff clearance.');
-    return dedupeExportNotes(notes.map((line) => normalizeSimpleBeaconBranding(line)));
+    return dedupeExportNotes(notes.map(line => normalizeSimpleBeaconBranding(line)));
 }
 /**
  * Build export disclaimers.
@@ -326,7 +359,7 @@ function buildExportDisclaimers(health = {}) {
      * @param {any} health.disclaimers || []
      * @returns {any}
      */
-    const fromHealth = (health.disclaimers || []).filter((note) => {
+    const fromHealth = (health.disclaimers || []).filter(note => {
         const text = String(note).toLowerCase();
         return !/merge candidates and previews are advisory/i.test(text);
     });
@@ -337,15 +370,26 @@ function buildExportDisclaimers(health = {}) {
         'Absolute host paths are redacted to project labels in exports.'
     ]);
 }
-export function buildRepositoryHealthExportBundle({ health, candidates, preview, candidatesProjectPath, candidatesScope } = {}) {
+export function buildRepositoryHealthExportBundle({
+    health,
+    candidates,
+    preview,
+    candidatesProjectPath,
+    candidatesScope
+} = {}) {
     const sanitizedPlatform = sanitizeSnapshotExport(health === null || health === void 0 ? void 0 : health.platform);
     const sanitizedMonorepo = sanitizeSnapshotExport(health === null || health === void 0 ? void 0 : health.monorepo);
     const summary = buildRepositoryHealthSummary(health || {}, { candidates, preview });
     const sanitizedCandidates = sanitizeCandidatesExport(candidates);
     const sanitizedPreview = sanitizePreviewExport(preview);
-    const sanitizedRecommendations = sanitizeRecommendationsExport(health === null || health === void 0 ? void 0 : health.recommendations);
+    const sanitizedRecommendations = sanitizeRecommendationsExport(
+        health === null || health === void 0 ? void 0 : health.recommendations
+    );
     const redactedCandidatesPath = candidatesProjectPath
-        ? redactProjectPathForExport(candidatesProjectPath, candidatesScope === 'monorepo' ? 'CascadeProjects' : 'ai-platform')
+        ? redactProjectPathForExport(
+              candidatesProjectPath,
+              candidatesScope === 'monorepo' ? 'CascadeProjects' : 'ai-platform'
+          )
         : null;
     const exportNotes = buildExportNotes(health || {}, summary, { candidates, candidatesScope, preview });
     return {
@@ -360,7 +404,9 @@ export function buildRepositoryHealthExportBundle({ health, candidates, preview,
         recommendations: sanitizedRecommendations,
         ...(sanitizedCandidates.length ? { mergeCandidates: sanitizedCandidates } : {}),
         ...(sanitizedPreview ? { mergePreview: sanitizedPreview } : {}),
-        ...(sanitizedCandidates.length && redactedCandidatesPath ? { candidatesProjectPath: redactedCandidatesPath } : {}),
+        ...(sanitizedCandidates.length && redactedCandidatesPath
+            ? { candidatesProjectPath: redactedCandidatesPath }
+            : {}),
         ...(sanitizedCandidates.length && candidatesScope ? { candidatesScope } : {}),
         provenance: buildExportProvenance(health || {}, { candidates, preview, candidatesScope }),
         exportNotes,
@@ -383,13 +429,11 @@ function csvEscape(cell) {
  * @returns {any}
  */
 function buildRepositoryHealthSummaryCsv(summary) {
-    if (!summary)
-        return null;
+    if (!summary) return null;
     const header = ['metric', 'value'];
-    const rows = Object.entries(summary).map(([key, value]) => [
-        key,
-        value == null ? '' : String(value)
-    ].map(csvEscape).join(','));
+    const rows = Object.entries(summary).map(([key, value]) =>
+        [key, value == null ? '' : String(value)].map(csvEscape).join(',')
+    );
     return [header.join(','), ...rows].join('\n');
 }
 /**
@@ -398,17 +442,20 @@ function buildRepositoryHealthSummaryCsv(summary) {
  * @returns {any}
  */
 function buildRecommendationsCsv(recommendations = []) {
-    if (!recommendations.length)
-        return null;
+    if (!recommendations.length) return null;
     const header = ['priority', 'action', 'savings', 'effort', 'risk', 'description'];
-    const rows = recommendations.map((item) => [
-        item.priority || '',
-        item.action || '',
-        item.savings || '',
-        item.effort || '',
-        item.risk || '',
-        item.description || ''
-    ].map(csvEscape).join(','));
+    const rows = recommendations.map(item =>
+        [
+            item.priority || '',
+            item.action || '',
+            item.savings || '',
+            item.effort || '',
+            item.risk || '',
+            item.description || ''
+        ]
+            .map(csvEscape)
+            .join(',')
+    );
     return [header.join(','), ...rows].join('\n');
 }
 /**
@@ -422,10 +469,18 @@ function buildSnapshotsCsv(platform, monorepo) {
         platform ? { scope: 'platform', ...platform } : null,
         monorepo ? { scope: 'monorepo', ...monorepo } : null
     ].filter(Boolean);
-    if (!snaps.length)
-        return null;
-    const header = ['scope', 'label', 'healthScore', 'optimizationPotential', 'duplicateGroups', 'oversizedFiles', 'repositoryFilesTotal', 'generatedAt'];
-    const rows = snaps.map((snap) => {
+    if (!snaps.length) return null;
+    const header = [
+        'scope',
+        'label',
+        'healthScore',
+        'optimizationPotential',
+        'duplicateGroups',
+        'oversizedFiles',
+        'repositoryFilesTotal',
+        'generatedAt'
+    ];
+    const rows = snaps.map(snap => {
         var _a, _b, _c, _d, _e, _f;
         return [
             snap.scope,
@@ -436,7 +491,9 @@ function buildSnapshotsCsv(platform, monorepo) {
             (_d = snap.oversizedFiles) !== null && _d !== void 0 ? _d : '',
             (_e = snap.repositoryFilesTotal) !== null && _e !== void 0 ? _e : '',
             (_f = snap.generatedAt) !== null && _f !== void 0 ? _f : ''
-        ].map(csvEscape).join(',');
+        ]
+            .map(csvEscape)
+            .join(',');
     });
     return [header.join(','), ...rows].join('\n');
 }
@@ -458,14 +515,12 @@ export function buildRepositoryHealthCsv({ summary, recommendations, platform, m
         parts.push(summaryCsv);
     }
     if (snapshotsCsv) {
-        if (parts.length)
-            parts.push('');
+        if (parts.length) parts.push('');
         parts.push('Consolidation snapshots');
         parts.push(snapshotsCsv);
     }
     if (recCsv) {
-        if (parts.length)
-            parts.push('');
+        if (parts.length) parts.push('');
         parts.push('Recommendations');
         parts.push(recCsv);
     }
@@ -478,7 +533,6 @@ export function buildRepositoryHealthCsv({ summary, recommendations, platform, m
  */
 export function repositoryHealthExportFilename(ext = 'json') {
     const stamp = new Date().toISOString().slice(0, 10);
-    if (ext === 'csv')
-        return `repository-health-metrics-${stamp}.csv`;
+    if (ext === 'csv') return `repository-health-metrics-${stamp}.csv`;
     return `repository-health-export-${stamp}.json`;
 }

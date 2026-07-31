@@ -1,7 +1,7 @@
 'use strict';
 
 jest.mock('../json-file-cache.cjs', () => ({
-  readJsonFileCached: jest.fn().mockReturnValue(null)
+  readJsonFileCached: jest.fn().mockReturnValue(null),
 }));
 
 const {
@@ -9,7 +9,7 @@ const {
   loadJestCoverageSummary,
   normalizeRelativePath,
   resolveSummaryPath,
-  roundCoveragePercentage
+  roundCoveragePercentage,
 } = require('../jest-coverage-reader.cjs');
 
 describe('jest-coverage-reader', () => {
@@ -52,7 +52,9 @@ describe('jest-coverage-reader', () => {
   });
 
   test('resolveSummaryPath returns absolute path as-is', () => {
-    expect(resolveSummaryPath('/base', { relativePath: '/absolute/path.json' })).toBe('/absolute/path.json');
+    expect(resolveSummaryPath('/base', { relativePath: '/absolute/path.json' })).toBe(
+      '/absolute/path.json'
+    );
   });
 
   test('resolveSummaryPath joins relative path with base', () => {

@@ -9,10 +9,7 @@
   "candidateId": "struct-1",
   "keepFile": "ai-platform/package-lock.json",
   "removeFiles": [],
-  "affectedFiles": [
-    "ai-platform/package-lock.json",
-    "vscode-extension/package-lock.json"
-  ],
+  "affectedFiles": ["ai-platform/package-lock.json", "vscode-extension/package-lock.json"],
   "conflicts": [],
   "safeToExecute": false,
   "requiresConfirmation": true,
@@ -20,9 +17,7 @@
     "level": "medium",
     "autoMergeAllowed": false,
     "requiresConfirmation": true,
-    "factors": [
-      "Shared JSON schema — content may differ"
-    ],
+    "factors": ["Shared JSON schema — content may differ"],
     "quarantineOnly": true
   },
   "confirmationPhrase": "QUARANTINE_DUPLICATES",

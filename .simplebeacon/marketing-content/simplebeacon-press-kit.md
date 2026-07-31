@@ -11,17 +11,17 @@
 
 Simplebeacon is an open-source CLI tool that adds a hygiene layer to CI/CD pipelines. It scans repos for mock data leaks in production code, credential patterns, JSON schema drift, fiction KPIs, and EU AI Act compliance gaps — failing the build before bad code ships.
 
-Unlike dependency scanners (Snyk, Dependabot), Simplebeacon checks your *application* code for anti-patterns that static analysis and CVE databases do not cover.
+Unlike dependency scanners (Snyk, Dependabot), Simplebeacon checks your _application_ code for anti-patterns that static analysis and CVE databases do not cover.
 
 ## Key metrics (from latest scan)
 
-| Metric | Value |
-|--------|-------|
-| Files scanned per run | 3257 |
-| Typical scan time | < 1 second |
-| Gate pass rate (this repo) | 100% |
-| Quality score | 100/100 |
-| EU AI Act readiness | 100/100 |
+| Metric                     | Value      |
+| -------------------------- | ---------- |
+| Files scanned per run      | 3257       |
+| Typical scan time          | < 1 second |
+| Gate pass rate (this repo) | 100%       |
+| Quality score              | 100/100    |
+| EU AI Act readiness        | 100/100    |
 
 ## Use cases
 

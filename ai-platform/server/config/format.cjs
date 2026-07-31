@@ -31,7 +31,7 @@ function parseSize(sizeStr) {
     KB: sizes.BYTES_PER_KB,
     MB: sizes.BYTES_PER_MB,
     GB: sizes.BYTES_PER_GB,
-    TB: sizes.BYTES_PER_TB
+    TB: sizes.BYTES_PER_TB,
   }[unit];
   return value * multiplier;
 }
@@ -161,7 +161,7 @@ function checkRateLimit(count, windowMs, timestamps) {
   const allowed = recent.length < limit;
   const remaining = Math.max(0, limit - recent.length);
   const oldest = recent.length > 0 ? recent[0] : now;
-  const resetMs = Math.max(0, (oldest + window) - now);
+  const resetMs = Math.max(0, oldest + window - now);
   return { allowed, remaining, resetMs };
 }
 
@@ -203,5 +203,5 @@ module.exports = Object.freeze({
   formatRate,
   checkRateLimit,
   isWithinRateLimit,
-  safeJsonLimit
+  safeJsonLimit,
 });

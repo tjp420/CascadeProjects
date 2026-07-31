@@ -15,15 +15,21 @@ function projectLabelFromPath(projectPath) {
   return parts[parts.length - 1] || 'ai-platform';
 }
 
-const SCANNER_IMPL_PATH_RE = /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
-const OSS_SCANNER_ROOT_FILES = new Set(['src/scan.js', 'src/config.js', 'src/project-detect.js', 'src/index.js']);
+const SCANNER_IMPL_PATH_RE =
+  /(?:^|\/)packages\/simplebeacon-cli\/src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)|(?:^|\/)src\/(?:rules|reporters|analyzers|lib|proxy|mcp)(?:\/|$)/;
+const OSS_SCANNER_ROOT_FILES = new Set([
+  'src/scan.js',
+  'src/config.js',
+  'src/project-detect.js',
+  'src/index.js',
+]);
 
 const SUPPRESSED_PRODUCTION_LEAK_INTENTS = new Set([
   'scanner-meta',
   'repository-audit-loader',
   'repository-audit-stub-loader',
   'config-metadata',
-  'demo-tool-sample'
+  'demo-tool-sample',
 ]);
 
 /**
@@ -54,8 +60,12 @@ function isScannerImplementationPath(relativePath) {
  */
 function isBenchmarkPath(filePath) {
   const rel = normalizeRel(filePath).toLowerCase();
-  return rel.includes('/github-cache/') || rel.startsWith('github-cache/')
-    || rel.includes('/java-ai-vulnerable/') || rel.startsWith('java-ai-vulnerable/');
+  return (
+    rel.includes('/github-cache/') ||
+    rel.startsWith('github-cache/') ||
+    rel.includes('/java-ai-vulnerable/') ||
+    rel.startsWith('java-ai-vulnerable/')
+  );
 }
 
 /**
@@ -78,11 +88,11 @@ function resolveProductPlatformRoot(projectPath) {
  */
 function resolveDigestProjectPath(digest, options = {}) {
   return String(
-    options.projectPath
-    || digest.projectPath
-    || digest.sourceProjectPath
-    || digest.sourceReport?.projectRoot
-    || ''
+    options.projectPath ||
+      digest.projectPath ||
+      digest.sourceProjectPath ||
+      digest.sourceReport?.projectRoot ||
+      ''
   ).replace(/\\/g, '/');
 }
 
@@ -161,24 +171,29 @@ function filterDigestIssues(issues = [], benchmarkScan) {
  * @returns {any}
  */
 function buildBenchmarkFictionConclusion(fictionIssues, nonFictionIssues, sourceReport) {
-  const repoFiles = sourceReport?.repositoryFilesTotal ?? sourceReport?.scanScope?.repositoryFilesTotal;
-  const ruleScoped = sourceReport?.ruleScopedFilesAnalyzed ?? sourceReport?.scanScope?.ruleScopedFilesAnalyzed ?? 0;
-  const jsonFiction = sourceReport?.fictionJsonFilesScanned ?? sourceReport?.scanScope?.fictionJsonFilesScanned;
+  const repoFiles =
+    sourceReport?.repositoryFilesTotal ?? sourceReport?.scanScope?.repositoryFilesTotal;
+  const ruleScoped =
+    sourceReport?.ruleScopedFilesAnalyzed ?? sourceReport?.scanScope?.ruleScopedFilesAnalyzed ?? 0;
+  const jsonFiction =
+    sourceReport?.fictionJsonFilesScanned ?? sourceReport?.scanScope?.fictionJsonFilesScanned;
   const fictionN = fictionIssues.reduce((sum, issue) => sum + (issue.count || 1), 0);
   const parts = [
     'OSS benchmark clone under github-cache/ — not Simplebeacon product handoff',
     fictionN
-      // simplebeacon:production-leak-intent - legitimate sample path reference for fiction digest reporting
-      ? `${fictionN} fiction/KPI pattern(s) in clone JSON — not product *-sample.json`
+      ? // simplebeacon:production-leak-intent - legitimate sample path reference for fiction digest reporting
+        `${fictionN} fiction/KPI pattern(s) in clone JSON — not product *-sample.json`
       : 'No Simplebeacon fiction KPI hits in product sample paths',
     nonFictionIssues.length
       ? `${nonFictionIssues.length} clone-local pattern hit(s) remain — informational only`
       : 'No actionable fiction-digest findings on this clone',
     repoFiles != null ? `Repository inventory: ${Number(repoFiles).toLocaleString()} files` : null,
     `Product gate paths checked ${Number(ruleScoped).toLocaleString()} files`,
-    jsonFiction != null ? `Fiction rules scanned ${Number(jsonFiction).toLocaleString()} JSON file(s) in clone` : null,
+    jsonFiction != null
+      ? `Fiction rules scanned ${Number(jsonFiction).toLocaleString()} JSON file(s) in clone`
+      : null,
     'Agency-handoff and EU AI Act blog matches are excluded from vendor gate scoring',
-    'Re-run Complete scan on ai-platform root for handoff evidence'
+    'Re-run Complete scan on ai-platform root for handoff evidence',
   ].filter(Boolean);
   return `${parts.join('. ')}.`;
 }
@@ -194,13 +209,15 @@ function isStaleFullTreeScan(report) {
   }
   const mock = report.mockSampleFiles ?? report.totalFiles ?? 0;
   const repoFiles = report.repositoryFilesTotal ?? 0;
-/**
- * Paths.
- * @param {number} report.scanPaths || []
- * @returns {any}
- */
+  /**
+   * Paths.
+   * @param {number} report.scanPaths || []
+   * @returns {any}
+   */
   const paths = (report.scanPaths || []).map((p) => String(p).replace(/\\/g, '/').toLowerCase());
-  const platformKey = String(report.projectRoot || '').replace(/\\/g, '/').toLowerCase();
+  const platformKey = String(report.projectRoot || '')
+    .replace(/\\/g, '/')
+    .toLowerCase();
   const scanIsPlatformRootOnly = paths.length === 1 && paths[0] === platformKey;
   return mock > 500 || scanIsPlatformRootOnly || repoFiles > 15000;
 }
@@ -231,12 +248,18 @@ function reconcileProductDigestScanScope(scanScope = {}, report = {}) {
   const mockInPaths = scanScope.mockSampleFilesInScanPaths ?? 0;
   const ruleScoped = report.ruleScopedFilesAnalyzed ?? scanScope.ruleScopedFilesAnalyzed ?? 0;
   const mockSampleFiles = report.mockSampleFiles ?? report.totalFiles ?? null;
-  const fictionSamples = report.fictionSampleFilesScanned ?? scanScope.fictionSampleFilesScanned ?? null;
+  const fictionSamples =
+    report.fictionSampleFilesScanned ?? scanScope.fictionSampleFilesScanned ?? null;
 
   let reconciled = mockInPaths;
   if (mockSampleFiles != null && mockSampleFiles < mockInPaths) {
     reconciled = mockSampleFiles;
-  } else if (mockInPaths >= ruleScoped && ruleScoped > 0 && fictionSamples != null && fictionSamples < mockInPaths) {
+  } else if (
+    mockInPaths >= ruleScoped &&
+    ruleScoped > 0 &&
+    fictionSamples != null &&
+    fictionSamples < mockInPaths
+  ) {
     reconciled = fictionSamples;
   } else if (mockInPaths >= ruleScoped && ruleScoped > 0) {
     const jsonFiction = report.fictionJsonFilesScanned ?? scanScope.fictionJsonFilesScanned ?? null;
@@ -250,8 +273,7 @@ function reconcileProductDigestScanScope(scanScope = {}, report = {}) {
   return {
     ...scanScope,
     mockSampleFilesInScanPaths: reconciled,
-    mockSampleFilesReconciledNote:
-      `mockSampleFilesInScanPaths reconciled from ${Number(mockInPaths).toLocaleString()} to ${Number(reconciled).toLocaleString()} — full-directory scan counts repo-wide paths, not mock/sample JSON only.`
+    mockSampleFilesReconciledNote: `mockSampleFilesInScanPaths reconciled from ${Number(mockInPaths).toLocaleString()} to ${Number(reconciled).toLocaleString()} — full-directory scan counts repo-wide paths, not mock/sample JSON only.`,
   };
 }
 
@@ -264,7 +286,9 @@ function reconcileProductDigestScanScope(scanScope = {}, report = {}) {
 function inferDigestScanTargetFromHints(digest, options = {}) {
   const filename = String(options.exportFilename || options.filename || '').toLowerCase();
   if (!filename.includes('github-cache')) return '';
-  const slugMatch = filename.match(/github-cache[-_]([a-z0-9._-]+?)(?:-\d{4}-\d{2}-\d{2}|\(\d+\)|\.json)/i);
+  const slugMatch = filename.match(
+    /github-cache[-_]([a-z0-9._-]+?)(?:-\d{4}-\d{2}-\d{2}|\(\d+\)|\.json)/i
+  );
   if (!slugMatch) return '';
   const cloneName = slugMatch[1];
   const sourceRoot = resolveDigestProjectPath(digest, options);
@@ -309,13 +333,15 @@ function buildBenchmarkFictionExportNotes(existingNotes = [], extras = []) {
   const canonical = [
     'Agency-handoff and EU AI Act blog matches removed from fiction digest for github-cache/ benchmark target.',
     'Production-leak hits in Simplebeacon scanner source (src/) excluded on OSS self-scan benchmark clone.',
-    'Gate pass on clone does not imply Simplebeacon product handoff readiness.'
+    'Gate pass on clone does not imply Simplebeacon product handoff readiness.',
   ];
   const filtered = dedupeFictionDigestExportNotes(existingNotes).filter((note) => {
     const text = String(note).toLowerCase();
-    return !/agency-handoff and eu ai act blog matches/i.test(text)
-      && !/production-leak hits in simplebeacon scanner source/i.test(text)
-      && !/gate pass on clone does not imply/i.test(text);
+    return (
+      !/agency-handoff and eu ai act blog matches/i.test(text) &&
+      !/production-leak hits in simplebeacon scanner source/i.test(text) &&
+      !/gate pass on clone does not imply/i.test(text)
+    );
   });
   return dedupeFictionDigestExportNotes([...filtered, ...extras, ...canonical]);
 }
@@ -327,26 +353,28 @@ function buildBenchmarkFictionExportNotes(existingNotes = [], extras = []) {
  */
 function reconcileBenchmarkDigestScanMetrics(report) {
   const repoTotal = report.repositoryFilesTotal ?? report.repositoryInventory?.totalFiles ?? null;
-  const ruleScoped = report.ruleScopedFilesAnalyzed ?? report.scanScope?.ruleScopedFilesAnalyzed ?? null;
+  const ruleScoped =
+    report.ruleScopedFilesAnalyzed ?? report.scanScope?.ruleScopedFilesAnalyzed ?? null;
   const cap = repoTotal ?? ruleScoped;
-  const rawLlm = report.llmSlopScanRaw
-    ?? report.scanScope?.llmSlopScanRaw
-    ?? report.llmSlopFilesScanned
-    ?? report.scanScope?.llmSlopFilesScanned
-    ?? 0;
+  const rawLlm =
+    report.llmSlopScanRaw ??
+    report.scanScope?.llmSlopScanRaw ??
+    report.llmSlopFilesScanned ??
+    report.scanScope?.llmSlopFilesScanned ??
+    0;
   if (cap == null || rawLlm <= cap) return report;
   const scanScope = {
     ...(report.scanScope || {}),
     llmSlopFilesScanned: cap,
     llmSlopScanRaw: rawLlm,
-    llmSlopScanReconciled: true
+    llmSlopScanReconciled: true,
   };
   return {
     ...report,
     llmSlopFilesScanned: cap,
     llmSlopScanRaw: rawLlm,
     llmSlopScanReconciled: true,
-    scanScope
+    scanScope,
   };
 }
 
@@ -377,7 +405,8 @@ function sanitizeBenchmarkDigestScanScope(scanScope, report) {
 function resolveBenchmarkDigestGateAttestation(sourceReport) {
   if (!sourceReport) return 'benchmark-clone';
   if (sourceReport.gateAttestation === 'benchmark-clone') return 'benchmark-clone';
-  const ruleScoped = sourceReport.ruleScopedFilesAnalyzed ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed ?? 0;
+  const ruleScoped =
+    sourceReport.ruleScopedFilesAnalyzed ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed ?? 0;
   if (sourceReport.gate?.pass && ruleScoped > 0) return 'benchmark-clone';
   if (sourceReport.gate?.pass && ruleScoped === 0) return 'limited-benchmark';
   return 'benchmark-clone';
@@ -397,13 +426,15 @@ function buildBenchmarkFictionScopeSummary(sourceReport) {
   return {
     benchmarkScannerMetaExcluded: scope.benchmarkScannerMetaExcluded ?? 0,
     benchmarkCloneNoiseExcluded: scope.benchmarkCloneNoiseExcluded ?? 0,
-    fictionJsonFilesScanned: sourceReport?.fictionJsonFilesScanned ?? scope.fictionJsonFilesScanned ?? null,
-    ruleScopedFilesAnalyzed: sourceReport?.ruleScopedFilesAnalyzed ?? scope.ruleScopedFilesAnalyzed ?? 0,
+    fictionJsonFilesScanned:
+      sourceReport?.fictionJsonFilesScanned ?? scope.fictionJsonFilesScanned ?? null,
+    ruleScopedFilesAnalyzed:
+      sourceReport?.ruleScopedFilesAnalyzed ?? scope.ruleScopedFilesAnalyzed ?? 0,
     repositoryFilesTotal: repoTotal,
     llmSlopFilesScanned: llmScanned,
     ...(reconciled && rawLlm != null && llmScanned != null && rawLlm > llmScanned
       ? { llmSlopScanReconciledFrom: rawLlm }
-      : {})
+      : {}),
   };
 }
 
@@ -414,7 +445,8 @@ function buildBenchmarkFictionScopeSummary(sourceReport) {
  */
 function resolveProductFictionDigestGateAttestation(sourceReport) {
   if (!sourceReport) return 'limited-scope';
-  const ruleScoped = sourceReport.ruleScopedFilesAnalyzed ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed ?? 0;
+  const ruleScoped =
+    sourceReport.ruleScopedFilesAnalyzed ?? sourceReport.scanScope?.ruleScopedFilesAnalyzed ?? 0;
   if (sourceReport.gate?.pass === false) return 'fiction-review-required';
   if (sourceReport.gate?.pass && ruleScoped > 0) return 'platform-fiction-clean';
   if (sourceReport.gate?.pass && ruleScoped === 0) return 'limited-scope';
@@ -427,8 +459,9 @@ function resolveProductFictionDigestGateAttestation(sourceReport) {
  * @returns {any}
  */
 function summarizeAncillaryPatternHits(sourceReport) {
-  const totals = sourceReport?.scanScope?.fullDirectoryStats?.ruleHitTotals
-    ?? sourceReport?.fullDirectoryStats?.ruleHitTotals;
+  const totals =
+    sourceReport?.scanScope?.fullDirectoryStats?.ruleHitTotals ??
+    sourceReport?.fullDirectoryStats?.ruleHitTotals;
   if (totals && typeof totals === 'object') {
     const ancillary = {};
     for (const [key, val] of Object.entries(totals)) {
@@ -458,18 +491,24 @@ function formatAncillaryPatternHitsNote(sourceReport) {
   const summary = summarizeAncillaryPatternHits(sourceReport);
   if (!summary?.ancillary) return null;
   const parts = Object.entries(summary.ancillary).map(([key, val]) => {
-    const label = key === 'llmSlop' ? 'LLM slop'
-      : key === 'euAiAct' ? 'EU AI Act'
-      : key === 'agencyHandoff' ? 'agency-handoff'
-      : key === 'productionLeak' ? 'production-leak'
-      : key;
+    const label =
+      key === 'llmSlop'
+        ? 'LLM slop'
+        : key === 'euAiAct'
+          ? 'EU AI Act'
+          : key === 'agencyHandoff'
+            ? 'agency-handoff'
+            : key === 'productionLeak'
+              ? 'production-leak'
+              : key;
     return `${label}: ${val}`;
   });
   const total = Object.values(summary.ancillary).reduce((sum, n) => sum + n, 0);
   const blocking = sourceReport?.gate?.blockingCount ?? 0;
-  const gateClause = blocking > 0
-    ? `gate blockingCount ${Number(blocking).toLocaleString()} on configured severities`
-    : 'gate blockingCount 0 on configured severities';
+  const gateClause =
+    blocking > 0
+      ? `gate blockingCount ${Number(blocking).toLocaleString()} on configured severities`
+      : 'gate blockingCount 0 on configured severities';
   return `${total} ancillary pattern hit(s) in full-tree scan (${parts.join(', ')}) — not fiction-KPI digest rows; ${gateClause}.`;
 }
 
@@ -486,25 +525,28 @@ function resolveFictionDigestGateContext(sourceReport, digest, options = {}) {
   const hygiene = digest?.hygieneSummary || {};
   return {
     gateReport: gate,
-    repositoryFilesTotal: options.repositoryFilesTotal
-      ?? gate.repositoryFilesTotal
-      ?? sourceReport?.repositoryFilesTotal
-      ?? scope.repositoryFilesTotal
-      ?? hygiene.repositoryFilesTotal
-      ?? digest?.scanScope?.gateRepositoryFilesTotal
-      ?? null,
-    contentScanned: scope.fullDirectoryStats?.contentScanned
-      ?? scope.fullDirectoryStats?.filesContentScanned
-      ?? sourceReport?.credentialScanned
-      ?? gate.credentialScanned
-      ?? hygiene.contentFilesScanned
-      ?? null,
-    gateProfile: scope.profile
-      ?? scope.gateRuleBundleProfile
-      ?? digest?.scanScope?.gateRuleBundleProfile
-      ?? hygiene.gateRuleBundleProfile
-      ?? gate.scanScope?.profile
-      ?? null
+    repositoryFilesTotal:
+      options.repositoryFilesTotal ??
+      gate.repositoryFilesTotal ??
+      sourceReport?.repositoryFilesTotal ??
+      scope.repositoryFilesTotal ??
+      hygiene.repositoryFilesTotal ??
+      digest?.scanScope?.gateRepositoryFilesTotal ??
+      null,
+    contentScanned:
+      scope.fullDirectoryStats?.contentScanned ??
+      scope.fullDirectoryStats?.filesContentScanned ??
+      sourceReport?.credentialScanned ??
+      gate.credentialScanned ??
+      hygiene.contentFilesScanned ??
+      null,
+    gateProfile:
+      scope.profile ??
+      scope.gateRuleBundleProfile ??
+      digest?.scanScope?.gateRuleBundleProfile ??
+      hygiene.gateRuleBundleProfile ??
+      gate.scanScope?.profile ??
+      null,
   };
 }
 
@@ -520,22 +562,30 @@ function buildProductFictionHygieneSummary(sourceReport, digest, options = {}) {
   const { repositoryFilesTotal: repoTotal, contentScanned, gateProfile, gateReport } = gateContext;
   const scope = sourceReport?.scanScope || {};
   const ancillary = summarizeAncillaryPatternHits(sourceReport);
-  const sourceScanned = scope.sourceCodeFilesScanned ?? sourceReport?.sourceCodeFilesScanned ?? null;
-  const jestChecked = sourceReport?.jestBaselineChecked === false
-    || scope.jestExecutedDuringScan === false
-    || gateReport.jestBaselineChecked === false
-    || digest?.hygieneSummary?.jestBaselineChecked === false
-    ? false
-    : null;
+  const sourceScanned =
+    scope.sourceCodeFilesScanned ?? sourceReport?.sourceCodeFilesScanned ?? null;
+  const jestChecked =
+    sourceReport?.jestBaselineChecked === false ||
+    scope.jestExecutedDuringScan === false ||
+    gateReport.jestBaselineChecked === false ||
+    digest?.hygieneSummary?.jestBaselineChecked === false
+      ? false
+      : null;
   return {
     digestTrust: digest.digestTrust ?? null,
     gatePass: sourceReport?.gate?.pass ?? null,
     blockingCount: sourceReport?.gate?.blockingCount ?? 0,
     repositoryFilesTotal: repoTotal,
-    ruleScopedFilesAnalyzed: sourceReport?.ruleScopedFilesAnalyzed ?? scope.ruleScopedFilesAnalyzed ?? null,
-    fictionJsonFilesScanned: sourceReport?.fictionJsonFilesScanned ?? scope.fictionJsonFilesScanned ?? null,
-    fictionSampleFilesScanned: sourceReport?.fictionSampleFilesScanned ?? scope.fictionSampleFilesScanned ?? null,
-    fictionKpiHits: (digest.fictionIssues || []).reduce((sum, issue) => sum + (issue.count || 1), 0),
+    ruleScopedFilesAnalyzed:
+      sourceReport?.ruleScopedFilesAnalyzed ?? scope.ruleScopedFilesAnalyzed ?? null,
+    fictionJsonFilesScanned:
+      sourceReport?.fictionJsonFilesScanned ?? scope.fictionJsonFilesScanned ?? null,
+    fictionSampleFilesScanned:
+      sourceReport?.fictionSampleFilesScanned ?? scope.fictionSampleFilesScanned ?? null,
+    fictionKpiHits: (digest.fictionIssues || []).reduce(
+      (sum, issue) => sum + (issue.count || 1),
+      0
+    ),
     fullDirectoryScan: Boolean(sourceReport?.fullDirectoryScan || scope.fullDirectoryScan),
     sourceCodeFilesScanned: sourceScanned,
     ...(contentScanned != null ? { contentFilesScanned: contentScanned } : {}),
@@ -546,7 +596,8 @@ function buildProductFictionHygieneSummary(sourceReport, digest, options = {}) {
     ...(ancillary?.fictionKpi != null ? { fictionKpiPatternHits: ancillary.fictionKpi } : {}),
     ...(ancillary?.ancillary ? { ancillaryPatternHits: ancillary.ancillary } : {}),
     ...(jestChecked === false ? { jestBaselineChecked: false } : {}),
-    attestationNote: 'Fiction/KPI digest hygiene — not vendor handoff or Complete scan clearance certification.'
+    attestationNote:
+      'Fiction/KPI digest hygiene — not vendor handoff or Complete scan clearance certification.',
   };
 }
 
@@ -568,9 +619,10 @@ function buildProductFictionScanScope(sourceReport, digest, options = {}) {
     fullDirectoryScan: Boolean(sourceReport?.fullDirectoryScan || scope.fullDirectoryScan),
     ...(gateTotal != null ? { gateRepositoryFilesTotal: gateTotal } : {}),
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
-    fictionDigestNote: scope.fictionDigestNote
-      || digest?.scanScope?.fictionDigestNote
-      || 'Fiction/KPI digest export — gate pass here does not replace Complete scan clearance bundle.'
+    fictionDigestNote:
+      scope.fictionDigestNote ||
+      digest?.scanScope?.fictionDigestNote ||
+      'Fiction/KPI digest export — gate pass here does not replace Complete scan clearance bundle.',
   };
 }
 
@@ -584,7 +636,7 @@ function buildProductFictionScanScope(sourceReport, digest, options = {}) {
 function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
   const notes = [
     'securityHandoffEligible is false — fiction/KPI digest is hygiene attestation only, not vendor security handoff.',
-    'Absolute scan paths are redacted to project label in operator exports.'
+    'Absolute scan paths are redacted to project label in operator exports.',
   ];
   const gateContext = resolveFictionDigestGateContext(sourceReport, digest, options);
   const { repositoryFilesTotal: repoTotal, contentScanned, gateProfile } = gateContext;
@@ -602,18 +654,20 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
     );
   }
   if (!scope.jestExecutedDuringScan) {
-    notes.push('Jest was not run during this scan — use `npm run simplebeacon:full` or `npm test` for live test verification.');
+    notes.push(
+      'Jest was not run during this scan — use `npm run simplebeacon:full` or `npm test` for live test verification.'
+    );
   }
   if (scope.mockSampleFilesReconciledNote) {
     notes.push(scope.mockSampleFilesReconciledNote);
   }
-  const mockSamples = sourceReport?.mockSampleFiles
-    ?? sourceReport?.totalFiles
-    ?? scope.mockSampleFilesInScanPaths
-    ?? 0;
-  const fictionSamples = sourceReport?.fictionSampleFilesScanned
-    ?? scope.fictionSampleFilesScanned
-    ?? 0;
+  const mockSamples =
+    sourceReport?.mockSampleFiles ??
+    sourceReport?.totalFiles ??
+    scope.mockSampleFilesInScanPaths ??
+    0;
+  const fictionSamples =
+    sourceReport?.fictionSampleFilesScanned ?? scope.fictionSampleFilesScanned ?? 0;
   if (mockSamples > 0 && fictionSamples === 0 && !scope.mockSampleFilesReconciledNote) {
     notes.push(
       // simplebeacon:production-leak-intent - legitimate sample path reference for fiction digest reporting
@@ -631,7 +685,9 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
       `Gate pass on ${Number(ruleScoped).toLocaleString()} rule-scoped files — fiction digest is hygiene only, not vendor handoff certification.`
     );
   } else if (sourceReport?.gate?.pass && ruleScoped === 0) {
-    notes.push('Gate pass with zero rule-scoped files — limited-scope attestation; re-run on product root with gate profile.');
+    notes.push(
+      'Gate pass with zero rule-scoped files — limited-scope attestation; re-run on product root with gate profile.'
+    );
   } else if (sourceReport?.gate?.pass === false) {
     const blocking = sourceReport.gate?.blockingCount ?? 0;
     if (blocking > 0) {
@@ -651,9 +707,11 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
     notes.push(ancillaryNote);
   }
   if ((digest.fictionIssues || []).length === 0 && (digest.nonFictionIssues || []).length === 0) {
-    notes.push(ancillaryNote
-      ? 'No fiction-KPI digest rows exported — ancillary pattern totals are in sourceReport.scanScope.fullDirectoryStats.ruleHitTotals.'
-      : 'No fiction or ancillary pattern rows in digest export — see sourceReport.scanScope for scan limits.');
+    notes.push(
+      ancillaryNote
+        ? 'No fiction-KPI digest rows exported — ancillary pattern totals are in sourceReport.scanScope.fullDirectoryStats.ruleHitTotals.'
+        : 'No fiction or ancillary pattern rows in digest export — see sourceReport.scanScope for scan limits.'
+    );
   }
   return [...new Set(notes)].slice(0, 12);
 }
@@ -666,14 +724,17 @@ function buildProductFictionExportNotes(digest, sourceReport, options = {}) {
 function enrichProductSourceReport(sourceReport) {
   if (!sourceReport || sourceReport.type !== 'simplebeacon-report') return sourceReport;
   const { gateAttestation: _gateAttestation, ...reportRest } = sourceReport;
-  const intentionalFullTree = Boolean(sourceReport.fullDirectoryScan || sourceReport.scanScope?.fullDirectoryScan);
+  const intentionalFullTree = Boolean(
+    sourceReport.fullDirectoryScan || sourceReport.scanScope?.fullDirectoryScan
+  );
   const reportHealth = intentionalFullTree
     ? 'platform-scoped-full-tree'
-    : (sourceReport.scanScope?.reportHealth || 'platform-scoped');
+    : sourceReport.scanScope?.reportHealth || 'platform-scoped';
   const scanProfile = sourceReport.scanScope?.profile;
-  const fictionDigestProfileNote = scanProfile && !/^(gate|full-tree)$/i.test(String(scanProfile))
-    ? `scanScope.profile (${scanProfile}) reflects Complete scan rule bundle — fiction digest lists fiction-KPI rows only.`
-    : undefined;
+  const fictionDigestProfileNote =
+    scanProfile && !/^(gate|full-tree)$/i.test(String(scanProfile))
+      ? `scanScope.profile (${scanProfile}) reflects Complete scan rule bundle — fiction digest lists fiction-KPI rows only.`
+      : undefined;
   return {
     ...reportRest,
     scanTargetProfile: 'product',
@@ -690,9 +751,10 @@ function enrichProductSourceReport(sourceReport) {
       inventoryMetricsStale: intentionalFullTree
         ? false
         : (sourceReport.scanScope?.inventoryMetricsStale ?? false),
-      fictionDigestNote: 'Fiction/KPI digest export — gate pass here does not replace Complete scan clearance bundle.',
-      ...(fictionDigestProfileNote ? { fictionDigestProfileNote } : {})
-    }
+      fictionDigestNote:
+        'Fiction/KPI digest export — gate pass here does not replace Complete scan clearance bundle.',
+      ...(fictionDigestProfileNote ? { fictionDigestProfileNote } : {}),
+    },
   };
 }
 
@@ -707,7 +769,8 @@ function resolveDigestTrust(benchmarkScan, fictionIssues, sourceReport) {
   if (benchmarkScan) return 'benchmark-clone';
   const fictionN = fictionIssues.reduce((sum, issue) => sum + (issue.count || 1), 0);
   if (fictionN > 0) return 'review';
-  const ruleScoped = sourceReport?.ruleScopedFilesAnalyzed ?? sourceReport?.scanScope?.ruleScopedFilesAnalyzed ?? 0;
+  const ruleScoped =
+    sourceReport?.ruleScopedFilesAnalyzed ?? sourceReport?.scanScope?.ruleScopedFilesAnalyzed ?? 0;
   if (sourceReport?.gate?.pass && ruleScoped === 0) return 'limited-scope';
   return 'trustworthy';
 }
@@ -722,7 +785,7 @@ function sanitizeSourceReportForDigest(report, projectPath) {
   if (!report || report.type !== 'simplebeacon-report') return report;
   const projectKey = String(report.projectRoot || projectPath || '').replace(/\\/g, '/');
   const benchmarkTarget = isBenchmarkPath(projectKey);
-  const sourceIssues = report.rawIssues?.length ? report.rawIssues : (report.detectedIssues || []);
+  const sourceIssues = report.rawIssues?.length ? report.rawIssues : report.detectedIssues || [];
   const platformIssues = [];
   const benchmarkCloneNoiseIssues = [];
   const benchmarkScannerMetaIssues = [];
@@ -741,20 +804,30 @@ function sanitizeSourceReportForDigest(report, projectPath) {
     platformIssues.push(issue);
   }
 
-  const gateConfig = report.gate || report.scanScope?.gatePolicy || { failOn: ['high'], warnOn: ['medium', 'low'] };
+  const gateConfig = report.gate ||
+    report.scanScope?.gatePolicy || { failOn: ['high'], warnOn: ['medium', 'low'] };
   const blockingCount = platformIssues
-    .filter((issue) => (gateConfig.failOn || ['high']).includes(issue.severityBand || issue.severity))
+    .filter((issue) =>
+      (gateConfig.failOn || ['high']).includes(issue.severityBand || issue.severity)
+    )
     .reduce((sum, issue) => sum + (issue.count || 1), 0);
   const warningCount = platformIssues
-    .filter((issue) => (gateConfig.warnOn || ['medium', 'low']).includes(issue.severityBand || issue.severity))
+    .filter((issue) =>
+      (gateConfig.warnOn || ['medium', 'low']).includes(issue.severityBand || issue.severity)
+    )
     .reduce((sum, issue) => sum + (issue.count || 1), 0);
-  const ruleScoped = report.ruleScopedFilesAnalyzed ?? report.scanScope?.ruleScopedFilesAnalyzed ?? 0;
+  const ruleScoped =
+    report.ruleScopedFilesAnalyzed ?? report.scanScope?.ruleScopedFilesAnalyzed ?? 0;
   const gatePass = blockingCount === 0;
   const hollowGate = gatePass && ruleScoped === 0;
-  const intentionalFullTree = Boolean(report.fullDirectoryScan || report.scanScope?.fullDirectoryScan);
+  const intentionalFullTree = Boolean(
+    report.fullDirectoryScan || report.scanScope?.fullDirectoryScan
+  );
   const staleFullTreeScan = !benchmarkTarget && !intentionalFullTree && isStaleFullTreeScan(report);
   let normalizedReport = benchmarkTarget ? reconcileBenchmarkDigestScanMetrics(report) : report;
-  const gateAttestation = benchmarkTarget ? resolveBenchmarkDigestGateAttestation(normalizedReport) : undefined;
+  const gateAttestation = benchmarkTarget
+    ? resolveBenchmarkDigestGateAttestation(normalizedReport)
+    : undefined;
   const scanScopeBase = {
     ...(normalizedReport.scanScope || {}),
     resultsViewScope: benchmarkTarget ? 'benchmark-clone' : 'platform-only',
@@ -767,15 +840,17 @@ function sanitizeSourceReportForDigest(report, projectPath) {
         ? 'platform-scoped-full-tree'
         : staleFullTreeScan
           ? 'stale-full-tree-scan'
-          : (report.scanScope?.reportHealth || 'platform-scoped'),
+          : report.scanScope?.reportHealth || 'platform-scoped',
     rescanRecommended: benchmarkTarget
       ? false
       : intentionalFullTree
         ? false
         : staleFullTreeScan || Boolean(report.scanScope?.rescanRecommended),
     limitations: benchmarkTarget
-      ? ['Scanning OSS benchmark clone under github-cache/ — Simplebeacon product gate paths were not evaluated.']
-      : report.scanScope?.limitations
+      ? [
+          'Scanning OSS benchmark clone under github-cache/ — Simplebeacon product gate paths were not evaluated.',
+        ]
+      : report.scanScope?.limitations,
   };
   const scanScope = benchmarkTarget
     ? sanitizeBenchmarkDigestScanScope(scanScopeBase, normalizedReport)
@@ -784,14 +859,24 @@ function sanitizeSourceReportForDigest(report, projectPath) {
   const projectLabel = projectLabelFromPath(projectKey);
   return {
     ...normalizedReport,
-    projectRoot: normalizeDigestProjectPaths(normalizedReport.projectRoot || projectKey, projectLabel),
+    projectRoot: normalizeDigestProjectPaths(
+      normalizedReport.projectRoot || projectKey,
+      projectLabel
+    ),
     platformRoot: benchmarkTarget
-      ? normalizeDigestProjectPaths(normalizedReport.platformRoot || resolveProductPlatformRoot(projectKey), projectLabel)
+      ? normalizeDigestProjectPaths(
+          normalizedReport.platformRoot || resolveProductPlatformRoot(projectKey),
+          projectLabel
+        )
       : normalizeDigestProjectPaths(normalizedReport.platformRoot, projectLabel),
     rawIssues: platformIssues,
     detectedIssues: platformIssues.slice(0, 12),
-    benchmarkCloneNoiseIssues: benchmarkCloneNoiseIssues.length ? benchmarkCloneNoiseIssues : undefined,
-    benchmarkScannerMetaIssues: benchmarkScannerMetaIssues.length ? benchmarkScannerMetaIssues : undefined,
+    benchmarkCloneNoiseIssues: benchmarkCloneNoiseIssues.length
+      ? benchmarkCloneNoiseIssues
+      : undefined,
+    benchmarkScannerMetaIssues: benchmarkScannerMetaIssues.length
+      ? benchmarkScannerMetaIssues
+      : undefined,
     issueCount: blockingCount,
     gate: { ...gateConfig, pass: gatePass, blockingCount, warningCount },
     ...(hollowGate && !benchmarkTarget ? { gateAttestation: 'limited-scope' } : {}),
@@ -802,9 +887,9 @@ function sanitizeSourceReportForDigest(report, projectPath) {
           benchmarkScan: true,
           scanTargetProfile: 'benchmark-cache',
           handoffEligible: false,
-          productPlatformRoot: normalizeDigestProjectPaths(resolveProductPlatformRoot(projectKey))
+          productPlatformRoot: normalizeDigestProjectPaths(resolveProductPlatformRoot(projectKey)),
         }
-      : {})
+      : {}),
   };
 }
 
@@ -819,11 +904,14 @@ export function sanitizeFictionDigestExport(digest, options = {}) {
 
   const hintedPath = inferDigestScanTargetFromHints(digest, options);
   const rawProjectPath = hintedPath || resolveDigestProjectPath(digest, options);
-  const benchmarkScan = isBenchmarkFictionDigest(digest, { ...options, projectPath: rawProjectPath });
+  const benchmarkScan = isBenchmarkFictionDigest(digest, {
+    ...options,
+    projectPath: rawProjectPath,
+  });
   const projectLabel = projectLabelFromPath(rawProjectPath);
   const projectPath = normalizeDigestProjectPaths(rawProjectPath, projectLabel);
   const rawPlatformRoot = benchmarkScan
-    ? (options.productPlatformRoot || resolveProductPlatformRoot(rawProjectPath))
+    ? options.productPlatformRoot || resolveProductPlatformRoot(rawProjectPath)
     : null;
   const productPlatformRoot = rawPlatformRoot
     ? normalizeDigestProjectPaths(rawPlatformRoot, projectLabelFromPath(rawPlatformRoot))
@@ -833,19 +921,25 @@ export function sanitizeFictionDigestExport(digest, options = {}) {
   const sourceReport = digest.sourceReport
     ? sanitizeSourceReportForDigest(digest.sourceReport, rawProjectPath)
     : null;
-  const enrichedSourceReport = benchmarkScan ? sourceReport : enrichProductSourceReport(sourceReport);
+  const enrichedSourceReport = benchmarkScan
+    ? sourceReport
+    : enrichProductSourceReport(sourceReport);
   const fictionIssues = filterDigestIssues(digest.fictionIssues || [], benchmarkScan);
   const nonFictionIssues = filterDigestIssues(digest.nonFictionIssues || [], benchmarkScan);
   const digestTrust = resolveDigestTrust(benchmarkScan, fictionIssues, enrichedSourceReport);
   const fictionScopePreview = benchmarkScan
     ? buildBenchmarkFictionScopeSummary(enrichedSourceReport)
     : null;
-  const ancillaryPatternSummary = benchmarkScan ? null : summarizeAncillaryPatternHits(enrichedSourceReport);
+  const ancillaryPatternSummary = benchmarkScan
+    ? null
+    : summarizeAncillaryPatternHits(enrichedSourceReport);
   const exportNotes = benchmarkScan
     ? buildBenchmarkFictionExportNotes(
         digest.exportNotes || [],
         fictionScopePreview?.llmSlopScanReconciledFrom != null
-          ? [`LLM slop file count reconciled from ${fictionScopePreview.llmSlopScanReconciledFrom} to ${fictionScopePreview.llmSlopFilesScanned} clone inventory files on benchmark export.`]
+          ? [
+              `LLM slop file count reconciled from ${fictionScopePreview.llmSlopScanReconciledFrom} to ${fictionScopePreview.llmSlopFilesScanned} clone inventory files on benchmark export.`,
+            ]
           : []
       )
     : buildProductFictionExportNotes(
@@ -864,7 +958,8 @@ export function sanitizeFictionDigestExport(digest, options = {}) {
     nonFictionIssues,
     digestTrust,
     projectPath: normalizedPath,
-    sourceProjectPath: normalizeDigestProjectPaths(digest.sourceProjectPath, projectLabel) || normalizedPath,
+    sourceProjectPath:
+      normalizeDigestProjectPaths(digest.sourceProjectPath, projectLabel) || normalizedPath,
     ...(benchmarkScan
       ? {
           benchmarkScan: true,
@@ -875,7 +970,7 @@ export function sanitizeFictionDigestExport(digest, options = {}) {
           platformRoot: productPlatformRoot || undefined,
           productPlatformRoot: productPlatformRoot || undefined,
           gateAttestation: resolveBenchmarkDigestGateAttestation(enrichedSourceReport),
-          fictionScopeSummary: buildBenchmarkFictionScopeSummary(enrichedSourceReport)
+          fictionScopeSummary: buildBenchmarkFictionScopeSummary(enrichedSourceReport),
         }
       : {
           exportNormalized: true,
@@ -884,33 +979,45 @@ export function sanitizeFictionDigestExport(digest, options = {}) {
           handoffEligible: false,
           gateAttestation: resolveProductFictionDigestGateAttestation(enrichedSourceReport),
           fictionScopeSummary: {
-            fictionJsonFilesScanned: enrichedSourceReport?.fictionJsonFilesScanned
-              ?? enrichedSourceReport?.scanScope?.fictionJsonFilesScanned
-              ?? null,
-            fictionSampleFilesScanned: enrichedSourceReport?.fictionSampleFilesScanned
-              ?? enrichedSourceReport?.scanScope?.fictionSampleFilesScanned
-              ?? null,
-            sourceFictionPatternHits: enrichedSourceReport?.scanScope?.sourceFictionPatternHits ?? 0,
-            jestExecutedDuringScan: enrichedSourceReport?.scanScope?.jestExecutedDuringScan ?? false,
+            fictionJsonFilesScanned:
+              enrichedSourceReport?.fictionJsonFilesScanned ??
+              enrichedSourceReport?.scanScope?.fictionJsonFilesScanned ??
+              null,
+            fictionSampleFilesScanned:
+              enrichedSourceReport?.fictionSampleFilesScanned ??
+              enrichedSourceReport?.scanScope?.fictionSampleFilesScanned ??
+              null,
+            sourceFictionPatternHits:
+              enrichedSourceReport?.scanScope?.sourceFictionPatternHits ?? 0,
+            jestExecutedDuringScan:
+              enrichedSourceReport?.scanScope?.jestExecutedDuringScan ?? false,
             ...(ancillaryPatternSummary?.ancillary
               ? { ancillaryPatternHits: ancillaryPatternSummary.ancillary }
-              : {})
+              : {}),
           },
-          hygieneSummary: buildProductFictionHygieneSummary(enrichedSourceReport, {
-            ...digest,
-            fictionIssues,
-            nonFictionIssues,
-            digestTrust
-          }, options),
-          scanScope: buildProductFictionScanScope(enrichedSourceReport, {
-            ...digest,
-            fictionIssues,
-            nonFictionIssues,
-            digestTrust
-          }, options)
+          hygieneSummary: buildProductFictionHygieneSummary(
+            enrichedSourceReport,
+            {
+              ...digest,
+              fictionIssues,
+              nonFictionIssues,
+              digestTrust,
+            },
+            options
+          ),
+          scanScope: buildProductFictionScanScope(
+            enrichedSourceReport,
+            {
+              ...digest,
+              fictionIssues,
+              nonFictionIssues,
+              digestTrust,
+            },
+            options
+          ),
         }),
     sourceReport: enrichedSourceReport,
     exportSanitized: true,
-    exportNotes: exportNotes.length ? exportNotes : undefined
+    exportNotes: exportNotes.length ? exportNotes : undefined,
   };
 }

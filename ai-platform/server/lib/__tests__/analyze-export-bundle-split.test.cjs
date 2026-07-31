@@ -4,7 +4,7 @@ const {
   splitLargeJsonParts,
   splitArrayParts,
   splitObjectParts,
-  splitTextParts
+  splitTextParts,
 } = require('../analyze-export-bundle/split.cjs');
 
 describe('analyze-export-bundle/split', () => {
@@ -32,7 +32,7 @@ describe('analyze-export-bundle/split', () => {
     const arr = Array.from({ length: 100 }, (_, i) => ({ id: i, name: `item-${i}` }));
     const parts = splitArrayParts('data.json', arr);
     expect(parts.length).toBeGreaterThanOrEqual(1);
-    parts.forEach(p => {
+    parts.forEach((p) => {
       expect(p).toHaveProperty('content');
     });
   });

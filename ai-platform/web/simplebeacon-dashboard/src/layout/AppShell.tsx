@@ -12,7 +12,14 @@ interface AppShellProps {
   children: React.ReactNode;
 }
 
-export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier, user, children }: AppShellProps) {
+export function AppShell({
+  currentView,
+  onNavigate,
+  isAuthenticated,
+  isFreeTier,
+  user,
+  children,
+}: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isAdmin = !!(
@@ -39,9 +46,7 @@ export function AppShell({ currentView, onNavigate, isAuthenticated, isFreeTier,
           isFreeTier={isFreeTier}
           onMenuClick={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto scrollbar-thin min-h-0">{children}</main>
       </div>
     </div>
   );

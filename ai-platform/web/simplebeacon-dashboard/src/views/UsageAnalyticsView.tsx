@@ -4,15 +4,52 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
-  AreaChart, Area,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  AreaChart,
+  Area,
 } from 'recharts';
 import {
-  RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
-  Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
-  ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X, Clock, Send, Settings,
-  ShieldCheck, ScrollText, FlaskConical, ShieldAlert, Bell,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  FileCode,
+  AlertTriangle,
+  Shield,
+  Activity,
+  Building2,
+  Gauge,
+  Calendar,
+  Download,
+  FileJson,
+  ChevronDown,
+  ChevronRight,
+  Wrench,
+  Copy,
+  Check,
+  Ticket,
+  Link2,
+  X,
+  Clock,
+  Send,
+  Settings,
+  ShieldCheck,
+  ScrollText,
+  FlaskConical,
+  ShieldAlert,
+  Bell,
+  Users,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -149,7 +186,18 @@ const SEVERITY_COLORS = {
   info: '#4A90D9',
 };
 
-const LANGUAGE_COLORS = ['#4A90D9', '#F1E05A', '#3178C6', '#A371F7', '#E34C26', '#89E051', '#DB5855', '#563D7C', '#0DBFED', '#f34b7d'];
+const LANGUAGE_COLORS = [
+  '#4A90D9',
+  '#F1E05A',
+  '#3178C6',
+  '#A371F7',
+  '#E34C26',
+  '#89E051',
+  '#DB5855',
+  '#563D7C',
+  '#0DBFED',
+  '#f34b7d',
+];
 
 export function UsageAnalyticsView() {
   const [stats, setStats] = useState<GlobalStats | null>(null);
@@ -175,7 +223,9 @@ export function UsageAnalyticsView() {
   const [ticketStatuses, setTicketStatuses] = useState<Record<string, TicketStatus>>({});
   const [ticketRefInput, setTicketRefInput] = useState<string>('');
   const [markingRow, setMarkingRow] = useState<string | null>(null);
-  const [ticketStatusFilter, setTicketStatusFilter] = useState<'all' | 'ticketed' | 'unticketed'>('all');
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<'all' | 'ticketed' | 'unticketed'>(
+    'all'
+  );
   const [ticketTargetFilter, setTicketTargetFilter] = useState<string>('');
   const [violationSummary, setViolationSummary] = useState<ViolationSummary | null>(null);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -185,7 +235,15 @@ export function UsageAnalyticsView() {
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [webhookConfigs, setWebhookConfigs] = useState<Record<string, WebhookConfig>>({});
   const [showWebhookConfig, setShowWebhookConfig] = useState(false);
-  const [webhookForm, setWebhookForm] = useState({ target: 'jira', apiUrl: '', authToken: '', projectKey: '', teamId: '', repoOwner: '', repoName: '' });
+  const [webhookForm, setWebhookForm] = useState({
+    target: 'jira',
+    apiUrl: '',
+    authToken: '',
+    projectKey: '',
+    teamId: '',
+    repoOwner: '',
+    repoName: '',
+  });
   const [dispatchingRow, setDispatchingRow] = useState<string | null>(null);
   const [reportSchedules, setReportSchedules] = useState<Record<string, ReportSchedule>>({});
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -195,7 +253,16 @@ export function UsageAnalyticsView() {
   const [gateEvalRepo, setGateEvalRepo] = useState('');
   const [gateEvalResult, setGateEvalResult] = useState<any>(null);
   const [showGatePolicyModal, setShowGatePolicyModal] = useState(false);
-  const [gatePolicyForm, setGatePolicyForm] = useState({ minPostureScore: 70, maxCritical: 0, maxHigh: 5, maxMedium: 20, maxLow: 50, blockOnGateFail: true, blockOnSlaBreached: false, blockOnUnticketedCritical: false });
+  const [gatePolicyForm, setGatePolicyForm] = useState({
+    minPostureScore: 70,
+    maxCritical: 0,
+    maxHigh: 5,
+    maxMedium: 20,
+    maxLow: 50,
+    blockOnGateFail: true,
+    blockOnSlaBreached: false,
+    blockOnUnticketedCritical: false,
+  });
   const [auditLog, setAuditLog] = useState<any[]>([]);
   const [auditStats, setAuditStats] = useState<any>(null);
   const [auditFilter, setAuditFilter] = useState('');
@@ -216,11 +283,34 @@ export function UsageAnalyticsView() {
   const [alertStats, setAlertStats] = useState<any>(null);
   const [alertFilter, setAlertFilter] = useState('');
   const [showAlertRuleModal, setShowAlertRuleModal] = useState(false);
-  const [alertRuleForm, setAlertRuleForm] = useState({ id: '', name: '', eventType: 'critical_finding', destinationType: 'webhook', webhookUrl: '', enabled: true, cooldownMinutes: 0, severityFilter: 'all' });
+  const [alertRuleForm, setAlertRuleForm] = useState({
+    id: '',
+    name: '',
+    eventType: 'critical_finding',
+    destinationType: 'webhook',
+    webhookUrl: '',
+    enabled: true,
+    cooldownMinutes: 0,
+    severityFilter: 'all',
+  });
+  const [rbacRoles, setRbacRoles] = useState<any[]>([]);
+  const [rbacAssignments, setRbacAssignments] = useState<any[]>([]);
+  const [rbacStats, setRbacStats] = useState<any>(null);
+  const [rbacMyRole, setRbacMyRole] = useState<any>(null);
+  const [showRbacModal, setShowRbacModal] = useState(false);
+  const [rbacForm, setRbacForm] = useState({ userId: '', role: 'viewer' });
   const [scheduleForm, setScheduleForm] = useState({
-    id: '', name: '', enabled: true, frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
-    dayOfWeek: 1, dayOfMonth: 1, hour: 8, minute: 0, format: 'csv' as 'csv' | 'json',
-    recipients: '', filters: '',
+    id: '',
+    name: '',
+    enabled: true,
+    frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
+    dayOfWeek: 1,
+    dayOfMonth: 1,
+    hour: 8,
+    minute: 0,
+    format: 'csv' as 'csv' | 'json',
+    recipients: '',
+    filters: '',
   });
   const [scheduleRunning, setScheduleRunning] = useState<string | null>(null);
   const violationsPageSize = 10;
@@ -229,7 +319,9 @@ export function UsageAnalyticsView() {
     try {
       const params = new URLSearchParams();
       if (repoFilter) params.set('repository', repoFilter);
-      const resp = await fetch(apiUrl(`/enterprise/analytics/filters?${params}`), { headers: authHeaders() });
+      const resp = await fetch(apiUrl(`/enterprise/analytics/filters?${params}`), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const data = await resp.json();
         setRepoOptions(data.repositories || []);
@@ -240,7 +332,9 @@ export function UsageAnalyticsView() {
     }
   }, [repoFilter]);
 
-  useEffect(() => { fetchFilters(); }, [fetchFilters]);
+  useEffect(() => {
+    fetchFilters();
+  }, [fetchFilters]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -249,7 +343,9 @@ export function UsageAnalyticsView() {
       params.set('days', String(days));
       if (repoFilter) params.set('repository', repoFilter);
       if (branchFilter) params.set('branch', branchFilter);
-      const resp = await fetch(apiUrl(`/enterprise/analytics?${params}`), { headers: authHeaders() });
+      const resp = await fetch(apiUrl(`/enterprise/analytics?${params}`), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const data = await resp.json();
         if (data.stats) setStats(data.stats);
@@ -266,35 +362,53 @@ export function UsageAnalyticsView() {
     }
   }, [granularity, days, repoFilter, branchFilter]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
-  const fetchViolations = useCallback(async (page: number) => {
-    try {
-      const params = new URLSearchParams();
-      params.set('limit', String(violationsPageSize));
-      params.set('offset', String(page * violationsPageSize));
-      if (repoFilter) params.set('repository', repoFilter);
-      if (branchFilter) params.set('branch', branchFilter);
-      if (categoryFilter) params.set('category', categoryFilter);
-      if (ticketStatusFilter !== 'all') params.set('ticketStatus', ticketStatusFilter);
-      if (ticketTargetFilter) params.set('ticketTarget', ticketTargetFilter);
-      if (slaBreachedFilter) params.set('slaBreached', 'true');
-      const resp = await fetch(apiUrl(`/analytics/violations?${params}`), { headers: authHeaders() });
-      if (resp.ok) {
-        const data = await resp.json();
-        setViolations(data.violations || []);
-        setViolationsTotal(data.pagination?.total || 0);
+  const fetchViolations = useCallback(
+    async (page: number) => {
+      try {
+        const params = new URLSearchParams();
+        params.set('limit', String(violationsPageSize));
+        params.set('offset', String(page * violationsPageSize));
+        if (repoFilter) params.set('repository', repoFilter);
+        if (branchFilter) params.set('branch', branchFilter);
+        if (categoryFilter) params.set('category', categoryFilter);
+        if (ticketStatusFilter !== 'all') params.set('ticketStatus', ticketStatusFilter);
+        if (ticketTargetFilter) params.set('ticketTarget', ticketTargetFilter);
+        if (slaBreachedFilter) params.set('slaBreached', 'true');
+        const resp = await fetch(apiUrl(`/analytics/violations?${params}`), {
+          headers: authHeaders(),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setViolations(data.violations || []);
+          setViolationsTotal(data.pagination?.total || 0);
+        }
+      } catch {
+        // silent — violations table is supplementary
       }
-    } catch {
-      // silent — violations table is supplementary
-    }
-  }, [repoFilter, branchFilter, categoryFilter, ticketStatusFilter, ticketTargetFilter, slaBreachedFilter]);
+    },
+    [
+      repoFilter,
+      branchFilter,
+      categoryFilter,
+      ticketStatusFilter,
+      ticketTargetFilter,
+      slaBreachedFilter,
+    ]
+  );
 
-  useEffect(() => { fetchViolations(violationsPage); }, [fetchViolations, violationsPage]);
+  useEffect(() => {
+    fetchViolations(violationsPage);
+  }, [fetchViolations, violationsPage]);
 
   const fetchTicketStatuses = useCallback(async () => {
     try {
-      const resp = await fetch(apiUrl('/analytics/violations/ticket-statuses'), { headers: authHeaders() });
+      const resp = await fetch(apiUrl('/analytics/violations/ticket-statuses'), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const data = await resp.json();
         const map: Record<string, TicketStatus> = {};
@@ -308,14 +422,18 @@ export function UsageAnalyticsView() {
     }
   }, []);
 
-  useEffect(() => { fetchTicketStatuses(); }, [fetchTicketStatuses]);
+  useEffect(() => {
+    fetchTicketStatuses();
+  }, [fetchTicketStatuses]);
 
   const fetchViolationSummary = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (repoFilter) params.set('repository', repoFilter);
       if (branchFilter) params.set('branch', branchFilter);
-      const resp = await fetch(apiUrl(`/analytics/violations/summary?${params}`), { headers: authHeaders() });
+      const resp = await fetch(apiUrl(`/analytics/violations/summary?${params}`), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const data = await resp.json();
         setViolationSummary(data.summary || null);
@@ -325,50 +443,58 @@ export function UsageAnalyticsView() {
     }
   }, [repoFilter, branchFilter]);
 
-  useEffect(() => { fetchViolationSummary(); }, [fetchViolationSummary]);
+  useEffect(() => {
+    fetchViolationSummary();
+  }, [fetchViolationSummary]);
 
-  const markTicketed = useCallback(async (scanId: string, category: string, ticketRef: string, target: string) => {
-    const rowKey = `${scanId}-${category}`;
-    setMarkingRow(rowKey);
-    try {
-      const resp = await fetch(apiUrl('/analytics/violations/mark-ticketed'), {
-        method: 'POST',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scanId, category, ticketRef, ticketTarget: target }),
-      });
-      if (!resp.ok) throw new Error('mark_failed');
-      await fetchTicketStatuses();
-      await fetchViolationSummary();
-      setTicketRefInput('');
-      toast.success('Violation marked as ticketed');
-    } catch {
-      toast.error('Failed to mark as ticketed');
-    } finally {
-      setMarkingRow(null);
-    }
-  }, [fetchTicketStatuses, fetchViolationSummary]);
+  const markTicketed = useCallback(
+    async (scanId: string, category: string, ticketRef: string, target: string) => {
+      const rowKey = `${scanId}-${category}`;
+      setMarkingRow(rowKey);
+      try {
+        const resp = await fetch(apiUrl('/analytics/violations/mark-ticketed'), {
+          method: 'POST',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scanId, category, ticketRef, ticketTarget: target }),
+        });
+        if (!resp.ok) throw new Error('mark_failed');
+        await fetchTicketStatuses();
+        await fetchViolationSummary();
+        setTicketRefInput('');
+        toast.success('Violation marked as ticketed');
+      } catch {
+        toast.error('Failed to mark as ticketed');
+      } finally {
+        setMarkingRow(null);
+      }
+    },
+    [fetchTicketStatuses, fetchViolationSummary]
+  );
 
-  const unmarkTicketed = useCallback(async (scanId: string, category: string) => {
-    try {
-      const resp = await fetch(apiUrl('/analytics/violations/unmark-ticketed'), {
-        method: 'POST',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scanId, category }),
-      });
-      if (!resp.ok) throw new Error('unmark_failed');
-      await fetchTicketStatuses();
-      await fetchViolationSummary();
-      toast.success('Ticket status removed');
-    } catch {
-      toast.error('Failed to remove ticket status');
-    }
-  }, [fetchTicketStatuses, fetchViolationSummary]);
+  const unmarkTicketed = useCallback(
+    async (scanId: string, category: string) => {
+      try {
+        const resp = await fetch(apiUrl('/analytics/violations/unmark-ticketed'), {
+          method: 'POST',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scanId, category }),
+        });
+        if (!resp.ok) throw new Error('unmark_failed');
+        await fetchTicketStatuses();
+        await fetchViolationSummary();
+        toast.success('Ticket status removed');
+      } catch {
+        toast.error('Failed to remove ticket status');
+      }
+    },
+    [fetchTicketStatuses, fetchViolationSummary]
+  );
 
   const bulkMarkTicketed = useCallback(async () => {
     if (!bulkTicketRef.trim() || selectedRows.size === 0) return;
     setBulkLoading(true);
     try {
-      const violations = Array.from(selectedRows).map(key => {
+      const violations = Array.from(selectedRows).map((key) => {
         const [scanId, category] = key.split('::');
         return { scanId, category };
       });
@@ -390,13 +516,21 @@ export function UsageAnalyticsView() {
     } finally {
       setBulkLoading(false);
     }
-  }, [bulkTicketRef, selectedRows, ticketTarget, fetchTicketStatuses, fetchViolationSummary, fetchViolations, violationsPage]);
+  }, [
+    bulkTicketRef,
+    selectedRows,
+    ticketTarget,
+    fetchTicketStatuses,
+    fetchViolationSummary,
+    fetchViolations,
+    violationsPage,
+  ]);
 
   const bulkUnmarkTicketed = useCallback(async () => {
     if (selectedRows.size === 0) return;
     setBulkLoading(true);
     try {
-      const violations = Array.from(selectedRows).map(key => {
+      const violations = Array.from(selectedRows).map((key) => {
         const [scanId, category] = key.split('::');
         return { scanId, category };
       });
@@ -420,7 +554,7 @@ export function UsageAnalyticsView() {
   }, [selectedRows, fetchTicketStatuses, fetchViolationSummary, fetchViolations, violationsPage]);
 
   const toggleRowSelection = useCallback((rowKey: string) => {
-    setSelectedRows(prev => {
+    setSelectedRows((prev) => {
       const next = new Set(prev);
       if (next.has(rowKey)) next.delete(rowKey);
       else next.add(rowKey);
@@ -429,7 +563,7 @@ export function UsageAnalyticsView() {
   }, []);
 
   const toggleSelectAll = useCallback(() => {
-    setSelectedRows(prev => {
+    setSelectedRows((prev) => {
       if (prev.size === violations.length) return new Set();
       const next = new Set<string>();
       for (const v of violations) {
@@ -451,7 +585,9 @@ export function UsageAnalyticsView() {
     }
   }, []);
 
-  useEffect(() => { fetchWebhookConfigs(); }, [fetchWebhookConfigs]);
+  useEffect(() => {
+    fetchWebhookConfigs();
+  }, [fetchWebhookConfigs]);
 
   const saveWebhookConfig = useCallback(async () => {
     try {
@@ -468,50 +604,58 @@ export function UsageAnalyticsView() {
     }
   }, [webhookForm, fetchWebhookConfigs]);
 
-  const deleteWebhookConfig = useCallback(async (target: string) => {
-    try {
-      const resp = await fetch(apiUrl(`/analytics/webhook/configs/${target}`), {
-        method: 'DELETE',
-        headers: authHeaders(),
-      });
-      if (!resp.ok) throw new Error('delete_failed');
-      await fetchWebhookConfigs();
-      toast.success(`Webhook configuration deleted for ${target}`);
-    } catch {
-      toast.error('Failed to delete webhook configuration');
-    }
-  }, [fetchWebhookConfigs]);
-
-  const dispatchTicket = useCallback(async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
-    const rowKey = `${scanId}-${category}`;
-    setDispatchingRow(rowKey);
-    try {
-      const resp = await fetch(apiUrl('/analytics/violations/dispatch-ticket'), {
-        method: 'POST',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scanId, category, target }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) {
-        if (data.error === 'webhook_not_configured') {
-          setShowWebhookConfig(true);
-          setWebhookForm(prev => ({ ...prev, target }));
-          toast.error(`No webhook configured for ${target}. Please configure it first.`);
-        } else {
-          throw new Error(data.message || 'dispatch_failed');
-        }
-        return;
+  const deleteWebhookConfig = useCallback(
+    async (target: string) => {
+      try {
+        const resp = await fetch(apiUrl(`/analytics/webhook/configs/${target}`), {
+          method: 'DELETE',
+          headers: authHeaders(),
+        });
+        if (!resp.ok) throw new Error('delete_failed');
+        await fetchWebhookConfigs();
+        toast.success(`Webhook configuration deleted for ${target}`);
+      } catch {
+        toast.error('Failed to delete webhook configuration');
       }
-      await fetchTicketStatuses();
-      await fetchViolationSummary();
-      await fetchViolations(violationsPage);
-      toast.success(`Ticket dispatched to ${target}${data.ticketRef ? ': ' + data.ticketRef : ''}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to dispatch ticket');
-    } finally {
-      setDispatchingRow(null);
-    }
-  }, [fetchTicketStatuses, fetchViolationSummary, fetchViolations, violationsPage]);
+    },
+    [fetchWebhookConfigs]
+  );
+
+  const dispatchTicket = useCallback(
+    async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
+      const rowKey = `${scanId}-${category}`;
+      setDispatchingRow(rowKey);
+      try {
+        const resp = await fetch(apiUrl('/analytics/violations/dispatch-ticket'), {
+          method: 'POST',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scanId, category, target }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          if (data.error === 'webhook_not_configured') {
+            setShowWebhookConfig(true);
+            setWebhookForm((prev) => ({ ...prev, target }));
+            toast.error(`No webhook configured for ${target}. Please configure it first.`);
+          } else {
+            throw new Error(data.message || 'dispatch_failed');
+          }
+          return;
+        }
+        await fetchTicketStatuses();
+        await fetchViolationSummary();
+        await fetchViolations(violationsPage);
+        toast.success(
+          `Ticket dispatched to ${target}${data.ticketRef ? ': ' + data.ticketRef : ''}`
+        );
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to dispatch ticket');
+      } finally {
+        setDispatchingRow(null);
+      }
+    },
+    [fetchTicketStatuses, fetchViolationSummary, fetchViolations, violationsPage]
+  );
 
   const fetchReportSchedules = useCallback(async () => {
     try {
@@ -525,10 +669,15 @@ export function UsageAnalyticsView() {
     }
   }, []);
 
-  useEffect(() => { fetchReportSchedules(); }, [fetchReportSchedules]);
+  useEffect(() => {
+    fetchReportSchedules();
+  }, [fetchReportSchedules]);
 
   const saveReportSchedule = useCallback(async () => {
-    const recipients = scheduleForm.recipients.split(',').map(s => s.trim()).filter(Boolean);
+    const recipients = scheduleForm.recipients
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (!scheduleForm.id.trim() || recipients.length === 0) {
       toast.error('Schedule ID and at least one recipient are required');
       return;
@@ -536,8 +685,8 @@ export function UsageAnalyticsView() {
     try {
       const filters: Record<string, string> = {};
       if (scheduleForm.filters) {
-        scheduleForm.filters.split(',').forEach(pair => {
-          const [k, v] = pair.split(':').map(s => s.trim());
+        scheduleForm.filters.split(',').forEach((pair) => {
+          const [k, v] = pair.split(':').map((s) => s.trim());
           if (k && v) filters[k] = v;
         });
       }
@@ -567,37 +716,43 @@ export function UsageAnalyticsView() {
     }
   }, [scheduleForm, fetchReportSchedules]);
 
-  const deleteReportSchedule = useCallback(async (id: string) => {
-    try {
-      const resp = await fetch(apiUrl(`/analytics/report/schedules/${id}`), {
-        method: 'DELETE',
-        headers: authHeaders(),
-      });
-      if (!resp.ok) throw new Error('delete_failed');
-      await fetchReportSchedules();
-      toast.success(`Report schedule "${id}" deleted`);
-    } catch {
-      toast.error('Failed to delete report schedule');
-    }
-  }, [fetchReportSchedules]);
+  const deleteReportSchedule = useCallback(
+    async (id: string) => {
+      try {
+        const resp = await fetch(apiUrl(`/analytics/report/schedules/${id}`), {
+          method: 'DELETE',
+          headers: authHeaders(),
+        });
+        if (!resp.ok) throw new Error('delete_failed');
+        await fetchReportSchedules();
+        toast.success(`Report schedule "${id}" deleted`);
+      } catch {
+        toast.error('Failed to delete report schedule');
+      }
+    },
+    [fetchReportSchedules]
+  );
 
-  const runReportSchedule = useCallback(async (id: string) => {
-    setScheduleRunning(id);
-    try {
-      const resp = await fetch(apiUrl(`/analytics/report/schedules/${id}/run`), {
-        method: 'POST',
-        headers: authHeaders(),
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.message || 'run_failed');
-      await fetchReportSchedules();
-      toast.success(`Report generated and dispatched for "${id}"`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to run report schedule');
-    } finally {
-      setScheduleRunning(null);
-    }
-  }, [fetchReportSchedules]);
+  const runReportSchedule = useCallback(
+    async (id: string) => {
+      setScheduleRunning(id);
+      try {
+        const resp = await fetch(apiUrl(`/analytics/report/schedules/${id}/run`), {
+          method: 'POST',
+          headers: authHeaders(),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.message || 'run_failed');
+        await fetchReportSchedules();
+        toast.success(`Report generated and dispatched for "${id}"`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to run report schedule');
+      } finally {
+        setScheduleRunning(null);
+      }
+    },
+    [fetchReportSchedules]
+  );
 
   // ── Deployment Gate ───────────────────────────────────────────────────────
   const fetchGatePolicy = useCallback(async () => {
@@ -617,25 +772,35 @@ export function UsageAnalyticsView() {
           blockOnUnticketedCritical: data.policy?.blockOnUnticketedCritical ?? false,
         });
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   const fetchGateHistory = useCallback(async () => {
     try {
-      const resp = await fetch(apiUrl('/deployment-gate/history?limit=20'), { headers: authHeaders() });
+      const resp = await fetch(apiUrl('/deployment-gate/history?limit=20'), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const data = await resp.json();
         setGateHistory(data.history || []);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
-  useEffect(() => { fetchGatePolicy(); fetchGateHistory(); }, [fetchGatePolicy, fetchGateHistory]);
+  useEffect(() => {
+    fetchGatePolicy();
+    fetchGateHistory();
+  }, [fetchGatePolicy, fetchGateHistory]);
 
   const saveGatePolicy = useCallback(async () => {
     try {
       const resp = await fetch(apiUrl('/deployment-gate/policy'), {
-        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(gatePolicyForm),
       });
       if (resp.ok) {
@@ -643,12 +808,19 @@ export function UsageAnalyticsView() {
         setGatePolicy(data.policy);
         setShowGatePolicyModal(false);
         toast.success('Deployment gate policy saved');
-      } else { toast.error('Failed to save gate policy'); }
-    } catch { toast.error('Failed to save gate policy'); }
+      } else {
+        toast.error('Failed to save gate policy');
+      }
+    } catch {
+      toast.error('Failed to save gate policy');
+    }
   }, [gatePolicyForm]);
 
   const evaluateGate = useCallback(async () => {
-    if (!gateEvalRepo.trim()) { toast.error('Repository is required'); return; }
+    if (!gateEvalRepo.trim()) {
+      toast.error('Repository is required');
+      return;
+    }
     setGateEvaluating(true);
     setGateEvalResult(null);
     try {
@@ -656,7 +828,9 @@ export function UsageAnalyticsView() {
       params.set('repository', gateEvalRepo.trim());
       if (branchFilter) params.set('branch', branchFilter);
       params.set('triggeredBy', 'dashboard');
-      const resp = await fetch(apiUrl(`/deployment-gate/evaluate?${params}`), { headers: authHeaders() });
+      const resp = await fetch(apiUrl(`/deployment-gate/evaluate?${params}`), {
+        headers: authHeaders(),
+      });
       const data = await resp.json();
       setGateEvalResult({ status: resp.status, ...data });
       fetchGateHistory();
@@ -680,7 +854,9 @@ export function UsageAnalyticsView() {
         const data = await resp.json();
         setAuditLog(data.entries || []);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, [auditFilter]);
 
   const fetchAuditStats = useCallback(async () => {
@@ -690,15 +866,23 @@ export function UsageAnalyticsView() {
         const data = await resp.json();
         setAuditStats(data.stats);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
-  useEffect(() => { fetchAuditStats(); }, [fetchAuditStats]);
-  useEffect(() => { fetchAuditLog(); }, [fetchAuditLog]);
+  useEffect(() => {
+    fetchAuditStats();
+  }, [fetchAuditStats]);
+  useEffect(() => {
+    fetchAuditLog();
+  }, [fetchAuditLog]);
 
   const exportAuditLog = useCallback(async (format: 'csv' | 'json') => {
     try {
-      const resp = await fetch(apiUrl(`/audit/export?format=${format}`), { headers: authHeaders() });
+      const resp = await fetch(apiUrl(`/audit/export?format=${format}`), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
@@ -709,7 +893,9 @@ export function UsageAnalyticsView() {
         URL.revokeObjectURL(url);
         toast.success(`Audit log exported as ${format.toUpperCase()}`);
       }
-    } catch { toast.error('Failed to export audit log'); }
+    } catch {
+      toast.error('Failed to export audit log');
+    }
   }, []);
 
   // ── Model Evaluation ──────────────────────────────────────────────────────
@@ -720,7 +906,9 @@ export function UsageAnalyticsView() {
         const data = await resp.json();
         setEvalSuites(data.suites || {});
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   const fetchEvalRuns = useCallback(async () => {
@@ -730,7 +918,9 @@ export function UsageAnalyticsView() {
         const data = await resp.json();
         setEvalRuns(data.runs || []);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   const fetchEvalStats = useCallback(async () => {
@@ -740,17 +930,24 @@ export function UsageAnalyticsView() {
         const data = await resp.json();
         setEvalStats(data.stats);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
-  useEffect(() => { fetchEvalSuites(); fetchEvalRuns(); fetchEvalStats(); }, [fetchEvalSuites, fetchEvalRuns, fetchEvalStats]);
+  useEffect(() => {
+    fetchEvalSuites();
+    fetchEvalRuns();
+    fetchEvalStats();
+  }, [fetchEvalSuites, fetchEvalRuns, fetchEvalStats]);
 
   const runEvaluation = useCallback(async () => {
     setEvalRunning(true);
     setEvalRunDetail(null);
     try {
       const resp = await fetch(apiUrl('/model-eval/run'), {
-        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ suiteId: evalSuiteId, provider: evalProvider }),
       });
       const data = await resp.json();
@@ -776,7 +973,9 @@ export function UsageAnalyticsView() {
         const data = await resp.json();
         setEvalRunDetail(data.run);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   // ── AI Guardrails ─────────────────────────────────────────────────────────
@@ -785,12 +984,16 @@ export function UsageAnalyticsView() {
       const params = new URLSearchParams();
       params.set('limit', '100');
       if (guardrailFilter) params.set('verdict', guardrailFilter);
-      const resp = await fetch(apiUrl(`/guardrails/incidents?${params}`), { headers: authHeaders() });
+      const resp = await fetch(apiUrl(`/guardrails/incidents?${params}`), {
+        headers: authHeaders(),
+      });
       if (resp.ok) {
         const data = await resp.json();
         setGuardrailIncidents(data.incidents || []);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, [guardrailFilter]);
 
   const fetchGuardrailStats = useCallback(async () => {
@@ -800,32 +1003,46 @@ export function UsageAnalyticsView() {
         const data = await resp.json();
         setGuardrailStats(data.stats);
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }, []);
 
-  useEffect(() => { fetchGuardrailStats(); }, [fetchGuardrailStats]);
-  useEffect(() => { fetchGuardrailIncidents(); }, [fetchGuardrailIncidents]);
+  useEffect(() => {
+    fetchGuardrailStats();
+  }, [fetchGuardrailStats]);
+  useEffect(() => {
+    fetchGuardrailIncidents();
+  }, [fetchGuardrailIncidents]);
 
   const testGuardrail = useCallback(async () => {
     if (!guardrailTestText.trim()) return;
     try {
       const resp = await fetch(apiUrl('/guardrails/test'), {
-        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: guardrailTestText }),
       });
       if (resp.ok) {
         const data = await resp.json();
         setGuardrailTestResult(data.result);
       }
-    } catch { toast.error('Failed to test prompt'); }
+    } catch {
+      toast.error('Failed to test prompt');
+    }
   }, [guardrailTestText]);
 
   // ── Real-time Alerting ────────────────────────────────────────────────────
   const fetchAlertRules = useCallback(async () => {
     try {
       const resp = await fetch(apiUrl('/alerts/rules'), { headers: authHeaders() });
-      if (resp.ok) { const data = await resp.json(); setAlertRules(data.rules || []); }
-    } catch { /* silent */ }
+      if (resp.ok) {
+        const data = await resp.json();
+        setAlertRules(data.rules || []);
+      }
+    } catch {
+      /* silent */
+    }
   }, []);
 
   const fetchAlertIncidents = useCallback(async () => {
@@ -834,24 +1051,40 @@ export function UsageAnalyticsView() {
       params.set('limit', '100');
       if (alertFilter) params.set('status', alertFilter);
       const resp = await fetch(apiUrl(`/alerts/incidents?${params}`), { headers: authHeaders() });
-      if (resp.ok) { const data = await resp.json(); setAlertIncidents(data.incidents || []); }
-    } catch { /* silent */ }
+      if (resp.ok) {
+        const data = await resp.json();
+        setAlertIncidents(data.incidents || []);
+      }
+    } catch {
+      /* silent */
+    }
   }, [alertFilter]);
 
   const fetchAlertStats = useCallback(async () => {
     try {
       const resp = await fetch(apiUrl('/alerts/stats'), { headers: authHeaders() });
-      if (resp.ok) { const data = await resp.json(); setAlertStats(data.stats); }
-    } catch { /* silent */ }
+      if (resp.ok) {
+        const data = await resp.json();
+        setAlertStats(data.stats);
+      }
+    } catch {
+      /* silent */
+    }
   }, []);
 
-  useEffect(() => { fetchAlertRules(); fetchAlertStats(); }, [fetchAlertRules, fetchAlertStats]);
-  useEffect(() => { fetchAlertIncidents(); }, [fetchAlertIncidents]);
+  useEffect(() => {
+    fetchAlertRules();
+    fetchAlertStats();
+  }, [fetchAlertRules, fetchAlertStats]);
+  useEffect(() => {
+    fetchAlertIncidents();
+  }, [fetchAlertIncidents]);
 
   const saveAlertRule = useCallback(async () => {
     try {
       const resp = await fetch(apiUrl('/alerts/rules'), {
-        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(alertRuleForm),
       });
       const data = await resp.json();
@@ -859,85 +1092,187 @@ export function UsageAnalyticsView() {
         toast.success(`Alert rule "${alertRuleForm.name}" saved`);
         setShowAlertRuleModal(false);
         fetchAlertRules();
-        setAlertRuleForm({ id: '', name: '', eventType: 'critical_finding', destinationType: 'webhook', webhookUrl: '', enabled: true, cooldownMinutes: 0, severityFilter: 'all' });
+        setAlertRuleForm({
+          id: '',
+          name: '',
+          eventType: 'critical_finding',
+          destinationType: 'webhook',
+          webhookUrl: '',
+          enabled: true,
+          cooldownMinutes: 0,
+          severityFilter: 'all',
+        });
       } else {
         toast.error(data.error || 'Failed to save rule');
       }
-    } catch { toast.error('Failed to save alert rule'); }
+    } catch {
+      toast.error('Failed to save alert rule');
+    }
   }, [alertRuleForm, fetchAlertRules]);
 
-  const deleteAlertRule = useCallback(async (ruleId: string) => {
-    try {
-      const resp = await fetch(apiUrl(`/alerts/rules/${ruleId}`), { method: 'DELETE', headers: authHeaders() });
-      if (resp.ok) { toast.success('Alert rule deleted'); fetchAlertRules(); }
-    } catch { toast.error('Failed to delete rule'); }
-  }, [fetchAlertRules]);
-
-  const testAlertRule = useCallback(async (ruleId: string) => {
-    try {
-      const resp = await fetch(apiUrl('/alerts/test'), {
-        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ruleId }),
-      });
-      const data = await resp.json();
-      if (resp.ok && data.delivery) {
-        if (data.delivery.status === 'delivered') toast.success(`Test alert delivered (HTTP ${data.delivery.responseStatus})`);
-        else toast.error(`Test alert failed: ${data.delivery.error}`);
-        fetchAlertIncidents();
-      } else {
-        toast.error(data.error || 'Test failed');
+  const deleteAlertRule = useCallback(
+    async (ruleId: string) => {
+      try {
+        const resp = await fetch(apiUrl(`/alerts/rules/${ruleId}`), {
+          method: 'DELETE',
+          headers: authHeaders(),
+        });
+        if (resp.ok) {
+          toast.success('Alert rule deleted');
+          fetchAlertRules();
+        }
+      } catch {
+        toast.error('Failed to delete rule');
       }
-    } catch { toast.error('Failed to test alert rule'); }
-  }, [fetchAlertIncidents]);
+    },
+    [fetchAlertRules]
+  );
 
-  const exportLedger = useCallback(async (format: 'csv' | 'json') => {
-    try {
-      const params = new URLSearchParams();
-      params.set('format', format);
-      if (repoFilter) params.set('repository', repoFilter);
-      if (branchFilter) params.set('branch', branchFilter);
-      if (categoryFilter) params.set('category', categoryFilter);
-      if (ticketStatusFilter !== 'all') params.set('ticketStatus', ticketStatusFilter);
-      if (ticketTargetFilter) params.set('ticketTarget', ticketTargetFilter);
-      if (slaBreachedFilter) params.set('slaBreached', 'true');
-      const resp = await fetch(apiUrl(`/analytics/violations/export?${params}`), { headers: authHeaders() });
-      if (!resp.ok) throw new Error('export_failed');
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `compliance-ledger-${new Date().toISOString().slice(0, 10)}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(`Compliance ledger exported as ${format.toUpperCase()}`);
-    } catch {
-      toast.error('Failed to export compliance ledger');
-    }
-  }, [repoFilter, branchFilter, categoryFilter, ticketStatusFilter, ticketTargetFilter, slaBreachedFilter]);
+  const testAlertRule = useCallback(
+    async (ruleId: string) => {
+      try {
+        const resp = await fetch(apiUrl('/alerts/test'), {
+          method: 'POST',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ruleId }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.delivery) {
+          if (data.delivery.status === 'delivered')
+            toast.success(`Test alert delivered (HTTP ${data.delivery.responseStatus})`);
+          else toast.error(`Test alert failed: ${data.delivery.error}`);
+          fetchAlertIncidents();
+        } else {
+          toast.error(data.error || 'Test failed');
+        }
+      } catch {
+        toast.error('Failed to test alert rule');
+      }
+    },
+    [fetchAlertIncidents]
+  );
 
-  const generateTicket = useCallback(async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
-    const rowKey = `${scanId}-${category}`;
-    setTicketLoading(rowKey);
-    setTicketPayload(null);
-    setTicketRowKey(rowKey);
+  // ── RBAC ──────────────────────────────────────────────────────────────────
+  const fetchRbacRoles = useCallback(async () => {
     try {
-      const resp = await fetch(apiUrl('/analytics/violations/ticket-payload'), {
-        method: 'POST',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scanId, category, target }),
-      });
-      if (!resp.ok) throw new Error('ticket_failed');
-      const data = await resp.json();
-      setTicketPayload(data.payload);
-      toast.success(`${target.charAt(0).toUpperCase() + target.slice(1)} ticket payload generated`);
-    } catch {
-      toast.error('Failed to generate ticket payload');
-    } finally {
-      setTicketLoading(null);
-    }
+      const resp = await fetch(apiUrl('/rbac/roles'), { headers: authHeaders() });
+      if (resp.ok) { const data = await resp.json(); setRbacRoles(data.roles || []); }
+    } catch { /* silent */ }
   }, []);
+
+  const fetchRbacAssignments = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/rbac/assignments'), { headers: authHeaders() });
+      if (resp.ok) { const data = await resp.json(); setRbacAssignments(data.assignments || []); }
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchRbacStats = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/rbac/stats'), { headers: authHeaders() });
+      if (resp.ok) { const data = await resp.json(); setRbacStats(data.stats); }
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchRbacMyRole = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/rbac/me'), { headers: authHeaders() });
+      if (resp.ok) { const data = await resp.json(); setRbacMyRole(data); }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchRbacRoles(); fetchRbacMyRole(); fetchRbacStats(); fetchRbacAssignments(); }, [fetchRbacRoles, fetchRbacMyRole, fetchRbacStats, fetchRbacAssignments]);
+
+  const saveRbacAssignment = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/rbac/assignments'), {
+        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(rbacForm),
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        toast.success(`Role "${rbacForm.role}" assigned to ${rbacForm.userId}`);
+        setShowRbacModal(false);
+        fetchRbacAssignments(); fetchRbacStats();
+        setRbacForm({ userId: '', role: 'viewer' });
+      } else {
+        toast.error(data.error || data.message || 'Failed to assign role');
+      }
+    } catch { toast.error('Failed to assign role'); }
+  }, [rbacForm, fetchRbacAssignments, fetchRbacStats]);
+
+  const deleteRbacAssignment = useCallback(async (userId: string) => {
+    try {
+      const resp = await fetch(apiUrl(`/rbac/assignments/${userId}`), { method: 'DELETE', headers: authHeaders() });
+      if (resp.ok) { toast.success('Role assignment removed'); fetchRbacAssignments(); fetchRbacStats(); }
+    } catch { toast.error('Failed to remove assignment'); }
+  }, [fetchRbacAssignments, fetchRbacStats]);
+
+  const exportLedger = useCallback(
+    async (format: 'csv' | 'json') => {
+      try {
+        const params = new URLSearchParams();
+        params.set('format', format);
+        if (repoFilter) params.set('repository', repoFilter);
+        if (branchFilter) params.set('branch', branchFilter);
+        if (categoryFilter) params.set('category', categoryFilter);
+        if (ticketStatusFilter !== 'all') params.set('ticketStatus', ticketStatusFilter);
+        if (ticketTargetFilter) params.set('ticketTarget', ticketTargetFilter);
+        if (slaBreachedFilter) params.set('slaBreached', 'true');
+        const resp = await fetch(apiUrl(`/analytics/violations/export?${params}`), {
+          headers: authHeaders(),
+        });
+        if (!resp.ok) throw new Error('export_failed');
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `compliance-ledger-${new Date().toISOString().slice(0, 10)}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success(`Compliance ledger exported as ${format.toUpperCase()}`);
+      } catch {
+        toast.error('Failed to export compliance ledger');
+      }
+    },
+    [
+      repoFilter,
+      branchFilter,
+      categoryFilter,
+      ticketStatusFilter,
+      ticketTargetFilter,
+      slaBreachedFilter,
+    ]
+  );
+
+  const generateTicket = useCallback(
+    async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
+      const rowKey = `${scanId}-${category}`;
+      setTicketLoading(rowKey);
+      setTicketPayload(null);
+      setTicketRowKey(rowKey);
+      try {
+        const resp = await fetch(apiUrl('/analytics/violations/ticket-payload'), {
+          method: 'POST',
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scanId, category, target }),
+        });
+        if (!resp.ok) throw new Error('ticket_failed');
+        const data = await resp.json();
+        setTicketPayload(data.payload);
+        toast.success(
+          `${target.charAt(0).toUpperCase() + target.slice(1)} ticket payload generated`
+        );
+      } catch {
+        toast.error('Failed to generate ticket payload');
+      } finally {
+        setTicketLoading(null);
+      }
+    },
+    []
+  );
 
   const copyTicketPayload = useCallback(() => {
     if (!ticketPayload) return;
@@ -947,53 +1282,64 @@ export function UsageAnalyticsView() {
     toast.success('Ticket payload copied to clipboard');
   }, [ticketPayload]);
 
-  const handleExport = useCallback(async (format: 'csv' | 'json') => {
-    try {
-      const params = new URLSearchParams();
-      params.set('format', format);
-      params.set('days', String(days));
-      if (repoFilter) params.set('repository', repoFilter);
-      if (branchFilter) params.set('branch', branchFilter);
-      const resp = await fetch(apiUrl(`/analytics/export?${params}`), { headers: authHeaders() });
-      if (!resp.ok) throw new Error('export_failed');
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `analytics-export-${new Date().toISOString().slice(0, 10)}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(`Exported as ${format.toUpperCase()}`);
-    } catch {
-      toast.error(`Failed to export ${format.toUpperCase()}`);
-    }
-  }, [days, repoFilter, branchFilter]);
+  const handleExport = useCallback(
+    async (format: 'csv' | 'json') => {
+      try {
+        const params = new URLSearchParams();
+        params.set('format', format);
+        params.set('days', String(days));
+        if (repoFilter) params.set('repository', repoFilter);
+        if (branchFilter) params.set('branch', branchFilter);
+        const resp = await fetch(apiUrl(`/analytics/export?${params}`), { headers: authHeaders() });
+        if (!resp.ok) throw new Error('export_failed');
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `analytics-export-${new Date().toISOString().slice(0, 10)}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success(`Exported as ${format.toUpperCase()}`);
+      } catch {
+        toast.error(`Failed to export ${format.toUpperCase()}`);
+      }
+    },
+    [days, repoFilter, branchFilter]
+  );
 
-  const severityData = stats ? [
-    { name: 'Critical', value: stats.severityTotals.critical, fill: SEVERITY_COLORS.critical },
-    { name: 'High', value: stats.severityTotals.high, fill: SEVERITY_COLORS.high },
-    { name: 'Medium', value: stats.severityTotals.medium, fill: SEVERITY_COLORS.medium },
-    { name: 'Low', value: stats.severityTotals.low, fill: SEVERITY_COLORS.low },
-  ].filter(d => d.value > 0) : [];
+  const severityData = stats
+    ? [
+        { name: 'Critical', value: stats.severityTotals.critical, fill: SEVERITY_COLORS.critical },
+        { name: 'High', value: stats.severityTotals.high, fill: SEVERITY_COLORS.high },
+        { name: 'Medium', value: stats.severityTotals.medium, fill: SEVERITY_COLORS.medium },
+        { name: 'Low', value: stats.severityTotals.low, fill: SEVERITY_COLORS.low },
+      ].filter((d) => d.value > 0)
+    : [];
 
-  const languageData = stats ? Object.entries(stats.languageBreakdown)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([name, value]) => ({ name, value })) : [];
+  const languageData = stats
+    ? Object.entries(stats.languageBreakdown)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([name, value]) => ({ name, value }))
+    : [];
 
-  const heatmapData = heatmap.slice(0, 10).map(h => ({
+  const heatmapData = heatmap.slice(0, 10).map((h) => ({
     category: h.category.length > 20 ? h.category.slice(0, 18) + '...' : h.category,
     fullName: h.category,
     findings: h.totalFindings,
   }));
 
   const avgPosture = stats?.avgPostureScore ?? 0;
-  const postureColor = avgPosture >= 80 ? '#36A64F'
-    : avgPosture >= 60 ? '#FFAA00'
-    : avgPosture >= 40 ? '#FF6600'
-    : '#FF0000';
+  const postureColor =
+    avgPosture >= 80
+      ? '#36A64F'
+      : avgPosture >= 60
+        ? '#FFAA00'
+        : avgPosture >= 40
+          ? '#FF6600'
+          : '#FF0000';
 
   return (
     <div className="space-y-4">
@@ -1008,10 +1354,17 @@ export function UsageAnalyticsView() {
           <select
             className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
             value={repoFilter}
-            onChange={(e) => { setRepoFilter(e.target.value); setBranchFilter(''); }}
+            onChange={(e) => {
+              setRepoFilter(e.target.value);
+              setBranchFilter('');
+            }}
           >
             <option value="">All Repositories</option>
-            {repoOptions.map(r => <option key={r} value={r}>{r}</option>)}
+            {repoOptions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
           </select>
           <select
             className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
@@ -1020,7 +1373,11 @@ export function UsageAnalyticsView() {
             disabled={!repoFilter && branchOptions.length === 0}
           >
             <option value="">All Branches</option>
-            {branchOptions.map(b => <option key={b} value={b}>{b}</option>)}
+            {branchOptions.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
           </select>
           <select
             className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
@@ -1043,10 +1400,20 @@ export function UsageAnalyticsView() {
           <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={() => handleExport('csv')} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleExport('csv')}
+            disabled={loading}
+          >
             <Download className="h-4 w-4" /> CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={() => handleExport('json')} disabled={loading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleExport('json')}
+            disabled={loading}
+          >
             <FileJson className="h-4 w-4" /> JSON
           </Button>
         </div>
@@ -1072,9 +1439,7 @@ export function UsageAnalyticsView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.totalFilesAnalyzed != null
-                ? stats.totalFilesAnalyzed.toLocaleString()
-                : '—'}
+              {stats?.totalFilesAnalyzed != null ? stats.totalFilesAnalyzed.toLocaleString() : '—'}
             </div>
             <p className="text-xs text-muted-foreground">across all scans</p>
           </CardContent>
@@ -1087,9 +1452,7 @@ export function UsageAnalyticsView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {stats?.totalFindings != null
-                ? stats.totalFindings.toLocaleString()
-                : '—'}
+              {stats?.totalFindings != null ? stats.totalFindings.toLocaleString() : '—'}
             </div>
             <p className="text-xs text-muted-foreground">
               {stats?.severityTotals.critical ?? 0} critical, {stats?.severityTotals.high ?? 0} high
@@ -1126,8 +1489,22 @@ export function UsageAnalyticsView() {
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Area type="monotone" dataKey="filesAnalyzed" stroke="#4A90D9" fill="#4A90D9" fillOpacity={0.3} name="Files" />
-                  <Area type="monotone" dataKey="totalFindings" stroke="#FF6600" fill="#FF6600" fillOpacity={0.3} name="Findings" />
+                  <Area
+                    type="monotone"
+                    dataKey="filesAnalyzed"
+                    stroke="#4A90D9"
+                    fill="#4A90D9"
+                    fillOpacity={0.3}
+                    name="Files"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="totalFindings"
+                    stroke="#FF6600"
+                    fill="#FF6600"
+                    fillOpacity={0.3}
+                    name="Findings"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -1151,7 +1528,13 @@ export function UsageAnalyticsView() {
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Line type="monotone" dataKey="avgPosture" stroke="#36A64F" strokeWidth={2} name="Posture Score" />
+                  <Line
+                    type="monotone"
+                    dataKey="avgPosture"
+                    stroke="#36A64F"
+                    strokeWidth={2}
+                    name="Posture Score"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -1174,7 +1557,15 @@ export function UsageAnalyticsView() {
             {severityData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
-                  <Pie data={severityData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                  <Pie
+                    data={severityData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label
+                  >
                     {severityData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))}
@@ -1251,10 +1642,15 @@ export function UsageAnalyticsView() {
             {repositories.length > 0 ? (
               <div className="space-y-2">
                 {repositories.map((repo, i) => (
-                  <div key={repo.name} className="flex items-center justify-between rounded-md border p-2">
+                  <div
+                    key={repo.name}
+                    className="flex items-center justify-between rounded-md border p-2"
+                  >
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{i + 1}</Badge>
-                      <span className="text-sm font-medium truncate max-w-[200px]">{repo.name}</span>
+                      <span className="text-sm font-medium truncate max-w-[200px]">
+                        {repo.name}
+                      </span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{repo.scans} scans</span>
@@ -1304,80 +1700,125 @@ export function UsageAnalyticsView() {
             <div className="mb-4 p-4 rounded-lg border bg-muted/20 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Remediation Coverage</span>
-                <span className={`text-2xl font-bold ${violationSummary.coverage >= 75 ? 'text-green-600' : violationSummary.coverage >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                <span
+                  className={`text-2xl font-bold ${violationSummary.coverage >= 75 ? 'text-green-600' : violationSummary.coverage >= 50 ? 'text-yellow-600' : 'text-red-600'}`}
+                >
                   {violationSummary.coverage}%
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs">
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span className="text-muted-foreground">Ticketed: <span className="font-medium text-foreground">{violationSummary.ticketedViolations}</span></span>
+                  <span className="text-muted-foreground">
+                    Ticketed:{' '}
+                    <span className="font-medium text-foreground">
+                      {violationSummary.ticketedViolations}
+                    </span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-orange-400" />
-                  <span className="text-muted-foreground">Unticketed: <span className="font-medium text-foreground">{violationSummary.unticketedViolations}</span></span>
+                  <span className="text-muted-foreground">
+                    Unticketed:{' '}
+                    <span className="font-medium text-foreground">
+                      {violationSummary.unticketedViolations}
+                    </span>
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-blue-400" />
-                  <span className="text-muted-foreground">Total: <span className="font-medium text-foreground">{violationSummary.totalViolations}</span></span>
+                  <span className="text-muted-foreground">
+                    Total:{' '}
+                    <span className="font-medium text-foreground">
+                      {violationSummary.totalViolations}
+                    </span>
+                  </span>
                 </div>
                 {violationSummary.slaBreachedCount > 0 && (
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <span className="text-muted-foreground">SLA Breached: <span className="font-medium text-red-600 dark:text-red-400">{violationSummary.slaBreachedCount}</span></span>
+                    <span className="text-muted-foreground">
+                      SLA Breached:{' '}
+                      <span className="font-medium text-red-600 dark:text-red-400">
+                        {violationSummary.slaBreachedCount}
+                      </span>
+                    </span>
                   </div>
                 )}
               </div>
               {/* Overall progress bar */}
               <div className="h-2 rounded-full bg-muted overflow-hidden flex">
-                <div className="bg-green-500 h-full" style={{ width: `${violationSummary.coverage}%` }} />
+                <div
+                  className="bg-green-500 h-full"
+                  style={{ width: `${violationSummary.coverage}%` }}
+                />
                 <div className="bg-orange-400 h-full flex-1" />
               </div>
               {/* Per-category breakdown */}
               {violationSummary.categories.length > 0 && (
                 <div className="space-y-1.5 pt-2 border-t">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">Per-Category Coverage</span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Per-Category Coverage
+                    </span>
                     {categoryFilter && (
                       <button
                         className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                        onClick={() => { setCategoryFilter(''); setViolationsPage(0); }}
+                        onClick={() => {
+                          setCategoryFilter('');
+                          setViolationsPage(0);
+                        }}
                       >
                         Clear category filter ({categoryFilter}) ×
                       </button>
                     )}
                     {!categoryFilter && (
-                      <span className="text-xs text-muted-foreground italic">Click a category to filter the table below</span>
+                      <span className="text-xs text-muted-foreground italic">
+                        Click a category to filter the table below
+                      </span>
                     )}
                   </div>
                   {violationSummary.categories.slice(0, 8).map((cat) => {
                     const isActive = categoryFilter === cat.category;
                     return (
-                    <div
-                      key={cat.category}
-                      className={`flex items-center gap-2 text-xs cursor-pointer rounded px-1 py-0.5 transition-colors ${isActive ? 'bg-blue-500/10 ring-1 ring-blue-500/30' : 'hover:bg-muted/50'}`}
-                      onClick={() => {
-                        setCategoryFilter(isActive ? '' : cat.category);
-                        setViolationsPage(0);
-                      }}
-                    >
-                      <span className={`w-48 truncate ${isActive ? 'font-medium text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} title={cat.category}>{cat.category}</span>
-                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden flex">
-                        <div className="bg-green-500 h-full" style={{ width: `${cat.coverage}%` }} />
-                      </div>
-                      <span className="w-20 text-right tabular-nums text-muted-foreground">
-                        {cat.ticketed}/{cat.total} ({cat.coverage}%)
-                      </span>
-                      {cat.slaBreached > 0 && (
-                        <span className="text-xs text-red-600 dark:text-red-400 font-medium" title="SLA breached violations">
-                          ⚠{cat.slaBreached}
+                      <div
+                        key={cat.category}
+                        className={`flex items-center gap-2 text-xs cursor-pointer rounded px-1 py-0.5 transition-colors ${isActive ? 'bg-blue-500/10 ring-1 ring-blue-500/30' : 'hover:bg-muted/50'}`}
+                        onClick={() => {
+                          setCategoryFilter(isActive ? '' : cat.category);
+                          setViolationsPage(0);
+                        }}
+                      >
+                        <span
+                          className={`w-48 truncate ${isActive ? 'font-medium text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`}
+                          title={cat.category}
+                        >
+                          {cat.category}
                         </span>
-                      )}
-                    </div>
+                        <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden flex">
+                          <div
+                            className="bg-green-500 h-full"
+                            style={{ width: `${cat.coverage}%` }}
+                          />
+                        </div>
+                        <span className="w-20 text-right tabular-nums text-muted-foreground">
+                          {cat.ticketed}/{cat.total} ({cat.coverage}%)
+                        </span>
+                        {cat.slaBreached > 0 && (
+                          <span
+                            className="text-xs text-red-600 dark:text-red-400 font-medium"
+                            title="SLA breached violations"
+                          >
+                            ⚠{cat.slaBreached}
+                          </span>
+                        )}
+                      </div>
                     );
                   })}
                   {violationSummary.categories.length > 8 && (
-                    <span className="text-xs text-muted-foreground italic">+{violationSummary.categories.length - 8} more categories...</span>
+                    <span className="text-xs text-muted-foreground italic">
+                      +{violationSummary.categories.length - 8} more categories...
+                    </span>
                   )}
                 </div>
               )}
@@ -1390,7 +1831,10 @@ export function UsageAnalyticsView() {
               <select
                 className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs"
                 value={ticketStatusFilter}
-                onChange={(e) => { setTicketStatusFilter(e.target.value as any); setViolationsPage(0); }}
+                onChange={(e) => {
+                  setTicketStatusFilter(e.target.value as any);
+                  setViolationsPage(0);
+                }}
               >
                 <option value="all">All Violations</option>
                 <option value="unticketed">Unticketed Only</option>
@@ -1402,7 +1846,10 @@ export function UsageAnalyticsView() {
                 type="checkbox"
                 className="h-4 w-4 rounded"
                 checked={slaBreachedFilter}
-                onChange={(e) => { setSlaBreachedFilter(e.target.checked); setViolationsPage(0); }}
+                onChange={(e) => {
+                  setSlaBreachedFilter(e.target.checked);
+                  setViolationsPage(0);
+                }}
               />
               <Clock className="h-3 w-3" /> SLA Breached Only
             </label>
@@ -1412,7 +1859,10 @@ export function UsageAnalyticsView() {
                 <select
                   className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs"
                   value={ticketTargetFilter}
-                  onChange={(e) => { setTicketTargetFilter(e.target.value); setViolationsPage(0); }}
+                  onChange={(e) => {
+                    setTicketTargetFilter(e.target.value);
+                    setViolationsPage(0);
+                  }}
                 >
                   <option value="">All Targets</option>
                   <option value="jira">Jira</option>
@@ -1449,11 +1899,7 @@ export function UsageAnalyticsView() {
               >
                 Bulk Remove Ticket Status
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedRows(new Set())}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setSelectedRows(new Set())}>
                 Clear Selection
               </Button>
             </div>
@@ -1477,16 +1923,23 @@ export function UsageAnalyticsView() {
               {violations.map((v) => {
                 const rowKey = `${v.scanId}-${v.category}`;
                 const isExpanded = expandedRow === rowKey;
-                const priorityColor = v.remediation.priority === 'critical' ? 'bg-red-500'
-                  : v.remediation.priority === 'high' ? 'bg-orange-500'
-                  : v.remediation.priority === 'medium' ? 'bg-yellow-500'
-                  : 'bg-blue-500';
+                const priorityColor =
+                  v.remediation.priority === 'critical'
+                    ? 'bg-red-500'
+                    : v.remediation.priority === 'high'
+                      ? 'bg-orange-500'
+                      : v.remediation.priority === 'medium'
+                        ? 'bg-yellow-500'
+                        : 'bg-blue-500';
                 const isTicketed = v.ticketed;
                 const ticketKey = `${v.scanId}::${v.category}`;
                 const isSelected = selectedRows.has(ticketKey);
                 const isSlaBreached = v.slaBreached;
                 return (
-                  <div key={rowKey} className={`rounded-md ${isTicketed ? 'bg-green-500/5 border border-green-500/20' : ''} ${isSlaBreached ? 'bg-red-500/5 border border-red-500/20' : ''} ${isSelected ? 'ring-2 ring-primary/30' : ''}`}>
+                  <div
+                    key={rowKey}
+                    className={`rounded-md ${isTicketed ? 'bg-green-500/5 border border-green-500/20' : ''} ${isSlaBreached ? 'bg-red-500/5 border border-red-500/20' : ''} ${isSelected ? 'ring-2 ring-primary/30' : ''}`}
+                  >
                     <div
                       className="grid grid-cols-[auto_auto_1fr_auto_auto_auto] gap-3 items-center py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer text-sm"
                       onClick={() => setExpandedRow(isExpanded ? null : rowKey)}
@@ -1499,9 +1952,11 @@ export function UsageAnalyticsView() {
                         onChange={() => toggleRowSelection(ticketKey)}
                       />
                       <span className="w-6 flex items-center justify-center">
-                        {isExpanded
-                          ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                          : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
                       </span>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -1512,34 +1967,53 @@ export function UsageAnalyticsView() {
                             </span>
                           )}
                           {isSlaBreached && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400" title={`SLA breached by ${v.slaDaysOver} day${v.slaDaysOver !== 1 ? 's' : ''} (limit: ${v.slaLimit}d for ${v.remediation.priority})`}>
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400"
+                              title={`SLA breached by ${v.slaDaysOver} day${v.slaDaysOver !== 1 ? 's' : ''} (limit: ${v.slaLimit}d for ${v.remediation.priority})`}
+                            >
                               <Clock className="h-3 w-3" /> SLA +{v.slaDaysOver}d
                             </span>
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {v.repository} · {v.branch} · {new Date(v.timestamp).toLocaleDateString()}
-                          <span className="ml-1 text-muted-foreground/70">· {v.daysOpen}d open</span>
+                          <span className="ml-1 text-muted-foreground/70">
+                            · {v.daysOpen}d open
+                          </span>
                           {isTicketed && v.ticketRef && (
                             <span className="ml-2 text-green-600 dark:text-green-400">
-                              · <a href={v.ticketRef} target="_blank" rel="noopener noreferrer" className="underline">{v.ticketRef}</a>
+                              ·{' '}
+                              <a
+                                href={v.ticketRef}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline"
+                              >
+                                {v.ticketRef}
+                              </a>
                             </span>
                           )}
                         </div>
                       </div>
                       <span className="text-right font-medium tabular-nums">{v.count}</span>
                       <span className="flex justify-center">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white ${priorityColor}`}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white ${priorityColor}`}
+                        >
                           {v.remediation.priority}
                         </span>
                       </span>
-                      <span className="text-right tabular-nums text-muted-foreground">{v.postureScore}</span>
+                      <span className="text-right tabular-nums text-muted-foreground">
+                        {v.postureScore}
+                      </span>
                     </div>
                     {isExpanded && (
                       <div className="ml-9 mr-2 mb-2 p-3 rounded-md bg-muted/30 border text-sm space-y-2">
                         <div>
                           <span className="font-medium">Strategy: </span>
-                          <Badge variant="outline" className="ml-1">{v.remediation.strategy}</Badge>
+                          <Badge variant="outline" className="ml-1">
+                            {v.remediation.strategy}
+                          </Badge>
                         </div>
                         <p className="text-muted-foreground">{v.remediation.description}</p>
                         <div>
@@ -1551,8 +2025,12 @@ export function UsageAnalyticsView() {
                           </ol>
                         </div>
                         <div className="flex gap-3 text-xs text-muted-foreground pt-1 border-t">
-                          <span>Scan: <code className="font-mono">{v.scanId}</code></span>
-                          <span>Commit: <code className="font-mono">{v.commitSha}</code></span>
+                          <span>
+                            Scan: <code className="font-mono">{v.scanId}</code>
+                          </span>
+                          <span>
+                            Commit: <code className="font-mono">{v.commitSha}</code>
+                          </span>
                           <span>Trigger: {v.triggeredBy}</span>
                           <span>Gate: {v.gateStatus}</span>
                         </div>
@@ -1562,7 +2040,10 @@ export function UsageAnalyticsView() {
                           <select
                             className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs"
                             value={ticketTarget}
-                            onChange={(e) => { setTicketTarget(e.target.value as any); setTicketPayload(null); }}
+                            onChange={(e) => {
+                              setTicketTarget(e.target.value as any);
+                              setTicketPayload(null);
+                            }}
                           >
                             <option value="jira">Jira</option>
                             <option value="linear">Linear</option>
@@ -1579,7 +2060,11 @@ export function UsageAnalyticsView() {
                           {ticketPayload && ticketRowKey === rowKey && (
                             <>
                               <Button variant="outline" size="sm" onClick={copyTicketPayload}>
-                                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                                {copied ? (
+                                  <Check className="h-3 w-3" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
                                 {copied ? 'Copied!' : 'Copy JSON'}
                               </Button>
                             </>
@@ -1591,14 +2076,30 @@ export function UsageAnalyticsView() {
                               disabled={dispatchingRow === rowKey}
                               onClick={() => dispatchTicket(v.scanId, v.category, ticketTarget)}
                             >
-                              {dispatchingRow === rowKey ? 'Dispatching...' : (<><Send className="h-3 w-3" /> Dispatch</>)}
+                              {dispatchingRow === rowKey ? (
+                                'Dispatching...'
+                              ) : (
+                                <>
+                                  <Send className="h-3 w-3" /> Dispatch
+                                </>
+                              )}
                             </Button>
                             {webhookConfigs[ticketTarget] ? (
-                              <span className="text-xs text-green-600 dark:text-green-400" title={webhookConfigs[ticketTarget].apiUrl}>
+                              <span
+                                className="text-xs text-green-600 dark:text-green-400"
+                                title={webhookConfigs[ticketTarget].apiUrl}
+                              >
                                 ● Configured
                               </span>
                             ) : (
-                              <Button variant="ghost" size="sm" onClick={() => { setShowWebhookConfig(true); setWebhookForm(prev => ({ ...prev, target: ticketTarget })); }}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setShowWebhookConfig(true);
+                                  setWebhookForm((prev) => ({ ...prev, target: ticketTarget }));
+                                }}
+                              >
                                 <Settings className="h-3 w-3" /> Configure
                               </Button>
                             )}
@@ -1613,10 +2114,18 @@ export function UsageAnalyticsView() {
                         <div className="flex items-center gap-2 pt-2 border-t flex-wrap">
                           {isTicketed ? (
                             <>
-                              <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30">
-                                <Ticket className="h-3 w-3 mr-1" /> {v.ticketTarget} · {v.ticketMarkedAt?.slice(0, 10)}
+                              <Badge
+                                variant="outline"
+                                className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30"
+                              >
+                                <Ticket className="h-3 w-3 mr-1" /> {v.ticketTarget} ·{' '}
+                                {v.ticketMarkedAt?.slice(0, 10)}
                               </Badge>
-                              <Button variant="outline" size="sm" onClick={() => unmarkTicketed(v.scanId, v.category)}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => unmarkTicketed(v.scanId, v.category)}
+                              >
                                 <X className="h-3 w-3" /> Remove Ticket Status
                               </Button>
                             </>
@@ -1634,7 +2143,14 @@ export function UsageAnalyticsView() {
                                 variant="outline"
                                 size="sm"
                                 disabled={!ticketRefInput.trim() || markingRow === rowKey}
-                                onClick={() => markTicketed(v.scanId, v.category, ticketRefInput.trim(), ticketTarget)}
+                                onClick={() =>
+                                  markTicketed(
+                                    v.scanId,
+                                    v.category,
+                                    ticketRefInput.trim(),
+                                    ticketTarget
+                                  )
+                                }
                               >
                                 {markingRow === rowKey ? 'Marking...' : 'Mark as Ticketed'}
                               </Button>
@@ -1648,20 +2164,35 @@ export function UsageAnalyticsView() {
               })}
               {/* Webhook Configuration Modal */}
               {showWebhookConfig && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowWebhookConfig(false)}>
-                  <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-lg space-y-4" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                  onClick={() => setShowWebhookConfig(false)}
+                >
+                  <div
+                    className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-lg space-y-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex items-center justify-between">
                       <h3 className="text-base font-medium">Webhook Configuration</h3>
-                      <Button variant="ghost" size="sm" onClick={() => setShowWebhookConfig(false)}><X className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => setShowWebhookConfig(false)}>
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">Configure the API endpoint and credentials for direct ticket dispatch. Auth tokens are stored locally and masked in API responses.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Configure the API endpoint and credentials for direct ticket dispatch. Auth
+                      tokens are stored locally and masked in API responses.
+                    </p>
                     <div className="space-y-3">
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Target Platform</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          Target Platform
+                        </label>
                         <select
                           className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                           value={webhookForm.target}
-                          onChange={(e) => setWebhookForm(prev => ({ ...prev, target: e.target.value }))}
+                          onChange={(e) =>
+                            setWebhookForm((prev) => ({ ...prev, target: e.target.value }))
+                          }
                         >
                           <option value="jira">Jira</option>
                           <option value="linear">Linear</option>
@@ -1672,42 +2203,62 @@ export function UsageAnalyticsView() {
                         <label className="text-xs font-medium text-muted-foreground">API URL</label>
                         <input
                           type="text"
-                          placeholder={webhookForm.target === 'jira' ? 'https://yourorg.atlassian.net/rest/api/2/issue' : webhookForm.target === 'linear' ? 'https://api.linear.app/graphql' : 'https://api.github.com/repos/{owner}/{repo}/issues'}
+                          placeholder={
+                            webhookForm.target === 'jira'
+                              ? 'https://yourorg.atlassian.net/rest/api/2/issue'
+                              : webhookForm.target === 'linear'
+                                ? 'https://api.linear.app/graphql'
+                                : 'https://api.github.com/repos/{owner}/{repo}/issues'
+                          }
                           value={webhookForm.apiUrl}
-                          onChange={(e) => setWebhookForm(prev => ({ ...prev, apiUrl: e.target.value }))}
+                          onChange={(e) =>
+                            setWebhookForm((prev) => ({ ...prev, apiUrl: e.target.value }))
+                          }
                           className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Auth Token / API Key</label>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          Auth Token / API Key
+                        </label>
                         <input
                           type="password"
                           placeholder="Paste your API token or PAT..."
                           value={webhookForm.authToken}
-                          onChange={(e) => setWebhookForm(prev => ({ ...prev, authToken: e.target.value }))}
+                          onChange={(e) =>
+                            setWebhookForm((prev) => ({ ...prev, authToken: e.target.value }))
+                          }
                           className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                         />
                       </div>
                       {webhookForm.target === 'jira' && (
                         <div>
-                          <label className="text-xs font-medium text-muted-foreground">Project Key (e.g. SEC)</label>
+                          <label className="text-xs font-medium text-muted-foreground">
+                            Project Key (e.g. SEC)
+                          </label>
                           <input
                             type="text"
                             placeholder="SEC"
                             value={webhookForm.projectKey}
-                            onChange={(e) => setWebhookForm(prev => ({ ...prev, projectKey: e.target.value }))}
+                            onChange={(e) =>
+                              setWebhookForm((prev) => ({ ...prev, projectKey: e.target.value }))
+                            }
                             className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                           />
                         </div>
                       )}
                       {webhookForm.target === 'linear' && (
                         <div>
-                          <label className="text-xs font-medium text-muted-foreground">Team ID (optional)</label>
+                          <label className="text-xs font-medium text-muted-foreground">
+                            Team ID (optional)
+                          </label>
                           <input
                             type="text"
                             placeholder="team-uuid"
                             value={webhookForm.teamId}
-                            onChange={(e) => setWebhookForm(prev => ({ ...prev, teamId: e.target.value }))}
+                            onChange={(e) =>
+                              setWebhookForm((prev) => ({ ...prev, teamId: e.target.value }))
+                            }
                             className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                           />
                         </div>
@@ -1715,22 +2266,30 @@ export function UsageAnalyticsView() {
                       {webhookForm.target === 'github' && (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="text-xs font-medium text-muted-foreground">Repo Owner</label>
+                            <label className="text-xs font-medium text-muted-foreground">
+                              Repo Owner
+                            </label>
                             <input
                               type="text"
                               placeholder="org-name"
                               value={webhookForm.repoOwner}
-                              onChange={(e) => setWebhookForm(prev => ({ ...prev, repoOwner: e.target.value }))}
+                              onChange={(e) =>
+                                setWebhookForm((prev) => ({ ...prev, repoOwner: e.target.value }))
+                              }
                               className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                             />
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-muted-foreground">Repo Name</label>
+                            <label className="text-xs font-medium text-muted-foreground">
+                              Repo Name
+                            </label>
                             <input
                               type="text"
                               placeholder="repo-name"
                               value={webhookForm.repoName}
-                              onChange={(e) => setWebhookForm(prev => ({ ...prev, repoName: e.target.value }))}
+                              onChange={(e) =>
+                                setWebhookForm((prev) => ({ ...prev, repoName: e.target.value }))
+                              }
                               className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                             />
                           </div>
@@ -1740,14 +2299,28 @@ export function UsageAnalyticsView() {
                     <div className="flex items-center justify-between pt-2 border-t">
                       <div className="flex gap-2">
                         {webhookConfigs[webhookForm.target] && (
-                          <Button variant="outline" size="sm" onClick={() => deleteWebhookConfig(webhookForm.target)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteWebhookConfig(webhookForm.target)}
+                          >
                             <X className="h-3 w-3" /> Delete Config
                           </Button>
                         )}
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setShowWebhookConfig(false)}>Cancel</Button>
-                        <Button size="sm" onClick={saveWebhookConfig} disabled={!webhookForm.apiUrl.trim()}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowWebhookConfig(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={saveWebhookConfig}
+                          disabled={!webhookForm.apiUrl.trim()}
+                        >
                           <Settings className="h-3 w-3" /> Save Configuration
                         </Button>
                       </div>
@@ -1759,14 +2332,16 @@ export function UsageAnalyticsView() {
               {violationsTotal > violationsPageSize && (
                 <div className="flex items-center justify-between pt-3 border-t">
                   <span className="text-xs text-muted-foreground">
-                    Showing {violationsPage * violationsPageSize + 1}–{Math.min((violationsPage + 1) * violationsPageSize, violationsTotal)} of {violationsTotal}
+                    Showing {violationsPage * violationsPageSize + 1}–
+                    {Math.min((violationsPage + 1) * violationsPageSize, violationsTotal)} of{' '}
+                    {violationsTotal}
                   </span>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={violationsPage === 0}
-                      onClick={() => setViolationsPage(p => Math.max(0, p - 1))}
+                      onClick={() => setViolationsPage((p) => Math.max(0, p - 1))}
                     >
                       Previous
                     </Button>
@@ -1774,7 +2349,7 @@ export function UsageAnalyticsView() {
                       variant="outline"
                       size="sm"
                       disabled={(violationsPage + 1) * violationsPageSize >= violationsTotal}
-                      onClick={() => setViolationsPage(p => p + 1)}
+                      onClick={() => setViolationsPage((p) => p + 1)}
                     >
                       Next
                     </Button>
@@ -1795,10 +2370,32 @@ export function UsageAnalyticsView() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Automated Report Delivery</CardTitle>
-              <CardDescription>Schedule recurring compliance ledger reports delivered to SecOps mailboxes</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" /> Automated Report Delivery
+              </CardTitle>
+              <CardDescription>
+                Schedule recurring compliance ledger reports delivered to SecOps mailboxes
+              </CardDescription>
             </div>
-            <Button size="sm" onClick={() => { setScheduleForm({ id: '', name: '', enabled: true, frequency: 'weekly', dayOfWeek: 1, dayOfMonth: 1, hour: 8, minute: 0, format: 'csv', recipients: '', filters: '' }); setShowScheduleModal(true); }}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setScheduleForm({
+                  id: '',
+                  name: '',
+                  enabled: true,
+                  frequency: 'weekly',
+                  dayOfWeek: 1,
+                  dayOfMonth: 1,
+                  hour: 8,
+                  minute: 0,
+                  format: 'csv',
+                  recipients: '',
+                  filters: '',
+                });
+                setShowScheduleModal(true);
+              }}
+            >
               <Calendar className="h-3 w-3" /> New Schedule
             </Button>
           </div>
@@ -1810,29 +2407,40 @@ export function UsageAnalyticsView() {
             </div>
           ) : (
             <div className="space-y-2">
-              {Object.values(reportSchedules).map(s => (
-                <div key={s.id} className="flex items-center justify-between p-3 rounded-md border bg-muted/20">
+              {Object.values(reportSchedules).map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between p-3 rounded-md border bg-muted/20"
+                >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{s.name}</span>
-                      <Badge variant="outline" className={s.enabled ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30' : 'bg-muted text-muted-foreground'}>
+                      <Badge
+                        variant="outline"
+                        className={
+                          s.enabled
+                            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30'
+                            : 'bg-muted text-muted-foreground'
+                        }
+                      >
                         {s.enabled ? 'Active' : 'Disabled'}
                       </Badge>
                       <Badge variant="outline">{s.frequency}</Badge>
                       <Badge variant="outline">{s.format.toUpperCase()}</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {s.frequency === 'weekly' && `Every ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][s.dayOfWeek]} `}
+                      {s.frequency === 'weekly' &&
+                        `Every ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][s.dayOfWeek]} `}
                       {s.frequency === 'monthly' && `Day ${s.dayOfMonth} of each month `}
                       {s.frequency === 'daily' && 'Daily '}
-                      at {String(s.hour).padStart(2,'0')}:{String(s.minute).padStart(2,'0')} UTC
+                      at {String(s.hour).padStart(2, '0')}:{String(s.minute).padStart(2, '0')} UTC
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Recipients: {s.recipients.join(', ')}
                     </div>
                     {s.lastRunAt && (
                       <div className="text-xs text-muted-foreground">
-                        Last run: {s.lastRunAt.slice(0,19).replace('T',' ')} — {s.lastRunStatus}
+                        Last run: {s.lastRunAt.slice(0, 19).replace('T', ' ')} — {s.lastRunStatus}
                         {s.lastRunError && ` (${s.lastRunError})`}
                       </div>
                     )}
@@ -1851,10 +2459,19 @@ export function UsageAnalyticsView() {
                       size="sm"
                       onClick={() => {
                         setScheduleForm({
-                          id: s.id, name: s.name, enabled: s.enabled, frequency: s.frequency,
-                          dayOfWeek: s.dayOfWeek, dayOfMonth: s.dayOfMonth, hour: s.hour, minute: s.minute,
-                          format: s.format, recipients: s.recipients.join(', '),
-                          filters: Object.entries(s.filters || {}).map(([k,v]) => `${k}:${v}`).join(', '),
+                          id: s.id,
+                          name: s.name,
+                          enabled: s.enabled,
+                          frequency: s.frequency,
+                          dayOfWeek: s.dayOfWeek,
+                          dayOfMonth: s.dayOfMonth,
+                          hour: s.hour,
+                          minute: s.minute,
+                          format: s.format,
+                          recipients: s.recipients.join(', '),
+                          filters: Object.entries(s.filters || {})
+                            .map(([k, v]) => `${k}:${v}`)
+                            .join(', '),
                         });
                         setShowScheduleModal(true);
                       }}
@@ -1874,13 +2491,25 @@ export function UsageAnalyticsView() {
 
       {/* Schedule Configuration Modal */}
       {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowScheduleModal(false)}>
-          <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-lg space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowScheduleModal(false)}
+        >
+          <div
+            className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-lg space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
               <h3 className="text-base font-medium">Report Schedule</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowScheduleModal(false)}><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowScheduleModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Configure a recurring compliance report that generates the 22-column ledger and emails it to the specified recipients. Without SMTP configuration, reports are saved as stub files on disk.</p>
+            <p className="text-xs text-muted-foreground">
+              Configure a recurring compliance report that generates the 22-column ledger and emails
+              it to the specified recipients. Without SMTP configuration, reports are saved as stub
+              files on disk.
+            </p>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -1889,7 +2518,7 @@ export function UsageAnalyticsView() {
                     type="text"
                     placeholder="weekly-secops"
                     value={scheduleForm.id}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, id: e.target.value }))}
+                    onChange={(e) => setScheduleForm((prev) => ({ ...prev, id: e.target.value }))}
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                   />
                 </div>
@@ -1899,7 +2528,7 @@ export function UsageAnalyticsView() {
                     type="text"
                     placeholder="Weekly SecOps Report"
                     value={scheduleForm.name}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) => setScheduleForm((prev) => ({ ...prev, name: e.target.value }))}
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                   />
                 </div>
@@ -1910,7 +2539,9 @@ export function UsageAnalyticsView() {
                   <select
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                     value={scheduleForm.frequency}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, frequency: e.target.value as any }))}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, frequency: e.target.value as any }))
+                    }
                   >
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
@@ -1922,7 +2553,9 @@ export function UsageAnalyticsView() {
                   <select
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                     value={scheduleForm.format}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, format: e.target.value as any }))}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, format: e.target.value as any }))
+                    }
                   >
                     <option value="csv">CSV</option>
                     <option value="json">JSON</option>
@@ -1933,7 +2566,9 @@ export function UsageAnalyticsView() {
                   <select
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                     value={scheduleForm.enabled ? 'true' : 'false'}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, enabled: e.target.value === 'true' }))}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, enabled: e.target.value === 'true' }))
+                    }
                   >
                     <option value="true">Active</option>
                     <option value="false">Disabled</option>
@@ -1946,9 +2581,23 @@ export function UsageAnalyticsView() {
                   <select
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                     value={scheduleForm.dayOfWeek}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, dayOfWeek: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, dayOfWeek: Number(e.target.value) }))
+                    }
                   >
-                    {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((d, i) => <option key={i} value={i}>{d}</option>)}
+                    {[
+                      'Sunday',
+                      'Monday',
+                      'Tuesday',
+                      'Wednesday',
+                      'Thursday',
+                      'Friday',
+                      'Saturday',
+                    ].map((d, i) => (
+                      <option key={i} value={i}>
+                        {d}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -1960,7 +2609,9 @@ export function UsageAnalyticsView() {
                     min={1}
                     max={31}
                     value={scheduleForm.dayOfMonth}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, dayOfMonth: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, dayOfMonth: Number(e.target.value) }))
+                    }
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                   />
                 </div>
@@ -1973,7 +2624,9 @@ export function UsageAnalyticsView() {
                     min={0}
                     max={23}
                     value={scheduleForm.hour}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, hour: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, hour: Number(e.target.value) }))
+                    }
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                   />
                 </div>
@@ -1984,34 +2637,46 @@ export function UsageAnalyticsView() {
                     min={0}
                     max={59}
                     value={scheduleForm.minute}
-                    onChange={(e) => setScheduleForm(prev => ({ ...prev, minute: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setScheduleForm((prev) => ({ ...prev, minute: Number(e.target.value) }))
+                    }
                     className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Recipients (comma-separated emails)</label>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Recipients (comma-separated emails)
+                </label>
                 <input
                   type="text"
                   placeholder="secops@company.com, ciso@company.com"
                   value={scheduleForm.recipients}
-                  onChange={(e) => setScheduleForm(prev => ({ ...prev, recipients: e.target.value }))}
+                  onChange={(e) =>
+                    setScheduleForm((prev) => ({ ...prev, recipients: e.target.value }))
+                  }
                   className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Filters (comma-separated key:value pairs, optional)</label>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Filters (comma-separated key:value pairs, optional)
+                </label>
                 <input
                   type="text"
                   placeholder="repository:myrepo, slaBreached:true"
                   value={scheduleForm.filters}
-                  onChange={(e) => setScheduleForm(prev => ({ ...prev, filters: e.target.value }))}
+                  onChange={(e) =>
+                    setScheduleForm((prev) => ({ ...prev, filters: e.target.value }))
+                  }
                   className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
                 />
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 pt-2 border-t">
-              <Button variant="outline" size="sm" onClick={() => setShowScheduleModal(false)}>Cancel</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowScheduleModal(false)}>
+                Cancel
+              </Button>
               <Button size="sm" onClick={saveReportSchedule}>
                 <Calendar className="h-3 w-3" /> Save Schedule
               </Button>
@@ -2027,7 +2692,8 @@ export function UsageAnalyticsView() {
             <ShieldCheck className="h-4 w-4" /> CI/CD Deployment Gate
           </CardTitle>
           <CardDescription className="text-xs">
-            Evaluate scan posture against organizational policy thresholds. Returns pass/fail for CI/CD pipeline integration.
+            Evaluate scan posture against organizational policy thresholds. Returns pass/fail for
+            CI/CD pipeline integration.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -2040,10 +2706,16 @@ export function UsageAnalyticsView() {
                 value={gateEvalRepo}
                 onChange={(e) => setGateEvalRepo(e.target.value)}
                 className="flex h-8 flex-1 rounded-md border border-input bg-transparent px-2 py-1 text-sm"
-                onKeyDown={(e) => { if (e.key === 'Enter') evaluateGate(); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') evaluateGate();
+                }}
               />
               <Button size="sm" onClick={evaluateGate} disabled={gateEvaluating}>
-                {gateEvaluating ? <RefreshCw className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
+                {gateEvaluating ? (
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-3 w-3" />
+                )}
                 Evaluate
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowGatePolicyModal(true)}>
@@ -2053,31 +2725,47 @@ export function UsageAnalyticsView() {
 
             {/* Evaluation Result */}
             {gateEvalResult && (
-              <div className={`p-3 rounded-lg border ${gateEvalResult.pass ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+              <div
+                className={`p-3 rounded-lg border ${gateEvalResult.pass ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   {gateEvalResult.pass ? (
-                    <><Check className="h-4 w-4 text-green-600" /><span className="font-medium text-green-600">PASSED</span></>
+                    <>
+                      <Check className="h-4 w-4 text-green-600" />
+                      <span className="font-medium text-green-600">PASSED</span>
+                    </>
                   ) : (
-                    <><X className="h-4 w-4 text-red-600" /><span className="font-medium text-red-600">FAILED</span></>
+                    <>
+                      <X className="h-4 w-4 text-red-600" />
+                      <span className="font-medium text-red-600">FAILED</span>
+                    </>
                   )}
                   <span className="text-xs text-muted-foreground ml-auto">
-                    Posture: {gateEvalResult.scan?.postureScore ?? 'N/A'} · Gate: {gateEvalResult.scan?.gateStatus ?? 'N/A'}
+                    Posture: {gateEvalResult.scan?.postureScore ?? 'N/A'} · Gate:{' '}
+                    {gateEvalResult.scan?.gateStatus ?? 'N/A'}
                   </span>
                 </div>
                 {gateEvalResult.failures?.length > 0 && (
                   <div className="space-y-1">
                     {gateEvalResult.failures.map((f: any, i: number) => (
-                      <div key={i} className="text-xs text-red-600 dark:text-red-400 flex items-start gap-1.5">
+                      <div
+                        key={i}
+                        className="text-xs text-red-600 dark:text-red-400 flex items-start gap-1.5"
+                      >
                         <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
-                        <span><strong>{f.rule}</strong>: {f.message}</span>
+                        <span>
+                          <strong>{f.rule}</strong>: {f.message}
+                        </span>
                       </div>
                     ))}
                   </div>
                 )}
                 {gateEvalResult.scan && (
                   <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">
-                    Scan: {gateEvalResult.scan.scanId} · {gateEvalResult.scan.repository}@{gateEvalResult.scan.branch || 'N/A'}
-                    {gateEvalResult.scan.commitSha && ` · ${gateEvalResult.scan.commitSha.slice(0, 7)}`}
+                    Scan: {gateEvalResult.scan.scanId} · {gateEvalResult.scan.repository}@
+                    {gateEvalResult.scan.branch || 'N/A'}
+                    {gateEvalResult.scan.commitSha &&
+                      ` · ${gateEvalResult.scan.commitSha.slice(0, 7)}`}
                   </div>
                 )}
               </div>
@@ -2087,38 +2775,79 @@ export function UsageAnalyticsView() {
           {/* Policy Summary */}
           <div className="p-3 rounded-lg border bg-muted/20 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Active Policy Thresholds</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                Active Policy Thresholds
+              </span>
             </div>
             <div className="grid grid-cols-4 gap-2 text-xs">
-              <div><span className="text-muted-foreground">Min Posture:</span> <span className="font-medium">{gatePolicy.minPostureScore ?? 70}</span></div>
-              <div><span className="text-muted-foreground">Max Critical:</span> <span className="font-medium">{gatePolicy.maxCritical ?? 0}</span></div>
-              <div><span className="text-muted-foreground">Max High:</span> <span className="font-medium">{gatePolicy.maxHigh ?? 5}</span></div>
-              <div><span className="text-muted-foreground">Max Medium:</span> <span className="font-medium">{gatePolicy.maxMedium ?? 20}</span></div>
-              <div><span className="text-muted-foreground">Max Low:</span> <span className="font-medium">{gatePolicy.maxLow ?? 50}</span></div>
-              <div><span className="text-muted-foreground">Block on Gate Fail:</span> <span className="font-medium">{gatePolicy.blockOnGateFail ? 'Yes' : 'No'}</span></div>
-              <div><span className="text-muted-foreground">Block on SLA:</span> <span className="font-medium">{gatePolicy.blockOnSlaBreached ? 'Yes' : 'No'}</span></div>
-              <div><span className="text-muted-foreground">Block Unticketed Critical:</span> <span className="font-medium">{gatePolicy.blockOnUnticketedCritical ? 'Yes' : 'No'}</span></div>
+              <div>
+                <span className="text-muted-foreground">Min Posture:</span>{' '}
+                <span className="font-medium">{gatePolicy.minPostureScore ?? 70}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Max Critical:</span>{' '}
+                <span className="font-medium">{gatePolicy.maxCritical ?? 0}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Max High:</span>{' '}
+                <span className="font-medium">{gatePolicy.maxHigh ?? 5}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Max Medium:</span>{' '}
+                <span className="font-medium">{gatePolicy.maxMedium ?? 20}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Max Low:</span>{' '}
+                <span className="font-medium">{gatePolicy.maxLow ?? 50}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Block on Gate Fail:</span>{' '}
+                <span className="font-medium">{gatePolicy.blockOnGateFail ? 'Yes' : 'No'}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Block on SLA:</span>{' '}
+                <span className="font-medium">{gatePolicy.blockOnSlaBreached ? 'Yes' : 'No'}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Block Unticketed Critical:</span>{' '}
+                <span className="font-medium">
+                  {gatePolicy.blockOnUnticketedCritical ? 'Yes' : 'No'}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Recent Evaluations */}
           {gateHistory.length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Recent Gate Evaluations</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                Recent Gate Evaluations
+              </span>
               <div className="max-h-48 overflow-y-auto space-y-1">
                 {gateHistory.map((h, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-muted/30">
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-muted/30"
+                  >
                     {h.pass ? (
                       <Check className="h-3 w-3 text-green-600 shrink-0" />
                     ) : (
                       <X className="h-3 w-3 text-red-600 shrink-0" />
                     )}
-                    <span className="truncate flex-1">{h.repository || 'N/A'}@{h.branch || 'N/A'}</span>
-                    <span className="text-muted-foreground tabular-nums">Score: {h.postureScore ?? 'N/A'}</span>
+                    <span className="truncate flex-1">
+                      {h.repository || 'N/A'}@{h.branch || 'N/A'}
+                    </span>
+                    <span className="text-muted-foreground tabular-nums">
+                      Score: {h.postureScore ?? 'N/A'}
+                    </span>
                     {h.failures?.length > 0 && (
-                      <span className="text-red-600 dark:text-red-400">{h.failures.length} failure(s)</span>
+                      <span className="text-red-600 dark:text-red-400">
+                        {h.failures.length} failure(s)
+                      </span>
                     )}
-                    <span className="text-muted-foreground text-[10px]">{new Date(h.evaluatedAt).toLocaleString()}</span>
+                    <span className="text-muted-foreground text-[10px]">
+                      {new Date(h.evaluatedAt).toLocaleString()}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -2127,9 +2856,11 @@ export function UsageAnalyticsView() {
 
           {/* CI Integration Snippet */}
           <div className="p-3 rounded-lg border bg-muted/10">
-            <span className="text-xs font-medium text-muted-foreground">GitHub Actions Integration</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              GitHub Actions Integration
+            </span>
             <pre className="text-[10px] mt-1 p-2 rounded bg-muted/30 overflow-x-auto text-muted-foreground">
-{`- name: Simplebeacon Deployment Gate
+              {`- name: Simplebeacon Deployment Gate
   run: |
     RESULT=$(curl -s -w "\\n%{http_code}" \\
       -H "Authorization: Bearer $\{{{ secrets.SIMPLEBEACON_TOKEN \}}}" \\
@@ -2147,69 +2878,157 @@ export function UsageAnalyticsView() {
 
       {/* Gate Policy Configuration Modal */}
       {showGatePolicyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowGatePolicyModal(false)}>
-          <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowGatePolicyModal(false)}
+        >
+          <div
+            className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-md space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
               <h3 className="text-base font-medium">Deployment Gate Policy</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowGatePolicyModal(false)}><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowGatePolicyModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Configure organizational thresholds for CI/CD deployment gate evaluations. These thresholds are applied to all gate evaluations unless overridden by query parameters.</p>
+            <p className="text-xs text-muted-foreground">
+              Configure organizational thresholds for CI/CD deployment gate evaluations. These
+              thresholds are applied to all gate evaluations unless overridden by query parameters.
+            </p>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Min Posture Score</label>
-                  <input type="number" min={0} max={100} value={gatePolicyForm.minPostureScore}
-                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, minPostureScore: parseInt(e.target.value, 10) || 0 }))}
-                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Min Posture Score
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={gatePolicyForm.minPostureScore}
+                    onChange={(e) =>
+                      setGatePolicyForm((prev) => ({
+                        ...prev,
+                        minPostureScore: parseInt(e.target.value, 10) || 0,
+                      }))
+                    }
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Max Critical</label>
-                  <input type="number" min={0} value={gatePolicyForm.maxCritical}
-                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, maxCritical: parseInt(e.target.value, 10) || 0 }))}
-                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                  <input
+                    type="number"
+                    min={0}
+                    value={gatePolicyForm.maxCritical}
+                    onChange={(e) =>
+                      setGatePolicyForm((prev) => ({
+                        ...prev,
+                        maxCritical: parseInt(e.target.value, 10) || 0,
+                      }))
+                    }
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Max High</label>
-                  <input type="number" min={0} value={gatePolicyForm.maxHigh}
-                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, maxHigh: parseInt(e.target.value, 10) || 0 }))}
-                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                  <input
+                    type="number"
+                    min={0}
+                    value={gatePolicyForm.maxHigh}
+                    onChange={(e) =>
+                      setGatePolicyForm((prev) => ({
+                        ...prev,
+                        maxHigh: parseInt(e.target.value, 10) || 0,
+                      }))
+                    }
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Max Medium</label>
-                  <input type="number" min={0} value={gatePolicyForm.maxMedium}
-                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, maxMedium: parseInt(e.target.value, 10) || 0 }))}
-                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                  <input
+                    type="number"
+                    min={0}
+                    value={gatePolicyForm.maxMedium}
+                    onChange={(e) =>
+                      setGatePolicyForm((prev) => ({
+                        ...prev,
+                        maxMedium: parseInt(e.target.value, 10) || 0,
+                      }))
+                    }
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Max Low</label>
-                  <input type="number" min={0} value={gatePolicyForm.maxLow}
-                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, maxLow: parseInt(e.target.value, 10) || 0 }))}
-                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                  <input
+                    type="number"
+                    min={0}
+                    value={gatePolicyForm.maxLow}
+                    onChange={(e) =>
+                      setGatePolicyForm((prev) => ({
+                        ...prev,
+                        maxLow: parseInt(e.target.value, 10) || 0,
+                      }))
+                    }
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                  />
                 </div>
               </div>
               <div className="space-y-2 pt-2 border-t">
                 <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input type="checkbox" checked={gatePolicyForm.blockOnGateFail}
-                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, blockOnGateFail: e.target.checked }))}
-                    className="h-4 w-4 rounded" />
-                  <span>Block if scan gate status is <strong>fail</strong></span>
+                  <input
+                    type="checkbox"
+                    checked={gatePolicyForm.blockOnGateFail}
+                    onChange={(e) =>
+                      setGatePolicyForm((prev) => ({ ...prev, blockOnGateFail: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded"
+                  />
+                  <span>
+                    Block if scan gate status is <strong>fail</strong>
+                  </span>
                 </label>
                 <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input type="checkbox" checked={gatePolicyForm.blockOnSlaBreached}
-                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, blockOnSlaBreached: e.target.checked }))}
-                    className="h-4 w-4 rounded" />
-                  <span>Block on <strong>SLA-breached</strong> unticketed violations</span>
+                  <input
+                    type="checkbox"
+                    checked={gatePolicyForm.blockOnSlaBreached}
+                    onChange={(e) =>
+                      setGatePolicyForm((prev) => ({
+                        ...prev,
+                        blockOnSlaBreached: e.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded"
+                  />
+                  <span>
+                    Block on <strong>SLA-breached</strong> unticketed violations
+                  </span>
                 </label>
                 <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input type="checkbox" checked={gatePolicyForm.blockOnUnticketedCritical}
-                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, blockOnUnticketedCritical: e.target.checked }))}
-                    className="h-4 w-4 rounded" />
-                  <span>Block on <strong>unticketed critical</strong> violations</span>
+                  <input
+                    type="checkbox"
+                    checked={gatePolicyForm.blockOnUnticketedCritical}
+                    onChange={(e) =>
+                      setGatePolicyForm((prev) => ({
+                        ...prev,
+                        blockOnUnticketedCritical: e.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded"
+                  />
+                  <span>
+                    Block on <strong>unticketed critical</strong> violations
+                  </span>
                 </label>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 pt-2 border-t">
-              <Button variant="outline" size="sm" onClick={() => setShowGatePolicyModal(false)}>Cancel</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowGatePolicyModal(false)}>
+                Cancel
+              </Button>
               <Button size="sm" onClick={saveGatePolicy}>
                 <ShieldCheck className="h-3 w-3" /> Save Policy
               </Button>
@@ -2225,7 +3044,8 @@ export function UsageAnalyticsView() {
             <ScrollText className="h-4 w-4" /> Audit Trail & Change Ledger
           </CardTitle>
           <CardDescription className="text-xs">
-            Immutable record of all administrative changes across ticket statuses, webhook configs, report schedules, and deployment gate policies.
+            Immutable record of all administrative changes across ticket statuses, webhook configs,
+            report schedules, and deployment gate policies.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -2240,7 +3060,9 @@ export function UsageAnalyticsView() {
                 <div className="text-muted-foreground">By Action</div>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {Object.entries(auditStats.byAction || {}).map(([action, count]: any) => (
-                    <Badge key={action} variant="outline" className="text-[10px]">{action}: {count}</Badge>
+                    <Badge key={action} variant="outline" className="text-[10px]">
+                      {action}: {count}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -2248,7 +3070,9 @@ export function UsageAnalyticsView() {
                 <div className="text-muted-foreground">By Entity</div>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {Object.entries(auditStats.byEntity || {}).map(([entity, count]: any) => (
-                    <Badge key={entity} variant="secondary" className="text-[10px]">{entity}: {count}</Badge>
+                    <Badge key={entity} variant="secondary" className="text-[10px]">
+                      {entity}: {count}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -2256,7 +3080,9 @@ export function UsageAnalyticsView() {
                 <div className="text-muted-foreground">Top Actors</div>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {(auditStats.recentActors || []).slice(0, 3).map((a: any) => (
-                    <Badge key={a.actorId} variant="outline" className="text-[10px]">{a.actorEmail}: {a.count}</Badge>
+                    <Badge key={a.actorId} variant="outline" className="text-[10px]">
+                      {a.actorEmail}: {a.count}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -2291,11 +3117,25 @@ export function UsageAnalyticsView() {
           {auditLog.length > 0 ? (
             <div className="max-h-96 overflow-y-auto space-y-1">
               {auditLog.map((entry, i) => (
-                <div key={entry.id || i} className="flex items-start gap-3 p-2 rounded hover:bg-muted/30 border-l-2"
-                  style={{ borderColor: entry.action === 'DELETE' ? '#ef4444' : entry.action === 'CREATE' ? '#22c55e' : entry.action === 'RUN' ? '#3b82f6' : '#a855f7' }}>
+                <div
+                  key={entry.id || i}
+                  className="flex items-start gap-3 p-2 rounded hover:bg-muted/30 border-l-2"
+                  style={{
+                    borderColor:
+                      entry.action === 'DELETE'
+                        ? '#ef4444'
+                        : entry.action === 'CREATE'
+                          ? '#22c55e'
+                          : entry.action === 'RUN'
+                            ? '#3b82f6'
+                            : '#a855f7',
+                  }}
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs">
-                      <Badge variant="outline" className="text-[10px] shrink-0">{entry.action}</Badge>
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        {entry.action}
+                      </Badge>
                       <span className="font-medium truncate">{entry.entity}</span>
                       <span className="text-muted-foreground truncate">{entry.entityId}</span>
                     </div>
@@ -2303,24 +3143,31 @@ export function UsageAnalyticsView() {
                       <div className="mt-1 space-y-0.5">
                         {entry.changes.slice(0, 3).map((c: any, j: number) => (
                           <div key={j} className="text-[10px] text-muted-foreground">
-                            <strong>{c.field}</strong>: {JSON.stringify(c.oldValue)?.slice(0, 40)} → {JSON.stringify(c.newValue)?.slice(0, 40)}
+                            <strong>{c.field}</strong>: {JSON.stringify(c.oldValue)?.slice(0, 40)} →{' '}
+                            {JSON.stringify(c.newValue)?.slice(0, 40)}
                           </div>
                         ))}
                         {entry.changes.length > 3 && (
-                          <div className="text-[10px] text-muted-foreground italic">+{entry.changes.length - 3} more changes</div>
+                          <div className="text-[10px] text-muted-foreground italic">
+                            +{entry.changes.length - 3} more changes
+                          </div>
                         )}
                       </div>
                     )}
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-[10px] text-muted-foreground">{entry.actorEmail}</div>
-                    <div className="text-[10px] text-muted-foreground">{new Date(entry.timestamp).toLocaleString()}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {new Date(entry.timestamp).toLocaleString()}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-sm text-muted-foreground">No audit entries found</div>
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              No audit entries found
+            </div>
           )}
         </CardContent>
       </Card>
@@ -2332,7 +3179,8 @@ export function UsageAnalyticsView() {
             <FlaskConical className="h-4 w-4" /> Model Evaluation Workspace
           </CardTitle>
           <CardDescription className="text-xs">
-            Run adversarial test suites against LLM providers to benchmark bias, hallucination, injection resistance, and policy compliance.
+            Run adversarial test suites against LLM providers to benchmark bias, hallucination,
+            injection resistance, and policy compliance.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -2355,7 +3203,9 @@ export function UsageAnalyticsView() {
                 <div className="text-muted-foreground">By Provider</div>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {Object.entries(evalStats.byProvider || {}).map(([prov, count]: any) => (
-                    <Badge key={prov} variant="outline" className="text-[10px]">{prov}: {count}</Badge>
+                    <Badge key={prov} variant="outline" className="text-[10px]">
+                      {prov}: {count}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -2370,7 +3220,9 @@ export function UsageAnalyticsView() {
                 {Object.entries(evalStats.byCategory).map(([cat, data]: any) => (
                   <div key={cat} className="text-center">
                     <div className="text-muted-foreground capitalize">{cat.replace(/_/g, ' ')}</div>
-                    <div className="font-medium">{data.passed}/{data.passed + data.failed}</div>
+                    <div className="font-medium">
+                      {data.passed}/{data.passed + data.failed}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2394,11 +3246,17 @@ export function UsageAnalyticsView() {
               className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
             >
               {Object.values(evalSuites).map((s: any) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
               ))}
             </select>
             <Button size="sm" onClick={runEvaluation} disabled={evalRunning}>
-              {evalRunning ? <RefreshCw className="h-3 w-3 animate-spin" /> : <FlaskConical className="h-3 w-3" />}
+              {evalRunning ? (
+                <RefreshCw className="h-3 w-3 animate-spin" />
+              ) : (
+                <FlaskConical className="h-3 w-3" />
+              )}
               Run Evaluation
             </Button>
           </div>
@@ -2410,26 +3268,46 @@ export function UsageAnalyticsView() {
                 <Badge variant="outline">{evalRunDetail.provider}</Badge>
                 <Badge variant="secondary">{evalRunDetail.model}</Badge>
                 <span className="font-medium">
-                  {evalRunDetail.passed}/{evalRunDetail.totalTests} passed
-                  ({evalRunDetail.totalTests > 0 ? Math.round((evalRunDetail.passed / evalRunDetail.totalTests) * 100) : 0}%)
+                  {evalRunDetail.passed}/{evalRunDetail.totalTests} passed (
+                  {evalRunDetail.totalTests > 0
+                    ? Math.round((evalRunDetail.passed / evalRunDetail.totalTests) * 100)
+                    : 0}
+                  %)
                 </span>
-                <span className="text-muted-foreground ml-auto">{new Date(evalRunDetail.timestamp).toLocaleString()}</span>
+                <span className="text-muted-foreground ml-auto">
+                  {new Date(evalRunDetail.timestamp).toLocaleString()}
+                </span>
               </div>
               <div className="space-y-1 max-h-64 overflow-y-auto">
                 {evalRunDetail.results?.map((r: any, i: number) => (
-                  <div key={i} className="flex items-start gap-2 text-xs p-1.5 rounded hover:bg-muted/30 border-l-2"
-                    style={{ borderColor: r.passed ? '#22c55e' : r.error ? '#f59e0b' : '#ef4444' }}>
+                  <div
+                    key={i}
+                    className="flex items-start gap-2 text-xs p-1.5 rounded hover:bg-muted/30 border-l-2"
+                    style={{ borderColor: r.passed ? '#22c55e' : r.error ? '#f59e0b' : '#ef4444' }}
+                  >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        {r.passed ? <Check className="h-3 w-3 text-green-600" /> : r.error ? <Clock className="h-3 w-3 text-amber-600" /> : <X className="h-3 w-3 text-red-600" />}
-                        <span className="font-medium capitalize">{r.category?.replace(/_/g, ' ')}</span>
+                        {r.passed ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : r.error ? (
+                          <Clock className="h-3 w-3 text-amber-600" />
+                        ) : (
+                          <X className="h-3 w-3 text-red-600" />
+                        )}
+                        <span className="font-medium capitalize">
+                          {r.category?.replace(/_/g, ' ')}
+                        </span>
                         <span className="text-muted-foreground">Score: {r.score}</span>
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">{r.reason}</div>
                       {r.response && (
                         <details className="mt-1">
-                          <summary className="text-[10px] text-muted-foreground cursor-pointer">Response</summary>
-                          <div className="text-[10px] mt-1 p-1.5 rounded bg-muted/20 whitespace-pre-wrap">{r.response.slice(0, 500)}</div>
+                          <summary className="text-[10px] text-muted-foreground cursor-pointer">
+                            Response
+                          </summary>
+                          <div className="text-[10px] mt-1 p-1.5 rounded bg-muted/20 whitespace-pre-wrap">
+                            {r.response.slice(0, 500)}
+                          </div>
                         </details>
                       )}
                     </div>
@@ -2442,15 +3320,26 @@ export function UsageAnalyticsView() {
           {/* Recent Runs */}
           {evalRuns.length > 0 && (
             <div className="space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Recent Evaluation Runs</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                Recent Evaluation Runs
+              </span>
               <div className="max-h-48 overflow-y-auto space-y-1">
                 {evalRuns.map((run, i) => (
-                  <div key={run.id || i} className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-muted/30 cursor-pointer"
-                    onClick={() => fetchRunDetail(run.id)}>
-                    <Badge variant="outline" className="text-[10px] shrink-0">{run.provider}</Badge>
+                  <div
+                    key={run.id || i}
+                    className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-muted/30 cursor-pointer"
+                    onClick={() => fetchRunDetail(run.id)}
+                  >
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {run.provider}
+                    </Badge>
                     <span className="truncate flex-1">{run.model}</span>
-                    <span className="tabular-nums">{run.passed}/{run.totalTests}</span>
-                    <span className="text-muted-foreground text-[10px]">{new Date(run.timestamp).toLocaleString()}</span>
+                    <span className="tabular-nums">
+                      {run.passed}/{run.totalTests}
+                    </span>
+                    <span className="text-muted-foreground text-[10px]">
+                      {new Date(run.timestamp).toLocaleString()}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -2466,7 +3355,8 @@ export function UsageAnalyticsView() {
             <ShieldAlert className="h-4 w-4" /> AI Guardrails & Prompt Firewall
           </CardTitle>
           <CardDescription className="text-xs">
-            Inline proxy that intercepts LLM-bound prompts, detects injection attempts, scrubs PII, and blocks harmful content. All incidents are logged to an immutable org-scoped journal.
+            Inline proxy that intercepts LLM-bound prompts, detects injection attempts, scrubs PII,
+            and blocks harmful content. All incidents are logged to an immutable org-scoped journal.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -2483,13 +3373,17 @@ export function UsageAnalyticsView() {
               </div>
               <div className="p-2 rounded border bg-muted/20">
                 <div className="text-muted-foreground">Scrubbed</div>
-                <div className="text-lg font-bold text-amber-600">{guardrailStats.scrubbedCount}</div>
+                <div className="text-lg font-bold text-amber-600">
+                  {guardrailStats.scrubbedCount}
+                </div>
               </div>
               <div className="p-2 rounded border bg-muted/20">
                 <div className="text-muted-foreground">By Match Type</div>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {Object.entries(guardrailStats.byMatchType || {}).map(([type, count]: any) => (
-                    <Badge key={type} variant="outline" className="text-[10px]">{type}: {count}</Badge>
+                    <Badge key={type} variant="outline" className="text-[10px]">
+                      {type}: {count}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -2498,7 +3392,9 @@ export function UsageAnalyticsView() {
 
           {/* Prompt Tester */}
           <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">Test a Prompt Against the Firewall</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              Test a Prompt Against the Firewall
+            </span>
             <div className="flex gap-2">
               <textarea
                 value={guardrailTestText}
@@ -2513,7 +3409,15 @@ export function UsageAnalyticsView() {
             {guardrailTestResult && (
               <div className="p-3 rounded-lg border space-y-2">
                 <div className="flex items-center gap-2 text-xs">
-                  <Badge variant={guardrailTestResult.verdict === 'block' ? 'destructive' : guardrailTestResult.verdict === 'scrub' ? 'secondary' : 'outline'}>
+                  <Badge
+                    variant={
+                      guardrailTestResult.verdict === 'block'
+                        ? 'destructive'
+                        : guardrailTestResult.verdict === 'scrub'
+                          ? 'secondary'
+                          : 'outline'
+                    }
+                  >
                     {guardrailTestResult.verdict.toUpperCase()}
                   </Badge>
                   <span className="text-muted-foreground">{guardrailTestResult.summary}</span>
@@ -2522,18 +3426,30 @@ export function UsageAnalyticsView() {
                   <div className="space-y-1">
                     {guardrailTestResult.matches.map((m: any, i: number) => (
                       <div key={i} className="flex items-center gap-2 text-[10px]">
-                        <Badge variant="outline" className="text-[9px]">{m.type}</Badge>
-                        <Badge variant={m.severity === 'block' || m.severity === 'high' ? 'destructive' : 'secondary'} className="text-[9px]">{m.severity}</Badge>
+                        <Badge variant="outline" className="text-[9px]">
+                          {m.type}
+                        </Badge>
+                        <Badge
+                          variant={
+                            m.severity === 'block' || m.severity === 'high'
+                              ? 'destructive'
+                              : 'secondary'
+                          }
+                          className="text-[9px]"
+                        >
+                          {m.severity}
+                        </Badge>
                         <span>{m.desc}</span>
                       </div>
                     ))}
                   </div>
                 )}
-                {guardrailTestResult.verdict === 'scrub' && guardrailTestResult.text !== guardrailTestText && (
-                  <div className="text-[10px] text-muted-foreground p-2 rounded bg-muted/20">
-                    <strong>Scrubbed output:</strong> {guardrailTestResult.text.slice(0, 300)}
-                  </div>
-                )}
+                {guardrailTestResult.verdict === 'scrub' &&
+                  guardrailTestResult.text !== guardrailTestText && (
+                    <div className="text-[10px] text-muted-foreground p-2 rounded bg-muted/20">
+                      <strong>Scrubbed output:</strong> {guardrailTestResult.text.slice(0, 300)}
+                    </div>
+                  )}
               </div>
             )}
           </div>
@@ -2559,35 +3475,68 @@ export function UsageAnalyticsView() {
           {guardrailIncidents.length > 0 ? (
             <div className="max-h-80 overflow-y-auto space-y-1">
               {guardrailIncidents.map((inc, i) => (
-                <div key={inc.id || i} className="flex items-start gap-3 p-2 rounded hover:bg-muted/30 border-l-2"
-                  style={{ borderColor: inc.verdict === 'block' ? '#ef4444' : inc.verdict === 'scrub' ? '#f59e0b' : '#3b82f6' }}>
+                <div
+                  key={inc.id || i}
+                  className="flex items-start gap-3 p-2 rounded hover:bg-muted/30 border-l-2"
+                  style={{
+                    borderColor:
+                      inc.verdict === 'block'
+                        ? '#ef4444'
+                        : inc.verdict === 'scrub'
+                          ? '#f59e0b'
+                          : '#3b82f6',
+                  }}
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs">
-                      <Badge variant={inc.verdict === 'block' ? 'destructive' : inc.verdict === 'scrub' ? 'secondary' : 'outline'} className="text-[10px] shrink-0">
+                      <Badge
+                        variant={
+                          inc.verdict === 'block'
+                            ? 'destructive'
+                            : inc.verdict === 'scrub'
+                              ? 'secondary'
+                              : 'outline'
+                        }
+                        className="text-[10px] shrink-0"
+                      >
                         {inc.verdict}
                       </Badge>
                       <span className="text-muted-foreground truncate">{inc.endpoint}</span>
-                      {inc.provider && <Badge variant="outline" className="text-[9px]">{inc.provider}</Badge>}
+                      {inc.provider && (
+                        <Badge variant="outline" className="text-[9px]">
+                          {inc.provider}
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-0.5">{inc.summary}</div>
                     {inc.matches?.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {inc.matches.slice(0, 4).map((m: any, j: number) => (
-                          <Badge key={j} variant="outline" className="text-[9px]">{m.type}:{m.id}</Badge>
+                          <Badge key={j} variant="outline" className="text-[9px]">
+                            {m.type}:{m.id}
+                          </Badge>
                         ))}
-                        {inc.matches.length > 4 && <span className="text-[9px] text-muted-foreground">+{inc.matches.length - 4} more</span>}
+                        {inc.matches.length > 4 && (
+                          <span className="text-[9px] text-muted-foreground">
+                            +{inc.matches.length - 4} more
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-[10px] text-muted-foreground">{inc.actorEmail}</div>
-                    <div className="text-[10px] text-muted-foreground">{new Date(inc.timestamp).toLocaleString()}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {new Date(inc.timestamp).toLocaleString()}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-sm text-muted-foreground">No guardrail incidents recorded</div>
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              No guardrail incidents recorded
+            </div>
           )}
         </CardContent>
       </Card>
@@ -2599,7 +3548,9 @@ export function UsageAnalyticsView() {
             <Bell className="h-4 w-4" /> Real-time Alerting & Webhooks
           </CardTitle>
           <CardDescription className="text-xs">
-            Configure push-based alert rules that fire webhooks on critical findings, SLA breaches, gate failures, and guardrail blocks. Includes retry logic, HMAC payload signing, and delivery tracking.
+            Configure push-based alert rules that fire webhooks on critical findings, SLA breaches,
+            gate failures, and guardrail blocks. Includes retry logic, HMAC payload signing, and
+            delivery tracking.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -2630,7 +3581,15 @@ export function UsageAnalyticsView() {
             <Button size="sm" onClick={() => setShowAlertRuleModal(true)}>
               <Settings className="h-3 w-3" /> New Alert Rule
             </Button>
-            <Button variant="outline" size="sm" onClick={() => { fetchAlertRules(); fetchAlertIncidents(); fetchAlertStats(); }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                fetchAlertRules();
+                fetchAlertIncidents();
+                fetchAlertStats();
+              }}
+            >
               <RefreshCw className="h-3 w-3" /> Refresh
             </Button>
           </div>
@@ -2641,15 +3600,43 @@ export function UsageAnalyticsView() {
               <span className="text-xs font-medium text-muted-foreground">Configured Rules</span>
               <div className="space-y-1">
                 {alertRules.map((rule, i) => (
-                  <div key={rule.id || i} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded hover:bg-muted/30 border-l-2"
-                    style={{ borderColor: rule.enabled ? '#3b82f6' : '#9ca3af' }}>
-                    <Badge variant={rule.enabled ? 'default' : 'secondary'} className="text-[10px] shrink-0">{rule.enabled ? 'ON' : 'OFF'}</Badge>
+                  <div
+                    key={rule.id || i}
+                    className="flex items-center gap-2 text-xs py-1.5 px-2 rounded hover:bg-muted/30 border-l-2"
+                    style={{ borderColor: rule.enabled ? '#3b82f6' : '#9ca3af' }}
+                  >
+                    <Badge
+                      variant={rule.enabled ? 'default' : 'secondary'}
+                      className="text-[10px] shrink-0"
+                    >
+                      {rule.enabled ? 'ON' : 'OFF'}
+                    </Badge>
                     <span className="font-medium truncate flex-1">{rule.name}</span>
-                    <Badge variant="outline" className="text-[9px] shrink-0">{rule.eventType.replace(/_/g, ' ')}</Badge>
-                    <Badge variant="outline" className="text-[9px] shrink-0">{rule.destinationType}</Badge>
-                    <span className="text-[10px] text-muted-foreground shrink-0">Fired: {rule.fireCount || 0}</span>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={() => testAlertRule(rule.id)}>Test</Button>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-red-600" onClick={() => deleteAlertRule(rule.id)}>Delete</Button>
+                    <Badge variant="outline" className="text-[9px] shrink-0">
+                      {rule.eventType.replace(/_/g, ' ')}
+                    </Badge>
+                    <Badge variant="outline" className="text-[9px] shrink-0">
+                      {rule.destinationType}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      Fired: {rule.fireCount || 0}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-[10px]"
+                      onClick={() => testAlertRule(rule.id)}
+                    >
+                      Test
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-[10px] text-red-600"
+                      onClick={() => deleteAlertRule(rule.id)}
+                    >
+                      Delete
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -2674,55 +3661,103 @@ export function UsageAnalyticsView() {
           {alertIncidents.length > 0 ? (
             <div className="max-h-64 overflow-y-auto space-y-1">
               {alertIncidents.map((inc, i) => (
-                <div key={inc.id || i} className="flex items-start gap-3 p-2 rounded hover:bg-muted/30 border-l-2"
-                  style={{ borderColor: inc.status === 'delivered' ? '#22c55e' : inc.status === 'failed' ? '#ef4444' : '#f59e0b' }}>
+                <div
+                  key={inc.id || i}
+                  className="flex items-start gap-3 p-2 rounded hover:bg-muted/30 border-l-2"
+                  style={{
+                    borderColor:
+                      inc.status === 'delivered'
+                        ? '#22c55e'
+                        : inc.status === 'failed'
+                          ? '#ef4444'
+                          : '#f59e0b',
+                  }}
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs">
-                      <Badge variant={inc.status === 'delivered' ? 'default' : inc.status === 'failed' ? 'destructive' : 'secondary'} className="text-[10px] shrink-0">
+                      <Badge
+                        variant={
+                          inc.status === 'delivered'
+                            ? 'default'
+                            : inc.status === 'failed'
+                              ? 'destructive'
+                              : 'secondary'
+                        }
+                        className="text-[10px] shrink-0"
+                      >
                         {inc.status}
                       </Badge>
                       <span className="text-muted-foreground truncate">{inc.ruleName}</span>
-                      <Badge variant="outline" className="text-[9px]">{inc.eventType?.replace(/_/g, ' ')}</Badge>
+                      <Badge variant="outline" className="text-[9px]">
+                        {inc.eventType?.replace(/_/g, ' ')}
+                      </Badge>
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-0.5">
-                      {inc.error ? `Error: ${inc.error}` : `HTTP ${inc.responseStatus} (${inc.attempts} attempts, ${inc.durationMs}ms)`}
+                      {inc.error
+                        ? `Error: ${inc.error}`
+                        : `HTTP ${inc.responseStatus} (${inc.attempts} attempts, ${inc.durationMs}ms)`}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-[10px] text-muted-foreground">{new Date(inc.timestamp).toLocaleString()}</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {new Date(inc.timestamp).toLocaleString()}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-6 text-sm text-muted-foreground">No alert incidents recorded</div>
+            <div className="text-center py-6 text-sm text-muted-foreground">
+              No alert incidents recorded
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Alert Rule Modal */}
       {showAlertRuleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowAlertRuleModal(false)}>
-          <div className="bg-background rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto space-y-3" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowAlertRuleModal(false)}
+        >
+          <div
+            className="bg-background rounded-lg p-6 w-[500px] max-h-[80vh] overflow-y-auto space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold">New Alert Rule</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowAlertRuleModal(false)}><X className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowAlertRuleModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
             </div>
             <div className="space-y-2 text-xs">
               <div>
                 <label className="text-muted-foreground">Rule ID</label>
-                <input value={alertRuleForm.id} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, id: e.target.value })}
-                  placeholder="e.g. critical-webhook" className="w-full h-8 rounded-md border border-input bg-transparent px-2" />
+                <input
+                  value={alertRuleForm.id}
+                  onChange={(e) => setAlertRuleForm({ ...alertRuleForm, id: e.target.value })}
+                  placeholder="e.g. critical-webhook"
+                  className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                />
               </div>
               <div>
                 <label className="text-muted-foreground">Rule Name</label>
-                <input value={alertRuleForm.name} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, name: e.target.value })}
-                  placeholder="e.g. Critical Findings → Slack" className="w-full h-8 rounded-md border border-input bg-transparent px-2" />
+                <input
+                  value={alertRuleForm.name}
+                  onChange={(e) => setAlertRuleForm({ ...alertRuleForm, name: e.target.value })}
+                  placeholder="e.g. Critical Findings → Slack"
+                  className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                />
               </div>
               <div>
                 <label className="text-muted-foreground">Event Type</label>
-                <select value={alertRuleForm.eventType} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, eventType: e.target.value })}
-                  className="w-full h-8 rounded-md border border-input bg-transparent px-2">
+                <select
+                  value={alertRuleForm.eventType}
+                  onChange={(e) =>
+                    setAlertRuleForm({ ...alertRuleForm, eventType: e.target.value })
+                  }
+                  className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                >
                   <option value="critical_finding">Critical Finding</option>
                   <option value="sla_breached">SLA Breached</option>
                   <option value="gate_failed">Gate Failed</option>
@@ -2733,8 +3768,13 @@ export function UsageAnalyticsView() {
               </div>
               <div>
                 <label className="text-muted-foreground">Destination Type</label>
-                <select value={alertRuleForm.destinationType} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, destinationType: e.target.value })}
-                  className="w-full h-8 rounded-md border border-input bg-transparent px-2">
+                <select
+                  value={alertRuleForm.destinationType}
+                  onChange={(e) =>
+                    setAlertRuleForm({ ...alertRuleForm, destinationType: e.target.value })
+                  }
+                  className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                >
                   <option value="webhook">Webhook</option>
                   <option value="slack">Slack</option>
                   <option value="email">Email</option>
@@ -2743,19 +3783,39 @@ export function UsageAnalyticsView() {
               </div>
               <div>
                 <label className="text-muted-foreground">Webhook URL</label>
-                <input value={alertRuleForm.webhookUrl} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, webhookUrl: e.target.value })}
-                  placeholder="https://hooks.slack.com/services/..." className="w-full h-8 rounded-md border border-input bg-transparent px-2" />
+                <input
+                  value={alertRuleForm.webhookUrl}
+                  onChange={(e) =>
+                    setAlertRuleForm({ ...alertRuleForm, webhookUrl: e.target.value })
+                  }
+                  placeholder="https://hooks.slack.com/services/..."
+                  className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-muted-foreground">Cooldown (min)</label>
-                  <input type="number" value={alertRuleForm.cooldownMinutes} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, cooldownMinutes: parseInt(e.target.value, 10) || 0 })}
-                    className="w-full h-8 rounded-md border border-input bg-transparent px-2" />
+                  <input
+                    type="number"
+                    value={alertRuleForm.cooldownMinutes}
+                    onChange={(e) =>
+                      setAlertRuleForm({
+                        ...alertRuleForm,
+                        cooldownMinutes: parseInt(e.target.value, 10) || 0,
+                      })
+                    }
+                    className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                  />
                 </div>
                 <div>
                   <label className="text-muted-foreground">Severity Filter</label>
-                  <select value={alertRuleForm.severityFilter} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, severityFilter: e.target.value })}
-                    className="w-full h-8 rounded-md border border-input bg-transparent px-2">
+                  <select
+                    value={alertRuleForm.severityFilter}
+                    onChange={(e) =>
+                      setAlertRuleForm({ ...alertRuleForm, severityFilter: e.target.value })
+                    }
+                    className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                  >
                     <option value="all">All</option>
                     <option value="critical">Critical</option>
                     <option value="high">High</option>
@@ -2765,13 +3825,159 @@ export function UsageAnalyticsView() {
                 </div>
               </div>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={alertRuleForm.enabled} onChange={(e) => setAlertRuleForm({ ...alertRuleForm, enabled: e.target.checked })} />
+                <input
+                  type="checkbox"
+                  checked={alertRuleForm.enabled}
+                  onChange={(e) =>
+                    setAlertRuleForm({ ...alertRuleForm, enabled: e.target.checked })
+                  }
+                />
                 <span>Enabled</span>
               </label>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowAlertRuleModal(false)}>Cancel</Button>
-              <Button size="sm" onClick={saveAlertRule} disabled={!alertRuleForm.id || !alertRuleForm.name || !alertRuleForm.webhookUrl}>Save Rule</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowAlertRuleModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={saveAlertRule}
+                disabled={!alertRuleForm.id || !alertRuleForm.name || !alertRuleForm.webhookUrl}
+              >
+                Save Rule
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RBAC — Role-Based Access Control Panel */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Users className="h-4 w-4" /> Role-Based Access Control
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Manage user roles and permissions across the platform. Admins can assign roles, operators can run scans and evaluations, auditors have read-only access, and viewers see dashboards only.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* My Role */}
+          {rbacMyRole && (
+            <div className="flex items-center gap-3 p-2 rounded border bg-muted/20 text-xs">
+              <Badge variant="default" className="text-[10px]">{rbacMyRole.role?.toUpperCase()}</Badge>
+              <span className="text-muted-foreground">Your role (via {rbacMyRole.source})</span>
+              <div className="flex flex-wrap gap-1 ml-auto">
+                {(rbacMyRole.permissions || []).map((p: string) => (
+                  <Badge key={p} variant="outline" className="text-[9px]">{p}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Stats */}
+          {rbacStats && (
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Total Users</div>
+                <div className="text-lg font-bold">{rbacStats.totalAssignments}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Admins</div>
+                <div className="text-lg font-bold text-red-600">{rbacStats.byRole?.admin || 0}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Operators</div>
+                <div className="text-lg font-bold text-blue-600">{rbacStats.byRole?.operator || 0}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Auditors</div>
+                <div className="text-lg font-bold text-amber-600">{rbacStats.byRole?.auditor || 0}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Role Legend */}
+          {rbacRoles.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Available Roles</span>
+              <div className="space-y-1">
+                {rbacRoles.map((role) => (
+                  <div key={role.id} className="flex items-center gap-2 text-xs py-1 px-2 rounded bg-muted/10">
+                    <Badge variant="outline" className="text-[10px] shrink-0">{role.id}</Badge>
+                    <span className="font-medium">{role.name}</span>
+                    <span className="text-muted-foreground truncate flex-1">{role.description}</span>
+                    <div className="flex flex-wrap gap-1 shrink-0">
+                      {role.permissions.map((p: string) => (
+                        <Badge key={p} variant="secondary" className="text-[9px]">{p}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Assignment Management */}
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setShowRbacModal(true)}>
+              <Users className="h-3 w-3" /> Assign Role
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => { fetchRbacAssignments(); fetchRbacStats(); }}>
+              <RefreshCw className="h-3 w-3" /> Refresh
+            </Button>
+          </div>
+
+          {/* Assignments List */}
+          {rbacAssignments.length > 0 ? (
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">User Assignments</span>
+              <div className="space-y-1">
+                {rbacAssignments.map((a, i) => (
+                  <div key={a.userId || i} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded hover:bg-muted/30 border-l-2"
+                    style={{ borderColor: a.role === 'admin' ? '#ef4444' : a.role === 'operator' ? '#3b82f6' : a.role === 'auditor' ? '#f59e0b' : '#9ca3af' }}>
+                    <Badge variant={a.role === 'admin' ? 'destructive' : a.role === 'operator' ? 'default' : a.role === 'auditor' ? 'secondary' : 'outline'} className="text-[10px] shrink-0">
+                      {a.role}
+                    </Badge>
+                    <span className="font-medium truncate flex-1">{a.userId}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">by {a.assignedBy}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">{new Date(a.updatedAt).toLocaleDateString()}</span>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[10px] text-red-600" onClick={() => deleteRbacAssignment(a.userId)}>Remove</Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-sm text-muted-foreground">No explicit role assignments — users fall back to JWT role or viewer default</div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* RBAC Assignment Modal */}
+      {showRbacModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowRbacModal(false)}>
+          <div className="bg-background rounded-lg p-6 w-[400px] space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold">Assign Role</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowRbacModal(false)}><X className="h-4 w-4" /></Button>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div>
+                <label className="text-muted-foreground">User ID</label>
+                <input value={rbacForm.userId} onChange={(e) => setRbacForm({ ...rbacForm, userId: e.target.value })}
+                  placeholder="e.g. user@example.com" className="w-full h-8 rounded-md border border-input bg-transparent px-2" />
+              </div>
+              <div>
+                <label className="text-muted-foreground">Role</label>
+                <select value={rbacForm.role} onChange={(e) => setRbacForm({ ...rbacForm, role: e.target.value })}
+                  className="w-full h-8 rounded-md border border-input bg-transparent px-2">
+                  {rbacRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowRbacModal(false)}>Cancel</Button>
+              <Button size="sm" onClick={saveRbacAssignment} disabled={!rbacForm.userId}>Assign</Button>
             </div>
           </div>
         </div>

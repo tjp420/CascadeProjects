@@ -38,10 +38,10 @@ npx simplebeacon scan --gate --intelligence
 
 ### What data leaves the machine
 
-| Scenario | Data sent | Destination |
-|----------|-----------|-------------|
-| Local Ollama (default) | None | `localhost:11434` — your own machine |
-| Enterprise API key | Findings snippets only | Configured endpoint with zero-data-retention policy |
+| Scenario               | Data sent              | Destination                                         |
+| ---------------------- | ---------------------- | --------------------------------------------------- |
+| Local Ollama (default) | None                   | `localhost:11434` — your own machine                |
+| Enterprise API key     | Findings snippets only | Configured endpoint with zero-data-retention policy |
 
 ### Local-first default
 
@@ -98,6 +98,7 @@ npx simplebeacon scan --profile offline-privacy
 ```
 
 This confirms:
+
 - No external API calls were made
 - No source code was uploaded
 - All processing occurred locally

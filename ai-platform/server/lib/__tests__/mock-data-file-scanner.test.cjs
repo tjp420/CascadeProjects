@@ -2,7 +2,7 @@
 
 jest.mock('../mock-data-helpers.cjs', () => ({
   analyzeFileContent: jest.fn().mockReturnValue({ issues: [], needsValidation: false }),
-  ALLOWED_EXTENSIONS: /\.json$/
+  ALLOWED_EXTENSIONS: /\.json$/,
 }));
 
 const fs = require('fs');

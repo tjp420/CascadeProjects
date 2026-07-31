@@ -2,7 +2,18 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BarChart3, RefreshCw, AlertCircle, Server, Activity, Cpu, HardDrive, Globe, Zap, CheckCircle2 } from 'lucide-react';
+import {
+  BarChart3,
+  RefreshCw,
+  AlertCircle,
+  Server,
+  Activity,
+  Cpu,
+  HardDrive,
+  Globe,
+  Zap,
+  CheckCircle2,
+} from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 
 type PlatformStatus = {
@@ -57,7 +68,9 @@ export function PlatformView() {
   }, []);
 
   // fetch on mount
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   if (loading) {
     return (
@@ -113,13 +126,9 @@ export function PlatformView() {
         <p className="text-foreground-muted">Platform analytics and deployment metrics</p>
         <div className="flex items-center gap-2">
           {healthData?.status && (
-            <Badge variant={healthData.status === 'healthy' ? 'success' : 'warning'}>
-              {healthData.status}
-            </Badge>
+            <Badge variant={healthData.status === 'healthy' ? 'success' : 'warning'}>{healthData.status}</Badge>
           )}
-          {healthData?.version && (
-            <Badge variant="outline">v{healthData.version}</Badge>
-          )}
+          {healthData?.version && <Badge variant="outline">v{healthData.version}</Badge>}
           <Button size="sm" variant="outline" onClick={fetchData}>
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
@@ -173,7 +182,9 @@ export function PlatformView() {
                   <div className="flex-1">
                     <span className="text-sm font-medium capitalize">{key.replace(/_/g, ' ')}</span>
                   </div>
-                  <Badge variant={value === 'ready' || value === 'active' || value === 'available' ? 'success' : 'outline'}>
+                  <Badge
+                    variant={value === 'ready' || value === 'active' || value === 'available' ? 'success' : 'outline'}
+                  >
                     {value}
                   </Badge>
                 </div>
@@ -200,7 +211,9 @@ export function PlatformView() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-foreground-muted">Timestamp</span>
-              <span className="font-medium">{healthData.timestamp ? new Date(healthData.timestamp).toLocaleString() : '—'}</span>
+              <span className="font-medium">
+                {healthData.timestamp ? new Date(healthData.timestamp).toLocaleString() : '—'}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-foreground-muted">Consolidation</span>

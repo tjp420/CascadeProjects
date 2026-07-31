@@ -5,7 +5,7 @@ const {
   resolveFileAuditContext,
   shouldIncludeFinding,
   adjustFindingSeverity,
-  applyContextToFindings
+  applyContextToFindings,
 } = require('../file-audit-context.cjs');
 
 describe('file-audit-context', () => {

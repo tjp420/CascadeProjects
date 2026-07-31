@@ -20,7 +20,11 @@ describe('Highly-coupled hub modules — smoke tests', () => {
     const logger = require('../server/lib/app-logger.cjs');
     expect(logger).toBeTruthy();
     // Should export at least one callable log method
-    expect(typeof logger.info === 'function' || typeof logger.log === 'function' || typeof logger === 'function').toBe(true);
+    expect(
+      typeof logger.info === 'function' ||
+        typeof logger.log === 'function' ||
+        typeof logger === 'function'
+    ).toBe(true);
   });
 
   test('server/lib/simplebeacon-proxy.cjs loads and re-exports CLI surface', () => {

@@ -14,7 +14,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       id: message?.detail?.id,
       ok: false,
       status: 400,
-      body: { success: false, error: 'Invalid bridge request' }
+      body: { success: false, error: 'Invalid bridge request' },
     });
     return false;
   }
@@ -23,7 +23,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const absoluteUrl = url.startsWith('http') ? url : `${DEFAULT_AGENT_ORIGIN}${url}`;
   const options = {
     method: method || 'GET',
-    headers: { Accept: 'application/json' }
+    headers: { Accept: 'application/json' },
   };
   if (body && (method === 'POST' || method === 'PUT')) {
     options.headers['Content-Type'] = 'application/json';
@@ -37,7 +37,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         id,
         ok: response.ok,
         status: response.status,
-        body: bodyData
+        body: bodyData,
       });
     })
     .catch((err) => {
@@ -45,7 +45,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         id,
         ok: false,
         status: 0,
-        body: { success: false, error: err.message || 'Extension bridge fetch failed' }
+        body: { success: false, error: err.message || 'Extension bridge fetch failed' },
       });
     });
 

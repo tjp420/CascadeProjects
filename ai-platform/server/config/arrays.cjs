@@ -32,7 +32,10 @@ function maxBy(arr, iteratee) {
   let maxVal = iteratee(maxItem);
   for (let i = 1; i < arr.length; i++) {
     const val = iteratee(arr[i]);
-    if (val > maxVal) { maxVal = val; maxItem = arr[i]; }
+    if (val > maxVal) {
+      maxVal = val;
+      maxItem = arr[i];
+    }
   }
   return maxItem;
 }
@@ -50,7 +53,10 @@ function minBy(arr, iteratee) {
   let minVal = iteratee(minItem);
   for (let i = 1; i < arr.length; i++) {
     const val = iteratee(arr[i]);
-    if (val < minVal) { minVal = val; minItem = arr[i]; }
+    if (val < minVal) {
+      minVal = val;
+      minItem = arr[i];
+    }
   }
   return minItem;
 }
@@ -103,5 +109,5 @@ module.exports = Object.freeze({
   minBy,
   findIndex,
   sum,
-  mean
+  mean,
 });

@@ -46,7 +46,12 @@ function getPolicy(orgId) {
   const store = readStore();
   const key = makePolicyKey(orgId);
   if (store.policies[key]) return store.policies[key];
-  return { ...DEFAULT_POLICY, orgId: key, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  return {
+    ...DEFAULT_POLICY,
+    orgId: key,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 function setPolicy(orgId, config) {
@@ -55,14 +60,26 @@ function setPolicy(orgId, config) {
   const existing = store.policies[key];
   store.policies[key] = {
     orgId: key,
-    minPostureScore: config.minPostureScore !== undefined ? config.minPostureScore : DEFAULT_POLICY.minPostureScore,
+    minPostureScore:
+      config.minPostureScore !== undefined
+        ? config.minPostureScore
+        : DEFAULT_POLICY.minPostureScore,
     maxCritical: config.maxCritical !== undefined ? config.maxCritical : DEFAULT_POLICY.maxCritical,
     maxHigh: config.maxHigh !== undefined ? config.maxHigh : DEFAULT_POLICY.maxHigh,
     maxMedium: config.maxMedium !== undefined ? config.maxMedium : DEFAULT_POLICY.maxMedium,
     maxLow: config.maxLow !== undefined ? config.maxLow : DEFAULT_POLICY.maxLow,
-    blockOnGateFail: config.blockOnGateFail !== undefined ? config.blockOnGateFail : DEFAULT_POLICY.blockOnGateFail,
-    blockOnSlaBreached: config.blockOnSlaBreached !== undefined ? config.blockOnSlaBreached : DEFAULT_POLICY.blockOnSlaBreached,
-    blockOnUnticketedCritical: config.blockOnUnticketedCritical !== undefined ? config.blockOnUnticketedCritical : DEFAULT_POLICY.blockOnUnticketedCritical,
+    blockOnGateFail:
+      config.blockOnGateFail !== undefined
+        ? config.blockOnGateFail
+        : DEFAULT_POLICY.blockOnGateFail,
+    blockOnSlaBreached:
+      config.blockOnSlaBreached !== undefined
+        ? config.blockOnSlaBreached
+        : DEFAULT_POLICY.blockOnSlaBreached,
+    blockOnUnticketedCritical:
+      config.blockOnUnticketedCritical !== undefined
+        ? config.blockOnUnticketedCritical
+        : DEFAULT_POLICY.blockOnUnticketedCritical,
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

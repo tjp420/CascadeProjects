@@ -39,18 +39,18 @@ function setWorkspaceRlsContext(req, res, next) {
       const originalSend = res.send.bind(res);
       const originalJson = res.json.bind(res);
 
-      res.end = function(...args) {
+      res.end = function (...args) {
         res.end = originalEnd;
         resolve();
         return originalEnd(...args);
       };
-      res.send = function(...args) {
+      res.send = function (...args) {
         res.send = originalSend;
         res.end = originalEnd;
         resolve();
         return originalSend(...args);
       };
-      res.json = function(...args) {
+      res.json = function (...args) {
         res.json = originalJson;
         res.send = originalSend;
         res.end = originalEnd;
@@ -114,5 +114,5 @@ function requireAnyPermission(...permissions) {
 module.exports = {
   setWorkspaceRlsContext,
   requirePermission,
-  requireAnyPermission
+  requireAnyPermission,
 };

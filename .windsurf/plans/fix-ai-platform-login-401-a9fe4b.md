@@ -27,6 +27,7 @@
    - If no valid account exists and the emergency password is unknown, set `SIMPLEBEACON_EMERGENCY_EMAIL` and `SIMPLEBEACON_EMERGENCY_PASSWORD` in the deployed environment, or seed an admin user.
 
 2. **Test the login endpoint directly with `curl`.**
+
    ```powershell
    curl -X POST https://simplebeacon.ai/api/auth/login `
      -H "Content-Type: application/json" `

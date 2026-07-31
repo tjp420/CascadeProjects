@@ -23,16 +23,16 @@ function evaluateSprintFreshness(bundle = {}, options = {}) {
     bundle.embeddedInMainReport?.generatedAt,
     bundle.compliance?.evaluatedAt,
     bundle.assessment?.generatedAt,
-    bundle.sprintReport?.generatedAt
+    bundle.sprintReport?.generatedAt,
   ];
   const timestamps = candidates.map(parseTimestamp).filter((ms) => ms != null);
   const latestMs = timestamps.length ? Math.max(...timestamps) : null;
-  const fresh = latestMs != null ? (Date.now() - latestMs) <= maxStaleMs : false;
+  const fresh = latestMs != null ? Date.now() - latestMs <= maxStaleMs : false;
   return {
     fresh,
     latestMs,
     maxStaleMs,
-    evaluatedAt: candidates.find(Boolean) || null
+    evaluatedAt: candidates.find(Boolean) || null,
   };
 }
 
@@ -52,21 +52,22 @@ function evaluateEuExportEligibility(bundle = {}) {
   if (!isLegalReviewAttestation(attestation)) {
     errors.push({
       code: 'EUAI-ATT',
-      message: 'legal_review_complete attestation required for client-facing EU export'
+      message: 'legal_review_complete attestation required for client-facing EU export',
     });
   }
 
-  const legalHandoffEligible = classification?.riskTier != null && isLegalReviewAttestation(attestation);
+  const legalHandoffEligible =
+    classification?.riskTier != null && isLegalReviewAttestation(attestation);
 
   return {
     eligible: errors.length === 0,
     legalHandoffEligible,
-    errors
+    errors,
   };
 }
 
 module.exports = {
   DEFAULT_MAX_STALE_MS,
   evaluateSprintFreshness,
-  evaluateEuExportEligibility
+  evaluateEuExportEligibility,
 };

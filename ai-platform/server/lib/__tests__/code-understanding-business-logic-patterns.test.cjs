@@ -1,6 +1,10 @@
 'use strict';
 
-const { DOMAIN_PATTERNS, detectBusinessLogicPatterns, inferDomainHints } = require('../code-understanding/business-logic-patterns.cjs');
+const {
+  DOMAIN_PATTERNS,
+  detectBusinessLogicPatterns,
+  inferDomainHints,
+} = require('../code-understanding/business-logic-patterns.cjs');
 
 describe('code-understanding/business-logic-patterns', () => {
   test('exports expected functions and constants', () => {
@@ -27,19 +31,28 @@ describe('code-understanding/business-logic-patterns', () => {
 
   test('detectBusinessLogicPatterns detects web-api patterns', () => {
     const content = 'router.post("/login", validate(schema), handler);';
-    const result = detectBusinessLogicPatterns(content, { language: 'javascript', filePath: 'server/routes/api.js' });
+    const result = detectBusinessLogicPatterns(content, {
+      language: 'javascript',
+      filePath: 'server/routes/api.js',
+    });
     expect(result.patterns.length).toBeGreaterThan(0);
   });
 
   test('detectBusinessLogicPatterns detects auth patterns', () => {
     const content = 'const token = jwt.sign(payload, secret);';
-    const result = detectBusinessLogicPatterns(content, { language: 'javascript', filePath: 'server/auth/login.js' });
+    const result = detectBusinessLogicPatterns(content, {
+      language: 'javascript',
+      filePath: 'server/auth/login.js',
+    });
     expect(result.patterns.length).toBeGreaterThan(0);
   });
 
   test('detectBusinessLogicPatterns detects game-modding patterns', () => {
     const content = 'class MyWeapon : Weapon { States { Fire: ... } }';
-    const result = detectBusinessLogicPatterns(content, { language: 'zscript', filePath: 'weapons/sword.zs' });
+    const result = detectBusinessLogicPatterns(content, {
+      language: 'zscript',
+      filePath: 'weapons/sword.zs',
+    });
     expect(result.patterns.length).toBeGreaterThan(0);
   });
 

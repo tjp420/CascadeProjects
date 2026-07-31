@@ -2,13 +2,33 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert';
 
 import Utils, {
-  escapeHtml, clamp, deepClone, fetchWithTimeout,
-  copyToClipboard, sanitizePrivacyData, isVSCodeWebview,
-  formatPathLabel, prefersReducedMotion, getNonce,
-  deepFreeze, getExportNames, exportNames, getNamespaceNames,
-  getBarrelMeta, validateBarrelIntegrity, freezeNamespace, __barrel__,
-  compose, pipe, zipWith, curry, partial, tap,
-  parseJsonSafe, parseResponseJson, stringifySafe
+  escapeHtml,
+  clamp,
+  deepClone,
+  fetchWithTimeout,
+  copyToClipboard,
+  sanitizePrivacyData,
+  isVSCodeWebview,
+  formatPathLabel,
+  prefersReducedMotion,
+  getNonce,
+  deepFreeze,
+  getExportNames,
+  exportNames,
+  getNamespaceNames,
+  getBarrelMeta,
+  validateBarrelIntegrity,
+  freezeNamespace,
+  __barrel__,
+  compose,
+  pipe,
+  zipWith,
+  curry,
+  partial,
+  tap,
+  parseJsonSafe,
+  parseResponseJson,
+  stringifySafe,
 } from '../utils.js';
 
 describe('js/utils.js barrel', () => {
@@ -31,8 +51,29 @@ describe('js/utils.js barrel', () => {
 
   it('default export contains all namespaces', () => {
     const expected = [
-      'string', 'number', 'async', 'array', 'object', 'url', 'storage', 'theme', 'dom', 'format', 'type',
-      'accessibility', 'clipboard', 'crypto', 'download', 'fetch', 'fn', 'path', 'privacy', 'vscode', 'event', 'polling', 'inline'
+      'string',
+      'number',
+      'async',
+      'array',
+      'object',
+      'url',
+      'storage',
+      'theme',
+      'dom',
+      'format',
+      'type',
+      'accessibility',
+      'clipboard',
+      'crypto',
+      'download',
+      'fetch',
+      'fn',
+      'path',
+      'privacy',
+      'vscode',
+      'event',
+      'polling',
+      'inline',
     ];
     for (const key of expected) {
       assert.ok(Utils[key], `namespace "${key}" should exist`);
@@ -120,7 +161,31 @@ describe('js/utils.js barrel', () => {
     assert.ok(Array.isArray(names), 'should return an array');
     assert.strictEqual(Object.isFrozen(names), true, 'should be frozen');
     assert.strictEqual(names.length, 23);
-    const expected = ['string', 'number', 'async', 'array', 'object', 'url', 'storage', 'theme', 'dom', 'format', 'type', 'accessibility', 'clipboard', 'crypto', 'download', 'fetch', 'fn', 'path', 'privacy', 'vscode', 'event', 'polling', 'inline'];
+    const expected = [
+      'string',
+      'number',
+      'async',
+      'array',
+      'object',
+      'url',
+      'storage',
+      'theme',
+      'dom',
+      'format',
+      'type',
+      'accessibility',
+      'clipboard',
+      'crypto',
+      'download',
+      'fetch',
+      'fn',
+      'path',
+      'privacy',
+      'vscode',
+      'event',
+      'polling',
+      'inline',
+    ];
     for (const ns of expected) {
       assert.ok(names.includes(ns), `should include namespace "${ns}"`);
     }
@@ -162,7 +227,10 @@ describe('js/utils.js barrel', () => {
   });
 
   it('zipWith applies function to paired elements', () => {
-    assert.deepStrictEqual(zipWith([1, 2, 3], [4, 5, 6], (a, b) => a + b), [5, 7, 9]);
+    assert.deepStrictEqual(
+      zipWith([1, 2, 3], [4, 5, 6], (a, b) => a + b),
+      [5, 7, 9]
+    );
   });
 
   it('curry transforms multi-arg functions', () => {
@@ -178,7 +246,9 @@ describe('js/utils.js barrel', () => {
 
   it('tap runs side effects and returns original value', () => {
     let sideEffect = 0;
-    const result = tap(5, (x) => { sideEffect = x; });
+    const result = tap(5, (x) => {
+      sideEffect = x;
+    });
     assert.strictEqual(result, 5);
     assert.strictEqual(sideEffect, 5);
   });
@@ -212,7 +282,14 @@ describe('js/utils.js barrel', () => {
   it('stringifySafe is a flat named export', () => {
     assert.strictEqual(typeof stringifySafe, 'function');
     assert.strictEqual(stringifySafe({ a: 1 }), '{"a":1}');
-    assert.strictEqual(stringifySafe({ toJSON() { throw new Error('bad'); } }), null);
+    assert.strictEqual(
+      stringifySafe({
+        toJSON() {
+          throw new Error('bad');
+        },
+      }),
+      null
+    );
   });
 
   it('freezeNamespace does not mutate inputs and returns frozen copies', () => {
@@ -276,7 +353,7 @@ describe('parseResponseJson', () => {
   it('parses JSON response', async () => {
     const res = {
       headers: { get: () => 'application/json' },
-      text: async () => '{"a":1}'
+      text: async () => '{"a":1}',
     };
     const data = await parseResponseJson(res);
     assert.deepStrictEqual(data, { a: 1 });
@@ -285,7 +362,7 @@ describe('parseResponseJson', () => {
   it('returns fallback for non-JSON content type', async () => {
     const res = {
       headers: { get: () => 'text/html' },
-      text: async () => '<html></html>'
+      text: async () => '<html></html>',
     };
     const data = await parseResponseJson(res);
     assert.deepStrictEqual(data, {});
@@ -294,7 +371,7 @@ describe('parseResponseJson', () => {
   it('returns fallback on JSON parse error', async () => {
     const res = {
       headers: { get: () => 'application/json' },
-      text: async () => 'not valid json'
+      text: async () => 'not valid json',
     };
     const data = await parseResponseJson(res, 'fallback');
     assert.strictEqual(data, 'fallback');
@@ -303,7 +380,7 @@ describe('parseResponseJson', () => {
   it('returns custom fallback when provided', async () => {
     const res = {
       headers: { get: () => 'application/json' },
-      text: async () => ''
+      text: async () => '',
     };
     const data = await parseResponseJson(res, { empty: true });
     assert.deepStrictEqual(data, { empty: true });

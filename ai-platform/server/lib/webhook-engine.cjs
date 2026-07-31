@@ -31,7 +31,9 @@ function httpsPostJson(url, body, headers = {}) {
     };
     const req = https.request(options, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         resolve({ status: res.statusCode, data });
       });
@@ -60,10 +62,15 @@ function httpsPostForm(url, formData, headers = {}) {
     };
     const req = https.request(options, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
-        catch { resolve({ status: res.statusCode, data }); }
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(data) });
+        } catch {
+          resolve({ status: res.statusCode, data });
+        }
       });
     });
     req.on('error', reject);
@@ -80,14 +87,19 @@ function httpsGetJson(url, headers = {}) {
       port: parsed.port || 443,
       path: parsed.pathname + parsed.search,
       method: 'GET',
-      headers: { 'Accept': 'application/json', ...headers },
+      headers: { Accept: 'application/json', ...headers },
     };
     const req = https.request(options, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
-        catch { resolve({ status: res.statusCode, data }); }
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(data) });
+        } catch {
+          resolve({ status: res.statusCode, data });
+        }
       });
     });
     req.on('error', reject);
@@ -121,10 +133,14 @@ function buildEventPayload(event, context) {
 // ── Slack Adapter ───────────────────────────────────────────────────────────
 
 function formatSlackPayload(payload) {
-  const color = payload.severity === 'critical' ? '#FF0000'
-    : payload.severity === 'high' ? '#FF6600'
-    : payload.severity === 'medium' ? '#FFAA00'
-    : '#36A64F';
+  const color =
+    payload.severity === 'critical'
+      ? '#FF0000'
+      : payload.severity === 'high'
+        ? '#FF6600'
+        : payload.severity === 'medium'
+          ? '#FFAA00'
+          : '#36A64F';
 
   const blocks = [
     {
@@ -163,7 +179,10 @@ function formatSlackPayload(payload) {
     blocks.push({
       type: 'context',
       elements: [
-        { type: 'mrkdwn', text: `:github: ${payload.repository}${payload.branch ? ' / ' + payload.branch : ''}${payload.commitSha ? ' / ' + payload.commitSha.slice(0, 7) : ''}` },
+        {
+          type: 'mrkdwn',
+          text: `:github: ${payload.repository}${payload.branch ? ' / ' + payload.branch : ''}${payload.commitSha ? ' / ' + payload.commitSha.slice(0, 7) : ''}`,
+        },
       ],
     });
   }
@@ -172,19 +191,30 @@ function formatSlackPayload(payload) {
     blocks.push({
       type: 'actions',
       elements: [
-        { type: 'button', text: { type: 'plain_text', text: 'View Report' }, url: payload.reportUrl, style: 'primary' },
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: 'View Report' },
+          url: payload.reportUrl,
+          style: 'primary',
+        },
       ],
     });
   }
 
   if (payload.issues && payload.issues.length > 0) {
     const topIssues = payload.issues.slice(0, 5);
-    const issueText = topIssues.map(i =>
-      `• *${i.severity || 'unknown'}* — ${i.description || i.message || i.type || 'Unknown issue'}${i.filePath ? ' (' + i.filePath + (i.line ? ':' + i.line : '') + ')' : ''}`
-    ).join('\n');
+    const issueText = topIssues
+      .map(
+        (i) =>
+          `• *${i.severity || 'unknown'}* — ${i.description || i.message || i.type || 'Unknown issue'}${i.filePath ? ' (' + i.filePath + (i.line ? ':' + i.line : '') + ')' : ''}`
+      )
+      .join('\n');
     blocks.push({
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Top Issues:*\n${issueText}${payload.issues.length > 5 ? `\n_and ${payload.issues.length - 5} more..._` : ''}` },
+      text: {
+        type: 'mrkdwn',
+        text: `*Top Issues:*\n${issueText}${payload.issues.length > 5 ? `\n_and ${payload.issues.length - 5} more..._` : ''}`,
+      },
     });
   }
 
@@ -205,10 +235,14 @@ async function sendSlack(config, payload) {
 // ── Microsoft Teams Adapter ─────────────────────────────────────────────────
 
 function formatTeamsPayload(payload) {
-  const accentColor = payload.severity === 'critical' ? 'FF0000'
-    : payload.severity === 'high' ? 'FF6600'
-    : payload.severity === 'medium' ? 'FFAA00'
-    : '36A64F';
+  const accentColor =
+    payload.severity === 'critical'
+      ? 'FF0000'
+      : payload.severity === 'high'
+        ? 'FF6600'
+        : payload.severity === 'medium'
+          ? 'FFAA00'
+          : '36A64F';
 
   const facts = [
     { name: 'Organization', value: payload.orgId },
@@ -224,36 +258,46 @@ function formatTeamsPayload(payload) {
   }
 
   if (payload.repository) {
-    facts.push({ name: 'Repository', value: `${payload.repository}${payload.branch ? '/' + payload.branch : ''}` });
+    facts.push({
+      name: 'Repository',
+      value: `${payload.repository}${payload.branch ? '/' + payload.branch : ''}`,
+    });
   }
 
   const card = {
     type: 'message',
-    attachments: [{
-      contentType: 'application/vnd.microsoft.card.adaptive',
-      content: {
-        type: 'AdaptiveCard',
-        $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
-        version: '1.4',
-        body: [
-          {
-            type: 'Container',
-            items: [
-              { type: 'TextBlock', text: `SimpleBeacon: ${payload.eventLabel}`, size: 'Large', weight: 'Bolder' },
-            ],
-            bleed: true,
-            style: accentColor === '36A64F' ? 'good' : 'attention',
-          },
-          {
-            type: 'FactSet',
-            facts,
-          },
-        ],
-        actions: payload.reportUrl ? [
-          { type: 'Action.OpenUrl', title: 'View Report', url: payload.reportUrl },
-        ] : [],
+    attachments: [
+      {
+        contentType: 'application/vnd.microsoft.card.adaptive',
+        content: {
+          type: 'AdaptiveCard',
+          $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
+          version: '1.4',
+          body: [
+            {
+              type: 'Container',
+              items: [
+                {
+                  type: 'TextBlock',
+                  text: `SimpleBeacon: ${payload.eventLabel}`,
+                  size: 'Large',
+                  weight: 'Bolder',
+                },
+              ],
+              bleed: true,
+              style: accentColor === '36A64F' ? 'good' : 'attention',
+            },
+            {
+              type: 'FactSet',
+              facts,
+            },
+          ],
+          actions: payload.reportUrl
+            ? [{ type: 'Action.OpenUrl', title: 'View Report', url: payload.reportUrl }]
+            : [],
+        },
       },
-    }],
+    ],
   };
 
   if (payload.summary) {
@@ -266,9 +310,12 @@ function formatTeamsPayload(payload) {
 
   if (payload.issues && payload.issues.length > 0) {
     const topIssues = payload.issues.slice(0, 5);
-    const issueText = topIssues.map(i =>
-      `**${i.severity || 'unknown'}** — ${i.description || i.message || i.type || 'Unknown issue'}${i.filePath ? ' (' + i.filePath + (i.line ? ':' + i.line : '') + ')' : ''}`
-    ).join('\n\n');
+    const issueText = topIssues
+      .map(
+        (i) =>
+          `**${i.severity || 'unknown'}** — ${i.description || i.message || i.type || 'Unknown issue'}${i.filePath ? ' (' + i.filePath + (i.line ? ':' + i.line : '') + ')' : ''}`
+      )
+      .join('\n\n');
     card.attachments[0].content.body.push({
       type: 'TextBlock',
       text: `**Top Issues:**\n\n${issueText}${payload.issues.length > 5 ? `\n\n_And ${payload.issues.length - 5} more..._` : ''}`,
@@ -318,10 +365,12 @@ async function sendJira(config, payload) {
       description: {
         type: 'doc',
         version: 1,
-        content: [{
-          type: 'paragraph',
-          content: [{ type: 'text', text: description }],
-        }],
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: description }],
+          },
+        ],
       },
       issuetype: { name: 'Task' },
       priority: { name: severityPriority[payload.severity] || 'Medium' },
@@ -330,7 +379,7 @@ async function sendJira(config, payload) {
   };
 
   const result = await httpsPostJson(jiraUrl, issueBody, {
-    'Authorization': `Basic ${auth}`,
+    Authorization: `Basic ${auth}`,
   });
 
   if (result.status !== 201) {
@@ -338,7 +387,11 @@ async function sendJira(config, payload) {
   }
 
   const created = typeof result.data === 'object' ? result.data : JSON.parse(result.data);
-  return { success: true, issueKey: created.key, issueUrl: `https://${host}/browse/${created.key}` };
+  return {
+    success: true,
+    issueKey: created.key,
+    issueUrl: `https://${host}/browse/${created.key}`,
+  };
 }
 
 function buildJiraDescription(payload) {
@@ -353,15 +406,27 @@ function buildJiraDescription(payload) {
 
   if (payload.summary) lines.push('', payload.summary);
   if (payload.issueCount > 0) {
-    lines.push('', 'Issue Summary:', `  Total: ${payload.issueCount}`, `  High: ${payload.highSeverityCount}`, `  Critical: ${payload.criticalSeverityCount}`);
+    lines.push(
+      '',
+      'Issue Summary:',
+      `  Total: ${payload.issueCount}`,
+      `  High: ${payload.highSeverityCount}`,
+      `  Critical: ${payload.criticalSeverityCount}`
+    );
   }
   if (payload.gateStatus) lines.push(`  Gate: ${payload.gateStatus}`);
-  if (payload.repository) lines.push('', `Repository: ${payload.repository}${payload.branch ? ' / ' + payload.branch : ''}`);
+  if (payload.repository)
+    lines.push(
+      '',
+      `Repository: ${payload.repository}${payload.branch ? ' / ' + payload.branch : ''}`
+    );
 
   if (payload.issues && payload.issues.length > 0) {
     lines.push('', 'Top Issues:');
-    payload.issues.slice(0, 10).forEach(i => {
-      lines.push(`  - [${i.severity || 'unknown'}] ${i.description || i.message || i.type}${i.filePath ? ' (' + i.filePath + (i.line ? ':' + i.line : '') + ')' : ''}`);
+    payload.issues.slice(0, 10).forEach((i) => {
+      lines.push(
+        `  - [${i.severity || 'unknown'}] ${i.description || i.message || i.type}${i.filePath ? ' (' + i.filePath + (i.line ? ':' + i.line : '') + ')' : ''}`
+      );
     });
     if (payload.issues.length > 10) lines.push(`  ... and ${payload.issues.length - 10} more`);
   }
@@ -388,11 +453,15 @@ async function sendGitHub(config, payload) {
   const commentBody = buildGitHubComment(payload);
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/issues/${prNumber}/comments`;
 
-  const result = await httpsPostJson(apiUrl, { body: commentBody }, {
-    'Authorization': `token ${token}`,
-    'Accept': 'application/vnd.github.v3+json',
-    'User-Agent': 'SimpleBeacon-Integration',
-  });
+  const result = await httpsPostJson(
+    apiUrl,
+    { body: commentBody },
+    {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'SimpleBeacon-Integration',
+    }
+  );
 
   if (result.status !== 201) {
     throw new Error(`GitHub PR comment failed: ${result.status} — ${result.data}`);
@@ -435,7 +504,7 @@ function buildGitHubComment(payload) {
     lines.push('', '### Top Issues', '');
     lines.push('| Severity | Issue | Location |');
     lines.push('|----------|-------|----------|');
-    payload.issues.slice(0, 10).forEach(i => {
+    payload.issues.slice(0, 10).forEach((i) => {
       const sev = i.severity || 'unknown';
       const desc = (i.description || i.message || i.type || 'Unknown').replace(/\|/g, '\\|');
       const loc = i.filePath ? `${i.filePath}${i.line ? ':' + i.line : ''}` : '—';
@@ -450,7 +519,11 @@ function buildGitHubComment(payload) {
     lines.push('', `📋 [View Full Report](${payload.reportUrl})`);
   }
 
-  lines.push('', '---', '_Powered by [SimpleBeacon](https://simplebeacon.ai) — AI-generated code compliance scanning_');
+  lines.push(
+    '',
+    '---',
+    '_Powered by [SimpleBeacon](https://simplebeacon.ai) — AI-generated code compliance scanning_'
+  );
 
   return lines.join('\n');
 }
@@ -472,7 +545,7 @@ async function dispatchEvent(event, context) {
   }
 
   const configs = integrationStore.getConfigsByOrgDecrypted(orgId);
-  const eligible = configs.filter(c => c.enabled && c.events.includes(event));
+  const eligible = configs.filter((c) => c.enabled && c.events.includes(event));
 
   if (eligible.length === 0) {
     return { dispatched: 0, results: [] };
@@ -484,7 +557,12 @@ async function dispatchEvent(event, context) {
   for (const config of eligible) {
     const adapter = ADAPTERS[config.type];
     if (!adapter) {
-      results.push({ configId: config.configId, type: config.type, success: false, error: 'No adapter' });
+      results.push({
+        configId: config.configId,
+        type: config.type,
+        success: false,
+        error: 'No adapter',
+      });
       continue;
     }
 
@@ -493,12 +571,19 @@ async function dispatchEvent(event, context) {
       results.push({ configId: config.configId, type: config.type, ...result });
       logger.info(`[Integrations] ${config.type} dispatch success for org ${orgId} event ${event}`);
     } catch (err) {
-      results.push({ configId: config.configId, type: config.type, success: false, error: err.message });
-      logger.error(`[Integrations] ${config.type} dispatch failed for org ${orgId}: ${err.message}`);
+      results.push({
+        configId: config.configId,
+        type: config.type,
+        success: false,
+        error: err.message,
+      });
+      logger.error(
+        `[Integrations] ${config.type} dispatch failed for org ${orgId}: ${err.message}`
+      );
     }
   }
 
-  return { dispatched: results.filter(r => r.success).length, results };
+  return { dispatched: results.filter((r) => r.success).length, results };
 }
 
 module.exports = {

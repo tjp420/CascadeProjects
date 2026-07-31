@@ -13,7 +13,7 @@ const leakedCredentials = {
   awsAccessKey: 'AKIAIOSFODNN7EXAMPLE',
   awsSecretKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
   databasePassword: 'RealProductionPassword123!',
-  apiToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.real.token.here'
+  apiToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.real.token.here',
 };
 
 function getCredentials() {

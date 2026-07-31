@@ -3,7 +3,11 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { collectZscriptFiles, parseZscriptFile, buildStructureReport } = require('../code-understanding/zscript-structure-analyzer.cjs');
+const {
+  collectZscriptFiles,
+  parseZscriptFile,
+  buildStructureReport,
+} = require('../code-understanding/zscript-structure-analyzer.cjs');
 
 describe('code-understanding/zscript-structure-analyzer', () => {
   test('exports expected functions', () => {

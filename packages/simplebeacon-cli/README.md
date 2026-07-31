@@ -16,12 +16,12 @@ Install guide: [simplebeacon.ai/community](https://simplebeacon.ai/community)
 
 AI-assisted edits frequently leave behind:
 
-| What slips in | Example | What breaks |
-|---------------|---------|-------------|
-| Fake metrics | `completion_rate: 98.5`, `user_count: 47` | Dashboards and reports show fiction |
-| Dummy URLs | `https://api.example.com/v1` | Production calls hit placeholders |
-| Mock paths in prod code | `web/data/status-sample.json` | App loads demo data at runtime |
-| Demo credentials | `sk-...`, `AKIA...` in source | Security incidents, failed audits |
+| What slips in           | Example                                   | What breaks                         |
+| ----------------------- | ----------------------------------------- | ----------------------------------- |
+| Fake metrics            | `completion_rate: 98.5`, `user_count: 47` | Dashboards and reports show fiction |
+| Dummy URLs              | `https://api.example.com/v1`              | Production calls hit placeholders   |
+| Mock paths in prod code | `web/data/status-sample.json`             | App loads demo data at runtime      |
+| Demo credentials        | `sk-...`, `AKIA...` in source             | Security incidents, failed audits   |
 
 Developers mean to replace these before merge. Simplebeacon catches what code review misses.
 
@@ -161,17 +161,17 @@ npx simplebeacon init --profile cascade    # ai-platform dashboard preset
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `simplebeacon init` | Create `.simplebeacon/config.json` and `baseline.json` |
-| `simplebeacon scan` | Scan project; `--gate` exits 1 on blocking issues |
-| `simplebeacon baseline sync` | Run Jest and write pass counts to baseline |
-| `simplebeacon comment` | Post PR comment from JSON report |
-| `simplebeacon assess` | Build customer assessment JSON from scan report |
-| `simplebeacon report` | Build client-facing markdown audit (`AUDIT_REPORT.md`) |
-| `simplebeacon compliance` | Evaluate corporate safety checklist from scan report |
-| `simplebeacon hook install` | Write pre-commit or pre-push hook (Husky or `.git/hooks`) |
-| `simplebeacon-mcp` | MCP stdio server for Cursor / Claude Desktop (local scan tools) |
+| Command                      | Description                                                     |
+| ---------------------------- | --------------------------------------------------------------- |
+| `simplebeacon init`          | Create `.simplebeacon/config.json` and `baseline.json`          |
+| `simplebeacon scan`          | Scan project; `--gate` exits 1 on blocking issues               |
+| `simplebeacon baseline sync` | Run Jest and write pass counts to baseline                      |
+| `simplebeacon comment`       | Post PR comment from JSON report                                |
+| `simplebeacon assess`        | Build customer assessment JSON from scan report                 |
+| `simplebeacon report`        | Build client-facing markdown audit (`AUDIT_REPORT.md`)          |
+| `simplebeacon compliance`    | Evaluate corporate safety checklist from scan report            |
+| `simplebeacon hook install`  | Write pre-commit or pre-push hook (Husky or `.git/hooks`)       |
+| `simplebeacon-mcp`           | MCP stdio server for Cursor / Claude Desktop (local scan tools) |
 
 ### MCP (IDE integration)
 
@@ -185,32 +185,32 @@ Tools: `scan_snippet`, `scan_file`, `gate_status`, `explain_finding`. See [docs/
 
 ### Scan flags
 
-| Flag | Description |
-|------|-------------|
-| `--path <dir>` | Project root (default: cwd) |
-| `--config <file>` | Config path |
-| `--format text\|json` | Output format |
-| `--output <file>` | Write report to file |
-| `--gate` | Fail when severities in `gate.failOn` are found |
-| `--fail-on high,medium` | Override gate severities |
-| `--with-jest` | Run tests and compare to baseline |
-| `--verbose` | Show config warnings and scan paths |
-| `--offline` | Fail if any outbound network activity occurs during the scan |
-| `--no-trust-banner` | Suppress read-only / local-only confirmation lines |
-| `--dry-run` | Preview `init` / `hook install` without writing files |
-| `--force` | Overwrite existing init files (backup created first) |
-| `--profile` | Force init profile |
+| Flag                    | Description                                                  |
+| ----------------------- | ------------------------------------------------------------ |
+| `--path <dir>`          | Project root (default: cwd)                                  |
+| `--config <file>`       | Config path                                                  |
+| `--format text\|json`   | Output format                                                |
+| `--output <file>`       | Write report to file                                         |
+| `--gate`                | Fail when severities in `gate.failOn` are found              |
+| `--fail-on high,medium` | Override gate severities                                     |
+| `--with-jest`           | Run tests and compare to baseline                            |
+| `--verbose`             | Show config warnings and scan paths                          |
+| `--offline`             | Fail if any outbound network activity occurs during the scan |
+| `--no-trust-banner`     | Suppress read-only / local-only confirmation lines           |
+| `--dry-run`             | Preview `init` / `hook install` without writing files        |
+| `--force`               | Overwrite existing init files (backup created first)         |
+| `--profile`             | Force init profile                                           |
 
 ## Rules
 
-| Rule | Severity | Detects |
-|------|----------|---------|
-| `credentials` | high/medium | AWS keys, JWT, GitHub PATs, OpenAI keys, private keys |
-| `json-schema` | high | Sample JSON violating page specs |
-| `sample-consistency` | high | Cross-file KPI drift vs baseline |
-| `roadmap` | medium | Legacy fiction roadmaps, oversized exports |
-| `production-leak` | high/medium | Mock/sample paths in production code |
-| `jest-baseline` | high | Jest pass count drift (optional, `--with-jest`) |
+| Rule                 | Severity    | Detects                                               |
+| -------------------- | ----------- | ----------------------------------------------------- |
+| `credentials`        | high/medium | AWS keys, JWT, GitHub PATs, OpenAI keys, private keys |
+| `json-schema`        | high        | Sample JSON violating page specs                      |
+| `sample-consistency` | high        | Cross-file KPI drift vs baseline                      |
+| `roadmap`            | medium      | Legacy fiction roadmaps, oversized exports            |
+| `production-leak`    | high/medium | Mock/sample paths in production code                  |
+| `jest-baseline`      | high        | Jest pass count drift (optional, `--with-jest`)       |
 
 See [docs/RULES.md](docs/RULES.md) and [docs/CONFIG.md](docs/CONFIG.md).
 

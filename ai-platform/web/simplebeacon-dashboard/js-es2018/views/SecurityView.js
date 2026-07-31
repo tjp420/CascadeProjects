@@ -1,18 +1,40 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState } from '../utils.js';
-import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
+import {
+  escapeHtml,
+  showToast,
+  downloadJson,
+  redactPathForDisplay,
+  formatNumber,
+  renderEmptyState,
+} from '../utils.js';
+import {
+  extractSecurityFindings,
+  buildSecuritySummary,
+  buildSecurityExportPayload,
+  fetchComplianceHeadline,
+} from '../services/securityService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 
 const SEVERITY_COLORS = {
-    critical: { bg: 'rgba(239,68,68,0.12)', bar: 'var(--danger)', text: 'var(--danger)', icon: '🔴' },
-    high: { bg: 'rgba(239,68,68,0.08)', bar: 'var(--danger)', text: 'var(--danger)', icon: '🟠' },
-    medium: { bg: 'rgba(245,158,11,0.10)', bar: 'var(--warning)', text: 'var(--warning)', icon: '🟡' },
-    low: { bg: 'rgba(148,163,184,0.10)', bar: 'var(--text-muted)', text: 'var(--text-muted)', icon: '⚪' }
+  critical: { bg: 'rgba(239,68,68,0.12)', bar: 'var(--danger)', text: 'var(--danger)', icon: '🔴' },
+  high: { bg: 'rgba(239,68,68,0.08)', bar: 'var(--danger)', text: 'var(--danger)', icon: '🟠' },
+  medium: {
+    bg: 'rgba(245,158,11,0.10)',
+    bar: 'var(--warning)',
+    text: 'var(--warning)',
+    icon: '🟡',
+  },
+  low: {
+    bg: 'rgba(148,163,184,0.10)',
+    bar: 'var(--text-muted)',
+    text: 'var(--text-muted)',
+    icon: '⚪',
+  },
 };
 
 function severityBar(label, count, total, config) {
-    const pct = total > 0 ? Math.min(100, (count / total) * 100) : 0;
-    return `
+  const pct = total > 0 ? Math.min(100, (count / total) * 100) : 0;
+  return `
       <div style="display:flex;align-items:center;gap:var(--space-3);">
         <div style="width:72px;font-size:var(--font-size-xs);font-weight:600;color:${config.text};">${escapeHtml(label)}</div>
         <div style="flex:1;height:6px;background:var(--border);border-radius:var(--radius-full);overflow:hidden;">
@@ -23,7 +45,7 @@ function severityBar(label, count, total, config) {
 }
 
 function statCard(icon, label, value, accentBg) {
-    return `
+  return `
       <div class="card" style="padding:var(--space-5);display:flex;align-items:center;gap:var(--space-4);transition:transform var(--transition),box-shadow var(--transition);">
         <div style="width:44px;height:44px;border-radius:var(--radius-md);background:${accentBg};display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;">${icon}</div>
         <div style="min-width:0;">
@@ -37,36 +59,37 @@ function statCard(icon, label, value, accentBg) {
  * Security view.
  */
 export class SecurityView {
-    constructor(app) {
-        this.app = app;
-        this.scanning = false;
-        this.loading = true;
-        this.error = null;
-        this.compliance = null;
-        this._container = null;
+  constructor(app) {
+    this.app = app;
+    this.scanning = false;
+    this.loading = true;
+    this.error = null;
+    this.compliance = null;
+    this._container = null;
+  }
+  getReport() {
+    return this.app.state.report;
+  }
+  getFindings() {
+    return extractSecurityFindings(this.getReport());
+  }
+  getSummary() {
+    return buildSecuritySummary(this.getReport(), this.getFindings());
+  }
+  renderFindingsTable(findings) {
+    if (!findings.length) {
+      return renderEmptyState({
+        icon: '🛡️',
+        title: 'No security findings',
+        body: 'Credential and production-leak rules reported clean on the last scan.',
+        iconWrapper: 'emoji',
+      });
     }
-    getReport() {
-        return this.app.state.report;
-    }
-    getFindings() {
-        return extractSecurityFindings(this.getReport());
-    }
-    getSummary() {
-        return buildSecuritySummary(this.getReport(), this.getFindings());
-    }
-    renderFindingsTable(findings) {
-        if (!findings.length) {
-            return renderEmptyState({
-                icon: '🛡️',
-                title: 'No security findings',
-                body: 'Credential and production-leak rules reported clean on the last scan.',
-                iconWrapper: 'emoji'
-            });
-        }
-        const rows = findings.map((finding) => {
-            const sev = String(finding.severity || 'medium').toLowerCase();
-            const cfg = SEVERITY_COLORS[sev] || SEVERITY_COLORS.medium;
-            return `
+    const rows = findings
+      .map((finding) => {
+        const sev = String(finding.severity || 'medium').toLowerCase();
+        const cfg = SEVERITY_COLORS[sev] || SEVERITY_COLORS.medium;
+        return `
               <tr style="transition:background var(--transition);">
                 <td><span style="display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-1) var(--space-3);border-radius:var(--radius-full);font-size:var(--font-size-xs);font-weight:600;background:${cfg.bg};color:${cfg.text};">${cfg.icon} ${escapeHtml(finding.severity)}</span></td>
                 <td><span style="font-size:var(--font-size-xs);font-weight:600;color:var(--text-secondary);">${escapeHtml(finding.type)}</span></td>
@@ -74,8 +97,9 @@ export class SecurityView {
                 <td style="font-size:var(--font-size-sm);color:var(--text-primary);">${escapeHtml(finding.description || '—')}</td>
                 <td style="font-size:var(--font-size-sm);color:var(--text-muted);">${escapeHtml(finding.recommendation || '—')}</td>
               </tr>`;
-        }).join('');
-        return `
+      })
+      .join('');
+    return `
       <div class="card" style="padding:0;overflow:hidden;border-radius:var(--radius-lg);">
         <div class="table-scroll-wrapper">
         <table class="results-table">
@@ -95,45 +119,49 @@ export class SecurityView {
         </div>
       </div>
     `;
-    }
-    render() {
-        var _a, _b, _c, _d, _e, _f;
-        const el = document.createElement('div');
-        el.className = 'fade-in';
-        if (this.loading && !this.getReport()) {
-            el.innerHTML = `
+  }
+  render() {
+    var _a, _b, _c, _d, _e, _f;
+    const el = document.createElement('div');
+    el.className = 'fade-in';
+    if (this.loading && !this.getReport()) {
+      el.innerHTML = `
         <div style="padding:var(--space-10) var(--space-6);text-align:center;">
           <div style="width:56px;height:56px;margin:0 auto var(--space-4);border-radius:var(--radius-lg);background:var(--primary-subtle);display:flex;align-items:center;justify-content:center;font-size:1.75rem;">🛡️</div>
           <h1 class="page-title" style="margin-bottom:var(--space-2);">Security Scanner</h1>
           <p class="text-muted" style="margin-bottom:var(--space-6);">Loading security findings…</p>
           <div class="loading-spinner" style="width:32px;height:32px;margin:0 auto;"></div>
         </div>`;
-            return el;
-        }
-        if (this.error && !this.getReport()) {
-            el.innerHTML = `
+      return el;
+    }
+    if (this.error && !this.getReport()) {
+      el.innerHTML = `
         <div style="padding:var(--space-10) var(--space-6);text-align:center;">
           <div style="width:56px;height:56px;margin:0 auto var(--space-4);border-radius:var(--radius-lg);background:var(--danger-bg);display:flex;align-items:center;justify-content:center;font-size:1.75rem;">⚠️</div>
           <h1 class="page-title" style="margin-bottom:var(--space-2);">Security Scanner</h1>
           <p class="text-muted" style="margin-bottom:var(--space-6);">${escapeHtml(this.error)}</p>
           <button class="btn btn-primary" id="security-retry" type="button">Retry</button>
         </div>`;
-            (_a = el.querySelector('#security-retry')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => this.loadReport(this._container));
-            return el;
-        }
-        const _report = this.getReport();
-        const findings = this.getFindings();
-        const summary = this.getSummary();
-        const gateLabel = summary.gatePass ? 'PASS' : summary.gatePass === false ? 'REVIEW' : '—';
-        const gateColor = summary.gatePass ? 'var(--success)' : 'var(--danger)';
-        const gateBg = summary.gatePass ? 'var(--success-bg)' : 'var(--danger-bg)';
-        const gateIcon = summary.gatePass ? '✅' : summary.gatePass === false ? '⚠️' : '❓';
-        const lastScan = summary.generatedAt
-            ? new Date(summary.generatedAt).toLocaleString()
-            : 'Never';
-        const complianceScore = (_c = (_b = this.compliance) === null || _b === void 0 ? void 0 : _b.securityScore) !== null && _c !== void 0 ? _c : null;
-        const totalScanned = (summary.credentialScanned || 0) + (summary.productionLeakScanned || 0);
-        el.innerHTML = `
+      (_a = el.querySelector('#security-retry')) === null || _a === void 0
+        ? void 0
+        : _a.addEventListener('click', () => this.loadReport(this._container));
+      return el;
+    }
+    const _report = this.getReport();
+    const findings = this.getFindings();
+    const summary = this.getSummary();
+    const gateLabel = summary.gatePass ? 'PASS' : summary.gatePass === false ? 'REVIEW' : '—';
+    const gateColor = summary.gatePass ? 'var(--success)' : 'var(--danger)';
+    const gateBg = summary.gatePass ? 'var(--success-bg)' : 'var(--danger-bg)';
+    const gateIcon = summary.gatePass ? '✅' : summary.gatePass === false ? '⚠️' : '❓';
+    const lastScan = summary.generatedAt ? new Date(summary.generatedAt).toLocaleString() : 'Never';
+    const complianceScore =
+      (_c = (_b = this.compliance) === null || _b === void 0 ? void 0 : _b.securityScore) !==
+        null && _c !== void 0
+        ? _c
+        : null;
+    const totalScanned = (summary.credentialScanned || 0) + (summary.productionLeakScanned || 0);
+    el.innerHTML = `
       <!-- Hero -->
       <div style="margin-bottom:var(--space-8);">
         <div style="display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-2);">
@@ -162,12 +190,16 @@ export class SecurityView {
         </div>
       </div>
 
-      ${this.scanning ? `
+      ${
+        this.scanning
+          ? `
         <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-6);display:flex;align-items:center;gap:var(--space-3);border-left:3px solid var(--primary);">
           <span class="loading-spinner" style="width:16px;height:16px;flex-shrink:0;"></span>
           <span style="font-size:var(--font-size-sm);color:var(--text-secondary);">Running Simplebeacon scan — credential + production-leak rules…</span>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
 
       <!-- Gate status banner -->
       <div class="card" style="padding:var(--space-5) var(--space-6);margin-bottom:var(--space-6);background:${gateBg};border:1px solid ${gateColor}33;display:flex;align-items:center;gap:var(--space-5);flex-wrap:wrap;">
@@ -223,133 +255,147 @@ export class SecurityView {
         ${this.renderFindingsTable(findings)}
       </div>
     `;
-        (_d = el.querySelector('#security-run-scan')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.runScan(this._container));
-        (_e = el.querySelector('#security-export-json')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.exportResults());
-        (_f = el.querySelector('#security-send-ai-btn')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', async () => {
-            var _a, _b;
-            const report = this.getReport();
-            const findings = this.getFindings();
-            if (!findings.length) {
-                showToast('No security findings to send', 'error');
-                return;
-            }
-            const summary = this.getSummary();
-            const payload = {
-                projectPath: (report === null || report === void 0 ? void 0 : report.projectRoot) || (report === null || report === void 0 ? void 0 : report.projectPath) || window.location.origin,
-                reportType: 'security-scan',
-                reportSummary: {
-                    totalFindings: summary.totalFindings,
-                    credentialCount: summary.credentialCount,
-                    productionLeakCount: summary.productionLeakCount,
-                    complianceScore: (_b = (_a = this.compliance) === null || _a === void 0 ? void 0 : _a.securityScore) !== null && _b !== void 0 ? _b : 'N/A'
-                },
-                notes: 'Security Scanner findings — credential patterns and production leaks'
-            };
-            const vscode = getVsCodeApi();
-            if (vscode) {
-                try {
-                    vscode.postMessage({ command: 'sendToAI', data: payload });
-                    showToast('Security findings sent to AI agent', 'success');
-                    return;
-                }
-                catch (err) {
-                    window["console"]["warn"]('[Security-AI] vscode.postMessage failed:', err);
-                } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
-            }
+    (_d = el.querySelector('#security-run-scan')) === null || _d === void 0
+      ? void 0
+      : _d.addEventListener('click', () => this.runScan(this._container));
+    (_e = el.querySelector('#security-export-json')) === null || _e === void 0
+      ? void 0
+      : _e.addEventListener('click', () => this.exportResults());
+    (_f = el.querySelector('#security-send-ai-btn')) === null || _f === void 0
+      ? void 0
+      : _f.addEventListener('click', async () => {
+          var _a, _b;
+          const report = this.getReport();
+          const findings = this.getFindings();
+          if (!findings.length) {
+            showToast('No security findings to send', 'error');
+            return;
+          }
+          const summary = this.getSummary();
+          const payload = {
+            projectPath:
+              (report === null || report === void 0 ? void 0 : report.projectRoot) ||
+              (report === null || report === void 0 ? void 0 : report.projectPath) ||
+              window.location.origin,
+            reportType: 'security-scan',
+            reportSummary: {
+              totalFindings: summary.totalFindings,
+              credentialCount: summary.credentialCount,
+              productionLeakCount: summary.productionLeakCount,
+              complianceScore:
+                (_b =
+                  (_a = this.compliance) === null || _a === void 0 ? void 0 : _a.securityScore) !==
+                  null && _b !== void 0
+                  ? _b
+                  : 'N/A',
+            },
+            notes: 'Security Scanner findings — credential patterns and production leaks',
+          };
+          const vscode = getVsCodeApi();
+          if (vscode) {
             try {
-                const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                const json = await res.json();
-                if (json.success && json.content) {
-                    await navigator.clipboard.writeText(json.content);
-                    showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
-                }
-                else {
-                    showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
-                }
+              vscode.postMessage({ command: 'sendToAI', data: payload });
+              showToast('Security findings sent to AI agent', 'success');
+              return;
+            } catch (err) {
+              window['console']['warn']('[Security-AI] vscode.postMessage failed:', err);
+            } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+          }
+          try {
+            const res = await fetch('/api/ai-context', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            const json = await res.json();
+            if (json.success && json.content) {
+              await navigator.clipboard.writeText(json.content);
+              showToast(
+                'Copied to clipboard — paste into your AI coding agent with Ctrl+V',
+                'success'
+              );
+            } else {
+              showToast(
+                'AI context saved. Mention @.simplebeacon/ai-context.md in chat.',
+                'success'
+              );
             }
-            catch (err) {
-                showToast('Failed to send: ' + err.message, 'error');
-            }
+          } catch (err) {
+            showToast('Failed to send: ' + err.message, 'error');
+          }
         });
-        return el;
+    return el;
+  }
+  exportResults() {
+    const report = this.getReport();
+    const findings = this.getFindings();
+    if (!findings.length) {
+      showToast('No security findings to export', 'info');
+      return;
     }
-    exportResults() {
-        const report = this.getReport();
-        const findings = this.getFindings();
-        if (!findings.length) {
-            showToast('No security findings to export', 'info');
-            return;
-        }
-        const payload = buildSecurityExportPayload(report, findings, this.compliance);
-        downloadJson(payload, `security-scan-${new Date().toISOString().slice(0, 10)}.json`);
-        showToast('Security scan JSON downloaded', 'success');
+    const payload = buildSecurityExportPayload(report, findings, this.compliance);
+    downloadJson(payload, `security-scan-${new Date().toISOString().slice(0, 10)}.json`);
+    showToast('Security scan JSON downloaded', 'success');
+  }
+  paint(container = this._container) {
+    if (!container) return;
+    this._container = container;
+    window.setSafeHTML(container, '');
+    container.appendChild(this.render());
+  }
+  async runScan(container) {
+    if (this.scanning) return;
+    this.scanning = true;
+    this.error = null;
+    this.paint(container);
+    try {
+      await this.app.runScan();
+      showToast('Security scan complete', 'success');
+    } catch (err) {
+      this.error = err.message;
+      showToast(err.message, 'error');
+    } finally {
+      this.scanning = false;
+      this.loading = false;
+      this.paint(container);
     }
-    paint(container = this._container) {
-        if (!container)
-            return;
-        this._container = container;
-        window.setSafeHTML(container, '');
-        container.appendChild(this.render());
+  }
+  async loadReport(container) {
+    this._container = container;
+    this.loading = true;
+    this.error = null;
+    this.paint(container);
+    try {
+      if (!this.getReport()) {
+        await this.app.scanService.fetchReport();
+        this.app.state.report = this.app.scanService.report;
+      }
+    } catch (err) {
+      this.error = err.message;
+    } finally {
+      this.loading = false;
+      this.paint(container);
     }
-    async runScan(container) {
-        if (this.scanning)
-            return;
-        this.scanning = true;
-        this.error = null;
-        this.paint(container);
-        try {
-            await this.app.runScan();
-            showToast('Security scan complete', 'success');
-        }
-        catch (err) {
-            this.error = err.message;
-            showToast(err.message, 'error');
-        }
-        finally {
-            this.scanning = false;
-            this.loading = false;
-            this.paint(container);
-        }
+  }
+  async loadCompliance() {
+    try {
+      this.compliance = await fetchComplianceHeadline();
+    } catch (_a) {
+      this.compliance = null;
     }
-    async loadReport(container) {
-        this._container = container;
-        this.loading = true;
-        this.error = null;
-        this.paint(container);
-        try {
-            if (!this.getReport()) {
-                await this.app.scanService.fetchReport();
-                this.app.state.report = this.app.scanService.report;
-            }
-        }
-        catch (err) {
-            this.error = err.message;
-        }
-        finally {
-            this.loading = false;
-            this.paint(container);
-        }
+    if (this._container && this.app.currentView === this) {
+      this.paint(this._container);
     }
-    async loadCompliance() {
-        try {
-            this.compliance = await fetchComplianceHeadline();
-        }
-        catch (_a) {
-            this.compliance = null;
-        }
-        if (this._container && this.app.currentView === this) {
-            this.paint(this._container);
-        }
+  }
+  mount(container) {
+    this._container = container;
+    if (this.getReport()) {
+      this.loading = false;
+      this.paint(container);
+      void this.loadCompliance();
+      return;
     }
-    mount(container) {
-        this._container = container;
-        if (this.getReport()) {
-            this.loading = false;
-            this.paint(container);
-            void this.loadCompliance();
-            return;
-        }
-        void this.loadReport(container);
-        void this.loadCompliance();
-    }
+    void this.loadReport(container);
+    void this.loadCompliance();
+  }
 }

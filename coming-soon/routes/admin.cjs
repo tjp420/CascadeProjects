@@ -9,17 +9,16 @@ const express = require('express');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
-const {
-    getAdminToken,
-    createAdminToken,
-    verifyAdminToken,
-    getAdminLogs
-} = require('../lib/admin-token.cjs');
+const { getAdminToken, createAdminToken, verifyAdminToken, getAdminLogs } = require('../lib/admin-token.cjs');
 const systemLogger = require('../lib/system-logger.cjs');
 const db = require('../lib/db.cjs');
 
 let stripe = null;
-try { stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); } catch { stripe = null; }
+try {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || '');
+} catch {
+    stripe = null;
+}
 
 const secret = process.env.SIMPLEBEACON_LICENSE_SECRET;
 if (!secret) {
@@ -45,7 +44,14 @@ function isDashboardAdmin(payload) {
     if (email === 'admin@simplebeacon.ai') return true;
     if (role === 'admin' || role === 'superuser') return true;
     if (tier === 'admin' || tier === 'superuser') return true;
-    if (Array.isArray(payload.features) && payload.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
+    if (
+        Array.isArray(payload.features) &&
+        payload.features
+            .map(String)
+            .map(s => s.toLowerCase())
+            .includes('all_modules')
+    )
+        return true;
     return false;
 }
 
@@ -105,7 +111,9 @@ function mapDashboardUser(row) {
     try {
         const demoPath = require('path').join(__dirname, '../../ai-platform/server/db/demo-users.json');
         const demoUsers = require(demoPath);
-        const match = Array.isArray(demoUsers) ? demoUsers.find(u => String(u.email).toLowerCase() === email.toLowerCase()) : null;
+        const match = Array.isArray(demoUsers)
+            ? demoUsers.find(u => String(u.email).toLowerCase() === email.toLowerCase())
+            : null;
         if (match?.name) name = match.name;
     } catch {
         // demo names optional
@@ -161,7 +169,10 @@ router.post('/api/admin/token/create', express.json(), (req, res) => {
 router.post('/api/admin/token/status', express.json(), (req, res) => {
     const token = getAdminToken();
     if (!token) {
-        return res.json({ exists: false, message: 'No admin token found. Create one via POST /api/admin/token/create' });
+        return res.json({
+            exists: false,
+            message: 'No admin token found. Create one via POST /api/admin/token/create'
+        });
     }
     const payload = verifyAdminToken(token, secret);
     if (!payload) {
@@ -277,7 +288,11 @@ router.get('/api/admin/tokens', requireAdmin, (req, res) => {
         for (const token of tokens) {
             // Violation 1: expired but still active
             if (token.expiresAt && new Date(token.expiresAt).getTime() < now && token.status === 'active') {
-                token.violations.push({ type: 'expired_active', severity: 'high', message: 'Token expired but still marked active' });
+                token.violations.push({
+                    type: 'expired_active',
+                    severity: 'high',
+                    message: 'Token expired but still marked active'
+                });
             }
             // Violation 2: revoked but used recently (check logs)
             if (token.status === 'revoked') {
@@ -309,9 +324,9 @@ router.get('/api/admin/violations', requireAdmin, (req, res) => {
 
         // 1. Expired tokens still active in chain registry
         const dbInstance = db.getDb();
-        const expiredActive = dbInstance.prepare(
-            "SELECT * FROM token_nodes WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at < ?"
-        ).all(new Date().toISOString());
+        const expiredActive = dbInstance
+            .prepare("SELECT * FROM token_nodes WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at < ?")
+            .all(new Date().toISOString());
         for (const node of expiredActive) {
             violations.push({
                 id: 'exp-' + node.id,
@@ -398,11 +413,19 @@ router.get('/api/admin/stats', requireAdmin, (req, res) => {
     try {
         const dbInstance = db.getDb();
         const totalTokens = dbInstance.prepare('SELECT COUNT(*) as count FROM token_nodes').get();
-        const activeTokens = dbInstance.prepare("SELECT COUNT(*) as count FROM token_nodes WHERE status = 'active'").get();
-        const expiredTokens = dbInstance.prepare("SELECT COUNT(*) as count FROM token_nodes WHERE status = 'expired'").get();
-        const revokedTokens = dbInstance.prepare("SELECT COUNT(*) as count FROM token_nodes WHERE status = 'revoked'").get();
+        const activeTokens = dbInstance
+            .prepare("SELECT COUNT(*) as count FROM token_nodes WHERE status = 'active'")
+            .get();
+        const expiredTokens = dbInstance
+            .prepare("SELECT COUNT(*) as count FROM token_nodes WHERE status = 'expired'")
+            .get();
+        const revokedTokens = dbInstance
+            .prepare("SELECT COUNT(*) as count FROM token_nodes WHERE status = 'revoked'")
+            .get();
         const totalCustomers = dbInstance.prepare('SELECT COUNT(*) as count FROM customers').get();
-        const activeSubs = dbInstance.prepare("SELECT COUNT(*) as count FROM paid_subscriptions WHERE status = 'active'").get();
+        const activeSubs = dbInstance
+            .prepare("SELECT COUNT(*) as count FROM paid_subscriptions WHERE status = 'active'")
+            .get();
 
         res.json({
             success: true,
@@ -473,7 +496,7 @@ router.get('/api/admin/users', requireAdmin, (req, res) => {
 
         // Add customers that aren't present in users table (e.g., created via checkout)
         const merged = [...(users || [])];
-        for (const c of (customers || [])) {
+        for (const c of customers || []) {
             const email = String(c.email || '').toLowerCase();
             if (!email) continue;
             if (!userEmails.has(email)) {
@@ -524,7 +547,13 @@ router.post('/api/admin/users/:id/trust-level', requireAdmin, express.json(), as
         const subTier = subscriptionTier || trustLevelToTier(trustLevel);
         const subStatus = subscriptionStatus || 'active';
         db.updateCustomerSubscription(user.email, subStatus, subTier);
-        systemLogger.logTokenOp('user_tier_updated', { userId: id, trustLevel, subscriptionTier: subTier, subscriptionStatus: subStatus, admin: req.adminPayload.email });
+        systemLogger.logTokenOp('user_tier_updated', {
+            userId: id,
+            trustLevel,
+            subscriptionTier: subTier,
+            subscriptionStatus: subStatus,
+            admin: req.adminPayload.email
+        });
         res.json({ success: true, id, trustLevel, subscriptionTier: subTier, subscriptionStatus: subStatus });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -599,14 +628,19 @@ router.post('/api/admin/users/:id/details', requireAdmin, express.json(), async 
     try {
         const { id } = req.params;
         const { name, email, password } = req.body || {};
-        if (!password) return res.status(400).json({ success: false, error: 'Admin password required to update email' });
+        if (!password)
+            return res.status(400).json({ success: false, error: 'Admin password required to update email' });
         const adminEmail = req.adminPayload?.email;
         const passwordValid = await verifyAdminPassword(adminEmail, password);
         if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
-        if (!email || !email.includes('@')) return res.status(400).json({ success: false, error: 'Valid email required' });
+        if (!email || !email.includes('@'))
+            return res.status(400).json({ success: false, error: 'Valid email required' });
         const user = db.getUserById(id);
         if (!user) return res.status(404).json({ success: false, error: 'User not found' });
-        if (String(user.email || '').toLowerCase() === 'admin@simplebeacon.ai' && String(email).toLowerCase() !== 'admin@simplebeacon.ai') {
+        if (
+            String(user.email || '').toLowerCase() === 'admin@simplebeacon.ai' &&
+            String(email).toLowerCase() !== 'admin@simplebeacon.ai'
+        ) {
             return res.status(403).json({ success: false, error: 'Cannot change the primary admin email' });
         }
         const oldEmail = user.email;
@@ -614,11 +648,23 @@ router.post('/api/admin/users/:id/details', requireAdmin, express.json(), async 
         if (!result.success) return res.status(400).json({ success: false, error: result.error });
         db.updateCustomerSubscription(email, 'active', user.tier || 'community');
         if (oldEmail !== email.toLowerCase()) {
-            db.getDb().prepare('UPDATE customers SET email = ? WHERE email = ?').run(email.trim().toLowerCase(), oldEmail);
-            db.getDb().prepare('UPDATE paid_subscriptions SET customer_email = ? WHERE customer_email = ?').run(email.trim().toLowerCase(), oldEmail);
-            db.getDb().prepare('UPDATE refunds SET customer_email = ? WHERE customer_email = ?').run(email.trim().toLowerCase(), oldEmail);
+            db.getDb()
+                .prepare('UPDATE customers SET email = ? WHERE email = ?')
+                .run(email.trim().toLowerCase(), oldEmail);
+            db.getDb()
+                .prepare('UPDATE paid_subscriptions SET customer_email = ? WHERE customer_email = ?')
+                .run(email.trim().toLowerCase(), oldEmail);
+            db.getDb()
+                .prepare('UPDATE refunds SET customer_email = ? WHERE customer_email = ?')
+                .run(email.trim().toLowerCase(), oldEmail);
         }
-        systemLogger.logTokenOp('user_details_updated', { userId: id, oldEmail, newEmail: email, name, admin: req.adminPayload.email });
+        systemLogger.logTokenOp('user_details_updated', {
+            userId: id,
+            oldEmail,
+            newEmail: email,
+            name,
+            admin: req.adminPayload.email
+        });
         res.json({ success: true, id, name, email });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
@@ -656,7 +702,9 @@ router.post('/api/admin/customers/:email/refund', requireAdmin, express.json(), 
             db.updatePaidSubscriptionToRefunded(stripeSubscriptionId, reason || 'Manual admin refund');
             refundedSubs.push(stripeSubscriptionId);
         } else {
-            const subs = db.getAllPaidSubscriptions().filter(s => s.customer_email === email.trim().toLowerCase() && s.status === 'active');
+            const subs = db
+                .getAllPaidSubscriptions()
+                .filter(s => s.customer_email === email.trim().toLowerCase() && s.status === 'active');
             for (const sub of subs) {
                 const sr = await stripeRefundSubscription(sub.stripe_subscription_id, reason || 'Manual admin refund');
                 if (!stripeResult) stripeResult = sr;
@@ -665,7 +713,13 @@ router.post('/api/admin/customers/:email/refund', requireAdmin, express.json(), 
             }
             db.updateCustomerSubscription(email, 'refunded', 'community');
         }
-        systemLogger.logTokenOp('customer_refunded', { email, stripeSubscriptionId, refundedCount: refundedSubs.length, stripeUsed: stripeResult?.stripeUsed, admin: req.adminPayload.email });
+        systemLogger.logTokenOp('customer_refunded', {
+            email,
+            stripeSubscriptionId,
+            refundedCount: refundedSubs.length,
+            stripeUsed: stripeResult?.stripeUsed,
+            admin: req.adminPayload.email
+        });
         res.json({ success: true, message: 'Refund processed', refundedCount: refundedSubs.length, stripeResult });
     } catch (err) {
         res.status(500).json({ success: false, error: 'Failed to process refund', detail: err.message });

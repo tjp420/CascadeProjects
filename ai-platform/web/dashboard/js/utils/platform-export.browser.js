@@ -11,7 +11,7 @@ import {
   sanitizeCoverageExport,
   sanitizeSecurityExport,
   sanitizeQualityExport,
-  normalizeSimpleBeaconBranding
+  normalizeSimpleBeaconBranding,
 } from './quality-export.browser.js?v=20260716cachefix1';
 
 /**
@@ -21,7 +21,9 @@ import {
  */
 function parseNumeric(value) {
   if (value == null) return null;
-  const match = String(value).replace(/,/g, '').match(/-?\d+(?:\.\d+)?/);
+  const match = String(value)
+    .replace(/,/g, '')
+    .match(/-?\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : null;
 }
 
@@ -73,8 +75,9 @@ function projectLabelFromPath(projectPath) {
  * @returns {any}
  */
 function resolveCanonicalJestLabel(baseline, dashboardHome, coverage) {
-  const coverageLabel = coverage?.jestTestsLabel
-    || (coverage?.passedTests != null && coverage?.totalTests != null
+  const coverageLabel =
+    coverage?.jestTestsLabel ||
+    (coverage?.passedTests != null && coverage?.totalTests != null
       ? `${coverage.passedTests}/${coverage.totalTests}`
       : null);
   const baselineLabel = resolveJestTestsLabel(baseline, dashboardHome);
@@ -97,8 +100,10 @@ function resolveCanonicalJestLabel(baseline, dashboardHome, coverage) {
  */
 function isBenchmarkPlatformExport(report, projectPath) {
   const path = String(report?.projectRoot || projectPath || '').replace(/\\/g, '/');
-  return Boolean(report?.benchmarkScan || report?.scanTargetProfile === 'benchmark-cache')
-    || /\/github-cache\//i.test(path);
+  return (
+    Boolean(report?.benchmarkScan || report?.scanTargetProfile === 'benchmark-cache') ||
+    /\/github-cache\//i.test(path)
+  );
 }
 
 /**
@@ -142,9 +147,10 @@ function dedupeExportNotes(notes = []) {
  * @returns {any}
  */
 function resolvePageSpecsLabel(report, baseline, benchmarkScan = false) {
-  const reportLabel = report?.pageSampleSchemaChecked != null
-    ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
-    : null;
+  const reportLabel =
+    report?.pageSampleSchemaChecked != null
+      ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
+      : null;
   const baselineLabel = baseline?.pageSamplesLabel ?? null;
   if (benchmarkScan && baselineLabel && (!reportLabel || reportLabel === '0/0')) {
     return baselineLabel;
@@ -162,9 +168,10 @@ function resolvePageSpecsLabel(report, baseline, benchmarkScan = false) {
  */
 function buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan) {
   if (!pageSpecsLabel || pageSpecsLabel === '0/0') return null;
-  const reportLabel = report?.pageSampleSchemaChecked != null
-    ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
-    : null;
+  const reportLabel =
+    report?.pageSampleSchemaChecked != null
+      ? `${report.pageSampleSchemaPassed ?? 0}/${report.pageSampleSchemaChecked}`
+      : null;
   const baselineLabel = baseline?.pageSamplesLabel ?? null;
   if (benchmarkScan && reportLabel === '0/0' && baselineLabel) {
     return `Page sample schema not evaluated on OSS clone — summary uses repository baseline (${pageSpecsLabel}).`;
@@ -182,12 +189,16 @@ function buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan) {
  * @param {Object} options
  * @returns {any}
  */
-export function sanitizeReportForPlatformExport(report, projectLabel = 'ai-platform', options = {}) {
+export function sanitizeReportForPlatformExport(
+  report,
+  projectLabel = 'ai-platform',
+  options = {}
+) {
   if (!report) return null;
   const sanitized = sanitizeSimplebeaconReportExport(report, {
     projectPath: report.projectRoot || report.platformRoot,
     exportFilename: options.exportFilename,
-    ...options
+    ...options,
   });
   const next = { ...sanitized };
   if (next.llmSlopScanReconciled && next.llmSlopScanRaw != null) {
@@ -207,12 +218,15 @@ export function sanitizeReportForPlatformExport(report, projectLabel = 'ai-platf
       : {}),
     ...(next.repositoryInventory
       ? {
-        repositoryInventory: {
-          ...next.repositoryInventory,
-          projectRoot: redactProjectPathForExport(next.repositoryInventory.projectRoot, projectLabel)
+          repositoryInventory: {
+            ...next.repositoryInventory,
+            projectRoot: redactProjectPathForExport(
+              next.repositoryInventory.projectRoot,
+              projectLabel
+            ),
+          },
         }
-      }
-      : {})
+      : {}),
   };
 }
 
@@ -239,25 +253,30 @@ function sanitizeDashboardHomeExport(dashboardHome, context = {}) {
         totalFilesRaw: platformFiles,
         totalFilesNote: context.benchmarkScan
           ? `Dashboard home counted ${Number(platformFiles).toLocaleString('en-US')} files — export uses gate inventory ${Number(repoTotal).toLocaleString('en-US')} on benchmark clone.`
-          : `Dashboard home counted ${Number(platformFiles).toLocaleString('en-US')} files — export uses gate inventory ${Number(repoTotal).toLocaleString('en-US')} from latest scan.`
+          : `Dashboard home counted ${Number(platformFiles).toLocaleString('en-US')} files — export uses gate inventory ${Number(repoTotal).toLocaleString('en-US')} from latest scan.`,
       };
     }
-    if (pageSpecsLabel && overview.pageSamplesLabel && overview.pageSamplesLabel !== pageSpecsLabel) {
+    if (
+      pageSpecsLabel &&
+      overview.pageSamplesLabel &&
+      overview.pageSamplesLabel !== pageSpecsLabel
+    ) {
       overview = {
         ...overview,
         pageSamplesLabel: pageSpecsLabel,
         pageSamplesLabelRaw: overview.pageSamplesLabel,
-        pageSamplesLabelSource: 'gate-scan-export-reconciled'
+        pageSamplesLabelSource: 'gate-scan-export-reconciled',
       };
     }
   }
-  const provenance = dashboardHome.type === 'dashboard-home-model'
-    ? 'dashboard-home-model'
-    : resolveSectionProvenance(dashboardHome);
+  const provenance =
+    dashboardHome.type === 'dashboard-home-model'
+      ? 'dashboard-home-model'
+      : resolveSectionProvenance(dashboardHome);
   return {
     ...rest,
     provenance,
-    overview
+    overview,
   };
 }
 
@@ -277,10 +296,10 @@ function sanitizeBaselineExport(baseline, context = {}) {
     provenance: baseline.dataSource || 'repository-audit',
     ...(pageSpecsLabel && baselineLabel && baselineLabel !== pageSpecsLabel
       ? {
-        gateValidatedPageSpecsLabel: pageSpecsLabel,
-        pageSamplesLabelNote: `Catalog baseline lists ${baselineLabel} page specs — latest gate scan validated ${pageSpecsLabel}.`
-      }
-      : {})
+          gateValidatedPageSpecsLabel: pageSpecsLabel,
+          pageSamplesLabelNote: `Catalog baseline lists ${baselineLabel} page specs — latest gate scan validated ${pageSpecsLabel}.`,
+        }
+      : {}),
   };
 }
 
@@ -294,7 +313,7 @@ function sanitizeConfigExport(config, projectLabel = 'ai-platform') {
   if (!config) return null;
   return {
     ...stripInternalExportFields(config),
-    projectRoot: redactProjectPathForExport(config.projectRoot, projectLabel)
+    projectRoot: redactProjectPathForExport(config.projectRoot, projectLabel),
   };
 }
 
@@ -308,7 +327,14 @@ function sanitizeConfigExport(config, projectLabel = 'ai-platform') {
  * @param {any} pageSpecsLabel
  * @returns {any}
  */
-export function buildPlatformMetrics(home, report, baseline, security, coverage, pageSpecsLabel = null) {
+export function buildPlatformMetrics(
+  home,
+  report,
+  baseline,
+  security,
+  coverage,
+  pageSpecsLabel = null
+) {
   const overview = home?.overview || {};
   return {
     mockScanFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.totalFiles,
@@ -318,7 +344,7 @@ export function buildPlatformMetrics(home, report, baseline, security, coverage,
     securityScore: formatSecurityScoreForDisplay(security, overview),
     jestTests: resolveCanonicalJestLabel(baseline, home, coverage),
     pageSamples: pageSpecsLabel ?? baseline?.pageSamplesLabel ?? overview.pageSamplesLabel,
-    sampleJsonFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.sampleJsonFiles
+    sampleJsonFiles: report?.mockSampleFiles ?? report?.totalFiles ?? overview.sampleJsonFiles,
   };
 }
 
@@ -333,24 +359,24 @@ export function buildComparativeRows(home, metrics) {
   const liveByMetric = {
     'jest tests': {
       current: parseNumeric(metrics.jestTests?.split('/')[0]) ?? parseNumeric(metrics.jestTests),
-      format: (v) => (v == null ? '—' : String(v))
+      format: (v) => (v == null ? '—' : String(v)),
     },
     'sample json files': {
       current: metrics.sampleJsonFiles,
-      format: (v) => (v == null ? '—' : String(v))
+      format: (v) => (v == null ? '—' : String(v)),
     },
     'mock / sample files': {
       current: metrics.mockScanFiles,
-      format: (v) => (v == null ? '—' : String(v))
+      format: (v) => (v == null ? '—' : String(v)),
     },
     'schema pass rate': {
       current: metrics.schemaPassRate,
-      format: (v) => (v == null ? '—' : `${v}%`)
+      format: (v) => (v == null ? '—' : `${v}%`),
     },
     'security posture': {
       current: metrics.securityScore,
-      format: (v) => (v == null ? '—' : String(v))
-    }
+      format: (v) => (v == null ? '—' : String(v)),
+    },
   };
 
   return staticRows.map((row) => {
@@ -388,16 +414,24 @@ export function buildComparativeRows(home, metrics) {
  * @param {any} quality }
  * @returns {any}
  */
-function buildExportProvenance({ dashboardHome, report, baseline, coverage, security, quality } = {}) {
+function buildExportProvenance({
+  dashboardHome,
+  report,
+  baseline,
+  coverage,
+  security,
+  quality,
+} = {}) {
   return {
-    dashboardHome: dashboardHome?.type === 'dashboard-home-model'
-      ? 'dashboard-home-model'
-      : resolveSectionProvenance(dashboardHome),
+    dashboardHome:
+      dashboardHome?.type === 'dashboard-home-model'
+        ? 'dashboard-home-model'
+        : resolveSectionProvenance(dashboardHome),
     baseline: baseline?.dataSource || (baseline ? 'repository-audit' : 'missing'),
-    report: report?.error ? 'error' : (report ? 'live-gate-scan' : 'missing'),
+    report: report?.error ? 'error' : report ? 'live-gate-scan' : 'missing',
     coverage: resolveSectionProvenance(coverage),
     security: resolveSectionProvenance(security),
-    quality: resolveSectionProvenance(quality)
+    quality: resolveSectionProvenance(quality),
   };
 }
 
@@ -409,15 +443,23 @@ export function buildPlatformExportBundle({
   coverage,
   security,
   quality,
-  exportFilename
+  exportFilename,
 } = {}) {
   const rawProjectPath = report?.projectRoot || config?.projectRoot || null;
   const projectLabel = projectLabelFromPath(rawProjectPath);
   const benchmarkScan = isBenchmarkPlatformExport(report, rawProjectPath);
-  const repositoryFilesTotal = report?.repositoryFilesTotal ?? report?.repositoryInventory?.totalFiles ?? null;
+  const repositoryFilesTotal =
+    report?.repositoryFilesTotal ?? report?.repositoryInventory?.totalFiles ?? null;
   const pageSpecsLabel = resolvePageSpecsLabel(report, baseline, benchmarkScan);
   const pageSpecsNote = buildPageSpecsNote(report, baseline, pageSpecsLabel, benchmarkScan);
-  const metrics = buildPlatformMetrics(dashboardHome, report, baseline, security, coverage, pageSpecsLabel);
+  const metrics = buildPlatformMetrics(
+    dashboardHome,
+    report,
+    baseline,
+    security,
+    coverage,
+    pageSpecsLabel
+  );
   const comparativeAnalysis = buildComparativeRows(dashboardHome, metrics);
   const scanPaths = report?.scanPaths || config?.scanPaths || [];
   const sanitizedReport = sanitizeReportForPlatformExport(report, projectLabel, { exportFilename });
@@ -425,19 +467,22 @@ export function buildPlatformExportBundle({
   const sanitizedSecurity = sanitizeSecurityExport(security);
   const sanitizedQuality = sanitizeQualityExport(quality, coverage, report);
   const baselineLabel = resolveJestTestsLabel(baseline, dashboardHome);
-  const jestNote = metrics.jestTests && baselineLabel && metrics.jestTests !== baselineLabel
-    ? `Summary jestTests uses coverage snapshot (${metrics.jestTests}); baseline panel cached ${baselineLabel}.`
-    : null;
-  const securityNote = security?.securityScore != null
-    && dashboardHome?.overview?.securityScore != null
-    && String(formatSecurityScoreForDisplay(security, {})) !== String(dashboardHome.overview.securityScore)
-    ? `Security score uses live overlay (${formatSecurityScoreForDisplay(security, {})}); dashboard home showed ${dashboardHome.overview.securityScore}.`
-    : null;
+  const jestNote =
+    metrics.jestTests && baselineLabel && metrics.jestTests !== baselineLabel
+      ? `Summary jestTests uses coverage snapshot (${metrics.jestTests}); baseline panel cached ${baselineLabel}.`
+      : null;
+  const securityNote =
+    security?.securityScore != null &&
+    dashboardHome?.overview?.securityScore != null &&
+    String(formatSecurityScoreForDisplay(security, {})) !==
+      String(dashboardHome.overview.securityScore)
+      ? `Security score uses live overlay (${formatSecurityScoreForDisplay(security, {})}); dashboard home showed ${dashboardHome.overview.securityScore}.`
+      : null;
   const defaultSubtitle = 'Engineering baseline from repository audit + SimpleBeacon scan';
   const subtitle = normalizeSimpleBeaconBranding(
     benchmarkScan
       ? 'OSS benchmark clone baseline — github-cache/ gate hygiene, not SimpleBeacon product handoff'
-      : (dashboardHome?.subtitle || defaultSubtitle)
+      : dashboardHome?.subtitle || defaultSubtitle
   );
 
   return {
@@ -466,29 +511,45 @@ export function buildPlatformExportBundle({
       gateAttestation: sanitizedReport?.gateAttestation ?? null,
       benchmarkScan,
       repositoryFilesTotal,
-      ruleScopedFilesAnalyzed: report?.ruleScopedFilesAnalyzed ?? report?.scanScope?.ruleScopedFilesAnalyzed ?? null,
+      ruleScopedFilesAnalyzed:
+        report?.ruleScopedFilesAnalyzed ?? report?.scanScope?.ruleScopedFilesAnalyzed ?? null,
       reportGeneratedAt: report?.generatedAt ?? null,
       coverageLastRun: coverage?.lastRun ?? null,
       jestResultAt: coverage?.testCountGeneratedAt ?? null,
-      pageSpecCatalogSize: report?.scanScope?.pageSpecCatalogSize ?? baseline?.pageSampleSpecCount ?? null,
+      pageSpecCatalogSize:
+        report?.scanScope?.pageSpecCatalogSize ?? baseline?.pageSampleSpecCount ?? null,
       ...(jestNote ? { jestTestsNote: jestNote } : {}),
       ...(securityNote ? { securityScoreNote: securityNote } : {}),
       ...(pageSpecsNote ? { pageSamplesNote: pageSpecsNote } : {}),
       ...(sanitizedQuality?.staleRelativeToCoverage && sanitizedQuality?.testCountNote
         ? { qualityPanelNote: sanitizedQuality.testCountNote }
-        : {})
+        : {}),
     },
     projectRoot: redactProjectPathForExport(rawProjectPath, projectLabel),
     scanTargetProfile: benchmarkScan ? 'benchmark-cache' : 'product',
     ...(benchmarkScan && sanitizedReport?.productPlatformRoot
-      ? { productPlatformRoot: redactProjectPathForExport(sanitizedReport.productPlatformRoot, 'ai-platform') }
+      ? {
+          productPlatformRoot: redactProjectPathForExport(
+            sanitizedReport.productPlatformRoot,
+            'ai-platform'
+          ),
+        }
       : {}),
     scanPaths,
     metrics,
-    provenance: buildExportProvenance({ dashboardHome, report, baseline, coverage, security, quality }),
+    provenance: buildExportProvenance({
+      dashboardHome,
+      report,
+      baseline,
+      coverage,
+      security,
+      quality,
+    }),
     disclaimers: [
       ...(benchmarkScan
-        ? ['Benchmark clone export — gate scan on github-cache/ OSS target, not SimpleBeacon ai-platform product handoff.']
+        ? [
+            'Benchmark clone export — gate scan on github-cache/ OSS target, not SimpleBeacon ai-platform product handoff.',
+          ]
         : []),
       'Platform export bundles gate scan hygiene, repository baseline, and live dashboard overlays.',
       'Security score reflects SimpleBeacon gate/schema compliance — not penetration testing or npm audit alone.',
@@ -496,7 +557,7 @@ export function buildPlatformExportBundle({
       'Absolute host paths are redacted to project label in exports.',
       'baseline.rejectedFiction catalogs documented anti-fiction exceptions — not active KPI claims.',
       'Summary jestTests prefers fresher coverage Jest snapshot when baseline panel counts lag.',
-      'Summary pageSamples prefers gate-validated page spec counts over catalog baseline labels when they differ.'
+      'Summary pageSamples prefers gate-validated page spec counts over catalog baseline labels when they differ.',
     ].map((line) => normalizeSimpleBeaconBranding(line)),
     comparativeAnalysis,
     insights: dashboardHome?.insights || [],
@@ -504,7 +565,7 @@ export function buildPlatformExportBundle({
     dashboardHome: sanitizeDashboardHomeExport(dashboardHome, {
       benchmarkScan,
       repositoryFilesTotal,
-      pageSpecsLabel
+      pageSpecsLabel,
     }),
     baseline: sanitizeBaselineExport(baseline, { pageSpecsLabel }),
     report: sanitizedReport,
@@ -521,21 +582,24 @@ export function buildPlatformExportBundle({
       gatePass: sanitizedReport?.gate?.pass ?? null,
       gateAttestation: sanitizedReport?.gateAttestation ?? null,
       repositoryFilesTotal,
-      ruleScopedFilesAnalyzed: report?.ruleScopedFilesAnalyzed ?? report?.scanScope?.ruleScopedFilesAnalyzed ?? null,
+      ruleScopedFilesAnalyzed:
+        report?.ruleScopedFilesAnalyzed ?? report?.scanScope?.ruleScopedFilesAnalyzed ?? null,
       jestTests: metrics.jestTests ?? null,
       lineCoverage: coverage?.overallCoverage ?? coverage?.lineCoverage ?? null,
       securityScore: metrics.securityScore ?? null,
       attestationNote: benchmarkScan
         ? 'Platform baseline on OSS benchmark clone — not SimpleBeacon product handoff clearance.'
-        : 'Platform baseline export — hygiene metrics only, not vendor handoff clearance.'
+        : 'Platform baseline export — hygiene metrics only, not vendor handoff clearance.',
     },
-    exportNotes: dedupeExportNotes([
-      pageSpecsNote,
-      jestNote,
-      securityNote,
-      sanitizedCoverage?.freshnessNote || null,
-      sanitizedQuality?.testCountNote || null
-    ].map((note) => normalizeSimpleBeaconBranding(note)))
+    exportNotes: dedupeExportNotes(
+      [
+        pageSpecsNote,
+        jestNote,
+        securityNote,
+        sanitizedCoverage?.freshnessNote || null,
+        sanitizedQuality?.testCountNote || null,
+      ].map((note) => normalizeSimpleBeaconBranding(note))
+    ),
   };
 }
 
@@ -561,7 +625,7 @@ export function sanitizePlatformExport(bundle, options = {}) {
     coverage: bundle.coverage,
     security: bundle.security,
     quality: bundle.quality,
-    exportFilename: options.exportFilename || options.filename
+    exportFilename: options.exportFilename || options.filename,
   });
 }
 
@@ -582,12 +646,11 @@ function csvEscape(cell) {
 export function buildComparativeCsv(comparativeRows) {
   if (!comparativeRows?.length) return null;
   const header = ['metric', 'previous', 'current', 'change'];
-  const rows = comparativeRows.map((row) => [
-    row.metric || '',
-    row.previous ?? '',
-    row.current ?? '',
-    row.change ?? ''
-  ].map(csvEscape).join(','));
+  const rows = comparativeRows.map((row) =>
+    [row.metric || '', row.previous ?? '', row.current ?? '', row.change ?? '']
+      .map(csvEscape)
+      .join(',')
+  );
   return [header.join(','), ...rows].join('\n');
 }
 
@@ -599,13 +662,17 @@ export function buildComparativeCsv(comparativeRows) {
 export function buildMockCategoriesCsv(categories) {
   if (!categories?.length) return null;
   const header = ['category', 'fileCount', 'totalSize', 'qualityScore', 'issues'];
-  const rows = categories.map((row) => [
-    row.category || '',
-    row.fileCount ?? '',
-    row.totalSize ?? '',
-    row.qualityScore ?? '',
-    row.issues ?? ''
-  ].map(csvEscape).join(','));
+  const rows = categories.map((row) =>
+    [
+      row.category || '',
+      row.fileCount ?? '',
+      row.totalSize ?? '',
+      row.qualityScore ?? '',
+      row.issues ?? '',
+    ]
+      .map(csvEscape)
+      .join(',')
+  );
   return [header.join(','), ...rows].join('\n');
 }
 
@@ -617,10 +684,9 @@ export function buildMockCategoriesCsv(categories) {
 export function buildPlatformSummaryCsv(bundle) {
   if (!bundle?.summary) return null;
   const header = ['metric', 'value'];
-  const rows = Object.entries(bundle.summary).map(([key, value]) => [
-    key,
-    value == null ? '' : String(value)
-  ].map(csvEscape).join(','));
+  const rows = Object.entries(bundle.summary).map(([key, value]) =>
+    [key, value == null ? '' : String(value)].map(csvEscape).join(',')
+  );
   return [header.join(','), ...rows].join('\n');
 }
 

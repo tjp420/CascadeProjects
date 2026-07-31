@@ -65,29 +65,48 @@ router.get('/export', (req, res) => {
 
     if (format === 'json') {
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Content-Disposition', `attachment; filename="audit-log-${new Date().toISOString().slice(0, 10)}.json"`);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="audit-log-${new Date().toISOString().slice(0, 10)}.json"`
+      );
       res.send(JSON.stringify(result.entries, null, 2));
       return;
     }
 
     // CSV format
-    const headers = ['Timestamp', 'ID', 'Action', 'Entity', 'Entity ID', 'Actor ID', 'Actor Email', 'Changes'];
+    const headers = [
+      'Timestamp',
+      'ID',
+      'Action',
+      'Entity',
+      'Entity ID',
+      'Actor ID',
+      'Actor Email',
+      'Changes',
+    ];
     const rows = [headers.join(',')];
     for (const e of result.entries) {
-      const changes = e.changes.map(c => `${c.field}: ${JSON.stringify(c.oldValue)} -> ${JSON.stringify(c.newValue)}`).join('; ');
-      rows.push([
-        e.timestamp,
-        e.id,
-        e.action,
-        e.entity,
-        e.entityId,
-        e.actorId,
-        e.actorEmail,
-        `"${changes.replace(/"/g, '""')}"`,
-      ].join(','));
+      const changes = e.changes
+        .map((c) => `${c.field}: ${JSON.stringify(c.oldValue)} -> ${JSON.stringify(c.newValue)}`)
+        .join('; ');
+      rows.push(
+        [
+          e.timestamp,
+          e.id,
+          e.action,
+          e.entity,
+          e.entityId,
+          e.actorId,
+          e.actorEmail,
+          `"${changes.replace(/"/g, '""')}"`,
+        ].join(',')
+      );
     }
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="audit-log-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="audit-log-${new Date().toISOString().slice(0, 10)}.csv"`
+    );
     res.send(rows.join('\n'));
   } catch (err) {
     logger.warn('[Audit] audit_export_failed failed:', err.message);

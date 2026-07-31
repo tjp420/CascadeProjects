@@ -1,31 +1,103 @@
 // simplebeacon-ignore: debugArtifacts,euAiAct,hardcodedIp — scanner service diagnostics and pattern definitions are false positives
 import { showToast } from '../utils.js';
-import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, isEmbeddedDashboardFrame } from '../utils-lib/dom.js?v=20260726embedfix1';
+import {
+    canUseDirectoryPicker,
+    isLikelyWebkitDirectoryFileCap,
+    browserFolderCapMessage,
+    isEmbeddedDashboardFrame
+} from '../utils-lib/dom.js?v=20260726embedfix1';
 import { normalizeSimplebeaconReport } from './analyzeService.js?v=20260726sevfix1';
 import {
-  createIgnoreContext,
-  extractIgnorePatternsFromLegacyFiles,
-  filterQueueByIgnore,
-  getBrowserBuiltinIgnorePatterns,
-  isIgnoredVirtualPath,
-  loadIgnorePatternsFromDirHandle
+    createIgnoreContext,
+    extractIgnorePatternsFromLegacyFiles,
+    filterQueueByIgnore,
+    getBrowserBuiltinIgnorePatterns,
+    isIgnoredVirtualPath,
+    loadIgnorePatternsFromDirHandle
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
 const WORKER_URL = new URL('../workers/scan-worker.js?v=2026072701', import.meta.url);
 const MAX_FILES = 100000;
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
 const WORKER_START_TIMEOUT_MS = 15000;
-const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo[\\/]registry|\.cargo[\\/]git)([\\/]|$)/i;
+const SKIP_DIRS =
+    /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp|target|\.wrangler|\.cargo[\\/]registry|\.cargo[\\/]git)([\\/]|$)/i;
 const SCANABLE_EXTENSIONS = new Set([
-    '.js', '.cjs', '.mjs', '.ts', '.tsx', '.jsx', '.json', '.txt', '.ini', '.cfg',
-    '.conf', '.env', '.yml', '.yaml', '.xml', '.css', '.sh', '.bat', '.cmd', '.ps1',
-    '.py', '.pyw', '.pyi', '.cs', '.vb', '.java', '.kt', '.scala', '.groovy',
-    '.go', '.rs', '.php', '.rb', '.c', '.h', '.cpp', '.cc', '.hpp', '.cxx', '.hxx',
-    '.swift', '.dart', '.lua', '.r', '.pl', '.pm', '.tcl', '.asm', '.s',
-    '.tf', '.sql', '.vue', '.svelte', '.html', '.htm', '.md', '.rst',
-    '.toml', '.properties', '.gradle', '.sbt', '.dockerfile', '.makefile', '.cmake',
-    '.gitignore', '.dockerignore', '.editorconfig', '.babelrc', '.eslintrc', '.prettierrc',
-    '.npmrc', '.nvmrc', '.lock', '.feature', '.story'
+    '.js',
+    '.cjs',
+    '.mjs',
+    '.ts',
+    '.tsx',
+    '.jsx',
+    '.json',
+    '.txt',
+    '.ini',
+    '.cfg',
+    '.conf',
+    '.env',
+    '.yml',
+    '.yaml',
+    '.xml',
+    '.css',
+    '.sh',
+    '.bat',
+    '.cmd',
+    '.ps1',
+    '.py',
+    '.pyw',
+    '.pyi',
+    '.cs',
+    '.vb',
+    '.java',
+    '.kt',
+    '.scala',
+    '.groovy',
+    '.go',
+    '.rs',
+    '.php',
+    '.rb',
+    '.c',
+    '.h',
+    '.cpp',
+    '.cc',
+    '.hpp',
+    '.cxx',
+    '.hxx',
+    '.swift',
+    '.dart',
+    '.lua',
+    '.r',
+    '.pl',
+    '.pm',
+    '.tcl',
+    '.asm',
+    '.s',
+    '.tf',
+    '.sql',
+    '.vue',
+    '.svelte',
+    '.html',
+    '.htm',
+    '.md',
+    '.rst',
+    '.toml',
+    '.properties',
+    '.gradle',
+    '.sbt',
+    '.dockerfile',
+    '.makefile',
+    '.cmake',
+    '.gitignore',
+    '.dockerignore',
+    '.editorconfig',
+    '.babelrc',
+    '.eslintrc',
+    '.prettierrc',
+    '.npmrc',
+    '.nvmrc',
+    '.lock',
+    '.feature',
+    '.story'
 ]);
 /**
  * Ensure the directory handle has read permission before iterating entries.
@@ -33,16 +105,14 @@ const SCANABLE_EXTENSIONS = new Set([
  * @returns {Promise<boolean>}
  */
 async function ensureReadPermission(dirHandle) {
-    if (!dirHandle || typeof dirHandle.requestPermission !== 'function')
-        return true;
+    if (!dirHandle || typeof dirHandle.requestPermission !== 'function') return true;
     try {
         const perm = await dirHandle.requestPermission({ mode: 'read' });
         if (perm !== 'granted') {
             console.warn('[collectFiles] requestPermission returned:', perm);
             return false;
         }
-    }
-    catch (err) {
+    } catch (err) {
         console.warn('[collectFiles] requestPermission threw:', err);
         return false;
     }
@@ -57,8 +127,7 @@ async function ensureReadPermission(dirHandle) {
  * @returns {Promise<Array<{path:string, handle:FileSystemFileHandle}>>}
  */
 async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = null) {
-    if (files.length >= MAX_FILES)
-        return files;
+    if (files.length >= MAX_FILES) return files;
     if (ignoreCtx && pathPrefix && isIgnoredVirtualPath(pathPrefix, ignoreCtx.scanRootName, ignoreCtx.patterns)) {
         return files;
     }
@@ -91,25 +160,34 @@ async function collectFiles(dirHandle, pathPrefix = '', files = [], ignoreCtx = 
             } catch (dirErr) {
                 console.warn('[collectFiles] Could not traverse directory:', fullPath, dirErr);
             }
-        }
-        else if (handle.kind === 'file') {
-            if (name === '.simplebeaconignore')
-                continue;
+        } else if (handle.kind === 'file') {
+            if (name === '.simplebeaconignore') continue;
             const dotIdx = name.lastIndexOf('.');
             const ext = dotIdx >= 0 ? name.substring(dotIdx).toLowerCase() : '';
-            if (ext && !SCANABLE_EXTENSIONS.has(ext))
-                continue;
+            if (ext && !SCANABLE_EXTENSIONS.has(ext)) continue;
             files.push({ path: fullPath, handle });
         }
-        if (files.length >= MAX_FILES)
-            break;
+        if (files.length >= MAX_FILES) break;
         entryCount += 1;
         if (entryCount % 500 === 0) {
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            await new Promise(resolve => setTimeout(resolve, 0));
         }
     }
     if (!pathPrefix) {
-        console.warn('[collectFiles] Root dir:', dirHandle.name, '| entries seen:', entryCount, '| files collected:', files.length, '| ignored:', ignoredCount, '| skipped dirs:', skippedDirCount, '| first entries:', firstEntries.join(', '));
+        console.warn(
+            '[collectFiles] Root dir:',
+            dirHandle.name,
+            '| entries seen:',
+            entryCount,
+            '| files collected:',
+            files.length,
+            '| ignored:',
+            ignoredCount,
+            '| skipped dirs:',
+            skippedDirCount,
+            '| first entries:',
+            firstEntries.join(', ')
+        );
     }
     return files;
 }
@@ -148,7 +226,8 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
             file: '',
             line: 0,
             severity: 'high',
-            message: 'No files were discovered. The folder may be empty, permission was denied, or all entries were excluded.'
+            message:
+                'No files were discovered. The folder may be empty, permission was denied, or all entries were excluded.'
         });
         severityCounts.high += 1;
         categories['scan-empty'] = { severity: 'high', findings: [findingsList[0]] };
@@ -157,10 +236,8 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         const rule = f.rule || f.analyzer || 'finding';
         const severity = String(f.severity || 'medium').toLowerCase();
         const count = Number(f.count) || 1;
-        if (severityCounts[severity] !== undefined)
-            severityCounts[severity] += count;
-        if (!categories[rule])
-            categories[rule] = { severity, findings: [] };
+        if (severityCounts[severity] !== undefined) severityCounts[severity] += count;
+        if (!categories[rule]) categories[rule] = { severity, findings: [] };
         const entry = {
             file: f.filePath,
             line: f.line || 1,
@@ -188,10 +265,11 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
     }
     const totalFindings = rawIssues.reduce((sum, i) => sum + (i.count || 1), 0);
     const issueCount = totalFindings;
-    const blockingCount = rawIssues.filter((i) => i.severity === 'critical' || i.severity === 'high')
+    const blockingCount = rawIssues
+        .filter(i => i.severity === 'critical' || i.severity === 'high')
         .reduce((sum, i) => sum + (Number(i.count) || 1), 0);
     const gateScore = blockingCount === 0 && totalFiles > 0 ? 100 : 0;
-    const mockSampleFiles = (meta.filePaths || []).filter((p) =>
+    const mockSampleFiles = (meta.filePaths || []).filter(p =>
         /sample|mock|fixture|test.*data/i.test(String(p))
     ).length;
     return {
@@ -259,7 +337,9 @@ function buildReport(projectName, findings, totalFiles, analyzedFiles, meta = {}
         issuesTruncated: Boolean(meta.issuesTruncated),
         scanLimitNote: meta.issuesTruncated
             ? `Findings capped at ${rawIssues.length.toLocaleString()} for browser memory. Download JSON or use the CLI for the full list.`
-            : (totalFiles >= MAX_FILES ? `File inventory capped at ${MAX_FILES.toLocaleString()} files. Use the CLI for full monorepo coverage.` : null)
+            : totalFiles >= MAX_FILES
+              ? `File inventory capped at ${MAX_FILES.toLocaleString()} files. Use the CLI for full monorepo coverage.`
+              : null
     };
 }
 /**
@@ -280,15 +360,12 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
         let workerStarted = false;
         let workerStartTimer = null;
         const cleanup = (terminate = true) => {
-            if (settled)
-                return;
+            if (settled) return;
             settled = true;
-            if (workerStartTimer)
-                clearTimeout(workerStartTimer);
-            if (terminate)
-                worker.terminate();
+            if (workerStartTimer) clearTimeout(workerStartTimer);
+            if (terminate) worker.terminate();
         };
-        worker.onerror = (err) => {
+        worker.onerror = err => {
             cleanup();
             const detail = err.message || (err.error && err.error.message) || '';
             const loc = err.filename ? ` at ${err.filename}:${err.lineno || 0}:${err.colno || 0}` : '';
@@ -296,32 +373,49 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             // Provide a more actionable error when the worker script fails to load (CSP, 404, network).
             // This commonly happens on hosted dashboards when the worker URL resolves to the wrong path.
             if (!detail) {
-                reject(new Error(`Local scan worker failed to load from ${workerUrl}${loc}. Check your browser console for network/CSP errors.`));
+                reject(
+                    new Error(
+                        `Local scan worker failed to load from ${workerUrl}${loc}. Check your browser console for network/CSP errors.`
+                    )
+                );
             } else {
                 reject(new Error(`Worker error: ${detail}${loc} (worker: ${workerUrl})`));
             }
         };
-        worker.onmessage = (e) => {
+        worker.onmessage = e => {
             const msg = e.data || {};
             if (msg.type === 'file-error') {
                 try {
                     if (options.onFileError) {
                         options.onFileError(msg.file, { name: msg.name, message: msg.message, stack: msg.stack });
                     }
-                }
-                catch (_a) { }
+                } catch (_a) {}
             }
         };
-        worker.onmessage = async (e) => {
-            const { type, processed, total, issues, error, issuesTruncated, totalFiles: completeTotal, currentFile, binarySkipped, textErrors, ignoredDir, heavyVendor, ignoredByPattern } = e.data;
+        worker.onmessage = async e => {
+            const {
+                type,
+                processed,
+                total,
+                issues,
+                error,
+                issuesTruncated,
+                totalFiles: completeTotal,
+                currentFile,
+                binarySkipped,
+                textErrors,
+                ignoredDir,
+                heavyVendor,
+                ignoredByPattern
+            } = e.data;
             if (type === 'started') {
                 workerStarted = true;
-                if (workerStartTimer)
-                    clearTimeout(workerStartTimer);
+                if (workerStartTimer) clearTimeout(workerStartTimer);
                 try {
-                    window["console"]["warn"](`[localScan] Worker started for ${totalFiles.toLocaleString()} files (scanId=${scanId})`);
-                }
-                catch (_startLogErr) { }
+                    window['console']['warn'](
+                        `[localScan] Worker started for ${totalFiles.toLocaleString()} files (scanId=${scanId})`
+                    );
+                } catch (_startLogErr) {}
                 if (options.onProgress) {
                     options.onProgress(0, totalFiles, { currentFile: 'Scanner worker initialized' });
                 }
@@ -334,17 +428,28 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                         fileErrorExamples.push({ file: e.data.file, name: e.data.name, message: e.data.message });
                     }
                     if (options.onFileError) {
-                        try { options.onFileError(e.data.file, { name: e.data.name, message: e.data.message, stack: e.data.stack }); } catch (_a) { }
+                        try {
+                            options.onFileError(e.data.file, {
+                                name: e.data.name,
+                                message: e.data.message,
+                                stack: e.data.stack
+                            });
+                        } catch (_a) {}
                     }
-                }
-                catch (_b) { }
+                } catch (_b) {}
                 // continue processing other message types
             }
             if (type === 'progress' && options.onProgress) {
-                    options.onProgress(processed, total, { currentFile, ignoredDir, heavyVendor, ignoredByPattern });
+                options.onProgress(processed, total, { currentFile, ignoredDir, heavyVendor, ignoredByPattern });
             }
             if (type === 'batch-complete' && options.onProgress) {
-                    options.onProgress(processed, total, { currentFile: currentFile || `Batch ${Math.floor((e.data.batchOffset || 0) / SCAN_BATCH_SIZE) + 1} complete`, ignoredDir: e.data.ignoredDir, heavyVendor: e.data.heavyVendor, ignoredByPattern: e.data.ignoredByPattern });
+                options.onProgress(processed, total, {
+                    currentFile:
+                        currentFile || `Batch ${Math.floor((e.data.batchOffset || 0) / SCAN_BATCH_SIZE) + 1} complete`,
+                    ignoredDir: e.data.ignoredDir,
+                    heavyVendor: e.data.heavyVendor,
+                    ignoredByPattern: e.data.ignoredByPattern
+                });
             }
             if (type === 'error') {
                 cleanup();
@@ -354,29 +459,31 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                 cleanup();
                 const resolvedTotal = completeTotal || totalFiles;
                 const analyzedFiles = Math.max(0, (processed || 0) - (binarySkipped || 0) - (textErrors || 0));
-                const folderCount = countFoldersFromPaths(workerFiles.map((f) => f.path));
-                const filePaths = workerFiles.map((f) => f.path);
-                resolve(buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
-                    issuesTruncated,
-                    folderCount,
-                    filePaths,
-                    ignoreMeta: options.ignoreCtx
-                        ? {
-                            source: options.ignoreCtx.source || 'builtin',
-                            patternCount: options.ignoreCtx.patterns?.length || 0,
-                            scanRootName: options.ignoreCtx.scanRootName || ''
+                const folderCount = countFoldersFromPaths(workerFiles.map(f => f.path));
+                const filePaths = workerFiles.map(f => f.path);
+                resolve(
+                    buildReport(options.projectName || 'local-project', issues, resolvedTotal, analyzedFiles, {
+                        issuesTruncated,
+                        folderCount,
+                        filePaths,
+                        ignoreMeta: options.ignoreCtx
+                            ? {
+                                  source: options.ignoreCtx.source || 'builtin',
+                                  patternCount: options.ignoreCtx.patterns?.length || 0,
+                                  scanRootName: options.ignoreCtx.scanRootName || ''
+                              }
+                            : null,
+                        telemetry: {
+                            ignoredDir: ignoredDir || 0,
+                            heavyVendor: heavyVendor || 0,
+                            ignoredByPattern: ignoredByPattern || 0,
+                            binarySkipped: binarySkipped || 0,
+                            textErrors: textErrors || 0,
+                            fileErrors: fileErrors || 0,
+                            fileErrorExamples: fileErrorExamples.length ? fileErrorExamples : undefined
                         }
-                        : null,
-                    telemetry: {
-                        ignoredDir: ignoredDir || 0,
-                        heavyVendor: heavyVendor || 0,
-                        ignoredByPattern: ignoredByPattern || 0,
-                        binarySkipped: binarySkipped || 0,
-                        textErrors: textErrors || 0,
-                        fileErrors: fileErrors || 0,
-                        fileErrorExamples: fileErrorExamples.length ? fileErrorExamples : undefined
-                    }
-                }));
+                    })
+                );
             }
         };
         worker.postMessage({
@@ -384,15 +491,16 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
             scanId,
             totalFiles,
             deepScan: true,
-            ignoreCtx: ignoreCtx
-                ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns }
-                : null
+            ignoreCtx: ignoreCtx ? { scanRootName: ignoreCtx.scanRootName, patterns: ignoreCtx.patterns } : null
         });
         workerStartTimer = setTimeout(() => {
-            if (workerStarted || settled)
-                return;
+            if (workerStarted || settled) return;
             cleanup();
-            reject(new Error('Local scan worker did not initialize in time. This is often caused by blocked worker module imports in hosted/embedded mode. Reload and try again, or run via the Local Agent/CLI.'));
+            reject(
+                new Error(
+                    'Local scan worker did not initialize in time. This is often caused by blocked worker module imports in hosted/embedded mode. Reload and try again, or run via the Local Agent/CLI.'
+                )
+            );
         }, WORKER_START_TIMEOUT_MS);
         (async () => {
             try {
@@ -400,15 +508,13 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                     const batch = workerFiles.slice(offset, offset + SCAN_BATCH_SIZE);
                     await new Promise((batchResolve, batchReject) => {
                         let batchTimer = null;
-                        const finishBatch = (fn) => {
-                            if (batchTimer)
-                                clearTimeout(batchTimer);
+                        const finishBatch = fn => {
+                            if (batchTimer) clearTimeout(batchTimer);
                             worker.removeEventListener('message', onBatch);
                             fn();
                         };
-                        const onBatch = (ev) => {
-                            if (ev.data.scanId !== scanId)
-                                return;
+                        const onBatch = ev => {
+                            if (ev.data.scanId !== scanId) return;
                             if (ev.data.type === 'batch-complete' && ev.data.batchOffset === offset) {
                                 finishBatch(() => batchResolve());
                             }
@@ -419,7 +525,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                         worker.addEventListener('message', onBatch);
                         batchTimer = setTimeout(() => {
                             finishBatch(() => {
-                                window["console"]["warn"](
+                                window['console']['warn'](
                                     `[localScan] Batch at offset ${offset} timed out — skipping ${batch.length} files and continuing`
                                 );
                                 batchResolve();
@@ -435,8 +541,7 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
                     });
                 }
                 worker.postMessage({ type: 'scan-finish', scanId });
-            }
-            catch (err) {
+            } catch (err) {
                 cleanup();
                 reject(err);
             }
@@ -458,7 +563,9 @@ function runBatchedWorkerScan(worker, workerFiles, options = {}) {
  */
 export async function runLocalScan(options = {}) {
     if (!options.files && !options.dirHandle && !canUseDirectoryPicker()) {
-        throw new Error('Your browser does not support the local directory picker. Use Chrome/Edge or run the server locally.');
+        throw new Error(
+            'Your browser does not support the local directory picker. Use Chrome/Edge or run the server locally.'
+        );
     }
     const onFilePrepProgress = typeof options.onFilePrepProgress === 'function' ? options.onFilePrepProgress : null;
     let projectName = options.projectPath || 'local-project';
@@ -474,7 +581,18 @@ export async function runLocalScan(options = {}) {
         if (onFilePrepProgress) onFilePrepProgress(0, fileArray.length, 'Loading ignore patterns...');
         const ignoreLoad = await extractIgnorePatternsFromLegacyFiles(fileArray);
         ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
-        console.warn('[localScan] fileInput', fileArray.length, 'files; projectName=', projectName, 'firstRel=', firstRel, 'ignoreSource=', ignoreCtx.source, 'ignorePatterns=', ignoreCtx.patterns.length);
+        console.warn(
+            '[localScan] fileInput',
+            fileArray.length,
+            'files; projectName=',
+            projectName,
+            'firstRel=',
+            firstRel,
+            'ignoreSource=',
+            ignoreCtx.source,
+            'ignorePatterns=',
+            ignoreCtx.patterns.length
+        );
         if (onFilePrepProgress) onFilePrepProgress(0, fileArray.length, 'Filtering files...');
         files = fileArray
             .filter((f, i) => {
@@ -482,7 +600,7 @@ export async function runLocalScan(options = {}) {
                 const path = f._virtualPath || f.webkitRelativePath || f.name;
                 return !isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns);
             })
-            .map((f) => ({ path: f._virtualPath || f.webkitRelativePath || f.name, handle: f }));
+            .map(f => ({ path: f._virtualPath || f.webkitRelativePath || f.name, handle: f }));
         // Deduplicate by normalized path — Windows symlinks/junctions (pnpm node_modules)
         // cause the same file to appear multiple times during recursive directory traversal.
         if (onFilePrepProgress) onFilePrepProgress(files.length, fileArray.length, 'Deduplicating paths...');
@@ -497,31 +615,46 @@ export async function runLocalScan(options = {}) {
         // If the user's .simplebeaconignore filtered out every file, fall back to built-in
         // exclusions so a misconfigured catch-all doesn't silently block the scan.
         if (files.length === 0 && fileArray.length > 0) {
-            console.warn('[localScan] All', fileArray.length, 'files were excluded by', ignoreCtx.source, 'rules. Falling back to built-in ignore patterns.');
-            ignoreCtx = createIgnoreContext(getBrowserBuiltinIgnorePatterns(ignoreLoad.isSimplebeaconMonorepo), projectName, 'builtin');
+            console.warn(
+                '[localScan] All',
+                fileArray.length,
+                'files were excluded by',
+                ignoreCtx.source,
+                'rules. Falling back to built-in ignore patterns.'
+            );
+            ignoreCtx = createIgnoreContext(
+                getBrowserBuiltinIgnorePatterns(ignoreLoad.isSimplebeaconMonorepo),
+                projectName,
+                'builtin'
+            );
             files = fileArray
-                .filter((f) => {
+                .filter(f => {
                     const path = f._virtualPath || f.webkitRelativePath || f.name;
                     return !isIgnoredVirtualPath(path, ignoreCtx.scanRootName, ignoreCtx.patterns);
                 })
-                .map((f) => ({ path: f._virtualPath || f.webkitRelativePath || f.name, handle: f }));
+                .map(f => ({ path: f._virtualPath || f.webkitRelativePath || f.name, handle: f }));
             const seen = new Set();
-            files = files.filter((f) => {
+            files = files.filter(f => {
                 const key = String(f.path).replace(/\\/g, '/').toLowerCase();
                 if (seen.has(key)) return false;
                 seen.add(key);
                 return true;
             });
             if (files.length > 0) {
-                showToast(`Your .simplebeaconignore excluded all files; scanned with built-in exclusions instead.`, 'warning', { duration: 7000 });
+                showToast(
+                    `Your .simplebeaconignore excluded all files; scanned with built-in exclusions instead.`,
+                    'warning',
+                    { duration: 7000 }
+                );
             }
         }
-    }
-    else {
+    } else {
         const dirHandle = options.dirHandle;
         if (!dirHandle) {
             if (isEmbeddedDashboardFrame() || !canUseDirectoryPicker()) {
-                throw new Error('Folder picker is blocked in this embed. Use drag-and-drop, the legacy Browse dialog, or scan via the Local Agent with a typed path.');
+                throw new Error(
+                    'Folder picker is blocked in this embed. Use drag-and-drop, the legacy Browse dialog, or scan via the Local Agent with a typed path.'
+                );
             }
             const picked = await window.showDirectoryPicker();
             projectName = options.projectPath || picked.name || 'local-project';
@@ -534,8 +667,7 @@ export async function runLocalScan(options = {}) {
             const ignoreLoad = await loadIgnorePatternsFromDirHandle(picked);
             ignoreCtx = createIgnoreContext(ignoreLoad.patterns, projectName, ignoreLoad.source);
             files = await collectFiles(picked, '', [], ignoreCtx);
-        }
-        else {
+        } else {
             projectName = options.projectPath || dirHandle.name || 'local-project';
             if (dirHandle.requestPermission) {
                 const perm = await dirHandle.requestPermission({ mode: 'read' });
@@ -549,26 +681,40 @@ export async function runLocalScan(options = {}) {
         }
     }
     const beforeIgnoreCount = files.length;
-    files = filterQueueByIgnore(files.map((f) => ({ ...f, virtualPath: f.path })), ignoreCtx)
-        .map((f) => ({ path: f.path || f.virtualPath, handle: f.handle }));
+    files = filterQueueByIgnore(
+        files.map(f => ({ ...f, virtualPath: f.path })),
+        ignoreCtx
+    ).map(f => ({ path: f.path || f.virtualPath, handle: f.handle }));
     if (ignoreCtx && files.length < beforeIgnoreCount) {
-        showToast(`Excluded ${beforeIgnoreCount - files.length} paths via ${ignoreCtx.source || 'ignore'} rules.`, 'info', { duration: 5000 });
+        showToast(
+            `Excluded ${beforeIgnoreCount - files.length} paths via ${ignoreCtx.source || 'ignore'} rules.`,
+            'info',
+            { duration: 5000 }
+        );
     }
     if (files.length === 0) {
         const excluded = Math.max(0, beforeIgnoreCount - files.length);
-        throw new Error(`No files were found in "${projectName}" (collected ${beforeIgnoreCount} before exclusions; ${excluded} excluded${ignoreCtx?.source ? ` via ${ignoreCtx.source}` : ''}). The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
+        throw new Error(
+            `No files were found in "${projectName}" (collected ${beforeIgnoreCount} before exclusions; ${excluded} excluded${ignoreCtx?.source ? ` via ${ignoreCtx.source}` : ''}). The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`
+        );
     }
     if (options.files && isLikelyWebkitDirectoryFileCap(files.length)) {
         showToast(browserFolderCapMessage(files.length).replace(/\*\*/g, ''), 'warning', { duration: 14000 });
     }
     if (files.length >= MAX_FILES) {
-        showToast(`Large repo — scanning first ${MAX_FILES.toLocaleString()} files. Use CLI for unlimited coverage.`, 'warning', { duration: 8000 });
+        showToast(
+            `Large repo — scanning first ${MAX_FILES.toLocaleString()} files. Use CLI for unlimited coverage.`,
+            'warning',
+            { duration: 8000 }
+        );
+    } else if (files.length > 3000) {
+        showToast(`Scanning ${files.length.toLocaleString()} files locally — this may take a few minutes.`, 'info', {
+            duration: 6000
+        });
     }
-    else if (files.length > 3000) {
-        showToast(`Scanning ${files.length.toLocaleString()} files locally — this may take a few minutes.`, 'info', { duration: 6000 });
-    }
-    if (onFilePrepProgress) onFilePrepProgress(files.length, files.length, `Starting scan of ${files.length.toLocaleString()} files...`);
-    const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
+    if (onFilePrepProgress)
+        onFilePrepProgress(files.length, files.length, `Starting scan of ${files.length.toLocaleString()} files...`);
+    const workerFiles = files.map(f => ({ path: f.path, fileObj: f.handle }));
     if (options.onProgress) {
         options.onProgress(0, workerFiles.length, { currentFile: 'Initializing scanner worker...' });
     }
@@ -586,12 +732,16 @@ export async function runLocalScan(options = {}) {
                 console.warn('[localScan] Firefox detected — stripping query param from worker URL:', cleanUrl);
                 workerUrlForCreation = cleanUrl;
             }
-        } catch (_e) { /* ignore URL parse errors */ }
+        } catch (_e) {
+            /* ignore URL parse errors */
+        }
         worker = new Worker(workerUrlForCreation, { type: 'module' });
     } catch (workerCtorErr) {
         const workerUrlStr = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
         console.error('[localScan] new Worker() constructor threw:', workerCtorErr);
-        throw new Error(`Failed to create module worker from ${workerUrlStr}: ${workerCtorErr?.message || workerCtorErr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`);
+        throw new Error(
+            `Failed to create module worker from ${workerUrlStr}: ${workerCtorErr?.message || workerCtorErr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`
+        );
     }
     if (options.signal) {
         options.signal.addEventListener('abort', () => worker.terminate(), { once: true });

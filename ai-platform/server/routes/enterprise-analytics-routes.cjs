@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 /**
  * Enterprise Analytics facade — a convenience route that returns a compact
@@ -28,11 +28,16 @@ router.get('/', (req, res) => {
 
     const filterOpts = { orgId, repository, branch, startDate };
 
-    const stats = orgId ? analyticsStore.getOrgSummary(orgId) : analyticsStore.getGlobalStats(filterOpts);
+    const stats = orgId
+      ? analyticsStore.getOrgSummary(orgId)
+      : analyticsStore.getGlobalStats(filterOpts);
 
     const trend = analyticsStore.getTrendData({ ...filterOpts, granularity: 'day' });
     const heatmap = analyticsStore.getViolationHeatmap(filterOpts);
-    const repositories = analyticsStore.getTopRepositories(orgId, Math.min(Math.max(parseInt(String(req.query.limit || '10'), 10) || 10, 1), 100));
+    const repositories = analyticsStore.getTopRepositories(
+      orgId,
+      Math.min(Math.max(parseInt(String(req.query.limit || '10'), 10) || 10, 1), 100)
+    );
 
     res.json({ success: true, stats, trend, heatmap, repositories });
   } catch (err) {

@@ -1,10 +1,14 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { escapeHtml, formatPercent } from '../utils.js';
-import { canUseDirectoryPicker, isFilePickerBlockedError, filePickerBlockedMessage } from '../utils-lib/dom.js';
+import {
+  canUseDirectoryPicker,
+  isFilePickerBlockedError,
+  filePickerBlockedMessage,
+} from '../utils-lib/dom.js';
 import {
   resolveDisplayScore,
   formatScanScopeSummary,
-  formatScanInventoryNote
+  formatScanInventoryNote,
 } from '../services/analyzeService.js';
 
 /**
@@ -46,11 +50,11 @@ export function runDashboardScanFromInput(input, options = {}) {
     onRescan,
     getLastProjectPath = () => '',
     setLastProjectPath = () => {},
-    getDefaultProjectPath = () => ''
+    getDefaultProjectPath = () => '',
   } = options;
   if (!onRescan) return;
   let path = resolveScanRootFromInput(input, {
-    lastProjectPath: getLastProjectPath()
+    lastProjectPath: getLastProjectPath(),
   });
   if (!path) {
     path = getDefaultProjectPath();
@@ -97,7 +101,8 @@ function formatFreshnessWarning(report) {
 
   const mins = Math.round(ageMs / 60 / 1000);
   const hours = Math.round(ageMs / 60 / 60 / 1000);
-  const ageLabel = hours >= 1 ? `${hours} hour${hours > 1 ? 's' : ''}` : `${mins} minute${mins > 1 ? 's' : ''}`;
+  const ageLabel =
+    hours >= 1 ? `${hours} hour${hours > 1 ? 's' : ''}` : `${mins} minute${mins > 1 ? 's' : ''}`;
   const reason = cacheHit ? 'cached' : 'old';
   return `Report is ${ageLabel} ${reason} — re-scan for current findings.`;
 }
@@ -214,7 +219,9 @@ export function updateScanStatusDom(root, report) {
   const inventoryNote = formatScanInventoryNote(report);
   const scope = formatScanScopeSummary(report);
   const score = formatPercent(resolveDisplayScore(report));
-  const timeText = report?.generatedAt ? new Date(report.generatedAt).toLocaleString() : 'No scan yet';
+  const timeText = report?.generatedAt
+    ? new Date(report.generatedAt).toLocaleString()
+    : 'No scan yet';
 
   // Update badge
   const badge = card.querySelector('.dashboard-scan-badge');
@@ -248,14 +255,18 @@ export function updateScanStatusDom(root, report) {
   }
 
   // Update scope metric
-  const scopeEl = card.querySelector('.dashboard-scan-metric:first-child .dashboard-scan-metric-value');
+  const scopeEl = card.querySelector(
+    '.dashboard-scan-metric:first-child .dashboard-scan-metric-value'
+  );
   if (scopeEl) {
     const scopeDisplay = scope ? escapeHtml(scope) : '—';
     if (scopeEl.textContent !== scopeDisplay) scopeEl.textContent = scopeDisplay;
   }
 
   // Update consistency score
-  const scoreEl = card.querySelector('.dashboard-scan-metric:last-child .dashboard-scan-metric-value');
+  const scoreEl = card.querySelector(
+    '.dashboard-scan-metric:last-child .dashboard-scan-metric-value'
+  );
   if (scoreEl && scoreEl.textContent !== score) scoreEl.textContent = score;
 
   // Update inventory note
@@ -290,7 +301,7 @@ export function bindScanStatus(container, options = {}) {
     onRescan,
     getLastProjectPath = () => '',
     setLastProjectPath = () => {},
-    getDefaultProjectPath = () => ''
+    getDefaultProjectPath = () => '',
   } = options;
 
   const input = container.querySelector('#scan-root-input');
@@ -306,17 +317,17 @@ export function bindScanStatus(container, options = {}) {
     if (fallbackPath) input.value = fallbackPath;
   }
 
-/**
- * Run scan.
- * @returns {any}
- */
+  /**
+   * Run scan.
+   * @returns {any}
+   */
   const runScan = () => runDashboardScanFromInput(input, options);
 
   // Derive a sensible home base for path fallbacks (e.g. C:/Users/Trevor)
-/**
- * Derive user home base.
- * @returns {any}
- */
+  /**
+   * Derive user home base.
+   * @returns {any}
+   */
   function deriveUserHomeBase() {
     const defaultPath = getDefaultProjectPath() || getLastProjectPath() || '';
     if (defaultPath) {
@@ -325,7 +336,10 @@ export function bindScanStatus(container, options = {}) {
       const isUnixAbsolute = normalized.startsWith('/');
       const parts = normalized.split('/').filter(Boolean);
       // If last part looks like a server subfolder, remove it
-      if (parts.length > 1 && /^(ai-platform|server|app|src|dist|build)$/i.test(parts[parts.length - 1])) {
+      if (
+        parts.length > 1 &&
+        /^(ai-platform|server|app|src|dist|build)$/i.test(parts[parts.length - 1])
+      ) {
         parts.pop();
       }
       if (parts.length > 0) {
@@ -411,8 +425,8 @@ export function bindScanStatus(container, options = {}) {
     // In Electron-like environments skip showDirectoryPicker because it cannot
     // reveal absolute paths; the webkitdirectory fallback gives files with .path.
     if (canUseDirectoryPicker() && !isElectronLike) {
-        try {
-          const dirHandle = await window.showDirectoryPicker();
+      try {
+        const dirHandle = await window.showDirectoryPicker();
         const folderName = dirHandle.name || '';
         const homePath = deriveUserHomeBase();
         const fallbackPath = `${homePath}/${folderName}`;
@@ -432,9 +446,11 @@ export function bindScanStatus(container, options = {}) {
         return;
       } catch (err) {
         if (err.name !== 'AbortError') {
-          window["console"]["warn"]('[ScanStatus] Directory picker failed:', err);
+          window['console']['warn']('[ScanStatus] Directory picker failed:', err);
           if (isFilePickerBlockedError(err)) {
-            try { if (browseInput) browseInput.click(); } catch (_) { }
+            try {
+              if (browseInput) browseInput.click();
+            } catch (_) {}
             const toast = document.getElementById('toast-container');
             if (toast) {
               const msg = document.createElement('div');
@@ -565,4 +581,3 @@ export function bindScanStatus(container, options = {}) {
     });
   }
 }
-

@@ -16,12 +16,19 @@ describe('audit-report/html-renderer', () => {
         codeFilesAnalyzed: 50,
         severityCounts: { high: 0, medium: 0, low: 5 },
         codebaseHealth: 85,
-        documentationFindings: 2
+        documentationFindings: 2,
       },
       priorityFindings: [],
       projectPath: '/test',
       exportTier: { tier: 'handoff', label: 'Handoff' },
-      readiness: buildLaunchReadiness({ summary: { gatePass: true, productionFindings: 0, severityCounts: { high: 0 }, codebaseHealth: 85 } }),
+      readiness: buildLaunchReadiness({
+        summary: {
+          gatePass: true,
+          productionFindings: 0,
+          severityCounts: { high: 0 },
+          codebaseHealth: 85,
+        },
+      }),
       categoryRollup: [],
       markdown: { compliance: '## Compliance checklist' },
       scopeLines: ['Full repository scan', 'Production paths only'],
@@ -33,7 +40,7 @@ describe('audit-report/html-renderer', () => {
       repositoryLabel: 'test-repo',
       branch: 'main',
       generatedAt: new Date().toISOString(),
-      remediationRows: []
+      remediationRows: [],
     };
     const html = renderCompleteAuditHtml(model);
     expect(typeof html).toBe('string');

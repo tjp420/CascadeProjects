@@ -4,10 +4,10 @@ jest.mock('../operator-deliverable-service.cjs', () => ({
   createDeliverableWorkspace: jest.fn(),
   listProducts: jest.fn().mockReturnValue([{ id: 'clearance499', label: 'Clearance' }]),
   vaultUrls: jest.fn().mockReturnValue({ dashboard: 'http://localhost:3000' }),
-  inferProductFromBooking: jest.fn().mockReturnValue('clearance499')
+  inferProductFromBooking: jest.fn().mockReturnValue('clearance499'),
 }));
 jest.mock('../audit-booking-route.cjs', () => ({
-  loadBookings: jest.fn().mockResolvedValue([])
+  loadBookings: jest.fn().mockResolvedValue([]),
 }));
 
 const { registerOperatorDeliverableRoute } = require('../operator-deliverable-route.cjs');
@@ -29,25 +29,29 @@ describe('operator-deliverable-route', () => {
   test('GET /api/operator/products returns product list', () => {
     const app = { get: jest.fn(), post: jest.fn() };
     registerOperatorDeliverableRoute(app, {});
-    const productsHandler = app.get.mock.calls.find(c => c[0] === '/api/operator/products')[1];
+    const productsHandler = app.get.mock.calls.find((c) => c[0] === '/api/operator/products')[1];
     const res = { json: jest.fn() };
     productsHandler({}, res);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      ok: true,
-      products: expect.any(Array)
-    }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: true,
+        products: expect.any(Array),
+      })
+    );
   });
 
   test('GET /api/operator/bootstrap returns vault urls', () => {
     const app = { get: jest.fn(), post: jest.fn() };
     registerOperatorDeliverableRoute(app, {});
-    const bootstrapHandler = app.get.mock.calls.find(c => c[0] === '/api/operator/bootstrap')[1];
+    const bootstrapHandler = app.get.mock.calls.find((c) => c[0] === '/api/operator/bootstrap')[1];
     const res = { json: jest.fn() };
     bootstrapHandler({}, res);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-      ok: true,
-      urls: expect.any(Object),
-      defaultProduct: 'clearance499'
-    }));
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: true,
+        urls: expect.any(Object),
+        defaultProduct: 'clearance499',
+      })
+    );
   });
 });

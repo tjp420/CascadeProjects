@@ -9,7 +9,9 @@ export class TrendChart {
   }
 
   render(history, _options = {}) {
-    const data = history.length ? history : [{ date: new Date().toISOString(), issueCount: 0, qualityScore: 99 }];
+    const data = history.length
+      ? history
+      : [{ date: new Date().toISOString(), issueCount: 0, qualityScore: 99 }];
     const dpr = window.devicePixelRatio || 1;
     const rect = this.canvas.parentElement.getBoundingClientRect();
     this.canvas.width = rect.width * dpr;
@@ -33,7 +35,9 @@ export class TrendChart {
     const points = data.map((d, i) => ({
       x: pad.left + (i / Math.max(data.length - 1, 1)) * chartW,
       y: pad.top + chartH - ((d.issueCount ?? 0) / maxIssues) * chartH,
-      label: d.date ? new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''
+      label: d.date
+        ? new Date(d.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        : '',
     }));
 
     // Grid lines
@@ -82,7 +86,9 @@ export class TrendChart {
     // X labels (first, middle, last)
     this.ctx.fillStyle = text;
     this.ctx.font = '11px Inter, system-ui, sans-serif';
-    const labelIdx = [0, Math.floor(points.length / 2), points.length - 1].filter((v, i, a) => a.indexOf(v) === i);
+    const labelIdx = [0, Math.floor(points.length / 2), points.length - 1].filter(
+      (v, i, a) => a.indexOf(v) === i
+    );
     labelIdx.forEach((i) => {
       if (points[i]?.label) {
         this.ctx.fillText(points[i].label, points[i].x - 16, h - 8);
@@ -138,12 +144,11 @@ export function mountTrendChart(container, history) {
   if (!canvas) return null;
   const chart = new TrendChart(canvas);
   chart.render(history);
-/**
- * On resize.
- * @returns {any}
- */
+  /**
+   * On resize.
+   * @returns {any}
+   */
   const onResize = () => chart.render(history);
   window.addEventListener('resize', onResize);
   return () => window.removeEventListener('resize', onResize);
 }
-

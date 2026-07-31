@@ -8,7 +8,7 @@ const {
   isVaultAuthenticated,
   isProtectedDashboardPath,
   isPublicDashboardAssetPath,
-  setVaultSessionCookie
+  setVaultSessionCookie,
 } = require('../server/lib/dashboard-vault-auth.cjs');
 
 describe('dashboard-vault-auth', () => {
@@ -82,7 +82,7 @@ describe('dashboard-vault-auth', () => {
   });
 
   describe('isVaultAuthenticated', () => {
-      const validToken = getVaultSessionToken(TEST_SECRET);
+    const validToken = getVaultSessionToken(TEST_SECRET);
 
     test('returns true when internalDashboard is false', () => {
       expect(isVaultAuthenticated({}, { internalDashboard: false })).toBe(true);
@@ -95,12 +95,16 @@ describe('dashboard-vault-auth', () => {
 
     test('returns false with wrong cookie', () => {
       const req = { headers: { cookie: 'sb_vault=wrong-token' } };
-      expect(isVaultAuthenticated(req, { internalDashboard: true, vaultPassword: TEST_SECRET })).toBe(false);
+      expect(
+        isVaultAuthenticated(req, { internalDashboard: true, vaultPassword: TEST_SECRET })
+      ).toBe(false);
     });
 
     test('returns true with valid cookie', () => {
       const req = { headers: { cookie: `sb_vault=${validToken}` } };
-      expect(isVaultAuthenticated(req, { internalDashboard: true, vaultPassword: TEST_SECRET })).toBe(true);
+      expect(
+        isVaultAuthenticated(req, { internalDashboard: true, vaultPassword: TEST_SECRET })
+      ).toBe(true);
     });
 
     test('falls back to env.DASHBOARD_VAULT_PASSWORD', () => {

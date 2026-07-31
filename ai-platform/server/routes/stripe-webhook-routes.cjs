@@ -13,7 +13,10 @@ const express = require('express');
 const crypto = require('crypto');
 const logger = require('../lib/app-logger.cjs');
 const { getTierConfigByPriceId } = require('../config/stripe.cjs');
-const { setSubscriptionActive, getSubscriptionByEmail } = require('../lib/simplebeacon-subscription-store.cjs');
+const {
+  setSubscriptionActive,
+  getSubscriptionByEmail,
+} = require('../lib/simplebeacon-subscription-store.cjs');
 const { sendEmail } = require('../lib/email-service.cjs');
 const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -61,7 +64,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       case 'checkout.session.completed':
         await handleCheckoutCompleted(event, {
           licenseToken: req.headers['x-license-token'] || '',
-          licenseTier: req.headers['x-license-tier'] || ''
+          licenseTier: req.headers['x-license-tier'] || '',
         });
         break;
       case 'customer.subscription.updated':
@@ -113,15 +116,9 @@ function verifyStripeSignature(payload, signatureHeader, secret) {
   }
 
   const signedPayload = `${timestamp}.${payload.toString('utf8')}`;
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('hex');
+  const expectedSignature = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
 
-  if (!crypto.timingSafeEqual(
-    Buffer.from(v1Signature),
-    Buffer.from(expectedSignature)
-  )) {
+  if (!crypto.timingSafeEqual(Buffer.from(v1Signature), Buffer.from(expectedSignature))) {
     throw new Error('Signature mismatch');
   }
 
@@ -146,7 +143,10 @@ async function handleCheckoutCompleted(event, headers = {}) {
   const priceId = session.metadata?.price_id || extractPriceIdFromSession(session);
 
   if (!customerEmail) {
-    logger.warn('[StripeWebhook] checkout.session.completed: no customer email in session', session.id);
+    logger.warn(
+      '[StripeWebhook] checkout.session.completed: no customer email in session',
+      session.id
+    );
     return;
   }
 
@@ -162,7 +162,7 @@ async function handleCheckoutCompleted(event, headers = {}) {
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscriptionId,
     stripePriceId: priceId,
-    periodStart: new Date().toISOString()
+    periodStart: new Date().toISOString(),
   });
 
   // Build email content — include license token if provided by the Worker
@@ -182,10 +182,17 @@ async function handleCheckoutCompleted(event, headers = {}) {
     to: customerEmail,
     subject: 'SimpleBeacon Subscription Activated',
     text: emailText,
-    html: emailHtml
+    html: emailHtml,
   });
 
-  logger.info('[StripeWebhook] Confirmation email result:', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail, 'token included:', !!licenseToken);
+  logger.info(
+    '[StripeWebhook] Confirmation email result:',
+    emailResult.sent ? 'sent' : 'queued',
+    'for',
+    customerEmail,
+    'token included:',
+    !!licenseToken
+  );
 }
 
 /**
@@ -205,7 +212,12 @@ async function handleSubscriptionUpdated(event) {
     return;
   }
 
-  logger.info('[StripeWebhook] subscription.updated: tier', tierConfig.tier, 'for customer', customerId);
+  logger.info(
+    '[StripeWebhook] subscription.updated: tier',
+    tierConfig.tier,
+    'for customer',
+    customerId
+  );
   // Note: we need the customer email to update the store.
   // In production, retrieve it from Stripe customer object.
 }
@@ -244,30 +256,46 @@ async function handleInvoicePaid(event) {
   // Check current subscription state
   const existing = await getSubscriptionByEmail(customerEmail);
   if (!existing) {
-    logger.info('[StripeWebhook] invoice.paid: no existing subscription for', customerEmail, '— skipping');
+    logger.info(
+      '[StripeWebhook] invoice.paid: no existing subscription for',
+      customerEmail,
+      '— skipping'
+    );
     return;
   }
 
   // Only re-activate if currently inactive (failed payment recovery)
   if (existing.subscriptionActive) {
-    logger.info('[StripeWebhook] invoice.paid: subscription already active for', customerEmail, '— no action needed');
+    logger.info(
+      '[StripeWebhook] invoice.paid: subscription already active for',
+      customerEmail,
+      '— no action needed'
+    );
     return;
   }
 
-  logger.info('[StripeWebhook] invoice.paid: re-activating suspended subscription for', customerEmail);
+  logger.info(
+    '[StripeWebhook] invoice.paid: re-activating suspended subscription for',
+    customerEmail
+  );
 
   await setSubscriptionActive(customerEmail, true, {
-    periodStart: new Date().toISOString()
+    periodStart: new Date().toISOString(),
   });
 
   const emailResult = await sendEmail({
     to: customerEmail,
     subject: 'SimpleBeacon Subscription Reactivated',
     text: `Your SimpleBeacon subscription has been reactivated following successful payment.\n\nAll features are restored. Thank you for your continued subscription.`,
-    html: `<h2>Subscription Reactivated</h2><p>Your SimpleBeacon subscription has been reactivated following successful payment.</p><p>All features are restored. Thank you for your continued subscription.</p>`
+    html: `<h2>Subscription Reactivated</h2><p>Your SimpleBeacon subscription has been reactivated following successful payment.</p><p>All features are restored. Thank you for your continued subscription.</p>`,
   });
 
-  logger.info('[StripeWebhook] Reactivation email result:', emailResult.sent ? 'sent' : 'queued', 'for', customerEmail);
+  logger.info(
+    '[StripeWebhook] Reactivation email result:',
+    emailResult.sent ? 'sent' : 'queued',
+    'for',
+    customerEmail
+  );
 }
 
 /**

@@ -9,7 +9,7 @@ function _getCachedRect(el, maxAge = 100) {
   if (!el || typeof el.getBoundingClientRect !== 'function') return null;
   const now = Date.now();
   const cached = _rectCache.get(el);
-  if (cached && (now - cached.ts) < maxAge) return cached.rect;
+  if (cached && now - cached.ts < maxAge) return cached.rect;
   const rect = el.getBoundingClientRect();
   _rectCache.set(el, { rect, ts: now });
   return rect;
@@ -30,13 +30,16 @@ function _renderToast(container, message, type, duration) {
 
 export function showToast(message, type = 'info') {
   if (typeof document === 'undefined' || !document.body) return;
-  const container = document.getElementById('toast-container') || (() => {
-    const el = document.createElement('div');
-    el.id = 'toast-container';
-    el.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;';
-    document.body.appendChild(el);
-    return el;
-  })();
+  const container =
+    document.getElementById('toast-container') ||
+    (() => {
+      const el = document.createElement('div');
+      el.id = 'toast-container';
+      el.style.cssText =
+        'position:fixed;top:1rem;right:1rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem;pointer-events:none;';
+      document.body.appendChild(el);
+      return el;
+    })();
   _renderToast(container, message, typeof type === 'string' ? type : 'info', 3500);
 }
 
@@ -113,13 +116,22 @@ export function downloadBlob(blob, filename) {
         const result = String(reader.result || '');
         const commaIdx = result.indexOf(',');
         const base64 = commaIdx >= 0 ? result.slice(commaIdx + 1) : result;
-        vscode.postMessage({ command: 'downloadFile', filename: filename || 'download', mimeType: blob.type, base64 });
+        vscode.postMessage({
+          command: 'downloadFile',
+          filename: filename || 'download',
+          mimeType: blob.type,
+          base64,
+        });
       };
       reader.onerror = () => {
-        window["console"]["error"](
+        window['console']['error'](
           'FileReader failed to convert blob for VS Code download. Falling back to normal download.'
         );
-        try { normalDownload(blob, filename); } catch { /* both methods failed */ }
+        try {
+          normalDownload(blob, filename);
+        } catch {
+          /* both methods failed */
+        }
       };
       reader.readAsDataURL(blob);
       return;
@@ -195,7 +207,7 @@ export function downloadCsv(rows, filename, headers) {
     }
     return s;
   };
-  const lines = [cols.join(','), ...rows.map(row => cols.map(c => escape(row[c])).join(','))];
+  const lines = [cols.join(','), ...rows.map((row) => cols.map((c) => escape(row[c])).join(','))];
   const csv = lines.join('\n');
   downloadText(csv, filename, 'text/csv');
 }
@@ -259,7 +271,8 @@ export function toggleClass(el, className, force) {
 export function getFocusableElements(container) {
   const root = container || (typeof document !== 'undefined' ? document : null);
   if (!root) return [];
-  const selector = 'a[href], button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])';
+  const selector =
+    'a[href], button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])';
   return Array.from(root.querySelectorAll(selector)).filter((el) => {
     if (el.hasAttribute('disabled')) return false;
     if (el.getAttribute('tabindex') === '-1') return false;
@@ -347,7 +360,12 @@ export function elementInViewport(el) {
   if (!el || typeof el.getBoundingClientRect !== 'function') return false;
   const rect = _getCachedRect(el) || el.getBoundingClientRect();
   if (!rect) return false;
-  return rect.top >= 0 && rect.left >= 0 && rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && rect.right <= (window.innerWidth || document.documentElement.clientWidth);
+  return (
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+  );
 }
 
 /**
@@ -418,13 +436,18 @@ export async function copyToClipboard(text) {
 export function renderEmptyState(opts) {
   if (!opts || typeof opts !== 'object' || Array.isArray(opts)) return '';
   const { icon, title, body = '', actions: rawActions = [], iconWrapper = 'svg' } = opts;
-  const actions = Array.isArray(rawActions) ? rawActions.filter(a => a && typeof a === 'object') : [];
+  const actions = Array.isArray(rawActions)
+    ? rawActions.filter((a) => a && typeof a === 'object')
+    : [];
   const safeIcon = String(icon || '');
-  const iconHtml = iconWrapper === 'emoji'
-    ? `<div class="empty-state-icon" style="font-size:3rem;background:none;width:auto;height:auto;">${escapeHtml(safeIcon)}</div>`
-    : `<div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${safeIcon}</svg></div>`;
+  const iconHtml =
+    iconWrapper === 'emoji'
+      ? `<div class="empty-state-icon" style="font-size:3rem;background:none;width:auto;height:auto;">${escapeHtml(safeIcon)}</div>`
+      : `<div class="empty-state-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${safeIcon}</svg></div>`;
   const unsafeBody = opts.unsafeBody === true;
-  const bodyHtml = body ? `<p class="empty-state-body">${unsafeBody ? body : escapeHtml(body)}</p>` : '';
+  const bodyHtml = body
+    ? `<p class="empty-state-body">${unsafeBody ? body : escapeHtml(body)}</p>`
+    : '';
   const actionsHtml = actions.length
     ? `<div class="empty-state-actions">${actions.map((a, idx) => `<button class="btn ${escapeHtml(a.className || 'btn-primary')}"${a.id ? ` id="${escapeHtml(a.id)}"` : ` data-action-index="${idx}"`}>${escapeHtml(a.label)}</button>`).join('')}</div>`
     : '';
@@ -437,26 +460,42 @@ export function renderEmptyState(opts) {
     </div>
   `.trim();
   // If any actions include JS handlers, provide an attach that builds the DOM safely
-  if (actions.some(a => typeof a.onClick === 'function' || typeof a.handler === 'function')) {
+  if (actions.some((a) => typeof a.onClick === 'function' || typeof a.handler === 'function')) {
     return {
       html,
       attach(container) {
         const el = createElement('div', { className: 'empty-state card' });
         const iconWrapperEl = createElement('div', { className: 'empty-state-icon-wrapper' });
         if (iconWrapper === 'emoji') {
-          iconWrapperEl.appendChild(createElement('div', { className: 'empty-state-icon', style: 'font-size:3rem;background:none;width:auto;height:auto;' }, [String(icon || '')]));
+          iconWrapperEl.appendChild(
+            createElement(
+              'div',
+              {
+                className: 'empty-state-icon',
+                style: 'font-size:3rem;background:none;width:auto;height:auto;',
+              },
+              [String(icon || '')]
+            )
+          );
         } else {
           const svgWrap = createElement('div', { className: 'empty-state-icon' });
           svgWrap.innerHTML = String(icon || '');
           iconWrapperEl.appendChild(svgWrap);
         }
         el.appendChild(iconWrapperEl);
-        el.appendChild(createElement('p', { className: 'empty-state-title' }, [String(title || '')]));
-        if (body) el.appendChild(createElement('p', { className: 'empty-state-body' }, [String(body)]));
+        el.appendChild(
+          createElement('p', { className: 'empty-state-title' }, [String(title || '')])
+        );
+        if (body)
+          el.appendChild(createElement('p', { className: 'empty-state-body' }, [String(body)]));
         if (actions.length) {
           const actionsEl = createElement('div', { className: 'empty-state-actions' });
           actions.forEach((a) => {
-            const btn = createElement('button', { className: `btn ${String(a.className || 'btn-primary')}`, id: a.id || undefined }, [String(a.label || '')]);
+            const btn = createElement(
+              'button',
+              { className: `btn ${String(a.className || 'btn-primary')}`, id: a.id || undefined },
+              [String(a.label || '')]
+            );
             if (typeof a.onClick === 'function') btn.addEventListener('click', a.onClick);
             if (typeof a.handler === 'function') btn.addEventListener('click', a.handler);
             actionsEl.appendChild(btn);
@@ -464,7 +503,7 @@ export function renderEmptyState(opts) {
           el.appendChild(actionsEl);
         }
         if (container && typeof container.appendChild === 'function') container.appendChild(el);
-      }
+      },
     };
   }
   return html;
@@ -479,9 +518,16 @@ export function isEmbeddedDashboardFrame() {
   if (window.__SB_PARENT_URL_BAR__) return true;
   try {
     const params = new URLSearchParams(window.location.search || '');
-    if (params.get('sb_parent_urlbar') === '1' || params.get('sb_website_mode') === '1') return true;
-  } catch { /* ignore */ }
-  try { return window.self !== window.top; } catch { return true; }
+    if (params.get('sb_parent_urlbar') === '1' || params.get('sb_website_mode') === '1')
+      return true;
+  } catch {
+    /* ignore */
+  }
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
 }
 
 /**
@@ -491,8 +537,16 @@ export function isEmbeddedDashboardFrame() {
 export function isIdeDashboardSurface() {
   if (typeof window === 'undefined') return false;
   if (window.__SB_IDE_EMBED__) return true;
-  try { if (document.documentElement.hasAttribute('data-ide-embed')) return true; } catch { /* ignore */ }
-  try { if (typeof window.acquireVsCodeApi === 'function') return true; } catch { /* ignore */ }
+  try {
+    if (document.documentElement.hasAttribute('data-ide-embed')) return true;
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (typeof window.acquireVsCodeApi === 'function') return true;
+  } catch {
+    /* ignore */
+  }
   return window.self !== window.top;
 }
 
@@ -503,25 +557,34 @@ export function isExtensionHostedTab() {
   try {
     const params = new URLSearchParams(window.location.search || '');
     if (params.get('sb_parent_urlbar') === '1') return true;
-    if (params.get('sb_api_base') || params.get('sb_notify_base') || params.get('sb_website_mode')) return true;
-  } catch { /* ignore */ }
+    if (params.get('sb_api_base') || params.get('sb_notify_base') || params.get('sb_website_mode'))
+      return true;
+  } catch {
+    /* ignore */
+  }
   try {
     if (typeof sessionStorage !== 'undefined') {
       if (sessionStorage.getItem('sb_parent_urlbar') === '1') return true;
-      if (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base')) return true;
+      if (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))
+        return true;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return false;
 }
 
 /** @deprecated Use isEmbeddedDashboardFrame */
-export function isCrossOriginEmbeddedFrame() { return isEmbeddedDashboardFrame(); }
+export function isCrossOriginEmbeddedFrame() {
+  return isEmbeddedDashboardFrame();
+}
 
 /**
  * Whether the File System Access directory picker can be invoked from this context.
  */
 export function canUseDirectoryPicker() {
-  if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function') return false;
+  if (typeof window === 'undefined' || typeof window.showDirectoryPicker !== 'function')
+    return false;
   return !isEmbeddedDashboardFrame();
 }
 
@@ -533,7 +596,9 @@ export function filePickerBlockedMessage() {
 /** True when a thrown error indicates the browser blocked showDirectoryPicker in a subframe. */
 export function isFilePickerBlockedError(err) {
   const msg = String((err && err.message) || err || '');
-  return /cross origin sub frames|file picker.*(?:not allowed|blocked|denied)|user activation|gesture required/i.test(msg);
+  return /cross origin sub frames|file picker.*(?:not allowed|blocked|denied)|user activation|gesture required/i.test(
+    msg
+  );
 }
 
 /** True when a webkitdirectory FileList length matches a known browser cap (~3k on Chrome). */
@@ -552,7 +617,10 @@ export function isLikelyWebkitDirectoryFileCap(fileCount) {
  */
 export function setHtml(el, html) {
   if (!el) return;
-  if (typeof html !== 'string') { el.replaceChildren(); return; }
+  if (typeof html !== 'string') {
+    el.replaceChildren();
+    return;
+  }
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
   el.replaceChildren(...doc.body.childNodes);
@@ -567,10 +635,17 @@ export function setHtml(el, html) {
  */
 export function setSafeHTML(el, html) {
   if (!el) return;
-  if (typeof html !== 'string') { el.replaceChildren(); return; }
+  if (typeof html !== 'string') {
+    el.replaceChildren();
+    return;
+  }
   try {
     let purifier = null;
-    if (typeof window !== 'undefined' && window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
+    if (
+      typeof window !== 'undefined' &&
+      window.DOMPurify &&
+      typeof window.DOMPurify.sanitize === 'function'
+    ) {
       purifier = window.DOMPurify;
     } else {
       try {
@@ -578,12 +653,18 @@ export function setSafeHTML(el, html) {
         if (dp) {
           if (typeof dp.sanitize === 'function') purifier = dp;
           else if (typeof dp.default === 'function') {
-            try { purifier = dp.default(window); } catch { purifier = dp.default; }
+            try {
+              purifier = dp.default(window);
+            } catch {
+              purifier = dp.default;
+            }
           } else if (typeof dp === 'function') {
             purifier = dp(window);
           }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     if (purifier && typeof purifier.sanitize === 'function') {
@@ -591,25 +672,37 @@ export function setSafeHTML(el, html) {
       el.innerHTML = safe;
       return;
     }
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   setHtml(el, html);
 }
 
 if (typeof window !== 'undefined') {
-  try { window.setSafeHTML = setSafeHTML; } catch (e) { /* ignore */ }
+  try {
+    window.setSafeHTML = setSafeHTML;
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 let _vsCodeApiCache = null;
 export function getVsCodeApi() {
   if (_vsCodeApiCache) return _vsCodeApiCache;
   if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
-  try { _vsCodeApiCache = window.acquireVsCodeApi(); return _vsCodeApiCache; } catch { return null; }
+  try {
+    _vsCodeApiCache = window.acquireVsCodeApi();
+    return _vsCodeApiCache;
+  } catch {
+    return null;
+  }
 }
 
 export function renderSkeletonCard(lines = 4) {
   const cls = ['short', 'medium', 'long', 'short', 'medium', 'long'];
   const rows = [];
-  for (let i = 0; i < lines; i++) rows.push(`<div class="skeleton-line ${cls[i % cls.length]}"></div>`);
+  for (let i = 0; i < lines; i++)
+    rows.push(`<div class="skeleton-line ${cls[i % cls.length]}"></div>`);
   return `<div class="skeleton-card">${rows.join('')}</div>`;
 }
 
@@ -622,6 +715,8 @@ export function renderSkeletonChips(count = 5) {
 /** User-facing note when folder selection may be truncated by the browser. */
 export function browserFolderCapMessage(fileCount) {
   const n = Number(fileCount) || 0;
-  return `Your browser may have limited folder selection to ${n.toLocaleString()} files. `
-    + 'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.';
+  return (
+    `Your browser may have limited folder selection to ${n.toLocaleString()} files. ` +
+    'For repos above ~3,000 files use **Select Folder** (Chrome/Edge), the VS Code extension, local agent, or `npx simplebeacon scan`.'
+  );
 }

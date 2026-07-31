@@ -21,6 +21,7 @@ AI Slop Cop can be configured through VSCode settings, command-line arguments, o
 **Description:** Custom scan location (absolute path). Leave empty to scan current workspace.
 
 **Example:**
+
 ```json
 {
   "simplebeacon.scanLocation": "/path/to/project"
@@ -34,6 +35,7 @@ AI Slop Cop can be configured through VSCode settings, command-line arguments, o
 **Description:** Enable full directory scan (scans all files, not just source code). Slower but more comprehensive.
 
 **Example:**
+
 ```json
 {
   "simplebeacon.fullScan": true
@@ -47,6 +49,7 @@ AI Slop Cop can be configured through VSCode settings, command-line arguments, o
 **Description:** Your Pro/Enterprise license token. Required for Pro/Enterprise features.
 
 **Example:**
+
 ```json
 {
   "simplebeacon.licenseToken": "your-license-token-here"
@@ -56,19 +59,16 @@ AI Slop Cop can be configured through VSCode settings, command-line arguments, o
 #### simplebeacon.exclusions
 
 **Type:** Array of strings  
-**Default:** 
+**Default:**
+
 ```json
-[
-  "**/node_modules/**",
-  "**/*.test.js",
-  "**/*.spec.ts",
-  "**/dist/**",
-  "**/build/**"
-]
+["**/node_modules/**", "**/*.test.js", "**/*.spec.ts", "**/dist/**", "**/build/**"]
 ```
+
 **Description:** Glob patterns for files to exclude from scans.
 
 **Example:**
+
 ```json
 {
   "simplebeacon.exclusions": [
@@ -88,6 +88,7 @@ AI Slop Cop can be configured through VSCode settings, command-line arguments, o
 **Description:** Override rule severities by rule ID.
 
 **Example:**
+
 ```json
 {
   "simplebeacon.severityOverrides": {
@@ -112,12 +113,7 @@ Create `.simplebeacon/config.json` in your project root:
   "scanPaths": ["web/data"],
   "productionPaths": ["server/", "src/"],
   "sampleDir": "web/data",
-  "ignore": [
-    "node_modules/**",
-    "coverage/**",
-    "dist/**",
-    "build/**"
-  ],
+  "ignore": ["node_modules/**", "coverage/**", "dist/**", "build/**"],
   "rules": {
     "credentials": {
       "enabled": true,
@@ -232,9 +228,7 @@ Some rules have additional options:
       "severity": "high",
       "plainSampleJson": true,
       "intentClassification": true,
-      "allowlistFiles": [
-        "server/lib/sample-resolver.js"
-      ]
+      "allowlistFiles": ["server/lib/sample-resolver.js"]
     }
   }
 }
@@ -338,6 +332,7 @@ npx simplebeacon scan
 ### Workspace Settings
 
 Applied to current workspace only:
+
 - Stored in `.vscode/settings.json`
 - Shared with team via git
 - Override user settings
@@ -345,6 +340,7 @@ Applied to current workspace only:
 ### User Settings
 
 Applied globally to all workspaces:
+
 - Stored in VSCode user settings
 - Not shared with team
 - Default fallback
@@ -356,10 +352,7 @@ Applied globally to all workspaces:
 ```json
 {
   "simplebeacon.fullScan": false,
-  "simplebeacon.exclusions": [
-    "**/node_modules/**",
-    "**/dist/**"
-  ]
+  "simplebeacon.exclusions": ["**/node_modules/**", "**/dist/**"]
 }
 ```
 
@@ -373,11 +366,7 @@ Applied globally to all workspaces:
     "debug-artifact": "error",
     "credential-leak": "error"
   },
-  "simplebeacon.exclusions": [
-    "**/node_modules/**",
-    "**/dist/**",
-    "**/build/**"
-  ]
+  "simplebeacon.exclusions": ["**/node_modules/**", "**/dist/**", "**/build/**"]
 }
 ```
 
@@ -402,6 +391,7 @@ Applied globally to all workspaces:
 **Problem:** Configuration changes not taking effect
 
 **Solution:**
+
 1. Reload VSCode window (`Ctrl+Shift+P` → "Reload Window")
 2. Check for syntax errors in JSON
 3. Verify settings file location
@@ -412,6 +402,7 @@ Applied globally to all workspaces:
 **Problem:** CLI not using custom config
 
 **Solution:**
+
 1. Verify config file path is correct
 2. Check JSON syntax
 3. Use `--config` flag explicitly
@@ -422,6 +413,7 @@ Applied globally to all workspaces:
 **Problem:** Gate fails even with no issues
 
 **Solution:**
+
 1. Check gate thresholds
 2. Verify rule severities
 3. Review severity overrides

@@ -11,12 +11,16 @@ describe('ci-telemetry', () => {
       severityCounts: { critical: 1, high: 1, medium: 3 },
       totalFiles: 12,
       qualityScore: 88,
-      scanScope: { diffOnly: true, diffFileCount: 4 }
+      scanScope: { diffOnly: true, diffFileCount: 4 },
     };
-    const payload = buildCiTelemetryPayload(report, { paid: true, tier: 'team' }, {
-      repository: 'acme/widget',
-      workflow: 'SimpleBeacon Gate'
-    });
+    const payload = buildCiTelemetryPayload(
+      report,
+      { paid: true, tier: 'team' },
+      {
+        repository: 'acme/widget',
+        workflow: 'SimpleBeacon Gate',
+      }
+    );
     assert.equal(payload.gate_pass, false);
     assert.equal(payload.gates_tripped, 1);
     assert.equal(payload.critical_blocked, 1);

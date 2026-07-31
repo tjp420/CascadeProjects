@@ -102,10 +102,10 @@ simplebeacon init --starter
 
 This creates:
 
-| File | Purpose |
-|------|---------|
-| `.simplebeacon/config.json` | Scan rules + allowlists |
-| `.simplebeacon/baseline.json` | Fiction KPI baseline |
+| File                          | Purpose                 |
+| ----------------------------- | ----------------------- |
+| `.simplebeacon/config.json`   | Scan rules + allowlists |
+| `.simplebeacon/baseline.json` | Fiction KPI baseline    |
 
 ## Daily usage
 
@@ -131,6 +131,7 @@ Simplebeacon normally scans local files. You have two ways to analyze a remote w
 Open the dashboard → go to **Analyze** → click the **Website URL** tab → enter `https://your-domain.com` → click **Run analysis**. The dashboard downloads the site and runs the same rule engines automatically.
 
 What it does:
+
 1. Downloads the page source with `curl` (CLI) or Node.js `https` (dashboard)
 2. Extracts linked CSS and JS assets
 3. Runs Simplebeacon rules (fiction KPIs, credential patterns, token leaks) against the downloaded files
@@ -206,14 +207,14 @@ rm -rf ~/.local/share/applications/simplebeacon-dashboard.desktop
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| `command not found: simplebeacon` | Re-run setup or symlink manually |
-| `Permission denied` on script | FAT32/exFAT thumb drives don't support `chmod +x`. Use `bash setup-zorin.sh` instead of `./setup-zorin.sh` |
-| `setup-zorin.sh not found` | You are probably inside `ai-platform/`. Run from the repo root (`cd ..` first) |
-| Node version too old | The setup script auto-installs Node 20; run it again |
-| Scan finds false positives | Edit `.simplebeacon/config.json` and add paths to `exclude` |
-| Desktop launcher missing | Re-run setup and answer "Y" to desktop entry prompt |
+| Issue                             | Fix                                                                                                        |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `command not found: simplebeacon` | Re-run setup or symlink manually                                                                           |
+| `Permission denied` on script     | FAT32/exFAT thumb drives don't support `chmod +x`. Use `bash setup-zorin.sh` instead of `./setup-zorin.sh` |
+| `setup-zorin.sh not found`        | You are probably inside `ai-platform/`. Run from the repo root (`cd ..` first)                             |
+| Node version too old              | The setup script auto-installs Node 20; run it again                                                       |
+| Scan finds false positives        | Edit `.simplebeacon/config.json` and add paths to `exclude`                                                |
+| Desktop launcher missing          | Re-run setup and answer "Y" to desktop entry prompt                                                        |
 
 ## Files created by this setup
 

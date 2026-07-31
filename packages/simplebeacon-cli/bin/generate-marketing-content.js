@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const {
   generateMarketingContent,
-  generateAllChannels
+  generateAllChannels,
 } = require('../src/lib/marketing/marketing-content-generator');
 
 function parseArgs(argv) {
@@ -79,11 +79,12 @@ Examples:
   if (args['complete-scan']) {
     const complete = loadReport(args['complete-scan']);
     report = complete.results?.simplebeacon || complete;
-    report.projectName = report.projectName
-      || complete.projectName
-      || complete.projectPath
-      || (complete.scanTargetRoot ? path.basename(complete.scanTargetRoot) : null)
-      || 'your project';
+    report.projectName =
+      report.projectName ||
+      complete.projectName ||
+      complete.projectPath ||
+      (complete.scanTargetRoot ? path.basename(complete.scanTargetRoot) : null) ||
+      'your project';
     report.scanTargetRoot = report.scanTargetRoot || complete.scanTargetRoot || null;
   } else if (args.report) {
     report = loadReport(args.report);
@@ -98,7 +99,7 @@ Examples:
     const results = generateAllChannels(report, {
       tone: args.tone,
       industry: args.industry,
-      outputDir
+      outputDir,
     });
     console.log(`Generated marketing content in ${outputDir}:`);
     for (const [channel, filePath] of Object.entries(results)) {
@@ -108,9 +109,10 @@ Examples:
     const content = generateMarketingContent(report, {
       channel: args.channel,
       tone: args.tone,
-      industry: args.industry
+      industry: args.industry,
     });
-    const ext = args.channel === 'twitter' ? 'txt' : args.channel === 'landing-page' ? 'html' : 'md';
+    const ext =
+      args.channel === 'twitter' ? 'txt' : args.channel === 'landing-page' ? 'html' : 'md';
     const outFile = path.join(outputDir, `simplebeacon-${args.channel}.${ext}`);
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });

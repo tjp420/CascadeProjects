@@ -7,7 +7,7 @@
  */
 export function logRecoverableDashboardError(contextLabel, error) {
     const message = error instanceof Error ? error.message : String(error);
-    window["console"]["debug"](`[Simplebeacon dashboard] ${contextLabel}: ${message}`);
+    window['console']['debug'](`[Simplebeacon dashboard] ${contextLabel}: ${message}`);
 }
 /**
  * Has json content type.
@@ -25,9 +25,8 @@ export function hasJsonContentType(response) {
  * @returns {any}
  */
 export async function readJsonResponseBody(response, fallback = null) {
-    if (!hasJsonContentType(response))
-        return fallback;
-    const parsedBody = await response.json().catch((parseError) => {
+    if (!hasJsonContentType(response)) return fallback;
+    const parsedBody = await response.json().catch(parseError => {
         logRecoverableDashboardError('JSON response parse', parseError);
         return fallback;
     });
@@ -43,15 +42,14 @@ export async function readJsonResponseBody(response, fallback = null) {
 export async function withRecoverableFallback(contextLabel, asyncOperation, fallbackFactory) {
     try {
         return await asyncOperation();
-    }
-    catch (error) {
+    } catch (error) {
         logRecoverableDashboardError(contextLabel, error);
         return typeof fallbackFactory === 'function' ? fallbackFactory(error) : fallbackFactory;
     }
 }
 
 function _delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
@@ -74,38 +72,31 @@ export async function fetchApi(url, options = {}) {
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
         let timeoutId;
         try {
-            if (controller)
-                timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            if (controller) timeoutId = setTimeout(() => controller.abort(), timeoutMs);
             const resp = await fetch(url, {
                 method,
                 headers,
                 body,
                 signal: controller ? controller.signal : undefined
             });
-            if (timeoutId)
-                clearTimeout(timeoutId);
+            if (timeoutId) clearTimeout(timeoutId);
 
-            if (resp.ok)
-                return resp;
-            if (resp.status === 401)
-                return resp; // let callers handle auth/reauth
+            if (resp.ok) return resp;
+            if (resp.status === 401) return resp; // let callers handle auth/reauth
             if (retryOn.includes(resp.status) && attempt < retries) {
                 await _delay(retryDelay * Math.pow(2, attempt));
                 continue;
             }
             return resp; // non-retriable HTTP error (e.g. 404, 4xx)
-        }
-        catch (err) {
-            if (timeoutId)
-                clearTimeout(timeoutId);
-            const isAbort = (err && err.name === 'AbortError');
+        } catch (err) {
+            if (timeoutId) clearTimeout(timeoutId);
+            const isAbort = err && err.name === 'AbortError';
             if (isAbort) {
                 // Self-induced timeout is expected when the server is unreachable; don't spam retries.
                 if (attempt === retries) {
                     logRecoverableDashboardError('fetchApi network', new Error('Request timed out after retries'));
                 }
-            }
-            else if (attempt === retries) {
+            } else if (attempt === retries) {
                 logRecoverableDashboardError('fetchApi network', err);
             }
             if (attempt < retries) {
@@ -123,7 +114,6 @@ export async function fetchApi(url, options = {}) {
  */
 export async function fetchApiWithAuth(url, token, options = {}) {
     const headers = Object.assign({}, options.headers || {});
-    if (token)
-        headers['Authorization'] = `Bearer ${token}`;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     return fetchApi(url, Object.assign({}, options, { headers }));
 }

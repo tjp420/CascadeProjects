@@ -14,12 +14,14 @@ const path = require('path');
 const crypto = require('crypto');
 const logger = require('../lib/app-logger.cjs');
 
-const STORE_PATH = process.env.INTEGRATION_STORE_PATH
-  || path.join(__dirname, '../../.simplebeacon', 'integration-configs.json');
+const STORE_PATH =
+  process.env.INTEGRATION_STORE_PATH ||
+  path.join(__dirname, '../../.simplebeacon', 'integration-configs.json');
 
-const ENCRYPTION_KEY = process.env.INTEGRATION_ENCRYPTION_KEY
-  || process.env.SIMPLEBEACON_LICENSE_SECRET
-  || 'dev-integration-key-change-in-production';
+const ENCRYPTION_KEY =
+  process.env.INTEGRATION_ENCRYPTION_KEY ||
+  process.env.SIMPLEBEACON_LICENSE_SECRET ||
+  'dev-integration-key-change-in-production';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -81,23 +83,31 @@ function writeStore(store) {
 
 const INTEGRATION_TYPES = {
   slack: {
-    id: 'slack', label: 'Slack',
-    requiredFields: ['webhookUrl'], secretFields: ['webhookUrl'],
+    id: 'slack',
+    label: 'Slack',
+    requiredFields: ['webhookUrl'],
+    secretFields: ['webhookUrl'],
     description: 'Send compliance notifications to Slack channels via incoming webhooks',
   },
   teams: {
-    id: 'teams', label: 'Microsoft Teams',
-    requiredFields: ['webhookUrl'], secretFields: ['webhookUrl'],
+    id: 'teams',
+    label: 'Microsoft Teams',
+    requiredFields: ['webhookUrl'],
+    secretFields: ['webhookUrl'],
     description: 'Send compliance notifications to Teams channels via incoming webhooks',
   },
   jira: {
-    id: 'jira', label: 'Jira',
-    requiredFields: ['host', 'email', 'apiToken', 'projectKey'], secretFields: ['apiToken'],
+    id: 'jira',
+    label: 'Jira',
+    requiredFields: ['host', 'email', 'apiToken', 'projectKey'],
+    secretFields: ['apiToken'],
     description: 'Create Jira issues for compliance violations automatically',
   },
   github: {
-    id: 'github', label: 'GitHub PR Comments',
-    requiredFields: ['token', 'owner', 'repo'], secretFields: ['token'],
+    id: 'github',
+    label: 'GitHub PR Comments',
+    requiredFields: ['token', 'owner', 'repo'],
+    secretFields: ['token'],
     description: 'Post compliance findings as inline PR review comments',
   },
 };
@@ -131,7 +141,7 @@ function maskConfig(config) {
 function getConfigsByOrg(orgId) {
   const store = readStore();
   return Object.values(store.configs)
-    .filter(c => c.orgId === orgId)
+    .filter((c) => c.orgId === orgId)
     .map(maskConfig);
 }
 
@@ -162,8 +172,8 @@ function getConfigDecrypted(configId) {
 function getConfigsByOrgDecrypted(orgId) {
   const store = readStore();
   return Object.values(store.configs)
-    .filter(c => c.orgId === orgId && c.enabled)
-    .map(c => {
+    .filter((c) => c.orgId === orgId && c.enabled)
+    .map((c) => {
       const decrypted = { ...c.config };
       const type = INTEGRATION_TYPES[c.type];
       if (type) {
@@ -186,15 +196,24 @@ function createConfig(params) {
   }
 
   const config = {
-    configId, orgId: params.orgId, type: params.type,
+    configId,
+    orgId: params.orgId,
+    type: params.type,
     name: params.name || `${type.label} — ${params.orgId || 'default'}`,
     enabled: params.enabled !== false,
     events: params.events || Object.keys(EVENT_TYPES),
-    config: {}, createdAt: now, updatedAt: now,
+    config: {},
+    createdAt: now,
+    updatedAt: now,
   };
 
   for (const [key, value] of Object.entries(params)) {
-    if (['configId', 'orgId', 'type', 'name', 'enabled', 'events', 'createdAt', 'updatedAt'].includes(key)) continue;
+    if (
+      ['configId', 'orgId', 'type', 'name', 'enabled', 'events', 'createdAt', 'updatedAt'].includes(
+        key
+      )
+    )
+      continue;
     if (type.secretFields.includes(key)) {
       config.config[key] = encryptSecret(String(value));
     } else {
@@ -220,7 +239,12 @@ function updateConfig(configId, updates) {
   if (updates.orgId !== undefined) config.orgId = updates.orgId;
 
   for (const [key, value] of Object.entries(updates)) {
-    if (['configId', 'orgId', 'type', 'name', 'enabled', 'events', 'createdAt', 'updatedAt'].includes(key)) continue;
+    if (
+      ['configId', 'orgId', 'type', 'name', 'enabled', 'events', 'createdAt', 'updatedAt'].includes(
+        key
+      )
+    )
+      continue;
     if (type.secretFields.includes(key)) {
       config.config[key] = encryptSecret(String(value));
     } else {
@@ -248,9 +272,9 @@ function getStats() {
   const configs = Object.values(store.configs);
   return {
     total: configs.length,
-    enabled: configs.filter(c => c.enabled).length,
+    enabled: configs.filter((c) => c.enabled).length,
     byType: Object.keys(INTEGRATION_TYPES).reduce((acc, t) => {
-      acc[t] = configs.filter(c => c.type === t).length;
+      acc[t] = configs.filter((c) => c.type === t).length;
       return acc;
     }, {}),
   };

@@ -29,8 +29,14 @@ const CLI_SRC = path.join(PROJECT_ROOT, 'packages/simplebeacon-cli/src');
 let passed = 0;
 let failed = 0;
 
-function success(msg) { console.log('  ✅ ' + msg); passed++; }
-function fail(msg) { console.log('  ❌ ' + msg); failed++; }
+function success(msg) {
+  console.log('  ✅ ' + msg);
+  passed++;
+}
+function fail(msg) {
+  console.log('  ❌ ' + msg);
+  failed++;
+}
 
 // ── Utility: spawn with capture ─────────────────────────────────────────────
 
@@ -39,13 +45,17 @@ function spawnCapture(cmd, args, opts = {}) {
     const proc = spawn(cmd, args, {
       cwd: PROJECT_ROOT,
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, ...opts.env }
+      env: { ...process.env, ...opts.env },
     });
 
     let stdout = '';
     let stderr = '';
-    proc.stdout.on('data', d => { stdout += d; });
-    proc.stderr.on('data', d => { stderr += d; });
+    proc.stdout.on('data', (d) => {
+      stdout += d;
+    });
+    proc.stderr.on('data', (d) => {
+      stderr += d;
+    });
 
     proc.on('close', (code) => {
       const blocked = /offline mode blocked/i.test(stderr);
@@ -56,8 +66,13 @@ function spawnCapture(cmd, args, opts = {}) {
 
     if (opts.stdin) {
       setTimeout(() => {
-        try { proc.stdin.write(opts.stdin); proc.stdin.end(); }
-        catch (e) { proc.kill(); reject(e); }
+        try {
+          proc.stdin.write(opts.stdin);
+          proc.stdin.end();
+        } catch (e) {
+          proc.kill();
+          reject(e);
+        }
       }, opts.stdinDelay || 500);
     }
   });
@@ -69,10 +84,12 @@ async function checkCliOfflineScan() {
   const result = await spawnCapture('node', [
     CLI_BIN,
     'scan',
-    '--path', fixtureDir,
+    '--path',
+    fixtureDir,
     '--offline',
     '--gate',
-    '--format', 'json'
+    '--format',
+    'json',
   ]);
 
   if (result.blocked) {
@@ -81,9 +98,10 @@ async function checkCliOfflineScan() {
   }
 
   const combined = result.stdout + result.stderr;
-  const hasReport = /"status"\s*:\s*"PASSED"/.test(combined) ||
-                    /"status"\s*:\s*"FAILED"/.test(combined) ||
-                    /scan complete|files scanned|gate/i.test(combined);
+  const hasReport =
+    /"status"\s*:\s*"PASSED"/.test(combined) ||
+    /"status"\s*:\s*"FAILED"/.test(combined) ||
+    /scan complete|files scanned|gate/i.test(combined);
 
   if (!hasReport) {
     fail('CLI scan produced no recognizable scan output');
@@ -96,37 +114,40 @@ async function checkCliOfflineScan() {
 // ── Check 2: MCP server offline isolation + JSON-RPC tool execution ─────────
 async function checkMcpOfflineIsolation() {
   const initReq = JSON.stringify({
-    jsonrpc: '2.0', id: 1,
+    jsonrpc: '2.0',
+    id: 1,
     method: 'initialize',
     params: {
       protocolVersion: '2024-11-05',
       capabilities: {},
-      clientInfo: { name: 'zero-upload-test', version: '1.0.0' }
-    }
+      clientInfo: { name: 'zero-upload-test', version: '1.0.0' },
+    },
   });
 
   const toolsReq = JSON.stringify({
-    jsonrpc: '2.0', id: 2,
-    method: 'tools/list'
+    jsonrpc: '2.0',
+    id: 2,
+    method: 'tools/list',
   });
 
   const scanReq = JSON.stringify({
-    jsonrpc: '2.0', id: 3,
+    jsonrpc: '2.0',
+    id: 3,
     method: 'tools/call',
     params: {
       name: 'scan_snippet',
       arguments: {
         content: 'const apiKey = process.env.API_KEY;',
         filePath: 'test.js',
-        projectRoot: PROJECT_ROOT
-      }
-    }
+        projectRoot: PROJECT_ROOT,
+      },
+    },
   });
 
   const result = await spawnCapture('node', [MCP_BIN, '--offline'], {
     stdin: [initReq, toolsReq, scanReq].join('\n') + '\n',
     stdinDelay: 500,
-    env: { SIMPLEBEACON_OFFLINE: '1' }
+    env: { SIMPLEBEACON_OFFLINE: '1' },
   });
 
   if (result.blocked) {
@@ -136,13 +157,19 @@ async function checkMcpOfflineIsolation() {
 
   const responses = result.stdout
     .split('\n')
-    .filter(l => l.trim().startsWith('{'))
-    .map(l => { try { return JSON.parse(l); } catch (_) { return null; } })
+    .filter((l) => l.trim().startsWith('{'))
+    .map((l) => {
+      try {
+        return JSON.parse(l);
+      } catch (_) {
+        return null;
+      }
+    })
     .filter(Boolean);
 
-  const initRes = responses.find(r => r.id === 1);
-  const toolsRes = responses.find(r => r.id === 2);
-  const scanRes = responses.find(r => r.id === 3);
+  const initRes = responses.find((r) => r.id === 1);
+  const toolsRes = responses.find((r) => r.id === 2);
+  const scanRes = responses.find((r) => r.id === 3);
 
   if (!initRes || initRes.error) {
     fail('MCP initialize failed');
@@ -158,7 +185,13 @@ async function checkMcpOfflineIsolation() {
   }
 
   const scanText = scanRes.result?.content?.[0]?.text || '';
-  const scanPayload = (() => { try { return JSON.parse(scanText); } catch (_) { return null; } })();
+  const scanPayload = (() => {
+    try {
+      return JSON.parse(scanText);
+    } catch (_) {
+      return null;
+    }
+  })();
   if (!scanPayload || scanPayload.localOnly !== true) {
     fail('MCP scan_snippet result missing localOnly: true marker');
     return;
@@ -203,12 +236,12 @@ async function checkSourceGuard() {
         if (rel.includes('reporters')) continue;
         if (rel.includes('mcp/stdio-server.js')) continue;
         // Known-safe: documentation URLs, rule patterns that detect telemetry, sample fixtures
-        if (rel.includes('hook-install.js')) continue;        // npm registry URL in help text
-        if (rel.includes('agency-handoff-patterns.js')) continue;  // detects telemetry keywords
-        if (rel.includes('llm-slop-patterns.js')) continue;         // detects npm registry URLs
+        if (rel.includes('hook-install.js')) continue; // npm registry URL in help text
+        if (rel.includes('agency-handoff-patterns.js')) continue; // detects telemetry keywords
+        if (rel.includes('llm-slop-patterns.js')) continue; // detects npm registry URLs
         if (rel.includes('ai-problem-analyzer-suite.js')) continue; // analyzes telemetry as category
-        if (rel.includes('page-sample-specs.js')) continue;         // sample fixture data
-        if (rel.endsWith('scan.js')) continue;                     // docs/help text URLs
+        if (rel.includes('page-sample-specs.js')) continue; // sample fixture data
+        if (rel.endsWith('scan.js')) continue; // docs/help text URLs
 
         findings++;
         const match = content.match(pattern);
@@ -233,17 +266,31 @@ async function checkPackageDependencies() {
   const allDeps = [
     ...Object.keys(pkg.dependencies || {}),
     ...Object.keys(pkg.devDependencies || {}),
-    ...Object.keys(pkg.optionalDependencies || {})
+    ...Object.keys(pkg.optionalDependencies || {}),
   ];
 
   const forbidden = [
-    'aws-sdk', '@aws-sdk', 'azure-storage', '@google-cloud',
-    'firebase', 'supabase', '@supabase', 's3', 'dropbox', 'onedrive',
-    'segment-analytics', 'amplitude', 'mixpanel', 'posthog', 'sentry',
-    'bugsnag', 'rollbar', 'logrocket'
+    'aws-sdk',
+    '@aws-sdk',
+    'azure-storage',
+    '@google-cloud',
+    'firebase',
+    'supabase',
+    '@supabase',
+    's3',
+    'dropbox',
+    'onedrive',
+    'segment-analytics',
+    'amplitude',
+    'mixpanel',
+    'posthog',
+    'sentry',
+    'bugsnag',
+    'rollbar',
+    'logrocket',
   ];
 
-  const found = allDeps.filter(d => forbidden.some(f => d.includes(f)));
+  const found = allDeps.filter((d) => forbidden.some((f) => d.includes(f)));
   if (found.length > 0) {
     fail('Forbidden cloud/telemetry dependencies: ' + found.join(', '));
     return;
@@ -290,9 +337,11 @@ async function checkCliDefaultMode() {
   const result = await spawnCapture('node', [
     CLI_BIN,
     'scan',
-    '--path', fixtureDir,
+    '--path',
+    fixtureDir,
     '--gate',
-    '--format', 'json'
+    '--format',
+    'json',
   ]);
 
   if (result.blocked) {
@@ -301,9 +350,10 @@ async function checkCliDefaultMode() {
   }
 
   const combined = result.stdout + result.stderr;
-  const hasReport = /"status"\s*:\s*"PASSED"/.test(combined) ||
-                    /"status"\s*:\s*"FAILED"/.test(combined) ||
-                    /scan complete|files scanned|gate/i.test(combined);
+  const hasReport =
+    /"status"\s*:\s*"PASSED"/.test(combined) ||
+    /"status"\s*:\s*"FAILED"/.test(combined) ||
+    /scan complete|files scanned|gate/i.test(combined);
 
   if (!hasReport) {
     fail('CLI default mode produced no recognizable scan output');
@@ -324,7 +374,7 @@ async function checkMcpToolDeclarations() {
     'scan_file',
     'scan_project',
     'run_analyzer_suite',
-    'generate_marketing'
+    'generate_marketing',
   ];
 
   for (const toolName of mustDeclareLocal) {
@@ -335,8 +385,19 @@ async function checkMcpToolDeclarations() {
       return;
     }
     const desc = m[1].toLowerCase();
-    if (!desc.includes('local') && !desc.includes('upload') && !desc.includes('offline') && !desc.includes('no data')) {
-      fail('MCP tool ' + toolName + ' description missing local-only claim: "' + m[1].slice(0, 60) + '..."');
+    if (
+      !desc.includes('local') &&
+      !desc.includes('upload') &&
+      !desc.includes('offline') &&
+      !desc.includes('no data')
+    ) {
+      fail(
+        'MCP tool ' +
+          toolName +
+          ' description missing local-only claim: "' +
+          m[1].slice(0, 60) +
+          '..."'
+      );
       return;
     }
   }

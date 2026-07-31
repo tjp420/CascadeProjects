@@ -11,7 +11,9 @@ import { escapeHtml } from './utils/string';
 function getNested<T>(obj: unknown, ...keys: string[]): T | undefined {
   let current: unknown = obj;
   for (const key of keys) {
-    if (current == null || typeof current !== 'object') { return undefined; }
+    if (current == null || typeof current !== 'object') {
+      return undefined;
+    }
     current = (current as Record<string, unknown>)[key];
   }
   return current as T | undefined;
@@ -52,11 +54,16 @@ export class Dashboard40 {
       if (report) Dashboard40.currentPanel.update(report);
       return;
     }
-    const p = vscode.window.createWebviewPanel('simplebeaconDashboard40', 'SimpleBeacon Dashboard 4.0', vscode.ViewColumn.One, {
-      enableScripts: true,
-      retainContextWhenHidden: true,
-      localResourceRoots: [vscode.Uri.joinPath(extUri, 'media')],
-    });
+    const p = vscode.window.createWebviewPanel(
+      'simplebeaconDashboard40',
+      'SimpleBeacon Dashboard 4.0',
+      vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [vscode.Uri.joinPath(extUri, 'media')],
+      }
+    );
     Dashboard40.currentPanel = new Dashboard40(p, extUri, report);
   }
 
@@ -70,7 +77,13 @@ export class Dashboard40 {
     this.panel = panel;
     this.extUri = extUri;
     this.report = report;
-    this.panel.onDidDispose(() => { Dashboard40.currentPanel = undefined; }, null, []);
+    this.panel.onDidDispose(
+      () => {
+        Dashboard40.currentPanel = undefined;
+      },
+      null,
+      []
+    );
     this.panel.webview.onDidReceiveMessage((msg) => this.handleMessage(msg));
     this.render();
   }
@@ -85,10 +98,10 @@ export class Dashboard40 {
       case 'openFile': {
         if (!msg.file) break;
         const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        const resolved = path.isAbsolute(msg.file) ? msg.file : (workspace ? path.join(workspace, msg.file) : msg.file);
+        const resolved = path.isAbsolute(msg.file) ? msg.file : workspace ? path.join(workspace, msg.file) : msg.file;
         if (fs.existsSync(resolved)) {
           vscode.window.showTextDocument(vscode.Uri.file(resolved), {
-            selection: new vscode.Range((msg.line || 1) - 1, 0, (msg.line || 1) - 1, 0)
+            selection: new vscode.Range((msg.line || 1) - 1, 0, (msg.line || 1) - 1, 0),
           });
         } else {
           vscode.window.showWarningMessage('File not found: ' + msg.file);
@@ -117,9 +130,12 @@ export class Dashboard40 {
   private getWorkspaceStats(): { files: number; folders: number } {
     try {
       const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders || workspaceFolders.length === 0) { return { files: 0, folders: 0 }; }
+      if (!workspaceFolders || workspaceFolders.length === 0) {
+        return { files: 0, folders: 0 };
+      }
       const rootPath = workspaceFolders[0].uri.fsPath;
-      const skipDirs = /[\\/]node_modules[\\/]|[\\/]\.git[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/]\.next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]/;
+      const skipDirs =
+        /[\\/]node_modules[\\/]|[\\/]\.git[\\/]|[\\/]dist[\\/]|[\\/]build[\\/]|[\\/]\.next[\\/]|[\\/]out[\\/]|[\\/]coverage[\\/]/;
       let files = 0;
       let folders = 0;
       const stack = [rootPath];
@@ -134,13 +150,21 @@ export class Dashboard40 {
             const fullPath = path.join(dir, entry.name);
             const relPath = path.relative(rootPath, fullPath).replace(/\\/g, '/');
             if (skipDirs.test('/' + relPath + '/')) continue;
-            if (entry.isDirectory()) { folders++; stack.push(fullPath); }
-            else if (entry.isFile()) { files++; }
+            if (entry.isDirectory()) {
+              folders++;
+              stack.push(fullPath);
+            } else if (entry.isFile()) {
+              files++;
+            }
           }
-        } catch { /* skip unreadable */ }
+        } catch {
+          /* skip unreadable */
+        }
       }
       return { files, folders };
-    } catch { return { files: 0, folders: 0 }; }
+    } catch {
+      return { files: 0, folders: 0 };
+    }
   }
 
   private buildHtml(): string {
@@ -164,8 +188,12 @@ export class Dashboard40 {
     const categories = extractCategories(r as any);
     const allFindings = extractAllFindings(r as any);
     const totalFindings = allFindings.length || categories.reduce((s, c) => s + c.count, 0);
-    const findingsJson = JSON.stringify(allFindings.map((f) => ({ ...f, desc: escapeHtml(f.desc), file: escapeHtml(f.file) }))).replace(/</g, '\\u003c');
-    const catOptions = categories.map((c) => `<option value="${escapeHtml(c.label)}">${escapeHtml(c.label)}</option>`).join('');
+    const findingsJson = JSON.stringify(
+      allFindings.map((f) => ({ ...f, desc: escapeHtml(f.desc), file: escapeHtml(f.file) }))
+    ).replace(/</g, '\\u003c');
+    const catOptions = categories
+      .map((c) => `<option value="${escapeHtml(c.label)}">${escapeHtml(c.label)}</option>`)
+      .join('');
 
     const sevCounts = this.getSeverityCounts(allFindings);
     const failingFiles = extractFailingFiles(r as any);
@@ -391,7 +419,12 @@ if(searchInput)searchInput.addEventListener('input',e=>{activeSearch=e.target.va
 </html>`;
   }
 
-  private getSeverityCounts(findings: { sev: string }[]): { critical: number; high: number; medium: number; low: number } {
+  private getSeverityCounts(findings: { sev: string }[]): {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  } {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
     for (const f of findings) {
       if (counts[f.sev as keyof typeof counts] !== undefined) counts[f.sev as keyof typeof counts]++;
@@ -400,16 +433,27 @@ if(searchInput)searchInput.addEventListener('input',e=>{activeSearch=e.target.va
   }
 
   private buildFailingFilesTable(failingFiles: { file: string; issues: { severity: string }[] }[]): string {
-    if (!failingFiles.length) return '<tr><td colspan="4" style="text-align:center;padding:2rem">No issues found</td></tr>';
-    return failingFiles.map((f) => {
-      const counts = f.issues.reduce((acc, i) => { acc[i.severity] = (acc[i.severity] || 0) + 1; return acc; }, {} as Record<string, number>);
-      const badges = Object.entries(counts).map(([sev, c]) => {
-        const color = sev === 'high' || sev === 'critical' ? '#ef4444' : sev === 'medium' ? '#f59e0b' : '#3b82f6';
-        return `<span style="background:${color}12;color:${color};padding:2px 6px;border-radius:4px;font-size:10px;margin-right:4px">${sev}: ${c}</span>`;
-      }).join('');
-      const safeFile = escapeHtml(f.file);
-      const name = f.file.split(/[/\\]/).pop() || f.file;
-      return `<tr><td><span class="file-link" style="cursor:pointer" data-file="${safeFile}" data-line="1">${escapeHtml(name)}</span></td><td>${f.issues.length}</td><td>${badges}</td><td><button class="btn btn-secondary" style="padding:4px 10px;font-size:11px" data-cmd="openFile" data-file="${safeFile}" data-line="1">Open</button></td></tr>`;
-    }).join('');
+    if (!failingFiles.length)
+      return '<tr><td colspan="4" style="text-align:center;padding:2rem">No issues found</td></tr>';
+    return failingFiles
+      .map((f) => {
+        const counts = f.issues.reduce(
+          (acc, i) => {
+            acc[i.severity] = (acc[i.severity] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
+        const badges = Object.entries(counts)
+          .map(([sev, c]) => {
+            const color = sev === 'high' || sev === 'critical' ? '#ef4444' : sev === 'medium' ? '#f59e0b' : '#3b82f6';
+            return `<span style="background:${color}12;color:${color};padding:2px 6px;border-radius:4px;font-size:10px;margin-right:4px">${sev}: ${c}</span>`;
+          })
+          .join('');
+        const safeFile = escapeHtml(f.file);
+        const name = f.file.split(/[/\\]/).pop() || f.file;
+        return `<tr><td><span class="file-link" style="cursor:pointer" data-file="${safeFile}" data-line="1">${escapeHtml(name)}</span></td><td>${f.issues.length}</td><td>${badges}</td><td><button class="btn btn-secondary" style="padding:4px 10px;font-size:11px" data-cmd="openFile" data-file="${safeFile}" data-line="1">Open</button></td></tr>`;
+      })
+      .join('');
   }
 }

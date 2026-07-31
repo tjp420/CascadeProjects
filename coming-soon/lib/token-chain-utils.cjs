@@ -7,11 +7,11 @@
 'use strict';
 
 const {
-  hashToken,
-  getTokenNode,
-  activateToken,
-  expireStaleTokens,
-  getChainStatus
+    hashToken,
+    getTokenNode,
+    activateToken,
+    expireStaleTokens,
+    getChainStatus
 } = require('./token-chain-store.cjs');
 
 /**
@@ -26,26 +26,26 @@ const {
  * @returns {Object} { chainValid: boolean, node: Object|null, error: string|null }
  */
 function validateChainToken(jwtToken, options = {}) {
-  const autoExpire = options.autoExpire !== false;
-  if (autoExpire) expireStaleTokens();
+    const autoExpire = options.autoExpire !== false;
+    if (autoExpire) expireStaleTokens();
 
-  const tokenHash = hashToken(jwtToken);
-  const node = getTokenNode(tokenHash);
-  if (!node) {
-    return { chainValid: false, node: null, error: 'Token not registered in chain registry.' };
-  }
+    const tokenHash = hashToken(jwtToken);
+    const node = getTokenNode(tokenHash);
+    if (!node) {
+        return { chainValid: false, node: null, error: 'Token not registered in chain registry.' };
+    }
 
-  if (node.status === 'revoked') {
-    return { chainValid: false, node, error: 'Token has been revoked.' };
-  }
-  if (node.status === 'expired') {
-    return { chainValid: false, node, error: 'Token has expired.' };
-  }
-  if (node.status !== 'active') {
-    return { chainValid: false, node, error: 'Token is not active. Activate the owner token first.' };
-  }
+    if (node.status === 'revoked') {
+        return { chainValid: false, node, error: 'Token has been revoked.' };
+    }
+    if (node.status === 'expired') {
+        return { chainValid: false, node, error: 'Token has expired.' };
+    }
+    if (node.status !== 'active') {
+        return { chainValid: false, node, error: 'Token is not active. Activate the owner token first.' };
+    }
 
-  return { chainValid: true, node, error: null };
+    return { chainValid: true, node, error: null };
 }
 
 /**
@@ -56,8 +56,8 @@ function validateChainToken(jwtToken, options = {}) {
  * @returns {Object} { success, node, error, alreadyActive }
  */
 function ensureTokenActive(jwtToken, ttlMinutes) {
-  const tokenHash = hashToken(jwtToken);
-  return activateToken(tokenHash, ttlMinutes);
+    const tokenHash = hashToken(jwtToken);
+    return activateToken(tokenHash, ttlMinutes);
 }
 
 /**
@@ -65,50 +65,50 @@ function ensureTokenActive(jwtToken, ttlMinutes) {
  * Returns 0 if expired or not yet active.
  */
 function getRemainingMinutes(node) {
-  if (!node || !node.clock_started_at || !node.expires_at) return 0;
-  const remainingMs = new Date(node.expires_at).getTime() - Date.now();
-  return Math.max(0, Math.ceil(remainingMs / 60000));
+    if (!node || !node.clock_started_at || !node.expires_at) return 0;
+    const remainingMs = new Date(node.expires_at).getTime() - Date.now();
+    return Math.max(0, Math.ceil(remainingMs / 60000));
 }
 
 /**
  * Build a chain summary for API response.
  */
 function buildChainSummary(chainId) {
-  const status = getChainStatus(chainId);
-  if (!status) return null;
+    const status = getChainStatus(chainId);
+    if (!status) return null;
 
-  const ownerRemaining = status.owner ? getRemainingMinutes(status.owner) : 0;
-  const attachedSummaries = status.attached.map((a) => ({
-    id: a.id,
-    email: a.email,
-    status: a.status,
-    activatedAt: a.activatedAt,
-    clockStartedAt: a.clockStartedAt,
-    expiresAt: a.expiresAt,
-    remainingMinutes: getRemainingMinutes(a)
-  }));
+    const ownerRemaining = status.owner ? getRemainingMinutes(status.owner) : 0;
+    const attachedSummaries = status.attached.map(a => ({
+        id: a.id,
+        email: a.email,
+        status: a.status,
+        activatedAt: a.activatedAt,
+        clockStartedAt: a.clockStartedAt,
+        expiresAt: a.expiresAt,
+        remainingMinutes: getRemainingMinutes(a)
+    }));
 
-  return {
-    chainId: status.chainId,
-    owner: status.owner
-      ? {
-          id: status.owner.id,
-          email: status.owner.email,
-          status: status.owner.status,
-          activatedAt: status.owner.activatedAt,
-          clockStartedAt: status.owner.clockStartedAt,
-          expiresAt: status.owner.expiresAt,
-          remainingMinutes: ownerRemaining
-        }
-      : null,
-    attached: attachedSummaries,
-    fullyActive: status.fullyActive
-  };
+    return {
+        chainId: status.chainId,
+        owner: status.owner
+            ? {
+                  id: status.owner.id,
+                  email: status.owner.email,
+                  status: status.owner.status,
+                  activatedAt: status.owner.activatedAt,
+                  clockStartedAt: status.owner.clockStartedAt,
+                  expiresAt: status.owner.expiresAt,
+                  remainingMinutes: ownerRemaining
+              }
+            : null,
+        attached: attachedSummaries,
+        fullyActive: status.fullyActive
+    };
 }
 
 module.exports = {
-  validateChainToken,
-  ensureTokenActive,
-  getRemainingMinutes,
-  buildChainSummary
+    validateChainToken,
+    ensureTokenActive,
+    getRemainingMinutes,
+    buildChainSummary
 };

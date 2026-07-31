@@ -23,7 +23,7 @@ function main() {
   const excludedPatterns = [];
 
   // Filter out false-positive directories
-  const filteredIssues = originalIssues.filter(issue => {
+  const filteredIssues = originalIssues.filter((issue) => {
     const file = issue.file || '';
 
     // Exclude test fixtures
@@ -42,14 +42,19 @@ function main() {
     // Exclude debug artifacts that are inside regex definitions (pattern definitions)
     const snippet = (issue.matches?.[0]?.snippet || '').toLowerCase();
     const context = (issue.matches?.[0]?.context || []).join('\n').toLowerCase();
-    const isPatternDefinition = context.includes('regex:') || context.includes('regex =') || context.includes('pattern');
+    const isPatternDefinition =
+      context.includes('regex:') || context.includes('regex =') || context.includes('pattern');
     if (issue.type === 'Debug Artifact' && isPatternDefinition) {
       excludedPatterns.push({ file, type: issue.type, reason: 'pattern-definition' });
       return false;
     }
 
     // Exclude guarded console.log inside development blocks
-    if (issue.type === 'Debug Artifact' && context.includes('process.env.node_env') && context.includes('development')) {
+    if (
+      issue.type === 'Debug Artifact' &&
+      context.includes('process.env.node_env') &&
+      context.includes('development')
+    ) {
       excludedPatterns.push({ file, type: issue.type, reason: 'development-guarded' });
       return false;
     }
@@ -113,8 +118,8 @@ function main() {
   report.falsePositiveEstimate = {
     excludedCount: originalIssues.length - filteredIssues.length,
     excludedByPath: excludedPaths.length,
-    excludedByConfidence: excludedPatterns.filter(e => e.confidence !== undefined).length,
-    excludedByContext: excludedPatterns.filter(e => e.reason).length
+    excludedByConfidence: excludedPatterns.filter((e) => e.confidence !== undefined).length,
+    excludedByContext: excludedPatterns.filter((e) => e.reason).length,
   };
   report.confidenceDistribution = confidenceDistribution;
   report.productionIssueCount = filteredIssues.length;
@@ -127,23 +132,23 @@ function main() {
     blockingCount: highCount + criticalCount,
     warningCount: mediumCount + lowCount,
     blockingIssues: filteredIssues
-      .filter(f => f.severity === 'high' || f.severity === 'critical')
-      .map(f => ({
+      .filter((f) => f.severity === 'high' || f.severity === 'critical')
+      .map((f) => ({
         file: f.file,
         type: f.type,
         severity: f.severity,
         line: f.matches?.[0]?.line ?? 0,
-        message: f.message
+        message: f.message,
       })),
     warningIssues: filteredIssues
-      .filter(f => f.severity === 'medium' || f.severity === 'low')
-      .map(f => ({
+      .filter((f) => f.severity === 'medium' || f.severity === 'low')
+      .map((f) => ({
         file: f.file,
         type: f.type,
         severity: f.severity,
         line: f.matches?.[0]?.line ?? 0,
-        message: f.message
-      }))
+        message: f.message,
+      })),
   };
 
   // Write back

@@ -10,13 +10,16 @@ const { findUserByEmail, registerUser, toAuthUser } = require('../services/user-
 const { sendError } = require('../lib/response-helpers.cjs');
 
 const PROJECT_ROOT = path.join(__dirname, '../..');
-const STORE_PATH = process.env.SIMPLEBEACON_WEBAUTHN_STORE
-  || path.join(PROJECT_ROOT, '.simplebeacon', 'webauthn-credentials.json');
+const STORE_PATH =
+  process.env.SIMPLEBEACON_WEBAUTHN_STORE ||
+  path.join(PROJECT_ROOT, '.simplebeacon', 'webauthn-credentials.json');
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const pendingChallenges = new Map();
 
 function resolveRpId(req) {
-  const forwarded = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
+  const forwarded = String(req.headers['x-forwarded-host'] || '')
+    .split(',')[0]
+    .trim();
   const host = (forwarded || req.headers.host || 'localhost').split(':')[0].toLowerCase();
   if (host === 'localhost' || host === '127.0.0.1') return 'localhost';
   if (host.endsWith('simplebeacon.ai')) return 'simplebeacon.ai';
@@ -55,7 +58,9 @@ function pruneChallenges() {
 }
 
 async function resolveUserForEmail(db, email) {
-  const normalized = String(email || '').trim().toLowerCase();
+  const normalized = String(email || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) return null;
   let user = await findUserByEmail(db, normalized);
   if (user) return user;
@@ -81,7 +86,7 @@ function setupWebAuthnAPI(app) {
       success: true,
       enabled: true,
       storeWritable,
-      rpId: resolveRpId(req)
+      rpId: resolveRpId(req),
     });
   });
 
@@ -94,17 +99,20 @@ function setupWebAuthnAPI(app) {
     pendingChallenges.set(challengeId, {
       purpose,
       challenge: challenge.toString('base64url'),
-      email: String(req.body?.email || '').trim().toLowerCase() || null,
+      email:
+        String(req.body?.email || '')
+          .trim()
+          .toLowerCase() || null,
       userId: req.body?.userId || null,
       rpId,
-      expiresAt: Date.now() + CHALLENGE_TTL_MS
+      expiresAt: Date.now() + CHALLENGE_TTL_MS,
     });
     res.json({
       success: true,
       challengeId,
       challenge: challenge.toString('base64url'),
       rpId,
-      rpName: 'SimpleBeacon'
+      rpName: 'SimpleBeacon',
     });
   });
 
@@ -118,7 +126,9 @@ function setupWebAuthnAPI(app) {
       if (!credential?.id) {
         return sendError(res, 400, 'Missing credential');
       }
-      const email = String(req.user?.email || pending.email || '').trim().toLowerCase();
+      const email = String(req.user?.email || pending.email || '')
+        .trim()
+        .toLowerCase();
       if (!email) {
         return sendError(res, 401, 'Sign in before registering a security key');
       }
@@ -130,7 +140,7 @@ function setupWebAuthnAPI(app) {
         label: String(label || 'Security key').trim() || 'Security key',
         rawId: credential.rawId || credential.id,
         type: credential.type || 'public-key',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
       writeStore(store);
       pendingChallenges.delete(challengeId);
@@ -174,8 +184,8 @@ function setupWebAuthnAPI(app) {
           trustLevel: user.trustLevel,
           role: user.role || '',
           tier: user.tier || user.trustLevel || 'community',
-          features: Array.isArray(user.features) ? user.features : []
-        }
+          features: Array.isArray(user.features) ? user.features : [],
+        },
       });
     } catch (err) {
       logger.error('[WebAuthn] authenticate failed:', err.message);
@@ -184,7 +194,9 @@ function setupWebAuthnAPI(app) {
   });
 
   app.get('/api/webauthn/credentials', optionalAuthenticate, (req, res) => {
-    const email = String(req.user?.email || '').trim().toLowerCase();
+    const email = String(req.user?.email || '')
+      .trim()
+      .toLowerCase();
     if (!email) {
       return sendError(res, 401, 'Authentication required');
     }
@@ -194,13 +206,15 @@ function setupWebAuthnAPI(app) {
       .map(([id, row]) => ({
         id,
         label: row.label || 'Security key',
-        createdAt: row.createdAt || null
+        createdAt: row.createdAt || null,
       }));
     res.json({ success: true, credentials });
   });
 
   app.delete('/api/webauthn/credentials/:credentialId', optionalAuthenticate, (req, res) => {
-    const email = String(req.user?.email || '').trim().toLowerCase();
+    const email = String(req.user?.email || '')
+      .trim()
+      .toLowerCase();
     if (!email) {
       return sendError(res, 401, 'Authentication required');
     }

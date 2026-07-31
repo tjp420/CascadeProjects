@@ -8,7 +8,12 @@
  * @param {Function} options.onSubmit - Called with credentials object
  * @param {Object} [options.defaults] - Default values for fields
  */
-export function showDownloadCredentialsModal({ title = 'Edit Report Credentials', submitLabel = 'Download', onSubmit, defaults = {} } = {}) {
+export function showDownloadCredentialsModal({
+  title = 'Edit Report Credentials',
+  submitLabel = 'Download',
+  onSubmit,
+  defaults = {},
+} = {}) {
   const existing = document.getElementById('download-credentials-modal');
   existing?.remove();
 
@@ -35,10 +40,31 @@ export function showDownloadCredentialsModal({ title = 'Edit Report Credentials'
   form.className = 'modal-body';
 
   const fields = [
-    { id: 'dc-project-name', label: 'Project / Company Name', placeholder: 'Acme Corp', value: defaults.projectName || '' },
-    { id: 'dc-signatory-name', label: 'Signatory Name', placeholder: 'Jane Smith', value: defaults.signatoryName || '' },
-    { id: 'dc-signatory-title', label: 'Signatory Title', placeholder: 'Chief Technology Officer', value: defaults.signatoryTitle || '' },
-    { id: 'dc-contact-email', label: 'Contact Email', placeholder: 'Contact email address', value: defaults.contactEmail || '', inputmode: 'email' }
+    {
+      id: 'dc-project-name',
+      label: 'Project / Company Name',
+      placeholder: 'Acme Corp',
+      value: defaults.projectName || '',
+    },
+    {
+      id: 'dc-signatory-name',
+      label: 'Signatory Name',
+      placeholder: 'Jane Smith',
+      value: defaults.signatoryName || '',
+    },
+    {
+      id: 'dc-signatory-title',
+      label: 'Signatory Title',
+      placeholder: 'Chief Technology Officer',
+      value: defaults.signatoryTitle || '',
+    },
+    {
+      id: 'dc-contact-email',
+      label: 'Contact Email',
+      placeholder: 'Contact email address',
+      value: defaults.contactEmail || '',
+      inputmode: 'email',
+    },
   ];
 
   fields.forEach((field) => {
@@ -98,7 +124,7 @@ export function showDownloadCredentialsModal({ title = 'Edit Report Credentials'
       projectName: overlay.querySelector('#dc-project-name').value.trim(),
       signatoryName: overlay.querySelector('#dc-signatory-name').value.trim(),
       signatoryTitle: overlay.querySelector('#dc-signatory-title').value.trim(),
-      contactEmail: overlay.querySelector('#dc-contact-email').value.trim()
+      contactEmail: overlay.querySelector('#dc-contact-email').value.trim(),
     };
     close();
     if (typeof onSubmit === 'function') {

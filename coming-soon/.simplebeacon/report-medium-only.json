@@ -1,1141 +1,1141 @@
 {
-  "type": "simplebeacon-report",
-  "reportVersion": 2,
-  "generatedAt": "2026-06-19T05:40:25.066Z",
-  "generatedBy": "SimpleBeacon Browser Sandbox (imported)",
-  "projectRoot": "ai-agent",
-  "projectPath": "ai-agent",
-  "totalFiles": 45664,
-  "filesAnalyzed": 1465,
-  "repositoryFilesTotal": 45664,
-  "issueCount": 1234,
-  "totalIssues": 1234,
-  "qualityScore": 66,
-  "gate": {
-    "pass": true,
-    "blockingCount": 0,
-    "warningCount": 1234,
-    "blockingIssues": [],
-    "warningIssues": [
-      {
-        "file": "ai-platform/tests/dashboard-vault-auth.test.js",
-        "type": "Credential Pattern",
-        "severity": "medium",
-        "line": 15,
-        "message": "const TEST_SECRET = 'test-vault-password-32chars-long';"
-      },
-      {
-        "file": "ai-platform/tests/secret-config.test.js",
-        "type": "Credential Pattern",
-        "severity": "medium",
-        "line": 236,
-        "message": "process.env.JWT_SECRET = 'placeholder-secret';"
-      },
-      {
-        "file": "ai-platform/tests/secret-config.test.js",
-        "type": "Credential Pattern",
-        "severity": "medium",
-        "line": 237,
-        "message": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';"
-      },
-      {
-        "file": "ai-platform/tools/generate-test-token.cjs",
-        "type": "Credential Pattern",
-        "severity": "medium",
-        "line": 39,
-        "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
-      },
-      {
-        "file": "ai-platform/tools/run-all-tier-scans.cjs",
-        "type": "Credential Pattern",
-        "severity": "medium",
-        "line": 37,
-        "message": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;"
-      },
-      {
-        "file": "ai-platform/tools/run-all-tier-scans.cjs",
-        "type": "Credential Pattern",
-        "severity": "medium",
-        "line": 44,
-        "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
-      },
-      {
-        "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
-        "type": "Credential Pattern",
-        "severity": "medium",
-        "line": 124,
-        "message": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;"
-      },
-      {
-        "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
-        "type": "Credential Pattern",
-        "severity": "medium",
-        "line": 131,
-        "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
-      },
-      {
-        "file": "ai-agent/consistency-score.cjs",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 108,
-        "message": "const sampleFiles = report.sampleFiles || [];"
-      },
-      {
-        "file": "ai-agent/consistency-score.cjs",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 114,
-        "message": "for (const file of sampleFiles) {"
-      },
-      {
-        "file": "ai-platform/auto-processor.js",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 98,
-        "message": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded"
-      },
-      {
-        "file": "ai-platform/auto-processor.js",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 102,
-        "message": "- Mock data patterns"
-      },
-      {
-        "file": "ai-platform/simplebeacon-server.cjs",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 31,
-        "message": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');"
-      },
-      {
-        "file": "ai-platform/simplebeacon-server.cjs",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 655,
-        "message": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)"
-      },
-      {
-        "file": "ai-platform/simplebeacon-server.cjs",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 679,
-        "message": "setupDashboardStubAPIs(app, webRoot, {"
-      },
-      {
-        "file": "ai-platform/simplebeacon-server.cjs",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 686,
-        "message": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);"
-      },
-      {
-        "file": "ai-platform/simplebeacon-server.cjs",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 688,
-        "message": "setupDashboardStubAPIs(app, webRoot, {"
-      },
-      {
-        "file": "coming-soon/analyze-directory.js",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 38,
-        "message": "const recentFiles = []; // Keep last 10 for sample"
-      },
-      {
-        "file": "coming-soon/analyze-directory.js",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 172,
-        "message": "recentSamples: recentFiles"
-      },
-      {
-        "file": "coming-soon/app-links.js",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 114,
-        "message": "function applySampleReportLinks() {"
-      },
-      {
-        "file": "coming-soon/app-links.js",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 115,
-        "message": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();"
-      },
-      {
-        "file": "coming-soon/app-links.js",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 117,
-        "message": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {"
-      },
-      {
-        "file": "coming-soon/app-links.js",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 118,
-        "message": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');"
-      },
-      {
-        "file": "coming-soon/app-links.js",
-        "type": "Production Leak",
-        "severity": "medium",
-        "line": 120,
-        "message": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {"
-      }
-    ]
-  },
-  "severityCounts": {
-    "critical": 0,
-    "high": 0,
-    "medium": 1234,
-    "low": 0
-  },
-  "detectedIssues": [
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Credential Pattern",
-      "count": 47,
-      "filePath": [
-        "ai-platform/tests/dashboard-vault-auth.test.js",
-        "ai-platform/tests/secret-config.test.js",
-        "ai-platform/tools/generate-test-token.cjs",
-        "ai-platform/tools/run-all-tier-scans.cjs",
-        "ai-platform/tools/run-paid-scan-for-trevor.cjs",
-        "ai-platform/tools/scan-github-repo.cjs",
-        "ai-platform/tools/test-billing-pipeline.js",
-        "coming-soon/archive/test-all-patterns.js",
-        "coming-soon/archive/test-certificate.js",
-        "coming-soon/archive/test-technical-audit.js"
-      ],
-      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
-      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
-      "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "findings": [
-        {
-          "file": "ai-platform/tests/dashboard-vault-auth.test.js",
-          "matches": [
+    "type": "simplebeacon-report",
+    "reportVersion": 2,
+    "generatedAt": "2026-06-19T05:40:25.066Z",
+    "generatedBy": "SimpleBeacon Browser Sandbox (imported)",
+    "projectRoot": "ai-agent",
+    "projectPath": "ai-agent",
+    "totalFiles": 45664,
+    "filesAnalyzed": 1465,
+    "repositoryFilesTotal": 45664,
+    "issueCount": 1234,
+    "totalIssues": 1234,
+    "qualityScore": 66,
+    "gate": {
+        "pass": true,
+        "blockingCount": 0,
+        "warningCount": 1234,
+        "blockingIssues": [],
+        "warningIssues": [
             {
-              "line": 15,
-              "snippet": "const TEST_SECRET = 'test-vault-password-32chars-long';",
-              "type": "credentials"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/tests/secret-config.test.js",
-          "matches": [
-            {
-              "line": 236,
-              "snippet": "process.env.JWT_SECRET = 'placeholder-secret';",
-              "type": "credentials"
+                "file": "ai-platform/tests/dashboard-vault-auth.test.js",
+                "type": "Credential Pattern",
+                "severity": "medium",
+                "line": 15,
+                "message": "const TEST_SECRET = 'test-vault-password-32chars-long';"
             },
             {
-              "line": 237,
-              "snippet": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';",
-              "type": "credentials"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/tools/generate-test-token.cjs",
-          "matches": [
-            {
-              "line": 39,
-              "snippet": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
-              "type": "credentials"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/tools/run-all-tier-scans.cjs",
-          "matches": [
-            {
-              "line": 37,
-              "snippet": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
-              "type": "credentials"
+                "file": "ai-platform/tests/secret-config.test.js",
+                "type": "Credential Pattern",
+                "severity": "medium",
+                "line": 236,
+                "message": "process.env.JWT_SECRET = 'placeholder-secret';"
             },
             {
-              "line": 44,
-              "snippet": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
-              "type": "credentials"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
-          "matches": [
-            {
-              "line": 124,
-              "snippet": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
-              "type": "credentials"
+                "file": "ai-platform/tests/secret-config.test.js",
+                "type": "Credential Pattern",
+                "severity": "medium",
+                "line": 237,
+                "message": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';"
             },
             {
-              "line": 131,
-              "snippet": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
-              "type": "credentials"
+                "file": "ai-platform/tools/generate-test-token.cjs",
+                "type": "Credential Pattern",
+                "severity": "medium",
+                "line": 39,
+                "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
+            },
+            {
+                "file": "ai-platform/tools/run-all-tier-scans.cjs",
+                "type": "Credential Pattern",
+                "severity": "medium",
+                "line": 37,
+                "message": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;"
+            },
+            {
+                "file": "ai-platform/tools/run-all-tier-scans.cjs",
+                "type": "Credential Pattern",
+                "severity": "medium",
+                "line": 44,
+                "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
+            },
+            {
+                "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
+                "type": "Credential Pattern",
+                "severity": "medium",
+                "line": 124,
+                "message": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;"
+            },
+            {
+                "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
+                "type": "Credential Pattern",
+                "severity": "medium",
+                "line": 131,
+                "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
+            },
+            {
+                "file": "ai-agent/consistency-score.cjs",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 108,
+                "message": "const sampleFiles = report.sampleFiles || [];"
+            },
+            {
+                "file": "ai-agent/consistency-score.cjs",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 114,
+                "message": "for (const file of sampleFiles) {"
+            },
+            {
+                "file": "ai-platform/auto-processor.js",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 98,
+                "message": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded"
+            },
+            {
+                "file": "ai-platform/auto-processor.js",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 102,
+                "message": "- Mock data patterns"
+            },
+            {
+                "file": "ai-platform/simplebeacon-server.cjs",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 31,
+                "message": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');"
+            },
+            {
+                "file": "ai-platform/simplebeacon-server.cjs",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 655,
+                "message": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)"
+            },
+            {
+                "file": "ai-platform/simplebeacon-server.cjs",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 679,
+                "message": "setupDashboardStubAPIs(app, webRoot, {"
+            },
+            {
+                "file": "ai-platform/simplebeacon-server.cjs",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 686,
+                "message": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);"
+            },
+            {
+                "file": "ai-platform/simplebeacon-server.cjs",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 688,
+                "message": "setupDashboardStubAPIs(app, webRoot, {"
+            },
+            {
+                "file": "coming-soon/analyze-directory.js",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 38,
+                "message": "const recentFiles = []; // Keep last 10 for sample"
+            },
+            {
+                "file": "coming-soon/analyze-directory.js",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 172,
+                "message": "recentSamples: recentFiles"
+            },
+            {
+                "file": "coming-soon/app-links.js",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 114,
+                "message": "function applySampleReportLinks() {"
+            },
+            {
+                "file": "coming-soon/app-links.js",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 115,
+                "message": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();"
+            },
+            {
+                "file": "coming-soon/app-links.js",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 117,
+                "message": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {"
+            },
+            {
+                "file": "coming-soon/app-links.js",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 118,
+                "message": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');"
+            },
+            {
+                "file": "coming-soon/app-links.js",
+                "type": "Production Leak",
+                "severity": "medium",
+                "line": 120,
+                "message": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {"
             }
-          ]
+        ]
+    },
+    "severityCounts": {
+        "critical": 0,
+        "high": 0,
+        "medium": 1234,
+        "low": 0
+    },
+    "detectedIssues": [
+        {
+            "severity": "medium",
+            "severityBand": "medium",
+            "type": "Credential Pattern",
+            "count": 47,
+            "filePath": [
+                "ai-platform/tests/dashboard-vault-auth.test.js",
+                "ai-platform/tests/secret-config.test.js",
+                "ai-platform/tools/generate-test-token.cjs",
+                "ai-platform/tools/run-all-tier-scans.cjs",
+                "ai-platform/tools/run-paid-scan-for-trevor.cjs",
+                "ai-platform/tools/scan-github-repo.cjs",
+                "ai-platform/tools/test-billing-pipeline.js",
+                "coming-soon/archive/test-all-patterns.js",
+                "coming-soon/archive/test-certificate.js",
+                "coming-soon/archive/test-technical-audit.js"
+            ],
+            "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+            "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
+            "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "findings": [
+                {
+                    "file": "ai-platform/tests/dashboard-vault-auth.test.js",
+                    "matches": [
+                        {
+                            "line": 15,
+                            "snippet": "const TEST_SECRET = 'test-vault-password-32chars-long';",
+                            "type": "credentials"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/tests/secret-config.test.js",
+                    "matches": [
+                        {
+                            "line": 236,
+                            "snippet": "process.env.JWT_SECRET = 'placeholder-secret';",
+                            "type": "credentials"
+                        },
+                        {
+                            "line": 237,
+                            "snippet": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';",
+                            "type": "credentials"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/tools/generate-test-token.cjs",
+                    "matches": [
+                        {
+                            "line": 39,
+                            "snippet": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
+                            "type": "credentials"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/tools/run-all-tier-scans.cjs",
+                    "matches": [
+                        {
+                            "line": 37,
+                            "snippet": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
+                            "type": "credentials"
+                        },
+                        {
+                            "line": 44,
+                            "snippet": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
+                            "type": "credentials"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
+                    "matches": [
+                        {
+                            "line": 124,
+                            "snippet": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
+                            "type": "credentials"
+                        },
+                        {
+                            "line": 131,
+                            "snippet": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
+                            "type": "credentials"
+                        }
+                    ]
+                }
+            ],
+            "reasoning": "Regex heuristics matched hardcoded credential patterns: password=, api_key=, secret_key=, || AWS access keys. These strings resemble common secret formats && are flagged for review even if they are dummy values.",
+            "confidence": 0.78,
+            "humanReadable": "Potential hardcoded secrets found in 29 file(s). The scanner matched patterns resembling API keys, passwords, || tokens assigned as string literals."
+        },
+        {
+            "severity": "low",
+            "severityBand": "low",
+            "type": "Debug Artifact",
+            "count": 749,
+            "filePath": [
+                "ai-agent/consistency-score.cjs",
+                "ai-agent/orchestrator.cjs",
+                "ai-agent/prompts.js",
+                "ai-agent/report-analyzer.cjs",
+                "ai-platform/auto-processor.js",
+                "ai-platform/simplebeacon-server.cjs",
+                "coming-soon/analyze-directory.js",
+                "coming-soon/build-public.js",
+                "coming-soon/server.cjs",
+                "scripts/add-sample-json-annotations.js"
+            ],
+            "rule": "DEBUG_ARTIFACT",
+            "impact": "HYGIENE RISK: Debug artifacts should ! reach production builds.",
+            "fix": "Remove console.log, debugger, TODO, && FIXME markers before release.",
+            "findings": [
+                {
+                    "file": "ai-agent/consistency-score.cjs",
+                    "matches": [
+                        {
+                            "line": 162,
+                            "snippet": "console.error('Usage: node consistency-score.cjs <path-to-report.json>');",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 169,
+                            "snippet": "console.log(JSON.stringify(result, null, 2));",
+                            "type": "debugArtifacts"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-agent/orchestrator.cjs",
+                    "matches": [
+                        {
+                            "line": 9,
+                            "snippet": "function debugLog(...args) { if (DEBUG) console.log(...args); }",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 10,
+                            "snippet": "function debugError(...args) { if (DEBUG) console.error(...args); }",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 48,
+                            "snippet": "const planningPrompt = getPlanningPrompt(userGoal);",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 111,
+                            "snippet": "const verificationPrompt = getVerificationPrompt(logOutput);",
+                            "type": "debugArtifacts"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-agent/prompts.js",
+                    "matches": [
+                        {
+                            "line": 13,
+                            "snippet": "function getPlanningPrompt(userGoal) {",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 34,
+                            "snippet": "function getVerificationPrompt(terminalOutput) {",
+                            "type": "debugArtifacts"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-agent/report-analyzer.cjs",
+                    "matches": [
+                        {
+                            "line": 14,
+                            "snippet": "function buildPrompt(report) {",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 52,
+                            "snippet": "console.error('Usage: node report-analyzer.cjs <path-to-report.json>');",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 57,
+                            "snippet": "console.error(`Report not found: ${reportPath}`);",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 62,
+                            "snippet": "const prompt = buildPrompt(report);",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 80,
+                            "snippet": "console.log(`Analysis saved to ${analysisPath}`);",
+                            "type": "debugArtifacts"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/auto-processor.js",
+                    "matches": [
+                        {
+                            "line": 36,
+                            "snippet": "const log = (...args) => { if (PROCESSOR_DEBUG) console.log(...args); };",
+                            "type": "debugArtifacts"
+                        },
+                        {
+                            "line": 37,
+                            "snippet": "const logError = (...args) => { if (PROCESSOR_DEBUG) console.error(...args); };",
+                            "type": "debugArtifacts"
+                        }
+                    ]
+                }
+            ],
+            "reasoning": "Source code analysis detected console.log(), debugger statements, || alert()/prompt() calls. These are development-only artifacts that can leak internal state || interrupt user experience in production.",
+            "confidence": 0.98,
+            "humanReadable": "Debug artifacts (console.log, debugger, alert) found in 227 file(s). These should be removed before production builds."
+        },
+        {
+            "severity": "low",
+            "severityBand": "low",
+            "type": "License/Governance Marker",
+            "count": 177,
+            "filePath": [
+                "coming-soon/server.cjs",
+                "coming-soon/site-config.js",
+                "ai-platform/server/ai-proxy-gateway.cjs",
+                "ai-platform/server/index.cjs",
+                "ai-platform/tools/generate-ai-analyst-reports.cjs",
+                "ai-platform/tools/send-payment-tier-emails.cjs",
+                "coming-soon/js/scan-worker.js",
+                "coming-soon/lib/certificate-utils.cjs",
+                "coming-soon/public/site-config.js",
+                "coming-soon/routes/checkout.cjs"
+            ],
+            "rule": "GOVERNANCE_PATTERN",
+            "impact": "INFO: License headers && copyright notices detected. Verify compliance with open-source policy.",
+            "fix": "Review license compatibility with your product distribution model.",
+            "findings": [
+                {
+                    "file": "coming-soon/server.cjs",
+                    "matches": [
+                        {
+                            "line": 448,
+                            "snippet": "if (key === 'credential' && /demoMode\\.|outreach-prospects\\.|agency-handoff-patterns\\.|site-config\\.|app-links\\.|email\\.",
+                            "type": "euAiAct"
+                        }
+                    ]
+                },
+                {
+                    "file": "coming-soon/site-config.js",
+                    "matches": [
+                        {
+                            "line": 233,
+                            "snippet": "a: 'The AI Slop Cop Enterprise tier produces Annex III high-risk AI system documentation, Article 14 Human Oversight eva",
+                            "type": "euAiAct"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/server/ai-proxy-gateway.cjs",
+                    "matches": [
+                        {
+                            "line": 9,
+                            "snippet": "* - Article 50: Transparency — upstream consumers (chatbot, analyze) disclose AI-generated content",
+                            "type": "euAiAct"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/server/index.cjs",
+                    "matches": [
+                        {
+                            "line": 398,
+                            "snippet": "ai_system: 'ready',",
+                            "type": "euAiAct"
+                        },
+                        {
+                            "line": 767,
+                            "snippet": "ai_system: 'ready',",
+                            "type": "euAiAct"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/tools/generate-ai-analyst-reports.cjs",
+                    "matches": [
+                        {
+                            "line": 294,
+                            "snippet": "| **EU AI Act** | ${p.euAiAct.highRiskIndicators === 0 ? 'Compliant' : 'Review Required'} | High-risk: ${p.euAiAct.highR",
+                            "type": "euAiAct"
+                        }
+                    ]
+                }
+            ],
+            "reasoning": "SPDX-License-Identifier tags, copyright headers, || license references were found  in source files. This indicates the project contains licensed third-party code that must be tracked for compliance.",
+            "confidence": 0.95,
+            "humanReadable": "License && copyright markers detected in 73 file(s). Verify open-source license compatibility with your distribution model."
+        },
+        {
+            "severity": "low",
+            "severityBand": "low",
+            "type": "AI Residue",
+            "count": 4,
+            "filePath": [
+                "ai-platform/web/simplebeacon-dashboard/js/views/AuditView.js",
+                "ai-platform/web/simplebeacon-dashboard/js/views/QualityView.js",
+                "ai-platform/web/simplebeacon-dashboard/js/views/SecurityView.js",
+                "ai-platform/web/simplebeacon-dashboard/js/views/TrustView.js"
+            ],
+            "rule": "AI_RESIDUE_PATTERN",
+            "impact": "HYGIENE RISK: AI-generated stubs, deprecated idioms, and error-swallowing patterns reduce code quality.",
+            "fix": "Replace stubs with real implementations, modernize deprecated APIs, and add proper error handling.",
+            "findings": [
+                {
+                    "file": "ai-platform/web/simplebeacon-dashboard/js/views/AuditView.js",
+                    "type": "Error Swallowing",
+                    "matches": [
+                        {
+                            "line": 462,
+                            "snippet": "catch (err) { console.warn('[Audit-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentio",
+                            "context": [
+                                "try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Audit data sent to AI a",
+                                "catch (err) { console.warn('[Audit-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentio",
+                                "}"
+                            ],
+                            "dynamicSeverity": "medium",
+                            "confidence": 0.85,
+                            "baseSeverity": "medium"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/web/simplebeacon-dashboard/js/views/QualityView.js",
+                    "type": "Error Swallowing",
+                    "matches": [
+                        {
+                            "line": 201,
+                            "snippet": "catch (err) { console.warn('[Quality-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intent",
+                            "context": [
+                                "try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Quality & Security data",
+                                "catch (err) { console.warn('[Quality-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intent",
+                                "}"
+                            ],
+                            "dynamicSeverity": "medium",
+                            "confidence": 0.85,
+                            "baseSeverity": "medium"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/web/simplebeacon-dashboard/js/views/SecurityView.js",
+                    "type": "Error Swallowing",
+                    "matches": [
+                        {
+                            "line": 267,
+                            "snippet": "catch (err) { console.warn('[Security-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — inten",
+                            "context": [
+                                "try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Security findings sent ",
+                                "catch (err) { console.warn('[Security-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — inten",
+                                "}"
+                            ],
+                            "dynamicSeverity": "medium",
+                            "confidence": 0.85,
+                            "baseSeverity": "medium"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/web/simplebeacon-dashboard/js/views/TrustView.js",
+                    "type": "Error Swallowing",
+                    "matches": [
+                        {
+                            "line": 384,
+                            "snippet": "catch (err) { console.warn('[Trust-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentio",
+                            "context": [
+                                "try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Trust verification sent",
+                                "catch (err) { console.warn('[Trust-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentio",
+                                "}"
+                            ],
+                            "dynamicSeverity": "medium",
+                            "confidence": 0.85,
+                            "baseSeverity": "medium"
+                        }
+                    ]
+                }
+            ],
+            "reasoning": "The scanner detected patterns commonly left behind by AI coding assistants: empty function bodies, TODO placeholders, deprecated framework APIs, error-swallowing catch blocks, and large commented-out dead code.",
+            "confidence": 0.85,
+            "humanReadable": "AI residue (stubs, deprecated patterns, error swallowing, dead code) found in 4 file(s)."
+        },
+        {
+            "severity": "medium",
+            "severityBand": "medium",
+            "type": "Production Leak",
+            "count": 1187,
+            "filePath": [
+                "ai-agent/consistency-score.cjs",
+                "ai-platform/auto-processor.js",
+                "ai-platform/simplebeacon-server.cjs",
+                "coming-soon/analyze-directory.js",
+                "coming-soon/app-links.js",
+                "coming-soon/build-public.js",
+                "coming-soon/server.cjs",
+                "coming-soon/site-config.js",
+                "scripts/add-sample-json-annotations.js",
+                "scripts/add-sample-json-ignore.js"
+            ],
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "findings": [
+                {
+                    "file": "ai-agent/consistency-score.cjs",
+                    "matches": [
+                        {
+                            "line": 108,
+                            "snippet": "const sampleFiles = report.sampleFiles || [];",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 114,
+                            "snippet": "for (const file of sampleFiles) {",
+                            "type": "mockData"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/auto-processor.js",
+                    "matches": [
+                        {
+                            "line": 98,
+                            "snippet": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 102,
+                            "snippet": "- Mock data patterns",
+                            "type": "mockData"
+                        }
+                    ]
+                },
+                {
+                    "file": "ai-platform/simplebeacon-server.cjs",
+                    "matches": [
+                        {
+                            "line": 31,
+                            "snippet": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 655,
+                            "snippet": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 679,
+                            "snippet": "setupDashboardStubAPIs(app, webRoot, {",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 686,
+                            "snippet": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 688,
+                            "snippet": "setupDashboardStubAPIs(app, webRoot, {",
+                            "type": "mockData"
+                        }
+                    ]
+                },
+                {
+                    "file": "coming-soon/analyze-directory.js",
+                    "matches": [
+                        {
+                            "line": 38,
+                            "snippet": "const recentFiles = []; // Keep last 10 for sample",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 172,
+                            "snippet": "recentSamples: recentFiles",
+                            "type": "mockData"
+                        }
+                    ]
+                },
+                {
+                    "file": "coming-soon/app-links.js",
+                    "matches": [
+                        {
+                            "line": 114,
+                            "snippet": "function applySampleReportLinks() {",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 115,
+                            "snippet": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 117,
+                            "snippet": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 118,
+                            "snippet": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');",
+                            "type": "mockData"
+                        },
+                        {
+                            "line": 120,
+                            "snippet": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {",
+                            "type": "mockData"
+                        }
+                    ]
+                }
+            ],
+            "reasoning": "References to mock, fixture, sample, or test-data directories in production source indicate potential test data leakage.",
+            "confidence": 0.82,
+            "humanReadable": "321 file(s) reference mock/fixture paths in production code."
+        },
+        {
+            "severity": "low",
+            "severityBand": "low",
+            "type": "Maintainability Issue",
+            "count": 16,
+            "filePath": [
+                "ai-platform/tests/file-quality-heuristics.test.js",
+                "coming-soon/archive/test-all-patterns.js",
+                "simplebeacon-vscode/src/realtimeMonitor.ts",
+                "simplebeacon-vscode-merged/src/realtimeMonitor.ts",
+                "coming-soon/js/dashboard/pattern-documentation.js",
+                "coming-soon/js/dashboard/quick-actions.js",
+                "coming-soon/js/dashboard/scanner-engine.js",
+                "coming-soon/public/js/dashboard/pattern-documentation.js",
+                "coming-soon/public/js/dashboard/quick-actions.js",
+                "coming-soon/public/js/dashboard/scanner-engine.js"
+            ],
+            "rule": "MAINTAINABILITY_PATTERN",
+            "impact": "MAINTAINABILITY RISK: Magic numbers and hardcoded literals make code harder to understand and modify.",
+            "fix": "Extract numeric literals to named constants (e.g., const MAX_RETRIES = 3).",
+            "findings": [
+                {
+                    "file": "ai-platform/tests/file-quality-heuristics.test.js",
+                    "matches": [
+                        {
+                            "line": 14,
+                            "snippet": "expect(contentHasMarker('// TODO: fix this', 'TODO')).toBe(true);",
+                            "type": "todoMarkers"
+                        },
+                        {
+                            "line": 33,
+                            "snippet": "expect(calculateFileQuality('// TODO: implement')).toBe(90);",
+                            "type": "todoMarkers"
+                        },
+                        {
+                            "line": 37,
+                            "snippet": "expect(calculateFileQuality('// FIXME: broken')).toBe(85);",
+                            "type": "todoMarkers"
+                        },
+                        {
+                            "line": 49,
+                            "snippet": "const bad = '// TODO: fix\\n// FIXME: now\\nconsole.log(\"x\")\\ndebugger;';",
+                            "type": "todoMarkers"
+                        },
+                        {
+                            "line": 56,
+                            "snippet": "expect(contentNeedsValidation('// TODO: fix')).toBe(true);",
+                            "type": "todoMarkers"
+                        }
+                    ]
+                },
+                {
+                    "file": "coming-soon/archive/test-all-patterns.js",
+                    "matches": [
+                        {
+                            "line": 135,
+                            "snippet": "\"function process() { // TODO: implement\",",
+                            "type": "todoMarkers"
+                        },
+                        {
+                            "line": 140,
+                            "snippet": "\"// TODO: review with team\",",
+                            "type": "todoMarkers"
+                        },
+                        {
+                            "line": 193,
+                            "snippet": "\"// todo: write tests\",",
+                            "type": "todoMarkers"
+                        }
+                    ]
+                },
+                {
+                    "file": "simplebeacon-vscode/src/realtimeMonitor.ts",
+                    "matches": [
+                        {
+                            "line": 89,
+                            "snippet": "// TODO with overly detailed explanation",
+                            "type": "todoMarkers"
+                        }
+                    ]
+                },
+                {
+                    "file": "simplebeacon-vscode-merged/src/realtimeMonitor.ts",
+                    "matches": [
+                        {
+                            "line": 103,
+                            "snippet": "// TODO with overly detailed explanation",
+                            "type": "todoMarkers"
+                        }
+                    ]
+                },
+                {
+                    "file": "coming-soon/js/dashboard/pattern-documentation.js",
+                    "matches": [
+                        {
+                            "line": 39,
+                            "snippet": "'// TODO: Implement error handling by 2025-01-15',",
+                            "type": "todoMarkers"
+                        }
+                    ]
+                }
+            ],
+            "reasoning": "Magic numbers obscure intent and make bulk updates error-prone.",
+            "confidence": 0.78,
+            "humanReadable": "10 file(s) have maintainability issues."
         }
-      ],
-      "reasoning": "Regex heuristics matched hardcoded credential patterns: password=, api_key=, secret_key=, || AWS access keys. These strings resemble common secret formats && are flagged for review even if they are dummy values.",
-      "confidence": 0.78,
-      "humanReadable": "Potential hardcoded secrets found in 29 file(s). The scanner matched patterns resembling API keys, passwords, || tokens assigned as string literals."
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Debug Artifact",
-      "count": 749,
-      "filePath": [
-        "ai-agent/consistency-score.cjs",
-        "ai-agent/orchestrator.cjs",
-        "ai-agent/prompts.js",
-        "ai-agent/report-analyzer.cjs",
-        "ai-platform/auto-processor.js",
-        "ai-platform/simplebeacon-server.cjs",
-        "coming-soon/analyze-directory.js",
-        "coming-soon/build-public.js",
-        "coming-soon/server.cjs",
-        "scripts/add-sample-json-annotations.js"
-      ],
-      "rule": "DEBUG_ARTIFACT",
-      "impact": "HYGIENE RISK: Debug artifacts should ! reach production builds.",
-      "fix": "Remove console.log, debugger, TODO, && FIXME markers before release.",
-      "findings": [
+    ],
+    "rawIssues": [
         {
-          "file": "ai-agent/consistency-score.cjs",
-          "matches": [
-            {
-              "line": 162,
-              "snippet": "console.error('Usage: node consistency-score.cjs <path-to-report.json>');",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 169,
-              "snippet": "console.log(JSON.stringify(result, null, 2));",
-              "type": "debugArtifacts"
-            }
-          ]
+            "severity": "medium",
+            "type": "Credential Pattern",
+            "file": "ai-platform/tests/dashboard-vault-auth.test.js",
+            "filePath": "ai-platform/tests/dashboard-vault-auth.test.js",
+            "line": 15,
+            "message": "const TEST_SECRET = 'test-vault-password-32chars-long';",
+            "description": "const TEST_SECRET = 'test-vault-password-32chars-long';",
+            "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+            "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
+            "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "match": "const TEST_SECRET = 'test-vault-password-32chars-long';"
         },
         {
-          "file": "ai-agent/orchestrator.cjs",
-          "matches": [
-            {
-              "line": 9,
-              "snippet": "function debugLog(...args) { if (DEBUG) console.log(...args); }",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 10,
-              "snippet": "function debugError(...args) { if (DEBUG) console.error(...args); }",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 48,
-              "snippet": "const planningPrompt = getPlanningPrompt(userGoal);",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 111,
-              "snippet": "const verificationPrompt = getVerificationPrompt(logOutput);",
-              "type": "debugArtifacts"
-            }
-          ]
+            "severity": "medium",
+            "type": "Credential Pattern",
+            "file": "ai-platform/tests/secret-config.test.js",
+            "filePath": "ai-platform/tests/secret-config.test.js",
+            "line": 236,
+            "message": "process.env.JWT_SECRET = 'placeholder-secret';",
+            "description": "process.env.JWT_SECRET = 'placeholder-secret';",
+            "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+            "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
+            "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "match": "process.env.JWT_SECRET = 'placeholder-secret';"
         },
         {
-          "file": "ai-agent/prompts.js",
-          "matches": [
-            {
-              "line": 13,
-              "snippet": "function getPlanningPrompt(userGoal) {",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 34,
-              "snippet": "function getVerificationPrompt(terminalOutput) {",
-              "type": "debugArtifacts"
-            }
-          ]
+            "severity": "medium",
+            "type": "Credential Pattern",
+            "file": "ai-platform/tests/secret-config.test.js",
+            "filePath": "ai-platform/tests/secret-config.test.js",
+            "line": 237,
+            "message": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';",
+            "description": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';",
+            "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+            "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
+            "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "match": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';"
         },
         {
-          "file": "ai-agent/report-analyzer.cjs",
-          "matches": [
-            {
-              "line": 14,
-              "snippet": "function buildPrompt(report) {",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 52,
-              "snippet": "console.error('Usage: node report-analyzer.cjs <path-to-report.json>');",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 57,
-              "snippet": "console.error(`Report not found: ${reportPath}`);",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 62,
-              "snippet": "const prompt = buildPrompt(report);",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 80,
-              "snippet": "console.log(`Analysis saved to ${analysisPath}`);",
-              "type": "debugArtifacts"
-            }
-          ]
+            "severity": "medium",
+            "type": "Credential Pattern",
+            "file": "ai-platform/tools/generate-test-token.cjs",
+            "filePath": "ai-platform/tools/generate-test-token.cjs",
+            "line": 39,
+            "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
+            "description": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
+            "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+            "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
+            "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "match": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
         },
         {
-          "file": "ai-platform/auto-processor.js",
-          "matches": [
-            {
-              "line": 36,
-              "snippet": "const log = (...args) => { if (PROCESSOR_DEBUG) console.log(...args); };",
-              "type": "debugArtifacts"
-            },
-            {
-              "line": 37,
-              "snippet": "const logError = (...args) => { if (PROCESSOR_DEBUG) console.error(...args); };",
-              "type": "debugArtifacts"
-            }
-          ]
+            "severity": "medium",
+            "type": "Credential Pattern",
+            "file": "ai-platform/tools/run-all-tier-scans.cjs",
+            "filePath": "ai-platform/tools/run-all-tier-scans.cjs",
+            "line": 37,
+            "message": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
+            "description": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
+            "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+            "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
+            "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "match": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;"
+        },
+        {
+            "severity": "medium",
+            "type": "Credential Pattern",
+            "file": "ai-platform/tools/run-all-tier-scans.cjs",
+            "filePath": "ai-platform/tools/run-all-tier-scans.cjs",
+            "line": 44,
+            "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
+            "description": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
+            "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+            "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
+            "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "match": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
+        },
+        {
+            "severity": "medium",
+            "type": "Credential Pattern",
+            "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
+            "filePath": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
+            "line": 124,
+            "message": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
+            "description": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
+            "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+            "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
+            "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "match": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;"
+        },
+        {
+            "severity": "medium",
+            "type": "Credential Pattern",
+            "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
+            "filePath": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
+            "line": 131,
+            "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
+            "description": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
+            "rule": "CREDENTIAL_PATTERN_HEURISTIC",
+            "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
+            "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
+            "match": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "ai-agent/consistency-score.cjs",
+            "filePath": "ai-agent/consistency-score.cjs",
+            "line": 108,
+            "message": "const sampleFiles = report.sampleFiles || [];",
+            "description": "const sampleFiles = report.sampleFiles || [];",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "const sampleFiles = report.sampleFiles || [];"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "ai-agent/consistency-score.cjs",
+            "filePath": "ai-agent/consistency-score.cjs",
+            "line": 114,
+            "message": "for (const file of sampleFiles) {",
+            "description": "for (const file of sampleFiles) {",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "for (const file of sampleFiles) {"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "ai-platform/auto-processor.js",
+            "filePath": "ai-platform/auto-processor.js",
+            "line": 98,
+            "message": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded",
+            "description": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "ai-platform/auto-processor.js",
+            "filePath": "ai-platform/auto-processor.js",
+            "line": 102,
+            "message": "- Mock data patterns",
+            "description": "- Mock data patterns",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "- Mock data patterns"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "ai-platform/simplebeacon-server.cjs",
+            "filePath": "ai-platform/simplebeacon-server.cjs",
+            "line": 31,
+            "message": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');",
+            "description": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "ai-platform/simplebeacon-server.cjs",
+            "filePath": "ai-platform/simplebeacon-server.cjs",
+            "line": 655,
+            "message": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)",
+            "description": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "ai-platform/simplebeacon-server.cjs",
+            "filePath": "ai-platform/simplebeacon-server.cjs",
+            "line": 679,
+            "message": "setupDashboardStubAPIs(app, webRoot, {",
+            "description": "setupDashboardStubAPIs(app, webRoot, {",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "setupDashboardStubAPIs(app, webRoot, {"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "ai-platform/simplebeacon-server.cjs",
+            "filePath": "ai-platform/simplebeacon-server.cjs",
+            "line": 686,
+            "message": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);",
+            "description": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "ai-platform/simplebeacon-server.cjs",
+            "filePath": "ai-platform/simplebeacon-server.cjs",
+            "line": 688,
+            "message": "setupDashboardStubAPIs(app, webRoot, {",
+            "description": "setupDashboardStubAPIs(app, webRoot, {",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "setupDashboardStubAPIs(app, webRoot, {"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "coming-soon/analyze-directory.js",
+            "filePath": "coming-soon/analyze-directory.js",
+            "line": 38,
+            "message": "const recentFiles = []; // Keep last 10 for sample",
+            "description": "const recentFiles = []; // Keep last 10 for sample",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "const recentFiles = []; // Keep last 10 for sample"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "coming-soon/analyze-directory.js",
+            "filePath": "coming-soon/analyze-directory.js",
+            "line": 172,
+            "message": "recentSamples: recentFiles",
+            "description": "recentSamples: recentFiles",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "recentSamples: recentFiles"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "coming-soon/app-links.js",
+            "filePath": "coming-soon/app-links.js",
+            "line": 114,
+            "message": "function applySampleReportLinks() {",
+            "description": "function applySampleReportLinks() {",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "function applySampleReportLinks() {"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "coming-soon/app-links.js",
+            "filePath": "coming-soon/app-links.js",
+            "line": 115,
+            "message": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();",
+            "description": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "coming-soon/app-links.js",
+            "filePath": "coming-soon/app-links.js",
+            "line": 117,
+            "message": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {",
+            "description": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "coming-soon/app-links.js",
+            "filePath": "coming-soon/app-links.js",
+            "line": 118,
+            "message": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');",
+            "description": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');"
+        },
+        {
+            "severity": "medium",
+            "type": "Production Leak",
+            "file": "coming-soon/app-links.js",
+            "filePath": "coming-soon/app-links.js",
+            "line": 120,
+            "message": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {",
+            "description": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {",
+            "rule": "PRODUCTION_LEAK_PATTERN",
+            "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
+            "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
+            "match": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {"
         }
-      ],
-      "reasoning": "Source code analysis detected console.log(), debugger statements, || alert()/prompt() calls. These are development-only artifacts that can leak internal state || interrupt user experience in production.",
-      "confidence": 0.98,
-      "humanReadable": "Debug artifacts (console.log, debugger, alert) found in 227 file(s). These should be removed before production builds."
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "License/Governance Marker",
-      "count": 177,
-      "filePath": [
-        "coming-soon/server.cjs",
-        "coming-soon/site-config.js",
-        "ai-platform/server/ai-proxy-gateway.cjs",
-        "ai-platform/server/index.cjs",
-        "ai-platform/tools/generate-ai-analyst-reports.cjs",
-        "ai-platform/tools/send-payment-tier-emails.cjs",
-        "coming-soon/js/scan-worker.js",
-        "coming-soon/lib/certificate-utils.cjs",
-        "coming-soon/public/site-config.js",
-        "coming-soon/routes/checkout.cjs"
-      ],
-      "rule": "GOVERNANCE_PATTERN",
-      "impact": "INFO: License headers && copyright notices detected. Verify compliance with open-source policy.",
-      "fix": "Review license compatibility with your product distribution model.",
-      "findings": [
-        {
-          "file": "coming-soon/server.cjs",
-          "matches": [
-            {
-              "line": 448,
-              "snippet": "if (key === 'credential' && /demoMode\\.|outreach-prospects\\.|agency-handoff-patterns\\.|site-config\\.|app-links\\.|email\\.",
-              "type": "euAiAct"
-            }
-          ]
-        },
-        {
-          "file": "coming-soon/site-config.js",
-          "matches": [
-            {
-              "line": 233,
-              "snippet": "a: 'The AI Slop Cop Enterprise tier produces Annex III high-risk AI system documentation, Article 14 Human Oversight eva",
-              "type": "euAiAct"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/server/ai-proxy-gateway.cjs",
-          "matches": [
-            {
-              "line": 9,
-              "snippet": "* - Article 50: Transparency — upstream consumers (chatbot, analyze) disclose AI-generated content",
-              "type": "euAiAct"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/server/index.cjs",
-          "matches": [
-            {
-              "line": 398,
-              "snippet": "ai_system: 'ready',",
-              "type": "euAiAct"
-            },
-            {
-              "line": 767,
-              "snippet": "ai_system: 'ready',",
-              "type": "euAiAct"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/tools/generate-ai-analyst-reports.cjs",
-          "matches": [
-            {
-              "line": 294,
-              "snippet": "| **EU AI Act** | ${p.euAiAct.highRiskIndicators === 0 ? 'Compliant' : 'Review Required'} | High-risk: ${p.euAiAct.highR",
-              "type": "euAiAct"
-            }
-          ]
-        }
-      ],
-      "reasoning": "SPDX-License-Identifier tags, copyright headers, || license references were found  in source files. This indicates the project contains licensed third-party code that must be tracked for compliance.",
-      "confidence": 0.95,
-      "humanReadable": "License && copyright markers detected in 73 file(s). Verify open-source license compatibility with your distribution model."
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "AI Residue",
-      "count": 4,
-      "filePath": [
-        "ai-platform/web/simplebeacon-dashboard/js/views/AuditView.js",
-        "ai-platform/web/simplebeacon-dashboard/js/views/QualityView.js",
-        "ai-platform/web/simplebeacon-dashboard/js/views/SecurityView.js",
-        "ai-platform/web/simplebeacon-dashboard/js/views/TrustView.js"
-      ],
-      "rule": "AI_RESIDUE_PATTERN",
-      "impact": "HYGIENE RISK: AI-generated stubs, deprecated idioms, and error-swallowing patterns reduce code quality.",
-      "fix": "Replace stubs with real implementations, modernize deprecated APIs, and add proper error handling.",
-      "findings": [
-        {
-          "file": "ai-platform/web/simplebeacon-dashboard/js/views/AuditView.js",
-          "type": "Error Swallowing",
-          "matches": [
-            {
-              "line": 462,
-              "snippet": "catch (err) { console.warn('[Audit-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentio",
-              "context": [
-                "try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Audit data sent to AI a",
-                "catch (err) { console.warn('[Audit-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentio",
-                "}"
-              ],
-              "dynamicSeverity": "medium",
-              "confidence": 0.85,
-              "baseSeverity": "medium"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/web/simplebeacon-dashboard/js/views/QualityView.js",
-          "type": "Error Swallowing",
-          "matches": [
-            {
-              "line": 201,
-              "snippet": "catch (err) { console.warn('[Quality-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intent",
-              "context": [
-                "try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Quality & Security data",
-                "catch (err) { console.warn('[Quality-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intent",
-                "}"
-              ],
-              "dynamicSeverity": "medium",
-              "confidence": 0.85,
-              "baseSeverity": "medium"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/web/simplebeacon-dashboard/js/views/SecurityView.js",
-          "type": "Error Swallowing",
-          "matches": [
-            {
-              "line": 267,
-              "snippet": "catch (err) { console.warn('[Security-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — inten",
-              "context": [
-                "try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Security findings sent ",
-                "catch (err) { console.warn('[Security-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — inten",
-                "}"
-              ],
-              "dynamicSeverity": "medium",
-              "confidence": 0.85,
-              "baseSeverity": "medium"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/web/simplebeacon-dashboard/js/views/TrustView.js",
-          "type": "Error Swallowing",
-          "matches": [
-            {
-              "line": 384,
-              "snippet": "catch (err) { console.warn('[Trust-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentio",
-              "context": [
-                "try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Trust verification sent",
-                "catch (err) { console.warn('[Trust-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentio",
-                "}"
-              ],
-              "dynamicSeverity": "medium",
-              "confidence": 0.85,
-              "baseSeverity": "medium"
-            }
-          ]
-        }
-      ],
-      "reasoning": "The scanner detected patterns commonly left behind by AI coding assistants: empty function bodies, TODO placeholders, deprecated framework APIs, error-swallowing catch blocks, and large commented-out dead code.",
-      "confidence": 0.85,
-      "humanReadable": "AI residue (stubs, deprecated patterns, error swallowing, dead code) found in 4 file(s)."
-    },
-    {
-      "severity": "medium",
-      "severityBand": "medium",
-      "type": "Production Leak",
-      "count": 1187,
-      "filePath": [
-        "ai-agent/consistency-score.cjs",
-        "ai-platform/auto-processor.js",
-        "ai-platform/simplebeacon-server.cjs",
-        "coming-soon/analyze-directory.js",
-        "coming-soon/app-links.js",
-        "coming-soon/build-public.js",
-        "coming-soon/server.cjs",
-        "coming-soon/site-config.js",
-        "scripts/add-sample-json-annotations.js",
-        "scripts/add-sample-json-ignore.js"
-      ],
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "findings": [
-        {
-          "file": "ai-agent/consistency-score.cjs",
-          "matches": [
-            {
-              "line": 108,
-              "snippet": "const sampleFiles = report.sampleFiles || [];",
-              "type": "mockData"
-            },
-            {
-              "line": 114,
-              "snippet": "for (const file of sampleFiles) {",
-              "type": "mockData"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/auto-processor.js",
-          "matches": [
-            {
-              "line": 98,
-              "snippet": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded",
-              "type": "mockData"
-            },
-            {
-              "line": 102,
-              "snippet": "- Mock data patterns",
-              "type": "mockData"
-            }
-          ]
-        },
-        {
-          "file": "ai-platform/simplebeacon-server.cjs",
-          "matches": [
-            {
-              "line": 31,
-              "snippet": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');",
-              "type": "mockData"
-            },
-            {
-              "line": 655,
-              "snippet": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)",
-              "type": "mockData"
-            },
-            {
-              "line": 679,
-              "snippet": "setupDashboardStubAPIs(app, webRoot, {",
-              "type": "mockData"
-            },
-            {
-              "line": 686,
-              "snippet": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);",
-              "type": "mockData"
-            },
-            {
-              "line": 688,
-              "snippet": "setupDashboardStubAPIs(app, webRoot, {",
-              "type": "mockData"
-            }
-          ]
-        },
-        {
-          "file": "coming-soon/analyze-directory.js",
-          "matches": [
-            {
-              "line": 38,
-              "snippet": "const recentFiles = []; // Keep last 10 for sample",
-              "type": "mockData"
-            },
-            {
-              "line": 172,
-              "snippet": "recentSamples: recentFiles",
-              "type": "mockData"
-            }
-          ]
-        },
-        {
-          "file": "coming-soon/app-links.js",
-          "matches": [
-            {
-              "line": 114,
-              "snippet": "function applySampleReportLinks() {",
-              "type": "mockData"
-            },
-            {
-              "line": 115,
-              "snippet": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();",
-              "type": "mockData"
-            },
-            {
-              "line": 117,
-              "snippet": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {",
-              "type": "mockData"
-            },
-            {
-              "line": 118,
-              "snippet": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');",
-              "type": "mockData"
-            },
-            {
-              "line": 120,
-              "snippet": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {",
-              "type": "mockData"
-            }
-          ]
-        }
-      ],
-      "reasoning": "References to mock, fixture, sample, or test-data directories in production source indicate potential test data leakage.",
-      "confidence": 0.82,
-      "humanReadable": "321 file(s) reference mock/fixture paths in production code."
-    },
-    {
-      "severity": "low",
-      "severityBand": "low",
-      "type": "Maintainability Issue",
-      "count": 16,
-      "filePath": [
-        "ai-platform/tests/file-quality-heuristics.test.js",
-        "coming-soon/archive/test-all-patterns.js",
-        "simplebeacon-vscode/src/realtimeMonitor.ts",
-        "simplebeacon-vscode-merged/src/realtimeMonitor.ts",
-        "coming-soon/js/dashboard/pattern-documentation.js",
-        "coming-soon/js/dashboard/quick-actions.js",
-        "coming-soon/js/dashboard/scanner-engine.js",
-        "coming-soon/public/js/dashboard/pattern-documentation.js",
-        "coming-soon/public/js/dashboard/quick-actions.js",
-        "coming-soon/public/js/dashboard/scanner-engine.js"
-      ],
-      "rule": "MAINTAINABILITY_PATTERN",
-      "impact": "MAINTAINABILITY RISK: Magic numbers and hardcoded literals make code harder to understand and modify.",
-      "fix": "Extract numeric literals to named constants (e.g., const MAX_RETRIES = 3).",
-      "findings": [
-        {
-          "file": "ai-platform/tests/file-quality-heuristics.test.js",
-          "matches": [
-            {
-              "line": 14,
-              "snippet": "expect(contentHasMarker('// TODO: fix this', 'TODO')).toBe(true);",
-              "type": "todoMarkers"
-            },
-            {
-              "line": 33,
-              "snippet": "expect(calculateFileQuality('// TODO: implement')).toBe(90);",
-              "type": "todoMarkers"
-            },
-            {
-              "line": 37,
-              "snippet": "expect(calculateFileQuality('// FIXME: broken')).toBe(85);",
-              "type": "todoMarkers"
-            },
-            {
-              "line": 49,
-              "snippet": "const bad = '// TODO: fix\\n// FIXME: now\\nconsole.log(\"x\")\\ndebugger;';",
-              "type": "todoMarkers"
-            },
-            {
-              "line": 56,
-              "snippet": "expect(contentNeedsValidation('// TODO: fix')).toBe(true);",
-              "type": "todoMarkers"
-            }
-          ]
-        },
-        {
-          "file": "coming-soon/archive/test-all-patterns.js",
-          "matches": [
-            {
-              "line": 135,
-              "snippet": "\"function process() { // TODO: implement\",",
-              "type": "todoMarkers"
-            },
-            {
-              "line": 140,
-              "snippet": "\"// TODO: review with team\",",
-              "type": "todoMarkers"
-            },
-            {
-              "line": 193,
-              "snippet": "\"// todo: write tests\",",
-              "type": "todoMarkers"
-            }
-          ]
-        },
-        {
-          "file": "simplebeacon-vscode/src/realtimeMonitor.ts",
-          "matches": [
-            {
-              "line": 89,
-              "snippet": "// TODO with overly detailed explanation",
-              "type": "todoMarkers"
-            }
-          ]
-        },
-        {
-          "file": "simplebeacon-vscode-merged/src/realtimeMonitor.ts",
-          "matches": [
-            {
-              "line": 103,
-              "snippet": "// TODO with overly detailed explanation",
-              "type": "todoMarkers"
-            }
-          ]
-        },
-        {
-          "file": "coming-soon/js/dashboard/pattern-documentation.js",
-          "matches": [
-            {
-              "line": 39,
-              "snippet": "'// TODO: Implement error handling by 2025-01-15',",
-              "type": "todoMarkers"
-            }
-          ]
-        }
-      ],
-      "reasoning": "Magic numbers obscure intent and make bulk updates error-prone.",
-      "confidence": 0.78,
-      "humanReadable": "10 file(s) have maintainability issues."
-    }
-  ],
-  "rawIssues": [
-    {
-      "severity": "medium",
-      "type": "Credential Pattern",
-      "file": "ai-platform/tests/dashboard-vault-auth.test.js",
-      "filePath": "ai-platform/tests/dashboard-vault-auth.test.js",
-      "line": 15,
-      "message": "const TEST_SECRET = 'test-vault-password-32chars-long';",
-      "description": "const TEST_SECRET = 'test-vault-password-32chars-long';",
-      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
-      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
-      "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "match": "const TEST_SECRET = 'test-vault-password-32chars-long';"
-    },
-    {
-      "severity": "medium",
-      "type": "Credential Pattern",
-      "file": "ai-platform/tests/secret-config.test.js",
-      "filePath": "ai-platform/tests/secret-config.test.js",
-      "line": 236,
-      "message": "process.env.JWT_SECRET = 'placeholder-secret';",
-      "description": "process.env.JWT_SECRET = 'placeholder-secret';",
-      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
-      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
-      "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "match": "process.env.JWT_SECRET = 'placeholder-secret';"
-    },
-    {
-      "severity": "medium",
-      "type": "Credential Pattern",
-      "file": "ai-platform/tests/secret-config.test.js",
-      "filePath": "ai-platform/tests/secret-config.test.js",
-      "line": 237,
-      "message": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';",
-      "description": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';",
-      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
-      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
-      "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "match": "process.env.JWT_REFRESH_SECRET = 'placeholder-secret';"
-    },
-    {
-      "severity": "medium",
-      "type": "Credential Pattern",
-      "file": "ai-platform/tools/generate-test-token.cjs",
-      "filePath": "ai-platform/tools/generate-test-token.cjs",
-      "line": 39,
-      "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
-      "description": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
-      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
-      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
-      "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "match": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
-    },
-    {
-      "severity": "medium",
-      "type": "Credential Pattern",
-      "file": "ai-platform/tools/run-all-tier-scans.cjs",
-      "filePath": "ai-platform/tools/run-all-tier-scans.cjs",
-      "line": 37,
-      "message": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
-      "description": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
-      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
-      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
-      "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "match": "const licenseToken = `sb_${tier.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;"
-    },
-    {
-      "severity": "medium",
-      "type": "Credential Pattern",
-      "file": "ai-platform/tools/run-all-tier-scans.cjs",
-      "filePath": "ai-platform/tools/run-all-tier-scans.cjs",
-      "line": 44,
-      "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
-      "description": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
-      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
-      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
-      "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "match": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
-    },
-    {
-      "severity": "medium",
-      "type": "Credential Pattern",
-      "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
-      "filePath": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
-      "line": 124,
-      "message": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
-      "description": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;",
-      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
-      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
-      "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "match": "const licenseToken = `sb_euai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;"
-    },
-    {
-      "severity": "medium",
-      "type": "Credential Pattern",
-      "file": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
-      "filePath": "ai-platform/tools/run-paid-scan-for-trevor.cjs",
-      "line": 131,
-      "message": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
-      "description": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,",
-      "rule": "CREDENTIAL_PATTERN_HEURISTIC",
-      "impact": "MEDIUM RISK: Hardcoded credential patterns in source increase breach surface && may trigger automated scanner alerts in CI.",
-      "fix": "Move secrets to environment variables || a secret manager; never commit keys to version control.",
-      "match": "apiToken: `sb_${require('crypto').randomBytes(24).toString('hex')}`,"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "ai-agent/consistency-score.cjs",
-      "filePath": "ai-agent/consistency-score.cjs",
-      "line": 108,
-      "message": "const sampleFiles = report.sampleFiles || [];",
-      "description": "const sampleFiles = report.sampleFiles || [];",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "const sampleFiles = report.sampleFiles || [];"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "ai-agent/consistency-score.cjs",
-      "filePath": "ai-agent/consistency-score.cjs",
-      "line": 114,
-      "message": "for (const file of sampleFiles) {",
-      "description": "for (const file of sampleFiles) {",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "for (const file of sampleFiles) {"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "ai-platform/auto-processor.js",
-      "filePath": "ai-platform/auto-processor.js",
-      "line": 98,
-      "message": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded",
-      "description": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "const analysisPrompt = `You are an expert static analysis engine for SimpleBeacon. Your primary job is to find hardcoded"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "ai-platform/auto-processor.js",
-      "filePath": "ai-platform/auto-processor.js",
-      "line": 102,
-      "message": "- Mock data patterns",
-      "description": "- Mock data patterns",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "- Mock data patterns"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "ai-platform/simplebeacon-server.cjs",
-      "filePath": "ai-platform/simplebeacon-server.cjs",
-      "line": 31,
-      "message": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');",
-      "description": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "const setupDashboardStubAPIs = require('./src/api/dashboard-stub-api.cjs');"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "ai-platform/simplebeacon-server.cjs",
-      "filePath": "ai-platform/simplebeacon-server.cjs",
-      "line": 655,
-      "message": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)",
-      "description": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "// Phase 2 bootstrap + dashboard stub APIs (initialized in startServer)"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "ai-platform/simplebeacon-server.cjs",
-      "filePath": "ai-platform/simplebeacon-server.cjs",
-      "line": 679,
-      "message": "setupDashboardStubAPIs(app, webRoot, {",
-      "description": "setupDashboardStubAPIs(app, webRoot, {",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "setupDashboardStubAPIs(app, webRoot, {"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "ai-platform/simplebeacon-server.cjs",
-      "filePath": "ai-platform/simplebeacon-server.cjs",
-      "line": 686,
-      "message": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);",
-      "description": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "console.error('❌ Phase 2 bootstrap failed, using stub APIs only:', error.message);"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "ai-platform/simplebeacon-server.cjs",
-      "filePath": "ai-platform/simplebeacon-server.cjs",
-      "line": 688,
-      "message": "setupDashboardStubAPIs(app, webRoot, {",
-      "description": "setupDashboardStubAPIs(app, webRoot, {",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "setupDashboardStubAPIs(app, webRoot, {"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "coming-soon/analyze-directory.js",
-      "filePath": "coming-soon/analyze-directory.js",
-      "line": 38,
-      "message": "const recentFiles = []; // Keep last 10 for sample",
-      "description": "const recentFiles = []; // Keep last 10 for sample",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "const recentFiles = []; // Keep last 10 for sample"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "coming-soon/analyze-directory.js",
-      "filePath": "coming-soon/analyze-directory.js",
-      "line": 172,
-      "message": "recentSamples: recentFiles",
-      "description": "recentSamples: recentFiles",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "recentSamples: recentFiles"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "coming-soon/app-links.js",
-      "filePath": "coming-soon/app-links.js",
-      "line": 114,
-      "message": "function applySampleReportLinks() {",
-      "description": "function applySampleReportLinks() {",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "function applySampleReportLinks() {"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "coming-soon/app-links.js",
-      "filePath": "coming-soon/app-links.js",
-      "line": 115,
-      "message": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();",
-      "description": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "var sampleUrl = String(cfg.sampleReportUrl || 'sample-report.html').trim();"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "coming-soon/app-links.js",
-      "filePath": "coming-soon/app-links.js",
-      "line": 117,
-      "message": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {",
-      "description": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "if (!sampleUrl.startsWith('/') && window.location.protocol !== 'file:') {"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "coming-soon/app-links.js",
-      "filePath": "coming-soon/app-links.js",
-      "line": 118,
-      "message": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');",
-      "description": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "sampleUrl = '/' + sampleUrl.replace(/^\\/+/, '');"
-    },
-    {
-      "severity": "medium",
-      "type": "Production Leak",
-      "file": "coming-soon/app-links.js",
-      "filePath": "coming-soon/app-links.js",
-      "line": 120,
-      "message": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {",
-      "description": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {",
-      "rule": "PRODUCTION_LEAK_PATTERN",
-      "impact": "SECURITY RISK: Mock/fixture data paths referenced in production source can leak test data.",
-      "fix": "Replace hardcoded mock/fixture paths with environment-based configuration or runtime discovery.",
-      "match": "document.querySelectorAll('[data-sample-report]').forEach(function (el) {"
-    }
-  ],
-  "excludedCount": 44199,
-  "excludedSummary": "44150 Vendor/cache directory, 49 Vendor/docs/build artifact"
+    ],
+    "excludedCount": 44199,
+    "excludedSummary": "44150 Vendor/cache directory, 49 Vendor/docs/build artifact"
 }

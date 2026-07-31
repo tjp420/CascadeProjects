@@ -2,7 +2,16 @@ import { useState, type ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Check, Loader2, RefreshCw, Link2, Users, MousePointerClick, DollarSign } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  Loader2,
+  RefreshCw,
+  Link2,
+  Users,
+  MousePointerClick,
+  DollarSign,
+} from 'lucide-react';
 import { useReferralStats } from '@/hooks/useReferralStats';
 
 interface ReferralAnalyticsPanelProps {
@@ -45,7 +54,9 @@ export function ReferralAnalyticsPanel({ userEmail }: ReferralAnalyticsPanelProp
       <Card>
         <CardHeader>
           <CardTitle>Referral Program</CardTitle>
-          <CardDescription>Sign in to track link views, signups, and conversion rewards.</CardDescription>
+          <CardDescription>
+            Sign in to track link views, signups, and conversion rewards.
+          </CardDescription>
         </CardHeader>
       </Card>
     );
@@ -61,7 +72,11 @@ export function ReferralAnalyticsPanel({ userEmail }: ReferralAnalyticsPanelProp
           </p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={refresh} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
           <span className="ml-2">Refresh</span>
         </Button>
       </div>
@@ -102,14 +117,20 @@ export function ReferralAnalyticsPanel({ userEmail }: ReferralAnalyticsPanelProp
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Share link</CardTitle>
-          <CardDescription>Copy your referral URL and send it to engineering peers.</CardDescription>
+          <CardDescription>
+            Copy your referral URL and send it to engineering peers.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 bg-background/60 p-1.5 border border-border rounded-md">
             <input
               type="text"
               readOnly
-              value={loading ? 'Loading share URL…' : shareUrl || 'No partner link yet — run a scan and share from Results.'}
+              value={
+                loading
+                  ? 'Loading share URL…'
+                  : shareUrl || 'No partner link yet — run a scan and share from Results.'
+              }
               className="bg-transparent text-foreground-muted text-xs px-2 py-1 w-full font-mono outline-none truncate"
             />
             <Button type="button" size="sm" onClick={handleCopy} disabled={loading || !shareUrl}>
@@ -143,36 +164,43 @@ export function ReferralAnalyticsPanel({ userEmail }: ReferralAnalyticsPanelProp
               <Loader2 className="h-4 w-4 animate-spin" /> Loading ledger…
             </div>
           )}
-          {!loading && (!data?.ledger?.length ? (
-            <p className="text-sm text-foreground-muted">No attribution events yet. Share your link to get started.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-foreground-muted">
-                    <th className="pb-2 pr-4 font-medium">Date</th>
-                    <th className="pb-2 pr-4 font-medium">Referee</th>
-                    <th className="pb-2 pr-4 font-medium">Status</th>
-                    <th className="pb-2 font-medium text-right">Reward</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.ledger.map((row) => (
-                    <tr key={row.id} className="border-b border-border/60 last:border-0">
-                      <td className="py-2.5 pr-4 font-mono text-xs">{row.date || '—'}</td>
-                      <td className="py-2.5 pr-4 truncate max-w-[180px]">{row.refereeEmail || '—'}</td>
-                      <td className="py-2.5 pr-4">
-                        <Badge variant={statusBadgeVariant(row.status)}>{formatStatus(row.status)}</Badge>
-                      </td>
-                      <td className="py-2.5 text-right font-mono">
-                        {row.reward > 0 ? `$${row.reward.toFixed(2)}` : '—'}
-                      </td>
+          {!loading &&
+            (!data?.ledger?.length ? (
+              <p className="text-sm text-foreground-muted">
+                No attribution events yet. Share your link to get started.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-foreground-muted">
+                      <th className="pb-2 pr-4 font-medium">Date</th>
+                      <th className="pb-2 pr-4 font-medium">Referee</th>
+                      <th className="pb-2 pr-4 font-medium">Status</th>
+                      <th className="pb-2 font-medium text-right">Reward</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
+                  </thead>
+                  <tbody>
+                    {data.ledger.map((row) => (
+                      <tr key={row.id} className="border-b border-border/60 last:border-0">
+                        <td className="py-2.5 pr-4 font-mono text-xs">{row.date || '—'}</td>
+                        <td className="py-2.5 pr-4 truncate max-w-[180px]">
+                          {row.refereeEmail || '—'}
+                        </td>
+                        <td className="py-2.5 pr-4">
+                          <Badge variant={statusBadgeVariant(row.status)}>
+                            {formatStatus(row.status)}
+                          </Badge>
+                        </td>
+                        <td className="py-2.5 text-right font-mono">
+                          {row.reward > 0 ? `$${row.reward.toFixed(2)}` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
         </CardContent>
       </Card>
     </div>
@@ -194,7 +222,9 @@ function MetricCard({
     <Card>
       <CardContent className="pt-6">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-medium text-foreground-muted uppercase tracking-wide">{label}</p>
+          <p className="text-xs font-medium text-foreground-muted uppercase tracking-wide">
+            {label}
+          </p>
           {icon}
         </div>
         <p className="mt-2 text-2xl font-bold tabular-nums">

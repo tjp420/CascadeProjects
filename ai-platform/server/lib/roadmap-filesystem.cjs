@@ -19,9 +19,22 @@ const { buildScanRisks, buildScanActionPlan } = require('./roadmap-scan-analysis
 const PLATFORM_DIR_NAMES = ['ai-platform'];
 
 const SKIP_DIRS = new Set([
-    'node_modules', '.git', 'dist', 'build', 'coverage', 'htmlcov',
-    '__pycache__', '.next', '.cache', 'uploads', '.venv', '.simplebeacon',
-    'github-cache', 'deliverables', 'data-central', 'security-reports'
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'coverage',
+  'htmlcov',
+  '__pycache__',
+  '.next',
+  '.cache',
+  'uploads',
+  '.venv',
+  '.simplebeacon',
+  'github-cache',
+  'deliverables',
+  'data-central',
+  'security-reports',
 ]);
 
 // Dynamically construct path segments to avoid production-leak scanner false positives
@@ -45,7 +58,7 @@ const API_ROUTE_SOURCE_PREFIXES = ['server/', 'src/'];
  * @returns {string}
  */
 function normalizeRelativePath(relativePath) {
-    return String(relativePath || '').replace(/\\/g, '/');
+  return String(relativePath || '').replace(/\\/g, '/');
 }
 
 /**
@@ -54,7 +67,11 @@ function normalizeRelativePath(relativePath) {
  * @returns {string}
  */
 function toPosixPath(filePath) {
-    return String(filePath || '').replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/\.\//g, '/').replace(/\/[^/]+\/\.\./g, '');
+  return String(filePath || '')
+    .replace(/\\/g, '/')
+    .replace(/\/+/g, '/')
+    .replace(/\/\.\//g, '/')
+    .replace(/\/[^/]+\/\.\./g, '');
 }
 
 /**
@@ -63,9 +80,9 @@ function toPosixPath(filePath) {
  * @returns {string}
  */
 function getBasename(filePath) {
-    const posix = toPosixPath(filePath);
-    const idx = posix.lastIndexOf('/');
-    return idx >= 0 ? posix.slice(idx + 1) : posix;
+  const posix = toPosixPath(filePath);
+  const idx = posix.lastIndexOf('/');
+  return idx >= 0 ? posix.slice(idx + 1) : posix;
 }
 
 /**
@@ -74,9 +91,9 @@ function getBasename(filePath) {
  * @returns {string}
  */
 function getDirname(filePath) {
-    const posix = toPosixPath(filePath);
-    const idx = posix.lastIndexOf('/');
-    return idx >= 0 ? posix.slice(0, idx) : '.';
+  const posix = toPosixPath(filePath);
+  const idx = posix.lastIndexOf('/');
+  return idx >= 0 ? posix.slice(0, idx) : '.';
 }
 
 /**
@@ -86,11 +103,11 @@ function getDirname(filePath) {
  * @returns {string}
  */
 function ensureExt(filePath, ext) {
-    const p = String(filePath || '');
-    const e = String(ext || '');
-    if (!e) return p;
-    const dotExt = e.startsWith('.') ? e : `.${e}`;
-    return p.toLowerCase().endsWith(dotExt.toLowerCase()) ? p : `${p}${dotExt}`;
+  const p = String(filePath || '');
+  const e = String(ext || '');
+  if (!e) return p;
+  const dotExt = e.startsWith('.') ? e : `.${e}`;
+  return p.toLowerCase().endsWith(dotExt.toLowerCase()) ? p : `${p}${dotExt}`;
 }
 
 /**
@@ -100,11 +117,11 @@ function ensureExt(filePath, ext) {
  * @returns {boolean}
  */
 function hasExt(filePath, ext) {
-    const p = String(filePath || '').toLowerCase();
-    const e = String(ext || '').toLowerCase();
-    if (!e) return false;
-    const dotExt = e.startsWith('.') ? e : `.${e}`;
-    return p.endsWith(dotExt);
+  const p = String(filePath || '').toLowerCase();
+  const e = String(ext || '').toLowerCase();
+  if (!e) return false;
+  const dotExt = e.startsWith('.') ? e : `.${e}`;
+  return p.endsWith(dotExt);
 }
 
 /**
@@ -115,11 +132,11 @@ function hasExt(filePath, ext) {
  * @returns {string}
  */
 function truncate(str, maxLen = 80, suffix = '…') {
-    const s = String(str ?? '');
-    const limit = Number.isFinite(maxLen) && maxLen > 0 ? Math.floor(maxLen) : 80;
-    if (s.length <= limit) return s;
-    const endLen = Math.max(0, limit - String(suffix ?? '…').length);
-    return s.slice(0, endLen) + String(suffix ?? '…');
+  const s = String(str ?? '');
+  const limit = Number.isFinite(maxLen) && maxLen > 0 ? Math.floor(maxLen) : 80;
+  if (s.length <= limit) return s;
+  const endLen = Math.max(0, limit - String(suffix ?? '…').length);
+  return s.slice(0, endLen) + String(suffix ?? '…');
 }
 
 /**
@@ -128,12 +145,12 @@ function truncate(str, maxLen = 80, suffix = '…') {
  * @returns {string}
  */
 function slugify(str) {
-    return String(str ?? '')
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_-]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+  return String(str ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 /**
@@ -142,12 +159,12 @@ function slugify(str) {
  * @returns {any}
  */
 function readJsonSafe(filePath) {
-    try {
-        const raw = fs.readFileSync(filePath, 'utf8');
-        return JSON.parse(raw);
-    } catch {
-        return null;
-    }
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -156,11 +173,11 @@ function readJsonSafe(filePath) {
  * @returns {boolean}
  */
 function shouldIgnoreRoadmapPath(relativePath) {
-    const normalized = normalizeRelativePath(relativePath);
-    if (!normalized) return false;
-    if (normalized === 'docs' || normalized.startsWith('docs/')) return true;
-    if (normalized === 'archive' || normalized.startsWith('archive/')) return true;
-    return normalized.split('/').some((segment) => ROADMAP_NOISE_DIR_NAMES.has(segment));
+  const normalized = normalizeRelativePath(relativePath);
+  if (!normalized) return false;
+  if (normalized === 'docs' || normalized.startsWith('docs/')) return true;
+  if (normalized === 'archive' || normalized.startsWith('archive/')) return true;
+  return normalized.split('/').some((segment) => ROADMAP_NOISE_DIR_NAMES.has(segment));
 }
 
 /**
@@ -171,15 +188,18 @@ function shouldIgnoreRoadmapPath(relativePath) {
  * @returns {boolean}
  */
 function shouldSkipWalkDirectory(relativeDirPath, dirName, excludePatterns = []) {
-    if (SKIP_DIRS.has(dirName)) return true;
-    if (ROADMAP_NOISE_DIR_NAMES.has(dirName)) return true;
-    if (Array.isArray(excludePatterns) && excludePatterns.includes(dirName)) return true;
-    const normalized = normalizeRelativePath(relativeDirPath);
-    if (ROADMAP_SKIP_RELATIVE_PREFIXES.some((prefix) =>
-        normalized === prefix || normalized.startsWith(`${prefix}/`))) {
-        return true;
-    }
-    return shouldIgnoreRoadmapPath(relativeDirPath);
+  if (SKIP_DIRS.has(dirName)) return true;
+  if (ROADMAP_NOISE_DIR_NAMES.has(dirName)) return true;
+  if (Array.isArray(excludePatterns) && excludePatterns.includes(dirName)) return true;
+  const normalized = normalizeRelativePath(relativeDirPath);
+  if (
+    ROADMAP_SKIP_RELATIVE_PREFIXES.some(
+      (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`)
+    )
+  ) {
+    return true;
+  }
+  return shouldIgnoreRoadmapPath(relativeDirPath);
 }
 
 /**
@@ -188,8 +208,8 @@ function shouldSkipWalkDirectory(relativeDirPath, dirName, excludePatterns = [])
  * @returns {Array<Object>}
  */
 function filterRoadmapAnalysisFiles(files) {
-    if (!Array.isArray(files)) return [];
-    return files.filter((file) => !shouldIgnoreRoadmapPath(file.relativePath));
+  if (!Array.isArray(files)) return [];
+  return files.filter((file) => !shouldIgnoreRoadmapPath(file.relativePath));
 }
 
 /**
@@ -199,9 +219,9 @@ function filterRoadmapAnalysisFiles(files) {
  * @returns {Array}
  */
 function filterByExtension(files, exts) {
-    if (!Array.isArray(files)) return [];
-    const set = new Set(Array.isArray(exts) ? exts : [exts]);
-    return files.filter((f) => set.has(f.ext));
+  if (!Array.isArray(files)) return [];
+  const set = new Set(Array.isArray(exts) ? exts : [exts]);
+  return files.filter((f) => set.has(f.ext));
 }
 
 /**
@@ -212,10 +232,10 @@ function filterByExtension(files, exts) {
  * @returns {Array}
  */
 function filterBySize(files, min = 0, max = Infinity) {
-    if (!Array.isArray(files)) return [];
-    const lo = Number.isFinite(min) ? min : 0;
-    const hi = Number.isFinite(max) ? max : Infinity;
-    return files.filter((f) => f.size >= lo && f.size <= hi);
+  if (!Array.isArray(files)) return [];
+  const lo = Number.isFinite(min) ? min : 0;
+  const hi = Number.isFinite(max) ? max : Infinity;
+  return files.filter((f) => f.size >= lo && f.size <= hi);
 }
 
 /**
@@ -225,9 +245,9 @@ function filterBySize(files, min = 0, max = Infinity) {
  * @returns {Array}
  */
 function sortBySize(files, order = 'desc') {
-    if (!Array.isArray(files)) return [];
-    const sorted = [...files].sort((a, b) => (a.size || 0) - (b.size || 0));
-    return order === 'desc' ? sorted.reverse() : sorted;
+  if (!Array.isArray(files)) return [];
+  const sorted = [...files].sort((a, b) => (a.size || 0) - (b.size || 0));
+  return order === 'desc' ? sorted.reverse() : sorted;
 }
 
 /**
@@ -237,9 +257,11 @@ function sortBySize(files, order = 'desc') {
  * @returns {Array}
  */
 function sortByName(files, order = 'asc') {
-    if (!Array.isArray(files)) return [];
-    const sorted = [...files].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
-    return order === 'desc' ? sorted.reverse() : sorted;
+  if (!Array.isArray(files)) return [];
+  const sorted = [...files].sort((a, b) =>
+    String(a.name || '').localeCompare(String(b.name || ''))
+  );
+  return order === 'desc' ? sorted.reverse() : sorted;
 }
 
 /**
@@ -252,76 +274,78 @@ function sortByName(files, order = 'asc') {
  * @returns {Promise<Array<Object>>}
  */
 async function walkProject(projectRoot, options = {}, results = [], depth = 0, relativeDir = '') {
-    if (depth > 8) return results;
-    let entries;
-    try {
-        entries = await fs.promises.readdir(projectRoot, { withFileTypes: true });
-    } catch {
-        return results;
-    }
-
-    for (const entry of entries) {
-        const entryRelativeDir = relativeDir
-            ? `${relativeDir}/${entry.name}`
-            : entry.name;
-
-        if (entry.isDirectory()) {
-            if (shouldSkipWalkDirectory(entryRelativeDir, entry.name, options.excludePatterns)) continue;
-            if (options.includePaths?.length && depth === 0 && !options.includePaths.includes(entry.name)) {
-                continue;
-            }
-            await walkProject(
-                path.join(projectRoot, entry.name),
-                options,
-                results,
-                depth + 1,
-                entryRelativeDir
-            );
-            continue;
-        }
-        if (!entry.isFile()) continue;
-        const relativePath = normalizeRelativePath(
-            path.relative(options.projectRoot || projectRoot, path.join(projectRoot, entry.name))
-        );
-        if (shouldIgnoreRoadmapPath(relativePath)) continue;
-        try {
-            const fullPath = path.join(projectRoot, entry.name);
-            const stat = await fs.promises.stat(fullPath);
-            const ext = path.extname(entry.name).toLowerCase();
-            results.push({
-                path: fullPath,
-                relativePath,
-                name: entry.name,
-                ext,
-                size: stat.size
-            });
-        } catch {
-            /* skip */
-        }
-    }
+  if (depth > 8) return results;
+  let entries;
+  try {
+    entries = await fs.promises.readdir(projectRoot, { withFileTypes: true });
+  } catch {
     return results;
+  }
+
+  for (const entry of entries) {
+    const entryRelativeDir = relativeDir ? `${relativeDir}/${entry.name}` : entry.name;
+
+    if (entry.isDirectory()) {
+      if (shouldSkipWalkDirectory(entryRelativeDir, entry.name, options.excludePatterns)) continue;
+      if (
+        options.includePaths?.length &&
+        depth === 0 &&
+        !options.includePaths.includes(entry.name)
+      ) {
+        continue;
+      }
+      await walkProject(
+        path.join(projectRoot, entry.name),
+        options,
+        results,
+        depth + 1,
+        entryRelativeDir
+      );
+      continue;
+    }
+    if (!entry.isFile()) continue;
+    const relativePath = normalizeRelativePath(
+      path.relative(options.projectRoot || projectRoot, path.join(projectRoot, entry.name))
+    );
+    if (shouldIgnoreRoadmapPath(relativePath)) continue;
+    try {
+      const fullPath = path.join(projectRoot, entry.name);
+      const stat = await fs.promises.stat(fullPath);
+      const ext = path.extname(entry.name).toLowerCase();
+      results.push({
+        path: fullPath,
+        relativePath,
+        name: entry.name,
+        ext,
+        size: stat.size,
+      });
+    } catch {
+      /* skip */
+    }
+  }
+  return results;
 }
 module.exports = {
-    normalizeRelativePath,
-    toPosixPath,
-    getBasename,
-    getDirname,
-    ensureExt,
-    hasExt,
-    truncate,
-    slugify,
-    shouldIgnoreRoadmapPath,
-    shouldSkipWalkDirectory,
-    filterRoadmapAnalysisFiles,
-    filterByExtension,
-    filterBySize,
-    sortBySize,
-    sortByName,
-    walkProject,
-    readJsonSafe,
-    SKIP_DIRS,
-    ROADMAP_NOISE_DIR_NAMES,
-    ROADMAP_SKIP_RELATIVE_PREFIXES,
-    CODE_EXTENSIONS,
-    API_ROUTE_SOURCE_PREFIXES
+  normalizeRelativePath,
+  toPosixPath,
+  getBasename,
+  getDirname,
+  ensureExt,
+  hasExt,
+  truncate,
+  slugify,
+  shouldIgnoreRoadmapPath,
+  shouldSkipWalkDirectory,
+  filterRoadmapAnalysisFiles,
+  filterByExtension,
+  filterBySize,
+  sortBySize,
+  sortByName,
+  walkProject,
+  readJsonSafe,
+  SKIP_DIRS,
+  ROADMAP_NOISE_DIR_NAMES,
+  ROADMAP_SKIP_RELATIVE_PREFIXES,
+  CODE_EXTENSIONS,
+  API_ROUTE_SOURCE_PREFIXES,
 };

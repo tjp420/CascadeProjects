@@ -17,7 +17,7 @@ class DatabaseAdapter {
       password: config.password || process.env.DB_PASSWORD || '',
       max: config.max || 20,
       idleTimeoutMillis: config.idleTimeoutMillis || constants.TIMEOUT_30S,
-      connectionTimeoutMillis: config.connectionTimeoutMillis || constants.MAX_RATE_LIMIT
+      connectionTimeoutMillis: config.connectionTimeoutMillis || constants.MAX_RATE_LIMIT,
     });
   }
 
@@ -55,13 +55,13 @@ class DatabaseAdapter {
       await this.query('SELECT 1 AS health');
       return {
         status: 'healthy',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       return {
         status: 'unhealthy',
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }

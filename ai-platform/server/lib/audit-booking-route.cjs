@@ -65,7 +65,7 @@ function bookingResponse(saved, emailResult) {
     operatorInboxUrl: '/operator/bookings',
     message: emailSent
       ? 'Booking saved and emailed to the operator inbox.'
-      : 'Booking saved — view it in the operator inbox (email not configured yet).'
+      : 'Booking saved — view it in the operator inbox (email not configured yet).',
   };
 }
 
@@ -84,7 +84,9 @@ async function handleAuditBooking(req, res, options = {}) {
     return res.json({ ok: true, emailSent: false, ignored: 'spam' });
   }
 
-  const contactEmail = String(req.body?.contactEmail || req.body?.email || '').trim().toLowerCase();
+  const contactEmail = String(req.body?.contactEmail || req.body?.email || '')
+    .trim()
+    .toLowerCase();
   const company = String(req.body?.company || '').trim();
   const repository = String(req.body?.repository || '').trim();
   const branch = String(req.body?.branch || 'main').trim();
@@ -109,7 +111,7 @@ async function handleAuditBooking(req, res, options = {}) {
     source,
     notes,
     paymentsMode,
-    receivedAt: new Date().toISOString()
+    receivedAt: new Date().toISOString(),
   };
 
   let saved;
@@ -131,7 +133,7 @@ async function handleAuditBooking(req, res, options = {}) {
     logger.warn('[audit-booking] email failed');
     return res.json({
       ...bookingResponse(saved, { sent: false }),
-      emailError: err.message
+      emailError: err.message,
     });
   }
 }
@@ -151,7 +153,7 @@ async function handleListAuditBookings(req, res, options = {}) {
   return res.json({
     ok: true,
     count: rows.length,
-    bookings: rows
+    bookings: rows,
   });
 }
 
@@ -169,12 +171,12 @@ function registerOperatorInboxPage(app, options = {}) {
   const inboxHtml = path.join(landingRoot, 'operator-bookings.html');
   if (!fs.existsSync(inboxHtml)) return;
 
-/**
- * Send inbox.
- * @param {any} _req
- * @param {Array} res
- * @returns {any}
- */
+  /**
+   * Send inbox.
+   * @param {any} _req
+   * @param {Array} res
+   * @returns {any}
+   */
   function sendInbox(_req, res) {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.type('text/html');
@@ -211,5 +213,5 @@ module.exports = {
   handleListAuditBookings,
   registerOperatorInboxPage,
   registerAuditBookingRoute,
-  loadBookings
+  loadBookings,
 };

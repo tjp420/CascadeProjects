@@ -15,11 +15,14 @@ const rateLimit = require('express-rate-limit');
 const logger = require('../../server/lib/app-logger.cjs');
 
 const billingRateLimit = rateLimit({
-    windowMs: 60 * 1000,
-    max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res) => res.status(429).json({ error: 'too_many_requests', message: 'Too many requests, please try again later.' })
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) =>
+    res
+      .status(429)
+      .json({ error: 'too_many_requests', message: 'Too many requests, please try again later.' }),
 });
 const {
   isMonetizationEnabled,
@@ -31,17 +34,20 @@ const {
   publicSubscriptionStatus,
   consumeScan,
   normalizeEmail,
-  readStore
+  readStore,
 } = require('../../server/lib/simplebeacon-subscription-store.cjs');
 const { runSimplebeaconScan } = require('./simplebeacon-api.cjs');
 const { sendEmail } = require('../../server/lib/email-service.cjs');
 const { insertLicenseToken } = require('../../server/lib/token-db.cjs');
 const { generateLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
-const { getTierConfigByPriceId, getTierConfigByProduct } = require('../../server/config/stripe.cjs');
+const {
+  getTierConfigByPriceId,
+  getTierConfigByProduct,
+} = require('../../server/config/stripe.cjs');
 const { buildReportBundle } = require('./billing/report-bundle-builder.cjs');
 const {
   buildReferralCheckoutMetadata,
-  processStripeReferralAttribution
+  processStripeReferralAttribution,
 } = require('../../../coming-soon/lib/referral-webhook.cjs');
 
 // ── Extracted billing sub-modules ──
@@ -61,13 +67,13 @@ const {
   ensureReportDir,
   streamToBuffer,
   logBilling,
-  REPORT_STORE_DIR
+  REPORT_STORE_DIR,
 } = require('./billing/billing-utils.cjs');
 
 const {
   TIER_EMAIL_CONFIG,
   buildTierEmail,
-  buildResendEmail
+  buildResendEmail,
 } = require('./billing/email-templates.cjs');
 
 const {
@@ -82,14 +88,17 @@ const {
   checkoutModeForProduct,
   PRODUCT_TIER_MAP,
   PRODUCT_FEATURES_MAP,
-  PRODUCT_EXPIRY_MINUTES_MAP
+  PRODUCT_EXPIRY_MINUTES_MAP,
 } = require('./billing/license-utils.cjs');
 
 const { validateProjectToken } = require('./billing/validate-project-token.cjs');
 const { verifyLicenseToken } = require('../../server/lib/simplebeacon-proxy.cjs');
 const { getLicenseToken } = require('../../server/lib/token-db.cjs');
 const { verifyToken } = require('../../server/lib/auth/token-service.cjs');
-const { recordCiTelemetryEvent, summarizeCiTelemetry } = require('../../server/lib/ci-telemetry-store.cjs');
+const {
+  recordCiTelemetryEvent,
+  summarizeCiTelemetry,
+} = require('../../server/lib/ci-telemetry-store.cjs');
 
 function resolveLicenseSecret() {
   const secret = String(process.env.SIMPLEBEACON_LICENSE_SECRET || '').trim();
@@ -101,9 +110,6 @@ function resolveLicenseSecret() {
   }
   return null;
 }
-
-
-
 
 /**
  * Setup Simplebeacon billing webhook.
@@ -130,7 +136,11 @@ function setupSimplebeaconBillingWebhook(app) {
 
       let event;
       try {
-        event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], webhookSecret);
+        event = stripe.webhooks.constructEvent(
+          req.body,
+          req.headers['stripe-signature'],
+          webhookSecret
+        );
       } catch (err) {
         return res.status(400).json({ error: 'Invalid webhook signature', message: err.message });
       }
@@ -167,7 +177,12 @@ function setupSimplebeaconBillingWebhook(app) {
             if (!email) break;
 
             const isPaymentMode = session.mode === 'payment';
-            const isOneTimeProduct = ['executive_clearance', 'instant_report', 'eu_ai_act_sprint', 'custom_plan'].includes(product);
+            const isOneTimeProduct = [
+              'executive_clearance',
+              'instant_report',
+              'eu_ai_act_sprint',
+              'custom_plan',
+            ].includes(product);
             if (isOneTimeProduct || isPaymentMode) {
               const licenseTier = PRODUCT_TIER_MAP[product] || 'executive';
               const expiresInMinutes = PRODUCT_EXPIRY_MINUTES_MAP[product] || 60;
@@ -175,7 +190,10 @@ function setupSimplebeaconBillingWebhook(app) {
               // For custom plans, derive features from metadata.scans
               let customFeatures = PRODUCT_FEATURES_MAP[product] || ['pdf-generation'];
               if (product === 'custom_plan' && session.metadata?.scans) {
-                customFeatures = session.metadata.scans.split(',').map(s => s.trim()).filter(Boolean);
+                customFeatures = session.metadata.scans
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean);
               }
 
               const licenseToken = generateLicenseToken(
@@ -184,8 +202,11 @@ function setupSimplebeaconBillingWebhook(app) {
                   tier: licenseTier,
                   product,
                   features: customFeatures,
-                  projectName: session.metadata?.certProjectName || session.metadata?.projectName || 'default-project',
-                  clientName: session.metadata?.certClientName || email
+                  projectName:
+                    session.metadata?.certProjectName ||
+                    session.metadata?.projectName ||
+                    'default-project',
+                  clientName: session.metadata?.certClientName || email,
                 },
                 resolveLicenseSecret(),
                 expiresInMinutes
@@ -198,7 +219,7 @@ function setupSimplebeaconBillingWebhook(app) {
                 certClientName: session.metadata?.certClientName || null,
                 certProjectName: session.metadata?.certProjectName || null,
                 certMilestone: session.metadata?.certMilestone || 'release',
-                certOrgId: session.metadata?.certOrgId || 'default'
+                certOrgId: session.metadata?.certOrgId || 'default',
               });
               await syncSubscriptionToDb(db, record);
 
@@ -207,7 +228,7 @@ function setupSimplebeaconBillingWebhook(app) {
                 token: licenseToken,
                 email: email.toLowerCase(),
                 tier: licenseTier,
-                registered_at: new Date().toISOString()
+                registered_at: new Date().toISOString(),
               });
 
               // Email upload instructions immediately after payment (rich HTML template)
@@ -221,7 +242,7 @@ function setupSimplebeaconBillingWebhook(app) {
                   to: email,
                   subject: cfg.headline + ' — ' + cfg.productName,
                   html: emailPayload.html,
-                  text: emailPayload.text
+                  text: emailPayload.text,
                 }).catch((err) => {
                   logger.error('[Simplebeacon billing] Failed to send welcome email');
                 });
@@ -230,7 +251,7 @@ function setupSimplebeaconBillingWebhook(app) {
                 sendEmail({
                   to: email,
                   subject: 'Your SimpleBeacon Purchase — ' + product,
-                  text: `Thank you for your purchase.\n\nLicense token: ${licenseToken}\n\nUpload URL: ${certUploadUrl}`
+                  text: `Thank you for your purchase.\n\nLicense token: ${licenseToken}\n\nUpload URL: ${certUploadUrl}`,
                 }).catch((err) => {
                   logger.error('[Simplebeacon billing] Failed to send fallback email');
                 });
@@ -240,13 +261,41 @@ function setupSimplebeaconBillingWebhook(app) {
             } else if (session.mode === 'subscription') {
               const isContinuousShield = product === 'continuous_shield';
               const isRuntimeShield = product === 'runtime_shield';
-              const isPro = product === 'pro_monthly' || product === 'pro_annual' || product === 'startup_monthly' || product === 'startup_annual';
-              const isTeam = product === 'team_monthly' || product === 'team_annual' || product === 'growth_monthly' || product === 'growth_annual';
-              const subTier = isContinuousShield ? 'operator' : isRuntimeShield ? 'operator' : isTeam ? 'team' : isPro ? 'pro' : 'community';
+              const isPro =
+                product === 'pro_monthly' ||
+                product === 'pro_annual' ||
+                product === 'startup_monthly' ||
+                product === 'startup_annual';
+              const isTeam =
+                product === 'team_monthly' ||
+                product === 'team_annual' ||
+                product === 'growth_monthly' ||
+                product === 'growth_annual';
+              const subTier = isContinuousShield
+                ? 'operator'
+                : isRuntimeShield
+                  ? 'operator'
+                  : isTeam
+                    ? 'team'
+                    : isPro
+                      ? 'pro'
+                      : 'community';
               const subFeatures = isRuntimeShield
-                ? ['runtime-shield', 'eu-ai-act', 'pdf-generation', 'certificate', 'continuous-shield']
+                ? [
+                    'runtime-shield',
+                    'eu-ai-act',
+                    'pdf-generation',
+                    'certificate',
+                    'continuous-shield',
+                  ]
                 : isTeam
-                  ? ['team-management', 'shared-configs', 'pdf-generation', 'certificate', 'priority-support']
+                  ? [
+                      'team-management',
+                      'shared-configs',
+                      'pdf-generation',
+                      'certificate',
+                      'priority-support',
+                    ]
                   : isPro
                     ? ['all-engines', 'unlimited-projects', 'export-formats', 'pdf-generation']
                     : ['continuous-shield', 'pdf-generation', 'certificate'];
@@ -259,7 +308,7 @@ function setupSimplebeaconBillingWebhook(app) {
                   product,
                   features: subFeatures,
                   projectName: session.metadata?.projectName || 'default-project',
-                  clientName: session.metadata?.certClientName || email
+                  clientName: session.metadata?.certClientName || email,
                 },
                 resolveLicenseSecret(),
                 subExpiryMinutes
@@ -271,7 +320,7 @@ function setupSimplebeaconBillingWebhook(app) {
                 product,
                 licenseToken,
                 licenseTier: subTier,
-                complianceCertLimit: isContinuousShield ? 3 : (isRuntimeShield ? 5 : 0)
+                complianceCertLimit: isContinuousShield ? 3 : isRuntimeShield ? 5 : 0,
               });
               await syncSubscriptionToDb(db, record);
 
@@ -280,19 +329,24 @@ function setupSimplebeaconBillingWebhook(app) {
                 token: licenseToken,
                 email: email.toLowerCase(),
                 tier: subTier,
-                registered_at: new Date().toISOString()
+                registered_at: new Date().toISOString(),
               });
 
               // Email token to subscription customer
               const certUploadUrl = `${getAppBaseUrl()}/coming-soon/certificate-upload.html`;
-              const emailPayload = buildTierEmail(product, licenseToken, certUploadUrl, session.id || 'sess_' + Date.now());
+              const emailPayload = buildTierEmail(
+                product,
+                licenseToken,
+                certUploadUrl,
+                session.id || 'sess_' + Date.now()
+              );
               if (emailPayload) {
                 const cfg = TIER_EMAIL_CONFIG[product] || TIER_EMAIL_CONFIG.executive_clearance;
                 sendEmail({
                   to: email,
                   subject: cfg.headline + ' — ' + cfg.productName,
                   html: emailPayload.html,
-                  text: emailPayload.text
+                  text: emailPayload.text,
                 }).catch((err) => {
                   logger.error('[Simplebeacon billing] Failed to send subscription welcome email');
                 });
@@ -308,10 +362,16 @@ function setupSimplebeaconBillingWebhook(app) {
             try {
               const referralResult = processStripeReferralAttribution(session);
               if (referralResult?.converted) {
-                logger.info('[Simplebeacon billing] Referral conversion:', referralResult.attributionId);
+                logger.info(
+                  '[Simplebeacon billing] Referral conversion:',
+                  referralResult.attributionId
+                );
               }
             } catch (referralErr) {
-              logger.warn('[Simplebeacon billing] Referral attribution skipped:', referralErr.message);
+              logger.warn(
+                '[Simplebeacon billing] Referral attribution skipped:',
+                referralErr.message
+              );
             }
             break;
           }
@@ -323,7 +383,7 @@ function setupSimplebeaconBillingWebhook(app) {
               const record = await setSubscriptionActive(email, active, {
                 stripeCustomerId: subscription.customer || null,
                 subscriptionId: subscription.id,
-                product: subscription.metadata?.product || null
+                product: subscription.metadata?.product || null,
               });
               await syncSubscriptionToDb(db, record);
             }
@@ -334,7 +394,7 @@ function setupSimplebeaconBillingWebhook(app) {
             const email = normalizeEmail(subscription.metadata?.email);
             if (email) {
               const record = await setSubscriptionActive(email, false, {
-                subscriptionId: subscription.id
+                subscriptionId: subscription.id,
               });
               await syncSubscriptionToDb(db, record);
             }
@@ -359,7 +419,9 @@ function setupSimplebeaconBillingWebhook(app) {
  * @returns {import('express').Response}
  */
 function billingDisabledResponse(res) {
-  return res.status(503).json({ error: 'billing_disabled', message: 'Monetization is not enabled on this server.' });
+  return res
+    .status(503)
+    .json({ error: 'billing_disabled', message: 'Monetization is not enabled on this server.' });
 }
 
 /**
@@ -396,7 +458,7 @@ function setupSimplebeaconBillingRoutes(app) {
       scansRemaining: status.scansRemaining,
       tier: status.tier,
       scanType,
-      periodStart: status.periodStart
+      periodStart: status.periodStart,
     });
   });
 
@@ -418,7 +480,7 @@ function setupSimplebeaconBillingRoutes(app) {
       tier: record.tier,
       scanType,
       scanId: scanId || undefined,
-      periodStart: result.periodStart
+      periodStart: result.periodStart,
     });
   });
 
@@ -434,7 +496,7 @@ function setupSimplebeaconBillingRoutes(app) {
       return res.status(503).json({
         error: 'billing_unavailable',
         message: `Checkout not configured for product: ${product}`,
-        product
+        product,
       });
     }
 
@@ -448,8 +510,14 @@ function setupSimplebeaconBillingRoutes(app) {
     const baseUrl = getAppBaseUrl();
     const mode = checkoutModeForProduct(product);
     const teamCheckoutProducts = new Set([
-      'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual',
-      'teams_monthly', 'teams_annual', 'team_monthly', 'team_annual'
+      'startup_monthly',
+      'startup_annual',
+      'growth_monthly',
+      'growth_annual',
+      'teams_monthly',
+      'teams_annual',
+      'team_monthly',
+      'team_annual',
     ]);
     const successPath = teamCheckoutProducts.has(product)
       ? '/dashboard/settings?checkout=success&session_id={CHECKOUT_SESSION_ID}'
@@ -457,20 +525,26 @@ function setupSimplebeaconBillingRoutes(app) {
 
     try {
       const projectName = String(req.body?.projectName || req.body?.certProjectName || '').trim();
-    const certClientName = String(req.body?.certClientName || '').trim();
+      const certClientName = String(req.body?.certClientName || '').trim();
 
-    const sessionParams = {
+      const sessionParams = {
         mode,
         customer_email: email,
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${baseUrl}${successPath}`,
         cancel_url: `${baseUrl}/dashboard/pricing?canceled=true`,
-        metadata: { email, product, projectName, certClientName, ...buildReferralCheckoutMetadata(req, req.body) }
+        metadata: {
+          email,
+          product,
+          projectName,
+          certClientName,
+          ...buildReferralCheckoutMetadata(req, req.body),
+        },
       };
 
       if (mode === 'subscription') {
         sessionParams.subscription_data = {
-          metadata: { email, product }
+          metadata: { email, product },
         };
       }
 
@@ -498,10 +572,13 @@ function setupSimplebeaconBillingRoutes(app) {
           record = await setSubscriptionActive(email, true, {
             stripeCustomerId: session.customer || null,
             subscriptionId: session.subscription || null,
-            product: session.metadata?.product || null
+            product: session.metadata?.product || null,
           });
           await syncSubscriptionToDb(req.app?.locals?.db || null, record);
-        } else if (session.mode === 'payment' && session.metadata?.product === 'executive_clearance') {
+        } else if (
+          session.mode === 'payment' &&
+          session.metadata?.product === 'executive_clearance'
+        ) {
           if (!record?.licenseToken) {
             const licenseToken = generateLicenseToken(
               { email, tier: 'executive', features: ['pdf-generation'] },
@@ -512,7 +589,7 @@ function setupSimplebeaconBillingRoutes(app) {
               stripeCustomerId: session.customer || null,
               product: session.metadata?.product,
               licenseToken,
-              licenseTier: 'executive'
+              licenseTier: 'executive',
             });
             await syncSubscriptionToDb(req.app?.locals?.db || null, record);
           }
@@ -523,14 +600,25 @@ function setupSimplebeaconBillingRoutes(app) {
       if (email && session.payment_status === 'paid' && !record?.licenseToken) {
         const product = session.metadata?.product || '';
         const teamProducts = new Set([
-          'startup_monthly', 'startup_annual', 'growth_monthly', 'growth_annual',
-          'teams_monthly', 'teams_annual', 'team_monthly', 'team_annual'
+          'startup_monthly',
+          'startup_annual',
+          'growth_monthly',
+          'growth_annual',
+          'teams_monthly',
+          'teams_annual',
+          'team_monthly',
+          'team_annual',
         ]);
         if (teamProducts.has(product) || session.mode === 'subscription') {
           const isGrowth = /growth|team_annual|team_monthly|teams/.test(product);
           const tier = isGrowth ? 'team' : 'pro';
           const licenseToken = generateLicenseToken(
-            { email, tier, product: product || 'startup_monthly', features: ['team-management', 'pdf-generation'] },
+            {
+              email,
+              tier,
+              product: product || 'startup_monthly',
+              features: ['team-management', 'pdf-generation'],
+            },
             resolveLicenseSecret(),
             365 * 24 * 60
           );
@@ -540,13 +628,13 @@ function setupSimplebeaconBillingRoutes(app) {
             product: product || 'startup_monthly',
             licenseToken,
             licenseTier: tier,
-            subscriptionActive: true
+            subscriptionActive: true,
           });
           insertLicenseToken({
             token: licenseToken,
             email: email.toLowerCase(),
             tier,
-            registered_at: new Date().toISOString()
+            registered_at: new Date().toISOString(),
           });
           await syncSubscriptionToDb(req.app?.locals?.db || null, record);
         }
@@ -565,8 +653,8 @@ function setupSimplebeaconBillingRoutes(app) {
           clientName: record?.certClientName || null,
           projectName: record?.certProjectName || null,
           milestone: record?.certMilestone || 'release',
-          orgId: record?.certOrgId || 'default'
-        }
+          orgId: record?.certOrgId || 'default',
+        },
       });
     } catch (err) {
       res.status(500).json({ error: 'session_lookup_failed', message: err.message });
@@ -586,7 +674,7 @@ function setupSimplebeaconBillingRoutes(app) {
       email: record.email,
       tier: record.licenseTier || 'unknown',
       licenseToken: record.licenseToken,
-      generatedAt: record.updatedAt
+      generatedAt: record.updatedAt,
     });
   });
 
@@ -597,14 +685,16 @@ function setupSimplebeaconBillingRoutes(app) {
     }
     const record = await getSubscriptionByEmail(email);
     if (!record) {
-      return res.status(404).json({ success: false, error: 'No subscription found for this email' });
+      return res
+        .status(404)
+        .json({ success: false, error: 'No subscription found for this email' });
     }
     const patch = {};
     const fields = {
       certClientName: 'certClientName',
       certProjectName: 'certProjectName',
       certMilestone: 'certMilestone',
-      certOrgId: 'certOrgId'
+      certOrgId: 'certOrgId',
     };
     for (const [bodyKey, storeKey] of Object.entries(fields)) {
       if (req.body[bodyKey] !== undefined) {
@@ -612,7 +702,13 @@ function setupSimplebeaconBillingRoutes(app) {
       }
     }
     if (Object.keys(patch).length === 0) {
-      return res.status(400).json({ success: false, error: 'No valid fields to update. Provide certClientName, certProjectName, certMilestone, or certOrgId.' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'No valid fields to update. Provide certClientName, certProjectName, certMilestone, or certOrgId.',
+        });
     }
     const updated = await upsertSubscription(email, patch);
     res.json({
@@ -622,8 +718,8 @@ function setupSimplebeaconBillingRoutes(app) {
         clientName: updated.certClientName || null,
         projectName: updated.certProjectName || null,
         milestone: updated.certMilestone || 'release',
-        orgId: updated.certOrgId || 'default'
-      }
+        orgId: updated.certOrgId || 'default',
+      },
     });
   });
 
@@ -650,7 +746,7 @@ function setupSimplebeaconBillingRoutes(app) {
     try {
       const session = await stripe.billingPortal.sessions.create({
         customer: record.stripeCustomerId,
-        return_url: `${getAppBaseUrl()}/simplebeacon-dashboard/index.html#/pricing`
+        return_url: `${getAppBaseUrl()}/simplebeacon-dashboard/index.html#/pricing`,
       });
       res.json({ url: session.url });
     } catch (err) {
@@ -673,7 +769,12 @@ function setupSimplebeaconBillingRoutes(app) {
       const reportJson = req.body?.reportJson || req.body?.report || null;
 
       if (!licenseToken) {
-        return res.status(400).json({ success: false, error: 'licenseToken is required (Authorization: Bearer <token> or body.licenseToken)' });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: 'licenseToken is required (Authorization: Bearer <token> or body.licenseToken)',
+          });
       }
       if (!reportJson || typeof reportJson !== 'object') {
         return res.status(400).json({ success: false, error: 'reportJson is required' });
@@ -690,9 +791,9 @@ function setupSimplebeaconBillingRoutes(app) {
         attachments: [
           {
             filename: bundle.zipFilename,
-            content: bundle.zipBuffer.toString('base64')
-          }
-        ]
+            content: bundle.zipBuffer.toString('base64'),
+          },
+        ],
       });
 
       // Update subscription with delivery status
@@ -700,7 +801,7 @@ function setupSimplebeaconBillingRoutes(app) {
         lastDeliveryId: bundle.deliveryId,
         lastDeliveredAt: new Date().toISOString(),
         lastDeliveryStatus: emailResult.sent ? 'delivered' : 'queued',
-        certificateHtmlGenerated: true
+        certificateHtmlGenerated: true,
       });
 
       res.json({
@@ -710,12 +811,14 @@ function setupSimplebeaconBillingRoutes(app) {
         emailQueued: emailResult.queued,
         message: emailResult.sent
           ? 'Certificate generated and emailed.'
-          : 'Certificate generated. Email queued for delivery (SMTP not configured — check .simplebeacon/email-queue).'
+          : 'Certificate generated. Email queued for delivery (SMTP not configured — check .simplebeacon/email-queue).',
       });
     } catch (err) {
       logger.error('[Reports] Upload processing error:', err.message);
       const status = err.statusCode || 500;
-      res.status(status).json({ success: false, error: err.message || 'Certificate generation failed' });
+      res
+        .status(status)
+        .json({ success: false, error: err.message || 'Certificate generation failed' });
     }
   });
 
@@ -732,7 +835,12 @@ function setupSimplebeaconBillingRoutes(app) {
       const reportJson = req.body?.reportJson || req.body?.report || null;
 
       if (!licenseToken) {
-        return res.status(400).json({ success: false, error: 'licenseToken is required (Authorization: Bearer <token> or body.licenseToken)' });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error: 'licenseToken is required (Authorization: Bearer <token> or body.licenseToken)',
+          });
       }
       if (!reportJson || typeof reportJson !== 'object') {
         return res.status(400).json({ success: false, error: 'reportJson is required' });
@@ -747,7 +855,9 @@ function setupSimplebeaconBillingRoutes(app) {
     } catch (err) {
       logger.error('[Reports] Download processing error:', err.message);
       const status = err.statusCode || 500;
-      res.status(status).json({ success: false, error: err.message || 'Certificate generation failed' });
+      res
+        .status(status)
+        .json({ success: false, error: err.message || 'Certificate generation failed' });
     }
   });
 
@@ -772,7 +882,7 @@ function setupSimplebeaconBillingRoutes(app) {
         lastDeliveryId: record.lastDeliveryId || null,
         lastDeliveredAt: record.lastDeliveredAt || null,
         lastDeliveryStatus: record.lastDeliveryStatus || 'pending',
-        certificateHtmlGenerated: record.certificateHtmlGenerated || false
+        certificateHtmlGenerated: record.certificateHtmlGenerated || false,
       });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -791,7 +901,11 @@ function setupSimplebeaconBillingRoutes(app) {
       }
       const record = await getSubscriptionByEmail(email);
       if (!record || !record.licenseToken) {
-        return res.json({ success: false, redirectToPricing: true, error: 'No token found for this email' });
+        return res.json({
+          success: false,
+          redirectToPricing: true,
+          error: 'No token found for this email',
+        });
       }
 
       const product = record.product || 'executive_clearance';
@@ -856,20 +970,41 @@ function setupSimplebeaconBillingRoutes(app) {
   }
 
   const CI_TELEMETRY_FIELDS = [
-    'event', 'timestamp', 'tier', 'repository', 'workflow', 'run_id', 'ref',
-    'pull_request', 'gate_pass', 'gates_tripped', 'blocking_count', 'critical_blocked',
-    'high_blocked', 'medium_count', 'files_scanned', 'diff_only', 'diff_files', 'quality_score'
+    'event',
+    'timestamp',
+    'tier',
+    'repository',
+    'workflow',
+    'run_id',
+    'ref',
+    'pull_request',
+    'gate_pass',
+    'gates_tripped',
+    'blocking_count',
+    'critical_blocked',
+    'high_blocked',
+    'medium_count',
+    'files_scanned',
+    'diff_only',
+    'diff_files',
+    'quality_score',
   ];
 
   app.post('/api/simplebeacon/ci/telemetry', async (req, res) => {
     const authHeader = String(req.headers.authorization || '');
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : String(req.body?.licenseToken || '').trim();
+    const token = authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7).trim()
+      : String(req.body?.licenseToken || '').trim();
     if (!token) {
-      return res.status(401).json({ error: 'missing_token', message: 'Bearer license token required.' });
+      return res
+        .status(401)
+        .json({ error: 'missing_token', message: 'Bearer license token required.' });
     }
     const email = resolveTelemetryEmail(token);
     if (!email) {
-      return res.status(403).json({ error: 'invalid_token', message: 'License token is invalid or not registered.' });
+      return res
+        .status(403)
+        .json({ error: 'invalid_token', message: 'License token is invalid or not registered.' });
     }
     const payload = {};
     for (const key of CI_TELEMETRY_FIELDS) {
@@ -895,18 +1030,18 @@ function setupSimplebeaconBillingRoutes(app) {
       }
     }
     if (!email) {
-      return res.status(401).json({ error: 'auth_required', message: 'Sign in or provide a valid license token.' });
+      return res
+        .status(401)
+        .json({ error: 'auth_required', message: 'Sign in or provide a valid license token.' });
     }
     const days = Math.min(90, Math.max(1, Number(req.query.days) || 7));
     return res.json(summarizeCiTelemetry(email, { days }));
   });
-
 }
-
 
 module.exports = {
   setupSimplebeaconBillingWebhook,
   setupSimplebeaconBillingRoutes,
   resolvePriceId,
-  validateProjectToken
+  validateProjectToken,
 };

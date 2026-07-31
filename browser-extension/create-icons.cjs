@@ -14,7 +14,7 @@ function hexToRgb(hex) {
   return {
     r: parseInt(clean.slice(0, 2), 16),
     g: parseInt(clean.slice(2, 4), 16),
-    b: parseInt(clean.slice(4, 6), 16)
+    b: parseInt(clean.slice(4, 6), 16),
   };
 }
 
@@ -29,11 +29,11 @@ function main() {
       `$g.Clear([System.Drawing.Color]::FromArgb(255, ${r}, ${g}, ${b}))`,
       `$g.Dispose()`,
       `$bmp.Save('${outPath}')`,
-      `$bmp.Dispose()`
+      `$bmp.Dispose()`,
     ].join('; ');
     execSync(`powershell -Command "${ps}"`, { cwd: ROOT });
     if (process.env.SB_DEBUG === '1') {
-      process.stdout.write([`Created ${outPath}`].join(" ") + "\n"); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
+      process.stdout.write([`Created ${outPath}`].join(' ') + '\n'); // simplebeacon-ignore debug-artifact — gated by SB_DEBUG=1
     }
   }
 }

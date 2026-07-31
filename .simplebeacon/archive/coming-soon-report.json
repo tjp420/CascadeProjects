@@ -5,9 +5,7 @@
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\.simplebeacon\\config.json",
-  "scanPaths": [
-    "C:\\Users\\Trevor\\CascadeProjects"
-  ],
+  "scanPaths": ["C:\\Users\\Trevor\\CascadeProjects"],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects",
     "totalFiles": 1143,
@@ -139,12 +137,8 @@
       "line": null,
       "recommendation": "Fix JSON syntax errors in mock data",
       "recommendedAction": "Fix JSON syntax errors in mock data",
-      "affectedFiles": [
-        "report.json"
-      ],
-      "filePaths": [
-        "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\report.json"
-      ],
+      "affectedFiles": ["report.json"],
+      "filePaths": ["C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\report.json"],
       "file": "C:\\Users\\Trevor\\CascadeProjects\\packages\\simplebeacon-cli\\report.json"
     },
     {
@@ -353,12 +347,8 @@
       "line": 2,
       "recommendation": "Resolve merge conflict markers before client handoff.",
       "recommendedAction": "Resolve merge conflict markers before client handoff.",
-      "affectedFiles": [
-        "report.json"
-      ],
-      "filePaths": [
-        "report.json"
-      ],
+      "affectedFiles": ["report.json"],
+      "filePaths": ["report.json"],
       "file": "report.json"
     }
   ],
@@ -371,9 +361,7 @@
       "count": 1,
       "description": "report.json: Unexpected token '\u001b', \"\u001b[36mSimpl\"... is not valid JSON",
       "recommendedAction": "Fix JSON syntax errors in mock data",
-      "affectedFiles": [
-        "report.json"
-      ]
+      "affectedFiles": ["report.json"]
     },
     {
       "id": "duplicate-ab7dc5e0",
@@ -677,9 +665,7 @@
       "description": "report.json:2 — Unresolved Git merge conflict marker",
       "recommendation": "Resolve merge conflict markers before client handoff.",
       "recommendedAction": "Resolve merge conflict markers before client handoff.",
-      "affectedFiles": [
-        "report.json"
-      ],
+      "affectedFiles": ["report.json"],
       "metadata": {
         "patternId": "SB-HANDOFF-001",
         "category": "handoff-integrity",
@@ -1836,13 +1822,8 @@
       "eu-ai-act-patterns"
     ],
     "gatePolicy": {
-      "failOn": [
-        "high"
-      ],
-      "warnOn": [
-        "medium",
-        "low"
-      ]
+      "failOn": ["high"],
+      "warnOn": ["medium", "low"]
     },
     "mockSampleFilesInScanPaths": 1130,
     "pageSpecCatalogSize": 50,
@@ -1850,12 +1831,8 @@
     "pageSpecsFromScanPaths": 50,
     "pageSpecsFromAliasPaths": 0,
     "productionDirsScanned": 14,
-    "productionPaths": [
-      "."
-    ],
-    "sourceCodeScanPaths": [
-      "."
-    ],
+    "productionPaths": ["."],
+    "sourceCodeScanPaths": ["."],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
     "llmSlopFilesScanned": 61,
@@ -1888,13 +1865,8 @@
   },
   "gate": {
     "pass": false,
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ],
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"],
     "blockingCount": 2,
     "warningCount": 9
   },

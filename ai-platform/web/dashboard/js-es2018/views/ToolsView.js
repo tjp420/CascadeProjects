@@ -1,6 +1,13 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { escapeHtml, formatNumber, formatPercent, showToast, renderEmptyState } from '../utils.js';
-import { getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js?v=20260716cachefix1';
+import {
+  getScanFileMetrics,
+  resolveDisplayScore,
+  resolveJestTestsLabel,
+  resolvePageSpecsLabel,
+  formatScanScopeSummary,
+  formatScanInventoryNote,
+} from '../services/analyzeService.js?v=20260716cachefix1';
 import { scanService } from '../services/scanService.js?v=20260716cachefix1';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
 import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
@@ -12,17 +19,17 @@ import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1'
  * @returns {any}
  */
 function renderScanSnapshot(report, baseline, dashboardHome) {
-    var _a, _b, _c, _d, _e, _f;
-    if (!report) {
-        return renderEmptyState({
-            icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
-            title: 'No scan report loaded',
-            body: 'Run Simplebeacon Scan to populate metrics.'
-        });
-    }
-    const metrics = getScanFileMetrics(report);
-    const inventoryNote = formatScanInventoryNote(report);
-    return `
+  var _a, _b, _c, _d, _e, _f;
+  if (!report) {
+    return renderEmptyState({
+      icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+      title: 'No scan report loaded',
+      body: 'Run Simplebeacon Scan to populate metrics.',
+    });
+  }
+  const metrics = getScanFileMetrics(report);
+  const inventoryNote = formatScanInventoryNote(report);
+  return `
     <div class="metrics-row mb-2">
       <div class="metric-chip gate-badge ${((_a = report.gate) === null || _a === void 0 ? void 0 : _a.pass) ? 'pass' : 'warn'}">${((_b = report.gate) === null || _b === void 0 ? void 0 : _b.pass) ? 'GATE PASS' : 'GATE FAIL'}</div>
       <div class="metric-chip"><strong>${formatPercent(resolveDisplayScore(report))}</strong> consistency</div>
@@ -42,28 +49,28 @@ function renderScanSnapshot(report, baseline, dashboardHome) {
  * Tools view.
  */
 export class ToolsView {
-    constructor(app) {
-        this.app = app;
-        this.running = null;
-        this.reductionScan = app.state.mergerReductionScan || null;
-        this.reductionLoading = false;
-        this._mountRoot = null;
-        this.lastOutput = null;
-        this._hasPainted = false;
-        this._platformLoadAttempted = false;
-        this._scanLoadAttempted = false;
-        this._platformLoadPromise = null;
-        this._scanLoadPromise = null;
-    }
-    renderToolsNav() {
-        const sections = [
-            { id: 'tools-section-actions', label: 'Actions' },
-            { id: 'tools-section-consolidation', label: 'Consolidation' },
-            { id: 'tools-section-snapshot', label: 'Snapshot' },
-            { id: 'tools-section-repo', label: 'Repository' },
-            { id: 'tools-section-workflows', label: 'Workflows' }
-        ];
-        return `
+  constructor(app) {
+    this.app = app;
+    this.running = null;
+    this.reductionScan = app.state.mergerReductionScan || null;
+    this.reductionLoading = false;
+    this._mountRoot = null;
+    this.lastOutput = null;
+    this._hasPainted = false;
+    this._platformLoadAttempted = false;
+    this._scanLoadAttempted = false;
+    this._platformLoadPromise = null;
+    this._scanLoadPromise = null;
+  }
+  renderToolsNav() {
+    const sections = [
+      { id: 'tools-section-actions', label: 'Actions' },
+      { id: 'tools-section-consolidation', label: 'Consolidation' },
+      { id: 'tools-section-snapshot', label: 'Snapshot' },
+      { id: 'tools-section-repo', label: 'Repository' },
+      { id: 'tools-section-workflows', label: 'Workflows' },
+    ];
+    return `
       <nav class="settings-nav" style="
         position:sticky;
         top:0;
@@ -78,7 +85,9 @@ export class ToolsView {
         gap:var(--space-1);
         flex-wrap:wrap;">
         <span style="font-weight:600;font-size:0.875rem;margin-right:var(--space-2);color:var(--text-secondary);">Jump to:</span>
-        ${sections.map((s) => `
+        ${sections
+          .map(
+            (s) => `
           <a href="#${s.id}" class="settings-nav-link" data-scroll-to="${s.id}" style="
             padding:4px 10px;
             border-radius:999px;
@@ -92,20 +101,22 @@ export class ToolsView {
             cursor:pointer;">
             ${escapeHtml(s.label)}
           </a>
-        `).join('')}
+        `
+          )
+          .join('')}
       </nav>
     `;
-    }
-    render() {
-        var _a, _b;
-        const tools = this.app.state.devTools || [];
-        const workflows = this.app.state.devWorkflows || [];
-        const report = this.app.state.report;
-        const baseline = this.app.state.baseline;
-        const busy = Boolean(this.running || this.reductionLoading || this.app.state.scanning);
-        const el = document.createElement('div');
-        el.className = this._hasPainted ? '' : 'fade-in';
-        el.innerHTML = `
+  }
+  render() {
+    var _a, _b;
+    const tools = this.app.state.devTools || [];
+    const workflows = this.app.state.devWorkflows || [];
+    const report = this.app.state.report;
+    const baseline = this.app.state.baseline;
+    const busy = Boolean(this.running || this.reductionLoading || this.app.state.scanning);
+    const el = document.createElement('div');
+    el.className = this._hasPainted ? '' : 'fade-in';
+    el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Tools</h1>
         <p class="text-muted analyze-hero-sub">Run repository tools and CI workflows from scan-backed results.</p>
@@ -122,12 +133,39 @@ export class ToolsView {
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-3);margin-bottom:var(--space-4);">
           ${[
-            { action: 'scan', icon: this.running === 'scan' || this.app.state.scanning ? '⏳' : '✅', title: 'Run Scan', desc: 'Regenerate .simplebeacon/report.json with gate' },
-            { action: 'baseline', icon: this.running === 'baseline' ? '⏳' : '🔄', title: 'Sync Baseline', desc: 'Update Jest counts in baseline.json' },
-            { action: 'audit', icon: this.running === 'audit' ? '⏳' : '🛡️', title: 'npm audit', desc: 'Live dependency vulnerability scan' },
-            { action: 'export', icon: '📥', title: 'Export Report', desc: 'Download current report JSON' },
-            { action: 'consolidation', icon: this.reductionLoading ? '⏳' : '🔀', title: 'Consolidation', desc: 'Find duplicate JSON and merge candidates' }
-        ].map((btn) => `
+            {
+              action: 'scan',
+              icon: this.running === 'scan' || this.app.state.scanning ? '⏳' : '✅',
+              title: 'Run Scan',
+              desc: 'Regenerate .simplebeacon/report.json with gate',
+            },
+            {
+              action: 'baseline',
+              icon: this.running === 'baseline' ? '⏳' : '🔄',
+              title: 'Sync Baseline',
+              desc: 'Update Jest counts in baseline.json',
+            },
+            {
+              action: 'audit',
+              icon: this.running === 'audit' ? '⏳' : '🛡️',
+              title: 'npm audit',
+              desc: 'Live dependency vulnerability scan',
+            },
+            {
+              action: 'export',
+              icon: '📥',
+              title: 'Export Report',
+              desc: 'Download current report JSON',
+            },
+            {
+              action: 'consolidation',
+              icon: this.reductionLoading ? '⏳' : '🔀',
+              title: 'Consolidation',
+              desc: 'Find duplicate JSON and merge candidates',
+            },
+          ]
+            .map(
+              (btn) => `
             <button class="card card-interactive" data-action="${btn.action}" ${busy ? 'disabled' : ''} style="
               display:flex;
               align-items:flex-start;
@@ -146,7 +184,9 @@ export class ToolsView {
                 <div style="font-size:var(--font-size-xs);color:var(--text-secondary);line-height:1.4;">${escapeHtml(btn.desc)}</div>
               </div>
             </button>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
         <div id="tool-output" role="status" aria-live="polite" class="card ${this.lastOutput && this.lastOutput.visible !== false ? '' : 'hidden'}" style="padding:var(--space-4);">${((_a = this.lastOutput) === null || _a === void 0 ? void 0 : _a.html) || ''}</div>
       </div>
@@ -202,144 +242,153 @@ export class ToolsView {
         </div>
       </div>
     `;
-        this.bindActions(el);
-        this.bindNavEvents(el);
-        this.renderToolGrid(el, tools);
-        this.renderWorkflows(el, workflows);
-        (_b = el.querySelector('#run-consolidation-btn')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => this.runConsolidationScan());
-        return el;
-    }
-    bindActions(el) {
-        el.querySelectorAll('[data-action]').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                if (btn.disabled)
-                    return;
-                this.runAction(btn.dataset.action, el);
-            });
-        });
-    }
-    bindNavEvents(root) {
-        root.querySelectorAll('[data-scroll-to]').forEach((link) => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetId = link.dataset.scrollTo;
-                const target = root.querySelector(`#${targetId}`);
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-    }
-    setOutput(el, html, visible = true) {
-        this.lastOutput = { html, visible };
-        const output = el === null || el === void 0 ? void 0 : el.querySelector('#tool-output');
-        if (!output)
-            return;
-        output.classList.toggle('hidden', !visible);
-        output.innerHTML = html;
-    }
-    refreshView() {
-        if (this._mountRoot && this.app.currentView === this) {
-            this._paint(this._mountRoot);
+    this.bindActions(el);
+    this.bindNavEvents(el);
+    this.renderToolGrid(el, tools);
+    this.renderWorkflows(el, workflows);
+    (_b = el.querySelector('#run-consolidation-btn')) === null || _b === void 0
+      ? void 0
+      : _b.addEventListener('click', () => this.runConsolidationScan());
+    return el;
+  }
+  bindActions(el) {
+    el.querySelectorAll('[data-action]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        this.runAction(btn.dataset.action, el);
+      });
+    });
+  }
+  bindNavEvents(root) {
+    root.querySelectorAll('[data-scroll-to]').forEach((link) => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.dataset.scrollTo;
+        const target = root.querySelector(`#${targetId}`);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+      });
+    });
+  }
+  setOutput(el, html, visible = true) {
+    this.lastOutput = { html, visible };
+    const output = el === null || el === void 0 ? void 0 : el.querySelector('#tool-output');
+    if (!output) return;
+    output.classList.toggle('hidden', !visible);
+    output.innerHTML = html;
+  }
+  refreshView() {
+    if (this._mountRoot && this.app.currentView === this) {
+      this._paint(this._mountRoot);
     }
-    async runAction(action, el) {
-        var _a, _b;
-        if (this.running || this.reductionLoading || this.app.state.scanning)
-            return;
-        this.running = action;
-        this.setOutput(el, '<span class="loading-spinner"></span> Running…');
+  }
+  async runAction(action, el) {
+    var _a, _b;
+    if (this.running || this.reductionLoading || this.app.state.scanning) return;
+    this.running = action;
+    this.setOutput(el, '<span class="loading-spinner"></span> Running…');
+    this.refreshView();
+    try {
+      if (action === 'scan') {
+        await this.app.runScan();
+        this.setOutput(el, '<p class="text-success">Scan complete — snapshot updated below.</p>');
+        return;
+      }
+      if (action === 'baseline') {
+        const data = await this.app.platformService.runBaselineSync();
+        this.app.state.baseline = data.baseline;
+        scanService.baseline = data.baseline;
+        await this.app.loadData();
+        await this.app.platformService.fetchAll();
+        this.app.state.dashboardHome = this.app.platformService.dashboardHome;
+        const label =
+          ((_a = data.baseline) === null || _a === void 0 ? void 0 : _a.jestTestsLabel) ||
+          ((_b = this.app.state.baseline) === null || _b === void 0 ? void 0 : _b.jestTestsLabel) ||
+          'OK';
+        this.setOutput(el, `<p class="text-success">Baseline synced: ${escapeHtml(label)}</p>`);
+        showToast(`Baseline synced: ${label}`, 'success');
         this.refreshView();
-        try {
-            if (action === 'scan') {
-                await this.app.runScan();
-                this.setOutput(el, '<p class="text-success">Scan complete — snapshot updated below.</p>');
-                return;
-            }
-            if (action === 'baseline') {
-                const data = await this.app.platformService.runBaselineSync();
-                this.app.state.baseline = data.baseline;
-                scanService.baseline = data.baseline;
-                await this.app.loadData();
-                await this.app.platformService.fetchAll();
-                this.app.state.dashboardHome = this.app.platformService.dashboardHome;
-                const label = ((_a = data.baseline) === null || _a === void 0 ? void 0 : _a.jestTestsLabel) || ((_b = this.app.state.baseline) === null || _b === void 0 ? void 0 : _b.jestTestsLabel) || 'OK';
-                this.setOutput(el, `<p class="text-success">Baseline synced: ${escapeHtml(label)}</p>`);
-                showToast(`Baseline synced: ${label}`, 'success');
-                this.refreshView();
-                return;
-            }
-            if (action === 'audit') {
-                const audit = await this.app.platformService.refreshNpmAudit({ force: true });
-                this.app.state.npmAudit = audit;
-                const s = npmAuditSummary(audit);
-                const msg = s.dependencies != null
-                    ? `${formatNumber(s.dependencies)} dependencies · ${s.vulnerabilityTotal} vulnerabilities`
-                    : 'npm audit complete';
-                showToast(msg, s.vulnerabilityTotal ? 'info' : 'success');
-                this.setOutput(el, `
+        return;
+      }
+      if (action === 'audit') {
+        const audit = await this.app.platformService.refreshNpmAudit({ force: true });
+        this.app.state.npmAudit = audit;
+        const s = npmAuditSummary(audit);
+        const msg =
+          s.dependencies != null
+            ? `${formatNumber(s.dependencies)} dependencies · ${s.vulnerabilityTotal} vulnerabilities`
+            : 'npm audit complete';
+        showToast(msg, s.vulnerabilityTotal ? 'info' : 'success');
+        this.setOutput(
+          el,
+          `
           <p class="text-success">${escapeHtml(msg)}</p>
           <p class="text-muted text-sm mt-2">View full details on <a href="/dashboard/quality">Quality & Security</a>.</p>
-        `);
-                return;
-            }
-            if (action === 'export') {
-                await this.app.scanService.exportReport();
-                this.setOutput(el, '<p class="text-success">Report downloaded.</p>');
-                showToast('Report downloaded', 'success');
-                return;
-            }
-            if (action === 'consolidation') {
-                await this.runConsolidationScan();
-                this.setOutput(el, '<p class="text-success">Consolidation scan complete — see results below.</p>', false);
-                return;
-            }
-        }
-        catch (err) {
-            this.setOutput(el, `<p class="text-danger">${escapeHtml(err.message)}</p>`);
-            showToast(err.message, 'error');
-        }
-        finally {
-            this.running = null;
-            this.refreshView();
-        }
+        `
+        );
+        return;
+      }
+      if (action === 'export') {
+        await this.app.scanService.exportReport();
+        this.setOutput(el, '<p class="text-success">Report downloaded.</p>');
+        showToast('Report downloaded', 'success');
+        return;
+      }
+      if (action === 'consolidation') {
+        await this.runConsolidationScan();
+        this.setOutput(
+          el,
+          '<p class="text-success">Consolidation scan complete — see results below.</p>',
+          false
+        );
+        return;
+      }
+    } catch (err) {
+      this.setOutput(el, `<p class="text-danger">${escapeHtml(err.message)}</p>`);
+      showToast(err.message, 'error');
+    } finally {
+      this.running = null;
+      this.refreshView();
     }
-    async runConsolidationScan() {
-        if (this.reductionLoading)
-            return;
-        this.reductionLoading = true;
-        this.refreshView();
-        try {
-            this.reductionScan = await this.app.platformService.fetchMergerReductionScan(this.app.state.lastProjectPath || undefined);
-            this.app.state.mergerReductionScan = this.reductionScan;
-            showToast('Consolidation scan complete', 'success');
-        }
-        catch (err) {
-            this.reductionScan = { error: err.message };
-            showToast(err.message, 'error');
-        }
-        finally {
-            this.reductionLoading = false;
-            this.refreshView();
-        }
+  }
+  async runConsolidationScan() {
+    if (this.reductionLoading) return;
+    this.reductionLoading = true;
+    this.refreshView();
+    try {
+      this.reductionScan = await this.app.platformService.fetchMergerReductionScan(
+        this.app.state.lastProjectPath || undefined
+      );
+      this.app.state.mergerReductionScan = this.reductionScan;
+      showToast('Consolidation scan complete', 'success');
+    } catch (err) {
+      this.reductionScan = { error: err.message };
+      showToast(err.message, 'error');
+    } finally {
+      this.reductionLoading = false;
+      this.refreshView();
     }
-    renderConsolidation() {
-        var _a;
-        return renderConsolidationPanel({
-            scan: this.reductionScan,
-            loading: this.reductionLoading,
-            error: (_a = this.reductionScan) === null || _a === void 0 ? void 0 : _a.error
-        });
+  }
+  renderConsolidation() {
+    var _a;
+    return renderConsolidationPanel({
+      scan: this.reductionScan,
+      loading: this.reductionLoading,
+      error: (_a = this.reductionScan) === null || _a === void 0 ? void 0 : _a.error,
+    });
+  }
+  renderToolGrid(el, tools) {
+    const grid = el.querySelector('#tool-grid');
+    if (!tools.length) {
+      grid.innerHTML = this._platformLoadAttempted
+        ? '<p class="text-muted card">No repository tools configured — run a consolidation scan to discover available tools.</p>'
+        : '<p class="text-muted"><span class="loading-spinner"></span> Loading repository tools…</p>';
+      return;
     }
-    renderToolGrid(el, tools) {
-        const grid = el.querySelector('#tool-grid');
-        if (!tools.length) {
-            grid.innerHTML = this._platformLoadAttempted
-                ? '<p class="text-muted card">No repository tools configured — run a consolidation scan to discover available tools.</p>'
-                : '<p class="text-muted"><span class="loading-spinner"></span> Loading repository tools…</p>';
-            return;
-        }
-        grid.innerHTML = tools.map((t) => `
+    grid.innerHTML = tools
+      .map(
+        (t) => `
       <div class="tool-card">
         <div class="tool-card-header">
           <span>${t.icon || '🔧'}</span>
@@ -350,93 +399,89 @@ export class ToolsView {
         <div class="tool-card-meta">${escapeHtml(t.category)} · ${escapeHtml(t.avgTime || '—')}</div>
         ${t.section ? `<span class="tool-card-meta">Section: ${escapeHtml(t.section)}</span>` : ''}
       </div>
-    `).join('');
+    `
+      )
+      .join('');
+  }
+  renderWorkflows(el, workflows) {
+    const tbody = el.querySelector('#workflow-body');
+    if (!workflows.length) {
+      tbody.innerHTML = this._platformLoadAttempted
+        ? '<tr><td colspan="4" class="text-muted">No CI workflows configured — run a consolidation scan to discover workflow configurations.</td></tr>'
+        : '<tr><td colspan="4" class="text-muted"><span class="loading-spinner"></span> Loading workflows…</td></tr>';
+      return;
     }
-    renderWorkflows(el, workflows) {
-        const tbody = el.querySelector('#workflow-body');
-        if (!workflows.length) {
-            tbody.innerHTML = this._platformLoadAttempted
-                ? '<tr><td colspan="4" class="text-muted">No CI workflows configured — run a consolidation scan to discover workflow configurations.</td></tr>'
-                : '<tr><td colspan="4" class="text-muted"><span class="loading-spinner"></span> Loading workflows…</td></tr>';
-            return;
-        }
-        tbody.innerHTML = workflows.map((w) => `
+    tbody.innerHTML = workflows
+      .map(
+        (w) => `
       <tr>
         <td><strong>${escapeHtml(w.name)}</strong><br><span class="text-muted">${escapeHtml(w.description)}</span></td>
         <td><span class="severity-pill ${w.status === 'running' ? 'low' : w.status === 'deferred' ? 'medium' : 'high'}">${escapeHtml(w.status)}</span></td>
         <td>${(w.tools || []).join(', ')}</td>
         <td>${escapeHtml(w.lastRun || '—')}</td>
       </tr>
-    `).join('');
+    `
+      )
+      .join('');
+  }
+  _paint(container) {
+    window.setSafeHTML(container, '');
+    container.appendChild(this.render());
+    this._hasPainted = true;
+  }
+  async _ensurePlatformData() {
+    if (this._platformLoadAttempted) return;
+    if (this._platformLoadPromise) return this._platformLoadPromise;
+    if ((this.app.state.devTools || []).length || (this.app.state.devWorkflows || []).length) {
+      this._platformLoadAttempted = true;
+      return;
     }
-    _paint(container) {
-        window.setSafeHTML(container, '');
-        container.appendChild(this.render());
-        this._hasPainted = true;
+    this._platformLoadPromise = (async () => {
+      try {
+        await this.app.loadPlatformData();
+      } catch (_) {
+        /* platform stubs may be unavailable in some dev setups */
+      } finally {
+        this._platformLoadAttempted = true;
+        this._platformLoadPromise = null;
+        if (this._mountRoot && this.app.currentView === this) {
+          this._paint(this._mountRoot);
+        }
+      }
+    })();
+    try {
+      await this._platformLoadPromise;
+    } catch (_) {
+      /* platform load errors handled in _ensurePlatformData promise */
     }
-    async _ensurePlatformData() {
-        if (this._platformLoadAttempted)
-            return;
-        if (this._platformLoadPromise)
-            return this._platformLoadPromise;
-        if ((this.app.state.devTools || []).length || (this.app.state.devWorkflows || []).length) {
-            this._platformLoadAttempted = true;
-            return;
+  }
+  async _ensureScanData() {
+    if (this._scanLoadAttempted || this.app.state.dataLoading || this.app.state.report) return;
+    if (this._scanLoadPromise) return this._scanLoadPromise;
+    this._scanLoadPromise = (async () => {
+      try {
+        await this.app.loadData();
+      } catch (_) {
+        /* auth or server errors surface via other views */
+      } finally {
+        this._scanLoadAttempted = true;
+        this._scanLoadPromise = null;
+        if (this._mountRoot && this.app.currentView === this) {
+          this._paint(this._mountRoot);
         }
-        this._platformLoadPromise = (async () => {
-            try {
-                await this.app.loadPlatformData();
-            }
-            catch (_) {
-                /* platform stubs may be unavailable in some dev setups */
-            }
-            finally {
-                this._platformLoadAttempted = true;
-                this._platformLoadPromise = null;
-                if (this._mountRoot && this.app.currentView === this) {
-                    this._paint(this._mountRoot);
-                }
-            }
-        })();
-        try {
-            await this._platformLoadPromise;
-        }
-        catch (_) {
-            /* platform load errors handled in _ensurePlatformData promise */
-        }
+      }
+    })();
+    try {
+      await this._scanLoadPromise;
+    } catch (_) {
+      /* scan load errors handled in _ensureScanData promise */
     }
-    async _ensureScanData() {
-        if (this._scanLoadAttempted || this.app.state.dataLoading || this.app.state.report)
-            return;
-        if (this._scanLoadPromise)
-            return this._scanLoadPromise;
-        this._scanLoadPromise = (async () => {
-            try {
-                await this.app.loadData();
-            }
-            catch (_) {
-                /* auth or server errors surface via other views */
-            }
-            finally {
-                this._scanLoadAttempted = true;
-                this._scanLoadPromise = null;
-                if (this._mountRoot && this.app.currentView === this) {
-                    this._paint(this._mountRoot);
-                }
-            }
-        })();
-        try {
-            await this._scanLoadPromise;
-        }
-        catch (_) {
-            /* scan load errors handled in _ensureScanData promise */
-        }
-    }
-    mount(container) {
-        this._mountRoot = container;
-        this.reductionScan = this.app.state.mergerReductionScan || this.reductionScan;
-        this._paint(container);
-        this._ensureScanData();
-        this._ensurePlatformData();
-    }
+  }
+  mount(container) {
+    this._mountRoot = container;
+    this.reductionScan = this.app.state.mergerReductionScan || this.reductionScan;
+    this._paint(container);
+    this._ensureScanData();
+    this._ensurePlatformData();
+  }
 }

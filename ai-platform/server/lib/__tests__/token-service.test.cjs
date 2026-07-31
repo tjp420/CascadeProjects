@@ -1,6 +1,13 @@
 'use strict';
 
-const { generateToken, verifyToken, recordTokenFirstUse, isTokenExpiredByFirstUse, invalidateToken, TOKEN_LIFETIME_MS } = require('../auth/token-service.cjs');
+const {
+  generateToken,
+  verifyToken,
+  recordTokenFirstUse,
+  isTokenExpiredByFirstUse,
+  invalidateToken,
+  TOKEN_LIFETIME_MS,
+} = require('../auth/token-service.cjs');
 
 describe('token-service', () => {
   test('exports expected functions and constants', () => {
@@ -26,7 +33,14 @@ describe('token-service', () => {
   });
 
   test('generateToken includes user fields in payload', () => {
-    const token = generateToken({ id: 'user-1', email: 'test@example.com', name: 'Test', trustLevel: 'gold', role: 'admin', features: ['all_modules'] });
+    const token = generateToken({
+      id: 'user-1',
+      email: 'test@example.com',
+      name: 'Test',
+      trustLevel: 'gold',
+      role: 'admin',
+      features: ['all_modules'],
+    });
     const decoded = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
     expect(decoded.sub).toBe('user-1');
     expect(decoded.email).toBe('test@example.com');

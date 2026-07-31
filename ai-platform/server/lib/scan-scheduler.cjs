@@ -14,7 +14,8 @@ const { sendEmail } = require('./email-service.cjs');
  * @returns {Object}
  */
 function createScheduler(options) {
-  const { runSimplebeaconScan, PROJECT_ROOT, REPORT_PATH, SIMPLEBEACON_DIR, SCHEDULE_PATH } = options;
+  const { runSimplebeaconScan, PROJECT_ROOT, REPORT_PATH, SIMPLEBEACON_DIR, SCHEDULE_PATH } =
+    options;
   let scheduleTimer = null;
   let scheduleConfigCache = null;
 
@@ -34,7 +35,7 @@ function createScheduler(options) {
         projectPath: null,
         includeCertificate: false,
         webhookUrl: null,
-        zeroRetention: false
+        zeroRetention: false,
       };
     }
   }
@@ -67,18 +68,20 @@ function createScheduler(options) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(data)
-        }
+          'Content-Length': Buffer.byteLength(data),
+        },
       };
       const mod = url.protocol === 'https:' ? https : http;
       const req = mod.request(options, (res) => {
         let body = '';
-        res.on('data', (chunk) => { body += chunk; });
+        res.on('data', (chunk) => {
+          body += chunk;
+        });
         res.on('end', () => {
           resolve({
             success: res.statusCode >= 200 && res.statusCode < 300,
             statusCode: res.statusCode,
-            body: body.slice(0, 500)
+            body: body.slice(0, 500),
           });
         });
       });
@@ -117,14 +120,14 @@ function createScheduler(options) {
           if (cfg.includeCertificate && report) {
             attachments.push({
               filename: `report-${result.scanId || 'unknown'}.json`,
-              content: Buffer.from(JSON.stringify(report, null, 2)).toString('base64')
+              content: Buffer.from(JSON.stringify(report, null, 2)).toString('base64'),
             });
           }
           await sendEmail({
             to: recipient,
             subject: `Simplebeacon Scan Report — ${result.scanId || 'unknown'}`,
             text: summaryText,
-            attachments
+            attachments,
           }).catch((err) => logger.error('[Schedule] Email failed'));
         }
       }
@@ -138,7 +141,7 @@ function createScheduler(options) {
           qualityScore: report.qualityScore,
           issueCount: report.issueCount,
           report: cfg.includeCertificate ? report : undefined,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
         logger.info(
           `[Schedule] Webhook ${webhookResult.success ? 'delivered' : 'failed'} to ${cfg.webhookUrl}`
@@ -155,7 +158,10 @@ function createScheduler(options) {
             logger.info('[Schedule] Zero-retention: report file removed after delivery');
           }
         } catch (unlinkErr) {
-          logger.warn('[Schedule] Zero-retention: failed to remove report file:', unlinkErr.message);
+          logger.warn(
+            '[Schedule] Zero-retention: failed to remove report file:',
+            unlinkErr.message
+          );
         }
       }
     } catch (err) {

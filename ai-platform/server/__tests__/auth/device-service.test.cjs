@@ -2,7 +2,7 @@ const {
   generateDeviceFingerprint,
   trustDevice,
   verifyDeviceTrust,
-  deviceTrust
+  deviceTrust,
 } = require('../../lib/auth/device-service.cjs');
 
 describe('device-service', () => {
@@ -47,10 +47,17 @@ describe('device-service', () => {
   });
 
   describe('verifyDeviceTrust middleware', () => {
-    const mockRes = () => ({ status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() });
+    const mockRes = () => ({
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
+    });
 
     test('allows when device is trusted for gold user', () => {
-      const req = { headers: { 'user-agent': 'A' }, ip: '1.1.1.1', user: { id: 'u1', trustLevel: 'gold' } };
+      const req = {
+        headers: { 'user-agent': 'A' },
+        ip: '1.1.1.1',
+        user: { id: 'u1', trustLevel: 'gold' },
+      };
       const fp = generateDeviceFingerprint(req);
       trustDevice('u1', fp);
       const res = mockRes();
@@ -61,7 +68,11 @@ describe('device-service', () => {
     });
 
     test('blocks gold user with untrusted device', () => {
-      const req = { headers: { 'user-agent': 'B' }, ip: '2.2.2.2', user: { id: 'u2', trustLevel: 'gold' } };
+      const req = {
+        headers: { 'user-agent': 'B' },
+        ip: '2.2.2.2',
+        user: { id: 'u2', trustLevel: 'gold' },
+      };
       const res = mockRes();
       const next = jest.fn();
       verifyDeviceTrust(req, res, next);
@@ -70,7 +81,11 @@ describe('device-service', () => {
     });
 
     test('allows silver user even with untrusted device', () => {
-      const req = { headers: { 'user-agent': 'C' }, ip: '3.3.3.3', user: { id: 'u3', trustLevel: 'silver' } };
+      const req = {
+        headers: { 'user-agent': 'C' },
+        ip: '3.3.3.3',
+        user: { id: 'u3', trustLevel: 'silver' },
+      };
       const res = mockRes();
       const next = jest.fn();
       verifyDeviceTrust(req, res, next);

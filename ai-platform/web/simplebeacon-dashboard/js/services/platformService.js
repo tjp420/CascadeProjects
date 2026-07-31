@@ -19,7 +19,7 @@ const PLATFORM = {
   securityOverview: '/api/security/overview',
   securityNpmAudit: '/api/security/npm-audit',
   qualityOverview: '/api/quality/overview',
-  help: '/api/help'
+  help: '/api/help',
 };
 
 /**
@@ -42,7 +42,11 @@ function buildNetworkErrorMessage(target, error) {
 async function fetchJson(url, timeoutMs = 10000) {
   let httpResponse;
   try {
-    httpResponse = await fetchWithTimeout(url, { headers: authService.getAuthHeaders() }, timeoutMs);
+    httpResponse = await fetchWithTimeout(
+      url,
+      { headers: authService.getAuthHeaders() },
+      timeoutMs
+    );
   } catch (error) {
     throw new Error(buildNetworkErrorMessage(url, error));
   }
@@ -52,7 +56,9 @@ async function fetchJson(url, timeoutMs = 10000) {
   }
   if (!httpResponse.ok) {
     const body = await httpResponse.text().catch(() => '');
-    throw new Error(`Failed to load ${url}${body ? ` (${httpResponse.status}: ${body.slice(0, 120)})` : ` (${httpResponse.status})`}`);
+    throw new Error(
+      `Failed to load ${url}${body ? ` (${httpResponse.status}: ${body.slice(0, 120)})` : ` (${httpResponse.status})`}`
+    );
   }
   return readJsonResponseBody(httpResponse, {});
 }
@@ -74,13 +80,27 @@ export class PlatformService {
 
   async fetchAll() {
     const results = await Promise.allSettled([
-      fetchJson(PLATFORM.dashboardHome).then((d) => { this.dashboardHome = d.data || d; }),
-      fetchJson(PLATFORM.devTools).then((d) => { this.devTools = Array.isArray(d) ? d : d.tools || []; }),
-      fetchJson(PLATFORM.devWorkflows).then((d) => { this.devWorkflows = Array.isArray(d) ? d : d.workflows || []; }),
-      fetchJson(PLATFORM.coverageOverview).then((d) => { this.coverage = d; }),
-      fetchJson(PLATFORM.securityOverview).then((d) => { this.security = d; }),
-      fetchJson(PLATFORM.qualityOverview).then((d) => { this.quality = d; }),
-      fetchJson(PLATFORM.help).then((d) => { this.help = d.data || d; })
+      fetchJson(PLATFORM.dashboardHome).then((d) => {
+        this.dashboardHome = d.data || d;
+      }),
+      fetchJson(PLATFORM.devTools).then((d) => {
+        this.devTools = Array.isArray(d) ? d : d.tools || [];
+      }),
+      fetchJson(PLATFORM.devWorkflows).then((d) => {
+        this.devWorkflows = Array.isArray(d) ? d : d.workflows || [];
+      }),
+      fetchJson(PLATFORM.coverageOverview).then((d) => {
+        this.coverage = d;
+      }),
+      fetchJson(PLATFORM.securityOverview).then((d) => {
+        this.security = d;
+      }),
+      fetchJson(PLATFORM.qualityOverview).then((d) => {
+        this.quality = d;
+      }),
+      fetchJson(PLATFORM.help).then((d) => {
+        this.help = d.data || d;
+      }),
     ]);
     return results;
   }
@@ -88,10 +108,13 @@ export class PlatformService {
   async refreshNpmAudit(options = {}) {
     const headers = {
       ...authService.getAuthHeaders(),
-      ...billingService.getAuthHeaders()
+      ...billingService.getAuthHeaders(),
     };
     if (options.force) {
-      const npmAuditHttpResponse = await fetch(PLATFORM.securityNpmAudit, { method: 'POST', headers });
+      const npmAuditHttpResponse = await fetch(PLATFORM.securityNpmAudit, {
+        method: 'POST',
+        headers,
+      });
       const npmAuditPayload = await readJsonResponseBody(npmAuditHttpResponse, {});
       if (!npmAuditHttpResponse.ok) {
         throw new Error(npmAuditPayload.message || npmAuditPayload.error || 'npm audit failed');
@@ -108,11 +131,12 @@ export class PlatformService {
       method: 'POST',
       headers: {
         ...authService.getAuthHeaders(),
-        ...billingService.getAuthHeaders()
-      }
+        ...billingService.getAuthHeaders(),
+      },
     });
     const syncResponseBody = await readJsonResponseBody(syncHttpResponse, {});
-    if (!syncHttpResponse.ok) throw new Error(syncResponseBody.message || syncResponseBody.error || 'Baseline sync failed');
+    if (!syncHttpResponse.ok)
+      throw new Error(syncResponseBody.message || syncResponseBody.error || 'Baseline sync failed');
     return syncResponseBody;
   }
 
@@ -152,23 +176,26 @@ export const FEATURE_CATALOG = [
         label: 'Dashboard',
         icon: '📊',
         route: 'dashboard',
-        description: 'Last scan, consistency score, mock/sample scope, issue categories, and rescan'
+        description:
+          'Last scan, consistency score, mock/sample scope, issue categories, and rescan',
       },
       {
         id: 'platform',
         label: 'Platform overview',
         icon: '📈',
         route: 'platform',
-        description: 'Engineering baseline, Jest health, schema pass rate, and live vs sample metrics'
+        description:
+          'Engineering baseline, Jest health, schema pass rate, and live vs sample metrics',
       },
       {
         id: 'pricing',
         label: 'Pricing',
         icon: '💳',
         route: 'pricing',
-        description: 'Community CLI ($0), Cloud Teams ($49/mo), Enterprise Perimeter (from $5,000 setup)'
-      }
-    ]
+        description:
+          'Community CLI ($0), Cloud Teams ($49/mo), Enterprise Perimeter (from $5,000 setup)',
+      },
+    ],
   },
   {
     group: 'Scan & Analyze',
@@ -179,7 +206,8 @@ export const FEATURE_CATALOG = [
         icon: '⚡',
         route: 'analyze',
         analyzeMode: 'complete',
-        description: 'Full gate bundle — all eight scans including file reduction, data quality, and cleanup assistant (dry-run)'
+        description:
+          'Full gate bundle — all eight scans including file reduction, data quality, and cleanup assistant (dry-run)',
       },
       {
         id: 'simplebeacon-scan',
@@ -187,7 +215,7 @@ export const FEATURE_CATALOG = [
         icon: '🛡️',
         route: 'analyze',
         analyzeMode: 'simplebeacon',
-        description: 'Deterministic gate on .simplebeacon/config.json scanPaths and all rules'
+        description: 'Deterministic gate on .simplebeacon/config.json scanPaths and all rules',
       },
       {
         id: 'mock-scan',
@@ -195,7 +223,7 @@ export const FEATURE_CATALOG = [
         icon: '🔍',
         route: 'analyze',
         analyzeMode: 'mock-scan',
-        description: 'Fiction/KPI digest scoped to sample paths — not a full-repo semantic walk'
+        description: 'Fiction/KPI digest scoped to sample paths — not a full-repo semantic walk',
       },
       {
         id: 'consolidation',
@@ -203,7 +231,7 @@ export const FEATURE_CATALOG = [
         icon: '🔀',
         route: 'analyze',
         analyzeMode: 'consolidation',
-        description: 'Duplicate JSON groups, similar schemas, and oversized files in sample paths'
+        description: 'Duplicate JSON groups, similar schemas, and oversized files in sample paths',
       },
       {
         id: 'codebase',
@@ -211,7 +239,8 @@ export const FEATURE_CATALOG = [
         icon: '🧹',
         route: 'analyze',
         analyzeMode: 'codebase',
-        description: 'Technical debt markers, broken JSON/syntax, debug artifacts, placeholders, ESLint'
+        description:
+          'Technical debt markers, broken JSON/syntax, debug artifacts, placeholders, ESLint',
       },
       {
         id: 'file-reduction',
@@ -219,7 +248,8 @@ export const FEATURE_CATALOG = [
         icon: '📦',
         route: 'analyze',
         analyzeMode: 'file-reduction',
-        description: 'Build artifacts, duplicate assets, and unused file candidates (dry-run reclaim estimate)'
+        description:
+          'Build artifacts, duplicate assets, and unused file candidates (dry-run reclaim estimate)',
       },
       {
         id: 'data-quality',
@@ -227,7 +257,8 @@ export const FEATURE_CATALOG = [
         icon: '🧪',
         route: 'analyze',
         analyzeMode: 'data-quality',
-        description: 'Config sprawl, env keys, stale mock data, privacy leaks, lineage, and JSON shape drift'
+        description:
+          'Config sprawl, env keys, stale mock data, privacy leaks, lineage, and JSON shape drift',
       },
       {
         id: 'roadmap',
@@ -235,7 +266,8 @@ export const FEATURE_CATALOG = [
         icon: '🗺️',
         route: 'analyze',
         analyzeMode: 'roadmap',
-        description: 'Filesystem sprint scan for planning — exports belong in reports/, not sample directories'
+        description:
+          'Filesystem sprint scan for planning — exports belong in reports/, not sample directories',
       },
       {
         id: 'auto-scan',
@@ -243,9 +275,9 @@ export const FEATURE_CATALOG = [
         icon: '🤖',
         route: 'analyze',
         analyzeMode: 'auto',
-        description: 'Picks Simplebeacon for platform or mock paths; roadmap for other directories'
-      }
-    ]
+        description: 'Picks Simplebeacon for platform or mock paths; roadmap for other directories',
+      },
+    ],
   },
   {
     group: 'Results & Compliance',
@@ -255,30 +287,32 @@ export const FEATURE_CATALOG = [
         label: 'Issue results',
         icon: '📋',
         route: 'results',
-        description: 'Filter by severity and category — empty with gate PASS means a clean scan'
+        description: 'Filter by severity and category — empty with gate PASS means a clean scan',
       },
       {
         id: 'audit',
         label: 'Compliance audit',
         icon: '🛡️',
         route: 'audit',
-        description: 'All layers — credentials, fiction KPIs, schema, leaks, roadmap, Jest, npm audit'
+        description:
+          'All layers — credentials, fiction KPIs, schema, leaks, roadmap, Jest, npm audit',
       },
       {
         id: 'security',
         label: 'Security scanner',
         icon: '🔒',
         route: 'security',
-        description: 'Credential patterns and production-leak findings from live Simplebeacon scan'
+        description: 'Credential patterns and production-leak findings from live Simplebeacon scan',
       },
       {
         id: 'quality',
         label: 'Quality & security',
         icon: '🔒',
         route: 'quality',
-        description: 'Live npm audit with dependency count, security checklist, and coverage posture'
-      }
-    ]
+        description:
+          'Live npm audit with dependency count, security checklist, and coverage posture',
+      },
+    ],
   },
   {
     group: 'Enterprise',
@@ -288,9 +322,10 @@ export const FEATURE_CATALOG = [
         label: 'Assessment portal',
         icon: '📑',
         route: 'assessments',
-        description: 'Client M&A flow — clone repo or scan local path (signed-in) → assessment JSON'
-      }
-    ]
+        description:
+          'Client M&A flow — clone repo or scan local path (signed-in) → assessment JSON',
+      },
+    ],
   },
   {
     group: 'Tools & Configuration',
@@ -300,24 +335,25 @@ export const FEATURE_CATALOG = [
         label: 'Tools & workflows',
         icon: '🔧',
         route: 'tools',
-        description: 'Run scans, sync baseline, npm audit, dev tools catalog, and CI workflows'
+        description: 'Run scans, sync baseline, npm audit, dev tools catalog, and CI workflows',
       },
       {
         id: 'settings',
         label: 'Settings',
         icon: '⚙️',
         route: 'settings',
-        description: 'Edit scan paths, rule toggles, gate policy, and profile presets — saves to config.json'
+        description:
+          'Edit scan paths, rule toggles, gate policy, and profile presets — saves to config.json',
       },
       {
         id: 'help',
         label: 'Help & docs',
         icon: '❓',
         route: 'help',
-        description: 'Scan number glossary, dashboard pages, CLI commands, and FAQ'
-      }
-    ]
-  }
+        description: 'Scan number glossary, dashboard pages, CLI commands, and FAQ',
+      },
+    ],
+  },
 ];
 
 /** @deprecated Use FEATURE_CATALOG */

@@ -1,14 +1,8 @@
 {
   "profile": "complete",
-  "scanPaths": [
-    "."
-  ],
-  "productionPaths": [
-    "."
-  ],
-  "sourceCodeScanPaths": [
-    "."
-  ],
+  "scanPaths": ["."],
+  "productionPaths": ["."],
+  "sourceCodeScanPaths": ["."],
   "ignore": [
     "node_modules/**",
     ".simplebeacon/**",
@@ -73,19 +67,9 @@
     }
   },
   "gate": {
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ]
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"]
   },
   "fullDirectoryScan": false,
-  "fullDirectoryScanSkipDirs": [
-    ".git",
-    ".github-sync",
-    "github-cache",
-    "node_modules"
-  ]
+  "fullDirectoryScanSkipDirs": [".git", ".github-sync", "github-cache", "node_modules"]
 }

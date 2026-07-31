@@ -13,10 +13,10 @@ function escapeHtml(str) {
 
 // simpleHash is defined in main.js — use the shared version
 if (typeof window !== 'undefined' && !window.simpleHash) {
-    window.simpleHash = async function(text) {
+    window.simpleHash = async function (text) {
         let hash = 5381;
         for (let i = 0; i < text.length; i++) {
-            hash = ((hash << 5) + hash) + text.charCodeAt(i);
+            hash = (hash << 5) + hash + text.charCodeAt(i);
         }
         return String(hash >>> 0);
     };
@@ -48,7 +48,7 @@ function showHashRibbon(elementId, valueId, text) {
     const ribbon = document.getElementById(elementId);
     const value = document.getElementById(valueId);
     if (ribbon && value) {
-        value.textContent = "sha256-" + text;
+        value.textContent = 'sha256-' + text;
         ribbon.style.display = 'flex';
     }
 }

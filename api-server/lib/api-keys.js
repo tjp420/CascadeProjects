@@ -13,13 +13,13 @@ const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvw
 const KEY_PREFIX_LENGTH = 12; // sb_live_abc...
 
 function randomBase58(length) {
-    let result = '';
-    const bytes = crypto.randomBytes(length * 2);
-    for (let i = 0; i < bytes.length && result.length < length; i++) {
-        const idx = bytes[i] % BASE58_ALPHABET.length;
-        result += BASE58_ALPHABET[idx];
-    }
-    return result;
+  let result = '';
+  const bytes = crypto.randomBytes(length * 2);
+  for (let i = 0; i < bytes.length && result.length < length; i++) {
+    const idx = bytes[i] % BASE58_ALPHABET.length;
+    result += BASE58_ALPHABET[idx];
+  }
+  return result;
 }
 
 /**
@@ -29,11 +29,11 @@ function randomBase58(length) {
  * @returns {{prefix:string, fullKey:string, keyHash:string}}
  */
 async function generateApiKey(env = 'live') {
-    const prefix = `sb_${env}_`;
-    const random = randomBase58(24);
-    const fullKey = prefix + random;
-    const keyHash = await bcrypt.hash(fullKey, 12);
-    return { prefix: fullKey.slice(0, KEY_PREFIX_LENGTH), fullKey, keyHash };
+  const prefix = `sb_${env}_`;
+  const random = randomBase58(24);
+  const fullKey = prefix + random;
+  const keyHash = await bcrypt.hash(fullKey, 12);
+  return { prefix: fullKey.slice(0, KEY_PREFIX_LENGTH), fullKey, keyHash };
 }
 
 /**
@@ -42,35 +42,32 @@ async function generateApiKey(env = 'live') {
  * @returns {Promise<{valid:boolean, keyRecord?:object}>}
  */
 async function verifyApiKey(fullKey) {
-    if (!fullKey || !fullKey.startsWith('sb_')) {
-        return { valid: false };
-    }
-    const prefix = fullKey.slice(0, KEY_PREFIX_LENGTH);
+  if (!fullKey || !fullKey.startsWith('sb_')) {
+    return { valid: false };
+  }
+  const prefix = fullKey.slice(0, KEY_PREFIX_LENGTH);
 
-    // Lookup by prefix (fast), then verify hash (slow)
-    const rows = await db.query(
-        `SELECT id, workspace_id, key_hash, role_id, scopes, rate_limit_per_minute,
+  // Lookup by prefix (fast), then verify hash (slow)
+  const rows = await db.query(
+    `SELECT id, workspace_id, key_hash, role_id, scopes, rate_limit_per_minute,
                 expires_at, revoked_at, last_used_at
          FROM api_keys
          WHERE key_prefix = $1`,
-        [prefix]
-    );
+    [prefix]
+  );
 
-    for (const row of rows) {
-        if (row.revoked_at) continue;
-        if (row.expires_at && new Date(row.expires_at) < new Date()) continue;
+  for (const row of rows) {
+    if (row.revoked_at) continue;
+    if (row.expires_at && new Date(row.expires_at) < new Date()) continue;
 
-        const match = await bcrypt.compare(fullKey, row.key_hash);
-        if (match) {
-            // Update last_used_at
-            await db.query(
-                `UPDATE api_keys SET last_used_at = now() WHERE id = $1`,
-                [row.id]
-            );
-            return { valid: true, keyRecord: row };
-        }
+    const match = await bcrypt.compare(fullKey, row.key_hash);
+    if (match) {
+      // Update last_used_at
+      await db.query(`UPDATE api_keys SET last_used_at = now() WHERE id = $1`, [row.id]);
+      return { valid: true, keyRecord: row };
     }
-    return { valid: false };
+  }
+  return { valid: false };
 }
 
 /**
@@ -79,31 +76,33 @@ async function verifyApiKey(fullKey) {
  * Attaches `req.apiKey = { keyRecord }` or `req.auth = { userId, role, workspaceId }`.
  */
 async function requireApiKeyOrAuth(req, res, next) {
-    const header = req.headers.authorization || '';
-    const match = header.match(/^Bearer\s+(sb_(live|test)_[a-zA-Z0-9]+)$/i);
+  const header = req.headers.authorization || '';
+  const match = header.match(/^Bearer\s+(sb_(live|test)_[a-zA-Z0-9]+)$/i);
 
-    if (match) {
-        const { valid, keyRecord } = await verifyApiKey(match[1]);
-        if (!valid) {
-            return res.status(401).json({ error: 'Invalid or revoked API key' });
-        }
-        req.apiKey = { keyRecord };
-        req.auth = {
-            userId: null, // Service account — no user
-            role: keyRecord.role_id ? (await db.get('SELECT name FROM roles WHERE id = $1', [keyRecord.role_id]))?.name : 'viewer',
-            workspaceId: keyRecord.workspace_id
-        };
-        return next();
+  if (match) {
+    const { valid, keyRecord } = await verifyApiKey(match[1]);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid or revoked API key' });
     }
+    req.apiKey = { keyRecord };
+    req.auth = {
+      userId: null, // Service account — no user
+      role: keyRecord.role_id
+        ? (await db.get('SELECT name FROM roles WHERE id = $1', [keyRecord.role_id]))?.name
+        : 'viewer',
+      workspaceId: keyRecord.workspace_id,
+    };
+    return next();
+  }
 
-    // Fall through to JWT auth
-    const { requireAuth } = require('./auth.js');
-    requireAuth(req, res, next);
+  // Fall through to JWT auth
+  const { requireAuth } = require('./auth.js');
+  requireAuth(req, res, next);
 }
 
 module.exports = {
-    generateApiKey,
-    verifyApiKey,
-    requireApiKeyOrAuth,
-    KEY_PREFIX_LENGTH
+  generateApiKey,
+  verifyApiKey,
+  requireApiKeyOrAuth,
+  KEY_PREFIX_LENGTH,
 };

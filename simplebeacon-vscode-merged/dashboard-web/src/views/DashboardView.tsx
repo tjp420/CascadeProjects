@@ -3,7 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { FolderSearch, ClipboardList, ClipboardCheck, Shield, Zap, TrendingUp, FileCode, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import {
+  FolderSearch,
+  ClipboardList,
+  ClipboardCheck,
+  Shield,
+  Zap,
+  TrendingUp,
+  FileCode,
+  AlertTriangle,
+  CheckCircle2,
+} from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 
 export function DashboardView() {
@@ -22,7 +32,9 @@ export function DashboardView() {
           gate: data.gate ?? true,
         });
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   return (
@@ -33,12 +45,7 @@ export function DashboardView() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          icon={FileCode}
-          label="Files Scanned"
-          value={lastScan?.files?.toString() || '—'}
-          color="info"
-        />
+        <MetricCard icon={FileCode} label="Files Scanned" value={lastScan?.files?.toString() || '—'} color="info" />
         <MetricCard
           icon={AlertTriangle}
           label="Issues Found"
@@ -51,12 +58,7 @@ export function DashboardView() {
           value={lastScan ? (lastScan.gate ? 'PASS' : 'FAIL') : '—'}
           color={lastScan ? (lastScan.gate ? 'success' : 'danger') : 'muted'}
         />
-        <MetricCard
-          icon={TrendingUp}
-          label="Quality Score"
-          value="—"
-          color="muted"
-        />
+        <MetricCard icon={TrendingUp} label="Quality Score" value="—" color="muted" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -66,48 +68,28 @@ export function DashboardView() {
             <CardDescription>Start a new scan or view recent results</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
-            <Button
-              variant="default"
-              size="lg"
-              className="justify-start gap-3"
-              onClick={() => navigate('analyze')}
-            >
+            <Button variant="default" size="lg" className="justify-start gap-3" onClick={() => navigate('analyze')}>
               <FolderSearch className="h-5 w-5" />
               <div className="flex flex-col items-start">
                 <span className="font-semibold">New Scan</span>
                 <span className="text-xs opacity-80">Analyze a project or repository</span>
               </div>
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="justify-start gap-3"
-              onClick={() => navigate('results')}
-            >
+            <Button variant="outline" size="lg" className="justify-start gap-3" onClick={() => navigate('results')}>
               <ClipboardList className="h-5 w-5" />
               <div className="flex flex-col items-start">
                 <span className="font-semibold">View Results</span>
                 <span className="text-xs opacity-80">Browse scan findings</span>
               </div>
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="justify-start gap-3"
-              onClick={() => navigate('audit')}
-            >
+            <Button variant="outline" size="lg" className="justify-start gap-3" onClick={() => navigate('audit')}>
               <ClipboardCheck className="h-5 w-5" />
               <div className="flex flex-col items-start">
                 <span className="font-semibold">Audit Report</span>
                 <span className="text-xs opacity-80">Compliance & gate details</span>
               </div>
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="justify-start gap-3"
-              onClick={() => navigate('remediation')}
-            >
+            <Button variant="outline" size="lg" className="justify-start gap-3" onClick={() => navigate('remediation')}>
               <Zap className="h-5 w-5" />
               <div className="flex flex-col items-start">
                 <span className="font-semibold">Remediation</span>
@@ -146,15 +128,11 @@ export function DashboardView() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Issues</span>
-                  <Badge variant={lastScan.issues > 0 ? 'warning' : 'success'}>
-                    {lastScan.issues}
-                  </Badge>
+                  <Badge variant={lastScan.issues > 0 ? 'warning' : 'success'}>{lastScan.issues}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Gate</span>
-                  <Badge variant={lastScan.gate ? 'success' : 'danger'}>
-                    {lastScan.gate ? 'PASS' : 'FAIL'}
-                  </Badge>
+                  <Badge variant={lastScan.gate ? 'success' : 'danger'}>{lastScan.gate ? 'PASS' : 'FAIL'}</Badge>
                 </div>
               </div>
             )}

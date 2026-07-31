@@ -10,14 +10,16 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'coming-soon/index.html'),
         upload: resolve(__dirname, 'coming-soon/upload.html'),
-        pricing: resolve(__dirname, 'coming-soon/pricing.html')
-      }
-    }
+        pricing: resolve(__dirname, 'coming-soon/pricing.html'),
+      },
+    },
   },
   server: {
     port: 5173,
-    proxy: process.env.API_PROXY_URL ? {
-      '/api': process.env.API_PROXY_URL
-    } : undefined
-  }
+    proxy: process.env.API_PROXY_URL
+      ? {
+          '/api': process.env.API_PROXY_URL,
+        }
+      : undefined,
+  },
 });

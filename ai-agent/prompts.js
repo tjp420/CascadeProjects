@@ -11,8 +11,9 @@
  * Prompt 1: Planning (Decomposition)
  * Forces the 2B model to split a user goal into strict JSON actions.
  */
-function getPlanningPrompt(userGoal) { // simplebeacon-ignore debug-artifact — core prompt builder for agent orchestration
-    return `You are a strict code execution planner.
+function getPlanningPrompt(userGoal) {
+  // simplebeacon-ignore debug-artifact — core prompt builder for agent orchestration
+  return `You are a strict code execution planner.
 Decompose the user's goal into a structured JSON array of actions.
 Available operations: "read_file", "patch_file", "run_tests".
 
@@ -32,8 +33,9 @@ Do not write explanations, markdown blocks, or text outside the JSON array.`;
  * Prompt 2: Verification Analysis
  * Asks the 2B model to evaluate if raw terminal logs represent a pass or fail.
  */
-function getVerificationPrompt(terminalOutput) { // simplebeacon-ignore debug-artifact — core prompt builder for agent orchestration
-    return `Analyze the raw terminal logs below. Determine if the operations or tests succeeded.
+function getVerificationPrompt(terminalOutput) {
+  // simplebeacon-ignore debug-artifact — core prompt builder for agent orchestration
+  return `Analyze the raw terminal logs below. Determine if the operations or tests succeeded.
 Terminal Output:
 """
 ${terminalOutput}
@@ -43,6 +45,6 @@ Output ONLY one word: "SUCCESS" or "FAILURE". Do not write anything else.`;
 }
 
 module.exports = {
-    getPlanningPrompt,
-    getVerificationPrompt
+  getPlanningPrompt,
+  getVerificationPrompt,
 };

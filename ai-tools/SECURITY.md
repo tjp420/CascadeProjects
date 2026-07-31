@@ -4,16 +4,17 @@
 
 Only the latest published version on npm receives security updates.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| latest  | :white_check_mark: |
-| < latest| :x:                |
+| Version  | Supported          |
+| -------- | ------------------ |
+| latest   | :white_check_mark: |
+| < latest | :x:                |
 
 ## Reporting a Vulnerability
 
 Please report security vulnerabilities to **security@simplebeacon.local**.
 
 Include:
+
 - Affected version(s)
 - Steps to reproduce
 - Expected vs actual behavior

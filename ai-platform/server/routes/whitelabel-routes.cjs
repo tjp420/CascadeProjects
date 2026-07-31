@@ -61,39 +61,51 @@ router.post('/partners', (req, res) => {
 });
 
 // GET /api/whitelabel/partners/:partnerId
-router.get('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
-  try {
-    const partner = wlStore.getPartner(req.params.partnerId);
-    if (!partner) return sendError(res, 404, 'not_found');
-    res.json({ success: true, partner });
-  } catch (err) {
-    logger.warn('[Whitelabel] get_failed failed:', err.message);
-    sendError(res, 500, 'get_failed', { message: err.message });
+router.get(
+  '/partners/:partnerId',
+  validateParam('partnerId', VALIDATION_PATTERNS.partnerId),
+  (req, res) => {
+    try {
+      const partner = wlStore.getPartner(req.params.partnerId);
+      if (!partner) return sendError(res, 404, 'not_found');
+      res.json({ success: true, partner });
+    } catch (err) {
+      logger.warn('[Whitelabel] get_failed failed:', err.message);
+      sendError(res, 500, 'get_failed', { message: err.message });
+    }
   }
-});
+);
 
 // PUT /api/whitelabel/partners/:partnerId
-router.put('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
-  try {
-    const partner = wlStore.updatePartner(req.params.partnerId, req.body || {});
-    res.json({ success: true, partner });
-  } catch (err) {
-    logger.warn('[Whitelabel] update_failed failed:', err.message);
-    sendError(res, 400, 'update_failed', { message: err.message });
+router.put(
+  '/partners/:partnerId',
+  validateParam('partnerId', VALIDATION_PATTERNS.partnerId),
+  (req, res) => {
+    try {
+      const partner = wlStore.updatePartner(req.params.partnerId, req.body || {});
+      res.json({ success: true, partner });
+    } catch (err) {
+      logger.warn('[Whitelabel] update_failed failed:', err.message);
+      sendError(res, 400, 'update_failed', { message: err.message });
+    }
   }
-});
+);
 
 // DELETE /api/whitelabel/partners/:partnerId
-router.delete('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
-  try {
-    const deleted = wlStore.deletePartner(req.params.partnerId);
-    if (!deleted) return sendError(res, 404, 'not_found');
-    res.json({ success: true, deleted: true });
-  } catch (err) {
-    logger.warn('[Whitelabel] delete_failed failed:', err.message);
-    sendError(res, 500, 'delete_failed', { message: err.message });
+router.delete(
+  '/partners/:partnerId',
+  validateParam('partnerId', VALIDATION_PATTERNS.partnerId),
+  (req, res) => {
+    try {
+      const deleted = wlStore.deletePartner(req.params.partnerId);
+      if (!deleted) return sendError(res, 404, 'not_found');
+      res.json({ success: true, deleted: true });
+    } catch (err) {
+      logger.warn('[Whitelabel] delete_failed failed:', err.message);
+      sendError(res, 500, 'delete_failed', { message: err.message });
+    }
   }
-});
+);
 
 // GET /api/whitelabel/resolve?domain=example.com
 router.get('/resolve', (req, res) => {
@@ -111,18 +123,22 @@ router.get('/resolve', (req, res) => {
 });
 
 // GET /api/whitelabel/:partnerId/brand.css — dynamic CSS injection
-router.get('/:partnerId/brand.css', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
-  try {
-    const css = wlStore.getBrandCss(req.params.partnerId);
-    if (!css) return sendError(res, 404, 'not_found');
-    res.setHeader('Content-Type', 'text/css');
-    res.setHeader('Cache-Control', 'public, max-age=300');
-    res.send(css);
-  } catch (err) {
-    logger.warn('[Whitelabel] css_failed failed:', err.message);
-    sendError(res, 500, 'css_failed', { message: err.message });
+router.get(
+  '/:partnerId/brand.css',
+  validateParam('partnerId', VALIDATION_PATTERNS.partnerId),
+  (req, res) => {
+    try {
+      const css = wlStore.getBrandCss(req.params.partnerId);
+      if (!css) return sendError(res, 404, 'not_found');
+      res.setHeader('Content-Type', 'text/css');
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      res.send(css);
+    } catch (err) {
+      logger.warn('[Whitelabel] css_failed failed:', err.message);
+      sendError(res, 500, 'css_failed', { message: err.message });
+    }
   }
-});
+);
 
 // GET /api/whitelabel/brand.css?domain=example.com — domain-resolved CSS
 router.get('/brand.css', (req, res) => {
@@ -145,25 +161,34 @@ router.get('/brand.css', (req, res) => {
 });
 
 // POST /api/whitelabel/partners/:partnerId/subtenants
-router.post('/partners/:partnerId/subtenants', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
-  try {
-    const partner = wlStore.addSubTenant(req.params.partnerId, req.body || {});
-    res.status(201).json({ success: true, subTenants: partner.subTenants });
-  } catch (err) {
-    logger.warn('[Whitelabel] add_subtenant_failed failed:', err.message);
-    sendError(res, 400, 'add_subtenant_failed', { message: err.message });
+router.post(
+  '/partners/:partnerId/subtenants',
+  validateParam('partnerId', VALIDATION_PATTERNS.partnerId),
+  (req, res) => {
+    try {
+      const partner = wlStore.addSubTenant(req.params.partnerId, req.body || {});
+      res.status(201).json({ success: true, subTenants: partner.subTenants });
+    } catch (err) {
+      logger.warn('[Whitelabel] add_subtenant_failed failed:', err.message);
+      sendError(res, 400, 'add_subtenant_failed', { message: err.message });
+    }
   }
-});
+);
 
 // DELETE /api/whitelabel/partners/:partnerId/subtenants/:orgId
-router.delete('/partners/:partnerId/subtenants/:orgId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), validateParam('orgId', VALIDATION_PATTERNS.orgId), (req, res) => {
-  try {
-    const partner = wlStore.removeSubTenant(req.params.partnerId, req.params.orgId);
-    res.json({ success: true, subTenants: partner.subTenants });
-  } catch (err) {
-    logger.warn('[Whitelabel] remove_subtenant_failed failed:', err.message);
-    sendError(res, 400, 'remove_subtenant_failed', { message: err.message });
+router.delete(
+  '/partners/:partnerId/subtenants/:orgId',
+  validateParam('partnerId', VALIDATION_PATTERNS.partnerId),
+  validateParam('orgId', VALIDATION_PATTERNS.orgId),
+  (req, res) => {
+    try {
+      const partner = wlStore.removeSubTenant(req.params.partnerId, req.params.orgId);
+      res.json({ success: true, subTenants: partner.subTenants });
+    } catch (err) {
+      logger.warn('[Whitelabel] remove_subtenant_failed failed:', err.message);
+      sendError(res, 400, 'remove_subtenant_failed', { message: err.message });
+    }
   }
-});
+);
 
 module.exports = router;

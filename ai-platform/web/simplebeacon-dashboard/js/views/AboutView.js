@@ -41,7 +41,7 @@ export class AboutView {
   }
 
   mount(container) {
-container.innerHTML = `
+    container.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">About</h1>
         <p class="text-muted analyze-hero-sub">Free · local · zero runtime dependencies</p>
@@ -134,7 +134,9 @@ container.innerHTML = `
     `;
 
     this._aboutClickHandler = () => this.app.navigate('dashboard');
-    container.querySelector('#about-open-dashboard')?.addEventListener('click', this._aboutClickHandler);
+    container
+      .querySelector('#about-open-dashboard')
+      ?.addEventListener('click', this._aboutClickHandler);
   }
 
   destroy() {

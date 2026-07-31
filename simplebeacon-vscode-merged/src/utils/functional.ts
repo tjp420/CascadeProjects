@@ -25,8 +25,19 @@ export function compose<T>(): (value: T) => T;
 export function compose<T, A>(fn1: Unary<T, A>): (value: T) => A;
 export function compose<T, A, B>(fn2: Unary<A, B>, fn1: Unary<T, A>): (value: T) => B;
 export function compose<T, A, B, C>(fn3: Unary<B, C>, fn2: Unary<A, B>, fn1: Unary<T, A>): (value: T) => C;
-export function compose<T, A, B, C, D>(fn4: Unary<C, D>, fn3: Unary<B, C>, fn2: Unary<A, B>, fn1: Unary<T, A>): (value: T) => D;
-export function compose<T, A, B, C, D, E>(fn5: Unary<D, E>, fn4: Unary<C, D>, fn3: Unary<B, C>, fn2: Unary<A, B>, fn1: Unary<T, A>): (value: T) => E;
+export function compose<T, A, B, C, D>(
+  fn4: Unary<C, D>,
+  fn3: Unary<B, C>,
+  fn2: Unary<A, B>,
+  fn1: Unary<T, A>
+): (value: T) => D;
+export function compose<T, A, B, C, D, E>(
+  fn5: Unary<D, E>,
+  fn4: Unary<C, D>,
+  fn3: Unary<B, C>,
+  fn2: Unary<A, B>,
+  fn1: Unary<T, A>
+): (value: T) => E;
 export function compose<T>(...fns: Array<(x: unknown) => unknown>): (value: T) => unknown {
   if (fns.length === 0) return (value: T) => value;
   return (value: T) => fns.reduceRight((acc, fn) => fn(acc), value as unknown);
@@ -41,8 +52,19 @@ export function pipe<T>(): (value: T) => T;
 export function pipe<T, A>(fn1: Unary<T, A>): (value: T) => A;
 export function pipe<T, A, B>(fn1: Unary<T, A>, fn2: Unary<A, B>): (value: T) => B;
 export function pipe<T, A, B, C>(fn1: Unary<T, A>, fn2: Unary<A, B>, fn3: Unary<B, C>): (value: T) => C;
-export function pipe<T, A, B, C, D>(fn1: Unary<T, A>, fn2: Unary<A, B>, fn3: Unary<B, C>, fn4: Unary<C, D>): (value: T) => D;
-export function pipe<T, A, B, C, D, E>(fn1: Unary<T, A>, fn2: Unary<A, B>, fn3: Unary<B, C>, fn4: Unary<C, D>, fn5: Unary<D, E>): (value: T) => E;
+export function pipe<T, A, B, C, D>(
+  fn1: Unary<T, A>,
+  fn2: Unary<A, B>,
+  fn3: Unary<B, C>,
+  fn4: Unary<C, D>
+): (value: T) => D;
+export function pipe<T, A, B, C, D, E>(
+  fn1: Unary<T, A>,
+  fn2: Unary<A, B>,
+  fn3: Unary<B, C>,
+  fn4: Unary<C, D>,
+  fn5: Unary<D, E>
+): (value: T) => E;
 export function pipe<T>(...fns: Array<(x: unknown) => unknown>): (value: T) => unknown {
   if (fns.length === 0) return (value: T) => value;
   return (value: T) => fns.reduce((acc, fn) => fn(acc), value as unknown);
@@ -81,7 +103,10 @@ export const curry = <T extends AnyFunction>(fn: T): Curried<T> => {
 /**
  * Create a partial application of a function with preset arguments.
  */
-export const partial = <T extends AnyFunction>(fn: T, ...presetArgs: unknown[]): ((...args: unknown[]) => ReturnType<T>) => {
+export const partial = <T extends AnyFunction>(
+  fn: T,
+  ...presetArgs: unknown[]
+): ((...args: unknown[]) => ReturnType<T>) => {
   if (typeof fn !== 'function') throw new TypeError('partial requires a function');
   return (...args: unknown[]): ReturnType<T> => fn(...presetArgs.concat(args)) as ReturnType<T>;
 };

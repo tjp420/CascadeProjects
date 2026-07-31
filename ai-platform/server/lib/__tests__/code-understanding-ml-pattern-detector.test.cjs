@@ -1,10 +1,17 @@
 'use strict';
 
 jest.mock('../../../src/lib/app-logger.cjs', () => ({
-  info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn()
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
 }));
 
-const { StatisticalPatternDetector, detectMLPatterns, generatePatternInsights } = require('../code-understanding/ml-pattern-detector.cjs');
+const {
+  StatisticalPatternDetector,
+  detectMLPatterns,
+  generatePatternInsights,
+} = require('../code-understanding/ml-pattern-detector.cjs');
 
 describe('code-understanding/ml-pattern-detector', () => {
   test('exports expected functions and classes', () => {

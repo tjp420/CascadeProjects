@@ -33,10 +33,9 @@ describe('llama-cpp-hints', () => {
   });
 
   test('buildSemanticHints returns hints when configured', () => {
-    const result = buildSemanticHints(
-      [{ fileA: 'a.js', fileB: 'b.js', similarity: 0.95 }],
-      { binPath: '/usr/bin/llama-cli' }
-    );
+    const result = buildSemanticHints([{ fileA: 'a.js', fileB: 'b.js', similarity: 0.95 }], {
+      binPath: '/usr/bin/llama-cli',
+    });
     expect(result.enabled).toBe(true);
     expect(result.hints).toHaveLength(1);
     expect(result.hints[0].files).toEqual(['a.js', 'b.js']);
@@ -44,7 +43,9 @@ describe('llama-cpp-hints', () => {
 
   test('buildSemanticHints caps hints at MAX_HINTS', () => {
     const pairs = Array.from({ length: 20 }, (_, i) => ({
-      fileA: `a${i}.js`, fileB: `b${i}.js`, similarity: 0.9
+      fileA: `a${i}.js`,
+      fileB: `b${i}.js`,
+      similarity: 0.9,
     }));
     const result = buildSemanticHints(pairs, { binPath: '/usr/bin/llama-cli' });
     expect(result.hints.length).toBeLessThanOrEqual(MAX_HINTS);

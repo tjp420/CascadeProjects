@@ -10,18 +10,14 @@
  */
 
 const express = require('express');
-const {
-  authenticate,
-  optionalAuthenticate,
-  generateToken
-} = require('../middleware/auth.cjs');
+const { authenticate, optionalAuthenticate, generateToken } = require('../middleware/auth.cjs');
+
+const { handleLogin, handleTokenRefresh } = require('../lib/auth/login-service.cjs');
 
 const {
-  handleLogin,
-  handleTokenRefresh
-} = require('../lib/auth/login-service.cjs');
-
-const { generateToken: tokenServiceGenerateToken, invalidateToken } = require('../lib/auth/token-service.cjs');
+  generateToken: tokenServiceGenerateToken,
+  invalidateToken,
+} = require('../lib/auth/token-service.cjs');
 const { registerUser } = require('../services/user-service.cjs');
 const { trustLevels } = require('../lib/auth/trust-levels.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -56,8 +52,8 @@ router.post('/register', async (req, res) => {
         email: result.user.email,
         name: result.user.name,
         trustLevel: result.user.trustLevel,
-        permissions: (trustLevels[result.user.trustLevel] || trustLevels.bronze).permissions
-      }
+        permissions: (trustLevels[result.user.trustLevel] || trustLevels.bronze).permissions,
+      },
     });
   } catch (error) {
     sendError(res, 500, 'register_error', { message: error.message });
@@ -71,11 +67,19 @@ router.get('/health', (req, res) => {
       id: 'user-healthcheck',
       email: 'health@simplebeacon.ai',
       name: 'Health Check',
-      trustLevel: 'silver'
+      trustLevel: 'silver',
     });
     res.json({ ok: true, jwtWorks: true, token });
   } catch (err) {
-    res.status(500).json({ ok: false, jwtWorks: false, error: err.name, message: err.message, stack: err.stack });
+    res
+      .status(500)
+      .json({
+        ok: false,
+        jwtWorks: false,
+        error: err.name,
+        message: err.message,
+        stack: err.stack,
+      });
   }
 });
 
@@ -104,7 +108,10 @@ router.post('/recover', (req, res) => {
   // to avoid leaking which emails are registered. A full implementation would
   // send a reset link via email service.
   logger.info('[auth] Password recovery requested', { email: email.toLowerCase() });
-  res.json({ success: true, message: 'If an account exists for that email, a reset link has been sent.' });
+  res.json({
+    success: true,
+    message: 'If an account exists for that email, a reset link has been sent.',
+  });
 });
 
 router.post('/refresh', optionalAuthenticate, handleTokenRefresh);
@@ -118,8 +125,8 @@ router.get('/me', optionalAuthenticate, (req, res) => {
         email: req.user.email,
         name: req.user.name,
         trustLevel: req.user.trustLevel,
-        permissions: req.user.permissions
-      }
+        permissions: req.user.permissions,
+      },
     });
   }
   // Return a guest user so the dashboard can load without an explicit 401
@@ -130,8 +137,8 @@ router.get('/me', optionalAuthenticate, (req, res) => {
       email: null,
       name: 'Guest',
       trustLevel: 'bronze',
-      permissions: (trustLevels.bronze || { permissions: [] }).permissions
-    }
+      permissions: (trustLevels.bronze || { permissions: [] }).permissions,
+    },
   });
 });
 

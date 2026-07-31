@@ -55,7 +55,9 @@ function shouldAutoProbeLoopback(userInitiated: boolean): boolean {
   return false;
 }
 
-async function probeBridgePort(port: number): Promise<{ base: string; token: string | null } | null> {
+async function probeBridgePort(
+  port: number
+): Promise<{ base: string; token: string | null } | null> {
   const doFetch = getLocalBridgeFetch();
   const origin = `http://127.0.0.1:${port}`;
   try {
@@ -112,7 +114,7 @@ export function useExtensionBridge() {
       if (storedBase) {
         setBridgeBase(storedBase);
         setBridgeToken(
-          typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(BRIDGE_TOKEN_KEY) : null,
+          typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(BRIDGE_TOKEN_KEY) : null
         );
         setStatus('connected');
         return { ok: true as const, base: storedBase, unverified: true as const };

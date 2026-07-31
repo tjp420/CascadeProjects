@@ -38,17 +38,17 @@ function normalizeScanForAiAnalyst(raw) {
       issuesDetected: overview.issuesDetected ?? gate.allIssues?.length ?? raw.issueCount ?? 0,
       repositoryFilesTotal: raw.repositoryFilesTotal ?? raw.repositoryInventory?.totalFiles ?? '—',
       codeFilesAnalyzed: raw.filesAnalyzed ?? raw.codeFilesAnalyzed ?? '—',
-      dataQualityScore: raw.qualityScore ?? '—'
+      dataQualityScore: raw.qualityScore ?? '—',
     },
     aggregation: {
       bySeverity: {
         critical: sev.critical ?? 0,
         high: sev.high ?? 0,
         medium: sev.medium ?? 0,
-        low: sev.low ?? 0
-      }
+        low: sev.low ?? 0,
+      },
     },
-    detectedIssues: raw.detectedIssues || raw.gate?.allIssues || []
+    detectedIssues: raw.detectedIssues || raw.gate?.allIssues || [],
   };
 }
 
@@ -60,23 +60,23 @@ if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
  * Generate all AI-powered reports.
  */
 async function main() {
-  process.stdout.write(['[AI Analyst] Starting report generation...'].join(" ") + "\n");
-  process.stdout.write([`[AI Analyst] Scan date: ${scanData.generatedAt}`].join(" ") + "\n");
+  process.stdout.write(['[AI Analyst] Starting report generation...'].join(' ') + '\n');
+  process.stdout.write([`[AI Analyst] Scan date: ${scanData.generatedAt}`].join(' ') + '\n');
   process.stdout.write(
-    [`[AI Analyst] Project: ${scanData.projectRoot || 'ai-platform'}`].join(" ") + "\n"
+    [`[AI Analyst] Project: ${scanData.projectRoot || 'ai-platform'}`].join(' ') + '\n'
   );
-  process.stdout.write([
-    `[AI Analyst] Gate: ${scanData.gate?.pass ? 'PASS' : 'FAIL'} | Quality Score: ${scanData.qualityScore}`
-  ].join(" ") + "\n");
+  process.stdout.write(
+    [
+      `[AI Analyst] Gate: ${scanData.gate?.pass ? 'PASS' : 'FAIL'} | Quality Score: ${scanData.qualityScore}`,
+    ].join(' ') + '\n'
+  );
 
   // 1. Core Compliance Verdict (via AI Analyst engine)
   const verdict = await generateAutomatedVerdict(scanData, {
     projectPath: 'ai-platform',
-    provider: process.env.AI_ANALYST_PROVIDER || 'openai'
+    provider: process.env.AI_ANALYST_PROVIDER || 'openai',
   });
-  process.stdout.write(
-    [`[AI Analyst] Verdict grade: ${verdict.complianceGrade}`].join(" ") + "\n"
-  );
+  process.stdout.write([`[AI Analyst] Verdict grade: ${verdict.complianceGrade}`].join(' ') + '\n');
 
   // 2. Build enriched report payloads for each document type
   const executivePayload = buildExecutivePayload(scanData, verdict);
@@ -93,8 +93,8 @@ async function main() {
   writeReport('05-quality-assurance-testing-ai.md', renderQa(qaPayload));
   writeReport('ai-verdict.json', JSON.stringify(verdict, null, 2));
 
-  process.stdout.write([`[AI Analyst] 6 files written to ${OUT_DIR}`].join(" ") + "\n");
-  process.stdout.write(['[AI Analyst] Done.'].join(" ") + "\n");
+  process.stdout.write([`[AI Analyst] 6 files written to ${OUT_DIR}`].join(' ') + '\n');
+  process.stdout.write(['[AI Analyst] Done.'].join(' ') + '\n');
 }
 
 // ─── Payload Builders ───
@@ -119,12 +119,12 @@ function buildExecutivePayload(scan, verdict) {
     buildReadinessScore: scan.buildReadiness?.readinessScore ?? 0,
     buildReadinessStatus: scan.buildReadiness?.readinessStatus ?? '—',
     jestPassed: scan.jestBaselinePassed,
-    jestChecked: scan.jestBaselineChecked
+    jestChecked: scan.jestBaselineChecked,
   };
 }
 
 function buildTechnicalPayload(scan, verdict) {
-  const issues = (scan.detectedIssues || []).filter(i => i.severity !== 'low');
+  const issues = (scan.detectedIssues || []).filter((i) => i.severity !== 'low');
   return {
     verdict,
     qualityScore: scan.qualityScore,
@@ -135,9 +135,9 @@ function buildTechnicalPayload(scan, verdict) {
     euAiActFindings: scan.euAiActFindings,
     schemaCompliance: scan.schemaCompliance,
     consistencyScore: scan.consistencyScore,
-    mediumIssues: issues.filter(i => i.severity === 'medium'),
-    highIssues: issues.filter(i => i.severity === 'high'),
-    criticalIssues: issues.filter(i => i.severity === 'critical')
+    mediumIssues: issues.filter((i) => i.severity === 'medium'),
+    highIssues: issues.filter((i) => i.severity === 'high'),
+    criticalIssues: issues.filter((i) => i.severity === 'critical'),
   };
 }
 
@@ -151,7 +151,7 @@ function buildCompliancePayload(scan, verdict) {
     governanceScore: scan.compliance?.governanceScore ?? 0,
     licenseCount: scan.compliance?.licenseCount ?? 0,
     securityCount: scan.compliance?.securityCount ?? 0,
-    remediationPhases: scan.remediationPhases || []
+    remediationPhases: scan.remediationPhases || [],
   };
 }
 
@@ -167,7 +167,7 @@ function buildProductPayload(scan, verdict) {
     languagePlugins: scan.scanScope?.dedicatedLanguagePlugins || [],
     universalLanguageCount: scan.scanScope?.universalLanguageCount ?? 0,
     pageSpecCatalogSize: scan.scanScope?.pageSpecCatalogSize ?? 0,
-    rulesEnabled: scan.scanScope?.rulesEnabled || []
+    rulesEnabled: scan.scanScope?.rulesEnabled || [],
   };
 }
 
@@ -187,7 +187,7 @@ function buildQaPayload(scan, verdict) {
     gateWarningCount: gate.warningCount,
     dataQuality: scan.dataQuality || {},
     cleanup: scan.cleanup || {},
-    fileReduction: scan.fileReduction || {}
+    fileReduction: scan.fileReduction || {},
   };
 }
 
@@ -238,9 +238,11 @@ ${p.verdict.remediationSteps.map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 ## Recommendation
 
-${p.gatePass && p.blockingCount === 0
+${
+  p.gatePass && p.blockingCount === 0
     ? '**Proceed with confidence.** The codebase is clean, tested, and compliant. The re-attestation package is complete and ready for warranty/agency review.'
-    : '**Action required.** Review blocking issues before proceeding with production deployment or vendor handoff.'}
+    : '**Action required.** Review blocking issues before proceeding with production deployment or vendor handoff.'
+}
 
 ---
 
@@ -273,8 +275,12 @@ function renderTechnical(p) {
 - **High**: ${p.highIssues.length}
 - **Medium**: ${p.mediumIssues.length}
 
-${p.mediumIssues.length > 0 ? `### Medium-Severity Findings
-${p.mediumIssues.map(i => `- **${i.type}** — ${i.description} (${i.file})`).join('\n')}` : 'No medium-severity findings detected.'}
+${
+  p.mediumIssues.length > 0
+    ? `### Medium-Severity Findings
+${p.mediumIssues.map((i) => `- **${i.type}** — ${i.description} (${i.file})`).join('\n')}`
+    : 'No medium-severity findings detected.'
+}
 
 ---
 
@@ -307,11 +313,15 @@ function renderCompliance(p) {
 
 ## Remediation Phases
 
-${p.remediationPhases.map(phase => `### ${phase.title}
+${p.remediationPhases
+  .map(
+    (phase) => `### ${phase.title}
 - **Status**: ${phase.status}
 - **Progress**: ${phase.progress}%
 - **Description**: ${phase.description}
-`).join('\n')}
+`
+  )
+  .join('\n')}
 
 ---
 
@@ -350,7 +360,7 @@ function renderProduct(p) {
 
 ## Active Rule Engines
 
-${p.rulesEnabled.map(r => `- ${r}`).join('\n')}
+${p.rulesEnabled.map((r) => `- ${r}`).join('\n')}
 
 ---
 
@@ -409,11 +419,11 @@ ${p.verdict.verdictSummary}
 function writeReport(filename, content) {
   const outPath = path.join(OUT_DIR, filename);
   fs.writeFileSync(outPath, content, 'utf8');
-  process.stdout.write([`  → ${filename}`].join(" ") + "\n");
+  process.stdout.write([`  → ${filename}`].join(' ') + '\n');
 }
 
 // Run
-main().catch(err => {
-  process.stderr.write(['[AI Analyst] Fatal error:', err.message].join(" ") + "\n");
+main().catch((err) => {
+  process.stderr.write(['[AI Analyst] Fatal error:', err.message].join(' ') + '\n');
   process.exit(1);
 });

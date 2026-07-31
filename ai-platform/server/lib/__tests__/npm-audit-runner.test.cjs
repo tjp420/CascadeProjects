@@ -4,7 +4,7 @@ const {
   parseNpmAuditJson,
   runNpmAudit,
   runNpmAuditAsync,
-  clearNpmAuditCache
+  clearNpmAuditCache,
 } = require('../npm-audit-runner.cjs');
 
 describe('npm-audit-runner', () => {
@@ -20,22 +20,24 @@ describe('npm-audit-runner', () => {
       auditReportVersion: 2,
       metadata: {
         vulnerabilities: { total: 2, high: 1, low: 1 },
-        dependencies: { prod: 10, dev: 5, total: 15 }
+        dependencies: { prod: 10, dev: 5, total: 15 },
       },
       vulnerabilities: {
-        'lodash': {
+        lodash: {
           severity: 'high',
-          via: [{ title: 'Prototype Pollution', url: 'https://example.com/CVE-1234', severity: 'high' }],
+          via: [
+            { title: 'Prototype Pollution', url: 'https://example.com/CVE-1234', severity: 'high' },
+          ],
           fixAvailable: true,
-          isDirect: false
+          isDirect: false,
         },
-        'minimist': {
+        minimist: {
           severity: 'low',
           via: [{ title: 'Prototype Pollution', severity: 'low' }],
           fixAvailable: false,
-          isDirect: true
-        }
-      }
+          isDirect: true,
+        },
+      },
     };
     const result = parseNpmAuditJson(raw);
     expect(result.auditReportVersion).toBe(2);
@@ -49,7 +51,10 @@ describe('npm-audit-runner', () => {
   });
 
   test('parseNpmAuditJson handles empty vulnerabilities', () => {
-    const result = parseNpmAuditJson({ vulnerabilities: {}, metadata: { vulnerabilities: { total: 0 }, dependencies: {} } });
+    const result = parseNpmAuditJson({
+      vulnerabilities: {},
+      metadata: { vulnerabilities: { total: 0 }, dependencies: {} },
+    });
     expect(result.vulnerabilities).toEqual([]);
     expect(result.summary.total).toBe(0);
   });
@@ -57,7 +62,7 @@ describe('npm-audit-runner', () => {
   test('parseNpmAuditJson handles string input', () => {
     const raw = JSON.stringify({
       metadata: { vulnerabilities: { total: 1 }, dependencies: { prod: 1 } },
-      vulnerabilities: { 'pkg': { severity: 'critical', via: [{}] } }
+      vulnerabilities: { pkg: { severity: 'critical', via: [{}] } },
     });
     const result = parseNpmAuditJson(raw);
     expect(result.vulnerabilities).toHaveLength(1);
@@ -70,8 +75,8 @@ describe('npm-audit-runner', () => {
       vulnerabilities: {
         'low-pkg': { severity: 'low', via: [{}] },
         'critical-pkg': { severity: 'critical', via: [{}] },
-        'high-pkg': { severity: 'high', via: [{}] }
-      }
+        'high-pkg': { severity: 'high', via: [{}] },
+      },
     };
     const result = parseNpmAuditJson(raw);
     expect(result.vulnerabilities[0].severity).toBe('critical');

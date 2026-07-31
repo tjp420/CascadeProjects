@@ -8,29 +8,57 @@ const fs = require('fs');
 const path = require('path');
 
 const SCANNABLE_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.go', '.java', '.rb', '.php',
-  '.sh', '.bash', '.ps1', '.yaml', '.yml', '.json', '.md', '.env.example', '.env.local'
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.py',
+  '.go',
+  '.java',
+  '.rb',
+  '.php',
+  '.sh',
+  '.bash',
+  '.ps1',
+  '.yaml',
+  '.yml',
+  '.json',
+  '.md',
+  '.env.example',
+  '.env.local',
 ]);
 
 const MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'fixtures', 'docs', 'coming-soon', 'reports',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'archive',
+  '.simplebeacon',
+  'fixtures',
+  'docs',
+  'coming-soon',
+  'reports',
+  'simplebeacon-rule-tests',
+  'simplebeacon-toxic-fixtures',
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
 
 const COMMENT_PATTERNS = [
-  /(?:^|\s)\/\/.*$/gm,    // JS/TS/C-style single-line (skip // inside URLs like http://)
-  /\/\*[\s\S]*?\*\//g,   // JS/TS/C-style multi-line
-  /<!--[\s\S]*?-->/g,    // HTML
-  /\{\s*\/\/.*$/gm        // JSX inline
+  /(?:^|\s)\/\/.*$/gm, // JS/TS/C-style single-line (skip // inside URLs like http://)
+  /\/\*[\s\S]*?\*\//g, // JS/TS/C-style multi-line
+  /<!--[\s\S]*?-->/g, // HTML
+  /\{\s*\/\/.*$/gm, // JSX inline
 ];
 
 const HASH_COMMENT_PATTERNS = [
-  /#.*$/gm               // Python/Shell/YAML only
+  /#.*$/gm, // Python/Shell/YAML only
 ];
 
 const SECRET_PATTERNS = [
@@ -39,49 +67,50 @@ const SECRET_PATTERNS = [
     name: 'Secret in Comment — Password',
     regex: /(?:password|passwd|pwd)\s*[:=]\s*['"`]?([^\s'"`,;})\]]{4,})/i,
     severity: 'high',
-    description: 'Password value exposed in a comment — remove or rotate immediately'
+    description: 'Password value exposed in a comment — remove or rotate immediately',
   },
   {
     id: 'SB-SEC-007b',
     name: 'Secret in Comment — API Key',
     regex: /(?:api[_-]?key|apikey|api_token)\s*[:=]\s*['"`]?([a-zA-Z0-9_\-]{16,})/i,
     severity: 'high',
-    description: 'API key exposed in a comment — remove and regenerate'
+    description: 'API key exposed in a comment — remove and regenerate',
   },
   {
     id: 'SB-SEC-007c',
     name: 'Secret in Comment — Token',
     regex: /(?:token|auth_token|access_token|bearer)\s*[:=]\s*['"`]?([a-zA-Z0-9_\-]{16,})/i,
     severity: 'high',
-    description: 'Authentication token exposed in a comment — remove and rotate'
+    description: 'Authentication token exposed in a comment — remove and rotate',
   },
   {
     id: 'SB-SEC-007d',
     name: 'Secret in Comment — Secret Key',
     regex: /(?:secret[_-]?key|secretkey|client_secret)\s*[:=]\s*['"`]?([a-zA-Z0-9_\-]{16,})/i,
     severity: 'high',
-    description: 'Secret key exposed in a comment — remove and regenerate'
+    description: 'Secret key exposed in a comment — remove and regenerate',
   },
   {
     id: 'SB-SEC-007e',
     name: 'Secret in Comment — AWS Key',
     regex: /(?:AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16})/i,
     severity: 'critical',
-    description: 'AWS access key ID exposed in a comment — revoke immediately'
+    description: 'AWS access key ID exposed in a comment — revoke immediately',
   },
   {
     id: 'SB-SEC-007f',
     name: 'Secret in Comment — Connection String',
     regex: /(?:mongodb|postgres|mysql|redis|amqp)[:\/][\/][^\s'"`,;})\]]{8,}/i,
     severity: 'high',
-    description: 'Database connection string exposed in a comment — rotate credentials'
-  }
+    description: 'Database connection string exposed in a comment — rotate credentials',
+  },
 ];
 
 function isScannable(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const basename = path.basename(filePath).toLowerCase();
-  if (basename === '.env.v1-internal' || /\.env\.(backup|old|bak|save|~)$/.test(basename)) return false;
+  if (basename === '.env.v1-internal' || /\.env\.(backup|old|bak|save|~)$/.test(basename))
+    return false;
   if (SCANNABLE_EXTENSIONS.has(ext)) return true;
   if (basename.startsWith('.env')) return true;
   if (basename.endsWith('.example')) return true;
@@ -90,7 +119,10 @@ function isScannable(filePath) {
 }
 
 function isExcludedPath(filePath, rootDir) {
-  const rel = filePath.replace(rootDir, '').replace(/^[/\\]+/, '').replace(/\\/g, '/');
+  const rel = filePath
+    .replace(rootDir, '')
+    .replace(/^[/\\]+/, '')
+    .replace(/\\/g, '/');
   const firstDir = rel.split(/[/\\]/)[0];
   if (SKIP_DIRS.has(firstDir)) return true;
   if (/social-posts\.md$/i.test(rel)) return true;
@@ -123,7 +155,11 @@ const SUPPRESS_PATTERN = /\/\/\s*simplebeacon-ignore\s+secret-in-comments/i;
 
 async function scanFile(filePath) {
   let stats;
-  try { stats = await fs.promises.stat(filePath); } catch { return null; }
+  try {
+    stats = await fs.promises.stat(filePath);
+  } catch {
+    return null;
+  }
   if (stats.size > MAX_SCAN_BYTES) return null;
 
   let content;
@@ -152,7 +188,7 @@ async function scanFile(filePath) {
           severity: rule.severity,
           line,
           match: match[0].slice(0, 60),
-          snippet: comment.replace(/\s+/g, ' ').trim().slice(0, 120)
+          snippet: comment.replace(/\s+/g, ' ').trim().slice(0, 120),
         });
       }
     }
@@ -197,7 +233,7 @@ async function scanSecretInComments(rootDir, options = {}) {
       if (fileFindings) {
         results.push({
           filePath: fullPath,
-          findings: fileFindings
+          findings: fileFindings,
         });
       }
     }
@@ -211,7 +247,7 @@ async function scanSecretInComments(rootDir, options = {}) {
     results,
     humanReadable: results.length
       ? `Secrets exposed in comments found in ${results.length} file(s). Comments are often overlooked during secret scanning.`
-      : 'No secrets detected in comments.'
+      : 'No secrets detected in comments.',
   };
 }
 

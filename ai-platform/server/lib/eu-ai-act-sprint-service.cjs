@@ -6,13 +6,21 @@
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
-const { buildAssessmentReport, evaluateComplianceChecklist, evaluateGate, formatJsonReport, initSimplebeacon, loadSimplebeaconConfig, resolvePlatformRoot, runScan } = require('./simplebeacon-proxy.cjs');
-
+const {
+  buildAssessmentReport,
+  evaluateComplianceChecklist,
+  evaluateGate,
+  formatJsonReport,
+  initSimplebeacon,
+  loadSimplebeaconConfig,
+  resolvePlatformRoot,
+  runScan,
+} = require('./simplebeacon-proxy.cjs');
 
 const ARTIFACT_NAMES = {
   report: 'eu-ai-act-report.json',
   compliance: 'eu-ai-act-compliance.json',
-  assessment: 'eu-ai-act-assessment.json'
+  assessment: 'eu-ai-act-assessment.json',
 };
 
 /**
@@ -69,7 +77,7 @@ async function runEuAiActSprint(input = {}, options = {}) {
   if (input.initProfile !== false) {
     initSimplebeacon(detectedRoot, {
       profile: 'eu-ai-act',
-      force: input.forceInit === true
+      force: input.forceInit === true,
     });
   }
 
@@ -79,14 +87,13 @@ async function runEuAiActSprint(input = {}, options = {}) {
   // Compute core simplebeacon gate excluding file-reduction hygiene findings.
   // File-reduction issues (build artifacts, dead exports, unused deps) are
   // not security blockers and should not fail the EU AI Act gate.
-/**
- * Core raw issues.
- * @param {number} report.rawIssues || []
- * @returns {any}
- */
-  const coreRawIssues = (report.rawIssues || []).filter((issue) =>
-    issue.metadata?.scanner !== 'file-reduction' &&
-    issue.type !== 'File Reduction'
+  /**
+   * Core raw issues.
+   * @param {number} report.rawIssues || []
+   * @returns {any}
+   */
+  const coreRawIssues = (report.rawIssues || []).filter(
+    (issue) => issue.metadata?.scanner !== 'file-reduction' && issue.type !== 'File Reduction'
   );
   const coreReport = { ...report, rawIssues: coreRawIssues };
   const gateResult = evaluateGate(coreReport, config.gate);
@@ -111,7 +118,7 @@ async function runEuAiActSprint(input = {}, options = {}) {
   const complianceChecklist = evaluateComplianceChecklist(formatted, {
     projectRoot: scanRoot,
     npmAudit,
-    checklistProfile: 'eu-ai-act'
+    checklistProfile: 'eu-ai-act',
   });
   await writeJson(compliancePath, complianceChecklist);
 
@@ -122,13 +129,11 @@ async function runEuAiActSprint(input = {}, options = {}) {
     projectRoot: scanRoot,
     gateResult,
     checklistProfile: 'eu-ai-act',
-    npmAudit
+    npmAudit,
   });
   await writeJson(assessmentPath, assessment);
 
-  const workspaceDir = input.workspaceDir
-    ? path.resolve(input.workspaceDir)
-    : null;
+  const workspaceDir = input.workspaceDir ? path.resolve(input.workspaceDir) : null;
   if (workspaceDir) {
     const exportsDir = path.join(workspaceDir, 'exports');
     await fsp.mkdir(exportsDir, { recursive: true });
@@ -139,11 +144,11 @@ async function runEuAiActSprint(input = {}, options = {}) {
 
   const euHits = countEuPatternHits(formatted);
   const checklistSummary = complianceChecklist.summary || {};
-/**
- * Failed rules.
- * @param {any} complianceChecklist.rules || []
- * @returns {any}
- */
+  /**
+   * Failed rules.
+   * @param {any} complianceChecklist.rules || []
+   * @returns {any}
+   */
   const failedRules = (complianceChecklist.rules || []).filter((rule) => rule.status === 'fail');
 
   return {
@@ -156,7 +161,7 @@ async function runEuAiActSprint(input = {}, options = {}) {
     gate: {
       pass: gateResult.pass === true,
       blockingCount: gateResult.blockingCount ?? gateResult.blockingIssues?.length ?? null,
-      warningCount: gateResult.warningCount ?? null
+      warningCount: gateResult.warningCount ?? null,
     },
     euPatternHits: euHits,
     compliance: {
@@ -165,23 +170,23 @@ async function runEuAiActSprint(input = {}, options = {}) {
       total: checklistSummary.total ?? null,
       score: checklistSummary.score ?? null,
       headline: checklistSummary.headline ?? null,
-      failedRules
+      failedRules,
     },
     artifacts: {
       report: reportPath,
       compliance: compliancePath,
-      assessment: assessmentPath
+      assessment: assessmentPath,
     },
     relativeArtifacts: {
       report: path.relative(detectedRoot, reportPath).replace(/\\/g, '/'),
       compliance: path.relative(detectedRoot, compliancePath).replace(/\\/g, '/'),
-      assessment: path.relative(detectedRoot, assessmentPath).replace(/\\/g, '/')
+      assessment: path.relative(detectedRoot, assessmentPath).replace(/\\/g, '/'),
     },
-    disclaimer: 'Static technical readiness review — not legal conformity certification.'
+    disclaimer: 'Static technical readiness review — not legal conformity certification.',
   };
 }
 
 module.exports = {
   ARTIFACT_NAMES,
-  runEuAiActSprint
+  runEuAiActSprint,
 };

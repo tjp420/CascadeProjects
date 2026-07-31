@@ -54,6 +54,7 @@ LLAMA_CPP_MODEL=/path/to/model.gguf
 ## Usage
 
 Once configured, the roadmap generator will use GGUF for:
+
 - Semantic similarity hints
 - Fuzzy pair detection
 - Code intelligence insights

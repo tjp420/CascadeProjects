@@ -27,16 +27,16 @@ describe('ci-telemetry-store', () => {
       gate_pass: false,
       gates_tripped: 1,
       critical_blocked: 2,
-      diff_files: 14
+      diff_files: 14,
     });
     recordCiTelemetryEvent('team@example.com', {
       repository: 'acme/app',
       gate_pass: true,
-      diff_files: 3
+      diff_files: 3,
     });
     recordCiTelemetryEvent('other@example.com', {
       repository: 'other/repo',
-      gate_pass: false
+      gate_pass: false,
     });
 
     const summary = summarizeCiTelemetry('team@example.com', { days: 7 });

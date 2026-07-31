@@ -29,19 +29,19 @@ Runs a full scan on the given directory.
 
 **Parameters:**
 
-| Name | Type | Description |
-|------|------|-------------|
-| `baseDir` | `string` | Root directory to scan |
+| Name         | Type       | Description                 |
+| ------------ | ---------- | --------------------------- |
+| `baseDir`    | `string`   | Root directory to scan      |
 | `extraPaths` | `string[]` | Additional paths to include |
-| `options` | `object` | Scan options |
+| `options`    | `object`   | Scan options                |
 
 **Options:**
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `fullDirectoryScan` | `boolean` | `false` | Scan entire repo tree instead of selective paths |
-| `quiet` | `boolean` | `false` | Suppress progress output |
-| `fictionScope` | `string` | `'repository-json'` | Scope for fiction detection |
+| Key                 | Type      | Default             | Description                                      |
+| ------------------- | --------- | ------------------- | ------------------------------------------------ |
+| `fullDirectoryScan` | `boolean` | `false`             | Scan entire repo tree instead of selective paths |
+| `quiet`             | `boolean` | `false`             | Suppress progress output                         |
+| `fictionScope`      | `string`  | `'repository-json'` | Scope for fiction detection                      |
 
 **Returns:** `Promise<ScanReport>`
 
@@ -50,10 +50,10 @@ Runs a full scan on the given directory.
 ```javascript
 const report = await scanMockDataDirectories('/path/to/project', [], {
   fullDirectoryScan: true,
-  quiet: true
+  quiet: true,
 });
 console.log(report.gate.pass); // true | false
-console.log(report.issueCount);  // number
+console.log(report.issueCount); // number
 ```
 
 ---
@@ -70,15 +70,15 @@ const controller = new AiAgentController('/path/to/project', { offline: true });
 
 ### Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `scan(options)` | `Promise<ScanReport>` | Run full scan |
-| `getGateStatus()` | `object` | `{ pass, blockingCount, warningCount }` |
-| `getSummary()` | `object` | Structured summary for AI consumption |
-| `suggestFixes()` | `FixSuggestion[]` | Prioritized remediation actions |
-| `checkHandoffReadiness()` | `boolean` | Is the project ready for delivery? |
-| `generateMarketing(channel)` | `string` | Generate blog/twitter/linkedin content |
-| `exportReport(path)` | `void` | Write report to JSON file |
+| Method                       | Returns               | Description                             |
+| ---------------------------- | --------------------- | --------------------------------------- |
+| `scan(options)`              | `Promise<ScanReport>` | Run full scan                           |
+| `getGateStatus()`            | `object`              | `{ pass, blockingCount, warningCount }` |
+| `getSummary()`               | `object`              | Structured summary for AI consumption   |
+| `suggestFixes()`             | `FixSuggestion[]`     | Prioritized remediation actions         |
+| `checkHandoffReadiness()`    | `boolean`             | Is the project ready for delivery?      |
+| `generateMarketing(channel)` | `string`              | Generate blog/twitter/linkedin content  |
+| `exportReport(path)`         | `void`                | Write report to JSON file               |
 
 **Example:**
 
@@ -104,14 +104,14 @@ npx simplebeacon-mcp --offline
 
 ### Available Tools
 
-| Tool | Purpose |
-|------|---------|
-| `scan_snippet` | Scan pasted code for leaks, credentials, fiction KPIs |
-| `scan_file` | Scan a single file on disk |
-| `scan_project` | Run a full project scan with gate evaluation |
-| `gate_status` | Read latest gate pass/fail from `.simplebeacon/report.json` |
-| `suggest_fixes` | Get prioritized remediation steps from scan results |
-| `explain_finding` | Look up deterministic rule metadata for any pattern ID |
+| Tool              | Purpose                                                     |
+| ----------------- | ----------------------------------------------------------- |
+| `scan_snippet`    | Scan pasted code for leaks, credentials, fiction KPIs       |
+| `scan_file`       | Scan a single file on disk                                  |
+| `scan_project`    | Run a full project scan with gate evaluation                |
+| `gate_status`     | Read latest gate pass/fail from `.simplebeacon/report.json` |
+| `suggest_fixes`   | Get prioritized remediation steps from scan results         |
+| `explain_finding` | Look up deterministic rule metadata for any pattern ID      |
 
 ---
 
@@ -173,7 +173,7 @@ interface ScanReport {
   };
   severityCounts: Record<'critical' | 'high' | 'medium' | 'low', number>;
   detectedIssues: Issue[]; // top 12 grouped
-  rawIssues: Issue[];      // all issues
+  rawIssues: Issue[]; // all issues
   sampleFiles: string[];
   repositoryInventory?: RepositoryInventory;
   // Scanner-specific metrics
@@ -226,4 +226,4 @@ interface Issue {
 
 ---
 
-*Last updated: June 2026*
+_Last updated: June 2026_

@@ -33,8 +33,8 @@ async function operatorFetch(apiPath, options = {}) {
     ...options,
     headers: {
       ...authService.getAuthHeaders(),
-      ...(options.headers || {})
-    }
+      ...(options.headers || {}),
+    },
   });
   const responsePayload = await readJsonResponseBody(httpResponse, {});
   if (!httpResponse.ok) {
@@ -68,7 +68,7 @@ export async function createDeliverableWorkspace(payload) {
   return operatorFetch('/deliverable', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 }
 
@@ -89,6 +89,6 @@ export async function runEuAiActSprint(payload) {
   return operatorFetch('/eu-ai-act/sprint', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 }

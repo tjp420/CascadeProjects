@@ -8,16 +8,37 @@ const fs = require('fs');
 const path = require('path');
 
 const SCANNABLE_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.py', '.go', '.java', '.rb', '.php'
+  '.js',
+  '.mjs',
+  '.cjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.py',
+  '.go',
+  '.java',
+  '.rb',
+  '.php',
 ]);
 
 const MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'fixtures', 'docs', 'coming-soon', 'reports',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures',
-  'analyzers', 'rules'
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'archive',
+  '.simplebeacon',
+  'fixtures',
+  'docs',
+  'coming-soon',
+  'reports',
+  'simplebeacon-rule-tests',
+  'simplebeacon-toxic-fixtures',
+  'analyzers',
+  'rules',
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
@@ -28,13 +49,10 @@ const REDOS_PATTERNS = [
     name: 'Nested Quantifiers — Catastrophic Backtracking',
     regex: /\([^)]*(?:\+|\*)\)(?:\+|\*|\{)/,
     severity: 'high',
-    description: 'Nested quantifiers like (a+)+ can cause exponential backtracking on malicious input',
+    description:
+      'Nested quantifiers like (a+)+ can cause exponential backtracking on malicious input',
     examples: ['(a+)+', '(a*)*', '([a-z]+)+'],
-    skipPatterns: [
-      /\[[^\]]+\]\+/,
-      /&#x\[0-9a-fA-F\]\+;/i,
-      /\d\+|\w\+|\s\+/
-    ]
+    skipPatterns: [/\[[^\]]+\]\+/, /&#x\[0-9a-fA-F\]\+;/i, /\d\+|\w\+|\s\+/],
   },
   {
     id: 'SB-SEC-009b',
@@ -42,7 +60,7 @@ const REDOS_PATTERNS = [
     regex: /\([^)]*\|[^)]*\)[+*?]{1,}/,
     severity: 'medium',
     description: 'Alternation groups with quantifiers can cause polynomial backtracking',
-    examples: ['(a|a)+', '(ab|ba)*+']
+    examples: ['(a|a)+', '(ab|ba)*+'],
   },
   {
     id: 'SB-SEC-009c',
@@ -50,7 +68,7 @@ const REDOS_PATTERNS = [
     regex: /\(\.[+*?]\)[+*?]/,
     severity: 'high',
     description: 'Patterns like (.*)+ cause catastrophic backtracking on long inputs',
-    examples: ['(.*)+', '(.+)*', '(.?)+']
+    examples: ['(.*)+', '(.+)*', '(.?)+'],
   },
   {
     id: 'SB-SEC-009d',
@@ -58,8 +76,8 @@ const REDOS_PATTERNS = [
     regex: /\(\?=.*[+*?].*\)/,
     severity: 'medium',
     description: 'Lookahead containing quantifiers can cause performance degradation',
-    examples: ['(?=.*abc)', '(?=a+)']
-  }
+    examples: ['(?=.*abc)', '(?=a+)'],
+  },
 ];
 
 function isScannable(filePath) {
@@ -100,7 +118,11 @@ function extractRegexLiterals(content) {
 
 async function scanFile(filePath) {
   let stats;
-  try { stats = await fs.promises.stat(filePath); } catch { return null; }
+  try {
+    stats = await fs.promises.stat(filePath);
+  } catch {
+    return null;
+  }
   if (stats.size > MAX_SCAN_BYTES) return null;
 
   let content;
@@ -140,7 +162,7 @@ async function scanFile(filePath) {
           severity: rule.severity,
           line,
           match: regexStr.slice(0, 60),
-          snippet: `Regex: ${regexStr.slice(0, 80)} — ${rule.description}`
+          snippet: `Regex: ${regexStr.slice(0, 80)} — ${rule.description}`,
         });
       }
     }
@@ -185,7 +207,7 @@ async function scanReDoS(rootDir, options = {}) {
       if (fileFindings) {
         results.push({
           filePath: fullPath,
-          findings: fileFindings
+          findings: fileFindings,
         });
       }
     }
@@ -199,7 +221,7 @@ async function scanReDoS(rootDir, options = {}) {
     results,
     humanReadable: results.length
       ? `ReDoS-risk regex patterns found in ${results.length} file(s). Review patterns with nested quantifiers — they can be exploited for denial of service.`
-      : 'No ReDoS-risk regex patterns detected.'
+      : 'No ReDoS-risk regex patterns detected.',
   };
 }
 

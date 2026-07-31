@@ -36,7 +36,7 @@ const LANGUAGE_MAP = Object.freeze({
   '.cjs': 'JavaScript',
   '.mjs': 'JavaScript',
   '.vue': 'Vue',
-  '.svelte': 'Svelte'
+  '.svelte': 'Svelte',
 });
 
 /**
@@ -52,5 +52,5 @@ function getLanguageName(ext) {
 
 module.exports = Object.freeze({
   LANGUAGE_MAP,
-  getLanguageName
+  getLanguageName,
 });

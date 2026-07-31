@@ -79,7 +79,7 @@ router.post('/set', async (req, res) => {
   const prompts = await loadPrompts();
   prompts[userId] = {
     prompt: prompt.trim(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
   await savePrompts(prompts);
 
@@ -133,7 +133,7 @@ router.get('/list', async (_req, res) => {
   const summary = Object.entries(prompts).map(([uid, entry]) => ({
     userId: uid,
     updatedAt: entry.updatedAt,
-    length: entry.prompt?.length || 0
+    length: entry.prompt?.length || 0,
   }));
   res.json({ success: true, count: summary.length, prompts: summary });
 });

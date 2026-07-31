@@ -4,7 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { appendExpertReview, loadExpertReviews, summarizeExpertConsensus, resolveStorePath } = require('../code-understanding/expert-review-store.cjs');
+const {
+  appendExpertReview,
+  loadExpertReviews,
+  summarizeExpertConsensus,
+  resolveStorePath,
+} = require('../code-understanding/expert-review-store.cjs');
 
 describe('code-understanding/expert-review-store', () => {
   let tmpDir;
@@ -54,7 +59,7 @@ describe('code-understanding/expert-review-store', () => {
     const reviews = [
       { verdict: 'approve', confidence: 80 },
       { verdict: 'approve', confidence: 90 },
-      { verdict: 'reject', confidence: 50 }
+      { verdict: 'reject', confidence: 50 },
     ];
     const summary = summarizeExpertConsensus(reviews);
     expect(typeof summary).toBe('object');

@@ -11,22 +11,30 @@ const trustLevels = {
     permissions: ['read:own', 'write:own', 'analyze:public'],
     rateLimitMultiplier: 1,
     features: ['basic_analysis', 'sample_data_basic'],
-    mfaRequired: false
+    mfaRequired: false,
   },
   silver: {
     level: 2,
     permissions: ['read:own', 'write:own', 'read:shared', 'analyze:public', 'analyze:private'],
     rateLimitMultiplier: 2,
     features: ['advanced_analysis', 'sample_data_advanced', 'collaboration'],
-    mfaRequired: false
+    mfaRequired: false,
   },
   gold: {
     level: 3,
-    permissions: ['read:own', 'write:own', 'read:shared', 'write:shared', 'analyze:public', 'analyze:private', 'admin:basic'],
+    permissions: [
+      'read:own',
+      'write:own',
+      'read:shared',
+      'write:shared',
+      'analyze:public',
+      'analyze:private',
+      'admin:basic',
+    ],
     rateLimitMultiplier: 5,
     features: ['enterprise_features', 'api_access', 'advanced_security'],
-    mfaRequired: true
-  }
+    mfaRequired: true,
+  },
 };
 
 // Rate limiting based on trust level
@@ -44,7 +52,7 @@ function evaluateTrustLevel(user) {
     successfulAnalyses: user.successfulAnalyses || 0,
     securityIncidents: user.securityIncidents || 0,
     communityContributions: user.communityContributions || 0,
-    verificationStatus: user.verificationStatus || 'none'
+    verificationStatus: user.verificationStatus || 'none',
   };
 
   let score = 0;
@@ -67,21 +75,19 @@ function authorize(requiredPermissions = []) {
     if (!req.user) {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Authentication required'
+        message: 'Authentication required',
       });
     }
 
     const userPermissions = req.user.permissions || [];
-    const hasPermission = permissions.every(permission =>
-      userPermissions.includes(permission)
-    );
+    const hasPermission = permissions.every((permission) => userPermissions.includes(permission));
 
     if (!hasPermission) {
       return res.status(403).json({
         error: 'Forbidden',
         message: 'Insufficient permissions',
         required: requiredPermissions,
-        current: userPermissions
+        current: userPermissions,
       });
     }
 
@@ -98,7 +104,7 @@ function requireTrustLevel(minimumLevel) {
     if (!req.user) {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Authentication required'
+        message: 'Authentication required',
       });
     }
 
@@ -109,7 +115,7 @@ function requireTrustLevel(minimumLevel) {
         error: 'Forbidden',
         message: `Trust level ${minimumLevel} or higher required`,
         current: req.user.trustLevel,
-        required: minimumLevel
+        required: minimumLevel,
       });
     }
 
@@ -131,8 +137,20 @@ function canAccessDashboardWrite(user) {
   const role = String(user.role || '').toLowerCase();
   if (role === 'admin' || role === 'superuser') return true;
   const features = Array.isArray(user.features) ? user.features : [];
-  if (features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
-  if (features.map(String).map(s => s.toLowerCase()).includes('team_dashboard')) return true;
+  if (
+    features
+      .map(String)
+      .map((s) => s.toLowerCase())
+      .includes('all_modules')
+  )
+    return true;
+  if (
+    features
+      .map(String)
+      .map((s) => s.toLowerCase())
+      .includes('team_dashboard')
+  )
+    return true;
   const tier = String(user.tier || user.plan || '').toLowerCase();
   const paidTiers = ['silver', 'gold', 'pro', 'startup', 'enterprise', 'compliance', 'team'];
   if (paidTiers.includes(tier)) return true;
@@ -154,7 +172,9 @@ function requireOwnership(getOwnerId) {
     }
     const role = String(req.user.role || '').toLowerCase();
     if (role === 'admin' || role === 'superuser') return next();
-    const features = Array.isArray(req.user.features) ? req.user.features.map(String).map(s => s.toLowerCase()) : [];
+    const features = Array.isArray(req.user.features)
+      ? req.user.features.map(String).map((s) => s.toLowerCase())
+      : [];
     if (features.includes('all_modules')) return next();
     try {
       const ownerId = await getOwnerId(req);
@@ -181,13 +201,15 @@ function requirePrivateAnalysis(req, res, next) {
   if (userPermissions.includes('analyze:private')) return next();
   const role = String(req.user.role || '').toLowerCase();
   if (role === 'admin' || role === 'superuser') return next();
-  const features = Array.isArray(req.user.features) ? req.user.features.map(String).map(s => s.toLowerCase()) : [];
+  const features = Array.isArray(req.user.features)
+    ? req.user.features.map(String).map((s) => s.toLowerCase())
+    : [];
   if (features.includes('all_modules')) return next();
   return res.status(403).json({
     error: 'upgrade_required',
     message: 'This feature requires a paid plan with private analysis access',
     current: req.user.tier || req.user.trustLevel || 'community',
-    required: 'analyze:private'
+    required: 'analyze:private',
   });
 }
 
@@ -199,5 +221,5 @@ module.exports = {
   requireTrustLevel,
   canAccessDashboardWrite,
   requireOwnership,
-  requirePrivateAnalysis
+  requirePrivateAnalysis,
 };

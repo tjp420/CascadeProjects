@@ -1,7 +1,7 @@
 import { runSimpleBeaconAudit } from './SimpleBeaconPoC.mjs';
 import fs from 'fs';
 
-(async ()=>{
+(async () => {
   try {
     const report = await runSimpleBeaconAudit(process.cwd());
     fs.mkdirSync('.simplebeacon', { recursive: true });

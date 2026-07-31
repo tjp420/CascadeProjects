@@ -50,7 +50,7 @@ const LEGACY_REDIRECTS = {
   '/directory-analyzer': '/#/analyze',
   '/url-analyzer': '/#/analyze',
   '/roadmap-builder': '/#/platform',
-  '/enhanced-roadmap-dashboard': '/#/platform'
+  '/enhanced-roadmap-dashboard': '/#/platform',
 };
 
 /**
@@ -91,7 +91,8 @@ function registerLegacyPageRedirects(app) {
   const internalDashboard = process.env.SIMPLEBEACON_INTERNAL_DASHBOARD === 'true';
 
   for (const [from, to] of Object.entries(LEGACY_REDIRECTS)) {
-    app.get(from, function legacyRedirect(_req, res) { // rateLimit: static legacy routes handled by global security middleware
+    app.get(from, function legacyRedirect(_req, res) {
+      // rateLimit: static legacy routes handled by global security middleware
       const target = '' + resolveLegacyTarget(from, to, landingEnabled, internalDashboard);
       res.setHeader('Location', target);
       res.status(301).end();
@@ -102,7 +103,9 @@ function registerLegacyPageRedirects(app) {
   // so no legacy dashboard redirects should intercept them.
 
   if (shouldLogRuntimeInfo()) {
-    logger.info(`[Legacy] ${Object.keys(LEGACY_REDIRECTS).length} HTML routes redirect to Simplebeacon SPA`);
+    logger.info(
+      `[Legacy] ${Object.keys(LEGACY_REDIRECTS).length} HTML routes redirect to Simplebeacon SPA`
+    );
   }
 }
 

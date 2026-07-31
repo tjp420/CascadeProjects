@@ -28,5 +28,5 @@
       }
     }
   },
-  "required": ["assessmentId","generatedAt","project","score","moduleAssessments"]
+  "required": ["assessmentId", "generatedAt", "project", "score", "moduleAssessments"]
 }

@@ -3,6 +3,7 @@
 ## [3.0.461] - 2026-07-18
 
 ### Added
+
 - Client-side cookie-session migration for the dashboard `AuthService` (`js` and `js-es2018` builds)
 - `AUTH_HINT_KEY` and `CLI_FALLBACK_TOKEN_KEY` constants plus `usesCookieSessions()` / `isHydrated()` / `hydrateSession()` helpers
 - Bootstrap hydration gate in `main.js` and `js-es2018/main.js` that waits for `/api/auth/me` before rendering protected UI
@@ -10,6 +11,7 @@
 - Integration test for `/api/auth/me` response contract covering unauthenticated and authenticated flows
 
 ### Changed
+
 - `getToken()`, `getUser()`, `setSession()`, `clearSession()`, `isAuthenticated()`, `getAuthHeaders()`, `isAdmin()`, `getTokenTier()`, and `isDashboardWriteAllowed()` are now cookie-session aware
 - `login()`, `logout()`, and `refreshToken()` include credentials and handle cookie-mode responses
 - Server `/api/auth/me` endpoint normalized to return `authenticated`, `user` with `role`, `features`, `tier`/`plan`, and `trustLevel`
@@ -18,6 +20,7 @@
 ## [3.0.438] - 2026-07-15
 
 ### Fixed
+
 - Expanded false positive exclusions for 2,500+ scan report findings
 - Excluded package-lock.json files from high-entropy secret scanning (1,026 false positives)
 - Excluded generated scan report exports from credential scanning (834 false positives)
@@ -31,6 +34,7 @@
 ## [3.0.437] - 2026-07-14
 
 ### Added
+
 - 38 analyzer engines: 24 real-time IDE rules + 14 batch CLI engines
 - SB-FICTION catalog for LLM placeholder and markdown fence detection
 - Dashboard 4.0 with compliance, repo health, and analytics panes
@@ -41,6 +45,7 @@
 - Pattern detection using statistical analysis (no ML dependencies)
 
 ### Fixed
+
 - CLI scanner binary extensions synced with browser-sandbox engine
 - Added .gguf, .rlib, .rmeta, .safetensors, .pt, .pth, .onnx, .bad, and more to BINARY_EXTENSIONS
 - Desktop/external project exclusions for Render deployments
@@ -51,6 +56,7 @@
 ## [3.0.400] - 2026-06-20
 
 ### Added
+
 - Dashboard 3.0 with enhanced compliance and quality panes
 - Model health monitoring with circuit breaker pattern
 - Analysis profiles: Quick, Balanced, Comprehensive, Real-time
@@ -65,24 +71,28 @@ This release introduces significant enhancements to the SimpleBeacon AI analyzer
 ### ✨ **New Features**
 
 #### Enhanced AI Analysis
+
 - **Progressive Analysis**: Multi-layer analysis with static, semantic, contextual, and AI-powered insights
 - **Intelligent Model Selection**: Automatic model selection based on analysis requirements and performance
 - **Analysis Profiles**: Quick, balanced, comprehensive, and real-time analysis modes
 - **Adaptive Fallback**: Graceful degradation when preferred models are unavailable
 
 #### Real-time Analysis Streaming
+
 - **WebSocket Support**: Real-time analysis updates via WebSocket connections
 - **Session Management**: Persistent analysis sessions with automatic cleanup
 - **Incremental Processing**: Analyze code chunks as they're provided
 - **Live Updates**: Real-time feedback as you code
 
 #### Enhanced Model Management
+
 - **Circuit Breaker Pattern**: Automatic failover when models become unresponsive
 - **Health Monitoring**: Track model performance and availability
 - **Intelligent Routing**: Route requests to optimal models based on requirements
 - **Performance Tracking**: Monitor response times and success rates
 
 #### ML Pattern Detection
+
 - **Statistical Analysis**: Pattern detection using statistical methods
 - **Multiple Categories**: Architecture, security, performance, maintainability, testing patterns
 - **Confidence Scoring**: Pattern confidence assessment with detailed insights
@@ -91,12 +101,14 @@ This release introduces significant enhancements to the SimpleBeacon AI analyzer
 ### 🎨 **UI/UX Improvements**
 
 #### New Sidebar Views
+
 - **Enhanced AI Panel**: Dedicated view for enhanced AI features
 - **Model Health Status**: Real-time model availability monitoring
 - **Pattern Results**: Categorized pattern detection results
 - **Active Sessions**: Real-time analysis session management
 
 #### Enhanced Quick Actions
+
 - **Enhanced AI Analysis**: Run comprehensive AI-powered analysis
 - **Real-time Analysis**: Enable live code analysis
 - **Pattern Detection**: Detect code patterns and architecture
@@ -105,11 +117,13 @@ This release introduces significant enhancements to the SimpleBeacon AI analyzer
 ### ⚙️ **Configuration Options**
 
 #### New Settings
+
 - `simplebeacon.analysisProfile`: Analysis profile for enhanced AI analysis
 - `simplebeacon.enableRealtime`: Enable real-time analysis as you type
 - `simplebeacon.preferredAIProvider`: Preferred AI provider for enhanced analysis
 
 #### Analysis Profiles
+
 - **Quick**: Fast, lightweight analysis for quick feedback
 - **Balanced**: Comprehensive analysis for general use
 - **Comprehensive**: Deep analysis with expert reviews
@@ -118,12 +132,14 @@ This release introduces significant enhancements to the SimpleBeacon AI analyzer
 ### 🔧 **Technical Improvements**
 
 #### Enhanced API Integration
+
 - **Enhanced Analysis API**: Progressive analysis with intelligent fallback
 - **Real-time Analysis API**: WebSocket-based streaming analysis
 - **Model Management API**: Health monitoring and intelligent routing
 - **Pattern Detection API**: Statistical pattern analysis
 
 #### Performance Optimizations
+
 - **Caching**: Model availability and analysis results caching
 - **Resource Management**: Automatic cleanup of inactive sessions
 - **Timeout Protection**: Configurable timeouts for all operations
@@ -146,6 +162,7 @@ This release introduces significant enhancements to the SimpleBeacon AI analyzer
 ### 🔗 **API Endpoints**
 
 #### New Endpoints
+
 - `POST /api/realtime/session` - Create real-time analysis session
 - `POST /api/realtime/analyze/:sessionId` - Analyze code chunk
 - `GET /api/realtime/session/:sessionId/results` - Get session results
@@ -154,6 +171,7 @@ This release introduces significant enhancements to the SimpleBeacon AI analyzer
 - `WebSocket: ws://localhost:8082/api/realtime/stream` - Real-time streaming
 
 #### Enhanced Endpoints
+
 - `GET /api/analyze/providers` - Enhanced with analysis profiles
 - `POST /api/analyze/flexible` - Enhanced with progressive analysis
 
@@ -166,12 +184,14 @@ This release introduces significant enhancements to the SimpleBeacon AI analyzer
 ### 🔄 **Migration Guide**
 
 #### For Existing Users
+
 1. Update to Node.js 22.0.0 or higher
 2. Update VSCode to 1.84.0 or higher
 3. Reinstall the extension (v1.1.0)
 4. Configure new settings in VSCode preferences
 
 #### For API Users
+
 1. Update API calls to use enhanced analysis endpoints
 2. Add analysis profile parameter to requests
 3. Handle new response format with pattern detection results
@@ -197,6 +217,7 @@ This release introduces significant enhancements to the SimpleBeacon AI analyzer
 ## [1.0.8] - Previous Release
 
 ### Features
+
 - Basic code scanning and analysis
 - Security vulnerability detection
 - Compliance checking
@@ -208,6 +229,7 @@ This release introduces significant enhancements to the SimpleBeacon AI analyzer
 ## Support
 
 For issues and questions:
+
 - Check the [documentation](./ENHANCED_AI_ANALYZER.md)
 - Review the [troubleshooting guide](./docs/troubleshooting.md)
 - Open an issue on GitHub
@@ -215,6 +237,7 @@ For issues and questions:
 ## Roadmap
 
 ### Upcoming Features
+
 - Custom pattern definition
 - Multi-language support expansion
 - Collaborative analysis sessions

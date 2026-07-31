@@ -22,10 +22,10 @@ const cors = require('cors');
  */
 function resolveAgentRoot() {
   const candidates = [
-    __dirname,                        // installed portable/agent directory contains packages/
+    __dirname, // installed portable/agent directory contains packages/
     path.join(__dirname, '..', '..'), // ai-platform/local-agent/../../ => monorepo root
-    path.join(__dirname, '..'),       // ai-platform/local-agent/../ => ai-platform
-    process.cwd()
+    path.join(__dirname, '..'), // ai-platform/local-agent/../ => ai-platform
+    process.cwd(),
   ];
   for (const candidate of candidates) {
     const resolved = path.resolve(candidate);
@@ -40,7 +40,9 @@ function resolveAgentRoot() {
 }
 
 const AGENT_ROOT = resolveAgentRoot();
-const { resolveScanProgressPath, readScanProgress } = require(path.join(AGENT_ROOT, 'packages', 'simplebeacon-cli', 'src', 'lib', 'scan-progress.js'));
+const { resolveScanProgressPath, readScanProgress } = require(
+  path.join(AGENT_ROOT, 'packages', 'simplebeacon-cli', 'src', 'lib', 'scan-progress.js')
+);
 
 const PORT = Number(process.env.SIMPLEBEACON_AGENT_PORT || 55432);
 const HOST = process.env.SIMPLEBEACON_AGENT_HOST || '127.0.0.1';
@@ -58,7 +60,7 @@ const SCANNER_MODULE = path.join(AGENT_ROOT, 'packages', 'simplebeacon-cli', 'sr
 // Static literal require signals to pkg that this module must be bundled.
 // Runtime resolution happens in loadScannerApi() so the filesystem copy is tried first.
 try {
-  // eslint-disable-next-line import/no-dynamic-require, global-require
+   
   require('../../packages/simplebeacon-cli/src/index.js');
 } catch {
   // Ignore at runtime; this path is only used during pkg analysis.
@@ -73,19 +75,25 @@ function loadScannerApi() {
     // Packaged executable: scanner may be shipped alongside the executable on
     // the real filesystem, or bundled in the snapshot as a fallback.
     const exeDir = path.dirname(process.execPath);
-    candidates.unshift(
-      path.join(exeDir, 'packages', 'simplebeacon-cli', 'src', 'index.js')
-    );
+    candidates.unshift(path.join(exeDir, 'packages', 'simplebeacon-cli', 'src', 'index.js'));
     candidates.push(
       path.join('/snapshot', 'packages', 'simplebeacon-cli', 'src', 'index.js'),
-      path.join('/snapshot', 'ai-platform', 'local-agent', 'packages', 'simplebeacon-cli', 'src', 'index.js')
+      path.join(
+        '/snapshot',
+        'ai-platform',
+        'local-agent',
+        'packages',
+        'simplebeacon-cli',
+        'src',
+        'index.js'
+      )
     );
   }
 
   for (const candidate of candidates) {
     try {
       if (!fs.existsSync(candidate)) continue;
-      // eslint-disable-next-line import/no-dynamic-require, global-require
+       
       const api = require(candidate);
       if (api && typeof api.runScan === 'function') {
         scannerLoadError = null;
@@ -93,12 +101,11 @@ function loadScannerApi() {
       }
     } catch (err) {
       scannerLoadError = err.message;
-      process.stderr.write([
-        '[agent] Failed to load SimpleBeacon scanner from',
-        candidate,
-        ':',
-        err.message
-      ].join(" ") + "\n");
+      process.stderr.write(
+        ['[agent] Failed to load SimpleBeacon scanner from', candidate, ':', err.message].join(
+          ' '
+        ) + '\n'
+      );
     }
   }
   return null;
@@ -136,8 +143,20 @@ function validateTargetPath(rawPath) {
 }
 
 const FULL_TREE_INVENTORY_SKIP_DIRS = [
-  '.git', 'github-cache', '.simplebeacon', '.vscode-test', 'simplebeacon-vscode-merged',
-  'ai-tools', 'ai-agent', 'node_modules', 'dist', 'build', 'out', 'coverage', '.next', '.cache'
+  '.git',
+  'github-cache',
+  '.simplebeacon',
+  '.vscode-test',
+  'simplebeacon-vscode-merged',
+  'ai-tools',
+  'ai-agent',
+  'node_modules',
+  'dist',
+  'build',
+  'out',
+  'coverage',
+  '.next',
+  '.cache',
 ];
 
 /**
@@ -147,12 +166,12 @@ function buildInventoryOptions(fullDirectoryScan) {
   if (fullDirectoryScan) {
     return {
       profile: 'audit',
-      skipDirs: [...FULL_TREE_INVENTORY_SKIP_DIRS]
+      skipDirs: [...FULL_TREE_INVENTORY_SKIP_DIRS],
     };
   }
   return {
     profile: 'universal',
-    skipDirs: ['node_modules', '.git']
+    skipDirs: ['node_modules', '.git'],
   };
 }
 
@@ -161,9 +180,14 @@ function buildInventoryOptions(fullDirectoryScan) {
  */
 async function runLocalInventory(targetPath, scanOptions = {}) {
   if (!scannerApi || typeof scannerApi.countRepositoryInventory !== 'function') {
-    throw new Error('SimpleBeacon inventory is not available; install dependencies and run from the monorepo root');
+    throw new Error(
+      'SimpleBeacon inventory is not available; install dependencies and run from the monorepo root'
+    );
   }
-  return scannerApi.countRepositoryInventory(targetPath, buildInventoryOptions(Boolean(scanOptions.fullDirectoryScan)));
+  return scannerApi.countRepositoryInventory(
+    targetPath,
+    buildInventoryOptions(Boolean(scanOptions.fullDirectoryScan))
+  );
 }
 
 /**
@@ -171,12 +195,14 @@ async function runLocalInventory(targetPath, scanOptions = {}) {
  */
 async function runLocalScan(targetPath, scanOptions = {}) {
   if (!scannerApi || typeof scannerApi.runScan !== 'function') {
-    throw new Error('SimpleBeacon scanner is not available; install dependencies and run from the monorepo root');
+    throw new Error(
+      'SimpleBeacon scanner is not available; install dependencies and run from the monorepo root'
+    );
   }
 
   const options = {
     fullDirectoryScan: Boolean(scanOptions.fullDirectoryScan),
-    offline: true
+    offline: true,
   };
 
   try {
@@ -185,9 +211,8 @@ async function runLocalScan(targetPath, scanOptions = {}) {
       throw new Error('Scan returned an empty or invalid report');
     }
     return report;
-  }
-  catch (scanErr) {
-    process.stderr.write(['[agent] Scanner error:', scanErr?.message || scanErr].join(" ") + "\n");
+  } catch (scanErr) {
+    process.stderr.write(['[agent] Scanner error:', scanErr?.message || scanErr].join(' ') + '\n');
     throw scanErr;
   }
 }
@@ -206,11 +231,12 @@ function toPrivacySummaryReport(report) {
   const detectedIssues = rawIssues.map((issue) => {
     const rawPaths = Array.isArray(issue?.filePaths)
       ? issue.filePaths
-      : (issue?.filePath ? [issue.filePath] : []);
+      : issue?.filePath
+        ? [issue.filePath]
+        : [];
     const firstPath = rawPaths[0] || issue?.file || issue?.affectedFiles?.[0] || '—';
-    const relativePath = firstPath === '—'
-      ? '—'
-      : path.relative(root, path.resolve(firstPath)).replace(/\\/g, '/');
+    const relativePath =
+      firstPath === '—' ? '—' : path.relative(root, path.resolve(firstPath)).replace(/\\/g, '/');
     return {
       severity: issue?.severity || 'low',
       type: issue?.type || 'Unknown',
@@ -218,7 +244,7 @@ function toPrivacySummaryReport(report) {
       filePath: relativePath,
       rule: issue?.pattern || issue?.rule || issue?.type || 'unknown',
       impact: issue?.description || issue?.impact || '',
-      fix: issue?.recommendation || issue?.recommendedAction || issue?.fix || ''
+      fix: issue?.recommendation || issue?.recommendedAction || issue?.fix || '',
     };
   });
 
@@ -229,7 +255,7 @@ function toPrivacySummaryReport(report) {
     projectRoot: label,
     gate: {
       pass: report?.gate?.pass === true,
-      blockingCount: report?.gate?.blockingCount ?? 0
+      blockingCount: report?.gate?.blockingCount ?? 0,
     },
     qualityScore: report?.qualityScore ?? null,
     totalFiles: report?.totalFiles ?? report?.repositoryInventory?.totalFiles ?? null,
@@ -237,29 +263,33 @@ function toPrivacySummaryReport(report) {
     detectedIssues,
     summary: {
       gatePass: report?.gate?.pass === true,
-      qualityScore: report?.qualityScore ?? null
-    }
+      qualityScore: report?.qualityScore ?? null,
+    },
   };
 }
 
 // CORS middleware. The requireLoopback middleware below already restricts
 // TCP connections to the loopback interface, so reflecting any origin is safe.
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. curl) and reflect any real origin.
-    callback(null, origin || true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Accept']
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. curl) and reflect any real origin.
+      callback(null, origin || true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept'],
+  })
+);
 
-app.use(express.json({
-  limit: '1mb',
-  verify: (req, res, buf, encoding) => {
-    req.rawBody = buf.toString(encoding || 'utf8');
-  }
-}));
+app.use(
+  express.json({
+    limit: '1mb',
+    verify: (req, res, buf, encoding) => {
+      req.rawBody = buf.toString(encoding || 'utf8');
+    },
+  })
+);
 
 // Trust proxy disabled so req.ip is accurate
 app.set('trust proxy', false);
@@ -272,7 +302,9 @@ function requireLoopback(req, res, next) {
   const remote = req.socket?.remoteAddress || '';
   const isLoopback = remote === '127.0.0.1' || remote === '::1' || remote === '::ffff:127.0.0.1';
   if (!isLoopback) {
-    res.status(403).json({ success: false, error: 'Forbidden: only localhost connections are allowed' });
+    res
+      .status(403)
+      .json({ success: false, error: 'Forbidden: only localhost connections are allowed' });
     return;
   }
   next();
@@ -282,9 +314,11 @@ app.use(requireLoopback);
 
 // Request logger to help diagnose browser/agent issues.
 app.use((req, res, next) => {
-  process.stderr.write([
-    `[agent] ${req.method} ${req.url} from ${req.headers.origin || 'no-origin'} (${req.socket.remoteAddress || 'unknown'})`
-  ].join(" ") + "\n");
+  process.stderr.write(
+    [
+      `[agent] ${req.method} ${req.url} from ${req.headers.origin || 'no-origin'} (${req.socket.remoteAddress || 'unknown'})`,
+    ].join(' ') + '\n'
+  );
   next();
 });
 
@@ -296,7 +330,7 @@ app.get('/health', (req, res) => {
     version: '1.0.4',
     scannerAvailable: Boolean(scannerApi && typeof scannerApi.runScan === 'function'),
     scannerLoadError,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -304,14 +338,15 @@ app.get('/health', (req, res) => {
 app.post('/scan', async (req, res) => {
   const rawPath = req.body?.projectPath;
   try {
-    process.stderr.write(['[agent] /scan received projectPath:', rawPath].join(" ") + "\n");
+    process.stderr.write(['[agent] /scan received projectPath:', rawPath].join(' ') + '\n');
     const targetPath = validateTargetPath(rawPath);
-    const fullDirectoryScan = req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
+    const fullDirectoryScan =
+      req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
     const report = await runLocalScan(targetPath, { fullDirectoryScan });
     res.json({ success: true, projectPath: targetPath, report });
   } catch (err) {
     process.stderr.write(
-      ['[agent] /scan rejected projectPath:', rawPath, '-', err.message].join(" ") + "\n"
+      ['[agent] /scan rejected projectPath:', rawPath, '-', err.message].join(' ') + '\n'
     );
     res.status(400).json({ success: false, error: err.message, receivedPath: rawPath });
   }
@@ -338,14 +373,15 @@ app.get('/progress', (req, res) => {
 app.post('/inventory', async (req, res) => {
   const rawPath = req.body?.projectPath;
   try {
-    process.stderr.write(['[agent] /inventory received projectPath:', rawPath].join(" ") + "\n");
+    process.stderr.write(['[agent] /inventory received projectPath:', rawPath].join(' ') + '\n');
     const targetPath = validateTargetPath(rawPath);
-    const fullDirectoryScan = req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
+    const fullDirectoryScan =
+      req.body?.fullDirectoryScan === true || req.body?.fullDirectoryScan === 'true';
     const inventory = await runLocalInventory(targetPath, { fullDirectoryScan });
     res.json({ success: true, projectPath: targetPath, inventory });
   } catch (err) {
     process.stderr.write(
-      ['[agent] /inventory rejected projectPath:', rawPath, '-', err.message].join(" ") + "\n"
+      ['[agent] /inventory rejected projectPath:', rawPath, '-', err.message].join(' ') + '\n'
     );
     res.status(400).json({ success: false, error: err.message, receivedPath: rawPath });
   }
@@ -365,11 +401,11 @@ app.post('/summary', async (req, res) => {
 });
 
 // Error handler.
-// eslint-disable-next-line no-unused-vars
+ 
 app.use((err, req, res, _next) => {
-  process.stderr.write(['[agent] Unhandled error:', err].join(" ") + "\n");
+  process.stderr.write(['[agent] Unhandled error:', err].join(' ') + '\n');
   if (err && err.name === 'SyntaxError' && req.rawBody !== undefined) {
-    process.stderr.write(['[agent] Invalid JSON body received:', req.rawBody].join(" ") + "\n");
+    process.stderr.write(['[agent] Invalid JSON body received:', req.rawBody].join(' ') + '\n');
     const origin = req.headers.origin;
     if (origin) {
       res.setHeader('Access-Control-Allow-Origin', origin);
@@ -389,20 +425,22 @@ app.use((err, req, res, _next) => {
 function start() {
   const server = http.createServer(app);
   server.listen(PORT, HOST, () => {
-    process.stderr.write([`[agent] Listening on http://${HOST}:${PORT}`].join(" ") + "\n");
-    process.stderr.write([`[agent] Scanner root: ${AGENT_ROOT}`].join(" ") + "\n");
-    process.stderr.write([
-      `[agent] Scanner available: ${Boolean(scannerApi && typeof scannerApi.runScan === 'function')}`
-    ].join(" ") + "\n");
+    process.stderr.write([`[agent] Listening on http://${HOST}:${PORT}`].join(' ') + '\n');
+    process.stderr.write([`[agent] Scanner root: ${AGENT_ROOT}`].join(' ') + '\n');
+    process.stderr.write(
+      [
+        `[agent] Scanner available: ${Boolean(scannerApi && typeof scannerApi.runScan === 'function')}`,
+      ].join(' ') + '\n'
+    );
   });
 
   server.on('error', (err) => {
     if (err && 'code' in err && err.code === 'EADDRINUSE') {
       process.stderr.write(
-        [`[agent] Port ${PORT} is already in use. Another agent may be running.`].join(" ") + "\n"
+        [`[agent] Port ${PORT} is already in use. Another agent may be running.`].join(' ') + '\n'
       );
     } else {
-      process.stderr.write(['[agent] Server error:', err.message].join(" ") + "\n");
+      process.stderr.write(['[agent] Server error:', err.message].join(' ') + '\n');
     }
     process.exit(1);
   });

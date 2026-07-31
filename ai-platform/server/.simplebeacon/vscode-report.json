@@ -19,9 +19,7 @@
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server\\.simplebeacon\\config.json",
-  "scanPaths": [
-    "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server"
-  ],
+  "scanPaths": ["C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server"],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\ai-platform\\server",
     "totalFiles": 175,
@@ -146,12 +144,8 @@
       "line": 410,
       "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
       "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -164,12 +158,8 @@
       "line": 482,
       "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
       "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -182,12 +172,8 @@
       "line": 1708,
       "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
       "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -200,12 +186,8 @@
       "line": 410,
       "recommendation": "Audit fixture usage and remove mock references from production-bound modules",
       "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -218,12 +200,8 @@
       "line": 1467,
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -236,12 +214,8 @@
       "line": 1477,
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -254,12 +228,8 @@
       "line": 1537,
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -272,12 +242,8 @@
       "line": 2418,
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -290,12 +256,8 @@
       "line": 2801,
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -308,12 +270,8 @@
       "line": 3097,
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -326,12 +284,8 @@
       "line": 4073,
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     },
     {
@@ -344,12 +298,8 @@
       "line": 410,
       "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
       "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
-      "filePaths": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
+      "filePaths": ["lib/codebase-analyzer.cjs"],
       "file": "lib/codebase-analyzer.cjs"
     }
   ],
@@ -367,9 +317,7 @@
       "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (mock-path)",
       "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
       "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "mock-path",
         "offset": 25904,
@@ -397,9 +345,7 @@
       "description": "lib/codebase-analyzer.cjs:482 references mock/sample path (mock-path)",
       "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
       "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "mock-path",
         "offset": 33411,
@@ -427,9 +373,7 @@
       "description": "lib/codebase-analyzer.cjs:1708 references mock/sample path (mock-path)",
       "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
       "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "mock-path",
         "offset": 100881,
@@ -457,9 +401,7 @@
       "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (fixtures-path)",
       "recommendation": "Audit fixture usage and remove mock references from production-bound modules",
       "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "fixtures-path",
         "offset": 25904,
@@ -487,9 +429,7 @@
       "description": "lib/codebase-analyzer.cjs:1467 references mock/sample path (web-data-sample)",
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "web-data-sample",
         "offset": 80481,
@@ -517,9 +457,7 @@
       "description": "lib/codebase-analyzer.cjs:1477 references mock/sample path (web-data-sample)",
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "web-data-sample",
         "offset": 81271,
@@ -547,9 +485,7 @@
       "description": "lib/codebase-analyzer.cjs:1537 references mock/sample path (web-data-sample)",
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "web-data-sample",
         "offset": 86772,
@@ -577,9 +513,7 @@
       "description": "lib/codebase-analyzer.cjs:2418 references mock/sample path (web-data-sample)",
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "web-data-sample",
         "offset": 135851,
@@ -607,9 +541,7 @@
       "description": "lib/codebase-analyzer.cjs:2801 references mock/sample path (web-data-sample)",
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "web-data-sample",
         "offset": 155971,
@@ -637,9 +569,7 @@
       "description": "lib/codebase-analyzer.cjs:3097 references mock/sample path (web-data-sample)",
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "web-data-sample",
         "offset": 170174,
@@ -667,9 +597,7 @@
       "description": "lib/codebase-analyzer.cjs:4073 references mock/sample path (web-data-sample)",
       "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
       "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "web-data-sample",
         "offset": 218033,
@@ -697,9 +625,7 @@
       "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (template-sample)",
       "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
       "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "template-sample",
         "offset": 25904,
@@ -727,9 +653,7 @@
       "description": "lib/codebase-analyzer.cjs:482 references mock/sample path (template-sample)",
       "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
       "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-      "affectedFiles": [
-        "codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "template-sample",
         "offset": 33411,
@@ -758,9 +682,7 @@
       "description": "lib/fix-orchestrator/patch-strategies.test.cjs:245 — Dynamic code execution or unsanitized HTML injection API",
       "recommendation": "Replace eval/dynamic HTML with safe alternatives; validate redirect targets.",
       "recommendedAction": "Replace eval/dynamic HTML with safe alternatives; validate redirect targets.",
-      "affectedFiles": [
-        "patch-strategies.test.cjs"
-      ],
+      "affectedFiles": ["patch-strategies.test.cjs"],
       "metadata": {
         "patternId": "SB-SEC-001",
         "category": "web-security",
@@ -778,9 +700,7 @@
       "description": "Generative AI or LLM integration detected (5 matches in file)",
       "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
       "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)\" — Generative AI or LLM integration detected",
-      "affectedFiles": [
-        "lib/ai-analyst.cjs"
-      ],
+      "affectedFiles": ["lib/ai-analyst.cjs"],
       "metadata": {
         "patternId": "EUAI-AI-001",
         "category": "ai-system",
@@ -789,19 +709,8 @@
         "lineNumber": 7,
         "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)",
         "matchCount": 5,
-        "matches": [
-          "OPENAI",
-          "ANTHROPIC",
-          "openai",
-          "anthropic"
-        ],
-        "lines": [
-          7,
-          7,
-          35,
-          35,
-          39
-        ]
+        "matches": ["OPENAI", "ANTHROPIC", "openai", "anthropic"],
+        "lines": [7, 7, 35, 35, 39]
       }
     },
     {
@@ -814,9 +723,7 @@
       "description": "Machine learning inference or model runtime detected",
       "recommendedAction": "Document the ML model purpose, performance metrics, and bias test results. Add input validation and confidence thresholds before returning predictions to users.",
       "evidence": "Matched \"EUAI-AI-002\" in code: \"* Machine learning-inspired pattern detection for code analysis\" — Machine learning inference or model runtime detected",
-      "affectedFiles": [
-        "lib/code-understanding/ml-pattern-detector.cjs"
-      ],
+      "affectedFiles": ["lib/code-understanding/ml-pattern-detector.cjs"],
       "metadata": {
         "patternId": "EUAI-AI-002",
         "category": "ai-system",
@@ -825,12 +732,8 @@
         "lineNumber": 5,
         "codeLine": "* Machine learning-inspired pattern detection for code analysis",
         "matchCount": 1,
-        "matches": [
-          "Machine learning"
-        ],
-        "lines": [
-          5
-        ]
+        "matches": ["Machine learning"],
+        "lines": [5]
       }
     },
     {
@@ -843,9 +746,7 @@
       "description": "Generative AI or LLM integration detected (21 matches in file)",
       "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
       "evidence": "Matched \"EUAI-AI-001\" in code: \"{ id: 'hallucinated-import', pattern: /import\\s+\\w+\\s+from\\s+['\"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|pa\" — Generative AI or LLM integration detected",
-      "affectedFiles": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["lib/codebase-analyzer.cjs"],
       "metadata": {
         "patternId": "EUAI-AI-001",
         "category": "ai-system",
@@ -865,27 +766,8 @@
           "huggingface"
         ],
         "lines": [
-          271,
-          271,
-          271,
-          271,
-          271,
-          271,
-          275,
-          275,
-          460,
-          460,
-          460,
-          460,
-          1509,
-          2964,
-          2964,
-          2964,
-          271,
-          271,
-          460,
-          460,
-          2964
+          271, 271, 271, 271, 271, 271, 275, 275, 460, 460, 460, 460, 1509, 2964, 2964, 2964, 271,
+          271, 460, 460, 2964
         ]
       }
     },
@@ -899,9 +781,7 @@
       "description": "Generative AI or LLM integration detected (5 matches in file)",
       "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
       "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)\" — Generative AI or LLM integration detected",
-      "affectedFiles": [
-        "lib/compliance-rules.cjs"
-      ],
+      "affectedFiles": ["lib/compliance-rules.cjs"],
       "metadata": {
         "patternId": "EUAI-AI-001",
         "category": "ai-system",
@@ -910,19 +790,8 @@
         "lineNumber": 8,
         "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)",
         "matchCount": 5,
-        "matches": [
-          "OPENAI",
-          "ANTHROPIC",
-          "openai",
-          "anthropic"
-        ],
-        "lines": [
-          8,
-          8,
-          43,
-          43,
-          47
-        ]
+        "matches": ["OPENAI", "ANTHROPIC", "openai", "anthropic"],
+        "lines": [8, 8, 43, 43, 47]
       }
     },
     {
@@ -935,9 +804,7 @@
       "description": "Generative AI or LLM integration detected (2 matches in file)",
       "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
       "evidence": "Matched \"EUAI-AI-001\" in code: \"if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;\" — Generative AI or LLM integration detected",
-      "affectedFiles": [
-        "lib/enhanced-ai-orchestrator.cjs"
-      ],
+      "affectedFiles": ["lib/enhanced-ai-orchestrator.cjs"],
       "metadata": {
         "patternId": "EUAI-AI-001",
         "category": "ai-system",
@@ -946,14 +813,8 @@
         "lineNumber": 75,
         "codeLine": "if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;",
         "matchCount": 2,
-        "matches": [
-          "openai",
-          "anthropic"
-        ],
-        "lines": [
-          75,
-          75
-        ]
+        "matches": ["openai", "anthropic"],
+        "lines": [75, 75]
       }
     },
     {
@@ -966,9 +827,7 @@
       "description": "Generative AI or LLM integration detected (2 matches in file)",
       "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
       "evidence": "Matched \"EUAI-AI-001\" in code: \"* - This service integrates with artificial intelligence providers for report generation (OpenAI API).\" — Generative AI or LLM integration detected",
-      "affectedFiles": [
-        "lib/operator-deliverable-service.cjs"
-      ],
+      "affectedFiles": ["lib/operator-deliverable-service.cjs"],
       "metadata": {
         "patternId": "EUAI-AI-001",
         "category": "ai-system",
@@ -977,13 +836,8 @@
         "lineNumber": 5,
         "codeLine": "* - This service integrates with artificial intelligence providers for report generation (OpenAI API).",
         "matchCount": 2,
-        "matches": [
-          "OpenAI"
-        ],
-        "lines": [
-          5,
-          27
-        ]
+        "matches": ["OpenAI"],
+        "lines": [5, 27]
       }
     },
     {
@@ -996,9 +850,7 @@
       "description": "Generative AI or LLM integration detected (4 matches in file)",
       "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
       "evidence": "Matched \"EUAI-AI-001\" in code: \"const PROVIDERS = ['openai', 'anthropic'];\" — Generative AI or LLM integration detected",
-      "affectedFiles": [
-        "lib/user-ai-keys-store.cjs"
-      ],
+      "affectedFiles": ["lib/user-ai-keys-store.cjs"],
       "metadata": {
         "patternId": "EUAI-AI-001",
         "category": "ai-system",
@@ -1007,16 +859,8 @@
         "lineNumber": 20,
         "codeLine": "const PROVIDERS = ['openai', 'anthropic'];",
         "matchCount": 4,
-        "matches": [
-          "openai",
-          "anthropic"
-        ],
-        "lines": [
-          20,
-          20,
-          128,
-          129
-        ]
+        "matches": ["openai", "anthropic"],
+        "lines": [20, 20, 128, 129]
       }
     },
     {
@@ -1027,9 +871,7 @@
       "count": 1,
       "description": "data-access-pattern finding",
       "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "lib/code-roadmap-generator.cjs"
-      ],
+      "affectedFiles": ["lib/code-roadmap-generator.cjs"],
       "metadata": {
         "scanner": "file-reduction",
         "reclaimableBytes": 0,
@@ -1044,9 +886,7 @@
       "count": 1,
       "description": "data-access-pattern finding",
       "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "lib/code-roadmap-phase2.cjs"
-      ],
+      "affectedFiles": ["lib/code-roadmap-phase2.cjs"],
       "metadata": {
         "scanner": "file-reduction",
         "reclaimableBytes": 0,
@@ -1061,9 +901,7 @@
       "count": 1,
       "description": "data-access-pattern finding",
       "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "lib/code-understanding/code-understanding-engine.cjs"
-      ],
+      "affectedFiles": ["lib/code-understanding/code-understanding-engine.cjs"],
       "metadata": {
         "scanner": "file-reduction",
         "reclaimableBytes": 0,
@@ -1078,9 +916,7 @@
       "count": 1,
       "description": "data-access-pattern finding",
       "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "lib/codebase-analyzer.cjs"
-      ],
+      "affectedFiles": ["lib/codebase-analyzer.cjs"],
       "metadata": {
         "scanner": "file-reduction",
         "reclaimableBytes": 0,
@@ -1095,9 +931,7 @@
       "count": 1,
       "description": "data-access-pattern finding",
       "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "lib/json-file-cache.cjs"
-      ],
+      "affectedFiles": ["lib/json-file-cache.cjs"],
       "metadata": {
         "scanner": "file-reduction",
         "reclaimableBytes": 0,
@@ -1112,9 +946,7 @@
       "count": 1,
       "description": "data-access-pattern finding",
       "recommendedAction": "Review file-reduction report",
-      "affectedFiles": [
-        "lib/token-db.cjs"
-      ],
+      "affectedFiles": ["lib/token-db.cjs"],
       "metadata": {
         "scanner": "file-reduction",
         "reclaimableBytes": 0,
@@ -1319,13 +1151,8 @@
       "file-reduction"
     ],
     "gatePolicy": {
-      "failOn": [
-        "high"
-      ],
-      "warnOn": [
-        "medium",
-        "low"
-      ]
+      "failOn": ["high"],
+      "warnOn": ["medium", "low"]
     },
     "mockSampleFilesInScanPaths": 175,
     "pageSpecCatalogSize": 50,
@@ -1333,12 +1160,7 @@
     "pageSpecsFromScanPaths": 0,
     "pageSpecsFromAliasPaths": 0,
     "productionDirsScanned": 114,
-    "productionPaths": [
-      "server/",
-      "src/",
-      "app/",
-      "lib/"
-    ],
+    "productionPaths": ["server/", "src/", "app/", "lib/"],
     "sourceCodeScanPaths": [],
     "sourceCodeFilesScanned": 108,
     "sourceFictionPatternHits": 0,
@@ -1372,13 +1194,8 @@
   },
   "gate": {
     "pass": false,
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ],
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"],
     "blockingCount": 14,
     "warningCount": 13,
     "blockingIssues": [
@@ -1395,9 +1212,7 @@
         "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (mock-path)",
         "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
         "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "mock-path",
           "offset": 25904,
@@ -1425,9 +1240,7 @@
         "description": "lib/codebase-analyzer.cjs:482 references mock/sample path (mock-path)",
         "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
         "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "mock-path",
           "offset": 33411,
@@ -1455,9 +1268,7 @@
         "description": "lib/codebase-analyzer.cjs:1708 references mock/sample path (mock-path)",
         "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
         "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "mock-path",
           "offset": 100881,
@@ -1485,9 +1296,7 @@
         "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (fixtures-path)",
         "recommendation": "Audit fixture usage and remove mock references from production-bound modules",
         "recommendedAction": "Audit fixture usage and remove mock references from production-bound modules",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "fixtures-path",
           "offset": 25904,
@@ -1515,9 +1324,7 @@
         "description": "lib/codebase-analyzer.cjs:1467 references mock/sample path (web-data-sample)",
         "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
         "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "web-data-sample",
           "offset": 80481,
@@ -1545,9 +1352,7 @@
         "description": "lib/codebase-analyzer.cjs:1477 references mock/sample path (web-data-sample)",
         "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
         "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "web-data-sample",
           "offset": 81271,
@@ -1575,9 +1380,7 @@
         "description": "lib/codebase-analyzer.cjs:1537 references mock/sample path (web-data-sample)",
         "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
         "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "web-data-sample",
           "offset": 86772,
@@ -1605,9 +1408,7 @@
         "description": "lib/codebase-analyzer.cjs:2418 references mock/sample path (web-data-sample)",
         "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
         "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "web-data-sample",
           "offset": 135851,
@@ -1635,9 +1436,7 @@
         "description": "lib/codebase-analyzer.cjs:2801 references mock/sample path (web-data-sample)",
         "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
         "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "web-data-sample",
           "offset": 155971,
@@ -1665,9 +1464,7 @@
         "description": "lib/codebase-analyzer.cjs:3097 references mock/sample path (web-data-sample)",
         "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
         "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "web-data-sample",
           "offset": 170174,
@@ -1695,9 +1492,7 @@
         "description": "lib/codebase-analyzer.cjs:4073 references mock/sample path (web-data-sample)",
         "recommendation": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
         "recommendedAction": "Replace hardcoded sample data imports with measured runtime API/scanner output before release",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "web-data-sample",
           "offset": 218033,
@@ -1725,9 +1520,7 @@
         "description": "lib/codebase-analyzer.cjs:410 references mock/sample path (template-sample)",
         "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
         "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "template-sample",
           "offset": 25904,
@@ -1755,9 +1548,7 @@
         "description": "lib/codebase-analyzer.cjs:482 references mock/sample path (template-sample)",
         "recommendation": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
         "recommendedAction": "Move mock-only paths behind test/dev gates and keep production paths bound to live data sources",
-        "affectedFiles": [
-          "codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "template-sample",
           "offset": 33411,
@@ -1786,9 +1577,7 @@
         "description": "lib/fix-orchestrator/patch-strategies.test.cjs:245 — Dynamic code execution or unsanitized HTML injection API",
         "recommendation": "Replace eval/dynamic HTML with safe alternatives; validate redirect targets.",
         "recommendedAction": "Replace eval/dynamic HTML with safe alternatives; validate redirect targets.",
-        "affectedFiles": [
-          "patch-strategies.test.cjs"
-        ],
+        "affectedFiles": ["patch-strategies.test.cjs"],
         "metadata": {
           "patternId": "SB-SEC-001",
           "category": "web-security",
@@ -1808,9 +1597,7 @@
         "description": "Generative AI or LLM integration detected (5 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/ai-analyst.cjs"
-        ],
+        "affectedFiles": ["lib/ai-analyst.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -1819,19 +1606,8 @@
           "lineNumber": 7,
           "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)",
           "matchCount": 5,
-          "matches": [
-            "OPENAI",
-            "ANTHROPIC",
-            "openai",
-            "anthropic"
-          ],
-          "lines": [
-            7,
-            7,
-            35,
-            35,
-            39
-          ]
+          "matches": ["OPENAI", "ANTHROPIC", "openai", "anthropic"],
+          "lines": [7, 7, 35, 35, 39]
         }
       },
       {
@@ -1844,9 +1620,7 @@
         "description": "Machine learning inference or model runtime detected",
         "recommendedAction": "Document the ML model purpose, performance metrics, and bias test results. Add input validation and confidence thresholds before returning predictions to users.",
         "evidence": "Matched \"EUAI-AI-002\" in code: \"* Machine learning-inspired pattern detection for code analysis\" — Machine learning inference or model runtime detected",
-        "affectedFiles": [
-          "lib/code-understanding/ml-pattern-detector.cjs"
-        ],
+        "affectedFiles": ["lib/code-understanding/ml-pattern-detector.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-002",
           "category": "ai-system",
@@ -1855,12 +1629,8 @@
           "lineNumber": 5,
           "codeLine": "* Machine learning-inspired pattern detection for code analysis",
           "matchCount": 1,
-          "matches": [
-            "Machine learning"
-          ],
-          "lines": [
-            5
-          ]
+          "matches": ["Machine learning"],
+          "lines": [5]
         }
       },
       {
@@ -1873,9 +1643,7 @@
         "description": "Generative AI or LLM integration detected (21 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"{ id: 'hallucinated-import', pattern: /import\\s+\\w+\\s+from\\s+['\"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|pa\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["lib/codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -1895,27 +1663,8 @@
             "huggingface"
           ],
           "lines": [
-            271,
-            271,
-            271,
-            271,
-            271,
-            271,
-            275,
-            275,
-            460,
-            460,
-            460,
-            460,
-            1509,
-            2964,
-            2964,
-            2964,
-            271,
-            271,
-            460,
-            460,
-            2964
+            271, 271, 271, 271, 271, 271, 275, 275, 460, 460, 460, 460, 1509, 2964, 2964, 2964, 271,
+            271, 460, 460, 2964
           ]
         }
       },
@@ -1929,9 +1678,7 @@
         "description": "Generative AI or LLM integration detected (5 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/compliance-rules.cjs"
-        ],
+        "affectedFiles": ["lib/compliance-rules.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -1940,19 +1687,8 @@
           "lineNumber": 8,
           "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)",
           "matchCount": 5,
-          "matches": [
-            "OPENAI",
-            "ANTHROPIC",
-            "openai",
-            "anthropic"
-          ],
-          "lines": [
-            8,
-            8,
-            43,
-            43,
-            47
-          ]
+          "matches": ["OPENAI", "ANTHROPIC", "openai", "anthropic"],
+          "lines": [8, 8, 43, 43, 47]
         }
       },
       {
@@ -1965,9 +1701,7 @@
         "description": "Generative AI or LLM integration detected (2 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/enhanced-ai-orchestrator.cjs"
-        ],
+        "affectedFiles": ["lib/enhanced-ai-orchestrator.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -1976,14 +1710,8 @@
           "lineNumber": 75,
           "codeLine": "if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;",
           "matchCount": 2,
-          "matches": [
-            "openai",
-            "anthropic"
-          ],
-          "lines": [
-            75,
-            75
-          ]
+          "matches": ["openai", "anthropic"],
+          "lines": [75, 75]
         }
       },
       {
@@ -1996,9 +1724,7 @@
         "description": "Generative AI or LLM integration detected (2 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"* - This service integrates with artificial intelligence providers for report generation (OpenAI API).\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/operator-deliverable-service.cjs"
-        ],
+        "affectedFiles": ["lib/operator-deliverable-service.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -2007,13 +1733,8 @@
           "lineNumber": 5,
           "codeLine": "* - This service integrates with artificial intelligence providers for report generation (OpenAI API).",
           "matchCount": 2,
-          "matches": [
-            "OpenAI"
-          ],
-          "lines": [
-            5,
-            27
-          ]
+          "matches": ["OpenAI"],
+          "lines": [5, 27]
         }
       },
       {
@@ -2026,9 +1747,7 @@
         "description": "Generative AI or LLM integration detected (4 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"const PROVIDERS = ['openai', 'anthropic'];\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/user-ai-keys-store.cjs"
-        ],
+        "affectedFiles": ["lib/user-ai-keys-store.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -2037,16 +1756,8 @@
           "lineNumber": 20,
           "codeLine": "const PROVIDERS = ['openai', 'anthropic'];",
           "matchCount": 4,
-          "matches": [
-            "openai",
-            "anthropic"
-          ],
-          "lines": [
-            20,
-            20,
-            128,
-            129
-          ]
+          "matches": ["openai", "anthropic"],
+          "lines": [20, 20, 128, 129]
         }
       },
       {
@@ -2057,9 +1768,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/code-roadmap-generator.cjs"
-        ],
+        "affectedFiles": ["lib/code-roadmap-generator.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2074,9 +1783,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/code-roadmap-phase2.cjs"
-        ],
+        "affectedFiles": ["lib/code-roadmap-phase2.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2091,9 +1798,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/code-understanding/code-understanding-engine.cjs"
-        ],
+        "affectedFiles": ["lib/code-understanding/code-understanding-engine.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2108,9 +1813,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["lib/codebase-analyzer.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2125,9 +1828,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/json-file-cache.cjs"
-        ],
+        "affectedFiles": ["lib/json-file-cache.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2142,9 +1843,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/token-db.cjs"
-        ],
+        "affectedFiles": ["lib/token-db.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2163,9 +1862,7 @@
         "description": "Generative AI or LLM integration detected (5 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/ai-analyst.cjs"
-        ],
+        "affectedFiles": ["lib/ai-analyst.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -2174,19 +1871,8 @@
           "lineNumber": 7,
           "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — falls back to demo mode)",
           "matchCount": 5,
-          "matches": [
-            "OPENAI",
-            "ANTHROPIC",
-            "openai",
-            "anthropic"
-          ],
-          "lines": [
-            7,
-            7,
-            35,
-            35,
-            39
-          ]
+          "matches": ["OPENAI", "ANTHROPIC", "openai", "anthropic"],
+          "lines": [7, 7, 35, 35, 39]
         }
       },
       {
@@ -2199,9 +1885,7 @@
         "description": "Machine learning inference or model runtime detected",
         "recommendedAction": "Document the ML model purpose, performance metrics, and bias test results. Add input validation and confidence thresholds before returning predictions to users.",
         "evidence": "Matched \"EUAI-AI-002\" in code: \"* Machine learning-inspired pattern detection for code analysis\" — Machine learning inference or model runtime detected",
-        "affectedFiles": [
-          "lib/code-understanding/ml-pattern-detector.cjs"
-        ],
+        "affectedFiles": ["lib/code-understanding/ml-pattern-detector.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-002",
           "category": "ai-system",
@@ -2210,12 +1894,8 @@
           "lineNumber": 5,
           "codeLine": "* Machine learning-inspired pattern detection for code analysis",
           "matchCount": 1,
-          "matches": [
-            "Machine learning"
-          ],
-          "lines": [
-            5
-          ]
+          "matches": ["Machine learning"],
+          "lines": [5]
         }
       },
       {
@@ -2228,9 +1908,7 @@
         "description": "Generative AI or LLM integration detected (21 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"{ id: 'hallucinated-import', pattern: /import\\s+\\w+\\s+from\\s+['\"`](?:ai-|llm-|gpt-|openai-|anthropic-|claude-|vertex-|pa\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["lib/codebase-analyzer.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -2250,27 +1928,8 @@
             "huggingface"
           ],
           "lines": [
-            271,
-            271,
-            271,
-            271,
-            271,
-            271,
-            275,
-            275,
-            460,
-            460,
-            460,
-            460,
-            1509,
-            2964,
-            2964,
-            2964,
-            271,
-            271,
-            460,
-            460,
-            2964
+            271, 271, 271, 271, 271, 271, 275, 275, 460, 460, 460, 460, 1509, 2964, 2964, 2964, 271,
+            271, 460, 460, 2964
           ]
         }
       },
@@ -2284,9 +1943,7 @@
         "description": "Generative AI or LLM integration detected (5 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/compliance-rules.cjs"
-        ],
+        "affectedFiles": ["lib/compliance-rules.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -2295,19 +1952,8 @@
           "lineNumber": 8,
           "codeLine": "* Env: OPENAI_API_KEY or ANTHROPIC_API_KEY (optional — deterministic fallback)",
           "matchCount": 5,
-          "matches": [
-            "OPENAI",
-            "ANTHROPIC",
-            "openai",
-            "anthropic"
-          ],
-          "lines": [
-            8,
-            8,
-            43,
-            43,
-            47
-          ]
+          "matches": ["OPENAI", "ANTHROPIC", "openai", "anthropic"],
+          "lines": [8, 8, 43, 43, 47]
         }
       },
       {
@@ -2320,9 +1966,7 @@
         "description": "Generative AI or LLM integration detected (2 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/enhanced-ai-orchestrator.cjs"
-        ],
+        "affectedFiles": ["lib/enhanced-ai-orchestrator.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -2331,14 +1975,8 @@
           "lineNumber": 75,
           "codeLine": "if (modelPreference === 'cloud' && (model.provider === 'openai' || model.provider === 'anthropic')) score += 3;",
           "matchCount": 2,
-          "matches": [
-            "openai",
-            "anthropic"
-          ],
-          "lines": [
-            75,
-            75
-          ]
+          "matches": ["openai", "anthropic"],
+          "lines": [75, 75]
         }
       },
       {
@@ -2351,9 +1989,7 @@
         "description": "Generative AI or LLM integration detected (2 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"* - This service integrates with artificial intelligence providers for report generation (OpenAI API).\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/operator-deliverable-service.cjs"
-        ],
+        "affectedFiles": ["lib/operator-deliverable-service.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -2362,13 +1998,8 @@
           "lineNumber": 5,
           "codeLine": "* - This service integrates with artificial intelligence providers for report generation (OpenAI API).",
           "matchCount": 2,
-          "matches": [
-            "OpenAI"
-          ],
-          "lines": [
-            5,
-            27
-          ]
+          "matches": ["OpenAI"],
+          "lines": [5, 27]
         }
       },
       {
@@ -2381,9 +2012,7 @@
         "description": "Generative AI or LLM integration detected (4 matches in file)",
         "recommendedAction": "Add transparency disclosure in the UI (Article 50). Log all AI-generated content with a traceable ID. Document the model version, training data cutoff, and known limitations in your model-card.md.",
         "evidence": "Matched \"EUAI-AI-001\" in code: \"const PROVIDERS = ['openai', 'anthropic'];\" — Generative AI or LLM integration detected",
-        "affectedFiles": [
-          "lib/user-ai-keys-store.cjs"
-        ],
+        "affectedFiles": ["lib/user-ai-keys-store.cjs"],
         "metadata": {
           "patternId": "EUAI-AI-001",
           "category": "ai-system",
@@ -2392,16 +2021,8 @@
           "lineNumber": 20,
           "codeLine": "const PROVIDERS = ['openai', 'anthropic'];",
           "matchCount": 4,
-          "matches": [
-            "openai",
-            "anthropic"
-          ],
-          "lines": [
-            20,
-            20,
-            128,
-            129
-          ]
+          "matches": ["openai", "anthropic"],
+          "lines": [20, 20, 128, 129]
         }
       },
       {
@@ -2412,9 +2033,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/code-roadmap-generator.cjs"
-        ],
+        "affectedFiles": ["lib/code-roadmap-generator.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2429,9 +2048,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/code-roadmap-phase2.cjs"
-        ],
+        "affectedFiles": ["lib/code-roadmap-phase2.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2446,9 +2063,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/code-understanding/code-understanding-engine.cjs"
-        ],
+        "affectedFiles": ["lib/code-understanding/code-understanding-engine.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2463,9 +2078,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/codebase-analyzer.cjs"
-        ],
+        "affectedFiles": ["lib/codebase-analyzer.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2480,9 +2093,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/json-file-cache.cjs"
-        ],
+        "affectedFiles": ["lib/json-file-cache.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2497,9 +2108,7 @@
         "count": 1,
         "description": "data-access-pattern finding",
         "recommendedAction": "Review file-reduction report",
-        "affectedFiles": [
-          "lib/token-db.cjs"
-        ],
+        "affectedFiles": ["lib/token-db.cjs"],
         "metadata": {
           "scanner": "file-reduction",
           "reclaimableBytes": 0,
@@ -2710,9 +2319,7 @@
     "totalChecks": 12,
     "passedChecks": 12,
     "summary": "READY — 12 of 12 checklist items present.",
-    "recommendations": [
-      "Project is fully ready for production. All checklist items present."
-    ],
+    "recommendations": ["Project is fully ready for production. All checklist items present."],
     "remediation": "No remediation needed."
   },
   "remediationPhases": [

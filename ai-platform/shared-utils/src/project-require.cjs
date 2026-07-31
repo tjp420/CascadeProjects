@@ -13,7 +13,7 @@ const projectRoot = path.resolve(__dirname, '../..');
  * @returns {any} required module
  */
 function requireProject(relativePath) {
-    return require(path.join(projectRoot, relativePath));
+  return require(path.join(projectRoot, relativePath));
 }
 
 module.exports = requireProject;

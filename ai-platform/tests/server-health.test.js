@@ -12,7 +12,9 @@ function createHealthApp() {
   app.use(express.json());
 
   app.get('/health', (_req, res) => {
-    res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+    res
+      .status(200)
+      .json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
   });
 
   app.get('/api/health/routes', (_req, res) => {
@@ -20,7 +22,7 @@ function createHealthApp() {
       status: 'ok',
       dataCleanup: true,
       paths: ['/api/analyze/data-cleanup'],
-      build: '2026-05-27-data-cleanup'
+      build: '2026-05-27-data-cleanup',
     });
   });
 

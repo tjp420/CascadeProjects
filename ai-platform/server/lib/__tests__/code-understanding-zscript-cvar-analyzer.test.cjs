@@ -1,6 +1,10 @@
 'use strict';
 
-const { parseCvarInfoFile, findCvarInfoFiles, extractFindCvarUsages } = require('../code-understanding/zscript-cvar-analyzer.cjs');
+const {
+  parseCvarInfoFile,
+  findCvarInfoFiles,
+  extractFindCvarUsages,
+} = require('../code-understanding/zscript-cvar-analyzer.cjs');
 
 describe('code-understanding/zscript-cvar-analyzer', () => {
   test('exports expected functions', () => {

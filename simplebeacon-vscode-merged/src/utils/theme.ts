@@ -50,7 +50,9 @@ export function prefersReducedMotion(): boolean {
  */
 export function hexToRgba(hex: string, alpha = 1): string {
   const sanitized = hex.replace('#', '');
-  let r = 0, g = 0, b = 0;
+  let r = 0,
+    g = 0,
+    b = 0;
   if (sanitized.length === 3) {
     r = parseInt(sanitized[0] + sanitized[0], 16);
     g = parseInt(sanitized[1] + sanitized[1], 16);

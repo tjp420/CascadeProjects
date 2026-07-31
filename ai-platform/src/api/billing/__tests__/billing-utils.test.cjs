@@ -10,7 +10,7 @@ const {
   pick,
   omit,
   pluck,
-  groupBy
+  groupBy,
 } = require('../billing-utils.cjs');
 
 describe('billing-utils', () => {
@@ -41,7 +41,9 @@ describe('billing-utils', () => {
       expect(result.error).toBeNull();
     });
     test('catches rejected promise', async () => {
-      const result = await safeAsync(() => { throw new Error('fail'); });
+      const result = await safeAsync(() => {
+        throw new Error('fail');
+      });
       expect(result.result).toBeNull();
       expect(result.error.message).toBe('fail');
     });

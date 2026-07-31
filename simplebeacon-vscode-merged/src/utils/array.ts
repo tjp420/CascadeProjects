@@ -18,7 +18,9 @@ export function unique<T, K>(arr: T[], keyFn?: (item: T) => K): T[] {
   const seen = new Set<K>();
   return arr.filter((item) => {
     const key = keyFn(item);
-    if (seen.has(key)) { return false; }
+    if (seen.has(key)) {
+      return false;
+    }
     seen.add(key);
     return true;
   });
@@ -81,7 +83,11 @@ export function range(start: number, end?: number, step = 1): number[] {
  * @param {'asc' | 'desc'} [order='asc'] Sort direction.
  * @returns {T[]} New sorted array.
  */
-export function sortBy<T, K extends string | number | Date>(arr: T[], keyFn: (item: T) => K, order: 'asc' | 'desc' = 'asc'): T[] {
+export function sortBy<T, K extends string | number | Date>(
+  arr: T[],
+  keyFn: (item: T) => K,
+  order: 'asc' | 'desc' = 'asc'
+): T[] {
   if (!Array.isArray(arr)) return [];
   if (typeof keyFn !== 'function') return [...arr];
   const sorted = [...arr];
@@ -393,7 +399,10 @@ export function maxBy<T>(arr: T[], iteratee: (item: T) => number | string): T | 
   let maxVal = iteratee(maxItem);
   for (let i = 1; i < arr.length; i++) {
     const val = iteratee(arr[i]);
-    if (val > maxVal) { maxVal = val; maxItem = arr[i]; }
+    if (val > maxVal) {
+      maxVal = val;
+      maxItem = arr[i];
+    }
   }
   return maxItem;
 }
@@ -412,7 +421,10 @@ export function minBy<T>(arr: T[], iteratee: (item: T) => number | string): T | 
   let minVal = iteratee(minItem);
   for (let i = 1; i < arr.length; i++) {
     const val = iteratee(arr[i]);
-    if (val < minVal) { minVal = val; minItem = arr[i]; }
+    if (val < minVal) {
+      minVal = val;
+      minItem = arr[i];
+    }
   }
   return minItem;
 }

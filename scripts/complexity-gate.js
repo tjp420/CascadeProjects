@@ -19,9 +19,9 @@ const DEFAULT_MAX_DEPTH = 3;
 
 function getArgs() {
   const args = process.argv.slice(2);
-  const maxLines = args.find(a => a.startsWith('--max-lines='));
-  const maxDepth = args.find(a => a.startsWith('--max-depth='));
-  const files = args.filter(a => !a.startsWith('--'));
+  const maxLines = args.find((a) => a.startsWith('--max-lines='));
+  const maxDepth = args.find((a) => a.startsWith('--max-depth='));
+  const files = args.filter((a) => !a.startsWith('--'));
   return {
     maxLines: maxLines ? parseInt(maxLines.split('=')[1], 10) : DEFAULT_MAX_LINES,
     maxDepth: maxDepth ? parseInt(maxDepth.split('=')[1], 10) : DEFAULT_MAX_DEPTH,
@@ -96,7 +96,8 @@ function findLongFunctions(filePath, maxLines) {
   const findings = [];
 
   // Match function declarations, expressions, arrow functions, and class methods
-  const funcRegex = /(?:async\s+)?function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(|(\w+)\s*\([^)]*\)\s*\{/g;
+  const funcRegex =
+    /(?:async\s+)?function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(|(\w+)\s*\([^)]*\)\s*\{/g;
 
   let match;
   while ((match = funcRegex.exec(content)) !== null) {
@@ -124,10 +125,12 @@ function findLongFunctions(filePath, maxLines) {
 function main() {
   const args = getArgs();
   const rootDir = process.cwd();
-  const files = args.files || getJsFiles(rootDir).filter(f => {
-    const rel = path.relative(rootDir, f);
-    return !rel.startsWith('node_modules') && !rel.startsWith('.git');
-  });
+  const files =
+    args.files ||
+    getJsFiles(rootDir).filter((f) => {
+      const rel = path.relative(rootDir, f);
+      return !rel.startsWith('node_modules') && !rel.startsWith('.git');
+    });
 
   const allFindings = [];
   for (const file of files) {
@@ -152,7 +155,9 @@ function main() {
   console.log('-'.repeat(90));
   for (const f of allFindings.sort((a, b) => b.lines - a.lines)) {
     const rel = path.relative(rootDir, f.file);
-    console.log(`${rel.padEnd(60)} ${String(f.line).padEnd(8)} ${String(f.lines).padEnd(8)} ${f.name}`);
+    console.log(
+      `${rel.padEnd(60)} ${String(f.line).padEnd(8)} ${String(f.lines).padEnd(8)} ${f.name}`
+    );
   }
 
   console.log(`\nGate: FAILED`);

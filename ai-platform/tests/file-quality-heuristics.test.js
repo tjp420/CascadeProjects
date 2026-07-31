@@ -6,7 +6,7 @@
 const {
   calculateFileQuality,
   contentNeedsValidation,
-  contentHasMarker
+  contentHasMarker,
 } = require('../server/lib/file-quality-heuristics.cjs');
 
 describe('file-quality-heuristics', () => {

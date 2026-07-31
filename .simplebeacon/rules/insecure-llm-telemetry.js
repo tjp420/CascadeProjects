@@ -34,11 +34,17 @@ module.exports = {
         ObjectProperty(path) {
           const key = path.node.key;
           const value = path.node.value;
-          const keyName = key && key.name ? key.name : (key && key.value ? key.value : null);
+          const keyName = key && key.name ? key.name : key && key.value ? key.value : null;
 
-          if (keyName === 'telemetry' && value && value.type === 'StringLiteral' && value.value === 'cloud_upload') {
+          if (
+            keyName === 'telemetry' &&
+            value &&
+            value.type === 'StringLiteral' &&
+            value.value === 'cloud_upload'
+          ) {
             report({
-              message: 'telemetry: "cloud_upload" bypasses local sandboxing — use "offline" or enterprise proxy gateway',
+              message:
+                'telemetry: "cloud_upload" bypasses local sandboxing — use "offline" or enterprise proxy gateway',
               file,
               node: path.node,
               line: path.node.loc ? path.node.loc.start.line : null,
@@ -54,11 +60,19 @@ module.exports = {
         AssignmentExpression(path) {
           const left = path.node.left;
           const right = path.node.right;
-          const leftName = left && left.property && left.property.name
-            ? left.property.name
-            : (left && left.name ? left.name : null);
+          const leftName =
+            left && left.property && left.property.name
+              ? left.property.name
+              : left && left.name
+                ? left.name
+                : null;
 
-          if (leftName === 'telemetry' && right && right.type === 'StringLiteral' && right.value === 'cloud_upload') {
+          if (
+            leftName === 'telemetry' &&
+            right &&
+            right.type === 'StringLiteral' &&
+            right.value === 'cloud_upload'
+          ) {
             report({
               message: 'Assignment telemetry = "cloud_upload" bypasses local sandboxing',
               file,
@@ -78,7 +92,12 @@ module.exports = {
           const init = path.node.init;
           const varName = id && id.name ? id.name : null;
 
-          if (varName === 'telemetry' && init && init.type === 'StringLiteral' && init.value === 'cloud_upload') {
+          if (
+            varName === 'telemetry' &&
+            init &&
+            init.type === 'StringLiteral' &&
+            init.value === 'cloud_upload'
+          ) {
             report({
               message: 'Variable telemetry = "cloud_upload" bypasses local sandboxing',
               file,

@@ -10,15 +10,19 @@ const { spawn } = require('child_process');
 function generateAIPrompt(jsonData, clientName) {
   const issues = jsonData.issues || jsonData.detectedIssues || [];
   const summary = jsonData.summary || jsonData;
-  
+
   // Build context for AI
-  const issuesContext = issues.map(issue => `
+  const issuesContext = issues
+    .map(
+      (issue) => `
     - Severity: ${issue.severity || issue.severityBand}
     - Type: ${issue.type}
     - Location: ${issue.filePath || issue.file}${issue.line ? ` (line ${issue.line})` : ''}
     - Description: ${issue.description}
     - Fix: ${issue.recommendedAction || issue.recommendation}
-  `).join('\n');
+  `
+    )
+    .join('\n');
 
   return `You are a professional security auditor and technical writer. Transform the following security scan findings into a customer-friendly audit report.
 
@@ -60,25 +64,30 @@ function callAIForReport(prompt, apiKey) {
   return new Promise((resolve, reject) => {
     // Using OpenAI API as example - can be adapted for other AI services
     const process = spawn('curl', [
-      '-X', 'POST',
+      '-X',
+      'POST',
       'https://api.openai.com/v1/chat/completions',
-      '-H', 'Content-Type: application/json',
-      '-H', `Authorization: Bearer ${apiKey}`,
-      '-d', JSON.stringify({
+      '-H',
+      'Content-Type: application/json',
+      '-H',
+      `Authorization: Bearer ${apiKey}`,
+      '-d',
+      JSON.stringify({
         model: 'gpt-4',
         messages: [
           {
             role: 'system',
-            content: 'You are a professional security auditor and technical writer. Transform security findings into customer-friendly audit reports.'
+            content:
+              'You are a professional security auditor and technical writer. Transform security findings into customer-friendly audit reports.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: 0.7,
-        max_tokens: 2000
-      })
+        max_tokens: 2000,
+      }),
     ]);
 
     let output = '';
@@ -147,7 +156,9 @@ function main() {
 
   if (!apiKey) {
     console.error('❌ Error: OPENAI_API_KEY environment variable or 4th argument required'); // simplebeacon-ignore pii-logging — CLI usage message, not personal data
-    console.error('Usage: node ai-enhanced-report.js "Client" "Assessor" input.json output.md API_KEY'); // simplebeacon-ignore pii-logging — CLI usage message
+    console.error(
+      'Usage: node ai-enhanced-report.js "Client" "Assessor" input.json output.md API_KEY'
+    ); // simplebeacon-ignore pii-logging — CLI usage message
     console.error('Or set OPENAI_API_KEY environment variable'); // simplebeacon-ignore pii-logging — CLI usage message
     process.exit(1);
   }
@@ -159,14 +170,14 @@ function main() {
     }
 
     const jsonData = JSON.parse(fs.readFileSync(inputFile, 'utf8'));
-    
+
     generateAIEnhancedReport(jsonData, clientName, assessorName, apiKey)
-      .then(finalReport => {
+      .then((finalReport) => {
         // Atomic write - build entire string in memory, then write once
         fs.writeFileSync(outputFile, finalReport, 'utf8');
         console.log(`AI-Enhanced Audit Report generated: ${outputFile}`);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error:', error.message);
         process.exit(1);
       });

@@ -11,9 +11,22 @@ const SCANNABLE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.js
 const MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'tests', 'test', '__tests__', 'fixtures', 'docs',
-  'coming-soon', 'reports', 'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures'
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'archive',
+  '.simplebeacon',
+  'tests',
+  'test',
+  '__tests__',
+  'fixtures',
+  'docs',
+  'coming-soon',
+  'reports',
+  'simplebeacon-rule-tests',
+  'simplebeacon-toxic-fixtures',
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
@@ -24,25 +37,24 @@ const RULES = [
     name: 'Explicit any type annotation',
     regex: /:\s*any\b(?!\s*\[)/g,
     severity: 'low',
-    description: 'Using `any` bypasses TypeScript type checking — replace with a specific type or `unknown`',
+    description:
+      'Using `any` bypasses TypeScript type checking — replace with a specific type or `unknown`',
     skipPatterns: [
       /:\s*any\b\s*\[/,
       /\/\/\s*simplebeacon-ignore\s+type-safety/i,
       /jest\.mock\s*\(/,
-      /as\s+any\s*\)/
-    ]
+      /as\s+any\s*\)/,
+    ],
   },
   {
     id: 'SB-QUAL-002',
     name: 'TypeScript error suppression',
     regex: /\/\/\s*@ts-ignore|\/\/\s*@ts-nocheck/g,
     severity: 'low',
-    description: '@ts-ignore suppresses type errors without explanation — use @ts-expect-error with a reason comment',
-    skipPatterns: [
-      /\/\/\s*simplebeacon-ignore\s+type-safety/i,
-      /\/\/\s*@ts-expect-error/i
-    ]
-  }
+    description:
+      '@ts-ignore suppresses type errors without explanation — use @ts-expect-error with a reason comment',
+    skipPatterns: [/\/\/\s*simplebeacon-ignore\s+type-safety/i, /\/\/\s*@ts-expect-error/i],
+  },
 ];
 
 function isScannable(filePath) {
@@ -64,7 +76,11 @@ async function scanFile(filePath, rootDir) {
   if (!isScannable(filePath)) return null;
 
   let stats;
-  try { stats = await fs.promises.stat(filePath); } catch { return null; }
+  try {
+    stats = await fs.promises.stat(filePath);
+  } catch {
+    return null;
+  }
   if (stats.size > MAX_SCAN_BYTES) return null;
 
   let content;
@@ -96,7 +112,7 @@ async function scanFile(filePath, rootDir) {
         severity: rule.severity,
         line,
         match: match[0],
-        snippet: snippet.replace(/\s+/g, ' ').trim().slice(0, 120)
+        snippet: snippet.replace(/\s+/g, ' ').trim().slice(0, 120),
       });
     }
   }
@@ -134,15 +150,16 @@ async function scanTypeSafety(baseDir, options = {}) {
         pattern: f.ruleId,
         count: 1,
         description: `${relativePath}:${f.line} ${f.ruleName}: ${f.match}`,
-        recommendedAction: f.ruleId === 'SB-QUAL-001'
-          ? 'Replace `any` with a specific type, `unknown`, or a branded type. If a generic constraint is needed, use `extends`.'
-          : 'Remove @ts-ignore and fix the underlying type error, or replace with @ts-expect-error and add a reason comment.',
+        recommendedAction:
+          f.ruleId === 'SB-QUAL-001'
+            ? 'Replace `any` with a specific type, `unknown`, or a branded type. If a generic constraint is needed, use `extends`.'
+            : 'Remove @ts-ignore and fix the underlying type error, or replace with @ts-expect-error and add a reason comment.',
         affectedFiles: [relativePath],
         metadata: {
           ruleId: f.ruleId,
           match: f.match,
-          snippet: f.snippet
-        }
+          snippet: f.snippet,
+        },
       });
     }
   }
@@ -151,7 +168,7 @@ async function scanTypeSafety(baseDir, options = {}) {
     scanned: files.length,
     findings: issues.length,
     issues,
-    results: issues
+    results: issues,
   };
 }
 
@@ -160,7 +177,10 @@ async function walkFiles(dir, files, options = {}) {
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      const rel = path.relative(options.baseDir || dir, full).split(path.sep).join('/');
+      const rel = path
+        .relative(options.baseDir || dir, full)
+        .split(path.sep)
+        .join('/');
       const firstDir = rel.split('/')[0];
       if (SKIP_DIRS.has(firstDir)) continue;
       if (entry.name.startsWith('.')) continue;
@@ -168,9 +188,12 @@ async function walkFiles(dir, files, options = {}) {
     } else if (entry.isFile()) {
       files.push({
         path: full,
-        relativePath: path.relative(options.baseDir || dir, full).split(path.sep).join('/'),
+        relativePath: path
+          .relative(options.baseDir || dir, full)
+          .split(path.sep)
+          .join('/'),
         ext: path.extname(full).toLowerCase(),
-        size: (await fs.promises.stat(full)).size
+        size: (await fs.promises.stat(full)).size,
       });
     }
   }

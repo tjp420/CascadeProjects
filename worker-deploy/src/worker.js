@@ -19,7 +19,7 @@ class SignatureError extends Error {
 function json(data, status, corsOrigin) {
   const headers = {
     'Content-Type': 'application/json',
-    'Cache-Control': 'no-store'
+    'Cache-Control': 'no-store',
   };
   if (corsOrigin) {
     headers['Access-Control-Allow-Origin'] = corsOrigin;
@@ -79,7 +79,9 @@ async function hmacSha256Hex(secret, message) {
     ['sign']
   );
   const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
-  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function timingSafeEqualHex(a, b) {
@@ -89,7 +91,7 @@ function timingSafeEqualHex(a, b) {
   for (let i = 0; i < len; i++) {
     const ca = i < a.length ? a.charCodeAt(i) : 0;
     const cb = i < b.length ? b.charCodeAt(i) : 0;
-    mismatch |= (ca ^ cb);
+    mismatch |= ca ^ cb;
   }
   return mismatch === 0;
 }
@@ -164,7 +166,7 @@ export default {
     if (request.method === 'OPTIONS') {
       const headers = {
         'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Stripe-Signature, Authorization'
+        'Access-Control-Allow-Headers': 'Content-Type, Stripe-Signature, Authorization',
       };
       if (corsOrigin) {
         headers['Access-Control-Allow-Origin'] = corsOrigin;
@@ -180,7 +182,12 @@ export default {
 
     // SPA fallback for /dashboard/* routes — serve the dashboard entry HTML
     // so the client-side router can render the requested view.
-    if (url.pathname.startsWith('/dashboard/') && !url.pathname.match(/\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i)) {
+    if (
+      url.pathname.startsWith('/dashboard/') &&
+      !url.pathname.match(
+        /\.(css|js|mjs|svg|png|jpg|jpeg|gif|ico|woff2|woff|ttf|otf|json|map|txt|xml|webmanifest)$/i
+      )
+    ) {
       const cacheBust = `${Date.now()}`;
       const entryCandidates = ['/dashboard/__entry', '/dashboard/index.html'];
       for (const entryPath of entryCandidates) {
@@ -231,7 +238,11 @@ export default {
         // Backward-compatible read for old values that stored only the token string.
       }
 
-      return json({ status: 'COMPLETED', license: licenseToken, tier, capabilities }, 200, corsOrigin);
+      return json(
+        { status: 'COMPLETED', license: licenseToken, tier, capabilities },
+        200,
+        corsOrigin
+      );
     }
 
     // Dynamic Route 2: POST /api/stripe-webhook
@@ -264,7 +275,12 @@ export default {
           const userEmail = session.customer_details?.email || session.customer_email || '';
           const targetPriceId = session.metadata?.price_id;
 
-          if (sessionId && isValidSessionId(sessionId) && userEmail && session.payment_status === 'paid') {
+          if (
+            sessionId &&
+            isValidSessionId(sessionId) &&
+            userEmail &&
+            session.payment_status === 'paid'
+          ) {
             const agencyPriceId = String(env.PRICE_ID_AGENCY || 'price_agency_suite_99');
             const enterprisePriceId = String(env.PRICE_ID_ENTERPRISE || 'price_enterprise_499');
 
@@ -289,7 +305,7 @@ export default {
                 tier: tierName,
                 capabilities,
                 iat: now,
-                exp: now + ONE_YEAR_SECONDS
+                exp: now + ONE_YEAR_SECONDS,
               };
 
               const completeLicenseKey = await signJwtHS256(claims, signingSecret);
@@ -301,7 +317,7 @@ export default {
                   license: completeLicenseKey,
                   tier: tierName,
                   capabilities,
-                  generatedAt: new Date().toISOString()
+                  generatedAt: new Date().toISOString(),
                 }),
                 { expirationTtl: LICENSE_TTL_SECONDS }
               );
@@ -316,7 +332,11 @@ export default {
             if (eventId) {
               await env.LICENSE_STORE.put(
                 `processed:${eventId}`,
-                JSON.stringify({ processedAt: new Date().toISOString(), type: body.type, skipped: true }),
+                JSON.stringify({
+                  processedAt: new Date().toISOString(),
+                  type: body.type,
+                  skipped: true,
+                }),
                 { expirationTtl: LICENSE_TTL_SECONDS }
               );
             }
@@ -331,7 +351,7 @@ export default {
           try {
             const forwardHeaders = {
               'Content-Type': 'application/json',
-              'stripe-signature': request.headers.get('Stripe-Signature') || ''
+              'stripe-signature': request.headers.get('Stripe-Signature') || '',
             };
             if (licenseTokenForBackend) {
               forwardHeaders['X-License-Token'] = licenseTokenForBackend;
@@ -340,7 +360,7 @@ export default {
             const backendResponse = await fetch(`${backendUrl}/api/stripe/webhook`, {
               method: 'POST',
               headers: forwardHeaders,
-              body: payload
+              body: payload,
             });
             if (!backendResponse.ok) {
               console.error('Express backend forwarding failed:', backendResponse.status);
@@ -386,7 +406,7 @@ export default {
           method: request.method,
           headers: proxyHeaders,
           body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
-          redirect: 'manual'
+          redirect: 'manual',
         });
 
         // Copy response with CORS headers added
@@ -398,7 +418,7 @@ export default {
         return new Response(proxyResponse.body, {
           status: proxyResponse.status,
           statusText: proxyResponse.statusText,
-          headers: responseHeaders
+          headers: responseHeaders,
         });
       } catch (err) {
         return json({ error: 'Backend unreachable', detail: err.message }, 502, corsOrigin);
@@ -406,5 +426,5 @@ export default {
     }
 
     return textResponse('Not Found', 404, corsOrigin || '');
-  }
+  },
 };

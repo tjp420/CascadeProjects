@@ -82,7 +82,9 @@ export function isEmpty(value) {
  * No-op function. Useful as a default for optional callbacks.
  * @returns {void}
  */
-export function noop() { /* intentionally empty */ }
+export function noop() {
+  /* intentionally empty */
+}
 
 /**
  * Type guard: returns true if the value is neither null nor undefined.
@@ -101,7 +103,16 @@ export function isDefined(value) {
  * @returns {never}
  */
 export function assertNever(value, message = 'Unexpected value') {
-  const display = typeof value === 'string' ? value : (() => { try { return JSON.stringify(value); } catch { return String(value); } })();
+  const display =
+    typeof value === 'string'
+      ? value
+      : (() => {
+          try {
+            return JSON.stringify(value);
+          } catch {
+            return String(value);
+          }
+        })();
   throw new Error(`${message}: ${display}`);
 }
 
@@ -187,7 +198,7 @@ export function getNonce() {
   } else {
     for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
   }
-  return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** Type guard: value is null.

@@ -12,11 +12,16 @@ describe('simplebeacon-billing-api helpers', () => {
         json(body) {
           this._body = body;
           return this;
-        }
+        },
       };
       // Inline replica of billingDisabledResponse
       function billingDisabledResponse(r) {
-        return r.status(503).json({ error: 'billing_disabled', message: 'Monetization is not enabled on this server.' });
+        return r
+          .status(503)
+          .json({
+            error: 'billing_disabled',
+            message: 'Monetization is not enabled on this server.',
+          });
       }
       billingDisabledResponse(res);
       assert.strictEqual(res._status, 503);

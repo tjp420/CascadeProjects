@@ -38,7 +38,7 @@ router.post('/auth/token-status', (req, res) => {
     return res.status(503).json({
       registered: false,
       valid: false,
-      error: 'License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured'
+      error: 'License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured',
     });
   }
 
@@ -52,8 +52,9 @@ router.post('/auth/token-status', (req, res) => {
       valid: true,
       email: entry?.email || email,
       tier: entry?.tier || tier,
-      registeredAt: entry?.registered_at || (claims.iat ? new Date(claims.iat * 1000).toISOString() : null),
-      expiresAt: claims.exp ? new Date(claims.exp * 1000).toISOString() : null
+      registeredAt:
+        entry?.registered_at || (claims.iat ? new Date(claims.iat * 1000).toISOString() : null),
+      expiresAt: claims.exp ? new Date(claims.exp * 1000).toISOString() : null,
     });
   }
 
@@ -64,7 +65,7 @@ router.post('/auth/token-status', (req, res) => {
       valid: false,
       email: entry.email,
       tier: entry.tier,
-      registeredAt: entry.registered_at
+      registeredAt: entry.registered_at,
     });
   }
   return res.json({ registered: false, valid: false });
@@ -74,7 +75,15 @@ router.post('/auth/token-status', (req, res) => {
 router.post('/license/validate', (req, res) => {
   const { token } = req.body || {};
   if (!token || typeof token !== 'string') {
-    return res.status(400).json({ active: false, sandbox: true, registered: false, valid: false, error: 'Token required' });
+    return res
+      .status(400)
+      .json({
+        active: false,
+        sandbox: true,
+        registered: false,
+        valid: false,
+        error: 'Token required',
+      });
   }
 
   const secret = resolveLicenseSecret();
@@ -84,7 +93,7 @@ router.post('/license/validate', (req, res) => {
       sandbox: true,
       registered: false,
       valid: false,
-      error: 'License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured'
+      error: 'License validation unavailable: SIMPLEBEACON_LICENSE_SECRET is not configured',
     });
   }
 
@@ -104,7 +113,7 @@ router.post('/license/validate', (req, res) => {
     tier,
     features: claims?.features || [],
     expiry: claims?.exp || null,
-    upgradeUrl
+    upgradeUrl,
   });
 });
 
@@ -126,12 +135,19 @@ router.post('/auth/register-token', (req, res) => {
     const payloadBase64 = parts.length === 2 ? parts[0] : parts[1];
     if (payloadBase64) {
       const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
-      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
       const json = JSON.parse(Buffer.from(padded, 'base64').toString('utf8'));
       tier = json.tier || json.product || 'community';
     }
-  } catch { /* ignore decode errors */ }
-  insertLicenseToken({ token, email: email.toLowerCase(), tier, registered_at: new Date().toISOString() });
+  } catch {
+    /* ignore decode errors */
+  }
+  insertLicenseToken({
+    token,
+    email: email.toLowerCase(),
+    tier,
+    registered_at: new Date().toISOString(),
+  });
   res.json({ success: true, registered: true, tier });
 });
 
@@ -141,19 +157,19 @@ router.post('/tokens/sandbox', (req, res) => {
     id: 'sandbox-' + Date.now(),
     email: 'sandbox@local.dev',
     name: 'Developer Sandbox',
-    trustLevel: 'gold'
+    trustLevel: 'gold',
   });
   insertLicenseToken({
     token: sandboxToken,
     email: 'sandbox@local.dev',
     tier: 'community',
-    registered_at: new Date().toISOString()
+    registered_at: new Date().toISOString(),
   });
   res.json({
     success: true,
     token: sandboxToken,
     tier: 'sandbox',
-    message: 'Sandbox token generated — limited to 100 requests/day'
+    message: 'Sandbox token generated — limited to 100 requests/day',
   });
 });
 

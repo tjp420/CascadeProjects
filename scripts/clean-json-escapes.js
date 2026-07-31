@@ -10,7 +10,8 @@ function walk(dir) {
   for (const e of entries) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) {
-      if (['node_modules', '.git', '.simplebeacon', 'vscode-extension/out'].includes(e.name)) continue;
+      if (['node_modules', '.git', '.simplebeacon', 'vscode-extension/out'].includes(e.name))
+        continue;
       walk(p);
     } else if (e.isFile() && p.endsWith('.json')) {
       scanned++;

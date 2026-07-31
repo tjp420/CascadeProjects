@@ -12,7 +12,7 @@ export function renderPathHealthDashboard() {
   const container = document.createElement('div');
   container.className = 'card';
   container.id = 'path-health-dashboard';
-  
+
   const header = document.createElement('div');
   header.className = 'card-header';
   const flex = document.createElement('div');
@@ -46,7 +46,7 @@ export function renderPathHealthDashboard() {
 
   container.appendChild(header);
   container.appendChild(body);
-  
+
   bindPathHealthDashboard(container);
   return container;
 }
@@ -58,15 +58,15 @@ export function renderPathHealthDashboard() {
  */
 function bindPathHealthDashboard(container) {
   const refreshBtn = container.querySelector('#path-health-refresh');
-  
+
   refreshBtn.addEventListener('click', () => {
     if (!isRefreshing) {
       loadPathHealthData(container);
     }
   });
-  
+
   loadPathHealthData(container, true);
-  
+
   // Set up 30-second polling
   if (refreshInterval) clearInterval(refreshInterval);
   refreshInterval = setInterval(() => {
@@ -84,7 +84,7 @@ async function loadPathHealthData(container, isInitial = false) {
   const content = container.querySelector('#path-health-content');
   const gateBadge = container.querySelector('#path-health-gate');
   const refreshBtn = container.querySelector('#path-health-refresh');
-  
+
   if (isInitial) {
     // simplebeacon-ignore innerhtml-usage — static loading text
     content.innerHTML = '<div class="text-gray-500">Loading system metrics...</div>';
@@ -93,7 +93,7 @@ async function loadPathHealthData(container, isInitial = false) {
     refreshBtn.disabled = true;
     refreshBtn.textContent = 'Refreshing...';
   }
-  
+
   try {
     const data = await fetchPathHealthMetrics();
 
@@ -106,7 +106,8 @@ async function loadPathHealthData(container, isInitial = false) {
       gateBadge.textContent = `Gate: ${data.summary.globalGate}`;
     } else if (data.status === 'unavailable') {
       // simplebeacon-ignore innerhtml-usage — static offline message
-      content.innerHTML = '<div class="text-muted" style="font-size:0.85rem;">Path health metrics unavailable — running offline.</div>';
+      content.innerHTML =
+        '<div class="text-muted" style="font-size:0.85rem;">Path health metrics unavailable — running offline.</div>';
       gateBadge.className = 'badge badge-ghost';
       gateBadge.textContent = 'Gate: —';
     } else {
@@ -162,13 +163,17 @@ function renderPathHealthContent(container, data) {
           </tr>
         </thead>
         <tbody>
-          ${directories.map(dir => `
+          ${directories
+            .map(
+              (dir) => `
             <tr>
               <td class="font-mono">${dir.path}</td>
               <td><span class="text-success font-semibold">${dir.status}</span></td>
               <td>${dir.findings}</td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
     </div>

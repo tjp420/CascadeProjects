@@ -15,17 +15,17 @@ const { mergeIstanbulTelemetry } = require('./istanbul-telemetry-merge.cjs');
  * @returns {Object} Merged analytics model.
  */
 function buildAnalyticsModel(baseDir, sample = {}, options = {}) {
-    return mergeIstanbulTelemetry(
-        {
-            ...sample,
-            type: sample.type || 'analytics-model',
-            dataSource: sample.dataSource || 'repository-audit'
-        },
-        baseDir,
-        options
-    );
+  return mergeIstanbulTelemetry(
+    {
+      ...sample,
+      type: sample.type || 'analytics-model',
+      dataSource: sample.dataSource || 'repository-audit',
+    },
+    baseDir,
+    options
+  );
 }
 
 module.exports = {
-    buildAnalyticsModel
+  buildAnalyticsModel,
 };

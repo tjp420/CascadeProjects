@@ -4,6 +4,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { authenticate } = require('../middleware/auth.cjs');
 const { promptFirewall } = require('../middleware/prompt-firewall.cjs');
+const { authorize } = require('../middleware/authorize.cjs');
 const evalStore = require('../lib/model-eval-store.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const logger = require('../lib/app-logger.cjs');
@@ -341,7 +342,7 @@ router.get('/suites/:id', (req, res) => {
 });
 
 // ── POST /api/model-eval/suites ─────────────────────────────────────────────
-router.post('/suites', (req, res) => {
+router.post('/suites', authorize('write:all'), (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id, name, description, tests } = req.body || {};
@@ -368,7 +369,7 @@ router.post('/suites', (req, res) => {
 });
 
 // ── DELETE /api/model-eval/suites/:id ───────────────────────────────────────
-router.delete('/suites/:id', (req, res) => {
+router.delete('/suites/:id', authorize('delete:all'), (req, res) => {
   try {
     const orgId = getOrgId(req);
     const oldSuite = evalStore.getSuite(req.params.id, orgId);
@@ -392,7 +393,7 @@ router.delete('/suites/:id', (req, res) => {
 
 // ── POST /api/model-eval/run ────────────────────────────────────────────────
 //   Body: { suiteId?, provider, model?, tests? (override suite tests) }
-router.post('/run', promptFirewall(), async (req, res) => {
+router.post('/run', authorize('write:evals'), promptFirewall(), async (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { suiteId, provider, model, tests } = req.body || {};

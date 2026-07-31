@@ -6,22 +6,31 @@
 const fs = require('fs');
 const path = require('path');
 
-const SCANNABLE_EXTENSIONS = new Set([
-  '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx'
-]);
+const SCANNABLE_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx']);
 
 const MAX_SCAN_BYTES = 512000;
 
 const SKIP_DIRS = new Set([
-  'node_modules', '.git', 'coverage', 'dist', 'build', 'archive',
-  '.simplebeacon', 'fixtures', 'docs', 'coming-soon', 'reports',
-  'simplebeacon-rule-tests', 'simplebeacon-toxic-fixtures',
+  'node_modules',
+  '.git',
+  'coverage',
+  'dist',
+  'build',
+  'archive',
+  '.simplebeacon',
+  'fixtures',
+  'docs',
+  'coming-soon',
+  'reports',
+  'simplebeacon-rule-tests',
+  'simplebeacon-toxic-fixtures',
   'ai-platform/web/simplebeacon-dashboard/js-es2018',
-  'simplebeacon-vscode-merged/dashboard-web/js-es2018'
+  'simplebeacon-vscode-merged/dashboard-web/js-es2018',
 ]);
 
 const SKIP_FILES = /\.(test|spec)\.(js|cjs|mjs|ts|tsx)$/i;
-const SKIP_TEMP_FILES = /^(_tmp_|_merged_js|_test_|_test_welcome|inspect_vsix|temp_codemap|tmp-check|__tmp_script|debug-|__test_server|replace-dashboard|test-welcome-load)/i;
+const SKIP_TEMP_FILES =
+  /^(_tmp_|_merged_js|_test_|_test_welcome|inspect_vsix|temp_codemap|tmp-check|__tmp_script|debug-|__test_server|replace-dashboard|test-welcome-load)/i;
 
 function isScannable(filePath) {
   const ext = path.extname(filePath).toLowerCase();
@@ -104,7 +113,10 @@ function findUnusedImports(content, imports) {
   for (const rex of reExportMatches) {
     const inner = rex.replace(/export\s*\{|\}/g, '');
     for (const part of inner.split(',')) {
-      const name = part.trim().split(/\s+as\s+/)[0].trim();
+      const name = part
+        .trim()
+        .split(/\s+as\s+/)[0]
+        .trim();
       if (name) reExportedNames.add(name);
     }
   }
@@ -126,7 +138,7 @@ function findUnusedImports(content, imports) {
           severity: 'low',
           line: imp.line,
           match: name,
-          snippet: `Import "${name}" from "${imp.modulePath}" is never referenced`
+          snippet: `Import "${name}" from "${imp.modulePath}" is never referenced`,
         });
       }
     }
@@ -151,7 +163,7 @@ function findUnreachableCode(content) {
         severity: 'low',
         line: i + 1,
         match: line.slice(0, 60),
-        snippet: `Always-false condition makes the following block unreachable`
+        snippet: `Always-false condition makes the following block unreachable`,
       });
     }
     // Detect `return` or `throw` not at end of function with code after
@@ -174,7 +186,7 @@ function findUnreachableCode(content) {
           severity: 'low',
           line: i + 1,
           match: line.slice(0, 60),
-          snippet: `Code after return statement is unreachable`
+          snippet: `Code after return statement is unreachable`,
         });
       }
     }
@@ -185,7 +197,11 @@ function findUnreachableCode(content) {
 
 async function scanFile(filePath) {
   let stats;
-  try { stats = await fs.promises.stat(filePath); } catch { return null; }
+  try {
+    stats = await fs.promises.stat(filePath);
+  } catch {
+    return null;
+  }
   if (stats.size > MAX_SCAN_BYTES) return null;
 
   let content;
@@ -196,10 +212,7 @@ async function scanFile(filePath) {
   }
 
   const imports = extractImports(content);
-  const findings = [
-    ...findUnusedImports(content, imports),
-    ...findUnreachableCode(content)
-  ];
+  const findings = [...findUnusedImports(content, imports), ...findUnreachableCode(content)];
 
   return findings.length ? findings : null;
 }
@@ -240,7 +253,7 @@ async function scanDeadCode(rootDir, options = {}) {
       if (fileFindings) {
         results.push({
           filePath: fullPath,
-          findings: fileFindings
+          findings: fileFindings,
         });
       }
     }
@@ -254,7 +267,7 @@ async function scanDeadCode(rootDir, options = {}) {
     results,
     humanReadable: results.length
       ? `Dead code or unused imports found in ${results.length} file(s). Removing dead code reduces bundle size and maintenance burden.`
-      : 'No dead code or unused imports detected.'
+      : 'No dead code or unused imports detected.',
   };
 }
 

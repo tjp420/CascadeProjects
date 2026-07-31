@@ -9,9 +9,9 @@ import { resolveJestTestsLabel } from '../services/analyzeService.js';
  * @returns {any}
  */
 function parseJestTotal(jestTestsLabel, fallback) {
-  if (!jestTestsLabel) return fallback ?? null;
-  const match = String(jestTestsLabel).match(/\/(\d+)/);
-  return match ? Number(match[1]) : fallback ?? null;
+    if (!jestTestsLabel) return fallback ?? null;
+    const match = String(jestTestsLabel).match(/\/(\d+)/);
+    return match ? Number(match[1]) : (fallback ?? null);
 }
 
 /**
@@ -22,19 +22,20 @@ function parseJestTotal(jestTestsLabel, fallback) {
  * @returns {any}
  */
 function resolveCoverageSnapshot(coverage, baseline, dashboardHome) {
-  const merged = { ...(coverage || {}) };
-  if (merged.passedTests != null && merged.totalTests != null) return merged;
+    const merged = { ...(coverage || {}) };
+    if (merged.passedTests != null && merged.totalTests != null) return merged;
 
-  const jestLabel = resolveJestTestsLabel(baseline, dashboardHome);
-  const passed = merged.passedTests ?? baseline?.jestTestsPassing ?? dashboardHome?.overview?.passedTests;
-  const total = merged.totalTests
-    ?? parseJestTotal(baseline?.jestTestsLabel, passed)
-    ?? dashboardHome?.overview?.totalTests
-    ?? passed;
+    const jestLabel = resolveJestTestsLabel(baseline, dashboardHome);
+    const passed = merged.passedTests ?? baseline?.jestTestsPassing ?? dashboardHome?.overview?.passedTests;
+    const total =
+        merged.totalTests ??
+        parseJestTotal(baseline?.jestTestsLabel, passed) ??
+        dashboardHome?.overview?.totalTests ??
+        passed;
 
-  if (passed != null) merged.passedTests = passed;
-  if (total != null) merged.totalTests = total;
-  return merged;
+    if (passed != null) merged.passedTests = passed;
+    if (total != null) merged.totalTests = total;
+    return merged;
 }
 
 /**
@@ -43,9 +44,11 @@ function resolveCoverageSnapshot(coverage, baseline, dashboardHome) {
  * @returns {any}
  */
 function coveragePendingMessage(coverage) {
-  if (coverage?.branchCoverage != null || coverage?.lineCoverage != null) return '';
-  return coverage?.notes
-    || 'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.';
+    if (coverage?.branchCoverage != null || coverage?.lineCoverage != null) return '';
+    return (
+        coverage?.notes ||
+        'Run npm run test:coverage for Istanbul percentages. Sync Jest counts via Tools → Baseline sync.'
+    );
 }
 
 /**
@@ -54,58 +57,59 @@ function coveragePendingMessage(coverage) {
  * @returns {any}
  */
 function npmAuditSummary(audit) {
-  const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
-  const deps = audit?.dependencies || audit?.metadata?.dependencies || {};
-  return {
-    dependencies: summary.dependencies ?? deps.total ?? null,
-    prod: summary.prodDependencies ?? deps.prod ?? null,
-    dev: summary.devDependencies ?? deps.dev ?? null,
-    critical: summary.critical ?? 0,
-    high: summary.high ?? 0,
-    moderate: summary.moderate ?? summary.medium ?? 0,
-    low: summary.low ?? 0,
-    vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? (audit?.vulnerabilities?.length ?? 0),
-    generatedAt: audit?.generatedAt ?? null
-  };
+    const summary = audit?.summary || audit?.metadata?.vulnerabilities || {};
+    const deps = audit?.dependencies || audit?.metadata?.dependencies || {};
+    return {
+        dependencies: summary.dependencies ?? deps.total ?? null,
+        prod: summary.prodDependencies ?? deps.prod ?? null,
+        dev: summary.devDependencies ?? deps.dev ?? null,
+        critical: summary.critical ?? 0,
+        high: summary.high ?? 0,
+        moderate: summary.moderate ?? summary.medium ?? 0,
+        low: summary.low ?? 0,
+        vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? audit?.vulnerabilities?.length ?? 0,
+        generatedAt: audit?.generatedAt ?? null
+    };
 }
 
 /**
  * Quality view.
  */
 export class QualityView {
-  constructor(app) {
-    this.app = app;
-    this.auditLoading = false;
-  }
-
-  _getVscodeApi() {
-    if (this._vscodeApiCached) return this._vscodeApiCached;
-    if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
-    try {
-      this._vscodeApiCached = window.acquireVsCodeApi();
-      return this._vscodeApiCached;
-    } catch {
-      return null;
+    constructor(app) {
+        this.app = app;
+        this.auditLoading = false;
     }
-  }
 
-  render() {
-    const security = this.app.state.security || {};
-    const coverage = resolveCoverageSnapshot(
-      this.app.state.coverage,
-      this.app.state.baseline,
-      this.app.state.dashboardHome
-    );
-    const quality = this.app.state.quality || {};
-    const coverageHint = coveragePendingMessage(coverage);
-    const npmAudit = this.app.state.npmAudit;
-    const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
-    const dependencyVulnTotal = auditStats?.vulnerabilityTotal ?? security.npmAuditTotal ?? security.openVulnerabilities ?? '—';
-    const engineeringFindings = security.openEngineeringFindings ?? '—';
+    _getVscodeApi() {
+        if (this._vscodeApiCached) return this._vscodeApiCached;
+        if (typeof window === 'undefined' || typeof window.acquireVsCodeApi !== 'function') return null;
+        try {
+            this._vscodeApiCached = window.acquireVsCodeApi();
+            return this._vscodeApiCached;
+        } catch {
+            return null;
+        }
+    }
 
-    const el = document.createElement('div');
-    el.className = 'fade-in';
-el.innerHTML = `
+    render() {
+        const security = this.app.state.security || {};
+        const coverage = resolveCoverageSnapshot(
+            this.app.state.coverage,
+            this.app.state.baseline,
+            this.app.state.dashboardHome
+        );
+        const quality = this.app.state.quality || {};
+        const coverageHint = coveragePendingMessage(coverage);
+        const npmAudit = this.app.state.npmAudit;
+        const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
+        const dependencyVulnTotal =
+            auditStats?.vulnerabilityTotal ?? security.npmAuditTotal ?? security.openVulnerabilities ?? '—';
+        const engineeringFindings = security.openEngineeringFindings ?? '—';
+
+        const el = document.createElement('div');
+        el.className = 'fade-in';
+        el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Quality & Security</h1>
         <p class="text-muted analyze-hero-sub">Measured coverage, security checklist, and live npm audit.</p>
@@ -163,76 +167,95 @@ el.innerHTML = `
       </div>
     `;
 
-    el.querySelector('#run-audit-btn')?.addEventListener('click', () => this.runAudit());
-    el.querySelector('#quality-send-ai-btn')?.addEventListener('click', async () => {
-      const security = this.app.state.security || {};
-      const coverage = resolveCoverageSnapshot(this.app.state.coverage, this.app.state.baseline, this.app.state.dashboardHome);
-      const quality = this.app.state.quality || {};
-      const npmAudit = this.app.state.npmAudit;
-      const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
-      // Extract individual vulnerability details for the AI agent
-      const vulnList = [];
-      const rawVulns = npmAudit?.vulnerabilities || npmAudit?.advisories || {};
-      if (typeof rawVulns === 'object' && rawVulns !== null) {
-        for (const [pkg, info] of Object.entries(rawVulns)) {
-          if (info && typeof info === 'object') {
-            const sev = info.severity || info.via?.[0]?.severity || 'unknown';
-            const title = info.via?.[0]?.title || info.title || info.overview || '';
-            vulnList.push({ package: pkg, severity: sev, title });
-          }
-        }
-      }
-      const payload = {
-        projectPath: this.app.state.lastProjectPath || window.location.origin,
-        reportType: 'quality-security',
-        reportSummary: {
-          lineCoverage: coverage.overallCoverage ?? coverage.lineCoverage ?? 'N/A',
-          branchCoverage: coverage.branchCoverage ?? 'N/A',
-          securityScore: security.securityScore ?? 'N/A',
-          qualityScore: quality.overallScore ?? quality.qualityScore ?? 'N/A',
-          npmVulnerabilities: auditStats?.vulnerabilityTotal ?? 'N/A',
-          openEngineeringFindings: security.openEngineeringFindings ?? 'N/A'
-        },
-        issues: vulnList.slice(0, 200),
-        notes: 'Quality & Security — coverage, security checklist, and npm audit'
-      };
-      const vscode = this._getVscodeApi();
-      if (vscode) {
-        try { vscode.postMessage({ command: 'sendToAI', data: payload }); showToast('Quality & Security data sent to AI agent', 'success'); return; }
-        catch (err) { window["console"]["warn"]('[Quality-AI] vscode.postMessage failed:', err); } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
-      }
-      try {
-        const res = await fetch('/api/ai-context', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const json = await res.json();
-        if (json.success && json.content) { await navigator.clipboard.writeText(json.content); showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success'); }
-        else { showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success'); }
-      } catch (err) { showToast('Failed to send: ' + err.message, 'error'); }
-    });
+        el.querySelector('#run-audit-btn')?.addEventListener('click', () => this.runAudit());
+        el.querySelector('#quality-send-ai-btn')?.addEventListener('click', async () => {
+            const security = this.app.state.security || {};
+            const coverage = resolveCoverageSnapshot(
+                this.app.state.coverage,
+                this.app.state.baseline,
+                this.app.state.dashboardHome
+            );
+            const quality = this.app.state.quality || {};
+            const npmAudit = this.app.state.npmAudit;
+            const auditStats = npmAudit && !npmAudit.error ? npmAuditSummary(npmAudit) : null;
+            // Extract individual vulnerability details for the AI agent
+            const vulnList = [];
+            const rawVulns = npmAudit?.vulnerabilities || npmAudit?.advisories || {};
+            if (typeof rawVulns === 'object' && rawVulns !== null) {
+                for (const [pkg, info] of Object.entries(rawVulns)) {
+                    if (info && typeof info === 'object') {
+                        const sev = info.severity || info.via?.[0]?.severity || 'unknown';
+                        const title = info.via?.[0]?.title || info.title || info.overview || '';
+                        vulnList.push({ package: pkg, severity: sev, title });
+                    }
+                }
+            }
+            const payload = {
+                projectPath: this.app.state.lastProjectPath || window.location.origin,
+                reportType: 'quality-security',
+                reportSummary: {
+                    lineCoverage: coverage.overallCoverage ?? coverage.lineCoverage ?? 'N/A',
+                    branchCoverage: coverage.branchCoverage ?? 'N/A',
+                    securityScore: security.securityScore ?? 'N/A',
+                    qualityScore: quality.overallScore ?? quality.qualityScore ?? 'N/A',
+                    npmVulnerabilities: auditStats?.vulnerabilityTotal ?? 'N/A',
+                    openEngineeringFindings: security.openEngineeringFindings ?? 'N/A'
+                },
+                issues: vulnList.slice(0, 200),
+                notes: 'Quality & Security — coverage, security checklist, and npm audit'
+            };
+            const vscode = this._getVscodeApi();
+            if (vscode) {
+                try {
+                    vscode.postMessage({ command: 'sendToAI', data: payload });
+                    showToast('Quality & Security data sent to AI agent', 'success');
+                    return;
+                } catch (err) {
+                    window['console']['warn']('[Quality-AI] vscode.postMessage failed:', err);
+                } // simplebeacon-ignore ai-residue — intentional error handling for VS Code API
+            }
+            try {
+                const res = await fetch('/api/ai-context', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                if (json.success && json.content) {
+                    await navigator.clipboard.writeText(json.content);
+                    showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                } else {
+                    showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
+                }
+            } catch (err) {
+                showToast('Failed to send: ' + err.message, 'error');
+            }
+        });
 
-    return el;
-  }
-
-  renderAudit(audit) {
-    if (!audit) {
-      return '<p class="text-muted card">Click “Run audit” to fetch live npm audit results from the project root.</p>';
+        return el;
     }
 
-    if (audit.error || audit.success === false) {
-      return `
+    renderAudit(audit) {
+        if (!audit) {
+            return '<p class="text-muted card">Click “Run audit” to fetch live npm audit results from the project root.</p>';
+        }
+
+        if (audit.error || audit.success === false) {
+            return `
         <div class="card">
           <p class="text-warning mb-2"><strong>npm audit failed</strong></p>
           <p class="text-muted">${escapeHtml(audit.error || audit.message || 'Unknown error')}</p>
           ${audit.stdout ? `<pre class="audit-log">${escapeHtml(String(audit.stdout).slice(-1500))}</pre>` : ''}
         </div>
       `;
-    }
+        }
 
-    const s = npmAuditSummary(audit);
-    const rawVulns = audit.vulnerabilities || audit.advisories;
-    const vulnerabilities = Array.isArray(rawVulns) ? rawVulns : (rawVulns ? Object.values(rawVulns) : []);
-    const clean = s.vulnerabilityTotal === 0;
+        const s = npmAuditSummary(audit);
+        const rawVulns = audit.vulnerabilities || audit.advisories;
+        const vulnerabilities = Array.isArray(rawVulns) ? rawVulns : rawVulns ? Object.values(rawVulns) : [];
+        const clean = s.vulnerabilityTotal === 0;
 
-    return `
+        return `
       <div class="card">
         <div class="metrics-row mb-4">
           <div class="metric-chip" title="Packages in npm lockfile tree">
@@ -243,94 +266,113 @@ el.innerHTML = `
           <div class="metric-chip"><strong>${s.moderate}</strong> moderate</div>
           <div class="metric-chip"><strong>${s.low}</strong> low</div>
         </div>
-        ${s.prod != null ? `
+        ${
+            s.prod != null
+                ? `
           <p class="text-muted text-sm mb-4">${formatNumber(s.prod)} prod · ${formatNumber(s.dev)} dev dependencies scanned.</p>
-        ` : ''}
-        ${clean ? `
+        `
+                : ''
+        }
+        ${
+            clean
+                ? `
           <p class="text-success">Clean audit — ${formatNumber(s.dependencies)} dependencies, 0 known vulnerabilities.</p>
-        ` : ''}
-        ${vulnerabilities.length ? `
+        `
+                : ''
+        }
+        ${
+            vulnerabilities.length
+                ? `
           <table class="results-table">
             <thead><tr><th>Severity</th><th>Package</th><th>Title</th></tr></thead>
             <tbody>
-              ${vulnerabilities.slice(0, 20).map((v) => `
+              ${vulnerabilities
+                  .slice(0, 20)
+                  .map(
+                      v => `
                 <tr>
                   <td><span class="severity-pill ${escapeHtml(v.severity || 'unknown')}">${escapeHtml(v.severity || 'unknown')}</span></td>
                   <td><code>${escapeHtml(v.component || v.name || v.module_name || '—')}</code></td>
                   <td>${escapeHtml(v.title || v.overview || v.url || '—')}</td>
                 </tr>
-              `).join('')}
+              `
+                  )
+                  .join('')}
             </tbody>
           </table>
-        ` : (!clean ? `<p class="text-muted">No vulnerability details returned.</p>` : '')}
+        `
+                : !clean
+                  ? `<p class="text-muted">No vulnerability details returned.</p>`
+                  : ''
+        }
         ${s.generatedAt ? `<p class="text-muted text-sm mt-4">Generated ${escapeHtml(new Date(s.generatedAt).toLocaleString())}</p>` : ''}
       </div>
     `;
-  }
-
-  async runAudit() {
-    this.auditLoading = true;
-    this.refreshAuditButton();
-
-    try {
-      this.app.state.npmAudit = await this.app.platformService.refreshNpmAudit({ force: true });
-      const s = npmAuditSummary(this.app.state.npmAudit);
-      showToast(
-        s.dependencies != null
-          ? `npm audit: ${formatNumber(s.dependencies)} dependencies, ${s.vulnerabilityTotal} vulnerabilities`
-          : 'npm audit complete',
-        s.vulnerabilityTotal ? 'info' : 'success'
-      );
-    } catch (err) {
-      this.app.state.npmAudit = { error: err.message };
-      showToast(err.message, 'error');
     }
 
-    this.auditLoading = false;
-    this.updateAuditResults();
-  }
+    async runAudit() {
+        this.auditLoading = true;
+        this.refreshAuditButton();
 
-  refreshAuditButton() {
-    const btn = document.getElementById('run-audit-btn');
-    if (btn) {
-      btn.textContent = this.auditLoading ? 'Running…' : 'Run audit';
-      btn.disabled = this.auditLoading;
-    }
-  }
+        try {
+            this.app.state.npmAudit = await this.app.platformService.refreshNpmAudit({ force: true });
+            const s = npmAuditSummary(this.app.state.npmAudit);
+            showToast(
+                s.dependencies != null
+                    ? `npm audit: ${formatNumber(s.dependencies)} dependencies, ${s.vulnerabilityTotal} vulnerabilities`
+                    : 'npm audit complete',
+                s.vulnerabilityTotal ? 'info' : 'success'
+            );
+        } catch (err) {
+            this.app.state.npmAudit = { error: err.message };
+            showToast(err.message, 'error');
+        }
 
-  updateAuditResults() {
-    const slot = document.getElementById('audit-results');
-    if (slot && this.app.currentView === this) {
-slot.innerHTML = this.renderAudit(this.app.state.npmAudit);
-      this.refreshAuditButton();
-      return;
-    }
-
-    const main = document.getElementById('app-main');
-    if (main && this.app.currentView === this) {
-      this.mount(main);
-    }
-  }
-
-  async mount(container) {
-    if (!container) return;
-    this._container = container;
-
-    const needsPlatformData = this.app.state.coverage == null || this.app.state.security == null;
-    if (needsPlatformData) {
-container.innerHTML = '<p class="text-muted card">Loading quality metrics…</p>';
-      try {
-        await this.app.loadPlatformData();
-      } catch (err) {
-        showToast(err.message || 'Failed to load quality metrics', 'error');
-      }
+        this.auditLoading = false;
+        this.updateAuditResults();
     }
 
-    if (this._container !== container) return;
-container.innerHTML = '';
-    container.appendChild(this.render());
-    if (!this.app.state.npmAudit && !this.auditLoading) {
-      this.runAudit();
+    refreshAuditButton() {
+        const btn = document.getElementById('run-audit-btn');
+        if (btn) {
+            btn.textContent = this.auditLoading ? 'Running…' : 'Run audit';
+            btn.disabled = this.auditLoading;
+        }
     }
-  }
+
+    updateAuditResults() {
+        const slot = document.getElementById('audit-results');
+        if (slot && this.app.currentView === this) {
+            slot.innerHTML = this.renderAudit(this.app.state.npmAudit);
+            this.refreshAuditButton();
+            return;
+        }
+
+        const main = document.getElementById('app-main');
+        if (main && this.app.currentView === this) {
+            this.mount(main);
+        }
+    }
+
+    async mount(container) {
+        if (!container) return;
+        this._container = container;
+
+        const needsPlatformData = this.app.state.coverage == null || this.app.state.security == null;
+        if (needsPlatformData) {
+            container.innerHTML = '<p class="text-muted card">Loading quality metrics…</p>';
+            try {
+                await this.app.loadPlatformData();
+            } catch (err) {
+                showToast(err.message || 'Failed to load quality metrics', 'error');
+            }
+        }
+
+        if (this._container !== container) return;
+        container.innerHTML = '';
+        container.appendChild(this.render());
+        if (!this.app.state.npmAudit && !this.auditLoading) {
+            this.runAudit();
+        }
+    }
 }

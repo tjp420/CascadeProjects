@@ -39,7 +39,7 @@ export class AssessmentService {
   rememberAssessment(entry) {
     const next = [
       entry,
-      ...readRecentAssessmentsFromStorage().filter((item) => item.assessmentId !== entry.assessmentId)
+      ...readRecentAssessmentsFromStorage().filter((item) => item.assessmentId !== entry.assessmentId),
     ];
     writeRecentAssessmentsToStorage(next);
     return next;
@@ -50,9 +50,9 @@ export class AssessmentService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...authService.getAuthHeaders()
+        ...authService.getAuthHeaders(),
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     const scanPayload = await readJsonResponseBody(res, {});
@@ -68,7 +68,7 @@ export class AssessmentService {
         company: payload.company || 'Unknown',
         createdAt: new Date().toISOString(),
         reportUrl: scanPayload.reportUrl || `/api/assessment/report/${scanPayload.assessmentId}`,
-        summary: scanPayload.summary || null
+        summary: scanPayload.summary || null,
       });
     }
 
@@ -77,7 +77,7 @@ export class AssessmentService {
 
   async fetchReport(assessmentId) {
     const res = await fetch(`/api/assessment/report/${encodeURIComponent(assessmentId)}`, {
-      headers: authService.getAuthHeaders()
+      headers: authService.getAuthHeaders(),
     });
     const reportPayload = await readJsonResponseBody(res, {});
     if (!res.ok) {

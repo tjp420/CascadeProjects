@@ -7,7 +7,8 @@ const env = (typeof window !== 'undefined' && window.__SIMPLEBEACON_ENV__) || {}
 /**
  * D a s h b o a r d  b a s e  u r l.
  */
-export const DASHBOARD_BASE_URL = env.DASHBOARD_BASE_URL || (typeof window !== 'undefined' && window.__SB_API_HOST__) || '';
+export const DASHBOARD_BASE_URL =
+  env.DASHBOARD_BASE_URL || (typeof window !== 'undefined' && window.__SB_API_HOST__) || '';
 /**
  * O l l a m a  d e f a u l t  u r l.
  */
@@ -17,8 +18,9 @@ export const OLLAMA_DEFAULT_URL = env.OLLAMA_DEFAULT_URL || 'http://127.0.0.1:11
  */
 export const COMING_SOON_URL = env.COMING_SOON_URL || '/';
 /** Latest VS Code extension package for hosted-dashboard bridge setup. */
-export const VSIX_DOWNLOAD_URL = env.VSIX_DOWNLOAD_URL
-    || (typeof window !== 'undefined' && window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.vsixDownloadUrl)
-    || 'https://simplebeacon.ai/downloads/simplebeacon.vsix';
+export const VSIX_DOWNLOAD_URL =
+  env.VSIX_DOWNLOAD_URL ||
+  (typeof window !== 'undefined' && window.SIMPLEBEACON_SITE && window.SIMPLEBEACON_SITE.vsixDownloadUrl) ||
+  'https://simplebeacon.ai/downloads/simplebeacon.vsix';
 export const EXTENSION_ID = env.EXTENSION_ID || 'simplebeacon.simplebeacon-vscode';
 // DEMO_PASSWORD removed — token-based auth only, no hardcoded credentials

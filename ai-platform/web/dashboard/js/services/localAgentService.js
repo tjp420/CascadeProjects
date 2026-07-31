@@ -19,7 +19,7 @@ const AGENT_DOWNLOAD_URLS = {
   windows: '/downloads/simplebeacon-local-agent-setup.exe',
   linux: '/downloads/simplebeacon-local-agent-portable.zip',
   macos: '/downloads/simplebeacon-local-agent-portable.zip',
-  unknown: '/downloads/simplebeacon-local-agent-portable.zip'
+  unknown: '/downloads/simplebeacon-local-agent-portable.zip',
 };
 
 let cachedAgentStatus = null;
@@ -31,11 +31,14 @@ export function isLocalPath(value) {
   const raw = String(value || '').trim();
   if (!raw) return false;
   if (/^https?:\/\//i.test(raw) || /^file:\/\//i.test(raw)) return false;
-  const isWindowsClient = typeof navigator !== 'undefined' && /Win(dows|32|64)/i.test(navigator.userAgent || '');
+  const isWindowsClient =
+    typeof navigator !== 'undefined' && /Win(dows|32|64)/i.test(navigator.userAgent || '');
   if (isWindowsClient) {
     return /^[A-Za-z]:[\\/]/.test(raw) || /^\\\\/.test(raw);
   }
-  return /^[A-Za-z]:[\\/]/.test(raw) || /^\/[^/]/.test(raw) || /^~[\\/]/.test(raw) || /^\\\\/.test(raw);
+  return (
+    /^[A-Za-z]:[\\/]/.test(raw) || /^\/[^/]/.test(raw) || /^~[\\/]/.test(raw) || /^\\\\/.test(raw)
+  );
 }
 
 /**
@@ -65,7 +68,7 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
       const response = await fetch(`${origin}/health`, {
         method: 'GET',
         signal: controller.signal,
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
       });
       clearTimeout(timer);
       const body = await response.json().catch(() => ({}));
@@ -73,7 +76,7 @@ export async function probeAgent(origin = DEFAULT_AGENT_ORIGIN) {
         available: response.ok && body.success === true,
         scannerAvailable: Boolean(body.scannerAvailable),
         scannerLoadError: body.scannerLoadError || undefined,
-        version: body.version || undefined
+        version: body.version || undefined,
       };
       cachedAgentStatus = status;
       cachedAt = Date.now();
@@ -102,11 +105,13 @@ function isMixedContentBlocked(origin, err) {
   if (typeof window === 'undefined') return false;
   if (window.location.protocol !== 'https:') return false;
   const message = String(err?.message || '').toLowerCase();
-  return message.includes('mixed content') ||
-         message.includes('insecure') ||
-         message.includes('blocked') ||
-         message.includes('failed to fetch') ||
-         message.includes('ns_error');
+  return (
+    message.includes('mixed content') ||
+    message.includes('insecure') ||
+    message.includes('blocked') ||
+    message.includes('failed to fetch') ||
+    message.includes('ns_error')
+  );
 }
 
 function isMixedContent(origin) {
@@ -116,8 +121,14 @@ function isMixedContent(origin) {
   try {
     var params = new URLSearchParams(window.location.search);
     if (params.get('sb_api_base') || params.get('sb_notify_base')) return false;
-    if (typeof sessionStorage !== 'undefined' && (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))) return false;
-  } catch (e) { /* ignore */ }
+    if (
+      typeof sessionStorage !== 'undefined' &&
+      (sessionStorage.getItem('sb_api_base') || sessionStorage.getItem('sb_notify_base'))
+    )
+      return false;
+  } catch (e) {
+    /* ignore */
+  }
   return true;
 }
 
@@ -128,7 +139,11 @@ function isMixedContent(origin) {
  * @param {string} [origin]
  * @returns {Promise<Object>}
  */
-export async function fetchInventoryViaAgent(projectPath, options = {}, origin = DEFAULT_AGENT_ORIGIN) {
+export async function fetchInventoryViaAgent(
+  projectPath,
+  options = {},
+  origin = DEFAULT_AGENT_ORIGIN
+) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 300_000);
   try {
@@ -136,7 +151,7 @@ export async function fetchInventoryViaAgent(projectPath, options = {}, origin =
       method: 'POST',
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ projectPath, fullDirectoryScan: options.fullDirectoryScan })
+      body: JSON.stringify({ projectPath, fullDirectoryScan: options.fullDirectoryScan }),
     });
     clearTimeout(timer);
     const data = await response.json().catch(() => ({}));
@@ -165,7 +180,7 @@ export async function scanViaAgent(projectPath, origin = DEFAULT_AGENT_ORIGIN) {
       method: 'POST',
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ projectPath })
+      body: JSON.stringify({ projectPath }),
     });
     clearTimeout(timer);
     const data = await response.json().catch(() => ({}));
@@ -259,7 +274,7 @@ export function getPlatformLabel(platform) {
     windows: 'Windows',
     linux: 'Linux',
     macos: 'macOS',
-    unknown: 'your platform'
+    unknown: 'your platform',
   };
   return labels[platform] || labels.unknown;
 }

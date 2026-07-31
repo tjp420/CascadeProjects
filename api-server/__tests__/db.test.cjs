@@ -4,8 +4,8 @@ jest.mock('pg', () => ({
   Pool: jest.fn().mockImplementation(() => ({
     query: jest.fn().mockResolvedValue({ rows: [{ id: 1 }], rowCount: 1 }),
     end: jest.fn().mockResolvedValue(undefined),
-    on: jest.fn()
-  }))
+    on: jest.fn(),
+  })),
 }));
 
 const db = require('../lib/db.cjs');

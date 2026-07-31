@@ -10,7 +10,7 @@ const {
   resolveFindingFilePath,
   isFindingInProjectScope,
   shouldScopeFindingsToProject,
-  filterFindingsByProjectScope
+  filterFindingsByProjectScope,
 } = require('../audit-remediation-recipes/paths.cjs');
 
 describe('audit-remediation-recipes/paths', () => {
@@ -33,15 +33,27 @@ describe('audit-remediation-recipes/paths', () => {
   });
 
   test('parseLocation parses file:line:column', () => {
-    expect(parseLocation('src/index.js:42:10')).toEqual({ file: 'src/index.js', line: 42, column: 10 });
+    expect(parseLocation('src/index.js:42:10')).toEqual({
+      file: 'src/index.js',
+      line: 42,
+      column: 10,
+    });
   });
 
   test('parseLocation parses file:line', () => {
-    expect(parseLocation('src/index.js:42')).toEqual({ file: 'src/index.js', line: 42, column: null });
+    expect(parseLocation('src/index.js:42')).toEqual({
+      file: 'src/index.js',
+      line: 42,
+      column: null,
+    });
   });
 
   test('parseLocation handles bare path', () => {
-    expect(parseLocation('src/index.js')).toEqual({ file: 'src/index.js', line: null, column: null });
+    expect(parseLocation('src/index.js')).toEqual({
+      file: 'src/index.js',
+      line: null,
+      column: null,
+    });
   });
 
   test('parseLocation handles empty input', () => {
@@ -88,7 +100,10 @@ describe('audit-remediation-recipes/paths', () => {
   });
 
   test('resolveFindingFilePath resolves from filePath', () => {
-    const result = resolveFindingFilePath({ filePath: 'src/index.js' }, { projectPath: '/project' });
+    const result = resolveFindingFilePath(
+      { filePath: 'src/index.js' },
+      { projectPath: '/project' }
+    );
     expect(result).toContain('index.js');
   });
 
@@ -119,7 +134,7 @@ describe('audit-remediation-recipes/paths', () => {
     const projectPath = 'C:/repo/github-cache/my-project';
     const findings = [
       { filePath: 'C:/repo/github-cache/my-project/src/a.js' },
-      { filePath: 'C:/repo/other-project/src/b.js' }
+      { filePath: 'C:/repo/other-project/src/b.js' },
     ];
     const scoped = filterFindingsByProjectScope(findings, { projectPath });
     expect(scoped).toHaveLength(1);
@@ -128,7 +143,7 @@ describe('audit-remediation-recipes/paths', () => {
 
   test('inferArtifactContext identifies scanner rule sources', () => {
     const ctx = inferArtifactContext({
-      location: 'packages/simplebeacon-cli/src/rules/security-pattern-scanner.js:10'
+      location: 'packages/simplebeacon-cli/src/rules/security-pattern-scanner.js:10',
     });
     expect(ctx.artifactType).toBe('scanner-rule');
     expect(ctx.blocksGate).toBe(false);

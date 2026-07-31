@@ -13,10 +13,17 @@ const { verifyPassword } = require('../lib/auth/password-service.cjs');
 const crypto = require('crypto');
 const tokenDb = require('../lib/token-db.cjs');
 const { getSubscriptionByEmail, readStore } = require('../lib/simplebeacon-subscription-store.cjs');
-const { validateLicenseToken, isTokenExpiringSoon } = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
+const {
+  validateLicenseToken,
+  isTokenExpiringSoon,
+} = require('../../../packages/simplebeacon-cli/src/lib/license-token.js');
 
 let stripe = null;
-try { stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || ''); } catch { stripe = null; }
+try {
+  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || '');
+} catch {
+  stripe = null;
+}
 
 function isAdmin(req) {
   if (!req.user) return false;
@@ -26,8 +33,16 @@ function isAdmin(req) {
   const tier = String(req.user.tier || '').toLowerCase();
   if (role === 'admin' || role === 'superuser') return true;
   if (tier === 'admin' || tier === 'superuser') return true;
-  if (Array.isArray(req.user.features) && req.user.features.map(String).map(s => s.toLowerCase()).includes('all_modules')) return true;
-  if (Array.isArray(req.user.permissions) && req.user.permissions.includes('admin:all')) return true;
+  if (
+    Array.isArray(req.user.features) &&
+    req.user.features
+      .map(String)
+      .map((s) => s.toLowerCase())
+      .includes('all_modules')
+  )
+    return true;
+  if (Array.isArray(req.user.permissions) && req.user.permissions.includes('admin:all'))
+    return true;
   return false;
 }
 
@@ -64,7 +79,8 @@ async function verifyAdminPassword(email, password, db, sqlite) {
     if (!user || !user.password_hash || !user.salt) return false;
     const derived = await new Promise((resolve, reject) => {
       crypto.scrypt(password, user.salt, 64, (err, key) => {
-        if (err) reject(err); else resolve(key.toString('hex'));
+        if (err) reject(err);
+        else resolve(key.toString('hex'));
       });
     });
     return derived === user.password_hash;
@@ -79,11 +95,16 @@ async function stripeRefundSubscription(stripeSubscriptionId) {
     if (subscription && subscription.status !== 'canceled') {
       await stripe.subscriptions.cancel(stripeSubscriptionId);
     }
-    const latestInvoice = subscription?.latest_invoice ? await stripe.invoices.retrieve(subscription.latest_invoice) : null;
+    const latestInvoice = subscription?.latest_invoice
+      ? await stripe.invoices.retrieve(subscription.latest_invoice)
+      : null;
     const paymentIntent = latestInvoice?.payment_intent;
     let refund = null;
     if (paymentIntent) {
-      refund = await stripe.refunds.create({ payment_intent: paymentIntent, reason: 'requested_by_customer' });
+      refund = await stripe.refunds.create({
+        payment_intent: paymentIntent,
+        reason: 'requested_by_customer',
+      });
     }
     return { stripeUsed: true, refundId: refund?.id || null, canceled: true };
   } catch (err) {
@@ -110,7 +131,7 @@ function mapDemoAdminUser(u) {
     successfulAnalyses: u.successfulAnalyses ?? u.successful_analyses ?? 0,
     securityIncidents: u.securityIncidents ?? u.security_incidents ?? 0,
     communityContributions: u.communityContributions ?? u.community_contributions ?? 0,
-    createdAt: u.createdAt || u.created_at || null
+    createdAt: u.createdAt || u.created_at || null,
   };
 }
 
@@ -127,7 +148,7 @@ function mapSqliteCustomerRow(row) {
     securityIncidents: 0,
     communityContributions: 0,
     createdAt: row.created_at || row.createdAt || null,
-    source: 'customer'
+    source: 'customer',
   };
 }
 
@@ -135,12 +156,16 @@ function mergeAdminUsersByEmail(userRows, customerRows) {
   const byEmail = new Map();
   for (const row of customerRows || []) {
     const mapped = mapSqliteCustomerRow(row);
-    const key = String(mapped.email || '').trim().toLowerCase();
+    const key = String(mapped.email || '')
+      .trim()
+      .toLowerCase();
     if (key) byEmail.set(key, mapped);
   }
   for (const row of userRows || []) {
     const mapped = mapSqliteAdminUser(row);
-    const key = String(mapped.email || '').trim().toLowerCase();
+    const key = String(mapped.email || '')
+      .trim()
+      .toLowerCase();
     if (key) byEmail.set(key, mapped);
   }
   return Array.from(byEmail.values());
@@ -159,11 +184,18 @@ function mapSqliteAdminUser(row) {
     securityIncidents: 0,
     communityContributions: 0,
     createdAt: row.created_at || row.createdAt || null,
-    source: 'sqlite'
+    source: 'sqlite',
   };
 }
 
-const ADMIN_USER_SORT_FIELDS = new Set(['createdAt', 'name', 'email', 'trustLevel', 'successfulAnalyses', 'status']);
+const ADMIN_USER_SORT_FIELDS = new Set([
+  'createdAt',
+  'name',
+  'email',
+  'trustLevel',
+  'successfulAnalyses',
+  'status',
+]);
 const DEFAULT_USER_PAGE_LIMIT = 50;
 const MAX_USER_PAGE_LIMIT = 500;
 
@@ -178,7 +210,7 @@ function mapPgAdminUser(row) {
     successfulAnalyses: row.successful_analyses,
     securityIncidents: row.security_incidents,
     communityContributions: row.community_contributions,
-    createdAt: row.created_at
+    createdAt: row.created_at,
   };
 }
 
@@ -195,7 +227,9 @@ function getLicenseSecret() {
     return secret;
   }
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: SIMPLEBEACON_LICENSE_SECRET environment variable is missing in production.');
+    throw new Error(
+      'FATAL: SIMPLEBEACON_LICENSE_SECRET environment variable is missing in production.'
+    );
   }
   return null;
 }
@@ -212,14 +246,14 @@ function getLicenseTokenStatus(token) {
       valid: false,
       registered: false,
       expired: false,
-      error: 'license_secret_unconfigured'
+      error: 'license_secret_unconfigured',
     };
   }
   const validation = validateLicenseToken(token, secret);
   const nowSec = Math.floor(Date.now() / 1000);
   const base = {
     present: true,
-    tokenPreview: maskToken(token)
+    tokenPreview: maskToken(token),
   };
   if (validation.valid) {
     const claims = validation.claims || {};
@@ -235,7 +269,7 @@ function getLicenseTokenStatus(token) {
       tier: claims.tier || null,
       email: claims.sub || claims.email || null,
       features: Array.isArray(claims.features) ? claims.features : [],
-      scanQuota: Number.isFinite(claims.scanQuota) ? claims.scanQuota : null
+      scanQuota: Number.isFinite(claims.scanQuota) ? claims.scanQuota : null,
     };
   }
   const entry = tokenDb.getLicenseToken(token);
@@ -252,7 +286,7 @@ function getLicenseTokenStatus(token) {
       registeredAt: entry.registered_at || null,
       tier: entry.tier || claims.tier || null,
       email: entry.email || claims.sub || claims.email || null,
-      error: validation.error || 'Invalid signature'
+      error: validation.error || 'Invalid signature',
     };
   }
   return {
@@ -260,22 +294,33 @@ function getLicenseTokenStatus(token) {
     valid: false,
     registered: false,
     expired: false,
-    error: validation.error || 'Invalid or unregistered token'
+    error: validation.error || 'Invalid or unregistered token',
   };
 }
 
 function normalizeStatusLabel(status) {
   const s = String(status || '').toLowerCase();
-  if (s === 'active' || s === 'inactive' || s === 'past_due' || s === 'canceled' || s === 'refunded' || s === 'suspended' || s === 'pending') return s;
+  if (
+    s === 'active' ||
+    s === 'inactive' ||
+    s === 'past_due' ||
+    s === 'canceled' ||
+    s === 'refunded' ||
+    s === 'suspended' ||
+    s === 'pending'
+  )
+    return s;
   return 'inactive';
 }
 
 async function getTokenDetailsForUser(email) {
-  const normalized = String(email || '').trim().toLowerCase();
+  const normalized = String(email || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) return null;
   const [subscription, registryTokens] = await Promise.all([
     getSubscriptionByEmail(normalized).catch(() => null),
-    Promise.resolve(tokenDb.getLicenseTokensByEmail(normalized))
+    Promise.resolve(tokenDb.getLicenseTokensByEmail(normalized)),
   ]);
   const licenseToken = subscription?.licenseToken || registryTokens[0]?.token || null;
   const apiToken = subscription?.apiToken || null;
@@ -287,19 +332,30 @@ async function getTokenDetailsForUser(email) {
     apiTokenFull: apiToken || null,
     hasLicenseToken: Boolean(licenseToken),
     hasApiToken: Boolean(apiToken),
-    tokenTier: tokenStatus.tier || subscription?.licenseTier || subscription?.tier || registryTokens[0]?.tier || 'community',
+    tokenTier:
+      tokenStatus.tier ||
+      subscription?.licenseTier ||
+      subscription?.tier ||
+      registryTokens[0]?.tier ||
+      'community',
     tokenStatus: tokenStatus,
     scanQuota: tokenStatus.scanQuota || subscription?.scanQuota || null,
-    scansThisPeriod: Number.isFinite(subscription?.scansThisPeriod) ? subscription.scansThisPeriod : null,
-    apiCallsThisPeriod: Number.isFinite(subscription?.apiCallsThisPeriod) ? subscription.apiCallsThisPeriod : null,
+    scansThisPeriod: Number.isFinite(subscription?.scansThisPeriod)
+      ? subscription.scansThisPeriod
+      : null,
+    apiCallsThisPeriod: Number.isFinite(subscription?.apiCallsThisPeriod)
+      ? subscription.apiCallsThisPeriod
+      : null,
     periodStart: subscription?.periodStart || null,
     periodEnd: subscription?.periodEnd || null,
-    registeredAt: registryTokens[0]?.registered_at || subscription?.updatedAt || null
+    registeredAt: registryTokens[0]?.registered_at || subscription?.updatedAt || null,
   };
 }
 
 function getBillingDetailsForUser(email) {
-  const normalized = String(email || '').trim().toLowerCase();
+  const normalized = String(email || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) return null;
   const sqlite = getSqliteDb();
   let customer = null;
@@ -308,9 +364,20 @@ function getBillingDetailsForUser(email) {
   if (sqlite) {
     try {
       const allCustomers = sqlite.getAllCustomers ? sqlite.getAllCustomers() : [];
-      customer = allCustomers.find((c) => String(c.email || '').trim().toLowerCase() === normalized) || null;
+      customer =
+        allCustomers.find(
+          (c) =>
+            String(c.email || '')
+              .trim()
+              .toLowerCase() === normalized
+        ) || null;
       const allSubs = sqlite.getAllPaidSubscriptions ? sqlite.getAllPaidSubscriptions() : [];
-      subscriptions = allSubs.filter((s) => String(s.customer_email || '').trim().toLowerCase() === normalized);
+      subscriptions = allSubs.filter(
+        (s) =>
+          String(s.customer_email || '')
+            .trim()
+            .toLowerCase() === normalized
+      );
       refunds = sqlite.getRefundsForCustomer ? sqlite.getRefundsForCustomer(normalized) : [];
     } catch (err) {
       logger.warn('[AdminAPI] billing lookup failed:', err.message);
@@ -328,27 +395,34 @@ function getBillingDetailsForUser(email) {
       status: normalizeStatusLabel(s.status),
       currentPeriodStart: s.current_period_start || null,
       currentPeriodEnd: s.current_period_end || null,
-      createdAt: s.created_at || null
+      createdAt: s.created_at || null,
     })),
     refunds: (refunds || []).map((r) => ({
       stripeSubscriptionId: r.stripe_subscription_id || null,
       amount: r.amount || null,
       reason: r.reason || null,
       status: r.status || null,
-      createdAt: r.created_at || null
+      createdAt: r.created_at || null,
     })),
     createdAt: customer?.created_at || null,
-    updatedAt: customer?.updated_at || null
+    updatedAt: customer?.updated_at || null,
   };
 }
 
 async function buildAccountDetails(user, db) {
-  const email = String(user.email || '').trim().toLowerCase();
+  const email = String(user.email || '')
+    .trim()
+    .toLowerCase();
   const [tokenDetails, billingDetails] = await Promise.all([
     getTokenDetailsForUser(email),
-    Promise.resolve(getBillingDetailsForUser(email))
+    Promise.resolve(getBillingDetailsForUser(email)),
   ]);
-  const sessions = getActiveUsers().filter((s) => String(s.email || '').trim().toLowerCase() === email);
+  const sessions = getActiveUsers().filter(
+    (s) =>
+      String(s.email || '')
+        .trim()
+        .toLowerCase() === email
+  );
   return {
     user: {
       id: user.id,
@@ -362,7 +436,7 @@ async function buildAccountDetails(user, db) {
       communityContributions: user.communityContributions,
       createdAt: user.createdAt,
       online: user.online,
-      lastSeen: user.lastSeen
+      lastSeen: user.lastSeen,
     },
     token: tokenDetails,
     billing: billingDetails,
@@ -371,15 +445,15 @@ async function buildAccountDetails(user, db) {
       email: s.email || s.userEmail || null,
       online: Boolean(s.online),
       lastSeen: s.lastSeen || s.last_seen || null,
-      createdAt: s.createdAt || s.created_at || null
-    }))
+      createdAt: s.createdAt || s.created_at || null,
+    })),
   };
 }
 
 async function enrichUserHints(users, _db) {
   const [store, licenseTokens] = await Promise.all([
     readStore().catch(() => ({ subscriptions: {}, byApiToken: {} })),
-    Promise.resolve(tokenDb.getAllLicenseTokens())
+    Promise.resolve(tokenDb.getAllLicenseTokens()),
   ]);
   const byEmail = new Map();
   for (const [email, sub] of Object.entries(store.subscriptions || {})) {
@@ -387,29 +461,45 @@ async function enrichUserHints(users, _db) {
   }
   const tokensByEmail = new Map();
   for (const t of licenseTokens) {
-    const key = String(t.email || '').trim().toLowerCase();
+    const key = String(t.email || '')
+      .trim()
+      .toLowerCase();
     if (!key) continue;
     if (!tokensByEmail.has(key)) tokensByEmail.set(key, t);
   }
   return users.map((u) => {
-    const email = String(u.email || '').trim().toLowerCase();
+    const email = String(u.email || '')
+      .trim()
+      .toLowerCase();
     const sub = byEmail.get(email) || null;
     const tokenEntry = tokensByEmail.get(email) || null;
     const licenseToken = sub?.licenseToken || tokenEntry?.token || null;
-    const tokenStatus = licenseToken ? getLicenseTokenStatus(licenseToken) : { present: false, valid: false, registered: false, expired: false };
+    const tokenStatus = licenseToken
+      ? getLicenseTokenStatus(licenseToken)
+      : { present: false, valid: false, registered: false, expired: false };
     const sqlite = getSqliteDb();
     let subscriptionStatus = 'inactive';
     let plan = sub?.licenseTier || sub?.tier || tokenEntry?.tier || 'community';
     if (sqlite) {
       try {
         const customers = sqlite.getAllCustomers ? sqlite.getAllCustomers() : [];
-        const customer = customers.find((c) => String(c.email || '').trim().toLowerCase() === email);
+        const customer = customers.find(
+          (c) =>
+            String(c.email || '')
+              .trim()
+              .toLowerCase() === email
+        );
         if (customer) {
           subscriptionStatus = normalizeStatusLabel(customer.subscription_status);
           plan = customer.tier || plan;
         } else {
           const subs = sqlite.getAllPaidSubscriptions ? sqlite.getAllPaidSubscriptions() : [];
-          const match = subs.find((s) => String(s.customer_email || '').trim().toLowerCase() === email);
+          const match = subs.find(
+            (s) =>
+              String(s.customer_email || '')
+                .trim()
+                .toLowerCase() === email
+          );
           if (match) {
             subscriptionStatus = normalizeStatusLabel(match.status);
             plan = match.stripe_price_id || plan;
@@ -423,12 +513,13 @@ async function enrichUserHints(users, _db) {
       ...u,
       hasLicenseToken: Boolean(licenseToken),
       hasActiveSubscription: subscriptionStatus === 'active',
-      tokenTier: tokenStatus.tier || sub?.licenseTier || sub?.tier || tokenEntry?.tier || 'community',
+      tokenTier:
+        tokenStatus.tier || sub?.licenseTier || sub?.tier || tokenEntry?.tier || 'community',
       subscriptionStatus,
       plan,
       tokenValid: tokenStatus.valid,
       tokenRegistered: tokenStatus.registered,
-      tokenExpired: tokenStatus.expired
+      tokenExpired: tokenStatus.expired,
     };
   });
 }
@@ -442,12 +533,18 @@ function parseAdminUserListQuery(req) {
     ? String(req.query.sort)
     : 'createdAt';
   const dir = String(req.query.dir || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
-  const q = String(req.query.q || '').trim().slice(0, 200);
+  const q = String(req.query.q || '')
+    .trim()
+    .slice(0, 200);
   const cursor = String(req.query.cursor || '').trim() || null;
   const parsedOffset = Number.parseInt(String(req.query.offset || ''), 10);
   const offset = Number.isFinite(parsedOffset) ? Math.max(0, parsedOffset) : 0;
-  const status = String(req.query.status || 'all').trim().toLowerCase();
-  const trust = String(req.query.trust || 'all').trim().toLowerCase();
+  const status = String(req.query.status || 'all')
+    .trim()
+    .toLowerCase();
+  const trust = String(req.query.trust || 'all')
+    .trim()
+    .toLowerCase();
   return { limit, sort, dir, q, cursor, offset, status, trust };
 }
 
@@ -455,7 +552,7 @@ function encodeAdminUserCursor(user) {
   if (!user?.id) return null;
   const payload = JSON.stringify({
     id: String(user.id),
-    createdAt: user.createdAt || user.created_at || null
+    createdAt: user.createdAt || user.created_at || null,
   });
   return Buffer.from(payload).toString('base64url');
 }
@@ -506,10 +603,18 @@ function filterAdminUsersInMemory(users, q, status = 'all', trust = 'all') {
   }
   if (!q) return rows;
   const needle = q.toLowerCase();
-  return rows.filter((u) =>
-    String(u.email || '').toLowerCase().includes(needle)
-    || String(u.name || '').toLowerCase().includes(needle)
-    || String(u.trustLevel || '').toLowerCase().includes(needle));
+  return rows.filter(
+    (u) =>
+      String(u.email || '')
+        .toLowerCase()
+        .includes(needle) ||
+      String(u.name || '')
+        .toLowerCase()
+        .includes(needle) ||
+      String(u.trustLevel || '')
+        .toLowerCase()
+        .includes(needle)
+  );
 }
 
 function paginateAdminUsersInMemory(users, options) {
@@ -531,7 +636,8 @@ function paginateAdminUsersInMemory(users, options) {
     total,
     limit: options.limit,
     hasMore,
-    nextCursor: options.sort === 'createdAt' && hasMore ? encodeAdminUserCursor(page[page.length - 1]) : null
+    nextCursor:
+      options.sort === 'createdAt' && hasMore ? encodeAdminUserCursor(page[page.length - 1]) : null,
   };
 }
 
@@ -590,7 +696,7 @@ async function queryAdminUsersPaginated(db, options) {
     email: 'email',
     trustLevel: 'trust_level',
     successfulAnalyses: 'successful_analyses',
-    status: 'status'
+    status: 'status',
   };
   const sortCol = pgSortMap[options.sort] || 'created_at';
   const sortDir = options.dir === 'asc' ? 'ASC' : 'DESC';
@@ -601,7 +707,9 @@ async function queryAdminUsersPaginated(db, options) {
     if (options.q) {
       const pattern = `%${options.q.toLowerCase()}%`;
       whereParams.push(pattern, pattern, pattern);
-      whereParts.push(`(LOWER(email) LIKE $1 OR LOWER(name) LIKE $2 OR LOWER(trust_level::text) LIKE $3)`);
+      whereParts.push(
+        `(LOWER(email) LIKE $1 OR LOWER(name) LIKE $2 OR LOWER(trust_level::text) LIKE $3)`
+      );
     }
     if (options.status && options.status !== 'all') {
       whereParams.push(options.status);
@@ -613,7 +721,10 @@ async function queryAdminUsersPaginated(db, options) {
     }
     const whereSql = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
 
-    const countResult = await db.query(`SELECT COUNT(*)::int AS count FROM users ${whereSql}`, whereParams);
+    const countResult = await db.query(
+      `SELECT COUNT(*)::int AS count FROM users ${whereSql}`,
+      whereParams
+    );
     const total = countResult.rows[0]?.count ?? 0;
 
     const dataParams = [...whereParams];
@@ -635,9 +746,8 @@ async function queryAdminUsersPaginated(db, options) {
     const listWhereSql = combinedWhere.length ? `WHERE ${combinedWhere.join(' AND ')}` : '';
     dataParams.push(options.limit + 1);
     const limitIdx = dataParams.length;
-    const offsetSql = !useCursor && options.offset
-      ? ` OFFSET $${dataParams.push(options.offset)}`
-      : '';
+    const offsetSql =
+      !useCursor && options.offset ? ` OFFSET $${dataParams.push(options.offset)}` : '';
 
     const result = await db.query(
       `SELECT id, email, name, trust_level, status, verification_status,
@@ -658,7 +768,7 @@ async function queryAdminUsersPaginated(db, options) {
       total,
       limit: options.limit,
       hasMore,
-      nextCursor: hasMore ? encodeAdminUserCursor(users[users.length - 1]) : null
+      nextCursor: hasMore ? encodeAdminUserCursor(users[users.length - 1]) : null,
     };
   }
 
@@ -674,7 +784,7 @@ function setupAdminAPI(app, options = {}) {
     max: constants.MAX_RATE_LIMIT,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { success: false, error: 'Admin API rate limit exceeded. Please try again later.' }
+    message: { success: false, error: 'Admin API rate limit exceeded. Please try again later.' },
   });
 
   const router = express.Router();
@@ -689,14 +799,14 @@ function setupAdminAPI(app, options = {}) {
       const page = await queryAdminUsersPaginated(db, listQuery);
 
       const active = getActiveUsers();
-      const activeById = new Map(active.map(a => [a.userId, a]));
+      const activeById = new Map(active.map((a) => [a.userId, a]));
 
-      const enriched = page.users.map(u => {
-        const activity = activeById.get(u.id) || active.find(a => a.email === u.email) || null;
+      const enriched = page.users.map((u) => {
+        const activity = activeById.get(u.id) || active.find((a) => a.email === u.email) || null;
         return {
           ...u,
           online: activity ? activity.online : false,
-          lastSeen: activity ? activity.lastSeen : null
+          lastSeen: activity ? activity.lastSeen : null,
         };
       });
       const usersWithHints = await enrichUserHints(enriched, db);
@@ -710,7 +820,7 @@ function setupAdminAPI(app, options = {}) {
         nextCursor: page.nextCursor,
         sort: listQuery.sort,
         dir: listQuery.dir,
-        q: listQuery.q || null
+        q: listQuery.q || null,
       });
     } catch (err) {
       logger.warn('[AdminAPI] users failed:', err.message);
@@ -718,48 +828,52 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  router.get('/users/:id/details', validateParam('id', VALIDATION_PATTERNS.userId), async (req, res) => {
-    if (!isAdmin(req)) {
-      return sendError(res, 403, 'Forbidden');
-    }
-    try {
-      const id = String(req.params.id || '');
-      if (!id) return sendError(res, 400, 'User id required');
+  router.get(
+    '/users/:id/details',
+    validateParam('id', VALIDATION_PATTERNS.userId),
+    async (req, res) => {
+      if (!isAdmin(req)) {
+        return sendError(res, 403, 'Forbidden');
+      }
+      try {
+        const id = String(req.params.id || '');
+        if (!id) return sendError(res, 400, 'User id required');
 
-      let user = null;
-      if (db) {
-        const result = await db.query(
-          `SELECT id, email, name, trust_level, status, verification_status,
+        let user = null;
+        if (db) {
+          const result = await db.query(
+            `SELECT id, email, name, trust_level, status, verification_status,
                   successful_analyses, security_incidents, community_contributions,
                   created_at, updated_at
            FROM users WHERE id = $1 LIMIT 1`,
-          [id]
-        );
-        if (result.rows[0]) user = mapPgAdminUser(result.rows[0]);
-      }
-      if (!user) {
-        const all = await loadAdminUsers(db);
-        user = all.find((u) => String(u.id) === id) || null;
-      }
-      if (!user) {
-        return sendError(res, 404, 'User not found');
-      }
+            [id]
+          );
+          if (result.rows[0]) user = mapPgAdminUser(result.rows[0]);
+        }
+        if (!user) {
+          const all = await loadAdminUsers(db);
+          user = all.find((u) => String(u.id) === id) || null;
+        }
+        if (!user) {
+          return sendError(res, 404, 'User not found');
+        }
 
-      const active = getActiveUsers();
-      const activity = active.find((a) => a.userId === user.id || a.email === user.email) || null;
-      const userWithActivity = {
-        ...user,
-        online: activity ? activity.online : false,
-        lastSeen: activity ? activity.lastSeen : null
-      };
+        const active = getActiveUsers();
+        const activity = active.find((a) => a.userId === user.id || a.email === user.email) || null;
+        const userWithActivity = {
+          ...user,
+          online: activity ? activity.online : false,
+          lastSeen: activity ? activity.lastSeen : null,
+        };
 
-      const details = await buildAccountDetails(userWithActivity, db);
-      return res.json({ success: true, ...details });
-    } catch (err) {
-      logger.warn('[AdminAPI] user details failed:', err.message);
-      return sendError(res, 500, err.message);
+        const details = await buildAccountDetails(userWithActivity, db);
+        return res.json({ success: true, ...details });
+      } catch (err) {
+        logger.warn('[AdminAPI] user details failed:', err.message);
+        return sendError(res, 500, err.message);
+      }
     }
-  });
+  );
 
   router.get('/stats', async (req, res) => {
     if (!isAdmin(req)) {
@@ -770,8 +884,8 @@ function setupAdminAPI(app, options = {}) {
       const active = getActiveUsers();
       const stats = {
         totalAccounts,
-        onlineNow: active.filter(a => a.online).length,
-        activeSessions: active.length
+        onlineNow: active.filter((a) => a.online).length,
+        activeSessions: active.length,
       };
       if (db) {
         try {
@@ -810,7 +924,9 @@ function setupAdminAPI(app, options = {}) {
       if (sqlite?.getDb) {
         try {
           const dbi = sqlite.getDb();
-          const activeSubs = dbi.prepare("SELECT COUNT(*) as count FROM paid_subscriptions WHERE status = 'active'").get();
+          const activeSubs = dbi
+            .prepare("SELECT COUNT(*) as count FROM paid_subscriptions WHERE status = 'active'")
+            .get();
           stats.activeSubscriptions = activeSubs?.count ?? 0;
         } catch {
           // optional metrics
@@ -874,21 +990,32 @@ function setupAdminAPI(app, options = {}) {
     try {
       let targetEmail = '';
       if (db) {
-        const userResult = await db.query('SELECT email, status FROM users WHERE id = $1 LIMIT 1', [id]);
+        const userResult = await db.query('SELECT email, status FROM users WHERE id = $1 LIMIT 1', [
+          id,
+        ]);
         const user = userResult.rows[0];
         if (!user) return sendError(res, 404, 'User not found');
         targetEmail = user.email;
-        if (String(targetEmail).toLowerCase() === 'admin@simplebeacon.ai' && trustLevel !== 'gold') {
+        if (
+          String(targetEmail).toLowerCase() === 'admin@simplebeacon.ai' &&
+          trustLevel !== 'gold'
+        ) {
           return sendError(res, 403, 'Cannot downgrade the primary admin account');
         }
-        await db.query('UPDATE users SET trust_level = $1, updated_at = NOW() WHERE id = $2', [trustLevel, id]);
+        await db.query('UPDATE users SET trust_level = $1, updated_at = NOW() WHERE id = $2', [
+          trustLevel,
+          id,
+        ]);
       } else {
         const sqlite = getSqliteDb();
         if (sqlite?.updateUserTierById) {
           const user = sqlite.getUserById(id);
           if (!user) return sendError(res, 404, 'User not found');
           targetEmail = user.email;
-          if (String(targetEmail).toLowerCase() === 'admin@simplebeacon.ai' && trustLevel !== 'gold') {
+          if (
+            String(targetEmail).toLowerCase() === 'admin@simplebeacon.ai' &&
+            trustLevel !== 'gold'
+          ) {
             return sendError(res, 403, 'Cannot downgrade the primary admin account');
           }
           sqlite.updateUserTierById(id, trustLevelToTier(trustLevel));
@@ -897,7 +1024,13 @@ function setupAdminAPI(app, options = {}) {
           sqlite.updateCustomerSubscription(user.email, subStatus, subTier);
         }
       }
-      return res.json({ success: true, id, trustLevel, subscriptionTier: subscriptionTier || trustLevelToTier(trustLevel), subscriptionStatus: subscriptionStatus || 'active' });
+      return res.json({
+        success: true,
+        id,
+        trustLevel,
+        subscriptionTier: subscriptionTier || trustLevelToTier(trustLevel),
+        subscriptionStatus: subscriptionStatus || 'active',
+      });
     } catch (err) {
       logger.warn('[AdminAPI] update trust-level failed:', err.message);
       return sendError(res, 500, err.message);
@@ -916,12 +1049,15 @@ function setupAdminAPI(app, options = {}) {
     }
     try {
       const users = await loadAdminUsers(db);
-      const target = users.find(u => String(u.id) === String(id));
+      const target = users.find((u) => String(u.id) === String(id));
       if (target && String(target.email || '').toLowerCase() === 'admin@simplebeacon.ai') {
         return sendError(res, 403, 'Cannot delete the primary admin account');
       }
       if (!target) return sendError(res, 404, 'User not found');
-      if (!confirmEmail || String(confirmEmail).toLowerCase() !== String(target.email).toLowerCase()) {
+      if (
+        !confirmEmail ||
+        String(confirmEmail).toLowerCase() !== String(target.email).toLowerCase()
+      ) {
         return sendError(res, 400, 'Confirm the account email to delete');
       }
       const adminEmail = req.user?.email;
@@ -939,7 +1075,11 @@ function setupAdminAPI(app, options = {}) {
           sqlite.deleteUserById(id);
         }
       }
-      logger.info('[AdminAPI] user deleted', { userId: id, email: target.email, admin: adminEmail });
+      logger.info('[AdminAPI] user deleted', {
+        userId: id,
+        email: target.email,
+        admin: adminEmail,
+      });
       return res.json({ success: true, id, deleted: true });
     } catch (err) {
       logger.warn('[AdminAPI] delete user failed:', err.message);
@@ -958,21 +1098,31 @@ function setupAdminAPI(app, options = {}) {
     if (!passwordValid) return sendError(res, 401, 'Invalid admin password');
     try {
       const users = await loadAdminUsers(db);
-      const target = users.find(u => String(u.id) === String(id));
+      const target = users.find((u) => String(u.id) === String(id));
       if (!target) return sendError(res, 404, 'User not found');
       if (String(target.email || '').toLowerCase() === 'admin@simplebeacon.ai') {
         return sendError(res, 403, 'Cannot suspend the primary admin account');
       }
       if (db) {
-        await db.query("UPDATE users SET status = 'suspended', updated_at = NOW() WHERE id = $1", [id]);
+        await db.query("UPDATE users SET status = 'suspended', updated_at = NOW() WHERE id = $1", [
+          id,
+        ]);
       } else {
         const sqlite = getSqliteDb();
         if (sqlite?.updateUserStatus) {
           sqlite.updateUserStatus(id, 'suspended');
-          sqlite.updateCustomerSubscription(target.email, 'suspended', trustLevelToTier(target.trustLevel));
+          sqlite.updateCustomerSubscription(
+            target.email,
+            'suspended',
+            trustLevelToTier(target.trustLevel)
+          );
         }
       }
-      logger.info('[AdminAPI] user suspended', { userId: id, email: target.email, admin: adminEmail });
+      logger.info('[AdminAPI] user suspended', {
+        userId: id,
+        email: target.email,
+        admin: adminEmail,
+      });
       return res.json({ success: true, id, status: 'suspended' });
     } catch (err) {
       logger.warn('[AdminAPI] suspend user failed:', err.message);
@@ -985,18 +1135,28 @@ function setupAdminAPI(app, options = {}) {
     const { id } = req.params;
     try {
       const users = await loadAdminUsers(db);
-      const target = users.find(u => String(u.id) === String(id));
+      const target = users.find((u) => String(u.id) === String(id));
       if (!target) return sendError(res, 404, 'User not found');
       if (db) {
-        await db.query("UPDATE users SET status = 'active', updated_at = NOW() WHERE id = $1", [id]);
+        await db.query("UPDATE users SET status = 'active', updated_at = NOW() WHERE id = $1", [
+          id,
+        ]);
       } else {
         const sqlite = getSqliteDb();
         if (sqlite?.updateUserStatus) {
           sqlite.updateUserStatus(id, 'active');
-          sqlite.updateCustomerSubscription(target.email, 'active', trustLevelToTier(target.trustLevel));
+          sqlite.updateCustomerSubscription(
+            target.email,
+            'active',
+            trustLevelToTier(target.trustLevel)
+          );
         }
       }
-      logger.info('[AdminAPI] user unsuspended', { userId: id, email: target.email, admin: req.user?.email });
+      logger.info('[AdminAPI] user unsuspended', {
+        userId: id,
+        email: target.email,
+        admin: req.user?.email,
+      });
       return res.json({ success: true, id, status: 'active' });
     } catch (err) {
       logger.warn('[AdminAPI] unsuspend user failed:', err.message);
@@ -1004,42 +1164,63 @@ function setupAdminAPI(app, options = {}) {
     }
   });
 
-  router.post('/users/:id/details', validateParam('id', VALIDATION_PATTERNS.userId), async (req, res) => {
-    if (!isAdmin(req)) return sendError(res, 403, 'Forbidden');
-    const { id } = req.params;
-    const { name, email, password } = req.body || {};
-    if (!password) return sendError(res, 400, 'Admin password required to update email');
-    if (!email || !String(email).includes('@')) return sendError(res, 400, 'Valid email required');
-    const adminEmail = req.user?.email;
-    const sqlite = getSqliteDb();
-    const passwordValid = await verifyAdminPassword(adminEmail, password, db, sqlite);
-    if (!passwordValid) return sendError(res, 401, 'Invalid admin password');
-    try {
-      const users = await loadAdminUsers(db);
-      const target = users.find(u => String(u.id) === String(id));
-      if (!target) return sendError(res, 404, 'User not found');
-      if (String(target.email || '').toLowerCase() === 'admin@simplebeacon.ai' && String(email).toLowerCase() !== 'admin@simplebeacon.ai') {
-        return sendError(res, 403, 'Cannot change the primary admin email');
-      }
-      if (db) {
-        const existing = await db.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2 LIMIT 1', [email, id]);
-        if (existing.rows[0]) return sendError(res, 400, 'Email already in use by another account');
-        await db.query('UPDATE users SET name = $1, email = $2, updated_at = NOW() WHERE id = $3', [name || '', email, id]);
-      } else {
-        const sqlite = getSqliteDb();
-        if (sqlite?.updateUserDetails) {
-          const result = sqlite.updateUserDetails(id, { name, email });
-          if (!result.success) return sendError(res, 400, result.error);
-          sqlite.updateCustomerSubscription(email, 'active', trustLevelToTier(target.trustLevel));
+  router.post(
+    '/users/:id/details',
+    validateParam('id', VALIDATION_PATTERNS.userId),
+    async (req, res) => {
+      if (!isAdmin(req)) return sendError(res, 403, 'Forbidden');
+      const { id } = req.params;
+      const { name, email, password } = req.body || {};
+      if (!password) return sendError(res, 400, 'Admin password required to update email');
+      if (!email || !String(email).includes('@'))
+        return sendError(res, 400, 'Valid email required');
+      const adminEmail = req.user?.email;
+      const sqlite = getSqliteDb();
+      const passwordValid = await verifyAdminPassword(adminEmail, password, db, sqlite);
+      if (!passwordValid) return sendError(res, 401, 'Invalid admin password');
+      try {
+        const users = await loadAdminUsers(db);
+        const target = users.find((u) => String(u.id) === String(id));
+        if (!target) return sendError(res, 404, 'User not found');
+        if (
+          String(target.email || '').toLowerCase() === 'admin@simplebeacon.ai' &&
+          String(email).toLowerCase() !== 'admin@simplebeacon.ai'
+        ) {
+          return sendError(res, 403, 'Cannot change the primary admin email');
         }
+        if (db) {
+          const existing = await db.query(
+            'SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2 LIMIT 1',
+            [email, id]
+          );
+          if (existing.rows[0])
+            return sendError(res, 400, 'Email already in use by another account');
+          await db.query(
+            'UPDATE users SET name = $1, email = $2, updated_at = NOW() WHERE id = $3',
+            [name || '', email, id]
+          );
+        } else {
+          const sqlite = getSqliteDb();
+          if (sqlite?.updateUserDetails) {
+            const result = sqlite.updateUserDetails(id, { name, email });
+            if (!result.success) return sendError(res, 400, result.error);
+            sqlite.updateCustomerSubscription(email, 'active', trustLevelToTier(target.trustLevel));
+          }
+        }
+        logger.info('[AdminAPI] user details updated', {
+          userId: id,
+          oldEmail: target.email,
+          newEmail: email,
+          name,
+          admin: adminEmail,
+        });
+        return res.json({ success: true, id, name, email });
+      } catch (err) {
+        logger.warn('[AdminAPI] update details failed:', err.message);
+        return sendError(res, 500, err.message);
       }
-      logger.info('[AdminAPI] user details updated', { userId: id, oldEmail: target.email, newEmail: email, name, admin: adminEmail });
-      return res.json({ success: true, id, name, email });
-    } catch (err) {
-      logger.warn('[AdminAPI] update details failed:', err.message);
-      return sendError(res, 500, err.message);
     }
-  });
+  );
 
   router.post('/customers/:email/refund', async (req, res) => {
     if (!isAdmin(req)) return sendError(res, 403, 'Forbidden');
@@ -1056,16 +1237,31 @@ function setupAdminAPI(app, options = {}) {
       if (!sqlite?.getAllPaidSubscriptions) {
         return sendError(res, 400, 'Refund requires local billing database');
       }
-      const subs = sqlite.getAllPaidSubscriptions().filter(s => s.customer_email === email.trim().toLowerCase() && s.status === 'active');
+      const subs = sqlite
+        .getAllPaidSubscriptions()
+        .filter((s) => s.customer_email === email.trim().toLowerCase() && s.status === 'active');
       let stripeResult = null;
       for (const sub of subs) {
         const sr = await stripeRefundSubscription(sub.stripe_subscription_id);
         if (!stripeResult) stripeResult = sr;
-        sqlite.updatePaidSubscriptionToRefunded(sub.stripe_subscription_id, reason || 'Manual admin refund');
+        sqlite.updatePaidSubscriptionToRefunded(
+          sub.stripe_subscription_id,
+          reason || 'Manual admin refund'
+        );
       }
       sqlite.updateCustomerSubscription(email, 'refunded', 'community');
-      logger.info('[AdminAPI] customer refunded', { email, refundedCount: subs.length, stripeUsed: stripeResult?.stripeUsed, admin: adminEmail });
-      return res.json({ success: true, message: 'Refund processed', refundedCount: subs.length, stripeResult });
+      logger.info('[AdminAPI] customer refunded', {
+        email,
+        refundedCount: subs.length,
+        stripeUsed: stripeResult?.stripeUsed,
+        admin: adminEmail,
+      });
+      return res.json({
+        success: true,
+        message: 'Refund processed',
+        refundedCount: subs.length,
+        stripeResult,
+      });
     } catch (err) {
       logger.warn('[AdminAPI] refund failed:', err.message);
       return sendError(res, 500, err.message);

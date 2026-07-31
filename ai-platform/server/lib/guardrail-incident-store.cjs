@@ -75,13 +75,13 @@ function recordIncident(params) {
 function query(filters) {
   const store = readStore();
   const orgId = filters.orgId || 'default';
-  let incidents = Object.values(store.incidents).filter(i => i.orgId === orgId);
+  let incidents = Object.values(store.incidents).filter((i) => i.orgId === orgId);
 
-  if (filters.verdict) incidents = incidents.filter(i => i.verdict === filters.verdict);
-  if (filters.provider) incidents = incidents.filter(i => i.provider === filters.provider);
-  if (filters.actorId) incidents = incidents.filter(i => i.actorId === filters.actorId);
-  if (filters.startDate) incidents = incidents.filter(i => i.timestamp >= filters.startDate);
-  if (filters.endDate) incidents = incidents.filter(i => i.timestamp <= filters.endDate);
+  if (filters.verdict) incidents = incidents.filter((i) => i.verdict === filters.verdict);
+  if (filters.provider) incidents = incidents.filter((i) => i.provider === filters.provider);
+  if (filters.actorId) incidents = incidents.filter((i) => i.actorId === filters.actorId);
+  if (filters.startDate) incidents = incidents.filter((i) => i.timestamp >= filters.startDate);
+  if (filters.endDate) incidents = incidents.filter((i) => i.timestamp <= filters.endDate);
 
   incidents.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
@@ -98,7 +98,7 @@ function query(filters) {
  */
 function getStats(orgId) {
   const store = readStore();
-  const scoped = Object.values(store.incidents).filter(i => i.orgId === (orgId || 'default'));
+  const scoped = Object.values(store.incidents).filter((i) => i.orgId === (orgId || 'default'));
   const byVerdict = { allow: 0, scrub: 0, block: 0 };
   const byProvider = {};
   const byMatchType = {};
@@ -106,7 +106,7 @@ function getStats(orgId) {
   for (const i of scoped) {
     byVerdict[i.verdict] = (byVerdict[i.verdict] || 0) + 1;
     byProvider[i.provider] = (byProvider[i.provider] || 0) + 1;
-    for (const m of (i.matches || [])) {
+    for (const m of i.matches || []) {
       byMatchType[m.type] = (byMatchType[m.type] || 0) + 1;
     }
   }

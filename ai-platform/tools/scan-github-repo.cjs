@@ -17,7 +17,7 @@ const SUBSCRIPTION_STORE = path.join(PLATFORM_ROOT, '.simplebeacon', 'subscripti
 
 function log(step, msg) {
   const ts = new Date().toISOString().replace('T', ' ').slice(0, 19);
-  process.stdout.write([`[${ts}]  ${step.padEnd(24)}  ${msg}`].join(" ") + "\n");
+  process.stdout.write([`[${ts}]  ${step.padEnd(24)}  ${msg}`].join(' ') + '\n');
 }
 
 function readStore() {
@@ -53,7 +53,7 @@ function seedSubscription(repoName) {
     certClientName: 'GitHub Analysis',
     certProjectName: repoName,
     certMilestone: 'release',
-    certOrgId: 'github'
+    certOrgId: 'github',
   };
   store.byApiToken[store.subscriptions[TARGET_EMAIL].apiToken] = TARGET_EMAIL;
   writeStore(store);
@@ -82,7 +82,11 @@ function uploadReport(report, licenseToken) {
     );
     return JSON.parse(output);
   } finally {
-    try { fs.unlinkSync(payloadPath); } catch { /* ignore cleanup errors */ }
+    try {
+      fs.unlinkSync(payloadPath);
+    } catch {
+      /* ignore cleanup errors */
+    }
   }
 }
 
@@ -97,19 +101,22 @@ function checkServer() {
 
 async function main() {
   const repoName = path.basename(REPO_PATH);
-  process.stdout.write([`\n=== GitHub Repo Scan: ${repoName} ===`].join(" ") + "\n");
-  process.stdout.write([`Path:  ${REPO_PATH}`].join(" ") + "\n");
-  process.stdout.write(['Customer: configured\n'].join(" ") + "\n");
+  process.stdout.write([`\n=== GitHub Repo Scan: ${repoName} ===`].join(' ') + '\n');
+  process.stdout.write([`Path:  ${REPO_PATH}`].join(' ') + '\n');
+  process.stdout.write(['Customer: configured\n'].join(' ') + '\n');
 
   if (!checkServer()) {
-    process.stderr.write(['ERROR: Server not running on port', PORT].join(" ") + "\n");
+    process.stderr.write(['ERROR: Server not running on port', PORT].join(' ') + '\n');
     process.exit(1);
   }
   log('SERVER', `Responding on port ${PORT}`);
 
   log('SCAN', `Running full scan on ${repoName}...`);
   const report = runScan(REPO_PATH);
-  log('SCAN', `Done. Files: ${report.repositoryFilesTotal ?? '—'}, Issues: ${report.issueCount ?? 0}, Quality: ${report.qualityScore ?? '—'}%`);
+  log(
+    'SCAN',
+    `Done. Files: ${report.repositoryFilesTotal ?? '—'}, Issues: ${report.issueCount ?? 0}, Quality: ${report.qualityScore ?? '—'}%`
+  );
 
   log('BILLING', `Creating subscription for GitHub Analysis / ${repoName}...`);
   const licenseToken = seedSubscription(repoName);
@@ -124,11 +131,11 @@ async function main() {
     log('DELIVERY', `FAILED: ${uploadRes.error}`);
   }
 
-  process.stdout.write(['\n=== Complete ==='].join(" ") + "\n");
-  process.stdout.write(['Check your inbox for results\n'].join(" ") + "\n");
+  process.stdout.write(['\n=== Complete ==='].join(' ') + '\n');
+  process.stdout.write(['Check your inbox for results\n'].join(' ') + '\n');
 }
 
 main().catch((err) => {
-  process.stderr.write(['\nFatal error:', err.message].join(" ") + "\n");
+  process.stderr.write(['\nFatal error:', err.message].join(' ') + '\n');
   process.exit(1);
 });

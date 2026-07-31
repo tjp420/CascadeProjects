@@ -11,7 +11,8 @@ const CLI_DRY_RUN_CMD = 'npx simplebeacon fix . --fix-dry-run';
 
 function resolveVsixDownloadUrl(): string {
   if (typeof window !== 'undefined') {
-    const cfg = (window as { SIMPLEBEACON_SITE_CONFIG?: { vsixDownloadUrl?: string } }).SIMPLEBEACON_SITE_CONFIG;
+    const cfg = (window as { SIMPLEBEACON_SITE_CONFIG?: { vsixDownloadUrl?: string } })
+      .SIMPLEBEACON_SITE_CONFIG;
     if (cfg?.vsixDownloadUrl) {
       return cfg.vsixDownloadUrl;
     }
@@ -46,9 +47,13 @@ export function PostScanCliNudge({ scanGatePass }: { scanGatePass?: boolean }) {
       className="whitespace-nowrap text-xs shrink-0"
     >
       {copiedCmd === key ? (
-        <><Check className="h-3.5 w-3.5 mr-1" /> Copied</>
+        <>
+          <Check className="h-3.5 w-3.5 mr-1" /> Copied
+        </>
       ) : (
-        <><Copy className="h-3.5 w-3.5 mr-1" /> Copy</>
+        <>
+          <Copy className="h-3.5 w-3.5 mr-1" /> Copy
+        </>
       )}
     </Button>
   );
@@ -61,7 +66,9 @@ export function PostScanCliNudge({ scanGatePass }: { scanGatePass?: boolean }) {
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h4 className="text-emerald-400 font-bold font-mono text-sm tracking-wide">
-                {scanGatePass ? 'Lock In Your Clean Gate — Run Scans Locally' : 'Get Deeper Findings — Run Scans Locally'}
+                {scanGatePass
+                  ? 'Lock In Your Clean Gate — Run Scans Locally'
+                  : 'Get Deeper Findings — Run Scans Locally'}
               </h4>
               <Badge variant="outline" className="text-[10px] font-mono">
                 Extension v{EXTENSION_VERSION}
@@ -69,7 +76,8 @@ export function PostScanCliNudge({ scanGatePass }: { scanGatePass?: boolean }) {
             </div>
             <p className="text-foreground-muted text-sm mt-1 leading-relaxed">
               The browser scan covers the basics. The CLI and VS Code extension run the full
-              deterministic rule engine across your entire repository — no source code upload required.
+              deterministic rule engine across your entire repository — no source code upload
+              required.
             </p>
 
             <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2.5">
@@ -78,21 +86,30 @@ export function PostScanCliNudge({ scanGatePass }: { scanGatePass?: boolean }) {
                 IDE Automation Active
               </p>
               <p className="text-xs text-foreground-muted mt-1 leading-relaxed">
-                Set <code className="font-mono bg-muted px-1 py-0.5 rounded">simplebeacon.enableDryRunOnSave: true</code>{' '}
-                to preview safe remediation recipes directly inside your Output channel on every document save.
+                Set{' '}
+                <code className="font-mono bg-muted px-1 py-0.5 rounded">
+                  simplebeacon.enableDryRunOnSave: true
+                </code>{' '}
+                to preview safe remediation recipes directly inside your Output channel on every
+                document save.
               </p>
             </div>
 
             <div className="grid gap-1.5 mt-3">
               <div className="flex items-center gap-2 text-xs text-foreground-muted">
                 <Eye className="h-3.5 w-3.5 text-sky-400 shrink-0" />
-                <span>Real-time IDE compliance — catch algorithmic redundancy and token exposure as you type</span>
+                <span>
+                  Real-time IDE compliance — catch algorithmic redundancy and token exposure as you
+                  type
+                </span>
               </div>
               <div className="flex items-center gap-2 text-xs text-foreground-muted">
                 <Wrench className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                 <span>
                   Safe pre-commit previews — run{' '}
-                  <code className="font-mono bg-muted px-1 py-0.5 rounded">Preview Safe AI Code Fixes (Dry Run)</code>{' '}
+                  <code className="font-mono bg-muted px-1 py-0.5 rounded">
+                    Preview Safe AI Code Fixes (Dry Run)
+                  </code>{' '}
                   from the command palette (v{EXTENSION_VERSION})
                 </span>
               </div>
@@ -137,13 +154,22 @@ export function PostScanCliNudge({ scanGatePass }: { scanGatePass?: boolean }) {
             </div>
 
             <div className="flex flex-wrap gap-3 mt-4">
-              <a href={vsixDownloadUrl} download target="_blank" rel="noopener noreferrer" className="inline-flex">
+              <a
+                href={vsixDownloadUrl}
+                download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex"
+              >
                 <Button type="button" size="sm" className="text-xs">
                   <Download className="h-3.5 w-3.5 mr-1.5" /> Download VS Code Extension
                 </Button>
               </a>
               <span className="text-xs text-foreground-muted self-center">
-                or run <code className="font-mono text-foreground-muted bg-muted px-1.5 py-0.5 rounded">npm i -g simplebeacon</code>
+                or run{' '}
+                <code className="font-mono text-foreground-muted bg-muted px-1.5 py-0.5 rounded">
+                  npm i -g simplebeacon
+                </code>
               </span>
             </div>
           </div>

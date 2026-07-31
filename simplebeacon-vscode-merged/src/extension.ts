@@ -9,13 +9,16 @@ import * as https from 'https';
 import * as crypto from 'crypto';
 import { spawn, execSync } from 'child_process';
 import {
-  ScanPhaseProvider, TaskNode, ScanReport,
+  ScanPhaseProvider,
+  TaskNode,
+  ScanReport,
   EnhancedScanProvider,
   VisualSidebarProvider,
   ModernSidebarProvider,
   AiChatbotProvider,
   SummaryProvider,
-  RoadmapProvider, generateRoadmap,
+  RoadmapProvider,
+  generateRoadmap,
   EnhancedDashboard30,
   Dashboard40,
   WelcomeDashboard,
@@ -23,23 +26,52 @@ import {
   EnhancedAIProvider,
   RealtimeMonitor,
   AICodeAnalyzer,
-  exportAIReport, AIReportOptions,
+  exportAIReport,
+  AIReportOptions,
   AdvancedAnalytics,
   TeamDashboard,
-  ScanResult, ScanProfile, exportScanResultToJson,
+  ScanResult,
+  ScanProfile,
+  exportScanResultToJson,
   SlopCopQuickFixProvider,
   LocalRemediationCodeActionProvider,
   registerReferralEngine,
-  SimpleBeaconProvider, ScanIssue,
+  SimpleBeaconProvider,
+  ScanIssue,
   UploadPanel,
   DiagnosticsManager,
   DashboardPanel,
-  DebugReporter
+  DebugReporter,
 } from './providers';
 import { CodeMapTreeProvider } from './codeMapTreeProvider';
-import { startDataServer, stopDataServer, updateServerState, getServerState, getDataServerPort, clearBrowserSessionToken, setBrowserSessionToken, recordBrowserSignOut, setSidebarHtmlProvider, setAiContextCallback, restartDataServer, isDataServerRunning, setModernSidebarProvider, buildAiContextMarkdown, setNotifyCallback, drainNotificationQueue, setTheme } from './dataServer';
+import {
+  startDataServer,
+  stopDataServer,
+  updateServerState,
+  getServerState,
+  getDataServerPort,
+  clearBrowserSessionToken,
+  setBrowserSessionToken,
+  recordBrowserSignOut,
+  setSidebarHtmlProvider,
+  setAiContextCallback,
+  restartDataServer,
+  isDataServerRunning,
+  setModernSidebarProvider,
+  buildAiContextMarkdown,
+  setNotifyCallback,
+  drainNotificationQueue,
+  setTheme,
+} from './dataServer';
 import { SimpleBeaconFixEngine } from './fixes/fixEngine';
-import { getExtensionVersion, pickWorkspaceFolder, correctScanPath, showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
+import {
+  getExtensionVersion,
+  pickWorkspaceFolder,
+  correctScanPath,
+  showQuietMessage,
+  getSbConfig,
+  normalizeApiServerUrl,
+} from './utils/vscode';
 import { escapeHtml } from './utils/string';
 import { openWebsiteDashboardPanel } from './sidebarMessenger';
 import {
@@ -49,7 +81,7 @@ import {
   isLocalAgentInstalled,
   probeLocalAgent,
   scanViaLocalAgent,
-  startLocalAgent
+  startLocalAgent,
 } from './localAgent';
 import { AuthManager } from './auth/authManager';
 import { initAuthManager, getAuthManager } from './auth/authContext';
@@ -68,9 +100,11 @@ function decodeJwtPayload(token: string): Record<string, any> | null {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
     const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const pad = '='.repeat((4 - base64.length % 4) % 4);
+    const pad = '='.repeat((4 - (base64.length % 4)) % 4);
     return JSON.parse(Buffer.from(base64 + pad, 'base64').toString('utf8'));
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /** Check if the current user has a paid (Pro/Enterprise) license. */
@@ -97,7 +131,10 @@ async function isPaidUser(): Promise<boolean> {
 
   // 3. Check dashboard JWT auth token (config or globalState)
   if (!apiToken) {
-    apiToken = config.get<string>('apiToken', '') || _extensionContext?.globalState.get<string>('simplebeacon.apiToken', '') || '';
+    apiToken =
+      config.get<string>('apiToken', '') ||
+      _extensionContext?.globalState.get<string>('simplebeacon.apiToken', '') ||
+      '';
   }
 
   if (apiToken) {
@@ -106,18 +143,18 @@ async function isPaidUser(): Promise<boolean> {
       if (payload.exp && payload.exp * 1000 < Date.now()) return false;
       const tier = String(
         payload.tier ||
-        payload.plan ||
-        payload.product ||
-        payload.role ||
-        payload.user?.tier ||
-        payload.user?.plan ||
-        payload.data?.tier ||
-        payload.data?.plan ||
-        payload.account?.tier ||
-        payload.account?.plan ||
-        payload.subscription?.tier ||
-        payload.subscription?.plan ||
-        ''
+          payload.plan ||
+          payload.product ||
+          payload.role ||
+          payload.user?.tier ||
+          payload.user?.plan ||
+          payload.data?.tier ||
+          payload.data?.plan ||
+          payload.account?.tier ||
+          payload.account?.plan ||
+          payload.subscription?.tier ||
+          payload.subscription?.plan ||
+          ''
       ).toLowerCase();
       if (PAID_TIERS.has(resolveTier(tier))) return true;
     }
@@ -141,10 +178,14 @@ async function promptUpgrade(featureName: string): Promise<void> {
 /** Severity-to-color mapping for dashboard badges. */
 function getSeverityColor(sev: string): string {
   switch (sev.toLowerCase()) {
-    case 'critical': return '#ef4444';
-    case 'high':     return '#f97316';
-    case 'medium':   return '#eab308';
-    default:         return '#22c55e';
+    case 'critical':
+      return '#ef4444';
+    case 'high':
+      return '#f97316';
+    case 'medium':
+      return '#eab308';
+    default:
+      return '#22c55e';
   }
 }
 
@@ -278,10 +319,14 @@ function getCurrentIdeTheme(): 'dark' | 'light' {
 }
 
 function postThemeToPanel(panel: vscode.WebviewPanel | undefined) {
-  if (!panel) { return; }
+  if (!panel) {
+    return;
+  }
   try {
     panel.webview.postMessage({ command: 'setTheme', theme: getCurrentIdeTheme() });
-  } catch (e) { /* ignore closed panels */ }
+  } catch (e) {
+    /* ignore closed panels */
+  }
 }
 
 function getConfiguredApiUrl(): string {
@@ -299,7 +344,12 @@ async function checkServerReachable(url: string, timeout = 3000): Promise<boolea
     const client = parsed.protocol === 'https:' ? https : http;
     return new Promise((resolve) => {
       const req = client.request(
-        { hostname: parsed.hostname, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), path: '/', method: 'GET' },
+        {
+          hostname: parsed.hostname,
+          port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+          path: '/',
+          method: 'GET',
+        },
         (res: http.IncomingMessage) => {
           // Consume the response body so the connection can close cleanly
           res.on('data', () => {});
@@ -307,11 +357,16 @@ async function checkServerReachable(url: string, timeout = 3000): Promise<boolea
         }
       );
       req.on('error', () => resolve(false));
-      req.setTimeout(timeout, () => { req.destroy(); resolve(false); });
+      req.setTimeout(timeout, () => {
+        req.destroy();
+        resolve(false);
+      });
       req.end();
     });
   } catch (e) {
-    outputChannel.appendLine(`[SimpleBeacon] Server reachability check failed: ${e instanceof Error ? e.message : String(e)}`);
+    outputChannel.appendLine(
+      `[SimpleBeacon] Server reachability check failed: ${e instanceof Error ? e.message : String(e)}`
+    );
     return false;
   }
 }
@@ -426,103 +481,221 @@ function pushAllPanesToDashboard(report: unknown) {
 
   // Report pane
   WelcomeDashboard.updateReportPaneIfOpen({
-    score: String(score), gate: gateStr, issues: String(totalIssues),
-    files, severity: sev, findings, lastAnalysis: lastScan,
+    score: String(score),
+    gate: gateStr,
+    issues: String(totalIssues),
+    files,
+    severity: sev,
+    findings,
+    lastAnalysis: lastScan,
   });
   // Analyze pane
   WelcomeDashboard.updateAnalyzePaneIfOpen({
-    score: String(score), gate: gateStr, issues: String(totalIssues),
-    files, severity: sev, findings, lastAnalysis: lastScan,
+    score: String(score),
+    gate: gateStr,
+    issues: String(totalIssues),
+    files,
+    severity: sev,
+    findings,
+    lastAnalysis: lastScan,
   });
   // Quality pane
   WelcomeDashboard.updateQualityPaneIfOpen({
-    qualityScore: String(score), issues: String(totalIssues), coverage: '--',
-    files, status: gateStr, maintainability: String(qMaint), reliability: String(qRel),
-    complexity: String(qComplex), duplication: String(qDup), gate: gateStr,
+    qualityScore: String(score),
+    issues: String(totalIssues),
+    coverage: '--',
+    files,
+    status: gateStr,
+    maintainability: String(qMaint),
+    reliability: String(qRel),
+    complexity: String(qComplex),
+    duplication: String(qDup),
+    gate: gateStr,
   });
   // Upload pane
   WelcomeDashboard.updateUploadPaneIfOpen({
-    status: gateStr, files, gate: gateStr,
+    status: gateStr,
+    files,
+    gate: gateStr,
   } as any);
   // Audit pane
   WelcomeDashboard.updateAuditPaneIfOpen({
-    vulnerabilities: String(high + crit), secrets: '0', passed: String(Math.max(0, Number(files) - totalIssues)),
-    score: String(score), status: gateStr, critical: String(crit), high: String(high),
-    medium: String(med), low: String(low), catSecrets: '0', catVulns: String(high + crit),
-    catSmells: String(med + low), catCompliance: '0', findings, gate: gateStr,
+    vulnerabilities: String(high + crit),
+    secrets: '0',
+    passed: String(Math.max(0, Number(files) - totalIssues)),
+    score: String(score),
+    status: gateStr,
+    critical: String(crit),
+    high: String(high),
+    medium: String(med),
+    low: String(low),
+    catSecrets: '0',
+    catVulns: String(high + crit),
+    catSmells: String(med + low),
+    catCompliance: '0',
+    findings,
+    gate: gateStr,
   } as any);
   // Security pane
   WelcomeDashboard.updateSecurityPaneIfOpen({
-    critical: String(crit), high: String(high), medium: String(med), low: String(low),
-    score: String(score), status: gatePass ? 'PASS' : 'FAIL', findings, gate: gateStr,
-    repoFiles: files, gateChecked: gateStr, lastScan,
+    critical: String(crit),
+    high: String(high),
+    medium: String(med),
+    low: String(low),
+    score: String(score),
+    status: gatePass ? 'PASS' : 'FAIL',
+    findings,
+    gate: gateStr,
+    repoFiles: files,
+    gateChecked: gateStr,
+    lastScan,
   } as any);
   // Trust pane
   WelcomeDashboard.updateTrustPaneIfOpen({
-    trustScore: String(score), verified: gatePass ? 'Verified' : 'Issues Found',
-    warnings: String(totalIssues), lastAudit: lastScan, status: gateStr,
-    quality: String(score), security: String(score), compliance: String(score),
-    dependencies: '--', severity: sev, gate: gateStr,
+    trustScore: String(score),
+    verified: gatePass ? 'Verified' : 'Issues Found',
+    warnings: String(totalIssues),
+    lastAudit: lastScan,
+    status: gateStr,
+    quality: String(score),
+    security: String(score),
+    compliance: String(score),
+    dependencies: '--',
+    severity: sev,
+    gate: gateStr,
   } as any);
   // Compliance pane
   WelcomeDashboard.updateCompliancePaneIfOpen({
-    passed: String(gatePass ? 1 : 0), failed: String(gatePass ? 0 : 1),
-    progress: String(gatePass ? 100 : 0), total: '1', status: gateStr,
-    rules: [], severity: sev, qualityScore: String(score), issues: String(totalIssues), gate: gateStr,
+    passed: String(gatePass ? 1 : 0),
+    failed: String(gatePass ? 0 : 1),
+    progress: String(gatePass ? 100 : 0),
+    total: '1',
+    status: gateStr,
+    rules: [],
+    severity: sev,
+    qualityScore: String(score),
+    issues: String(totalIssues),
+    gate: gateStr,
   } as any);
   // Repo Health pane
   WelcomeDashboard.updateRepoHealthPaneIfOpen({
-    score: String(score), qualityScore: String(score), gate: gateStr,
-    issues: String(totalIssues), files, status: gateStr,
-    critical: String(crit), high: String(high), medium: String(med), low: String(low),
-    maintainability: String(qMaint), reliability: String(qRel),
-    complexity: String(qComplex), duplication: String(qDup),
-    findings, recommendations: [],
+    score: String(score),
+    qualityScore: String(score),
+    gate: gateStr,
+    issues: String(totalIssues),
+    files,
+    status: gateStr,
+    critical: String(crit),
+    high: String(high),
+    medium: String(med),
+    low: String(low),
+    maintainability: String(qMaint),
+    reliability: String(qRel),
+    complexity: String(qComplex),
+    duplication: String(qDup),
+    findings,
+    recommendations: [],
   } as any);
   // AI Context pane
   WelcomeDashboard.updateAiContextPaneIfOpen({
-    files, issues: String(totalIssues), score: String(score),
-    severity: sev, status: gateStr, models: '0', aiFindings: [], aiModels: [],
+    files,
+    issues: String(totalIssues),
+    score: String(score),
+    severity: sev,
+    status: gateStr,
+    models: '0',
+    aiFindings: [],
+    aiModels: [],
   } as any);
   // Assessments pane
   WelcomeDashboard.updateAssessmentsPaneIfOpen({
-    completed: String(gatePass ? 1 : 0), pending: String(gatePass ? 0 : 1),
-    progress: String(gatePass ? 100 : 0), total: '1', status: gateStr,
-    security: String(score), quality: String(score), compliance: String(score),
-    documentation: '--', severity: sev, checklist: [], qualityScore: String(score),
-    issues: String(totalIssues), gate: gateStr,
+    completed: String(gatePass ? 1 : 0),
+    pending: String(gatePass ? 0 : 1),
+    progress: String(gatePass ? 100 : 0),
+    total: '1',
+    status: gateStr,
+    security: String(score),
+    quality: String(score),
+    compliance: String(score),
+    documentation: '--',
+    severity: sev,
+    checklist: [],
+    qualityScore: String(score),
+    issues: String(totalIssues),
+    gate: gateStr,
   } as any);
   // Certificate pane
   WelcomeDashboard.updateCertificatePaneIfOpen({
-    status: gateStr, score: String(score), modules: String(gatePass ? 1 : 0),
-    date: lastScan, expiry: '--', gate: gateStr, severity: sev, requirements: [], previewText: '',
+    status: gateStr,
+    score: String(score),
+    modules: String(gatePass ? 1 : 0),
+    date: lastScan,
+    expiry: '--',
+    gate: gateStr,
+    severity: sev,
+    requirements: [],
+    previewText: '',
   } as any);
   // Analytics pane
   WelcomeDashboard.updateAnalyticsPaneIfOpen({
-    scans: '1', issues: String(totalIssues), avgScore: String(score),
-    lastScan, trend: 'stable', issueTrend: 'stable', status: gateStr,
+    scans: '1',
+    issues: String(totalIssues),
+    avgScore: String(score),
+    lastScan,
+    trend: 'stable',
+    issueTrend: 'stable',
+    status: gateStr,
   } as any);
   // Settings pane
   WelcomeDashboard.updateSettingsPaneIfOpen({
-    severity: sev, qualityScore: String(score), issues: String(totalIssues), gate: gateStr,
+    severity: sev,
+    qualityScore: String(score),
+    issues: String(totalIssues),
+    gate: gateStr,
   } as any);
   // Profile pane
   WelcomeDashboard.updateProfilePaneIfOpen({
-    name: 'Developer', email: '--', role: 'Admin', org: '--',
-    scans: '1', reports: '1', issues: String(totalIssues), avgScore: String(score),
-    qualityScore: String(score), autoScan: false, notifications: true, darkMode: false,
-    severity: sev, activity: [], gate: gateStr,
+    name: 'Developer',
+    email: '--',
+    role: 'Admin',
+    org: '--',
+    scans: '1',
+    reports: '1',
+    issues: String(totalIssues),
+    avgScore: String(score),
+    qualityScore: String(score),
+    autoScan: false,
+    notifications: true,
+    darkMode: false,
+    severity: sev,
+    activity: [],
+    gate: gateStr,
   } as any);
   // Platform pane
   WelcomeDashboard.updatePlatformPaneIfOpen({
-    version: '', engine: 'SimpleBeacon', uptime: '--', status: gateStr,
-    os: '', node: '', ext: '', workspace: '', badge: gateStr,
-    severity: sev, qualityScore: String(score), issues: String(totalIssues), gate: gateStr,
+    version: '',
+    engine: 'SimpleBeacon',
+    uptime: '--',
+    status: gateStr,
+    os: '',
+    node: '',
+    ext: '',
+    workspace: '',
+    badge: gateStr,
+    severity: sev,
+    qualityScore: String(score),
+    issues: String(totalIssues),
+    gate: gateStr,
   } as any);
   // Roadmap pane
   WelcomeDashboard.updateRoadmapPaneIfOpen({
-    open: String(totalIssues), risk: String(Math.max(0, 100 - score)),
-    done: '0', target: '7/26/2026', status: gateStr, severity: sev, findings: [],
+    open: String(totalIssues),
+    risk: String(Math.max(0, 100 - score)),
+    done: '0',
+    target: '7/26/2026',
+    status: gateStr,
+    severity: sev,
+    findings: [],
   } as any);
 }
 
@@ -534,1143 +707,1361 @@ export function activate(context: vscode.ExtensionContext) {
   const pkg = context.extension.packageJSON;
   const version = pkg?.version || 'unknown';
   try {
-  vscode.window.showInformationMessage(`SimpleBeacon v${version} is activating...`);
-  _extensionUri = context.extensionUri;
-  _extensionContext = context;
-  outputChannel = vscode.window.createOutputChannel('SimpleBeacon');
-  context.subscriptions.push(outputChannel);
-  outputChannel.appendLine('[SimpleBeacon] Extension activating... v' + version);
-  outputChannel.appendLine('[SimpleBeacon] Output channel created');
-  startDataServer(context, outputChannel);
-  outputChannel.appendLine('[SimpleBeacon] Data server started');
+    vscode.window.showInformationMessage(`SimpleBeacon v${version} is activating...`);
+    _extensionUri = context.extensionUri;
+    _extensionContext = context;
+    outputChannel = vscode.window.createOutputChannel('SimpleBeacon');
+    context.subscriptions.push(outputChannel);
+    outputChannel.appendLine('[SimpleBeacon] Extension activating... v' + version);
+    outputChannel.appendLine('[SimpleBeacon] Output channel created');
+    startDataServer(context, outputChannel);
+    outputChannel.appendLine('[SimpleBeacon] Data server started');
 
-  // Wire up external-browser → VS Code notification bridge
-  const onNotifyEntry = (entry: any): void => {
-    if (entry.type === 'openFile' && entry.payload?.path) {
-      let filePath = entry.payload.path;
-      if (!path.isAbsolute(filePath)) {
-        const workspace = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
-        if (workspace) {
-          filePath = path.join(workspace, filePath);
+    // Wire up external-browser → VS Code notification bridge
+    const onNotifyEntry = (entry: any): void => {
+      if (entry.type === 'openFile' && entry.payload?.path) {
+        let filePath = entry.payload.path;
+        if (!path.isAbsolute(filePath)) {
+          const workspace = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+          if (workspace) {
+            filePath = path.join(workspace, filePath);
+          }
         }
-      }
-      if (!fs.existsSync(filePath)) {
-        const message = `File not found: ${filePath}`;
-        outputChannel.appendLine(`[NotifyBridge] ${message}`);
-        vscode.window.showWarningMessage(message);
-      } else {
-        Promise.resolve(vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath))).catch((err) => {
-          outputChannel.appendLine(`[NotifyBridge] Could not open file: ${filePath} — ${err}`);
-        });
-      }
-    } else if (entry.type === 'downloadComplete' && entry.payload?.filename) {
-      if (modernSidebarProvider) {
-        outputChannel.appendLine(`[NotifyBridge] Received downloadComplete: ${entry.payload.filename}`);
-        modernSidebarProvider.addDownloadedFile(entry.payload.filename, entry.payload.filePath || '');
-      } else {
-        pendingSidebarDownloads.push({ name: entry.payload.filename, path: entry.payload.filePath || '' });
-        outputChannel.appendLine(`[NotifyBridge] Queued downloadComplete: ${entry.payload.filename}`);
-      }
-    } else if (entry.type === 'setAuthState') {
-      const signedIn = entry.payload?.signedIn === true;
-      const token = typeof entry.payload?.token === 'string' ? entry.payload.token : '';
-      const tier = typeof entry.payload?.tier === 'string' ? entry.payload.tier : '';
-      const isAdmin = entry.payload?.isAdmin === true;
-      outputChannel.appendLine(`[NotifyBridge] Received setAuthState signedIn=${signedIn} token=${token ? 'present(' + token.length + ')' : 'none'} tier=${tier} isAdmin=${isAdmin}`);
-      // Persist to AuthManager before refreshing so refreshAuthState sees the authoritative token.
-      void (async () => {
-        try {
-          const authManager = getAuthManager();
-          if (signedIn && token) {
-            setBrowserSessionToken(token);
-            await authManager.setToken(token);
-          } else if (!signedIn) {
-            if (token) { recordBrowserSignOut(token); }
-            clearBrowserSessionToken();
-            await authManager.clearToken();
+        if (!fs.existsSync(filePath)) {
+          const message = `File not found: ${filePath}`;
+          outputChannel.appendLine(`[NotifyBridge] ${message}`);
+          vscode.window.showWarningMessage(message);
+        } else {
+          Promise.resolve(vscode.commands.executeCommand('vscode.open', vscode.Uri.file(filePath))).catch((err) => {
+            outputChannel.appendLine(`[NotifyBridge] Could not open file: ${filePath} — ${err}`);
+          });
+        }
+      } else if (entry.type === 'downloadComplete' && entry.payload?.filename) {
+        if (modernSidebarProvider) {
+          outputChannel.appendLine(`[NotifyBridge] Received downloadComplete: ${entry.payload.filename}`);
+          modernSidebarProvider.addDownloadedFile(entry.payload.filename, entry.payload.filePath || '');
+        } else {
+          pendingSidebarDownloads.push({ name: entry.payload.filename, path: entry.payload.filePath || '' });
+          outputChannel.appendLine(`[NotifyBridge] Queued downloadComplete: ${entry.payload.filename}`);
+        }
+      } else if (entry.type === 'setAuthState') {
+        const signedIn = entry.payload?.signedIn === true;
+        const token = typeof entry.payload?.token === 'string' ? entry.payload.token : '';
+        const tier = typeof entry.payload?.tier === 'string' ? entry.payload.tier : '';
+        const isAdmin = entry.payload?.isAdmin === true;
+        outputChannel.appendLine(
+          `[NotifyBridge] Received setAuthState signedIn=${signedIn} token=${token ? 'present(' + token.length + ')' : 'none'} tier=${tier} isAdmin=${isAdmin}`
+        );
+        // Persist to AuthManager before refreshing so refreshAuthState sees the authoritative token.
+        void (async () => {
+          try {
+            const authManager = getAuthManager();
+            if (signedIn && token) {
+              setBrowserSessionToken(token);
+              await authManager.setToken(token);
+            } else if (!signedIn) {
+              if (token) {
+                recordBrowserSignOut(token);
+              }
+              clearBrowserSessionToken();
+              await authManager.clearToken();
+            }
+          } catch {
+            /* auth manager may not be initialized */
           }
-        } catch { /* auth manager may not be initialized */ }
-        ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, undefined, isAdmin);
-        // Ensure the auth manager and sidebar UI refresh with the browser-provided token
-        setTimeout(() => ModernSidebarProvider.refreshAuthState(), 50);
-        outputChannel.appendLine(`[NotifyBridge] Auth state synced from browser: signedIn=${signedIn} tier=${tier} isAdmin=${isAdmin}`);
-      })();
+          ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, undefined, isAdmin);
+          // Ensure the auth manager and sidebar UI refresh with the browser-provided token
+          setTimeout(() => ModernSidebarProvider.refreshAuthState(), 50);
+          outputChannel.appendLine(
+            `[NotifyBridge] Auth state synced from browser: signedIn=${signedIn} tier=${tier} isAdmin=${isAdmin}`
+          );
+        })();
+      }
+    };
+    setNotifyCallback(onNotifyEntry);
+
+    // Process notifications that arrived while the callback was not yet wired (e.g.
+    // a website sign-in that happened during extension activation).
+    for (const entry of drainNotificationQueue()) {
+      outputChannel.appendLine(`[NotifyBridge] Draining queued notification type=${entry.type}`);
+      onNotifyEntry(entry);
     }
-  };
-  setNotifyCallback(onNotifyEntry);
 
-  // Process notifications that arrived while the callback was not yet wired (e.g.
-  // a website sign-in that happened during extension activation).
-  for (const entry of drainNotificationQueue()) {
-    outputChannel.appendLine(`[NotifyBridge] Draining queued notification type=${entry.type}`);
-    onNotifyEntry(entry);
-  }
-
-  // Register critical commands FIRST so they're available even if later setup fails
-  const earlyCommands: vscode.Disposable[] = [];
-  function earlyRegisterCmd(command: string, callback: (...args: any[]) => unknown) {
-    try {
-      earlyCommands.push(vscode.commands.registerCommand(command, callback));
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[SimpleBeacon] Early command registration failed for ${command}: ${msg}`);
-      outputChannel.appendLine(`[SimpleBeacon] Early command registration failed for ${command}: ${msg}`);
+    // Register critical commands FIRST so they're available even if later setup fails
+    const earlyCommands: vscode.Disposable[] = [];
+    function earlyRegisterCmd(command: string, callback: (...args: any[]) => unknown) {
+      try {
+        earlyCommands.push(vscode.commands.registerCommand(command, callback));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[SimpleBeacon] Early command registration failed for ${command}: ${msg}`);
+        outputChannel.appendLine(`[SimpleBeacon] Early command registration failed for ${command}: ${msg}`);
+      }
     }
-  }
-  earlyRegisterCmd('simplebeacon.setApiToken', async () => {
-    const token = await getAuthManager().promptForToken();
-    if (token) {
-      const msp = await import('./modernSidebarProvider');
-      msp.ModernSidebarProvider.openTokenRegistrationPanel(context.extensionUri, token);
+    earlyRegisterCmd('simplebeacon.setApiToken', async () => {
+      const token = await getAuthManager().promptForToken();
+      if (token) {
+        const msp = await import('./modernSidebarProvider');
+        msp.ModernSidebarProvider.openTokenRegistrationPanel(context.extensionUri, token);
+      }
+    });
+    earlyRegisterCmd(
+      'simplebeacon.scanWorkspace',
+      (args?: string | { projectPath?: string; path?: string; mode?: string; fullDirectory?: boolean }) => {
+        const options = typeof args === 'string' ? { projectPath: args } : args || {};
+        return runScan(context, options.projectPath || options.path, options);
+      }
+    );
+    earlyRegisterCmd('simplebeacon.clearResults', clearResults);
+    earlyRegisterCmd('simplebeacon.showReport', async () => {
+      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+      if (panel) {
+        panel.showReportPane();
+      }
+    });
+    context.subscriptions.push(...earlyCommands);
+    outputChannel.appendLine('[SimpleBeacon] Early commands registered: ' + earlyCommands.length);
+
+    // Dry-run / apply fix commands via SimpleBeacon CLI
+    const fixEngine = new SimpleBeaconFixEngine(outputChannel, resolveCliPath);
+    context.subscriptions.push(
+      vscode.commands.registerCommand('simplebeacon.dryRunFix', async (targetFile?: string) => {
+        await fixEngine.executeFixWorkflow(true, typeof targetFile === 'string' ? targetFile : undefined);
+      })
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand('simplebeacon.applyFixes', async (targetFile?: string) => {
+        await fixEngine.executeFixWorkflow(false, typeof targetFile === 'string' ? targetFile : undefined);
+      })
+    );
+
+    let dryRunSaveDebounce: NodeJS.Timeout | null = null;
+    context.subscriptions.push(
+      vscode.workspace.onDidSaveTextDocument((doc: vscode.TextDocument) => {
+        const config = vscode.workspace.getConfiguration('simplebeacon');
+        if (!config.get<boolean>('enableDryRunOnSave', false)) {
+          return;
+        }
+        if (!fixEngine.shouldRunOnSave(doc)) {
+          return;
+        }
+        if (dryRunSaveDebounce) {
+          clearTimeout(dryRunSaveDebounce);
+        }
+        dryRunSaveDebounce = setTimeout(() => {
+          dryRunSaveDebounce = null;
+          outputChannel.appendLine(`[SAVE EVENT] File update detected on ${path.basename(doc.fileName)}.`);
+          void fixEngine.executeFixWorkflow(true, doc.fileName);
+        }, 1000);
+      })
+    );
+
+    // Debounced auto-scan on save
+    let scanOnSaveDebounce: NodeJS.Timeout | null = null;
+    context.subscriptions.push(
+      vscode.workspace.onDidSaveTextDocument((doc: vscode.TextDocument) => {
+        const config = vscode.workspace.getConfiguration('simplebeacon');
+        if (!config.get<boolean>('autoScanOnSave', true)) {
+          return;
+        }
+        if (doc.uri.scheme !== 'file') return;
+        const ext = path.extname(doc.fileName).toLowerCase();
+        const supportedExts = [
+          '.js',
+          '.ts',
+          '.jsx',
+          '.tsx',
+          '.py',
+          '.java',
+          '.go',
+          '.rb',
+          '.php',
+          '.cjs',
+          '.mjs',
+          '.vue',
+          '.svelte',
+        ];
+        if (!supportedExts.includes(ext)) return;
+
+        if (scanOnSaveDebounce) {
+          clearTimeout(scanOnSaveDebounce);
+        }
+        const debounceMs = config.get<number>('scanOnSaveDebounce', 2000);
+        scanOnSaveDebounce = setTimeout(() => {
+          scanOnSaveDebounce = null;
+          outputChannel.appendLine(`[AUTO-SCAN] Triggering scan after save: ${path.basename(doc.fileName)}`);
+          void runScan(context, undefined, { mode: 'fast' });
+        }, debounceMs);
+      })
+    );
+
+    // Register simplebeacon.runScan command
+    context.subscriptions.push(
+      vscode.commands.registerCommand('simplebeacon.runScan', async () => {
+        outputChannel.appendLine('[SimpleBeacon] Run Scan command invoked');
+        await runScan(context, undefined, { mode: 'fast' });
+      })
+    );
+
+    // Register simplebeacon.remediate command
+    context.subscriptions.push(
+      vscode.commands.registerCommand('simplebeacon.remediate', async (targetFile?: string) => {
+        outputChannel.appendLine('[SimpleBeacon] Run Remediation command invoked');
+        await fixEngine.executeFixWorkflow(false, typeof targetFile === 'string' ? targetFile : undefined);
+      })
+    );
+
+    // Register the Slop Cop quick-fix provider for line-level ignore comments
+    context.subscriptions.push(
+      vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: '*' }, new SlopCopQuickFixProvider(), {
+        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+      })
+    );
+
+    context.subscriptions.push(
+      vscode.languages.registerCodeActionsProvider(
+        { scheme: 'file', language: '*' },
+        new LocalRemediationCodeActionProvider(),
+        { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+      )
+    );
+
+    // Register the "Share Clean Badge" viral referral command
+    registerReferralEngine(context);
+
+    context.subscriptions.push(
+      vscode.window.onDidChangeActiveColorTheme(() => {
+        const kind = getCurrentIdeTheme();
+        setTheme(kind);
+        postThemeToPanel(activePreviewPanel);
+        if (typeof ModernSidebarProvider.postThemeToTeamDashboard === 'function') {
+          ModernSidebarProvider.postThemeToTeamDashboard(kind);
+        }
+      })
+    );
+
+    // Seed server state with the current VS Code workspace
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (workspaceFolder) {
+      updateServerState({ workspacePath: workspaceFolder.uri.fsPath, workspaceName: workspaceFolder.name });
     }
-  });
-  earlyRegisterCmd('simplebeacon.scanWorkspace', (args?: string | { projectPath?: string; path?: string; mode?: string; fullDirectory?: boolean }) => {
-    const options = typeof args === 'string' ? { projectPath: args } : (args || {});
-    return runScan(context, options.projectPath || options.path, options);
-  });
-  earlyRegisterCmd('simplebeacon.clearResults', clearResults);
-  earlyRegisterCmd('simplebeacon.showReport', async () => {
-    const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-    if (panel) { panel.showReportPane(); }
-  });
-  context.subscriptions.push(...earlyCommands);
-  outputChannel.appendLine('[SimpleBeacon] Early commands registered: ' + earlyCommands.length);
 
-  // Dry-run / apply fix commands via SimpleBeacon CLI
-  const fixEngine = new SimpleBeaconFixEngine(outputChannel, resolveCliPath);
-  context.subscriptions.push(
-    vscode.commands.registerCommand('simplebeacon.dryRunFix', async (targetFile?: string) => {
-      await fixEngine.executeFixWorkflow(true, typeof targetFile === 'string' ? targetFile : undefined);
-    }),
-  );
-  context.subscriptions.push(
-    vscode.commands.registerCommand('simplebeacon.applyFixes', async (targetFile?: string) => {
-      await fixEngine.executeFixWorkflow(false, typeof targetFile === 'string' ? targetFile : undefined);
-    }),
-  );
-
-  let dryRunSaveDebounce: NodeJS.Timeout | null = null;
-  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((doc: vscode.TextDocument) => {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
-    if (!config.get<boolean>('enableDryRunOnSave', false)) {
-      return;
+    // Status bar item showing data server state
+    const serverStatusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    serverStatusItem.command = 'simplebeacon.restartDataServer';
+    function updateServerStatus() {
+      if (isDataServerRunning()) {
+        const port = getDataServerPort();
+        serverStatusItem.text = `$(server-environment) SB:${port}`;
+        serverStatusItem.tooltip = `SimpleBeacon data server running on port ${port}. Click to restart.`;
+        serverStatusItem.backgroundColor = undefined;
+      } else {
+        serverStatusItem.text = `$(server-environment) SB:OFF`;
+        serverStatusItem.tooltip = 'SimpleBeacon data server is stopped. Click to start.';
+        serverStatusItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+      }
     }
-    if (!fixEngine.shouldRunOnSave(doc)) {
-      return;
-    }
-    if (dryRunSaveDebounce) {
-      clearTimeout(dryRunSaveDebounce);
-    }
-    dryRunSaveDebounce = setTimeout(() => {
-      dryRunSaveDebounce = null;
-      outputChannel.appendLine(`[SAVE EVENT] File update detected on ${path.basename(doc.fileName)}.`);
-      void fixEngine.executeFixWorkflow(true, doc.fileName);
-    }, 1000);
-  }));
+    updateServerStatus();
+    serverStatusItem.show();
+    const serverStatusInterval = setInterval(updateServerStatus, 2000);
+    context.subscriptions.push({ dispose: () => clearInterval(serverStatusInterval) });
+    context.subscriptions.push(serverStatusItem);
 
-  // Debounced auto-scan on save
-  let scanOnSaveDebounce: NodeJS.Timeout | null = null;
-  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((doc: vscode.TextDocument) => {
-    const config = vscode.workspace.getConfiguration('simplebeacon');
-    if (!config.get<boolean>('autoScanOnSave', true)) {
-      return;
-    }
-    if (doc.uri.scheme !== 'file') return;
-    const ext = path.extname(doc.fileName).toLowerCase();
-    const supportedExts = ['.js', '.ts', '.jsx', '.tsx', '.py', '.java', '.go', '.rb', '.php', '.cjs', '.mjs', '.vue', '.svelte'];
-    if (!supportedExts.includes(ext)) return;
+    initAuthManager(context);
 
-    if (scanOnSaveDebounce) {
-      clearTimeout(scanOnSaveDebounce);
-    }
-    const debounceMs = config.get<number>('scanOnSaveDebounce', 2000);
-    scanOnSaveDebounce = setTimeout(() => {
-      scanOnSaveDebounce = null;
-      outputChannel.appendLine(`[AUTO-SCAN] Triggering scan after save: ${path.basename(doc.fileName)}`);
-      void runScan(context, undefined, { mode: 'fast' });
-    }, debounceMs);
-  }));
-
-  // Register simplebeacon.runScan command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('simplebeacon.runScan', async () => {
-      outputChannel.appendLine('[SimpleBeacon] Run Scan command invoked');
-      await runScan(context, undefined, { mode: 'fast' });
-    }),
-  );
-
-  // Register simplebeacon.remediate command
-  context.subscriptions.push(
-    vscode.commands.registerCommand('simplebeacon.remediate', async (targetFile?: string) => {
-      outputChannel.appendLine('[SimpleBeacon] Run Remediation command invoked');
-      await fixEngine.executeFixWorkflow(false, typeof targetFile === 'string' ? targetFile : undefined);
-    }),
-  );
-
-  // Register the Slop Cop quick-fix provider for line-level ignore comments
-  context.subscriptions.push(
-    vscode.languages.registerCodeActionsProvider(
-      { scheme: 'file', language: '*' },
-      new SlopCopQuickFixProvider(),
-      { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
-    )
-  );
-
-  context.subscriptions.push(
-    vscode.languages.registerCodeActionsProvider(
-      { scheme: 'file', language: '*' },
-      new LocalRemediationCodeActionProvider(),
-      { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
-    )
-  );
-
-  // Register the "Share Clean Badge" viral referral command
-  registerReferralEngine(context);
-
-  context.subscriptions.push(vscode.window.onDidChangeActiveColorTheme(() => {
-    const kind = getCurrentIdeTheme();
-    setTheme(kind);
-    postThemeToPanel(activePreviewPanel);
-    if (typeof ModernSidebarProvider.postThemeToTeamDashboard === 'function') {
-      ModernSidebarProvider.postThemeToTeamDashboard(kind);
-    }
-  }));
-
-  // Seed server state with the current VS Code workspace
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (workspaceFolder) {
-    updateServerState({ workspacePath: workspaceFolder.uri.fsPath, workspaceName: workspaceFolder.name });
-  }
-
-  // Status bar item showing data server state
-  const serverStatusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  serverStatusItem.command = 'simplebeacon.restartDataServer';
-  function updateServerStatus() {
-    if (isDataServerRunning()) {
-      const port = getDataServerPort();
-      serverStatusItem.text = `$(server-environment) SB:${port}`;
-      serverStatusItem.tooltip = `SimpleBeacon data server running on port ${port}. Click to restart.`;
-      serverStatusItem.backgroundColor = undefined;
-    } else {
-      serverStatusItem.text = `$(server-environment) SB:OFF`;
-      serverStatusItem.tooltip = 'SimpleBeacon data server is stopped. Click to start.';
-      serverStatusItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
-    }
-  }
-  updateServerStatus();
-  serverStatusItem.show();
-  const serverStatusInterval = setInterval(updateServerStatus, 2000);
-  context.subscriptions.push({ dispose: () => clearInterval(serverStatusInterval) });
-  context.subscriptions.push(serverStatusItem);
-
-  initAuthManager(context);
-
-  // Register single URI handler for OAuth callbacks and deep links
-  context.subscriptions.push(
-    vscode.window.registerUriHandler({
-      handleUri(uri: vscode.Uri) {
-        if (uri.path === '/auth-callback') {
-          const params = new URLSearchParams(uri.query);
-          const code = params.get('code');
-          const state = params.get('state');
-          if (!code || !state) {
-            vscode.window.showErrorMessage('OAuth callback missing code or state');
-            return;
-          }
-          import('./auth/pkce').then(({ getSession, deleteSession }) => {
-            const session = getSession(state);
-            if (!session) {
-              vscode.window.showErrorMessage('OAuth session expired or invalid. Please try signing in again.');
+    // Register single URI handler for OAuth callbacks and deep links
+    context.subscriptions.push(
+      vscode.window.registerUriHandler({
+        handleUri(uri: vscode.Uri) {
+          if (uri.path === '/auth-callback') {
+            const params = new URLSearchParams(uri.query);
+            const code = params.get('code');
+            const state = params.get('state');
+            if (!code || !state) {
+              vscode.window.showErrorMessage('OAuth callback missing code or state');
               return;
             }
-            const port = getDataServerPort();
-            // simplebeacon-ignore: generic-naming — JSON property name matches server API contract
-            const body = JSON.stringify({ code, code_verifier: session.codeVerifier, provider: session.provider, state });
-            const req = require('http').request(
-              { hostname: '127.0.0.1', port, path: '/api/auth/oauth/token', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } },
-              (res: any) => {
-                let data = '';
-                res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
-                res.on('end', async () => {
+            import('./auth/pkce').then(({ getSession, deleteSession }) => {
+              const session = getSession(state);
+              if (!session) {
+                vscode.window.showErrorMessage('OAuth session expired or invalid. Please try signing in again.');
+                return;
+              }
+              const port = getDataServerPort();
+              // simplebeacon-ignore: generic-naming — JSON property name matches server API contract
+              const body = JSON.stringify({
+                code,
+                code_verifier: session.codeVerifier,
+                provider: session.provider,
+                state,
+              });
+              const req = require('http').request(
+                {
+                  hostname: '127.0.0.1',
+                  port,
+                  path: '/api/auth/oauth/token',
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+                },
+                (res: any) => {
+                  let data = '';
+                  res.on('data', (chunk: Buffer) => {
+                    data += chunk.toString();
+                  });
+                  res.on('end', async () => {
+                    try {
+                      const result = JSON.parse(data);
+                      if (result.success && result.token) {
+                        deleteSession(state);
+                        await getAuthManager().setToken(result.token);
+                        await context.secrets.store('simplebeacon.apiToken', result.token);
+                        vscode.window.showInformationMessage('Signed in successfully via ' + session.provider);
+                        await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+                      } else {
+                        vscode.window.showErrorMessage(
+                          'OAuth token exchange failed: ' + (result.error || 'Unknown error')
+                        );
+                      }
+                    } catch {
+                      vscode.window.showErrorMessage('Invalid OAuth token response');
+                    }
+                  });
+                }
+              );
+              req.on('error', () => {
+                vscode.window.showErrorMessage('Failed to connect to SimpleBeacon auth server for OAuth exchange');
+              });
+              req.write(body);
+              req.end();
+            });
+            return;
+          }
+          if (uri.path === '/connect' || uri.path === 'connect') {
+            const params = new URLSearchParams(uri.query);
+            let route = params.get('route') || 'chatbot';
+            if (!route.startsWith('/')) {
+              route = `/dashboard/${route.replace(/^dashboard\/?/, '')}`;
+            }
+            const dataServerPort = getDataServerPort();
+            const localBase = `http://127.0.0.1:${dataServerPort}`;
+            const notifyBase = `${localBase}/api`;
+            import('./sidebarMessenger')
+              .then(({ buildDashboardUrl, appendDashboardEmbedParams }) => {
+                let url = buildDashboardUrl(localBase, route);
+                url = appendDashboardEmbedParams(url, notifyBase, true);
+                return vscode.env.openExternal(vscode.Uri.parse(url));
+              })
+              .then(() => {
+                vscode.window.showInformationMessage('SimpleBeacon: opened bridged dashboard in your browser.');
+              })
+              .catch((e) => {
+                outputChannel.appendLine(`[URI connect] ${e instanceof Error ? e.message : String(e)}`);
+                vscode.window.showWarningMessage(
+                  'Could not open bridged dashboard — is the extension data server running?'
+                );
+              });
+            return;
+          }
+          if (uri.path === '/fix' || uri.path === 'fix') {
+            Promise.resolve(
+              vscode.window.showInformationMessage(
+                'SimpleBeacon: Received scan from website. Open fix panel?',
+                'Open',
+                'Dismiss'
+              )
+            )
+              .then((choice) => {
+                if (choice === 'Open') {
+                  WelcomeDashboard.createOrShow(context.extensionUri, true)?.showScanPane();
+                }
+              })
+              .catch(() => {});
+            return;
+          }
+          if (uri.path === '/sidebar' || uri.path === 'sidebar') {
+            const params = new URLSearchParams(uri.query);
+            const page = params.get('page') || '';
+            if (page) {
+              void modernSidebarProvider.navigateToPage(page);
+            }
+            return;
+          }
+          // Website → sidebar relay for auth state (fallback when /api/notify is unreachable)
+          if (uri.path === '/relay/auth' || uri.path === 'relay/auth') {
+            const params = new URLSearchParams(uri.query);
+            const token = params.get('token') || '';
+            const tier = params.get('tier') || '';
+            const isAdmin = params.get('isAdmin') === 'true';
+            const signedIn = params.get('signedIn') === 'true';
+            if (token && signedIn) {
+              outputChannel.appendLine(`[URI Relay] Received auth deep-link token present tier=${tier}`);
+              setBrowserSessionToken(token);
+              getAuthManager()
+                .setToken(token)
+                .then(() => context.secrets.store('simplebeacon.apiToken', token))
+                .then(() => {
                   try {
-                    const result = JSON.parse(data);
-                    if (result.success && result.token) {
-                      deleteSession(state);
-                      await getAuthManager().setToken(result.token);
-                      await context.secrets.store('simplebeacon.apiToken', result.token);
-                      vscode.window.showInformationMessage('Signed in successfully via ' + session.provider);
-                      await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
-                    } else {
-                      vscode.window.showErrorMessage('OAuth token exchange failed: ' + (result.error || 'Unknown error'));
+                    const payload = decodeJwtPayload(token);
+                    const email = payload?.email || payload?.sub || '';
+                    if (email) {
+                      return getAuthManager().setUserEmail(email);
                     }
                   } catch {
-                    vscode.window.showErrorMessage('Invalid OAuth token response');
+                    /* ignore decode errors */
                   }
-                });
-              }
-            );
-            req.on('error', () => {
-              vscode.window.showErrorMessage('Failed to connect to SimpleBeacon auth server for OAuth exchange');
-            });
-            req.write(body);
-            req.end();
-          });
-          return;
-        }
-        if (uri.path === '/connect' || uri.path === 'connect') {
-          const params = new URLSearchParams(uri.query);
-          let route = params.get('route') || 'chatbot';
-          if (!route.startsWith('/')) {
-            route = `/dashboard/${route.replace(/^dashboard\/?/, '')}`;
+                })
+                .then(() => ModernSidebarProvider.setSidebarAuthState(true, tier, token, 'signIn', isAdmin))
+                .then(() => ModernSidebarProvider.refreshAuthState('signIn'))
+                .then(() => vscode.window.showInformationMessage('Signed in via SimpleBeacon website.'))
+                .catch((e) =>
+                  outputChannel.appendLine(
+                    `[URI Relay] Auth relay error: ${e instanceof Error ? e.message : String(e)}`
+                  )
+                );
+            } else if (!signedIn && token) {
+              recordBrowserSignOut(token);
+              clearBrowserSessionToken();
+              ModernSidebarProvider.setSidebarAuthState(false, tier, '', 'signOut', isAdmin);
+            }
+            return;
           }
-          const dataServerPort = getDataServerPort();
-          const localBase = `http://127.0.0.1:${dataServerPort}`;
-          const notifyBase = `${localBase}/api`;
-          import('./sidebarMessenger').then(({ buildDashboardUrl, appendDashboardEmbedParams }) => {
-            let url = buildDashboardUrl(localBase, route);
-            url = appendDashboardEmbedParams(url, notifyBase, true);
-            return vscode.env.openExternal(vscode.Uri.parse(url));
-          }).then(() => {
-            vscode.window.showInformationMessage('SimpleBeacon: opened bridged dashboard in your browser.');
-          }).catch((e) => {
-            outputChannel.appendLine(`[URI connect] ${e instanceof Error ? e.message : String(e)}`);
-            vscode.window.showWarningMessage('Could not open bridged dashboard — is the extension data server running?');
-          });
-          return;
-        }
-        if (uri.path === '/fix' || uri.path === 'fix') {
-          Promise.resolve(vscode.window
-            .showInformationMessage('SimpleBeacon: Received scan from website. Open fix panel?', 'Open', 'Dismiss'))
-            .then((choice) => {
-              if (choice === 'Open') {
-                WelcomeDashboard.createOrShow(context.extensionUri, true)?.showScanPane();
-              }
-            })
-            .catch(() => {});
-          return;
-        }
-        if (uri.path === '/sidebar' || uri.path === 'sidebar') {
-          const params = new URLSearchParams(uri.query);
-          const page = params.get('page') || '';
-          if (page) {
-            void modernSidebarProvider.navigateToPage(page);
-          }
-          return;
-        }
-        // Website → sidebar relay for auth state (fallback when /api/notify is unreachable)
-        if (uri.path === '/relay/auth' || uri.path === 'relay/auth') {
-          const params = new URLSearchParams(uri.query);
-          const token = params.get('token') || '';
-          const tier = params.get('tier') || '';
-          const isAdmin = params.get('isAdmin') === 'true';
-          const signedIn = params.get('signedIn') === 'true';
-          if (token && signedIn) {
-            outputChannel.appendLine(`[URI Relay] Received auth deep-link token present tier=${tier}`);
-            setBrowserSessionToken(token);
-            getAuthManager().setToken(token)
-              .then(() => context.secrets.store('simplebeacon.apiToken', token))
-              .then(() => {
-                try {
-                  const payload = decodeJwtPayload(token);
-                  const email = payload?.email || payload?.sub || '';
-                  if (email) { return getAuthManager().setUserEmail(email); }
-                } catch { /* ignore decode errors */ }
-              })
-              .then(() => ModernSidebarProvider.setSidebarAuthState(true, tier, token, 'signIn', isAdmin))
-              .then(() => ModernSidebarProvider.refreshAuthState('signIn'))
-              .then(() => vscode.window.showInformationMessage('Signed in via SimpleBeacon website.'))
-              .catch((e) => outputChannel.appendLine(`[URI Relay] Auth relay error: ${e instanceof Error ? e.message : String(e)}`));
-          } else if (!signedIn && token) {
-            recordBrowserSignOut(token);
-            clearBrowserSessionToken();
-            ModernSidebarProvider.setSidebarAuthState(false, tier, '', 'signOut', isAdmin);
-          }
-          return;
-        }
-      }
-    })
-  );
-
-  scanProvider = new ScanPhaseProvider();
-  enhancedScanProvider = new EnhancedScanProvider();
-  visualSidebarProvider = new VisualSidebarProvider();
-  modernSidebarProvider = new ModernSidebarProvider(context.extensionUri);
-  codeMapTreeProvider = new CodeMapTreeProvider(context.extensionUri);
-  setModernSidebarProvider(modernSidebarProvider);
-  while (pendingSidebarDownloads.length) {
-    const dl = pendingSidebarDownloads.shift();
-    if (dl) {
-      outputChannel.appendLine(`[NotifyBridge] Replaying queued downloadComplete: ${dl.name}`);
-      modernSidebarProvider.addDownloadedFile(dl.name, dl.path);
-    }
-  }
-  ModernSidebarProvider.setAccountTracker(getAccountTracker(context));
-  import('./sidebarBridge').then(({ setSidebarBridge }) => {
-    setSidebarBridge({
-      showDashboardInSidebar: ModernSidebarProvider.showDashboardInSidebar.bind(ModernSidebarProvider),
-      openSidebarInBrowserStatic: ModernSidebarProvider.openSidebarInBrowserStatic.bind(ModernSidebarProvider),
-      isSidebarReady: ModernSidebarProvider.isViewReady.bind(ModernSidebarProvider),
-      openSidebarPreview: ModernSidebarProvider.openSidebarPreview.bind(ModernSidebarProvider),
-      setSidebarAuthState: ModernSidebarProvider.setSidebarAuthState.bind(ModernSidebarProvider),
-      getDashboardMode: ModernSidebarProvider.getDashboardMode.bind(ModernSidebarProvider),
-      refreshAuthState: ModernSidebarProvider.refreshAuthState.bind(ModernSidebarProvider),
-      addDownloadedFile: ModernSidebarProvider.addDownloadedFile.bind(ModernSidebarProvider),
-      updateSidebarReport: ModernSidebarProvider.updateSidebarReport.bind(ModernSidebarProvider)
-    });
-  });
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider(ModernSidebarProvider.viewType, modernSidebarProvider));
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider('simplebeacon-modern-explorer', modernSidebarProvider));
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider(CodeMapTreeProvider.viewType, codeMapTreeProvider));
-
-  // Register the Compliance Sidebar (Risk Heatmap + Remediation Ledger)
-  const complianceSidebarProvider = new ComplianceSidebarProvider(context.extensionUri);
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider(ComplianceSidebarProvider.viewType, complianceSidebarProvider));
-  complianceSidebarProviderRef = complianceSidebarProvider;
-
-  // Auto-open the welcome dashboard panel on launch if the user has not disabled it.
-  if (getSbConfig().get<boolean>('showWelcomeOnLoad', true)) {
-    setTimeout(() => {
-      try {
-        WelcomeDashboard.createOrShow(context.extensionUri, true);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        outputChannel.appendLine('[SimpleBeacon] Auto-open welcome dashboard failed: ' + msg);
-      }
-    }, 1000);
-  }
-
-  // Auto-start relay server when remoteMode is enabled so the browser URL is always ready
-  if (getSbConfig().get<boolean>('remoteMode', false)) {
-    setTimeout(() => {
-      try {
-        modernSidebarProvider.openSidebarInBrowser(false, '/');
-      } catch (e) {
-        outputChannel.appendLine('[SimpleBeacon] Remote mode relay auto-start failed: ' + (e instanceof Error ? e.message : String(e)));
-      }
-    }, 500);
-  }
-  const aiChatbotProvider = new AiChatbotProvider(context.extensionUri);
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider(AiChatbotProvider.viewType, aiChatbotProvider));
-  setAiContextCallback((payload) => {
-    Promise.resolve(vscode.commands.executeCommand('workbench.action.showSecondarySideBar'))
-      .then(() => vscode.commands.executeCommand('simplebeacon-ai-chatbot.focus'))
-      .catch(() => { /* ignore */ });
-    const issueCount = payload && typeof payload === 'object' && Array.isArray((payload as any).issues)
-      ? (payload as any).issues.length
-      : 0;
-    showQuietMessage(
-      `SimpleBeacon AI context received${issueCount ? ' (' + issueCount + ' findings)' : ''}`
+        },
+      })
     );
-    try {
-      aiChatbotProvider.postContext(payload, buildAiContextMarkdown(payload));
-    } catch (err) {
-      outputChannel.appendLine('[SimpleBeacon] Failed to push context to AI panel: ' + (err instanceof Error ? err.message : String(err)));
-    }
-  });
-  setSidebarHtmlProvider(() => {
-    try {
-      return modernSidebarProvider.openDebugPreview(true);
-    } catch (e) {
-      outputChannel.appendLine('[SimpleBeacon] Sidebar HTML generation failed: ' + (e instanceof Error ? e.message : String(e)));
-      return undefined;
-    }
-  });
-  summaryProvider = new SummaryProvider();
-  roadmapProvider = new RoadmapProvider();
-  settingsProvider = new SettingsProvider(getExtensionVersion(context));
-  enhancedAIProvider = new EnhancedAIProvider();
-  enhancedAIProvider.setSidebarProvider(modernSidebarProvider);
-  enhancedAIProvider.setOnScanComplete((result) => {
-    const scanResult = enhancedAIProvider.getScanResult();
-    // Convert to sidebar-compatible flat report format
-    const convertedReport = scanResult ? enhancedAIProvider.convertScanResultToReport(scanResult) : null;
-    // Always update with enhanced analysis results when explicitly run
-    if (convertedReport) {
-      currentReport = convertedReport;
-    }
-    updateStatusBar(currentReport);
-    if (currentReport) {
-      modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
-      pushRoadmapToSidebar(currentReport);
-    }
-    updateServerState({ currentReport: currentReport as ScanReport | null, scanStatus: 'completed', scanMessage: 'Scan complete', lastScanTime: Date.now() });
-  });
-  realtimeMonitor = RealtimeMonitor.getInstance();
 
-  const dashboardDeps: DashboardDeps = {
-    outputChannel,
-    context,
-    modernSidebarProvider,
-    summaryProvider,
-    scanCountRef: { value: scanCount },
-    pushRoadmapToSidebar
-  };
-  function safeUpdateUIs(report: unknown, statusMessage?: string) {
-    dashboardDeps.scanCountRef.value = scanCount;
-    _safeUpdateUIs(report, dashboardDeps, statusMessage);
-    scanCount = dashboardDeps.scanCountRef.value;
-    try {
-      updateStatusBar(report);
-    } catch (e) {
-      outputChannel.appendLine(`[SimpleBeacon] Status bar update failed: ${e}`);
+    scanProvider = new ScanPhaseProvider();
+    enhancedScanProvider = new EnhancedScanProvider();
+    visualSidebarProvider = new VisualSidebarProvider();
+    modernSidebarProvider = new ModernSidebarProvider(context.extensionUri);
+    codeMapTreeProvider = new CodeMapTreeProvider(context.extensionUri);
+    setModernSidebarProvider(modernSidebarProvider);
+    while (pendingSidebarDownloads.length) {
+      const dl = pendingSidebarDownloads.shift();
+      if (dl) {
+        outputChannel.appendLine(`[NotifyBridge] Replaying queued downloadComplete: ${dl.name}`);
+        modernSidebarProvider.addDownloadedFile(dl.name, dl.path);
+      }
     }
-  }
-  safeUpdateUIsRef = safeUpdateUIs;
-
-  // Wire live findings to dashboard (debounced — each tick used to rebuild 20+ welcome panes)
-  let liveFindingsUiTimer: ReturnType<typeof setTimeout> | undefined;
-  realtimeMonitor.onLiveFindings((issues) => {
-    const report = (currentReport || enhancedAIProvider.getRawScanResult() || enhancedAIProvider.getScanResult()) as any;
-    if (!report) return;
-
-    mergeLiveIssues(report, convertRealtimeIssues(issues));
-    try {
-      modernSidebarProvider.updateReport(report as Record<string, unknown>);
-    } catch { /* ignore */ }
-    if (liveFindingsUiTimer) {
-      clearTimeout(liveFindingsUiTimer);
-    }
-    liveFindingsUiTimer = setTimeout(() => {
-      liveFindingsUiTimer = undefined;
-      safeUpdateUIs(report, `${report.totalIssues || 0} issues found`);
-    }, 2000);
-  });
-
-  // Wire AI session events to update dashboard webview
-  realtimeMonitor.onAiSessionEnd((files) => {
-    outputChannel.appendLine(`[AI Session] Dashboard updating with ${files.length} AI-edited files`);
-    EnhancedDashboard30.postMessage({
-      command: 'aiSessionEnd',
-      fileCount: files.length,
-      files: files.map((f) => f.split(/[\\/]/).pop() || f),
+    ModernSidebarProvider.setAccountTracker(getAccountTracker(context));
+    import('./sidebarBridge').then(({ setSidebarBridge }) => {
+      setSidebarBridge({
+        showDashboardInSidebar: ModernSidebarProvider.showDashboardInSidebar.bind(ModernSidebarProvider),
+        openSidebarInBrowserStatic: ModernSidebarProvider.openSidebarInBrowserStatic.bind(ModernSidebarProvider),
+        isSidebarReady: ModernSidebarProvider.isViewReady.bind(ModernSidebarProvider),
+        openSidebarPreview: ModernSidebarProvider.openSidebarPreview.bind(ModernSidebarProvider),
+        setSidebarAuthState: ModernSidebarProvider.setSidebarAuthState.bind(ModernSidebarProvider),
+        getDashboardMode: ModernSidebarProvider.getDashboardMode.bind(ModernSidebarProvider),
+        refreshAuthState: ModernSidebarProvider.refreshAuthState.bind(ModernSidebarProvider),
+        addDownloadedFile: ModernSidebarProvider.addDownloadedFile.bind(ModernSidebarProvider),
+        updateSidebarReport: ModernSidebarProvider.updateSidebarReport.bind(ModernSidebarProvider),
+      });
     });
-    const report = (currentReport || enhancedAIProvider.getRawScanResult() || enhancedAIProvider.getScanResult()) as any;
-    if (report) {
-      safeUpdateUIs(report);
-    }
-  });
-
-  // Initialize Phase 2 components
-  aiCodeAnalyzer = AICodeAnalyzer.getInstance();
-  advancedAnalytics = AdvancedAnalytics.getInstance();
-  teamDashboard = TeamDashboard.getInstance();
-
-  // Initialize aiPlatform components
-  provider = new SimpleBeaconProvider(context);
-  diagnosticsManager = new DiagnosticsManager();
-  dashboardPanel = new DashboardPanel(context.extensionUri);
-
-  // Sidebar webview provider registration removed — using main window dashboard only
-
-  context.subscriptions.push(
-    { dispose: () => enhancedAIProvider.dispose() },
-    { dispose: () => realtimeMonitor.dispose() },
-    { dispose: () => aiCodeAnalyzer.dispose() },
-    { dispose: () => advancedAnalytics.dispose() },
-    { dispose: () => teamDashboard.dispose() }
-  );
-
-  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 999);
-  statusBarItem.command = 'simplebeacon.showReport';
-  statusBarItem.text = '$(shield) SimpleBeacon';
-  statusBarItem.tooltip = 'Click to open SimpleBeacon dashboard';
-  statusBarItem.show();
-  context.subscriptions.push(statusBarItem);
-
-  // Ping server so website knows extension is active
-  const apiUrl = getConfiguredApiUrl();
-  try {
-    const client = apiUrl.startsWith('https') ? https : http;
-    const parsed = new URL(apiUrl + '/api/vscode-heartbeat');
-    const req = client.request(
-      { hostname: parsed.hostname, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), path: parsed.pathname, method: 'POST', headers: { 'Content-Type': 'application/json' } },
-      (res: http.IncomingMessage) => { /* silently consume response */ }
+    context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(ModernSidebarProvider.viewType, modernSidebarProvider)
     );
-    req.on('error', () => { /* ignore — server may not be running yet */ });
-    req.write(JSON.stringify({ version: context.extension.packageJSON?.version || '3.0.1' }));
-    req.end();
-  } catch (e) { outputChannel.appendLine(`[SimpleBeacon] Heartbeat error: ${e instanceof Error ? e.message : String(e)}`); }
+    context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider('simplebeacon-modern-explorer', modernSidebarProvider)
+    );
+    context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(CodeMapTreeProvider.viewType, codeMapTreeProvider)
+    );
 
-  // Re-ping every 20s while extension is active
-  const heartbeatInterval = setInterval(() => {
+    // Register the Compliance Sidebar (Risk Heatmap + Remediation Ledger)
+    const complianceSidebarProvider = new ComplianceSidebarProvider(context.extensionUri);
+    context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(ComplianceSidebarProvider.viewType, complianceSidebarProvider)
+    );
+    complianceSidebarProviderRef = complianceSidebarProvider;
+
+    // Auto-open the welcome dashboard panel on launch if the user has not disabled it.
+    if (getSbConfig().get<boolean>('showWelcomeOnLoad', true)) {
+      setTimeout(() => {
+        try {
+          WelcomeDashboard.createOrShow(context.extensionUri, true);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          outputChannel.appendLine('[SimpleBeacon] Auto-open welcome dashboard failed: ' + msg);
+        }
+      }, 1000);
+    }
+
+    // Auto-start relay server when remoteMode is enabled so the browser URL is always ready
+    if (getSbConfig().get<boolean>('remoteMode', false)) {
+      setTimeout(() => {
+        try {
+          modernSidebarProvider.openSidebarInBrowser(false, '/');
+        } catch (e) {
+          outputChannel.appendLine(
+            '[SimpleBeacon] Remote mode relay auto-start failed: ' + (e instanceof Error ? e.message : String(e))
+          );
+        }
+      }, 500);
+    }
+    const aiChatbotProvider = new AiChatbotProvider(context.extensionUri);
+    context.subscriptions.push(
+      vscode.window.registerWebviewViewProvider(AiChatbotProvider.viewType, aiChatbotProvider)
+    );
+    setAiContextCallback((payload) => {
+      Promise.resolve(vscode.commands.executeCommand('workbench.action.showSecondarySideBar'))
+        .then(() => vscode.commands.executeCommand('simplebeacon-ai-chatbot.focus'))
+        .catch(() => {
+          /* ignore */
+        });
+      const issueCount =
+        payload && typeof payload === 'object' && Array.isArray((payload as any).issues)
+          ? (payload as any).issues.length
+          : 0;
+      showQuietMessage(`SimpleBeacon AI context received${issueCount ? ' (' + issueCount + ' findings)' : ''}`);
+      try {
+        aiChatbotProvider.postContext(payload, buildAiContextMarkdown(payload));
+      } catch (err) {
+        outputChannel.appendLine(
+          '[SimpleBeacon] Failed to push context to AI panel: ' + (err instanceof Error ? err.message : String(err))
+        );
+      }
+    });
+    setSidebarHtmlProvider(() => {
+      try {
+        return modernSidebarProvider.openDebugPreview(true);
+      } catch (e) {
+        outputChannel.appendLine(
+          '[SimpleBeacon] Sidebar HTML generation failed: ' + (e instanceof Error ? e.message : String(e))
+        );
+        return undefined;
+      }
+    });
+    summaryProvider = new SummaryProvider();
+    roadmapProvider = new RoadmapProvider();
+    settingsProvider = new SettingsProvider(getExtensionVersion(context));
+    enhancedAIProvider = new EnhancedAIProvider();
+    enhancedAIProvider.setSidebarProvider(modernSidebarProvider);
+    enhancedAIProvider.setOnScanComplete((result) => {
+      const scanResult = enhancedAIProvider.getScanResult();
+      // Convert to sidebar-compatible flat report format
+      const convertedReport = scanResult ? enhancedAIProvider.convertScanResultToReport(scanResult) : null;
+      // Always update with enhanced analysis results when explicitly run
+      if (convertedReport) {
+        currentReport = convertedReport;
+      }
+      updateStatusBar(currentReport);
+      if (currentReport) {
+        modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+        pushRoadmapToSidebar(currentReport);
+      }
+      updateServerState({
+        currentReport: currentReport as ScanReport | null,
+        scanStatus: 'completed',
+        scanMessage: 'Scan complete',
+        lastScanTime: Date.now(),
+      });
+    });
+    realtimeMonitor = RealtimeMonitor.getInstance();
+
+    const dashboardDeps: DashboardDeps = {
+      outputChannel,
+      context,
+      modernSidebarProvider,
+      summaryProvider,
+      scanCountRef: { value: scanCount },
+      pushRoadmapToSidebar,
+    };
+    function safeUpdateUIs(report: unknown, statusMessage?: string) {
+      dashboardDeps.scanCountRef.value = scanCount;
+      _safeUpdateUIs(report, dashboardDeps, statusMessage);
+      scanCount = dashboardDeps.scanCountRef.value;
+      try {
+        updateStatusBar(report);
+      } catch (e) {
+        outputChannel.appendLine(`[SimpleBeacon] Status bar update failed: ${e}`);
+      }
+    }
+    safeUpdateUIsRef = safeUpdateUIs;
+
+    // Wire live findings to dashboard (debounced — each tick used to rebuild 20+ welcome panes)
+    let liveFindingsUiTimer: ReturnType<typeof setTimeout> | undefined;
+    realtimeMonitor.onLiveFindings((issues) => {
+      const report = (currentReport ||
+        enhancedAIProvider.getRawScanResult() ||
+        enhancedAIProvider.getScanResult()) as any;
+      if (!report) return;
+
+      mergeLiveIssues(report, convertRealtimeIssues(issues));
+      try {
+        modernSidebarProvider.updateReport(report as Record<string, unknown>);
+      } catch {
+        /* ignore */
+      }
+      if (liveFindingsUiTimer) {
+        clearTimeout(liveFindingsUiTimer);
+      }
+      liveFindingsUiTimer = setTimeout(() => {
+        liveFindingsUiTimer = undefined;
+        safeUpdateUIs(report, `${report.totalIssues || 0} issues found`);
+      }, 2000);
+    });
+
+    // Wire AI session events to update dashboard webview
+    realtimeMonitor.onAiSessionEnd((files) => {
+      outputChannel.appendLine(`[AI Session] Dashboard updating with ${files.length} AI-edited files`);
+      EnhancedDashboard30.postMessage({
+        command: 'aiSessionEnd',
+        fileCount: files.length,
+        files: files.map((f) => f.split(/[\\/]/).pop() || f),
+      });
+      const report = (currentReport ||
+        enhancedAIProvider.getRawScanResult() ||
+        enhancedAIProvider.getScanResult()) as any;
+      if (report) {
+        safeUpdateUIs(report);
+      }
+    });
+
+    // Initialize Phase 2 components
+    aiCodeAnalyzer = AICodeAnalyzer.getInstance();
+    advancedAnalytics = AdvancedAnalytics.getInstance();
+    teamDashboard = TeamDashboard.getInstance();
+
+    // Initialize aiPlatform components
+    provider = new SimpleBeaconProvider(context);
+    diagnosticsManager = new DiagnosticsManager();
+    dashboardPanel = new DashboardPanel(context.extensionUri);
+
+    // Sidebar webview provider registration removed — using main window dashboard only
+
+    context.subscriptions.push(
+      { dispose: () => enhancedAIProvider.dispose() },
+      { dispose: () => realtimeMonitor.dispose() },
+      { dispose: () => aiCodeAnalyzer.dispose() },
+      { dispose: () => advancedAnalytics.dispose() },
+      { dispose: () => teamDashboard.dispose() }
+    );
+
+    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 999);
+    statusBarItem.command = 'simplebeacon.showReport';
+    statusBarItem.text = '$(shield) SimpleBeacon';
+    statusBarItem.tooltip = 'Click to open SimpleBeacon dashboard';
+    statusBarItem.show();
+    context.subscriptions.push(statusBarItem);
+
+    // Ping server so website knows extension is active
+    const apiUrl = getConfiguredApiUrl();
     try {
       const client = apiUrl.startsWith('https') ? https : http;
       const parsed = new URL(apiUrl + '/api/vscode-heartbeat');
       const req = client.request(
-        { hostname: parsed.hostname, port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80), path: parsed.pathname, method: 'POST', headers: { 'Content-Type': 'application/json' } },
-        () => {}
+        {
+          hostname: parsed.hostname,
+          port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+          path: parsed.pathname,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        },
+        (res: http.IncomingMessage) => {
+          /* silently consume response */
+        }
       );
-      req.on('error', () => {});
+      req.on('error', () => {
+        /* ignore — server may not be running yet */
+      });
       req.write(JSON.stringify({ version: context.extension.packageJSON?.version || '3.0.1' }));
       req.end();
-    } catch (e) { outputChannel.appendLine(`[SimpleBeacon] Heartbeat interval error: ${e instanceof Error ? e.message : String(e)}`); }
-  }, 20000);
-  context.subscriptions.push({ dispose: () => clearInterval(heartbeatInterval) });
-
-  // Paste telemetry: detect large AI-generated insertions in the editor
-  // Hash file paths so telemetry never stores PII (usernames, project paths, etc.)
-  function hashFilePath(fp: string): string {
-    return crypto.createHash('sha256').update(fp).digest('hex').slice(0, 16);
-  }
-  const PASTE_TELEMETRY: Array<{ fileHash: string; timestamp: number; linesInserted: number }> = [];
-  const lastEditTimestamps: Map<string, number> = new Map();
-  const PASTE_LINE_THRESHOLD = 50;
-  const PASTE_TIME_WINDOW_MS = 500; // near-zero keystroke delay
-
-  const telemetryDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
-    if (!event.document || event.contentChanges.length === 0) return;
-    const filePath = event.document.uri.fsPath;
-    const now = Date.now();
-    const lastEdit = lastEditTimestamps.get(filePath) || 0;
-    const timeSinceLastEdit = now - lastEdit;
-
-    for (const change of event.contentChanges) {
-      if (!change.text) continue;
-      const linesInserted = change.text.split('\n').length;
-      // Detect paste: large insertion with very short time since last edit (or first edit in doc)
-      if (linesInserted >= PASTE_LINE_THRESHOLD && (timeSinceLastEdit < PASTE_TIME_WINDOW_MS || lastEdit === 0)) {
-        PASTE_TELEMETRY.push({ fileHash: hashFilePath(filePath), timestamp: now, linesInserted });
-        // Keep only last 100 events to prevent unbounded growth
-        if (PASTE_TELEMETRY.length > 100) {
-          PASTE_TELEMETRY.shift();
-        }
-      }
+    } catch (e) {
+      outputChannel.appendLine(`[SimpleBeacon] Heartbeat error: ${e instanceof Error ? e.message : String(e)}`);
     }
-    lastEditTimestamps.set(filePath, now);
-  });
-  context.subscriptions.push(telemetryDisposable);
 
-  // Expose telemetry getter to global scope for report enrichment
-  // simplebeacon-ignore memory-leak — telemetry API exposed intentionally for cross-extension access
-  (globalThis as any).__simplebeaconPasteTelemetry = {
-    getEvents: () => PASTE_TELEMETRY.slice(),
-    getEventsForFile: (filePath: string) => PASTE_TELEMETRY.filter((e) => e.fileHash === hashFilePath(filePath)),
-    clear: () => { PASTE_TELEMETRY.length = 0; lastEditTimestamps.clear(); }
-  };
-
-  updateStatusBar();
-
-  const debugReporter = DebugReporter.getInstance();
-  function isCancellationError(err: unknown): boolean {
-    if (!(err instanceof Error)) return false;
-    const msg = err.message.toLowerCase();
-    return msg === 'canceled' || msg === 'cancelled' || msg.includes('cancellation') || err.name === 'CanceledError' || err.name === 'CancellationError';
-  }
-
-  function registerCmd(command: string, callback: (...args: any[]) => unknown) {
-    try {
-      return vscode.commands.registerCommand(command, (...args: any[]) => {
-        debugReporter.logCommand(command, args);
-        try {
-          const result = callback(...args);
-          if (result instanceof Promise) {
-            result.catch((err: unknown) => {
-              if (isCancellationError(err)) {
-                outputChannel.appendLine(`[SimpleBeacon] Command ${command} cancelled by user`);
-                return;
-              }
-              debugReporter.logError(err instanceof Error ? err : new Error(String(err)), `command:${command}`);
-            });
-          }
-          return result;
-        } catch (err) {
-          if (isCancellationError(err)) {
-            outputChannel.appendLine(`[SimpleBeacon] Command ${command} cancelled by user`);
-            return;
-          }
-          debugReporter.logError(err instanceof Error ? err : new Error(String(err)), `command:${command}`);
-          throw err;
-        }
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const fullMsg = `[SimpleBeacon] Command registration failed for ${command}: ${msg}`;
-      outputChannel.appendLine(fullMsg);
-      console.error(fullMsg);
-      vscode.window.showErrorMessage(fullMsg);
-      return { dispose: () => {} } as vscode.Disposable;
-    }
-  }
-
-  const commands = [
-    // Note: scanWorkspace, clearResults, showReport, and setApiToken are already
-    // registered above as early commands (lines 401-416) so they survive partial
-    // activation failures. Do NOT duplicate them here.
-    registerCmd('simplebeacon.clearDownloads', () => {
-      modernSidebarProvider?.clearDownloadedFiles();
-    }),
-    registerCmd('simplebeacon.resetScanQuota', async () => {
-      const usagePath = path.join(os.homedir(), '.simplebeacon', 'scan-usage.json');
+    // Re-ping every 20s while extension is active
+    const heartbeatInterval = setInterval(() => {
       try {
-        if (fs.existsSync(usagePath)) {
-          fs.unlinkSync(usagePath);
-        }
+        const client = apiUrl.startsWith('https') ? https : http;
+        const parsed = new URL(apiUrl + '/api/vscode-heartbeat');
+        const req = client.request(
+          {
+            hostname: parsed.hostname,
+            port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+            path: parsed.pathname,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          },
+          () => {}
+        );
+        req.on('error', () => {});
+        req.write(JSON.stringify({ version: context.extension.packageJSON?.version || '3.0.1' }));
+        req.end();
       } catch (e) {
-        outputChannel.appendLine(`[SimpleBeacon] Could not delete scan-usage.json: ${e}`);
-      }
-      scanCount = 0;
-      showQuietMessage('SimpleBeacon scan quota has been reset.');
-    }),
-    registerCmd('simplebeacon.openSettings', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showSettingsPane(); }
-    }),
-    registerCmd('simplebeacon.jumpToFinding', async (uri: vscode.Uri, line: number, character: number) => {
-      if (!uri) return;
-      const doc = await vscode.workspace.openTextDocument(uri);
-      const editor = await vscode.window.showTextDocument(doc, { preview: false });
-      const position = new vscode.Position(Math.max(0, Number(line) || 0), Math.max(0, Number(character) || 0));
-      editor.selection = new vscode.Selection(position, position);
-      editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
-    }),
-    registerCmd('simplebeacon.installLocalAgent', async () => {
-      try {
-        await installLocalAgent();
-        vscode.window.showInformationMessage('SimpleBeacon Local Agent installed and started.');
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        vscode.window.showErrorMessage(`Local agent install failed: ${msg}`);
-      }
-    }),
-    registerCmd('simplebeacon.startLocalAgent', async () => {
-      try {
-        const installDir = getLocalAgentInstallDir();
-        if (!isLocalAgentInstalled(installDir)) {
-          const choice = await vscode.window.showWarningMessage(
-            'Local agent is not installed. Install it now?',
-            'Install',
-            'Cancel'
-          );
-          if (choice === 'Install') {
-            await installLocalAgent();
-          }
-          return;
-        }
-        startLocalAgent(installDir);
-        const status = await probeLocalAgent(getAgentPort());
-        if (status.available) {
-          vscode.window.showInformationMessage('SimpleBeacon Local Agent started.');
-        } else {
-          vscode.window.showWarningMessage('Agent process started but health check did not respond yet.');
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        vscode.window.showErrorMessage(`Local agent start failed: ${msg}`);
-      }
-    }),
-    registerCmd('simplebeacon.refreshRelayPort', async () => {
-      try {
-        modernSidebarProvider.restartRelayServer();
-      } catch (e) {
-        vscode.window.showErrorMessage('Failed to refresh relay port: ' + (e instanceof Error ? e.message : String(e)));
-      }
-    }),
-    registerCmd('simplebeacon.openAnalyze', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showAnalyzePane(); }
-    }),
-    registerCmd('simplebeacon.generateCertificate', () => {
-      if (isGeneratingCertificate) {
-        vscode.window.showWarningMessage('Certificate generation already in progress');
-        return;
-      }
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showCertificatePane(); }
-      generateCertificate(enhancedAIProvider.getScanResult());
-    }),
-    registerCmd('simplebeacon.exportCertificatePdf', async () => {
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders || workspaceFolders.length === 0) {
-        showQuietMessage('Open a workspace to export the certificate');
-        return;
-      }
-      const certHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'certificate.html');
-      if (!fs.existsSync(certHtmlPath)) {
-        if (isGeneratingCertificate) {
-          showQuietMessage('Certificate generation already in progress');
-          return;
-        }
-        generateCertificate(enhancedAIProvider.getScanResult());
-      }
-      if (fs.existsSync(certHtmlPath)) {
-        await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(certHtmlPath).toString());
-        showQuietMessage(`Certificate exported: ${certHtmlPath}`);
-      }
-    }),
-    registerCmd('simplebeacon.openCertificateHtml', async () => {
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders || workspaceFolders.length === 0) {
-        showQuietMessage('Open a workspace to view the certificate');
-        return;
-      }
-      const certHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'certificate.html');
-      if (!fs.existsSync(certHtmlPath)) {
-        if (isGeneratingCertificate) {
-          showQuietMessage('Certificate generation already in progress');
-          return;
-        }
-        generateCertificate(enhancedAIProvider.getScanResult());
-      }
-      if (fs.existsSync(certHtmlPath)) {
-        await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(certHtmlPath).toString());
-      }
-    }),
-    registerCmd('simplebeacon.generateCodeMap', async () => {
-      await vscode.commands.executeCommand('simplebeacon-modern.focus');
-      await generateCodeMap();
-    }),
-    registerCmd('simplebeacon.openCodeMapHtml', async () => {
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders || workspaceFolders.length === 0) {
-        showQuietMessage('Open a workspace to view the code map');
-        return;
-      }
-      const mapHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'codemap.html');
-      if (!fs.existsSync(mapHtmlPath)) {
-        showQuietMessage('Generate a code map first');
-        return;
-      }
-      await vscode.env.openExternal(vscode.Uri.file(mapHtmlPath));
-    }),
-    registerCmd('simplebeacon.openCodeMapPanel', openCodeMapPanel),
-    registerCmd('simplebeacon.highlightCodeMapNode', async (filePath: string) => {
-      if (codeMapPanel) {
-        codeMapPanel.webview.postMessage({ command: 'highlightNode', path: filePath });
-      }
-    }),
-    registerCmd('simplebeacon.exportCodeMap', exportCodeMap),
-    registerCmd('simplebeacon.importCodeMapGraph', importCodeMapGraph),
-    registerCmd('simplebeacon.exportReportJson', exportReportJson),
-    registerCmd('simplebeacon.exportTrustReport', exportTrustReport),
-    registerCmd('simplebeacon.exportAIReport', () => exportAIReportCommand(context)),
-    registerCmd('simplebeacon.exportAiContext', exportAiContext),
-    registerCmd('simplebeacon.loadReport', async () => {
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      const defaultUri = workspaceFolders?.[0]
-        ? vscode.Uri.file(path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'report.json'))
-        : vscode.Uri.file('simplebeacon-report.json');
-      const uri = await vscode.window.showOpenDialog({
-        defaultUri,
-        canSelectFiles: true,
-        canSelectFolders: false,
-        canSelectMany: false,
-        filters: { JSON: ['json'] },
-      });
-      if (!uri || !uri[0]) return;
-      try {
-        const report = JSON.parse(fs.readFileSync(uri[0].fsPath, 'utf8'));
-        if (!report.findings && !report.rawIssues && !report.detectedIssues) {
-          vscode.window.showWarningMessage('Selected file does not appear to be a valid SimpleBeacon report.');
-          return;
-        }
-        currentReport = report;
-        updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'Report loaded', lastScanTime: Date.now() });
-        enhancedAIProvider.setScanResult(report);
-        scanProvider.updateReport(report);
-        enhancedScanProvider.updateReport(report);
-        visualSidebarProvider.updateReport(report);
-        summaryProvider.updateReport(report);
-        settingsProvider.updateReport(report);
-        modernSidebarProvider.updateReport(report);
-        pushRoadmapToSidebar(report);
-        pushAllPanesToDashboard(report);
-        dashboardPanel?.updateReport(report);
-        modernSidebarProvider.updateStatus('completed', 'Report loaded');
-        vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
-        updateStatusBar(report);
-        showQuietMessage(`Loaded SimpleBeacon report: ${path.basename(uri[0].fsPath)}`);
-      } catch (err) {
-        vscode.window.showErrorMessage(`Failed to load report: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }),
-    registerCmd('simplebeacon.enhancedAnalysis', async (options?: { path?: string; profile?: string; selectedModules?: string[]; minSeverity?: string }) => {
-      const profile = (options?.profile as ScanProfile) || undefined;
-      const afterAction = getSbConfig().get<string>('afterAnalysisAction', 'notify');
-      const silent = afterAction === 'none' || afterAction === 'sidebar' || afterAction === 'panel';
-      const includeDeps = getSbConfig().get<boolean>('includeDeps', false);
-      await enhancedAIProvider.startEnhancedAnalysis({ path: options?.path, profile, selectedModules: options?.selectedModules, minSeverity: options?.minSeverity, silent, includeDeps });
-      const result = enhancedAIProvider.getScanResult();
-      let analyzeData: { score: string; gate: string; issues: string; files: string; severity: any; findings: any; lastAnalysis: string } | undefined;
-      let qualityData: { qualityScore: string; issues: string; coverage: string; files: string; status: string; maintainability: string; reliability: string; complexity: string; duplication: string; gate: string } | undefined;
-      if (result) {
-        currentReport = enhancedAIProvider.convertScanResultToReport(result);
-        enhancedAIProvider.setScanResult(currentReport);
-        modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
-        pushRoadmapToSidebar(currentReport);
-        pushAllPanesToDashboard(currentReport);
-        updateServerState({ currentReport: currentReport as ScanReport | null, scanStatus: 'completed', scanMessage: 'Enhanced analysis complete', lastScanTime: Date.now() });
-        const summary = result.summary || { totalFindings: 0, filesAnalyzed: 0, severityCounts: {} };
-        const qScore = result.qualityScore ?? 100;
-        const qIssues = summary.totalFindings ?? 0;
-        const qFiles = summary.filesAnalyzed ?? 0;
-        const sev = (summary.severityCounts || {}) as Record<string, number>;
-        const qMaint = Math.max(0, Math.min(100, qScore - (sev.critical || 0) * 5 - (sev.high || 0) * 2));
-        const qRel = Math.max(0, Math.min(100, qScore - (sev.high || 0) * 3 - (sev.medium || 0)));
-        const qComplex = Math.max(0, Math.min(100, qScore - (sev.medium || 0) * 2 - (sev.low || 0)));
-        const qDup = Math.max(0, Math.min(100, qScore - (sev.low || 0) * 2));
-        analyzeData = {
-          score: String(result.qualityScore ?? 100),
-          gate: result.gate?.pass ? 'Pass' : 'Fail',
-          issues: String(summary.totalFindings ?? 0),
-          files: String(summary.filesAnalyzed ?? 0),
-          severity: summary.severityCounts,
-          findings: (currentReport as Record<string, unknown>).findings,
-          lastAnalysis: new Date().toLocaleString()
-        };
-        qualityData = {
-          qualityScore: String(qScore),
-          issues: String(qIssues),
-          coverage: '--',
-          files: String(qFiles),
-          status: result.gate?.pass ? 'Pass' : 'Fail',
-          maintainability: String(qMaint),
-          reliability: String(qRel),
-          complexity: String(qComplex),
-          duplication: String(qDup),
-          gate: result.gate?.pass ? 'Pass' : 'Fail'
-        };
-      }
-      hasEnhancedAnalysis = true;
-
-      // Post-analysis display action — open the target surface first, then push data to it
-      if (afterAction === 'sidebar') {
-        try {
-          vscode.commands.executeCommand('simplebeacon-modern.focus');
-          if (typeof ModernSidebarProvider.showDashboardInSidebar === 'function') {
-            ModernSidebarProvider.showDashboardInSidebar();
-          }
-        } catch (e) {
-          outputChannel.appendLine('[SimpleBeacon] Failed to open sidebar dashboard after analysis: ' + (e instanceof Error ? e.message : String(e)));
-        }
-      } else if (afterAction === 'panel') {
-        try {
-          const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-          if (panel) {
-            panel.showAnalyzePane();
-            panel.reveal();
-          }
-        } catch (e) {
-          outputChannel.appendLine('[SimpleBeacon] Failed to open main window dashboard after analysis: ' + (e instanceof Error ? e.message : String(e)));
-        }
-      } else if (afterAction === 'notify') {
-        const summary = result?.summary || { totalFindings: 0, filesAnalyzed: 0 };
-        showQuietMessage(
-          `Analysis complete: ${summary.totalFindings ?? 0} issues found across ${summary.filesAnalyzed ?? 0} files`
+        outputChannel.appendLine(
+          `[SimpleBeacon] Heartbeat interval error: ${e instanceof Error ? e.message : String(e)}`
         );
       }
+    }, 20000);
+    context.subscriptions.push({ dispose: () => clearInterval(heartbeatInterval) });
 
-      // Push data after the surface is opened so the message is not lost
-      if (currentReport) {
-        safeUpdateUIs(currentReport, 'Enhanced analysis complete');
-      }
-      if (analyzeData) {
-        WelcomeDashboard.updateAnalyzePaneIfOpen(analyzeData);
-      }
-      if (qualityData) {
-        WelcomeDashboard.updateQualityPaneIfOpen(qualityData);
-      }
-      if (currentReport) {
-        pushAllPanesToDashboard(currentReport);
-      }
-    }),
-    registerCmd('simplebeacon.realtimeAnalysis', () => {
-      enhancedAIProvider.startRealtimeAnalysis();
-    }),
-    registerCmd('simplebeacon.patternDetection', () => {
-      enhancedAIProvider.detectPatterns();
-    }),
-    registerCmd('simplebeacon.modelHealth', () => {
-      enhancedAIProvider.checkModelHealth();
-    }),
-    registerCmd('simplebeacon.showRemediationGuide', () => {
-      const panel = WelcomeDashboard.createOrShow(_extensionUri || vscode.Uri.file(__dirname), true);
-      if (panel) { panel.showRoadmapPane(); }
-    }),
-    registerCmd('simplebeacon.exportEmail', async () => {
-      const report = enhancedAIProvider.getRawScanResult() || currentReport || enhancedAIProvider.getScanResult();
-      if (!report) {
-        showQuietMessage('Run a scan first to export an email report');
-        return;
-      }
-      try {
-        const html = renderEmailTemplate(report, context.extensionPath);
-        const uri = await vscode.window.showSaveDialog({
-          defaultUri: vscode.Uri.file('simplebeacon-report.html'),
-          filters: { 'HTML': ['html'] }
-        });
-        if (uri) {
-          await vscode.workspace.fs.writeFile(uri, Buffer.from(html, 'utf8'));
-          showQuietMessage('Email report saved');
+    // Paste telemetry: detect large AI-generated insertions in the editor
+    // Hash file paths so telemetry never stores PII (usernames, project paths, etc.)
+    function hashFilePath(fp: string): string {
+      return crypto.createHash('sha256').update(fp).digest('hex').slice(0, 16);
+    }
+    const PASTE_TELEMETRY: Array<{ fileHash: string; timestamp: number; linesInserted: number }> = [];
+    const lastEditTimestamps: Map<string, number> = new Map();
+    const PASTE_LINE_THRESHOLD = 50;
+    const PASTE_TIME_WINDOW_MS = 500; // near-zero keystroke delay
+
+    const telemetryDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
+      if (!event.document || event.contentChanges.length === 0) return;
+      const filePath = event.document.uri.fsPath;
+      const now = Date.now();
+      const lastEdit = lastEditTimestamps.get(filePath) || 0;
+      const timeSinceLastEdit = now - lastEdit;
+
+      for (const change of event.contentChanges) {
+        if (!change.text) continue;
+        const linesInserted = change.text.split('\n').length;
+        // Detect paste: large insertion with very short time since last edit (or first edit in doc)
+        if (linesInserted >= PASTE_LINE_THRESHOLD && (timeSinceLastEdit < PASTE_TIME_WINDOW_MS || lastEdit === 0)) {
+          PASTE_TELEMETRY.push({ fileHash: hashFilePath(filePath), timestamp: now, linesInserted });
+          // Keep only last 100 events to prevent unbounded growth
+          if (PASTE_TELEMETRY.length > 100) {
+            PASTE_TELEMETRY.shift();
+          }
         }
-      } catch (err: unknown) {
-        vscode.window.showErrorMessage(`Failed to export email: ${err instanceof Error ? err.message : String(err)}`);
       }
-    }),
-    registerCmd('simplebeacon.exportReport', async (format?: string) => {
-      await exportReport(format);
-    }),
-    registerCmd('simplebeacon.setScanPath', async () => {
-      const picked = await pickWorkspaceFolder();
-      if (picked) {
-        await getSbConfig().update('projectPath', picked, true);
-        showQuietMessage(`Default scan path set to: ${picked}`);
-      }
-    }),
-    registerCmd('simplebeacon.runAdvancedAnalytics', async () => {
-      if (!await isPaidUser()) {
-        await promptUpgrade('Advanced analytics');
-        return;
-      }
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-      if (!workspaceFolder) {
-        vscode.window.showErrorMessage('No workspace folder found');
-        return;
-      }
+      lastEditTimestamps.set(filePath, now);
+    });
+    context.subscriptions.push(telemetryDisposable);
+
+    // Expose telemetry getter to global scope for report enrichment
+    // simplebeacon-ignore memory-leak — telemetry API exposed intentionally for cross-extension access
+    (globalThis as any).__simplebeaconPasteTelemetry = {
+      getEvents: () => PASTE_TELEMETRY.slice(),
+      getEventsForFile: (filePath: string) => PASTE_TELEMETRY.filter((e) => e.fileHash === hashFilePath(filePath)),
+      clear: () => {
+        PASTE_TELEMETRY.length = 0;
+        lastEditTimestamps.clear();
+      },
+    };
+
+    updateStatusBar();
+
+    const debugReporter = DebugReporter.getInstance();
+    function isCancellationError(err: unknown): boolean {
+      if (!(err instanceof Error)) return false;
+      const msg = err.message.toLowerCase();
+      return (
+        msg === 'canceled' ||
+        msg === 'cancelled' ||
+        msg.includes('cancellation') ||
+        err.name === 'CanceledError' ||
+        err.name === 'CancellationError'
+      );
+    }
+
+    function registerCmd(command: string, callback: (...args: any[]) => unknown) {
       try {
-        const analytics = await advancedAnalytics.analyzeCodebase(workspaceFolder);
-        showQuietMessage(
-          `Analytics complete: Quality ${analytics.metrics.codeQuality.toFixed(1)}/100`
-        );
-      } catch (error) {
-        vscode.window.showErrorMessage(`Analytics failed: ${error}`);
-      }
-    }),
-    registerCmd('simplebeacon.showTeamDashboard', async () => {
-      if (!await isPaidUser()) {
-        await promptUpgrade('Team dashboard');
-        return;
-      }
-      WelcomeDashboard.createOrShow(context.extensionUri, true)?.showTeamPane();
-    }),
-    registerCmd('simplebeacon.clearApiToken', async () => {
-      await getAuthManager().clearToken();
-      await getAuthManager().clearPassword();
-      showQuietMessage('SimpleBeacon API token and password cleared');
-      await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
-    }),
-    registerCmd('simplebeacon.signIn', async () => {
-      let token = await getAuthManager().getToken();
-      if (!token) {
-        const entered = await getAuthManager().promptForToken();
-        if (!entered) {
-          // User cancelled — auto-generate a free community token via local data server
+        return vscode.commands.registerCommand(command, (...args: any[]) => {
+          debugReporter.logCommand(command, args);
           try {
-            const port = getDataServerPort();
-            const res = await fetch(`http://127.0.0.1:${port}/api/free-token`);
-            if (res.ok) {
-              const data = await res.json() as { success?: boolean; token?: string };
-              if (data && data.token) {
-                await getAuthManager().setToken(data.token);
-                try { await getAccountTracker(context).recordLogin(data.token, 'extension', 'autoToken', 'free-community auto-generated'); } catch {}
-                vscode.window.showInformationMessage('Free community token auto-generated — you\'re signed in!');
-                token = data.token;
-              }
+            const result = callback(...args);
+            if (result instanceof Promise) {
+              result.catch((err: unknown) => {
+                if (isCancellationError(err)) {
+                  outputChannel.appendLine(`[SimpleBeacon] Command ${command} cancelled by user`);
+                  return;
+                }
+                debugReporter.logError(err instanceof Error ? err : new Error(String(err)), `command:${command}`);
+              });
             }
-          } catch (e) {
-            // Data server not running or free-token endpoint failed
-            vscode.window.showErrorMessage('Could not generate free token. Start SimpleBeacon data server first, or paste a token manually.');
-            await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+            return result;
+          } catch (err) {
+            if (isCancellationError(err)) {
+              outputChannel.appendLine(`[SimpleBeacon] Command ${command} cancelled by user`);
+              return;
+            }
+            debugReporter.logError(err instanceof Error ? err : new Error(String(err)), `command:${command}`);
+            throw err;
+          }
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const fullMsg = `[SimpleBeacon] Command registration failed for ${command}: ${msg}`;
+        outputChannel.appendLine(fullMsg);
+        console.error(fullMsg);
+        vscode.window.showErrorMessage(fullMsg);
+        return { dispose: () => {} } as vscode.Disposable;
+      }
+    }
+
+    const commands = [
+      // Note: scanWorkspace, clearResults, showReport, and setApiToken are already
+      // registered above as early commands (lines 401-416) so they survive partial
+      // activation failures. Do NOT duplicate them here.
+      registerCmd('simplebeacon.clearDownloads', () => {
+        modernSidebarProvider?.clearDownloadedFiles();
+      }),
+      registerCmd('simplebeacon.resetScanQuota', async () => {
+        const usagePath = path.join(os.homedir(), '.simplebeacon', 'scan-usage.json');
+        try {
+          if (fs.existsSync(usagePath)) {
+            fs.unlinkSync(usagePath);
+          }
+        } catch (e) {
+          outputChannel.appendLine(`[SimpleBeacon] Could not delete scan-usage.json: ${e}`);
+        }
+        scanCount = 0;
+        showQuietMessage('SimpleBeacon scan quota has been reset.');
+      }),
+      registerCmd('simplebeacon.openSettings', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showSettingsPane();
+        }
+      }),
+      registerCmd('simplebeacon.jumpToFinding', async (uri: vscode.Uri, line: number, character: number) => {
+        if (!uri) return;
+        const doc = await vscode.workspace.openTextDocument(uri);
+        const editor = await vscode.window.showTextDocument(doc, { preview: false });
+        const position = new vscode.Position(Math.max(0, Number(line) || 0), Math.max(0, Number(character) || 0));
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+      }),
+      registerCmd('simplebeacon.installLocalAgent', async () => {
+        try {
+          await installLocalAgent();
+          vscode.window.showInformationMessage('SimpleBeacon Local Agent installed and started.');
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          vscode.window.showErrorMessage(`Local agent install failed: ${msg}`);
+        }
+      }),
+      registerCmd('simplebeacon.startLocalAgent', async () => {
+        try {
+          const installDir = getLocalAgentInstallDir();
+          if (!isLocalAgentInstalled(installDir)) {
+            const choice = await vscode.window.showWarningMessage(
+              'Local agent is not installed. Install it now?',
+              'Install',
+              'Cancel'
+            );
+            if (choice === 'Install') {
+              await installLocalAgent();
+            }
             return;
           }
+          startLocalAgent(installDir);
+          const status = await probeLocalAgent(getAgentPort());
+          if (status.available) {
+            vscode.window.showInformationMessage('SimpleBeacon Local Agent started.');
+          } else {
+            vscode.window.showWarningMessage('Agent process started but health check did not respond yet.');
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          vscode.window.showErrorMessage(`Local agent start failed: ${msg}`);
         }
-      }
-      if (!token) {
-        vscode.window.showWarningMessage('No token provided. Sign-in cancelled.');
-        await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
-        return;
-      }
-      const parts = token.split('.');
-      const isJwt = parts.length === 3 && parts.every(p => p.length > 0);
-      const isLicense = parts.length === 2 && parts.every(p => p.length > 0);
-      let valid = false;
-      if (isLicense) {
-        valid = !!validateLicenseLocally(token, PUBLIC_KEY_PEM);
-      } else if (isJwt) {
-        valid = true; // Accept standard JWT auth tokens from the server
-      }
-      if (!valid) {
+      }),
+      registerCmd('simplebeacon.refreshRelayPort', async () => {
+        try {
+          modernSidebarProvider.restartRelayServer();
+        } catch (e) {
+          vscode.window.showErrorMessage(
+            'Failed to refresh relay port: ' + (e instanceof Error ? e.message : String(e))
+          );
+        }
+      }),
+      registerCmd('simplebeacon.openAnalyze', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showAnalyzePane();
+        }
+      }),
+      registerCmd('simplebeacon.generateCertificate', () => {
+        if (isGeneratingCertificate) {
+          vscode.window.showWarningMessage('Certificate generation already in progress');
+          return;
+        }
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showCertificatePane();
+        }
+        generateCertificate(enhancedAIProvider.getScanResult());
+      }),
+      registerCmd('simplebeacon.exportCertificatePdf', async () => {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          showQuietMessage('Open a workspace to export the certificate');
+          return;
+        }
+        const certHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'certificate.html');
+        if (!fs.existsSync(certHtmlPath)) {
+          if (isGeneratingCertificate) {
+            showQuietMessage('Certificate generation already in progress');
+            return;
+          }
+          generateCertificate(enhancedAIProvider.getScanResult());
+        }
+        if (fs.existsSync(certHtmlPath)) {
+          await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(certHtmlPath).toString());
+          showQuietMessage(`Certificate exported: ${certHtmlPath}`);
+        }
+      }),
+      registerCmd('simplebeacon.openCertificateHtml', async () => {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          showQuietMessage('Open a workspace to view the certificate');
+          return;
+        }
+        const certHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'certificate.html');
+        if (!fs.existsSync(certHtmlPath)) {
+          if (isGeneratingCertificate) {
+            showQuietMessage('Certificate generation already in progress');
+            return;
+          }
+          generateCertificate(enhancedAIProvider.getScanResult());
+        }
+        if (fs.existsSync(certHtmlPath)) {
+          await vscode.commands.executeCommand('simpleBrowser.show', vscode.Uri.file(certHtmlPath).toString());
+        }
+      }),
+      registerCmd('simplebeacon.generateCodeMap', async () => {
+        await vscode.commands.executeCommand('simplebeacon-modern.focus');
+        await generateCodeMap();
+      }),
+      registerCmd('simplebeacon.openCodeMapHtml', async () => {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          showQuietMessage('Open a workspace to view the code map');
+          return;
+        }
+        const mapHtmlPath = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'codemap.html');
+        if (!fs.existsSync(mapHtmlPath)) {
+          showQuietMessage('Generate a code map first');
+          return;
+        }
+        await vscode.env.openExternal(vscode.Uri.file(mapHtmlPath));
+      }),
+      registerCmd('simplebeacon.openCodeMapPanel', openCodeMapPanel),
+      registerCmd('simplebeacon.highlightCodeMapNode', async (filePath: string) => {
+        if (codeMapPanel) {
+          codeMapPanel.webview.postMessage({ command: 'highlightNode', path: filePath });
+        }
+      }),
+      registerCmd('simplebeacon.exportCodeMap', exportCodeMap),
+      registerCmd('simplebeacon.importCodeMapGraph', importCodeMapGraph),
+      registerCmd('simplebeacon.exportReportJson', exportReportJson),
+      registerCmd('simplebeacon.exportTrustReport', exportTrustReport),
+      registerCmd('simplebeacon.exportAIReport', () => exportAIReportCommand(context)),
+      registerCmd('simplebeacon.exportAiContext', exportAiContext),
+      registerCmd('simplebeacon.loadReport', async () => {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        const defaultUri = workspaceFolders?.[0]
+          ? vscode.Uri.file(path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon', 'report.json'))
+          : vscode.Uri.file('simplebeacon-report.json');
+        const uri = await vscode.window.showOpenDialog({
+          defaultUri,
+          canSelectFiles: true,
+          canSelectFolders: false,
+          canSelectMany: false,
+          filters: { JSON: ['json'] },
+        });
+        if (!uri || !uri[0]) return;
+        try {
+          const report = JSON.parse(fs.readFileSync(uri[0].fsPath, 'utf8'));
+          if (!report.findings && !report.rawIssues && !report.detectedIssues) {
+            vscode.window.showWarningMessage('Selected file does not appear to be a valid SimpleBeacon report.');
+            return;
+          }
+          currentReport = report;
+          updateServerState({
+            currentReport: report,
+            scanStatus: 'completed',
+            scanMessage: 'Report loaded',
+            lastScanTime: Date.now(),
+          });
+          enhancedAIProvider.setScanResult(report);
+          scanProvider.updateReport(report);
+          enhancedScanProvider.updateReport(report);
+          visualSidebarProvider.updateReport(report);
+          summaryProvider.updateReport(report);
+          settingsProvider.updateReport(report);
+          modernSidebarProvider.updateReport(report);
+          pushRoadmapToSidebar(report);
+          pushAllPanesToDashboard(report);
+          dashboardPanel?.updateReport(report);
+          modernSidebarProvider.updateStatus('completed', 'Report loaded');
+          vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
+          updateStatusBar(report);
+          showQuietMessage(`Loaded SimpleBeacon report: ${path.basename(uri[0].fsPath)}`);
+        } catch (err) {
+          vscode.window.showErrorMessage(`Failed to load report: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }),
+      registerCmd(
+        'simplebeacon.enhancedAnalysis',
+        async (options?: { path?: string; profile?: string; selectedModules?: string[]; minSeverity?: string }) => {
+          const profile = (options?.profile as ScanProfile) || undefined;
+          const afterAction = getSbConfig().get<string>('afterAnalysisAction', 'notify');
+          const silent = afterAction === 'none' || afterAction === 'sidebar' || afterAction === 'panel';
+          const includeDeps = getSbConfig().get<boolean>('includeDeps', false);
+          await enhancedAIProvider.startEnhancedAnalysis({
+            path: options?.path,
+            profile,
+            selectedModules: options?.selectedModules,
+            minSeverity: options?.minSeverity,
+            silent,
+            includeDeps,
+          });
+          const result = enhancedAIProvider.getScanResult();
+          let analyzeData:
+            | {
+                score: string;
+                gate: string;
+                issues: string;
+                files: string;
+                severity: any;
+                findings: any;
+                lastAnalysis: string;
+              }
+            | undefined;
+          let qualityData:
+            | {
+                qualityScore: string;
+                issues: string;
+                coverage: string;
+                files: string;
+                status: string;
+                maintainability: string;
+                reliability: string;
+                complexity: string;
+                duplication: string;
+                gate: string;
+              }
+            | undefined;
+          if (result) {
+            currentReport = enhancedAIProvider.convertScanResultToReport(result);
+            enhancedAIProvider.setScanResult(currentReport);
+            modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+            pushRoadmapToSidebar(currentReport);
+            pushAllPanesToDashboard(currentReport);
+            updateServerState({
+              currentReport: currentReport as ScanReport | null,
+              scanStatus: 'completed',
+              scanMessage: 'Enhanced analysis complete',
+              lastScanTime: Date.now(),
+            });
+            const summary = result.summary || { totalFindings: 0, filesAnalyzed: 0, severityCounts: {} };
+            const qScore = result.qualityScore ?? 100;
+            const qIssues = summary.totalFindings ?? 0;
+            const qFiles = summary.filesAnalyzed ?? 0;
+            const sev = (summary.severityCounts || {}) as Record<string, number>;
+            const qMaint = Math.max(0, Math.min(100, qScore - (sev.critical || 0) * 5 - (sev.high || 0) * 2));
+            const qRel = Math.max(0, Math.min(100, qScore - (sev.high || 0) * 3 - (sev.medium || 0)));
+            const qComplex = Math.max(0, Math.min(100, qScore - (sev.medium || 0) * 2 - (sev.low || 0)));
+            const qDup = Math.max(0, Math.min(100, qScore - (sev.low || 0) * 2));
+            analyzeData = {
+              score: String(result.qualityScore ?? 100),
+              gate: result.gate?.pass ? 'Pass' : 'Fail',
+              issues: String(summary.totalFindings ?? 0),
+              files: String(summary.filesAnalyzed ?? 0),
+              severity: summary.severityCounts,
+              findings: (currentReport as Record<string, unknown>).findings,
+              lastAnalysis: new Date().toLocaleString(),
+            };
+            qualityData = {
+              qualityScore: String(qScore),
+              issues: String(qIssues),
+              coverage: '--',
+              files: String(qFiles),
+              status: result.gate?.pass ? 'Pass' : 'Fail',
+              maintainability: String(qMaint),
+              reliability: String(qRel),
+              complexity: String(qComplex),
+              duplication: String(qDup),
+              gate: result.gate?.pass ? 'Pass' : 'Fail',
+            };
+          }
+          hasEnhancedAnalysis = true;
+
+          // Post-analysis display action — open the target surface first, then push data to it
+          if (afterAction === 'sidebar') {
+            try {
+              vscode.commands.executeCommand('simplebeacon-modern.focus');
+              if (typeof ModernSidebarProvider.showDashboardInSidebar === 'function') {
+                ModernSidebarProvider.showDashboardInSidebar();
+              }
+            } catch (e) {
+              outputChannel.appendLine(
+                '[SimpleBeacon] Failed to open sidebar dashboard after analysis: ' +
+                  (e instanceof Error ? e.message : String(e))
+              );
+            }
+          } else if (afterAction === 'panel') {
+            try {
+              const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+              if (panel) {
+                panel.showAnalyzePane();
+                panel.reveal();
+              }
+            } catch (e) {
+              outputChannel.appendLine(
+                '[SimpleBeacon] Failed to open main window dashboard after analysis: ' +
+                  (e instanceof Error ? e.message : String(e))
+              );
+            }
+          } else if (afterAction === 'notify') {
+            const summary = result?.summary || { totalFindings: 0, filesAnalyzed: 0 };
+            showQuietMessage(
+              `Analysis complete: ${summary.totalFindings ?? 0} issues found across ${summary.filesAnalyzed ?? 0} files`
+            );
+          }
+
+          // Push data after the surface is opened so the message is not lost
+          if (currentReport) {
+            safeUpdateUIs(currentReport, 'Enhanced analysis complete');
+          }
+          if (analyzeData) {
+            WelcomeDashboard.updateAnalyzePaneIfOpen(analyzeData);
+          }
+          if (qualityData) {
+            WelcomeDashboard.updateQualityPaneIfOpen(qualityData);
+          }
+          if (currentReport) {
+            pushAllPanesToDashboard(currentReport);
+          }
+        }
+      ),
+      registerCmd('simplebeacon.realtimeAnalysis', () => {
+        enhancedAIProvider.startRealtimeAnalysis();
+      }),
+      registerCmd('simplebeacon.patternDetection', () => {
+        enhancedAIProvider.detectPatterns();
+      }),
+      registerCmd('simplebeacon.modelHealth', () => {
+        enhancedAIProvider.checkModelHealth();
+      }),
+      registerCmd('simplebeacon.showRemediationGuide', () => {
+        const panel = WelcomeDashboard.createOrShow(_extensionUri || vscode.Uri.file(__dirname), true);
+        if (panel) {
+          panel.showRoadmapPane();
+        }
+      }),
+      registerCmd('simplebeacon.exportEmail', async () => {
+        const report = enhancedAIProvider.getRawScanResult() || currentReport || enhancedAIProvider.getScanResult();
+        if (!report) {
+          showQuietMessage('Run a scan first to export an email report');
+          return;
+        }
+        try {
+          const html = renderEmailTemplate(report, context.extensionPath);
+          const uri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file('simplebeacon-report.html'),
+            filters: { HTML: ['html'] },
+          });
+          if (uri) {
+            await vscode.workspace.fs.writeFile(uri, Buffer.from(html, 'utf8'));
+            showQuietMessage('Email report saved');
+          }
+        } catch (err: unknown) {
+          vscode.window.showErrorMessage(`Failed to export email: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }),
+      registerCmd('simplebeacon.exportReport', async (format?: string) => {
+        await exportReport(format);
+      }),
+      registerCmd('simplebeacon.setScanPath', async () => {
+        const picked = await pickWorkspaceFolder();
+        if (picked) {
+          await getSbConfig().update('projectPath', picked, true);
+          showQuietMessage(`Default scan path set to: ${picked}`);
+        }
+      }),
+      registerCmd('simplebeacon.runAdvancedAnalytics', async () => {
+        if (!(await isPaidUser())) {
+          await promptUpgrade('Advanced analytics');
+          return;
+        }
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+          vscode.window.showErrorMessage('No workspace folder found');
+          return;
+        }
+        try {
+          const analytics = await advancedAnalytics.analyzeCodebase(workspaceFolder);
+          showQuietMessage(`Analytics complete: Quality ${analytics.metrics.codeQuality.toFixed(1)}/100`);
+        } catch (error) {
+          vscode.window.showErrorMessage(`Analytics failed: ${error}`);
+        }
+      }),
+      registerCmd('simplebeacon.showTeamDashboard', async () => {
+        if (!(await isPaidUser())) {
+          await promptUpgrade('Team dashboard');
+          return;
+        }
+        WelcomeDashboard.createOrShow(context.extensionUri, true)?.showTeamPane();
+      }),
+      registerCmd('simplebeacon.clearApiToken', async () => {
         await getAuthManager().clearToken();
         await getAuthManager().clearPassword();
-        vscode.window.showErrorMessage('Invalid or expired license token. Get a valid token at https://simplebeacon.ai');
+        showQuietMessage('SimpleBeacon API token and password cleared');
         await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
-        return;
-      }
-      // Sync valid token to settings so realtimeMonitor can access it
-      await getSbConfig().update('licenseKey', token, true);
-      try {
-        const entered = await getAuthManager().getToken();
-        const eventType = entered === token ? 'tokenStored' : 'preExisting';
-        await getAccountTracker(context).recordLogin(token, 'extension', eventType);
-      } catch {}
-      await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
-    }),
-    registerCmd('simplebeacon.signInWithProvider', async (provider?: string) => {
-      const selected = provider || (await vscode.window.showQuickPick(
-        [
-          { label: 'Google', value: 'google' },
-          { label: 'GitHub', value: 'github' },
-          { label: 'Microsoft', value: 'microsoft' },
-        ],
-        { placeHolder: 'Select a sign-in provider' }
-      ))?.value;
-      if (!selected) { return; }
-      try {
-        const { createSession } = await import('./auth/pkce');
-        const port = getDataServerPort();
-        const session = createSession(selected, `vscode://simplebeacon.simplebeacon-vscode/auth-callback`);
-        const authorizeUrl = `http://127.0.0.1:${port}/api/auth/oauth/authorize?provider=${selected}&redirect_uri=${encodeURIComponent(session.redirectUri || '')}&code_challenge=${session.codeChallenge}&state=${session.state}`;
-        await vscode.env.openExternal(vscode.Uri.parse(authorizeUrl));
-      } catch (e) {
-        vscode.window.showErrorMessage('Failed to start OAuth sign-in: ' + (e instanceof Error ? e.message : String(e)));
-      }
-    }),
-    registerCmd('simplebeacon.storeLicenseToken', async (token: string) => {
-      if (!token) { return; }
-      const parts = token.split('.');
-      const isJwt = parts.length === 3 && parts.every(p => p.length > 0);
-      const isLicense = parts.length === 2 && parts.every(p => p.length > 0);
-      let valid = false;
-      if (isLicense) {
-        valid = !!validateLicenseLocally(token, PUBLIC_KEY_PEM);
-      } else if (isJwt) {
-        valid = true;
-      }
-      if (!valid) {
-        vscode.window.showErrorMessage('Invalid or expired license token. Token was not saved. Get a valid token at https://simplebeacon.ai');
-        return;
-      }
-      try {
-        await getAuthManager().setToken(token);
-        try { await getAccountTracker(context).recordLogin(token, 'extension', 'licenseStored'); } catch {}
+      }),
+      registerCmd('simplebeacon.signIn', async () => {
+        let token = await getAuthManager().getToken();
+        if (!token) {
+          const entered = await getAuthManager().promptForToken();
+          if (!entered) {
+            // User cancelled — auto-generate a free community token via local data server
+            try {
+              const port = getDataServerPort();
+              const res = await fetch(`http://127.0.0.1:${port}/api/free-token`);
+              if (res.ok) {
+                const data = (await res.json()) as { success?: boolean; token?: string };
+                if (data && data.token) {
+                  await getAuthManager().setToken(data.token);
+                  try {
+                    await getAccountTracker(context).recordLogin(
+                      data.token,
+                      'extension',
+                      'autoToken',
+                      'free-community auto-generated'
+                    );
+                  } catch {}
+                  vscode.window.showInformationMessage("Free community token auto-generated — you're signed in!");
+                  token = data.token;
+                }
+              }
+            } catch (e) {
+              // Data server not running or free-token endpoint failed
+              vscode.window.showErrorMessage(
+                'Could not generate free token. Start SimpleBeacon data server first, or paste a token manually.'
+              );
+              await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+              return;
+            }
+          }
+        }
+        if (!token) {
+          vscode.window.showWarningMessage('No token provided. Sign-in cancelled.');
+          await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+          return;
+        }
+        const parts = token.split('.');
+        const isJwt = parts.length === 3 && parts.every((p) => p.length > 0);
+        const isLicense = parts.length === 2 && parts.every((p) => p.length > 0);
+        let valid = false;
+        if (isLicense) {
+          valid = !!validateLicenseLocally(token, PUBLIC_KEY_PEM);
+        } else if (isJwt) {
+          valid = true; // Accept standard JWT auth tokens from the server
+        }
+        if (!valid) {
+          await getAuthManager().clearToken();
+          await getAuthManager().clearPassword();
+          vscode.window.showErrorMessage(
+            'Invalid or expired license token. Get a valid token at https://simplebeacon.ai'
+          );
+          await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+          return;
+        }
+        // Sync valid token to settings so realtimeMonitor can access it
         await getSbConfig().update('licenseKey', token, true);
-        showQuietMessage('SimpleBeacon AI: License credential synchronized securely.');
+        try {
+          const entered = await getAuthManager().getToken();
+          const eventType = entered === token ? 'tokenStored' : 'preExisting';
+          await getAccountTracker(context).recordLogin(token, 'extension', eventType);
+        } catch {}
         await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
-      } catch (error) {
-        vscode.window.showErrorMessage(`SimpleBeacon Vault Error: Sync failed. ${(error as Error).message}`);
-      }
-    }),
-    registerCmd('simplebeacon.signOut', async () => {
-      outputChannel.appendLine('[SimpleBeacon] signOut command invoked');
-      const existing = await getAuthManager().getToken();
-      await getAuthManager().clearToken();
-      await getAuthManager().clearPassword();
-      clearBrowserSessionToken();
-      recordBrowserSignOut(existing);
-      if (existing) {
-        try { await getAccountTracker(context).recordLogout(existing, 'extension', 'signOutCommand'); } catch {}
-      }
-      showQuietMessage('Signed out');
-      const msp = await import('./modernSidebarProvider');
-      msp.ModernSidebarProvider.setSidebarAuthState(false, '', '', 'signOut');
-      await msp.ModernSidebarProvider.refreshAuthState('signOut');
-      outputChannel.appendLine('[SimpleBeacon] signOut command completed');
-    }),
-    registerCmd('simplebeacon.viewAccountHistory', async () => {
-      const tracker = getAccountTracker(context);
-      const events = await tracker.getHistory(100);
-      const panel = vscode.window.createWebviewPanel('simplebeaconAccountHistory', 'SimpleBeacon Account History', vscode.ViewColumn.One, { enableScripts: true });
-      const rows = events.map(ev => `<tr><td>${ev.timestamp}</td><td>${ev.event}</td><td>${ev.email || '-'}</td><td>${ev.tier || '-'}</td><td>${ev.tokenType}</td><td>${ev.source}</td><td>${ev.details || ''}</td></tr>`).join('');
-      panel.webview.html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+      }),
+      registerCmd('simplebeacon.signInWithProvider', async (provider?: string) => {
+        const selected =
+          provider ||
+          (
+            await vscode.window.showQuickPick(
+              [
+                { label: 'Google', value: 'google' },
+                { label: 'GitHub', value: 'github' },
+                { label: 'Microsoft', value: 'microsoft' },
+              ],
+              { placeHolder: 'Select a sign-in provider' }
+            )
+          )?.value;
+        if (!selected) {
+          return;
+        }
+        try {
+          const { createSession } = await import('./auth/pkce');
+          const port = getDataServerPort();
+          const session = createSession(selected, `vscode://simplebeacon.simplebeacon-vscode/auth-callback`);
+          const authorizeUrl = `http://127.0.0.1:${port}/api/auth/oauth/authorize?provider=${selected}&redirect_uri=${encodeURIComponent(session.redirectUri || '')}&code_challenge=${session.codeChallenge}&state=${session.state}`;
+          await vscode.env.openExternal(vscode.Uri.parse(authorizeUrl));
+        } catch (e) {
+          vscode.window.showErrorMessage(
+            'Failed to start OAuth sign-in: ' + (e instanceof Error ? e.message : String(e))
+          );
+        }
+      }),
+      registerCmd('simplebeacon.storeLicenseToken', async (token: string) => {
+        if (!token) {
+          return;
+        }
+        const parts = token.split('.');
+        const isJwt = parts.length === 3 && parts.every((p) => p.length > 0);
+        const isLicense = parts.length === 2 && parts.every((p) => p.length > 0);
+        let valid = false;
+        if (isLicense) {
+          valid = !!validateLicenseLocally(token, PUBLIC_KEY_PEM);
+        } else if (isJwt) {
+          valid = true;
+        }
+        if (!valid) {
+          vscode.window.showErrorMessage(
+            'Invalid or expired license token. Token was not saved. Get a valid token at https://simplebeacon.ai'
+          );
+          return;
+        }
+        try {
+          await getAuthManager().setToken(token);
+          try {
+            await getAccountTracker(context).recordLogin(token, 'extension', 'licenseStored');
+          } catch {}
+          await getSbConfig().update('licenseKey', token, true);
+          showQuietMessage('SimpleBeacon AI: License credential synchronized securely.');
+          await (await import('./modernSidebarProvider')).ModernSidebarProvider.refreshAuthState();
+        } catch (error) {
+          vscode.window.showErrorMessage(`SimpleBeacon Vault Error: Sync failed. ${(error as Error).message}`);
+        }
+      }),
+      registerCmd('simplebeacon.signOut', async () => {
+        outputChannel.appendLine('[SimpleBeacon] signOut command invoked');
+        const existing = await getAuthManager().getToken();
+        await getAuthManager().clearToken();
+        await getAuthManager().clearPassword();
+        clearBrowserSessionToken();
+        recordBrowserSignOut(existing);
+        if (existing) {
+          try {
+            await getAccountTracker(context).recordLogout(existing, 'extension', 'signOutCommand');
+          } catch {}
+        }
+        showQuietMessage('Signed out');
+        const msp = await import('./modernSidebarProvider');
+        msp.ModernSidebarProvider.setSidebarAuthState(false, '', '', 'signOut');
+        await msp.ModernSidebarProvider.refreshAuthState('signOut');
+        outputChannel.appendLine('[SimpleBeacon] signOut command completed');
+      }),
+      registerCmd('simplebeacon.viewAccountHistory', async () => {
+        const tracker = getAccountTracker(context);
+        const events = await tracker.getHistory(100);
+        const panel = vscode.window.createWebviewPanel(
+          'simplebeaconAccountHistory',
+          'SimpleBeacon Account History',
+          vscode.ViewColumn.One,
+          { enableScripts: true }
+        );
+        const rows = events
+          .map(
+            (ev) =>
+              `<tr><td>${ev.timestamp}</td><td>${ev.event}</td><td>${ev.email || '-'}</td><td>${ev.tier || '-'}</td><td>${ev.tokenType}</td><td>${ev.source}</td><td>${ev.details || ''}</td></tr>`
+          )
+          .join('');
+        panel.webview.html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:20px;background:#1e1e1e;color:#ccc;font-size:13px}
         table{border-collapse:collapse;width:100%;font-size:12px}
         th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #333}
@@ -1680,586 +2071,690 @@ export function activate(context: vscode.ExtensionContext) {
       </style></head><body><h2>Account History (last ${events.length} events)</h2>
       <table><thead><tr><th>Timestamp</th><th>Event</th><th>Email</th><th>Tier</th><th>Token Type</th><th>Source</th><th>Details</th></tr></thead><tbody>${rows}</tbody></table>
       </body></html>`;
-    }),
-    registerCmd('simplebeacon.exportAccountHistory', async () => {
-      const tracker = getAccountTracker(context);
-      const uri = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file('simplebeacon-accounts.jsonl'), filters: { 'JSON Lines': ['jsonl'] } });
-      if (uri) {
-        await tracker.exportToFile(uri.fsPath);
-        vscode.window.showInformationMessage('Account history exported to ' + uri.fsPath);
-      }
-    }),
-    registerCmd('simplebeacon.setServerUrl', async () => {
-      await getAuthManager().promptForServerUrl();
-      // Refresh sidebar with new URL
-      const cfg = getSbConfig();
-      const newUrl = cfg.get<string>('apiServerUrl') || cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') || 'http://127.0.0.1:3000';
-      modernSidebarProvider.updateServerUrl(newUrl);
-    }),
-    registerCmd('simplebeacon.toggleRealtimeMonitoring', () => {
-      if (realtimeMonitor['isMonitoring']) {
-        realtimeMonitor.stop();
-        showQuietMessage('Real-time AI slop monitoring stopped');
-      } else {
-        realtimeMonitor.start();
-      }
-    }),
-    registerCmd('simplebeacon.setMonitorDirectory', async (dir?: string) => {
-      const input = dir || await vscode.window.showInputBox({
-        prompt: 'Directory path to monitor (relative to workspace root). Leave empty for entire workspace.',
-        placeHolder: 'e.g. src/components or server/routes',
-        value: getSbConfig().get('realtimeMonitorDirectory', ''),
-      });
-      if (input !== undefined) {
-        await getSbConfig().update('realtimeMonitorDirectory', input, true);
-        const display = input.trim() || 'entire workspace';
-        showQuietMessage(`Monitor directory set to: ${display}`);
-        // Restart realtime monitor if active so new path takes effect
+      }),
+      registerCmd('simplebeacon.exportAccountHistory', async () => {
+        const tracker = getAccountTracker(context);
+        const uri = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file('simplebeacon-accounts.jsonl'),
+          filters: { 'JSON Lines': ['jsonl'] },
+        });
+        if (uri) {
+          await tracker.exportToFile(uri.fsPath);
+          vscode.window.showInformationMessage('Account history exported to ' + uri.fsPath);
+        }
+      }),
+      registerCmd('simplebeacon.setServerUrl', async () => {
+        await getAuthManager().promptForServerUrl();
+        // Refresh sidebar with new URL
+        const cfg = getSbConfig();
+        const newUrl =
+          cfg.get<string>('apiServerUrl') ||
+          cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') ||
+          'http://127.0.0.1:3000';
+        modernSidebarProvider.updateServerUrl(newUrl);
+      }),
+      registerCmd('simplebeacon.toggleRealtimeMonitoring', () => {
         if (realtimeMonitor['isMonitoring']) {
           realtimeMonitor.stop();
+          showQuietMessage('Real-time AI slop monitoring stopped');
+        } else {
           realtimeMonitor.start();
-          showQuietMessage('Real-time monitor restarted with new directory');
         }
-      }
-    }),
-    registerCmd('simplebeacon.restartDataServer', async () => {
-      await restartDataServer(context, outputChannel);
-      showQuietMessage('SimpleBeacon data server restarted');
-      updateServerStatus();
-    }),
-    registerCmd('simplebeacon.openBrowser', async () => {
-      const url = await vscode.window.showInputBox({
-        prompt: 'Enter URL to open',
-        placeHolder: 'https://simplebeacon.ai',
-        value: 'https://simplebeacon.ai',
-      });
-      if (url) {
-        await vscode.commands.executeCommand('simpleBrowser.show', url);
-      }
-    }),
-    registerCmd('simplebeacon.openInBrowser', async (path?: string) => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { WelcomeDashboard.showPaneIfOpen(path || '/dashboard'); }
-    }),
-    registerCmd('simplebeacon.openInternalDashboard', async (path?: string) => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { WelcomeDashboard.showPaneIfOpen(path || '/dashboard'); }
-    }),
-    registerCmd('simplebeacon.openDashboard40', async () => {
-      Dashboard40.createOrShow(context.extensionUri, currentReport as any);
-    }),
-    registerCmd('simplebeacon.toggleBrowserOpenMode', async () => {
-      const config = getSbConfig();
-      const current = config.get<string>('browserOpenMode', 'externalBrowser');
-      const next = current === 'externalBrowser' ? 'simpleBrowser' : 'externalBrowser';
-      await config.update('browserOpenMode', next, true);
-      const label = next === 'externalBrowser' ? 'Internet Browser' : 'IDE';
-      showQuietMessage(`Browser open mode set to: ${label}`);
-    }),
-    registerCmd('simplebeacon.openInPreview', async (path?: string) => {
-      if (path && /^https?:\/\//.test(path)) {
-        // Local http:// URLs cannot be loaded in the HTTPS webview (mixed-content block);
-        // open them in the system browser instead.
-        if (path.startsWith('http://')) {
-          await vscode.env.openExternal(vscode.Uri.parse(path));
+      }),
+      registerCmd('simplebeacon.setMonitorDirectory', async (dir?: string) => {
+        const input =
+          dir ||
+          (await vscode.window.showInputBox({
+            prompt: 'Directory path to monitor (relative to workspace root). Leave empty for entire workspace.',
+            placeHolder: 'e.g. src/components or server/routes',
+            value: getSbConfig().get('realtimeMonitorDirectory', ''),
+          }));
+        if (input !== undefined) {
+          await getSbConfig().update('realtimeMonitorDirectory', input, true);
+          const display = input.trim() || 'entire workspace';
+          showQuietMessage(`Monitor directory set to: ${display}`);
+          // Restart realtime monitor if active so new path takes effect
+          if (realtimeMonitor['isMonitoring']) {
+            realtimeMonitor.stop();
+            realtimeMonitor.start();
+            showQuietMessage('Real-time monitor restarted with new directory');
+          }
+        }
+      }),
+      registerCmd('simplebeacon.restartDataServer', async () => {
+        await restartDataServer(context, outputChannel);
+        showQuietMessage('SimpleBeacon data server restarted');
+        updateServerStatus();
+      }),
+      registerCmd('simplebeacon.openBrowser', async () => {
+        const url = await vscode.window.showInputBox({
+          prompt: 'Enter URL to open',
+          placeHolder: 'https://simplebeacon.ai',
+          value: 'https://simplebeacon.ai',
+        });
+        if (url) {
+          await vscode.commands.executeCommand('simpleBrowser.show', url);
+        }
+      }),
+      registerCmd('simplebeacon.openInBrowser', async (path?: string) => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          WelcomeDashboard.showPaneIfOpen(path || '/dashboard');
+        }
+      }),
+      registerCmd('simplebeacon.openInternalDashboard', async (path?: string) => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          WelcomeDashboard.showPaneIfOpen(path || '/dashboard');
+        }
+      }),
+      registerCmd('simplebeacon.openDashboard40', async () => {
+        Dashboard40.createOrShow(context.extensionUri, currentReport as any);
+      }),
+      registerCmd('simplebeacon.toggleBrowserOpenMode', async () => {
+        const config = getSbConfig();
+        const current = config.get<string>('browserOpenMode', 'externalBrowser');
+        const next = current === 'externalBrowser' ? 'simpleBrowser' : 'externalBrowser';
+        await config.update('browserOpenMode', next, true);
+        const label = next === 'externalBrowser' ? 'Internet Browser' : 'IDE';
+        showQuietMessage(`Browser open mode set to: ${label}`);
+      }),
+      registerCmd('simplebeacon.openInPreview', async (path?: string) => {
+        if (path && /^https?:\/\//.test(path)) {
+          // Local http:// URLs cannot be loaded in the HTTPS webview (mixed-content block);
+          // open them in the system browser instead.
+          if (path.startsWith('http://')) {
+            await vscode.env.openExternal(vscode.Uri.parse(path));
+            return;
+          }
+          // HTTPS URLs (including simplebeacon.ai) are loaded in the bridged website dashboard
+          // panel so setTheme/setAuthState postMessage sync with the sidebar works.
+          openWebsiteDashboardPanel(path, 'SimpleBeacon Preview');
           return;
         }
-        // HTTPS URLs (including simplebeacon.ai) are loaded in the bridged website dashboard
-        // panel so setTheme/setAuthState postMessage sync with the sidebar works.
-        openWebsiteDashboardPanel(path, 'SimpleBeacon Preview');
-        return;
-      }
-      WelcomeDashboard.createOrShow(context.extensionUri, true)?.showDashboardPane();
-    }),
-    // aiPlatform commands
-    registerCmd('simplebeacon.scanFolder', async (uri: vscode.Uri) => {
-      if (!uri) {
-        vscode.window.showWarningMessage('No folder selected.');
-        return;
-      }
-      WelcomeDashboard.createOrShow(context.extensionUri, true)?.showScanPane();
-      await vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: uri.fsPath });
-    }),
-    registerCmd('simplebeacon.uploadReport', async () => {
-      WelcomeDashboard.createOrShow(context.extensionUri);
-    }),
-    registerCmd('simplebeacon.refreshResults', async () => {
-      provider.refresh();
-      loadExistingReport(context);
-      if (currentReport) {
-        safeUpdateUIs(currentReport, 'Results refreshed');
-      }
-      showQuietMessage('Results refreshed');
-    }),
-    registerCmd('simplebeacon.openIssue', (issue: ScanIssue) => {
-      if (issue && issue.filePath && issue.line) {
-        const docUri = vscode.Uri.file(issue.filePath);
-        Promise.resolve(vscode.workspace.openTextDocument(docUri))
-          .then((doc) => Promise.resolve(vscode.window.showTextDocument(doc)))
-          .then((editor) => {
-            const position = new vscode.Position(issue.line! - 1, issue.column || 0);
-            editor.selection = new vscode.Selection(position, position);
-            editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
-          })
-          .catch((err: Error) => {
-            vscode.window.showErrorMessage('Failed to open file: ' + (err instanceof Error ? err.message : String(err)));
-          });
-      }
-    }),
-    registerCmd('simplebeacon.openDashboard', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showDashboardPane(); }
-    }),
-    registerCmd('simplebeacon.openUpload', async () => {
-      WelcomeDashboard.createOrShow(context.extensionUri);
-    }),
-    registerCmd('simplebeacon.openReport', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showReportPane(); }
-    }),
-    registerCmd('simplebeacon.openReportHtml', async () => {
-      const port = getDataServerPort();
-      const url = `http://127.0.0.1:${port}/dashboard/results`;
-      await vscode.commands.executeCommand('simpleBrowser.show', url);
-    }),
-    registerCmd('simplebeacon.openCertificate', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showCertificatePane(); }
-    }),
-    registerCmd('simplebeacon.openCodeMap', async () => {
-      await vscode.commands.executeCommand('simplebeacon-modern.focus');
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showCodeMapPane(); }
-      await vscode.commands.executeCommand('simplebeacon-codemap-tree.focus');
-    }),
-    registerCmd('simplebeacon.showCodeMap', async () => {
-      await vscode.commands.executeCommand('simplebeacon-modern.focus');
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showCodeMapPane(); }
-      await vscode.commands.executeCommand('simplebeacon-codemap-tree.focus');
-    }),
-    registerCmd('simplebeacon.openRoadmap', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showRoadmapPane(); }
-    }),
-    registerCmd('simplebeacon.generateRoadmap', async () => {
-      const files = ensureRoadmapFiles();
-      if (files) {
-        showQuietMessage(`Roadmap generated: ${files.roadmapHtmlPath}`);
-      }
-    }),
-    registerCmd('simplebeacon.exportRoadmap', async () => {
-      const files = ensureRoadmapFiles();
-      if (!files) return;
-      const defaultUri = vscode.Uri.file(path.join(os.homedir(), `roadmap-${new Date().toISOString().slice(0, 10)}.json`));
-      const uri = await vscode.window.showSaveDialog({ defaultUri, filters: { JSON: ['json'] } });
-      if (!uri) return;
-      fs.copyFileSync(files.roadmapJsonPath, uri.fsPath);
-      modernSidebarProvider.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
-      showQuietMessage(`Roadmap exported to ${uri.fsPath}`);
-    }),
-    registerCmd('simplebeacon.openRoadmapHtml', async () => {
-      const files = ensureRoadmapFiles();
-      if (files) {
-        await vscode.env.openExternal(vscode.Uri.file(files.roadmapHtmlPath));
-      }
-    }),
-    registerCmd('simplebeacon.showAiContextPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showAiContextPane(); }
-    }),
-    registerCmd('simplebeacon.openUploadPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showUploadPane(); }
-    }),
-    registerCmd('simplebeacon.openUploadPanel', async () => {
-      UploadPanel.createOrShow(context.extensionUri);
-    }),
-    registerCmd('simplebeacon.openAuditPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showAuditPane(); }
-    }),
-    registerCmd('simplebeacon.openSecurityPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showSecurityPane(); }
-    }),
-    registerCmd('simplebeacon.openTrustPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showTrustPane(); }
-    }),
-    registerCmd('simplebeacon.openQualityPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showQualityPane(); }
-    }),
-    registerCmd('simplebeacon.openAssessmentsPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showAssessmentsPane(); }
-    }),
-    registerCmd('simplebeacon.openPlatformPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showPlatformPane(); }
-    }),
-    registerCmd('simplebeacon.openProfilePane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showProfilePane(); }
-    }),
-    registerCmd('simplebeacon.openCompliancePane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showCompliancePane(); }
-    }),
-    registerCmd('simplebeacon.openRepoHealthPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showRepoHealthPane(); }
-    }),
-    registerCmd('simplebeacon.openAnalyticsPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showAnalyticsPane(); }
-    }),
-    registerCmd('simplebeacon.openTeamPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showTeamPane(); }
-    }),
-    registerCmd('simplebeacon.openScanPane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showScanPane(); }
-    }),
-    registerCmd('simplebeacon.clearReport', async () => {
-      currentReport = null;
-      updateStatusBar(null);
-      safeUpdateUIs(null, 'Results cleared');
-      updateServerState({ currentReport: null, scanStatus: 'idle', scanMessage: 'Results cleared', lastScanTime: Date.now(), lastTrustData: null });
-      showQuietMessage('SimpleBeacon scan results cleared.');
-    }),
-    registerCmd('simplebeacon.toggleMonitor', async () => {
-      const isMonitoring = realtimeMonitor.getIsMonitoring();
-      if (isMonitoring) {
-        realtimeMonitor.stop();
-        showQuietMessage('AI Slop Monitor stopped.');
-      } else {
-        realtimeMonitor.start();
-      }
-    }),
-    registerCmd('simplebeacon.sendToAIAgent', async () => {
-      const query = await vscode.window.showInputBox({
-        prompt: 'Ask the AI Agent',
-        placeHolder: 'e.g., Review this file for security issues...',
-        ignoreFocusOut: true,
-      });
-      if (!query) return;
-      showQuietMessage(`Sending to AI Agent: "${query}" — feature coming soon.`);
-    }),
-    registerCmd('simplebeacon.remediateDiagnostic', async (uri?: vscode.Uri, range?: vscode.Range, diagnosticCode?: string, diagnosticMessage?: string, snippet?: string) => {
-      if (!uri || !range) {
-        vscode.window.showWarningMessage('No diagnostic span was provided for remediation.');
-        return;
-      }
-
-      try {
-        const doc = await vscode.workspace.openTextDocument(uri);
-        const text = snippet || doc.getText(range);
-        const { remediateDiagnosticWithLocalOllama } = await import('./fixes/localOllamaRemediation');
-        await remediateDiagnosticWithLocalOllama({
-          uri,
-          range,
-          diagnosticCode: String(diagnosticCode || 'unknown'),
-          diagnosticMessage: String(diagnosticMessage || 'SimpleBeacon diagnostic'),
-          snippet: text,
-        });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        vscode.window.showErrorMessage(`Local Ollama remediation failed: ${message}`);
-      }
-    }),
-    registerCmd('simplebeacon.openAnalyzePane', async () => {
-      const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
-      if (panel) { panel.showAnalyzePane(); }
-    }),
-    registerCmd('simplebeacon.syncTokenFromDashboard', async () => {
-      const token = await getAuthManager().promptForToken();
-      if (token) {
-        showQuietMessage('SimpleBeacon token synced. You can now run scans with your licensed tier.');
-      }
-    }),
-    registerCmd('simplebeacon.openPreview', async () => {
-      ModernSidebarProvider.openSidebarPreview();
-    }),
-    registerCmd('simplebeacon.openDashboardPreview', async () => {
-      WelcomeDashboard.createOrShow(context.extensionUri, true)?.showDashboardPane();
-    }),
-    registerCmd('simplebeacon.openLocalPreview', async () => {
-      WelcomeDashboard.createOrShow(context.extensionUri);
-    }),
-    registerCmd('simplebeacon.openGitHub', async () => {
-      await vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/tjp420/simplebeacon');
-    }),
-    registerCmd('simplebeacon.openDocs', async () => {
-      await vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md');
-    }),
-    registerCmd('simplebeacon.openUrlInPreview', async (url?: string, _title?: string) => {
-      if (url && /^https?:\/\//.test(url)) {
-        // Open through the bridged panel so setTheme/setAuthState postMessage sync works.
-        openWebsiteDashboardPanel(url, _title || 'SimpleBeacon Dashboard');
-      } else {
+        WelcomeDashboard.createOrShow(context.extensionUri, true)?.showDashboardPane();
+      }),
+      // aiPlatform commands
+      registerCmd('simplebeacon.scanFolder', async (uri: vscode.Uri) => {
+        if (!uri) {
+          vscode.window.showWarningMessage('No folder selected.');
+          return;
+        }
+        WelcomeDashboard.createOrShow(context.extensionUri, true)?.showScanPane();
+        await vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: uri.fsPath });
+      }),
+      registerCmd('simplebeacon.uploadReport', async () => {
         WelcomeDashboard.createOrShow(context.extensionUri);
-      }
-    }),
-    registerCmd('simplebeacon.sendSelectionToSidebar', () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        showQuietMessage('No active text editor found.');
-        return;
-      }
-      const selection = editor.selection;
-      const selectedText = editor.document.getText(selection);
-      if (!selectedText) {
-        showQuietMessage('Please select some code or text first.');
-        return;
-      }
-      WelcomeDashboard.createOrShow(context.extensionUri);
-      showQuietMessage('Selected code sent to SimpleBeacon.');
-    }),
-    registerCmd('simplebeacon.openAiContext', async () => {
-      const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders || workspaceFolders.length === 0) {
-        vscode.window.showWarningMessage('No workspace folder open');
-        return;
-      }
-      const contextPath = vscode.Uri.joinPath(workspaceFolders[0].uri, '.simplebeacon', 'ai-context.md');
-      const data = currentReport as SidebarReport | null;
-      if (!data) {
-        vscode.window.showWarningMessage('No scan data available. Run a scan first.');
-        return;
-      }
-      const sev = data.severityCounts || {};
-      const gate = data.gate || {};
-      const summary = [
-        '## SimpleBeacon Scan Summary',
-        '',
-        `**Quality Score:** ${data.qualityScore !== null && data.qualityScore !== undefined ? data.qualityScore + '/100' : 'N/A'}`,
-        `**Gate Status:** ${gate.pass ? '✅ PASS' : '❌ FAIL'}`,
-        `**Total Issues:** ${data.issueCount || 0}`,
-        '',
-        '**Severity Breakdown:**',
-        `- Critical: ${sev.critical || 0}`,
-        `- High: ${sev.high || 0}`,
-        `- Medium: ${sev.medium || 0}`,
-        `- Low: ${sev.low || 0}`,
-        '',
-        `**Files Analyzed:** ${data.ruleScopedFilesAnalyzed || data.filesAnalyzed || 0} / ${data.totalFiles || 0}`,
-        `**Project:** ${data.projectRoot || data.projectPath || 'N/A'}`,
-        '',
-        data.detectedIssues && data.detectedIssues.length > 0
-          ? '**Top Findings:**\n' +
-            data.detectedIssues
-              .slice(0, 10)
-              .map((i: DetectedIssue) => `- [${i.severity}] ${i.type}: ${i.description || i.message || ''}`.slice(0, 200))
-              .join('\n')
-          : '',
-        '',
-        '_Paste this into your AI coding agent for remediation guidance._',
-      ].join('\n');
-      try {
-        await vscode.workspace.fs.writeFile(contextPath, Buffer.from(summary, 'utf8'));
-      } catch (e) {
-        vscode.window.showWarningMessage('Failed to write AI context file: ' + (e instanceof Error ? e.message : String(e)));
-        return;
-      }
-      await vscode.commands.executeCommand('vscode.open', contextPath);
-    }),
-    registerCmd('simplebeacon.sendToAi', async () => {
-      const data = currentReport as SidebarReport | null;
-      if (!data) {
-        vscode.window.showWarningMessage('No scan data available. Run a scan first.');
-        return;
-      }
-      const sev = data.severityCounts || {};
-      const gate = data.gate || {};
-      const payload = {
-        projectPath: data.projectRoot || data.projectPath || '',
-        notes: '',
-        reportSummary: {
-          gatePass: gate.pass ?? 'N/A',
-          qualityScore: data.qualityScore ?? 'N/A',
-          totalIssues: data.issueCount || 0,
-          filesScanned: data.ruleScopedFilesAnalyzed || data.filesAnalyzed || data.totalFiles || 'N/A',
-          reportType: 'scan-summary'
-        },
-        issues: data.detectedIssues || []
-      };
-      const dataPort = getDataServerPort();
-      try {
-        const postRes = await new Promise<{ success: boolean; content?: string; error?: string }>((resolve, reject) => {
-          const body = JSON.stringify(payload);
-          const req = http.request(
-            {
-              hostname: '127.0.0.1',
-              port: dataPort,
-              path: '/api/ai-context',
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-            },
-            (res) => {
-              let respData = '';
-              res.on('data', (chunk) => { respData += chunk; });
-              res.on('end', () => {
-                try { resolve(JSON.parse(respData)); }
-                catch { resolve({ success: false, error: 'Invalid JSON' }); }
-              });
+      }),
+      registerCmd('simplebeacon.refreshResults', async () => {
+        provider.refresh();
+        loadExistingReport(context);
+        if (currentReport) {
+          safeUpdateUIs(currentReport, 'Results refreshed');
+        }
+        showQuietMessage('Results refreshed');
+      }),
+      registerCmd('simplebeacon.openIssue', (issue: ScanIssue) => {
+        if (issue && issue.filePath && issue.line) {
+          const docUri = vscode.Uri.file(issue.filePath);
+          Promise.resolve(vscode.workspace.openTextDocument(docUri))
+            .then((doc) => Promise.resolve(vscode.window.showTextDocument(doc)))
+            .then((editor) => {
+              const position = new vscode.Position(issue.line! - 1, issue.column || 0);
+              editor.selection = new vscode.Selection(position, position);
+              editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+            })
+            .catch((err: Error) => {
+              vscode.window.showErrorMessage(
+                'Failed to open file: ' + (err instanceof Error ? err.message : String(err))
+              );
+            });
+        }
+      }),
+      registerCmd('simplebeacon.openDashboard', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showDashboardPane();
+        }
+      }),
+      registerCmd('simplebeacon.openUpload', async () => {
+        WelcomeDashboard.createOrShow(context.extensionUri);
+      }),
+      registerCmd('simplebeacon.openReport', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showReportPane();
+        }
+      }),
+      registerCmd('simplebeacon.openReportHtml', async () => {
+        const port = getDataServerPort();
+        const url = `http://127.0.0.1:${port}/dashboard/results`;
+        await vscode.commands.executeCommand('simpleBrowser.show', url);
+      }),
+      registerCmd('simplebeacon.openCertificate', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showCertificatePane();
+        }
+      }),
+      registerCmd('simplebeacon.openCodeMap', async () => {
+        await vscode.commands.executeCommand('simplebeacon-modern.focus');
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showCodeMapPane();
+        }
+        await vscode.commands.executeCommand('simplebeacon-codemap-tree.focus');
+      }),
+      registerCmd('simplebeacon.showCodeMap', async () => {
+        await vscode.commands.executeCommand('simplebeacon-modern.focus');
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showCodeMapPane();
+        }
+        await vscode.commands.executeCommand('simplebeacon-codemap-tree.focus');
+      }),
+      registerCmd('simplebeacon.openRoadmap', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showRoadmapPane();
+        }
+      }),
+      registerCmd('simplebeacon.generateRoadmap', async () => {
+        const files = ensureRoadmapFiles();
+        if (files) {
+          showQuietMessage(`Roadmap generated: ${files.roadmapHtmlPath}`);
+        }
+      }),
+      registerCmd('simplebeacon.exportRoadmap', async () => {
+        const files = ensureRoadmapFiles();
+        if (!files) return;
+        const defaultUri = vscode.Uri.file(
+          path.join(os.homedir(), `roadmap-${new Date().toISOString().slice(0, 10)}.json`)
+        );
+        const uri = await vscode.window.showSaveDialog({ defaultUri, filters: { JSON: ['json'] } });
+        if (!uri) return;
+        fs.copyFileSync(files.roadmapJsonPath, uri.fsPath);
+        modernSidebarProvider.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
+        showQuietMessage(`Roadmap exported to ${uri.fsPath}`);
+      }),
+      registerCmd('simplebeacon.openRoadmapHtml', async () => {
+        const files = ensureRoadmapFiles();
+        if (files) {
+          await vscode.env.openExternal(vscode.Uri.file(files.roadmapHtmlPath));
+        }
+      }),
+      registerCmd('simplebeacon.showAiContextPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showAiContextPane();
+        }
+      }),
+      registerCmd('simplebeacon.openUploadPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showUploadPane();
+        }
+      }),
+      registerCmd('simplebeacon.openUploadPanel', async () => {
+        UploadPanel.createOrShow(context.extensionUri);
+      }),
+      registerCmd('simplebeacon.openAuditPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showAuditPane();
+        }
+      }),
+      registerCmd('simplebeacon.openSecurityPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showSecurityPane();
+        }
+      }),
+      registerCmd('simplebeacon.openTrustPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showTrustPane();
+        }
+      }),
+      registerCmd('simplebeacon.openQualityPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showQualityPane();
+        }
+      }),
+      registerCmd('simplebeacon.openAssessmentsPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showAssessmentsPane();
+        }
+      }),
+      registerCmd('simplebeacon.openPlatformPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showPlatformPane();
+        }
+      }),
+      registerCmd('simplebeacon.openProfilePane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showProfilePane();
+        }
+      }),
+      registerCmd('simplebeacon.openCompliancePane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showCompliancePane();
+        }
+      }),
+      registerCmd('simplebeacon.openRepoHealthPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showRepoHealthPane();
+        }
+      }),
+      registerCmd('simplebeacon.openAnalyticsPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showAnalyticsPane();
+        }
+      }),
+      registerCmd('simplebeacon.openTeamPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showTeamPane();
+        }
+      }),
+      registerCmd('simplebeacon.openScanPane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showScanPane();
+        }
+      }),
+      registerCmd('simplebeacon.clearReport', async () => {
+        currentReport = null;
+        updateStatusBar(null);
+        safeUpdateUIs(null, 'Results cleared');
+        updateServerState({
+          currentReport: null,
+          scanStatus: 'idle',
+          scanMessage: 'Results cleared',
+          lastScanTime: Date.now(),
+          lastTrustData: null,
+        });
+        showQuietMessage('SimpleBeacon scan results cleared.');
+      }),
+      registerCmd('simplebeacon.toggleMonitor', async () => {
+        const isMonitoring = realtimeMonitor.getIsMonitoring();
+        if (isMonitoring) {
+          realtimeMonitor.stop();
+          showQuietMessage('AI Slop Monitor stopped.');
+        } else {
+          realtimeMonitor.start();
+        }
+      }),
+      registerCmd('simplebeacon.sendToAIAgent', async () => {
+        const query = await vscode.window.showInputBox({
+          prompt: 'Ask the AI Agent',
+          placeHolder: 'e.g., Review this file for security issues...',
+          ignoreFocusOut: true,
+        });
+        if (!query) return;
+        showQuietMessage(`Sending to AI Agent: "${query}" — feature coming soon.`);
+      }),
+      registerCmd(
+        'simplebeacon.remediateDiagnostic',
+        async (
+          uri?: vscode.Uri,
+          range?: vscode.Range,
+          diagnosticCode?: string,
+          diagnosticMessage?: string,
+          snippet?: string
+        ) => {
+          if (!uri || !range) {
+            vscode.window.showWarningMessage('No diagnostic span was provided for remediation.');
+            return;
+          }
+
+          try {
+            const doc = await vscode.workspace.openTextDocument(uri);
+            const text = snippet || doc.getText(range);
+            const { remediateDiagnosticWithLocalOllama } = await import('./fixes/localOllamaRemediation');
+            await remediateDiagnosticWithLocalOllama({
+              uri,
+              range,
+              diagnosticCode: String(diagnosticCode || 'unknown'),
+              diagnosticMessage: String(diagnosticMessage || 'SimpleBeacon diagnostic'),
+              snippet: text,
+            });
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            vscode.window.showErrorMessage(`Local Ollama remediation failed: ${message}`);
+          }
+        }
+      ),
+      registerCmd('simplebeacon.openAnalyzePane', async () => {
+        const panel = WelcomeDashboard.createOrShow(context.extensionUri, true);
+        if (panel) {
+          panel.showAnalyzePane();
+        }
+      }),
+      registerCmd('simplebeacon.syncTokenFromDashboard', async () => {
+        const token = await getAuthManager().promptForToken();
+        if (token) {
+          showQuietMessage('SimpleBeacon token synced. You can now run scans with your licensed tier.');
+        }
+      }),
+      registerCmd('simplebeacon.openPreview', async () => {
+        ModernSidebarProvider.openSidebarPreview();
+      }),
+      registerCmd('simplebeacon.openDashboardPreview', async () => {
+        WelcomeDashboard.createOrShow(context.extensionUri, true)?.showDashboardPane();
+      }),
+      registerCmd('simplebeacon.openLocalPreview', async () => {
+        WelcomeDashboard.createOrShow(context.extensionUri);
+      }),
+      registerCmd('simplebeacon.openGitHub', async () => {
+        await vscode.commands.executeCommand('simpleBrowser.show', 'https://github.com/tjp420/simplebeacon');
+      }),
+      registerCmd('simplebeacon.openDocs', async () => {
+        await vscode.commands.executeCommand(
+          'simpleBrowser.show',
+          'https://github.com/tjp420/simplebeacon/blob/main/docs/ANTI-BLOAT-MANIFESTO.md'
+        );
+      }),
+      registerCmd('simplebeacon.openUrlInPreview', async (url?: string, _title?: string) => {
+        if (url && /^https?:\/\//.test(url)) {
+          // Open through the bridged panel so setTheme/setAuthState postMessage sync works.
+          openWebsiteDashboardPanel(url, _title || 'SimpleBeacon Dashboard');
+        } else {
+          WelcomeDashboard.createOrShow(context.extensionUri);
+        }
+      }),
+      registerCmd('simplebeacon.sendSelectionToSidebar', () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          showQuietMessage('No active text editor found.');
+          return;
+        }
+        const selection = editor.selection;
+        const selectedText = editor.document.getText(selection);
+        if (!selectedText) {
+          showQuietMessage('Please select some code or text first.');
+          return;
+        }
+        WelcomeDashboard.createOrShow(context.extensionUri);
+        showQuietMessage('Selected code sent to SimpleBeacon.');
+      }),
+      registerCmd('simplebeacon.openAiContext', async () => {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+          vscode.window.showWarningMessage('No workspace folder open');
+          return;
+        }
+        const contextPath = vscode.Uri.joinPath(workspaceFolders[0].uri, '.simplebeacon', 'ai-context.md');
+        const data = currentReport as SidebarReport | null;
+        if (!data) {
+          vscode.window.showWarningMessage('No scan data available. Run a scan first.');
+          return;
+        }
+        const sev = data.severityCounts || {};
+        const gate = data.gate || {};
+        const summary = [
+          '## SimpleBeacon Scan Summary',
+          '',
+          `**Quality Score:** ${data.qualityScore !== null && data.qualityScore !== undefined ? data.qualityScore + '/100' : 'N/A'}`,
+          `**Gate Status:** ${gate.pass ? '✅ PASS' : '❌ FAIL'}`,
+          `**Total Issues:** ${data.issueCount || 0}`,
+          '',
+          '**Severity Breakdown:**',
+          `- Critical: ${sev.critical || 0}`,
+          `- High: ${sev.high || 0}`,
+          `- Medium: ${sev.medium || 0}`,
+          `- Low: ${sev.low || 0}`,
+          '',
+          `**Files Analyzed:** ${data.ruleScopedFilesAnalyzed || data.filesAnalyzed || 0} / ${data.totalFiles || 0}`,
+          `**Project:** ${data.projectRoot || data.projectPath || 'N/A'}`,
+          '',
+          data.detectedIssues && data.detectedIssues.length > 0
+            ? '**Top Findings:**\n' +
+              data.detectedIssues
+                .slice(0, 10)
+                .map((i: DetectedIssue) =>
+                  `- [${i.severity}] ${i.type}: ${i.description || i.message || ''}`.slice(0, 200)
+                )
+                .join('\n')
+            : '',
+          '',
+          '_Paste this into your AI coding agent for remediation guidance._',
+        ].join('\n');
+        try {
+          await vscode.workspace.fs.writeFile(contextPath, Buffer.from(summary, 'utf8'));
+        } catch (e) {
+          vscode.window.showWarningMessage(
+            'Failed to write AI context file: ' + (e instanceof Error ? e.message : String(e))
+          );
+          return;
+        }
+        await vscode.commands.executeCommand('vscode.open', contextPath);
+      }),
+      registerCmd('simplebeacon.sendToAi', async () => {
+        const data = currentReport as SidebarReport | null;
+        if (!data) {
+          vscode.window.showWarningMessage('No scan data available. Run a scan first.');
+          return;
+        }
+        const sev = data.severityCounts || {};
+        const gate = data.gate || {};
+        const payload = {
+          projectPath: data.projectRoot || data.projectPath || '',
+          notes: '',
+          reportSummary: {
+            gatePass: gate.pass ?? 'N/A',
+            qualityScore: data.qualityScore ?? 'N/A',
+            totalIssues: data.issueCount || 0,
+            filesScanned: data.ruleScopedFilesAnalyzed || data.filesAnalyzed || data.totalFiles || 'N/A',
+            reportType: 'scan-summary',
+          },
+          issues: data.detectedIssues || [],
+        };
+        const dataPort = getDataServerPort();
+        try {
+          const postRes = await new Promise<{ success: boolean; content?: string; error?: string }>(
+            (resolve, reject) => {
+              const body = JSON.stringify(payload);
+              const req = http.request(
+                {
+                  hostname: '127.0.0.1',
+                  port: dataPort,
+                  path: '/api/ai-context',
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+                },
+                (res) => {
+                  let respData = '';
+                  res.on('data', (chunk) => {
+                    respData += chunk;
+                  });
+                  res.on('end', () => {
+                    try {
+                      resolve(JSON.parse(respData));
+                    } catch {
+                      resolve({ success: false, error: 'Invalid JSON' });
+                    }
+                  });
+                }
+              );
+              req.on('error', reject);
+              req.write(body);
+              req.end();
             }
           );
-          req.on('error', reject);
-          req.write(body);
-          req.end();
-        });
-        if (postRes.success && postRes.content) {
-          await vscode.env.clipboard.writeText(postRes.content);
-          showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
-        } else {
-          vscode.window.showWarningMessage('AI context saved but no content returned');
+          if (postRes.success && postRes.content) {
+            await vscode.env.clipboard.writeText(postRes.content);
+            showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
+          } else {
+            vscode.window.showWarningMessage('AI context saved but no content returned');
+          }
+        } catch (err) {
+          vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
         }
-      } catch (err) {
-        vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    }),
-    registerCmd('simplebeacon.sendSidebarToAi', async (report?: unknown) => {
-      const data = (report || currentReport) as SidebarReport | null;
-      if (!data) {
-        vscode.window.showWarningMessage('No scan data available. Run a scan first.');
-        return;
-      }
-      const sev = data.severityCounts || {};
-      const gate = data.gate || {};
-      const payload = {
-        projectPath: data.projectRoot || data.projectPath || '',
-        notes: '',
-        reportSummary: {
-          gatePass: gate.pass ?? 'N/A',
-          qualityScore: data.qualityScore ?? 'N/A',
-          totalIssues: data.issueCount || 0,
-          filesScanned: data.ruleScopedFilesAnalyzed || data.filesAnalyzed || data.totalFiles || 'N/A',
-          reportType: 'scan-summary'
-        },
-        issues: data.detectedIssues || []
-      };
-      const dataPort = getDataServerPort();
-      try {
-        const postRes = await new Promise<{ success: boolean; content?: string; error?: string }>((resolve, reject) => {
-          const body = JSON.stringify(payload);
-          const req = http.request(
-            {
-              hostname: '127.0.0.1',
-              port: dataPort,
-              path: '/api/ai-context',
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-            },
-            (res) => {
-              let respData = '';
-              res.on('data', (chunk) => { respData += chunk; });
-              res.on('end', () => {
-                try { resolve(JSON.parse(respData)); }
-                catch { resolve({ success: false, error: 'Invalid JSON' }); }
-              });
+      }),
+      registerCmd('simplebeacon.sendSidebarToAi', async (report?: unknown) => {
+        const data = (report || currentReport) as SidebarReport | null;
+        if (!data) {
+          vscode.window.showWarningMessage('No scan data available. Run a scan first.');
+          return;
+        }
+        const sev = data.severityCounts || {};
+        const gate = data.gate || {};
+        const payload = {
+          projectPath: data.projectRoot || data.projectPath || '',
+          notes: '',
+          reportSummary: {
+            gatePass: gate.pass ?? 'N/A',
+            qualityScore: data.qualityScore ?? 'N/A',
+            totalIssues: data.issueCount || 0,
+            filesScanned: data.ruleScopedFilesAnalyzed || data.filesAnalyzed || data.totalFiles || 'N/A',
+            reportType: 'scan-summary',
+          },
+          issues: data.detectedIssues || [],
+        };
+        const dataPort = getDataServerPort();
+        try {
+          const postRes = await new Promise<{ success: boolean; content?: string; error?: string }>(
+            (resolve, reject) => {
+              const body = JSON.stringify(payload);
+              const req = http.request(
+                {
+                  hostname: '127.0.0.1',
+                  port: dataPort,
+                  path: '/api/ai-context',
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+                },
+                (res) => {
+                  let respData = '';
+                  res.on('data', (chunk) => {
+                    respData += chunk;
+                  });
+                  res.on('end', () => {
+                    try {
+                      resolve(JSON.parse(respData));
+                    } catch {
+                      resolve({ success: false, error: 'Invalid JSON' });
+                    }
+                  });
+                }
+              );
+              req.on('error', reject);
+              req.write(body);
+              req.end();
             }
           );
-          req.on('error', reject);
-          req.write(body);
-          req.end();
-        });
-        if (postRes.success && postRes.content) {
-          await vscode.env.clipboard.writeText(postRes.content);
-          showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
-        } else {
-          vscode.window.showWarningMessage('AI context saved but no content returned');
+          if (postRes.success && postRes.content) {
+            await vscode.env.clipboard.writeText(postRes.content);
+            showQuietMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V');
+          } else {
+            vscode.window.showWarningMessage('AI context saved but no content returned');
+          }
+        } catch (err) {
+          vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
         }
-      } catch (err) {
-        vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    }),
-    registerCmd('simplebeacon.openAIChatbot', async () => {
-      await vscode.commands.executeCommand('workbench.action.showSecondarySideBar');
-      await vscode.commands.executeCommand('simplebeacon-ai-chatbot.focus');
-    }),
-    registerCmd('simplebeacon.refreshDashboard', (stats) => {
-      dashboardPanel.updateStats(stats);
-    }),
-    registerCmd('simplebeacon.openSidebarDebug', () => {
-      WelcomeDashboard.createOrShow(context.extensionUri);
-    }),
-    registerCmd('simplebeacon.openSidebarInBrowser', () => {
-      WelcomeDashboard.createOrShow(context.extensionUri);
-    }),
-    registerCmd('simplebeacon.openStandaloneDebug', () => {
-      WelcomeDashboard.createOrShow(context.extensionUri);
-    }),
-    registerCmd('simplebeacon.openSidebarDebugFile', (filePath?: string) => {
-      const target = filePath || path.join(os.tmpdir(), 'simplebeacon-sidebar-debug.html');
-      modernSidebarProvider.openSidebarDebugFile(target);
-    }),
-    registerCmd('simplebeacon.diagnoseSidebar', async () => {
-      showQuietMessage('Running SimpleBeacon sidebar diagnose... check Output panel');
-      const diagChannel = vscode.window.createOutputChannel('SimpleBeacon Sidebar Diagnose');
-      diagChannel.clear();
-      diagChannel.appendLine('=== SimpleBeacon Sidebar External Diagnose ===');
-      diagChannel.appendLine(`Extension version: ${context.extension.packageJSON?.version || 'unknown'}`);
-      diagChannel.appendLine(`VS Code version: ${vscode.version}`);
-      diagChannel.appendLine(`ModernSidebarProvider registered: ${!!modernSidebarProvider}`);
-      diagChannel.appendLine(`Sidebar HTML cached: ${ModernSidebarProvider._sidebarHtml ? 'YES (' + ModernSidebarProvider._sidebarHtml.length + ' chars)' : 'NO'}`);
-      diagChannel.appendLine(`Dashboard HTML cached: ${ModernSidebarProvider._dashboardHtml ? 'YES (' + ModernSidebarProvider._dashboardHtml.length + ' chars)' : 'NO'}`);
-      diagChannel.appendLine(`Current report: ${currentReport ? 'YES (' + Object.keys(currentReport as any).length + ' keys)' : 'NO'}`);
-      diagChannel.appendLine(`_view reference: ${(modernSidebarProvider as any)._view ? 'SET' : 'NULL'}`);
-      // Check _view state
-      const view = (modernSidebarProvider as unknown as { _view?: vscode.WebviewView & { _isDisposed?: boolean } })._view;
-      diagChannel.appendLine(`Webview view (_view) set: ${!!view}`);
-      if (view) {
-        diagChannel.appendLine(`Webview view visible: ${view.visible ?? 'unknown'}`);
-        diagChannel.appendLine(`Webview view disposed: ${!!view._isDisposed}`);
-        diagChannel.appendLine(`Webview HTML length: ${view.webview?.html?.length ?? 'N/A'}`);
-      }
-      const cfg = getSbConfig();
-      const apiUrl = cfg.get<string>('apiServerUrl') || cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') || 'http://127.0.0.1:3000';
-      diagChannel.appendLine(`Configured API URL: ${apiUrl}`);
-      // Check if relay server is running
-      const relayPort = (ModernSidebarProvider as any)._relayPort;
-      diagChannel.appendLine(`Relay port: ${relayPort || 'NOT STARTED'}`);
-      // Test API reachability
-      const reachable = await checkServerReachable(apiUrl, 3000);
-      diagChannel.appendLine(`API reachable: ${reachable ? 'YES' : 'NO'}`);
-      // Sidebar has been removed; show welcome dashboard instead
-      try {
+      }),
+      registerCmd('simplebeacon.openAIChatbot', async () => {
+        await vscode.commands.executeCommand('workbench.action.showSecondarySideBar');
+        await vscode.commands.executeCommand('simplebeacon-ai-chatbot.focus');
+      }),
+      registerCmd('simplebeacon.refreshDashboard', (stats) => {
+        dashboardPanel.updateStats(stats);
+      }),
+      registerCmd('simplebeacon.openSidebarDebug', () => {
         WelcomeDashboard.createOrShow(context.extensionUri);
-        diagChannel.appendLine('Welcome dashboard opened');
-      } catch (e) {
-        diagChannel.appendLine(`Welcome dashboard open failed: ${e instanceof Error ? e.message : String(e)}`);
-      }
-      // Send a test status update to the sidebar
-      try {
-        modernSidebarProvider.updateStatus('ready', 'External diagnose complete');
-        diagChannel.appendLine('Test status update: SENT');
-      } catch (e) {
-        diagChannel.appendLine(`Test status update: FAILED (${e instanceof Error ? e.message : String(e)})`);
-      }
-      diagChannel.appendLine('=== End Diagnose ===');
-      diagChannel.show(true);
-    }),
-    registerCmd('simplebeacon.openTrustPage', async () => {
-      const report = currentReport as any;
-      const gate = report?.gate || {};
-      const score = report?.qualityScore != null ? report.qualityScore : (gate.score || '-');
-      const pass = gate.pass ? true : false;
-      const scanDate = report?.timestamp || report?.scanDate || report?.generatedAt || new Date().toISOString();
-      const totalFiles = report?.totalFiles || report?.filesAnalyzed || report?.repositoryInventory?.totalFiles || 0;
-      const issues = report?.issueCount || 0;
-      const sev = report?.severityCounts || {};
+      }),
+      registerCmd('simplebeacon.openSidebarInBrowser', () => {
+        WelcomeDashboard.createOrShow(context.extensionUri);
+      }),
+      registerCmd('simplebeacon.openStandaloneDebug', () => {
+        WelcomeDashboard.createOrShow(context.extensionUri);
+      }),
+      registerCmd('simplebeacon.openSidebarDebugFile', (filePath?: string) => {
+        const target = filePath || path.join(os.tmpdir(), 'simplebeacon-sidebar-debug.html');
+        modernSidebarProvider.openSidebarDebugFile(target);
+      }),
+      registerCmd('simplebeacon.diagnoseSidebar', async () => {
+        showQuietMessage('Running SimpleBeacon sidebar diagnose... check Output panel');
+        const diagChannel = vscode.window.createOutputChannel('SimpleBeacon Sidebar Diagnose');
+        diagChannel.clear();
+        diagChannel.appendLine('=== SimpleBeacon Sidebar External Diagnose ===');
+        diagChannel.appendLine(`Extension version: ${context.extension.packageJSON?.version || 'unknown'}`);
+        diagChannel.appendLine(`VS Code version: ${vscode.version}`);
+        diagChannel.appendLine(`ModernSidebarProvider registered: ${!!modernSidebarProvider}`);
+        diagChannel.appendLine(
+          `Sidebar HTML cached: ${ModernSidebarProvider._sidebarHtml ? 'YES (' + ModernSidebarProvider._sidebarHtml.length + ' chars)' : 'NO'}`
+        );
+        diagChannel.appendLine(
+          `Dashboard HTML cached: ${ModernSidebarProvider._dashboardHtml ? 'YES (' + ModernSidebarProvider._dashboardHtml.length + ' chars)' : 'NO'}`
+        );
+        diagChannel.appendLine(
+          `Current report: ${currentReport ? 'YES (' + Object.keys(currentReport as any).length + ' keys)' : 'NO'}`
+        );
+        diagChannel.appendLine(`_view reference: ${(modernSidebarProvider as any)._view ? 'SET' : 'NULL'}`);
+        // Check _view state
+        const view = (modernSidebarProvider as unknown as { _view?: vscode.WebviewView & { _isDisposed?: boolean } })
+          ._view;
+        diagChannel.appendLine(`Webview view (_view) set: ${!!view}`);
+        if (view) {
+          diagChannel.appendLine(`Webview view visible: ${view.visible ?? 'unknown'}`);
+          diagChannel.appendLine(`Webview view disposed: ${!!view._isDisposed}`);
+          diagChannel.appendLine(`Webview HTML length: ${view.webview?.html?.length ?? 'N/A'}`);
+        }
+        const cfg = getSbConfig();
+        const apiUrl =
+          cfg.get<string>('apiServerUrl') ||
+          cfg.get<string>('apiUrl', 'http://127.0.0.1:3000') ||
+          'http://127.0.0.1:3000';
+        diagChannel.appendLine(`Configured API URL: ${apiUrl}`);
+        // Check if relay server is running
+        const relayPort = (ModernSidebarProvider as any)._relayPort;
+        diagChannel.appendLine(`Relay port: ${relayPort || 'NOT STARTED'}`);
+        // Test API reachability
+        const reachable = await checkServerReachable(apiUrl, 3000);
+        diagChannel.appendLine(`API reachable: ${reachable ? 'YES' : 'NO'}`);
+        // Sidebar has been removed; show welcome dashboard instead
+        try {
+          WelcomeDashboard.createOrShow(context.extensionUri);
+          diagChannel.appendLine('Welcome dashboard opened');
+        } catch (e) {
+          diagChannel.appendLine(`Welcome dashboard open failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        // Send a test status update to the sidebar
+        try {
+          modernSidebarProvider.updateStatus('ready', 'External diagnose complete');
+          diagChannel.appendLine('Test status update: SENT');
+        } catch (e) {
+          diagChannel.appendLine(`Test status update: FAILED (${e instanceof Error ? e.message : String(e)})`);
+        }
+        diagChannel.appendLine('=== End Diagnose ===');
+        diagChannel.show(true);
+      }),
+      registerCmd('simplebeacon.openTrustPage', async () => {
+        const report = currentReport as any;
+        const gate = report?.gate || {};
+        const score = report?.qualityScore != null ? report.qualityScore : gate.score || '-';
+        const pass = gate.pass ? true : false;
+        const scanDate = report?.timestamp || report?.scanDate || report?.generatedAt || new Date().toISOString();
+        const totalFiles = report?.totalFiles || report?.filesAnalyzed || report?.repositoryInventory?.totalFiles || 0;
+        const issues = report?.issueCount || 0;
+        const sev = report?.severityCounts || {};
 
-      const panel = vscode.window.createWebviewPanel(
-        'simplebeaconTrustPage',
-        'Trust & Verification',
-        vscode.ViewColumn.One,
-        { enableScripts: true, retainContextWhenHidden: true }
-      );
+        const panel = vscode.window.createWebviewPanel(
+          'simplebeaconTrustPage',
+          'Trust & Verification',
+          vscode.ViewColumn.One,
+          { enableScripts: true, retainContextWhenHidden: true }
+        );
 
-      const html = `<!DOCTYPE html>
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2429,47 +2924,49 @@ main{flex:1;padding:24px;overflow-y:auto}
 </body>
 </html>`;
 
-      panel.webview.html = html;
-    }),
-    registerCmd('simplebeacon.openAssessmentsPage', async () => {
-      const report = currentReport as any;
-      const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
-      const gate = report?.gate || {};
-      const scanDate = report?.timestamp || report?.scanDate || report?.generatedAt || new Date().toISOString();
-      const totalFiles = report?.totalFiles || report?.filesAnalyzed || 0;
+        panel.webview.html = html;
+      }),
+      registerCmd('simplebeacon.openAssessmentsPage', async () => {
+        const report = currentReport as any;
+        const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
+        const gate = report?.gate || {};
+        const scanDate = report?.timestamp || report?.scanDate || report?.generatedAt || new Date().toISOString();
+        const totalFiles = report?.totalFiles || report?.filesAnalyzed || 0;
 
-      const pending = issues.length;
-      const inProg = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'medium').length;
-      const completed = gate.pass ? Math.max(0, totalFiles - pending) : 0;
-      const sla = gate.pass ? 94 : 62;
+        const pending = issues.length;
+        const inProg = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'medium').length;
+        const completed = gate.pass ? Math.max(0, totalFiles - pending) : 0;
+        const sla = gate.pass ? 94 : 62;
 
-      const panel = vscode.window.createWebviewPanel(
-        'simplebeaconAssessments',
-        'Assessments',
-        vscode.ViewColumn.One,
-        { enableScripts: true, retainContextWhenHidden: true }
-      );
+        const panel = vscode.window.createWebviewPanel(
+          'simplebeaconAssessments',
+          'Assessments',
+          vscode.ViewColumn.One,
+          { enableScripts: true, retainContextWhenHidden: true }
+        );
 
-      let rowsHtml = '';
-      for (let idx = 0; idx < issues.length; idx++) {
-        const iss = issues[idx];
-        const file = iss.file || iss.filePath || iss.path || '—';
-        const type = iss.type || iss.pattern || iss.category || 'Finding';
-        const sev = (iss.severity || 'low').toLowerCase();
-        const sevColor = getSeverityColor(sev);
-        const sevLabel = sev.charAt(0).toUpperCase() + sev.slice(1);
-        rowsHtml += `<tr data-idx="${idx}"><td><div class="cell-file">${escapeHtml(file)}</div><div class="cell-type">${escapeHtml(type)}</div></td><td><span class="badge-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sevLabel}</span></td><td><span class="status-badge">Flagged</span></td><td class="cell-time">${escapeHtml(new Date(scanDate).toLocaleDateString())}</td></tr>`;
-      }
-      if (!rowsHtml) rowsHtml = '<tr><td colspan="4" class="empty-row">No assessments pending — all clear!</td></tr>';
+        let rowsHtml = '';
+        for (let idx = 0; idx < issues.length; idx++) {
+          const iss = issues[idx];
+          const file = iss.file || iss.filePath || iss.path || '—';
+          const type = iss.type || iss.pattern || iss.category || 'Finding';
+          const sev = (iss.severity || 'low').toLowerCase();
+          const sevColor = getSeverityColor(sev);
+          const sevLabel = sev.charAt(0).toUpperCase() + sev.slice(1);
+          rowsHtml += `<tr data-idx="${idx}"><td><div class="cell-file">${escapeHtml(file)}</div><div class="cell-type">${escapeHtml(type)}</div></td><td><span class="badge-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sevLabel}</span></td><td><span class="status-badge">Flagged</span></td><td class="cell-time">${escapeHtml(new Date(scanDate).toLocaleDateString())}</td></tr>`;
+        }
+        if (!rowsHtml) rowsHtml = '<tr><td colspan="4" class="empty-row">No assessments pending — all clear!</td></tr>';
 
-      let detailHtml = '';
-      for (let idx = 0; idx < Math.min(issues.length, 5); idx++) {
-        const iss = issues[idx];
-        detailHtml += `<div class="detail-item"><div class="detail-title">${escapeHtml(iss.type || iss.pattern || 'Finding')}</div><div class="detail-meta">${escapeHtml(iss.file || iss.filePath || '—')} · ${escapeHtml(iss.severity || 'low')}</div><div class="detail-desc">${escapeHtml(iss.description || iss.message || 'No description provided.')}</div></div>`;
-      }
-      if (!detailHtml) detailHtml = '<div class="detail-item"><div class="detail-title">All Clear</div><div class="detail-desc">No findings to review.</div></div>';
+        let detailHtml = '';
+        for (let idx = 0; idx < Math.min(issues.length, 5); idx++) {
+          const iss = issues[idx];
+          detailHtml += `<div class="detail-item"><div class="detail-title">${escapeHtml(iss.type || iss.pattern || 'Finding')}</div><div class="detail-meta">${escapeHtml(iss.file || iss.filePath || '—')} · ${escapeHtml(iss.severity || 'low')}</div><div class="detail-desc">${escapeHtml(iss.description || iss.message || 'No description provided.')}</div></div>`;
+        }
+        if (!detailHtml)
+          detailHtml =
+            '<div class="detail-item"><div class="detail-title">All Clear</div><div class="detail-desc">No findings to review.</div></div>';
 
-      const html = `<!DOCTYPE html>
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2580,36 +3077,40 @@ tr:hover td{background:rgba(255,255,255,0.03)}
 </body>
 </html>`;
 
-      panel.webview.html = html;
-    }),
-    registerCmd('simplebeacon.openRepoHealthPage', async () => {
-      const report = currentReport as any;
-      const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
-      const totalFiles = report?.totalFiles || report?.filesAnalyzed || 0;
-      const totalLines = report?.totalLinesOfCode || report?.linesOfCode || totalFiles * 180 || 0;
-      const sev = report?.severityCounts || {};
+        panel.webview.html = html;
+      }),
+      registerCmd('simplebeacon.openRepoHealthPage', async () => {
+        const report = currentReport as any;
+        const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
+        const totalFiles = report?.totalFiles || report?.filesAnalyzed || 0;
+        const totalLines = report?.totalLinesOfCode || report?.linesOfCode || totalFiles * 180 || 0;
+        const sev = report?.severityCounts || {};
 
-      const panel = vscode.window.createWebviewPanel(
-        'simplebeaconRepoHealth',
-        'Repo Health',
-        vscode.ViewColumn.One,
-        { enableScripts: true, retainContextWhenHidden: true }
-      );
-
-      // Build large-file list from scan report
-      let largeFilesHtml = '';
-      const files = report?.files || report?.fileList || report?.sampleFiles || [];
-      if (Array.isArray(files) && files.length > 0) {
-        const fakeLines: Record<string, number> = {};
-        files.forEach((f: string) => { fakeLines[f] = Math.floor(200 + Math.random() * 2400); });
-        const large = files.filter((f: string) => fakeLines[f] > 800).sort((a: string, b: string) => fakeLines[b] - fakeLines[a]).slice(0, 8);
-        large.forEach((f: string) => {
-          largeFilesHtml += `<div class="file-row"><span class="file-name">${escapeHtml(f)}</span><span class="file-loc">${fakeLines[f].toLocaleString()} lines</span></div>`;
+        const panel = vscode.window.createWebviewPanel('simplebeaconRepoHealth', 'Repo Health', vscode.ViewColumn.One, {
+          enableScripts: true,
+          retainContextWhenHidden: true,
         });
-      }
-      if (!largeFilesHtml) largeFilesHtml = '<div class="file-row"><span class="file-name">No oversized files detected</span></div>';
 
-      const html = `<!DOCTYPE html>
+        // Build large-file list from scan report
+        let largeFilesHtml = '';
+        const files = report?.files || report?.fileList || report?.sampleFiles || [];
+        if (Array.isArray(files) && files.length > 0) {
+          const fakeLines: Record<string, number> = {};
+          files.forEach((f: string) => {
+            fakeLines[f] = Math.floor(200 + Math.random() * 2400);
+          });
+          const large = files
+            .filter((f: string) => fakeLines[f] > 800)
+            .sort((a: string, b: string) => fakeLines[b] - fakeLines[a])
+            .slice(0, 8);
+          large.forEach((f: string) => {
+            largeFilesHtml += `<div class="file-row"><span class="file-name">${escapeHtml(f)}</span><span class="file-loc">${fakeLines[f].toLocaleString()} lines</span></div>`;
+          });
+        }
+        if (!largeFilesHtml)
+          largeFilesHtml = '<div class="file-row"><span class="file-name">No oversized files detected</span></div>';
+
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2719,57 +3220,60 @@ main{flex:1;padding:24px;overflow-y:auto}
 </body>
 </html>`;
 
-      panel.webview.html = html;
-    }),
-    registerCmd('simplebeacon.openAnalyzePage', async () => {
-      const report = currentReport as any;
-      const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
-      const sev = report?.severityCounts || {};
-      const totalFiles = report?.totalFiles || report?.filesAnalyzed || 0;
-      const scanDate = report?.timestamp || report?.scanDate || report?.generatedAt || new Date().toISOString();
+        panel.webview.html = html;
+      }),
+      registerCmd('simplebeacon.openAnalyzePage', async () => {
+        const report = currentReport as any;
+        const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
+        const sev = report?.severityCounts || {};
+        const totalFiles = report?.totalFiles || report?.filesAnalyzed || 0;
+        const scanDate = report?.timestamp || report?.scanDate || report?.generatedAt || new Date().toISOString();
 
-      const panel = vscode.window.createWebviewPanel(
-        'simplebeaconAnalyze',
-        'Analyze',
-        vscode.ViewColumn.One,
-        { enableScripts: true, retainContextWhenHidden: true }
-      );
-
-      // Build severity matrix rows
-      let matrixHtml = '';
-      const errs = issues.filter((i: any) => ['critical','high'].includes((i.severity||'').toLowerCase()));
-      const warns = issues.filter((i: any) => (i.severity||'').toLowerCase() === 'medium');
-      const opts = issues.filter((i: any) => (i.severity||'').toLowerCase() === 'low');
-      for (let idx = 0; idx < Math.min(issues.length, 12); idx++) {
-        const iss = issues[idx];
-        const sevRaw = (iss.severity || 'low').toLowerCase();
-        const sevColor = getSeverityColor(sevRaw);
-        const sevLabel = sevRaw.charAt(0).toUpperCase() + sevRaw.slice(1);
-        matrixHtml += `<tr><td><span class="badge-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sevLabel}</span></td><td class="cell-file">${escapeHtml(iss.file || iss.filePath || '—')}</td><td class="cell-type">${escapeHtml(iss.type || iss.pattern || iss.category || 'Finding')}</td><td class="cell-line">${escapeHtml(iss.line != null ? 'L'+iss.line : '—')}</td></tr>`;
-      }
-      if (!matrixHtml) matrixHtml = '<tr><td colspan="4" class="empty-row">No findings — codebase is clean.</td></tr>';
-
-      // Build architecture blocks (simulated from file list)
-      let archHtml = '';
-      const files = report?.files || report?.fileList || report?.sampleFiles || [];
-      const dirs: Record<string, number> = {};
-      if (Array.isArray(files)) {
-        files.forEach((f: string) => {
-          const p = String(f).replace(/\\/g, '/');
-          const top = p.split('/')[0] || 'root';
-          dirs[top] = (dirs[top] || 0) + 1;
+        const panel = vscode.window.createWebviewPanel('simplebeaconAnalyze', 'Analyze', vscode.ViewColumn.One, {
+          enableScripts: true,
+          retainContextWhenHidden: true,
         });
-      }
-      const dirEntries = Object.entries(dirs).sort((a,b) => b[1] - a[1]).slice(0, 10);
-      const maxDir = dirEntries.length ? dirEntries[0][1] : 1;
-      dirEntries.forEach(([name, count]) => {
-        const pct = maxDir ? (count / maxDir * 100) : 0;
-        const color = count > 500 ? 'var(--bad)' : count > 150 ? 'var(--warn)' : 'var(--good)';
-        archHtml += `<div class="arch-block"><div class="arch-bar" style="width:${pct}%;background:${color}"></div><div class="arch-label">${escapeHtml(name)} <span style="color:var(--muted)">${count}</span></div></div>`;
-      });
-      if (!archHtml) archHtml = '<div style="color:var(--muted);font-size:12px;padding:12px 0">No file structure data available.</div>';
 
-      const html = `<!DOCTYPE html>
+        // Build severity matrix rows
+        let matrixHtml = '';
+        const errs = issues.filter((i: any) => ['critical', 'high'].includes((i.severity || '').toLowerCase()));
+        const warns = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'medium');
+        const opts = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'low');
+        for (let idx = 0; idx < Math.min(issues.length, 12); idx++) {
+          const iss = issues[idx];
+          const sevRaw = (iss.severity || 'low').toLowerCase();
+          const sevColor = getSeverityColor(sevRaw);
+          const sevLabel = sevRaw.charAt(0).toUpperCase() + sevRaw.slice(1);
+          matrixHtml += `<tr><td><span class="badge-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sevLabel}</span></td><td class="cell-file">${escapeHtml(iss.file || iss.filePath || '—')}</td><td class="cell-type">${escapeHtml(iss.type || iss.pattern || iss.category || 'Finding')}</td><td class="cell-line">${escapeHtml(iss.line != null ? 'L' + iss.line : '—')}</td></tr>`;
+        }
+        if (!matrixHtml)
+          matrixHtml = '<tr><td colspan="4" class="empty-row">No findings — codebase is clean.</td></tr>';
+
+        // Build architecture blocks (simulated from file list)
+        let archHtml = '';
+        const files = report?.files || report?.fileList || report?.sampleFiles || [];
+        const dirs: Record<string, number> = {};
+        if (Array.isArray(files)) {
+          files.forEach((f: string) => {
+            const p = String(f).replace(/\\/g, '/');
+            const top = p.split('/')[0] || 'root';
+            dirs[top] = (dirs[top] || 0) + 1;
+          });
+        }
+        const dirEntries = Object.entries(dirs)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10);
+        const maxDir = dirEntries.length ? dirEntries[0][1] : 1;
+        dirEntries.forEach(([name, count]) => {
+          const pct = maxDir ? (count / maxDir) * 100 : 0;
+          const color = count > 500 ? 'var(--bad)' : count > 150 ? 'var(--warn)' : 'var(--good)';
+          archHtml += `<div class="arch-block"><div class="arch-bar" style="width:${pct}%;background:${color}"></div><div class="arch-label">${escapeHtml(name)} <span style="color:var(--muted)">${count}</span></div></div>`;
+        });
+        if (!archHtml)
+          archHtml =
+            '<div style="color:var(--muted);font-size:12px;padding:12px 0">No file structure data available.</div>';
+
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2910,26 +3414,24 @@ tr:hover td{background:rgba(255,255,255,0.03)}
 </body>
 </html>`;
 
-      panel.webview.html = html;
-    }),
-    registerCmd('simplebeacon.openSettingsPage', async () => {
-      const cfg = getSbConfig();
-      const autoScan = cfg.get<boolean>('autoScanOnOpen', false);
-      const autoPreview = cfg.get<boolean>('autoOpenPreviewPanel', false);
-      const deepScan = cfg.get<boolean>('deepScan', false);
-      const includeDeps = cfg.get<boolean>('includeDeps', false);
-      const scanMode = cfg.get<string>('scanMode', 'full');
-      const maxFiles = cfg.get<number>('maxFiles', 5000);
-      const apiUrl = cfg.get<string>('apiServerUrl', '');
+        panel.webview.html = html;
+      }),
+      registerCmd('simplebeacon.openSettingsPage', async () => {
+        const cfg = getSbConfig();
+        const autoScan = cfg.get<boolean>('autoScanOnOpen', false);
+        const autoPreview = cfg.get<boolean>('autoOpenPreviewPanel', false);
+        const deepScan = cfg.get<boolean>('deepScan', false);
+        const includeDeps = cfg.get<boolean>('includeDeps', false);
+        const scanMode = cfg.get<string>('scanMode', 'full');
+        const maxFiles = cfg.get<number>('maxFiles', 5000);
+        const apiUrl = cfg.get<string>('apiServerUrl', '');
 
-      const panel = vscode.window.createWebviewPanel(
-        'simplebeaconSettings',
-        'Settings',
-        vscode.ViewColumn.One,
-        { enableScripts: true, retainContextWhenHidden: true }
-      );
+        const panel = vscode.window.createWebviewPanel('simplebeaconSettings', 'Settings', vscode.ViewColumn.One, {
+          enableScripts: true,
+          retainContextWhenHidden: true,
+        });
 
-      const html = `<!DOCTYPE html>
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3031,7 +3533,7 @@ input:focus,select:focus{border-color:var(--ac)}
     <!-- Scan -->
     <div class="section" id="section-scan">
       <div class="section-title">Scan Settings</div>
-      <div class="setting-row"><div class="setting-info"><div class="setting-label">Scan Mode</div><div class="setting-desc">Default engine depth for new scans.</div></div><select><option ${scanMode==='full'?'selected':''}>Full — all rule engines</option><option ${scanMode==='gate'?'selected':''}>Gate — production paths only</option><option ${scanMode==='quick'?'selected':''}>Quick — skip heavy AST engines</option></select></div>
+      <div class="setting-row"><div class="setting-info"><div class="setting-label">Scan Mode</div><div class="setting-desc">Default engine depth for new scans.</div></div><select><option ${scanMode === 'full' ? 'selected' : ''}>Full — all rule engines</option><option ${scanMode === 'gate' ? 'selected' : ''}>Gate — production paths only</option><option ${scanMode === 'quick' ? 'selected' : ''}>Quick — skip heavy AST engines</option></select></div>
       <div class="setting-row"><div class="setting-info"><div class="setting-label">Deep Scan</div><div class="setting-desc">Bypass docs/vendor/cache filters.</div></div><div class="toggle ${deepScan ? 'on' : ''}" data-key="deepScan"></div></div>
       <div class="setting-row"><div class="setting-info"><div class="setting-label">Include Dependencies</div><div class="setting-desc">Scan node_modules and .git folders.</div></div><div class="toggle ${includeDeps ? 'on' : ''}" data-key="includeDeps"></div></div>
       <div class="setting-row"><div class="setting-info"><div class="setting-label">Max Files</div><div class="setting-desc">Stop scanning after this many files.</div></div><input type="number" value="${maxFiles}" /></div>
@@ -3120,72 +3622,75 @@ input:focus,select:focus{border-color:var(--ac)}
 </body>
 </html>`;
 
-      panel.webview.html = html;
-      panel.webview.onDidReceiveMessage((msg: any) => {
-        if (msg.command === 'saveSettings' && msg.payload) {
-          const cfg = getSbConfig();
-          for (const [key, value] of Object.entries(msg.payload)) {
-            if (value !== undefined) {
-              cfg.update(key, value, true);
+        panel.webview.html = html;
+        panel.webview.onDidReceiveMessage((msg: any) => {
+          if (msg.command === 'saveSettings' && msg.payload) {
+            const cfg = getSbConfig();
+            for (const [key, value] of Object.entries(msg.payload)) {
+              if (value !== undefined) {
+                cfg.update(key, value, true);
+              }
             }
+            showQuietMessage('SimpleBeacon settings saved');
+          } else if (msg.command === 'resetSettings') {
+            const cfg = getSbConfig();
+            cfg.update('autoScanOnOpen', false, true);
+            cfg.update('autoOpenPreviewPanel', false, true);
+            cfg.update('maxFiles', 5000, true);
+            cfg.update('excludePatterns', [], true);
+            cfg.update('apiServerUrl', undefined, true);
+            cfg.update('relayPort', 3004, true);
+            cfg.update('dataServerPort', 54358, true);
+            showQuietMessage('SimpleBeacon settings reset to defaults');
+          } else if (msg.command === 'diagnose') {
+            vscode.commands.executeCommand('simplebeacon.diagnoseSidebar');
           }
-          showQuietMessage('SimpleBeacon settings saved');
-        } else if (msg.command === 'resetSettings') {
-          const cfg = getSbConfig();
-          cfg.update('autoScanOnOpen', false, true);
-          cfg.update('autoOpenPreviewPanel', false, true);
-          cfg.update('maxFiles', 5000, true);
-          cfg.update('excludePatterns', [], true);
-          cfg.update('apiServerUrl', undefined, true);
-          cfg.update('relayPort', 3004, true);
-          cfg.update('dataServerPort', 54358, true);
-          showQuietMessage('SimpleBeacon settings reset to defaults');
-        } else if (msg.command === 'diagnose') {
-          vscode.commands.executeCommand('simplebeacon.diagnoseSidebar');
+        });
+      }),
+      registerCmd('simplebeacon.openRoadmapPage', async () => {
+        const panel = WelcomeDashboard.createOrShow(_extensionUri || vscode.Uri.file(__dirname), true);
+        if (panel) {
+          panel.showRoadmapPane();
         }
-      });
-    }),
-    registerCmd('simplebeacon.openRoadmapPage', async () => {
-      const panel = WelcomeDashboard.createOrShow(_extensionUri || vscode.Uri.file(__dirname), true);
-      if (panel) { panel.showRoadmapPane(); }
-    }),
-    registerCmd('simplebeacon.openRemediationGuide_OLD', async () => {
-      const report = currentReport as any;
-      const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
-      const gate = report?.gate || {};
-      const sev = report?.severityCounts || {};
+      }),
+      registerCmd('simplebeacon.openRemediationGuide_OLD', async () => {
+        const report = currentReport as any;
+        const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
+        const gate = report?.gate || {};
+        const sev = report?.severityCounts || {};
 
-      const panel = vscode.window.createWebviewPanel(
-        'simplebeaconRoadmap',
-        'Remediation Roadmap',
-        vscode.ViewColumn.One,
-        { enableScripts: true, retainContextWhenHidden: true }
-      );
+        const panel = vscode.window.createWebviewPanel(
+          'simplebeaconRoadmap',
+          'Remediation Roadmap',
+          vscode.ViewColumn.One,
+          { enableScripts: true, retainContextWhenHidden: true }
+        );
 
-      const critical = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'critical');
-      const high = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'high');
-      const medium = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'medium');
-      const low = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'low');
+        const critical = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'critical');
+        const high = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'high');
+        const medium = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'medium');
+        const low = issues.filter((i: any) => (i.severity || '').toLowerCase() === 'low');
 
-      function cardHtml(iss: any) {
-        const file = escapeHtml(iss.file || iss.filePath || '—');
-        const type = escapeHtml(iss.type || iss.pattern || iss.category || 'Finding');
-        const sev = (iss.severity || 'low').toLowerCase();
-        const sevColor = getSeverityColor(sev);
-        const effort = sev === 'critical' ? '🏗️ Architecture Refactor' : sev === 'high' ? '⏱️ Quick Update' : '💡 Trivial Fix';
-        return `<div class="card"><div class="card-header"><span class="card-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sev.toUpperCase()}</span><span class="card-effort">${effort}</span></div><div class="card-file">${file}</div><div class="card-type">${type}</div></div>`;
-      }
+        function cardHtml(iss: any) {
+          const file = escapeHtml(iss.file || iss.filePath || '—');
+          const type = escapeHtml(iss.type || iss.pattern || iss.category || 'Finding');
+          const sev = (iss.severity || 'low').toLowerCase();
+          const sevColor = getSeverityColor(sev);
+          const effort =
+            sev === 'critical' ? '🏗️ Architecture Refactor' : sev === 'high' ? '⏱️ Quick Update' : '💡 Trivial Fix';
+          return `<div class="card"><div class="card-header"><span class="card-sev" style="background:${sevColor}22;color:${sevColor};border:1px solid ${sevColor}44">${sev.toUpperCase()}</span><span class="card-effort">${effort}</span></div><div class="card-file">${file}</div><div class="card-type">${type}</div></div>`;
+        }
 
-      const immediate = critical.map(cardHtml).join('') || '<div class="empty-col">No critical blockers</div>';
-      const nextSprint = high.map(cardHtml).join('') || '<div class="empty-col">No high-risk items</div>';
-      const backlog = [...medium, ...low].map(cardHtml).join('') || '<div class="empty-col">No backlog items</div>';
+        const immediate = critical.map(cardHtml).join('') || '<div class="empty-col">No critical blockers</div>';
+        const nextSprint = high.map(cardHtml).join('') || '<div class="empty-col">No high-risk items</div>';
+        const backlog = [...medium, ...low].map(cardHtml).join('') || '<div class="empty-col">No backlog items</div>';
 
-      const total = issues.length;
-      const phase1Done = critical.length === 0 ? 100 : 30;
-      const phase2Done = high.length === 0 ? 100 : 40;
-      const phase3Done = medium.length === 0 && low.length === 0 ? 100 : 0;
+        const total = issues.length;
+        const phase1Done = critical.length === 0 ? 100 : 30;
+        const phase2Done = high.length === 0 ? 100 : 40;
+        const phase3Done = medium.length === 0 && low.length === 0 ? 100 : 0;
 
-      const html = `<!DOCTYPE html>
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3299,40 +3804,44 @@ main{flex:1;padding:24px;overflow-y:auto}
 </body>
 </html>`;
 
-      panel.webview.html = html;
-    }),
-    registerCmd('simplebeacon.openSecurityAuditPage', async () => {
-      const report = currentReport as any;
-      const gate = report?.gate || {};
-      const pass = gate.pass ? true : false;
-      const score = report?.qualityScore != null ? report.qualityScore : (gate.score || 0);
-      const scanDate = report?.timestamp || report?.scanDate || report?.generatedAt || new Date().toISOString();
-      const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
-      const sev = report?.severityCounts || {};
-      const totalFiles = report?.totalFiles || report?.filesAnalyzed || 0;
-      const repoName = report?.projectName || 'SimpleBeacon Workspace';
+        panel.webview.html = html;
+      }),
+      registerCmd('simplebeacon.openSecurityAuditPage', async () => {
+        const report = currentReport as any;
+        const gate = report?.gate || {};
+        const pass = gate.pass ? true : false;
+        const score = report?.qualityScore != null ? report.qualityScore : gate.score || 0;
+        const scanDate = report?.timestamp || report?.scanDate || report?.generatedAt || new Date().toISOString();
+        const issues = report?.detectedIssues || report?.rawIssues || report?.issues || report?.findings || [];
+        const sev = report?.severityCounts || {};
+        const totalFiles = report?.totalFiles || report?.filesAnalyzed || 0;
+        const repoName = report?.projectName || 'SimpleBeacon Workspace';
 
-      const panel = vscode.window.createWebviewPanel(
-        'simplebeaconSecurityAudit',
-        'Security Audit',
-        vscode.ViewColumn.One,
-        { enableScripts: true, retainContextWhenHidden: true }
-      );
+        const panel = vscode.window.createWebviewPanel(
+          'simplebeaconSecurityAudit',
+          'Security Audit',
+          vscode.ViewColumn.One,
+          { enableScripts: true, retainContextWhenHidden: true }
+        );
 
-      // Build ledger rows from findings
-      let ledgerRows = '';
-      const topIssues = issues.slice(0, 10);
-      for (let idx = 0; idx < topIssues.length; idx++) {
-        const iss = topIssues[idx];
-        const sevRaw = (iss.severity || 'low').toLowerCase();
-        const isPass = sevRaw === 'low' || sevRaw === 'info';
-        const isObs = sevRaw === 'medium';
-        const badge = isPass ? '<span class="badge-pass">🟢 Satisfactory</span>' : isObs ? '<span class="badge-obs">🟡 Observation</span>' : '<span class="badge-fail">🔴 Deficiency</span>';
-        ledgerRows += `<tr><td class="mono">CTL-${1000 + idx}</td><td>${escapeHtml(iss.type || iss.pattern || iss.category || 'Vulnerability Management')}</td><td class="cell-desc">${escapeHtml(iss.description || iss.message || 'Automated scan finding')}</td><td>${badge}</td><td class="mono">${escapeHtml(iss.file || iss.filePath || 'N/A')}</td></tr>`;
-      }
-      if (!ledgerRows) ledgerRows = '<tr><td colspan="5" class="empty-row">No findings in current scan</td></tr>';
+        // Build ledger rows from findings
+        let ledgerRows = '';
+        const topIssues = issues.slice(0, 10);
+        for (let idx = 0; idx < topIssues.length; idx++) {
+          const iss = topIssues[idx];
+          const sevRaw = (iss.severity || 'low').toLowerCase();
+          const isPass = sevRaw === 'low' || sevRaw === 'info';
+          const isObs = sevRaw === 'medium';
+          const badge = isPass
+            ? '<span class="badge-pass">🟢 Satisfactory</span>'
+            : isObs
+              ? '<span class="badge-obs">🟡 Observation</span>'
+              : '<span class="badge-fail">🔴 Deficiency</span>';
+          ledgerRows += `<tr><td class="mono">CTL-${1000 + idx}</td><td>${escapeHtml(iss.type || iss.pattern || iss.category || 'Vulnerability Management')}</td><td class="cell-desc">${escapeHtml(iss.description || iss.message || 'Automated scan finding')}</td><td>${badge}</td><td class="mono">${escapeHtml(iss.file || iss.filePath || 'N/A')}</td></tr>`;
+        }
+        if (!ledgerRows) ledgerRows = '<tr><td colspan="5" class="empty-row">No findings in current scan</td></tr>';
 
-      const html = `<!DOCTYPE html>
+        const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3503,80 +4012,83 @@ Timestamp: ${escapeHtml(new Date().toISOString())}</pre>
 </body>
 </html>`;
 
-      panel.webview.html = html;
-    }),
-    registerCmd('simplebeacon.showDebugReport', () => {
-      DebugReporter.getInstance().show();
-    }),
-    registerCmd('simplebeacon.showWelcome', () => {
-      WelcomeDashboard.createOrShow(context.extensionUri, true);
-    }),
-    registerCmd('simplebeacon.upgradeToPro', () => {
-      vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.ai/pricing'));
-    }),
-    registerCmd('simplebeacon.replaceToken', async () => {
-      const authManager = getAuthManager();
-      const token = await authManager.getToken();
-      if (!token) {
-        vscode.window.showWarningMessage('No token to replace. Set a token first.');
-        return;
-      }
-      const msp = await import('./modernSidebarProvider');
-      msp.ModernSidebarProvider.openTokenReplacementPanel(context.extensionUri, token, msp.ModernSidebarProvider.getCachedTier() || '');
-    }),
-  ];
+        panel.webview.html = html;
+      }),
+      registerCmd('simplebeacon.showDebugReport', () => {
+        DebugReporter.getInstance().show();
+      }),
+      registerCmd('simplebeacon.showWelcome', () => {
+        WelcomeDashboard.createOrShow(context.extensionUri, true);
+      }),
+      registerCmd('simplebeacon.upgradeToPro', () => {
+        vscode.env.openExternal(vscode.Uri.parse('https://simplebeacon.ai/pricing'));
+      }),
+      registerCmd('simplebeacon.replaceToken', async () => {
+        const authManager = getAuthManager();
+        const token = await authManager.getToken();
+        if (!token) {
+          vscode.window.showWarningMessage('No token to replace. Set a token first.');
+          return;
+        }
+        const msp = await import('./modernSidebarProvider');
+        msp.ModernSidebarProvider.openTokenReplacementPanel(
+          context.extensionUri,
+          token,
+          msp.ModernSidebarProvider.getCachedTier() || ''
+        );
+      }),
+    ];
 
-  outputChannel.appendLine('[SimpleBeacon] Registering ' + commands.length + ' commands...');
-  context.subscriptions.push(...commands);
-  outputChannel.appendLine('[SimpleBeacon] Commands registered successfully');
-  vscode.window.showInformationMessage(`SimpleBeacon v${version} activated successfully.`);
+    outputChannel.appendLine('[SimpleBeacon] Registering ' + commands.length + ' commands...');
+    context.subscriptions.push(...commands);
+    outputChannel.appendLine('[SimpleBeacon] Commands registered successfully');
+    vscode.window.showInformationMessage(`SimpleBeacon v${version} activated successfully.`);
 
-  const folders = vscode.workspace.workspaceFolders;
-  const autoScan = getSbConfig().get('autoScanOnOpen');
-  if (autoScan && folders && folders.length > 0) {
-    // Auto-scan uses the first workspace folder without prompting
-    runScan(context, folders[0].uri.fsPath);
-  }
-
-  loadExistingReport(context);
-  if (currentReport) {
-    safeUpdateUIs(currentReport, 'Loaded previous scan');
-  }
-
-  // Auto-start realtime monitoring if workspace is open
-  if (folders && folders.length > 0) {
-    const config = getSbConfig();
-    const autoMonitor = config.get<boolean>('autoStartRealtimeMonitor', true);
-    if (autoMonitor && !realtimeMonitor['isMonitoring']) {
-      realtimeMonitor.start();
+    const folders = vscode.workspace.workspaceFolders;
+    const autoScan = getSbConfig().get('autoScanOnOpen');
+    if (autoScan && folders && folders.length > 0) {
+      // Auto-scan uses the first workspace folder without prompting
+      runScan(context, folders[0].uri.fsPath);
     }
-  }
 
-  // aiPlatform: watch for new AI context files and auto-open them
-  const workspaceFoldersAP = vscode.workspace.workspaceFolders;
-  if (workspaceFoldersAP && workspaceFoldersAP.length > 0) {
-    const contextPattern = new vscode.RelativePattern(workspaceFoldersAP[0], '.simplebeacon/ai-context.md');
-    const contextWatcher = vscode.workspace.createFileSystemWatcher(contextPattern);
-    contextWatcher.onDidCreate(async (uri) => {
-      await vscode.commands.executeCommand('vscode.open', uri);
-      showQuietMessage(
-        'SimpleBeacon: New AI context available. The AI agent can now see your scan data.'
-      );
-    });
-    contextWatcher.onDidChange(async (uri) => {
-      await vscode.commands.executeCommand('vscode.open', uri);
-      showQuietMessage('SimpleBeacon: AI context updated with new scan data.');
-    });
-    context.subscriptions.push(contextWatcher);
-  }
+    loadExistingReport(context);
+    if (currentReport) {
+      safeUpdateUIs(currentReport, 'Loaded previous scan');
+    }
 
+    // Auto-start realtime monitoring if workspace is open
+    if (folders && folders.length > 0) {
+      const config = getSbConfig();
+      const autoMonitor = config.get<boolean>('autoStartRealtimeMonitor', true);
+      if (autoMonitor && !realtimeMonitor['isMonitoring']) {
+        realtimeMonitor.start();
+      }
+    }
+
+    // aiPlatform: watch for new AI context files and auto-open them
+    const workspaceFoldersAP = vscode.workspace.workspaceFolders;
+    if (workspaceFoldersAP && workspaceFoldersAP.length > 0) {
+      const contextPattern = new vscode.RelativePattern(workspaceFoldersAP[0], '.simplebeacon/ai-context.md');
+      const contextWatcher = vscode.workspace.createFileSystemWatcher(contextPattern);
+      contextWatcher.onDidCreate(async (uri) => {
+        await vscode.commands.executeCommand('vscode.open', uri);
+        showQuietMessage('SimpleBeacon: New AI context available. The AI agent can now see your scan data.');
+      });
+      contextWatcher.onDidChange(async (uri) => {
+        await vscode.commands.executeCommand('vscode.open', uri);
+        showQuietMessage('SimpleBeacon: AI context updated with new scan data.');
+      });
+      context.subscriptions.push(contextWatcher);
+    }
   } catch (activationError) {
     const errMsg = activationError instanceof Error ? activationError.message : String(activationError);
     const errStack = activationError instanceof Error ? activationError.stack : '';
     const fullMsg = `[SimpleBeacon v${version || 'unknown'}] ACTIVATION FAILED: ${errMsg}`;
     if (outputChannel) {
       outputChannel.appendLine(fullMsg);
-      if (errStack) { outputChannel.appendLine(errStack); }
+      if (errStack) {
+        outputChannel.appendLine(errStack);
+      }
       outputChannel.show(true);
     }
     console.error(fullMsg);
@@ -3592,7 +4104,9 @@ async function syncReportToCloud(report: ScanReport): Promise<void> {
   try {
     const config = getSbConfig();
     const syncEnabled = config.get<boolean>('syncToCloud', false);
-    if (!syncEnabled || !report) { return; }
+    if (!syncEnabled || !report) {
+      return;
+    }
     const apiUrl = config.get<string>('apiUrl', '') || config.get<string>('apiServerUrl', '');
     if (!apiUrl) {
       outputChannel.appendLine('[SimpleBeacon] Cloud sync skipped — no apiUrl configured');
@@ -3600,8 +4114,10 @@ async function syncReportToCloud(report: ScanReport): Promise<void> {
     }
     let authToken = '';
     try {
-      authToken = await getAuthManager().getToken() || '';
-    } catch { /* auth manager may not be initialized */ }
+      authToken = (await getAuthManager().getToken()) || '';
+    } catch {
+      /* auth manager may not be initialized */
+    }
     const cloudScanUrl = apiUrl.replace(/\/+$/, '') + '/api/simplebeacon/cloud-scan';
     const body = JSON.stringify({ report });
     const parsed = new URL(cloudScanUrl);
@@ -3613,21 +4129,29 @@ async function syncReportToCloud(report: ScanReport): Promise<void> {
     if (authToken) {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
-    const req = lib.request(parsed, {
-      method: 'POST',
-      headers,
-      timeout: 30000,
-    }, (res) => {
-      let respBody = '';
-      res.on('data', (chunk: Buffer) => { respBody += chunk.toString(); });
-      res.on('end', () => {
-        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-          outputChannel.appendLine('[SimpleBeacon] Cloud sync complete — report uploaded to remote server');
-        } else {
-          outputChannel.appendLine(`[SimpleBeacon] Cloud sync failed — HTTP ${res.statusCode}: ${respBody.slice(0, 200)}`);
-        }
-      });
-    });
+    const req = lib.request(
+      parsed,
+      {
+        method: 'POST',
+        headers,
+        timeout: 30000,
+      },
+      (res) => {
+        let respBody = '';
+        res.on('data', (chunk: Buffer) => {
+          respBody += chunk.toString();
+        });
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            outputChannel.appendLine('[SimpleBeacon] Cloud sync complete — report uploaded to remote server');
+          } else {
+            outputChannel.appendLine(
+              `[SimpleBeacon] Cloud sync failed — HTTP ${res.statusCode}: ${respBody.slice(0, 200)}`
+            );
+          }
+        });
+      }
+    );
     req.on('error', (err: Error) => {
       outputChannel.appendLine(`[SimpleBeacon] Cloud sync error: ${err.message}`);
     });
@@ -3650,7 +4174,9 @@ function resolveCliPath(): { cmd: string; args: string[] } | null {
   // Helper to locate the CLI from a set of root candidates.
   const tryCli = (...roots: string[]) => {
     for (const root of roots) {
-      if (!root) { continue; }
+      if (!root) {
+        continue;
+      }
       const candidate = path.join(root, 'packages', 'simplebeacon-cli', 'bin', 'simplebeacon.js');
       if (fs.existsSync(candidate)) {
         return { cmd: 'node', args: [candidate] };
@@ -3668,7 +4194,9 @@ function resolveCliPath(): { cmd: string; args: string[] } | null {
     firstWs || '',
     firstWs ? path.join(firstWs, '..') : ''
   );
-  if (resolved) { return resolved; }
+  if (resolved) {
+    return resolved;
+  }
 
   // 2. Global npx install (use npx.cmd on Windows so spawn(shell:false) works)
   const isWindows = process.platform === 'win32';
@@ -3692,7 +4220,11 @@ export function deactivate() {
 }
 
 // simplebeacon-ignore: mega-params — 3 params is reasonable for scan orchestration
-async function runScan(context: vscode.ExtensionContext, projectPath?: string, options?: { mode?: string; fullDirectory?: boolean }) {
+async function runScan(
+  context: vscode.ExtensionContext,
+  projectPath?: string,
+  options?: { mode?: string; fullDirectory?: boolean }
+) {
   if (scanInProgress) {
     const choice = await vscode.window.showInformationMessage(
       'A scan is already running. Please wait for it to complete.',
@@ -3779,7 +4311,10 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   try {
     fs.mkdirSync(path.join(projectPath, '.simplebeacon'), { recursive: true });
   } catch (e) {
-    outputChannel.appendLine('[SimpleBeacon] Warning: could not create .simplebeacon directory: ' + (e instanceof Error ? e.message : String(e)));
+    outputChannel.appendLine(
+      '[SimpleBeacon] Warning: could not create .simplebeacon directory: ' +
+        (e instanceof Error ? e.message : String(e))
+    );
   }
 
   // Clear stale vscode-report.json so sidebar doesn't show old scan data
@@ -3854,7 +4389,9 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   const configPath = path.join(projectPath, '.simplebeacon', 'config.json');
   try {
     const sbDir = path.join(projectPath, '.simplebeacon');
-    if (!fs.existsSync(sbDir)) { fs.mkdirSync(sbDir, { recursive: true }); }
+    if (!fs.existsSync(sbDir)) {
+      fs.mkdirSync(sbDir, { recursive: true });
+    }
     let cfg: any = {};
     if (fs.existsSync(configPath)) {
       cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
@@ -3868,9 +4405,15 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
       cfg.allowedAnalysisRoots = [...allowedRoots, ...rootsToAdd];
     }
     // Ensure scan covers all files in the target directory (not just productionPaths)
-    if (!cfg.scanPaths) { cfg.scanPaths = ['.']; }
-    if (!cfg.productionPaths) { cfg.productionPaths = ['.']; }
-    if (cfg.fullDirectoryScan !== true) { cfg.fullDirectoryScan = true; }
+    if (!cfg.scanPaths) {
+      cfg.scanPaths = ['.'];
+    }
+    if (!cfg.productionPaths) {
+      cfg.productionPaths = ['.'];
+    }
+    if (cfg.fullDirectoryScan !== true) {
+      cfg.fullDirectoryScan = true;
+    }
     if (!cfg.fullDirectoryScanMaxFiles || cfg.fullDirectoryScanMaxFiles < 50000) {
       cfg.fullDirectoryScanMaxFiles = 100000;
     }
@@ -3909,7 +4452,9 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
         for (let i = 0; i < 5; i++) {
           await new Promise((r) => setTimeout(r, 800));
           agentStatus = await probeLocalAgent(agentPort);
-          if (agentStatus.available) { break; }
+          if (agentStatus.available) {
+            break;
+          }
         }
       }
     }
@@ -3966,7 +4511,12 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
           await fs.promises.mkdir(sbDir, { recursive: true });
           await fs.promises.writeFile(path.join(sbDir, 'report.json'), JSON.stringify(report, null, 2), 'utf8');
           currentReport = report;
-          updateServerState({ currentReport: currentReport as ScanReport | null, scanStatus: 'completed', scanMessage: 'Local agent scan complete', lastScanTime: Date.now() });
+          updateServerState({
+            currentReport: currentReport as ScanReport | null,
+            scanStatus: 'completed',
+            scanMessage: 'Local agent scan complete',
+            lastScanTime: Date.now(),
+          });
           hasEnhancedAnalysis = false;
           enhancedAIProvider.setScanResult(currentReport);
           await fs.promises.writeFile(path.join(sbDir, 'vscode-report.json'), JSON.stringify(report, null, 2), 'utf8');
@@ -3987,11 +4537,19 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
           safeUpdateUIsRef?.(currentReport, 'Local agent scan complete');
           const scanScore = report.qualityScore ?? '[HIDDEN]';
           const scanGate = report.gate?.pass ? 'PASS' : 'FAIL';
-          const issueCount = report.issueCount || report.detectedIssues?.length || report.rawIssues?.length || report.findings?.length || report.summary?.totalFindings || 0;
+          const issueCount =
+            report.issueCount ||
+            report.detectedIssues?.length ||
+            report.rawIssues?.length ||
+            report.findings?.length ||
+            report.summary?.totalFindings ||
+            0;
           vscode.window.showInformationMessage(
             `SimpleBeacon scan complete — Score: ${scanScore}/100 — Gate: ${scanGate}. ${issueCount} issue${issueCount === 1 ? '' : 's'} found.`
           );
-          outputChannel.appendLine(`[SimpleBeacon] Local agent scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
+          outputChannel.appendLine(
+            `[SimpleBeacon] Local agent scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`
+          );
           void syncReportToCloud(report);
           scanInProgress = false;
           setTimeout(() => modernSidebarProvider.updateScanProgress(0), 2000);
@@ -4021,344 +4579,390 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
   const cliArgs = [...cliResolved.args, ...args];
   outputChannel.appendLine(`[SimpleBeacon] CLI: ${cmd} <args>`);
 
-  const scanTargetName = projectPath ? path.basename(projectPath) : (vscode.workspace.workspaceFolders?.[0]?.name || 'workspace');
-  return Promise.resolve(vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Window,
-      title: `SimpleBeacon Scan — ${scanTargetName}`,
-      cancellable: true,
-    },
-    (progress, token) => {
-      return new Promise((resolve, reject) => {
-        // Windows .cmd files need shell:true to execute properly
-        const useShell = process.platform === 'win32' && (cmd.endsWith('.cmd') || cmd.endsWith('.bat'));
-        const child = spawn(cmd, cliArgs, {
-          cwd: projectPath,
-          shell: useShell,
-          env: { ...process.env, FORCE_COLOR: '0' },
-        });
-
-        let stdout = '';
-        let stderr = '';
-
-        token.onCancellationRequested(() => {
-          child.kill();
-          scanInProgress = false;
-          _stopSimulatedProgress();
-          outputChannel.appendLine('[SimpleBeacon] Scan cancelled');
-          enhancedScanProvider.setScanning(false);
-          visualSidebarProvider.setScanning(false);
-          modernSidebarProvider.updateStatus('idle', 'Scan cancelled');
-          modernSidebarProvider.updateScanProgress(0);
-          reject(new Error('Cancelled'));
-        });
-
-        child.on('error', (err: Error) => {
-          scanInProgress = false;
-          vscode.window.showErrorMessage(`SimpleBeacon spawn failed: ${err.message}`);
-          reject(err);
-        });
-
-        let lastReportedProgress = 0;
-        let simulatedProgress = 0;
-        let progressInterval: NodeJS.Timeout | null = null;
-        function _reportProgress(percentage: number) {
-          const clamped = Math.max(0, Math.min(99, percentage));
-          if (clamped <= lastReportedProgress) return;
-          lastReportedProgress = clamped;
-          progress.report({ increment: clamped / 100 });
-          enhancedScanProvider.setScanning(true, { phase: 'Scanning', progress: clamped, total: 100 });
-          visualSidebarProvider.setScanning(true, { phase: 'Scanning', progress: clamped, total: 100 });
-          modernSidebarProvider.updateStatus('scanning', 'Scanning... ' + clamped + '%');
-          modernSidebarProvider.updateScanProgress(clamped);
-          updateServerState({
-            scanStatus: 'scanning',
-            scanMessage: `Scanning… ${clamped}%`,
-            scanProgressProcessed: clamped,
-            scanProgressTotal: 100,
+  const scanTargetName = projectPath
+    ? path.basename(projectPath)
+    : vscode.workspace.workspaceFolders?.[0]?.name || 'workspace';
+  return Promise.resolve(
+    vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Window,
+        title: `SimpleBeacon Scan — ${scanTargetName}`,
+        cancellable: true,
+      },
+      (progress, token) => {
+        return new Promise((resolve, reject) => {
+          // Windows .cmd files need shell:true to execute properly
+          const useShell = process.platform === 'win32' && (cmd.endsWith('.cmd') || cmd.endsWith('.bat'));
+          const child = spawn(cmd, cliArgs, {
+            cwd: projectPath,
+            shell: useShell,
+            env: { ...process.env, FORCE_COLOR: '0' },
           });
-        }
-        function _startSimulatedProgress() {
-          if (progressInterval) return;
-          simulatedProgress = 5;
-          _reportProgress(simulatedProgress);
-          progressInterval = setInterval(() => {
-            if (lastReportedProgress >= 95 || !scanInProgress) {
-              if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
-              return;
-            }
-            simulatedProgress = Math.min(95, simulatedProgress + Math.random() * 3 + 1);
-            if (simulatedProgress > lastReportedProgress) {
-              _reportProgress(Math.floor(simulatedProgress));
-            }
-          }, 800);
-        }
-        function _stopSimulatedProgress() {
-          if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
-        }
 
-        child.stdout.on('data', (data: Buffer) => {
-          const chunk = data.toString();
-          stdout += chunk;
-          chunk.split('\n').forEach((line: string) => {
-            const trimmed = line.trim();
-            if (trimmed) {
-              outputChannel.appendLine(trimmed);
-              const match = trimmed.match(/(\d+)%/);
-              if (match) {
-                _stopSimulatedProgress();
-                _reportProgress(parseInt(match[1]));
-              } else {
-                // Start simulated progress after first real output line if no percentage yet
-                if (lastReportedProgress === 0) { _startSimulatedProgress(); }
-              }
-            }
-          });
-        });
+          let stdout = '';
+          let stderr = '';
 
-        child.stderr.on('data', (data: Buffer) => {
-          const chunk = data.toString();
-          stderr += chunk;
-          chunk.split('\n').forEach((line: string) => {
-            const trimmed = line.trim();
-            if (trimmed) {
-              outputChannel.appendLine(`[stderr] ${trimmed}`);
-              const match = trimmed.match(/(\d+)%/);
-              if (match) {
-                _stopSimulatedProgress();
-                _reportProgress(parseInt(match[1]));
-              }
-            }
-          });
-        });
-
-        child.on('close', async (code: number | null) => {
-          // Gate failure (exit 1) is expected when blocking issues are found
-          const output = stdout.trim() || stderr.trim();
-          if (code !== 0 && code !== null && !output) {
-            scanInProgress = false;
-            const errDetail = 'No output from CLI. Ensure simplebeacon is installed: npm install -g simplebeacon-cli';
-            outputChannel.appendLine(`[SimpleBeacon] Scan failed (exit ${code}): ${errDetail}`);
-            vscode.window.showErrorMessage(`Scan failed (exit ${code}): ${errDetail}`);
-            reject(new Error(`Exit code ${code}: ${errDetail}`));
-            return;
-          }
-
-          // Log CLI output when it looks like an error or produced no report
-          if (stderr.trim() && code !== 0) {
-            outputChannel.appendLine(`[SimpleBeacon] CLI stderr (exit ${code}): ${stderr.trim()}`);
-          }
-
-          try {
-            // Read the full JSON report written by CLI --output flag
-            let report;
-            const reportPath = path.join(projectPath, '.simplebeacon', 'report.json');
-            outputChannel.appendLine(`[SimpleBeacon] Reading report from: ${reportPath}`);
-            // Retry a few times to handle Windows file-write race conditions
-            let readAttempts = 0;
-            const maxAttempts = 5;
-            while (readAttempts < maxAttempts) {
-              readAttempts++;
-              if (fs.existsSync(reportPath)) {
-                try {
-                  const rawJson = fs.readFileSync(reportPath, 'utf8');
-                  if (rawJson.trim().length > 0) {
-                    report = JSON.parse(rawJson);
-                    outputChannel.appendLine(`[SimpleBeacon] Loaded full report (${(rawJson.length / 1024).toFixed(1)}KB) on attempt ${readAttempts}`);
-                    break;
-                  }
-                  outputChannel.appendLine(`[SimpleBeacon] report.json empty on attempt ${readAttempts}, retrying...`);
-                } catch (readErr) {
-                  outputChannel.appendLine(`[SimpleBeacon] Could not read report.json (attempt ${readAttempts}): ${readErr}`);
-                }
-              } else {
-                outputChannel.appendLine(`[SimpleBeacon] report.json not found on attempt ${readAttempts}, retrying...`);
-              }
-              if (readAttempts < maxAttempts) {
-                // Wait 500ms before next attempt
-                await new Promise((res) => setTimeout(res, 500));
-              }
-            }
-
-            // Fallback: try to extract JSON from stdout if report file missing
-            if (!report && output.includes('{') && output.includes('}')) {
-              const jsonMatch = output.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                try {
-                  report = JSON.parse(jsonMatch[0]);
-                } catch {
-                  // simplebeacon-ignore error-swallowing — JSON parse fallback to text parsing
-                }
-              }
-            }
-
-            // Detect quota/blocking errors from the CLI report
-            if (report && (report.error || report.scan_summary?.status === 'BLOCKED')) {
-              scanInProgress = false;
-              const reason = report.error || report.scan_summary?.reason || 'scan blocked';
-              vscode.window.showWarningMessage(
-                `SimpleBeacon scan blocked: ${reason}. ` +
-                (reason.includes('quota') ? 'Run the command palette command "Reset SimpleBeacon Scan Quota" or delete ~/.simplebeacon/scan-usage.json.' : '')
-              );
-              outputChannel.appendLine(`[SimpleBeacon] Scan blocked: ${reason}`);
-              enhancedScanProvider.setScanning(false);
-              visualSidebarProvider.setScanning(false);
-              modernSidebarProvider.updateStatus('error', 'Scan blocked');
-              reject(new Error(`Scan blocked: ${reason}`));
-              return;
-            }
-
-            if (!report) {
-              // Log full output when we cannot parse a report so the user can see CLI errors
-              outputChannel.appendLine(`[SimpleBeacon] No report.json parsed. CLI output:\n${output}`);
-              // Parse text output to create minimal report
-              const gateMatch = output.match(/Gate:\s*(FAIL|PASS)/);
-              const scoreMatch = output.match(/Quality score:\s*(\d+|\[HIDDEN[^\]]*\])/);
-              const criticalMatch = output.match(/Critical:\s*(\d+)/);
-              const highMatch = output.match(/High:\s*(\d+)/);
-              const mediumMatch = output.match(/Medium:\s*(\d+)/);
-              const lowMatch = output.match(/Low:\s*(\d+)/);
-              const gateFilesMatch = output.match(/Gate rules checked:\s*(\d+)/);
-              const repoFilesMatch = output.match(/Repository files:\s*([\d,]+)/);
-
-              const rawIssues = []; // simplebeacon-ignore memory-leak — local array for CLI output parsing, garbage-collected after use
-              const issueRegex = /^\s*\[(\w+)\]\s+([^:]+):\s*(.+)$/gm;
-              let match;
-              while ((match = issueRegex.exec(output)) !== null) {
-                const [, severity, type, description] = match;
-                const fileMatch = description.match(/^([^:]+):(\d+)\s*(?:[-\u2013\u2014]\s+)?(.+)$/);
-                let filePath = fileMatch ? fileMatch[1] : '';
-                let lineNum = fileMatch ? parseInt(fileMatch[2]) : 1;
-                if (!filePath && description) {
-                  filePath = description;
-                }
-                rawIssues.push({
-                  severity,
-                  type,
-                  description,
-                  file: filePath,
-                  line: lineNum,
-                });
-              }
-
-              report = {
-                type: 'simplebeacon-report',
-                reportVersion: 2,
-                generatedAt: new Date().toISOString(),
-                generatedBy: 'SimpleBeacon',
-                projectRoot: projectPath,
-                totalFiles: repoFilesMatch ? parseInt(repoFilesMatch[1].replace(/,/g, '')) : 0,
-                filesAnalyzed: gateFilesMatch ? parseInt(gateFilesMatch[1]) : 0,
-                ruleScopedFilesAnalyzed: gateFilesMatch ? parseInt(gateFilesMatch[1]) : 0,
-                issueCount:
-                  (criticalMatch ? parseInt(criticalMatch[1]) : 0) +
-                  (highMatch ? parseInt(highMatch[1]) : 0) +
-                  (mediumMatch ? parseInt(mediumMatch[1]) : 0) +
-                  (lowMatch ? parseInt(lowMatch[1]) : 0),
-                qualityScore: scoreMatch ? (scoreMatch[1].includes('HIDDEN') ? null : parseInt(scoreMatch[1])) : null,
-                gate: {
-                  pass: gateMatch ? gateMatch[1] === 'PASS' : false,
-                  failOn: ['high'],
-                  warnOn: ['medium', 'low'],
-                  blockingCount: highMatch ? parseInt(highMatch[1]) : 0,
-                  warningCount: (mediumMatch ? parseInt(mediumMatch[1]) : 0) + (lowMatch ? parseInt(lowMatch[1]) : 0),
-                  blockingIssues: [],
-                  warningIssues: [],
-                },
-                severityCounts: {
-                  critical: criticalMatch ? parseInt(criticalMatch[1]) : 0,
-                  high: highMatch ? parseInt(highMatch[1]) : 0,
-                  medium: mediumMatch ? parseInt(mediumMatch[1]) : 0,
-                  low: lowMatch ? parseInt(lowMatch[1]) : 0,
-                },
-                detectedIssues: rawIssues,
-                rawIssues: rawIssues,
-              };
-            }
-
-            const validationErrors = validateReport(report);
-            if (validationErrors.length > 0) {
-              outputChannel.appendLine(`[SimpleBeacon] Report validation warnings: ${validationErrors.join(', ')}`);
-            }
-
-            const hasMeaningfulData = (report.issueCount || 0) > 0 || (report.totalFiles || 0) > 0 || report.qualityScore != null;
-            if (hasMeaningfulData || !currentReport) {
-              currentReport = report;
-            } else {
-              outputChannel.appendLine('[SimpleBeacon] CLI scan produced empty report; keeping existing enhanced analysis results');
-            }
-            updateServerState({ currentReport: currentReport as ScanReport | null, scanStatus: 'completed', scanMessage: 'CLI scan complete', lastScanTime: Date.now() });
-            hasEnhancedAnalysis = false;
-            enhancedAIProvider.setScanResult(currentReport);
-
-            // Save CLI report to disk so it persists across reloads
-            const sbDir = path.join(projectPath, '.simplebeacon');
-            fs.promises.mkdir(sbDir, { recursive: true })
-              .then(() => fs.promises.writeFile(path.join(sbDir, 'vscode-report.json'), JSON.stringify(report, null, 2), 'utf8'))
-              .catch((saveErr) => {
-                outputChannel.appendLine(`[SimpleBeacon] Warning: could not save report: ${saveErr}`);
-              });
-            scanProvider.updateReport(currentReport as ScanReport);
-            enhancedScanProvider.updateReport(currentReport as Record<string, unknown>);
-            visualSidebarProvider.updateReport(currentReport as Record<string, unknown>);
-            summaryProvider.updateReport(currentReport as Record<string, unknown>);
-            settingsProvider.updateReport(currentReport as Record<string, unknown>);
-            modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
-            pushRoadmapToSidebar(currentReport);
-            pushAllPanesToDashboard(currentReport);
-            dashboardPanel?.updateReport(currentReport as Record<string, unknown>);
-            Dashboard40.updateIfOpen(currentReport as any);
-            modernSidebarProvider.updateStatus('completed', 'Scan complete — awaiting analysis');
-            vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
-            updateStatusBar(currentReport);
-            safeUpdateUIsRef?.(currentReport, 'Scan complete');
-
-            // Check if this is a headless scan (triggered from browser relay)
-            const isHeadless = (modernSidebarProvider as any)._headlessScan === true;
-            const scanScore = report.qualityScore ?? '[HIDDEN]';
-            const scanGate = report.gate?.pass ? 'PASS' : 'FAIL';
-
-            if (!isHeadless) {
-              const issueCount = report.issueCount || report.detectedIssues?.length || report.rawIssues?.length || report.findings?.length || report.summary?.totalFindings || 0;
-              const message = `SimpleBeacon scan complete — Score: ${scanScore}/100 — Gate: ${scanGate}. ${issueCount} issue${issueCount === 1 ? '' : 's'} found.`;
-
-              Promise.resolve(vscode.window.showInformationMessage(message, 'Open Dashboard')).then((selection) => {
-                if (selection === 'Open Dashboard') {
-                  try {
-                    vscode.commands.executeCommand('simplebeacon-modern.focus');
-                    if (typeof ModernSidebarProvider.showDashboardRoute === 'function') {
-                      ModernSidebarProvider.showDashboardRoute(context.extensionUri, '/dashboard');
-                    }
-                  } catch (e) {
-                    outputChannel.appendLine('[SimpleBeacon] Failed to open dashboard from notification: ' + (e instanceof Error ? e.message : String(e)));
-                  }
-                }
-              }).catch(() => {});
-            } else {
-              // Headless scan: just log, no UI
-              outputChannel.appendLine(`[SimpleBeacon] Headless scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
-            }
-            outputChannel.appendLine(`[SimpleBeacon] Scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
-            void syncReportToCloud(report);
+          token.onCancellationRequested(() => {
+            child.kill();
             scanInProgress = false;
             _stopSimulatedProgress();
-            _reportProgress(100);
-            // Generate code map in the background after scan, but do not auto-open it
-            generateCodeMap(false, projectPath)
-              .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
-              .catch((e) => outputChannel.appendLine(`[SimpleBeacon] Code map generation failed: ${e}`));
-            resolve(report);
-          } catch (err: unknown) {
+            outputChannel.appendLine('[SimpleBeacon] Scan cancelled');
+            enhancedScanProvider.setScanning(false);
+            visualSidebarProvider.setScanning(false);
+            modernSidebarProvider.updateStatus('idle', 'Scan cancelled');
+            modernSidebarProvider.updateScanProgress(0);
+            reject(new Error('Cancelled'));
+          });
+
+          child.on('error', (err: Error) => {
             scanInProgress = false;
-            const e = err instanceof Error ? err : new Error(String(err));
-            outputChannel.appendLine(`[SimpleBeacon] Failed to parse report: ${e.message}`);
-            outputChannel.appendLine(`[SimpleBeacon] Raw output: ${stdout.slice(0, 200)}...`);
+            vscode.window.showErrorMessage(`SimpleBeacon spawn failed: ${err.message}`);
             reject(err);
+          });
+
+          let lastReportedProgress = 0;
+          let simulatedProgress = 0;
+          let progressInterval: NodeJS.Timeout | null = null;
+          function _reportProgress(percentage: number) {
+            const clamped = Math.max(0, Math.min(99, percentage));
+            if (clamped <= lastReportedProgress) return;
+            lastReportedProgress = clamped;
+            progress.report({ increment: clamped / 100 });
+            enhancedScanProvider.setScanning(true, { phase: 'Scanning', progress: clamped, total: 100 });
+            visualSidebarProvider.setScanning(true, { phase: 'Scanning', progress: clamped, total: 100 });
+            modernSidebarProvider.updateStatus('scanning', 'Scanning... ' + clamped + '%');
+            modernSidebarProvider.updateScanProgress(clamped);
+            updateServerState({
+              scanStatus: 'scanning',
+              scanMessage: `Scanning… ${clamped}%`,
+              scanProgressProcessed: clamped,
+              scanProgressTotal: 100,
+            });
           }
+          function _startSimulatedProgress() {
+            if (progressInterval) return;
+            simulatedProgress = 5;
+            _reportProgress(simulatedProgress);
+            progressInterval = setInterval(() => {
+              if (lastReportedProgress >= 95 || !scanInProgress) {
+                if (progressInterval) {
+                  clearInterval(progressInterval);
+                  progressInterval = null;
+                }
+                return;
+              }
+              simulatedProgress = Math.min(95, simulatedProgress + Math.random() * 3 + 1);
+              if (simulatedProgress > lastReportedProgress) {
+                _reportProgress(Math.floor(simulatedProgress));
+              }
+            }, 800);
+          }
+          function _stopSimulatedProgress() {
+            if (progressInterval) {
+              clearInterval(progressInterval);
+              progressInterval = null;
+            }
+          }
+
+          child.stdout.on('data', (data: Buffer) => {
+            const chunk = data.toString();
+            stdout += chunk;
+            chunk.split('\n').forEach((line: string) => {
+              const trimmed = line.trim();
+              if (trimmed) {
+                outputChannel.appendLine(trimmed);
+                const match = trimmed.match(/(\d+)%/);
+                if (match) {
+                  _stopSimulatedProgress();
+                  _reportProgress(parseInt(match[1]));
+                } else {
+                  // Start simulated progress after first real output line if no percentage yet
+                  if (lastReportedProgress === 0) {
+                    _startSimulatedProgress();
+                  }
+                }
+              }
+            });
+          });
+
+          child.stderr.on('data', (data: Buffer) => {
+            const chunk = data.toString();
+            stderr += chunk;
+            chunk.split('\n').forEach((line: string) => {
+              const trimmed = line.trim();
+              if (trimmed) {
+                outputChannel.appendLine(`[stderr] ${trimmed}`);
+                const match = trimmed.match(/(\d+)%/);
+                if (match) {
+                  _stopSimulatedProgress();
+                  _reportProgress(parseInt(match[1]));
+                }
+              }
+            });
+          });
+
+          child.on('close', async (code: number | null) => {
+            // Gate failure (exit 1) is expected when blocking issues are found
+            const output = stdout.trim() || stderr.trim();
+            if (code !== 0 && code !== null && !output) {
+              scanInProgress = false;
+              const errDetail = 'No output from CLI. Ensure simplebeacon is installed: npm install -g simplebeacon-cli';
+              outputChannel.appendLine(`[SimpleBeacon] Scan failed (exit ${code}): ${errDetail}`);
+              vscode.window.showErrorMessage(`Scan failed (exit ${code}): ${errDetail}`);
+              reject(new Error(`Exit code ${code}: ${errDetail}`));
+              return;
+            }
+
+            // Log CLI output when it looks like an error or produced no report
+            if (stderr.trim() && code !== 0) {
+              outputChannel.appendLine(`[SimpleBeacon] CLI stderr (exit ${code}): ${stderr.trim()}`);
+            }
+
+            try {
+              // Read the full JSON report written by CLI --output flag
+              let report;
+              const reportPath = path.join(projectPath, '.simplebeacon', 'report.json');
+              outputChannel.appendLine(`[SimpleBeacon] Reading report from: ${reportPath}`);
+              // Retry a few times to handle Windows file-write race conditions
+              let readAttempts = 0;
+              const maxAttempts = 5;
+              while (readAttempts < maxAttempts) {
+                readAttempts++;
+                if (fs.existsSync(reportPath)) {
+                  try {
+                    const rawJson = fs.readFileSync(reportPath, 'utf8');
+                    if (rawJson.trim().length > 0) {
+                      report = JSON.parse(rawJson);
+                      outputChannel.appendLine(
+                        `[SimpleBeacon] Loaded full report (${(rawJson.length / 1024).toFixed(1)}KB) on attempt ${readAttempts}`
+                      );
+                      break;
+                    }
+                    outputChannel.appendLine(
+                      `[SimpleBeacon] report.json empty on attempt ${readAttempts}, retrying...`
+                    );
+                  } catch (readErr) {
+                    outputChannel.appendLine(
+                      `[SimpleBeacon] Could not read report.json (attempt ${readAttempts}): ${readErr}`
+                    );
+                  }
+                } else {
+                  outputChannel.appendLine(
+                    `[SimpleBeacon] report.json not found on attempt ${readAttempts}, retrying...`
+                  );
+                }
+                if (readAttempts < maxAttempts) {
+                  // Wait 500ms before next attempt
+                  await new Promise((res) => setTimeout(res, 500));
+                }
+              }
+
+              // Fallback: try to extract JSON from stdout if report file missing
+              if (!report && output.includes('{') && output.includes('}')) {
+                const jsonMatch = output.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  try {
+                    report = JSON.parse(jsonMatch[0]);
+                  } catch {
+                    // simplebeacon-ignore error-swallowing — JSON parse fallback to text parsing
+                  }
+                }
+              }
+
+              // Detect quota/blocking errors from the CLI report
+              if (report && (report.error || report.scan_summary?.status === 'BLOCKED')) {
+                scanInProgress = false;
+                const reason = report.error || report.scan_summary?.reason || 'scan blocked';
+                vscode.window.showWarningMessage(
+                  `SimpleBeacon scan blocked: ${reason}. ` +
+                    (reason.includes('quota')
+                      ? 'Run the command palette command "Reset SimpleBeacon Scan Quota" or delete ~/.simplebeacon/scan-usage.json.'
+                      : '')
+                );
+                outputChannel.appendLine(`[SimpleBeacon] Scan blocked: ${reason}`);
+                enhancedScanProvider.setScanning(false);
+                visualSidebarProvider.setScanning(false);
+                modernSidebarProvider.updateStatus('error', 'Scan blocked');
+                reject(new Error(`Scan blocked: ${reason}`));
+                return;
+              }
+
+              if (!report) {
+                // Log full output when we cannot parse a report so the user can see CLI errors
+                outputChannel.appendLine(`[SimpleBeacon] No report.json parsed. CLI output:\n${output}`);
+                // Parse text output to create minimal report
+                const gateMatch = output.match(/Gate:\s*(FAIL|PASS)/);
+                const scoreMatch = output.match(/Quality score:\s*(\d+|\[HIDDEN[^\]]*\])/);
+                const criticalMatch = output.match(/Critical:\s*(\d+)/);
+                const highMatch = output.match(/High:\s*(\d+)/);
+                const mediumMatch = output.match(/Medium:\s*(\d+)/);
+                const lowMatch = output.match(/Low:\s*(\d+)/);
+                const gateFilesMatch = output.match(/Gate rules checked:\s*(\d+)/);
+                const repoFilesMatch = output.match(/Repository files:\s*([\d,]+)/);
+
+                const rawIssues = []; // simplebeacon-ignore memory-leak — local array for CLI output parsing, garbage-collected after use
+                const issueRegex = /^\s*\[(\w+)\]\s+([^:]+):\s*(.+)$/gm;
+                let match;
+                while ((match = issueRegex.exec(output)) !== null) {
+                  const [, severity, type, description] = match;
+                  const fileMatch = description.match(/^([^:]+):(\d+)\s*(?:[-\u2013\u2014]\s+)?(.+)$/);
+                  let filePath = fileMatch ? fileMatch[1] : '';
+                  let lineNum = fileMatch ? parseInt(fileMatch[2]) : 1;
+                  if (!filePath && description) {
+                    filePath = description;
+                  }
+                  rawIssues.push({
+                    severity,
+                    type,
+                    description,
+                    file: filePath,
+                    line: lineNum,
+                  });
+                }
+
+                report = {
+                  type: 'simplebeacon-report',
+                  reportVersion: 2,
+                  generatedAt: new Date().toISOString(),
+                  generatedBy: 'SimpleBeacon',
+                  projectRoot: projectPath,
+                  totalFiles: repoFilesMatch ? parseInt(repoFilesMatch[1].replace(/,/g, '')) : 0,
+                  filesAnalyzed: gateFilesMatch ? parseInt(gateFilesMatch[1]) : 0,
+                  ruleScopedFilesAnalyzed: gateFilesMatch ? parseInt(gateFilesMatch[1]) : 0,
+                  issueCount:
+                    (criticalMatch ? parseInt(criticalMatch[1]) : 0) +
+                    (highMatch ? parseInt(highMatch[1]) : 0) +
+                    (mediumMatch ? parseInt(mediumMatch[1]) : 0) +
+                    (lowMatch ? parseInt(lowMatch[1]) : 0),
+                  qualityScore: scoreMatch ? (scoreMatch[1].includes('HIDDEN') ? null : parseInt(scoreMatch[1])) : null,
+                  gate: {
+                    pass: gateMatch ? gateMatch[1] === 'PASS' : false,
+                    failOn: ['high'],
+                    warnOn: ['medium', 'low'],
+                    blockingCount: highMatch ? parseInt(highMatch[1]) : 0,
+                    warningCount: (mediumMatch ? parseInt(mediumMatch[1]) : 0) + (lowMatch ? parseInt(lowMatch[1]) : 0),
+                    blockingIssues: [],
+                    warningIssues: [],
+                  },
+                  severityCounts: {
+                    critical: criticalMatch ? parseInt(criticalMatch[1]) : 0,
+                    high: highMatch ? parseInt(highMatch[1]) : 0,
+                    medium: mediumMatch ? parseInt(mediumMatch[1]) : 0,
+                    low: lowMatch ? parseInt(lowMatch[1]) : 0,
+                  },
+                  detectedIssues: rawIssues,
+                  rawIssues: rawIssues,
+                };
+              }
+
+              const validationErrors = validateReport(report);
+              if (validationErrors.length > 0) {
+                outputChannel.appendLine(`[SimpleBeacon] Report validation warnings: ${validationErrors.join(', ')}`);
+              }
+
+              const hasMeaningfulData =
+                (report.issueCount || 0) > 0 || (report.totalFiles || 0) > 0 || report.qualityScore != null;
+              if (hasMeaningfulData || !currentReport) {
+                currentReport = report;
+              } else {
+                outputChannel.appendLine(
+                  '[SimpleBeacon] CLI scan produced empty report; keeping existing enhanced analysis results'
+                );
+              }
+              updateServerState({
+                currentReport: currentReport as ScanReport | null,
+                scanStatus: 'completed',
+                scanMessage: 'CLI scan complete',
+                lastScanTime: Date.now(),
+              });
+              hasEnhancedAnalysis = false;
+              enhancedAIProvider.setScanResult(currentReport);
+
+              // Save CLI report to disk so it persists across reloads
+              const sbDir = path.join(projectPath, '.simplebeacon');
+              fs.promises
+                .mkdir(sbDir, { recursive: true })
+                .then(() =>
+                  fs.promises.writeFile(path.join(sbDir, 'vscode-report.json'), JSON.stringify(report, null, 2), 'utf8')
+                )
+                .catch((saveErr) => {
+                  outputChannel.appendLine(`[SimpleBeacon] Warning: could not save report: ${saveErr}`);
+                });
+              scanProvider.updateReport(currentReport as ScanReport);
+              enhancedScanProvider.updateReport(currentReport as Record<string, unknown>);
+              visualSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+              summaryProvider.updateReport(currentReport as Record<string, unknown>);
+              settingsProvider.updateReport(currentReport as Record<string, unknown>);
+              modernSidebarProvider.updateReport(currentReport as Record<string, unknown>);
+              pushRoadmapToSidebar(currentReport);
+              pushAllPanesToDashboard(currentReport);
+              dashboardPanel?.updateReport(currentReport as Record<string, unknown>);
+              Dashboard40.updateIfOpen(currentReport as any);
+              modernSidebarProvider.updateStatus('completed', 'Scan complete — awaiting analysis');
+              vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
+              updateStatusBar(currentReport);
+              safeUpdateUIsRef?.(currentReport, 'Scan complete');
+
+              // Check if this is a headless scan (triggered from browser relay)
+              const isHeadless = (modernSidebarProvider as any)._headlessScan === true;
+              const scanScore = report.qualityScore ?? '[HIDDEN]';
+              const scanGate = report.gate?.pass ? 'PASS' : 'FAIL';
+
+              if (!isHeadless) {
+                const issueCount =
+                  report.issueCount ||
+                  report.detectedIssues?.length ||
+                  report.rawIssues?.length ||
+                  report.findings?.length ||
+                  report.summary?.totalFindings ||
+                  0;
+                const message = `SimpleBeacon scan complete — Score: ${scanScore}/100 — Gate: ${scanGate}. ${issueCount} issue${issueCount === 1 ? '' : 's'} found.`;
+
+                Promise.resolve(vscode.window.showInformationMessage(message, 'Open Dashboard'))
+                  .then((selection) => {
+                    if (selection === 'Open Dashboard') {
+                      try {
+                        vscode.commands.executeCommand('simplebeacon-modern.focus');
+                        if (typeof ModernSidebarProvider.showDashboardRoute === 'function') {
+                          ModernSidebarProvider.showDashboardRoute(context.extensionUri, '/dashboard');
+                        }
+                      } catch (e) {
+                        outputChannel.appendLine(
+                          '[SimpleBeacon] Failed to open dashboard from notification: ' +
+                            (e instanceof Error ? e.message : String(e))
+                        );
+                      }
+                    }
+                  })
+                  .catch(() => {});
+              } else {
+                // Headless scan: just log, no UI
+                outputChannel.appendLine(
+                  `[SimpleBeacon] Headless scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`
+                );
+              }
+              outputChannel.appendLine(`[SimpleBeacon] Scan complete. Score: ${scanScore}/100 — Gate: ${scanGate}`);
+              void syncReportToCloud(report);
+              scanInProgress = false;
+              _stopSimulatedProgress();
+              _reportProgress(100);
+              // Generate code map in the background after scan, but do not auto-open it
+              generateCodeMap(false, projectPath)
+                .then(() => outputChannel.appendLine('[SimpleBeacon] Code map generated in background'))
+                .catch((e) => outputChannel.appendLine(`[SimpleBeacon] Code map generation failed: ${e}`));
+              resolve(report);
+            } catch (err: unknown) {
+              scanInProgress = false;
+              const e = err instanceof Error ? err : new Error(String(err));
+              outputChannel.appendLine(`[SimpleBeacon] Failed to parse report: ${e.message}`);
+              outputChannel.appendLine(`[SimpleBeacon] Raw output: ${stdout.slice(0, 200)}...`);
+              reject(err);
+            }
+          });
         });
-      });
-    }
-  )).finally(() => {
+      }
+    )
+  ).finally(() => {
     scanInProgress = false;
     enhancedScanProvider.setScanning(false);
     visualSidebarProvider.setScanning(false);
@@ -4395,21 +4999,35 @@ function clearResults() {
 function resolveCodeMapScanRoot(override?: string | null): string {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
   const candidates: string[] = [];
-  if (override) { candidates.push(override); }
-  if (lastScannedProjectPath) { candidates.push(lastScannedProjectPath); }
+  if (override) {
+    candidates.push(override);
+  }
+  if (lastScannedProjectPath) {
+    candidates.push(lastScannedProjectPath);
+  }
   const report = currentReport as SidebarReport | null;
-  if (report?.projectRoot) { candidates.push(report.projectRoot); }
-  if (report?.projectPath) { candidates.push(report.projectPath); }
-  const serverReport = (getServerState().currentReport as any);
-  if (serverReport?.projectRoot) { candidates.push(serverReport.projectRoot); }
-  if (serverReport?.projectPath) { candidates.push(serverReport.projectPath); }
+  if (report?.projectRoot) {
+    candidates.push(report.projectRoot);
+  }
+  if (report?.projectPath) {
+    candidates.push(report.projectPath);
+  }
+  const serverReport = getServerState().currentReport as any;
+  if (serverReport?.projectRoot) {
+    candidates.push(serverReport.projectRoot);
+  }
+  if (serverReport?.projectPath) {
+    candidates.push(serverReport.projectPath);
+  }
   for (const candidate of candidates) {
     const resolved = path.resolve(String(candidate));
     try {
       if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
         return resolved;
       }
-    } catch { /* try next candidate */ }
+    } catch {
+      /* try next candidate */
+    }
   }
   return workspaceRoot;
 }
@@ -4427,7 +5045,9 @@ function loadGitignorePatterns(...roots: string[]): string[] {
       seen.add(key);
       const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
       patterns.push(...gitignoreContent.split(/\r?\n/).filter((line: string) => line.trim() && !line.startsWith('#')));
-    } catch { /* ignore unreadable gitignore */ }
+    } catch {
+      /* ignore unreadable gitignore */
+    }
   }
   return patterns;
 }
@@ -4448,9 +5068,53 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     const sbDir = path.join(workspaceRoot, '.simplebeacon');
     const mapPath = path.join(sbDir, 'codemap.json');
     const mapHtmlPath = path.join(sbDir, 'codemap.html');
-    outputChannel.appendLine(`[SimpleBeacon] Code map scan root: ${scanRoot.replace(/\\/g, '/')} (artifacts → ${sbDir.replace(/\\/g, '/')})`);
-    const exclude = new Set(['node_modules', '.git', '.simplebeacon', 'dist', 'build', 'out', '.vscode', 'coverage', '.husky']);
-    const binaryExts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.pdf', '.zip', '.tar', '.gz', '.tgz', '.bz2', '.7z', '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.mp3', '.mp4', '.avi', '.mov', '.webm', '.svg', '.webp', '.wav', '.ogg']);
+    outputChannel.appendLine(
+      `[SimpleBeacon] Code map scan root: ${scanRoot.replace(/\\/g, '/')} (artifacts → ${sbDir.replace(/\\/g, '/')})`
+    );
+    const exclude = new Set([
+      'node_modules',
+      '.git',
+      '.simplebeacon',
+      'dist',
+      'build',
+      'out',
+      '.vscode',
+      'coverage',
+      '.husky',
+    ]);
+    const binaryExts = new Set([
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.ico',
+      '.woff',
+      '.woff2',
+      '.ttf',
+      '.eot',
+      '.pdf',
+      '.zip',
+      '.tar',
+      '.gz',
+      '.tgz',
+      '.bz2',
+      '.7z',
+      '.exe',
+      '.dll',
+      '.so',
+      '.dylib',
+      '.bin',
+      '.dat',
+      '.mp3',
+      '.mp4',
+      '.avi',
+      '.mov',
+      '.webm',
+      '.svg',
+      '.webp',
+      '.wav',
+      '.ogg',
+    ]);
 
     // Parse .gitignore patterns from scan root and workspace (monorepo subfolder scans)
     const gitignorePatterns = loadGitignorePatterns(scanRoot, workspaceRoot);
@@ -4468,13 +5132,25 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
       return false;
     }
 
-    interface FileInfo { name: string; ext: string; size: number; lines: number; path: string; full: string; content?: string; }
+    interface FileInfo {
+      name: string;
+      ext: string;
+      size: number;
+      lines: number;
+      path: string;
+      full: string;
+      content?: string;
+    }
     const files: FileInfo[] = [];
     const counts: Record<string, number> = {};
 
     function walk(dir: string, rel: string) {
       let entries: fs.Dirent[] = [];
-      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { /* simplebeacon-ignore error-swallowing — skip unreadable directories */ return; }
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        /* simplebeacon-ignore error-swallowing — skip unreadable directories */ return;
+      }
       for (const entry of entries) {
         if (entry.name.startsWith('.') && entry.name !== '.github') continue;
         if (exclude.has(entry.name)) continue;
@@ -4494,7 +5170,9 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
             content = fs.readFileSync(full, 'utf8');
             lines = content.split(/\r?\n/).length;
             size = fs.statSync(full).size;
-          } catch { /* simplebeacon-ignore error-swallowing — skip unreadable files */ }
+          } catch {
+            /* simplebeacon-ignore error-swallowing — skip unreadable files */
+          }
           files.push({ name: entry.name, ext, size, lines, path: r, full, content });
         }
       }
@@ -4520,11 +5198,14 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     if (archParts.length === 0) archParts.push('Generic');
 
     const totalLines = files.reduce((s, f) => s + f.lines, 0);
-    const topExts = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const topExts = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
 
     // Parse imports/exports from JS/TS files
-    const codeFiles = files.filter(f => ['.js','.ts','.tsx','.jsx','.cjs','.mjs'].includes(f.ext));
-    const importRe = /import\s+(?:(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+)?['"]([^'"]+)['"]|require\(['"]([^'"]+)['"]\)/g;
+    const codeFiles = files.filter((f) => ['.js', '.ts', '.tsx', '.jsx', '.cjs', '.mjs'].includes(f.ext));
+    const importRe =
+      /import\s+(?:(?:\{[^}]*\}|\*\s+as\s+\w+|\w+)\s+from\s+)?['"]([^'"]+)['"]|require\(['"]([^'"]+)['"]\)/g;
     const depNodes: Record<string, { id: string; label: string; group: string; size: number }> = {};
     const depEdges: { source: string; target: string }[] = [];
 
@@ -4534,9 +5215,17 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
       const base = path.resolve(dir, importPath).replace(/\\/g, '/');
       const relBase = base.replace(scanRoot.replace(/\\/g, '/'), '').replace(/^\//, '');
       for (const f of files) {
-        if (f.path === relBase || f.path === relBase + '.js' || f.path === relBase + '.ts' ||
-            f.path === relBase + '.tsx' || f.path === relBase + '.jsx' || f.path === relBase + '.cjs' || f.path === relBase + '.mjs' ||
-            f.path === relBase + '/index.js' || f.path === relBase + '/index.ts') {
+        if (
+          f.path === relBase ||
+          f.path === relBase + '.js' ||
+          f.path === relBase + '.ts' ||
+          f.path === relBase + '.tsx' ||
+          f.path === relBase + '.jsx' ||
+          f.path === relBase + '.cjs' ||
+          f.path === relBase + '.mjs' ||
+          f.path === relBase + '/index.js' ||
+          f.path === relBase + '/index.ts'
+        ) {
           return f.path;
         }
       }
@@ -4565,24 +5254,46 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     // Detect circular dependencies
     const cycles: string[][] = [];
     function findCycles(node: string, visited: Set<string>, stack: string[]) {
-      if (visited.has(node)) { const idx = stack.indexOf(node); if (idx !== -1) cycles.push(stack.slice(idx).concat(node)); return; }
-      visited.add(node); stack.push(node);
-      for (const e of depEdges) { if (e.source === node) findCycles(e.target, visited, stack); }
+      if (visited.has(node)) {
+        const idx = stack.indexOf(node);
+        if (idx !== -1) cycles.push(stack.slice(idx).concat(node));
+        return;
+      }
+      visited.add(node);
+      stack.push(node);
+      for (const e of depEdges) {
+        if (e.source === node) findCycles(e.target, visited, stack);
+      }
       stack.pop();
     }
     for (const n of Object.keys(depNodes)) findCycles(n, new Set(), []);
-    const uniqueCycles = cycles.filter((c, i, a) => a.findIndex(x => JSON.stringify(x) === JSON.stringify(c)) === i).slice(0, 5);
+    const uniqueCycles = cycles
+      .filter((c, i, a) => a.findIndex((x) => JSON.stringify(x) === JSON.stringify(c)) === i)
+      .slice(0, 5);
 
-    const incoming = new Set(depEdges.map(e => e.target));
-    const entryPoints = Object.values(depNodes).filter(n => !incoming.has(n.id)).map(n => n.label);
-    const outgoing = new Set(depEdges.map(e => e.source));
-    const leafModules = Object.values(depNodes).filter(n => !outgoing.has(n.id)).map(n => n.label);
+    const incoming = new Set(depEdges.map((e) => e.target));
+    const entryPoints = Object.values(depNodes)
+      .filter((n) => !incoming.has(n.id))
+      .map((n) => n.label);
+    const outgoing = new Set(depEdges.map((e) => e.source));
+    const leafModules = Object.values(depNodes)
+      .filter((n) => !outgoing.has(n.id))
+      .map((n) => n.label);
 
     const connCounts: Record<string, number> = {};
-    for (const e of depEdges) { connCounts[e.source] = (connCounts[e.source] || 0) + 1; connCounts[e.target] = (connCounts[e.target] || 0) + 1; }
-    const mostConnected = Object.entries(connCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, count]) => ({ name: depNodes[id]?.label || id, count }));
+    for (const e of depEdges) {
+      connCounts[e.source] = (connCounts[e.source] || 0) + 1;
+      connCounts[e.target] = (connCounts[e.target] || 0) + 1;
+    }
+    const mostConnected = Object.entries(connCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id, count]) => ({ name: depNodes[id]?.label || id, count }));
 
-    const graphData = { nodes: Object.values(depNodes).map(n => ({ id: n.id, label: n.label, group: n.group, size: n.size })), edges: depEdges };
+    const graphData = {
+      nodes: Object.values(depNodes).map((n) => ({ id: n.id, label: n.label, group: n.group, size: n.size })),
+      edges: depEdges,
+    };
 
     const codeMap = {
       generatedAt: new Date().toISOString(),
@@ -4604,19 +5315,62 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     fs.writeFileSync(mapPath, JSON.stringify(codeMap, null, 2));
 
     const extColors: Record<string, string> = {
-      '.js': '#f7df1e', '.ts': '#3178c6', '.tsx': '#61dafb', '.jsx': '#61dafb', '.cjs': '#f0db4f', '.mjs': '#f0db4f',
-      '.py': '#3776ab', '.java': '#b07219', '.go': '#00add8', '.rs': '#dea584',
-      '.cpp': '#f34b7d', '.c': '#555555', '.cs': '#178600', '.php': '#4f5d95',
-      '.rb': '#701516', '.swift': '#ffac45', '.kt': '#a97bff', '.scala': '#c22d40',
-      '.html': '#e34c26', '.css': '#563d7c', '.json': '#292929', '.md': '#083fa1',
+      '.js': '#f7df1e',
+      '.ts': '#3178c6',
+      '.tsx': '#61dafb',
+      '.jsx': '#61dafb',
+      '.cjs': '#f0db4f',
+      '.mjs': '#f0db4f',
+      '.py': '#3776ab',
+      '.java': '#b07219',
+      '.go': '#00add8',
+      '.rs': '#dea584',
+      '.cpp': '#f34b7d',
+      '.c': '#555555',
+      '.cs': '#178600',
+      '.php': '#4f5d95',
+      '.rb': '#701516',
+      '.swift': '#ffac45',
+      '.kt': '#a97bff',
+      '.scala': '#c22d40',
+      '.html': '#e34c26',
+      '.css': '#563d7c',
+      '.json': '#292929',
+      '.md': '#083fa1',
     };
     const extIcons: Record<string, string> = {
-      '.js': '📜', '.ts': '📘', '.tsx': '⚛️', '.jsx': '⚛️', '.cjs': '📜', '.mjs': '📜', '.py': '🐍',
-      '.java': '☕', '.go': '🐹', '.rs': '⚙️', '.cpp': '🔧', '.c': '🔧',
-      '.cs': '🔷', '.php': '🐘', '.rb': '💎', '.swift': '🦉', '.kt': '🟣',
-      '.html': '🌐', '.css': '🎨', '.json': '📋', '.md': '📝', '.yml': '⚙️',
-      '.yaml': '⚙️', '.sh': '🔲', '.bat': '🔲', '.ps1': '🔲', '.sql': '🗄️',
-      '.xml': '📄', '.svg': '🖼️', '.png': '🖼️', '.jpg': '🖼️', '.gif': '🖼️',
+      '.js': '📜',
+      '.ts': '📘',
+      '.tsx': '⚛️',
+      '.jsx': '⚛️',
+      '.cjs': '📜',
+      '.mjs': '📜',
+      '.py': '🐍',
+      '.java': '☕',
+      '.go': '🐹',
+      '.rs': '⚙️',
+      '.cpp': '🔧',
+      '.c': '🔧',
+      '.cs': '🔷',
+      '.php': '🐘',
+      '.rb': '💎',
+      '.swift': '🦉',
+      '.kt': '🟣',
+      '.html': '🌐',
+      '.css': '🎨',
+      '.json': '📋',
+      '.md': '📝',
+      '.yml': '⚙️',
+      '.yaml': '⚙️',
+      '.sh': '🔲',
+      '.bat': '🔲',
+      '.ps1': '🔲',
+      '.sql': '🗄️',
+      '.xml': '📄',
+      '.svg': '🖼️',
+      '.png': '🖼️',
+      '.jpg': '🖼️',
+      '.gif': '🖼️',
     };
 
     function formatBytes(b: number): string {
@@ -4626,7 +5380,17 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     }
 
     // Build tree structure for sidebar
-    interface TreeNode { name: string; path: string; type: 'dir' | 'file'; children: TreeNode[]; size?: number; lines?: number; ext?: string; viewable?: boolean; inGraph?: boolean; }
+    interface TreeNode {
+      name: string;
+      path: string;
+      type: 'dir' | 'file';
+      children: TreeNode[];
+      size?: number;
+      lines?: number;
+      ext?: string;
+      viewable?: boolean;
+      inGraph?: boolean;
+    }
     const tree: TreeNode = { name: path.basename(scanRoot), path: '', type: 'dir', children: [] };
     const graphNodeIds = new Set(Object.keys(depNodes));
     for (const f of files) {
@@ -4635,10 +5399,16 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
       for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
         const isLast = i === parts.length - 1;
-        let child = current.children.find(c => c.name === part);
+        let child = current.children.find((c) => c.name === part);
         if (!child) {
           child = { name: part, path: parts.slice(0, i + 1).join('/'), type: isLast ? 'file' : 'dir', children: [] };
-          if (isLast) { child.size = f.size; child.lines = f.lines; child.ext = f.ext; child.viewable = !binaryExts.has(f.ext) && f.lines > 0; child.inGraph = graphNodeIds.has(f.path); }
+          if (isLast) {
+            child.size = f.size;
+            child.lines = f.lines;
+            child.ext = f.ext;
+            child.viewable = !binaryExts.has(f.ext) && f.lines > 0;
+            child.inGraph = graphNodeIds.has(f.path);
+          }
           current.children.push(child);
         }
         current = child;
@@ -4649,12 +5419,21 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     WelcomeDashboard.updateCodeMapPaneIfOpen({
       status: 'Generated',
       files: String(files.length),
-      languages: topExts.map(e => e[0]).join(', ') || '--',
+      languages: topExts.map((e) => e[0]).join(', ') || '--',
       modules: String(Object.keys(depNodes).length),
       arch: archParts.join(' + '),
       graph: graphData,
       tree: serializeTreeNode(tree.children),
-      list: files.slice(0, 50).map((f: any) => ({ name: f.name, path: f.path, ext: f.ext, lines: f.lines, size: f.size, deps: depEdges.filter((e: any) => e.source === f.path || e.target === f.path).length })),
+      list: files
+        .slice(0, 50)
+        .map((f: any) => ({
+          name: f.name,
+          path: f.path,
+          ext: f.ext,
+          lines: f.lines,
+          size: f.size,
+          deps: depEdges.filter((e: any) => e.source === f.path || e.target === f.path).length,
+        })),
       severity: { critical: 0, high: 0, medium: 0, low: 0 },
       repoFiles: String(files.length),
       totalLines: String(totalLines),
@@ -4666,9 +5445,14 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     });
 
     // Push code map data to sidebar immediately so UI updates even if HTML build fails
-    outputChannel.appendLine(`[SimpleBeacon] Pushing code map data to sidebar: ${files.length} files, ${totalLines} lines`);
-    const isPaidTier = ModernSidebarProvider.getCachedIsAdmin()
-      || !['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', ''].includes((ModernSidebarProvider.getCachedTier() || '').toLowerCase());
+    outputChannel.appendLine(
+      `[SimpleBeacon] Pushing code map data to sidebar: ${files.length} files, ${totalLines} lines`
+    );
+    const isPaidTier =
+      ModernSidebarProvider.getCachedIsAdmin() ||
+      !['guest', 'community', 'developer', 'sandbox', 'instant', 'free', 'solo', ''].includes(
+        (ModernSidebarProvider.getCachedTier() || '').toLowerCase()
+      );
     modernSidebarProvider?.updateCodeMap({
       totalFiles: files.length,
       filesScanned: files.length,
@@ -4686,25 +5470,36 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
     function treeToHtml(node: TreeNode, level = 0): string {
       const indent = level * 20;
       const iconStyle = node.ext ? `style="color:${extColors[node.ext] || '#64748b'}"` : '';
-      const icon = node.type === 'dir' ? '📁' : (extIcons[node.ext || ''] || '📄');
+      const icon = node.type === 'dir' ? '📁' : extIcons[node.ext || ''] || '📄';
       const sizeStr = node.size ? `(${formatBytes(node.size)}, ${node.lines} lines)` : '';
       const hasChildren = node.children.length > 0;
       const toggle = hasChildren ? '<span class="toggle">&#x25B6;</span>' : '<span class="toggle-spacer"></span>';
       const viewableCls = node.type === 'file' ? (node.viewable ? 'clickable viewable' : 'clickable non-viewable') : '';
-      const viewableTitle = node.type === 'file' ? (node.viewable ? 'Viewable file' : 'Non-viewable file (binary or unreadable)') : 'Directory';
-      const lockIcon = (node.type === 'file' && !node.viewable) ? '<span style="font-size:9px;margin-left:2px;opacity:0.5">&#x1f512;</span>' : '';
-      const graphDot = node.type === 'file'
-        ? (node.inGraph
-          ? '<span class="graph-dot in-graph" title="In dependency graph"></span>'
-          : '<span class="graph-dot not-in-graph" title="Not in dependency graph — file type not parsed for imports (' + (node.ext || 'unknown') + ')"></span>')
-        : '';
+      const viewableTitle =
+        node.type === 'file'
+          ? node.viewable
+            ? 'Viewable file'
+            : 'Non-viewable file (binary or unreadable)'
+          : 'Directory';
+      const lockIcon =
+        node.type === 'file' && !node.viewable
+          ? '<span style="font-size:9px;margin-left:2px;opacity:0.5">&#x1f512;</span>'
+          : '';
+      const graphDot =
+        node.type === 'file'
+          ? node.inGraph
+            ? '<span class="graph-dot in-graph" title="In dependency graph"></span>'
+            : '<span class="graph-dot not-in-graph" title="Not in dependency graph — file type not parsed for imports (' +
+              (node.ext || 'unknown') +
+              ')"></span>'
+          : '';
       const html = `<div class="tree-node ${viewableCls}" data-type="${node.type}" data-ext="${node.ext || ''}" data-viewable="${node.viewable ?? ''}" data-in-graph="${node.inGraph ?? ''}" data-path="${escapeHtml(node.path)}" style="padding-left:${indent}px" title="${escapeHtml(node.path)} — ${viewableTitle}${node.inGraph ? ' — In dependency graph' : node.type === 'file' ? ' — Not in dependency graph' : ''}">
         ${toggle}<span class="node-icon" ${iconStyle}>${icon}</span>
         <span class="node-name">${escapeHtml(node.name)}${lockIcon}</span>
         ${graphDot}<span class="node-meta">${sizeStr}</span>
       </div>`;
       if (hasChildren) {
-        const childrenHtml = node.children.map(c => treeToHtml(c, level + 1)).join('');
+        const childrenHtml = node.children.map((c) => treeToHtml(c, level + 1)).join('');
         return html + `<div class="tree-children collapsed">${childrenHtml}</div>`;
       }
       return html;
@@ -4737,12 +5532,14 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
         entryJson,
         leafJson,
         connectedJson,
-        analysisJson
+        analysisJson,
       });
 
       fs.writeFileSync(mapHtmlPath, html);
     } catch (htmlErr) {
-      outputChannel.appendLine(`[SimpleBeacon] Code Map HTML build skipped: ${htmlErr instanceof Error ? htmlErr.message : String(htmlErr)}`);
+      outputChannel.appendLine(
+        `[SimpleBeacon] Code Map HTML build skipped: ${htmlErr instanceof Error ? htmlErr.message : String(htmlErr)}`
+      );
     }
 
     // Recursive tree serializer for full depth
@@ -4756,20 +5553,29 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
         size: n.size || 0,
         viewable: n.viewable ?? (n.type === 'dir' ? undefined : true),
         inGraph: n.inGraph ?? false,
-        children: n.children.length > 0 ? serializeTreeNode(n.children) : undefined
+        children: n.children.length > 0 ? serializeTreeNode(n.children) : undefined,
       }));
     }
 
     // Write tree JSON for the sidebar explorer
     const treeJsonPath = path.join(sbDir, 'codemap-tree.json');
     try {
-      fs.writeFileSync(treeJsonPath, JSON.stringify({
-        projectName: path.basename(scanRoot),
-        projectPath: scanRoot,
-        generatedAt: new Date().toISOString(),
-        tree: serializeTreeNode(tree.children)
-      }, null, 2));
-    } catch { /* non-critical */ }
+      fs.writeFileSync(
+        treeJsonPath,
+        JSON.stringify(
+          {
+            projectName: path.basename(scanRoot),
+            projectPath: scanRoot,
+            generatedAt: new Date().toISOString(),
+            tree: serializeTreeNode(tree.children),
+          },
+          null,
+          2
+        )
+      );
+    } catch {
+      /* non-critical */
+    }
 
     // Refresh the sidebar tree view
     CodeMapTreeProvider.refreshInstance();
@@ -4779,7 +5585,9 @@ async function generateCodeMap(openPanel = true, scanRootOverride?: string | nul
       await openCodeMapPanel();
       showQuietMessage(`Code Map saved: ${files.length} files, ${totalLines.toLocaleString()} lines — opened in IDE`);
     } else {
-      showQuietMessage(`Code Map saved: ${files.length} files, ${totalLines.toLocaleString()} lines — available in Code Map tab`);
+      showQuietMessage(
+        `Code Map saved: ${files.length} files, ${totalLines.toLocaleString()} lines — available in Code Map tab`
+      );
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -4816,12 +5624,10 @@ async function openCodeMapPanel() {
   // Inject CSS to hide the embedded sidebar when running inside VS Code webview
   const hideSidebarCss = `<style>.sidebar{display:none !important;}.main{margin-left:0 !important;width:100% !important;}</style>`;
   const modifiedHtml = html.replace('</head>', hideSidebarCss + '</head>');
-  codeMapPanel = vscode.window.createWebviewPanel(
-    'simplebeaconCodemap',
-    'Code Map',
-    vscode.ViewColumn.One,
-    { enableScripts: true, retainContextWhenHidden: true }
-  );
+  codeMapPanel = vscode.window.createWebviewPanel('simplebeaconCodemap', 'Code Map', vscode.ViewColumn.One, {
+    enableScripts: true,
+    retainContextWhenHidden: true,
+  });
   codeMapPanel.webview.html = modifiedHtml;
   codeMapPanel.webview.onDidReceiveMessage(async (msg: any) => {
     if (msg.command === 'openFile' && msg.path) {
@@ -4830,8 +5636,7 @@ async function openCodeMapPanel() {
       try {
         const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
         await vscode.window.showTextDocument(doc, { preview: false });
-      }
-      catch (e) {
+      } catch (e) {
         outputChannel.appendLine(`[CodeMap] Could not open file: ${filePath}`);
       }
     } else if (msg.command === 'downloadFile' && msg.base64 && msg.filename) {
@@ -4840,16 +5645,23 @@ async function openCodeMapPanel() {
           defaultUri: vscode.Uri.file(msg.filename),
         });
         if (uri) {
-          await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Window,
-            title: `Saving ${msg.filename}`,
-            cancellable: false,
-          }, async (progress) => {
-            progress.report({ increment: 0 });
-            fs.writeFileSync(uri.fsPath, Buffer.from(msg.base64, 'base64'));
-            progress.report({ increment: 100 });
+          await vscode.window.withProgress(
+            {
+              location: vscode.ProgressLocation.Window,
+              title: `Saving ${msg.filename}`,
+              cancellable: false,
+            },
+            async (progress) => {
+              progress.report({ increment: 0 });
+              fs.writeFileSync(uri.fsPath, Buffer.from(msg.base64, 'base64'));
+              progress.report({ increment: 100 });
+            }
+          );
+          codeMapPanel?.webview.postMessage({
+            command: 'downloadComplete',
+            filename: path.basename(uri.fsPath),
+            filePath: uri.fsPath,
           });
-          codeMapPanel?.webview.postMessage({ command: 'downloadComplete', filename: path.basename(uri.fsPath), filePath: uri.fsPath });
           modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
         }
       } catch (err) {
@@ -4857,7 +5669,9 @@ async function openCodeMapPanel() {
       }
     }
   });
-  codeMapPanel.onDidDispose(() => { codeMapPanel = undefined; });
+  codeMapPanel.onDidDispose(() => {
+    codeMapPanel = undefined;
+  });
 }
 
 async function exportCodeMap() {
@@ -4914,10 +5728,10 @@ async function importCodeMapGraph() {
     }
     const graphData = {
       nodes: raw.graph.nodes.map((n: any) => {
-        const size = n.radius ? Math.round(Math.pow(n.radius / 0.6, 2)) : (n.size || 1);
+        const size = n.radius ? Math.round(Math.pow(n.radius / 0.6, 2)) : n.size || 1;
         return { id: n.id, label: n.label, group: n.group, size };
       }),
-      edges: raw.graph.edges.map((e: any) => ({ source: e.source, target: e.target }))
+      edges: raw.graph.edges.map((e: any) => ({ source: e.source, target: e.target })),
     };
     const graphJson = JSON.stringify(graphData).replace(/</g, '\\u003c');
     const cyclesJson = JSON.stringify(raw.cycles || []).replace(/</g, '\\u003c');
@@ -4954,69 +5768,85 @@ async function importCodeMapGraph() {
 }
 
 function generateCertificate(report?: unknown) {
-  if (isGeneratingCertificate) { return; }
-  isGeneratingCertificate = true;
-  try {
-  const src = report || currentReport;
-  if (!src) {
-    showQuietMessage('Run a scan first to generate a certificate');
+  if (isGeneratingCertificate) {
     return;
   }
-  const source = src as CertificateSource;
-  const workspaceFolders = vscode.workspace.workspaceFolders;
-  if (!workspaceFolders || workspaceFolders.length === 0) return;
+  isGeneratingCertificate = true;
+  try {
+    const src = report || currentReport;
+    if (!src) {
+      showQuietMessage('Run a scan first to generate a certificate');
+      return;
+    }
+    const source = src as CertificateSource;
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) return;
 
-  const certDir = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon');
-  const certPath = path.join(certDir, 'certificate.json');
-  const certHtmlPath = path.join(certDir, 'certificate.html');
+    const certDir = path.join(workspaceFolders[0].uri.fsPath, '.simplebeacon');
+    const certPath = path.join(certDir, 'certificate.json');
+    const certHtmlPath = path.join(certDir, 'certificate.html');
 
-  // Support both CLI report shape and workspace analyzer ScanResult shape
-  const hasCliSummary = !!(source as any)?.scan_summary || !!(source as any)?.severityCounts || !!(source as any)?.scanPaths;
-  const isWorkspaceScan = !!source.summary && !!source.findings;
-  const cliSummary = (source as any)?.scan_summary as Record<string, unknown> | undefined;
-  const cliSev = ((source as any)?.severityCounts as Record<string, number> | undefined) ?? {
-    critical: Number(cliSummary?.critical_severity_count ?? 0),
-    high: Number(cliSummary?.high_severity_count ?? 0),
-    medium: Number(cliSummary?.medium_severity_count ?? 0),
-    low: Number(cliSummary?.low_severity_count ?? 0),
-  };
-  const severityCounts = isWorkspaceScan ? (source.summary?.severityCounts ?? {}) : cliSev;
-  const qualityScore = isWorkspaceScan ? computeWorkspaceScore(source) : (source.qualityScore ?? Number((source as any)?.qualityScore ?? 100));
-  const cliStatus = String(cliSummary?.status ?? '').toUpperCase();
-  const gatePass = isWorkspaceScan
-    ? (severityCounts.critical === 0 && severityCounts.high === 0)
-    : (source.gate?.pass ?? (cliStatus === 'PASS' || cliStatus === 'PASSED' || cliStatus === 'SUCCESS' || cliStatus === 'SUCCESSFUL' || cliStatus === 'OK' ? true : (cliStatus === 'FAIL' || cliStatus === 'FAILED' || cliStatus === 'ERROR' ? false : (severityCounts.critical === 0 && severityCounts.high === 0))));
-  const certificate: CertificateData = {
-    type: 'simplebeacon-certificate',
-    version: '1.0.0',
-    generatedAt: new Date().toISOString(),
-    projectPath: workspaceFolders[0].uri.fsPath,
-    qualityScore,
-    gatePass,
-    summary: {
-      filesAnalyzed: isWorkspaceScan ? (source.summary?.filesAnalyzed ?? 0) : (source.totalFiles ?? source.filesAnalyzed ?? 0),
-      blockingIssues: isWorkspaceScan
-        ? ((severityCounts.critical ?? 0) + (severityCounts.high ?? 0))
-        : (source.gate?.blockingIssues ?? []).length,
-      secrets: isWorkspaceScan
-        ? (source.categories?.security ?? []).length
-        : (source.credentialHygiene?.secrets ?? []).length,
-      vulnerabilities: isWorkspaceScan
-        ? (source.summary?.totalFindings ?? 0)
-        : (source.dependencyAudit?.vulnerabilities ?? []).length,
-    },
-  };
+    // Support both CLI report shape and workspace analyzer ScanResult shape
+    const hasCliSummary =
+      !!(source as any)?.scan_summary || !!(source as any)?.severityCounts || !!(source as any)?.scanPaths;
+    const isWorkspaceScan = !!source.summary && !!source.findings;
+    const cliSummary = (source as any)?.scan_summary as Record<string, unknown> | undefined;
+    const cliSev = ((source as any)?.severityCounts as Record<string, number> | undefined) ?? {
+      critical: Number(cliSummary?.critical_severity_count ?? 0),
+      high: Number(cliSummary?.high_severity_count ?? 0),
+      medium: Number(cliSummary?.medium_severity_count ?? 0),
+      low: Number(cliSummary?.low_severity_count ?? 0),
+    };
+    const severityCounts = isWorkspaceScan ? (source.summary?.severityCounts ?? {}) : cliSev;
+    const qualityScore = isWorkspaceScan
+      ? computeWorkspaceScore(source)
+      : (source.qualityScore ?? Number((source as any)?.qualityScore ?? 100));
+    const cliStatus = String(cliSummary?.status ?? '').toUpperCase();
+    const gatePass = isWorkspaceScan
+      ? severityCounts.critical === 0 && severityCounts.high === 0
+      : (source.gate?.pass ??
+        (cliStatus === 'PASS' ||
+        cliStatus === 'PASSED' ||
+        cliStatus === 'SUCCESS' ||
+        cliStatus === 'SUCCESSFUL' ||
+        cliStatus === 'OK'
+          ? true
+          : cliStatus === 'FAIL' || cliStatus === 'FAILED' || cliStatus === 'ERROR'
+            ? false
+            : severityCounts.critical === 0 && severityCounts.high === 0));
+    const certificate: CertificateData = {
+      type: 'simplebeacon-certificate',
+      version: '1.0.0',
+      generatedAt: new Date().toISOString(),
+      projectPath: workspaceFolders[0].uri.fsPath,
+      qualityScore,
+      gatePass,
+      summary: {
+        filesAnalyzed: isWorkspaceScan
+          ? (source.summary?.filesAnalyzed ?? 0)
+          : (source.totalFiles ?? source.filesAnalyzed ?? 0),
+        blockingIssues: isWorkspaceScan
+          ? (severityCounts.critical ?? 0) + (severityCounts.high ?? 0)
+          : (source.gate?.blockingIssues ?? []).length,
+        secrets: isWorkspaceScan
+          ? (source.categories?.security ?? []).length
+          : (source.credentialHygiene?.secrets ?? []).length,
+        vulnerabilities: isWorkspaceScan
+          ? (source.summary?.totalFindings ?? 0)
+          : (source.dependencyAudit?.vulnerabilities ?? []).length,
+      },
+    };
 
-  const html = buildCertificateHtml(certificate);
+    const html = buildCertificateHtml(certificate);
 
-  fs.mkdirSync(certDir, { recursive: true });
-  fs.writeFileSync(certPath, JSON.stringify(certificate, null, 2));
-  fs.writeFileSync(certHtmlPath, html);
-  showQuietMessage(`Certificate saved to ${certPath}`);
-  modernSidebarProvider?.addDownloadedFile('certificate.json', certPath);
-  modernSidebarProvider?.addDownloadedFile('certificate.html', certHtmlPath);
+    fs.mkdirSync(certDir, { recursive: true });
+    fs.writeFileSync(certPath, JSON.stringify(certificate, null, 2));
+    fs.writeFileSync(certHtmlPath, html);
+    showQuietMessage(`Certificate saved to ${certPath}`);
+    modernSidebarProvider?.addDownloadedFile('certificate.json', certPath);
+    modernSidebarProvider?.addDownloadedFile('certificate.html', certHtmlPath);
 
-  // Certificate HTML is loaded by the sidebar iframe; no separate panel needed
+    // Certificate HTML is loaded by the sidebar iframe; no separate panel needed
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage('Certificate generation failed: ' + msg);
@@ -5285,10 +6115,12 @@ function buildRoadmapHtml(roadmap: any): string {
     completed: 'Completed',
     blocked: 'Blocked',
     inProgress: 'In Progress',
-    pending: 'Pending'
+    pending: 'Pending',
   };
   phases.forEach((phase: any) => {
-    const tasks = (phase.tasks || []).map((t: any) => `<li>${escapeHtml(t.description)} ${t.done ? '✅' : '⬜'}</li>`).join('');
+    const tasks = (phase.tasks || [])
+      .map((t: any) => `<li>${escapeHtml(t.description)} ${t.done ? '✅' : '⬜'}</li>`)
+      .join('');
     const statusClass = String(phase.status || 'pending').replace(/\s+/g, '');
     const statusLabel = statusLabels[phase.status] || phase.status || 'Pending';
     rows += `<div class="phase">
@@ -5361,10 +6193,16 @@ async function fetchReportFromServer(): Promise<any | null> {
   try {
     const port = getDataServerPort();
     const res = await fetch(`http://127.0.0.1:${port}/api/simplebeacon/report`);
-    if (!res.ok) { return null; }
+    if (!res.ok) {
+      return null;
+    }
     const data = await res.json();
-    if (data && typeof data === 'object') { return data; }
-  } catch { /* fallback below */ }
+    if (data && typeof data === 'object') {
+      return data;
+    }
+  } catch {
+    /* fallback below */
+  }
   // Fallback: read report from .simplebeacon folder first, then workspace root.
   // Skip any report whose projectRoot points at a temp/sample directory.
   try {
@@ -5376,14 +6214,21 @@ async function fetchReportFromServer(): Promise<any | null> {
         if (fs.existsSync(p)) {
           const report = JSON.parse(fs.readFileSync(p, 'utf8'));
           const prj = (report?.projectRoot as string) || '';
-          if (prj && (prj.includes('Temp') || prj.includes('AppData\\Local\\Temp') || prj.includes('simplebeacon-screenshot-sample'))) {
+          if (
+            prj &&
+            (prj.includes('Temp') ||
+              prj.includes('AppData\\Local\\Temp') ||
+              prj.includes('simplebeacon-screenshot-sample'))
+          ) {
             continue;
           }
           return report;
         }
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null;
 }
 
@@ -5423,7 +6268,9 @@ async function exportReport(format?: string) {
   }
   // Fallback: use sidebar's current report if available
   if ((!report || isEmptyReport(report)) && modernSidebarProvider) {
-    const sidebarReport = (ModernSidebarProvider as any).getSidebarReport ? (ModernSidebarProvider as any).getSidebarReport() : null;
+    const sidebarReport = (ModernSidebarProvider as any).getSidebarReport
+      ? (ModernSidebarProvider as any).getSidebarReport()
+      : null;
     if (sidebarReport && !isEmptyReport(sidebarReport)) {
       report = sidebarReport as ScanResult;
       outputChannel.appendLine('[SimpleBeacon] Export using sidebar report');
@@ -5469,30 +6316,54 @@ async function exportReport(format?: string) {
   } else if (fmt === 'html') {
     defaultName += '.html';
     filters = { HTML: ['html'] };
-    const rows = (issues as any[]).map((i: any) => {
-      const sev = (i.severity || 'low').toLowerCase();
-      const color = sev === 'critical' ? '#ef4444' : sev === 'high' ? '#f59e0b' : sev === 'medium' ? '#d18616' : '#75beff';
-      const bg = sev === 'critical' ? 'rgba(239,68,68,0.08)' : sev === 'high' ? 'rgba(245,158,11,0.08)' : sev === 'medium' ? 'rgba(209,134,22,0.08)' : 'rgba(117,190,255,0.08)';
-      const file = (i.file || i.filePath || i.path || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const desc = (i.description || i.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const type = (i.type || i.category || 'Unknown').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      return `<tr style="border-bottom:1px solid #333;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'"><td style="padding:10px 8px"><span style="display:inline-block;padding:3px 8px;border-radius:4px;background:${bg};color:${color};font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.5px">${sev}</span></td><td style="padding:10px 8px;font-weight:500">${type}</td><td style="padding:10px 8px;color:#888;font-size:12px;word-break:break-all">${file}</td><td style="padding:10px 8px;color:#aaa;font-size:12px">${desc}</td></tr>`;
-    }).join('');
-    const emptyState = rows ? '' : '<tr><td colspan="4" style="padding:24px;text-align:center;color:#666;font-size:13px">No findings to display.</td></tr>';
+    const rows = (issues as any[])
+      .map((i: any) => {
+        const sev = (i.severity || 'low').toLowerCase();
+        const color =
+          sev === 'critical' ? '#ef4444' : sev === 'high' ? '#f59e0b' : sev === 'medium' ? '#d18616' : '#75beff';
+        const bg =
+          sev === 'critical'
+            ? 'rgba(239,68,68,0.08)'
+            : sev === 'high'
+              ? 'rgba(245,158,11,0.08)'
+              : sev === 'medium'
+                ? 'rgba(209,134,22,0.08)'
+                : 'rgba(117,190,255,0.08)';
+        const file = (i.file || i.filePath || i.path || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const desc = (i.description || i.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const type = (i.type || i.category || 'Unknown').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<tr style="border-bottom:1px solid #333;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'"><td style="padding:10px 8px"><span style="display:inline-block;padding:3px 8px;border-radius:4px;background:${bg};color:${color};font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.5px">${sev}</span></td><td style="padding:10px 8px;font-weight:500">${type}</td><td style="padding:10px 8px;color:#888;font-size:12px;word-break:break-all">${file}</td><td style="padding:10px 8px;color:#aaa;font-size:12px">${desc}</td></tr>`;
+      })
+      .join('');
+    const emptyState = rows
+      ? ''
+      : '<tr><td colspan="4" style="padding:24px;text-align:center;color:#666;font-size:13px">No findings to display.</td></tr>';
     content = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SimpleBeacon Report</title><style>body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#1e1e1e;color:#ccc;padding:24px;margin:0}h1{color:#fff;font-size:20px;margin-bottom:4px}.badge{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700;background:#10b981;color:#fff;margin-left:12px}.metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:20px 0}.metric{background:#252526;border:1px solid #333;border-radius:8px;padding:14px;text-align:center}.metric-value{font-size:24px;font-weight:700;color:#fff}.metric-label{font-size:11px;color:#888;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;padding:10px 8px;color:#888;font-size:11px;text-transform:uppercase;border-bottom:1px solid #444}td{vertical-align:top}</style></head><body><h1>SimpleBeacon Scan Report <span class="badge">Gate: ${(r.gate?.pass ?? ((sevCounts.critical || 0) === 0 && (sevCounts.high || 0) === 0 && (summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2))) >= 80)) ? 'PASS' : 'FAIL'}</span></h1><div style="color:#888;font-size:12px;margin-bottom:20px">${new Date().toLocaleString()}</div><div class="metrics"><div class="metric"><div class="metric-value" style="color:${(summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2))) >= 80 ? '#10b981' : '#f59e0b'}">${summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2))}</div><div class="metric-label">Quality Score</div></div><div class="metric"><div class="metric-value" style="color:#ef4444">${sevCounts.critical || 0}</div><div class="metric-label">Critical</div></div><div class="metric"><div class="metric-value" style="color:#f59e0b">${sevCounts.high || 0}</div><div class="metric-label">High</div></div><div class="metric"><div class="metric-value" style="color:#d18616">${sevCounts.medium || 0}</div><div class="metric-label">Medium</div></div><div class="metric"><div class="metric-value" style="color:#75beff">${sevCounts.low || 0}</div><div class="metric-label">Low</div></div><div class="metric"><div class="metric-value">${summary.totalFiles || r.filesAnalyzed || 0}</div><div class="metric-label">Files</div></div></div><table><thead><tr><th>Severity</th><th>Type</th><th>File</th><th>Description</th></tr></thead><tbody>${rows || emptyState}</tbody></table></body></html>`;
   } else if (fmt === 'pdf') {
     defaultName += '.html';
     filters = { HTML: ['html'] };
-    const rows = (issues as any[]).map((i: any) => {
-      const sev = (i.severity || 'low').toLowerCase();
-      const color = sev === 'critical' ? '#ef4444' : sev === 'high' ? '#f59e0b' : sev === 'medium' ? '#d18616' : '#75beff';
-      const bg = sev === 'critical' ? 'rgba(239,68,68,0.08)' : sev === 'high' ? 'rgba(245,158,11,0.08)' : sev === 'medium' ? 'rgba(209,134,22,0.08)' : 'rgba(117,190,255,0.08)';
-      const file = (i.file || i.filePath || i.path || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const desc = (i.description || i.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const type = (i.type || i.category || 'Unknown').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      return `<tr style="border-bottom:1px solid #333;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'"><td style="padding:10px 8px"><span style="display:inline-block;padding:3px 8px;border-radius:4px;background:${bg};color:${color};font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.5px">${sev}</span></td><td style="padding:10px 8px;font-weight:500">${type}</td><td style="padding:10px 8px;color:#888;font-size:12px;word-break:break-all">${file}</td><td style="padding:10px 8px;color:#aaa;font-size:12px">${desc}</td></tr>`;
-    }).join('');
-    const emptyState = rows ? '' : '<tr><td colspan="4" style="padding:24px;text-align:center;color:#666;font-size:13px">No findings to display.</td></tr>';
+    const rows = (issues as any[])
+      .map((i: any) => {
+        const sev = (i.severity || 'low').toLowerCase();
+        const color =
+          sev === 'critical' ? '#ef4444' : sev === 'high' ? '#f59e0b' : sev === 'medium' ? '#d18616' : '#75beff';
+        const bg =
+          sev === 'critical'
+            ? 'rgba(239,68,68,0.08)'
+            : sev === 'high'
+              ? 'rgba(245,158,11,0.08)'
+              : sev === 'medium'
+                ? 'rgba(209,134,22,0.08)'
+                : 'rgba(117,190,255,0.08)';
+        const file = (i.file || i.filePath || i.path || '-').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const desc = (i.description || i.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const type = (i.type || i.category || 'Unknown').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `<tr style="border-bottom:1px solid #333;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'"><td style="padding:10px 8px"><span style="display:inline-block;padding:3px 8px;border-radius:4px;background:${bg};color:${color};font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:0.5px">${sev}</span></td><td style="padding:10px 8px;font-weight:500">${type}</td><td style="padding:10px 8px;color:#888;font-size:12px;word-break:break-all">${file}</td><td style="padding:10px 8px;color:#aaa;font-size:12px">${desc}</td></tr>`;
+      })
+      .join('');
+    const emptyState = rows
+      ? ''
+      : '<tr><td colspan="4" style="padding:24px;text-align:center;color:#666;font-size:13px">No findings to display.</td></tr>';
     content = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SimpleBeacon Report</title><style>@media print{body{background:#fff;color:#000}h1{color:#000}.metric{background:#f5f5f5;border-color:#ddd}th{color:#666;border-bottom:1px solid #ccc}}body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;background:#1e1e1e;color:#ccc;padding:24px;margin:0}h1{color:#fff;font-size:20px;margin-bottom:4px}.badge{display:inline-block;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700;background:#10b981;color:#fff;margin-left:12px}.metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:20px 0}.metric{background:#252526;border:1px solid #333;border-radius:8px;padding:14px;text-align:center}.metric-value{font-size:24px;font-weight:700;color:#fff}.metric-label{font-size:11px;color:#888;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;padding:10px 8px;color:#888;font-size:11px;text-transform:uppercase;border-bottom:1px solid #444}td{vertical-align:top}</style></head><body><h1>SimpleBeacon Scan Report <span class="badge">Gate: ${(r.gate?.pass ?? ((sevCounts.critical || 0) === 0 && (sevCounts.high || 0) === 0 && (summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2))) >= 80)) ? 'PASS' : 'FAIL'}</span></h1><div style="color:#888;font-size:12px;margin-bottom:20px">${new Date().toLocaleString()}</div><div class="metrics"><div class="metric"><div class="metric-value" style="color:${(summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2))) >= 80 ? '#10b981' : '#f59e0b'}">${summary.qualityScore ?? Math.max(0, 100 - ((sevCounts.critical || 0) * 25 + (sevCounts.high || 0) * 15 + (sevCounts.medium || 0) * 5 + (sevCounts.low || 0) * 2))}</div><div class="metric-label">Quality Score</div></div><div class="metric"><div class="metric-value" style="color:#ef4444">${sevCounts.critical || 0}</div><div class="metric-label">Critical</div></div><div class="metric"><div class="metric-value" style="color:#f59e0b">${sevCounts.high || 0}</div><div class="metric-label">High</div></div><div class="metric"><div class="metric-value" style="color:#d18616">${sevCounts.medium || 0}</div><div class="metric-label">Medium</div></div><div class="metric"><div class="metric-value" style="color:#75beff">${sevCounts.low || 0}</div><div class="metric-label">Low</div></div><div class="metric"><div class="metric-value">${summary.totalFiles || r.filesAnalyzed || 0}</div><div class="metric-label">Files</div></div></div><table><thead><tr><th>Severity</th><th>Type</th><th>File</th><th>Description</th></tr></thead><tbody>${rows}</tbody></table><script>window.print()</script></body></html>`;
   } else if (fmt === 'excel') {
     defaultName += '.csv';
@@ -5520,7 +6391,10 @@ async function exportReport(format?: string) {
 
   if (uri) {
     fs.writeFileSync(uri.fsPath, content);
-    const msg = fmt === 'pdf' ? `Print-ready HTML exported to ${uri.fsPath} — open in browser and print to PDF` : `Report exported to ${uri.fsPath}`;
+    const msg =
+      fmt === 'pdf'
+        ? `Print-ready HTML exported to ${uri.fsPath} — open in browser and print to PDF`
+        : `Report exported to ${uri.fsPath}`;
     showQuietMessage(msg);
     modernSidebarProvider?.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
   }
@@ -5536,7 +6410,9 @@ function isEmptyReport(report: unknown): boolean {
   } else if (r.findings && typeof r.findings === 'object') {
     for (const key in r.findings) {
       const arr = (r.findings as Record<string, unknown>)[key];
-      if (Array.isArray(arr)) { findingsCount += arr.length; }
+      if (Array.isArray(arr)) {
+        findingsCount += arr.length;
+      }
     }
   }
   const rawIssues = (r.rawIssues as unknown[]) || (r.detectedIssues as unknown[]) || (r.issues as unknown[]) || [];
@@ -5547,7 +6423,11 @@ function isEmptyReport(report: unknown): boolean {
     (typeof r.totalIssues === 'number' ? r.totalIssues : 0) ||
     (typeof summary.totalIssues === 'number' ? summary.totalIssues : 0) ||
     (typeof summary.totalFindings === 'number' ? summary.totalFindings : 0);
-  const sev = (r.severityCounts as Record<string, number>) || (r.severity as Record<string, number>) || summary.severityCounts || {};
+  const sev =
+    (r.severityCounts as Record<string, number>) ||
+    (r.severity as Record<string, number>) ||
+    summary.severityCounts ||
+    {};
   const sevTotal = Object.values(sev).reduce((a: number, b: number) => a + (typeof b === 'number' ? b : 0), 0);
   const totalFiles =
     summary.totalFiles ??
@@ -5555,7 +6435,14 @@ function isEmptyReport(report: unknown): boolean {
     (r.filesAnalyzed as number) ??
     (r.scan_summary as Record<string, number>)?.totalFiles ??
     0;
-  return findingsCount === 0 && rawIssues.length === 0 && findingsNum === 0 && issueCount === 0 && sevTotal === 0 && totalFiles === 0;
+  return (
+    findingsCount === 0 &&
+    rawIssues.length === 0 &&
+    findingsNum === 0 &&
+    issueCount === 0 &&
+    sevTotal === 0 &&
+    totalFiles === 0
+  );
 }
 
 async function exportAiContext() {
@@ -5573,11 +6460,11 @@ async function exportAiContext() {
     aiIssues: report.aiIssues || [],
     aiScore: report.aiScore || report.qualityScore,
     aiFindings: report.aiFindings || report.findings || [],
-    summary: report.summary || {}
+    summary: report.summary || {},
   };
   const uri = await vscode.window.showSaveDialog({
     defaultUri: vscode.Uri.file('simplebeacon-ai-context.json'),
-    filters: { JSON: ['json'] }
+    filters: { JSON: ['json'] },
   });
   if (uri) {
     fs.writeFileSync(uri.fsPath, JSON.stringify(aiData, null, 2));
@@ -5597,12 +6484,21 @@ async function exportReportJson() {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders && workspaceFolders.length > 0) {
       const root = workspaceFolders[0].uri.fsPath;
-      for (const candidate of [path.join(root, '.simplebeacon', 'report.json'), path.join(root, '.simplebeacon', 'vscode-report.json'), path.join(root, 'simplebeacon-report.json')]) {
+      for (const candidate of [
+        path.join(root, '.simplebeacon', 'report.json'),
+        path.join(root, '.simplebeacon', 'vscode-report.json'),
+        path.join(root, 'simplebeacon-report.json'),
+      ]) {
         if (fs.existsSync(candidate)) {
           try {
             const diskReport = JSON.parse(fs.readFileSync(candidate, 'utf8'));
-            if (!isEmptyReport(diskReport)) { report = diskReport; break; }
-          } catch { /* ignore */ }
+            if (!isEmptyReport(diskReport)) {
+              report = diskReport;
+              break;
+            }
+          } catch {
+            /* ignore */
+          }
         }
       }
     }
@@ -5816,7 +6712,11 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
           hasEnhancedAnalysis = true;
           const autoOpenAI = getSbConfig().get<boolean>('autoOpenPreviewPanel', false);
           if (currentReport && autoOpenAI) {
-            try { WelcomeDashboard.createOrShow(context.extensionUri); } catch (e) { /* ignore */ }
+            try {
+              WelcomeDashboard.createOrShow(context.extensionUri);
+            } catch (e) {
+              /* ignore */
+            }
           }
 
           const analysisPath = path.join(sbDir, 'ai-analysis', 'analysis.json');
@@ -5829,11 +6729,18 @@ async function analyzeWithAI(context: vscode.ExtensionContext) {
                     `AI analysis complete — ${analysis.steps || 0} remediation steps proposed`,
                     'Open Dashboard'
                   )
-                  .then((selection) => {
-                    if (selection === 'Open Dashboard') {
-                      try { WelcomeDashboard.createOrShow(context.extensionUri); } catch (e) { /* ignore */ }
-                    }
-                  }, () => {});
+                  .then(
+                    (selection) => {
+                      if (selection === 'Open Dashboard') {
+                        try {
+                          WelcomeDashboard.createOrShow(context.extensionUri);
+                        } catch (e) {
+                          /* ignore */
+                        }
+                      }
+                    },
+                    () => {}
+                  );
               } else {
                 vscode.window.showWarningMessage('AI analysis returned an error. Check output channel.');
               }
@@ -5940,120 +6847,243 @@ interface CodeMapAnalysis {
   improvements: { title: string; severity: 'high' | 'medium' | 'low'; files: string[]; description: string }[];
   issues: { title: string; severity: 'critical' | 'high' | 'medium' | 'low'; files: string[]; description: string }[];
   summary: {
-    totalFiles: number; totalLines: number; criticalCount: number; highCount: number;
-    improvementCount: number; score: number; scoreLabel: string;
-    architectureScore: number; couplingScore: number; complexityScore: number; testScore: number;
+    totalFiles: number;
+    totalLines: number;
+    criticalCount: number;
+    highCount: number;
+    improvementCount: number;
+    score: number;
+    scoreLabel: string;
+    architectureScore: number;
+    couplingScore: number;
+    complexityScore: number;
+    testScore: number;
   };
   architecture: {
-    entryPoints: string[]; leafModules: string[]; hubFiles: string[];
-    maxDepth: number; avgDepth: number; layerCount: number;
-    isolatedClusters: number; largestClusterSize: number;
+    entryPoints: string[];
+    leafModules: string[];
+    hubFiles: string[];
+    maxDepth: number;
+    avgDepth: number;
+    layerCount: number;
+    isolatedClusters: number;
+    largestClusterSize: number;
     bidirectionalDeps: { source: string; target: string }[];
   };
   metrics: {
-    avgFileLines: number; medianFileLines: number; maxFileLines: number;
-    sourceFileCount: number; testFileCount: number; testRatio: number;
+    avgFileLines: number;
+    medianFileLines: number;
+    maxFileLines: number;
+    sourceFileCount: number;
+    testFileCount: number;
+    testRatio: number;
     languageDistribution: { language: string; count: number; percentage: number }[];
-    dependencyDensity: number; orphanCount: number;
+    dependencyDensity: number;
+    orphanCount: number;
   };
-  recommendations: { priority: number; title: string; effort: 'small' | 'medium' | 'large'; impact: 'high' | 'medium' | 'low'; description: string; files: string[] }[];
+  recommendations: {
+    priority: number;
+    title: string;
+    effort: 'small' | 'medium' | 'large';
+    impact: 'high' | 'medium' | 'low';
+    description: string;
+    files: string[];
+  }[];
 }
 
 // simplebeacon-ignore: mega-params — single param with complex inline type definition
-function analyzeCodeMap(data: { files: { name: string; ext: string; size: number; lines: number; path: string; full: string; content?: string }[]; depNodes: Record<string, { id: string; label: string; group: string; size: number }>; depEdges: { source: string; target: string }[]; cycles: string[][]; root: string }): CodeMapAnalysis {
+function analyzeCodeMap(data: {
+  files: { name: string; ext: string; size: number; lines: number; path: string; full: string; content?: string }[];
+  depNodes: Record<string, { id: string; label: string; group: string; size: number }>;
+  depEdges: { source: string; target: string }[];
+  cycles: string[][];
+  root: string;
+}): CodeMapAnalysis {
   const { files, depNodes, depEdges, cycles, root } = data;
-  const recordedPaths = files.map(f => ({ path: f.path, type: f.ext, lines: f.lines, size: f.size }));
+  const recordedPaths = files.map((f) => ({ path: f.path, type: f.ext, lines: f.lines, size: f.size }));
   const improvements: CodeMapAnalysis['improvements'] = [];
   const issues: CodeMapAnalysis['issues'] = [];
   const recommendations: CodeMapAnalysis['recommendations'] = [];
 
-  const sourceExts = ['.js', '.ts', '.tsx', '.jsx', '.py', '.java', '.go', '.rs', '.c', '.cpp', '.h', '.hpp', '.cs', '.rb', '.php', '.swift', '.kt'];
-  const sourceFiles = files.filter(f => sourceExts.includes(f.ext));
+  const sourceExts = [
+    '.js',
+    '.ts',
+    '.tsx',
+    '.jsx',
+    '.py',
+    '.java',
+    '.go',
+    '.rs',
+    '.c',
+    '.cpp',
+    '.h',
+    '.hpp',
+    '.cs',
+    '.rb',
+    '.php',
+    '.swift',
+    '.kt',
+  ];
+  const sourceFiles = files.filter((f) => sourceExts.includes(f.ext));
   const testPattern = /\.(test|spec)\.|_(test|spec)\./;
-  const testFiles = files.filter(f => testPattern.test(f.name));
+  const testFiles = files.filter((f) => testPattern.test(f.name));
 
   // --- File size & complexity metrics ---
-  const lineCounts = files.map(f => f.lines);
+  const lineCounts = files.map((f) => f.lines);
   const avgFileLines = lineCounts.length ? Math.round(lineCounts.reduce((a, b) => a + b, 0) / lineCounts.length) : 0;
   const sortedLines = [...lineCounts].sort((a, b) => a - b);
   const medianFileLines = sortedLines.length ? sortedLines[Math.floor(sortedLines.length / 2)] : 0;
   const maxFileLines = sortedLines.length ? sortedLines[sortedLines.length - 1] : 0;
 
-  const largeFiles = files.filter(f => f.lines > 500).map(f => f.path);
-  const veryLargeFiles = files.filter(f => f.lines > 1000).map(f => f.path);
+  const largeFiles = files.filter((f) => f.lines > 500).map((f) => f.path);
+  const veryLargeFiles = files.filter((f) => f.lines > 1000).map((f) => f.path);
   if (veryLargeFiles.length > 0) {
-    issues.push({ title: 'Very Large Files', severity: 'high', files: veryLargeFiles.slice(0, 10), description: `${veryLargeFiles.length} files exceed 1000 lines. Strong candidates for extraction.` });
-    recommendations.push({ priority: 1, title: 'Extract very large files into modules', effort: 'large', impact: 'high', description: `Break files >1000 lines into focused modules to improve maintainability.`, files: veryLargeFiles.slice(0, 5) });
+    issues.push({
+      title: 'Very Large Files',
+      severity: 'high',
+      files: veryLargeFiles.slice(0, 10),
+      description: `${veryLargeFiles.length} files exceed 1000 lines. Strong candidates for extraction.`,
+    });
+    recommendations.push({
+      priority: 1,
+      title: 'Extract very large files into modules',
+      effort: 'large',
+      impact: 'high',
+      description: `Break files >1000 lines into focused modules to improve maintainability.`,
+      files: veryLargeFiles.slice(0, 5),
+    });
   } else if (largeFiles.length > 0) {
-    improvements.push({ title: 'Large Files Detected', severity: 'medium', files: largeFiles.slice(0, 10), description: `${largeFiles.length} files exceed 500 lines. Consider splitting or refactoring.` });
+    improvements.push({
+      title: 'Large Files Detected',
+      severity: 'medium',
+      files: largeFiles.slice(0, 10),
+      description: `${largeFiles.length} files exceed 500 lines. Consider splitting or refactoring.`,
+    });
   }
 
   // --- Directory depth metrics ---
-  const depths = files.map(f => f.path.split(/[\\/]/).length);
+  const depths = files.map((f) => f.path.split(/[\\/]/).length);
   const maxDepth = depths.length ? Math.max(...depths) : 0;
   const avgDepth = depths.length ? Math.round(depths.reduce((a, b) => a + b, 0) / depths.length) : 0;
-  const deepPaths = files.filter(f => f.path.split(/[\\/]/).length > 6).map(f => f.path);
+  const deepPaths = files.filter((f) => f.path.split(/[\\/]/).length > 6).map((f) => f.path);
   if (deepPaths.length > 0) {
-    improvements.push({ title: 'Deep Directory Nesting', severity: 'low', files: deepPaths.slice(0, 10), description: `${deepPaths.length} files nested deeper than 6 levels. Flatten where possible.` });
+    improvements.push({
+      title: 'Deep Directory Nesting',
+      severity: 'low',
+      files: deepPaths.slice(0, 10),
+      description: `${deepPaths.length} files nested deeper than 6 levels. Flatten where possible.`,
+    });
   }
 
   // --- Dependency graph metrics ---
   const outCounts: Record<string, number> = {};
   const inCounts: Record<string, number> = {};
   const allDepPaths = new Set<string>();
-  depEdges.forEach(e => {
-    allDepPaths.add(e.source); allDepPaths.add(e.target);
+  depEdges.forEach((e) => {
+    allDepPaths.add(e.source);
+    allDepPaths.add(e.target);
     outCounts[e.source] = (outCounts[e.source] || 0) + 1;
     inCounts[e.target] = (inCounts[e.target] || 0) + 1;
   });
 
   // Orphan files
-  const orphanFiles = sourceFiles.filter(f => !allDepPaths.has(f.path)).map(f => f.path);
+  const orphanFiles = sourceFiles.filter((f) => !allDepPaths.has(f.path)).map((f) => f.path);
   if (orphanFiles.length > 0) {
-    improvements.push({ title: 'Potential Orphan / Unused Files', severity: 'medium', files: orphanFiles.slice(0, 10), description: `${orphanFiles.length} source files have no imports or dependents in the scanned graph.` });
+    improvements.push({
+      title: 'Potential Orphan / Unused Files',
+      severity: 'medium',
+      files: orphanFiles.slice(0, 10),
+      description: `${orphanFiles.length} source files have no imports or dependents in the scanned graph.`,
+    });
   }
 
   // High coupling
   const connectionCounts: Record<string, number> = {};
-  depEdges.forEach(e => { connectionCounts[e.source] = (connectionCounts[e.source] || 0) + 1; connectionCounts[e.target] = (connectionCounts[e.target] || 0) + 1; });
-  const highlyConnected = Object.entries(connectionCounts).filter(([, c]) => c > 20).map(([p]) => p);
+  depEdges.forEach((e) => {
+    connectionCounts[e.source] = (connectionCounts[e.source] || 0) + 1;
+    connectionCounts[e.target] = (connectionCounts[e.target] || 0) + 1;
+  });
+  const highlyConnected = Object.entries(connectionCounts)
+    .filter(([, c]) => c > 20)
+    .map(([p]) => p);
   if (highlyConnected.length > 0) {
-    issues.push({ title: 'High Coupling', severity: 'high', files: highlyConnected.slice(0, 10), description: `${highlyConnected.length} files have >20 connections. Consider decoupling via interfaces or events.` });
-    recommendations.push({ priority: 2, title: 'Decouple highly connected modules', effort: 'large', impact: 'high', description: `Refactor hub files with >20 connections to reduce ripple effects.`, files: highlyConnected.slice(0, 5) });
+    issues.push({
+      title: 'High Coupling',
+      severity: 'high',
+      files: highlyConnected.slice(0, 10),
+      description: `${highlyConnected.length} files have >20 connections. Consider decoupling via interfaces or events.`,
+    });
+    recommendations.push({
+      priority: 2,
+      title: 'Decouple highly connected modules',
+      effort: 'large',
+      impact: 'high',
+      description: `Refactor hub files with >20 connections to reduce ripple effects.`,
+      files: highlyConnected.slice(0, 5),
+    });
   }
 
   // Architecture: entry points, leaf modules, hub files
-  const entryPoints = Object.keys(outCounts).filter(k => !(k in inCounts) || (inCounts[k] || 0) === 0);
-  const leafModules = Object.keys(inCounts).filter(k => !(k in outCounts) || (outCounts[k] || 0) === 0);
-  const hubFiles = Object.keys(connectionCounts).filter(k => (inCounts[k] || 0) > 5 && (outCounts[k] || 0) > 5);
+  const entryPoints = Object.keys(outCounts).filter((k) => !(k in inCounts) || (inCounts[k] || 0) === 0);
+  const leafModules = Object.keys(inCounts).filter((k) => !(k in outCounts) || (outCounts[k] || 0) === 0);
+  const hubFiles = Object.keys(connectionCounts).filter((k) => (inCounts[k] || 0) > 5 && (outCounts[k] || 0) > 5);
 
   // Bidirectional dependencies
   const bidirectionalDeps: { source: string; target: string }[] = [];
-  const depSet = new Set(depEdges.map(e => e.source + '|' + e.target));
-  depEdges.forEach(e => {
+  const depSet = new Set(depEdges.map((e) => e.source + '|' + e.target));
+  depEdges.forEach((e) => {
     if (e.source !== e.target && depSet.has(e.target + '|' + e.source)) {
       const key = e.source < e.target ? e.source + '|' + e.target : e.target + '|' + e.source;
-      if (!bidirectionalDeps.some(b => (b.source + '|' + b.target) === key || (b.target + '|' + b.source) === key)) {
+      if (!bidirectionalDeps.some((b) => b.source + '|' + b.target === key || b.target + '|' + b.source === key)) {
         bidirectionalDeps.push({ source: e.source, target: e.target });
       }
     }
   });
   if (bidirectionalDeps.length > 0) {
-    issues.push({ title: 'Bidirectional Dependencies', severity: 'high', files: bidirectionalDeps.slice(0, 10).flatMap(b => [b.source, b.target]), description: `${bidirectionalDeps.length} bidirectional dependency pairs found. These often indicate layering violations.` });
-    recommendations.push({ priority: 3, title: 'Break bidirectional dependencies', effort: 'medium', impact: 'high', description: `Introduce an intermediate abstraction or move shared logic upward.`, files: bidirectionalDeps.slice(0, 5).flatMap(b => [b.source, b.target]) });
+    issues.push({
+      title: 'Bidirectional Dependencies',
+      severity: 'high',
+      files: bidirectionalDeps.slice(0, 10).flatMap((b) => [b.source, b.target]),
+      description: `${bidirectionalDeps.length} bidirectional dependency pairs found. These often indicate layering violations.`,
+    });
+    recommendations.push({
+      priority: 3,
+      title: 'Break bidirectional dependencies',
+      effort: 'medium',
+      impact: 'high',
+      description: `Introduce an intermediate abstraction or move shared logic upward.`,
+      files: bidirectionalDeps.slice(0, 5).flatMap((b) => [b.source, b.target]),
+    });
   }
 
   // Circular dependencies
   if (cycles.length > 0) {
     const cycleFiles = [...new Set(cycles.flat())];
-    issues.push({ title: 'Circular Dependencies', severity: 'critical', files: cycleFiles.slice(0, 10), description: `${cycles.length} circular cycles detected. Extract shared modules to break loops.` });
-    recommendations.push({ priority: 0, title: 'Resolve circular dependencies', effort: 'medium', impact: 'high', description: `Extract common interfaces or utility modules to break import loops.`, files: cycleFiles.slice(0, 5) });
+    issues.push({
+      title: 'Circular Dependencies',
+      severity: 'critical',
+      files: cycleFiles.slice(0, 10),
+      description: `${cycles.length} circular cycles detected. Extract shared modules to break loops.`,
+    });
+    recommendations.push({
+      priority: 0,
+      title: 'Resolve circular dependencies',
+      effort: 'medium',
+      impact: 'high',
+      description: `Extract common interfaces or utility modules to break import loops.`,
+      files: cycleFiles.slice(0, 5),
+    });
   }
 
   // Self-imports
-  const selfImports = depEdges.filter(e => e.source === e.target).map(e => e.source);
+  const selfImports = depEdges.filter((e) => e.source === e.target).map((e) => e.source);
   if (selfImports.length > 0) {
-    issues.push({ title: 'Self-Imports Detected', severity: 'high', files: [...new Set(selfImports)].slice(0, 10), description: 'Files importing themselves can cause infinite loops or build errors.' });
+    issues.push({
+      title: 'Self-Imports Detected',
+      severity: 'high',
+      files: [...new Set(selfImports)].slice(0, 10),
+      description: 'Files importing themselves can cause infinite loops or build errors.',
+    });
   }
 
   // Long dependency chains
@@ -6063,7 +7093,7 @@ function analyzeCodeMap(data: { files: { name: string; ext: string; size: number
     list.push(e.target);
     childrenMap.set(e.source, list);
   }
-  const chainStarts = Object.keys(outCounts).filter(k => !inCounts[k]);
+  const chainStarts = Object.keys(outCounts).filter((k) => !inCounts[k]);
   const longestMemo = new Map<string, number>();
   function longestPathFrom(start: string, stack = new Set<string>()): number {
     if (stack.has(start)) return 0;
@@ -6086,13 +7116,25 @@ function analyzeCodeMap(data: { files: { name: string; ext: string; size: number
     if (len > maxChainLength) maxChainLength = len;
   }
   if (maxChainLength > 8) {
-    issues.push({ title: 'Long Dependency Chains', severity: 'medium', files: [], description: `Longest dependency chain is ${maxChainLength} levels. Deep transitive dependencies increase fragility.` });
-    recommendations.push({ priority: 4, title: 'Flatten deep dependency chains', effort: 'medium', impact: 'medium', description: `Refactor to reduce the longest dependency chain (${maxChainLength} levels).`, files: [] });
+    issues.push({
+      title: 'Long Dependency Chains',
+      severity: 'medium',
+      files: [],
+      description: `Longest dependency chain is ${maxChainLength} levels. Deep transitive dependencies increase fragility.`,
+    });
+    recommendations.push({
+      priority: 4,
+      title: 'Flatten deep dependency chains',
+      effort: 'medium',
+      impact: 'medium',
+      description: `Refactor to reduce the longest dependency chain (${maxChainLength} levels).`,
+      files: [],
+    });
   }
 
   // Layer estimation via directory prefix grouping
   const dirGroups: Record<string, string[]> = {};
-  sourceFiles.forEach(f => {
+  sourceFiles.forEach((f) => {
     const parts = f.path.split(/[\\/]/);
     const layer = parts.length > 1 ? parts[0] : 'root';
     (dirGroups[layer] = dirGroups[layer] || []).push(f.path);
@@ -6101,13 +7143,13 @@ function analyzeCodeMap(data: { files: { name: string; ext: string; size: number
 
   // Isolated clusters via simple BFS on undirected graph
   const adj: Record<string, string[]> = {};
-  depEdges.forEach(e => {
+  depEdges.forEach((e) => {
     (adj[e.source] = adj[e.source] || []).push(e.target);
     (adj[e.target] = adj[e.target] || []).push(e.source);
   });
   const visitedCluster = new Set<string>();
   const clusters: string[][] = [];
-  Object.keys(adj).forEach(node => {
+  Object.keys(adj).forEach((node) => {
     if (visitedCluster.has(node)) return;
     const queue = [node];
     const cluster: string[] = [];
@@ -6115,79 +7157,134 @@ function analyzeCodeMap(data: { files: { name: string; ext: string; size: number
     while (queue.length) {
       const cur = queue.pop()!;
       cluster.push(cur);
-      (adj[cur] || []).forEach(nbr => {
-        if (!visitedCluster.has(nbr)) { visitedCluster.add(nbr); queue.push(nbr); }
+      (adj[cur] || []).forEach((nbr) => {
+        if (!visitedCluster.has(nbr)) {
+          visitedCluster.add(nbr);
+          queue.push(nbr);
+        }
       });
     }
     clusters.push(cluster);
   });
-  const isolatedClusters = clusters.filter(c => c.length > 1).length;
-  const largestClusterSize = clusters.length ? Math.max(...clusters.map(c => c.length)) : 0;
+  const isolatedClusters = clusters.filter((c) => c.length > 1).length;
+  const largestClusterSize = clusters.length ? Math.max(...clusters.map((c) => c.length)) : 0;
 
   // Test coverage ratio
   const testRatio = sourceFiles.length ? Math.round((testFiles.length / sourceFiles.length) * 100) : 0;
-  const missingTests = sourceFiles.filter(f => !testPattern.test(f.name) && !files.some(t => testPattern.test(t.name) && t.name.replace(/\.(test|spec)\.|_(test|spec)\./, '.').startsWith(f.name.replace(/\.[^.]+$/, '')))).map(f => f.path);
+  const missingTests = sourceFiles
+    .filter(
+      (f) =>
+        !testPattern.test(f.name) &&
+        !files.some(
+          (t) =>
+            testPattern.test(t.name) &&
+            t.name.replace(/\.(test|spec)\.|_(test|spec)\./, '.').startsWith(f.name.replace(/\.[^.]+$/, ''))
+        )
+    )
+    .map((f) => f.path);
   if (missingTests.length > 0 && sourceFiles.length > 5) {
-    improvements.push({ title: 'Missing Test Coverage', severity: 'low', files: missingTests.slice(0, 10), description: `${missingTests.length} source files lack corresponding test files.` });
+    improvements.push({
+      title: 'Missing Test Coverage',
+      severity: 'low',
+      files: missingTests.slice(0, 10),
+      description: `${missingTests.length} source files lack corresponding test files.`,
+    });
     if (testRatio < 30) {
-      recommendations.push({ priority: 5, title: 'Increase test coverage', effort: 'medium', impact: 'high', description: `Current test ratio is ${testRatio}%. Aim for at least 50% coverage.`, files: missingTests.slice(0, 5) });
+      recommendations.push({
+        priority: 5,
+        title: 'Increase test coverage',
+        effort: 'medium',
+        impact: 'high',
+        description: `Current test ratio is ${testRatio}%. Aim for at least 50% coverage.`,
+        files: missingTests.slice(0, 5),
+      });
     }
   }
 
   // Language distribution
   const extCounts: Record<string, number> = {};
-  files.forEach(f => { extCounts[f.ext] = (extCounts[f.ext] || 0) + 1; });
+  files.forEach((f) => {
+    extCounts[f.ext] = (extCounts[f.ext] || 0) + 1;
+  });
   const totalForLang = Object.values(extCounts).reduce((a, b) => a + b, 0) || 1;
-  const languageDistribution = Object.entries(extCounts).map(([language, count]) => ({ language, count, percentage: Math.round((count / totalForLang) * 100) })).sort((a, b) => b.count - a.count).slice(0, 10);
+  const languageDistribution = Object.entries(extCounts)
+    .map(([language, count]) => ({ language, count, percentage: Math.round((count / totalForLang) * 100) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
 
   // Dependency density
   const nodeCount = Object.keys(depNodes).length || 1;
   const dependencyDensity = Math.round((depEdges.length / (nodeCount * (nodeCount - 1) || 1)) * 100);
 
   // --- Scoring (0-100) ---
-  const architectureScore = Math.max(0, 100 - (cycles.length * 10) - (bidirectionalDeps.length * 5) - (maxDepth > 6 ? 10 : 0) - (isolatedClusters > 1 ? 5 : 0));
-  const couplingScore = Math.max(0, 100 - (highlyConnected.length * 3) - (dependencyDensity > 20 ? 10 : 0) - (hubFiles.length * 2));
-  const complexityScore = Math.max(0, 100 - (veryLargeFiles.length * 5) - (largeFiles.length * 2) - (maxChainLength > 8 ? 10 : 0));
+  const architectureScore = Math.max(
+    0,
+    100 - cycles.length * 10 - bidirectionalDeps.length * 5 - (maxDepth > 6 ? 10 : 0) - (isolatedClusters > 1 ? 5 : 0)
+  );
+  const couplingScore = Math.max(
+    0,
+    100 - highlyConnected.length * 3 - (dependencyDensity > 20 ? 10 : 0) - hubFiles.length * 2
+  );
+  const complexityScore = Math.max(
+    0,
+    100 - veryLargeFiles.length * 5 - largeFiles.length * 2 - (maxChainLength > 8 ? 10 : 0)
+  );
   const testScore = Math.min(100, testRatio * 2);
   const overallScore = Math.round((architectureScore + couplingScore + complexityScore + testScore) / 4);
-  const scoreLabel = overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Good' : overallScore >= 40 ? 'Fair' : 'Needs Work';
+  const scoreLabel =
+    overallScore >= 80 ? 'Excellent' : overallScore >= 60 ? 'Good' : overallScore >= 40 ? 'Fair' : 'Needs Work';
 
-  const criticalCount = issues.filter(i => i.severity === 'critical').length;
-  const highCount = issues.filter(i => i.severity === 'high').length;
+  const criticalCount = issues.filter((i) => i.severity === 'critical').length;
+  const highCount = issues.filter((i) => i.severity === 'high').length;
 
   return {
     recordedPaths: recordedPaths.slice(0, 200),
     improvements: improvements.slice(0, 20),
     issues: issues.slice(0, 20),
     summary: {
-      totalFiles: files.length, totalLines: files.reduce((s, f) => s + f.lines, 0),
-      criticalCount, highCount, improvementCount: improvements.length,
-      score: overallScore, scoreLabel,
-      architectureScore, couplingScore, complexityScore, testScore
+      totalFiles: files.length,
+      totalLines: files.reduce((s, f) => s + f.lines, 0),
+      criticalCount,
+      highCount,
+      improvementCount: improvements.length,
+      score: overallScore,
+      scoreLabel,
+      architectureScore,
+      couplingScore,
+      complexityScore,
+      testScore,
     },
     architecture: {
       entryPoints: entryPoints.slice(0, 20),
       leafModules: leafModules.slice(0, 20),
       hubFiles: hubFiles.slice(0, 20),
-      maxDepth, avgDepth, layerCount,
-      isolatedClusters, largestClusterSize,
-      bidirectionalDeps: bidirectionalDeps.slice(0, 20)
+      maxDepth,
+      avgDepth,
+      layerCount,
+      isolatedClusters,
+      largestClusterSize,
+      bidirectionalDeps: bidirectionalDeps.slice(0, 20),
     },
     metrics: {
-      avgFileLines, medianFileLines, maxFileLines,
-      sourceFileCount: sourceFiles.length, testFileCount: testFiles.length, testRatio,
+      avgFileLines,
+      medianFileLines,
+      maxFileLines,
+      sourceFileCount: sourceFiles.length,
+      testFileCount: testFiles.length,
+      testRatio,
       languageDistribution,
       dependencyDensity,
-      orphanCount: orphanFiles.length
+      orphanCount: orphanFiles.length,
     },
-    recommendations: recommendations.slice(0, 15)
+    recommendations: recommendations.slice(0, 15),
   };
 }
 
 /** Folder-tree fallback when a project has no JS/TS import graph (ZScript, WAD defs, etc.). */
-function buildFolderStructureGraph(
-  files: { path: string; name: string; ext: string; lines: number }[]
-): { nodes: { id: string; label: string; group: string; size: number }[]; edges: { source: string; target: string }[] } {
+function buildFolderStructureGraph(files: { path: string; name: string; ext: string; lines: number }[]): {
+  nodes: { id: string; label: string; group: string; size: number }[];
+  edges: { source: string; target: string }[];
+} {
   const nodes: Record<string, { id: string; label: string; group: string; size: number }> = {};
   const edges: { source: string; target: string }[] = [];
   const edgeSeen = new Set<string>();
@@ -6214,16 +7311,38 @@ function buildFolderStructureGraph(
 }
 
 function buildCodeMapHtml(options: CodeMapHtmlOptions): string {
-  const { root, files, totalLines, archParts, topExts, extColors, extIcons, treeHtml, treeJson, graphJson, cyclesJson, entryJson, leafJson, connectedJson, analysisJson } = options;
-  const extBarHtml = topExts.map(([ext, count]) => {
-    const color = extColors[ext] || '#64748b';
-    const pct = Math.round((count / files.length) * 100);
-    return `<div class="ext-bar" style="background:${color};width:${Math.max(pct, 3)}%">${ext} ${count} (${pct}%)</div>`;
-  }).join('');
+  const {
+    root,
+    files,
+    totalLines,
+    archParts,
+    topExts,
+    extColors,
+    extIcons,
+    treeHtml,
+    treeJson,
+    graphJson,
+    cyclesJson,
+    entryJson,
+    leafJson,
+    connectedJson,
+    analysisJson,
+  } = options;
+  const extBarHtml = topExts
+    .map(([ext, count]) => {
+      const color = extColors[ext] || '#64748b';
+      const pct = Math.round((count / files.length) * 100);
+      return `<div class="ext-bar" style="background:${color};width:${Math.max(pct, 3)}%">${ext} ${count} (${pct}%)</div>`;
+    })
+    .join('');
 
-  const langGridHtml = topExts.map(([ext, count]) => `
+  const langGridHtml = topExts
+    .map(
+      ([ext, count]) => `
     <div class="lang-item"><div class="lang-icon" style="color:${extColors[ext] || '#64748b'}">${extIcons[ext] || '📄'}</div><div class="lang-name">${ext}</div><div class="lang-count">${count}</div></div>
-  `).join('');
+  `
+    )
+    .join('');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -9096,20 +10215,32 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
       }
       const report = JSON.parse(fs.readFileSync(rp, 'utf8'));
       const prj = (report?.projectRoot as string) || '';
-      if (prj && (prj.includes('Temp') || prj.includes('AppData\\Local\\Temp') || prj.includes('simplebeacon-screenshot-sample'))) {
+      if (
+        prj &&
+        (prj.includes('Temp') || prj.includes('AppData\\Local\\Temp') || prj.includes('simplebeacon-screenshot-sample'))
+      ) {
         outputChannel?.appendLine(`[SimpleBeacon] Skipping temp/sample report: ${rp}`);
         return false;
       }
       // Accept both CLI reports (rawIssues/detectedIssues), workspace analyzer reports (findings), and clean gate reports
-      const hasCliData = (report.rawIssues?.length > 0) || (report.detectedIssues?.length > 0);
-      const hasFindings = (report.findings?.length > 0);
-      const scannedFiles = (report.totalFiles as number) || (report.filesAnalyzed as number) || (report.scan_summary as any)?.totalFiles || 0;
+      const hasCliData = report.rawIssues?.length > 0 || report.detectedIssues?.length > 0;
+      const hasFindings = report.findings?.length > 0;
+      const scannedFiles =
+        (report.totalFiles as number) ||
+        (report.filesAnalyzed as number) ||
+        (report.scan_summary as any)?.totalFiles ||
+        0;
       if (!hasCliData && !hasFindings && scannedFiles === 0) {
         outputChannel?.appendLine(`[SimpleBeacon] Skipping empty report: ${rp}`);
         return false;
       }
       currentReport = report;
-      updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'Loaded previous scan', lastScanTime: Date.now() });
+      updateServerState({
+        currentReport: report,
+        scanStatus: 'completed',
+        scanMessage: 'Loaded previous scan',
+        lastScanTime: Date.now(),
+      });
       enhancedAIProvider.setScanResult(report);
       scanProvider.updateReport(report);
       enhancedScanProvider.updateReport(report);
@@ -9166,7 +10297,12 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
       if (ageMs <= maxAgeMs) {
         const report = JSON.parse(fs.readFileSync(rp, 'utf8'));
         currentReport = report;
-        updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'Loaded bundled report', lastScanTime: Date.now() });
+        updateServerState({
+          currentReport: report,
+          scanStatus: 'completed',
+          scanMessage: 'Loaded bundled report',
+          lastScanTime: Date.now(),
+        });
         enhancedAIProvider.setScanResult(report);
         scanProvider.updateReport(report);
         enhancedScanProvider.updateReport(report);
@@ -9201,7 +10337,12 @@ function loadExistingReport(context?: vscode.ExtensionContext) {
         const rp = path.join(sbDir, backups[0]);
         const report = JSON.parse(fs.readFileSync(rp, 'utf8'));
         currentReport = report;
-        updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'Loaded backup report', lastScanTime: Date.now() });
+        updateServerState({
+          currentReport: report,
+          scanStatus: 'completed',
+          scanMessage: 'Loaded backup report',
+          lastScanTime: Date.now(),
+        });
         enhancedAIProvider.setScanResult(report);
         scanProvider.updateReport(report);
         enhancedScanProvider.updateReport(report);
@@ -9248,7 +10389,11 @@ async function openPreviewPanel(url: string, title: string) {
       enableDragAndDrop: true,
     } as vscode.WebviewPanelOptions);
     activePreviewPanel = panel;
-    panel.onDidDispose(() => { if (activePreviewPanel === panel) { activePreviewPanel = undefined; } });
+    panel.onDidDispose(() => {
+      if (activePreviewPanel === panel) {
+        activePreviewPanel = undefined;
+      }
+    });
     panel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.command === 'updateStats') {
         dashboardPanel?.updateStats(msg);
@@ -9263,14 +10408,14 @@ async function openPreviewPanel(url: string, title: string) {
           canSelectFiles: false,
           canSelectFolders: true,
           canSelectMany: false,
-          openLabel: 'Select Folder to Scan'
+          openLabel: 'Select Folder to Scan',
         });
         if (picked && picked[0]) {
           const projectPath = picked[0].fsPath;
           vscode.commands.executeCommand('simplebeacon.scanWorkspace', {
             projectPath,
             mode: 'full',
-            fullDirectory: true
+            fullDirectory: true,
           });
         }
         return;
@@ -9296,7 +10441,10 @@ async function openPreviewPanel(url: string, title: string) {
           } catch (chatErr) {
             // Chat command may not be available in all IDEs
           }
-          vscode.window.setStatusBarMessage('Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V', 3000);
+          vscode.window.setStatusBarMessage(
+            'Scan data copied to clipboard — paste into your AI coding agent with Ctrl+V',
+            3000
+          );
         } catch (err) {
           vscode.window.showErrorMessage('Failed to send to AI: ' + (err instanceof Error ? err.message : String(err)));
         }
@@ -9307,7 +10455,12 @@ async function openPreviewPanel(url: string, title: string) {
         // Store full report so the extension can use it everywhere
         currentReport = report;
         enhancedAIProvider.setScanResult(report);
-        updateServerState({ currentReport: report, scanStatus: 'completed', scanMessage: 'Report updated', lastScanTime: Date.now() });
+        updateServerState({
+          currentReport: report,
+          scanStatus: 'completed',
+          scanMessage: 'Report updated',
+          lastScanTime: Date.now(),
+        });
         // Update all UI providers with the full report
         summaryProvider.updateReport(report);
         settingsProvider.updateReport(report);
@@ -9330,28 +10483,39 @@ async function openPreviewPanel(url: string, title: string) {
         });
       } else if (msg.command === 'downloadFile' && msg.base64 && msg.filename) {
         try {
-          outputChannel.appendLine(`[Download Relay] Received downloadFile request: ${msg.filename} (${msg.mimeType || 'unknown'})`);
+          outputChannel.appendLine(
+            `[Download Relay] Received downloadFile request: ${msg.filename} (${msg.mimeType || 'unknown'})`
+          );
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file(msg.filename),
           });
           if (uri) {
-            await vscode.window.withProgress({
-              location: vscode.ProgressLocation.Window,
-              title: `Saving ${msg.filename}`,
-              cancellable: false,
-            }, async (progress) => {
-              progress.report({ increment: 0 });
-              const buffer = Buffer.from(msg.base64, 'base64');
-              await vscode.workspace.fs.writeFile(uri, buffer);
-              progress.report({ increment: 100 });
-            });
+            await vscode.window.withProgress(
+              {
+                location: vscode.ProgressLocation.Window,
+                title: `Saving ${msg.filename}`,
+                cancellable: false,
+              },
+              async (progress) => {
+                progress.report({ increment: 0 });
+                const buffer = Buffer.from(msg.base64, 'base64');
+                await vscode.workspace.fs.writeFile(uri, buffer);
+                progress.report({ increment: 100 });
+              }
+            );
             outputChannel.appendLine(`[Download Relay] File saved to ${uri.fsPath}`);
-            activePreviewPanel?.webview.postMessage({ command: 'downloadComplete', filename: path.basename(uri.fsPath), filePath: uri.fsPath });
+            activePreviewPanel?.webview.postMessage({
+              command: 'downloadComplete',
+              filename: path.basename(uri.fsPath),
+              filePath: uri.fsPath,
+            });
             if (modernSidebarProvider) {
               outputChannel.appendLine(`[Download Relay] Dispatching to sidebar: ${path.basename(uri.fsPath)}`);
               modernSidebarProvider.addDownloadedFile(path.basename(uri.fsPath), uri.fsPath);
             } else {
-              outputChannel.appendLine('[Download Relay] Warning: modernSidebarProvider is undefined; file will not appear in sidebar downloads.');
+              outputChannel.appendLine(
+                '[Download Relay] Warning: modernSidebarProvider is undefined; file will not appear in sidebar downloads.'
+              );
             }
           } else {
             outputChannel.appendLine('[Download Relay] Save dialog cancelled by user.');
@@ -9365,7 +10529,11 @@ async function openPreviewPanel(url: string, title: string) {
         try {
           const filePath = msg.path;
           if (!fs.existsSync(filePath)) {
-            activePreviewPanel?.webview.postMessage({ command: 'readLocalFileResult', path: filePath, error: 'File not found' });
+            activePreviewPanel?.webview.postMessage({
+              command: 'readLocalFileResult',
+              path: filePath,
+              error: 'File not found',
+            });
           } else {
             const content = fs.readFileSync(filePath, 'utf8');
             activePreviewPanel?.webview.postMessage({ command: 'readLocalFileResult', path: filePath, content });
@@ -9374,23 +10542,31 @@ async function openPreviewPanel(url: string, title: string) {
           activePreviewPanel?.webview.postMessage({
             command: 'readLocalFileResult',
             path: msg.path,
-            error: err instanceof Error ? err.message : String(err)
+            error: err instanceof Error ? err.message : String(err),
           });
         }
       } else if (msg.command === 'openDownloadLocation' && msg.filename) {
         if (msg.filePath) {
           vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(msg.filePath));
         } else {
-          vscode.window.showInformationMessage(`${msg.filename} saved to your downloads folder`, 'Copy').then((action) => {
-            if (action === 'Copy') {
-              vscode.env.clipboard.writeText(msg.filename);
-            }
-          });
+          vscode.window
+            .showInformationMessage(`${msg.filename} saved to your downloads folder`, 'Copy')
+            .then((action) => {
+              if (action === 'Copy') {
+                vscode.env.clipboard.writeText(msg.filename);
+              }
+            });
         }
       } else if (msg.command === 'setAuthState') {
         // Forward auth state from dashboard iframe to sidebar
         const tier = msg.tier || '';
-        ModernSidebarProvider.setSidebarAuthState(msg.signedIn === true, tier, undefined, undefined, msg.isAdmin === true);
+        ModernSidebarProvider.setSidebarAuthState(
+          msg.signedIn === true,
+          tier,
+          undefined,
+          undefined,
+          msg.isAdmin === true
+        );
       } else if (msg.command === 'addDownloadedFile' && msg.name) {
         // Forward download notifications from dashboard iframe to sidebar when the /api/notify HTTP bridge fails
         const name = String(msg.name);
@@ -9412,9 +10588,12 @@ async function openPreviewPanel(url: string, title: string) {
       }
     });
   }
-  const baseUrl = url.replace(/\?.*$/, '').replace(/#.*$/, '').replace(/\/[^\/]*$/, '/');
+  const baseUrl = url
+    .replace(/\?.*$/, '')
+    .replace(/#.*$/, '')
+    .replace(/\/[^\/]*$/, '/');
   const origin = url.replace(/^(https?:\/\/[^\/]+).*$/, '$1');
-  const resolvePreviewUrl = (matched: string) => matched.startsWith('/') ? origin + matched : baseUrl + matched;
+  const resolvePreviewUrl = (matched: string) => (matched.startsWith('/') ? origin + matched : baseUrl + matched);
   try {
     const html = await fetchHtml(url);
     let rewritten = html
@@ -9429,15 +10608,15 @@ async function openPreviewPanel(url: string, title: string) {
     const cspTag =
       '<meta http-equiv="Content-Security-Policy" content="default-src ' +
       origin +
-      "; script-src " +
+      '; script-src ' +
       origin +
       " https://unpkg.com https://cdnjs.cloudflare.com 'unsafe-inline'; style-src " +
       origin +
       " https://fonts.googleapis.com 'unsafe-inline'; img-src " +
       origin +
-      " data: blob:; connect-src " +
+      ' data: blob:; connect-src ' +
       origin +
-      "; font-src " +
+      '; font-src ' +
       origin +
       ' https://fonts.gstatic.com;">';
     const apiHostScript = '<script>window.__SB_API_HOST__ = "' + origin + '";<\/script>';
@@ -9445,13 +10624,20 @@ async function openPreviewPanel(url: string, title: string) {
     const hashRoute = parsedUrl.hash || '';
     const hashView = hashRoute.replace(/^#\//, '');
     // Derive view from path-based routes like /dashboard/security
-    const pathSegments = parsedUrl.pathname.replace(/^\/dashboard\/?/, '').split('/').filter(Boolean);
+    const pathSegments = parsedUrl.pathname
+      .replace(/^\/dashboard\/?/, '')
+      .split('/')
+      .filter(Boolean);
     const pathView = pathSegments[0] || '';
     const initialView = hashView || pathView;
     const routeScript = initialView ? '<script>window.__SB_INITIAL_ROUTE__ = "' + initialView + '";<\/script>' : '';
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    const workspacePath = workspaceFolders && workspaceFolders[0] ? workspaceFolders[0].uri.fsPath.replace(/\\/g, '/') : '';
-    const projectPathScript = '<script>window.__SB_DEFAULT_PROJECT_PATH__ = ' + JSON.stringify(workspacePath).replace(/<\/script>/gi, '<\\/script>') + ';<\/script>';
+    const workspacePath =
+      workspaceFolders && workspaceFolders[0] ? workspaceFolders[0].uri.fsPath.replace(/\\/g, '/') : '';
+    const projectPathScript =
+      '<script>window.__SB_DEFAULT_PROJECT_PATH__ = ' +
+      JSON.stringify(workspacePath).replace(/<\/script>/gi, '<\\/script>') +
+      ';<\/script>';
     const fetchInterceptorScript = `<script>
 (function() {
   const origFetch = window.fetch;
@@ -9496,9 +10682,24 @@ async function openPreviewPanel(url: string, title: string) {
 <\/script>`;
     const headClose = rewritten.indexOf('</head>');
     if (headClose > 0) {
-      rewritten = rewritten.slice(0, headClose) + cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + dropFallbackScript + rewritten.slice(headClose);
+      rewritten =
+        rewritten.slice(0, headClose) +
+        cspTag +
+        apiHostScript +
+        routeScript +
+        projectPathScript +
+        fetchInterceptorScript +
+        dropFallbackScript +
+        rewritten.slice(headClose);
     } else {
-      rewritten = cspTag + apiHostScript + routeScript + projectPathScript + fetchInterceptorScript + dropFallbackScript + rewritten;
+      rewritten =
+        cspTag +
+        apiHostScript +
+        routeScript +
+        projectPathScript +
+        fetchInterceptorScript +
+        dropFallbackScript +
+        rewritten;
     }
     panel!.title = title;
     panel!.webview.html = rewritten;
@@ -9530,8 +10731,12 @@ function fetchHtml(url: string, maxRedirects = 5): Promise<string> {
         // Follow redirect
         const redirectUrl = new URL(res.headers.location, url).toString();
         fetchHtml(redirectUrl, maxRedirects - 1)
-          .then((result) => { resolve(result); })
-          .catch((err) => { reject(err); });
+          .then((result) => {
+            resolve(result);
+          })
+          .catch((err) => {
+            reject(err);
+          });
         return;
       }
       res.on('data', (chunk: Buffer) => {
@@ -9568,7 +10773,7 @@ function renderEmailTemplate(report: ScanReportSummary, extensionPath: string): 
   const sev = r.severityCounts || {};
   const total = (sev.critical || 0) + (sev.high || 0) + (sev.medium || 0) + (sev.low || 0);
   const score = r.qualityScore ?? r.score ?? 0;
-  const gate = r.gateStatus || (r.gate?.status) || 'UNKNOWN';
+  const gate = r.gateStatus || r.gate?.status || 'UNKNOWN';
   const gateClass = gate === 'PASS' ? 'pass' : gate === 'WARN' ? 'warn' : 'fail';
   const all = total || 1;
   const critPct = ((sev.critical || 0) / all) * 100;
@@ -9580,11 +10785,26 @@ function renderEmailTemplate(report: ScanReportSummary, extensionPath: string): 
 
   // Build findings HTML from rawIssues
   const raw = r.rawIssues || r.detectedIssues || [];
-  const findingsHtml = raw.length > 0
-    ? raw.map((it: { severity: string; type?: string; file?: string; filePath?: string; line?: number; description?: string; message?: string }) => {
-        const sevColor = it.severity === 'critical' || it.severity === 'high' ? '#ef4444'
-          : it.severity === 'medium' ? '#f59e0b' : '#10b981';
-        return `<div class="finding">
+  const findingsHtml =
+    raw.length > 0
+      ? raw
+          .map(
+            (it: {
+              severity: string;
+              type?: string;
+              file?: string;
+              filePath?: string;
+              line?: number;
+              description?: string;
+              message?: string;
+            }) => {
+              const sevColor =
+                it.severity === 'critical' || it.severity === 'high'
+                  ? '#ef4444'
+                  : it.severity === 'medium'
+                    ? '#f59e0b'
+                    : '#10b981';
+              return `<div class="finding">
       <div class="finding-header">
         <span class="finding-type" style="color:${sevColor};">${escapeHtml(it.type || 'Finding')}</span>
         <span class="finding-sev sev-${escapeHtml(it.severity || 'low')}">${escapeHtml(it.severity || 'low')}</span>
@@ -9592,8 +10812,10 @@ function renderEmailTemplate(report: ScanReportSummary, extensionPath: string): 
       <div class="finding-desc">${escapeHtml(it.description || it.message || 'Finding')}</div>
       <span class="finding-file">${escapeHtml(it.filePath || it.file || 'unknown')}:${it.line || 1}</span>
     </div>`;
-      }).join('\n')
-    : `<div class="clean-state">
+            }
+          )
+          .join('\n')
+      : `<div class="clean-state">
       <div class="clean-icon">&#9989;</div>
       <div class="clean-title">All Clear!</div>
       <div class="clean-desc">No security issues detected. Your codebase passed all quality gates.</div>
@@ -9607,10 +10829,22 @@ function renderEmailTemplate(report: ScanReportSummary, extensionPath: string): 
     .replace(/<div class="score-ring [a-z]+">\d+<\/div>/, `<div class="score-ring ${gateClass}">${score}</div>`)
     .replace(/<div class="score-label">[A-Z]+<\/div>/, `<div class="score-label">${gate}</div>`)
     .replace(/<strong>My Project<\/strong> &mdash; .*?<\/p>/, `<strong>My Project</strong> &mdash; ${date}</p>`)
-    .replace(/<div class="metric-value">[\d,]+<\/div>\s*<div class="metric-label">Files Scanned<\/div>/, `<div class="metric-value">${files.toLocaleString()}</div>\n        <div class="metric-label">Files Scanned</div>`)
-    .replace(/<div class="metric-value">[\d,]+<\/div>\s*<div class="metric-label">Total Issues<\/div>/, `<div class="metric-value">${total.toLocaleString()}</div>\n        <div class="metric-label">Total Issues</div>`)
-    .replace(/<div class="metric-value">[\d,]+<\/div>\s*<div class="metric-label">Critical<\/div>/, `<div class="metric-value">${sev.critical || 0}</div>\n        <div class="metric-label">Critical</div>`)
-    .replace(/<div class="metric-value">[\d,]+<\/div>\s*<div class="metric-label">High<\/div>/, `<div class="metric-value">${sev.high || 0}</div>\n        <div class="metric-label">High</div>`)
+    .replace(
+      /<div class="metric-value">[\d,]+<\/div>\s*<div class="metric-label">Files Scanned<\/div>/,
+      `<div class="metric-value">${files.toLocaleString()}</div>\n        <div class="metric-label">Files Scanned</div>`
+    )
+    .replace(
+      /<div class="metric-value">[\d,]+<\/div>\s*<div class="metric-label">Total Issues<\/div>/,
+      `<div class="metric-value">${total.toLocaleString()}</div>\n        <div class="metric-label">Total Issues</div>`
+    )
+    .replace(
+      /<div class="metric-value">[\d,]+<\/div>\s*<div class="metric-label">Critical<\/div>/,
+      `<div class="metric-value">${sev.critical || 0}</div>\n        <div class="metric-label">Critical</div>`
+    )
+    .replace(
+      /<div class="metric-value">[\d,]+<\/div>\s*<div class="metric-label">High<\/div>/,
+      `<div class="metric-value">${sev.high || 0}</div>\n        <div class="metric-label">High</div>`
+    )
     .replace(/style="width:[\d.]+%; background:#ef4444;"/, `style="width:${critPct}%; background:#ef4444;"`)
     .replace(/style="width:[\d.]+%; background:#f97316;"/, `style="width:${highPct}%; background:#f97316;"`)
     .replace(/style="width:[\d.]+%; background:#f59e0b;"/, `style="width:${medPct}%; background:#f59e0b;"`)
@@ -9619,7 +10853,10 @@ function renderEmailTemplate(report: ScanReportSummary, extensionPath: string): 
     .replace(/High \d+/, `High ${sev.high || 0}`)
     .replace(/Medium \d+/, `Medium ${sev.medium || 0}`)
     .replace(/Low \d+/, `Low ${sev.low || 0}`)
-    .replace(/<div class="section">\s*<div class="section-title">Top Findings<\/div>[\s\S]*?<\/div>\s*<\/div>\s*<div class="section" style="text-align:center;">/, `<div class="section">\n    <div class="section-title">Top Findings</div>\n    ${findingsHtml}\n  </div>\n\n  <div class="section" style="text-align:center;">`);
+    .replace(
+      /<div class="section">\s*<div class="section-title">Top Findings<\/div>[\s\S]*?<\/div>\s*<\/div>\s*<div class="section" style="text-align:center;">/,
+      `<div class="section">\n    <div class="section-title">Top Findings</div>\n    ${findingsHtml}\n  </div>\n\n  <div class="section" style="text-align:center;">`
+    );
 
   return html;
 }

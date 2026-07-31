@@ -32,7 +32,7 @@ async function scanForMockFiles(dirPath, baseDir = null) {
         name: item.name,
         size: item.size,
         analysis,
-        ...(analysis.needsValidation ? { content } : {})
+        ...(analysis.needsValidation ? { content } : {}),
       });
 
       if (analysis.issues.length > 0) {
@@ -42,7 +42,7 @@ async function scanForMockFiles(dirPath, baseDir = null) {
       issues.push({
         file: item.name,
         error: error.message,
-        type: 'read_error'
+        type: 'read_error',
       });
     }
   }

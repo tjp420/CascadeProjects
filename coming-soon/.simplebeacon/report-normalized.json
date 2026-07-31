@@ -1,110 +1,110 @@
 {
-  "title": "Scan: ai-platform",
-  "qualityScore": 90,
-  "totalFiles": 16448,
-  "filesAnalyzed": 595,
-  "gate": {
-    "pass": true,
-    "blockingCount": 0
-  },
-  "rawIssues": [
-    {
-      "type": "for-in-no-guard",
-      "severity": "medium",
-      "description": "for...in loop without hasOwnProperty guard — prototype pollution risk",
-      "file": "web/simplebeacon-dashboard/js/main.js",
-      "line": 65,
-      "count": 1,
-      "category": "prototype-pollution",
-      "recommendedAction": "Avoid assigning to __proto__ or dynamic prototype properties; use Object.create(null) or Map instead"
+    "title": "Scan: ai-platform",
+    "qualityScore": 90,
+    "totalFiles": 16448,
+    "filesAnalyzed": 595,
+    "gate": {
+        "pass": true,
+        "blockingCount": 0
     },
-    {
-      "type": "committed-env-file",
-      "severity": "critical",
-      "description": ".env file committed to repository — environment secrets may be exposed",
-      "file": ".env",
-      "line": 1,
-      "count": 1,
-      "category": "committed-env-file",
-      "recommendedAction": "Remove .env from repository; use .env.example instead"
-    },
-    {
-      "type": "ai-placeholder-comment",
-      "severity": "low",
-      "description": "AI placeholder comment in web/simplebeacon-dashboard/serve.cjs",
-      "file": "web/simplebeacon-dashboard/serve.cjs",
-      "line": 41,
-      "count": 1,
-      "category": "ai-placeholder-comment",
-      "recommendedAction": "Replace placeholder text with verified production content"
-    }
-  ],
-  "detectedIssues": [
-    {
-      "type": "for-in-no-guard",
-      "severity": "medium",
-      "description": "for...in loop without hasOwnProperty guard — prototype pollution risk",
-      "file": "web/simplebeacon-dashboard/js/main.js",
-      "line": 65,
-      "count": 1,
-      "category": "prototype-pollution",
-      "recommendedAction": "Avoid assigning to __proto__ or dynamic prototype properties; use Object.create(null) or Map instead"
-    },
-    {
-      "type": "committed-env-file",
-      "severity": "critical",
-      "description": ".env file committed to repository — environment secrets may be exposed",
-      "file": ".env",
-      "line": 1,
-      "count": 1,
-      "category": "committed-env-file",
-      "recommendedAction": "Remove .env from repository; use .env.example instead"
-    },
-    {
-      "type": "ai-placeholder-comment",
-      "severity": "low",
-      "description": "AI placeholder comment in web/simplebeacon-dashboard/serve.cjs",
-      "file": "web/simplebeacon-dashboard/serve.cjs",
-      "line": 41,
-      "count": 1,
-      "category": "ai-placeholder-comment",
-      "recommendedAction": "Replace placeholder text with verified production content"
-    }
-  ],
-  "issues": [
-    {
-      "type": "for-in-no-guard",
-      "severity": "medium",
-      "description": "for...in loop without hasOwnProperty guard — prototype pollution risk",
-      "file": "web/simplebeacon-dashboard/js/main.js",
-      "line": 65,
-      "count": 1,
-      "category": "prototype-pollution",
-      "recommendedAction": "Avoid assigning to __proto__ or dynamic prototype properties; use Object.create(null) or Map instead"
-    },
-    {
-      "type": "committed-env-file",
-      "severity": "critical",
-      "description": ".env file committed to repository — environment secrets may be exposed",
-      "file": ".env",
-      "line": 1,
-      "count": 1,
-      "category": "committed-env-file",
-      "recommendedAction": "Remove .env from repository; use .env.example instead"
-    },
-    {
-      "type": "ai-placeholder-comment",
-      "severity": "low",
-      "description": "AI placeholder comment in web/simplebeacon-dashboard/serve.cjs",
-      "file": "web/simplebeacon-dashboard/serve.cjs",
-      "line": 41,
-      "count": 1,
-      "category": "ai-placeholder-comment",
-      "recommendedAction": "Replace placeholder text with verified production content"
-    }
-  ],
-  "criticalCount": 1,
-  "highCount": 0,
-  "mediumCount": 1,
-  "lowCount": 1
+    "rawIssues": [
+        {
+            "type": "for-in-no-guard",
+            "severity": "medium",
+            "description": "for...in loop without hasOwnProperty guard — prototype pollution risk",
+            "file": "web/simplebeacon-dashboard/js/main.js",
+            "line": 65,
+            "count": 1,
+            "category": "prototype-pollution",
+            "recommendedAction": "Avoid assigning to __proto__ or dynamic prototype properties; use Object.create(null) or Map instead"
+        },
+        {
+            "type": "committed-env-file",
+            "severity": "critical",
+            "description": ".env file committed to repository — environment secrets may be exposed",
+            "file": ".env",
+            "line": 1,
+            "count": 1,
+            "category": "committed-env-file",
+            "recommendedAction": "Remove .env from repository; use .env.example instead"
+        },
+        {
+            "type": "ai-placeholder-comment",
+            "severity": "low",
+            "description": "AI placeholder comment in web/simplebeacon-dashboard/serve.cjs",
+            "file": "web/simplebeacon-dashboard/serve.cjs",
+            "line": 41,
+            "count": 1,
+            "category": "ai-placeholder-comment",
+            "recommendedAction": "Replace placeholder text with verified production content"
+        }
+    ],
+    "detectedIssues": [
+        {
+            "type": "for-in-no-guard",
+            "severity": "medium",
+            "description": "for...in loop without hasOwnProperty guard — prototype pollution risk",
+            "file": "web/simplebeacon-dashboard/js/main.js",
+            "line": 65,
+            "count": 1,
+            "category": "prototype-pollution",
+            "recommendedAction": "Avoid assigning to __proto__ or dynamic prototype properties; use Object.create(null) or Map instead"
+        },
+        {
+            "type": "committed-env-file",
+            "severity": "critical",
+            "description": ".env file committed to repository — environment secrets may be exposed",
+            "file": ".env",
+            "line": 1,
+            "count": 1,
+            "category": "committed-env-file",
+            "recommendedAction": "Remove .env from repository; use .env.example instead"
+        },
+        {
+            "type": "ai-placeholder-comment",
+            "severity": "low",
+            "description": "AI placeholder comment in web/simplebeacon-dashboard/serve.cjs",
+            "file": "web/simplebeacon-dashboard/serve.cjs",
+            "line": 41,
+            "count": 1,
+            "category": "ai-placeholder-comment",
+            "recommendedAction": "Replace placeholder text with verified production content"
+        }
+    ],
+    "issues": [
+        {
+            "type": "for-in-no-guard",
+            "severity": "medium",
+            "description": "for...in loop without hasOwnProperty guard — prototype pollution risk",
+            "file": "web/simplebeacon-dashboard/js/main.js",
+            "line": 65,
+            "count": 1,
+            "category": "prototype-pollution",
+            "recommendedAction": "Avoid assigning to __proto__ or dynamic prototype properties; use Object.create(null) or Map instead"
+        },
+        {
+            "type": "committed-env-file",
+            "severity": "critical",
+            "description": ".env file committed to repository — environment secrets may be exposed",
+            "file": ".env",
+            "line": 1,
+            "count": 1,
+            "category": "committed-env-file",
+            "recommendedAction": "Remove .env from repository; use .env.example instead"
+        },
+        {
+            "type": "ai-placeholder-comment",
+            "severity": "low",
+            "description": "AI placeholder comment in web/simplebeacon-dashboard/serve.cjs",
+            "file": "web/simplebeacon-dashboard/serve.cjs",
+            "line": 41,
+            "count": 1,
+            "category": "ai-placeholder-comment",
+            "recommendedAction": "Replace placeholder text with verified production content"
+        }
+    ],
+    "criticalCount": 1,
+    "highCount": 0,
+    "mediumCount": 1,
+    "lowCount": 1
 }

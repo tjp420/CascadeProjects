@@ -30,8 +30,12 @@ const PERSONAS = {
     id: 'CLO',
     label: 'Chief Legal Officer / General Counsel',
     titles: [
-      'Chief Legal Officer', 'General Counsel', 'VP Legal', 'Deputy General Counsel',
-      'Head of Legal', 'Legal Director',
+      'Chief Legal Officer',
+      'General Counsel',
+      'VP Legal',
+      'Deputy General Counsel',
+      'Head of Legal',
+      'Legal Director',
     ],
     sequence: 'A',
     painPoint: 'Personal liability exposure under EU AI Act; board reporting obligations',
@@ -41,8 +45,12 @@ const PERSONAS = {
     id: 'CCO',
     label: 'Chief Compliance Officer / Head of Regulatory Affairs',
     titles: [
-      'Chief Compliance Officer', 'Head of Compliance', 'Compliance Director',
-      'Head of Regulatory Affairs', 'Compliance Manager', 'Regulatory Affairs Director',
+      'Chief Compliance Officer',
+      'Head of Compliance',
+      'Compliance Director',
+      'Head of Regulatory Affairs',
+      'Compliance Manager',
+      'Regulatory Affairs Director',
     ],
     sequence: 'B',
     painPoint: 'Manual evidence collection across engineering teams; no automated audit trail',
@@ -52,8 +60,12 @@ const PERSONAS = {
     id: 'CRO',
     label: 'Chief Risk Officer / Head of Operational Risk',
     titles: [
-      'Chief Risk Officer', 'Head of Operational Risk', 'VP Risk Management',
-      'Risk Director', 'Head of Enterprise Risk', 'Operational Risk Manager',
+      'Chief Risk Officer',
+      'Head of Operational Risk',
+      'VP Risk Management',
+      'Risk Director',
+      'Head of Enterprise Risk',
+      'Operational Risk Manager',
     ],
     sequence: 'C',
     painPoint: 'AI-generated code introduces unquantified operational risk into production systems',
@@ -69,9 +81,18 @@ const QUALIFICATION_CRITERIA = {
   requiredAiToolUsage: true,
   requiredRegulatoryExposure: true,
   targetSectors: [
-    'fintech', 'banking', 'insurance', 'healthcare', 'pharmaceutical',
-    'technology', 'telecommunications', 'energy', 'manufacturing',
-    'government contractor', 'aerospace', 'automotive',
+    'fintech',
+    'banking',
+    'insurance',
+    'healthcare',
+    'pharmaceutical',
+    'technology',
+    'telecommunications',
+    'energy',
+    'manufacturing',
+    'government contractor',
+    'aerospace',
+    'automotive',
   ],
 };
 
@@ -108,7 +129,7 @@ function generateProspectId(email, company) {
 function classifyPersona(title) {
   const normalized = title.toLowerCase();
   for (const [id, persona] of Object.entries(PERSONAS)) {
-    if (persona.titles.some(t => normalized.includes(t.toLowerCase()))) {
+    if (persona.titles.some((t) => normalized.includes(t.toLowerCase()))) {
       return id;
     }
   }
@@ -132,9 +153,11 @@ function calculateQualificationScore(prospect) {
 }
 
 function isQualified(prospect) {
-  return prospect.qualificationScore >= 60 &&
+  return (
+    prospect.qualificationScore >= 60 &&
     prospect.estimatedDevelopers >= QUALIFICATION_CRITERIA.minDevelopers &&
-    prospect.estimatedRevenue >= QUALIFICATION_CRITERIA.minRevenue;
+    prospect.estimatedRevenue >= QUALIFICATION_CRITERIA.minRevenue
+  );
 }
 
 // ── CSV Ingestion ───────────────────────────────────────────────────────────
@@ -160,10 +183,10 @@ function parseCsvLine(line) {
 
 function ingestCsv(filePath) {
   const content = fs.readFileSync(filePath, 'utf8');
-  const lines = content.split(/\r?\n/).filter(l => l.trim());
+  const lines = content.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
 
-  const headers = parseCsvLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_'));
+  const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().replace(/\s+/g, '_'));
   const prospects = [];
 
   for (let i = 1; i < lines.length; i++) {
@@ -195,7 +218,8 @@ function ingestCsv(filePath) {
       estimatedDevelopers: parseInt(row.developers || row.employees || '0', 10) || 0,
       estimatedRevenue: parseInt(row.revenue || '0', 10) || 0,
       usesAiTools: row.ai_tools === 'yes' || row.ai_tools === 'true',
-      hasRegulatoryExposure: row.regulatory_exposure === 'yes' || row.regulatory_exposure === 'true',
+      hasRegulatoryExposure:
+        row.regulatory_exposure === 'yes' || row.regulatory_exposure === 'true',
       ciCdPlatform: row.cicd || row.ci_cd || 'unknown',
       qualificationScore: 0,
       status: 'new',
@@ -238,11 +262,11 @@ function saveProspects(prospects, outputPath) {
   const output = {
     generatedAt: new Date().toISOString(),
     totalProspects: prospects.length,
-    qualified: prospects.filter(p => p.status === 'qualified').length,
+    qualified: prospects.filter((p) => p.status === 'qualified').length,
     byPersona: {
-      CLO: prospects.filter(p => p.persona === 'CLO').length,
-      CCO: prospects.filter(p => p.persona === 'CCO').length,
-      CRO: prospects.filter(p => p.persona === 'CRO').length,
+      CLO: prospects.filter((p) => p.persona === 'CLO').length,
+      CCO: prospects.filter((p) => p.persona === 'CCO').length,
+      CRO: prospects.filter((p) => p.persona === 'CRO').length,
     },
     bySector: prospects.reduce((acc, p) => {
       const s = p.sector || 'unknown';
@@ -279,12 +303,16 @@ async function main() {
     console.log(`[prospect-scraper] Ingesting CSV: ${args.input}`);
     const prospects = ingestCsv(args.input);
     console.log(`[prospect-scraper] Parsed ${prospects.length} prospects`);
-    console.log(`[prospect-scraper] Qualified: ${prospects.filter(p => p.status === 'qualified').length}`);
+    console.log(
+      `[prospect-scraper] Qualified: ${prospects.filter((p) => p.status === 'qualified').length}`
+    );
 
     const outputPath = args.output || path.join(path.dirname(args.input), 'prospects.json');
     const result = saveProspects(prospects, outputPath);
     console.log(`[prospect-scraper] Saved to ${outputPath}`);
-    console.log(`[prospect-scraper] By persona: CLO=${result.byPersona.CLO}, CCO=${result.byPersona.CCO}, CRO=${result.byPersona.CRO}`);
+    console.log(
+      `[prospect-scraper] By persona: CLO=${result.byPersona.CLO}, CCO=${result.byPersona.CCO}, CRO=${result.byPersona.CRO}`
+    );
     return;
   }
 
@@ -312,7 +340,7 @@ Supported persona titles:
 }
 
 if (require.main === module) {
-  main().catch(err => {
+  main().catch((err) => {
     console.error('[prospect-scraper] Error:', err.message);
     process.exit(1);
   });

@@ -15,7 +15,7 @@ const html = buildDashboardHtml({
   cspSource: "default-src 'self'",
   nonce: 'testnonce123456',
   version: 'test',
-  showWelcome: true
+  showWelcome: true,
 });
 
 const lines = html.split('\n');
@@ -57,11 +57,17 @@ for (let i = 0; i < scriptLines.length; i++) {
     let stringChar = null;
     let escapeNext = false;
     let foundIf = false;
-    
+
     for (let j = 0; j < line.length; j++) {
       const ch = line[j];
-      if (escapeNext) { escapeNext = false; continue; }
-      if (ch === '\\') { escapeNext = true; continue; }
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escapeNext = true;
+        continue;
+      }
       if (inString) {
         if (ch === stringChar) inString = false;
         continue;
@@ -72,7 +78,7 @@ for (let i = 0; i < scriptLines.length; i++) {
         continue;
       }
       if (ch === '(') {
-        if (!foundIf && line.substring(Math.max(0, j-3), j+1).includes('if (')) {
+        if (!foundIf && line.substring(Math.max(0, j - 3), j + 1).includes('if (')) {
           foundIf = true;
         }
         if (foundIf) balance++;
@@ -82,11 +88,11 @@ for (let i = 0; i < scriptLines.length; i++) {
         if (balance === 0) break;
       }
     }
-    
+
     if (foundIf && balance !== 0) {
       issues.push({ type: 'unclosed-if', line: i + 1, text: line.substring(0, 100) });
     }
-    
+
     // Check for strings that might contain ) and not be closed
     const ifPart = line.substring(line.indexOf('if ('));
     const stringMatches = ifPart.match(/["']/g);
@@ -136,11 +142,17 @@ for (let i = 0; i < scriptLines.length; i++) {
   let inString = false;
   let stringChar = null;
   let escapeNext = false;
-  
+
   for (let j = 0; j < line.length; j++) {
     const ch = line[j];
-    if (escapeNext) { escapeNext = false; continue; }
-    if (ch === '\\') { escapeNext = true; continue; }
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escapeNext = true;
+      continue;
+    }
     if (inString) {
       if (ch === stringChar) inString = false;
       continue;
@@ -154,14 +166,14 @@ for (let i = 0; i < scriptLines.length; i++) {
       backtickCount++;
     }
   }
-  
+
   if (backtickCount % 2 !== 0) {
     // Could be multi-line template literal, check next few lines
     let totalBackticks = backtickCount;
     for (let k = i + 1; k < Math.min(scriptLines.length, i + 10); k++) {
       for (let j = 0; j < scriptLines[k].length; j++) {
         const ch = scriptLines[k][j];
-        if (ch === '`' && scriptLines[k][j-1] !== '\\') {
+        if (ch === '`' && scriptLines[k][j - 1] !== '\\') {
           totalBackticks++;
         }
       }

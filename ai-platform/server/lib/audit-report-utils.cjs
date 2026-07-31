@@ -16,7 +16,9 @@ function formatScanDuration(durationMs) {
 }
 
 function truncateForDisplay(text, maxLen = 96) {
-  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  const clean = String(text || '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!clean) return '—';
   if (clean.length <= maxLen) return clean;
   const slice = clean.slice(0, maxLen);
@@ -30,14 +32,18 @@ function redactSnippet(text) {
   const redacted = String(text)
     .replace(/(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{10,}/gi, 'sk_****REDACTED****')
     .replace(/AKIA[0-9A-Z]{16}/g, 'AKIA****REDACTED****')
-    .replace(/(?:api[_-]?key|secret|token|password)\s*[:=]\s*['"][^'"]{4,}['"]/gi, (match) => match.replace(/(['"])[^'"]+(['"])/, '$1****REDACTED****$2'))
+    .replace(/(?:api[_-]?key|secret|token|password)\s*[:=]\s*['"][^'"]{4,}['"]/gi, (match) =>
+      match.replace(/(['"])[^'"]+(['"])/, '$1****REDACTED****$2')
+    )
     .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '****@****.***');
   return truncateForDisplay(redacted, 96);
 }
 
 function buildReportId(iso) {
   const d = iso ? new Date(iso) : new Date();
-  const stamp = Number.isNaN(d.getTime()) ? '00000000' : d.toISOString().slice(0, 10).replace(/-/g, '');
+  const stamp = Number.isNaN(d.getTime())
+    ? '00000000'
+    : d.toISOString().slice(0, 10).replace(/-/g, '');
   return `SB-AUD-${stamp}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
@@ -46,5 +52,5 @@ module.exports = {
   formatScanDuration,
   truncateForDisplay,
   redactSnippet,
-  buildReportId
+  buildReportId,
 };

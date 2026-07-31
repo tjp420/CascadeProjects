@@ -14,8 +14,8 @@ const INPUT = process.argv[2] || 'j:\\Downloads\\cascadeprojects-codemap-analysi
 const OUTDIR = process.argv[3] || path.join(process.cwd(), '.simplebeacon');
 
 if (!fs.existsSync(INPUT)) {
-    console.error('Input file not found:', INPUT);
-    process.exit(1);
+  console.error('Input file not found:', INPUT);
+  process.exit(1);
 }
 
 const data = JSON.parse(fs.readFileSync(INPUT, 'utf8'));
@@ -33,33 +33,33 @@ const outDegree = {};
 const inDegree = {};
 
 for (const n of nodes) {
-    const ext = n.group || path.extname(n.id) || 'unknown';
-    extStats[ext] = (extStats[ext] || 0) + 1;
+  const ext = n.group || path.extname(n.id) || 'unknown';
+  extStats[ext] = (extStats[ext] || 0) + 1;
 
-    const pkg = n.id.split('/')[0] || 'root';
-    pkgStats[pkg] = (pkgStats[pkg] || 0) + 1;
+  const pkg = n.id.split('/')[0] || 'root';
+  pkgStats[pkg] = (pkgStats[pkg] || 0) + 1;
 
-    if (n.id.includes('/test/') || n.id.includes('.test.')) testCount++;
+  if (n.id.includes('/test/') || n.id.includes('.test.')) testCount++;
 
-    outDegree[n.id] = 0;
-    inDegree[n.id] = 0;
+  outDegree[n.id] = 0;
+  inDegree[n.id] = 0;
 }
 
 for (const e of edges) {
-    outDegree[e.source] = (outDegree[e.source] || 0) + 1;
-    inDegree[e.target] = (inDegree[e.target] || 0) + 1;
+  outDegree[e.source] = (outDegree[e.source] || 0) + 1;
+  inDegree[e.target] = (inDegree[e.target] || 0) + 1;
 }
 
 for (const n of nodes) {
-    const total = (outDegree[n.id] || 0) + (inDegree[n.id] || 0);
-    if (total === 0) orphanCount++;
+  const total = (outDegree[n.id] || 0) + (inDegree[n.id] || 0);
+  if (total === 0) orphanCount++;
 }
 
 const nodeDegrees = nodes.map((n) => ({
-    id: n.id,
-    degree: (outDegree[n.id] || 0) + (inDegree[n.id] || 0),
-    out: outDegree[n.id] || 0,
-    in: inDegree[n.id] || 0
+  id: n.id,
+  degree: (outDegree[n.id] || 0) + (inDegree[n.id] || 0),
+  out: outDegree[n.id] || 0,
+  in: inDegree[n.id] || 0,
 }));
 
 const topConnected = [...nodeDegrees].sort((a, b) => b.degree - a.degree).slice(0, 10);
@@ -67,33 +67,33 @@ const topConnected = [...nodeDegrees].sort((a, b) => b.degree - a.degree).slice(
 // ── Cycle Detection (DFS) ────────────────────────────────────
 
 function findCycles() {
-    const adj = {};
-    for (const e of edges) {
-        if (!adj[e.source]) adj[e.source] = [];
-        adj[e.source].push(e.target);
-    }
-    const cycles = [];
-    const visited = new Set();
-    const stack = new Set();
-    const path = [];
+  const adj = {};
+  for (const e of edges) {
+    if (!adj[e.source]) adj[e.source] = [];
+    adj[e.source].push(e.target);
+  }
+  const cycles = [];
+  const visited = new Set();
+  const stack = new Set();
+  const path = [];
 
-    function dfs(node) {
-        if (stack.has(node)) {
-            const idx = path.indexOf(node);
-            if (idx !== -1) cycles.push(path.slice(idx).concat(node));
-            return;
-        }
-        if (visited.has(node)) return;
-        visited.add(node);
-        stack.add(node);
-        path.push(node);
-        for (const next of adj[node] || []) dfs(next);
-        path.pop();
-        stack.delete(node);
+  function dfs(node) {
+    if (stack.has(node)) {
+      const idx = path.indexOf(node);
+      if (idx !== -1) cycles.push(path.slice(idx).concat(node));
+      return;
     }
+    if (visited.has(node)) return;
+    visited.add(node);
+    stack.add(node);
+    path.push(node);
+    for (const next of adj[node] || []) dfs(next);
+    path.pop();
+    stack.delete(node);
+  }
 
-    for (const n of nodes) dfs(n.id);
-    return cycles;
+  for (const n of nodes) dfs(n.id);
+  return cycles;
 }
 
 const cycles = findCycles();
@@ -101,33 +101,33 @@ const cycles = findCycles();
 // ── Largest Connected Component ─────────────────────────────
 
 function largestComponent() {
-    const adj = new Map();
-    for (const e of edges) {
-        if (!adj.has(e.source)) adj.set(e.source, new Set());
-        if (!adj.has(e.target)) adj.set(e.target, new Set());
-        adj.get(e.source).add(e.target);
-        adj.get(e.target).add(e.source);
-    }
-    const visited = new Set();
-    let largest = 0;
-    for (const n of nodes) {
-        if (visited.has(n.id)) continue;
-        let size = 0;
-        const q = [n.id];
-        visited.add(n.id);
-        while (q.length) {
-            const cur = q.shift();
-            size++;
-            for (const next of adj.get(cur) || []) {
-                if (!visited.has(next)) {
-                    visited.add(next);
-                    q.push(next);
-                }
-            }
+  const adj = new Map();
+  for (const e of edges) {
+    if (!adj.has(e.source)) adj.set(e.source, new Set());
+    if (!adj.has(e.target)) adj.set(e.target, new Set());
+    adj.get(e.source).add(e.target);
+    adj.get(e.target).add(e.source);
+  }
+  const visited = new Set();
+  let largest = 0;
+  for (const n of nodes) {
+    if (visited.has(n.id)) continue;
+    let size = 0;
+    const q = [n.id];
+    visited.add(n.id);
+    while (q.length) {
+      const cur = q.shift();
+      size++;
+      for (const next of adj.get(cur) || []) {
+        if (!visited.has(next)) {
+          visited.add(next);
+          q.push(next);
         }
-        if (size > largest) largest = size;
+      }
     }
-    return largest;
+    if (size > largest) largest = size;
+  }
+  return largest;
 }
 
 const largestComp = largestComponent();
@@ -146,7 +146,7 @@ const report = `# CascadeProjects Codemap Analysis Report
 |--------|-------|
 | Total Files (Nodes) | ${nodes.length} |
 | Total Dependencies (Edges) | ${edges.length} |
-| Average Degree | ${(edges.length * 2 / nodes.length).toFixed(2)} |
+| Average Degree | ${((edges.length * 2) / nodes.length).toFixed(2)} |
 | Orphaned Files (0 connections) | ${orphanCount} |
 | Test Files | ${testCount} (${((testCount / nodes.length) * 100).toFixed(1)}%) |
 | Largest Connected Component | ${largestComp} files |
@@ -156,7 +156,10 @@ const report = `# CascadeProjects Codemap Analysis Report
 
 | Extension | Count | Percentage |
 |-----------|-------|------------|
-${Object.entries(extStats).sort((a, b) => b[1] - a[1]).map(([ext, count]) => `| ${ext} | ${count} | ${((count / nodes.length) * 100).toFixed(1)}% |`).join('\n')}
+${Object.entries(extStats)
+  .sort((a, b) => b[1] - a[1])
+  .map(([ext, count]) => `| ${ext} | ${count} | ${((count / nodes.length) * 100).toFixed(1)}% |`)
+  .join('\n')}
 
 ## Top 10 Most Connected Files
 
@@ -168,7 +171,11 @@ ${topConnected.map((n, i) => `| ${i + 1} | \`${n.id}\` | ${n.degree} | ${n.out} 
 
 | Package | Files |
 |---------|-------|
-${Object.entries(pkgStats).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([pkg, count]) => `| ${pkg} | ${count} |`).join('\n')}
+${Object.entries(pkgStats)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10)
+  .map(([pkg, count]) => `| ${pkg} | ${count} |`)
+  .join('\n')}
 
 ## Circular Dependencies
 
@@ -181,20 +188,20 @@ fs.writeFileSync(path.join(OUTDIR, 'codemap-analysis-report.md'), report, 'utf8'
 // ── Filtered Exports ──────────────────────────────────────────
 
 function exportFiltered(name, filterFn) {
-    const filteredNodes = nodes.filter(filterFn);
-    const nodeIds = new Set(filteredNodes.map((n) => n.id));
-    const filteredEdges = edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
-    const out = {
-        meta: { ...data.meta, filter: name, filteredAt: new Date().toISOString() },
-        graph: { nodes: filteredNodes, edges: filteredEdges }
-    };
-    fs.writeFileSync(path.join(OUTDIR, `codemap-${name}.json`), JSON.stringify(out, null, 2), 'utf8');
-    console.log(`[export] ${name}: ${filteredNodes.length} nodes, ${filteredEdges.length} edges`);
+  const filteredNodes = nodes.filter(filterFn);
+  const nodeIds = new Set(filteredNodes.map((n) => n.id));
+  const filteredEdges = edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+  const out = {
+    meta: { ...data.meta, filter: name, filteredAt: new Date().toISOString() },
+    graph: { nodes: filteredNodes, edges: filteredEdges },
+  };
+  fs.writeFileSync(path.join(OUTDIR, `codemap-${name}.json`), JSON.stringify(out, null, 2), 'utf8');
+  console.log(`[export] ${name}: ${filteredNodes.length} nodes, ${filteredEdges.length} edges`);
 }
 
 exportFiltered('ai-platform', (n) => n.id.startsWith('ai-platform/'));
 exportFiltered('no-tests', (n) => !n.id.includes('/test/') && !n.id.includes('.test.'));
-exportFiltered('high-connectivity', (n) => ((outDegree[n.id] || 0) + (inDegree[n.id] || 0)) >= 5);
+exportFiltered('high-connectivity', (n) => (outDegree[n.id] || 0) + (inDegree[n.id] || 0) >= 5);
 exportFiltered('cjs-only', (n) => n.id.endsWith('.cjs'));
 
 console.log('[analyze-codemap] Report written to', path.join(OUTDIR, 'codemap-analysis-report.md'));

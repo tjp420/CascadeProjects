@@ -13,7 +13,10 @@ export class UploadView {
     }
     mount(container) {
         var _a, _b;
-        const params = ((_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0 ? void 0 : _b.routeParams) || {};
+        const params =
+            ((_b = (_a = this.app) === null || _a === void 0 ? void 0 : _a.state) === null || _b === void 0
+                ? void 0
+                : _b.routeParams) || {};
         const prefillToken = params.token || '';
         const sessionId = params.session_id || '';
         const autoLookup = Boolean(sessionId && !prefillToken);
@@ -86,24 +89,26 @@ export class UploadView {
         // Auto-lookup license token from Stripe checkout session
         if (sessionId) {
             fetch(`/api/simplebeacon/billing/session?session_id=${encodeURIComponent(sessionId)}`)
-                .then((res) => res.json())
-                .then((data) => {
-                if (data.licenseToken && !licenseInput.value.trim()) {
-                    licenseInput.value = data.licenseToken;
-                    tokenHelp.textContent = 'License token auto-filled from checkout. Scan your project locally, then upload the report JSON below.';
-                    tokenHelp.style.color = 'var(--success)';
-                    this.reportData = null;
-                    updateSubmit();
-                }
-                else {
-                    tokenHelp.textContent = 'Could not retrieve license token from checkout. Paste it manually from your email.';
-                    tokenHelp.style.color = 'var(--error)';
-                }
-            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.licenseToken && !licenseInput.value.trim()) {
+                        licenseInput.value = data.licenseToken;
+                        tokenHelp.textContent =
+                            'License token auto-filled from checkout. Scan your project locally, then upload the report JSON below.';
+                        tokenHelp.style.color = 'var(--success)';
+                        this.reportData = null;
+                        updateSubmit();
+                    } else {
+                        tokenHelp.textContent =
+                            'Could not retrieve license token from checkout. Paste it manually from your email.';
+                        tokenHelp.style.color = 'var(--error)';
+                    }
+                })
                 .catch(() => {
-                tokenHelp.textContent = 'Could not retrieve license token from checkout. Paste it manually from your email.';
-                tokenHelp.style.color = 'var(--error)';
-            });
+                    tokenHelp.textContent =
+                        'Could not retrieve license token from checkout. Paste it manually from your email.';
+                    tokenHelp.style.color = 'var(--error)';
+                });
         }
         const dropZone = container.querySelector('#upload-drop-zone');
         const fileInput = container.querySelector('#upload-file-input');
@@ -125,13 +130,13 @@ export class UploadView {
         licenseInput.addEventListener('input', updateSubmit);
         dropZone.addEventListener('click', () => fileInput.click());
         let dragDepth = 0;
-        dropZone.addEventListener('dragenter', (e) => {
+        dropZone.addEventListener('dragenter', e => {
             e.preventDefault();
             dragDepth++;
             dropZone.style.borderColor = 'var(--accent)';
             dropZone.style.background = 'rgba(37,99,235,0.05)';
         });
-        dropZone.addEventListener('dragover', (e) => {
+        dropZone.addEventListener('dragover', e => {
             e.preventDefault();
         });
         dropZone.addEventListener('dragleave', () => {
@@ -142,24 +147,22 @@ export class UploadView {
                 dropZone.style.background = 'var(--bg-input)';
             }
         });
-        dropZone.addEventListener('drop', (e) => {
+        dropZone.addEventListener('drop', e => {
             e.preventDefault();
             dragDepth = 0;
             dropZone.style.borderColor = 'var(--border)';
             dropZone.style.background = 'var(--bg-input)';
             const file = e.dataTransfer.files[0];
-            if (file)
-                this.handleFile(file, fileName, scanPreview, scanMeta, previewContent, updateSubmit);
+            if (file) this.handleFile(file, fileName, scanPreview, scanMeta, previewContent, updateSubmit);
         });
-        fileInput.addEventListener('change', (e) => {
+        fileInput.addEventListener('change', e => {
             if (e.target.files[0]) {
                 this.handleFile(e.target.files[0], fileName, scanPreview, scanMeta, previewContent, updateSubmit);
             }
         });
         submitBtn.addEventListener('click', async () => {
             const token = licenseInput.value.trim();
-            if (!token || !this.reportData)
-                return;
+            if (!token || !this.reportData) return;
             submitBtn.disabled = true;
             this.showStatus(status, 'Uploading scan report and generating certificate...', 'loading');
             try {
@@ -167,22 +170,27 @@ export class UploadView {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        Authorization: `Bearer ${token}`
                     },
                     body: JSON.stringify({ reportJson: this.reportData, licenseToken: token })
                 });
                 const result = await response.json();
                 if (result.success) {
-                    this.showStatus(status, `Certificate generated successfully! Delivery ID: ${result.deliveryId}. Check your inbox for the ZIP bundle containing the audit report, certificate, and all JSON artifacts.`, 'success');
-                }
-                else {
+                    this.showStatus(
+                        status,
+                        `Certificate generated successfully! Delivery ID: ${result.deliveryId}. Check your inbox for the ZIP bundle containing the audit report, certificate, and all JSON artifacts.`,
+                        'success'
+                    );
+                } else {
                     this.showStatus(status, result.error || 'Upload failed', 'error');
                 }
-            }
-            catch (err) {
-                this.showStatus(status, 'Network error — please check your connection and try again. (' + err.message + ')', 'error');
-            }
-            finally {
+            } catch (err) {
+                this.showStatus(
+                    status,
+                    'Network error — please check your connection and try again. (' + err.message + ')',
+                    'error'
+                );
+            } finally {
                 submitBtn.disabled = false;
             }
         });
@@ -195,14 +203,13 @@ export class UploadView {
         }
         fileNameEl.textContent = file.name;
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = e => {
             try {
                 this.reportData = JSON.parse(e.target.result);
                 this.renderPreview(this.reportData, scanMetaEl, previewContentEl);
                 scanPreviewEl.style.display = 'block';
                 updateSubmit();
-            }
-            catch (err) {
+            } catch (err) {
                 const status = document.getElementById('upload-status');
                 this.showStatus(status, 'Invalid JSON file', 'error');
                 this.reportData = null;
@@ -213,14 +220,56 @@ export class UploadView {
     }
     renderPreview(data, scanMetaEl, previewContentEl) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
-        const gate = data.gate || ((_b = (_a = data.results) === null || _a === void 0 ? void 0 : _a.simplebeacon) === null || _b === void 0 ? void 0 : _b.gate) || {};
+        const gate =
+            data.gate ||
+            ((_b = (_a = data.results) === null || _a === void 0 ? void 0 : _a.simplebeacon) === null || _b === void 0
+                ? void 0
+                : _b.gate) ||
+            {};
         const gatePass = (_c = gate.pass) !== null && _c !== void 0 ? _c : false;
         const detectedIssues = data.detectedIssues || data.rawIssues || [];
         const rawIssues = data.rawIssues || detectedIssues || [];
-        const quality = (_g = (_d = data.qualityScore) !== null && _d !== void 0 ? _d : (_f = (_e = data.results) === null || _e === void 0 ? void 0 : _e.simplebeacon) === null || _f === void 0 ? void 0 : _f.qualityScore) !== null && _g !== void 0 ? _g : (rawIssues.length ? Math.max(0, 100 - rawIssues.length * 2) : '—');
-        const files = (_m = (_k = (_j = (_h = data.repositoryFilesTotal) !== null && _h !== void 0 ? _h : data.totalFiles) !== null && _j !== void 0 ? _j : data.filesAnalyzed) !== null && _k !== void 0 ? _k : (_l = data.summary) === null || _l === void 0 ? void 0 : _l.files) !== null && _m !== void 0 ? _m : '—';
-        const issues = (_r = (_q = (_p = (_o = data.issueCount) !== null && _o !== void 0 ? _o : gate.blockingCount) !== null && _p !== void 0 ? _p : detectedIssues.length) !== null && _q !== void 0 ? _q : rawIssues.length) !== null && _r !== void 0 ? _r : '—';
-        const project = data.projectRoot || data.scanTargetRoot || (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) || '—';
+        const quality =
+            (_g =
+                (_d = data.qualityScore) !== null && _d !== void 0
+                    ? _d
+                    : (_f = (_e = data.results) === null || _e === void 0 ? void 0 : _e.simplebeacon) === null ||
+                        _f === void 0
+                      ? void 0
+                      : _f.qualityScore) !== null && _g !== void 0
+                ? _g
+                : rawIssues.length
+                  ? Math.max(0, 100 - rawIssues.length * 2)
+                  : '—';
+        const files =
+            (_m =
+                (_k =
+                    (_j = (_h = data.repositoryFilesTotal) !== null && _h !== void 0 ? _h : data.totalFiles) !== null &&
+                    _j !== void 0
+                        ? _j
+                        : data.filesAnalyzed) !== null && _k !== void 0
+                    ? _k
+                    : (_l = data.summary) === null || _l === void 0
+                      ? void 0
+                      : _l.files) !== null && _m !== void 0
+                ? _m
+                : '—';
+        const issues =
+            (_r =
+                (_q =
+                    (_p = (_o = data.issueCount) !== null && _o !== void 0 ? _o : gate.blockingCount) !== null &&
+                    _p !== void 0
+                        ? _p
+                        : detectedIssues.length) !== null && _q !== void 0
+                    ? _q
+                    : rawIssues.length) !== null && _r !== void 0
+                ? _r
+                : '—';
+        const project =
+            data.projectRoot ||
+            data.scanTargetRoot ||
+            (Array.isArray(data.scanPaths) ? data.scanPaths[0] : null) ||
+            '—';
         scanMetaEl.innerHTML = `
       <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
         <div style="font-size:1.3rem;font-weight:700;color:${gatePass ? 'var(--success)' : 'var(--error)'};">${gatePass ? 'PASS' : 'REVIEW'}</div>
@@ -253,24 +302,18 @@ export class UploadView {
             el.style.background = 'rgba(16,185,129,0.1)';
             el.style.border = '1px solid rgba(16,185,129,0.3)';
             el.style.color = 'var(--success)';
-        }
-        else if (type === 'error') {
+        } else if (type === 'error') {
             el.style.background = 'rgba(239,68,68,0.1)';
             el.style.border = '1px solid rgba(239,68,68,0.3)';
             el.style.color = 'var(--error)';
-        }
-        else if (type === 'loading') {
+        } else if (type === 'loading') {
             el.style.background = 'rgba(37,99,235,0.1)';
             el.style.border = '1px solid rgba(37,99,235,0.3)';
             el.style.color = '#60A5FA';
         }
     }
     escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
-    destroy() { }
+    destroy() {}
 }

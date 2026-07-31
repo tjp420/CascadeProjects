@@ -1,7 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, and dashboard code, security — all findings are false positives
 /**
  * Server Integration Tests
- * 
+ *
  * Tests the main server functionality including health checks, middleware, and API endpoints.
  */
 
@@ -20,7 +20,7 @@ describe('Server Integration', () => {
     process.env.REQUIRE_AUTH = 'true';
     process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-32chars-minimum';
     process.env.JWT_REFRESH_SECRET = 'test-jwt-refresh-secret-key-for-testing-32chars';
-    
+
     // Mock the server start to avoid actually starting a server
     // We'll test the app configuration directly
     try {
@@ -30,11 +30,11 @@ describe('Server Integration', () => {
         // We'll create a mock app for testing since the actual server requires database connections
         const express = require('express');
         serverApp = express();
-        
+
         // Add basic middleware
         serverApp.use(express.json());
         serverApp.use(express.urlencoded({ extended: true }));
-        
+
         // Add health check endpoint (mock)
         serverApp.get('/api/health', (req, res) => {
           res.json({
@@ -42,10 +42,10 @@ describe('Server Integration', () => {
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             version: '1.0.0',
-            environment: process.env.NODE_ENV || 'development'
+            environment: process.env.NODE_ENV || 'development',
           });
         });
-        
+
         // Add platform status endpoint (mock)
         serverApp.get('/api/platform/status', (req, res) => {
           res.json({
@@ -55,12 +55,12 @@ describe('Server Integration', () => {
               jwtAuth: true,
               demoUsers: true,
               phase2Database: false,
-              phase2Redis: false
+              phase2Redis: false,
             },
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
         });
-        
+
         // Add simplebeacon endpoints (mock)
         serverApp.get('/api/simplebeacon/entitlements', (req, res) => {
           res.json({
@@ -69,26 +69,26 @@ describe('Server Integration', () => {
             closedVaultMode: false,
             hasAuditDeliverableAccess: true,
             auditCheckoutUrl: 'mailto:audit@simplebeacon.ai',
-            auditPriceLabel: '$499'
+            auditPriceLabel: '$499',
           });
         });
-        
+
         // Add error handling middleware
         serverApp.use((err, req, res, next) => {
           console.error('Test error:', err);
           res.status(500).json({
             success: false,
             error: 'Internal server error',
-            message: err.message
+            message: err.message,
           });
         });
-        
+
         // Add 404 handler
         serverApp.use((req, res) => {
           res.status(404).json({
             success: false,
             error: 'Not found',
-            message: `Route ${req.method} ${req.path} not found`
+            message: `Route ${req.method} ${req.path} not found`,
           });
         });
       }
@@ -105,8 +105,7 @@ describe('Server Integration', () => {
         return;
       }
 
-      const response = await request(serverApp)
-        .get('/api/health');
+      const response = await request(serverApp).get('/api/health');
 
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('healthy');
@@ -122,8 +121,7 @@ describe('Server Integration', () => {
         return;
       }
 
-      const response = await request(serverApp)
-        .get('/api/platform/status');
+      const response = await request(serverApp).get('/api/platform/status');
 
       expect(response.status).toBe(200);
       expect(response.body.phase).toBeDefined();
@@ -141,8 +139,7 @@ describe('Server Integration', () => {
         return;
       }
 
-      const response = await request(serverApp)
-        .get('/api/simplebeacon/entitlements');
+      const response = await request(serverApp).get('/api/simplebeacon/entitlements');
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -161,8 +158,7 @@ describe('Server Integration', () => {
         return;
       }
 
-      const response = await request(serverApp)
-        .get('/api/unknown-route');
+      const response = await request(serverApp).get('/api/unknown-route');
 
       expect(response.status).toBe(404);
       expect(response.body.success).toBe(false);
@@ -195,14 +191,12 @@ describe('Server Integration', () => {
       serverApp.post('/api/test-body', (req, res) => {
         res.json({
           success: true,
-          received: req.body
+          received: req.body,
         });
       });
 
       const testData = { message: 'test data', number: 42 };
-      const response = await request(serverApp)
-        .post('/api/test-body')
-        .send(testData);
+      const response = await request(serverApp).post('/api/test-body').send(testData);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -219,7 +213,7 @@ describe('Server Integration', () => {
       serverApp.post('/api/test-urlencoded', (req, res) => {
         res.json({
           success: true,
-          received: req.body
+          received: req.body,
         });
       });
 
@@ -246,8 +240,7 @@ describe('Server Integration', () => {
       const helmet = require('helmet');
       serverApp.use(helmet());
 
-      const response = await request(serverApp)
-        .get('/api/health');
+      const response = await request(serverApp).get('/api/health');
 
       expect(response.status).toBe(200);
       // Helmet adds various security headers
@@ -264,10 +257,12 @@ describe('Server Integration', () => {
 
       // Add CORS middleware
       const cors = require('cors');
-      serverApp.use(cors({
-        origin: process.env.CORS_ORIGIN || 'http://localhost:54355',
-        credentials: true
-      }));
+      serverApp.use(
+        cors({
+          origin: process.env.CORS_ORIGIN || 'http://localhost:54355',
+          credentials: true,
+        })
+      );
 
       const response = await request(serverApp)
         .options('/api/health')
@@ -288,29 +283,29 @@ describe('Server Integration', () => {
 
       // Add rate limiting middleware
       const rateLimit = require('express-rate-limit');
-      serverApp.use(rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
-        message: {
-          success: false,
-          error: 'Too many requests',
-          message: 'Rate limit exceeded'
-        }
-      }));
-
-      // Make multiple requests to test rate limiting
-      const promises = Array.from({ length: 5 }, () =>
-        request(serverApp).get('/api/health')
+      serverApp.use(
+        rateLimit({
+          windowMs: 15 * 60 * 1000, // 15 minutes
+          max: 100, // limit each IP to 100 requests per windowMs
+          message: {
+            success: false,
+            error: 'Too many requests',
+            message: 'Rate limit exceeded',
+          },
+        })
       );
 
+      // Make multiple requests to test rate limiting
+      const promises = Array.from({ length: 5 }, () => request(serverApp).get('/api/health'));
+
       const responses = await Promise.all(promises);
-      
+
       // First few requests should succeed
       expect(responses[0].status).toBe(200);
       expect(responses[1].status).toBe(200);
-      
+
       // Eventually, requests should be rate limited (though this might take more requests in real scenario)
-      expect(responses.every(r => r.status === 200 || r.status === 429)).toBe(true);
+      expect(responses.every((r) => r.status === 200 || r.status === 429)).toBe(true);
     });
   });
 

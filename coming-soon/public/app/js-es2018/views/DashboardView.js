@@ -1,14 +1,22 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { formatNumber, formatPercent, escapeHtml, showToast } from '../utils.js';
 import { isEmbeddedDashboardFrame, setSafeHTML } from '../utils-lib/dom.js?v=20260726embedfix1';
-import { buildScanConclusion, getScanFileMetrics, resolveDisplayScore, resolveJestTestsLabel, resolvePageSpecsLabel, renderScanScopePanel } from '../services/analyzeService.js?v=20260726sevfix1';
+import {
+    buildScanConclusion,
+    getScanFileMetrics,
+    resolveDisplayScore,
+    resolveJestTestsLabel,
+    resolvePageSpecsLabel,
+    renderScanScopePanel
+} from '../services/analyzeService.js?v=20260726sevfix1';
 import { renderIssueList } from '../components/IssueCard.js';
 import { renderTrendSection, mountTrendChart } from '../components/TrendChart.js?v=20260724trend1';
 import { renderScanStatus, bindScanStatus, updateScanStatusDom } from '../components/ScanStatus.js?v=20260724fix1';
 import { renderAnalysisWorkflow, resolveAnalysisWorkflowStep } from '../components/AnalysisWorkflow.js';
 import { isDemoMode } from '../demoMode.js';
 const PRIVACY_NOTICE_KEY = 'sb_privacy_notice_dismissed';
-const PRIVACY_NOTICE_TEXT = '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
+const PRIVACY_NOTICE_TEXT =
+    '100% private. Your source code never leaves your browser. Browser scans use a lightweight heuristic engine (no npm audit, no AST). For full analysis, run the server dashboard, open analyzer (auto-detected port), or upload a CLI report JSON.';
 function renderPrivacyBanner() {
     if (typeof localStorage !== 'undefined' && localStorage.getItem(PRIVACY_NOTICE_KEY) === '1') {
         return '';
@@ -35,8 +43,7 @@ function renderPrivacyCard() {
 function bindPrivacyBanner(container) {
     const banner = container.querySelector('#dash-privacy-banner');
     const closeBtn = container.querySelector('#dash-privacy-banner-close');
-    if (!banner || !closeBtn)
-        return;
+    if (!banner || !closeBtn) return;
     closeBtn.addEventListener('click', () => {
         banner.style.display = 'none';
         if (typeof localStorage !== 'undefined') {
@@ -58,7 +65,7 @@ function convertSandboxReportToSimplebeacon(report, projectPath) {
     const medium = Number(cert.mediumRiskCount) || 0;
     const low = Number(cert.lowRiskCount) || 0;
     const totalFiles = report.discoveredFiles || report.files.length;
-    const rawIssues = logs.map((entry) => ({
+    const rawIssues = logs.map(entry => ({
         severity: String(entry.severity || 'medium').toLowerCase(),
         type: entry.type || 'Security',
         filePath: entry.filePath || '',
@@ -215,14 +222,17 @@ export class DashboardView {
         const reviewMode = Boolean(report) && !scanning;
         const scanSlot = document.createElement('div');
         scanSlot.id = 'dashboard-scan-slot';
-        setSafeHTML(scanSlot, renderScanStatus(report, {
-            redesign: true,
-            reviewMode,
-            scanning,
-            config: this.app.state.config,
-            lastProjectPath: this.app.state.lastProjectPath,
-            defaultProjectPath: this.app.state.defaultProjectPath
-        }));
+        setSafeHTML(
+            scanSlot,
+            renderScanStatus(report, {
+                redesign: true,
+                reviewMode,
+                scanning,
+                config: this.app.state.config,
+                lastProjectPath: this.app.state.lastProjectPath,
+                defaultProjectPath: this.app.state.defaultProjectPath
+            })
+        );
         container.appendChild(scanSlot);
 
         if (scanning) {
@@ -247,30 +257,79 @@ export class DashboardView {
     renderFeatureDiscovery() {
         const DISMISS_KEY = 'sb_feature_discovery_dismissed';
         let dismissed = false;
-        try { dismissed = localStorage.getItem(DISMISS_KEY) === '1'; } catch { /* ignore */ }
+        try {
+            dismissed = localStorage.getItem(DISMISS_KEY) === '1';
+        } catch {
+            /* ignore */
+        }
         if (dismissed) return document.createElement('div');
 
         const features = [
-            { icon: 'folder-search', title: 'Scan & Analyze', desc: 'Run scans, drop folders, import CLI reports', route: 'analyze', highlight: !this.app.state.report },
-            { icon: 'clipboard-check', title: 'Compliance Audit', desc: 'Credentials, fiction KPIs, schema drift, production leaks', route: 'audit' },
-            { icon: 'map', title: 'Remediation Roadmap', desc: 'Prioritized fix steps from your scan', route: 'roadmap' },
-            { icon: 'bot', title: 'AI Chatbot', desc: 'Ask about your codebase with local or cloud AI', route: 'chatbot' },
-            { icon: 'file-text', title: 'Assessments', desc: 'Client-facing M&A / diligence flow', route: 'assessments' },
-            { icon: 'shield-check', title: 'Security Keys', desc: 'Register FIDO2 hardware keys for 2FA', route: 'profile' },
-            { icon: 'bar-chart-3', title: 'Platform Metrics', desc: 'Engineering baseline, Jest health, schema compliance', route: 'platform' },
-            { icon: 'settings', title: 'Settings', desc: 'Scan paths, gate severities, AI provider keys', route: 'settings' }
+            {
+                icon: 'folder-search',
+                title: 'Scan & Analyze',
+                desc: 'Run scans, drop folders, import CLI reports',
+                route: 'analyze',
+                highlight: !this.app.state.report
+            },
+            {
+                icon: 'clipboard-check',
+                title: 'Compliance Audit',
+                desc: 'Credentials, fiction KPIs, schema drift, production leaks',
+                route: 'audit'
+            },
+            {
+                icon: 'map',
+                title: 'Remediation Roadmap',
+                desc: 'Prioritized fix steps from your scan',
+                route: 'roadmap'
+            },
+            {
+                icon: 'bot',
+                title: 'AI Chatbot',
+                desc: 'Ask about your codebase with local or cloud AI',
+                route: 'chatbot'
+            },
+            {
+                icon: 'file-text',
+                title: 'Assessments',
+                desc: 'Client-facing M&A / diligence flow',
+                route: 'assessments'
+            },
+            {
+                icon: 'shield-check',
+                title: 'Security Keys',
+                desc: 'Register FIDO2 hardware keys for 2FA',
+                route: 'profile'
+            },
+            {
+                icon: 'bar-chart-3',
+                title: 'Platform Metrics',
+                desc: 'Engineering baseline, Jest health, schema compliance',
+                route: 'platform'
+            },
+            {
+                icon: 'settings',
+                title: 'Settings',
+                desc: 'Scan paths, gate severities, AI provider keys',
+                route: 'settings'
+            }
         ];
 
         const section = document.createElement('div');
         section.className = 'feature-discovery';
         // content where applicable.
-        setSafeHTML(section, `
+        setSafeHTML(
+            section,
+            `
             <div class="feature-discovery-header">
                 <h3 class="feature-discovery-title">Explore SimpleBeacon</h3>
                 <button class="feature-discovery-dismiss" id="fd-dismiss" aria-label="Dismiss">✕</button>
             </div>
             <div class="feature-discovery-grid">
-                ${features.map(f => `
+                ${features
+                    .map(
+                        f => `
                     <div class="feature-discovery-card${f.highlight ? ' fd-recommended' : ''}" data-fd-route="${f.route}">
                         <div class="feature-discovery-card-icon">
                             <i data-lucide="${f.icon}"></i>
@@ -280,9 +339,12 @@ export class DashboardView {
                             <div class="feature-discovery-card-desc">${f.desc}</div>
                         </div>
                     </div>
-                `).join('')}
+                `
+                    )
+                    .join('')}
             </div>
-        `);
+        `
+        );
         return section;
     }
 
@@ -293,14 +355,18 @@ export class DashboardView {
         const projectName = report
             ? (report.projectRoot || report.projectPath || 'Active Project').split(/[\\/]/).pop()
             : 'No Active Project';
-        const statusChip = report && report.gate
-            ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
-            : '';
+        const statusChip =
+            report && report.gate
+                ? `<span class="badge gate-badge ${report.gate.pass ? 'bg-success' : 'bg-danger'}">${report.gate.pass ? 'Healthy' : 'Attention Required'}</span>`
+                : '';
         // content where applicable.
-        const adminBtnHtml = this.app && typeof this.app.isCurrentUserAdmin === 'function' && this.app.isCurrentUserAdmin()
-            ? '<button class="btn btn-primary btn-sm" id="team-admin-btn">Team Admin</button>'
-            : '';
-        setSafeHTML(header, `
+        const adminBtnHtml =
+            this.app && typeof this.app.isCurrentUserAdmin === 'function' && this.app.isCurrentUserAdmin()
+                ? '<button class="btn btn-primary btn-sm" id="team-admin-btn">Team Admin</button>'
+                : '';
+        setSafeHTML(
+            header,
+            `
             <div>
                 <h1 class="h2 mb-1">Dashboard</h1>
                 <div class="d-flex align-items-center gap-2">
@@ -312,27 +378,33 @@ export class DashboardView {
                 <button class="btn btn-ghost btn-sm" data-action="open-analyze">Advanced analyze</button>
                 ${adminBtnHtml}
             </div>
-        `);
+        `
+        );
         return header;
     }
 
     renderScanProgress() {
         const progress = this._scanProgress || {};
-        const pct = progress.total && progress.processed != null
-            ? Math.min(100, Math.round((progress.processed / progress.total) * 100))
-            : (this.app.state.scanning ? 12 : 0);
+        const pct =
+            progress.total && progress.processed != null
+                ? Math.min(100, Math.round((progress.processed / progress.total) * 100))
+                : this.app.state.scanning
+                  ? 12
+                  : 0;
         const label = progress.label || 'Running SimpleBeacon scan…';
         const detail = progress.currentFile
             ? escapeHtml(String(progress.currentFile).split(/[\\/]/).pop() || '')
-            : (progress.processed != null && progress.total
-                ? `${formatNumber(progress.processed)} / ${formatNumber(progress.total)} files`
-                : 'Initializing engines…');
+            : progress.processed != null && progress.total
+              ? `${formatNumber(progress.processed)} / ${formatNumber(progress.total)} files`
+              : 'Initializing engines…';
 
         const card = document.createElement('div');
         card.className = 'card dashboard-scan-progress-card';
         card.id = 'dashboard-scan-progress';
         // content where applicable.
-        setSafeHTML(card, `
+        setSafeHTML(
+            card,
+            `
             <div class="dashboard-scan-progress-header">
                 <span class="loading-spinner dashboard-scan-progress-spinner"></span>
                 <div>
@@ -342,7 +414,8 @@ export class DashboardView {
                 <button class="btn btn-secondary btn-sm" data-action="open-analyze">Live log</button>
             </div>
             <div class="analyze-progress-bar"><div class="analyze-progress-fill" style="width:${pct}%"></div></div>
-        `);
+        `
+        );
         return card;
     }
 
@@ -355,14 +428,14 @@ export class DashboardView {
             window.setSafeHTML(
                 view,
                 '\n            <h3 class="h5 mb-2">Run a scan from VS Code</h3>\n            <p class="text-sm text-muted mb-3">Your code stays local. Use the scan panel above, or jump to a view with the quick nav bar.</p>\n            <ol class="dashboard-quickstart-steps text-sm text-muted">\n                <li><strong>Analyze</strong> — drop a folder, browse, or paste your workspace path.</li>\n                <li><strong>Results</strong> — gate score, findings, and exports after the scan completes.</li>\n                <li><strong>Roadmap</strong> — prioritized remediation steps from your latest report.</li>\n            </ol>\n            <div class="dashboard-quickstart-actions d-flex flex-wrap gap-2 mt-3">\n                <button class="btn btn-primary btn-sm" data-action="open-analyze" data-mode="folder">Start Analyze</button>\n                <button class="btn btn-outline btn-sm" data-action="open-analyze" data-mode="upload">Import CLI report</button>\n            </div>\n        '
-            );;
+            );
             return view;
         }
         // content where applicable.
         window.setSafeHTML(
             view,
             '\n            <h3 class="h5 mb-2">How to run your first scan</h3>\n            <ol class="dashboard-quickstart-steps text-sm text-muted">\n                <li><strong>Drop or browse</strong> a folder in the scan panel above, or paste an absolute server path.</li>\n                <li>Click <strong>Scan</strong> — engines run locally or on your SimpleBeacon server.</li>\n                <li>Review the gate score, findings, and remediation roadmap below when complete.</li>\n            </ol>\n            <div class="dashboard-quickstart-actions d-flex flex-wrap gap-2 mt-3">\n                <button class="btn btn-primary btn-sm" data-action="open-analyze" data-mode="folder">Open Analyze (full modes)</button>\n                <button class="btn btn-outline btn-sm" data-action="open-analyze" data-mode="upload">Import CLI report</button>\n            </div>\n        '
-        );;
+        );
         return view;
     }
 
@@ -405,11 +478,9 @@ export class DashboardView {
 
     async loadCiTeamMetrics(view) {
         const slot = view.querySelector('#ci-team-metrics-slot');
-        if (!slot)
-            return;
+        if (!slot) return;
         const metrics = await this.app.scanService.fetchCiTeamMetrics({ days: 7 });
-        if (!metrics || !metrics.total_scans)
-            return;
+        if (!metrics || !metrics.total_scans) return;
         window.setSafeHTML(slot, '');
         slot.appendChild(this.renderTeamCiMetrics(metrics));
     }
@@ -425,17 +496,23 @@ export class DashboardView {
         const displayScore = resolveDisplayScore(report) != null ? resolveDisplayScore(report) : gateScore;
         // A 0% score next to a PASS badge with no blocking findings usually means the score
         // was never computed, not a real failing score. Hide it in that case.
-        const qualityScoreText = (displayScore === 0 && gatePass && blockingCount === 0) ? '—' : (displayScore != null ? formatPercent(displayScore, 0) : '—');
-        const filesEvaluated = report.ruleScopedFilesAnalyzed > 0
-            ? report.ruleScopedFilesAnalyzed
-            : (report.repositoryFilesTotal || 0);
+        const qualityScoreText =
+            displayScore === 0 && gatePass && blockingCount === 0
+                ? '—'
+                : displayScore != null
+                  ? formatPercent(displayScore, 0)
+                  : '—';
+        const filesEvaluated =
+            report.ruleScopedFilesAnalyzed > 0 ? report.ruleScopedFilesAnalyzed : report.repositoryFilesTotal || 0;
         const repoTotal = report.repositoryFilesTotal || 0;
         const metrics = getScanFileMetrics(report);
         // Defensive: rule-scoped counts should never exceed the repository total.
         const rawFilesAnalyzed = metrics.filesAnalyzed || filesEvaluated;
-        const displayFilesAnalyzed = (repoTotal > 0 && rawFilesAnalyzed > repoTotal) ? repoTotal : rawFilesAnalyzed;
+        const displayFilesAnalyzed = repoTotal > 0 && rawFilesAnalyzed > repoTotal ? repoTotal : rawFilesAnalyzed;
         // content where applicable.
-        setSafeHTML(grid, `
+        setSafeHTML(
+            grid,
+            `
             <div class="card bento-hero p-4 justify-content-between">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
@@ -503,12 +580,15 @@ export class DashboardView {
                     <button class="btn btn-link text-xs text-primary p-0" data-action="system-health">Platform details →</button>
                 </div>
             </div>
-        `);
+        `
+        );
 
         const issueSlot = grid.querySelector('#dashboard-issue-list-slot');
-        issueSlot.appendChild(renderIssueList(categories, {
-            onSelect: (cat) => this.app.navigate('results', { filter: cat })
-        }));
+        issueSlot.appendChild(
+            renderIssueList(categories, {
+                onSelect: cat => this.app.navigate('results', { filter: cat })
+            })
+        );
 
         const trendSlot = grid.querySelector('#slot-trend');
         setSafeHTML(trendSlot, renderTrendSection(this.app.state.history));
@@ -517,7 +597,7 @@ export class DashboardView {
     }
 
     bindEvents(view) {
-        view.querySelectorAll('[data-action]').forEach((el) => {
+        view.querySelectorAll('[data-action]').forEach(el => {
             const action = el.getAttribute('data-action');
             const mode = el.getAttribute('data-mode');
             const handler = () => {
@@ -550,14 +630,18 @@ export class DashboardView {
                         this.app.navigate(el.getAttribute('data-fd-route') || 'dashboard');
                         break;
                     case 'fd-dismiss-action':
-                        try { localStorage.setItem('sb_feature_discovery_dismissed', '1'); } catch { /* ignore */ }
+                        try {
+                            localStorage.setItem('sb_feature_discovery_dismissed', '1');
+                        } catch {
+                            /* ignore */
+                        }
                         el.closest('.feature-discovery')?.remove();
                         break;
                 }
             };
             el.addEventListener('click', handler);
             if (el.classList.contains('bento-card-interactive')) {
-                el.addEventListener('keydown', (e) => {
+                el.addEventListener('keydown', e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         handler();
@@ -569,13 +653,11 @@ export class DashboardView {
 
     bindScanPanel(view) {
         const scanSlot = view.querySelector('#dashboard-scan-slot');
-        if (!scanSlot)
-            return;
+        if (!scanSlot) return;
         bindScanStatus(scanSlot, {
-            onRescan: (path) => this.app.runScan(path),
-            onLocalScanResult: (payload) => {
-                if (!payload)
-                    return;
+            onRescan: path => this.app.runScan(path),
+            onLocalScanResult: payload => {
+                if (!payload) return;
                 const projectPath = payload.projectPath || payload.verifiedAddress || payload.path || '';
                 if (projectPath) {
                     this.app.state.lastProjectPath = projectPath;
@@ -598,7 +680,9 @@ export class DashboardView {
             },
             onViewResults: () => this.app.navigate('results'),
             getLastProjectPath: () => this.app.state.lastProjectPath || '',
-            setLastProjectPath: (path) => { this.app.state.lastProjectPath = path; },
+            setLastProjectPath: path => {
+                this.app.state.lastProjectPath = path;
+            },
             getDefaultProjectPath: () => this.app.state.defaultProjectPath || ''
         });
     }
@@ -606,11 +690,9 @@ export class DashboardView {
     refreshScanStatus() {
         const main = document.getElementById('app-main');
         const scanSlot = main && main.querySelector('#dashboard-scan-slot');
-        if (!scanSlot)
-            return;
+        if (!scanSlot) return;
         const stateSig = `${this.app.state.scanning}|${this.app.state.report?.issueCount || 0}|${this.app.state.lastProjectPath || ''}`;
-        if (this._lastScanSig === stateSig)
-            return;
+        if (this._lastScanSig === stateSig) return;
         this._lastScanSig = stateSig;
         const updated = updateScanStatusDom(scanSlot, this.app.state.report);
         if (!updated) {
@@ -629,36 +711,33 @@ export class DashboardView {
 
     startScanProgressPolling() {
         this.stopScanProgressPolling();
-        if (!this.app.state.scanning)
-            return;
+        if (!this.app.state.scanning) return;
         const poll = async () => {
             try {
                 const progress = await this.app.scanService.fetchScanProgress();
-                if (!progress)
-                    return;
+                if (!progress) return;
                 this._scanProgress = progress;
                 const card = document.getElementById('dashboard-scan-progress');
-                if (!card)
-                    return;
-                const pct = progress.total && progress.processed != null
-                    ? Math.min(100, Math.round((progress.processed / progress.total) * 100))
-                    : 12;
+                if (!card) return;
+                const pct =
+                    progress.total && progress.processed != null
+                        ? Math.min(100, Math.round((progress.processed / progress.total) * 100))
+                        : 12;
                 const fill = card.querySelector('.analyze-progress-fill');
-                if (fill)
-                    fill.style.width = `${pct}%`;
+                if (fill) fill.style.width = `${pct}%`;
                 const label = card.querySelector('.dashboard-scan-progress-label');
-                if (label && progress.label)
-                    label.textContent = progress.label;
+                if (label && progress.label) label.textContent = progress.label;
                 const detail = card.querySelector('.dashboard-scan-progress-detail');
                 if (detail) {
                     detail.textContent = progress.currentFile
                         ? String(progress.currentFile).split(/[\\/]/).pop()
-                        : (progress.processed != null && progress.total
-                            ? `${formatNumber(progress.processed)} / ${formatNumber(progress.total)} files`
-                            : 'Initializing engines…');
+                        : progress.processed != null && progress.total
+                          ? `${formatNumber(progress.processed)} / ${formatNumber(progress.total)} files`
+                          : 'Initializing engines…';
                 }
+            } catch (_a) {
+                /* ignore transient errors */
             }
-            catch (_a) { /* ignore transient errors */ }
         };
         poll();
         this._scanProgressTimer = setInterval(poll, 1500);
@@ -681,8 +760,7 @@ export class DashboardView {
                 history: this.app.state.history,
                 dashboardHome: this.app.state.dashboardHome
             });
-        }
-        else {
+        } else {
             this.app.scanService.exportReport();
         }
     }
@@ -698,7 +776,8 @@ export class DashboardView {
             gatePass: report.gate ? report.gate.pass : 'N/A',
             qualityScore: report.qualityScore != null ? report.qualityScore : 'N/A',
             totalIssues: allIssues.length,
-            filesScanned: report.repositoryFilesTotal != null ? report.repositoryFilesTotal : (report.totalFiles || 'N/A'),
+            filesScanned:
+                report.repositoryFilesTotal != null ? report.repositoryFilesTotal : report.totalFiles || 'N/A',
             reportType: report.type || 'simplebeacon'
         };
         const hasVsCodeApi = typeof window !== 'undefined' && typeof window.acquireVsCodeApi === 'function';
@@ -716,9 +795,8 @@ export class DashboardView {
                 });
                 showToast('Scan data sent to your AI coding agent. Check the editor chat panel.', 'success');
                 return;
-            }
-            catch (err) {
-                window["console"]["warn"]('[AI-Send] vscode.postMessage failed:', err);
+            } catch (err) {
+                window['console']['warn']('[AI-Send] vscode.postMessage failed:', err);
             }
         }
         try {
@@ -738,28 +816,26 @@ export class DashboardView {
                     try {
                         await navigator.clipboard.writeText(json.content);
                         showToast('Copied to clipboard — paste into your AI coding agent with Ctrl+V', 'success');
+                    } catch (clipErr) {
+                        showToast(
+                            'AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md',
+                            'success'
+                        );
                     }
-                    catch (clipErr) {
-                        showToast('AI context saved. Use sidebar 🤖 button or mention @.simplebeacon/ai-context.md', 'success');
-                    }
-                }
-                else {
+                } else {
                     showToast('AI context saved. Mention @.simplebeacon/ai-context.md in chat.', 'success');
                 }
-            }
-            else {
+            } else {
                 showToast('Failed: ' + (json.error || 'Unknown'), 'error');
             }
-        }
-        catch (err) {
+        } catch (err) {
             showToast('Network error: ' + err.message, 'error');
         }
     }
 
     async ensureReportEnriched() {
         const report = this.app.state.report;
-        if (!report)
-            return;
+        if (!report) return;
         const enriched = await this.app.scanService.enrichReport(report);
         if (enriched !== report) {
             this.app.state.report = enriched;
@@ -777,7 +853,7 @@ export class DashboardView {
             card.addEventListener('click', () => {
                 this.app.navigate(card.getAttribute('data-fd-route') || 'dashboard');
             });
-            card.addEventListener('keydown', (e) => {
+            card.addEventListener('keydown', e => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     this.app.navigate(card.getAttribute('data-fd-route') || 'dashboard');
@@ -787,17 +863,20 @@ export class DashboardView {
         const dismissBtn = fdSection.querySelector('#fd-dismiss');
         if (dismissBtn) {
             dismissBtn.addEventListener('click', () => {
-                try { localStorage.setItem('sb_feature_discovery_dismissed', '1'); } catch { /* ignore */ }
+                try {
+                    localStorage.setItem('sb_feature_discovery_dismissed', '1');
+                } catch {
+                    /* ignore */
+                }
                 fdSection.remove();
             });
         }
     }
 
     mount(container) {
-        if (this._trendCleanup)
-            this._trendCleanup();
+        if (this._trendCleanup) this._trendCleanup();
         this.stopScanProgressPolling();
-        window.setSafeHTML(container, '');; 
+        window.setSafeHTML(container, '');
         const view = this.render();
         container.appendChild(view);
         this.bindEvents(view);
@@ -807,20 +886,17 @@ export class DashboardView {
         if (this.app.state.scanning) {
             this.startScanProgressPolling();
         }
-        if (!this.app.state.report)
-            return;
+        if (!this.app.state.report) return;
         this.ensureReportEnriched();
         requestAnimationFrame(() => {
             const trendSlot = view.querySelector('#slot-trend');
             this._trendCleanup = mountTrendChart(trendSlot, this.app.state.history) || null;
         });
-        if (typeof window.lucide !== 'undefined')
-            window.lucide.createIcons();
+        if (typeof window.lucide !== 'undefined') window.lucide.createIcons();
     }
 
     destroy() {
-        if (this._trendCleanup)
-            this._trendCleanup();
+        if (this._trendCleanup) this._trendCleanup();
         this.stopScanProgressPolling();
     }
 }

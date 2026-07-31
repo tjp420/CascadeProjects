@@ -37,39 +37,39 @@ Rules:
  * @returns {Promise<Object>} — { complianceGrade, estimatedLiability, verdictSummary, remediationSteps }
  */
 async function generateAutomatedVerdict(scanJson, options = {}) {
-    const provider = options.provider || process.env.AI_ANALYST_PROVIDER || 'openai';
+  const provider = options.provider || process.env.AI_ANALYST_PROVIDER || 'openai';
 
-    // Build a compact prompt from the scan payload
-    const prompt = buildVerdictPrompt(scanJson);
+  // Build a compact prompt from the scan payload
+  const prompt = buildVerdictPrompt(scanJson);
 
-    try {
-        const result = await summarizeScanWithProvider(provider, scanJson, {
-            customPrompt: prompt,
-            projectPath: options.projectPath || scanJson.projectPath || 'unknown-project',
-            reportType: 'ai-analyst-verdict'
-        });
+  try {
+    const result = await summarizeScanWithProvider(provider, scanJson, {
+      customPrompt: prompt,
+      projectPath: options.projectPath || scanJson.projectPath || 'unknown-project',
+      reportType: 'ai-analyst-verdict',
+    });
 
-        if (!result.enhanced || !result.summary) {
-            // No AI provider configured — return deterministic fallback
-            return buildDeterministicVerdict(scanJson);
-        }
-
-        const parsed = tryParseJson(result.summary);
-        if (parsed && parsed.complianceGrade) {
-            return parsed;
-        }
-
-        // If LLM returned non-JSON, wrap it gracefully
-        return {
-            complianceGrade: inferGrade(scanJson),
-            estimatedLiability: 'Review required',
-            verdictSummary: String(result.summary).slice(0, 400),
-            remediationSteps: ['Re-run with a configured AI provider for structured output.']
-        };
-    } catch (err) {
-        logger.warn('[AI Analyst] LLM verdict failed, using deterministic fallback:', err.message);
-        return buildDeterministicVerdict(scanJson);
+    if (!result.enhanced || !result.summary) {
+      // No AI provider configured — return deterministic fallback
+      return buildDeterministicVerdict(scanJson);
     }
+
+    const parsed = tryParseJson(result.summary);
+    if (parsed && parsed.complianceGrade) {
+      return parsed;
+    }
+
+    // If LLM returned non-JSON, wrap it gracefully
+    return {
+      complianceGrade: inferGrade(scanJson),
+      estimatedLiability: 'Review required',
+      verdictSummary: String(result.summary).slice(0, 400),
+      remediationSteps: ['Re-run with a configured AI provider for structured output.'],
+    };
+  } catch (err) {
+    logger.warn('[AI Analyst] LLM verdict failed, using deterministic fallback:', err.message);
+    return buildDeterministicVerdict(scanJson);
+  }
 }
 
 /**
@@ -78,26 +78,35 @@ async function generateAutomatedVerdict(scanJson, options = {}) {
  * @returns {any}
  */
 function buildVerdictPrompt(scanJson) {
-    const overview = scanJson.analysisOverview || {};
-    const gatePass = scanJson.gatePass;
-    const issues = (scanJson.detectedIssues || []).slice(0, 10);
-    const fictionHits = (scanJson.detectedIssues || [])
-        .filter(i => /fiction|fictional|consistency|kpi/i.test(String(i.type || '')))
-        .reduce((s, i) => s + (i.count || 1), 0);
-    const sev = scanJson.aggregation?.bySeverity || {};
+  const overview = scanJson.analysisOverview || {};
+  const gatePass = scanJson.gatePass;
+  const issues = (scanJson.detectedIssues || []).slice(0, 10);
+  const fictionHits = (scanJson.detectedIssues || [])
+    .filter((i) => /fiction|fictional|consistency|kpi/i.test(String(i.type || '')))
+    .reduce((s, i) => s + (i.count || 1), 0);
+  const sev = scanJson.aggregation?.bySeverity || {};
 
-    const payload = JSON.stringify({
-        gatePass,
-        issuesDetected: overview.issuesDetected ?? 0,
-        repositoryFilesTotal: overview.repositoryFilesTotal ?? '—',
-        codeFilesAnalyzed: overview.codeFilesAnalyzed ?? '—',
-        dataQualityScore: overview.dataQualityScore ?? '—',
-        severity: { critical: sev.critical ?? 0, high: sev.high ?? 0, medium: sev.medium ?? 0, low: sev.low ?? 0 },
-        fictionKpiHits: fictionHits,
-        topIssues: issues.map(i => ({ type: i.type, count: i.count, severity: i.severity }))
-    }, null, 2);
+  const payload = JSON.stringify(
+    {
+      gatePass,
+      issuesDetected: overview.issuesDetected ?? 0,
+      repositoryFilesTotal: overview.repositoryFilesTotal ?? '—',
+      codeFilesAnalyzed: overview.codeFilesAnalyzed ?? '—',
+      dataQualityScore: overview.dataQualityScore ?? '—',
+      severity: {
+        critical: sev.critical ?? 0,
+        high: sev.high ?? 0,
+        medium: sev.medium ?? 0,
+        low: sev.low ?? 0,
+      },
+      fictionKpiHits: fictionHits,
+      topIssues: issues.map((i) => ({ type: i.type, count: i.count, severity: i.severity })),
+    },
+    null,
+    2
+  );
 
-    return `${SYSTEM_PROMPT}\n\nRaw scan data:\n${payload}`;
+  return `${SYSTEM_PROMPT}\n\nRaw scan data:\n${payload}`;
 }
 
 /**
@@ -106,36 +115,37 @@ function buildVerdictPrompt(scanJson) {
  * @returns {any}
  */
 function buildDeterministicVerdict(scanJson) {
-    const overview = scanJson.analysisOverview || {};
-    const gatePass = scanJson.gatePass;
-    const issues = overview.issuesDetected ?? 0;
-    const sev = scanJson.aggregation?.bySeverity || {};
-    const high = sev.high ?? 0;
-    const critical = sev.critical ?? 0;
+  const overview = scanJson.analysisOverview || {};
+  const gatePass = scanJson.gatePass;
+  const issues = overview.issuesDetected ?? 0;
+  const sev = scanJson.aggregation?.bySeverity || {};
+  const high = sev.high ?? 0;
+  const critical = sev.critical ?? 0;
 
-    let grade;
-    if (gatePass === true && issues === 0) grade = 'A';
-    else if (gatePass === true && high === 0) grade = 'B';
-    else if (gatePass === true) grade = 'C';
-    else if (critical === 0) grade = 'D';
-    else grade = 'F';
+  let grade;
+  if (gatePass === true && issues === 0) grade = 'A';
+  else if (gatePass === true && high === 0) grade = 'B';
+  else if (gatePass === true) grade = 'C';
+  else if (critical === 0) grade = 'D';
+  else grade = 'F';
 
-    const liability = (critical > 0 || high > 3)
-        ? '€50,000 – €500,000 estimated regulatory exposure'
-        : (high > 0)
-            ? '€5,000 – €50,000 estimated remediation cost'
-            : 'Low Risk';
+  const liability =
+    critical > 0 || high > 3
+      ? '€50,000 – €500,000 estimated regulatory exposure'
+      : high > 0
+        ? '€5,000 – €50,000 estimated remediation cost'
+        : 'Low Risk';
 
-    return {
-        complianceGrade: grade,
-        estimatedLiability: liability,
-        verdictSummary: `Deterministic scan found ${issues} issues (${critical} critical, ${high} high). Gate result: ${gatePass === true ? 'PASS' : 'FAIL'}.`,
-        remediationSteps: [
-            'Review all critical and high-severity findings in the detailed report.',
-            'Apply the remediation checklist exported by the CLI.',
-            'Re-scan after fixes to validate gate passage.'
-        ]
-    };
+  return {
+    complianceGrade: grade,
+    estimatedLiability: liability,
+    verdictSummary: `Deterministic scan found ${issues} issues (${critical} critical, ${high} high). Gate result: ${gatePass === true ? 'PASS' : 'FAIL'}.`,
+    remediationSteps: [
+      'Review all critical and high-severity findings in the detailed report.',
+      'Apply the remediation checklist exported by the CLI.',
+      'Re-scan after fixes to validate gate passage.',
+    ],
+  };
 }
 
 /**
@@ -144,12 +154,12 @@ function buildDeterministicVerdict(scanJson) {
  * @returns {any}
  */
 function inferGrade(scanJson) {
-    const overview = scanJson.analysisOverview || {};
-    const gatePass = scanJson.gatePass;
-    const issues = overview.issuesDetected ?? 0;
-    if (gatePass === true && issues === 0) return 'A';
-    if (gatePass === true) return 'B';
-    return 'C';
+  const overview = scanJson.analysisOverview || {};
+  const gatePass = scanJson.gatePass;
+  const issues = overview.issuesDetected ?? 0;
+  if (gatePass === true && issues === 0) return 'A';
+  if (gatePass === true) return 'B';
+  return 'C';
 }
 
 /**
@@ -158,17 +168,17 @@ function inferGrade(scanJson) {
  * @returns {any}
  */
 function tryParseJson(text) {
-    try {
-        // Strip markdown fences if present
-        const cleaned = String(text)
-            .replace(/^```json\s*/, '')
-            .replace(/^```\s*/, '')
-            .replace(/\s*```$/, '')
-            .trim();
-        return JSON.parse(cleaned);
-    } catch {
-        return null;
-    }
+  try {
+    // Strip markdown fences if present
+    const cleaned = String(text)
+      .replace(/^```json\s*/, '')
+      .replace(/^```\s*/, '')
+      .replace(/\s*```$/, '')
+      .trim();
+    return JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -176,19 +186,19 @@ function tryParseJson(text) {
  * @param {Object} options — to, subject, reportData
  */
 async function emailAutomatedVerdict(options = {}) {
-    const { to, reportData } = options;
-    if (!to) {
-        logger.warn('[AI Analyst] emailAutomatedVerdict: no recipient');
-        return { sent: false, error: 'no recipient' };
-    }
+  const { to, reportData } = options;
+  if (!to) {
+    logger.warn('[AI Analyst] emailAutomatedVerdict: no recipient');
+    return { sent: false, error: 'no recipient' };
+  }
 
-    const html = `
+  const html = `
         <h2>Automated Compliance Report — ${reportData.project || 'Project'}</h2>
         <p><strong>Grade:</strong> ${reportData.complianceGrade}</p>
         <p><strong>Estimated Liability:</strong> ${reportData.estimatedLiability}</p>
         <p><strong>Verdict:</strong> ${reportData.verdictSummary}</p>
         <h3>Remediation Steps</h3>
-        <ol>${(reportData.remediationSteps || []).map(s => `<li>${s}</li>`).join('')}</ol>
+        <ol>${(reportData.remediationSteps || []).map((s) => `<li>${s}</li>`).join('')}</ol>
         <hr/>
         <p style="font-size:12px;color:#666;">
             Generated by SimpleBeacon AI Analyst (autopilot).<br/>
@@ -196,12 +206,13 @@ async function emailAutomatedVerdict(options = {}) {
         </p>
     `;
 
-    return sendEmail({
-        to,
-        subject: options.subject || `Your Automated Compliance Report — ${reportData.project || 'Project'}`,
-        text: `Grade: ${reportData.complianceGrade}\nLiability: ${reportData.estimatedLiability}\n\nVerdict: ${reportData.verdictSummary}\n\nRemediation:\n${(reportData.remediationSteps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}`,
-        html
-    });
+  return sendEmail({
+    to,
+    subject:
+      options.subject || `Your Automated Compliance Report — ${reportData.project || 'Project'}`,
+    text: `Grade: ${reportData.complianceGrade}\nLiability: ${reportData.estimatedLiability}\n\nVerdict: ${reportData.verdictSummary}\n\nRemediation:\n${(reportData.remediationSteps || []).map((s, i) => `${i + 1}. ${s}`).join('\n')}`,
+    html,
+  });
 }
 
 module.exports = { generateAutomatedVerdict, emailAutomatedVerdict, buildDeterministicVerdict };

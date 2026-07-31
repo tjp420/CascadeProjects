@@ -7,10 +7,7 @@ const os = require('os');
 // Guard: skip all tests if policy module doesn't exist
 let RemediationEngine, STRUCTURAL_RULES;
 try {
-  ({
-    RemediationEngine,
-    STRUCTURAL_RULES
-  } = require('../../src/policy/RemediationEngine'));
+  ({ RemediationEngine, STRUCTURAL_RULES } = require('../../src/policy/RemediationEngine'));
 } catch (_e) {
   test.skip('RemediationEngine module not available — skipping all tests', () => {});
   return;

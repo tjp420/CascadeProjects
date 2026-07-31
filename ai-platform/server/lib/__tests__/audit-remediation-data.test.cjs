@@ -7,7 +7,7 @@ const {
   BUSINESS_IMPACT_BY_KIND,
   GATE_BLOCKING_KINDS,
   FIX_SPEC_VERSION,
-  SEVERITY_ORDER
+  SEVERITY_ORDER,
 } = require('../audit-remediation-recipes/data.cjs');
 
 describe('audit-remediation-recipes/data', () => {

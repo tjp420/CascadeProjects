@@ -54,7 +54,7 @@ function shouldExcludePath(filePath, userExclusions = []) {
     'build',
     'archive',
     'github-cache',
-    'deliverables'
+    'deliverables',
   ];
 
   // 2. Load config exclusions from .simplebeacon/config.json
@@ -65,7 +65,7 @@ function shouldExcludePath(filePath, userExclusions = []) {
 
   // 4. Perform a clean token match (case-insensitive)
   const normalizedPath = filePath.toLowerCase();
-  return activeExclusions.some(pattern => {
+  return activeExclusions.some((pattern) => {
     const pat = pattern.toLowerCase().replace(/\*\*/g, '').replace(/\*/g, '');
     return normalizedPath.includes(pat);
   });

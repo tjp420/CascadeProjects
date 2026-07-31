@@ -1,5 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
-const { evaluateComplianceChecklist } = require('../packages/simplebeacon-cli/src/compliance-checklist.js');
+const {
+  evaluateComplianceChecklist,
+} = require('../packages/simplebeacon-cli/src/compliance-checklist.js');
 
 const report = {
   projectRoot: 'C:/Users/Trevor/CascadeProjects',
@@ -9,11 +11,13 @@ const report = {
   schemaChecked: 0,
   consistencyChecked: 0,
   euAiActScanned: null,
-  rawIssues: []
+  rawIssues: [],
 };
 
 try {
-  const result = evaluateComplianceChecklist(report, { projectRoot: 'C:/Users/Trevor/CascadeProjects' });
+  const result = evaluateComplianceChecklist(report, {
+    projectRoot: 'C:/Users/Trevor/CascadeProjects',
+  });
   console.log('SUCCESS:', JSON.stringify(result.summary));
 } catch (e) {
   console.log('ERROR:', e.message);

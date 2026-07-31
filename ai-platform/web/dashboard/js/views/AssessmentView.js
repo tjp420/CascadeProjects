@@ -18,7 +18,7 @@ export class AssessmentView {
       email: '',
       repoUrl: '',
       projectPath: '',
-      assessmentType: 'mna-audit'
+      assessmentType: 'mna-audit',
     };
   }
 
@@ -52,13 +52,17 @@ export class AssessmentView {
           <div class="settings-row"><span class="settings-label">High issues</span><span class="settings-value">${summary.highIssues ?? 0}</span></div>
           <div class="settings-row"><span class="settings-label">Expires</span><span class="settings-value">${escapeHtml(assessment.metadata?.expiresAt || '—')}</span></div>
         </div>
-        ${rules.length ? `
+        ${
+          rules.length
+            ? `
           <div class="section-heading" style="padding:0 var(--space-4)"><h2>Corporate safety checklist</h2></div>
           <table class="results-table">
             <thead><tr><th>Rule</th><th>Title</th><th>Evidence</th></tr></thead>
             <tbody>${rules.map((r) => this.renderRuleRow(r)).join('')}</tbody>
           </table>
-        ` : ''}
+        `
+            : ''
+        }
         <div class="card-actions" style="padding:var(--space-4)">
           <a class="btn btn-secondary btn-sm" href="${assessmentService.downloadUrl(assessment.metadata?.assessmentId)}" download>Download JSON</a>
         </div>
@@ -74,14 +78,18 @@ export class AssessmentView {
       <table class="results-table">
         <thead><tr><th>Company</th><th>ID</th><th>When</th><th></th></tr></thead>
         <tbody>
-          ${this.recent.map((item) => `
+          ${this.recent
+            .map(
+              (item) => `
             <tr>
               <td>${escapeHtml(item.company)}</td>
               <td><code>${escapeHtml(item.assessmentId)}</code></td>
               <td>${escapeHtml(new Date(item.createdAt).toLocaleString())}</td>
               <td><button type="button" class="btn btn-ghost btn-sm" data-open-assessment="${escapeHtml(item.assessmentId)}">View</button></td>
             </tr>
-          `).join('')}
+          `
+            )
+            .join('')}
         </tbody>
       </table>
     `;
@@ -93,7 +101,7 @@ export class AssessmentView {
     const authed = authService.isAuthenticated();
     const selectedId = this.app.state.routeParams?.id;
 
-el.innerHTML = `
+    el.innerHTML = `
       <h1 class="page-title">Assessment Portal</h1>
       <p class="page-subtitle">Simplebeacon scan → human triage → enterprise deliverable. Regex gate in minutes; expert review sells the audit.</p>
 
@@ -112,12 +120,16 @@ el.innerHTML = `
             <span class="input-label">Git repo URL ${authed ? '(public or signed-in)' : '(required)'}</span>
             <input class="input" name="repoUrl" placeholder="https://github.com/org/repo" value="${escapeHtml(this.form.repoUrl)}">
           </label>
-          ${authed ? `
+          ${
+            authed
+              ? `
           <label class="input-group">
             <span class="input-label">Local project path (signed-in only)</span>
             <input class="input" name="projectPath" placeholder="C:\\\\Projects\\\\client-repo" value="${escapeHtml(this.form.projectPath)}">
-          </label>` : `
-          <p class="text-muted">Sign in to scan a local path on this server instead of cloning a repo.</p>`}
+          </label>`
+              : `
+          <p class="text-muted">Sign in to scan a local path on this server instead of cloning a repo.</p>`
+          }
           <div class="card-actions">
             <button type="submit" class="btn btn-primary" ${this.busy ? 'disabled' : ''}>
               ${this.busy ? 'Scanning…' : 'Run assessment scan'}
@@ -164,7 +176,7 @@ el.innerHTML = `
       email: String(fd.get('email') || '').trim(),
       repoUrl: String(fd.get('repoUrl') || '').trim() || undefined,
       projectPath: String(fd.get('projectPath') || '').trim() || undefined,
-      assessmentType: this.form.assessmentType
+      assessmentType: this.form.assessmentType,
     };
 
     if (!payload.repoUrl && !payload.projectPath) {
@@ -204,7 +216,8 @@ el.innerHTML = `
     const selectedId = this.app.state.routeParams?.id;
     if (selectedId) {
       if (this.report?.metadata?.assessmentId !== selectedId) {
-        assessmentService.fetchReport(selectedId)
+        assessmentService
+          .fetchReport(selectedId)
           .then((data) => {
             this.report = data.assessment;
             this.app.refreshCurrentView();
@@ -215,7 +228,7 @@ el.innerHTML = `
       this.report = null;
     }
     this.recent = assessmentService.getRecentAssessments();
-container.innerHTML = '';
+    container.innerHTML = '';
     container.appendChild(this.render());
   }
 }

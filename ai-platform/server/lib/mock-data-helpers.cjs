@@ -11,7 +11,8 @@ const ALLOWED_EXTENSIONS = constants.MOCK_SCAN_EXTENSIONS;
  */
 function analyzeFileContent(content, filename) {
   const issues = [];
-  const needsConversion = content.includes('mock') || content.includes('sample') || content.includes('demo');
+  const needsConversion =
+    content.includes('mock') || content.includes('sample') || content.includes('demo');
   const needsCleaning = content.includes('duplicate') || content.includes('outdated');
   const needsValidation = contentNeedsValidation(content);
 
@@ -22,7 +23,7 @@ function analyzeFileContent(content, filename) {
     needsConversion,
     needsCleaning,
     issues,
-    patterns: extractPatterns(content)
+    patterns: extractPatterns(content),
   };
 }
 
@@ -84,7 +85,7 @@ function convertFileToRealFormat(file) {
     originalSize: file.size,
     convertedSize: file.size * constants.MOCK_CONVERSION_SIZE_FACTOR,
     format: getMockFileType(file.name, ''),
-    status: 'converted'
+    status: 'converted',
   };
 }
 
@@ -102,7 +103,7 @@ function cleanFileContent(file) {
     cleanedFile: file.path.replace('.cleaned.', '.cleaned.'),
     issuesFixed,
     optimization: constants.MOCK_OPTIMIZATION_RATE,
-    optimizedSize
+    optimizedSize,
   };
 }
 
@@ -123,7 +124,7 @@ function validateFileStructure(file) {
       issues.push({
         type: 'invalid_json',
         message: error.message,
-        severity: 'critical'
+        severity: 'critical',
       });
     }
   }
@@ -136,7 +137,7 @@ function validateFileStructure(file) {
     status,
     tests,
     issues,
-    score
+    score,
   };
 }
 
@@ -155,7 +156,10 @@ function calculateDataSize(files) {
  * @returns {any}
  */
 function calculateOptimization(files) {
-  const totalOptimization = files.reduce((total, file) => total + parseFloat(file.optimization || '0%'), 0);
+  const totalOptimization = files.reduce(
+    (total, file) => total + parseFloat(file.optimization || '0%'),
+    0
+  );
   return (totalOptimization / files.length).toFixed(1) + '%';
 }
 
@@ -185,8 +189,9 @@ function countDuplicates(files) {
  * @returns {any}
  */
 function generateDatasetFromPattern(pattern) {
-  const fields = pattern.split(',').map(field => field.trim());
-  const recordCount = Math.floor(Math.random() * constants.DEFAULT_RANDOM_MAX) + constants.DEFAULT_RECORD_COUNT_BASE;
+  const fields = pattern.split(',').map((field) => field.trim());
+  const recordCount =
+    Math.floor(Math.random() * constants.DEFAULT_RANDOM_MAX) + constants.DEFAULT_RECORD_COUNT_BASE;
   const records = [];
 
   for (let i = 0; i < recordCount; i++) {
@@ -203,7 +208,7 @@ function generateDatasetFromPattern(pattern) {
     fields,
     dataTypes: ['JSON', 'CSV'],
     realismScore: constants.MOCK_REALISM_SCORE,
-    filePath: `mock_data_${pattern.replace(/\W+/g, '_')}.json`
+    filePath: `mock_data_${pattern.replace(/\W+/g, '_')}.json`,
   };
 }
 
@@ -215,11 +220,14 @@ function generateDatasetFromPattern(pattern) {
 function generateFieldValue(field) {
   const lowerField = field.toLowerCase();
   if (lowerField.includes('id')) return 'ID_' + Math.random().toString(36).substr(2, 9);
-  if (lowerField.includes('name')) return ['John', 'Jane', 'Michael', 'Sarah'][Math.floor(Math.random() * 4)];
+  if (lowerField.includes('name'))
+    return ['John', 'Jane', 'Michael', 'Sarah'][Math.floor(Math.random() * 4)];
   if (lowerField.includes('email')) return 'user@example.com';
   if (lowerField.includes('date')) return new Date().toISOString().split('T')[0];
-  if (lowerField.includes('status')) return ['active', 'pending', 'completed'][Math.floor(Math.random() * 3)];
-  if (lowerField.includes('price')) return (Math.random() * constants.DEFAULT_RANDOM_MAX).toFixed(2);
+  if (lowerField.includes('status'))
+    return ['active', 'pending', 'completed'][Math.floor(Math.random() * 3)];
+  if (lowerField.includes('price'))
+    return (Math.random() * constants.DEFAULT_RANDOM_MAX).toFixed(2);
   if (lowerField.includes('count')) return Math.floor(Math.random() * constants.DEFAULT_RANDOM_MAX);
   return Math.random().toString(36).substr(2, 9);
 }
@@ -230,7 +238,10 @@ function generateFieldValue(field) {
  * @returns {any}
  */
 function calculateRealismScore(datasets) {
-  const totalScore = datasets.reduce((total, dataset) => total + parseFloat(dataset.realismScore), 0);
+  const totalScore = datasets.reduce(
+    (total, dataset) => total + parseFloat(dataset.realismScore),
+    0
+  );
   return (totalScore / datasets.length).toFixed(1) + '%';
 }
 
@@ -246,7 +257,7 @@ function exportFile(file) {
     originalSize: file.size,
     exportedSize: file.size * constants.MOCK_CONVERSION_SIZE_FACTOR,
     format: 'json',
-    checksum: 'hash_' + Math.random().toString(36).substr(2, 9)
+    checksum: 'hash_' + Math.random().toString(36).substr(2, 9),
   };
 }
 
@@ -265,5 +276,5 @@ module.exports = {
   generateDatasetFromPattern,
   generateFieldValue,
   calculateRealismScore,
-  exportFile
+  exportFile,
 };

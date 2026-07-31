@@ -19,14 +19,14 @@ module.exports = {
       branches: 10,
       functions: 8,
       lines: 10,
-      statements: 10
-    }
+      statements: 10,
+    },
   },
   testMatch: [
     '<rootDir>/tests/**/*.test.js',
     '<rootDir>/tests/**/*.spec.js',
     '<rootDir>/server/**/__tests__/**/*.test.cjs',
-    '<rootDir>/src/**/__tests__/**/*.test.cjs'
+    '<rootDir>/src/**/__tests__/**/*.test.cjs',
   ],
   testPathIgnorePatterns: [
     '/node_modules/',
@@ -44,22 +44,20 @@ module.exports = {
     'middleware/__tests__/upload-security\\.test\\.cjs$',
     'middleware/__tests__/simplebeacon-subscription\\.test\\.cjs$',
     'middleware/__tests__/audit\\.test\\.cjs$',
-    'bootstrap/__tests__/phase2-integration\\.test\\.cjs$'
+    'bootstrap/__tests__/phase2-integration\\.test\\.cjs$',
   ],
   moduleFileExtensions: ['js', 'cjs', 'json', 'jsx', 'ts', 'tsx', 'node'],
   moduleNameMapper: {
     '\\.\\./shared-utils/index\\.cjs$': '<rootDir>/shared-utils/index.cjs',
     '^node:test$': '<rootDir>/tests/shims/node-test-shim.cjs',
     '^node:assert/strict$': '<rootDir>/tests/shims/node-assert-shim.cjs',
-    '^node:assert$': '<rootDir>/tests/shims/node-assert-shim.cjs'
+    '^node:assert$': '<rootDir>/tests/shims/node-assert-shim.cjs',
   },
   passWithNoTests: true,
   forceExit: true,
-  setupFilesAfterEnv: [
-    '<rootDir>/tests/setup.js'
-  ],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
   testTimeout: TEST_TIMEOUT_MS,
   globals: {
-    'NODE_ENV': 'test'
-  }
+    NODE_ENV: 'test',
+  },
 };

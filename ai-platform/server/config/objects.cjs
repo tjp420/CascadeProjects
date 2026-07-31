@@ -17,9 +17,12 @@ function defaultsDeep(target, ...sources) {
       if (target[key] === undefined) {
         target[key] = source[key];
       } else if (
-        target[key] != null && typeof target[key] === 'object' &&
-        source[key] != null && typeof source[key] === 'object' &&
-        !Array.isArray(target[key]) && !Array.isArray(source[key])
+        target[key] != null &&
+        typeof target[key] === 'object' &&
+        source[key] != null &&
+        typeof source[key] === 'object' &&
+        !Array.isArray(target[key]) &&
+        !Array.isArray(source[key])
       ) {
         defaultsDeep(target[key], source[key]);
       }
@@ -76,5 +79,5 @@ module.exports = Object.freeze({
   defaultsDeep,
   mapValues,
   mapKeys,
-  invert
+  invert,
 });

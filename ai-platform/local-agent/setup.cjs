@@ -76,9 +76,20 @@ function extractZip(zipPath, destDir) {
 }
 
 function createWindowsShortcuts(installDir) {
-  if (process.platform !== 'win32') { return; }
+  if (process.platform !== 'win32') {
+    return;
+  }
 
-  const startMenuDir = path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'SimpleBeacon');
+  const startMenuDir = path.join(
+    os.homedir(),
+    'AppData',
+    'Roaming',
+    'Microsoft',
+    'Windows',
+    'Start Menu',
+    'Programs',
+    'SimpleBeacon'
+  );
   ensureDir(startMenuDir);
 
   const wsh = require('child_process').execSync;
@@ -94,12 +105,29 @@ lnk.Save
     const vbsPath = path.join(os.tmpdir(), 'sb-shortcut.vbs');
     fs.writeFileSync(vbsPath, vbs, 'utf8');
     execSync(`cscript //NoLogo "${vbsPath}"`, { stdio: 'ignore' });
-    try { fs.unlinkSync(vbsPath); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(vbsPath);
+    } catch {
+      /* ignore */
+    }
   }
 
   const batPath = path.join(installDir, 'start-agent.bat');
   createShortcut(path.join(startMenuDir, 'SimpleBeacon Local Agent.lnk'), batPath);
-  createShortcut(path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'SimpleBeacon Local Agent.lnk'), batPath);
+  createShortcut(
+    path.join(
+      os.homedir(),
+      'AppData',
+      'Roaming',
+      'Microsoft',
+      'Windows',
+      'Start Menu',
+      'Programs',
+      'Startup',
+      'SimpleBeacon Local Agent.lnk'
+    ),
+    batPath
+  );
   log('Created Start Menu and startup shortcuts.');
 }
 
@@ -108,7 +136,7 @@ function startAgent(installDir) {
     spawn('cmd.exe', ['/c', path.join(installDir, 'start-agent.bat')], {
       cwd: installDir,
       detached: true,
-      windowsHide: false
+      windowsHide: false,
     });
   } else {
     const sh = path.join(installDir, 'start-agent.sh');
@@ -150,7 +178,9 @@ async function main() {
   } finally {
     try {
       fs.rmSync(tempDir, { recursive: true, force: true });
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 }
 

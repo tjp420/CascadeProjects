@@ -21,13 +21,12 @@ export async function fetchPathHealthMetrics() {
             throw new Error(data.message || 'Failed to retrieve path health metrics');
         }
         return data;
-    }
-    catch (error) {
+    } catch (error) {
         const msg = (error === null || error === void 0 ? void 0 : error.message) || String(error);
         if (msg.includes('NetworkError') || msg.includes('Failed to fetch')) {
             return { status: 'unavailable', summary: {}, directories: [], engine: {} };
         }
-        window["console"]["error"]('[pathHealthService] Error fetching metrics:', msg);
+        window['console']['error']('[pathHealthService] Error fetching metrics:', msg);
         throw error;
     }
 }

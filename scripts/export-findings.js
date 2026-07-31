@@ -13,7 +13,8 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
-const OUTPUT_FILE = process.argv[2] || path.join(PROJECT_ROOT, '.simplebeacon', 'findings-export.json');
+const OUTPUT_FILE =
+  process.argv[2] || path.join(PROJECT_ROOT, '.simplebeacon', 'findings-export.json');
 
 function runScan() {
   return new Promise((resolve, reject) => {
@@ -22,20 +23,25 @@ function runScan() {
       'scan',
       '--full',
       '--gate',
-      '--config', '.simplebeacon/config.json'
+      '--config',
+      '.simplebeacon/config.json',
     ];
 
     const child = spawn('npx', args, {
       cwd: PROJECT_ROOT,
       shell: true,
-      env: { ...process.env, FORCE_COLOR: '0' }
+      env: { ...process.env, FORCE_COLOR: '0' },
     });
 
     let stdout = '';
     let stderr = '';
 
-    child.stdout.on('data', (data) => { stdout += data.toString(); });
-    child.stderr.on('data', (data) => { stderr += data.toString(); });
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
 
     child.on('close', () => resolve({ stdout, stderr }));
     child.on('error', reject);
@@ -71,7 +77,7 @@ function parseFindings(stdout) {
         category: category.trim(),
         file: file.trim(),
         line: parseInt(lineNum) || 0,
-        description: description.trim()
+        description: description.trim(),
       });
     }
   }
@@ -104,15 +110,15 @@ function parseFindings(stdout) {
         critical: criticalMatch ? parseInt(criticalMatch[1]) : 0,
         high: highMatch ? parseInt(highMatch[1]) : 0,
         medium: mediumMatch ? parseInt(mediumMatch[1]) : 0,
-        low: lowMatch ? parseInt(lowMatch[1]) : 0
-      }
+        low: lowMatch ? parseInt(lowMatch[1]) : 0,
+      },
     },
     findings: findings,
     byCategory: byCategory,
     securityFindings: securityBySeverity,
     topIssues: findings
-      .filter(f => f.severity === 'high' || f.severity === 'critical')
-      .slice(0, 10)
+      .filter((f) => f.severity === 'high' || f.severity === 'critical')
+      .slice(0, 10),
   };
 }
 
@@ -124,19 +130,23 @@ async function main() {
   await fs.promises.writeFile(OUTPUT_FILE, JSON.stringify(report, null, 2));
   console.log(`[export-findings] Saved ${report.findings.length} findings to ${OUTPUT_FILE}`);
   console.log(`  Files: ${report.metrics.totalFiles}`);
-  console.log(`  Issues: ${report.findings.length} (Critical=${report.metrics.severityCounts.critical}, High=${report.metrics.severityCounts.high}, Medium=${report.metrics.severityCounts.medium}, Low=${report.metrics.severityCounts.low})`);
+  console.log(
+    `  Issues: ${report.findings.length} (Critical=${report.metrics.severityCounts.critical}, High=${report.metrics.severityCounts.high}, Medium=${report.metrics.severityCounts.medium}, Low=${report.metrics.severityCounts.low})`
+  );
   console.log(`  Categories: ${Object.keys(report.byCategory).join(', ')}`);
 
   // Print top 5 high-severity findings for immediate visibility
   if (report.topIssues.length > 0) {
     console.log('\nTop 5 High/Critical Issues:');
     report.topIssues.slice(0, 5).forEach((f, i) => {
-      console.log(`  ${i + 1}. [${f.severity.toUpperCase()}] ${f.file}:${f.line} — ${f.description.substring(0, 80)}`);
+      console.log(
+        `  ${i + 1}. [${f.severity.toUpperCase()}] ${f.file}:${f.line} — ${f.description.substring(0, 80)}`
+      );
     });
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(`[export-findings] Error: ${err.message}`);
   process.exit(1);
 });

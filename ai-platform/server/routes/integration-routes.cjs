@@ -76,7 +76,12 @@ router.post('/', integrationRateLimit, (req, res) => {
     if (!type) return sendError(res, 400, 'type is required');
 
     const config = integrationStore.createConfig({
-      type, orgId, name, enabled, events, ...rest,
+      type,
+      orgId,
+      name,
+      enabled,
+      events,
+      ...rest,
     });
     res.status(201).json({ success: true, config });
   } catch (err) {
@@ -107,29 +112,33 @@ router.delete('/:configId', validateParam('configId', VALIDATION_PATTERNS.config
 });
 
 // POST /api/integrations/:configId/test — test connectivity
-router.post('/:configId/test', validateParam('configId', VALIDATION_PATTERNS.configId), async (req, res) => {
-  try {
-    const config = integrationStore.getConfigDecrypted(req.params.configId);
-    if (!config) return sendError(res, 404, 'not_found');
-    if (!config.enabled) return sendError(res, 400, 'config_disabled');
+router.post(
+  '/:configId/test',
+  validateParam('configId', VALIDATION_PATTERNS.configId),
+  async (req, res) => {
+    try {
+      const config = integrationStore.getConfigDecrypted(req.params.configId);
+      if (!config) return sendError(res, 404, 'not_found');
+      if (!config.enabled) return sendError(res, 400, 'config_disabled');
 
-    const testPayload = webhookEngine.buildEventPayload('scan_completed', {
-      orgId: config.orgId,
-      summary: 'Test notification from SimpleBeacon Integration Marketplace',
-      severity: 'info',
-      issueCount: 0,
-    });
+      const testPayload = webhookEngine.buildEventPayload('scan_completed', {
+        orgId: config.orgId,
+        summary: 'Test notification from SimpleBeacon Integration Marketplace',
+        severity: 'info',
+        issueCount: 0,
+      });
 
-    const adapter = webhookEngine.ADAPTERS[config.type];
-    if (!adapter) return sendError(res, 400, 'no_adapter');
+      const adapter = webhookEngine.ADAPTERS[config.type];
+      if (!adapter) return sendError(res, 400, 'no_adapter');
 
-    const result = await adapter(config, testPayload);
-    res.json({ success: true, ...result });
-  } catch (err) {
-    logger.error('[Integrations] Test failed:', err.message);
-    sendError(res, 500, 'test_failed', { message: err.message });
+      const result = await adapter(config, testPayload);
+      res.json({ success: true, ...result });
+    } catch (err) {
+      logger.error('[Integrations] Test failed:', err.message);
+      sendError(res, 500, 'test_failed', { message: err.message });
+    }
   }
-});
+);
 
 // POST /api/integrations/dispatch — manually dispatch event
 router.post('/dispatch', integrationRateLimit, async (req, res) => {

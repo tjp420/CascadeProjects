@@ -93,12 +93,20 @@ describe('subscriptionRecord', () => {
 describe('readStore / writeStore', () => {
   beforeEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   afterEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('readStore returns default when file missing', async () => {
@@ -119,12 +127,20 @@ describe('readStore / writeStore', () => {
 describe('upsertSubscription', () => {
   beforeEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   afterEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('creates a new subscription', async () => {
@@ -141,10 +157,7 @@ describe('upsertSubscription', () => {
   });
 
   it('throws on invalid email', async () => {
-    await assert.rejects(
-      store.upsertSubscription('not-an-email'),
-      /Email is required/
-    );
+    await assert.rejects(store.upsertSubscription('not-an-email'), /Email is required/);
   });
 
   it('updates byApiToken index on token change', async () => {
@@ -159,12 +172,20 @@ describe('upsertSubscription', () => {
 describe('getSubscriptionByEmail', () => {
   beforeEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   afterEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('returns null for missing email', async () => {
@@ -187,12 +208,20 @@ describe('getSubscriptionByEmail', () => {
 describe('getSubscriptionByApiToken', () => {
   beforeEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   afterEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('returns null for invalid token format', async () => {
@@ -210,12 +239,20 @@ describe('getSubscriptionByApiToken', () => {
 describe('setSubscriptionActive', () => {
   beforeEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   afterEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('toggles subscriptionActive', async () => {
@@ -230,12 +267,20 @@ describe('setSubscriptionActive', () => {
 describe('consumeApiCall', () => {
   beforeEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   afterEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('rejects invalid token format', async () => {
@@ -258,7 +303,9 @@ describe('consumeApiCall', () => {
   });
 
   it('allows up to PAID_API_LIMIT', async () => {
-    const created = await store.upsertSubscription('paid@example.com', { subscriptionActive: true });
+    const created = await store.upsertSubscription('paid@example.com', {
+      subscriptionActive: true,
+    });
     const limit = store.PAID_API_LIMIT;
     for (let i = 0; i < limit; i++) {
       const r = await store.consumeApiCall(created.apiToken);
@@ -273,12 +320,20 @@ describe('consumeApiCall', () => {
 describe('consumeScan', () => {
   beforeEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   afterEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('rejects invalid email', async () => {
@@ -324,12 +379,20 @@ describe('consumeScan', () => {
 describe('consumeComplianceCert', () => {
   beforeEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   afterEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('rejects inactive subscription', async () => {
@@ -342,7 +405,7 @@ describe('consumeComplianceCert', () => {
   it('rejects non-continuous_shield product', async () => {
     await store.upsertSubscription('notshield@example.com', {
       subscriptionActive: true,
-      product: 'startup'
+      product: 'startup',
     });
     const r = await store.consumeComplianceCert('notshield@example.com');
     assert.strictEqual(r.allowed, false);
@@ -353,7 +416,7 @@ describe('consumeComplianceCert', () => {
     await store.upsertSubscription('shield@example.com', {
       subscriptionActive: true,
       product: 'continuous_shield',
-      complianceCertLimit: 2
+      complianceCertLimit: 2,
     });
     const r1 = await store.consumeComplianceCert('shield@example.com');
     assert.strictEqual(r1.allowed, true);
@@ -427,12 +490,20 @@ describe('clearCache', () => {
 describe('in-memory caching', () => {
   beforeEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   afterEach(() => {
     store.clearCache();
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch { /* ignore */ }
+    try {
+      fs.unlinkSync(TEST_STORE_PATH);
+    } catch {
+      /* ignore */
+    }
   });
 
   it('readStore caches after first read', async () => {

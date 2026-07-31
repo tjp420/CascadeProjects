@@ -2,6 +2,7 @@
 
 const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
+const { authorize } = require('../middleware/authorize.cjs');
 const ruleStore = require('../lib/alert-rule-store.cjs');
 const incidentStore = require('../lib/alert-incident-store.cjs');
 const { processEvent, deliverAlert, buildPayload } = require('../lib/alert-dispatcher.cjs');
@@ -43,7 +44,7 @@ router.get('/rules/:id', (req, res) => {
 });
 
 // ── POST /api/alerts/rules ──────────────────────────────────────────────────
-router.post('/rules', (req, res) => {
+router.post('/rules', authorize('admin:all'), (req, res) => {
   try {
     const orgId = getOrgId(req);
     const {
@@ -106,7 +107,7 @@ router.post('/rules', (req, res) => {
 });
 
 // ── DELETE /api/alerts/rules/:id ────────────────────────────────────────────
-router.delete('/rules/:id', (req, res) => {
+router.delete('/rules/:id', authorize('admin:all'), (req, res) => {
   try {
     const orgId = getOrgId(req);
     const oldRule = ruleStore.getRule(req.params.id, orgId);

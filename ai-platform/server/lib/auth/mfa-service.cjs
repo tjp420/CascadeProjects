@@ -17,7 +17,7 @@ function verifyMFA(req, res, next) {
     return res.status(403).json({
       error: 'MFA Required',
       message: 'Multi-factor authentication required for this access level',
-      mfaRequired: true
+      mfaRequired: true,
     });
   }
 
@@ -32,7 +32,7 @@ function generateMFASecret(user) {
   return speakeasy.generateSecret({
     name: `Cascade AI (${user.email})`,
     issuer: 'Cascade AI Platform',
-    length: 32
+    length: 32,
   });
 }
 
@@ -42,7 +42,7 @@ function verifyMFAToken(secret, token) {
     secret: secret,
     encoding: 'base32',
     token: token,
-    window: 2
+    window: 2,
   });
 }
 

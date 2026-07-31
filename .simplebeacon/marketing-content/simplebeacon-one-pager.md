@@ -13,14 +13,14 @@ Simplebeacon is a CI hygiene gate that catches mock data leaks, credential patte
 
 ## Scan results (sample)
 
-| Metric | Value |
-|--------|-------|
-| Files scanned | 3257 |
-| Gate result | PASS |
-| Quality score | 100/100 |
-| Blocking issues | 0 |
-| Credential findings | 0 |
-| Production leaks | 0 |
+| Metric              | Value   |
+| ------------------- | ------- |
+| Files scanned       | 3257    |
+| Gate result         | PASS    |
+| Quality score       | 100/100 |
+| Blocking issues     | 0       |
+| Credential findings | 0       |
+| Production leaks    | 0       |
 
 ## Quick start
 

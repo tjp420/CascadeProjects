@@ -1,18 +1,19 @@
 # EU AI Act Classification — Simplebeacon
 
-| Field | Value |
-|---|---|
-| **System Name** | Simplebeacon CLI |
-| **Version** | 1.3.0 |
-| **Classification Date** | 2026-06-06 |
-| **Risk Class** | **Minimal / Non-High-Risk** |
-| **Article 5 Status** | PASSED (see rationale below) |
-| **Article 6 Status** | Not applicable |
-| **Article 10 Status** | PASSED |
+| Field                   | Value                        |
+| ----------------------- | ---------------------------- |
+| **System Name**         | Simplebeacon CLI             |
+| **Version**             | 1.3.0                        |
+| **Classification Date** | 2026-06-06                   |
+| **Risk Class**          | **Minimal / Non-High-Risk**  |
+| **Article 5 Status**    | PASSED (see rationale below) |
+| **Article 6 Status**    | Not applicable               |
+| **Article 10 Status**   | PASSED                       |
 
 ## 1. System Description
 
 Simplebeacon is a **local-only static analysis tool** that scans source code for:
+
 - Mock data and fixture leaks
 - Fiction KPIs and inflated metrics
 - Credential and token exposure
@@ -22,20 +23,21 @@ Simplebeacon is a **local-only static analysis tool** that scans source code for
 
 ## 2. AI System Indicators Detected (31)
 
-The 31 indicators flagged by the scanner are **self-referential** — they exist because Simplebeacon *detects* AI patterns in code, not because it *is* an AI system under the Act's scope:
+The 31 indicators flagged by the scanner are **self-referential** — they exist because Simplebeacon _detects_ AI patterns in code, not because it _is_ an AI system under the Act's scope:
 
-| # | Indicator | Context | Risk |
-|---|---|---|---|
-| 1 | AI SDK imports | `src/lib/ai-problem-analyzer-suite.js` — local heuristic analyzer | None |
-| 2 | Model inference patterns | `runLocalRemediation()` — optional local fix runner using Ollama/Llama | None |
-| 3 | AI system markers | Scanner rules that flag AI systems in *target* codebases | None |
-| 4 | AST classification | Code pattern detection for EU AI Act compliance reporting | None |
+| #   | Indicator                | Context                                                                | Risk |
+| --- | ------------------------ | ---------------------------------------------------------------------- | ---- |
+| 1   | AI SDK imports           | `src/lib/ai-problem-analyzer-suite.js` — local heuristic analyzer      | None |
+| 2   | Model inference patterns | `runLocalRemediation()` — optional local fix runner using Ollama/Llama | None |
+| 3   | AI system markers        | Scanner rules that flag AI systems in _target_ codebases               | None |
+| 4   | AST classification       | Code pattern detection for EU AI Act compliance reporting              | None |
 
 ## 3. Article 5 — Prohibited Practices
 
 **Status: PASSED**
 
 Simplebeacon does not:
+
 - Deploy subliminal techniques
 - Exploit vulnerabilities of individuals or groups
 - Evaluate or score social behavior
@@ -49,7 +51,7 @@ The `WARN` flag in the automated scan is a **false positive** for self-referenti
 
 **Status: Not applicable**
 
-The EU AI Act risk tiers apply to AI systems *deployed in production* that affect individuals. Simplebeacon is a development-time static analyzer with no runtime decision-making impact on end users.
+The EU AI Act risk tiers apply to AI systems _deployed in production_ that affect individuals. Simplebeacon is a development-time static analyzer with no runtime decision-making impact on end users.
 
 ## 5. Article 10 — Transparency
 
@@ -62,18 +64,18 @@ The EU AI Act risk tiers apply to AI systems *deployed in production* that affec
 
 ## 6. Documentation Artifacts (18)
 
-| Artifact | Path |
-|---|---|
-| Enterprise License Vault | `docs/ENTERPRISE-LICENSE-VAULT.md` |
-| License | `LICENSE` |
-| Trust & Privacy | `docs/TRUST.md` |
-| Compliance Checklist | Built-in `evaluateComplianceChecklist()` |
-| MCP User Setup | `docs/MCP-USER-SETUP.md` |
-| Gate Calibration | `docs/GATE-CALIBRATION.md` |
-| Rules Documentation | `docs/RULES.md` |
-| Benchmarks | `docs/BENCHMARKS.md` |
-| Sample Report | `docs/SAMPLE_REPORT.md` |
-| Getting Started | `docs/GETTING-STARTED.md` |
+| Artifact                 | Path                                     |
+| ------------------------ | ---------------------------------------- |
+| Enterprise License Vault | `docs/ENTERPRISE-LICENSE-VAULT.md`       |
+| License                  | `LICENSE`                                |
+| Trust & Privacy          | `docs/TRUST.md`                          |
+| Compliance Checklist     | Built-in `evaluateComplianceChecklist()` |
+| MCP User Setup           | `docs/MCP-USER-SETUP.md`                 |
+| Gate Calibration         | `docs/GATE-CALIBRATION.md`               |
+| Rules Documentation      | `docs/RULES.md`                          |
+| Benchmarks               | `docs/BENCHMARKS.md`                     |
+| Sample Report            | `docs/SAMPLE_REPORT.md`                  |
+| Getting Started          | `docs/GETTING-STARTED.md`                |
 
 ## 7. Recommended Actions
 
@@ -87,4 +89,5 @@ The EU AI Act risk tiers apply to AI systems *deployed in production* that affec
 Simplebeacon is **not an AI system under the EU AI Act**. The 4 AI indicators are artifacts of the scanner's self-detection capabilities. The `WARN` on Article 5 is a false positive. No remediation is required.
 
 ---
-*Generated by Simplebeacon Consolidation Scan — 2026-06-06*
+
+_Generated by Simplebeacon Consolidation Scan — 2026-06-06_

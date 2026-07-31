@@ -7,7 +7,9 @@ const { trustLevels } = require('./trust-levels.cjs');
 function applyVaultOperatorUser(req) {
   const email = process.env.SIMPLEBEACON_BYPASS_EMAIL;
   if (!email) {
-    logger.warn('[auth] SIMPLEBEACON_BYPASS_EMAIL not set — vault operator user will use anonymous identity');
+    logger.warn(
+      '[auth] SIMPLEBEACON_BYPASS_EMAIL not set — vault operator user will use anonymous identity'
+    );
   }
   req.user = {
     id: 'vault-operator',
@@ -15,7 +17,7 @@ function applyVaultOperatorUser(req) {
     name: 'Vault Operator',
     trustLevel: 'gold',
     permissions: trustLevels.gold.permissions,
-    vaultSession: true
+    vaultSession: true,
   };
 }
 
@@ -28,7 +30,7 @@ function vaultOperatorSessionActive(req) {
   if (!vaultPassword) return false;
   return isVaultAuthenticated(req, {
     internalDashboard: true,
-    vaultPassword
+    vaultPassword,
   });
 }
 

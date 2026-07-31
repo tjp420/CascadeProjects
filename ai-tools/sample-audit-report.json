@@ -114,7 +114,7 @@
       "detail": "1 tokens have near-zero probability at step 3",
       "metrics": {
         "collapsed_tokens": 1,
-        "min_prob": 1e-06
+        "min_prob": 1e-6
       }
     },
     {
@@ -124,7 +124,7 @@
       "detail": "1 tokens have near-zero probability at step 4",
       "metrics": {
         "collapsed_tokens": 1,
-        "min_prob": 2e-06
+        "min_prob": 2e-6
       }
     },
     {
@@ -134,7 +134,7 @@
       "detail": "1 tokens have near-zero probability at step 5",
       "metrics": {
         "collapsed_tokens": 1,
-        "min_prob": 5e-07
+        "min_prob": 5e-7
       }
     }
   ]

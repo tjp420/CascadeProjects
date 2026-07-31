@@ -2,7 +2,7 @@ const {
   isSandboxToken,
   recordSandboxRequest,
   getSandboxLimitHeaders,
-  SANDBOX_DAILY_LIMIT
+  SANDBOX_DAILY_LIMIT,
 } = require('../../lib/auth/sandbox-service.cjs');
 
 describe('sandbox-service', () => {

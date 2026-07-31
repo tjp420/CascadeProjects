@@ -14,23 +14,28 @@ const { app } = require('./agent.cjs');
 
 function request(port, method, route, body) {
   return new Promise((resolve, reject) => {
-    const req = http.request({
-      hostname: '127.0.0.1',
-      port,
-      path: route,
-      method,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          resolve({ status: res.statusCode, body: JSON.parse(data) });
-        } catch {
-          resolve({ status: res.statusCode, body: data });
-        }
-      });
-    });
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: route,
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      },
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, body: JSON.parse(data) });
+          } catch {
+            resolve({ status: res.statusCode, body: data });
+          }
+        });
+      }
+    );
     req.on('error', reject);
     if (body) req.write(JSON.stringify(body));
     req.end();
@@ -52,7 +57,8 @@ async function test() {
   const server = http.createServer(app);
   await new Promise((resolve, reject) => {
     server.listen(port, '127.0.0.1', (err) => {
-      if (err) reject(err); else resolve();
+      if (err) reject(err);
+      else resolve();
     });
   });
 
@@ -69,12 +75,16 @@ async function test() {
     assert.ok(missing.body.error.includes('required'));
 
     // URL rejected
-    const urlPath = await request(port, 'POST', '/scan', { projectPath: 'https://example.com/repo' });
+    const urlPath = await request(port, 'POST', '/scan', {
+      projectPath: 'https://example.com/repo',
+    });
     assert.strictEqual(urlPath.status, 400);
     assert.ok(urlPath.body.error.includes('URL'));
 
     // Non-existent absolute path
-    const fake = await request(port, 'POST', '/scan', { projectPath: 'C:\\\\no-such-folder-12345' });
+    const fake = await request(port, 'POST', '/scan', {
+      projectPath: 'C:\\\\no-such-folder-12345',
+    });
     assert.strictEqual(fake.status, 400);
     assert.ok(fake.body.error.includes('does not exist'));
 
@@ -85,7 +95,10 @@ async function test() {
       assert.ok(valid.body.report);
     } else {
       // Scanner may not be available in this environment; at least verify validation passed.
-      assert.ok(valid.body.error.includes('scanner') || valid.body.error.includes('available'), valid.body.error);
+      assert.ok(
+        valid.body.error.includes('scanner') || valid.body.error.includes('available'),
+        valid.body.error
+      );
     }
 
     console.log('agent tests passed');

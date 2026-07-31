@@ -16,7 +16,7 @@ const {
   assertSafeProjectPath,
   validateRepoUrl,
   assertSafeExecutablePath,
-  DEFAULT_ALLOWED_HOSTS
+  DEFAULT_ALLOWED_HOSTS,
 } = require('../server/lib/path-safety.cjs');
 
 describe('path-safety', () => {
@@ -140,11 +140,7 @@ describe('path-safety', () => {
 
     test('returns empty array for invalid JSON', () => {
       fs.mkdirSync(path.join(tmpDir, '.simplebeacon'));
-      fs.writeFileSync(
-        path.join(tmpDir, '.simplebeacon', 'config.json'),
-        'not json',
-        'utf8'
-      );
+      fs.writeFileSync(path.join(tmpDir, '.simplebeacon', 'config.json'), 'not json', 'utf8');
       expect(loadConfigAnalyzeRoots(tmpDir)).toEqual([]);
     });
   });
@@ -223,11 +219,15 @@ describe('path-safety', () => {
     });
 
     test('throws when path is outside allowed roots', () => {
-      expect(() => assertSafeProjectPath('/etc', [tmpDir])).toThrow(/outside allowed analysis roots/);
+      expect(() => assertSafeProjectPath('/etc', [tmpDir])).toThrow(
+        /outside allowed analysis roots/
+      );
     });
 
     test('throws when path does not exist', () => {
-      expect(() => assertSafeProjectPath(path.join(tmpDir, 'does-not-exist'), [tmpDir])).toThrow(/does not exist/);
+      expect(() => assertSafeProjectPath(path.join(tmpDir, 'does-not-exist'), [tmpDir])).toThrow(
+        /does not exist/
+      );
     });
 
     test('uses custom label in error', () => {
@@ -241,11 +241,15 @@ describe('path-safety', () => {
     });
 
     test('accepts valid GitLab HTTPS URL', () => {
-      expect(validateRepoUrl('https://gitlab.com/user/repo.git')).toBe('https://gitlab.com/user/repo.git');
+      expect(validateRepoUrl('https://gitlab.com/user/repo.git')).toBe(
+        'https://gitlab.com/user/repo.git'
+      );
     });
 
     test('accepts valid Bitbucket HTTPS URL', () => {
-      expect(validateRepoUrl('https://bitbucket.org/user/repo/')).toBe('https://bitbucket.org/user/repo');
+      expect(validateRepoUrl('https://bitbucket.org/user/repo/')).toBe(
+        'https://bitbucket.org/user/repo'
+      );
     });
 
     test('throws for empty string', () => {
@@ -259,11 +263,15 @@ describe('path-safety', () => {
     });
 
     test('throws for disallowed host', () => {
-      expect(() => validateRepoUrl('https://example.com/repo')).toThrow(/not in the allowed provider list/);
+      expect(() => validateRepoUrl('https://example.com/repo')).toThrow(
+        /not in the allowed provider list/
+      );
     });
 
     test('throws for invalid characters', () => {
-      expect(() => validateRepoUrl('https://github.com/user/repo;rm -rf')).toThrow(/invalid characters/);
+      expect(() => validateRepoUrl('https://github.com/user/repo;rm -rf')).toThrow(
+        /invalid characters/
+      );
       expect(() => validateRepoUrl("https://github.com/user/repo'")).toThrow(/invalid characters/);
     });
 
@@ -273,11 +281,17 @@ describe('path-safety', () => {
     });
 
     test('allows custom allowedSchemes', () => {
-      expect(() => validateRepoUrl('http://github.com/user/repo', { allowedSchemes: ['http:', 'https:'] })).not.toThrow();
+      expect(() =>
+        validateRepoUrl('http://github.com/user/repo', { allowedSchemes: ['http:', 'https:'] })
+      ).not.toThrow();
     });
 
     test('allows custom allowedHosts', () => {
-      expect(() => validateRepoUrl('https://gitea.example.com/user/repo', { allowedHosts: ['gitea.example.com'] })).not.toThrow();
+      expect(() =>
+        validateRepoUrl('https://gitea.example.com/user/repo', {
+          allowedHosts: ['gitea.example.com'],
+        })
+      ).not.toThrow();
     });
   });
 

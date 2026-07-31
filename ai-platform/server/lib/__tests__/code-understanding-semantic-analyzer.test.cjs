@@ -2,10 +2,14 @@
 
 jest.mock('../../services/cloud-inference-service.cjs', () => ({
   explainCodeWithProvider: jest.fn(),
-  providerConfigured: jest.fn().mockReturnValue(false)
+  providerConfigured: jest.fn().mockReturnValue(false),
 }));
 
-const { analyzeSemanticLayer, classifyPurpose, assessAssumptions } = require('../code-understanding/semantic-analyzer.cjs');
+const {
+  analyzeSemanticLayer,
+  classifyPurpose,
+  assessAssumptions,
+} = require('../code-understanding/semantic-analyzer.cjs');
 
 describe('code-understanding/semantic-analyzer', () => {
   test('exports expected functions', () => {
@@ -15,12 +19,22 @@ describe('code-understanding/semantic-analyzer', () => {
   });
 
   test('classifyPurpose detects test files', () => {
-    const result = classifyPurpose('describe("test", () => {});', 'javascript', [], 'src/file.test.js');
+    const result = classifyPurpose(
+      'describe("test", () => {});',
+      'javascript',
+      [],
+      'src/file.test.js'
+    );
     expect(result.tags).toContain('test');
   });
 
   test('classifyPurpose detects API files', () => {
-    const result = classifyPurpose('app.get("/users", handler);', 'javascript', [], 'server/routes/api.js');
+    const result = classifyPurpose(
+      'app.get("/users", handler);',
+      'javascript',
+      [],
+      'server/routes/api.js'
+    );
     expect(result.tags).toContain('api');
   });
 
@@ -30,7 +44,12 @@ describe('code-understanding/semantic-analyzer', () => {
   });
 
   test('classifyPurpose detects zscript weapon', () => {
-    const result = classifyPurpose('class MyWeapon : Weapon { }', 'zscript', [], 'weapons/sword.zs');
+    const result = classifyPurpose(
+      'class MyWeapon : Weapon { }',
+      'zscript',
+      [],
+      'weapons/sword.zs'
+    );
     expect(result.tags).toContain('weapon');
   });
 

@@ -8,13 +8,22 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const router = express.Router();
 const systemLogger = require('../lib/system-logger.cjs');
-const { getDb, createValidationCode, getValidationCodeByEmailAndCode, getValidationCodeByTokenHash, markValidationCodeUsed } = require('../lib/db.cjs');
+const {
+    getDb,
+    createValidationCode,
+    getValidationCodeByEmailAndCode,
+    getValidationCodeByTokenHash,
+    markValidationCodeUsed
+} = require('../lib/db.cjs');
 const { hashToken } = require('../lib/token-chain-store.cjs');
 const { createTokenChain, activateToken } = require('../lib/token-chain-store.cjs');
 const { sendEmail } = require('../services/email.cjs');
 
 const logger = {
-    error: (...a) => { const c = globalThis.console; c.error(...a); }
+    error: (...a) => {
+        const c = globalThis.console;
+        c.error(...a);
+    }
 };
 
 const DEFAULT_PORT = 3001;
@@ -80,15 +89,17 @@ function getFreeTokenRecord(email) {
 
 function setFreeTokenRecord(email, token, tokenHash, expiresAt) {
     const db = getDb();
-    db.prepare(`
+    db.prepare(
+        `
         INSERT OR REPLACE INTO free_tokens (email, token, token_hash, created_at, expires_at, revoked)
         VALUES (?, ?, ?, datetime('now'), ?, 0)
-    `).run(email.trim().toLowerCase(), token, tokenHash, expiresAt);
+    `
+    ).run(email.trim().toLowerCase(), token, tokenHash, expiresAt);
 }
 
 function revokeFreeToken(email) {
     const db = getDb();
-    db.prepare("UPDATE free_tokens SET revoked = 1 WHERE email = ?").run(email.trim().toLowerCase());
+    db.prepare('UPDATE free_tokens SET revoked = 1 WHERE email = ?').run(email.trim().toLowerCase());
 }
 
 async function handleFreeToken(req, res) {
@@ -111,7 +122,7 @@ async function handleFreeToken(req, res) {
         const existing = getFreeTokenRecord(email);
         if (existing && !existing.revoked) {
             const createdAt = new Date(existing.created_at).getTime();
-            if ((now - createdAt) < FREE_TOKEN_COOLDOWN_MS) {
+            if (now - createdAt < FREE_TOKEN_COOLDOWN_MS) {
                 const remainingMin = Math.ceil((FREE_TOKEN_COOLDOWN_MS - (now - createdAt)) / 60000);
                 return res.status(429).json({
                     success: false,
@@ -145,7 +156,11 @@ async function handleFreeToken(req, res) {
             logger.error('[FreeToken] Failed to register token in chain:', chainErr.message);
         }
 
-        systemLogger.logTokenOp('free_token_generated', { email, tier: 'community', clientIp: req.ip || req.socket?.remoteAddress || 'unknown' });
+        systemLogger.logTokenOp('free_token_generated', {
+            email,
+            tier: 'community',
+            clientIp: req.ip || req.socket?.remoteAddress || 'unknown'
+        });
 
         // Email the token when requested by the UI
         let emailResult = { sent: false, queued: false, error: null };
@@ -180,9 +195,9 @@ async function handleFreeToken(req, res) {
             emailError: emailResult.error || null,
             message: actuallyEmailed
                 ? 'Free community token generated and emailed. Valid for 24 hours.'
-                : (emailResult.queued
-                    ? 'Free community token generated and email queued for delivery. Valid for 24 hours.'
-                    : 'Free community token generated. Valid for 24 hours.')
+                : emailResult.queued
+                  ? 'Free community token generated and email queued for delivery. Valid for 24 hours.'
+                  : 'Free community token generated. Valid for 24 hours.'
         });
     } catch (error) {
         logger.error('[FreeToken] Token generation failed:', error.message);
@@ -220,15 +235,19 @@ function getSandboxTokenRecord(email) {
 
 function setSandboxTokenRecord(email, token, tokenHash, expiresAt) {
     const db = getDb();
-    db.prepare(`
+    db.prepare(
+        `
         INSERT OR REPLACE INTO sandbox_tokens (email, token, token_hash, created_at, last_emailed_at, expires_at)
         VALUES (?, ?, ?, datetime('now'), datetime('now'), ?)
-    `).run(email.trim().toLowerCase(), token, tokenHash, expiresAt);
+    `
+    ).run(email.trim().toLowerCase(), token, tokenHash, expiresAt);
 }
 
 function touchSandboxEmailSent(email) {
     const db = getDb();
-    db.prepare("UPDATE sandbox_tokens SET last_emailed_at = datetime('now') WHERE email = ?").run(email.trim().toLowerCase());
+    db.prepare("UPDATE sandbox_tokens SET last_emailed_at = datetime('now') WHERE email = ?").run(
+        email.trim().toLowerCase()
+    );
 }
 
 async function emailSandboxToken({ email, token, validationCode, auditUrl }) {
@@ -294,7 +313,12 @@ async function handleSandboxToken(req, res) {
 
             // Register in token chain for auditability and upgrade lineage
             try {
-                createTokenChain(normalizedEmail, { email: normalizedEmail, tier: 'sandbox', features: ['basic_analysis', 'sample_data_basic'] }, token, SANDBOX_TOKEN_TTL_MINUTES);
+                createTokenChain(
+                    normalizedEmail,
+                    { email: normalizedEmail, tier: 'sandbox', features: ['basic_analysis', 'sample_data_basic'] },
+                    token,
+                    SANDBOX_TOKEN_TTL_MINUTES
+                );
                 activateToken(hashToken(token), SANDBOX_TOKEN_TTL_MINUTES);
             } catch (chainErr) {
                 logger.error('[SandboxToken] Failed to register token in chain:', chainErr.message);
@@ -315,7 +339,8 @@ async function handleSandboxToken(req, res) {
             return res.status(503).json({
                 success: false,
                 error: 'Email delivery failed',
-                message: 'Could not send sandbox token email. Try again in a few minutes or contact support@simplebeacon.ai.'
+                message:
+                    'Could not send sandbox token email. Try again in a few minutes or contact support@simplebeacon.ai.'
             });
         }
 
@@ -340,12 +365,12 @@ async function handleSandboxToken(req, res) {
             queued: emailResult.queued,
             emailError: emailResult.error || null,
             message: emailResult.sent
-                ? (cached
+                ? cached
                     ? 'Sandbox token resent to your email. Enter the new validation code from your inbox.'
-                    : 'Developer sandbox token generated and emailed. Enter the validation code from your email to unlock the audit.')
-                : (emailResult.queued
-                    ? 'Sandbox token generated. Email queued for delivery — enter the validation code from your email when it arrives.'
-                    : 'Sandbox token generated, but email delivery failed. Try again or contact support@simplebeacon.ai.')
+                    : 'Developer sandbox token generated and emailed. Enter the validation code from your email to unlock the audit.'
+                : emailResult.queued
+                  ? 'Sandbox token generated. Email queued for delivery — enter the validation code from your email when it arrives.'
+                  : 'Sandbox token generated, but email delivery failed. Try again or contact support@simplebeacon.ai.'
         });
     } catch (error) {
         logger.error('[SandboxToken] Token generation failed:', error.message);
@@ -403,7 +428,13 @@ router.post('/api/token/upgrade', express.json(), async (req, res) => {
         // Generate paid token with previousToken audit trail
         const paidTier = customer.tier || 'team';
         const paidToken = generateLicenseToken(
-            { email: reqEmail, tier: paidTier, projectName: 'Upgraded', clientName: customer.email, previousToken: freeToken },
+            {
+                email: reqEmail,
+                tier: paidTier,
+                projectName: 'Upgraded',
+                clientName: customer.email,
+                previousToken: freeToken
+            },
             secret,
             30 * 24 * 60 // 30 days
         );
@@ -412,7 +443,12 @@ router.post('/api/token/upgrade', express.json(), async (req, res) => {
         const { attachTokenToChain, revokeToken } = require('../lib/token-chain-store.cjs');
         const freeTokenHash = hashToken(freeToken);
         const paidTtlMinutes = 30 * 24 * 60;
-        const attachResult = attachTokenToChain(freeTokenHash, paidToken, { email: reqEmail, tier: paidTier }, paidTtlMinutes);
+        const attachResult = attachTokenToChain(
+            freeTokenHash,
+            paidToken,
+            { email: reqEmail, tier: paidTier },
+            paidTtlMinutes
+        );
 
         if (!attachResult.success) {
             // Fallback: create a new owner chain if the free token wasn't in the chain

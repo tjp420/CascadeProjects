@@ -8,7 +8,7 @@ import { authService } from './authService.js?v=20260716cachefix1';
  * @returns {any}
  */
 function isAuthenticated() {
-    return authService.isAuthenticated();
+  return authService.isAuthenticated();
 }
 import { readJsonResponseBody } from '../lib/recoverable-fetch.js';
 
@@ -23,10 +23,10 @@ const AUTH_FAILURE_COOLDOWN_MS = 30000;
  * @returns {any}
  */
 function hasValidUserJwt() {
-    const token = authService.getToken?.() || '';
-    // User endpoints need a real JWT (3 dot-separated segments).
-    // License keys and legacy tokens are not valid here.
-    return token && token.split('.').length === 3;
+  const token = authService.getToken?.() || '';
+  // User endpoints need a real JWT (3 dot-separated segments).
+  // License keys and legacy tokens are not valid here.
+  return token && token.split('.').length === 3;
 }
 
 /**
@@ -41,7 +41,7 @@ export function normalizeAiKeysRecord(keysRecord = null) {
       providers: {},
       ollamaBaseUrl: '',
       ollamaModel: '',
-      updatedAt: null
+      updatedAt: null,
     };
   }
   return {
@@ -49,7 +49,7 @@ export function normalizeAiKeysRecord(keysRecord = null) {
     providers: keysRecord.providers || {},
     ollamaBaseUrl: keysRecord.ollamaBaseUrl || '',
     ollamaModel: keysRecord.ollamaModel || '',
-    updatedAt: keysRecord.updatedAt || null
+    updatedAt: keysRecord.updatedAt || null,
   };
 }
 
@@ -68,10 +68,16 @@ export async function fetchUserAiKeys() {
   const keysPayload = await readJsonResponseBody(keysHttpResponse, {});
   if (!keysHttpResponse.ok || !keysPayload.success) {
     if (keysHttpResponse.status === 404 && keysPayload.error === 'API route not found') {
-      throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
+      throw new Error(
+        'AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).'
+      );
     }
     const msg = keysPayload.error || keysPayload.message || '';
-    if (keysHttpResponse.status === 401 || keysHttpResponse.status === 403 || /Authentication required/i.test(msg)) {
+    if (
+      keysHttpResponse.status === 401 ||
+      keysHttpResponse.status === 403 ||
+      /Authentication required/i.test(msg)
+    ) {
       _lastAuthFailure = Date.now();
       return normalizeAiKeysRecord(null);
     }
@@ -93,17 +99,21 @@ export async function saveUserAiKeys(payload) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      ...authService.getAuthHeaders()
+      ...authService.getAuthHeaders(),
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
   const savePayload = await readJsonResponseBody(saveHttpResponse, {});
   if (!saveHttpResponse.ok || !savePayload.success) {
     if (saveHttpResponse.status === 404 && savePayload.error === 'API route not found') {
-      throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
+      throw new Error(
+        'AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).'
+      );
     }
     const debugPart = savePayload.debug ? ` (${savePayload.debug})` : '';
-    throw new Error((savePayload.error || savePayload.message || 'Failed to save AI keys') + debugPart);
+    throw new Error(
+      (savePayload.error || savePayload.message || 'Failed to save AI keys') + debugPart
+    );
   }
   return normalizeAiKeysRecord(savePayload);
 }
@@ -115,12 +125,14 @@ export async function saveUserAiKeys(payload) {
 export async function clearUserAiKeys() {
   const clearHttpResponse = await fetch(BASE, {
     method: 'DELETE',
-    headers: authService.getAuthHeaders()
+    headers: authService.getAuthHeaders(),
   });
   const clearPayload = await readJsonResponseBody(clearHttpResponse, {});
   if (!clearHttpResponse.ok || !clearPayload.success) {
     if (clearHttpResponse.status === 404 && clearPayload.error === 'API route not found') {
-      throw new Error('AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).');
+      throw new Error(
+        'AI keys API not loaded — restart the dashboard server (npm run dashboard:v1-internal).'
+      );
     }
     throw new Error(clearPayload.error || clearPayload.message || 'Failed to clear AI keys');
   }
@@ -145,21 +157,28 @@ export function isLocalOllamaUrl(url) {
 }
 
 export function shouldProbeOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
-  const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
+  const baseUrl =
+    String(ollamaBaseUrl || OLLAMA_DEFAULT_URL)
+      .trim()
+      .replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
   return !(isHttpsPage && isLocalOllamaUrl(baseUrl));
 }
 
 export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
-  const baseUrl = String(ollamaBaseUrl || OLLAMA_DEFAULT_URL).trim().replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
+  const baseUrl =
+    String(ollamaBaseUrl || OLLAMA_DEFAULT_URL)
+      .trim()
+      .replace(/\/$/, '') || OLLAMA_DEFAULT_URL;
   const isHttpsPage = typeof window !== 'undefined' && window.location.protocol === 'https:';
 
   if (!shouldProbeOllamaModels(baseUrl)) {
     return {
       ok: false,
       models: [],
-      message: 'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally.',
-      source: 'blocked'
+      message:
+        'Local Ollama is not available on the hosted dashboard. Add OpenAI or Anthropic keys in Settings → AI providers, or run the dashboard locally.',
+      source: 'blocked',
     };
   }
 
@@ -170,7 +189,7 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
       const response = await fetch(`${baseUrl}/api/tags`, {
         method: 'GET',
         signal: controller.signal,
-        headers: { Accept: 'application/json' }
+        headers: { Accept: 'application/json' },
       });
       if (!response.ok) {
         throw new Error(`Ollama returned HTTP ${response.status}`);
@@ -180,8 +199,10 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
       return {
         ok: true,
         models,
-        message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
-        source: 'browser'
+        message: models.length
+          ? `${models.length} model(s) available`
+          : 'Ollama is running but has no models pulled',
+        source: 'browser',
       };
     } finally {
       clearTimeout(timeout);
@@ -192,21 +213,28 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const response = await fetch(`/api/simplebeacon/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: { Accept: 'application/json' }
-      });
+      const response = await fetch(
+        `/api/simplebeacon/ollama/models?baseUrl=${encodeURIComponent(baseUrl)}`,
+        {
+          method: 'GET',
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+        }
+      );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || data.message || `Server proxy returned HTTP ${response.status}`);
+        throw new Error(
+          data.error || data.message || `Server proxy returned HTTP ${response.status}`
+        );
       }
       const models = Array.isArray(data.models) ? data.models.map((m) => m.name || m.model) : [];
       return {
         ok: true,
         models,
-        message: models.length ? `${models.length} model(s) available` : 'Ollama is running but has no models pulled',
-        source: 'server'
+        message: models.length
+          ? `${models.length} model(s) available`
+          : 'Ollama is running but has no models pulled',
+        source: 'server',
       };
     } finally {
       clearTimeout(timeout);
@@ -225,8 +253,9 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
   try {
     return await fetchDirect();
   } catch (browserErr) {
-    const isCors = String(browserErr.message).toLowerCase().includes('cors') ||
-                   String(browserErr.message).includes('Failed to fetch');
+    const isCors =
+      String(browserErr.message).toLowerCase().includes('cors') ||
+      String(browserErr.message).includes('Failed to fetch');
     try {
       return await fetchProxy();
     } catch (proxyErr) {
@@ -236,8 +265,8 @@ export async function fetchOllamaModels(ollamaBaseUrl = OLLAMA_DEFAULT_URL) {
       if (isCors) {
         throw new Error(
           `Ollama is reachable from the browser but CORS is blocked. ` +
-          `Start Ollama with CORS enabled: OLLAMA_ORIGINS=* ollama serve. ` +
-          `Server proxy also failed: ${proxyErr.message}`
+            `Start Ollama with CORS enabled: OLLAMA_ORIGINS=* ollama serve. ` +
+            `Server proxy also failed: ${proxyErr.message}`
         );
       }
       throw new Error(

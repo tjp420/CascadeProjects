@@ -86,9 +86,15 @@ for (const file of targets) {
   if (html.includes(OLD_EARLY_RETURN)) {
     html = html.replace(OLD_EARLY_RETURN, NEW_EARLY_RETURN);
     // Remove duplicate wrap assignment if present after patch
-    html = html.replace(/\n  const wrap = canvas\.parentElement;\n  const detailsPanel/g, '\n  const detailsPanel');
+    html = html.replace(
+      /\n  const wrap = canvas\.parentElement;\n  const detailsPanel/g,
+      '\n  const detailsPanel'
+    );
   }
-  html = html.replace('Graph shows JS/TS modules only.', 'JS/TS: import graph. Other stacks: folder tree.');
+  html = html.replace(
+    'Graph shows JS/TS modules only.',
+    'JS/TS: import graph. Other stacks: folder tree.'
+  );
   fs.writeFileSync(file, html, 'utf8');
   console.log('patched', file);
 }

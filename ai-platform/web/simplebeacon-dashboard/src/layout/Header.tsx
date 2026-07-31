@@ -1,4 +1,17 @@
-import { Menu, Sun, Moon, LogOut, User as UserIcon, ChevronDown, Map, DollarSign, Download, FileText, HelpCircle, Mail } from 'lucide-react';
+import {
+  Menu,
+  Sun,
+  Moon,
+  LogOut,
+  User as UserIcon,
+  ChevronDown,
+  Map,
+  DollarSign,
+  Download,
+  FileText,
+  HelpCircle,
+  Mail,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,7 +35,9 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
 
   const moreLinks = [
     { href: '/roadmap', label: 'Roadmap', icon: Map },
-    ...((!isAuthenticated || isFreeTier) ? [{ href: '/pricing', label: 'Pricing', icon: DollarSign }] : []),
+    ...(!isAuthenticated || isFreeTier
+      ? [{ href: '/pricing', label: 'Pricing', icon: DollarSign }]
+      : []),
     { href: '/community', label: 'Install', icon: Download },
     { href: '/blog/case-study-ai-slop-1-25m', label: 'Blog', icon: FileText },
     { href: '/faq', label: 'FAQ', icon: HelpCircle },
@@ -36,7 +51,9 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
           <Menu className="h-5 w-5" />
         </Button>
         <div className="hidden sm:block">
-          <span className="text-sm font-semibold text-foreground-muted">AI Safety Scanning Platform</span>
+          <span className="text-sm font-semibold text-foreground-muted">
+            AI Safety Scanning Platform
+          </span>
         </div>
       </div>
 
@@ -90,15 +107,15 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
               <DropdownMenuItem onClick={() => navigate('profile')}>
                 <UserIcon className="h-4 w-4" /> Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('settings')}>
-                Settings
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('settings')}>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => {
-                localStorage.removeItem('sb_token');
-                localStorage.removeItem('sb_user');
-                navigate('signin');
-              }}>
+              <DropdownMenuItem
+                onClick={() => {
+                  localStorage.removeItem('sb_token');
+                  localStorage.removeItem('sb_user');
+                  navigate('signin');
+                }}
+              >
                 <LogOut className="h-4 w-4" /> Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>

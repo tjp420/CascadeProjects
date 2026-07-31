@@ -86,7 +86,7 @@ const QUICK_ACTIONS = {
             'Add proper TODO comments with deadlines for incomplete features'
         ]
     },
-    
+
     tokenBleed: {
         id: 'tokenBleed',
         name: 'Token Bleed Risk',
@@ -107,13 +107,13 @@ const QUICK_ACTIONS = {
             'Consider if the content is necessary or can be generated dynamically'
         ]
     },
-    
+
     productionLeak: {
         id: 'productionLeak',
         name: 'Production Data Leak',
         quickFixes: [
             {
-                pattern: new RegExp("['\"`][^'\"`]*(?:\\/|\\\\)mock(?:\\/|\\\\)[^'\"`]+['\"`]"),
+                pattern: new RegExp('[\'"`][^\'"`]*(?:\\/|\\\\)mock(?:\\/|\\\\)[^\'"`]+[\'"`]'),
                 suggestion: 'Remove non-production data references from code or use environment-specific loading',
                 example: {
                     before: 'const data = require("./test-datasets/users.json");',
@@ -121,7 +121,7 @@ const QUICK_ACTIONS = {
                 }
             },
             {
-                pattern: new RegExp("['\"`][^'\"`]*(?:\\/|\\\\)fixtures(?:\\/|\\\\)[^'\"`]+['\"`]"),
+                pattern: new RegExp('[\'"`][^\'"`]*(?:\\/|\\\\)fixtures(?:\\/|\\\\)[^\'"`]+[\'"`]'),
                 suggestion: 'Remove staging config references from production code or use conditional loading',
                 example: {
                     before: 'const config = require("./staging-configs/config.json");',
@@ -136,7 +136,7 @@ const QUICK_ACTIONS = {
             'Add build-time checks to prevent test data in production builds'
         ]
     },
-    
+
     fictionKpi: {
         id: 'fictionKpi',
         name: 'Hardcoded Fiction KPI',
@@ -165,7 +165,7 @@ const QUICK_ACTIONS = {
             'Add data validation to ensure metrics are realistic'
         ]
     },
-    
+
     credentials: {
         id: 'credentials',
         name: 'Credential Pattern',
@@ -203,7 +203,7 @@ const QUICK_ACTIONS = {
             'Rotate any exposed credentials immediately'
         ]
     },
-    
+
     debugArtifacts: {
         id: 'debugArtifacts',
         name: 'Debug Artifact',
@@ -252,12 +252,10 @@ const QUICK_ACTIONS = {
 function getQuickAction(patternId, matchedText) {
     const pattern = QUICK_ACTIONS[patternId];
     if (!pattern) return null;
-    
+
     // Find matching quick fix based on the matched text
-    const quickFix = pattern.quickFixes.find(fix => 
-        fix.pattern.test(matchedText)
-    );
-    
+    const quickFix = pattern.quickFixes.find(fix => fix.pattern.test(matchedText));
+
     if (!quickFix) {
         return {
             patternId: pattern.id,
@@ -266,7 +264,7 @@ function getQuickAction(patternId, matchedText) {
             remediationSteps: pattern.remediationSteps
         };
     }
-    
+
     return {
         patternId: pattern.id,
         patternName: pattern.name,
@@ -293,17 +291,17 @@ function getAllQuickActions(patternId) {
 function formatQuickAction(quickAction) {
     let message = `**${quickAction.patternName}**\n\n`;
     message += `Suggestion: ${quickAction.suggestion}\n\n`;
-    
+
     if (quickAction.example) {
         message += `**Before:**\n\`\`\`\n${quickAction.example.before}\n\`\`\`\n\n`;
         message += `**After:**\n\`\`\`\n${quickAction.example.after}\n\`\`\`\n\n`;
     }
-    
+
     message += `**Remediation Steps:**\n`;
     quickAction.remediationSteps.forEach((step, index) => {
         message += `${index + 1}. ${step}\n`;
     });
-    
+
     return message;
 }
 

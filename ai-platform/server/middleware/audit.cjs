@@ -1,7 +1,7 @@
 // simplebeacon-ignore: debugArtifacts
 /**
  * Enhanced Audit Logging Middleware
- * 
+ *
  * Enterprise-grade audit logging with:
  * - Real-time streaming to SIEM systems
  * - Immutable audit logs with blockchain-style hashing
@@ -24,7 +24,7 @@ const logLevels = {
   info: 1,
   warn: 2,
   error: 3,
-  critical: 4
+  critical: 4,
 };
 
 // Enhanced audit configuration
@@ -42,7 +42,7 @@ const auditConfig = {
   siemApiKey: process.env.AUDIT_SIEM_API_KEY,
   complianceFrameworks: (process.env.AUDIT_FRAMEWORKS || 'SOC2,ISO27001,GDPR').split(','),
   enableRealTime: process.env.AUDIT_REALTIME === 'true',
-  enableEncryption: process.env.AUDIT_ENCRYPTION !== 'false'
+  enableEncryption: process.env.AUDIT_ENCRYPTION !== 'false',
 };
 
 // Audit event emitter for real-time processing
@@ -52,35 +52,36 @@ const _auditEmitter = new EventEmitter();
 const _auditChain = {
   previousHash: null,
   currentHash: null,
-  entries: []
+  entries: [],
 };
 
 // Compliance violation patterns
 const _violationPatterns = {
-  'GDPR': {
-    'data_access_without_consent': /access.*data.*without.*consent/i,
-    'data_retention_violation': /retention.*exceeds.*limit/i,
-    'unauthorized_data_export': /export.*data.*unauthorized/i
+  GDPR: {
+    data_access_without_consent: /access.*data.*without.*consent/i,
+    data_retention_violation: /retention.*exceeds.*limit/i,
+    unauthorized_data_export: /export.*data.*unauthorized/i,
   },
-  'SOC2': {
-    'access_control_violation': /access.*without.*authorization/i,
-    'security_incident_unreported': /security.*incident.*not.*reported/i,
-    'change_management_violation': /change.*without.*approval/i
+  SOC2: {
+    access_control_violation: /access.*without.*authorization/i,
+    security_incident_unreported: /security.*incident.*not.*reported/i,
+    change_management_violation: /change.*without.*approval/i,
   },
-  'HIPAA': {
-    'phi_access_violation': /access.*phi.*without.*authorization/i,
-    'data_breach_risk': /potential.*phi.*breach/i,
-    'audit_log_tampering': /modify.*audit.*log/i
+  HIPAA: {
+    phi_access_violation: /access.*phi.*without.*authorization/i,
+    data_breach_risk: /potential.*phi.*breach/i,
+    audit_log_tampering: /modify.*audit.*log/i,
   },
-  'ISO27001': {
-    'information_security_violation': /security.*policy.*violation/i,
-    'risk_management_violation': /risk.*assessment.*missing/i,
-    'business_continuity_violation': /backup.*procedure.*failed/i
-  }
+  ISO27001: {
+    information_security_violation: /security.*policy.*violation/i,
+    risk_management_violation: /risk.*assessment.*missing/i,
+    business_continuity_violation: /backup.*procedure.*failed/i,
+  },
 };
 
 // Enhanced logger with multiple transports
-const auditLogger = winston.createLogger({ // simplebeacon-ignore pii-logging — application audit logger, not user data leak
+const auditLogger = winston.createLogger({
+  // simplebeacon-ignore pii-logging — application audit logger, not user data leak
   level: auditConfig.logLevel,
   format: winston.format.combine(
     winston.format.timestamp(),
@@ -92,28 +93,29 @@ const auditLogger = winston.createLogger({ // simplebeacon-ignore pii-logging �
       filename: auditConfig.logFile,
       maxsize: auditConfig.maxLogSize,
       maxFiles: auditConfig.backupCount,
-      tailable: true
-    })
-  ]
+      tailable: true,
+    }),
+  ],
 });
 
 // Add console transport for non-production
 if (auditConfig.enableConsole) {
-  auditLogger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    )
-  }));
+  auditLogger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+    })
+  );
 }
 
 // SIEM transport
 if (auditConfig.enableSIEM && auditConfig.siemEndpoint) {
   const SIEMTransport = require('./transports/siem-transport');
-  auditLogger.add(new SIEMTransport({
-    endpoint: auditConfig.siemEndpoint,
-    apiKey: auditConfig.siemApiKey
-  }));
+  auditLogger.add(
+    new SIEMTransport({
+      endpoint: auditConfig.siemEndpoint,
+      apiKey: auditConfig.siemApiKey,
+    })
+  );
 }
 
 // Audit event types
@@ -124,7 +126,7 @@ const eventTypes = {
   SECURITY: 'security',
   SYSTEM: 'system',
   USER_ACTION: 'user_action',
-  COMPLIANCE: 'compliance'
+  COMPLIANCE: 'compliance',
 };
 
 // Generate unique event ID
@@ -156,8 +158,8 @@ const formatAuditEntry = (level, eventType, message, metadata = {}) => {
       ...metadata,
       pid: process.pid,
       hostname: require('os').hostname(),
-      version: process.env.npm_package_version || '1.0.0'
-    }
+      version: process.env.npm_package_version || '1.0.0',
+    },
   };
 
   return entry;
@@ -174,11 +176,11 @@ const writeToFile = async (entry) => {
 
   try {
     const logLine = JSON.stringify(entry) + '\n';
-    
+
     // Ensure log directory exists
     const logDir = path.dirname(auditConfig.logFile);
     await fs.mkdir(logDir, { recursive: true });
-    
+
     // Check log file size and rotate if necessary
     try {
       const stats = await fs.stat(auditConfig.logFile);
@@ -188,7 +190,7 @@ const writeToFile = async (entry) => {
     } catch (error) {
       // File doesn't exist, will be created
     }
-    
+
     // Write to log file
     await fs.appendFile(auditConfig.logFile, logLine);
   } catch (error) {
@@ -207,14 +209,14 @@ const rotateLogFile = async () => {
     for (let i = auditConfig.backupCount - 1; i > 0; i--) {
       const oldFile = `${auditConfig.logFile}.${i}`;
       const newFile = `${auditConfig.logFile}.${i + 1}`;
-      
+
       try {
         await fs.rename(oldFile, newFile);
       } catch (error) {
         // File doesn't exist, continue
       }
     }
-    
+
     // Move current log file
     await fs.rename(auditConfig.logFile, `${auditConfig.logFile}.1`);
   } catch (error) {
@@ -231,13 +233,15 @@ const cleanupOldLogs = async () => {
   try {
     const logDir = path.dirname(auditConfig.logFile);
     const files = await fs.readdir(logDir);
-    const cutoffDate = new Date(Date.now() - auditConfig.retentionDays * 24 * 60 * constants.ONE_MINUTE_MS);
-    
+    const cutoffDate = new Date(
+      Date.now() - auditConfig.retentionDays * 24 * 60 * constants.ONE_MINUTE_MS
+    );
+
     for (const file of files) {
       if (file.startsWith('audit.log.') || file === 'audit.log') {
         const filePath = path.join(logDir, file);
         const stats = await fs.stat(filePath);
-        
+
         if (stats.mtime < cutoffDate) {
           await fs.unlink(filePath);
           logger.debug(`[AUDIT] Cleaned up old log file: ${file}`);
@@ -260,11 +264,11 @@ const cleanupOldLogs = async () => {
  */
 const auditLog = (level, eventType, message, metadata = {}) => {
   const entry = formatAuditEntry(level, eventType, message, metadata);
-  
+
   // Console logging (development only)
   if (auditConfig.enableConsole && logLevels[level] >= logLevels[auditConfig.logLevel]) {
     const consoleMessage = `[AUDIT] ${entry.timestamp} [${entry.level}] ${entry.eventType}: ${entry.message}`;
-    
+
     switch (level) {
       case 'error':
       case 'critical':
@@ -277,7 +281,7 @@ const auditLog = (level, eventType, message, metadata = {}) => {
         logger.debug(consoleMessage, entry.metadata);
     }
   }
-  
+
   // File logging (always enabled for production)
   writeToFile(entry);
 };
@@ -293,7 +297,7 @@ const createAuditMiddleware = (eventType, getMessage) => {
   return (req, res, next) => {
     const startTime = Date.now();
     const requestId = req.requestId || generateEventId();
-    
+
     // Log request start
     auditLog('info', eventType, getMessage(req, 'start'), {
       requestId,
@@ -302,34 +306,29 @@ const createAuditMiddleware = (eventType, getMessage) => {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
       userId: req.user?.id,
-      trustLevel: req.user?.trustLevel
+      trustLevel: req.user?.trustLevel,
     });
-    
+
     // Override res.end to log response
     const originalEnd = res.end;
-    res.end = function(chunk, encoding) {
+    res.end = function (chunk, encoding) {
       const duration = Date.now() - startTime;
-      
+
       // Log request completion
-      auditLog(
-        res.statusCode >= 400 ? 'warn' : 'info',
-        eventType,
-        getMessage(req, 'end'),
-        {
-          requestId,
-          method: req.method,
-          url: req.originalUrl,
-          statusCode: res.statusCode,
-          duration,
-          userId: req.user?.id,
-          trustLevel: req.user?.trustLevel,
-          responseSize: chunk ? chunk.length : 0
-        }
-      );
-      
+      auditLog(res.statusCode >= 400 ? 'warn' : 'info', eventType, getMessage(req, 'end'), {
+        requestId,
+        method: req.method,
+        url: req.originalUrl,
+        statusCode: res.statusCode,
+        duration,
+        userId: req.user?.id,
+        trustLevel: req.user?.trustLevel,
+        responseSize: chunk ? chunk.length : 0,
+      });
+
       originalEnd.call(this, chunk, encoding);
     };
-    
+
     next();
   };
 };
@@ -371,9 +370,9 @@ const logAIOperation = (operation, user, result, metadata = {}) => {
       success: result.success,
       duration: result.duration,
       itemsProcessed: result.itemsProcessed,
-      errors: result.errors?.length || 0
+      errors: result.errors?.length || 0,
     },
-    ...metadata
+    ...metadata,
   });
 };
 
@@ -393,7 +392,7 @@ const logSecurityEvent = (eventType, details, user = null, req = null) => {
     ip: req?.ip,
     userAgent: req?.headers['user-agent'],
     requestId: req?.requestId,
-    ...details
+    ...details,
   });
 };
 
@@ -410,7 +409,7 @@ const logComplianceEvent = (complianceType, details, user = null) => {
     userId: user?.id,
     trustLevel: user?.trustLevel,
     complianceType,
-    ...details
+    ...details,
   });
 };
 
@@ -433,9 +432,9 @@ const logDataAccess = (resource, action, user, result, metadata = {}) => {
     result: {
       success: result.success,
       recordCount: result.recordCount,
-      dataSize: result.dataSize
+      dataSize: result.dataSize,
     },
-    ...metadata
+    ...metadata,
   });
 };
 
@@ -449,7 +448,7 @@ const logDataAccess = (resource, action, user, result, metadata = {}) => {
  */
 const logSystemEvent = (eventType, details, severity = 'info') => {
   auditLog(severity, eventTypes.SYSTEM, `System event: ${eventType}`, {
-    ...details
+    ...details,
   });
 };
 
@@ -466,7 +465,7 @@ const logUserAction = (action, user, details = {}) => {
     userId: user?.id,
     trustLevel: user?.trustLevel,
     action,
-    ...details
+    ...details,
   });
 };
 
@@ -477,7 +476,7 @@ const logUserAction = (action, user, details = {}) => {
  */
 const initializeAudit = async () => {
   logger.debug('[AUDIT] Initializing audit logging system');
-  
+
   // Create log directory
   try {
     const logDir = path.dirname(auditConfig.logFile);
@@ -485,17 +484,21 @@ const initializeAudit = async () => {
   } catch (error) {
     logger.error('[AUDIT] Failed to create log directory:', error.message);
   }
-  
+
   // Schedule cleanup of old logs
   const logCleanupInterval = setInterval(cleanupOldLogs, 24 * 60 * constants.ONE_MINUTE_MS); // Daily cleanup
-  process.on('SIGINT', () => { clearInterval(logCleanupInterval); });
-  process.on('SIGTERM', () => { clearInterval(logCleanupInterval); });
-  
+  process.on('SIGINT', () => {
+    clearInterval(logCleanupInterval);
+  });
+  process.on('SIGTERM', () => {
+    clearInterval(logCleanupInterval);
+  });
+
   // Log system startup
   logSystemEvent('startup', {
     nodeVersion: process.version,
     platform: process.platform,
-    auditConfig
+    auditConfig,
   });
 };
 
@@ -508,46 +511,51 @@ const initializeAudit = async () => {
 const queryAuditLogs = async (filters = {}) => {
   try {
     const logContent = await fs.readFile(auditConfig.logFile, 'utf8');
-    const lines = logContent.split('\n').filter(line => line.trim());
-    
-    let entries = lines.map(line => {
-      try {
-        return JSON.parse(line);
-      } catch (error) {
-        return null;
-      }
-    }).filter(entry => entry !== null);
-    
+    const lines = logContent.split('\n').filter((line) => line.trim());
+
+    let entries = lines
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch (error) {
+          return null;
+        }
+      })
+      .filter((entry) => entry !== null);
+
     // Apply filters
     if (filters.level) {
-      entries = entries.filter(entry => entry.level === filters.level.toUpperCase());
+      entries = entries.filter((entry) => entry.level === filters.level.toUpperCase());
     }
-    
+
     if (filters.eventType) {
-      entries = entries.filter(entry => entry.eventType === filters.eventType);
+      entries = entries.filter((entry) => entry.eventType === filters.eventType);
     }
-    
+
     if (filters.userId) {
-      entries = entries.filter(entry => entry.metadata.userId === filters.userId);
+      entries = entries.filter((entry) => entry.metadata.userId === filters.userId);
     }
-    
+
     if (filters.startDate) {
       const startDate = new Date(filters.startDate);
-      entries = entries.filter(entry => new Date(entry.timestamp) >= startDate);
+      entries = entries.filter((entry) => new Date(entry.timestamp) >= startDate);
     }
-    
+
     if (filters.endDate) {
       const endDate = new Date(filters.endDate);
-      entries = entries.filter(entry => new Date(entry.timestamp) <= endDate);
+      entries = entries.filter((entry) => new Date(entry.timestamp) <= endDate);
     }
-    
+
     // Sort by timestamp (newest first)
     entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     // Enforce strict pagination boundaries (default LIMIT 50, max 200)
     const MAX_PAGE_SIZE = 200;
     const DEFAULT_PAGE_SIZE = 50;
-    const limit = Math.min(Math.max(parseInt(filters.limit, 10) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
+    const limit = Math.min(
+      Math.max(parseInt(filters.limit, 10) || DEFAULT_PAGE_SIZE, 1),
+      MAX_PAGE_SIZE
+    );
     const offset = Math.max(parseInt(filters.offset, 10) || 0, 0);
     const total = entries.length;
     entries = entries.slice(offset, offset + limit);
@@ -574,5 +582,5 @@ module.exports = {
   initializeAudit,
   queryAuditLogs,
   eventTypes,
-  auditConfig
+  auditConfig,
 };

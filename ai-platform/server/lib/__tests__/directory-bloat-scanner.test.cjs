@@ -32,7 +32,7 @@ describe('directory-bloat-scanner smoke', () => {
     try {
       const result = await mod.scanDirectoryBloat(tmpDir);
       assert.ok(result.findings.directoryBloat.length >= 1);
-      const empty = result.findings.directoryBloat.find(f => f.category === 'Empty directory');
+      const empty = result.findings.directoryBloat.find((f) => f.category === 'Empty directory');
       assert.ok(empty);
     } finally {
       fs.rmSync(tmpDir, { recursive: true });

@@ -9,9 +9,13 @@ import {
   resolveDisplayScore,
   resolveJestTestsLabel,
   resolvePageSpecsLabel,
-  formatScanScopeSummary
+  formatScanScopeSummary,
 } from '../services/analyzeService.js';
-import { pipelineStats, prospectsWithSentLog, OUTREACH_PROSPECTS } from '../data/outreach-prospects.js?v=20260716cachefix1';
+import {
+  pipelineStats,
+  prospectsWithSentLog,
+  OUTREACH_PROSPECTS,
+} from '../data/outreach-prospects.js?v=20260716cachefix1';
 
 /**
  * Page export filename.
@@ -43,7 +47,10 @@ export function downloadPageExport(pageId, payload) {
  * @param {any} label
  * @returns {any}
  */
-export function renderPageExportButton(pageId, { disabled = false, label = 'Export reports' } = {}) {
+export function renderPageExportButton(
+  pageId,
+  { disabled = false, label = 'Export reports' } = {}
+) {
   return `
     <button type="button" class="btn btn-secondary btn-sm" data-page-export="${pageId}" ${disabled ? 'disabled' : ''} title="Download page data as JSON">
       ${label}
@@ -90,7 +97,7 @@ function summarizeGateReport(report) {
     schemaCompliance: report.schemaCompliance ?? null,
     consistencyScore: report.consistencyScore ?? null,
     credentialFindings: report.credentialFindings ?? null,
-    productionLeakFindings: report.productionLeakFindings ?? null
+    productionLeakFindings: report.productionLeakFindings ?? null,
   };
 }
 
@@ -105,7 +112,7 @@ function summarizeBaseline(baseline) {
     syncedAt: baseline.syncedAt || null,
     jestTestsLabel: baseline.jestTestsLabel || null,
     jestSuites: baseline.jestSuites ?? null,
-    pageSamplesLabel: baseline.pageSamplesLabel || null
+    pageSamplesLabel: baseline.pageSamplesLabel || null,
   };
 }
 
@@ -126,7 +133,7 @@ function buildScanSnapshot(report, baseline, dashboardHome) {
     pageSpecs: resolvePageSpecsLabel(report, baseline),
     mockSampleFiles: metrics.mockSampleFiles ?? report.totalFiles ?? null,
     repositoryFiles: metrics.repositoryFiles ?? null,
-    scopeSummary: formatScanScopeSummary(report)
+    scopeSummary: formatScanScopeSummary(report),
   };
 }
 
@@ -142,7 +149,7 @@ export function buildTrustPageExport(trustData) {
     generatedAt: new Date().toISOString(),
     trust: trustData?.live || trustData,
     publishedAt: trustData?.publishedAt || null,
-    staticHost: Boolean(trustData?.staticHost)
+    staticHost: Boolean(trustData?.staticHost),
   };
 }
 
@@ -152,7 +159,8 @@ export function buildTrustPageExport(trustData) {
  * @returns {any}
  */
 export function buildToolsPageExport(app) {
-  const { report, baseline, devTools, devWorkflows, mergerReductionScan, npmAudit, dashboardHome } = app.state;
+  const { report, baseline, devTools, devWorkflows, mergerReductionScan, npmAudit, dashboardHome } =
+    app.state;
   return {
     type: 'simplebeacon-tools-export',
     version: '1.0.0',
@@ -162,7 +170,7 @@ export function buildToolsPageExport(app) {
     consolidationScan: mergerReductionScan || null,
     npmAudit: npmAudit || null,
     scanSnapshot: buildScanSnapshot(report, baseline, dashboardHome),
-    baseline: summarizeBaseline(baseline)
+    baseline: summarizeBaseline(baseline),
   };
 }
 
@@ -184,7 +192,7 @@ export function buildHelpPageExport(app) {
     documentation: help.documentation || [],
     faq: help.faq || [],
     scanSnapshot: buildScanSnapshot(report, baseline, dashboardHome),
-    baseline: summarizeBaseline(baseline)
+    baseline: summarizeBaseline(baseline),
   };
 }
 
@@ -194,15 +202,20 @@ export function buildHelpPageExport(app) {
  * @returns {any}
  */
 export function buildFeaturesPageExport(filter = '') {
-  const q = String(filter || '').trim().toLowerCase();
+  const q = String(filter || '')
+    .trim()
+    .toLowerCase();
   const catalog = !q
     ? FEATURE_CATALOG
     : FEATURE_CATALOG.map((group) => ({
-      ...group,
-      items: group.items.filter((item) =>
-        `${item.label} ${item.description} ${item.route} ${group.group}`.toLowerCase().includes(q))
-    })).filter((group) => group.items.length);
-  const items = catalog.flatMap((group) => group.items.map((item) => ({ ...item, group: group.group })));
+        ...group,
+        items: group.items.filter((item) =>
+          `${item.label} ${item.description} ${item.route} ${group.group}`.toLowerCase().includes(q)
+        ),
+      })).filter((group) => group.items.length);
+  const items = catalog.flatMap((group) =>
+    group.items.map((item) => ({ ...item, group: group.group }))
+  );
   return {
     type: 'simplebeacon-features-export',
     version: '1.0.0',
@@ -212,7 +225,7 @@ export function buildFeaturesPageExport(filter = '') {
     featureCount: items.length,
     routeCount: new Set(items.map((item) => item.route)).size,
     catalog,
-    features: items
+    features: items,
   };
 }
 
@@ -237,7 +250,7 @@ export function buildSettingsPageExport(app, draftConfig = null) {
     baseline: summarizeBaseline(app.state.baseline),
     scanSnapshot: summarizeGateReport(app.state.report),
     configPath: '.simplebeacon/config.json',
-    note: 'AI provider secrets are never included in page exports.'
+    note: 'AI provider secrets are never included in page exports.',
   };
 }
 
@@ -253,7 +266,7 @@ export function buildAssessmentsPageExport(view) {
     generatedAt: new Date().toISOString(),
     assessment: view.report || null,
     recentAssessments: view.recent || [],
-    gateSnapshot: summarizeGateReport(view.app.state.report)
+    gateSnapshot: summarizeGateReport(view.app.state.report),
   };
 }
 
@@ -279,8 +292,8 @@ export function buildOutreachPageExport(view) {
       prospectId: view.draft?.prospectId || '',
       templateId: view.draft?.templateId || '',
       company: view.draft?.company || '',
-      subject: view.draft?.subject || ''
-    }
+      subject: view.draft?.subject || '',
+    },
   };
 }
 
@@ -301,6 +314,6 @@ export function buildDeliverablesPageExport(view) {
     reportPreview: view.reportPreview || summarizeGateReport(view.app.state.report),
     lastWorkspace: view.lastWorkspace || null,
     lastSprint: view.lastSprint || null,
-    waitlistCount: view.waitlistCount ?? null
+    waitlistCount: view.waitlistCount ?? null,
   };
 }

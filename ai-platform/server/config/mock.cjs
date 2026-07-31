@@ -8,5 +8,5 @@ module.exports = Object.freeze({
   MOCK_CLEANING_SIZE_FACTOR: 0.9,
   MOCK_SCAN_EXTENSIONS: /\.(json|js|py|html|csv|xml|txt)$/i,
   FILES_PROCESSED_STAT: 59763,
-  REDUCTION_RATE_STAT: '67.6%'
+  REDUCTION_RATE_STAT: '67.6%',
 });

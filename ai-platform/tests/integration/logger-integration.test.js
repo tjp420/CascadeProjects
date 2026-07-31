@@ -1,6 +1,6 @@
 /**
  * Logger Integration Tests
- * 
+ *
  * Tests the app-logger functionality and production logging configuration.
  */
 
@@ -17,13 +17,13 @@ jest.mock('../../server/lib/app-logger.cjs', () => {
     debug: jest.fn(),
     audit: jest.fn(),
     system: jest.fn(),
-    security: jest.fn()
+    security: jest.fn(),
   };
 
   return {
     logger: mockLogger,
     createAuditLogger: jest.fn(() => mockLogger),
-    createProductionLogger: jest.fn(() => mockLogger)
+    createProductionLogger: jest.fn(() => mockLogger),
   };
 });
 
@@ -34,11 +34,11 @@ describe('Logger Integration', () => {
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
-    
+
     // Get mock logger
     const loggerModule = require('../../server/lib/app-logger.cjs');
     mockLogger = loggerModule.logger;
-    
+
     // Set up log file path for testing
     logFilePath = path.join(__dirname, '../test-logs.log');
   });
@@ -53,7 +53,7 @@ describe('Logger Integration', () => {
   describe('Logger Configuration', () => {
     it('should import logger module successfully', () => {
       const { logger } = require('../../server/lib/app-logger.cjs');
-      
+
       expect(logger).toBeDefined();
       expect(typeof logger.info).toBe('function');
       expect(typeof logger.error).toBe('function');
@@ -63,7 +63,7 @@ describe('Logger Integration', () => {
 
     it('should have audit logging methods', () => {
       const { logger } = require('../../server/lib/app-logger.cjs');
-      
+
       expect(typeof logger.audit).toBe('function');
       expect(typeof logger.system).toBe('function');
       expect(typeof logger.security).toBe('function');
@@ -71,9 +71,9 @@ describe('Logger Integration', () => {
 
     it('should create audit logger when requested', () => {
       const { createAuditLogger } = require('../../server/lib/app-logger.cjs');
-      
+
       const auditLogger = createAuditLogger();
-      
+
       expect(createAuditLogger).toHaveBeenCalled();
       expect(auditLogger).toBeDefined();
       expect(typeof auditLogger.info).toBe('function');
@@ -81,9 +81,9 @@ describe('Logger Integration', () => {
 
     it('should create production logger when requested', () => {
       const { createProductionLogger } = require('../../server/lib/app-logger.cjs');
-      
+
       const productionLogger = createProductionLogger();
-      
+
       expect(createProductionLogger).toHaveBeenCalled();
       expect(productionLogger).toBeDefined();
       expect(typeof productionLogger.info).toBe('function');
@@ -134,7 +134,7 @@ describe('Logger Integration', () => {
         eventType: 'USER_LOGIN',
         userId: 'test-user',
         ipAddress: '127.0.0.1',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       mockLogger.audit('User login successful', auditEvent);
@@ -147,7 +147,7 @@ describe('Logger Integration', () => {
         event: 'SERVER_START',
         port: constants.DASHBOARD_PORT,
         environment: 'test',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       mockLogger.system('Server started successfully', systemEvent);
@@ -161,7 +161,7 @@ describe('Logger Integration', () => {
         userId: 'test-user',
         ipAddress: '127.0.0.1',
         reason: 'Invalid credentials',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       mockLogger.security('Authentication failed', securityEvent);
@@ -179,15 +179,12 @@ describe('Logger Integration', () => {
         { array: [1, 2, 3] },
         { object: { nested: 'value' } },
         { null: null },
-        { undefined: undefined }
+        { undefined: undefined },
       ];
 
       testCases.forEach((metadata, index) => {
         mockLogger.info(`Test message ${index}`, metadata);
-        expect(mockLogger.info).toHaveBeenLastCalledWith(
-          `Test message ${index}`,
-          metadata
-        );
+        expect(mockLogger.info).toHaveBeenLastCalledWith(`Test message ${index}`, metadata);
       });
     });
 
@@ -197,23 +194,17 @@ describe('Logger Integration', () => {
 
       mockLogger.info('Circular reference test', circularObject);
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Circular reference test',
-        circularObject
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('Circular reference test', circularObject);
     });
 
     it('should handle very large metadata objects', () => {
       const largeMetadata = {
-        data: Array.from({ length: 1000 }, (_, i) => ({ id: i, value: `item-${i}` }))
+        data: Array.from({ length: 1000 }, (_, i) => ({ id: i, value: `item-${i}` })),
       };
 
       mockLogger.info('Large metadata test', largeMetadata);
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        'Large metadata test',
-        largeMetadata
-      );
+      expect(mockLogger.info).toHaveBeenCalledWith('Large metadata test', largeMetadata);
     });
   });
 
@@ -238,7 +229,7 @@ describe('Logger Integration', () => {
         42,
         true,
         Symbol('test'),
-        () => {} // function
+        () => {}, // function
       ];
 
       invalidMetadata.forEach((metadata) => {
@@ -292,26 +283,26 @@ describe('Logger Integration', () => {
   describe('Environment Configuration', () => {
     it('should respect log level configuration', () => {
       const originalNodeEnv = process.env.NODE_ENV;
-      
+
       // Test different environments
       const environments = ['development', 'production', 'test'];
-      
-      environments.forEach(env => {
+
+      environments.forEach((env) => {
         process.env.NODE_ENV = env;
-        
+
         // Logger should still work in all environments
         expect(() => {
           mockLogger.info(`Test in ${env}`);
         }).not.toThrow();
       });
-      
+
       // Restore original environment
       process.env.NODE_ENV = originalNodeEnv;
     });
 
     it('should handle missing log directory', () => {
       const nonExistentPath = path.join(__dirname, 'non-existent-dir', 'test.log');
-      
+
       // Should not throw if log directory doesn't exist
       expect(() => {
         mockLogger.info('Test message');
@@ -325,12 +316,12 @@ describe('Logger Integration', () => {
         method: 'GET',
         url: '/test',
         headers: { 'user-agent': 'test-agent' },
-        ip: '127.0.0.1'
+        ip: '127.0.0.1',
       };
 
       const mockResponse = {
         statusCode: 200,
-        headersSent: true
+        headersSent: true,
       };
 
       // Simulate request logging
@@ -339,7 +330,7 @@ describe('Logger Integration', () => {
         url: mockRequest.url,
         userAgent: mockRequest.headers['user-agent'],
         ip: mockRequest.ip,
-        statusCode: mockResponse.statusCode
+        statusCode: mockResponse.statusCode,
       });
 
       expect(mockLogger.audit).toHaveBeenCalledWith(
@@ -347,7 +338,7 @@ describe('Logger Integration', () => {
         expect.objectContaining({
           method: 'GET',
           url: '/test',
-          statusCode: 200
+          statusCode: 200,
         })
       );
     });
@@ -357,14 +348,14 @@ describe('Logger Integration', () => {
       const mockRequest = {
         method: 'POST',
         url: '/api/test',
-        body: { test: 'data' }
+        body: { test: 'data' },
       };
 
       mockLogger.error('Request failed', error, {
         method: mockRequest.method,
         url: mockRequest.url,
         body: mockRequest.body,
-        stack: error.stack
+        stack: error.stack,
       });
 
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -373,7 +364,7 @@ describe('Logger Integration', () => {
         expect.objectContaining({
           method: 'POST',
           url: '/api/test',
-          body: { test: 'data' }
+          body: { test: 'data' },
         })
       );
     });

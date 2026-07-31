@@ -14,8 +14,12 @@ import { formatNumber } from '../utils.js';
 function redactProjectPathForExport(rawPath, projectLabel = 'ai-platform') {
   if (rawPath == null || rawPath === '') return rawPath;
   const normalized = String(rawPath).replace(/\\/g, '/');
-  if (/^[a-zA-Z]:\//.test(normalized) || normalized.startsWith('/Users/')
-    || normalized.startsWith('/home/') || normalized.includes('CascadeProjects')) {
+  if (
+    /^[a-zA-Z]:\//.test(normalized) ||
+    normalized.startsWith('/Users/') ||
+    normalized.startsWith('/home/') ||
+    normalized.includes('CascadeProjects')
+  ) {
     return projectLabel;
   }
   return normalized;
@@ -43,7 +47,7 @@ function resolveRedactedBriefProjectPath(brief, options = {}) {
   const label = projectLabelFromPath(rawPath);
   return {
     label,
-    projectPath: redactProjectPathForExport(rawPath, label)
+    projectPath: redactProjectPathForExport(rawPath, label),
   };
 }
 
@@ -53,7 +57,9 @@ function resolveRedactedBriefProjectPath(brief, options = {}) {
  * @returns {any}
  */
 function isBenchmarkCacheProjectPath(projectPath) {
-  const rel = String(projectPath || '').replace(/\\/g, '/').toLowerCase();
+  const rel = String(projectPath || '')
+    .replace(/\\/g, '/')
+    .toLowerCase();
   return rel.includes('/github-cache/') || rel.startsWith('github-cache/');
 }
 
@@ -110,14 +116,14 @@ function resolveProjectedInventoryNote(next, auditFiles) {
 export function normalizeDuplicateGroupForBrief(group) {
   if (!group || typeof group !== 'object') return null;
 
-  let keeper = group.keeper
-    || group.path
-    || (Array.isArray(group.paths) && group.paths[0])
-    || null;
-  let duplicates = (group.duplicates?.length
-    ? group.duplicates
-    : (Array.isArray(group.paths) && group.paths.length > 1 ? group.paths.slice(1) : []))
-    .filter(Boolean);
+  let keeper = group.keeper || group.path || (Array.isArray(group.paths) && group.paths[0]) || null;
+  let duplicates = (
+    group.duplicates?.length
+      ? group.duplicates
+      : Array.isArray(group.paths) && group.paths.length > 1
+        ? group.paths.slice(1)
+        : []
+  ).filter(Boolean);
 
   if (keeper && !String(keeper).includes('/') && duplicates.some((d) => String(d).includes('/'))) {
     const nested = duplicates.find((d) => String(d).includes('/'));
@@ -134,12 +140,13 @@ export function normalizeDuplicateGroupForBrief(group) {
     keeper,
     duplicates: duplicates.slice(0, 12),
     duplicateCount: duplicates.length,
-    reclaimableBytes
+    reclaimableBytes,
   };
 
   if (!duplicates.length && reclaimableBytes > 0) {
     normalized.pathsOmitted = true;
-    normalized.note = 'Compact scan omitted duplicate paths — re-run file reduction or use full cleanup export for keeper/duplicate paths.';
+    normalized.note =
+      'Compact scan omitted duplicate paths — re-run file reduction or use full cleanup export for keeper/duplicate paths.';
   }
 
   return normalized;
@@ -156,7 +163,7 @@ function duplicateStatsFromBrief(brief) {
   const dupRow = table.find((row) => /duplicate assets/i.test(String(row.category || '')));
   return {
     reclaimableBytes: fr?.duplicateAssetBytes ?? dupRow?.bytes ?? null,
-    duplicateFiles: dupRow?.files ?? null
+    duplicateFiles: dupRow?.files ?? null,
   };
 }
 
@@ -167,9 +174,7 @@ function duplicateStatsFromBrief(brief) {
  * @returns {any}
  */
 function pruneDuplicateAssetsForExport(groups = [], brief) {
-  const normalized = groups
-    .map(normalizeDuplicateGroupForBrief)
-    .filter(Boolean);
+  const normalized = groups.map(normalizeDuplicateGroupForBrief).filter(Boolean);
 
   const withPaths = normalized.filter((g) => g.duplicates?.length > 0 && g.keeper);
   if (withPaths.length) {
@@ -188,8 +193,8 @@ function pruneDuplicateAssetsForExport(groups = [], brief) {
       duplicateFiles: stats.duplicateFiles,
       topGroupCount: normalized.length,
       pathsOmitted: true,
-      note: 'Duplicate savings are totals-only in this export — compact file-reduction payload omitted per-group paths. Re-run file reduction before agent consolidation.'
-    }
+      note: 'Duplicate savings are totals-only in this export — compact file-reduction payload omitted per-group paths. Re-run file reduction before agent consolidation.',
+    },
   };
 }
 
@@ -241,7 +246,7 @@ function buildBenchmarkAgentPrompt(brief) {
     '',
     // simplebeacon:production-leak-intent: web-data-sample - Cleanup brief product path exclusion notice
     'Do not apply Simplebeacon product paths (web/data, data-central) — they are not part of this OSS tree.',
-    'For platform cleanup, re-run Complete scan on the ai-platform root and export a new brief.'
+    'For platform cleanup, re-run Complete scan on the ai-platform root and export a new brief.',
   ].join('\n');
 }
 
@@ -260,7 +265,7 @@ function buildBenchmarkAgentInstructions(brief) {
       : 'Phase 2: duplicate consolidation paths were omitted from compact scan data — re-run file reduction for actionable groups.',
     `Never delete: ${brief.policy.protectedPaths.join(', ')}.`,
     'Do not bulk-delete unused file candidates — static analysis only.',
-    'Ignore Simplebeacon product protected paths listed in policy.productProtectedPathsAdvisory (not present in OSS clone).'
+    'Ignore Simplebeacon product protected paths listed in policy.productProtectedPathsAdvisory (not present in OSS clone).',
   ];
 }
 
@@ -299,7 +304,8 @@ function resolveCleanupStatus(brief) {
   return 'no-immediate-safe-delete';
 }
 
-const STALE_NO_SAFE_DELETE_NOTE = /No regenerable build-artifact directories are currently classified safe-to-delete/i;
+const STALE_NO_SAFE_DELETE_NOTE =
+  /No regenerable build-artifact directories are currently classified safe-to-delete/i;
 
 /**
  * Resolve file reduction workspace files.
@@ -308,10 +314,12 @@ const STALE_NO_SAFE_DELETE_NOTE = /No regenerable build-artifact directories are
  * @returns {any}
  */
 function resolveFileReductionWorkspaceFiles(brief, options = {}) {
-  return options.fileReductionReport?.inventory?.totalFiles
-    ?? options.fileReductionInventoryFiles
-    ?? brief.scanAnalysis?.fileReduction?.workspaceFilesScanned
-    ?? null;
+  return (
+    options.fileReductionReport?.inventory?.totalFiles ??
+    options.fileReductionInventoryFiles ??
+    brief.scanAnalysis?.fileReduction?.workspaceFilesScanned ??
+    null
+  );
 }
 
 /**
@@ -320,12 +328,14 @@ function resolveFileReductionWorkspaceFiles(brief, options = {}) {
  * @returns {any}
  */
 function countDataQualityOpenFindings(dataQuality = {}) {
-  return (dataQuality.unusedDependencies ?? 0)
-    + (dataQuality.envInconsistencies ?? 0)
-    + (dataQuality.missingEnvKeys ?? 0)
-    + (dataQuality.shapeDriftGroups ?? 0)
-    + (dataQuality.credentialsNeedingReview ?? 0)
-    + (dataQuality.piiNeedingReview ?? 0);
+  return (
+    (dataQuality.unusedDependencies ?? 0) +
+    (dataQuality.envInconsistencies ?? 0) +
+    (dataQuality.missingEnvKeys ?? 0) +
+    (dataQuality.shapeDriftGroups ?? 0) +
+    (dataQuality.credentialsNeedingReview ?? 0) +
+    (dataQuality.piiNeedingReview ?? 0)
+  );
 }
 
 /**
@@ -336,42 +346,48 @@ function countDataQualityOpenFindings(dataQuality = {}) {
  */
 function resolveGateInventoryContext(brief, options = {}) {
   const gateReport = options.gateReport || {};
-  const repositoryFilesTotal = options.repositoryFilesTotal
-    ?? options.auditRepositoryFiles
-    ?? gateReport.repositoryFilesTotal
-    ?? gateReport.repositoryInventory?.totalFiles
-    ?? brief.inventory?.auditRepositoryFiles
-    ?? brief.hygieneSummary?.gateRepositoryFilesTotal
-    ?? null;
-  const credentialScanned = gateReport.credentialScanned
-    ?? gateReport.productionLeakScanned
-    ?? gateReport.scanScope?.productionDirsScanned
-    ?? brief.hygieneSummary?.credentialScanned
-    ?? null;
-  const contentScanned = gateReport.scanScope?.fullDirectoryStats?.contentScanned
-    ?? gateReport.scanScope?.fullDirectoryStats?.filesContentScanned
-    ?? gateReport.credentialScanned
-    ?? brief.hygieneSummary?.contentFilesScanned
-    ?? null;
-  const gateProfile = gateReport.scanScope?.profile
-    ?? brief.scanScope?.gateRuleBundleProfile
-    ?? brief.hygieneSummary?.gateRuleBundleProfile
-    ?? null;
+  const repositoryFilesTotal =
+    options.repositoryFilesTotal ??
+    options.auditRepositoryFiles ??
+    gateReport.repositoryFilesTotal ??
+    gateReport.repositoryInventory?.totalFiles ??
+    brief.inventory?.auditRepositoryFiles ??
+    brief.hygieneSummary?.gateRepositoryFilesTotal ??
+    null;
+  const credentialScanned =
+    gateReport.credentialScanned ??
+    gateReport.productionLeakScanned ??
+    gateReport.scanScope?.productionDirsScanned ??
+    brief.hygieneSummary?.credentialScanned ??
+    null;
+  const contentScanned =
+    gateReport.scanScope?.fullDirectoryStats?.contentScanned ??
+    gateReport.scanScope?.fullDirectoryStats?.filesContentScanned ??
+    gateReport.credentialScanned ??
+    brief.hygieneSummary?.contentFilesScanned ??
+    null;
+  const gateProfile =
+    gateReport.scanScope?.profile ??
+    brief.scanScope?.gateRuleBundleProfile ??
+    brief.hygieneSummary?.gateRuleBundleProfile ??
+    null;
   return {
     gateReport,
     repositoryFilesTotal,
     credentialScanned,
     contentScanned,
     gateProfile,
-    fictionJsonFilesScanned: gateReport.fictionJsonFilesScanned
-      ?? gateReport.scanScope?.fictionJsonFilesScanned
-      ?? brief.hygieneSummary?.fictionJsonFilesScanned
-      ?? null,
-    fictionSampleFilesScanned: gateReport.fictionSampleFilesScanned
-      ?? gateReport.mockSampleFiles
-      ?? gateReport.scanScope?.fictionSampleFilesScanned
-      ?? brief.hygieneSummary?.fictionSampleFilesScanned
-      ?? null
+    fictionJsonFilesScanned:
+      gateReport.fictionJsonFilesScanned ??
+      gateReport.scanScope?.fictionJsonFilesScanned ??
+      brief.hygieneSummary?.fictionJsonFilesScanned ??
+      null,
+    fictionSampleFilesScanned:
+      gateReport.fictionSampleFilesScanned ??
+      gateReport.mockSampleFiles ??
+      gateReport.scanScope?.fictionSampleFilesScanned ??
+      brief.hygieneSummary?.fictionSampleFilesScanned ??
+      null,
   };
 }
 
@@ -383,7 +399,8 @@ function resolveGateInventoryContext(brief, options = {}) {
  */
 function buildCleanupBriefHygieneSummary(brief, options = {}) {
   const gateContext = resolveGateInventoryContext(brief, options);
-  const { repositoryFilesTotal, credentialScanned, contentScanned, gateProfile, gateReport } = gateContext;
+  const { repositoryFilesTotal, credentialScanned, contentScanned, gateProfile, gateReport } =
+    gateContext;
   const frWorkspace = resolveFileReductionWorkspaceFiles(brief, options);
   const dq = brief.scanAnalysis?.dataQuality || {};
   return {
@@ -398,7 +415,9 @@ function buildCleanupBriefHygieneSummary(brief, options = {}) {
     dataQualityOpenFindings: countDataQualityOpenFindings(dq),
     ...(credentialScanned != null ? { credentialScanned } : {}),
     ...(contentScanned != null ? { contentFilesScanned: contentScanned } : {}),
-    ...(repositoryFilesTotal != null && contentScanned != null && repositoryFilesTotal > contentScanned
+    ...(repositoryFilesTotal != null &&
+    contentScanned != null &&
+    repositoryFilesTotal > contentScanned
       ? { gateMetadataOnlyFiles: repositoryFilesTotal - contentScanned }
       : {}),
     ...(gateContext.fictionJsonFilesScanned != null
@@ -408,10 +427,12 @@ function buildCleanupBriefHygieneSummary(brief, options = {}) {
       ? { fictionSampleFilesScanned: gateContext.fictionSampleFilesScanned }
       : {}),
     ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
-    ...(gateReport.jestBaselineChecked === false || brief.hygieneSummary?.jestBaselineChecked === false
+    ...(gateReport.jestBaselineChecked === false ||
+    brief.hygieneSummary?.jestBaselineChecked === false
       ? { jestBaselineChecked: false }
       : {}),
-    attestationNote: 'Cleanup brief hygiene — agent deletion guidance only, not gate pass or vendor handoff certification.'
+    attestationNote:
+      'Cleanup brief hygiene — agent deletion guidance only, not gate pass or vendor handoff certification.',
   };
 }
 
@@ -426,7 +447,10 @@ function buildCleanupBriefScanScope(brief, options = {}) {
   const { repositoryFilesTotal, gateProfile } = gateContext;
   const explorerFiles = brief.inventory?.totalFiles ?? null;
   const frWorkspace = resolveFileReductionWorkspaceFiles(brief, options);
-  const monorepoShells = repositoryFilesTotal != null && explorerFiles != null && explorerFiles > repositoryFilesTotal * 2;
+  const monorepoShells =
+    repositoryFilesTotal != null &&
+    explorerFiles != null &&
+    explorerFiles > repositoryFilesTotal * 2;
   return {
     inventoryScope: brief.inventory?.inventoryScope || 'platform-product',
     ...(monorepoShells ? { explorerInventoryProfile: 'monorepo-root-with-shells' } : {}),
@@ -435,7 +459,7 @@ function buildCleanupBriefScanScope(brief, options = {}) {
     sourceScans: brief.sourceScans || {},
     resultsViewScope: 'platform-only',
     securityHandoffEligible: false,
-    ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {})
+    ...(gateProfile ? { gateRuleBundleProfile: gateProfile } : {}),
   };
 }
 
@@ -448,7 +472,7 @@ function buildCleanupBriefScanScope(brief, options = {}) {
 function buildProductExportNotes(brief, options = {}) {
   const notes = [
     'securityHandoffEligible is false — cleanup brief is agent guidance only, not vendor security handoff.',
-    'Absolute scan paths are redacted to project label in operator exports.'
+    'Absolute scan paths are redacted to project label in operator exports.',
   ];
   if (brief.inventory?.inventoryNote) {
     notes.push(String(brief.inventory.inventoryNote));
@@ -461,20 +485,37 @@ function buildProductExportNotes(brief, options = {}) {
     );
   }
   const gateContext = resolveGateInventoryContext(brief, options);
-  const { repositoryFilesTotal, credentialScanned, gateProfile, gateReport, fictionJsonFilesScanned, fictionSampleFilesScanned } = gateContext;
-  if (repositoryFilesTotal != null && credentialScanned != null && credentialScanned < repositoryFilesTotal) {
+  const {
+    repositoryFilesTotal,
+    credentialScanned,
+    gateProfile,
+    gateReport,
+    fictionJsonFilesScanned,
+    fictionSampleFilesScanned,
+  } = gateContext;
+  if (
+    repositoryFilesTotal != null &&
+    credentialScanned != null &&
+    credentialScanned < repositoryFilesTotal
+  ) {
     notes.push(
       `CRED/LEAK rules scanned ${formatNumber(credentialScanned)} production-path file(s) — ${formatNumber(repositoryFilesTotal - credentialScanned)} metadata-only path(s) in gate inventory of ${formatNumber(repositoryFilesTotal)}.`
     );
   }
-  if (fictionJsonFilesScanned != null && fictionSampleFilesScanned != null && fictionJsonFilesScanned > fictionSampleFilesScanned) {
+  if (
+    fictionJsonFilesScanned != null &&
+    fictionSampleFilesScanned != null &&
+    fictionJsonFilesScanned > fictionSampleFilesScanned
+  ) {
     notes.push(
       // simplebeacon:production-leak-intent: template-sample - legitimate KPI reference for cleanup brief reporting
       `DATA-002 evaluated ${formatNumber(fictionJsonFilesScanned)} repository JSON path(s) — ${formatNumber(fictionSampleFilesScanned)} *-sample.json KPI file(s) matched in paired gate scan.`
     );
   }
   if (gateProfile) {
-    notes.push(`Gate rule bundle profile: ${gateProfile} — pair cleanup brief with json/simplebeacon-gate.json for handoff evidence.`);
+    notes.push(
+      `Gate rule bundle profile: ${gateProfile} — pair cleanup brief with json/simplebeacon-gate.json for handoff evidence.`
+    );
   }
   if (gateReport.jestBaselineChecked === false) {
     notes.push(
@@ -487,11 +528,15 @@ function buildProductExportNotes(brief, options = {}) {
       'No phase-1 safe deletes under current policy — review data-quality actions in json/data-quality.json before optional duplicate consolidation.'
     );
   } else if (cleanupStatus === 'review-and-optional-consolidation') {
-    notes.push('Phase 1 has no safe deletes — optional phase 2 duplicate consolidation or investigate-tier follow-ups only.');
+    notes.push(
+      'Phase 1 has no safe deletes — optional phase 2 duplicate consolidation or investigate-tier follow-ups only.'
+    );
   }
   const dqOpen = countDataQualityOpenFindings(brief.scanAnalysis?.dataQuality || {});
   if (brief.sourceScans?.dataQualityPresent && dqOpen === 0) {
-    notes.push('Data-quality scan reported zero open workspace findings — no dependency, env, or credential follow-ups in this export.');
+    notes.push(
+      'Data-quality scan reported zero open workspace findings — no dependency, env, or credential follow-ups in this export.'
+    );
   }
   const fr = brief.scanAnalysis?.fileReduction || {};
   const skipped = fr.skippedArtifactDirectories || [];
@@ -507,10 +552,12 @@ function buildProductExportNotes(brief, options = {}) {
       `Phase 1 safe-to-delete: ${formatNumber(safeFiles)} files (${formatBytes(safeBytes)}) in regenerable artifact directories — restore with npm install / rebuild after delete.`
     );
   } else if (
-    String(brief.scanAnalysis?.artifactProfile || '').startsWith('mixed')
-    && cleanupStatus !== 'safe-delete-available'
+    String(brief.scanAnalysis?.artifactProfile || '').startsWith('mixed') &&
+    cleanupStatus !== 'safe-delete-available'
   ) {
-    notes.push('No regenerable build-artifact directories are currently classified safe-to-delete — follow data-quality actions and optional phase 2.');
+    notes.push(
+      'No regenerable build-artifact directories are currently classified safe-to-delete — follow data-quality actions and optional phase 2.'
+    );
   }
   if (brief.tiers?.investigate?.files > 0) {
     notes.push(
@@ -552,13 +599,17 @@ function enrichProductAgentPrompt(brief) {
     `- Safe to delete now (phase 1): ${formatNumber(safeFiles)} files, ${formatBytes(estimatedReduction.bytes)}.`,
     `- Protected (never delete): ${protectedPaths.join(', ')}`,
     '- Review first: logs, scan cache, and anything flagged reviewFirst in the brief',
-    '- Do not bulk-delete unused-file candidates without verifying imports'
+    '- Do not bulk-delete unused-file candidates without verifying imports',
   ];
   if (investigate > 0) {
-    lines.push(`- Investigate only (not auto-delete): ${formatNumber(investigate)} unused-file candidates — static analysis`);
+    lines.push(
+      `- Investigate only (not auto-delete): ${formatNumber(investigate)} unused-file candidates — static analysis`
+    );
   }
   if (dupBytes > 0) {
-    lines.push(`- Phase 2 optional: consolidate ~${formatNumber(dupFiles)} duplicate file(s), ${formatBytes(dupBytes)} — paths listed in duplicateAssets`);
+    lines.push(
+      `- Phase 2 optional: consolidate ~${formatNumber(dupFiles)} duplicate file(s), ${formatBytes(dupBytes)} — paths listed in duplicateAssets`
+    );
   }
   lines.push(
     '',
@@ -578,20 +629,28 @@ function enrichProductAgentPrompt(brief) {
  * @returns {any}
  */
 function enrichProductAgentInstructions(brief) {
-  const policy = brief.policy || { protectedPaths: [], allowNodeModules: false, allowSimplebeaconCache: false };
+  const policy = brief.policy || {
+    protectedPaths: [],
+    allowNodeModules: false,
+    allowSimplebeaconCache: false,
+  };
   const protectedPaths = policy.protectedPaths || [];
   const investigate = brief.tiers?.investigate?.files ?? 0;
   const dupBytes = brief.estimatedReduction?.phase2DuplicateBytes ?? 0;
   const lines = [
     'Execute cleanup in phases: (1) safeNow directories, (2) duplicate asset consolidation, (3) reviewFirst items only after confirmation.',
     `Never delete paths under protected list: ${protectedPaths.join(', ')}.`,
-    'Do not bulk-delete unused file candidates — they require static/dynamic import verification.'
+    'Do not bulk-delete unused file candidates — they require static/dynamic import verification.',
   ];
   if (investigate > 0) {
-    lines.push(`${investigate} unused-file candidates are investigate-only — verify imports before any deletion.`);
+    lines.push(
+      `${investigate} unused-file candidates are investigate-only — verify imports before any deletion.`
+    );
   }
   if (dupBytes > 0) {
-    lines.push(`Phase 2 may reclaim ~${formatBytes(dupBytes)} from duplicate assets when keeper paths are confirmed.`);
+    lines.push(
+      `Phase 2 may reclaim ~${formatBytes(dupBytes)} from duplicate assets when keeper paths are confirmed.`
+    );
   }
   lines.push(
     policy.allowNodeModules
@@ -625,11 +684,13 @@ export function sanitizeCleanupBriefExport(brief, options = {}) {
   let next = {
     ...brief,
     duplicateAssets: pruned.duplicateAssets,
-    ...(pruned.duplicateAssetsSummary ? { duplicateAssetsSummary: pruned.duplicateAssetsSummary } : {}),
+    ...(pruned.duplicateAssetsSummary
+      ? { duplicateAssetsSummary: pruned.duplicateAssetsSummary }
+      : {}),
     estimatedReduction: {
       ...(brief.estimatedReduction || {}),
       phase2DuplicateBytes: dupStats.reclaimableBytes,
-      phase2DuplicateFiles: dupStats.duplicateFiles
+      phase2DuplicateFiles: dupStats.duplicateFiles,
     },
     tiers: {
       ...(brief.tiers || {}),
@@ -637,11 +698,12 @@ export function sanitizeCleanupBriefExport(brief, options = {}) {
         ? {
             bytes: dupStats.reclaimableBytes,
             files: dupStats.duplicateFiles,
-            note: pruned.duplicateAssetsSummary?.note
-              || 'Manual review — consolidate only when keeper and duplicate paths are listed.'
+            note:
+              pruned.duplicateAssetsSummary?.note ||
+              'Manual review — consolidate only when keeper and duplicate paths are listed.',
           }
-        : null
-    }
+        : null,
+    },
   };
 
   if (next.scanAnalysis) {
@@ -649,12 +711,15 @@ export function sanitizeCleanupBriefExport(brief, options = {}) {
     next.scanAnalysis = {
       ...next.scanAnalysis,
       notes,
-      ...(benchmarkScan ? {
-        scanTargetProfile: 'benchmark-cache',
-        artifactProfile: next.scanAnalysis.artifactProfile === 'empty'
-          ? 'oss-clone-hygiene'
-          : next.scanAnalysis.artifactProfile
-      } : {})
+      ...(benchmarkScan
+        ? {
+            scanTargetProfile: 'benchmark-cache',
+            artifactProfile:
+              next.scanAnalysis.artifactProfile === 'empty'
+                ? 'oss-clone-hygiene'
+                : next.scanAnalysis.artifactProfile,
+          }
+        : {}),
     };
   }
 
@@ -664,23 +729,27 @@ export function sanitizeCleanupBriefExport(brief, options = {}) {
       next.tiers || {},
       next.estimatedReduction || {}
     );
-    const exportNotes = buildProductExportNotes({
-      ...next,
-      inventory: {
-        ...(next.inventory || {}),
-        inventoryScope: 'platform-product',
-        ...(auditFiles != null && (next.inventory?.totalFiles ?? 0) > auditFiles * 2
-          ? {
-              auditRepositoryFiles: auditFiles,
-              inventoryNote: `Cleanup inventory (${Number(next.inventory.totalFiles).toLocaleString()} files) includes un-walked regenerable shells; gate audit profile counted ${Number(auditFiles).toLocaleString()} files.`
-            }
-          : next.inventory?.totalFiles > 5000
+    const exportNotes = buildProductExportNotes(
+      {
+        ...next,
+        inventory: {
+          ...(next.inventory || {}),
+          inventoryScope: 'platform-product',
+          ...(auditFiles != null && (next.inventory?.totalFiles ?? 0) > auditFiles * 2
             ? {
-                inventoryNote: 'File count may include node_modules and other shells not size-walked for safe deletion.'
+                auditRepositoryFiles: auditFiles,
+                inventoryNote: `Cleanup inventory (${Number(next.inventory.totalFiles).toLocaleString()} files) includes un-walked regenerable shells; gate audit profile counted ${Number(auditFiles).toLocaleString()} files.`,
               }
-            : {})
-      }
-    }, options);
+            : next.inventory?.totalFiles > 5000
+              ? {
+                  inventoryNote:
+                    'File count may include node_modules and other shells not size-walked for safe deletion.',
+                }
+              : {}),
+        },
+      },
+      options
+    );
     const projectedNote = resolveProjectedInventoryNote(next, auditFiles);
     const { projectPath: redactedProjectPath } = resolveRedactedBriefProjectPath(next, options);
     const frWorkspace = resolveFileReductionWorkspaceFiles(next, options);
@@ -693,7 +762,9 @@ export function sanitizeCleanupBriefExport(brief, options = {}) {
       exportSanitized: true,
       scanTargetProfile: 'product',
       cleanupStatus: resolveCleanupStatus(next),
-      agentBriefReady: Boolean(next.sourceScans?.fileReductionPresent || next.sourceScans?.dataQualityPresent),
+      agentBriefReady: Boolean(
+        next.sourceScans?.fileReductionPresent || next.sourceScans?.dataQualityPresent
+      ),
       securityHandoffEligible: false,
       handoffEligible: false,
       hygieneSummary,
@@ -704,17 +775,18 @@ export function sanitizeCleanupBriefExport(brief, options = {}) {
         ...(auditFiles != null && (next.inventory?.totalFiles ?? 0) > auditFiles * 2
           ? {
               auditRepositoryFiles: auditFiles,
-              inventoryNote: `Cleanup inventory (${Number(next.inventory.totalFiles).toLocaleString()} files) includes un-walked regenerable shells; gate audit profile counted ${Number(auditFiles).toLocaleString()} files.`
+              inventoryNote: `Cleanup inventory (${Number(next.inventory.totalFiles).toLocaleString()} files) includes un-walked regenerable shells; gate audit profile counted ${Number(auditFiles).toLocaleString()} files.`,
             }
           : next.inventory?.totalFiles > 5000
             ? {
-                inventoryNote: 'File count may include node_modules and other shells not size-walked for safe deletion.'
+                inventoryNote:
+                  'File count may include node_modules and other shells not size-walked for safe deletion.',
               }
-            : {})
+            : {}),
       },
       projectedInventory: {
         ...(next.projectedInventory || {}),
-        ...(projectedNote ? { projectedNote } : {})
+        ...(projectedNote ? { projectedNote } : {}),
       },
       agentPrompt: enrichProductAgentPrompt(briefForExport),
       agentInstructions: enrichProductAgentInstructions(briefForExport),
@@ -728,17 +800,18 @@ export function sanitizeCleanupBriefExport(brief, options = {}) {
               ? {
                   fileReduction: {
                     ...next.scanAnalysis.fileReduction,
-                    workspaceFilesScanned: frWorkspace
-                  }
+                    workspaceFilesScanned: frWorkspace,
+                  },
                 }
               : {}),
-            artifactProfileNote: artifactProfile === 'mixed-safe-delete-available'
-              ? 'Phase 1 lists regenerable artifact directories safe to delete under current policy.'
-              : artifactProfile === 'empty' || artifactProfile === 'no-reclaimable-artifacts'
-                ? 'No safe-to-delete build artifacts — see investigate tier and data-quality actions.'
-                : undefined
+            artifactProfileNote:
+              artifactProfile === 'mixed-safe-delete-available'
+                ? 'Phase 1 lists regenerable artifact directories safe to delete under current policy.'
+                : artifactProfile === 'empty' || artifactProfile === 'no-reclaimable-artifacts'
+                  ? 'No safe-to-delete build artifacts — see investigate tier and data-quality actions.'
+                  : undefined,
           }
-        : next.scanAnalysis
+        : next.scanAnalysis,
     };
   }
 
@@ -760,11 +833,12 @@ export function sanitizeCleanupBriefExport(brief, options = {}) {
       ...priorPolicy,
       protectedPaths: BENCHMARK_PROTECTED_PATHS,
       productProtectedPathsAdvisory: priorPolicy.protectedPaths || [],
-      policyScopeNote: 'Protected paths adjusted for OSS clone under github-cache/ — Simplebeacon platform data directories do not exist in this tree.'
+      policyScopeNote:
+        'Protected paths adjusted for OSS clone under github-cache/ — Simplebeacon platform data directories do not exist in this tree.',
     },
     inventory: {
       ...(next.inventory || {}),
-      inventoryScope: 'oss-clone'
+      inventoryScope: 'oss-clone',
     },
     scanAnalysis: next.scanAnalysis
       ? { ...next.scanAnalysis, projectPath: redactedClonePath }
@@ -773,7 +847,7 @@ export function sanitizeCleanupBriefExport(brief, options = {}) {
     agentInstructions: buildBenchmarkAgentInstructions(next),
     exportNotes: [
       ...(next.exportNotes || []),
-      'Benchmark clone brief — phase 1 safeNow reflects product-tier policy on OSS tree; duplicate totals are informational unless paths are listed.'
-    ].filter((note, index, all) => all.indexOf(note) === index)
+      'Benchmark clone brief — phase 1 safeNow reflects product-tier policy on OSS tree; duplicate totals are informational unless paths are listed.',
+    ].filter((note, index, all) => all.indexOf(note) === index),
   };
 }

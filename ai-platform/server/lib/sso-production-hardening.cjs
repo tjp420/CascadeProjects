@@ -26,14 +26,19 @@ function httpsGetJson(url) {
       port: parsed.port || 443,
       path: parsed.pathname + parsed.search,
       method: 'GET',
-      headers: { 'Accept': 'application/json' },
+      headers: { Accept: 'application/json' },
     };
     const req = https.request(options, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
-        catch { resolve({ status: res.statusCode, data }); }
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(data) });
+        } catch {
+          resolve({ status: res.statusCode, data });
+        }
       });
     });
     req.on('error', reject);
@@ -57,7 +62,7 @@ async function fetchJwks(jwksUri) {
 }
 
 function findKeyByKid(keys, kid) {
-  return keys.find(k => k.kid === kid);
+  return keys.find((k) => k.kid === kid);
 }
 
 // ── ID Token Signature Verification ─────────────────────────────────────────
@@ -74,8 +79,8 @@ function verifyRsaJwtSignature(idToken, jwk) {
     throw new Error(`Unsupported ID token algorithm: ${header.alg}`);
   }
 
-  const hashAlgorithm = header.alg === 'RS256' ? 'sha256'
-    : header.alg === 'RS384' ? 'sha384' : 'sha512';
+  const hashAlgorithm =
+    header.alg === 'RS256' ? 'sha256' : header.alg === 'RS384' ? 'sha384' : 'sha512';
 
   const pem = jwkToPem(jwk);
   const verifier = crypto.createVerify(hashAlgorithm);
@@ -89,7 +94,8 @@ function verifyHs256JwtSignature(idToken, clientSecret) {
   if (parts.length !== 3) throw new Error('Invalid JWT format');
 
   const signingInput = parts[0] + '.' + parts[1];
-  const expectedSignature = crypto.createHmac('sha256', clientSecret)
+  const expectedSignature = crypto
+    .createHmac('sha256', clientSecret)
     .update(signingInput, 'utf8')
     .digest('base64url');
 
@@ -177,14 +183,23 @@ const PROVIDER_PRESETS = {
     method: 'oidc',
     description: 'Microsoft Entra ID — OIDC authorization code flow with tenant-specific endpoints',
     fields: {
-      tenantId: { label: 'Tenant ID', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true },
-      clientId: { label: 'Application (Client) ID', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', required: true },
+      tenantId: {
+        label: 'Tenant ID',
+        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+        required: true,
+      },
+      clientId: {
+        label: 'Application (Client) ID',
+        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+        required: true,
+      },
       clientSecret: { label: 'Client Secret', placeholder: '...', required: true, secret: true },
       scope: { label: 'Scopes', placeholder: 'openid profile email User.Read', required: false },
     },
     buildIssuer: (tenantId) => `https://login.microsoftonline.com/${tenantId}/v2.0`,
     discoveryPath: '/.well-known/openid-configuration',
-    notes: 'Register an app in Azure AD, add a client secret, and configure redirect URI. Use v2.0 endpoint for OIDC.',
+    notes:
+      'Register an app in Azure AD, add a client secret, and configure redirect URI. Use v2.0 endpoint for OIDC.',
     // Azure AD v2.0 userinfo is at Microsoft Graph, not a standard userinfo_endpoint
     graphUserinfo: true,
   },
@@ -196,13 +211,23 @@ const PROVIDER_PRESETS = {
     description: 'Google Workspace — OIDC authorization code flow',
     fields: {
       issuer: { label: 'Issuer', placeholder: 'https://accounts.google.com', required: true },
-      clientId: { label: 'Client ID', placeholder: 'xxxxx.apps.googleusercontent.com', required: true },
-      clientSecret: { label: 'Client Secret', placeholder: 'GOCSPX-...', required: true, secret: true },
+      clientId: {
+        label: 'Client ID',
+        placeholder: 'xxxxx.apps.googleusercontent.com',
+        required: true,
+      },
+      clientSecret: {
+        label: 'Client Secret',
+        placeholder: 'GOCSPX-...',
+        required: true,
+        secret: true,
+      },
       scope: { label: 'Scopes', placeholder: 'openid profile email', required: false },
     },
     buildIssuer: () => 'https://accounts.google.com',
     discoveryPath: '/.well-known/openid-configuration',
-    notes: 'Configure OAuth consent screen in Google Cloud Console. Add redirect URI to authorized redirect URIs.',
+    notes:
+      'Configure OAuth consent screen in Google Cloud Console. Add redirect URI to authorized redirect URIs.',
   },
 
   saml_generic: {
@@ -211,12 +236,26 @@ const PROVIDER_PRESETS = {
     method: 'saml',
     description: 'SAML 2.0 — Works with any SAML-compliant Identity Provider',
     fields: {
-      entryPoint: { label: 'IdP SSO URL', placeholder: 'https://idp.example.com/sso/saml', required: true },
+      entryPoint: {
+        label: 'IdP SSO URL',
+        placeholder: 'https://idp.example.com/sso/saml',
+        required: true,
+      },
       issuer: { label: 'Entity ID (SP)', placeholder: 'simplebeacon', required: true },
-      cert: { label: 'IdP X.509 Certificate (PEM)', placeholder: '-----BEGIN CERTIFICATE-----\n...', required: true, secret: true },
-      signatureRequired: { label: 'Require Signed Assertions', placeholder: 'true', required: false },
+      cert: {
+        label: 'IdP X.509 Certificate (PEM)',
+        placeholder: '-----BEGIN CERTIFICATE-----\n...',
+        required: true,
+        secret: true,
+      },
+      signatureRequired: {
+        label: 'Require Signed Assertions',
+        placeholder: 'true',
+        required: false,
+      },
     },
-    notes: 'Configure your IdP to send NameID as email address. Set the Assertion Consumer Service URL to https://your-domain/api/sso/saml/acs',
+    notes:
+      'Configure your IdP to send NameID as email address. Set the Assertion Consumer Service URL to https://your-domain/api/sso/saml/acs',
   },
 };
 
@@ -226,23 +265,31 @@ async function fetchMicrosoftGraphUser(accessToken) {
   const graphUrl = 'https://graph.microsoft.com/v1.0/me';
   const result = await new Promise((resolve, reject) => {
     const parsed = new URL(graphUrl);
-    const req = https.request({
-      hostname: parsed.hostname,
-      port: 443,
-      path: parsed.pathname,
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json',
+    const req = https.request(
+      {
+        hostname: parsed.hostname,
+        port: 443,
+        path: parsed.pathname,
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+        },
       },
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
-        catch { resolve({ status: res.statusCode, data }); }
-      });
-    });
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, data: JSON.parse(data) });
+          } catch {
+            resolve({ status: res.statusCode, data });
+          }
+        });
+      }
+    );
     req.on('error', reject);
     req.end();
   });
@@ -282,7 +329,10 @@ function validateSamlSignature(xml, certPem) {
   // Normalize certificate to PEM format
   let pem = certPem.trim();
   if (!pem.startsWith('-----BEGIN')) {
-    pem = '-----BEGIN CERTIFICATE-----\n' + pem.match(/.{1,64}/g).join('\n') + '\n-----END CERTIFICATE-----';
+    pem =
+      '-----BEGIN CERTIFICATE-----\n' +
+      pem.match(/.{1,64}/g).join('\n') +
+      '\n-----END CERTIFICATE-----';
   }
 
   // Check if the response is signed (Signature element present)
@@ -292,22 +342,25 @@ function validateSamlSignature(xml, certPem) {
   }
 
   // Extract SignatureValue
-  const sigValueMatch = xml.match(/<ds:SignatureValue[^>]*>([^<]+)<\/ds:SignatureValue>/)
-    || xml.match(/<SignatureValue[^>]*>([^<]+)<\/SignatureValue>/);
+  const sigValueMatch =
+    xml.match(/<ds:SignatureValue[^>]*>([^<]+)<\/ds:SignatureValue>/) ||
+    xml.match(/<SignatureValue[^>]*>([^<]+)<\/SignatureValue>/);
   if (!sigValueMatch) {
     return { valid: false, reason: 'Could not extract SignatureValue from SAML response' };
   }
 
   // Extract SignedInfo
-  const signedInfoMatch = xml.match(/<ds:SignedInfo[\s\S]*?<\/ds:SignedInfo>/)
-    || xml.match(/<SignedInfo[\s\S]*?<\/SignedInfo>/);
+  const signedInfoMatch =
+    xml.match(/<ds:SignedInfo[\s\S]*?<\/ds:SignedInfo>/) ||
+    xml.match(/<SignedInfo[\s\S]*?<\/SignedInfo>/);
   if (!signedInfoMatch) {
     return { valid: false, reason: 'Could not extract SignedInfo from SAML response' };
   }
 
   // Extract DigestValue
-  const digestMatch = xml.match(/<ds:DigestValue[^>]*>([^<]+)<\/ds:DigestValue>/)
-    || xml.match(/<DigestValue[^>]*>([^<]+)<\/DigestValue>/);
+  const digestMatch =
+    xml.match(/<ds:DigestValue[^>]*>([^<]+)<\/ds:DigestValue>/) ||
+    xml.match(/<DigestValue[^>]*>([^<]+)<\/DigestValue>/);
   if (!digestMatch) {
     return { valid: false, reason: 'Could not extract DigestValue from SAML response' };
   }
@@ -315,13 +368,15 @@ function validateSamlSignature(xml, certPem) {
   // Extract SignatureMethod algorithm
   const sigMethodMatch = xml.match(/SignatureMethod Algorithm="([^"]+)"/);
   const sigAlgorithm = sigMethodMatch
-    ? sigMethodMatch[1].replace('http://www.w3.org/2001/04/xmldsig-more#rsa-', '').replace('http://www.w3.org/2000/09/xmldsig#rsa-', 'sha1')
+    ? sigMethodMatch[1]
+        .replace('http://www.w3.org/2001/04/xmldsig-more#rsa-', '')
+        .replace('http://www.w3.org/2000/09/xmldsig#rsa-', 'sha1')
     : 'sha256';
 
   // Extract the signed element (Assertion or Response)
   // The Reference URI points to the signed element ID
-  const referenceMatch = xml.match(/<ds:Reference[^>]*URI="#([^"]+)"/)
-    || xml.match(/<Reference[^>]*URI="#([^"]+)"/);
+  const referenceMatch =
+    xml.match(/<ds:Reference[^>]*URI="#([^"]+)"/) || xml.match(/<Reference[^>]*URI="#([^"]+)"/);
   if (!referenceMatch) {
     return { valid: false, reason: 'Could not extract Reference URI from signature' };
   }
@@ -329,8 +384,10 @@ function validateSamlSignature(xml, certPem) {
   const signedElementId = referenceMatch[1];
 
   // Find the signed element in the XML
-  const assertionMatch = xml.match(new RegExp(`<saml:Assertion[^>]*ID="${signedElementId}"[\\s\\S]*?</saml:Assertion>`))
-    || xml.match(new RegExp(`<Assertion[^>]*ID="${signedElementId}"[\\s\\S]*?</Assertion>`));
+  const assertionMatch =
+    xml.match(
+      new RegExp(`<saml:Assertion[^>]*ID="${signedElementId}"[\\s\\S]*?</saml:Assertion>`)
+    ) || xml.match(new RegExp(`<Assertion[^>]*ID="${signedElementId}"[\\s\\S]*?</Assertion>`));
   if (!assertionMatch) {
     return { valid: false, reason: `Could not find signed element with ID: ${signedElementId}` };
   }
@@ -339,7 +396,10 @@ function validateSamlSignature(xml, certPem) {
   // For production, this should use exclusive XML canonicalization (c14n).
   // Here we use a simplified approach: hash the raw element text.
   const signedElementXml = assertionMatch[0];
-  const computedDigest = crypto.createHash('sha256').update(signedElementXml, 'utf8').digest('base64');
+  const computedDigest = crypto
+    .createHash('sha256')
+    .update(signedElementXml, 'utf8')
+    .digest('base64');
   const expectedDigest = digestMatch[1].trim().replace(/\s/g, '');
 
   // Verify the signature value against the signed info
@@ -353,7 +413,10 @@ function validateSamlSignature(xml, certPem) {
     const sigValid = verifier.verify(pem, signatureBuffer);
 
     if (!sigValid) {
-      return { valid: false, reason: 'XML signature verification failed — signature does not match certificate' };
+      return {
+        valid: false,
+        reason: 'XML signature verification failed — signature does not match certificate',
+      };
     }
 
     return { valid: true };
@@ -376,7 +439,11 @@ function validateSamlSignature(xml, certPem) {
  */
 async function validateIdTokenProduction(idToken, config, discovery, expectedNonce, clientSecret) {
   // Verify signature
-  const { payload, verified, algorithm } = await verifyIdTokenSignature(idToken, discovery, clientSecret);
+  const { payload, verified, algorithm } = await verifyIdTokenSignature(
+    idToken,
+    discovery,
+    clientSecret
+  );
   if (!verified) {
     throw new Error(`ID token signature verification failed (algorithm: ${algorithm})`);
   }
@@ -393,8 +460,7 @@ async function validateIdTokenProduction(idToken, config, discovery, expectedNon
   // Audience can be string or array
   const expectedAud = config.oidc.clientId;
   const aud = payload.aud;
-  const audValid = aud === expectedAud
-    || (Array.isArray(aud) && aud.includes(expectedAud));
+  const audValid = aud === expectedAud || (Array.isArray(aud) && aud.includes(expectedAud));
   if (!audValid) {
     throw new Error(`ID token audience mismatch: ${JSON.stringify(aud)} != ${expectedAud}`);
   }

@@ -10,12 +10,12 @@ const issues = report.detectedIssues || report.rawIssues || report.findings || [
 const summary = {};
 let totalFindings = 0;
 for (const issue of issues) {
-  const type = issue.type || 'Unknown';
-  const sev = issue.severity || 'low';
-  if (!summary[type]) summary[type] = { count: 0, severity: {} };
-  summary[type].count += issue.count || 1;
-  summary[type].severity[sev] = (summary[type].severity[sev] || 0) + (issue.count || 1);
-  totalFindings += issue.count || 1;
+    const type = issue.type || 'Unknown';
+    const sev = issue.severity || 'low';
+    if (!summary[type]) summary[type] = { count: 0, severity: {} };
+    summary[type].count += issue.count || 1;
+    summary[type].severity[sev] = (summary[type].severity[sev] || 0) + (issue.count || 1);
+    totalFindings += issue.count || 1;
 }
 
 // Credential patterns
@@ -23,31 +23,31 @@ const credentialIssues = issues.filter(i => /credential/i.test(i.type || ''));
 let credentialFiles = new Set();
 let credentialMatches = [];
 for (const issue of credentialIssues) {
-  if (issue.filePath) issue.filePath.forEach(f => credentialFiles.add(f));
-  if (issue.findings) {
-    for (const f of issue.findings) {
-      if (f.file) credentialFiles.add(f.file);
-      if (f.matches) {
-        for (const m of f.matches) {
-          credentialMatches.push({
-            file: f.file || '',
-            line: m.line || 1,
-            snippet: m.snippet || '',
-            type: m.type || issue.type || '',
-          });
+    if (issue.filePath) issue.filePath.forEach(f => credentialFiles.add(f));
+    if (issue.findings) {
+        for (const f of issue.findings) {
+            if (f.file) credentialFiles.add(f.file);
+            if (f.matches) {
+                for (const m of f.matches) {
+                    credentialMatches.push({
+                        file: f.file || '',
+                        line: m.line || 1,
+                        snippet: m.snippet || '',
+                        type: m.type || issue.type || ''
+                    });
+                }
+            }
         }
-      }
     }
-  }
 }
 
 // Export CSV
 const csvRows = [
-  ['Severity', 'Type', 'Count', 'Files'].join(','),
-  ...issues.map(i => {
-    const files = Array.isArray(i.filePath) ? i.filePath.join('; ') : (i.filePath || '');
-    return [(i.severity || 'low'), (i.type || 'Unknown'), (i.count || 1), `"${files.replace(/"/g, '""')}"`].join(',');
-  }),
+    ['Severity', 'Type', 'Count', 'Files'].join(','),
+    ...issues.map(i => {
+        const files = Array.isArray(i.filePath) ? i.filePath.join('; ') : i.filePath || '';
+        return [i.severity || 'low', i.type || 'Unknown', i.count || 1, `"${files.replace(/"/g, '""')}"`].join(',');
+    })
 ];
 const csvPath = path.join(path.dirname(reportPath), 'report-summary.csv');
 fs.writeFileSync(csvPath, csvRows.join('\n'), 'utf8');
@@ -55,9 +55,9 @@ fs.writeFileSync(csvPath, csvRows.join('\n'), 'utf8');
 // Export HTML
 const sevCounts = { critical: 0, high: 0, medium: 0, low: 0 };
 for (const issue of issues) {
-  const sev = (issue.severity || 'low').toLowerCase();
-  const count = issue.count || 1;
-  if (sevCounts[sev] !== undefined) sevCounts[sev] += count;
+    const sev = (issue.severity || 'low').toLowerCase();
+    const count = issue.count || 1;
+    if (sevCounts[sev] !== undefined) sevCounts[sev] += count;
 }
 
 const html = `<!DOCTYPE html>
@@ -101,11 +101,13 @@ tr:hover{background:#1e293b}
 </div>
 <table>
 <tr><th>Severity</th><th>Type</th><th>Count</th><th>Files</th></tr>
-${issues.map(i => {
-  const sev = (i.severity || 'low').toLowerCase();
-  const files = Array.isArray(i.filePath) ? i.filePath.join(', ') : (i.filePath || '');
-  return `<tr><td><span class="badge badge-${sev}">${sev}</span></td><td>${i.type || 'Unknown'}</td><td>${i.count || 1}</td><td>${files}</td></tr>`;
-}).join('')}
+${issues
+    .map(i => {
+        const sev = (i.severity || 'low').toLowerCase();
+        const files = Array.isArray(i.filePath) ? i.filePath.join(', ') : i.filePath || '';
+        return `<tr><td><span class="badge badge-${sev}">${sev}</span></td><td>${i.type || 'Unknown'}</td><td>${i.count || 1}</td><td>${files}</td></tr>`;
+    })
+    .join('')}
 </table>
 </body>
 </html>`;
@@ -114,14 +116,17 @@ fs.writeFileSync(htmlPath, html, 'utf8');
 
 // Credential patterns CSV
 const credCsvRows = [
-  ['File', 'Line', 'Type', 'Snippet'].join(','),
-  ...credentialMatches.slice(0, 200).map(m => [
-    `"${m.file.replace(/"/g, '""')}"`,
-    m.line,
-    `"${m.type.replace(/"/g, '""')}"`,
-    `"${(m.snippet || '').replace(/"/g, '""').replace(/\n/g, ' ').slice(0, 200)}"`,
-  ].join(',')),
+    ['File', 'Line', 'Type', 'Snippet'].join(','),
+    ...credentialMatches
+        .slice(0, 200)
+        .map(m =>
+            [
+                `"${m.file.replace(/"/g, '""')}"`,
+                m.line,
+                `"${m.type.replace(/"/g, '""')}"`,
+                `"${(m.snippet || '').replace(/"/g, '""').replace(/\n/g, ' ').slice(0, 200)}"`
+            ].join(',')
+        )
 ];
 const credCsvPath = path.join(path.dirname(reportPath), 'credential-findings.csv');
 fs.writeFileSync(credCsvPath, credCsvRows.join('\n'), 'utf8');
-

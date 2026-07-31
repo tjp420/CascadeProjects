@@ -1,6 +1,7 @@
-"use strict";
+'use strict';
 
-module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" is declared above
+module.exports = [
+  // simplebeacon-ignore missing-strict-mode — "use strict" is declared above
   {
     files: ['src/**/*.js', 'bin/**/*.js', 'tests/**/*.js'],
     languageOptions: {
@@ -24,16 +25,16 @@ module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" i
         AbortController: 'readonly',
         URL: 'readonly',
         URLSearchParams: 'readonly',
-        crypto: 'readonly'
-      }
+        crypto: 'readonly',
+      },
     },
     rules: {
       'no-unused-vars': 'warn',
       'no-undef': 'error',
       'no-constant-condition': 'warn',
       'no-unreachable': 'error',
-      'no-empty': 'warn'
-    }
+      'no-empty': 'warn',
+    },
   },
   {
     files: ['src/**/*.test.js', 'src/**/__tests__/**/*.js', 'tests/**/*.js'],
@@ -56,13 +57,13 @@ module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" i
         afterEach: 'readonly',
         before: 'readonly',
         after: 'readonly',
-        test: 'readonly'
-      }
+        test: 'readonly',
+      },
     },
     rules: {
       'no-unused-vars': 'warn',
-      'no-undef': 'error'
-    }
+      'no-undef': 'error',
+    },
   },
   {
     files: ['src/**/*.browser.js'],
@@ -73,12 +74,12 @@ module.exports = [ // simplebeacon-ignore missing-strict-mode — "use strict" i
         console: 'readonly',
         window: 'readonly',
         document: 'readonly',
-        fetch: 'readonly'
-      }
+        fetch: 'readonly',
+      },
     },
     rules: {
       'no-unused-vars': 'warn',
-      'no-undef': 'error'
-    }
-  }
+      'no-undef': 'error',
+    },
+  },
 ];

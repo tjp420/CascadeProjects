@@ -3,7 +3,7 @@
 
 jest.mock('../../../server/lib/simplebeacon-proxy.cjs', () => ({
   generateLicenseToken: jest.fn(),
-  verifyLicenseToken: jest.fn()
+  verifyLicenseToken: jest.fn(),
 }));
 
 const { validateProjectToken } = require('../../../src/api/billing/validate-project-token.cjs');
@@ -13,7 +13,7 @@ function mockReqRes(headers = {}, body = {}, query = {}) {
   const req = { headers, body, query };
   const res = {
     status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis()
+    json: jest.fn().mockReturnThis(),
   };
   const next = jest.fn();
   return { req, res, next };
@@ -23,9 +23,12 @@ describe('validate-project-token', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Ensure license secret is set so middleware calls verifyLicenseToken
-    process.env.SIMPLEBEACON_LICENSE_SECRET = process.env.SIMPLEBEACON_LICENSE_SECRET || 'test-secret';
+    process.env.SIMPLEBEACON_LICENSE_SECRET =
+      process.env.SIMPLEBEACON_LICENSE_SECRET || 'test-secret';
   });
-  afterEach(() => { delete process.env.SIMPLEBEACON_LICENSE_SECRET; });
+  afterEach(() => {
+    delete process.env.SIMPLEBEACON_LICENSE_SECRET;
+  });
 
   test('exports validateProjectToken function', () => {
     expect(typeof validateProjectToken).toBe('function');
@@ -49,18 +52,28 @@ describe('validate-project-token', () => {
   });
 
   test('calls next and sets req.licensePayload on valid token', () => {
-    const payload = { email: 'test@example.com', tier: 'executive', features: ['audit'], projectName: 'proj', clientName: 'client', iat: 1, exp: 2 };
+    const payload = {
+      email: 'test@example.com',
+      tier: 'executive',
+      features: ['audit'],
+      projectName: 'proj',
+      clientName: 'client',
+      iat: 1,
+      exp: 2,
+    };
     verifyLicenseToken.mockReturnValue(payload);
     const { req, res, next } = mockReqRes({ authorization: 'Bearer good-token' });
     validateProjectToken(req, res, next);
     expect(next).toHaveBeenCalled();
     expect(req.licensePayload).toBe(payload);
-    expect(req.projectContext).toEqual(expect.objectContaining({
-      email: 'test@example.com',
-      tier: 'executive',
-      features: ['audit'],
-      projectName: 'proj'
-    }));
+    expect(req.projectContext).toEqual(
+      expect.objectContaining({
+        email: 'test@example.com',
+        tier: 'executive',
+        features: ['audit'],
+        projectName: 'proj',
+      })
+    );
   });
 
   test('accepts token from body.licenseToken', () => {

@@ -32,7 +32,7 @@ router.get('/', authenticate, async (req, res) => {
       eventType: req.query.eventType,
       userId: req.query.userId,
       startDate: req.query.startDate,
-      endDate: req.query.endDate
+      endDate: req.query.endDate,
     };
 
     const result = await queryAuditLogs(filters);
@@ -45,8 +45,8 @@ router.get('/', authenticate, async (req, res) => {
         limit: result.limit,
         offset: result.offset,
         hasNext: result.offset + result.limit < result.total,
-        hasPrev: result.offset > 0
-      }
+        hasPrev: result.offset > 0,
+      },
     });
   } catch (error) {
     logger.error('[Audit API] Failed to retrieve audit logs:', error.message);

@@ -2,12 +2,12 @@
 
 jest.mock('../lib/assessment-retention.cjs', () => ({
   startAssessmentRetentionJob: jest.fn(),
-  resolveAssessmentTtlMs: jest.fn().mockReturnValue(86400000)
+  resolveAssessmentTtlMs: jest.fn().mockReturnValue(86400000),
 }));
 jest.mock('../lib/path-safety.cjs', () => ({
   validateRepoUrl: jest.fn().mockReturnValue({ ok: true }),
   resolveDefaultAllowedRoots: jest.fn().mockReturnValue([]),
-  assertSafeProjectPath: jest.fn()
+  assertSafeProjectPath: jest.fn(),
 }));
 
 jest.mock('../lib/simplebeacon-proxy.cjs', () => ({
@@ -17,7 +17,7 @@ jest.mock('../lib/simplebeacon-proxy.cjs', () => ({
   loadSimplebeaconConfig: jest.fn().mockReturnValue({ gate: {} }),
   resolvePlatformRoot: jest.fn().mockReturnValue({ platformRoot: '/test' }),
   runScan: jest.fn().mockResolvedValue({ rawIssues: [] }),
-  sanitizeScanReport: jest.fn().mockImplementation((r) => r)
+  sanitizeScanReport: jest.fn().mockImplementation((r) => r),
 }));
 
 const AssessmentController = require('../api/assessment/AssessmentController.cjs');

@@ -9,28 +9,28 @@
 
 ## 1. Scan Metadata & Global Verdict
 
-| Metric | Value |
-|--------|-------|
-| **Total Raw Findings** | 11,309 |
-| **Filtered Findings (remediation scope)** | 243 |
-| **Critical** | 0 |
-| **High** | 0 |
-| **Medium** | 16 |
-| **Low** | 227 |
-| **Quality Score** | 100 |
-| **Gate Status** | FAILED |
-| **Global Verdict** | **PARTIAL** — remediation recommended before production release |
+| Metric                                    | Value                                                           |
+| ----------------------------------------- | --------------------------------------------------------------- |
+| **Total Raw Findings**                    | 11,309                                                          |
+| **Filtered Findings (remediation scope)** | 243                                                             |
+| **Critical**                              | 0                                                               |
+| **High**                                  | 0                                                               |
+| **Medium**                                | 16                                                              |
+| **Low**                                   | 227                                                             |
+| **Quality Score**                         | 100                                                             |
+| **Gate Status**                           | FAILED                                                          |
+| **Global Verdict**                        | **PARTIAL** — remediation recommended before production release |
 
 ---
 
 ## 2. Findings by Project
 
-| Project | Findings | Top Issue Types |
-|---------|----------|-----------------|
-| simplebeacon-vscode-merged | 92 | documentation (47), governance-marker (18), ai-indicators (11) |
-| ai-platform | 63 | test-coverage (50), workspace-health (12), governance-marker (1) |
-| packages/simplebeacon-cli | 61 | workspace-health (24), ai-indicators (21), governance-marker (12) |
-| root | 35 | Credential Pattern (15), Duplicate Data (11), ai-indicators (3) |
+| Project                    | Findings | Top Issue Types                                                   |
+| -------------------------- | -------- | ----------------------------------------------------------------- |
+| simplebeacon-vscode-merged | 92       | documentation (47), governance-marker (18), ai-indicators (11)    |
+| ai-platform                | 63       | test-coverage (50), workspace-health (12), governance-marker (1)  |
+| packages/simplebeacon-cli  | 61       | workspace-health (24), ai-indicators (21), governance-marker (12) |
+| root                       | 35       | Credential Pattern (15), Duplicate Data (11), ai-indicators (3)   |
 
 ---
 
@@ -39,28 +39,27 @@
 ### Phase 1 — High / Security (Immediate)
 
 | Issue Type | Count | Severity | Unique Files | Description | Recommended Action | Example Files |
-|------------|-------|----------|--------------|-------------|-------------------|---------------|
-
+| ---------- | ----- | -------- | ------------ | ----------- | ------------------ | ------------- |
 
 ### Phase 2 — Medium / Structural (Next Sprint)
 
-| Issue Type | Count | Severity | Unique Files | Description | Recommended Action | Example Files |
-|------------|-------|----------|--------------|-------------|-------------------|---------------|
-| **Credential Pattern** | 15 | 15 medium | 1 | c:\Users\Trevor\CascadeProjects\ai-agent-report-for-dashboard.json:737 possible generic api key | Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret | c:/Users/Trevor/CascadeProjects/ai-agent-report-for-dashboard.json |
-| **large-file** | 1 | 1 medium | 1 | Large file detected |  | c:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/simplebeacon-report.json |
+| Issue Type             | Count | Severity  | Unique Files | Description                                                                                     | Recommended Action                                                                                       | Example Files                                                                       |
+| ---------------------- | ----- | --------- | ------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Credential Pattern** | 15    | 15 medium | 1            | c:\Users\Trevor\CascadeProjects\ai-agent-report-for-dashboard.json:737 possible generic api key | Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret | c:/Users/Trevor/CascadeProjects/ai-agent-report-for-dashboard.json                  |
+| **large-file**         | 1     | 1 medium  | 1            | Large file detected                                                                             |                                                                                                          | c:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/simplebeacon-report.json |
 
 ### Phase 3 — Low / Quality (Backlog)
 
-| Issue Type | Count | Severity | Unique Files | Description | Recommended Action | Example Files |
-|------------|-------|----------|--------------|-------------|-------------------|---------------|
-| **test-coverage** | 50 | 50 low | 50 | ai-platform/server/routes/admin-api.cjs: Source file (150 lines) has no corresponding test file | Add a test file for this module | ai-platform/server/routes/admin-api.cjs<br>ai-platform/server/utils/data-processor.cjs<br>ai-platform/src/api/build-from-path-route.cjs<br>ai-platform/src/api/dashboard-stub-api.cjs<br>ai-platform/src/api/optimization-api.cjs<br>...and 45 more files |
-| **documentation** | 50 | 50 low | 50 | packages/simplebeacon-cli/src/index.d.ts:6 documentation pattern detected | Review and address the identified pattern | packages/simplebeacon-cli/src/index.d.ts<br>packages/simplebeacon-cli/src/lib/complete-scan-artifact-profile.browser.js<br>packages/simplebeacon-cli/src/rules/dependency-graph-scanner.js<br>simplebeacon-vscode-merged/src/accountTracker.ts<br>simplebeacon-vscode-merged/src/aiChatbotProvider.ts<br>...and 45 more files |
-| **workspace-health** | 38 | 38 low | 38 | ai-platform/server/routes/lib/flexible-analyze-roadmap.cjs:10 workspace-health pattern detected | Review and address the identified pattern | ai-platform/server/routes/lib/flexible-analyze-roadmap.cjs<br>ai-platform/server/lib/code-understanding/ml-pattern-detector.cjs<br>ai-platform/src/api/billing/report-bundle-builder.cjs<br>ai-platform/src/api/billing/validate-project-token.cjs<br>ai-platform/server/lib/mock-data-scanner.cjs<br>...and 33 more files |
-| **ai-indicators** | 35 | 35 low | 35 | scripts/bulk-fix-magic-numbers.js:24 ai-indicators pattern detected | Review and address the identified pattern | scripts/bulk-fix-magic-numbers.js<br>scripts/fix-browser-require.js<br>simplebeacon-frameworkless/app.js<br>packages/simplebeacon-cli/bin/simplebeacon-mcp.js<br>packages/simplebeacon-cli/bin/simplebeacon.js<br>...and 30 more files |
-| **governance-marker** | 32 | 32 low | 32 | ai-platform/web/data/roadmap-ai-agent-localstorage-inject.js:3 governance-marker pattern detected | Review and address the identified pattern | ai-platform/web/data/roadmap-ai-agent-localstorage-inject.js<br>packages/simplebeacon-cli/bin/simplebeacon.js<br>packages/simplebeacon-cli/src/scan.js<br>packages/simplebeacon-cli/examples/github-action/simplebeacon-enterprise-vault.yml<br>packages/simplebeacon-cli/src/lib/ai-problem-analyzer-suite.js<br>...and 27 more files |
-| **i18n** | 13 | 13 low | 13 | simplebeacon-frameworkless/app.js:34 i18n pattern detected | Review and address the identified pattern | simplebeacon-frameworkless/app.js<br>simplebeacon-vscode-merged/media/panel.js<br>simplebeacon-vscode-merged/media/sidebar-main.js<br>simplebeacon-vscode-merged/media/sidebar.js<br>simplebeacon-vscode-merged/simplebeacon-codemap.js<br>...and 8 more files |
-| **governance** | 6 | 6 low | 6 | packages/simplebeacon-cli/src/reporters/json.js:1 governance pattern detected | Review and address the identified pattern | packages/simplebeacon-cli/src/reporters/json.js<br>simplebeacon-vscode-merged/src/dashboardDataExtractor.ts<br>simplebeacon-vscode-merged/src/enhancedAIProvider.ts<br>simplebeacon-vscode-merged/src/enhancedScanProvider.ts<br>simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts<br>...and 1 more files |
-| **Duplicate Data** | 3 | 3 low | 11 | 3 files share identical JSON content | Remove duplicate entries to optimize data size | c:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/data/re-attestation-metadata.json<br>c:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/data/re-attestation-metadata.json<br>c:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/data/re-attestation-metadata.json<br>c:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/data/roadmap-ai-agent-2026-06-12.json<br>c:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/data/roadmap-ai-agent-2026-06-12.json<br>...and 6 more files |
+| Issue Type            | Count | Severity | Unique Files | Description                                                                                       | Recommended Action                             | Example Files                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --------------------- | ----- | -------- | ------------ | ------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **test-coverage**     | 50    | 50 low   | 50           | ai-platform/server/routes/admin-api.cjs: Source file (150 lines) has no corresponding test file   | Add a test file for this module                | ai-platform/server/routes/admin-api.cjs<br>ai-platform/server/utils/data-processor.cjs<br>ai-platform/src/api/build-from-path-route.cjs<br>ai-platform/src/api/dashboard-stub-api.cjs<br>ai-platform/src/api/optimization-api.cjs<br>...and 45 more files                                                                                                                                                                                                                                                                                                             |
+| **documentation**     | 50    | 50 low   | 50           | packages/simplebeacon-cli/src/index.d.ts:6 documentation pattern detected                         | Review and address the identified pattern      | packages/simplebeacon-cli/src/index.d.ts<br>packages/simplebeacon-cli/src/lib/complete-scan-artifact-profile.browser.js<br>packages/simplebeacon-cli/src/rules/dependency-graph-scanner.js<br>simplebeacon-vscode-merged/src/accountTracker.ts<br>simplebeacon-vscode-merged/src/aiChatbotProvider.ts<br>...and 45 more files                                                                                                                                                                                                                                         |
+| **workspace-health**  | 38    | 38 low   | 38           | ai-platform/server/routes/lib/flexible-analyze-roadmap.cjs:10 workspace-health pattern detected   | Review and address the identified pattern      | ai-platform/server/routes/lib/flexible-analyze-roadmap.cjs<br>ai-platform/server/lib/code-understanding/ml-pattern-detector.cjs<br>ai-platform/src/api/billing/report-bundle-builder.cjs<br>ai-platform/src/api/billing/validate-project-token.cjs<br>ai-platform/server/lib/mock-data-scanner.cjs<br>...and 33 more files                                                                                                                                                                                                                                            |
+| **ai-indicators**     | 35    | 35 low   | 35           | scripts/bulk-fix-magic-numbers.js:24 ai-indicators pattern detected                               | Review and address the identified pattern      | scripts/bulk-fix-magic-numbers.js<br>scripts/fix-browser-require.js<br>simplebeacon-frameworkless/app.js<br>packages/simplebeacon-cli/bin/simplebeacon-mcp.js<br>packages/simplebeacon-cli/bin/simplebeacon.js<br>...and 30 more files                                                                                                                                                                                                                                                                                                                                |
+| **governance-marker** | 32    | 32 low   | 32           | ai-platform/web/data/roadmap-ai-agent-localstorage-inject.js:3 governance-marker pattern detected | Review and address the identified pattern      | ai-platform/web/data/roadmap-ai-agent-localstorage-inject.js<br>packages/simplebeacon-cli/bin/simplebeacon.js<br>packages/simplebeacon-cli/src/scan.js<br>packages/simplebeacon-cli/examples/github-action/simplebeacon-enterprise-vault.yml<br>packages/simplebeacon-cli/src/lib/ai-problem-analyzer-suite.js<br>...and 27 more files                                                                                                                                                                                                                                |
+| **i18n**              | 13    | 13 low   | 13           | simplebeacon-frameworkless/app.js:34 i18n pattern detected                                        | Review and address the identified pattern      | simplebeacon-frameworkless/app.js<br>simplebeacon-vscode-merged/media/panel.js<br>simplebeacon-vscode-merged/media/sidebar-main.js<br>simplebeacon-vscode-merged/media/sidebar.js<br>simplebeacon-vscode-merged/simplebeacon-codemap.js<br>...and 8 more files                                                                                                                                                                                                                                                                                                        |
+| **governance**        | 6     | 6 low    | 6            | packages/simplebeacon-cli/src/reporters/json.js:1 governance pattern detected                     | Review and address the identified pattern      | packages/simplebeacon-cli/src/reporters/json.js<br>simplebeacon-vscode-merged/src/dashboardDataExtractor.ts<br>simplebeacon-vscode-merged/src/enhancedAIProvider.ts<br>simplebeacon-vscode-merged/src/enhancedScanProvider.ts<br>simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts<br>...and 1 more files                                                                                                                                                                                                                                                 |
+| **Duplicate Data**    | 3     | 3 low    | 11           | 3 files share identical JSON content                                                              | Remove duplicate entries to optimize data size | c:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/data/re-attestation-metadata.json<br>c:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/data/re-attestation-metadata.json<br>c:/Users/Trevor/CascadeProjects/simplebeacon-vscode-merged/dashboard-web/data/re-attestation-metadata.json<br>c:/Users/Trevor/CascadeProjects/coming-soon/public/dashboard/data/roadmap-ai-agent-2026-06-12.json<br>c:/Users/Trevor/CascadeProjects/ai-platform/web/simplebeacon-dashboard/data/roadmap-ai-agent-2026-06-12.json<br>...and 6 more files |
 
 ---
 

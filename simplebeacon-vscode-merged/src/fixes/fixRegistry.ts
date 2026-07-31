@@ -95,7 +95,8 @@ export const FIX_REGISTRY: Record<string, FixFunction> = {
   },
 
   insecureRandom: (snippet) => {
-    if (/Math\.random\s*\(\)/.test(snippet)) { // simplebeacon-ignore weak-crypto — scanner rule definition
+    if (/Math\.random\s*\(\)/.test(snippet)) {
+      // simplebeacon-ignore weak-crypto — scanner rule definition
       return {
         // simplebeacon-ignore weak-crypto — remediation advice text, not actual usage
         description: 'Replace Math.random() with crypto.randomBytes() or crypto.randomUUID()',

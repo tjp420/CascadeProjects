@@ -7,7 +7,7 @@ jest.mock('../server/config/constants.cjs', () => ({
   TIMEOUT_12S: 12000,
   TIMEOUT_1M: 60000,
   MAX_RATE_LIMIT: 1000,
-  safeJsonLimit: () => '1mb'
+  safeJsonLimit: () => '1mb',
 }));
 
 describe('Chatbot knowledge injection', () => {
@@ -31,7 +31,11 @@ describe('Chatbot knowledge injection', () => {
     jest.spyOn(audit, 'logUserAction').mockImplementation(() => {});
 
     cloudInf = require('../server/services/cloud-inference-service.cjs');
-    generateSpy = jest.fn(async (provider, messages) => ({ text: 'stubbed reply', provider: provider || 'stub', timing: null }));
+    generateSpy = jest.fn(async (provider, messages) => ({
+      text: 'stubbed reply',
+      provider: provider || 'stub',
+      timing: null,
+    }));
     cloudInf.generateWithProvider = generateSpy;
 
     chatbotApi = require('../server/routes/chatbot-api.cjs');
@@ -55,13 +59,11 @@ describe('Chatbot knowledge injection', () => {
   });
 
   test('chatbot API injects knowledge into system prompt for matching message', async () => {
-    const response = await request(serverApp)
-      .post('/api/chatbot/message')
-      .send({
-        message: 'How do I remove filters from MobileNetV2?',
-        provider: 'openai',
-        personality: 'helpful'
-      });
+    const response = await request(serverApp).post('/api/chatbot/message').send({
+      message: 'How do I remove filters from MobileNetV2?',
+      provider: 'openai',
+      personality: 'helpful',
+    });
 
     expect(response.status).toBe(200);
     expect(generateSpy).toHaveBeenCalled();

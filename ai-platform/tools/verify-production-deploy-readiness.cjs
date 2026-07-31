@@ -4,7 +4,7 @@
 
 /**
  * Production Deploy Readiness Verification
- * 
+ *
  * This script verifies that the Simplebeacon platform is ready for production deployment
  * by checking all critical components, configurations, and security measures.
  */
@@ -35,14 +35,14 @@ const CHECKS = {
       'REQUIRE_AUTH',
       'JWT_SECRET',
       'JWT_REFRESH_SECRET',
-      'SIMPLEBEACON_INTERNAL_DASHBOARD'
+      'SIMPLEBEACON_INTERNAL_DASHBOARD',
     ],
     production: [
       'NODE_ENV=production',
       'REQUIRE_AUTH=true',
       'SEED_DEMO_USERS=false',
-      'ALLOW_LEGACY_LOGIN=false'
-    ]
+      'ALLOW_LEGACY_LOGIN=false',
+    ],
   },
 
   // Security Configuration
@@ -53,8 +53,8 @@ const CHECKS = {
       'No placeholder values in production',
       'HTTPS configuration',
       'Security headers enabled',
-      'Rate limiting configured'
-    ]
+      'Rate limiting configured',
+    ],
   },
 
   // Database Configuration
@@ -65,14 +65,14 @@ const CHECKS = {
       'POSTGRES_PORT',
       'POSTGRES_DB',
       'POSTGRES_USER',
-      'POSTGRES_PASSWORD'
+      'POSTGRES_PASSWORD',
     ],
     checks: [
       'Database connectivity',
       'SSL/TLS configuration',
       'Connection pooling',
-      'Migration scripts'
-    ]
+      'Migration scripts',
+    ],
   },
 
   // Infrastructure
@@ -83,8 +83,8 @@ const CHECKS = {
       'Health checks',
       'Monitoring setup',
       'Logging configuration',
-      'Backup procedures'
-    ]
+      'Backup procedures',
+    ],
   },
 
   // Testing and Quality
@@ -95,25 +95,16 @@ const CHECKS = {
       'Integration tests passing',
       'Coverage thresholds met',
       'Security audit passed',
-      'Performance tests passed'
-    ]
+      'Performance tests passed',
+    ],
   },
 
   // Documentation
   DOCUMENTATION: {
     name: 'Documentation',
-    required: [
-      'docs/v1-internal-runbook.md',
-      'README.md',
-      'CHANGELOG.md'
-    ],
-    checks: [
-      'API documentation',
-      'Deployment guide',
-      'Troubleshooting guide',
-      'Security policies'
-    ]
-  }
+    required: ['docs/v1-internal-runbook.md', 'README.md', 'CHANGELOG.md'],
+    checks: ['API documentation', 'Deployment guide', 'Troubleshooting guide', 'Security policies'],
+  },
 };
 
 class ProductionDeployVerifier {
@@ -121,14 +112,15 @@ class ProductionDeployVerifier {
     this.results = {
       passed: [],
       failed: [],
-      warnings: []
+      warnings: [],
     };
     this.isProduction = process.env.NODE_ENV === 'production';
   }
 
   log(message, type = 'info') {
-    const prefix = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
-    process.stdout.write([`${prefix} ${message}`].join(" ") + "\n");
+    const prefix =
+      type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+    process.stdout.write([`${prefix} ${message}`].join(' ') + '\n');
   }
 
   checkEnvironmentVariables() {
@@ -137,7 +129,7 @@ class ProductionDeployVerifier {
     // Check required environment variables
     for (const varName of CHECKS.ENVIRONMENT_VARS.required) {
       const value = process.env[varName];
-      
+
       if (!value) {
         this.log(`Missing required environment variable: ${varName}`, 'error');
         this.results.failed.push(`Missing ${varName}`);
@@ -167,9 +159,12 @@ class ProductionDeployVerifier {
       for (const requirement of CHECKS.ENVIRONMENT_VARS.production) {
         const [key, expectedValue] = requirement.split('=');
         const actualValue = process.env[key];
-        
+
         if (actualValue !== expectedValue) {
-          this.log(`Production requirement not met: ${key}=${actualValue} (expected ${expectedValue})`, 'error');
+          this.log(
+            `Production requirement not met: ${key}=${actualValue} (expected ${expectedValue})`,
+            'error'
+          );
           this.results.failed.push(`Production setting: ${key}`);
         } else {
           this.log(`Production requirement met: ${requirement}`, 'success');
@@ -181,11 +176,18 @@ class ProductionDeployVerifier {
 
   isPlaceholderValue(value) {
     const placeholders = [
-      'your-', 'change-in-production', 'replace-with', 'dev-', 'test-',
-      'example-', 'placeholder', 'secret-key', 'password'
+      'your-',
+      'change-in-production',
+      'replace-with',
+      'dev-',
+      'test-',
+      'example-',
+      'placeholder',
+      'secret-key',
+      'password',
     ];
-    
-    return placeholders.some(placeholder => 
+
+    return placeholders.some((placeholder) =>
       value.toLowerCase().includes(placeholder.toLowerCase())
     );
   }
@@ -196,7 +198,7 @@ class ProductionDeployVerifier {
     // Check JWT configuration
     const jwtSecret = process.env.JWT_SECRET;
     const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
-    
+
     if (jwtSecret && jwtSecret.length >= 32) {
       this.log('JWT length OK', 'success');
       this.results.passed.push('JWT secret length');
@@ -207,10 +209,11 @@ class ProductionDeployVerifier {
 
     // Check for HTTPS in production
     if (this.isProduction) {
-      const httpsEnabled = process.env.HTTPS_ENABLED === 'true' || 
-                         process.env.FORCE_HTTPS === 'true' ||
-                         process.env.NODE_ENV === 'production';
-      
+      const httpsEnabled =
+        process.env.HTTPS_ENABLED === 'true' ||
+        process.env.FORCE_HTTPS === 'true' ||
+        process.env.NODE_ENV === 'production';
+
       if (httpsEnabled) {
         this.log('HTTPS configuration detected', 'success');
         this.results.passed.push('HTTPS enabled');
@@ -281,7 +284,7 @@ class ProductionDeployVerifier {
     const dockerComposeFiles = [
       'docker-compose.yml',
       'docker-compose.phase2.yml',
-      'docker-compose.production.yml'
+      'docker-compose.production.yml',
     ];
 
     let dockerConfigured = false;
@@ -299,10 +302,7 @@ class ProductionDeployVerifier {
     }
 
     // Check health check endpoints
-    const healthCheckFiles = [
-      'server/index.cjs',
-      'tools/run-route-smoke-suite.js'
-    ];
+    const healthCheckFiles = ['server/index.cjs', 'tools/run-route-smoke-suite.js'];
 
     for (const file of healthCheckFiles) {
       if (fs.existsSync(resolveProjectPath(file))) {
@@ -312,9 +312,9 @@ class ProductionDeployVerifier {
     }
 
     // Check monitoring configuration
-    const monitoringEnabled = process.env.MONITORING_ENABLED === 'true' ||
-                           process.env.METRICS_ENABLED === 'true';
-    
+    const monitoringEnabled =
+      process.env.MONITORING_ENABLED === 'true' || process.env.METRICS_ENABLED === 'true';
+
     if (monitoringEnabled) {
       this.log('Monitoring configuration detected', 'success');
       this.results.passed.push('Monitoring enabled');
@@ -329,12 +329,12 @@ class ProductionDeployVerifier {
 
     try {
       // Run tests with a short timeout to verify the suite is executable
-      const testResult = execSync('npm test 2>&1', { 
+      const testResult = execSync('npm test 2>&1', {
         encoding: 'utf8',
         timeout: constants.TIMEOUT_30S,
-        cwd: projectRoot
+        cwd: projectRoot,
       });
-      
+
       if (testResult.includes('Test Suites:')) {
         this.log('Tests passing', 'success');
         this.results.passed.push('Tests passing');
@@ -344,7 +344,10 @@ class ProductionDeployVerifier {
       // Verify infrastructure exists rather than requiring 100% pass rate here.
       const output = String(error.stdout || error.message || '');
       if (output.includes('Test Suites:') || output.includes('Tests:')) {
-        this.log('Tests executable (some failures — run npm test separately for details)', 'warning'); // simplebeacon-ignore pii-logging — deployment readiness status message, no user data
+        this.log(
+          'Tests executable (some failures — run npm test separately for details)',
+          'warning'
+        ); // simplebeacon-ignore pii-logging — deployment readiness status message, no user data
         this.results.warnings.push('Some tests failing — review before production deploy');
         this.results.passed.push('Test suite executable');
       } else {
@@ -354,13 +357,18 @@ class ProductionDeployVerifier {
     }
 
     // Check test configuration
-    if (fs.existsSync(resolveProjectPath('jest.config.js'))) { // simplebeacon-ignore sync-io-async-path — sync method, not in async path
+    if (fs.existsSync(resolveProjectPath('jest.config.js'))) {
+      // simplebeacon-ignore sync-io-async-path — sync method, not in async path
       this.log('Test configuration found', 'success');
       this.results.passed.push('Test config');
     }
 
     // Check coverage configuration
-    if (fs.existsSync(resolveProjectPath('coverage/')) || fs.existsSync(resolveProjectPath('jest.config.js'))) { // simplebeacon-ignore sync-io-async-path — sync method, not in async path
+    if (
+      fs.existsSync(resolveProjectPath('coverage/')) ||
+      fs.existsSync(resolveProjectPath('jest.config.js'))
+    ) {
+      // simplebeacon-ignore sync-io-async-path — sync method, not in async path
       this.log('Coverage configuration available', 'success');
       this.results.passed.push('Coverage config');
     }
@@ -380,11 +388,7 @@ class ProductionDeployVerifier {
     }
 
     // Check API documentation
-    const apiDocs = [
-      'docs/api/',
-      'docs/api.md',
-      'API.md'
-    ];
+    const apiDocs = ['docs/api/', 'docs/api.md', 'API.md'];
 
     let apiDocsFound = false;
     for (const doc of apiDocs) {
@@ -403,10 +407,10 @@ class ProductionDeployVerifier {
 
   runAllChecks() {
     process.stdout.write(
-      ['🔍 Starting Production Deploy Readiness Verification\n'].join(" ") + "\n"
+      ['🔍 Starting Production Deploy Readiness Verification\n'].join(' ') + '\n'
     );
     process.stdout.write(
-      [`Environment: ${this.isProduction ? '🚨 PRODUCTION' : '🧪 DEVELOPMENT'}\n`].join(" ") + "\n"
+      [`Environment: ${this.isProduction ? '🚨 PRODUCTION' : '🧪 DEVELOPMENT'}\n`].join(' ') + '\n'
     );
 
     this.checkEnvironmentVariables();
@@ -420,46 +424,49 @@ class ProductionDeployVerifier {
   }
 
   generateReport() {
-    process.stdout.write(['\n📊 Production Deploy Readiness Report'].join(" ") + "\n");
-    process.stdout.write(['=====================================\n'].join(" ") + "\n");
+    process.stdout.write(['\n📊 Production Deploy Readiness Report'].join(' ') + '\n');
+    process.stdout.write(['=====================================\n'].join(' ') + '\n');
 
-    const totalChecks = this.results.passed.length + this.results.failed.length + this.results.warnings.length;
-    const passRate = totalChecks > 0 ? (this.results.passed.length / totalChecks * 100).toFixed(1) : 0;
+    const totalChecks =
+      this.results.passed.length + this.results.failed.length + this.results.warnings.length;
+    const passRate =
+      totalChecks > 0 ? ((this.results.passed.length / totalChecks) * 100).toFixed(1) : 0;
 
-    process.stdout.write([`✅ Passed: ${this.results.passed.length}`].join(" ") + "\n");
-    process.stdout.write([`❌ Failed: ${this.results.failed.length}`].join(" ") + "\n");
-    process.stdout.write([`⚠️  Warnings: ${this.results.warnings.length}`].join(" ") + "\n");
-    process.stdout.write([`📈 Pass Rate: ${passRate}%\n`].join(" ") + "\n");
+    process.stdout.write([`✅ Passed: ${this.results.passed.length}`].join(' ') + '\n');
+    process.stdout.write([`❌ Failed: ${this.results.failed.length}`].join(' ') + '\n');
+    process.stdout.write([`⚠️  Warnings: ${this.results.warnings.length}`].join(' ') + '\n');
+    process.stdout.write([`📈 Pass Rate: ${passRate}%\n`].join(' ') + '\n');
 
     if (this.results.failed.length > 0) {
-      process.stdout.write(['🚨 CRITICAL ISSUES (Must Fix Before Deploy):'].join(" ") + "\n");
-      this.results.failed.forEach(issue => void 0);
-      process.stdout.write([''].join(" ") + "\n");
+      process.stdout.write(['🚨 CRITICAL ISSUES (Must Fix Before Deploy):'].join(' ') + '\n');
+      this.results.failed.forEach((issue) => void 0);
+      process.stdout.write([''].join(' ') + '\n');
     }
 
     if (this.results.warnings.length > 0) {
-      process.stdout.write(['⚠️  WARNINGS (Recommended for Production):'].join(" ") + "\n");
-      this.results.warnings.forEach(warning => void 0);
-      process.stdout.write([''].join(" ") + "\n");
+      process.stdout.write(['⚠️  WARNINGS (Recommended for Production):'].join(' ') + '\n');
+      this.results.warnings.forEach((warning) => void 0);
+      process.stdout.write([''].join(' ') + '\n');
     }
 
     if (this.results.passed.length > 0) {
-      process.stdout.write(['✅ SUCCESSFULLY CONFIGURED:'].join(" ") + "\n");
-      this.results.passed.forEach(pass => void 0);
-      process.stdout.write([''].join(" ") + "\n");
+      process.stdout.write(['✅ SUCCESSFULLY CONFIGURED:'].join(' ') + '\n');
+      this.results.passed.forEach((pass) => void 0);
+      process.stdout.write([''].join(' ') + '\n');
     }
 
     // Overall assessment
     if (this.results.failed.length === 0) {
-      process.stdout.write(['🎉 RESULT: READY FOR PRODUCTION DEPLOY'].join(" ") + "\n");
-      process.stdout.write([
-        '   All critical checks passed. Review warnings and proceed with deployment.'
-      ].join(" ") + "\n");
+      process.stdout.write(['🎉 RESULT: READY FOR PRODUCTION DEPLOY'].join(' ') + '\n');
+      process.stdout.write(
+        ['   All critical checks passed. Review warnings and proceed with deployment.'].join(' ') +
+          '\n'
+      );
       process.exit(0);
     } else {
-      process.stdout.write(['🚫 RESULT: NOT READY FOR PRODUCTION DEPLOY'].join(" ") + "\n");
+      process.stdout.write(['🚫 RESULT: NOT READY FOR PRODUCTION DEPLOY'].join(' ') + '\n');
       process.stdout.write(
-        ['   Please address all critical issues before deploying to production.'].join(" ") + "\n"
+        ['   Please address all critical issues before deploying to production.'].join(' ') + '\n'
       );
       process.exit(1);
     }

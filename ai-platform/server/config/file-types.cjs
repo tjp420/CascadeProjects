@@ -8,68 +8,242 @@ const path = require('path');
 /** Recognized file extensions grouped by category. */
 const EXTENSIONS = Object.freeze({
   CODE: Object.freeze([
-    '.js', '.ts', '.jsx', '.tsx', '.py', '.cjs', '.mjs',
-    '.vue', '.svelte', '.css', '.scss', '.sass', '.less',
-    '.java', '.go', '.rs', '.rb', '.php', '.sql',
-    '.sh', '.bash', '.zsh', '.fish', '.ps1', '.bat', '.cmd',
-    '.cpp', '.c', '.h', '.hpp', '.cs', '.swift', '.kt', '.dart',
-    '.coffee', '.wat', '.wasm', '.jl', '.cr', '.f', '.f90', '.f95',
-    '.r', '.pl', '.lua', '.elm', '.clj', '.scala', '.groovy',
-    '.gradle', '.d', '.erl', '.ex', '.fs', '.hs', '.ml',
-    '.nim', '.pas', '.pp', '.tcl', '.v', '.zig',
-    '.zs', '.acs', '.dec', '.decorate', '.glsl', '.vert', '.frag', '.geo', '.wgsl'
+    '.js',
+    '.ts',
+    '.jsx',
+    '.tsx',
+    '.py',
+    '.cjs',
+    '.mjs',
+    '.vue',
+    '.svelte',
+    '.css',
+    '.scss',
+    '.sass',
+    '.less',
+    '.java',
+    '.go',
+    '.rs',
+    '.rb',
+    '.php',
+    '.sql',
+    '.sh',
+    '.bash',
+    '.zsh',
+    '.fish',
+    '.ps1',
+    '.bat',
+    '.cmd',
+    '.cpp',
+    '.c',
+    '.h',
+    '.hpp',
+    '.cs',
+    '.swift',
+    '.kt',
+    '.dart',
+    '.coffee',
+    '.wat',
+    '.wasm',
+    '.jl',
+    '.cr',
+    '.f',
+    '.f90',
+    '.f95',
+    '.r',
+    '.pl',
+    '.lua',
+    '.elm',
+    '.clj',
+    '.scala',
+    '.groovy',
+    '.gradle',
+    '.d',
+    '.erl',
+    '.ex',
+    '.fs',
+    '.hs',
+    '.ml',
+    '.nim',
+    '.pas',
+    '.pp',
+    '.tcl',
+    '.v',
+    '.zig',
+    '.zs',
+    '.acs',
+    '.dec',
+    '.decorate',
+    '.glsl',
+    '.vert',
+    '.frag',
+    '.geo',
+    '.wgsl',
   ]),
   CONFIG: Object.freeze([
-    '.json', '.yaml', '.yml', '.ini', '.toml', '.env',
-    '.lock', '.conf', '.cfg', '.properties', '.nix', '.tf',
-    '.hcl', '.editorconfig', '.gitignore', '.dockerignore'
+    '.json',
+    '.yaml',
+    '.yml',
+    '.ini',
+    '.toml',
+    '.env',
+    '.lock',
+    '.conf',
+    '.cfg',
+    '.properties',
+    '.nix',
+    '.tf',
+    '.hcl',
+    '.editorconfig',
+    '.gitignore',
+    '.dockerignore',
   ]),
   MARKUP: Object.freeze([
-    '.html', '.htm', '.xml', '.svg', '.xsl', '.xhtml', '.dtd',
-    '.erb', '.ejs', '.pug', '.jade', '.hbs', '.handlebars',
-    '.liquid', '.njk', '.mustache', '.slim'
+    '.html',
+    '.htm',
+    '.xml',
+    '.svg',
+    '.xsl',
+    '.xhtml',
+    '.dtd',
+    '.erb',
+    '.ejs',
+    '.pug',
+    '.jade',
+    '.hbs',
+    '.handlebars',
+    '.liquid',
+    '.njk',
+    '.mustache',
+    '.slim',
   ]),
   DOCUMENT: Object.freeze([
-    '.md', '.txt', '.rst', '.adoc', '.org', '.wiki',
-    '.tex', '.ltx', '.ipynb', '.qmd', '.rmd'
+    '.md',
+    '.txt',
+    '.rst',
+    '.adoc',
+    '.org',
+    '.wiki',
+    '.tex',
+    '.ltx',
+    '.ipynb',
+    '.qmd',
+    '.rmd',
   ]),
   DATA: Object.freeze([
-    '.csv', '.tsv', '.json', '.xml', '.yaml', '.yml',
-    '.parquet', '.avro', '.proto', '.sql', '.sqlite',
-    '.db', '.dbf', '.accdb', '.mdb'
+    '.csv',
+    '.tsv',
+    '.json',
+    '.xml',
+    '.yaml',
+    '.yml',
+    '.parquet',
+    '.avro',
+    '.proto',
+    '.sql',
+    '.sqlite',
+    '.db',
+    '.dbf',
+    '.accdb',
+    '.mdb',
   ]),
-  STYLESHEET: Object.freeze([
-    '.css', '.scss', '.sass', '.less', '.styl', '.pcss', '.postcss'
-  ]),
+  STYLESHEET: Object.freeze(['.css', '.scss', '.sass', '.less', '.styl', '.pcss', '.postcss']),
   IMAGE: Object.freeze([
-    '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico',
-    '.tiff', '.tif', '.heic', '.heif', '.avif', '.jxl', '.raw', '.cr2',
-    '.nef', '.orf', '.sr2', '.dng', '.eps', '.psd', '.xcf', '.ai'
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.bmp',
+    '.webp',
+    '.svg',
+    '.ico',
+    '.tiff',
+    '.tif',
+    '.heic',
+    '.heif',
+    '.avif',
+    '.jxl',
+    '.raw',
+    '.cr2',
+    '.nef',
+    '.orf',
+    '.sr2',
+    '.dng',
+    '.eps',
+    '.psd',
+    '.xcf',
+    '.ai',
   ]),
   MEDIA: Object.freeze([
-    '.mp3', '.mp4', '.wav', '.ogg', '.oga', '.ogv', '.webm', '.avi',
-    '.mov', '.mkv', '.flac', '.aac', '.m4a', '.wma', '.mid', '.midi',
-    '.opus', '.m4v', '.wmv', '.flv', '.swf', '.3gp', '.aiff'
+    '.mp3',
+    '.mp4',
+    '.wav',
+    '.ogg',
+    '.oga',
+    '.ogv',
+    '.webm',
+    '.avi',
+    '.mov',
+    '.mkv',
+    '.flac',
+    '.aac',
+    '.m4a',
+    '.wma',
+    '.mid',
+    '.midi',
+    '.opus',
+    '.m4v',
+    '.wmv',
+    '.flv',
+    '.swf',
+    '.3gp',
+    '.aiff',
   ]),
   BINARY: Object.freeze([
-    '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.db', '.dbf',
-    '.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar', '.cab',
-    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-    '.odt', '.ods', '.odp', '.epub', '.mobi', '.azw', '.azw3',
-    '.ttf', '.otf', '.woff', '.woff2', '.eot'
-  ])
+    '.exe',
+    '.dll',
+    '.so',
+    '.dylib',
+    '.bin',
+    '.dat',
+    '.db',
+    '.dbf',
+    '.zip',
+    '.tar',
+    '.gz',
+    '.bz2',
+    '.xz',
+    '.7z',
+    '.rar',
+    '.cab',
+    '.pdf',
+    '.doc',
+    '.docx',
+    '.xls',
+    '.xlsx',
+    '.ppt',
+    '.pptx',
+    '.odt',
+    '.ods',
+    '.odp',
+    '.epub',
+    '.mobi',
+    '.azw',
+    '.azw3',
+    '.ttf',
+    '.otf',
+    '.woff',
+    '.woff2',
+    '.eot',
+  ]),
 });
 
 /** Flat array of all unique recognized extensions (frozen, sorted). */
-const ALL_EXTENSIONS = Object.freeze(
-  [...new Set(Object.values(EXTENSIONS).flat())].sort()
-);
+const ALL_EXTENSIONS = Object.freeze([...new Set(Object.values(EXTENSIONS).flat())].sort());
 
 /** O(1) lookup Sets for each category. */
 const EXTENSION_SETS = Object.freeze(
-  Object.fromEntries(
-    Object.entries(EXTENSIONS).map(([k, v]) => [k, Object.freeze(new Set(v))])
-  )
+  Object.fromEntries(Object.entries(EXTENSIONS).map(([k, v]) => [k, Object.freeze(new Set(v))]))
 );
 
 /** Frozen Set of every recognized extension across all categories. */
@@ -113,7 +287,7 @@ function _getLowerExt(filePath) {
     return cached;
   }
   const idx = base.lastIndexOf('.');
-  const result = (idx < 0 || idx === base.length - 1) ? '' : base.slice(idx).toLowerCase();
+  const result = idx < 0 || idx === base.length - 1 ? '' : base.slice(idx).toLowerCase();
   if (_extCache.size >= MAX_EXT_CACHE) {
     const oldest = _extCache.keys().next().value;
     if (oldest) _extCache.delete(oldest);
@@ -142,7 +316,8 @@ function clearExtCache() {
 function hasExtension(filePath, category = undefined) {
   const ext = _getLowerExt(filePath);
   if (!ext) return false;
-  const set = (typeof category === 'string' && category !== '') ? EXTENSION_SETS[category] : ALL_EXTENSION_SET;
+  const set =
+    typeof category === 'string' && category !== '' ? EXTENSION_SETS[category] : ALL_EXTENSION_SET;
   if (!set) return false;
   return set.has(ext);
 }
@@ -270,7 +445,9 @@ function isBinaryFile(filePath) {
 const EXECUTABLE_EXTENSIONS = Object.freeze(new Set(['.exe', '.dll', '.so', '.dylib', '.bin']));
 
 /** Frozen Set of archive/compressed extensions. */
-const ARCHIVE_EXTENSIONS = Object.freeze(new Set(['.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar', '.cab']));
+const ARCHIVE_EXTENSIONS = Object.freeze(
+  new Set(['.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar', '.cab'])
+);
 
 /** Convenience check for executable/library files. */
 function isExecutableFile(filePath) {
@@ -285,23 +462,53 @@ function isArchiveFile(filePath) {
 }
 
 /** Frozen Set of lockfile names (basename match). */
-const LOCK_FILE_NAMES = Object.freeze(new Set([
-  'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'composer.lock',
-  'cargo.lock', 'gemfile.lock', 'pipfile.lock', 'poetry.lock', 'mix.lock'
-]));
+const LOCK_FILE_NAMES = Object.freeze(
+  new Set([
+    'package-lock.json',
+    'yarn.lock',
+    'pnpm-lock.yaml',
+    'composer.lock',
+    'cargo.lock',
+    'gemfile.lock',
+    'pipfile.lock',
+    'poetry.lock',
+    'mix.lock',
+  ])
+);
 
 /** Frozen Set of package manifest names (basename match). */
-const PACKAGE_FILE_NAMES = Object.freeze(new Set([
-  'package.json', 'cargo.toml', 'composer.json', 'gemfile', 'pipfile',
-  'requirements.txt', 'go.mod', 'build.gradle', 'pom.xml', 'cmakelists.txt',
-  'setup.py', 'pyproject.toml', 'Cargo.toml'
-]));
+const PACKAGE_FILE_NAMES = Object.freeze(
+  new Set([
+    'package.json',
+    'cargo.toml',
+    'composer.json',
+    'gemfile',
+    'pipfile',
+    'requirements.txt',
+    'go.mod',
+    'build.gradle',
+    'pom.xml',
+    'cmakelists.txt',
+    'setup.py',
+    'pyproject.toml',
+    'Cargo.toml',
+  ])
+);
 
 /** Frozen Set of README-like names (without extension). */
-const README_NAMES = Object.freeze(new Set([
-  'readme', 'changelog', 'license', 'licence', 'contributing',
-  'code_of_conduct', 'security', 'authors', 'maintainers'
-]));
+const README_NAMES = Object.freeze(
+  new Set([
+    'readme',
+    'changelog',
+    'license',
+    'licence',
+    'contributing',
+    'code_of_conduct',
+    'security',
+    'authors',
+    'maintainers',
+  ])
+);
 
 /** Convenience check for lock files. */
 function isLockFile(filePath) {
@@ -336,8 +543,10 @@ function isMinifiedFile(filePath) {
 function isGeneratedFile(filePath) {
   if (!filePath || typeof filePath !== 'string') return false;
   const p = filePath.toLowerCase();
-  return /\.(d\.ts|\.g\.dart|\.pb\.go|\.gen\.go|\.generated\.cs)$/i.test(p) ||
-    /\.(designer\.cs|\.generated\.|\.auto\.|\.autogen\.)/i.test(p);
+  return (
+    /\.(d\.ts|\.g\.dart|\.pb\.go|\.gen\.go|\.generated\.cs)$/i.test(p) ||
+    /\.(designer\.cs|\.generated\.|\.auto\.|\.autogen\.)/i.test(p)
+  );
 }
 
 /** Convenience check for source-map files. */
@@ -350,7 +559,9 @@ function isSourceMapFile(filePath) {
 function isIgnoreFile(filePath) {
   if (!filePath || typeof filePath !== 'string') return false;
   const base = path.basename(filePath).toLowerCase();
-  return ['.gitignore', '.dockerignore', '.eslintignore', '.prettierignore', '.npmignore'].includes(base);
+  return ['.gitignore', '.dockerignore', '.eslintignore', '.prettierignore', '.npmignore'].includes(
+    base
+  );
 }
 
 /** Convenience check for CI/CD configuration files. */
@@ -358,22 +569,39 @@ function isCiConfigFile(filePath) {
   if (!filePath || typeof filePath !== 'string') return false;
   const base = path.basename(filePath).toLowerCase();
   const p = filePath.toLowerCase().replace(/\\/g, '/');
-  return base === '.github' || base === '.circleci' ||
-    ['.gitlab-ci.yml', '.travis.yml', 'appveyor.yml', 'azure-pipelines.yml', 'jenkinsfile', 'bitrise.yml', 'buildkite.yml'].includes(base) ||
-    p.includes('/.github/') || p.includes('/.circleci/');
+  return (
+    base === '.github' ||
+    base === '.circleci' ||
+    [
+      '.gitlab-ci.yml',
+      '.travis.yml',
+      'appveyor.yml',
+      'azure-pipelines.yml',
+      'jenkinsfile',
+      'bitrise.yml',
+      'buildkite.yml',
+    ].includes(base) ||
+    p.includes('/.github/') ||
+    p.includes('/.circleci/')
+  );
 }
 
 /** Convenience check for Docker Compose files. */
 function isDockerComposeFile(filePath) {
   if (!filePath || typeof filePath !== 'string') return false;
   const base = path.basename(filePath).toLowerCase();
-  return ['docker-compose.yml', 'docker-compose.yaml', 'compose.yml', 'compose.yaml'].includes(base);
+  return ['docker-compose.yml', 'docker-compose.yaml', 'compose.yml', 'compose.yaml'].includes(
+    base
+  );
 }
 
 /** Convenience check for dedicated license files. */
 function isLicenseFile(filePath) {
   if (!filePath || typeof filePath !== 'string') return false;
-  const name = path.basename(filePath).toLowerCase().replace(/\.[^.]+$/, '');
+  const name = path
+    .basename(filePath)
+    .toLowerCase()
+    .replace(/\.[^.]+$/, '');
   return ['license', 'licence', 'copying', 'copyright'].includes(name);
 }
 
@@ -407,9 +635,10 @@ function getExtCacheStats() {
     max: MAX_EXT_CACHE,
     hits: _extCacheHits,
     misses: _extCacheMisses,
-    hitRate: (_extCacheHits + _extCacheMisses) > 0
-      ? _extCacheHits / (_extCacheHits + _extCacheMisses)
-      : undefined
+    hitRate:
+      _extCacheHits + _extCacheMisses > 0
+        ? _extCacheHits / (_extCacheHits + _extCacheMisses)
+        : undefined,
   });
 }
 
@@ -457,5 +686,5 @@ module.exports = Object.freeze({
   ARCHIVE_EXTENSIONS,
   LOCK_FILE_NAMES,
   PACKAGE_FILE_NAMES,
-  README_NAMES
+  README_NAMES,
 });

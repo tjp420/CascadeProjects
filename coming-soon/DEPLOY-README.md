@@ -18,34 +18,34 @@ The dashboard and API backend still live in `simplebeacon-vscode-merged/src/data
 
 1. Push the `simplebeacon-vscode-merged` project to Render (Web Service, Node.js).
 2. Set environment variables:
-   - `NODE_ENV=production`
-   - `PORT=10000` (Render sets this automatically)
-   - `PUBLIC_URL=https://simplebeacon.onrender.com` (or your custom domain)
-   - `ALLOWED_ORIGIN=https://simplebeacon.ai`
-   - `SIMPLEBEACON_LICENSE_SECRET=<your-license-secret>`
-   - `RESEND_API_KEY=<resend-key>`
-   - `RESEND_FROM=certificates@simplebeacon.ai`
+    - `NODE_ENV=production`
+    - `PORT=10000` (Render sets this automatically)
+    - `PUBLIC_URL=https://simplebeacon.onrender.com` (or your custom domain)
+    - `ALLOWED_ORIGIN=https://simplebeacon.ai`
+    - `SIMPLEBEACON_LICENSE_SECRET=<your-license-secret>`
+    - `RESEND_API_KEY=<resend-key>`
+    - `RESEND_FROM=certificates@simplebeacon.ai`
 3. Render will serve the dashboard at `/dashboard/` and the API at `/api/`.
 
 ## Frontend (Cloudflare Pages)
 
 1. Install Wrangler if you haven't:
-   ```powershell
-   npm install -g wrangler
-   wrangler login
-   ```
+    ```powershell
+    npm install -g wrangler
+    wrangler login
+    ```
 2. Run the deploy script:
-   ```powershell
-   cd coming-soon
-   .\deploy-cloudflare.ps1
-   ```
+    ```powershell
+    cd coming-soon
+    .\deploy-cloudflare.ps1
+    ```
 3. In the Cloudflare Pages dashboard:
-   - Create a project named `simplebeacon`.
-   - Connect the GitHub repo or use direct upload.
-   - Build command: `echo "static"` (or leave empty)
-   - Build output directory: `public`
-   - Add custom domain `simplebeacon.ai`.
-   - Force HTTPS.
+    - Create a project named `simplebeacon`.
+    - Connect the GitHub repo or use direct upload.
+    - Build command: `echo "static"` (or leave empty)
+    - Build output directory: `public`
+    - Add custom domain `simplebeacon.ai`.
+    - Force HTTPS.
 
 ## Final URLs
 

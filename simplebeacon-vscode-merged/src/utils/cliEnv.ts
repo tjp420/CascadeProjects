@@ -6,9 +6,7 @@
 export function resolveCliSpawnEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...process.env, FORCE_COLOR: '0' };
 
-  const hasTrustFingerprint = Boolean(
-    env.SIMPLEBEACON_POLICY_TRUST_FINGERPRINT?.trim()
-  );
+  const hasTrustFingerprint = Boolean(env.SIMPLEBEACON_POLICY_TRUST_FINGERPRINT?.trim());
   const hasPublicKey = Boolean(env.SIMPLEBEACON_POLICY_PUBLIC_KEY?.trim());
   const hasPublicKeyPath = Boolean(env.SIMPLEBEACON_POLICY_PUBLIC_KEY_PATH?.trim());
   const policyConfigured = hasTrustFingerprint && (hasPublicKey || hasPublicKeyPath);

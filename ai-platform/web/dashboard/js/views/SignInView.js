@@ -33,7 +33,7 @@ function decodeJwtPayload(token) {
   const payloadBase64url = parts.length === 2 ? parts[0] : parts[1];
   try {
     const base64 = payloadBase64url.replace(/-/g, '+').replace(/_/g, '/');
-    const padding = '='.repeat((4 - base64.length % 4) % 4);
+    const padding = '='.repeat((4 - (base64.length % 4)) % 4);
     return JSON.parse(atob(base64 + padding));
   } catch {
     return null;
@@ -76,10 +76,11 @@ export class SignInView {
   }
 
   async mount(container) {
-container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
+    container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p class="text-muted">Loading…</p></div></div>`;
 
     const authed = authService.isAuthenticated();
-    const email = authService.getUser()?.email || decodeEmailFromToken(authService.getToken()) || '';
+    const email =
+      authService.getUser()?.email || decodeEmailFromToken(authService.getToken()) || '';
     let entitlement = { allowed: false, plan: {}, status: {} };
 
     if (authed && email) {
@@ -115,9 +116,15 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
 
     if (!authed) {
       this.bindEmailModeToggle(container);
-      container.querySelector('#signin-email-form')?.addEventListener('submit', (e) => this.handleEmailSubmit(e));
-      container.querySelector('#forgot-password-btn')?.addEventListener('click', () => this._showRecoveryModal());
-      container.querySelector('#webauthn-signin-btn')?.addEventListener('click', () => this._handleWebAuthnSignIn());
+      container
+        .querySelector('#signin-email-form')
+        ?.addEventListener('submit', (e) => this.handleEmailSubmit(e));
+      container
+        .querySelector('#forgot-password-btn')
+        ?.addEventListener('click', () => this._showRecoveryModal());
+      container
+        .querySelector('#webauthn-signin-btn')
+        ?.addEventListener('click', () => this._handleWebAuthnSignIn());
     } else {
       container.querySelector('#signin-signout-btn')?.addEventListener('click', async () => {
         try {
@@ -134,8 +141,10 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
 
   renderAuthed({ email, allowed, internalDev }) {
     const actionsStyle = 'display:flex;flex-direction:column;gap:12px;';
-    const primaryStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;text-align:center;text-decoration:none;font-weight:600;border:none;cursor:pointer;';
-    const ghostStyle = 'display:block;width:100%;padding:12px 16px;border-radius:8px;background:transparent;color:var(--text-primary);text-align:center;text-decoration:none;font-weight:600;border:1px solid var(--border);cursor:pointer;';
+    const primaryStyle =
+      'display:block;width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;text-align:center;text-decoration:none;font-weight:600;border:none;cursor:pointer;';
+    const ghostStyle =
+      'display:block;width:100%;padding:12px 16px;border-radius:8px;background:transparent;color:var(--text-primary);text-align:center;text-decoration:none;font-weight:600;border:1px solid var(--border);cursor:pointer;';
     if (allowed && internalDev) {
       return `
         <p class="signin-status" style="text-align:center;margin:0 0 16px;color:var(--text-primary);">Signed in as <strong>${escapeHtml(email)}</strong> (internal preview).</p>
@@ -165,12 +174,17 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
   }
 
   renderSignInForm() {
-    const inputStyle = 'width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;';
+    const inputStyle =
+      'width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;';
     const labelStyle = 'display:block;font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;';
-    const tabActive = 'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
-    const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
-    const btnPrimary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;font-weight:600;border:none;cursor:pointer;text-align:center;';
-    const btnSecondary = 'width:100%;padding:12px 16px;border-radius:8px;background:var(--surface);color:var(--text-primary);border:1px solid var(--border);cursor:pointer;text-align:center;';
+    const tabActive =
+      'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+    const tabBase =
+      'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
+    const btnPrimary =
+      'width:100%;padding:12px 16px;border-radius:8px;background:var(--primary);color:#fff;font-weight:600;border:none;cursor:pointer;text-align:center;';
+    const btnSecondary =
+      'width:100%;padding:12px 16px;border-radius:8px;background:var(--surface);color:var(--text-primary);border:1px solid var(--border);cursor:pointer;text-align:center;';
     return `
       <div class="signin-tab-panel active" id="panel-email">
         <div class="signin-subtabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface-hover);border-radius:8px;padding:3px;">
@@ -217,19 +231,25 @@ container.innerHTML = `<div class="signin-page"><div class="signin-card card"><p
     const submitBtn = container.querySelector('#signin-email-submit');
     const note = container.querySelector('#email-mode-note');
     const forgotBtn = container.querySelector('#forgot-password-btn');
-    const tabActive = 'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
-    const tabBase = 'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
-    subtabs.forEach(tab => {
+    const tabActive =
+      'background:var(--surface);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+    const tabBase =
+      'flex:1;padding:0.35rem 0.5rem;border:none;background:transparent;color:var(--text-muted);font-size:0.85rem;font-weight:500;border-radius:6px;cursor:pointer;';
+    subtabs.forEach((tab) => {
       tab.addEventListener('click', () => {
         const mode = tab.dataset.mode;
         this._emailMode = mode;
-        subtabs.forEach(t => {
+        subtabs.forEach((t) => {
           const isActive = t.dataset.mode === mode;
           t.classList.toggle('active', isActive);
           t.style.cssText = isActive ? tabActive : tabBase;
         });
         if (submitBtn) submitBtn.textContent = mode === 'login' ? 'Sign In' : 'Create Account';
-if (note) note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Create Account</strong> to register.' : 'Already have an account? Switch to <strong>Sign In</strong>.';
+        if (note)
+          note.innerHTML =
+            mode === 'login'
+              ? 'New here? Switch to <strong>Create Account</strong> to register.'
+              : 'Already have an account? Switch to <strong>Sign In</strong>.';
         if (forgotBtn) forgotBtn.style.display = mode === 'login' ? 'block' : 'none';
       });
     });
@@ -245,13 +265,23 @@ if (note) note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Creat
 
     // Client-side validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const identifierValid = this._emailMode === 'register' ? emailRegex.test(email) : /^[^\s]+$/.test(email);
+    const identifierValid =
+      this._emailMode === 'register' ? emailRegex.test(email) : /^[^\s]+$/.test(email);
     if (!identifierValid) {
-      if (errorEl) { errorEl.textContent = this._emailMode === 'register' ? 'Please enter a valid email address.' : 'Please enter your email or username.'; errorEl.hidden = false; }
+      if (errorEl) {
+        errorEl.textContent =
+          this._emailMode === 'register'
+            ? 'Please enter a valid email address.'
+            : 'Please enter your email or username.';
+        errorEl.hidden = false;
+      }
       return;
     }
     if (!password || password.length < 6) {
-      if (errorEl) { errorEl.textContent = 'Password must be at least 6 characters.'; errorEl.hidden = false; }
+      if (errorEl) {
+        errorEl.textContent = 'Password must be at least 6 characters.';
+        errorEl.hidden = false;
+      }
       return;
     }
 
@@ -273,7 +303,8 @@ if (note) note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Creat
       this.app.bootstrapAfterAuth?.();
       this.app.navigate('dashboard');
     } catch (err) {
-      const message = err.message || (this._emailMode === 'register' ? 'Registration failed' : 'Sign in failed');
+      const message =
+        err.message || (this._emailMode === 'register' ? 'Registration failed' : 'Sign in failed');
       if (errorEl) {
         errorEl.textContent = message;
         errorEl.hidden = false;
@@ -287,8 +318,9 @@ if (note) note.innerHTML = mode === 'login' ? 'New here? Switch to <strong>Creat
   _showRecoveryModal() {
     const overlay = document.createElement('div');
     overlay.id = 'recovery-modal-overlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;';
-overlay.innerHTML = `
+    overlay.style.cssText =
+      'position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
       <div style="position:relative;z-index:1;background:var(--surface);padding:28px 32px;border-radius:14px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:1px solid var(--border);">
         <h3 style="margin:0 0 8px;font-size:1.15rem;color:var(--text-primary);">&#128273; Account Recovery</h3>
         <p style="margin:0 0 18px;font-size:0.85rem;color:var(--text-muted);line-height:1.5;">Enter your email address and we'll send you instructions to reset your password.</p>
@@ -310,7 +342,9 @@ overlay.innerHTML = `
     const submitBtn = overlay.querySelector('#recovery-submit');
     const closeModal = () => overlay.remove();
     cancelBtn.addEventListener('click', closeModal);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
     submitBtn.addEventListener('click', async () => {
       const email = emailInput.value.trim();
       errorEl.style.display = 'none';
@@ -323,7 +357,11 @@ overlay.innerHTML = `
       submitBtn.disabled = true;
       submitBtn.textContent = 'Sending…';
       try {
-        const res = await fetch('/api/auth/recover', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+        const res = await fetch('/api/auth/recover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
         const data = await res.json();
         if (data.success) {
           successEl.textContent = 'Check your email for recovery instructions.';
@@ -366,4 +404,3 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
-

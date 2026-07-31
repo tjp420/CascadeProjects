@@ -21,9 +21,7 @@ const logger = require('./app-logger.cjs');
 const wlStore = require('./whitelabel-config-store.cjs');
 
 // Domains that should never trigger whitelabel resolution
-const SKIP_HOSTS = new Set([
-  'localhost', '127.0.0.1', '::1', '0.0.0.0',
-]);
+const SKIP_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
 
 // Base domain for subdomain extraction (e.g., "simplebeacon.ai")
 const BASE_DOMAIN = process.env.WHITELABEL_BASE_DOMAIN || 'simplebeacon.ai';
@@ -68,7 +66,9 @@ function resolvePartner(hostname) {
     // Try the full subdomain first (e.g., "app.acme")
     const byFullSubdomain = wlStore.resolveBySubdomain(subdomain);
     if (byFullSubdomain) {
-      logger.info(`[Whitelabel] Resolved partner ${byFullSubdomain.partnerId} via subdomain: ${subdomain}`);
+      logger.info(
+        `[Whitelabel] Resolved partner ${byFullSubdomain.partnerId} via subdomain: ${subdomain}`
+      );
       return byFullSubdomain;
     }
     // Try just the first segment (e.g., "acme" from "app.acme")
@@ -76,7 +76,9 @@ function resolvePartner(hostname) {
     if (firstSegment !== subdomain) {
       const bySegment = wlStore.resolveBySubdomain(firstSegment);
       if (bySegment) {
-        logger.info(`[Whitelabel] Resolved partner ${bySegment.partnerId} via subdomain segment: ${firstSegment}`);
+        logger.info(
+          `[Whitelabel] Resolved partner ${bySegment.partnerId} via subdomain segment: ${firstSegment}`
+        );
         return bySegment;
       }
     }

@@ -5,9 +5,7 @@
   "generatedBy": "Simplebeacon",
   "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
   "configPath": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
-  "scanPaths": [
-    "C:\\Users\\Trevor\\CascadeProjects\\coming-soon"
-  ],
+  "scanPaths": ["C:\\Users\\Trevor\\CascadeProjects\\coming-soon"],
   "repositoryInventory": {
     "projectRoot": "C:\\Users\\Trevor\\CascadeProjects\\coming-soon",
     "totalFiles": 40,
@@ -157,13 +155,8 @@
       "eu-ai-act-patterns"
     ],
     "gatePolicy": {
-      "failOn": [
-        "high"
-      ],
-      "warnOn": [
-        "medium",
-        "low"
-      ]
+      "failOn": ["high"],
+      "warnOn": ["medium", "low"]
     },
     "mockSampleFilesInScanPaths": 40,
     "pageSpecCatalogSize": 50,
@@ -171,9 +164,7 @@
     "pageSpecsFromScanPaths": 0,
     "pageSpecsFromAliasPaths": 0,
     "productionDirsScanned": 5,
-    "productionPaths": [
-      "."
-    ],
+    "productionPaths": ["."],
     "sourceCodeScanPaths": [],
     "sourceCodeFilesScanned": 0,
     "sourceFictionPatternHits": 0,
@@ -207,13 +198,8 @@
   },
   "gate": {
     "pass": true,
-    "failOn": [
-      "high"
-    ],
-    "warnOn": [
-      "medium",
-      "low"
-    ],
+    "failOn": ["high"],
+    "warnOn": ["medium", "low"],
     "blockingCount": 0,
     "warningCount": 0
   },

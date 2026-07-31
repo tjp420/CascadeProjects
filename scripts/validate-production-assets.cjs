@@ -27,7 +27,10 @@ function request(url, method = 'GET') {
       resolve({ status: res.statusCode, headers: res.headers });
     });
     req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Timeout'));
+    });
     req.end();
   });
 }
@@ -68,18 +71,22 @@ async function main() {
     check('server.cjs is blocked', request(`${PROD_URL}/server.cjs`), 403),
     check('subscriptions.json is blocked', request(`${PROD_URL}/subscriptions.json`), 403),
     isFull
-      ? check('Security headers — HSTS', request(PROD_URL), 200, ['strict-transport-security', 'max-age='])
+      ? check('Security headers — HSTS', request(PROD_URL), 200, [
+          'strict-transport-security',
+          'max-age=',
+        ])
       : Promise.resolve(true),
     isFull
-      ? check('Security headers — X-Content-Type-Options', request(PROD_URL), 200, ['x-content-type-options', 'nosniff'])
+      ? check('Security headers — X-Content-Type-Options', request(PROD_URL), 200, [
+          'x-content-type-options',
+          'nosniff',
+        ])
       : Promise.resolve(true),
-    isFull
-      ? check('Health endpoint', request(`${API_URL}/health`), 200)
-      : Promise.resolve(true),
+    isFull ? check('Health endpoint', request(`${API_URL}/health`), 200) : Promise.resolve(true),
   ]);
 
   passed = results.filter(Boolean).length;
-  failed = results.filter(r => !r).length;
+  failed = results.filter((r) => !r).length;
 
   console.log(`\n=== Results ===`);
   console.log(`Passed: ${passed}`);

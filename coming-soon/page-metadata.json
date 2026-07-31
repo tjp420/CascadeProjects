@@ -1,214 +1,214 @@
 {
-  "origin": "https://simplebeacon.ai",
-  "ogImage": "/favicon.svg",
-  "pages": {
-    "index.html": {
-      "title": "SimpleBeacon — Auto-Remediate AI Code Debt Before It Becomes Audit Risk",
-      "description": "SimpleBeacon scans your AI-assisted codebases for algorithmic redundancy, credential leaks, and compliance drift—then simplebeacon fix cleans the debris locally before it reaches CI.",
-      "h1": "Auto-Remediate AI Code Debt Before It Becomes Audit Risk.",
-      "sitemap": { "priority": "1.0", "changefreq": "weekly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "landing.html": {
-      "title": "SimpleBeacon — Certify Your Codebase Before Regulators Do",
-      "description": "Local, zero-upload scans for AI-generated slop, exposed credentials, and unapproved AI integrations. Get a board-ready Executive Risk Certificate.",
-      "h1": "Certify Your Codebase Before Regulators Do",
-      "sitemap": { "priority": "0.8", "changefreq": "weekly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "pricing.html": {
-      "title": "SimpleBeacon Pricing — B2B AI Code Debt Remediation & Compliance",
-      "description": "Free Preview, Pro ($9/mo), and Compliance Suite ($399/mo) with unlimited local scans, CI gate integration, EU AI Act mapping, and board-ready compliance documentation.",
-      "h1": "B2B AI Code Debt Remediation & Compliance",
-      "sitemap": { "priority": "0.9", "changefreq": "weekly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "audit.html": {
-      "title": "SimpleBeacon — Audit",
-      "description": "Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.",
-      "h1": "Audit Your Scan Reports",
-      "sitemap": { "priority": "0.9", "changefreq": "weekly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "certificate-upload.html": {
-      "title": "SimpleBeacon — Certificate Upload",
-      "description": "Upload a SimpleBeacon scan report to generate a board-ready Executive Risk Certificate and remediation roadmap.",
-      "h1": "Upload Your Scan Report",
-      "sitemap": { "priority": "0.6", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "community.html": {
-      "title": "SimpleBeacon — CLI Install & MCP Setup",
-      "description": "Install the SimpleBeacon CLI, set up the Cursor MCP server, and run local scans in one command. No repo upload, free and offline by default.",
-      "h1": "Install the SimpleBeacon CLI & MCP",
-      "sitemap": { "priority": "0.7", "changefreq": "weekly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "roadmap.html": {
-      "title": "SimpleBeacon Auto-Remediation Roadmap",
-      "description": "See how simplebeacon fix evolves from local CLI cleanup to IDE-native remediation and enterprise compliance.",
-      "h1": "From Detection to Automated Janitor",
-      "sitemap": { "priority": "0.7", "changefreq": "weekly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "cloud-scan.html": {
-      "title": "SimpleBeacon — Cloud Scan (Server-Side)",
-      "description": "Run a server-side scan on SimpleBeacon Cloud. Your source code is uploaded in memory, scanned, and deleted immediately after.",
-      "h1": "☁️ Cloud Scan",
-      "sitemap": { "priority": "0.5", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "cloud-teams.html": {
-      "title": "Cloud Teams — SimpleBeacon Waitlist",
-      "description": "Join the waitlist for SimpleBeacon Cloud Teams: shared dashboards, team scan history, and organization-wide gates.",
-      "h1": "Cloud Teams",
-      "sitemap": { "priority": "0.4", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "sample-report.html": {
-      "title": "SimpleBeacon — Sample Scan Report",
-      "description": "Browse a sample SimpleBeacon executive code compliance report with realistic findings, grades, and estimated liability.",
-      "h1": "Sample Scan Report",
-      "sitemap": { "priority": "0.6", "changefreq": "monthly" },
-      "includeNav": false,
-      "includeFooter": false
-    },
-    "sample-certificate.html": {
-      "title": "SimpleBeacon — Sample Risk Certificate",
-      "description": "See an example board-ready Executive Risk Certificate generated from a SimpleBeacon scan.",
-      "h1": "Sample Risk Certificate",
-      "sitemap": { "priority": "0.6", "changefreq": "monthly" },
-      "includeNav": false,
-      "includeFooter": false
-    },
-    "contact.html": {
-      "title": "Contact SimpleBeacon — Enterprise AI Compliance Inquiries",
-      "description": "Contact SimpleBeacon about complimentary AI Slop Audits, Executive Risk Certificates, EU AI Act readiness, or enterprise compliance contracts.",
-      "h1": "Contact us",
-      "sitemap": { "priority": "0.7", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "faq.html": {
-      "title": "FAQ — SimpleBeacon",
-      "description": "Frequently asked questions about SimpleBeacon AI code quality scanning, pricing, EU AI Act compliance, and local-first scans.",
-      "h1": "FAQ",
-      "sitemap": { "priority": "0.5", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "security.html": {
-      "title": "SimpleBeacon Security & Trust",
-      "description": "SimpleBeacon zero-upload architecture, local-only scans, cryptographic certificates, and enterprise data handling practices.",
-      "h1": "Security & Trust",
-      "sitemap": { "priority": "0.4", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "privacy.html": {
-      "title": "SimpleBeacon — Privacy Policy for Enterprise AI Compliance Auditing",
-      "description": "SimpleBeacon privacy policy: zero-upload guarantee, no source code transmission, enterprise data handling for AI Slop Audits and Executive Risk Certificates.",
-      "h1": "Privacy Policy",
-      "sitemap": { "priority": "0.4", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "terms.html": {
-      "title": "SimpleBeacon — Terms of Service for Enterprise AI Compliance Auditing",
-      "description": "SimpleBeacon terms of service for complimentary AI Slop Audits, Executive Risk Certificates, EU AI Act readiness, and enterprise compliance contracts.",
-      "h1": "Terms of Service",
-      "sitemap": { "priority": "0.4", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "refund.html": {
-      "title": "SimpleBeacon — Refund Policy for Enterprise Compliance Services",
-      "description": "SimpleBeacon refund policy for complimentary AI Slop Audits, Executive Risk Certificates, EU AI Act Sprints, and enterprise compliance contracts.",
-      "h1": "Refund Policy",
-      "sitemap": { "priority": "0.4", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "terminal-walkthrough.html": {
-      "title": "SimpleBeacon — Interactive Terminal Walkthrough",
-      "description": "Watch an interactive terminal demo of a SimpleBeacon local scan and see the gate attestation output.",
-      "h1": "Interactive Terminal Walkthrough",
-      "sitemap": { "priority": "0.5", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
-    },
-    "unlock.html": {
-      "title": "SimpleBeacon — Token Authentication",
-      "description": "Enter your SimpleBeacon license token to unlock the dashboard and access your scan history.",
-      "h1": "🔒 Token Authentication",
-      "noindex": true,
-      "sitemap": null,
-      "includeNav": false,
-      "includeFooter": false
-    },
-    "admin.html": {
-      "title": "SimpleBeacon — Admin Dashboard",
-      "description": "Admin dashboard for managing SimpleBeacon tokens, subscriptions, and system health.",
-      "h1": "🛡️ SimpleBeacon Admin Dashboard",
-      "noindex": true,
-      "sitemap": null,
-      "includeNav": false,
-      "includeFooter": false
-    },
-    "dashboard-preview.html": {
-      "title": "SimpleBeacon Dashboard 2.0 — Preview",
-      "description": "Preview the SimpleBeacon dashboard with sample scan metrics, grade, and remediation insights.",
-      "h1": "SimpleBeacon Dashboard 2.0",
-      "noindex": true,
-      "sitemap": null,
-      "includeNav": true,
-      "includeFooter": false
-    },
-    "walkthrough-embed.html": {
-      "title": "SimpleBeacon Walkthrough Embed Demo",
-      "description": "Embedded demo page for the SimpleBeacon interactive terminal walkthrough.",
-      "noindex": true,
-      "sitemap": null,
-      "includeNav": false,
-      "includeFooter": false
-    },
-    "email-template-universal.html": {
-      "title": "Your SimpleBeacon Purchase",
-      "noindex": true,
-      "sitemap": null,
-      "includeNav": false,
-      "includeFooter": false
-    },
-    "email-template-preview.html": {
-      "title": "SimpleBeacon — Your License is Ready",
-      "noindex": true,
-      "sitemap": null,
-      "includeNav": false,
-      "includeFooter": false
-    },
-    "email-template-redesign.html": {
-      "title": "SimpleBeacon — Your License is Ready",
-      "noindex": true,
-      "sitemap": null,
-      "includeNav": false,
-      "includeFooter": false
-    },
-    "blog/case-study-ai-slop-1-25m.html": {
-      "title": "How We Found $1.25M in AI Slop Inside a Fintech Codebase — SimpleBeacon",
-      "description": "A real audit of a Series B fintech's production codebase. 23 placeholder diagnostics, 4 exposed API keys, 1 unapproved Anthropic integration, 2 copy-pasted GPL blocks.",
-      "h1": "How We Found $1.25M in AI Slop Inside a Fintech Codebase",
-      "sitemap": { "priority": "0.7", "changefreq": "monthly" },
-      "includeNav": true,
-      "includeFooter": true
+    "origin": "https://simplebeacon.ai",
+    "ogImage": "/favicon.svg",
+    "pages": {
+        "index.html": {
+            "title": "SimpleBeacon — Auto-Remediate AI Code Debt Before It Becomes Audit Risk",
+            "description": "SimpleBeacon scans your AI-assisted codebases for algorithmic redundancy, credential leaks, and compliance drift—then simplebeacon fix cleans the debris locally before it reaches CI.",
+            "h1": "Auto-Remediate AI Code Debt Before It Becomes Audit Risk.",
+            "sitemap": { "priority": "1.0", "changefreq": "weekly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "landing.html": {
+            "title": "SimpleBeacon — Certify Your Codebase Before Regulators Do",
+            "description": "Local, zero-upload scans for AI-generated slop, exposed credentials, and unapproved AI integrations. Get a board-ready Executive Risk Certificate.",
+            "h1": "Certify Your Codebase Before Regulators Do",
+            "sitemap": { "priority": "0.8", "changefreq": "weekly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "pricing.html": {
+            "title": "SimpleBeacon Pricing — B2B AI Code Debt Remediation & Compliance",
+            "description": "Free Preview, Pro ($9/mo), and Compliance Suite ($399/mo) with unlimited local scans, CI gate integration, EU AI Act mapping, and board-ready compliance documentation.",
+            "h1": "B2B AI Code Debt Remediation & Compliance",
+            "sitemap": { "priority": "0.9", "changefreq": "weekly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "audit.html": {
+            "title": "SimpleBeacon — Audit",
+            "description": "Run a browser-local scan or upload a SimpleBeacon report to audit your repository for AI slop, credential leaks, and compliance gaps.",
+            "h1": "Audit Your Scan Reports",
+            "sitemap": { "priority": "0.9", "changefreq": "weekly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "certificate-upload.html": {
+            "title": "SimpleBeacon — Certificate Upload",
+            "description": "Upload a SimpleBeacon scan report to generate a board-ready Executive Risk Certificate and remediation roadmap.",
+            "h1": "Upload Your Scan Report",
+            "sitemap": { "priority": "0.6", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "community.html": {
+            "title": "SimpleBeacon — CLI Install & MCP Setup",
+            "description": "Install the SimpleBeacon CLI, set up the Cursor MCP server, and run local scans in one command. No repo upload, free and offline by default.",
+            "h1": "Install the SimpleBeacon CLI & MCP",
+            "sitemap": { "priority": "0.7", "changefreq": "weekly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "roadmap.html": {
+            "title": "SimpleBeacon Auto-Remediation Roadmap",
+            "description": "See how simplebeacon fix evolves from local CLI cleanup to IDE-native remediation and enterprise compliance.",
+            "h1": "From Detection to Automated Janitor",
+            "sitemap": { "priority": "0.7", "changefreq": "weekly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "cloud-scan.html": {
+            "title": "SimpleBeacon — Cloud Scan (Server-Side)",
+            "description": "Run a server-side scan on SimpleBeacon Cloud. Your source code is uploaded in memory, scanned, and deleted immediately after.",
+            "h1": "☁️ Cloud Scan",
+            "sitemap": { "priority": "0.5", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "cloud-teams.html": {
+            "title": "Cloud Teams — SimpleBeacon Waitlist",
+            "description": "Join the waitlist for SimpleBeacon Cloud Teams: shared dashboards, team scan history, and organization-wide gates.",
+            "h1": "Cloud Teams",
+            "sitemap": { "priority": "0.4", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "sample-report.html": {
+            "title": "SimpleBeacon — Sample Scan Report",
+            "description": "Browse a sample SimpleBeacon executive code compliance report with realistic findings, grades, and estimated liability.",
+            "h1": "Sample Scan Report",
+            "sitemap": { "priority": "0.6", "changefreq": "monthly" },
+            "includeNav": false,
+            "includeFooter": false
+        },
+        "sample-certificate.html": {
+            "title": "SimpleBeacon — Sample Risk Certificate",
+            "description": "See an example board-ready Executive Risk Certificate generated from a SimpleBeacon scan.",
+            "h1": "Sample Risk Certificate",
+            "sitemap": { "priority": "0.6", "changefreq": "monthly" },
+            "includeNav": false,
+            "includeFooter": false
+        },
+        "contact.html": {
+            "title": "Contact SimpleBeacon — Enterprise AI Compliance Inquiries",
+            "description": "Contact SimpleBeacon about complimentary AI Slop Audits, Executive Risk Certificates, EU AI Act readiness, or enterprise compliance contracts.",
+            "h1": "Contact us",
+            "sitemap": { "priority": "0.7", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "faq.html": {
+            "title": "FAQ — SimpleBeacon",
+            "description": "Frequently asked questions about SimpleBeacon AI code quality scanning, pricing, EU AI Act compliance, and local-first scans.",
+            "h1": "FAQ",
+            "sitemap": { "priority": "0.5", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "security.html": {
+            "title": "SimpleBeacon Security & Trust",
+            "description": "SimpleBeacon zero-upload architecture, local-only scans, cryptographic certificates, and enterprise data handling practices.",
+            "h1": "Security & Trust",
+            "sitemap": { "priority": "0.4", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "privacy.html": {
+            "title": "SimpleBeacon — Privacy Policy for Enterprise AI Compliance Auditing",
+            "description": "SimpleBeacon privacy policy: zero-upload guarantee, no source code transmission, enterprise data handling for AI Slop Audits and Executive Risk Certificates.",
+            "h1": "Privacy Policy",
+            "sitemap": { "priority": "0.4", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "terms.html": {
+            "title": "SimpleBeacon — Terms of Service for Enterprise AI Compliance Auditing",
+            "description": "SimpleBeacon terms of service for complimentary AI Slop Audits, Executive Risk Certificates, EU AI Act readiness, and enterprise compliance contracts.",
+            "h1": "Terms of Service",
+            "sitemap": { "priority": "0.4", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "refund.html": {
+            "title": "SimpleBeacon — Refund Policy for Enterprise Compliance Services",
+            "description": "SimpleBeacon refund policy for complimentary AI Slop Audits, Executive Risk Certificates, EU AI Act Sprints, and enterprise compliance contracts.",
+            "h1": "Refund Policy",
+            "sitemap": { "priority": "0.4", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "terminal-walkthrough.html": {
+            "title": "SimpleBeacon — Interactive Terminal Walkthrough",
+            "description": "Watch an interactive terminal demo of a SimpleBeacon local scan and see the gate attestation output.",
+            "h1": "Interactive Terminal Walkthrough",
+            "sitemap": { "priority": "0.5", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        },
+        "unlock.html": {
+            "title": "SimpleBeacon — Token Authentication",
+            "description": "Enter your SimpleBeacon license token to unlock the dashboard and access your scan history.",
+            "h1": "🔒 Token Authentication",
+            "noindex": true,
+            "sitemap": null,
+            "includeNav": false,
+            "includeFooter": false
+        },
+        "admin.html": {
+            "title": "SimpleBeacon — Admin Dashboard",
+            "description": "Admin dashboard for managing SimpleBeacon tokens, subscriptions, and system health.",
+            "h1": "🛡️ SimpleBeacon Admin Dashboard",
+            "noindex": true,
+            "sitemap": null,
+            "includeNav": false,
+            "includeFooter": false
+        },
+        "dashboard-preview.html": {
+            "title": "SimpleBeacon Dashboard 2.0 — Preview",
+            "description": "Preview the SimpleBeacon dashboard with sample scan metrics, grade, and remediation insights.",
+            "h1": "SimpleBeacon Dashboard 2.0",
+            "noindex": true,
+            "sitemap": null,
+            "includeNav": true,
+            "includeFooter": false
+        },
+        "walkthrough-embed.html": {
+            "title": "SimpleBeacon Walkthrough Embed Demo",
+            "description": "Embedded demo page for the SimpleBeacon interactive terminal walkthrough.",
+            "noindex": true,
+            "sitemap": null,
+            "includeNav": false,
+            "includeFooter": false
+        },
+        "email-template-universal.html": {
+            "title": "Your SimpleBeacon Purchase",
+            "noindex": true,
+            "sitemap": null,
+            "includeNav": false,
+            "includeFooter": false
+        },
+        "email-template-preview.html": {
+            "title": "SimpleBeacon — Your License is Ready",
+            "noindex": true,
+            "sitemap": null,
+            "includeNav": false,
+            "includeFooter": false
+        },
+        "email-template-redesign.html": {
+            "title": "SimpleBeacon — Your License is Ready",
+            "noindex": true,
+            "sitemap": null,
+            "includeNav": false,
+            "includeFooter": false
+        },
+        "blog/case-study-ai-slop-1-25m.html": {
+            "title": "How We Found $1.25M in AI Slop Inside a Fintech Codebase — SimpleBeacon",
+            "description": "A real audit of a Series B fintech's production codebase. 23 placeholder diagnostics, 4 exposed API keys, 1 unapproved Anthropic integration, 2 copy-pasted GPL blocks.",
+            "h1": "How We Found $1.25M in AI Slop Inside a Fintech Codebase",
+            "sitemap": { "priority": "0.7", "changefreq": "monthly" },
+            "includeNav": true,
+            "includeFooter": true
+        }
     }
-  }
 }

@@ -22,16 +22,16 @@ This plan moves SimpleBeacon from a single-directory monolith to a production-gr
 
 **Goal:** Verify the codebase is release-ready before any infrastructure changes.
 
-| # | Check | Command / Action | Pass Criteria |
-|---|-------|-----------------|---------------|
-| 0.1 | Git is clean | `git status` | Working tree clean |
-| 0.2 | Syntax check all JS | `node -c coming-soon/server.cjs` | No parse errors |
-| 0.3 | Syntax check upload.html | Extract `<script>` blocks, `node -c` | No parse errors |
-| 0.4 | Unit tests pass | `node --test packages/simplebeacon-cli/tests/*.test.js` | All green |
-| 0.5 | Environment template complete | Review `coming-soon/.env.example` | All required keys documented |
-| 0.6 | No secrets in git | `git log --all --full-history -S 'sk_live_' -p` | No leaked Stripe keys |
-| 0.7 | Rate limits active | Read `server.cjs` lines 12-18 | Free token + cert rate limits present |
-| 0.8 | XSS escape present | `grep 'escapeHtml' coming-soon/server.cjs` | Helper defined and used |
+| #   | Check                         | Command / Action                                        | Pass Criteria                         |
+| --- | ----------------------------- | ------------------------------------------------------- | ------------------------------------- |
+| 0.1 | Git is clean                  | `git status`                                            | Working tree clean                    |
+| 0.2 | Syntax check all JS           | `node -c coming-soon/server.cjs`                        | No parse errors                       |
+| 0.3 | Syntax check upload.html      | Extract `<script>` blocks, `node -c`                    | No parse errors                       |
+| 0.4 | Unit tests pass               | `node --test packages/simplebeacon-cli/tests/*.test.js` | All green                             |
+| 0.5 | Environment template complete | Review `coming-soon/.env.example`                       | All required keys documented          |
+| 0.6 | No secrets in git             | `git log --all --full-history -S 'sk_live_' -p`         | No leaked Stripe keys                 |
+| 0.7 | Rate limits active            | Read `server.cjs` lines 12-18                           | Free token + cert rate limits present |
+| 0.8 | XSS escape present            | `grep 'escapeHtml' coming-soon/server.cjs`              | Helper defined and used               |
 
 **Exit gate:** All checks must pass before proceeding to Phase 1.
 
@@ -39,13 +39,14 @@ This plan moves SimpleBeacon from a single-directory monolith to a production-gr
 
 ## Phase 1 — Security Hardening (Days 1-2)
 
-**Goal:** Fix the `express.static(__dirname)` vulnerability and harden the monolith *before* splitting it.
+**Goal:** Fix the `express.static(__dirname)` vulnerability and harden the monolith _before_ splitting it.
 
 ### 1.1 Fix Static File Serving
 
 **File:** `coming-soon/server.cjs`
 
 The current code likely has `app.use(express.static(__dirname))` or similar. This exposes:
+
 - `.env` (secrets)
 - `server.cjs` (backend logic)
 - `subscriptions.json` (user data)
@@ -60,16 +61,18 @@ app.use(express.static(__dirname));
 // AFTER (safe)
 app.use(express.static(path.join(__dirname, 'public')));
 // Or, if no public/ dir exists yet:
-app.use(express.static(__dirname, {
+app.use(
+  express.static(__dirname, {
     dotfiles: 'deny',
     index: ['index.html'],
     setHeaders: (res, filePath) => {
-        const ext = path.extname(filePath).toLowerCase();
-        if (ext === '.env' || ext === '.json' || ext === '.cjs' || ext === '.js') {
-            res.status(403).end();
-        }
-    }
-}));
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.env' || ext === '.json' || ext === '.cjs' || ext === '.js') {
+        res.status(403).end();
+      }
+    },
+  })
+);
 ```
 
 **Even better:** Move all static assets into `coming-soon/public/` and serve only that directory.
@@ -80,10 +83,10 @@ Add helmet or manual headers in `server.cjs`:
 
 ```javascript
 app.use((req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    next();
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
 });
 ```
 
@@ -103,18 +106,28 @@ Per `REMEDIATION.md`, add test fixture exclusions to root `.simplebeacon/config.
 ```json
 {
   "fullDirectoryScanSkipDirs": [
-    ".git", ".github-sync", "github-cache",
-    "node_modules", "simplebeacon-rule-tests"
+    ".git",
+    ".github-sync",
+    "github-cache",
+    "node_modules",
+    "simplebeacon-rule-tests"
   ],
   "ignore": [
-    "node_modules/**", "coverage/**", "dist/**", "build/**",
-    "**/*.test.js", "**/*.spec.js", "tests/**", "test/**",
+    "node_modules/**",
+    "coverage/**",
+    "dist/**",
+    "build/**",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "tests/**",
+    "test/**",
     "simplebeacon-rule-tests/**"
   ]
 }
 ```
 
 **Verification:**
+
 ```bash
 npx simplebeacon scan --gate --format json
 # Expected: severityCounts.critical === 0, severityCounts.high === 0
@@ -147,11 +160,13 @@ api/
 ### 2.2 Extract Server Logic
 
 Copy `coming-soon/server.cjs` → `api/server.js`, then remove:
+
 - All `express.static()` calls
 - HTML route handlers (keep JSON API only)
 - Frontend-specific middleware
 
 **Keep:**
+
 - File upload endpoints (`/api/analyze/upload-directory`)
 - Certificate endpoints
 - Stripe webhook handler
@@ -191,29 +206,28 @@ Copy `coming-soon/server.cjs` → `api/server.js`, then remove:
 
 ```javascript
 const cors = require('cors');
-app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://simplebeacon.com',
-        'https://simplebeacon.pages.dev'
-    ],
-    credentials: true
-}));
+app.use(
+  cors({
+    origin: ['http://localhost:3000', 'https://simplebeacon.com', 'https://simplebeacon.pages.dev'],
+    credentials: true,
+  })
+);
 ```
 
 ### 2.5 Environment Variable Migration
 
-| Variable | Source | Destination | Action |
-|----------|--------|-------------|--------|
-| `SIMPLEBEACON_LICENSE_SECRET` | `coming-soon/.env` | Render dashboard | Move, never commit |
-| `STRIPE_SECRET_KEY` | `coming-soon/.env` | Render dashboard | Move, never commit |
-| `STRIPE_WEBHOOK_SECRET` | `coming-soon/.env` | Render dashboard | Move, never commit |
-| `RESEND_API_KEY` | `coming-soon/.env` | Render dashboard | Move, never commit |
-| `DATABASE_URL` | — | Render dashboard | Create PostgreSQL instance |
-| `REDIS_URL` | — | Render dashboard | Create Redis instance |
-| `SIMPLEBEACON_APP_URL` | `coming-soon/.env` | Both | Set to prod URL |
+| Variable                      | Source             | Destination      | Action                     |
+| ----------------------------- | ------------------ | ---------------- | -------------------------- |
+| `SIMPLEBEACON_LICENSE_SECRET` | `coming-soon/.env` | Render dashboard | Move, never commit         |
+| `STRIPE_SECRET_KEY`           | `coming-soon/.env` | Render dashboard | Move, never commit         |
+| `STRIPE_WEBHOOK_SECRET`       | `coming-soon/.env` | Render dashboard | Move, never commit         |
+| `RESEND_API_KEY`              | `coming-soon/.env` | Render dashboard | Move, never commit         |
+| `DATABASE_URL`                | —                  | Render dashboard | Create PostgreSQL instance |
+| `REDIS_URL`                   | —                  | Render dashboard | Create Redis instance      |
+| `SIMPLEBEACON_APP_URL`        | `coming-soon/.env` | Both             | Set to prod URL            |
 
 **Critical:** Delete `coming-soon/.env` from git history if it was ever committed:
+
 ```bash
 git filter-branch --force --index-filter \
   'git rm --cached --ignore-unmatch coming-soon/.env' \
@@ -229,6 +243,7 @@ git filter-branch --force --index-filter \
 ### 3.1 Remove Backend Files from Frontend
 
 Delete or move these from `coming-soon/`:
+
 - `server.cjs` → moved to `api/server.js`
 - `package.json` (backend deps) → replaced with empty or removed
 - `.env` → deleted (secrets moved to Render)
@@ -242,7 +257,8 @@ Delete or move these from `coming-soon/`:
 Create `coming-soon/config.js`:
 
 ```javascript
-window.API_BASE_URL = window.location.hostname === 'localhost'
+window.API_BASE_URL =
+  window.location.hostname === 'localhost'
     ? 'http://localhost:3001'
     : 'https://api.simplebeacon.com';
 ```
@@ -256,6 +272,7 @@ fetch(`${window.API_BASE_URL}/api/analyze/upload-directory`, { ... })
 ### 3.3 Update Upload.html for API Mode
 
 The browser scanner in `upload.html` currently works in two modes:
+
 1. **Pure client-side:** File picker → JSZip → html2canvas → download (no server)
 2. **Server-assisted:** Upload to `/api/analyze/upload-directory` for deep scans
 
@@ -301,6 +318,7 @@ git push origin main
 ```
 
 **Manual setup if needed:**
+
 1. Create new Web Service on Render
 2. Root directory: `api/`
 3. Build command: `npm install`
@@ -311,11 +329,11 @@ git push origin main
 
 In Cloudflare DNS:
 
-| Type | Name | Value |
-|------|------|-------|
-| A | `simplebeacon.com` | Cloudflare Pages IP |
-| CNAME | `www` | `simplebeacon.pages.dev` |
-| CNAME | `api` | `simplebeacon-api.onrender.com` |
+| Type  | Name               | Value                           |
+| ----- | ------------------ | ------------------------------- |
+| A     | `simplebeacon.com` | Cloudflare Pages IP             |
+| CNAME | `www`              | `simplebeacon.pages.dev`        |
+| CNAME | `api`              | `simplebeacon-api.onrender.com` |
 
 ---
 
@@ -323,16 +341,16 @@ In Cloudflare DNS:
 
 ### 5.1 End-to-End Test Matrix
 
-| Test | Steps | Expected |
-|------|-------|----------|
-| Landing loads | Visit `https://simplebeacon.com` | Page renders, no 500 errors |
-| Pricing loads | Visit `/pricing.html` | Stripe links populated from env |
-| Upload (client) | Select folder in `upload.html` | ZIP generated locally, downloaded |
-| Upload (server) | Call `/api/analyze/upload-directory` | Scan report returned |
-| Token generation | Purchase via Stripe | Token emailed, valid for tier duration |
-| Certificate | Use token in `certificate-upload.html` | Certificate generated, not watermarked |
-| Webhook | Stripe test webhook | 200 OK, subscription updated |
-| Rate limit | Request >5 uploads in 15 min | 429 Too Many Requests |
+| Test             | Steps                                  | Expected                               |
+| ---------------- | -------------------------------------- | -------------------------------------- |
+| Landing loads    | Visit `https://simplebeacon.com`       | Page renders, no 500 errors            |
+| Pricing loads    | Visit `/pricing.html`                  | Stripe links populated from env        |
+| Upload (client)  | Select folder in `upload.html`         | ZIP generated locally, downloaded      |
+| Upload (server)  | Call `/api/analyze/upload-directory`   | Scan report returned                   |
+| Token generation | Purchase via Stripe                    | Token emailed, valid for tier duration |
+| Certificate      | Use token in `certificate-upload.html` | Certificate generated, not watermarked |
+| Webhook          | Stripe test webhook                    | 200 OK, subscription updated           |
+| Rate limit       | Request >5 uploads in 15 min           | 429 Too Many Requests                  |
 
 ### 5.2 Security Smoke Tests
 
@@ -366,23 +384,26 @@ npx lighthouse https://simplebeacon.com --output=json
 
 ### 6.1 Rollback Triggers
 
-| Condition | Action |
-|-----------|--------|
-| >5% of uploads fail | Revert Render deployment to previous commit |
-| Stripe webhooks return >10% 500s | Disable webhook endpoint, fix code, re-enable |
-| `.env` or secrets exposed | Immediately rotate ALL secrets (Stripe, Resend, JWT) |
-| Certificate generation fails | Redirect `certificate-upload.html` to maintenance page |
-| Client-side scan crashes | Revert `upload.html` to last known good commit |
+| Condition                        | Action                                                 |
+| -------------------------------- | ------------------------------------------------------ |
+| >5% of uploads fail              | Revert Render deployment to previous commit            |
+| Stripe webhooks return >10% 500s | Disable webhook endpoint, fix code, re-enable          |
+| `.env` or secrets exposed        | Immediately rotate ALL secrets (Stripe, Resend, JWT)   |
+| Certificate generation fails     | Redirect `certificate-upload.html` to maintenance page |
+| Client-side scan crashes         | Revert `upload.html` to last known good commit         |
 
 ### 6.2 Rollback Commands
 
 **Render:**
+
 - Dashboard → Manual Deploy → Select previous commit → Deploy
 
 **Cloudflare Pages:**
+
 - Dashboard → Deployments → Select previous deployment → Rollback
 
 **Git:**
+
 ```bash
 git revert HEAD  # Reverts last commit
 git push origin main
@@ -395,12 +416,14 @@ Create `coming-soon/maintenance.html` (static, no API calls):
 ```html
 <!DOCTYPE html>
 <html>
-<head><title>SimpleBeacon — Maintenance</title></head>
-<body style="font-family:sans-serif;text-align:center;padding:80px 20px;">
+  <head>
+    <title>SimpleBeacon — Maintenance</title>
+  </head>
+  <body style="font-family:sans-serif;text-align:center;padding:80px 20px;">
     <h1>🔧 Under Maintenance</h1>
     <p>We're upgrading our infrastructure. The scanner will be back shortly.</p>
     <p>Contact: support@simplebeacon.com</p>
-</body>
+  </body>
 </html>
 ```
 
@@ -412,22 +435,22 @@ Deploy to Cloudflare as fallback.
 
 ### 7.1 Logs to Watch
 
-| Source | Location | What to Monitor |
-|--------|----------|-----------------|
-| Render | Render dashboard logs | 500 errors, memory usage, restart count |
-| Cloudflare | Analytics dashboard | 4xx/5xx rates, cache hit ratio |
-| Stripe | Stripe dashboard | Webhook delivery failures, dispute rate |
-| Email | Resend dashboard | Bounce rate, delivery failures |
+| Source     | Location              | What to Monitor                         |
+| ---------- | --------------------- | --------------------------------------- |
+| Render     | Render dashboard logs | 500 errors, memory usage, restart count |
+| Cloudflare | Analytics dashboard   | 4xx/5xx rates, cache hit ratio          |
+| Stripe     | Stripe dashboard      | Webhook delivery failures, dispute rate |
+| Email      | Resend dashboard      | Bounce rate, delivery failures          |
 
 ### 7.2 Alert Thresholds
 
-| Metric | Warning | Critical |
-|--------|---------|----------|
-| API 5xx rate | >1% | >5% |
-| Avg response time | >500ms | >2000ms |
-| Failed webhooks/hour | >5 | >20 |
-| Free token abuse (same IP) | >10/hr | >50/hr |
-| Disk queue size | >100 | >500 |
+| Metric                     | Warning | Critical |
+| -------------------------- | ------- | -------- |
+| API 5xx rate               | >1%     | >5%      |
+| Avg response time          | >500ms  | >2000ms  |
+| Failed webhooks/hour       | >5      | >20      |
+| Free token abuse (same IP) | >10/hr  | >50/hr   |
+| Disk queue size            | >100    | >500     |
 
 ### 7.3 Weekly Hygiene
 
@@ -445,33 +468,34 @@ npm audit
 
 ## Risk Register
 
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| `express.static` exposes secrets | Critical | High (currently active) | Phase 1 — restrict or remove static serving |
-| Stripe webhook secret mismatch | High | Medium | Phase 2.5 — verify `STRIPE_WEBHOOK_SECRET` matches Stripe dashboard |
-| CORS blocks frontend API calls | High | Medium | Phase 2.4 — whitelist exact origins, test preflight |
-| Client-side scan too slow for large repos | Medium | Medium | Phase 5 — add progress UI, streaming ZIP |
-| Render free tier sleeps | Medium | High | Upgrade to Standard ($7/mo) or add health-check ping |
-| Cloudflare Pages build fails | Low | Low | Use direct upload (`wrangler pages deploy`) instead of Git integration |
-| Token expiry confuses users | Medium | Medium | Phase 5 — add banner in `certificate-upload.html` showing days remaining |
+| Risk                                      | Impact   | Likelihood              | Mitigation                                                               |
+| ----------------------------------------- | -------- | ----------------------- | ------------------------------------------------------------------------ |
+| `express.static` exposes secrets          | Critical | High (currently active) | Phase 1 — restrict or remove static serving                              |
+| Stripe webhook secret mismatch            | High     | Medium                  | Phase 2.5 — verify `STRIPE_WEBHOOK_SECRET` matches Stripe dashboard      |
+| CORS blocks frontend API calls            | High     | Medium                  | Phase 2.4 — whitelist exact origins, test preflight                      |
+| Client-side scan too slow for large repos | Medium   | Medium                  | Phase 5 — add progress UI, streaming ZIP                                 |
+| Render free tier sleeps                   | Medium   | High                    | Upgrade to Standard ($7/mo) or add health-check ping                     |
+| Cloudflare Pages build fails              | Low      | Low                     | Use direct upload (`wrangler pages deploy`) instead of Git integration   |
+| Token expiry confuses users               | Medium   | Medium                  | Phase 5 — add banner in `certificate-upload.html` showing days remaining |
 
 ---
 
 ## Decision Log
 
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2026-06-06 | Split to Cloudflare Pages + Render | DEPLOYMENT-ROADMAP.md already planned this; cheapest/fastest path to production |
-| 2026-06-06 | Keep PostgreSQL on Render (not self-hosted) | Render manages backups, zero maintenance overhead |
-| 2026-06-06 | Keep disk-based email queue (not queue service) | Already built, tested, zero extra cost; migrate to SQS later if volume grows |
-| 2026-06-06 | Client-side scan is primary product | No backend required, zero server cost for free users, privacy-first (no code leaves browser) |
-| 2026-06-06 | Server-assisted scan is premium tier only | Justifies API cost; token gate prevents abuse |
+| Date       | Decision                                        | Rationale                                                                                    |
+| ---------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 2026-06-06 | Split to Cloudflare Pages + Render              | DEPLOYMENT-ROADMAP.md already planned this; cheapest/fastest path to production              |
+| 2026-06-06 | Keep PostgreSQL on Render (not self-hosted)     | Render manages backups, zero maintenance overhead                                            |
+| 2026-06-06 | Keep disk-based email queue (not queue service) | Already built, tested, zero extra cost; migrate to SQS later if volume grows                 |
+| 2026-06-06 | Client-side scan is primary product             | No backend required, zero server cost for free users, privacy-first (no code leaves browser) |
+| 2026-06-06 | Server-assisted scan is premium tier only       | Justifies API cost; token gate prevents abuse                                                |
 
 ---
 
 ## Checklist Summary
 
 **Before any deploy:**
+
 - [ ] `git status` is clean
 - [ ] `node -c` passes on all modified files
 - [ ] `node --test` passes on CLI tests
@@ -481,6 +505,7 @@ npm audit
 - [ ] `maintenance.html` exists and is deployable
 
 **After deploy:**
+
 - [ ] Landing page loads with correct SSL cert
 - [ ] Upload (client-side) generates and downloads ZIP
 - [ ] Stripe checkout redirects correctly
@@ -491,6 +516,6 @@ npm audit
 
 ---
 
-*Plan author: Cascade AI*  
-*Review date: 2026-06-10 (Phase 1–5 complete)*  
-*Next update: After Phase 7 (Mock Data Review) completion*
+_Plan author: Cascade AI_  
+_Review date: 2026-06-10 (Phase 1–5 complete)_  
+_Next update: After Phase 7 (Mock Data Review) completion_

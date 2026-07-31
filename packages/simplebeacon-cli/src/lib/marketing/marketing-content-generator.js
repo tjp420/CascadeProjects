@@ -20,7 +20,7 @@ const TONE_DEFAULTS = {
   newsletter: 'friendly',
   'case-study': 'professional',
   'press-kit': 'formal',
-  'one-pager': 'concise'
+  'one-pager': 'concise',
 };
 
 function resolveTone(channel, options = {}) {
@@ -37,7 +37,8 @@ function extractScanHighlights(report = {}) {
   const findings = {
     gatePass: gate.pass ?? false,
     qualityScore: report.qualityScore ?? summary.qualityScore ?? 100,
-    filesScanned: report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? report.repositoryFilesTotal ?? 0,
+    filesScanned:
+      report.ruleScopedFilesAnalyzed ?? report.filesAnalyzed ?? report.repositoryFilesTotal ?? 0,
     blockingCount: gate.blockingCount ?? 0,
     warningCount: gate.warningCount ?? 0,
     credentialFindings: report.credentialFindings ?? 0,
@@ -47,7 +48,7 @@ function extractScanHighlights(report = {}) {
     euAiActScore: compliance.score ?? report.euAiActReadinessScore ?? 100,
     npmVulnerabilities: report.npmVulnerabilities ?? 0,
     compliancePassed: compliance.passed ?? report.compliancePassed ?? 0,
-    complianceFailed: compliance.failed ?? report.complianceFailed ?? 0
+    complianceFailed: compliance.failed ?? report.complianceFailed ?? 0,
   };
 
   const topFindings = (report.detectedIssues || report.rawIssues || [])
@@ -57,19 +58,21 @@ function extractScanHighlights(report = {}) {
       type: i.type,
       severity: i.severity,
       description: i.description,
-      affectedFiles: (i.affectedFiles || []).slice(0, 2)
+      affectedFiles: (i.affectedFiles || []).slice(0, 2),
     }));
 
   return { findings, topFindings, scanScope };
 }
 
 function resolveProjectName(report = {}) {
-  return report.projectName
-    || report.projectLabel
-    || (report.projectPath ? path.basename(report.projectPath) : null)
-    || (report.platformRoot ? path.basename(report.platformRoot) : null)
-    || (report.scanTargetRoot ? path.basename(report.scanTargetRoot) : null)
-    || 'your project';
+  return (
+    report.projectName ||
+    report.projectLabel ||
+    (report.projectPath ? path.basename(report.projectPath) : null) ||
+    (report.platformRoot ? path.basename(report.platformRoot) : null) ||
+    (report.scanTargetRoot ? path.basename(report.scanTargetRoot) : null) ||
+    'your project'
+  );
 }
 
 function generateBlogPost(report, options = {}) {
@@ -94,7 +97,7 @@ function generateBlogPost(report, options = {}) {
     `- **Warnings:** ${findings.warningCount}`,
     `- **Credential findings:** ${findings.credentialFindings}`,
     `- **Production leak findings:** ${findings.productionLeakFindings}`,
-    ''
+    '',
   ];
 
   if (topFindings.length > 0) {
@@ -114,7 +117,9 @@ function generateBlogPost(report, options = {}) {
     sections.push('');
     sections.push(`- **AI system indicators:** ${findings.euAiActFindings}`);
     sections.push(`- **Readiness score:** ${findings.euAiActScore}/100`);
-    sections.push(`- **Compliance status:** ${findings.euAiActScore >= 80 ? 'On track' : 'Needs attention'}`);
+    sections.push(
+      `- **Compliance status:** ${findings.euAiActScore >= 80 ? 'On track' : 'Needs attention'}`
+    );
     sections.push('');
   }
 
@@ -123,9 +128,9 @@ function generateBlogPost(report, options = {}) {
   sections.push(
     findings.gatePass
       ? `With zero blocking issues, ${projectName} meets the hygiene bar for automated deploy gates. ` +
-        `The scan caught ${findings.warningCount} warning-level items before they reached production.`
+          `The scan caught ${findings.warningCount} warning-level items before they reached production.`
       : `The ${findings.blockingCount} blocking issue(s) would have failed the CI gate. ` +
-        `Fixing them now prevents production incidents and compliance gaps.`
+          `Fixing them now prevents production incidents and compliance gaps.`
   );
   sections.push('');
 
@@ -147,10 +152,10 @@ function generateTwitterThread(report, options = {}) {
 
   const tweets = [
     `We just ran @simplebeacon on ${projectName}.\n\n` +
-    `${findings.filesScanned} files scanned.\n` +
-    `Gate: ${findings.gatePass ? 'PASS' : 'FAIL'}.\n` +
-    `Score: ${findings.qualityScore}/100.\n\n` +
-    `Thread on what we found `,
+      `${findings.filesScanned} files scanned.\n` +
+      `Gate: ${findings.gatePass ? 'PASS' : 'FAIL'}.\n` +
+      `Score: ${findings.qualityScore}/100.\n\n` +
+      `Thread on what we found `,
 
     findings.credentialFindings > 0
       ? `Credential check: ${findings.credentialFindings} pattern(s) detected in production paths.\n\n` +
@@ -161,22 +166,22 @@ function generateTwitterThread(report, options = {}) {
     findings.productionLeakFindings > 0
       ? `Production leak check: ${findings.productionLeakFindings} mock/sample path reference(s) in server code.\n\n` +
         `Catching require('../web/data/foo-sample.json') before it ships.`
-      : `No mock data leaks detected. Sample JSON stayed in sample directories where it belongs.`
+      : `No mock data leaks detected. Sample JSON stayed in sample directories where it belongs.`,
   ];
 
   if (findings.euAiActFindings > 0) {
     tweets.push(
       `EU AI Act scan: ${findings.euAiActFindings} AI system indicator(s).\n\n` +
-      `Readiness score: ${findings.euAiActScore}/100.\n\n` +
-      `${findings.euAiActScore >= 80 ? 'On track for August 2026.' : 'Work to do before the deadline.'}`
+        `Readiness score: ${findings.euAiActScore}/100.\n\n` +
+        `${findings.euAiActScore >= 80 ? 'On track for August 2026.' : 'Work to do before the deadline.'}`
     );
   }
 
   tweets.push(
     `Run it yourself:\n` +
-    `npx simplebeacon scan --gate\n\n` +
-    `Sub-second scan. No config required for most repos.\n\n` +
-    `#DevOps #AIGovernance #EUAIAct #CISecurity`
+      `npx simplebeacon scan --gate\n\n` +
+      `Sub-second scan. No config required for most repos.\n\n` +
+      `#DevOps #AIGovernance #EUAIAct #CISecurity`
   );
 
   return tweets.map((t, i) => `${i + 1}/${tweets.length}\n${t}`).join('\n\n---\n\n');
@@ -194,7 +199,7 @@ function generateLinkedInPost(report, options = {}) {
     `**Quality score:** ${findings.qualityScore}/100`,
     `**Blocking issues:** ${findings.blockingCount}`,
     `**Warnings:** ${findings.warningCount}`,
-    ''
+    '',
   ];
 
   if (topFindings.length > 0) {
@@ -204,8 +209,8 @@ function generateLinkedInPost(report, options = {}) {
 
   lines.push(
     `Simplebeacon fills the gap between dependency scanners (Snyk, Dependabot) and runtime security. ` +
-    `It checks for mock data leaks in production code, credential patterns, JSON schema drift, and EU AI Act readiness — ` +
-    `in under a second for typical repos.`
+      `It checks for mock data leaks in production code, credential patterns, JSON schema drift, and EU AI Act readiness — ` +
+      `in under a second for typical repos.`
   );
   lines.push('');
   lines.push(`Want to see your numbers? Run:  npx simplebeacon scan --gate`);
@@ -224,11 +229,13 @@ function generateNewsletter(report, options = {}) {
     '',
     `Hi there,`,
     '',
-    `Here is your monthly Simplebeacon hygiene summary for ${projectName}:`
+    `Here is your monthly Simplebeacon hygiene summary for ${projectName}:`,
   ];
 
   lines.push('');
-  lines.push(`**Overall health:** ${findings.gatePass ? 'PASS' : 'FAIL'} (${findings.qualityScore}/100)`);
+  lines.push(
+    `**Overall health:** ${findings.gatePass ? 'PASS' : 'FAIL'} (${findings.qualityScore}/100)`
+  );
   lines.push(`**Files scanned:** ${findings.filesScanned}`);
   lines.push(`**Blocking issues:** ${findings.blockingCount}`);
   lines.push(`**Warnings:** ${findings.warningCount}`);
@@ -237,16 +244,16 @@ function generateNewsletter(report, options = {}) {
     lines.push(`**Credential findings:** ${findings.credentialFindings} — review recommended`);
   }
   if (findings.productionLeakFindings > 0) {
-    lines.push(`**Production leaks:** ${findings.productionLeakFindings} — mock data in production paths`);
+    lines.push(
+      `**Production leaks:** ${findings.productionLeakFindings} — mock data in production paths`
+    );
   }
   if (findings.euAiActFindings > 0) {
     lines.push(`**EU AI Act readiness:** ${findings.euAiActScore}/100`);
   }
 
   lines.push('');
-  lines.push(
-    `Want the full report? Run:  npx simplebeacon scan --gate  in your repo root.`
-  );
+  lines.push(`Want the full report? Run:  npx simplebeacon scan --gate  in your repo root.`);
   lines.push('');
   lines.push(`— The Simplebeacon Team`);
 
@@ -264,8 +271,8 @@ function generateCaseStudy(report, options = {}) {
     `## Background`,
     '',
     `${projectName} is a ${industry} company that needed automated hygiene checks ` +
-    `before merging code to production. Their existing CI pipeline caught dependency CVEs ` +
-    `but missed mock data leaks and credential patterns in application code.`,
+      `before merging code to production. Their existing CI pipeline caught dependency CVEs ` +
+      `but missed mock data leaks and credential patterns in application code.`,
     '',
     `## Challenge`,
     '',
@@ -289,7 +296,7 @@ function generateCaseStudy(report, options = {}) {
     `| Gate result | — | ${findings.gatePass ? 'PASS' : 'FAIL'} |`,
     `| Quality score | — | ${findings.qualityScore}/100 |`,
     `| Blocking issues | — | ${findings.blockingCount} |`,
-    `| Warnings | — | ${findings.warningCount} |`
+    `| Warnings | — | ${findings.warningCount} |`,
   ];
 
   if (findings.credentialFindings > 0 || findings.productionLeakFindings > 0) {
@@ -327,7 +334,7 @@ function generateOnePager(report, options = {}) {
     `## What it does`,
     '',
     `Simplebeacon is a CI hygiene gate that catches mock data leaks, credential patterns, ` +
-    `JSON schema drift, and EU AI Act compliance gaps — in under a second for typical repos.`,
+      `JSON schema drift, and EU AI Act compliance gaps — in under a second for typical repos.`,
     '',
     `## How it works`,
     '',
@@ -345,7 +352,7 @@ function generateOnePager(report, options = {}) {
     `| Quality score | ${findings.qualityScore}/100 |`,
     `| Blocking issues | ${findings.blockingCount} |`,
     `| Credential findings | ${findings.credentialFindings} |`,
-    `| Production leaks | ${findings.productionLeakFindings} |`
+    `| Production leaks | ${findings.productionLeakFindings} |`,
   ];
 
   if (findings.euAiActFindings > 0) {
@@ -391,12 +398,12 @@ function generatePressKit(report, options = {}) {
     `## What is Simplebeacon?`,
     '',
     `Simplebeacon is an open-source CLI tool that adds a hygiene layer to CI/CD pipelines. ` +
-    `It scans repos for mock data leaks in production code, credential patterns, ` +
-    `JSON schema drift, fiction KPIs, and EU AI Act compliance gaps — failing the build ` +
-    `before bad code ships.`,
+      `It scans repos for mock data leaks in production code, credential patterns, ` +
+      `JSON schema drift, fiction KPIs, and EU AI Act compliance gaps — failing the build ` +
+      `before bad code ships.`,
     '',
     `Unlike dependency scanners (Snyk, Dependabot), Simplebeacon checks your *application* code ` +
-    `for anti-patterns that static analysis and CVE databases do not cover.`,
+      `for anti-patterns that static analysis and CVE databases do not cover.`,
     '',
     `## Key metrics (from latest scan)`,
     '',
@@ -406,7 +413,7 @@ function generatePressKit(report, options = {}) {
     `| Typical scan time | < 1 second |`,
     `| Gate pass rate (this repo) | ${findings.gatePass ? '100%' : 'Needs fixes'} |`,
     `| Quality score | ${findings.qualityScore}/100 |`,
-    `| EU AI Act readiness | ${findings.euAiActScore}/100 |`
+    `| EU AI Act readiness | ${findings.euAiActScore}/100 |`,
   ];
 
   lines.push('');
@@ -419,7 +426,9 @@ function generatePressKit(report, options = {}) {
   lines.push('');
   lines.push(`## Quotes`);
   lines.push('');
-  lines.push(`> "Simplebeacon caught a production leak in our server routes that Snyk never flagged."`);
+  lines.push(
+    `> "Simplebeacon caught a production leak in our server routes that Snyk never flagged."`
+  );
   lines.push(`> — Engineering Lead, ${report.projectName || 'AI Platform Company'}`);
   lines.push('');
   lines.push(`## Assets`);
@@ -437,7 +446,10 @@ function generatePressKit(report, options = {}) {
 
 function generateLandingPage(report, options = {}) {
   const { findings } = extractScanHighlights(report);
-  const templatePath = path.join(__dirname, '../../../docs/marketing/content-templates/landing-page-template.html');
+  const templatePath = path.join(
+    __dirname,
+    '../../../docs/marketing/content-templates/landing-page-template.html'
+  );
   let template;
   try {
     template = fs.readFileSync(templatePath, 'utf8');
@@ -452,7 +464,7 @@ function generateLandingPage(report, options = {}) {
     '{{filesScanned}}': findings.filesScanned.toLocaleString(),
     '{{qualityScore}}': findings.qualityScore,
     '{{blockingCount}}': findings.blockingCount,
-    '{{euAiActScore}}': findings.euAiActScore
+    '{{euAiActScore}}': findings.euAiActScore,
   };
 
   let html = template;
@@ -485,12 +497,23 @@ function generateMarketingContent(report, options = {}) {
     case 'landing-page':
       return generateLandingPage(report, options);
     default:
-      throw new Error(`Unknown channel: ${channel}. Supported: blog, twitter, linkedin, newsletter, case-study, press-kit, one-pager, landing-page`);
+      throw new Error(
+        `Unknown channel: ${channel}. Supported: blog, twitter, linkedin, newsletter, case-study, press-kit, one-pager, landing-page`
+      );
   }
 }
 
 function generateAllChannels(report, options = {}) {
-  const channels = ['blog', 'twitter', 'linkedin', 'newsletter', 'case-study', 'press-kit', 'one-pager', 'landing-page'];
+  const channels = [
+    'blog',
+    'twitter',
+    'linkedin',
+    'newsletter',
+    'case-study',
+    'press-kit',
+    'one-pager',
+    'landing-page',
+  ];
   const outputDir = options.outputDir || process.cwd();
 
   if (!fs.existsSync(outputDir)) {
@@ -521,5 +544,5 @@ module.exports = {
   generateNewsletter,
   generateCaseStudy,
   generatePressKit,
-  generateOnePager
+  generateOnePager,
 };

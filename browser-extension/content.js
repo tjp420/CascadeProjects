@@ -28,30 +28,27 @@
     if (!detail || !detail.id) {
       return;
     }
-    chrome.runtime.sendMessage(
-      { type: 'AGENT_REQUEST', detail },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          window.dispatchEvent(
-            new CustomEvent('simplebeacon-agent-response', {
-              detail: {
-                id: detail.id,
-                ok: false,
-                status: 0,
-                body: { success: false, error: chrome.runtime.lastError.message }
-              },
-              bubbles: true
-            })
-          );
-          return;
-        }
+    chrome.runtime.sendMessage({ type: 'AGENT_REQUEST', detail }, (response) => {
+      if (chrome.runtime.lastError) {
         window.dispatchEvent(
           new CustomEvent('simplebeacon-agent-response', {
-            detail: response,
-            bubbles: true
+            detail: {
+              id: detail.id,
+              ok: false,
+              status: 0,
+              body: { success: false, error: chrome.runtime.lastError.message },
+            },
+            bubbles: true,
           })
         );
+        return;
       }
-    );
+      window.dispatchEvent(
+        new CustomEvent('simplebeacon-agent-response', {
+          detail: response,
+          bubbles: true,
+        })
+      );
+    });
   });
-}());
+})();

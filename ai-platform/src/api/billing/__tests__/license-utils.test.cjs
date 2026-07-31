@@ -7,7 +7,7 @@ const {
   isValidEmail,
   isValidLicenseTier,
   VALID_LICENSE_TIERS,
-  checkoutModeForProduct
+  checkoutModeForProduct,
 } = require('../license-utils.cjs');
 
 describe('license-utils', () => {

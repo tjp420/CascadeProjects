@@ -7,74 +7,106 @@
  */
 
 function isPublicRegistrationAllowed() {
-    return String(process.env.SIMPLEBEACON_ALLOW_PUBLIC_REGISTRATION || '').toLowerCase() === 'true';
+  return String(process.env.SIMPLEBEACON_ALLOW_PUBLIC_REGISTRATION || '').toLowerCase() === 'true';
 }
 
 function registrationRequiresApproval() {
-    return String(process.env.SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE || '').toLowerCase() !== 'true';
+  return String(process.env.SIMPLEBEACON_REGISTRATION_AUTO_ACTIVATE || '').toLowerCase() !== 'true';
 }
 
 function normalizeEmail(email) {
-    return String(email || '').trim().toLowerCase();
+  return String(email || '')
+    .trim()
+    .toLowerCase();
 }
 
 function normalizeUsername(username) {
-    return String(username || '').trim().toLowerCase();
+  return String(username || '')
+    .trim()
+    .toLowerCase();
 }
 
 function validateRegistrationPayload(body = {}) {
-    const email = normalizeEmail(body.email);
-    const usernameInput = normalizeUsername(body.username);
-    const nameInput = String(body.name || '').trim();
-    const password = String(body.password || '');
-    const confirmPassword = String(body.confirmPassword || body.confirm_password || '');
-    const confirmProvided = body.confirmPassword !== undefined || body.confirm_password !== undefined;
+  const email = normalizeEmail(body.email);
+  const usernameInput = normalizeUsername(body.username);
+  const nameInput = String(body.name || '').trim();
+  const password = String(body.password || '');
+  const confirmPassword = String(body.confirmPassword || body.confirm_password || '');
+  const confirmProvided = body.confirmPassword !== undefined || body.confirm_password !== undefined;
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        return { ok: false, status: 400, error: 'invalid_email', message: 'Enter a valid email address.' };
-    }
-    if (!password || password.length < 8) {
-        return { ok: false, status: 400, error: 'weak_password', message: 'Password must be at least 8 characters.' };
-    }
-    if (confirmProvided && password !== confirmPassword) {
-        return { ok: false, status: 400, error: 'password_mismatch', message: 'Passwords do not match.' };
-    }
-
-    let name = nameInput;
-    if (!name) {
-        const local = email.split('@')[0] || '';
-        name = local.replace(/[^a-z0-9]/gi, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim();
-        if (!name || name.length < 2) name = 'New User';
-    }
-    if (name.length < 2 || name.length > 80) {
-        return { ok: false, status: 400, error: 'invalid_name', message: 'Enter your full name (2–80 characters).' };
-    }
-
-    let username = usernameInput;
-    if (!username) {
-        const local = email.split('@')[0] || '';
-        username = local.replace(/[^a-z0-9_]/g, '').slice(0, 32);
-        if (username.length < 3) {
-            username = ('user' + Date.now()).slice(0, 32);
-        }
-    }
-    if (!/^[a-z0-9_]{3,32}$/.test(username)) {
-        return { ok: false, status: 400, error: 'invalid_username', message: 'Username must be 3–32 characters (letters, numbers, underscore).' };
-    }
-
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return {
-        ok: true,
-        email,
-        username,
-        name,
-        password
+      ok: false,
+      status: 400,
+      error: 'invalid_email',
+      message: 'Enter a valid email address.',
     };
+  }
+  if (!password || password.length < 8) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'weak_password',
+      message: 'Password must be at least 8 characters.',
+    };
+  }
+  if (confirmProvided && password !== confirmPassword) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'password_mismatch',
+      message: 'Passwords do not match.',
+    };
+  }
+
+  let name = nameInput;
+  if (!name) {
+    const local = email.split('@')[0] || '';
+    name = local
+      .replace(/[^a-z0-9]/gi, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .trim();
+    if (!name || name.length < 2) name = 'New User';
+  }
+  if (name.length < 2 || name.length > 80) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'invalid_name',
+      message: 'Enter your full name (2–80 characters).',
+    };
+  }
+
+  let username = usernameInput;
+  if (!username) {
+    const local = email.split('@')[0] || '';
+    username = local.replace(/[^a-z0-9_]/g, '').slice(0, 32);
+    if (username.length < 3) {
+      username = ('user' + Date.now()).slice(0, 32);
+    }
+  }
+  if (!/^[a-z0-9_]{3,32}$/.test(username)) {
+    return {
+      ok: false,
+      status: 400,
+      error: 'invalid_username',
+      message: 'Username must be 3–32 characters (letters, numbers, underscore).',
+    };
+  }
+
+  return {
+    ok: true,
+    email,
+    username,
+    name,
+    password,
+  };
 }
 
 module.exports = {
-    isPublicRegistrationAllowed,
-    registrationRequiresApproval,
-    normalizeEmail,
-    normalizeUsername,
-    validateRegistrationPayload
+  isPublicRegistrationAllowed,
+  registrationRequiresApproval,
+  normalizeEmail,
+  normalizeUsername,
+  validateRegistrationPayload,
 };

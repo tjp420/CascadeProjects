@@ -6,7 +6,7 @@ import {
   resolveJestTestsLabel,
   resolvePageSpecsLabel,
   formatScanScopeSummary,
-  formatScanInventoryNote
+  formatScanInventoryNote,
 } from '../services/analyzeService.js';
 import { scanService } from '../services/scanService.js';
 import { renderConsolidationPanel } from '../components/ConsolidationReport.js';
@@ -21,11 +21,11 @@ function npmAuditSummary(audit) {
   const deps = audit?.dependencies || audit?.metadata?.dependencies || {};
   return {
     dependencies: summary.dependencies ?? deps.total ?? null,
-    vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? (audit?.vulnerabilities?.length ?? 0),
+    vulnerabilityTotal: summary.vulnerabilityTotal ?? summary.total ?? audit?.vulnerabilities?.length ?? 0,
     critical: summary.critical ?? 0,
     high: summary.high ?? 0,
     moderate: summary.moderate ?? summary.medium ?? 0,
-    low: summary.low ?? 0
+    low: summary.low ?? 0,
   };
 }
 
@@ -41,7 +41,7 @@ function renderScanSnapshot(report, baseline, dashboardHome) {
     return renderEmptyState({
       icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
       title: 'No scan report loaded',
-      body: 'Run Simplebeacon Scan to populate metrics.'
+      body: 'Run Simplebeacon Scan to populate metrics.',
     });
   }
 
@@ -89,7 +89,7 @@ export class ToolsView {
       { id: 'tools-section-consolidation', label: 'Consolidation' },
       { id: 'tools-section-snapshot', label: 'Snapshot' },
       { id: 'tools-section-repo', label: 'Repository' },
-      { id: 'tools-section-workflows', label: 'Workflows' }
+      { id: 'tools-section-workflows', label: 'Workflows' },
     ];
     return `
       <nav class="settings-nav" style="
@@ -106,7 +106,9 @@ export class ToolsView {
         gap:var(--space-1);
         flex-wrap:wrap;">
         <span style="font-weight:600;font-size:0.875rem;margin-right:var(--space-2);color:var(--text-secondary);">Jump to:</span>
-        ${sections.map((s) => `
+        ${sections
+          .map(
+            (s) => `
           <a href="#${s.id}" class="settings-nav-link" data-scroll-to="${s.id}" style="
             padding:4px 10px;
             border-radius:999px;
@@ -120,7 +122,9 @@ export class ToolsView {
             cursor:pointer;">
             ${escapeHtml(s.label)}
           </a>
-        `).join('')}
+        `
+          )
+          .join('')}
       </nav>
     `;
   }
@@ -134,7 +138,7 @@ export class ToolsView {
 
     const el = document.createElement('div');
     el.className = this._hasPainted ? '' : 'fade-in';
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     el.innerHTML = `
       <div class="analyze-hero">
         <h1 class="page-title">Tools</h1>
@@ -152,12 +156,34 @@ export class ToolsView {
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:var(--space-3);margin-bottom:var(--space-4);">
           ${[
-            { action: 'scan', icon: this.running === 'scan' || this.app.state.scanning ? '⏳' : '✅', title: 'Run Scan', desc: 'Regenerate .simplebeacon/report.json with gate' },
-            { action: 'baseline', icon: this.running === 'baseline' ? '⏳' : '🔄', title: 'Sync Baseline', desc: 'Update Jest counts in baseline.json' },
-            { action: 'audit', icon: this.running === 'audit' ? '⏳' : '🛡️', title: 'npm audit', desc: 'Live dependency vulnerability scan' },
+            {
+              action: 'scan',
+              icon: this.running === 'scan' || this.app.state.scanning ? '⏳' : '✅',
+              title: 'Run Scan',
+              desc: 'Regenerate .simplebeacon/report.json with gate',
+            },
+            {
+              action: 'baseline',
+              icon: this.running === 'baseline' ? '⏳' : '🔄',
+              title: 'Sync Baseline',
+              desc: 'Update Jest counts in baseline.json',
+            },
+            {
+              action: 'audit',
+              icon: this.running === 'audit' ? '⏳' : '🛡️',
+              title: 'npm audit',
+              desc: 'Live dependency vulnerability scan',
+            },
             { action: 'export', icon: '📥', title: 'Export Report', desc: 'Download current report JSON' },
-            { action: 'consolidation', icon: this.reductionLoading ? '⏳' : '🔀', title: 'Consolidation', desc: 'Find duplicate JSON and merge candidates' }
-          ].map((btn) => `
+            {
+              action: 'consolidation',
+              icon: this.reductionLoading ? '⏳' : '🔀',
+              title: 'Consolidation',
+              desc: 'Find duplicate JSON and merge candidates',
+            },
+          ]
+            .map(
+              (btn) => `
             <button class="card card-interactive" data-action="${btn.action}" ${busy ? 'disabled' : ''} style="
               display:flex;
               align-items:flex-start;
@@ -176,7 +202,9 @@ export class ToolsView {
                 <div style="font-size:var(--font-size-xs);color:var(--text-secondary);line-height:1.4;">${escapeHtml(btn.desc)}</div>
               </div>
             </button>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
         <div id="tool-output" role="status" aria-live="polite" class="card ${this.lastOutput && this.lastOutput.visible !== false ? '' : 'hidden'}" style="padding:var(--space-4);">${this.lastOutput?.html || ''}</div>
       </div>
@@ -268,7 +296,7 @@ export class ToolsView {
     const output = el?.querySelector('#tool-output');
     if (!output) return;
     output.classList.toggle('hidden', !visible);
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     output.innerHTML = html;
   }
 
@@ -308,14 +336,18 @@ export class ToolsView {
         const audit = await this.app.platformService.refreshNpmAudit({ force: true });
         this.app.state.npmAudit = audit;
         const s = npmAuditSummary(audit);
-        const msg = s.dependencies != null
-          ? `${formatNumber(s.dependencies)} dependencies · ${s.vulnerabilityTotal} vulnerabilities`
-          : 'npm audit complete';
+        const msg =
+          s.dependencies != null
+            ? `${formatNumber(s.dependencies)} dependencies · ${s.vulnerabilityTotal} vulnerabilities`
+            : 'npm audit complete';
         showToast(msg, s.vulnerabilityTotal ? 'info' : 'success');
-        this.setOutput(el, `
+        this.setOutput(
+          el,
+          `
           <p class="text-success">${escapeHtml(msg)}</p>
           <p class="text-muted text-sm mt-2">View full details on <a href="/dashboard/quality">Quality & Security</a>.</p>
-        `);
+        `
+        );
         return;
       }
       if (action === 'export') {
@@ -363,21 +395,23 @@ export class ToolsView {
     return renderConsolidationPanel({
       scan: this.reductionScan,
       loading: this.reductionLoading,
-      error: this.reductionScan?.error
+      error: this.reductionScan?.error,
     });
   }
 
   renderToolGrid(el, tools) {
     const grid = el.querySelector('#tool-grid');
     if (!tools.length) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+      // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       grid.innerHTML = this._platformLoadAttempted
         ? '<p class="text-muted card">No repository tools configured — run a consolidation scan to discover available tools.</p>'
         : '<p class="text-muted"><span class="loading-spinner"></span> Loading repository tools…</p>';
       return;
     }
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    grid.innerHTML = tools.map((t) => `
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    grid.innerHTML = tools
+      .map(
+        (t) => `
       <div class="tool-card">
         <div class="tool-card-header">
           <span>${t.icon || '🔧'}</span>
@@ -388,31 +422,37 @@ export class ToolsView {
         <div class="tool-card-meta">${escapeHtml(t.category)} · ${escapeHtml(t.avgTime || '—')}</div>
         ${t.section ? `<span class="tool-card-meta">Section: ${escapeHtml(t.section)}</span>` : ''}
       </div>
-    `).join('');
+    `
+      )
+      .join('');
   }
 
   renderWorkflows(el, workflows) {
     const tbody = el.querySelector('#workflow-body');
     if (!workflows.length) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+      // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
       tbody.innerHTML = this._platformLoadAttempted
         ? '<tr><td colspan="4" class="text-muted">No CI workflows configured — run a consolidation scan to discover workflow configurations.</td></tr>'
         : '<tr><td colspan="4" class="text-muted"><span class="loading-spinner"></span> Loading workflows…</td></tr>';
       return;
     }
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
-    tbody.innerHTML = workflows.map((w) => `
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    tbody.innerHTML = workflows
+      .map(
+        (w) => `
       <tr>
         <td><strong>${escapeHtml(w.name)}</strong><br><span class="text-muted">${escapeHtml(w.description)}</span></td>
         <td><span class="severity-pill ${w.status === 'running' ? 'low' : w.status === 'deferred' ? 'medium' : 'high'}">${escapeHtml(w.status)}</span></td>
         <td>${(w.tools || []).join(', ')}</td>
         <td>${escapeHtml(w.lastRun || '—')}</td>
       </tr>
-    `).join('');
+    `
+      )
+      .join('');
   }
 
   _paint(container) {
-// TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
+    // TODO(security): review innerHTML usage here and sanitize dynamic content where applicable.
     container.innerHTML = '';
     container.appendChild(this.render());
     this._hasPainted = true;

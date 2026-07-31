@@ -4,14 +4,18 @@ jest.mock('../../shared-utils/index.cjs', () => {
     if (path === 'sales/license/renewal-tracker.js') {
       return {
         checkExpiringLicenses: jest.fn((records, days) =>
-          records.filter(r => {
-            const diff = Math.ceil((new Date(r.expiresAt) - Date.now()) / (1000 * 60 * 60 * 24));
-            return diff <= days;
-          }).map(r => ({
-            ...r,
-            daysRemaining: Math.ceil((new Date(r.expiresAt) - Date.now()) / (1000 * 60 * 60 * 24))
-          }))
-        )
+          records
+            .filter((r) => {
+              const diff = Math.ceil((new Date(r.expiresAt) - Date.now()) / (1000 * 60 * 60 * 24));
+              return diff <= days;
+            })
+            .map((r) => ({
+              ...r,
+              daysRemaining: Math.ceil(
+                (new Date(r.expiresAt) - Date.now()) / (1000 * 60 * 60 * 24)
+              ),
+            }))
+        ),
       };
     }
     return require(path);
@@ -45,7 +49,7 @@ describe('dispatchAutomatedRenewalEmails', () => {
     global.fetch.mockResolvedValue({ ok: true, text: async () => '' });
 
     const records = [
-      { companyId: 'acme', customerEmail: 'admin@acme.com', expiresAt: '2026-07-10', tier: 'team' }
+      { companyId: 'acme', customerEmail: 'admin@acme.com', expiresAt: '2026-07-10', tier: 'team' },
     ];
 
     const result = await dispatchAutomatedRenewalEmails(records);
@@ -61,7 +65,12 @@ describe('dispatchAutomatedRenewalEmails', () => {
     global.fetch.mockRejectedValue(new Error('Network failure'));
 
     const records = [
-      { companyId: 'fail-corp', customerEmail: 'fail@corp.com', expiresAt: '2026-07-05', tier: 'enterprise' }
+      {
+        companyId: 'fail-corp',
+        customerEmail: 'fail@corp.com',
+        expiresAt: '2026-07-05',
+        tier: 'enterprise',
+      },
     ];
 
     const result = await dispatchAutomatedRenewalEmails(records);
@@ -74,7 +83,7 @@ describe('dispatchAutomatedRenewalEmails', () => {
 
     const records = [
       { companyId: 'now', customerEmail: 'a@b.com', expiresAt: '2026-07-05', tier: 'team' },
-      { companyId: 'later', customerEmail: 'c@d.com', expiresAt: '2027-01-01', tier: 'enterprise' }
+      { companyId: 'later', customerEmail: 'c@d.com', expiresAt: '2027-01-01', tier: 'enterprise' },
     ];
 
     const result = await dispatchAutomatedRenewalEmails(records);

@@ -1,11 +1,7 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, debug artifacts, and EU AI Act indicators — all findings are false positives
 import { escapeHtml, formatPercent } from '../utils.js';
 import { canUseDirectoryPicker, isFilePickerBlockedError, filePickerBlockedMessage } from '../utils-lib/dom.js';
-import {
-  resolveDisplayScore,
-  formatScanScopeSummary,
-  formatScanInventoryNote
-} from '../services/analyzeService.js';
+import { resolveDisplayScore, formatScanScopeSummary, formatScanInventoryNote } from '../services/analyzeService.js';
 
 /**
  * Resolve initial scan root.
@@ -46,11 +42,11 @@ export function runDashboardScanFromInput(input, options = {}) {
     onRescan,
     getLastProjectPath = () => '',
     setLastProjectPath = () => {},
-    getDefaultProjectPath = () => ''
+    getDefaultProjectPath = () => '',
   } = options;
   if (!onRescan) return;
   let path = resolveScanRootFromInput(input, {
-    lastProjectPath: getLastProjectPath()
+    lastProjectPath: getLastProjectPath(),
   });
   if (!path) {
     path = getDefaultProjectPath();
@@ -290,7 +286,7 @@ export function bindScanStatus(container, options = {}) {
     onRescan,
     getLastProjectPath = () => '',
     setLastProjectPath = () => {},
-    getDefaultProjectPath = () => ''
+    getDefaultProjectPath = () => '',
   } = options;
 
   const input = container.querySelector('#scan-root-input');
@@ -306,17 +302,17 @@ export function bindScanStatus(container, options = {}) {
     if (fallbackPath) input.value = fallbackPath;
   }
 
-/**
- * Run scan.
- * @returns {any}
- */
+  /**
+   * Run scan.
+   * @returns {any}
+   */
   const runScan = () => runDashboardScanFromInput(input, options);
 
   // Derive a sensible home base for path fallbacks (e.g. C:/Users/Trevor)
-/**
- * Derive user home base.
- * @returns {any}
- */
+  /**
+   * Derive user home base.
+   * @returns {any}
+   */
   function deriveUserHomeBase() {
     const defaultPath = getDefaultProjectPath() || getLastProjectPath() || '';
     if (defaultPath) {
@@ -402,8 +398,7 @@ export function bindScanStatus(container, options = {}) {
 
   // Detect environments (e.g. Electron) where file inputs expose real absolute paths.
   const isElectronLike = Boolean(
-    typeof window !== 'undefined' &&
-    (window.process?.versions?.electron || /Electron/.test(navigator.userAgent))
+    typeof window !== 'undefined' && (window.process?.versions?.electron || /Electron/.test(navigator.userAgent))
   );
 
   // Browse button — use File System Access API when available, fall back to hidden file input
@@ -411,8 +406,8 @@ export function bindScanStatus(container, options = {}) {
     // In Electron-like environments skip showDirectoryPicker because it cannot
     // reveal absolute paths; the webkitdirectory fallback gives files with .path.
     if (canUseDirectoryPicker() && !isElectronLike) {
-        try {
-          const dirHandle = await window.showDirectoryPicker();
+      try {
+        const dirHandle = await window.showDirectoryPicker();
         const folderName = dirHandle.name || '';
         const homePath = deriveUserHomeBase();
         const fallbackPath = `${homePath}/${folderName}`;
@@ -432,9 +427,11 @@ export function bindScanStatus(container, options = {}) {
         return;
       } catch (err) {
         if (err.name !== 'AbortError') {
-          window["console"]["warn"]('[ScanStatus] Directory picker failed:', err);
+          window['console']['warn']('[ScanStatus] Directory picker failed:', err);
           if (isFilePickerBlockedError(err)) {
-            try { if (browseInput) browseInput.click(); } catch (_) { }
+            try {
+              if (browseInput) browseInput.click();
+            } catch (_) {}
             const toast = document.getElementById('toast-container');
             if (toast) {
               const msg = document.createElement('div');
@@ -565,4 +562,3 @@ export function bindScanStatus(container, options = {}) {
     });
   }
 }
-

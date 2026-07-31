@@ -6,14 +6,15 @@ import { escapeHtml, formatNumber } from '../utils.js';
 
 const MAX_ROWS = 200;
 
-
 /**
  * Normalize rel path.
  * @param {any} value
  * @returns {any}
  */
 function normalizeRelPath(value) {
-  return String(value || '').replace(/\\/g, '/').replace(/^\.\//, '');
+  return String(value || '')
+    .replace(/\\/g, '/')
+    .replace(/^\.\//, '');
 }
 
 /**
@@ -32,30 +33,35 @@ function isExcludedAnalyzePath(value) {
  * @returns {any}
  */
 function isIntentionalConsolidationCandidate(item) {
-/**
- * Paths.
- * @param {string} item?.files || []
- * @returns {any}
- */
-  const paths = (item?.files || []).map((file) =>
-    normalizeRelPath(typeof file === 'string' ? file : (file.path || file.relativePath || file.name))
-  ).filter(Boolean);
+  /**
+   * Paths.
+   * @param {string} item?.files || []
+   * @returns {any}
+   */
+  const paths = (item?.files || [])
+    .map((file) =>
+      normalizeRelPath(
+        typeof file === 'string' ? file : file.path || file.relativePath || file.name
+      )
+    )
+    .filter(Boolean);
   if (paths.some(isExcludedAnalyzePath)) return true;
   if (paths.length !== 2) return false;
   const [a, b] = paths;
   const browserRe = /\.browser\.(js|mjs|cjs|ts|tsx)$/i;
-/**
- * To source.
- * @param {any} p
- * @returns {any}
- */
+  /**
+   * To source.
+   * @param {any} p
+   * @returns {any}
+   */
   const toSource = (p) => p.replace(/\.browser\.(js|mjs|cjs|ts|tsx)$/i, '.$1');
-  if ((browserRe.test(a) || browserRe.test(b)) && (toSource(a) === b || toSource(b) === a)) return true;
-/**
- * Is mcp config.
- * @param {any} p
- * @returns {any}
- */
+  if ((browserRe.test(a) || browserRe.test(b)) && (toSource(a) === b || toSource(b) === a))
+    return true;
+  /**
+   * Is mcp config.
+   * @param {any} p
+   * @returns {any}
+   */
   const isMcpConfig = (p) => p.endsWith('mcp.json') || /\/examples\/mcp\//.test(p);
   return isMcpConfig(a) && isMcpConfig(b);
 }
@@ -70,8 +76,10 @@ function issuePaths(issue) {
     issue?.filePath,
     issue?.file,
     ...(issue?.filePaths || []),
-    ...(issue?.affectedFiles || [])
-  ].filter(Boolean).map(normalizeRelPath);
+    ...(issue?.affectedFiles || []),
+  ]
+    .filter(Boolean)
+    .map(normalizeRelPath);
   return [...new Set(paths)];
 }
 
@@ -108,7 +116,11 @@ function upsertRow(map, path, row) {
     return;
   }
   if (existing.status === 'warn' && row.status === 'pass') return;
-  map.set(key, { ...existing, ...row, detail: [existing.detail, row.detail].filter(Boolean).join(' · ') });
+  map.set(key, {
+    ...existing,
+    ...row,
+    detail: [existing.detail, row.detail].filter(Boolean).join(' · '),
+  });
 }
 
 /**
@@ -126,7 +138,7 @@ function rowsFromIssues(issues = [], ruleLabel = 'gate') {
         path,
         status: severityToStatus(issue.severity || issue.severityBand),
         rule: issue.type || ruleLabel,
-        detail: issue.description || issue.recommendedAction || ''
+        detail: issue.description || issue.recommendedAction || '',
       });
     }
   }
@@ -144,27 +156,47 @@ function rowsFromGateReport(report) {
   const rows = rowsFromIssues(issues, 'simplebeacon-gate');
   const docs = report.euAiActSummary?.documentationFound || [];
   for (const path of docs) {
-    upsertRow(rows.reduce((m, r) => { m.set(r.path, r); return m; }, new Map()), path, {
-      path: normalizeRelPath(path),
+    upsertRow(
+      rows.reduce((m, r) => {
+        m.set(r.path, r);
+        return m;
+      }, new Map()),
+      path,
+      {
+        path: normalizeRelPath(path),
+        status: 'pass',
+        rule: 'EUAI-003',
+        detail: 'Documentation artifact detected',
+      }
+    );
+  }
+  return [
+    ...rows,
+    ...docs.map((p) => ({
+      path: normalizeRelPath(p),
       status: 'pass',
       rule: 'EUAI-003',
-      detail: 'Documentation artifact detected'
-    });
-  }
-  return [...rows, ...docs.map((p) => ({
-    path: normalizeRelPath(p),
-    status: 'pass',
-    rule: 'EUAI-003',
-    detail: 'Documentation artifact detected'
-  }))].reduce((acc, row) => {
+      detail: 'Documentation artifact detected',
+    })),
+  ].reduce((acc, row) => {
     upsertRow(acc, row.path, row);
     return acc;
-  }, new Map()).values ? [...new Map([...rowsFromIssues([], ''), ...docs.map((p) => [normalizeRelPath(p), {
-    path: normalizeRelPath(p),
-    status: 'pass',
-    rule: 'EUAI-003',
-    detail: 'Documentation artifact detected'
-  }])]).values()] : rows;
+  }, new Map()).values
+    ? [
+        ...new Map([
+          ...rowsFromIssues([], ''),
+          ...docs.map((p) => [
+            normalizeRelPath(p),
+            {
+              path: normalizeRelPath(p),
+              status: 'pass',
+              rule: 'EUAI-003',
+              detail: 'Documentation artifact detected',
+            },
+          ]),
+        ]).values(),
+      ]
+    : rows;
 }
 
 /**
@@ -182,7 +214,7 @@ function rowsFromGateReportFixed(report) {
         path,
         status: severityToStatus(issue.severity || issue.severityBand),
         rule: issue.type || 'gate',
-        detail: issue.description || ''
+        detail: issue.description || '',
       });
     }
   }
@@ -191,22 +223,20 @@ function rowsFromGateReportFixed(report) {
       path: normalizeRelPath(path),
       status: 'pass',
       rule: 'EUAI-003',
-      detail: 'Documentation artifact detected'
+      detail: 'Documentation artifact detected',
     });
   }
   const failN = [...map.values()].filter((r) => r.status === 'fail').length;
   const warnN = [...map.values()].filter((r) => r.status === 'warn').length;
   const scoped = report.ruleScopedFilesAnalyzed ?? report.scanScope?.ruleScopedFilesAnalyzed;
-  const passImplicit = scoped != null
-    ? Math.max(0, scoped - failN - warnN)
-    : null;
+  const passImplicit = scoped != null ? Math.max(0, scoped - failN - warnN) : null;
   return {
     rows: [...map.values()],
     summary: {
       scoped,
       passImplicit,
-      repositoryFiles: report.repositoryFilesTotal ?? report.scanScope?.repositoryFilesTotal
-    }
+      repositoryFiles: report.repositoryFilesTotal ?? report.scanScope?.repositoryFilesTotal,
+    },
   };
 }
 
@@ -225,7 +255,7 @@ function rowsFromFindings(findings = [], rulePrefix = 'finding') {
       path: normalizeRelPath(path),
       status: severityToStatus(finding.severity),
       rule: finding.scanner || finding.category || finding.type || rulePrefix,
-      detail: finding.message || finding.reason || finding.recommendation || ''
+      detail: finding.message || finding.reason || finding.recommendation || '',
     });
   }
   return [...map.values()];
@@ -246,7 +276,7 @@ function rowsFromConsolidation(scan) {
         path: normalizeRelPath(path),
         status: 'warn',
         rule: 'merge-candidate',
-        detail: item.mergeType || 'Similar JSON — review merge'
+        detail: item.mergeType || 'Similar JSON — review merge',
       });
     }
   }
@@ -257,7 +287,7 @@ function rowsFromConsolidation(scan) {
       path: normalizeRelPath(path),
       status: 'warn',
       rule: 'reduction',
-      detail: item.reason || 'Reduction opportunity'
+      detail: item.reason || 'Reduction opportunity',
     });
   }
   for (const group of scan?.exactDuplicateGroups || []) {
@@ -266,7 +296,7 @@ function rowsFromConsolidation(scan) {
         path: normalizeRelPath(typeof path === 'string' ? path : path.path),
         status: 'warn',
         rule: 'duplicate-json',
-        detail: 'Exact duplicate content group'
+        detail: 'Exact duplicate content group',
       });
     }
   }
@@ -289,16 +319,18 @@ function rowsFromNpmAudit(npmAudit) {
       path: name,
       status: ['critical', 'high'].includes(String(vuln.severity).toLowerCase()) ? 'fail' : 'warn',
       rule: 'npm-audit',
-      detail: vuln.title || vuln.recommendation || vuln.severity || 'Vulnerability'
+      detail: vuln.title || vuln.recommendation || vuln.severity || 'Vulnerability',
     });
   }
   if (!map.size && npmAudit?.summary) {
-    return [{
-      path: 'package.json',
-      status: 'pass',
-      rule: 'npm-audit',
-      detail: `${npmAudit.summary.total ?? 0} vulnerabilities · ${npmAudit.summary.dependencies ?? '—'} dependencies`
-    }];
+    return [
+      {
+        path: 'package.json',
+        status: 'pass',
+        rule: 'npm-audit',
+        detail: `${npmAudit.summary.total ?? 0} vulnerabilities · ${npmAudit.summary.dependencies ?? '—'} dependencies`,
+      },
+    ];
   }
   return [...map.values()];
 }
@@ -313,7 +345,7 @@ function rowsFromCompliance(checklist) {
     path: rule.id,
     status: rule.status === 'pass' ? 'pass' : rule.status === 'fail' ? 'fail' : 'skip',
     rule: rule.id,
-    detail: rule.evidence || rule.title || ''
+    detail: rule.evidence || rule.title || '',
   }));
 }
 
@@ -330,7 +362,7 @@ function rowsFromCleanupBrief(brief) {
       path: normalizeRelPath(entry.path),
       status: 'pass',
       rule: 'cleanup-safe',
-      detail: `Safe to delete · ${formatNumber(entry.files)} file(s)`
+      detail: `Safe to delete · ${formatNumber(entry.files)} file(s)`,
     });
   }
   for (const entry of tiers.reviewFirst?.items || []) {
@@ -338,7 +370,7 @@ function rowsFromCleanupBrief(brief) {
       path: normalizeRelPath(entry.path),
       status: 'warn',
       rule: 'cleanup-review',
-      detail: entry.reason || 'Review before delete'
+      detail: entry.reason || 'Review before delete',
     });
   }
   for (const entry of tiers.protected?.directories || []) {
@@ -346,7 +378,7 @@ function rowsFromCleanupBrief(brief) {
       path: normalizeRelPath(entry.path),
       status: 'pass',
       rule: 'cleanup-protected',
-      detail: 'Protected path — do not delete'
+      detail: 'Protected path — do not delete',
     });
   }
   return [...map.values()];
@@ -375,49 +407,68 @@ function stepPayload(lastResult, stepId) {
 function resolvePayload(mode, lastResult, report) {
   switch (mode) {
     case 'simplebeacon':
-      if (lastResult?.kind === 'simplebeacon-report') return { kind: 'gate', report: lastResult.report };
-      if (lastResult?.kind === 'complete') return { kind: 'gate', report: stepPayload(lastResult, 'simplebeacon')?.report };
+      if (lastResult?.kind === 'simplebeacon-report')
+        return { kind: 'gate', report: lastResult.report };
+      if (lastResult?.kind === 'complete')
+        return { kind: 'gate', report: stepPayload(lastResult, 'simplebeacon')?.report };
       if (report?.type === 'simplebeacon-report') return { kind: 'gate', report };
       return null;
     case 'eu-ai-act':
-      if (lastResult?.kind === 'eu-ai-act') return { kind: 'gate', report: lastResult.sprint?.report };
-      if (lastResult?.kind === 'complete') return { kind: 'gate', report: stepPayload(lastResult, 'simplebeacon')?.report };
+      if (lastResult?.kind === 'eu-ai-act')
+        return { kind: 'gate', report: lastResult.sprint?.report };
+      if (lastResult?.kind === 'complete')
+        return { kind: 'gate', report: stepPayload(lastResult, 'simplebeacon')?.report };
       return null;
     case 'mock-scan':
       if (lastResult?.kind === 'complete') {
         const step = stepPayload(lastResult, 'mock-scan');
         return { kind: 'fiction', report: step?.report, issues: step?.fictionIssues };
       }
-      if (lastResult?.report) return { kind: 'fiction', report: lastResult.report, issues: lastResult.fictionIssues };
+      if (lastResult?.report)
+        return { kind: 'fiction', report: lastResult.report, issues: lastResult.fictionIssues };
       return report ? { kind: 'fiction', report, issues: null } : null;
     case 'consolidation':
-      if (lastResult?.kind === 'consolidation') return { kind: 'consolidation', scan: lastResult.scan };
-      if (lastResult?.kind === 'complete') return { kind: 'consolidation', scan: stepPayload(lastResult, 'consolidation')?.scan };
+      if (lastResult?.kind === 'consolidation')
+        return { kind: 'consolidation', scan: lastResult.scan };
+      if (lastResult?.kind === 'complete')
+        return { kind: 'consolidation', scan: stepPayload(lastResult, 'consolidation')?.scan };
       return null;
     case 'codebase':
       if (lastResult?.kind === 'codebase') return { kind: 'codebase', scan: lastResult.scan };
-      if (lastResult?.kind === 'complete') return { kind: 'codebase', scan: stepPayload(lastResult, 'codebase')?.scan };
+      if (lastResult?.kind === 'complete')
+        return { kind: 'codebase', scan: stepPayload(lastResult, 'codebase')?.scan };
       return null;
     case 'file-reduction':
     case 'data-quality':
       if (lastResult?.kind === mode) return { kind: 'cleanup', scan: lastResult.scan };
-      if (lastResult?.kind === 'complete') return { kind: 'cleanup', scan: stepPayload(lastResult, mode)?.scan };
+      if (lastResult?.kind === 'complete')
+        return { kind: 'cleanup', scan: stepPayload(lastResult, mode)?.scan };
       return null;
     case 'cleanup-assistant':
-      if (lastResult?.kind === 'cleanup-assistant') return { kind: 'cleanup-brief', brief: lastResult.brief };
-      if (lastResult?.kind === 'complete') return { kind: 'cleanup-brief', brief: stepPayload(lastResult, 'cleanup-assistant')?.brief };
+      if (lastResult?.kind === 'cleanup-assistant')
+        return { kind: 'cleanup-brief', brief: lastResult.brief };
+      if (lastResult?.kind === 'complete')
+        return {
+          kind: 'cleanup-brief',
+          brief: stepPayload(lastResult, 'cleanup-assistant')?.brief,
+        };
       return null;
     case 'compliance':
-      if (lastResult?.kind === 'compliance') return { kind: 'compliance', checklist: lastResult.checklist };
-      if (lastResult?.kind === 'complete') return { kind: 'compliance', checklist: stepPayload(lastResult, 'compliance')?.checklist };
+      if (lastResult?.kind === 'compliance')
+        return { kind: 'compliance', checklist: lastResult.checklist };
+      if (lastResult?.kind === 'complete')
+        return { kind: 'compliance', checklist: stepPayload(lastResult, 'compliance')?.checklist };
       return null;
     case 'npm-audit':
       if (lastResult?.kind === 'npm-audit') return { kind: 'npm', npmAudit: lastResult.npmAudit };
-      if (lastResult?.kind === 'complete') return { kind: 'npm', npmAudit: stepPayload(lastResult, 'npm-audit')?.npmAudit };
+      if (lastResult?.kind === 'complete')
+        return { kind: 'npm', npmAudit: stepPayload(lastResult, 'npm-audit')?.npmAudit };
       return null;
     case 'roadmap':
-      if (lastResult?.kind === 'roadmap') return { kind: 'roadmap', data: lastResult.data || lastResult };
-      if (lastResult?.kind === 'complete') return { kind: 'roadmap', data: stepPayload(lastResult, 'roadmap')?.data };
+      if (lastResult?.kind === 'roadmap')
+        return { kind: 'roadmap', data: lastResult.data || lastResult };
+      if (lastResult?.kind === 'complete')
+        return { kind: 'roadmap', data: stepPayload(lastResult, 'roadmap')?.data };
       return null;
     case 'complete':
       if (lastResult?.kind === 'complete') return { kind: 'complete', steps: lastResult.steps };
@@ -447,30 +498,40 @@ function buildRows(mode, payload) {
     return { rows, summary, note: null };
   }
   if (payload.kind === 'fiction') {
-    const issues = payload.issues || (payload.report ? (payload.report.rawIssues || payload.report.detectedIssues || []) : []);
-    const fictionOnly = issues.filter((i) => /fiction|fictional|consistency|kpi/i.test(String(i.type || '')));
+    const issues =
+      payload.issues ||
+      (payload.report ? payload.report.rawIssues || payload.report.detectedIssues || [] : []);
+    const fictionOnly = issues.filter((i) =>
+      /fiction|fictional|consistency|kpi/i.test(String(i.type || ''))
+    );
     return {
       rows: rowsFromIssues(fictionOnly.length ? fictionOnly : issues, 'fiction'),
       summary: {
-        scoped: payload.report?.fictionJsonFilesScanned ?? payload.report?.scanScope?.fictionJsonFilesScanned
+        scoped:
+          payload.report?.fictionJsonFilesScanned ??
+          payload.report?.scanScope?.fictionJsonFilesScanned,
       },
-      note: null
+      note: null,
     };
   }
   if (payload.kind === 'consolidation') {
     return {
       rows: rowsFromConsolidation(payload.scan),
       summary: {
-        scoped: payload.scan?.summary?.jsonFilesAnalyzed ?? payload.scan?.summary?.sampleDataFilesAnalyzed
+        scoped:
+          payload.scan?.summary?.jsonFilesAnalyzed ??
+          payload.scan?.summary?.sampleDataFilesAnalyzed,
       },
-      note: null
+      note: null,
     };
   }
   if (payload.kind === 'codebase') {
     return {
       rows: rowsFromFindings(payload.scan?.findings || [], 'codebase'),
-      summary: { scoped: payload.scan?.summary?.filesScanned ?? payload.scan?.summary?.codeFilesAnalyzed },
-      note: null
+      summary: {
+        scoped: payload.scan?.summary?.filesScanned ?? payload.scan?.summary?.codeFilesAnalyzed,
+      },
+      note: null,
     };
   }
   if (payload.kind === 'cleanup') {
@@ -486,7 +547,7 @@ function buildRows(mode, payload) {
     return {
       rows: rowsFromFindings([...top, ...scannerFindings], scan?.scanProfile || 'cleanup'),
       summary: { scoped: scan?.inventory?.totalFiles ?? scan?.summary?.filesScanned },
-      note: null
+      note: null,
     };
   }
   if (payload.kind === 'cleanup-brief') {
@@ -496,11 +557,15 @@ function buildRows(mode, payload) {
     return {
       rows: rowsFromCompliance(payload.checklist),
       summary: null,
-      note: 'Compliance mode evaluates checklist rules — rows are rules, not individual source files.'
+      note: 'Compliance mode evaluates checklist rules — rows are rules, not individual source files.',
     };
   }
   if (payload.kind === 'npm') {
-    return { rows: rowsFromNpmAudit(payload.npmAudit), summary: null, note: 'npm audit rows are packages, not source files.' };
+    return {
+      rows: rowsFromNpmAudit(payload.npmAudit),
+      summary: null,
+      note: 'npm audit rows are packages, not source files.',
+    };
   }
   if (payload.kind === 'roadmap') {
     const phases = payload.data?.roadmap?.phases || payload.data?.phases || [];
@@ -509,10 +574,10 @@ function buildRows(mode, payload) {
         path: phase.id || phase.name || `phase-${index + 1}`,
         status: 'pass',
         rule: 'roadmap',
-        detail: phase.name || phase.title || 'Sprint phase'
+        detail: phase.name || phase.title || 'Sprint phase',
       })),
       summary: null,
-      note: 'Roadmap mode summarizes sprint phases — not a per-source-file gate.'
+      note: 'Roadmap mode summarizes sprint phases — not a per-source-file gate.',
     };
   }
   if (payload.kind === 'complete' && payload.steps) {
@@ -522,11 +587,14 @@ function buildRows(mode, payload) {
       const fakeLast = { kind: 'complete', steps: payload.steps, ...step };
       let subPayload = resolvePayload(subMode, fakeLast, null);
       if (subMode === 'simplebeacon') subPayload = { kind: 'gate', report: step.report };
-      if (subMode === 'mock-scan') subPayload = { kind: 'fiction', report: step.report, issues: step.fictionIssues };
+      if (subMode === 'mock-scan')
+        subPayload = { kind: 'fiction', report: step.report, issues: step.fictionIssues };
       if (subMode === 'consolidation') subPayload = { kind: 'consolidation', scan: step.scan };
       if (subMode === 'codebase') subPayload = { kind: 'codebase', scan: step.scan };
-      if (subMode === 'file-reduction' || subMode === 'data-quality') subPayload = { kind: 'cleanup', scan: step.scan };
-      if (subMode === 'cleanup-assistant') subPayload = { kind: 'cleanup-brief', brief: step.brief };
+      if (subMode === 'file-reduction' || subMode === 'data-quality')
+        subPayload = { kind: 'cleanup', scan: step.scan };
+      if (subMode === 'cleanup-assistant')
+        subPayload = { kind: 'cleanup-brief', brief: step.brief };
       if (subMode === 'compliance') subPayload = { kind: 'compliance', checklist: step.checklist };
       if (subMode === 'npm-audit') subPayload = { kind: 'npm', npmAudit: step.npmAudit };
       if (subMode === 'roadmap') subPayload = { kind: 'roadmap', data: step.data };
@@ -537,10 +605,18 @@ function buildRows(mode, payload) {
         const isDotfileNoise = /^\.[a-z]/i.test(path) && detail === '—';
         const isStaleMerge = subMode === 'consolidation' && path.includes('roadmap.html');
         if (isDotfileNoise || isStaleMerge) continue;
-        upsertRow(map, `${step.id}:${row.path}`, { ...row, path: row.path, rule: `${step.id} · ${row.rule}` });
+        upsertRow(map, `${step.id}:${row.path}`, {
+          ...row,
+          path: row.path,
+          rule: `${step.id} · ${row.rule}`,
+        });
       }
     }
-    return { rows: [...map.values()], summary: null, note: 'Complete bundle — combined rows from all ten steps.' };
+    return {
+      rows: [...map.values()],
+      summary: null,
+      note: 'Complete bundle — combined rows from all ten steps.',
+    };
   }
   return { rows: [], summary: null, note: null };
 }
@@ -553,7 +629,8 @@ function buildRows(mode, payload) {
 function statusBadge(status) {
   if (status === 'pass') return '<span class="gate-badge pass">PASS</span>';
   if (status === 'fail') return '<span class="gate-badge warn">FAIL</span>';
-  if (status === 'warn') return '<span class="gate-badge" style="border-color:#f59e0b;color:#fbbf24">WARN</span>';
+  if (status === 'warn')
+    return '<span class="gate-badge" style="border-color:#f59e0b;color:#fbbf24">WARN</span>';
   if (status === 'skip') return '<span class="gate-badge">SKIP</span>';
   return '<span class="gate-badge">—</span>';
 }
@@ -565,7 +642,9 @@ function statusBadge(status) {
  */
 function sortRows(rows) {
   const order = { fail: 0, warn: 1, skip: 2, pass: 3 };
-  return [...rows].sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9) || a.path.localeCompare(b.path));
+  return [...rows].sort(
+    (a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9) || a.path.localeCompare(b.path)
+  );
 }
 
 /**
@@ -602,12 +681,14 @@ export function renderModeFileResultsPanel(modeValue, context = {}) {
   const shown = sorted.slice(0, MAX_ROWS);
   const hidden = sorted.length - shown.length;
 
-  const implicitNote = summary?.passImplicit > 0
-    ? `${formatNumber(summary.passImplicit)} additional gate-scoped file(s) passed with no listed findings.`
-    : '';
-  const scopedNote = summary?.scoped != null
-    ? `${formatNumber(summary.scoped)} file(s) in scan scope · ${formatNumber(summary.repositoryFiles)} repo inventory.`
-    : '';
+  const implicitNote =
+    summary?.passImplicit > 0
+      ? `${formatNumber(summary.passImplicit)} additional gate-scoped file(s) passed with no listed findings.`
+      : '';
+  const scopedNote =
+    summary?.scoped != null
+      ? `${formatNumber(summary.scoped)} file(s) in scan scope · ${formatNumber(summary.repositoryFiles)} repo inventory.`
+      : '';
 
   return `
     <div class="analyze-mode-file-results" data-mode-file-results="${escapeHtml(modeValue)}">
@@ -619,12 +700,15 @@ export function renderModeFileResultsPanel(modeValue, context = {}) {
       </p>
       ${note ? `<p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 0.5rem;">${escapeHtml(note)}</p>` : ''}
       ${implicitNote ? `<p class="text-muted" style="font-size:var(--font-size-xs);margin:0 0 0.5rem;">${escapeHtml(implicitNote)}</p>` : ''}
-      ${!shown.length ? `
+      ${
+        !shown.length
+          ? `
         <p class="text-muted card" style="font-size:var(--font-size-sm);margin:0;">
           No file-level failures listed — scan completed with no targeted findings in the export payload.
           ${summary?.passImplicit ? ` ${escapeHtml(implicitNote)}` : ''}
         </p>
-      ` : `
+      `
+          : `
         <div class="table-scroll analyze-mode-file-results-table">
           <table class="data-table">
             <thead>
@@ -636,19 +720,24 @@ export function renderModeFileResultsPanel(modeValue, context = {}) {
               </tr>
             </thead>
             <tbody>
-              ${shown.map((row) => `
+              ${shown
+                .map(
+                  (row) => `
                 <tr>
                   <td><code>${escapeHtml(row.path)}</code></td>
                   <td>${statusBadge(row.status)}</td>
                   <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(String(row.rule || '—'))}</td>
                   <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(String(row.detail || '—'))}</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join('')}
             </tbody>
           </table>
         </div>
         ${hidden > 0 ? `<p class="text-muted" style="font-size:var(--font-size-xs);margin:0.5rem 0 0;">+ ${formatNumber(hidden)} more row(s) not shown.</p>` : ''}
-      `}
+      `
+      }
     </div>
   `;
 }

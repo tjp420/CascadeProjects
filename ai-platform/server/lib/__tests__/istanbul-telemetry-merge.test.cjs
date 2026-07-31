@@ -2,7 +2,7 @@
 'use strict';
 
 jest.mock('../jest-coverage-reader.cjs', () => ({
-  loadJestCoverageSummary: jest.fn().mockReturnValue({ available: false, totals: null })
+  loadJestCoverageSummary: jest.fn().mockReturnValue({ available: false, totals: null }),
 }));
 
 const { mergeIstanbulTelemetry, isOpenIstanbulAlert } = require('../istanbul-telemetry-merge.cjs');

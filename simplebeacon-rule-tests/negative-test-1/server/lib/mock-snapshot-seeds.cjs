@@ -16,20 +16,20 @@ const mockSnapshotSeeds = {
         id: 'sample-finding-1',
         severity: 'high',
         description: 'Sample credential pattern for testing',
-        pattern: 'sample-api-key-pattern'
-      }
-    ]
+        pattern: 'sample-api-key-pattern',
+      },
+    ],
   },
   templateSample: {
     // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case credentials for SimpleBeacon rule validation
     databaseUrl: 'postgresql://user:placeholder@localhost:5432/db', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case database URL
     apiKey: 'sk_test_your_api_key_here', // simplebeacon:production-leak-intent: test-negative-case - Intentional negative test case API key
-    secret: 'sample-secret-for-template-rendering'
+    secret: 'sample-secret-for-template-rendering',
   },
   sampleJson: {
     mockCredential: 'mock-credential-value-for-testing',
-    placeholderKey: 'placeholder-key-12345'
-  }
+    placeholderKey: 'placeholder-key-12345',
+  },
 };
 
 function getSnapshotSeed(type) {

@@ -13,11 +13,11 @@ const newIgnores = [
   'packages/simplebeacon-cli/src/lib/marketing/marketing-content-generator.js',
   'packages/simplebeacon-cli/src/project-detect.js',
   'packages/simplebeacon-cli/src/scan.js',
-  'packages/simplebeacon-cli/src/reporters/remediation-guides.js'
+  'packages/simplebeacon-cli/src/reporters/remediation-guides.js',
 ];
 
 const insertionPoint = '    "simplebeacon-frameworkless/**"';
-const newEntries = newIgnores.map(i => `,\n    "${i}"`).join('');
+const newEntries = newIgnores.map((i) => `,\n    "${i}"`).join('');
 
 content = content.replace(insertionPoint, insertionPoint + newEntries);
 fs.writeFileSync(file, content, 'utf8');

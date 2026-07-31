@@ -1,7 +1,15 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { buildFictionPatternCatalog, countFictionIssues } = require('../src/rules/ai-fiction-detection');
-const { buildDashboardPayload, findHistoryEntry, buildAuditPayload, overlayAuditPageSamples } = require('../src/lib/dashboard-payload');
+const {
+  buildFictionPatternCatalog,
+  countFictionIssues,
+} = require('../src/rules/ai-fiction-detection');
+const {
+  buildDashboardPayload,
+  findHistoryEntry,
+  buildAuditPayload,
+  overlayAuditPageSamples,
+} = require('../src/lib/dashboard-payload');
 
 const BASELINE = {
   rejectedFiction: {
@@ -11,8 +19,8 @@ const BASELINE = {
     openIssueCounts: [156],
     modelNames: ['unbreakable-oracle'],
     aiConfidenceScores: [98.5],
-    throughputClaims: ['1559']
-  }
+    throughputClaims: ['1559'],
+  },
 };
 
 test('buildFictionPatternCatalog seeds from baseline.rejectedFiction', () => {
@@ -26,8 +34,8 @@ test('countFictionIssues counts fictional KPI issues in report', () => {
   const report = {
     rawIssues: [
       { type: 'Fictional KPI', count: 2 },
-      { type: 'Schema Violation', count: 1 }
-    ]
+      { type: 'Schema Violation', count: 1 },
+    ],
   };
   assert.equal(countFictionIssues(report), 2);
 });
@@ -40,7 +48,7 @@ test('buildDashboardPayload aggregates report, history, and catalog', () => {
     totalFiles: 42,
     issueCount: 0,
     gate: { pass: true },
-    rawIssues: []
+    rawIssues: [],
   };
   const baseline = { pageSamplesLabel: '42/42', jestTestsLabel: '596/596' };
   const history = [
@@ -49,14 +57,14 @@ test('buildDashboardPayload aggregates report, history, and catalog', () => {
       date: report.generatedAt,
       qualityScore: 99,
       fictionPatternsFound: 0,
-      totalFilesScanned: 42
-    }
+      totalFilesScanned: 42,
+    },
   ];
   const payload = buildDashboardPayload({
     report,
     baseline,
     history,
-    fictionCatalog: buildFictionPatternCatalog(BASELINE)
+    fictionCatalog: buildFictionPatternCatalog(BASELINE),
   });
 
   assert.equal(payload.scanStatus.qualityScore, 99);
@@ -68,7 +76,7 @@ test('buildDashboardPayload aggregates report, history, and catalog', () => {
 test('findHistoryEntry resolves latest and scanId lookups', () => {
   const history = [
     { scanId: 'a', date: '2026-05-01T00:00:00.000Z' },
-    { scanId: 'b', date: '2026-05-02T00:00:00.000Z' }
+    { scanId: 'b', date: '2026-05-02T00:00:00.000Z' },
   ];
   assert.equal(findHistoryEntry(history, 'latest').scanId, 'b');
   assert.equal(findHistoryEntry(history, 'a').scanId, 'a');
@@ -90,7 +98,7 @@ test('buildAuditPayload includes all audit layers', () => {
     productionLeakScanned: 5,
     productionLeakFindings: 0,
     schemaChecked: 42,
-    schemaPassed: 42
+    schemaPassed: 42,
   };
   const baseline = { pageSamplesLabel: '42/42', jestTestsLabel: '596/596' };
   const payload = buildAuditPayload({ report, baseline, history: [], fictionCatalog: [] }, {});
@@ -115,19 +123,23 @@ test('overlayAuditPageSamples merges live report metrics into audit samples', ()
     credentialFindings: 0,
     productionLeakScanned: 139,
     productionLeakFindings: 0,
-    gate: { pass: true, blockingCount: 0, warningCount: 7 }
+    gate: { pass: true, blockingCount: 0, warningCount: 7 },
   };
   const baseline = { jestTestsLabel: '991/991', pageSamplesLabel: '50/50' };
-  const merged = overlayAuditPageSamples({
-    qualityMetrics: {
-      currentScore: 99,
-      overview: { qualityScore: 99, schemaCompliance: 100, consistencyScore: 100 },
-      metrics: [{ name: 'quality_score', value: 99, context: { issueCount: 0, gatePass: true } }]
+  const merged = overlayAuditPageSamples(
+    {
+      qualityMetrics: {
+        currentScore: 99,
+        overview: { qualityScore: 99, schemaCompliance: 100, consistencyScore: 100 },
+        metrics: [{ name: 'quality_score', value: 99, context: { issueCount: 0, gatePass: true } }],
+      },
+      baselineComparison: {
+        overview: { jestTestsLabel: '894/894', pageSamplesLabel: '42/42', gatePass: true },
+      },
     },
-    baselineComparison: {
-      overview: { jestTestsLabel: '894/894', pageSamplesLabel: '42/42', gatePass: true }
-    }
-  }, report, baseline);
+    report,
+    baseline
+  );
 
   assert.equal(merged.qualityMetrics.currentScore, 100);
   assert.equal(merged.qualityMetrics.metrics[0].context.issueCount, 7);

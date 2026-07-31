@@ -76,7 +76,7 @@ describe('email-service fallback chain', () => {
       RESEND_API_KEY: undefined,
       SMTP_HOST: undefined,
       SMTP_USER: undefined,
-      SMTP_PASS: undefined
+      SMTP_PASS: undefined,
     });
   });
 
@@ -103,7 +103,7 @@ describe('email-service fallback chain', () => {
       to: 'customer@example.com',
       subject: 'Test: no providers configured',
       text: 'This should be queued to disk.',
-      html: '<p>This should be queued to disk.</p>'
+      html: '<p>This should be queued to disk.</p>',
     });
 
     assert.strictEqual(result.sent, false);
@@ -129,7 +129,7 @@ describe('email-service fallback chain', () => {
     const result = await mod.sendEmail({
       to: 'customer@example.com',
       subject: 'Test: invalid Resend key format',
-      text: 'Should queue to disk because Resend key is invalid.'
+      text: 'Should queue to disk because Resend key is invalid.',
     });
 
     assert.strictEqual(result.sent, false);
@@ -146,7 +146,7 @@ describe('email-service fallback chain', () => {
     const result = await mod.sendEmail({
       to: 'customer@example.com',
       subject: 'Test: incomplete SMTP config',
-      text: 'Should queue to disk because SMTP is incomplete.'
+      text: 'Should queue to disk because SMTP is incomplete.',
     });
 
     assert.strictEqual(result.sent, false);
@@ -167,7 +167,7 @@ describe('email-service fallback chain', () => {
     const result = await mod.sendEmail({
       to: 'customer@example.com',
       subject: 'Test: queue dir creation',
-      text: 'Should create queue dir and write file.'
+      text: 'Should create queue dir and write file.',
     });
 
     assert.strictEqual(result.queued, true);
@@ -179,7 +179,7 @@ describe('email-service fallback chain', () => {
     const results = await Promise.all([
       mod.sendEmail({ to: 'a@example.com', subject: 'Email 1', text: 'First' }),
       mod.sendEmail({ to: 'b@example.com', subject: 'Email 2', text: 'Second' }),
-      mod.sendEmail({ to: 'c@example.com', subject: 'Email 3', text: 'Third' })
+      mod.sendEmail({ to: 'c@example.com', subject: 'Email 3', text: 'Third' }),
     ]);
 
     for (const r of results) {
@@ -188,7 +188,7 @@ describe('email-service fallback chain', () => {
     }
 
     // All queue paths should be distinct
-    const paths = results.map(r => r.queuePath);
+    const paths = results.map((r) => r.queuePath);
     assert.strictEqual(new Set(paths).size, 3, 'all queue paths should be unique');
 
     // All files should exist
