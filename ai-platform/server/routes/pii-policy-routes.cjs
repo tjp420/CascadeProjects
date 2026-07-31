@@ -209,9 +209,9 @@ router.get('/frameworks', (req, res) => {
 });
 
 // POST /api/pii/scrub/preview — dry-run preview of PII scrubbing on historical audit entries (admin only)
-router.post('/scrub/preview', authorize('admin:all'), (req, res) => {
+router.post('/scrub/preview', authorize('admin:all'), enforceOrgPartition(), (req, res) => {
   try {
-    const orgId = req.body.orgId || getOrgId(req);
+    const orgId = req.resolvedOrgId || req.body.orgId || getOrgId(req);
     const result = auditLogger.previewPiiScrub(orgId);
     res.json({ success: true, ...result });
   } catch (err) {
@@ -221,9 +221,9 @@ router.post('/scrub/preview', authorize('admin:all'), (req, res) => {
 });
 
 // POST /api/pii/scrub/run — execute PII scrubbing on historical audit entries (admin only)
-router.post('/scrub/run', authorize('admin:all'), (req, res) => {
+router.post('/scrub/run', authorize('admin:all'), enforceOrgPartition(), (req, res) => {
   try {
-    const orgId = req.body.orgId || getOrgId(req);
+    const orgId = req.resolvedOrgId || req.body.orgId || getOrgId(req);
     const result = auditLogger.runPiiScrub(orgId);
     logger.info(
       `[PII] Scrub run for org ${orgId}: ${result.scrubbed}/${result.scanned} entries scrubbed, seal: ${result.sealEntryId}`
@@ -679,7 +679,7 @@ router.get('/orgs', authorize('admin:all'), (req, res) => {
 //     isDefault:  boolean   (only sync policies where isDefault === true)
 //   }
 //   dryRun:       boolean   (if true, returns a preview without writing)
-router.post('/sync-policies', authorize('admin:all'), (req, res) => {
+router.post('/sync-policies', authorize('admin:all'), enforceOrgPartition(), (req, res) => {
   try {
     const currentOrg = getOrgId(req);
     const sourceOrgId = req.body.sourceOrgId || currentOrg;

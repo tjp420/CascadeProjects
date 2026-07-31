@@ -18,6 +18,8 @@ import {
   Zap,
   Loader2,
   Layers,
+  Ban,
+  Globe,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -70,6 +72,7 @@ export function SecurityAdminView() {
   const [healing, setHealing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [partitionStatus, setPartitionStatus] = useState<any>(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -95,10 +98,27 @@ export function SecurityAdminView() {
     }
   }, [status]);
 
+  const fetchPartitionStatus = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/audit/partition-status'), {
+        headers: authHeaders(),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.success) {
+          setPartitionStatus(data);
+        }
+      }
+    } catch {
+      // silent — partition status is supplementary
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     fetchStatus();
-  }, [fetchStatus]);
+    fetchPartitionStatus();
+  }, [fetchStatus, fetchPartitionStatus]);
 
   // Auto-refresh polling
   useEffect(() => {
@@ -459,6 +479,109 @@ export function SecurityAdminView() {
             </CardContent>
           </Card>
         </>
+      )}
+
+      {/* ── Org Partition Enforcement ── */}
+      {partitionStatus && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-primary" />
+                  Org Partition Enforcement
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Cross-tenant data isolation monitoring — blocks unauthorized cross-org access attempts.
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={fetchPartitionStatus}>
+                <RefreshCw className="h-4 w-4 mr-1.5" />
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Status banner */}
+            <div
+              className={`flex items-center gap-3 rounded-md border p-3 ${
+                partitionStatus.enforcementEnabled
+                  ? 'border-emerald-500/30 bg-emerald-500/5'
+                  : 'border-destructive/30 bg-destructive/5'
+              }`}
+            >
+              {partitionStatus.enforcementEnabled ? (
+                <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0" />
+              ) : (
+                <ShieldAlert className="h-5 w-5 text-destructive shrink-0" />
+              )}
+              <div className="text-sm">
+                <p className={`font-medium ${partitionStatus.enforcementEnabled ? 'text-emerald-700' : 'text-destructive'}`}>
+                  {partitionStatus.enforcementEnabled ? 'Partition enforcement active' : 'Partition enforcement disabled'}
+                </p>
+                <p className="text-xs text-foreground-muted mt-0.5">
+                  Caller org: <span className="font-mono">{partitionStatus.callerOrgId}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Violation KPIs */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-lg border p-3 text-center">
+                <p className={`text-2xl font-bold ${partitionStatus.totalViolations > 0 ? 'text-destructive' : 'text-emerald-500'}`}>
+                  {partitionStatus.totalViolations}
+                </p>
+                <p className="text-xs text-foreground-muted mt-1">Total Violations</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <p className="text-2xl font-bold text-emerald-500">0</p>
+                <p className="text-xs text-foreground-muted mt-1">Allowed Cross-Org</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center">
+                <p className="text-2xl font-bold text-blue-500">1</p>
+                <p className="text-xs text-foreground-muted mt-1">Protected Routes</p>
+              </div>
+            </div>
+
+            {/* Recent violations */}
+            {partitionStatus.recentViolations && partitionStatus.recentViolations.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <Ban className="h-4 w-4 text-destructive" />
+                  Recent Violation Attempts
+                </p>
+                <div className="max-h-48 overflow-y-auto space-y-1.5">
+                  {partitionStatus.recentViolations.map((v: any, i: number) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between rounded-md border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-destructive">{v.method}</span>
+                          <span className="font-mono">{v.path}</span>
+                        </div>
+                        <div className="text-foreground-muted">
+                          <span className="font-mono">{v.callerOrgId}</span>
+                          {' → '}
+                          <span className="font-mono text-destructive">{v.clientOrgId}</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-foreground-muted shrink-0">
+                        {new Date(v.at).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                <span className="text-emerald-700">No partition violations detected</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

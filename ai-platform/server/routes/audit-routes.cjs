@@ -509,9 +509,10 @@ router.post('/security/verify', async (req, res) => {
 //   Heal a broken audit chain for an org. Quarantines tampered entries to
 //   a forensic file and re-seals the chain with a cryptographic seal entry.
 //   Body: { orgId?: string } — defaults to the caller's orgId
-router.post('/chain/heal', async (req, res) => {
+//   Org partition enforced: non-admin users can only heal their own org's chain.
+router.post('/chain/heal', enforceOrgPartition(), async (req, res) => {
   try {
-    const orgId = req.body?.orgId || getOrgId(req);
+    const orgId = req.resolvedOrgId || req.body?.orgId || getOrgId(req);
     const result = auditLogger.healChain(orgId);
 
     // Dispatch alert event for the healing action
@@ -532,6 +533,25 @@ router.post('/chain/heal', async (req, res) => {
   } catch (err) {
     logger.warn('[Audit] chain_heal_failed:', err.message);
     sendError(res, 500, 'chain_heal_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/partition-status ─────────────────────────────────────────
+//   Returns org partition enforcement status and recent violation attempts.
+router.get('/partition-status', (req, res) => {
+  try {
+    const stats = getPartitionStats();
+    const callerOrgId = getOrgId(req);
+    res.json({
+      success: true,
+      enforcementEnabled: stats.enforcementEnabled,
+      callerOrgId,
+      totalViolations: stats.totalViolations,
+      recentViolations: stats.recentViolations,
+    });
+  } catch (err) {
+    logger.warn('[Audit] partition_status_failed:', err.message);
+    sendError(res, 500, 'partition_status_failed', { message: err.message });
   }
 });
 
