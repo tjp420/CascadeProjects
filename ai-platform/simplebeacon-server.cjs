@@ -1226,6 +1226,15 @@ async function startServer() {
     logger.error('[Routes] Enterprise analytics not loaded:', err?.message || err);
   }
 
+  // Semantic cache — vector-based inference response caching
+  try {
+    const semanticCacheRoutes = require('./server/routes/semantic-cache-routes.cjs');
+    app.use('/api/semantic-cache', semanticCacheRoutes);
+    logger.info('[Routes] Semantic cache loaded at /api/semantic-cache');
+  } catch (err) {
+    logger.error('[Routes] Semantic cache not loaded:', err?.message || err);
+  }
+
   // Integration marketplace — Slack, Teams, Jira, GitHub PR
   try {
     const integrationRoutes = require('./server/routes/integration-routes.cjs');

@@ -4,6 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Shield, ShieldAlert, ShieldCheck, RefreshCw, AlertCircle, Bug, Lock, FileWarning, Database, KeyRound } from 'lucide-react';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { ProviderFailoverDashboard } from '@/components/ProviderFailoverDashboard';
+import { IdentityFederationDashboard } from '@/components/IdentityFederationDashboard';
+import { SemanticCacheDashboard } from '@/components/SemanticCacheDashboard';
 
 type ScanResultData = {
   projectPath?: string;
@@ -377,6 +380,10 @@ export function SecurityView() {
           </CardContent>
         </Card>
       )}
+
+      <ProviderFailoverDashboard />
+      <IdentityFederationDashboard />
+      <SemanticCacheDashboard />
     </div>
   );
 }

@@ -13,6 +13,7 @@
 
 const logger = require('../../src/lib/app-logger.cjs');
 const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
+const semanticCache = require('../lib/semantic-cache-store.cjs');
 
 const constants = require('../config/constants.cjs');
 const DEFAULTS = {
@@ -667,11 +668,28 @@ function sanitizeSummaryText(text, providerId = '') {
  * @returns {Promise<Object>}
  */
 async function callProvider(providerId, prompt, options = {}) {
+    // Semantic cache lookup — intercept before provider dispatch
+    try {
+        var cacheResult = semanticCache.lookup(providerId, options.model, prompt);
+        if (cacheResult) {
+            logger.info('[SemanticCache] Hit for provider=' + providerId + ' (similarity=' + (cacheResult.similarity || 1.0).toFixed(4) + ', saved=' + cacheResult.savedLatencyMs + 'ms)');
+            return {
+                ...cacheResult.response,
+                _semanticCacheHit: true,
+                _cacheSimilarity: cacheResult.similarity,
+                _cachedAt: cacheResult.cachedAt,
+            };
+        }
+    } catch (cacheErr) {
+        logger.warn('[SemanticCache] Lookup failed, proceeding to provider:', cacheErr.message);
+    }
+
     // Check circuit breaker before attempting request
     if (checkCircuitBreaker(providerId)) {
         throw new Error(`503: The circuit breaker for provider '${providerId}' is currently open due to high error frequencies. Try again later.`);
     }
 
+    var inferenceStart = Date.now();
     try {
         const result = await retryWithBackoff(async () => {
             switch (providerId) {
@@ -687,6 +705,19 @@ async function callProvider(providerId, prompt, options = {}) {
         }, 3, constants.ONE_SECOND_MS);
 
         recordSuccess(providerId);
+
+        // Store in semantic cache
+        var inferenceLatency = Date.now() - inferenceStart;
+        try {
+            var tokenCount = 0;
+            if (result && result.usage) {
+                tokenCount = (result.usage.total_tokens || result.usage.completion_tokens || 0);
+            }
+            semanticCache.store(providerId, options.model, prompt, result, inferenceLatency, tokenCount);
+        } catch (cacheStoreErr) {
+            logger.warn('[SemanticCache] Store failed:', cacheStoreErr.message);
+        }
+
         return result;
     } catch (error) {
         recordFailure(providerId);
