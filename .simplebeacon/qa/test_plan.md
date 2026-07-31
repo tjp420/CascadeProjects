@@ -1,51 +1,70 @@
-# Test Plan: Route Parameter Validation — Defense-in-Depth
+# Test Plan: Phase 4 — Standardized Error Response Helper
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Add shared `validateParam` middleware to enforce format
-validation on 17 route parameters across 7 route files.
+**Feature:** Create shared `sendError`/`sendSuccess` helpers and apply
+to the top 3 highest-impact route files (179 responses, 39.8% of total).
 
 ## Context
 
-The Phase 3 investigation confirmed all 17 endpoints are LOW risk —
-no SQL injection or path traversal vulnerabilities. All params are
-used as object/Map keys or parameterized SQL query values.
+The error response audit found:
+- 450 total error responses across 35 route files
+- 6 different format patterns
+- Dominant: `{ success: false, error: '...' }` (48.2%, 217 responses)
+- Second: `{ error: '...' }` no message (18.4%, 83 responses)
+- Third: `{ error: 'code', message: '...' }` (16.7%, 75 responses)
 
-However, adding format validation provides:
-- **Defense-in-depth** — fail fast on malformed input
-- **Better error messages** — 400 with clear format hint vs 404/500
-- **API consistency** — all params validated to expected formats
-- **Reduced log noise** — malformed requests rejected before hitting stores
+The third pattern carries MORE information (error code + message) than
+the dominant pattern. The helper must support all patterns without
+losing information.
 
-## Validation Patterns
+## Design
 
-| Param | Pattern | Format | Files |
-|-------|---------|--------|-------|
-| `orgId` | `^[a-zA-Z0-9_-]{1,100}$` | Alphanumeric slug | analytics-routes, sso-config-routes |
-| `partnerId` | `^wl-[a-f0-9]{8}$` | `wl-` + 8 hex | whitelabel-routes (×6) |
-| `configId` | `^int-[a-f0-9]{8}$` | `int-` + 8 hex | integration-routes (×3) |
-| `providerId` | `^sso-[a-f0-9]{8}$` | `sso-` + 8 hex | sso-config-routes (×5) |
-| `id` (admin) | `^[a-zA-Z0-9_-]{1,100}$` | User ID slug | admin-api (×1) |
-| `provider` | `^[a-z]{3,20}$` | Lowercase provider name | sso-routes (×2) |
-| `id` (workspaces) | `^[a-f0-9-]{36}$` | UUID | workspaces (×3) |
+### Target format (backward-compatible superset)
+```javascript
+{
+  success: false,
+  error: 'error_message_or_code',
+  message: 'optional details',     // optional
+  code: 'optional_machine_code',   // optional
+  details: 'optional debug info'   // optional
+}
+```
+
+### Helper API
+```javascript
+// Simple: sendError(res, 500, 'Failed to fetch')
+// → { success: false, error: 'Failed to fetch' }
+
+// With message: sendError(res, 500, 'stats_failed', { message: err.message })
+// → { success: false, error: 'stats_failed', message: err.message }
+
+// With code: sendError(res, 400, 'Invalid input', { code: 'VALIDATION_ERROR' })
+// → { success: false, error: 'Invalid input', code: 'VALIDATION_ERROR' }
+```
+
+## Scope
+
+This commit covers the top 3 files (179 responses, 39.8%):
+1. `flexible-analyze-api.cjs` — 65 responses (mixed formats)
+2. `analytics-routes.cjs` — 58 responses (`{ error: 'code', message: '...' }`)
+3. `admin-api.cjs` — 56 responses (already `{ success: false, error: '...' }`)
+
+Remaining 32 files (271 responses) deferred to future commits.
 
 ## Files to Change
 
 ### New file (1)
 | File | Purpose |
 |------|---------|
-| `server/middleware/validate-params.cjs` | Shared `validateParam` middleware + `VALIDATION_PATTERNS` |
+| `server/lib/response-helpers.cjs` | `sendError` + `sendSuccess` helpers |
 
-### Edits (7 files)
-| File | Endpoints | Change |
-|------|-----------|--------|
-| `server/routes/analytics-routes.cjs` | 1 | Add `validateParam('orgId', ...)` to `GET /org/:orgId` |
-| `server/routes/whitelabel-routes.cjs` | 6 | Add `validateParam('partnerId', ...)` to all `:partnerId` routes |
-| `server/routes/integration-routes.cjs` | 3 | Add `validateParam('configId', ...)` to all `:configId` routes |
-| `server/routes/sso-config-routes.cjs` | 6 | Add `validateParam` for `:orgId` and `:providerId` routes |
-| `server/routes/admin-api.cjs` | 1 | Add `validateParam('id', ...)` to `GET /users/:id/details` |
-| `server/routes/sso-routes.cjs` | 2 | Add `validateParam('provider', ...)` to login + metadata |
-| `server/routes/workspaces.cjs` | 3 | Add `validateParam('id', ...)` to GET, PATCH, DELETE |
+### Edits (3 files)
+| File | Responses | Current Format | Change |
+|------|-----------|----------------|-------|
+| `flexible-analyze-api.cjs` | 65 | Mixed | Import helper, replace all error responses |
+| `analytics-routes.cjs` | 58 | `{ error: 'code', message: '...' }` | Import helper, replace with `sendError(res, N, 'code', { message })` |
+| `admin-api.cjs` | 56 | `{ success: false, error: '...' }` | Import helper, replace with `sendError(res, N, '...')` |
 
 ## Objective Check-Items
 
@@ -53,7 +72,7 @@ However, adding format validation provides:
 
 | # | Item | Expected |
 |---|------|----------|
-| L1.1 | `node -c` on all 8 files (1 new + 7 edited) | exit 0 |
+| L1.1 | `node -c` on all 4 files (1 new + 3 edited) | exit 0 |
 | L1.2 | `npx simplebeacon scan --gate` (local CLI) | PASS (exit 0) |
 | L1.3 | WebSocket integration test | 16/16 pass |
 
@@ -61,19 +80,16 @@ However, adding format validation provides:
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | `GET /api/analytics/org/valid-org-1` | 200 (valid format) |
-| L2.2 | `GET /api/analytics/org/../../etc/passwd` | 400 (invalid format) |
-| L2.3 | `GET /api/analytics/org/<script>alert(1)</script>` | 400 (invalid format) |
-| L2.4 | `GET /api/whitelabel/partners/wl-abcdef12` | 200 or 404 (valid format) |
-| L2.5 | `GET /api/whitelabel/partners/invalid-id` | 400 (invalid format) |
-| L2.6 | Valid UUID passes workspaces validation | `^[a-f0-9-]{36}$` accepted |
+| L2.1 | Error responses include `success: false` | All 179 responses |
+| L2.2 | Error responses include `error` field | All 179 responses |
+| L2.3 | analytics-routes preserves `message` field | `sendError(res, N, 'code', { message })` |
+| L2.4 | Existing API clients unaffected | Same status codes + body fields |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
-| L3.1 | Only 1 new file created (middleware) | Broom strategy — minimal new files |
-| L3.2 | No new dependencies | Uses built-in RegExp |
-| L3.3 | Validation runs before route handler | Middleware order: validate → handler |
-| L3.4 | Error response format consistent | `{ error: 'invalid_parameter', message, paramName }` |
-| L3.5 | Existing valid requests unaffected | Valid format params pass through normally |
+| L3.1 | Only 1 new file created | Broom strategy |
+| L3.2 | No new dependencies | Pure JS |
+| L3.3 | No information lost | `message` field preserved where it existed |
+| L3.4 | Remaining 32 files documented | Deferred to future commits |

@@ -8,6 +8,7 @@ const constants = require('../config/constants.cjs');
 const { getActiveUsers } = require('../lib/session-activity.cjs');
 const { authenticate } = require('../middleware/auth.cjs');
 const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 const { verifyPassword } = require('../lib/auth/password-service.cjs');
 const crypto = require('crypto');
 const tokenDb = require('../lib/token-db.cjs');
@@ -681,7 +682,7 @@ function setupAdminAPI(app, options = {}) {
 
   router.get('/users', async (req, res) => {
     if (!isAdmin(req)) {
-      return res.status(403).json({ success: false, error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden');
     }
     try {
       const listQuery = parseAdminUserListQuery(req);
@@ -713,17 +714,17 @@ function setupAdminAPI(app, options = {}) {
       });
     } catch (err) {
       logger.warn('[AdminAPI] users failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.get('/users/:id/details', validateParam('id', VALIDATION_PATTERNS.userId), async (req, res) => {
     if (!isAdmin(req)) {
-      return res.status(403).json({ success: false, error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden');
     }
     try {
       const id = String(req.params.id || '');
-      if (!id) return res.status(400).json({ success: false, error: 'User id required' });
+      if (!id) return sendError(res, 400, 'User id required');
 
       let user = null;
       if (db) {
@@ -741,7 +742,7 @@ function setupAdminAPI(app, options = {}) {
         user = all.find((u) => String(u.id) === id) || null;
       }
       if (!user) {
-        return res.status(404).json({ success: false, error: 'User not found' });
+        return sendError(res, 404, 'User not found');
       }
 
       const active = getActiveUsers();
@@ -756,13 +757,13 @@ function setupAdminAPI(app, options = {}) {
       return res.json({ success: true, ...details });
     } catch (err) {
       logger.warn('[AdminAPI] user details failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.get('/stats', async (req, res) => {
     if (!isAdmin(req)) {
-      return res.status(403).json({ success: false, error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden');
     }
     try {
       const totalAccounts = await countAdminUsers(db);
@@ -818,77 +819,77 @@ function setupAdminAPI(app, options = {}) {
       return res.json({ success: true, stats });
     } catch (err) {
       logger.warn('[AdminAPI] stats failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.get('/sessions', async (req, res) => {
     if (!isAdmin(req)) {
-      return res.status(403).json({ success: false, error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden');
     }
     try {
       const active = getActiveUsers();
       return res.json({ success: true, sessions: active });
     } catch (err) {
       logger.warn('[AdminAPI] sessions failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.post('/verify-password', async (req, res) => {
     if (!isAdmin(req)) {
-      return res.status(403).json({ success: false, error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden');
     }
     try {
       const { password } = req.body || {};
       const adminEmail = req.user?.email;
       if (!password || !adminEmail) {
-        return res.status(400).json({ success: false, error: 'Password required' });
+        return sendError(res, 400, 'Password required');
       }
       const sqlite = getSqliteDb();
       const valid = await verifyAdminPassword(adminEmail, password, db, sqlite);
-      if (!valid) return res.status(401).json({ success: false, error: 'Invalid password' });
+      if (!valid) return sendError(res, 401, 'Invalid password');
       return res.json({ success: true, valid: true });
     } catch (err) {
       logger.warn('[AdminAPI] verify-password failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.post('/users/:id/trust-level', async (req, res) => {
     if (!isAdmin(req)) {
-      return res.status(403).json({ success: false, error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden');
     }
     const { id } = req.params;
     const { trustLevel, password, subscriptionTier, subscriptionStatus } = req.body || {};
-    if (!password) return res.status(400).json({ success: false, error: 'Admin password required' });
+    if (!password) return sendError(res, 400, 'Admin password required');
     const adminEmail = req.user?.email;
     const sqlite = getSqliteDb();
     const passwordValid = await verifyAdminPassword(adminEmail, password, db, sqlite);
-    if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
+    if (!passwordValid) return sendError(res, 401, 'Invalid admin password');
     const validLevels = ['bronze', 'silver', 'gold'];
     if (!validLevels.includes(trustLevel)) {
-      return res.status(400).json({ success: false, error: 'Invalid trust level' });
+      return sendError(res, 400, 'Invalid trust level');
     }
     try {
       let targetEmail = '';
       if (db) {
         const userResult = await db.query('SELECT email, status FROM users WHERE id = $1 LIMIT 1', [id]);
         const user = userResult.rows[0];
-        if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+        if (!user) return sendError(res, 404, 'User not found');
         targetEmail = user.email;
         if (String(targetEmail).toLowerCase() === 'admin@simplebeacon.ai' && trustLevel !== 'gold') {
-          return res.status(403).json({ success: false, error: 'Cannot downgrade the primary admin account' });
+          return sendError(res, 403, 'Cannot downgrade the primary admin account');
         }
         await db.query('UPDATE users SET trust_level = $1, updated_at = NOW() WHERE id = $2', [trustLevel, id]);
       } else {
         const sqlite = getSqliteDb();
         if (sqlite?.updateUserTierById) {
           const user = sqlite.getUserById(id);
-          if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+          if (!user) return sendError(res, 404, 'User not found');
           targetEmail = user.email;
           if (String(targetEmail).toLowerCase() === 'admin@simplebeacon.ai' && trustLevel !== 'gold') {
-            return res.status(403).json({ success: false, error: 'Cannot downgrade the primary admin account' });
+            return sendError(res, 403, 'Cannot downgrade the primary admin account');
           }
           sqlite.updateUserTierById(id, trustLevelToTier(trustLevel));
           const subTier = subscriptionTier || trustLevelToTier(trustLevel);
@@ -899,41 +900,41 @@ function setupAdminAPI(app, options = {}) {
       return res.json({ success: true, id, trustLevel, subscriptionTier: subscriptionTier || trustLevelToTier(trustLevel), subscriptionStatus: subscriptionStatus || 'active' });
     } catch (err) {
       logger.warn('[AdminAPI] update trust-level failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.delete('/users/:id', async (req, res) => {
     if (!isAdmin(req)) {
-      return res.status(403).json({ success: false, error: 'Forbidden' });
+      return sendError(res, 403, 'Forbidden');
     }
     const { id } = req.params;
     const { password, confirmEmail } = req.body || {};
-    if (!password) return res.status(400).json({ success: false, error: 'Admin password required' });
+    if (!password) return sendError(res, 400, 'Admin password required');
     if (!id) {
-      return res.status(400).json({ success: false, error: 'User id required' });
+      return sendError(res, 400, 'User id required');
     }
     try {
       const users = await loadAdminUsers(db);
       const target = users.find(u => String(u.id) === String(id));
       if (target && String(target.email || '').toLowerCase() === 'admin@simplebeacon.ai') {
-        return res.status(403).json({ success: false, error: 'Cannot delete the primary admin account' });
+        return sendError(res, 403, 'Cannot delete the primary admin account');
       }
-      if (!target) return res.status(404).json({ success: false, error: 'User not found' });
+      if (!target) return sendError(res, 404, 'User not found');
       if (!confirmEmail || String(confirmEmail).toLowerCase() !== String(target.email).toLowerCase()) {
-        return res.status(400).json({ success: false, error: 'Confirm the account email to delete' });
+        return sendError(res, 400, 'Confirm the account email to delete');
       }
       const adminEmail = req.user?.email;
       const sqlite = getSqliteDb();
       const passwordValid = await verifyAdminPassword(adminEmail, password, db, sqlite);
-      if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
+      if (!passwordValid) return sendError(res, 401, 'Invalid admin password');
       if (db) {
         await db.query('DELETE FROM users WHERE id = $1', [id]);
       } else {
         const sqlite = getSqliteDb();
         if (sqlite?.deleteUserById) {
           if (!sqlite.getUserById(id)) {
-            return res.status(404).json({ success: false, error: 'User not found' });
+            return sendError(res, 404, 'User not found');
           }
           sqlite.deleteUserById(id);
         }
@@ -942,25 +943,25 @@ function setupAdminAPI(app, options = {}) {
       return res.json({ success: true, id, deleted: true });
     } catch (err) {
       logger.warn('[AdminAPI] delete user failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.post('/users/:id/suspend', async (req, res) => {
-    if (!isAdmin(req)) return res.status(403).json({ success: false, error: 'Forbidden' });
+    if (!isAdmin(req)) return sendError(res, 403, 'Forbidden');
     const { id } = req.params;
     const { password } = req.body || {};
-    if (!password) return res.status(400).json({ success: false, error: 'Admin password required' });
+    if (!password) return sendError(res, 400, 'Admin password required');
     const adminEmail = req.user?.email;
     const sqlite = getSqliteDb();
     const passwordValid = await verifyAdminPassword(adminEmail, password, db, sqlite);
-    if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
+    if (!passwordValid) return sendError(res, 401, 'Invalid admin password');
     try {
       const users = await loadAdminUsers(db);
       const target = users.find(u => String(u.id) === String(id));
-      if (!target) return res.status(404).json({ success: false, error: 'User not found' });
+      if (!target) return sendError(res, 404, 'User not found');
       if (String(target.email || '').toLowerCase() === 'admin@simplebeacon.ai') {
-        return res.status(403).json({ success: false, error: 'Cannot suspend the primary admin account' });
+        return sendError(res, 403, 'Cannot suspend the primary admin account');
       }
       if (db) {
         await db.query("UPDATE users SET status = 'suspended', updated_at = NOW() WHERE id = $1", [id]);
@@ -975,17 +976,17 @@ function setupAdminAPI(app, options = {}) {
       return res.json({ success: true, id, status: 'suspended' });
     } catch (err) {
       logger.warn('[AdminAPI] suspend user failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.post('/users/:id/unsuspend', async (req, res) => {
-    if (!isAdmin(req)) return res.status(403).json({ success: false, error: 'Forbidden' });
+    if (!isAdmin(req)) return sendError(res, 403, 'Forbidden');
     const { id } = req.params;
     try {
       const users = await loadAdminUsers(db);
       const target = users.find(u => String(u.id) === String(id));
-      if (!target) return res.status(404).json({ success: false, error: 'User not found' });
+      if (!target) return sendError(res, 404, 'User not found');
       if (db) {
         await db.query("UPDATE users SET status = 'active', updated_at = NOW() WHERE id = $1", [id]);
       } else {
@@ -999,36 +1000,36 @@ function setupAdminAPI(app, options = {}) {
       return res.json({ success: true, id, status: 'active' });
     } catch (err) {
       logger.warn('[AdminAPI] unsuspend user failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.post('/users/:id/details', validateParam('id', VALIDATION_PATTERNS.userId), async (req, res) => {
-    if (!isAdmin(req)) return res.status(403).json({ success: false, error: 'Forbidden' });
+    if (!isAdmin(req)) return sendError(res, 403, 'Forbidden');
     const { id } = req.params;
     const { name, email, password } = req.body || {};
-    if (!password) return res.status(400).json({ success: false, error: 'Admin password required to update email' });
-    if (!email || !String(email).includes('@')) return res.status(400).json({ success: false, error: 'Valid email required' });
+    if (!password) return sendError(res, 400, 'Admin password required to update email');
+    if (!email || !String(email).includes('@')) return sendError(res, 400, 'Valid email required');
     const adminEmail = req.user?.email;
     const sqlite = getSqliteDb();
     const passwordValid = await verifyAdminPassword(adminEmail, password, db, sqlite);
-    if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
+    if (!passwordValid) return sendError(res, 401, 'Invalid admin password');
     try {
       const users = await loadAdminUsers(db);
       const target = users.find(u => String(u.id) === String(id));
-      if (!target) return res.status(404).json({ success: false, error: 'User not found' });
+      if (!target) return sendError(res, 404, 'User not found');
       if (String(target.email || '').toLowerCase() === 'admin@simplebeacon.ai' && String(email).toLowerCase() !== 'admin@simplebeacon.ai') {
-        return res.status(403).json({ success: false, error: 'Cannot change the primary admin email' });
+        return sendError(res, 403, 'Cannot change the primary admin email');
       }
       if (db) {
         const existing = await db.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id != $2 LIMIT 1', [email, id]);
-        if (existing.rows[0]) return res.status(400).json({ success: false, error: 'Email already in use by another account' });
+        if (existing.rows[0]) return sendError(res, 400, 'Email already in use by another account');
         await db.query('UPDATE users SET name = $1, email = $2, updated_at = NOW() WHERE id = $3', [name || '', email, id]);
       } else {
         const sqlite = getSqliteDb();
         if (sqlite?.updateUserDetails) {
           const result = sqlite.updateUserDetails(id, { name, email });
-          if (!result.success) return res.status(400).json({ success: false, error: result.error });
+          if (!result.success) return sendError(res, 400, result.error);
           sqlite.updateCustomerSubscription(email, 'active', trustLevelToTier(target.trustLevel));
         }
       }
@@ -1036,24 +1037,24 @@ function setupAdminAPI(app, options = {}) {
       return res.json({ success: true, id, name, email });
     } catch (err) {
       logger.warn('[AdminAPI] update details failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 
   router.post('/customers/:email/refund', async (req, res) => {
-    if (!isAdmin(req)) return res.status(403).json({ success: false, error: 'Forbidden' });
+    if (!isAdmin(req)) return sendError(res, 403, 'Forbidden');
     const { email } = req.params;
     const { reason, password } = req.body || {};
-    if (!email) return res.status(400).json({ success: false, error: 'Email required' });
-    if (!password) return res.status(400).json({ success: false, error: 'Admin password required' });
+    if (!email) return sendError(res, 400, 'Email required');
+    if (!password) return sendError(res, 400, 'Admin password required');
     const adminEmail = req.user?.email;
     const sqlite = getSqliteDb();
     const passwordValid = await verifyAdminPassword(adminEmail, password, db, sqlite);
-    if (!passwordValid) return res.status(401).json({ success: false, error: 'Invalid admin password' });
+    if (!passwordValid) return sendError(res, 401, 'Invalid admin password');
     try {
       const sqlite = getSqliteDb();
       if (!sqlite?.getAllPaidSubscriptions) {
-        return res.status(400).json({ success: false, error: 'Refund requires local billing database' });
+        return sendError(res, 400, 'Refund requires local billing database');
       }
       const subs = sqlite.getAllPaidSubscriptions().filter(s => s.customer_email === email.trim().toLowerCase() && s.status === 'active');
       let stripeResult = null;
@@ -1067,7 +1068,7 @@ function setupAdminAPI(app, options = {}) {
       return res.json({ success: true, message: 'Refund processed', refundedCount: subs.length, stripeResult });
     } catch (err) {
       logger.warn('[AdminAPI] refund failed:', err.message);
-      return res.status(500).json({ success: false, error: err.message });
+      return sendError(res, 500, err.message);
     }
   });
 }

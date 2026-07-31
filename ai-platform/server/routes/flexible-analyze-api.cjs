@@ -53,6 +53,7 @@ const {
     formatAllowedRootsSummary
 } = require('../lib/path-safety.cjs');
 const { toClientError } = require('../../shared-utils/index.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 const {
     sanitizeHttpHeaderValue,
     shouldLogRuntimeInfo,
@@ -336,7 +337,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 defaultScanProfile: resolveScanProfile({}, 'dashboard')
             });
         } catch (error) {
-            res.status(500).json({ success: false, error: toClientError(error, 'Failed to load providers') });
+            sendError(res, 500, toClientError(error, 'Failed to load providers'));
         }
     });
 
@@ -351,7 +352,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 sources
             });
         } catch (error) {
-            res.status(500).json({ success: false, error: toClientError(error, 'Failed to load test sources') });
+            sendError(res, 500, toClientError(error, 'Failed to load test sources'));
         }
     });
 
@@ -361,7 +362,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const branding = loadAgencyBranding(baseDir, orgId);
             res.json({ success: true, orgId, branding });
         } catch (error) {
-            res.status(500).json({ success: false, error: toClientError(error, 'Failed to load agency branding') });
+            sendError(res, 500, toClientError(error, 'Failed to load agency branding'));
         }
     });
 
@@ -372,7 +373,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const branding = saveAgencyBranding(baseDir, orgId, body.branding || body);
             res.json({ success: true, orgId, branding });
         } catch (error) {
-            res.status(500).json({ success: false, error: toClientError(error, 'Failed to save agency branding') });
+            sendError(res, 500, toClientError(error, 'Failed to save agency branding'));
         }
     });
 
@@ -885,7 +886,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 ...scanResult
             }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
-            res.status(400).json({ success: false, error: toClientError(error, 'Analysis request failed') });
+            sendError(res, 400, toClientError(error, 'Analysis request failed'));
         } finally {
             if (tempFetchDir) {
                 await cleanupWebsiteTemp(tempFetchDir);
@@ -902,17 +903,17 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const body = req.body || {};
             const url = String(body.url || '').trim();
             if (!url) {
-                return res.status(400).json({ success: false, error: 'url is required' });
+                return sendError(res, 400, 'url is required');
             }
             if (!/^https?:\/\//i.test(url)) {
-                return res.status(400).json({ success: false, error: 'url must be a valid HTTP(S) URL' });
+                return sendError(res, 400, 'url must be a valid HTTP(S) URL');
             }
 
             // Tier check
             const userTier = req.user?.tier || body.tier || 'developer';
             const { isPaidTier, getTierCapability } = require('../../../packages/simplebeacon-cli/src/lib/tier-constants');
             if (!isPaidTier(userTier) && !getTierCapability(userTier, 'websiteScans')) {
-                return res.status(403).json({ success: false, error: 'Website scanning requires a Pro or higher tier.' });
+                return sendError(res, 403, 'Website scanning requires a Pro or higher tier.');
             }
 
             const { scanWebsite } = require('../lib/website-scanner.cjs');
@@ -932,7 +933,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 contentSize: result.contentSize
             }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
-            res.status(400).json({ success: false, error: toClientError(error, 'Website scan failed') });
+            sendError(res, 400, toClientError(error, 'Website scan failed'));
         }
     });
 
@@ -954,7 +955,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 tempFetchDir = resolved.tempFetchDir;
                 isWebsite = resolved.isWebsite;
             } catch (error) {
-                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+                return sendError(res, 400, toClientError(error, 'Invalid projectPath'));
             }
 
             const scanId = crypto.randomUUID();
@@ -1153,7 +1154,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
             return res.json({ success: true, scanId, status: 'scanning' });
         } catch (error) {
-            res.status(500).json({ success: false, error: toClientError(error, 'Scan request failed') });
+            sendError(res, 500, toClientError(error, 'Scan request failed'));
         }
     });
 
@@ -1209,17 +1210,17 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             logger.info(`[Upload Directory] Received analysisType="${analysisType}" from req.body keys=[${Object.keys(req.body || {}).join(',')}]`);
 
             if (!licenseToken) {
-                return res.status(400).json({ success: false, error: 'licenseToken is required' });
+                return sendError(res, 400, 'licenseToken is required');
             }
 
             const record = await validateLicenseToken(licenseToken);
             if (!record) {
-                return res.status(401).json({ success: false, error: 'Invalid license token' });
+                return sendError(res, 401, 'Invalid license token');
             }
             const licenseTier = record.licenseTier || 'executive';
 
             if (!req.files || req.files.length === 0) {
-                return res.status(400).json({ success: false, error: 'No files uploaded' });
+                return sendError(res, 400, 'No files uploaded');
             }
             multerFiles = req.files;
 
@@ -1637,7 +1638,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             res.json({ success: true, scanId });
         } catch (err) {
             logger.error('[Upload Directory] Error:', safeErrorMessage(err));
-            res.status(500).json({ success: false, error: safeErrorMessage(err) || 'Analysis failed' });
+            sendError(res, 500, safeErrorMessage(err) || 'Analysis failed');
             // Clean up on immediate error — Privacy Guard: zero data retention
             try {
                 if (projectDir) {
@@ -1664,7 +1665,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         const scanId = String(req.query.scanId || '');
         const job = scanJobs.get(scanId);
         if (!job) {
-            return res.status(404).json({ success: false, error: 'Scan not found' });
+            return sendError(res, 404, 'Scan not found');
         }
         // If complete, include reportJson; client will consume it
         res.json({
@@ -1707,7 +1708,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 return res.status(400).json(errorPayload);
             }
             if (!projectPath) {
-                return res.status(400).json({ success: false, error: 'projectPath is required' });
+                return sendError(res, 400, 'projectPath is required');
             }
             const scanProfile = resolveScanProfile(
                 { scanProfile: req.query.scanProfile },
@@ -1778,10 +1779,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             try {
                 projectPath = resolveSafeProjectPath(rawPath);
             } catch (error) {
-                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+                return sendError(res, 400, toClientError(error, 'Invalid projectPath'));
             }
             if (!projectPath) {
-                return res.status(400).json({ success: false, error: 'projectPath is required' });
+                return sendError(res, 400, 'projectPath is required');
             }
             const profile = req.query.profile || 'all';
             const inventoryOptions = { profile };
@@ -1798,7 +1799,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const inventory = await countRepositoryInventory(projectPath, inventoryOptions);
             return res.json({ success: true, inventory });
         } catch (error) {
-            return res.status(400).json({ success: false, error: toClientError(error, 'Inventory scan failed') });
+            return sendError(res, 400, toClientError(error, 'Inventory scan failed'));
         }
     });
 
@@ -1844,15 +1845,12 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                     userCredentials
                 });
             } else {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Provide code (string) or filePath + projectPath'
-                });
+                return sendError(res, 400, 'Provide code (string) or filePath + projectPath');
             }
 
             return res.json({ success: true, understandingMode, aiProvider, report });
         } catch (error) {
-            return res.status(400).json({ success: false, error: toClientError(error, 'Code understanding failed') });
+            return sendError(res, 400, toClientError(error, 'Code understanding failed'));
         }
     });
 
@@ -1863,10 +1861,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             try {
                 projectPath = resolveSafeProjectPath(body.projectPath || body.path);
             } catch (error) {
-                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+                return sendError(res, 400, toClientError(error, 'Invalid projectPath'));
             }
             if (!projectPath) {
-                return res.status(400).json({ success: false, error: 'projectPath is required' });
+                return sendError(res, 400, 'projectPath is required');
             }
 
             const report = await generateZscriptModReport(projectPath, {
@@ -1877,7 +1875,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             res.set('Cache-Control', 'no-store');
             return res.json({ success: true, projectPath, report });
         } catch (error) {
-            return res.status(400).json({ success: false, error: toClientError(error, 'ZScript report failed') });
+            return sendError(res, 400, toClientError(error, 'ZScript report failed'));
         }
     });
 
@@ -1887,10 +1885,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             try {
                 projectPath = resolveSafeProjectPath(req.query.projectPath || req.query.path);
             } catch (error) {
-                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+                return sendError(res, 400, toClientError(error, 'Invalid projectPath'));
             }
             if (!projectPath) {
-                return res.status(400).json({ success: false, error: 'projectPath is required' });
+                return sendError(res, 400, 'projectPath is required');
             }
 
             const report = await generateZscriptModReport(projectPath, {
@@ -1900,7 +1898,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             res.set('Cache-Control', 'no-store');
             return res.json({ success: true, projectPath, report });
         } catch (error) {
-            return res.status(400).json({ success: false, error: toClientError(error, 'ZScript report failed') });
+            return sendError(res, 400, toClientError(error, 'ZScript report failed'));
         }
     });
 
@@ -1911,10 +1909,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             try {
                 projectPath = resolveSafeProjectPath(body.projectPath);
             } catch (error) {
-                return res.status(400).json({ success: false, error: toClientError(error, 'Invalid projectPath') });
+                return sendError(res, 400, toClientError(error, 'Invalid projectPath'));
             }
             if (!projectPath) {
-                return res.status(400).json({ success: false, error: 'projectPath is required' });
+                return sendError(res, 400, 'projectPath is required');
             }
 
             const entry = await appendExpertReview(baseDir, {
@@ -1930,7 +1928,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
 
             return res.json({ success: true, review: entry });
         } catch (error) {
-            return res.status(400).json({ success: false, error: toClientError(error, 'Expert review save failed') });
+            return sendError(res, 400, toClientError(error, 'Expert review save failed'));
         }
     });
 
@@ -1947,7 +1945,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             });
             return res.json({ success: true, reviews, count: reviews.length });
         } catch (error) {
-            return res.status(400).json({ success: false, error: toClientError(error, 'Expert review load failed') });
+            return sendError(res, 400, toClientError(error, 'Expert review load failed'));
         }
     });
 
@@ -1963,17 +1961,11 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const completeScan = normalizeCompleteScanInput(rawScan) || rawScan;
             if (!completeScan || typeof completeScan !== 'object') {
                 logger.debug('[export-bundle] missing completeScan');
-                return res.status(400).json({
-                    success: false,
-                    error: 'completeScan payload is required — run Complete scan first, then export ZIP.'
-                });
+                return sendError(res, 400, 'completeScan payload is required — run Complete scan first, then export ZIP.');
             }
             if (!completeScanHasExportableResults(completeScan)) {
                 logger.debug('[export-bundle] no exportable results');
-                return res.status(400).json({
-                    success: false,
-                    error: 'Export bundle requires at least one completed scan step with results.'
-                });
+                return sendError(res, 400, 'Export bundle requires at least one completed scan step with results.');
             }
 
             const hasAdmin = hasAdminDeliverableAccess(req);
@@ -2031,7 +2023,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             logger.debug('[export-bundle] response streamed');
         } catch (error) {
             logger.warn('[export-bundle] generation failed', { error: safeErrorMessage(error) });
-            return res.status(400).json({ success: false, error: toClientError(error, 'Export bundle generation failed') });
+            return sendError(res, 400, toClientError(error, 'Export bundle generation failed'));
         }
     });
 
@@ -2073,10 +2065,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const emailTo = String(body.email || body.emailTo || '').trim();
 
             if (!report || typeof report !== 'object') {
-                return res.status(400).json({
-                    success: false,
-                    error: 'report is required — run a Simplebeacon gate scan first.'
-                });
+                return sendError(res, 400, 'report is required — run a Simplebeacon gate scan first.');
             }
 
             // Load agency branding if org_id is provided
@@ -2129,10 +2118,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             if (format === 'email') {
                 const recipient = emailTo || req.user?.email;
                 if (!recipient) {
-                    return res.status(400).json({
-                        success: false,
-                        error: 'email is required for format=email. Provide body.email or sign in.'
-                    });
+                    return sendError(res, 400, 'email is required for format=email. Provide body.email or sign in.');
                 }
                 const emailResult = await sendEmail({
                     to: recipient,
@@ -2152,13 +2138,10 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 });
             }
 
-            return res.status(400).json({
-                success: false,
-                error: `Unsupported format: ${format}. Use html, zip, or email.`
-            });
+            return sendError(res, 400, `Unsupported format: ${format}. Use html, zip, or email.`);
         } catch (error) {
             logger.warn('[certificate-export] failed', { error: safeErrorMessage(error) });
-            return res.status(400).json({ success: false, error: toClientError(error, 'Certificate export failed') });
+            return sendError(res, 400, toClientError(error, 'Certificate export failed'));
         }
     });
 
@@ -2169,7 +2152,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const { normalizeCompleteScanInput } = require('../lib/complete-scan-audit-report.cjs');
             const completeScan = normalizeCompleteScanInput(rawScan) || rawScan;
             if (!completeScan || typeof completeScan !== 'object') {
-                return res.status(400).json({ success: false, error: 'completeScan payload is required' });
+                return sendError(res, 400, 'completeScan payload is required');
             }
             if (publicGateEnabled && !hasAdminDeliverableAccess(req)) {
                 return rejectPaidDeliverable(res, auditCheckoutUrl);
@@ -2239,7 +2222,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             });
         } catch (error) {
             logger.warn('[complete-audit-report] generation failed', { error: safeErrorMessage(error) });
-            return res.status(400).json({ success: false, error: toClientError(error, 'Audit report generation failed') });
+            return sendError(res, 400, toClientError(error, 'Audit report generation failed'));
         }
     });
 
@@ -2286,13 +2269,13 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 // Directory browsers may walk above allowed roots; allow listing ancestors
                 // so the user can still navigate down into an allowed project directory.
                 if (!isPathAncestorOfRoots(candidate, allowedRoots)) {
-                    return res.status(403).json({ success: false, error: e.message });
+                    return sendError(res, 403, e.message);
                 }
                 targetPath = path.resolve(candidate);
             }
             const stat = await fs.promises.stat(targetPath);
             if (!stat.isDirectory()) {
-                return res.status(400).json({ success: false, error: 'path is not a directory' });
+                return sendError(res, 400, 'path is not a directory');
             }
             const entries = await fs.promises.readdir(targetPath, { withFileTypes: true });
             const dirs = entries
@@ -2312,7 +2295,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             });
         } catch (error) {
             logger.warn('[list-directories] failed', { error: safeErrorMessage(error) });
-            return res.status(400).json({ success: false, error: toClientError(error, 'Directory listing failed') });
+            return sendError(res, 400, toClientError(error, 'Directory listing failed'));
         }
     });
 
@@ -2331,7 +2314,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const projectPath = body.projectPath || '';
             const report = body.report;
             if (!report || typeof report !== 'object') {
-                return res.status(400).json({ success: false, error: 'report is required' });
+                return sendError(res, 400, 'report is required');
             }
 
             const reportType = body.reportType || report.type || '';
@@ -2401,7 +2384,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             const body = req.body || {};
             const report = body.report;
             if (!report || typeof report !== 'object') {
-                return res.status(400).json({ success: false, error: 'report is required' });
+                return sendError(res, 400, 'report is required');
             }
 
             let projectPath = null;
@@ -2409,7 +2392,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 try {
                     projectPath = resolveSafeProjectPath(body.projectPath);
                 } catch (err) {
-                    return res.status(400).json({ success: false, error: safeErrorMessage(err) });
+                    return sendError(res, 400, safeErrorMessage(err));
                 }
             }
 
@@ -2474,10 +2457,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 npmAuditSource: npmAudit?.dataSource || npmAudit?.source || null
             }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
-            return res.status(400).json({
-                success: false,
-                error: toClientError(error, 'Compliance checklist failed')
-            });
+            return sendError(res, 400, toClientError(error, 'Compliance checklist failed'));
         }
     });
 
@@ -2532,7 +2512,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         const body = req.body || {};
         const repoUrl = String(body.repoUrl || '').trim();
         if (!repoUrl) {
-            return res.status(400).json({ success: false, error: 'repoUrl is required' });
+            return sendError(res, 400, 'repoUrl is required');
         }
         const refresh = body.refresh === true;
         const cacheKey = crypto.createHash('sha256').update(repoUrl).digest('hex').slice(0, 16);
@@ -2565,7 +2545,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             return res.json({ success: true, projectPath, cached: false, method: cloneMethod });
         } catch (err) {
             logger.error('[GitHub Clone] failed:', safeErrorMessage(err));
-            return res.status(500).json({ success: false, error: safeErrorMessage(err) || 'GitHub clone failed' });
+            return sendError(res, 500, safeErrorMessage(err) || 'GitHub clone failed');
         }
     });
 
@@ -2576,7 +2556,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 try {
                     projectPath = resolveSafeProjectPath(req.query.projectPath || req.query.path);
                 } catch (err) {
-                    return res.status(400).json({ success: false, error: safeErrorMessage(err) });
+                    return sendError(res, 400, safeErrorMessage(err));
                 }
             }
 
@@ -2590,10 +2570,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
                 auditRoot: projectPath
             }, 200, sendAnalyzeJsonOpts);
         } catch (error) {
-            return res.status(500).json({
-                success: false,
-                error: toClientError(error, 'npm audit failed')
-            });
+            return sendError(res, 500, toClientError(error, 'npm audit failed'));
         }
     });
 
@@ -2614,12 +2591,12 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         if (err && err instanceof multer.MulterError) {
             logger.warn(`[Upload Directory] Multer error: ${err.code} - ${err.message}`);
             if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-                return res.status(413).json({ success: false, error: 'Too many files. Maximum 100,000 files allowed per upload.' });
+                return sendError(res, 413, 'Too many files. Maximum 100,000 files allowed per upload.');
             }
             if (err.code === 'LIMIT_FILE_SIZE') {
-                return res.status(413).json({ success: false, error: 'One or more files exceed the 5 GB size limit.' });
+                return sendError(res, 413, 'One or more files exceed the 5 GB size limit.');
             }
-            return res.status(413).json({ success: false, error: `Upload rejected: ${err.message} (${err.code})` });
+            return sendError(res, 413, `Upload rejected: ${err.message} (${err.code})`);
         }
         next(err);
     });
@@ -2643,7 +2620,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
         const analysisType = String(req.body?.analysisType || 'simplebeacon').toLowerCase();
         try {
             if (!req.files || req.files.length === 0) {
-                return res.status(400).json({ success: false, error: 'No files uploaded' });
+                return sendError(res, 400, 'No files uploaded');
             }
 
             // Write uploaded files to temp directory preserving paths
@@ -3067,7 +3044,7 @@ function setupFlexibleAnalyzeAPI(app, options = {}) {
             });
         } catch (error) {
             logger.error('[Upload Directory] Scan failed:', safeErrorMessage(error));
-            res.status(500).json({ success: false, error: toClientError(error, 'scan failed') });
+            sendError(res, 500, toClientError(error, 'scan failed'));
         } finally {
             // Clean up temp directory after a short delay
             setTimeout(() => {

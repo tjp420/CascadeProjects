@@ -44,6 +44,7 @@ const ticketStatusStore = require('../lib/ticket-status-store.cjs');
 const webhookConfigStore = require('../lib/webhook-config-store.cjs');
 const reportScheduleStore = require('../lib/report-schedule-store.cjs');
 const reportScheduler = require('../lib/report-scheduler.cjs');
+const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
 
 reportScheduler.setAnalyticsStore(analyticsStore);
 reportScheduler.startScheduler();
@@ -170,7 +171,7 @@ router.get('/stats', (req, res) => {
     res.json({ success: true, ...stats });
   } catch (err) {
     logger.error('[Analytics] Stats failed:', err.message);
-    res.status(500).json({ error: 'stats_failed', message: err.message });
+    sendError(res, 500, 'stats_failed', { message: err.message });
   }
 });
 
@@ -178,10 +179,10 @@ router.get('/stats', (req, res) => {
 router.get('/org/:orgId', validateParam('orgId', VALIDATION_PATTERNS.orgId), (req, res) => {
   try {
     const summary = analyticsStore.getOrgSummary(req.params.orgId);
-    if (!summary) return res.status(404).json({ error: 'org_not_found', message: 'No scans recorded for this organization' });
+    if (!summary) return sendError(res, 404, 'org_not_found', { message: 'No scans recorded for this organization' });
     res.json({ success: true, ...summary });
   } catch (err) {
-    res.status(500).json({ error: 'org_summary_failed', message: err.message });
+    sendError(res, 500, 'org_summary_failed', { message: err.message });
   }
 });
 
@@ -209,7 +210,7 @@ router.get('/scans', (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: 'scans_query_failed', message: err.message });
+    sendError(res, 500, 'scans_query_failed', { message: err.message });
   }
 });
 
@@ -225,7 +226,7 @@ router.get('/trends', (req, res) => {
     const trend = analyticsStore.getTrendData(filters);
     res.json({ success: true, trend, granularity: filters.granularity });
   } catch (err) {
-    res.status(500).json({ error: 'trends_failed', message: err.message });
+    sendError(res, 500, 'trends_failed', { message: err.message });
   }
 });
 
@@ -239,7 +240,7 @@ router.get('/heatmap', (req, res) => {
     const heatmap = analyticsStore.getViolationHeatmap(filters);
     res.json({ success: true, heatmap });
   } catch (err) {
-    res.status(500).json({ error: 'heatmap_failed', message: err.message });
+    sendError(res, 500, 'heatmap_failed', { message: err.message });
   }
 });
 
@@ -250,7 +251,7 @@ router.get('/repositories', (req, res) => {
     const repos = analyticsStore.getTopRepositories(req.query.orgId, limit);
     res.json({ success: true, repositories: repos });
   } catch (err) {
-    res.status(500).json({ error: 'repositories_failed', message: err.message });
+    sendError(res, 500, 'repositories_failed', { message: err.message });
   }
 });
 
@@ -344,7 +345,7 @@ router.get('/export', (req, res) => {
     res.send(csv);
   } catch (err) {
     logger.error('[Analytics] Export failed:', err.message);
-    res.status(500).json({ error: 'export_failed', message: err.message });
+    sendError(res, 500, 'export_failed', { message: err.message });
   }
 });
 
@@ -452,7 +453,7 @@ router.get('/violations', (req, res) => {
     });
   } catch (err) {
     logger.error('[Analytics] Violations failed:', err.message);
-    res.status(500).json({ error: 'violations_failed', message: err.message });
+    sendError(res, 500, 'violations_failed', { message: err.message });
   }
 });
 
@@ -460,17 +461,17 @@ router.get('/violations', (req, res) => {
 router.post('/violations/ticket-payload', (req, res) => {
   try {
     const { scanId, category, target } = req.body || {};
-    if (!scanId) return res.status(400).json({ error: 'scanId is required' });
-    if (!category) return res.status(400).json({ error: 'category is required' });
+    if (!scanId) return sendError(res, 400, 'scanId is required');
+    if (!category) return sendError(res, 400, 'category is required');
 
     const orgId = getOrgId(req);
     const ticketTarget = (target || 'jira').toLowerCase();
     const result = analyticsStore.getScans({ orgId, limit: 100000, offset: 0 });
     const scan = result.scans.find(s => s.scanId === scanId);
-    if (!scan) return res.status(404).json({ error: 'scan_not_found', message: 'Scan not found' });
+    if (!scan) return sendError(res, 404, 'scan_not_found', { message: 'Scan not found' });
 
     const count = (scan.categoryCounts || {})[category] || 0;
-    if (count === 0) return res.status(404).json({ error: 'category_not_found', message: 'Category not found in this scan' });
+    if (count === 0) return sendError(res, 404, 'category_not_found', { message: 'Category not found in this scan' });
 
     const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
     const priorityMap = { critical: 'P0', high: 'P1', medium: 'P2', low: 'P3' };
@@ -541,7 +542,7 @@ router.post('/violations/ticket-payload', (req, res) => {
     });
   } catch (err) {
     logger.error('[Analytics] Ticket payload failed:', err.message);
-    res.status(500).json({ error: 'ticket_payload_failed', message: err.message });
+    sendError(res, 500, 'ticket_payload_failed', { message: err.message });
   }
 });
 
@@ -549,16 +550,16 @@ router.post('/violations/ticket-payload', (req, res) => {
 router.post('/violations/mark-ticketed', (req, res) => {
   try {
     const { scanId, category, ticketRef, ticketTarget } = req.body || {};
-    if (!scanId) return res.status(400).json({ error: 'scanId is required' });
-    if (!category) return res.status(400).json({ error: 'category is required' });
-    if (!ticketRef) return res.status(400).json({ error: 'ticketRef is required' });
+    if (!scanId) return sendError(res, 400, 'scanId is required');
+    if (!category) return sendError(res, 400, 'category is required');
+    if (!ticketRef) return sendError(res, 400, 'ticketRef is required');
 
     const orgId = getOrgId(req);
     const entry = ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget, orgId);
     res.json({ success: true, ticket: entry });
   } catch (err) {
     logger.error('[Analytics] Mark ticketed failed:', err.message);
-    res.status(500).json({ error: 'mark_ticketed_failed', message: err.message });
+    sendError(res, 500, 'mark_ticketed_failed', { message: err.message });
   }
 });
 
@@ -566,15 +567,15 @@ router.post('/violations/mark-ticketed', (req, res) => {
 router.post('/violations/unmark-ticketed', (req, res) => {
   try {
     const { scanId, category } = req.body || {};
-    if (!scanId) return res.status(400).json({ error: 'scanId is required' });
-    if (!category) return res.status(400).json({ error: 'category is required' });
+    if (!scanId) return sendError(res, 400, 'scanId is required');
+    if (!category) return sendError(res, 400, 'category is required');
 
     const orgId = getOrgId(req);
     const result = ticketStatusStore.unmarkTicketed(scanId, category, orgId);
     res.json({ success: true, ...result });
   } catch (err) {
     logger.error('[Analytics] Unmark ticketed failed:', err.message);
-    res.status(500).json({ error: 'unmark_ticketed_failed', message: err.message });
+    sendError(res, 500, 'unmark_ticketed_failed', { message: err.message });
   }
 });
 
@@ -582,8 +583,8 @@ router.post('/violations/unmark-ticketed', (req, res) => {
 router.post('/violations/bulk-mark-ticketed', (req, res) => {
   try {
     const { violations, ticketRef, ticketTarget } = req.body || {};
-    if (!Array.isArray(violations) || violations.length === 0) return res.status(400).json({ error: 'violations array is required' });
-    if (!ticketRef) return res.status(400).json({ error: 'ticketRef is required' });
+    if (!Array.isArray(violations) || violations.length === 0) return sendError(res, 400, 'violations array is required');
+    if (!ticketRef) return sendError(res, 400, 'ticketRef is required');
 
     const orgId = getOrgId(req);
     const results = [];
@@ -603,7 +604,7 @@ router.post('/violations/bulk-mark-ticketed', (req, res) => {
     res.json({ success: true, succeeded, failed, total: violations.length, results });
   } catch (err) {
     logger.error('[Analytics] Bulk mark ticketed failed:', err.message);
-    res.status(500).json({ error: 'bulk_mark_failed', message: err.message });
+    sendError(res, 500, 'bulk_mark_failed', { message: err.message });
   }
 });
 
@@ -611,7 +612,7 @@ router.post('/violations/bulk-mark-ticketed', (req, res) => {
 router.post('/violations/bulk-unmark-ticketed', (req, res) => {
   try {
     const { violations } = req.body || {};
-    if (!Array.isArray(violations) || violations.length === 0) return res.status(400).json({ error: 'violations array is required' });
+    if (!Array.isArray(violations) || violations.length === 0) return sendError(res, 400, 'violations array is required');
 
     const orgId = getOrgId(req);
     let succeeded = 0;
@@ -629,7 +630,7 @@ router.post('/violations/bulk-unmark-ticketed', (req, res) => {
     res.json({ success: true, succeeded, failed, total: violations.length });
   } catch (err) {
     logger.error('[Analytics] Bulk unmark ticketed failed:', err.message);
-    res.status(500).json({ error: 'bulk_unmark_failed', message: err.message });
+    sendError(res, 500, 'bulk_unmark_failed', { message: err.message });
   }
 });
 
@@ -641,7 +642,7 @@ router.get('/violations/ticket-statuses', (req, res) => {
     res.json({ success: true, statuses });
   } catch (err) {
     logger.error('[Analytics] Ticket statuses failed:', err.message);
-    res.status(500).json({ error: 'ticket_statuses_failed', message: err.message });
+    sendError(res, 500, 'ticket_statuses_failed', { message: err.message });
   }
 });
 
@@ -718,7 +719,7 @@ router.get('/violations/summary', (req, res) => {
     });
   } catch (err) {
     logger.error('[Analytics] Violations summary failed:', err.message);
-    res.status(500).json({ error: 'violations_summary_failed', message: err.message });
+    sendError(res, 500, 'violations_summary_failed', { message: err.message });
   }
 });
 
@@ -843,7 +844,7 @@ router.get('/violations/export', (req, res) => {
     res.send(csv);
   } catch (err) {
     logger.error('[Analytics] Violations export failed:', err.message);
-    res.status(500).json({ error: 'violations_export_failed', message: err.message });
+    sendError(res, 500, 'violations_export_failed', { message: err.message });
   }
 });
 
@@ -851,23 +852,23 @@ router.get('/violations/export', (req, res) => {
 router.post('/violations/dispatch-ticket', async (req, res) => {
   try {
     const { scanId, category, target } = req.body || {};
-    if (!scanId) return res.status(400).json({ error: 'scanId is required' });
-    if (!category) return res.status(400).json({ error: 'category is required' });
+    if (!scanId) return sendError(res, 400, 'scanId is required');
+    if (!category) return sendError(res, 400, 'category is required');
 
     const orgId = getOrgId(req);
     const ticketTarget = (target || 'jira').toLowerCase();
     const config = webhookConfigStore.getConfig(ticketTarget, orgId);
     if (!config || !config.apiUrl) {
-      return res.status(400).json({ error: 'webhook_not_configured', message: `No webhook configuration found for ${ticketTarget}. Configure it first.` });
+      return sendError(res, 400, 'webhook_not_configured', { message: `No webhook configuration found for ${ticketTarget}. Configure it first.` });
     }
 
     // Generate the ticket payload (reuse the same logic as ticket-payload endpoint)
     const result = analyticsStore.getScans({ orgId, limit: 100000, offset: 0 });
     const scan = result.scans.find(s => s.scanId === scanId);
-    if (!scan) return res.status(404).json({ error: 'scan_not_found', message: 'Scan not found' });
+    if (!scan) return sendError(res, 404, 'scan_not_found', { message: 'Scan not found' });
 
     const count = (scan.categoryCounts || {})[category] || 0;
-    if (count === 0) return res.status(404).json({ error: 'category_not_found', message: 'Category not found in this scan' });
+    if (count === 0) return sendError(res, 404, 'category_not_found', { message: 'Category not found in this scan' });
 
     const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
     const priorityMap = { critical: 'P0', high: 'P1', medium: 'P2', low: 'P3' };
@@ -925,7 +926,7 @@ router.post('/violations/dispatch-ticket', async (req, res) => {
         labels: ['compliance', guidance.priority, guidance.strategy, 'simplebeacon'],
       };
     } else {
-      return res.status(400).json({ error: 'invalid_target', message: `Unknown target: ${ticketTarget}` });
+      return sendError(res, 400, 'invalid_target', { message: `Unknown target: ${ticketTarget}` });
     }
 
     const apiResp = await fetch(apiUrl, {
@@ -940,8 +941,7 @@ router.post('/violations/dispatch-ticket', async (req, res) => {
 
     if (!apiResp.ok) {
       logger.error(`[Analytics] Dispatch to ${ticketTarget} failed: ${apiResp.status}`, respText.substring(0, 200));
-      return res.status(502).json({
-        error: 'dispatch_failed',
+      return sendError(res, 502, 'dispatch_failed', {
         message: `External API returned ${apiResp.status}`,
         target: ticketTarget,
         response: respData,
@@ -973,7 +973,7 @@ router.post('/violations/dispatch-ticket', async (req, res) => {
     });
   } catch (err) {
     logger.error('[Analytics] Dispatch ticket failed:', err.message);
-    res.status(500).json({ error: 'dispatch_error', message: err.message });
+    sendError(res, 500, 'dispatch_error', { message: err.message });
   }
 });
 
@@ -981,12 +981,12 @@ router.post('/violations/dispatch-ticket', async (req, res) => {
 router.post('/violations/bulk-dispatch-ticket', async (req, res) => {
   try {
     const { violations, target } = req.body || {};
-    if (!Array.isArray(violations) || violations.length === 0) return res.status(400).json({ error: 'violations array is required' });
+    if (!Array.isArray(violations) || violations.length === 0) return sendError(res, 400, 'violations array is required');
     const orgId = getOrgId(req);
     const ticketTarget = (target || 'jira').toLowerCase();
     const config = webhookConfigStore.getConfig(ticketTarget, orgId);
     if (!config || !config.apiUrl) {
-      return res.status(400).json({ error: 'webhook_not_configured', message: `No webhook configuration found for ${ticketTarget}.` });
+      return sendError(res, 400, 'webhook_not_configured', { message: `No webhook configuration found for ${ticketTarget}.` });
     }
 
     const MAX_CONCURRENT = 3;
@@ -1109,7 +1109,7 @@ router.post('/violations/bulk-dispatch-ticket', async (req, res) => {
     });
   } catch (err) {
     logger.error('[Analytics] Bulk dispatch ticket failed:', err.message);
-    res.status(500).json({ error: 'bulk_dispatch_error', message: err.message });
+    sendError(res, 500, 'bulk_dispatch_error', { message: err.message });
   }
 });
 
@@ -1126,7 +1126,7 @@ router.get('/webhook/configs', (req, res) => {
     res.json({ success: true, configs: masked });
   } catch (err) {
     logger.error('[Analytics] Get webhook configs failed:', err.message);
-    res.status(500).json({ error: 'webhook_configs_failed', message: err.message });
+    sendError(res, 500, 'webhook_configs_failed', { message: err.message });
   }
 });
 
@@ -1134,15 +1134,15 @@ router.get('/webhook/configs', (req, res) => {
 router.post('/webhook/configs', (req, res) => {
   try {
     const { target, apiUrl, authToken, projectKey, teamId, repoOwner, repoName } = req.body || {};
-    if (!target) return res.status(400).json({ error: 'target is required' });
-    if (!apiUrl) return res.status(400).json({ error: 'apiUrl is required' });
+    if (!target) return sendError(res, 400, 'target is required');
+    if (!apiUrl) return sendError(res, 400, 'apiUrl is required');
 
     const orgId = getOrgId(req);
     const config = webhookConfigStore.setConfig(target, { apiUrl, authToken, projectKey, teamId, repoOwner, repoName }, orgId);
     res.json({ success: true, config: { ...config, authToken: '••••••••' } });
   } catch (err) {
     logger.error('[Analytics] Save webhook config failed:', err.message);
-    res.status(500).json({ error: 'webhook_config_save_failed', message: err.message });
+    sendError(res, 500, 'webhook_config_save_failed', { message: err.message });
   }
 });
 
@@ -1155,7 +1155,7 @@ router.delete('/webhook/configs/:target', (req, res) => {
     res.json({ success: true, deleted: target });
   } catch (err) {
     logger.error('[Analytics] Delete webhook config failed:', err.message);
-    res.status(500).json({ error: 'webhook_config_delete_failed', message: err.message });
+    sendError(res, 500, 'webhook_config_delete_failed', { message: err.message });
   }
 });
 
@@ -1167,7 +1167,7 @@ router.get('/report/schedules', (req, res) => {
     res.json({ success: true, schedules });
   } catch (err) {
     logger.error('[Analytics] Get report schedules failed:', err.message);
-    res.status(500).json({ error: 'report_schedules_failed', message: err.message });
+    sendError(res, 500, 'report_schedules_failed', { message: err.message });
   }
 });
 
@@ -1175,16 +1175,16 @@ router.get('/report/schedules', (req, res) => {
 router.post('/report/schedules', (req, res) => {
   try {
     const { id, name, enabled, frequency, dayOfWeek, dayOfMonth, hour, minute, format, recipients, filters } = req.body || {};
-    if (!id) return res.status(400).json({ error: 'id is required' });
-    if (!Array.isArray(recipients) || recipients.length === 0) return res.status(400).json({ error: 'recipients array is required' });
+    if (!id) return sendError(res, 400, 'id is required');
+    if (!Array.isArray(recipients) || recipients.length === 0) return sendError(res, 400, 'recipients array is required');
     const validFreq = ['daily', 'weekly', 'monthly'];
-    if (frequency && !validFreq.includes(frequency)) return res.status(400).json({ error: 'frequency must be daily, weekly, or monthly' });
+    if (frequency && !validFreq.includes(frequency)) return sendError(res, 400, 'frequency must be daily, weekly, or monthly');
     const orgId = getOrgId(req);
     const schedule = reportScheduleStore.setSchedule(id, { name, enabled, frequency, dayOfWeek, dayOfMonth, hour, minute, format, recipients, filters }, orgId);
     res.json({ success: true, schedule });
   } catch (err) {
     logger.error('[Analytics] Save report schedule failed:', err.message);
-    res.status(500).json({ error: 'report_schedule_save_failed', message: err.message });
+    sendError(res, 500, 'report_schedule_save_failed', { message: err.message });
   }
 });
 
@@ -1197,7 +1197,7 @@ router.delete('/report/schedules/:id', (req, res) => {
     res.json({ success: true, deleted: id });
   } catch (err) {
     logger.error('[Analytics] Delete report schedule failed:', err.message);
-    res.status(500).json({ error: 'report_schedule_delete_failed', message: err.message });
+    sendError(res, 500, 'report_schedule_delete_failed', { message: err.message });
   }
 });
 
@@ -1207,16 +1207,16 @@ router.post('/report/schedules/:id/run', async (req, res) => {
     const orgId = getOrgId(req);
     const { id } = req.params;
     const schedule = reportScheduleStore.getSchedule(id, orgId);
-    if (!schedule) return res.status(404).json({ error: 'schedule_not_found' });
+    if (!schedule) return sendError(res, 404, 'schedule_not_found');
     const result = await reportScheduler.runSchedule(schedule, orgId);
     if (result.success) {
       res.json({ success: true, schedule: reportScheduleStore.getSchedule(id, orgId), result: result });
     } else {
-      res.status(500).json({ success: false, error: 'run_failed', message: result.error, schedule: reportScheduleStore.getSchedule(id, orgId) });
+      sendError(res, 500, 'run_failed', { message: result.error, schedule: reportScheduleStore.getSchedule(id, orgId) });
     }
   } catch (err) {
     logger.error('[Analytics] Manual report run failed:', err.message);
-    res.status(500).json({ error: 'report_run_failed', message: err.message });
+    sendError(res, 500, 'report_run_failed', { message: err.message });
   }
 });
 
@@ -1227,8 +1227,8 @@ router.post('/record', (req, res) => {
     const { orgId: bodyOrgId, summary, projectPath, categoryCounts, languageBreakdown, scanDurationMs, gateStatus, repository, branch, commitSha, triggeredBy } = req.body || {};
     const orgId = bodyOrgId || sessionOrgId;
 
-    if (!orgId) return res.status(400).json({ error: 'orgId is required' });
-    if (!summary || typeof summary !== 'object') return res.status(400).json({ error: 'summary object is required' });
+    if (!orgId) return sendError(res, 400, 'orgId is required');
+    if (!summary || typeof summary !== 'object') return sendError(res, 400, 'summary object is required');
 
     const entry = analyticsStore.recordScan({
       orgId,
@@ -1247,7 +1247,7 @@ router.post('/record', (req, res) => {
     res.status(201).json({ success: true, scanId: entry.scanId, postureScore: entry.postureScore });
   } catch (err) {
     logger.error('[Analytics] Record failed:', err.message);
-    res.status(500).json({ error: 'record_failed', message: err.message });
+    sendError(res, 500, 'record_failed', { message: err.message });
   }
 });
 
