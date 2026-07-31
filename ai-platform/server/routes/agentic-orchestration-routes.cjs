@@ -68,7 +68,18 @@ function getAuditContext(req) {
       'x-test-user': req.headers && req.headers['x-test-user'],
     };
     const body = req.body || {};
-    const hash = crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
+    // Canonicalize body by deep-sorting object keys so semantically-equal JSON
+    // produces deterministic hashes regardless of key ordering.
+    function canonicalize(value) {
+      if (value === null || typeof value !== 'object') return value;
+      if (Array.isArray(value)) return value.map(canonicalize);
+      const keys = Object.keys(value).sort();
+      const out = {};
+      for (const k of keys) out[k] = canonicalize(value[k]);
+      return out;
+    }
+    const canonicalBody = canonicalize(body);
+    const hash = crypto.createHash('sha256').update(JSON.stringify(canonicalBody)).digest('hex');
     return { sourceIp, headers, payloadHash: hash, at: new Date().toISOString() };
   } catch (e) {
     return { sourceIp: null, headers: {}, payloadHash: null, at: new Date().toISOString() };

@@ -17,6 +17,10 @@ const scrubberRegistry = piiPolicyStore.createScrubberRegistry({
   ttlMs: parseInt(process.env.SCRUBBER_REGISTRY_TTL_MS, 10) || 5 * 60 * 1000,
 });
 
+// Pre-flight stream verification middleware — rejects requests where
+// stream-mode scrubbing output doesn't match batch-mode redactText().
+const verifyStreamMiddleware = piiPolicyStore.createVerifyStreamMiddleware();
+
 function getOrgId(req) {
   return req.user?.id || req.user?.email || 'default';
 }
@@ -451,6 +455,23 @@ router.get('/scrubber-stats', authorize('admin:all'), (req, res) => {
     logger.warn('[Audit] scrubber_stats_failed:', err.message);
     sendError(res, 500, 'scrubber_stats_failed', { message: err.message });
   }
+});
+
+// ── POST /api/audit/verify-stream ───────────────────────────────────────────
+//   Authenticated: runs pre-flight stream verification on a chunk array.
+//   Expects req.body.chunks (array of strings or { text, type }) and
+//   optional req.body.orgId (falls back to req.user.id).
+//   Returns 200 with verification result on match, 422 on mismatch.
+router.post('/verify-stream', authenticate, verifyStreamMiddleware, (req, res) => {
+  const result = req.verifiedResult;
+  res.json({
+    success: true,
+    match: result.match,
+    streamMatches: result.streamMatches,
+    batchMatches: result.batchMatches,
+    streamLength: result.streamText.length,
+    batchLength: result.batchText.length,
+  });
 });
 
 module.exports = router;

@@ -1123,6 +1123,85 @@ function verifyFullText(scrubber, chunks, orgId, options = {}) {
   };
 }
 
+// ── Express Pre-Flight Verification Middleware ──────────────────────────────
+//
+// createVerifyStreamMiddleware() returns Express middleware that runs
+// verifyFullText() on inbound request bodies containing chunk arrays.
+// This catches dropped/corrupted chunks BEFORE they hit downstream handlers.
+//
+// The middleware expects req.body.chunks (array of strings or { text, type })
+// and req.body.orgId (or falls back to req.user.id). It creates a fresh
+// scrubber, runs verifyFullText(), and:
+//   - If match: attaches req.verifiedResult and calls next()
+//   - If mismatch: returns 422 with forensic diagnostic details
+//
+// Usage:
+//   const verifyMiddleware = createVerifyStreamMiddleware();
+//   router.post('/stream', verifyMiddleware, handler);
+//
+// Configuration:
+//   - failOnMismatch (default: true): reject request on mismatch
+//   - skipCodeBlocks (default: false): align with scrubber's skipCodeBlocks
+//   - attachResult (default: true): attach result to req.verifiedResult
+
+function createVerifyStreamMiddleware(options = {}) {
+  const failOnMismatch = options.failOnMismatch !== false;
+  const skipCodeBlocks = !!options.skipCodeBlocks;
+  const attachResult = options.attachResult !== false;
+
+  return function verifyStreamMiddleware(req, res, next) {
+    try {
+      const body = req.body || {};
+      const chunks = body.chunks;
+      const orgId = body.orgId || req.user?.id || req.user?.email || 'default';
+
+      if (!Array.isArray(chunks)) {
+        if (failOnMismatch) {
+          return res.status(400).json({
+            success: false,
+            error: 'invalid_chunks',
+            message: 'req.body.chunks must be an array',
+          });
+        }
+        return next();
+      }
+
+      // Create a fresh scrubber for this verification
+      const scrubberOptions = { skipCodeBlocks };
+      const scrubber = createStreamScrubber(orgId, scrubberOptions);
+
+      // Run verification
+      const result = verifyFullText(scrubber, chunks, orgId, { skipCodeBlocks });
+
+      // Attach result to request for downstream handlers
+      if (attachResult) {
+        req.verifiedResult = result;
+      }
+
+      if (!result.match && failOnMismatch) {
+        return res.status(422).json({
+          success: false,
+          error: 'stream_verification_failed',
+          message: 'Stream output does not match batch redaction — chunks may be dropped or corrupted',
+          diffs: result.diffs,
+          streamMatches: result.streamMatches,
+          batchMatches: result.batchMatches,
+          streamLength: result.streamText.length,
+          batchLength: result.batchText.length,
+        });
+      }
+
+      next();
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        error: 'stream_verification_error',
+        message: err.message,
+      });
+    }
+  };
+}
+
 // ── Scrubber Lifecycle Manager ──────────────────────────────────────────────
 //
 // Manages stream scrubber instances per org+session. Prevents scrubber leaks
@@ -1332,6 +1411,7 @@ module.exports = {
   createStreamScrubber,
   createScrubberRegistry,
   verifyFullText,
+  createVerifyStreamMiddleware,
   _splitCodeSegments,
   COMPLIANCE_FRAMEWORKS,
   PII_POLICY_PATH,
