@@ -31,8 +31,16 @@ const auditLogger = require('../lib/audit-logger.cjs');
 const agenticStore = require('../lib/agentic-orchestration-store.cjs');
 const { authorize, enforceOrgPartition } = require('../middleware/authorize.cjs');
 const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
+const { canonicalizeRequest, createReplayDetector } = require('../lib/crypto-utils.cjs');
 
 const router = express.Router();
+
+// Replay detector for agentic orchestration requests — prevents duplicate
+// execution of identical payloads within the TTL window.
+const replayDetector = createReplayDetector({
+  ttlMs: parseInt(process.env.AGENTIC_REPLAY_TTL_MS, 10) || 5 * 60 * 1000,
+  maxPerOrg: parseInt(process.env.AGENTIC_REPLAY_MAX_PER_ORG, 10) || 1000,
+});
 
 // Apply org-partition enforcement for all agentic routes
 router.use(enforceOrgPartition());
@@ -47,6 +55,50 @@ function asyncHandler(fn) {
       sendError(res, 500, 'internal_error', { message: err.message });
     });
   };
+}
+
+/**
+ * Replay detection middleware — computes a canonical fingerprint of the
+ * request body and checks it against the replay detector. If the same
+ * fingerprint was seen recently for this org, the request is rejected
+ * with 409 Conflict. Otherwise, the fingerprint is marked and the
+ * canonical fingerprint is attached to req for audit logging.
+ *
+ * Only applies to POST/PUT/DELETE methods with a JSON body.
+ */
+function replayDetectionMiddleware(req, res, next) {
+  // Only check state-changing requests with a body
+  if (!['POST', 'PUT', 'DELETE'].includes(req.method) || !req.body || Object.keys(req.body).length === 0) {
+    return next();
+  }
+
+  try {
+    const orgId = req.user?.id || req.user?.email || 'default';
+    const { fingerprint, canonical } = canonicalizeRequest(req.body);
+
+    // Attach fingerprint to req for downstream audit logging
+    req.canonicalFingerprint = fingerprint;
+    req.canonicalRequest = canonical;
+
+    const result = replayDetector.checkAndMark(orgId, fingerprint);
+
+    if (result.isReplay) {
+      logger.warn(`[AgenticOrchestration] Replay detected for org ${orgId}: ${fingerprint}`);
+      return res.status(409).json({
+        success: false,
+        error: 'replay_detected',
+        message: 'This request payload was already submitted recently',
+        fingerprint,
+        firstSeen: result.firstSeen,
+      });
+    }
+
+    next();
+  } catch (err) {
+    logger.warn('[AgenticOrchestration] Replay check failed:', err.message);
+    // Fail open — don't block on replay detector errors
+    next();
+  }
 }
 
 // --- Quota & Rate Limiting (in-memory for active executions) ---
@@ -86,13 +138,34 @@ function getAuditContext(req) {
   }
 }
 
-function isOverActiveQuota(orgId) {
+// Check active execution quota using distributed counters when available.
+async function checkAndReserveActiveSlot(orgId) {
+  // Try Redis-backed atomic increment first
+  try {
+    if (rateLimiter && typeof rateLimiter.incrementActiveExecutions === 'function') {
+      const cnt = await rateLimiter.incrementActiveExecutions(orgId);
+      if (cnt > QUOTA.MAX_ACTIVE_EXECUTIONS_PER_ORG) {
+        // undo the increment and signal quota exhausted
+        try { await rateLimiter.decrementActiveExecutions(orgId); } catch (e) {}
+        return { allowed: false, current: cnt };
+      }
+      return { allowed: true, current: cnt };
+    }
+  } catch (e) {
+    // fallthrough to store-backed check
+  }
+
+  // Fallback: use agenticStore's active executions list (per-process)
   try {
     const active = agenticStore.getActiveExecutions(orgId) || [];
-    return active.length >= QUOTA.MAX_ACTIVE_EXECUTIONS_PER_ORG;
+    if (active.length >= QUOTA.MAX_ACTIVE_EXECUTIONS_PER_ORG) return { allowed: false, current: active.length };
+    // best-effort: mark reservation via agenticStore if supported (no-op otherwise)
+    if (typeof agenticStore.reserveExecution === 'function') {
+      try { agenticStore.reserveExecution(orgId); } catch (e) {}
+    }
+    return { allowed: true, current: active.length + 1 };
   } catch (err) {
-    // on error, fail-safe: assume not over quota
-    return false;
+    return { allowed: true, current: 0 };
   }
 }
 
@@ -172,14 +245,25 @@ router.delete('/agents/:id', authorize('admin:all'), function (req, res) {
 });
 
 // POST /agents/:id/execute
-router.post('/agents/:id/execute', authorize('admin:all'), asyncHandler(async function (req, res) {
+router.post('/agents/:id/execute', authorize('admin:all'), replayDetectionMiddleware, asyncHandler(async function (req, res) {
   var orgId = req.orgId || req.body.orgId || 'default';
   var input = req.body.input || '';
   var options = req.body.options || {};
-  // Enforce active-execution quota per org
-  if (isOverActiveQuota(orgId)) {
-    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_QUOTA_EXHAUSTED', Object.assign({ orgId, agentId: req.params.id, user: req.user && req.user.id }, getAuditContext(req))); } catch (e) {}
-    return sendError(res, 429, 'rate_limited', { message: 'max_active_executions_reached' });
+  // Log canonical fingerprint for audit integrity
+  if (req.canonicalFingerprint) {
+    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_EXECUTE_REQUEST', { orgId, agentId: req.params.id, fingerprint: req.canonicalFingerprint, user: req.user && req.user.id }); } catch (e) {}
+  }
+  // Enforce active-execution quota per org using distributed reservation
+  let reserved = false;
+  try {
+    const slot = await checkAndReserveActiveSlot(orgId);
+    if (!slot.allowed) {
+      try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_QUOTA_EXHAUSTED', Object.assign({ orgId, agentId: req.params.id, user: req.user && req.user.id }, getAuditContext(req))); } catch (e) {}
+      return sendError(res, 429, 'rate_limited', { message: 'max_active_executions_reached' });
+    }
+    reserved = true;
+  } catch (e) {
+    // on any error, fail-safe: allow execution to proceed
   }
 
   // Enforce trigger rate limit per org (sliding window) using the pluggable limiter
@@ -216,9 +300,16 @@ router.post('/agents/:id/execute', authorize('admin:all'), asyncHandler(async fu
     };
   };
 
-  var result = await agenticStore.executeAgentLoop(req.params.id, orgId, input, inferenceFn, options);
-  if (!result || result.success === false) return sendError(res, 500, 'agent_execute_failed', { message: result && result.error });
-  res.json(result);
+  // Execute and ensure we release the reserved slot in all cases
+  try {
+    var result = await agenticStore.executeAgentLoop(req.params.id, orgId, input, inferenceFn, options);
+    if (!result || result.success === false) return sendError(res, 500, 'agent_execute_failed', { message: result && result.error });
+    res.json(result);
+  } finally {
+    if (reserved) {
+      try { await rateLimiter.decrementActiveExecutions(orgId); } catch (e) {}
+    }
+  }
 }));
 
 // GET /executions
@@ -327,6 +418,27 @@ router.post('/inspect', function (req, res) {
     res.json({ success: true, result });
   } catch (err) {
     sendError(res, 500, 'inspect_failed', { message: err.message });
+  }
+});
+
+// GET /replay-stats — admin-only: replay detector health stats
+router.get('/replay-stats', authorize('admin:all'), function (req, res) {
+  try {
+    const stats = replayDetector.getStats();
+    res.json({ success: true, ...stats });
+  } catch (err) {
+    sendError(res, 500, 'replay_stats_failed', { message: err.message });
+  }
+});
+
+// GET /canonical-fingerprint — compute canonical fingerprint for a payload
+// (useful for testing/debugging deduplication logic)
+router.post('/canonical-fingerprint', authorize('admin:all'), function (req, res) {
+  try {
+    const result = canonicalizeRequest(req.body);
+    res.json({ success: true, fingerprint: result.fingerprint, canonical: result.canonical });
+  } catch (err) {
+    sendError(res, 500, 'canonical_fingerprint_failed', { message: err.message });
   }
 });
 

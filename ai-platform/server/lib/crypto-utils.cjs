@@ -200,6 +200,204 @@ function maskSecret(value) {
   return value.slice(0, 4) + 'ΓÇóΓÇóΓÇóΓÇó' + value.slice(-4);
 }
 
+// ── Deterministic Canonical Request Serializer ──────────────────────────────
+//
+// Produces a deterministic serialization of a JSON request payload by:
+//   1. Recursively sorting object keys alphabetically
+//   2. Normalizing whitespace (no pretty-printing)
+//   3. Computing a SHA-256 fingerprint of the canonical string
+//
+// This enables:
+//   - Request deduplication (same payload → same fingerprint)
+//   - Replay detection (track seen fingerprints per org)
+//   - Audit log integrity (log fingerprint alongside audit entry)
+//   - Idempotency keys for agentic orchestration operations
+//
+// Usage:
+//   const { canonical, fingerprint } = canonicalizeRequest(payload);
+//   // canonical === '{"a":1,"b":{"c":2}}'
+//   // fingerprint === 'sha256:abc123...'
+
+/**
+ * Recursively sort object keys alphabetically.
+ * Arrays are preserved in order (not sorted), but their elements are
+ * recursively canonicalized.
+ * @param {*} value — Any JSON-serializable value
+ * @returns {*} — Deep clone with sorted keys
+ */
+function _canonicalizeValue(value) {
+  if (value === null) return null;
+  if (typeof value !== 'object') return value;
+
+  if (Array.isArray(value)) {
+    return value.map(_canonicalizeValue);
+  }
+
+  const sortedKeys = Object.keys(value).sort();
+  const result = {};
+  for (const key of sortedKeys) {
+    result[key] = _canonicalizeValue(value[key]);
+  }
+  return result;
+}
+
+/**
+ * Serialize a request payload into a deterministic canonical form and
+ * compute its SHA-256 fingerprint.
+ *
+ * @param {object|*} payload — Any JSON-serializable value
+ * @returns {{ canonical: string, fingerprint: string, hash: string }}
+ *   - canonical: deterministic JSON string (sorted keys, no whitespace)
+ *   - fingerprint: 'sha256:<hex>' prefix for easy identification
+ *   - hash: raw hex digest (without prefix)
+ */
+function canonicalizeRequest(payload) {
+  const canonicalized = _canonicalizeValue(payload);
+  const canonical = JSON.stringify(canonicalized);
+  const hash = crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
+  return {
+    canonical,
+    fingerprint: `sha256:${hash}`,
+    hash,
+  };
+}
+
+/**
+ * In-memory replay detection store. Tracks seen fingerprints per org.
+ * Uses a Map of orgId → Set of fingerprints. Auto-expires entries after
+ * a configurable TTL to prevent unbounded growth.
+ *
+ * @param {object} [options]
+ * @param {number} [options.ttlMs=300000] — TTL for fingerprint entries (5min default)
+ * @param {number} [options.maxPerOrg=1000] — Max fingerprints per org
+ * @returns {{ check, mark, clear, getStats }}
+ */
+function createReplayDetector(options = {}) {
+  const ttlMs = options.ttlMs || 5 * 60 * 1000;
+  const maxPerOrg = options.maxPerOrg || 1000;
+
+  // Map of orgId → Map of fingerprint → timestamp
+  const _store = new Map();
+  let _totalChecked = 0;
+  let _totalReplays = 0;
+  let _totalExpired = 0;
+
+  /**
+   * Check if a fingerprint has been seen before for the given org.
+   * Does NOT mark it — call mark() after successful processing.
+   * @param {string} orgId
+   * @param {string} fingerprint
+   * @returns {{ isReplay: boolean, firstSeen: number|null }}
+   */
+  function check(orgId, fingerprint) {
+    _totalChecked++;
+    _cleanupOrg(orgId);
+
+    const orgMap = _store.get(orgId);
+    if (!orgMap) return { isReplay: false, firstSeen: null };
+
+    const timestamp = orgMap.get(fingerprint);
+    if (timestamp) {
+      _totalReplays++;
+      return { isReplay: true, firstSeen: timestamp };
+    }
+    return { isReplay: false, firstSeen: null };
+  }
+
+  /**
+   * Mark a fingerprint as seen for the given org.
+   * @param {string} orgId
+   * @param {string} fingerprint
+   */
+  function mark(orgId, fingerprint) {
+    if (!_store.has(orgId)) _store.set(orgId, new Map());
+    const orgMap = _store.get(orgId);
+
+    // Enforce max per org — evict oldest entries
+    if (orgMap.size >= maxPerOrg) {
+      const oldestKey = orgMap.keys().next().value;
+      orgMap.delete(oldestKey);
+      _totalExpired++;
+    }
+
+    orgMap.set(fingerprint, Date.now());
+  }
+
+  /**
+   * Check and mark in one call. Returns isReplay status.
+   * @param {string} orgId
+   * @param {string} fingerprint
+   * @returns {{ isReplay: boolean, firstSeen: number|null }}
+   */
+  function checkAndMark(orgId, fingerprint) {
+    const result = check(orgId, fingerprint);
+    if (!result.isReplay) {
+      mark(orgId, fingerprint);
+    }
+    return result;
+  }
+
+  /**
+   * Remove expired entries for a specific org.
+   * @param {string} orgId
+   * @returns {number} Number of expired entries removed
+   */
+  function _cleanupOrg(orgId) {
+    const orgMap = _store.get(orgId);
+    if (!orgMap) return 0;
+
+    const now = Date.now();
+    let expired = 0;
+    for (const [fp, timestamp] of orgMap) {
+      if (now - timestamp > ttlMs) {
+        orgMap.delete(fp);
+        expired++;
+      }
+    }
+
+    if (orgMap.size === 0) {
+      _store.delete(orgId);
+    }
+
+    _totalExpired += expired;
+    return expired;
+  }
+
+  /**
+   * Clear all fingerprints for an org (or all orgs if orgId omitted).
+   * @param {string} [orgId]
+   */
+  function clear(orgId) {
+    if (orgId) {
+      _store.delete(orgId);
+    } else {
+      _store.clear();
+    }
+  }
+
+  /**
+   * Get replay detector stats.
+   * @returns {{ orgCount: number, totalFingerprints: number, totalChecked: number, totalReplays: number, totalExpired: number, ttlMs: number, maxPerOrg: number }}
+   */
+  function getStats() {
+    let totalFingerprints = 0;
+    for (const orgMap of _store.values()) {
+      totalFingerprints += orgMap.size;
+    }
+    return {
+      orgCount: _store.size,
+      totalFingerprints,
+      totalChecked: _totalChecked,
+      totalReplays: _totalReplays,
+      totalExpired: _totalExpired,
+      ttlMs,
+      maxPerOrg,
+    };
+  }
+
+  return { check, mark, checkAndMark, clear, getStats };
+}
+
 module.exports = {
   encrypt,
   decrypt,
@@ -213,5 +411,7 @@ module.exports = {
   maskSecret,
   refreshActiveKey,
   refreshDecryptionKeys,
+  canonicalizeRequest,
+  createReplayDetector,
   ALGO,
 };
