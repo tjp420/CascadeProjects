@@ -38,6 +38,7 @@ import { OrganizationView } from './views/OrganizationView';
 import { EnterpriseView } from './views/EnterpriseView';
 import { OutreachAnalyticsView } from './views/OutreachAnalyticsView';
 import { WorkspaceConfigView } from './views/WorkspaceConfigView';
+import { FineTuningCurationView } from './views/FineTuningCurationView';
 
 // Lazy-loaded views — code-split to keep initial bundle small
 const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
@@ -96,6 +97,7 @@ const VIEW_TITLES: Record<string, string> = {
   'team-metrics': 'Team Metrics',
   'outreach-analytics': 'Outreach Analytics',
   workspace: 'Workspace',
+  'fine-tuning': 'Fine-Tuning Curation',
 };
 
 const viewMap: Record<string, React.ComponentType> = {
@@ -129,6 +131,7 @@ const viewMap: Record<string, React.ComponentType> = {
   'team-metrics': TeamMetricsView,
   'outreach-analytics': OutreachAnalyticsView,
   workspace: WorkspaceConfigView,
+  'fine-tuning': FineTuningCurationView,
 };
 
 export default function App() {

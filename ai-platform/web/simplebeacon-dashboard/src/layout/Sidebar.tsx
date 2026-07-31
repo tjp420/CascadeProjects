@@ -27,6 +27,7 @@ import {
   Server,
   Mail,
   Briefcase,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -80,6 +81,7 @@ const navGroups: NavGroup[] = [
       { view: 'organization', label: 'Organization', icon: Building2 },
       { view: 'enterprise', label: 'Enterprise', icon: Server },
       { view: 'workspace', label: 'Workspace', icon: Briefcase },
+      { view: 'fine-tuning', label: 'Fine-Tuning', icon: Database },
       { view: 'profile', label: 'Profile', icon: User },
       { view: 'admin', label: 'Admin', icon: Users },
     ],

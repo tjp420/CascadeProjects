@@ -1,16 +1,16 @@
-# Test Plan: Real-Time Token-Throttling Backpressure Mesh
+# Test Plan: Fine-Tuning Curation Panel
 
-> A reactive gateway queue that tracks per-provider, per-organization token-per-minute (TPM) and request-per-minute (RPM) consumption, smoothing or delaying requests when external LLM providers would be rate-limited.
+> Dashboard management interface for the fine-tuning-telemetry-store, allowing compliance officers to filter conversation datasets by quality scores, adjust user/model dialogue labelings, and trigger exports.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Real-Time Token-Throttling Backpressure Mesh |
+| Feature / change | Fine-Tuning Curation Panel |
 | Author (Builder) | Devin |
 | Date | 2026-08-01 |
 | Branch | feat/agentic-orchestration |
-| Packages touched | ai-platform |
+| Packages touched | ai-platform (backend), web/simplebeacon-dashboard (frontend) |
 
 ## Scope
 
@@ -18,25 +18,32 @@
 
 | File | Purpose |
 |------|---------|
-| `ai-platform/server/lib/token-throttle-mesh.cjs` | Core backpressure store: tracks per (orgId, provider) TPM/RPM windows, queues blocked requests, exposes `throttleRequest` |
-| `ai-platform/server/lib/token-throttle-mesh.test.cjs` | Jest tests for rate-limit detection, queueing, delay, and configuration |
-| `ai-platform/server/routes/token-throttle-routes.cjs` | REST endpoints for status and configuration |
-| `ai-platform/server/index.cjs` | Mount `/api/token-throttle` router |
-| `ai-platform/server/services/cloud-inference-service.cjs` | Integrate `tokenThrottle.throttleRequest` before external provider calls |
+| `ai-platform/web/simplebeacon-dashboard/src/views/FineTuningCurationView.tsx` | New top-level view for the curation panel |
+| `ai-platform/web/simplebeacon-dashboard/src/components/FineTuningCurationPanel.tsx` | Curation UI: table, filters, label editor, export trigger |
+| `ai-platform/web/simplebeacon-dashboard/src/App.tsx` | Register `fine-tuning` route and view map |
+| `ai-platform/web/simplebeacon-dashboard/src/layout/Sidebar.tsx` | Add navigation link |
+| `ai-platform/server/lib/fine-tuning-telemetry-store.cjs` | No backend changes expected; use existing `/api/telemetry/*` routes |
 
-### APIs / routes
+### Existing APIs used
 
-- `GET /api/token-throttle/status?orgId=<orgId>&provider=<provider>` — returns current window usage, limits, queue depth, and next available slot
-- `POST /api/token-throttle/configure` — body `{ orgId, provider, rpm, tpm }` to set or update limits; `0` disables throttling
-- `POST /api/token-throttle/reset` — body `{ orgId, provider }` to clear window and queue
+- `GET /api/telemetry/collect?orgId=...&minRating=...&minTurns=...&label=...&operation=...&startDate=...&endDate=...&q=...&page=...&limit=...`
+- `POST /api/telemetry/label` body `{ eventId, label }`
+- `POST /api/telemetry/export` body `{ format, filters }`
+- `GET /api/telemetry/datasets?orgId=...`
 
-### Throttling model
+### Backend enhancements
 
-- Sliding 60-second windows per `(orgId, provider)`.
-- `rpm` and `tpm` limits default to environment variables `DEFAULT_LLM_RPM` and `DEFAULT_LLM_TPM` or `0` (disabled).
-- A request with `estimatedTokens` is allowed if `currentRpm < rpm` and `currentTpm + estimatedTokens <= tpm`.
-- If disallowed, the request is queued and delayed until the next window slot, up to `MAX_BACKPRESSURE_MS` (default 30s) after which it is rejected with `429`.
-- `cloud-inference-service.cjs` calls `throttleRequest` before issuing the actual provider request; after success it records actual tokens via existing `tokenBudget.recordUsage`.
+- Extend `fine-tuning-telemetry-store.cjs` `listEntries` to support `q` (case-insensitive search across `input`, `output`, `model`, `userId`, `eventId`) and `page`/`limit` pagination.
+- Extend `fine-tuning-telemetry-routes.cjs` `GET /collect` to pass `q`, `page`, `limit` through `normalizeFilters` and return `page`, `limit`, `total`, `count`, `entries`.
+
+### User flow
+
+1. Compliance officer opens **Fine-Tuning** panel from sidebar.
+2. View loads entries for the active org, filtered by default to `minRating=0` and no `label=exclude`.
+3. Officer sets filters (min score, min turns, label, operation, date range).
+4. Officer selects rows and applies a label (`include`, `exclude`, `review`, `golden`).
+5. Officer clicks **Export** to generate a `jsonl`/`alpaca`/`chatml` dataset and sees the generated file in the datasets list.
+6. Datasets list updates after export.
 
 ---
 
@@ -44,10 +51,10 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on new `.cjs` files | `node -c ai-platform/server/lib/token-throttle-mesh.cjs`, `node -c ai-platform/server/routes/token-throttle-routes.cjs`, `node -c ai-platform/server/index.cjs` | [ ] |
-| L1-02 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
+| L1-01 | TypeScript compile of dashboard | `cd ai-platform/web/simplebeacon-dashboard && npm run build` (or `npm run compile` if available) | [ ] |
+| L1-02 | ai-platform backend tests | `cd ai-platform && npm test` | [ ] |
 | L1-03 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-04 | npm audit (no package.json changes expected) | `npm audit` in touched package roots | [ ] |
+| L1-04 | No new dependencies or `npm audit` changes | `npm audit` in touched package roots | [ ] |
 
 ---
 
@@ -55,11 +62,13 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Request under RPM/TPM limit | `throttleRequest({ orgId: 'org-a', provider: 'openai', estimatedTokens: 100 }, fn)` with limits 10 rpm / 1000 tpm | `fn` is called immediately and resolves | [ ] |
-| L2-02 | RPM limit blocks subsequent requests | Issue 11 requests at 10 rpm | 11th is delayed or queued | [ ] |
-| L2-03 | TPM limit blocks oversized request | `estimatedTokens` 900 with limit 1000 after 200 tokens consumed | Request is delayed | [ ] |
-| L2-04 | Status endpoint reflects live windows | `GET /api/token-throttle/status?orgId=org-a&provider=openai` after a request | Returns `currentRpm`, `currentTpm`, `limitRpm`, `limitTpm` | [ ] |
-| L2-05 | Configure endpoint updates limits | `POST .../configure` then check status | Limits updated | [ ] |
+| L2-01 | View loads and lists entries | Open `#/fine-tuning` in dashboard | Table renders with telemetry entries and scores | [ ] |
+| L2-02 | Filters change visible rows | Set `minRating` to `7` and `label` to `pending` | Only matching rows shown | [ ] |
+| L2-03 | Search filters entries | Type a keyword in the search box | Only entries with matching input/output/model/userId/eventId shown | [ ] |
+| L2-04 | Pagination works | Click page 2 or change limit | Different page of results loaded | [ ] |
+| L2-05 | Label an entry | Select an entry, choose label, click **Apply** | Entry row updates to new label, toast confirms | [ ] |
+| L2-06 | Export a dataset | Choose `jsonl` format, click **Export** | Modal/toast shows filename and row count; datasets list updates | [ ] |
+| L2-07 | Sidebar link works | Click **Fine-Tuning** in sidebar | URL changes to `#/fine-tuning` and view renders | [ ] |
 
 ---
 
@@ -67,12 +76,11 @@
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Throttling disabled (limits 0) | All requests pass through | [ ] |
-| L3-02 | Timeout > MAX_BACKPRESSURE_MS | Rejected with `retryAfterMs` | [ ] |
-| L3-03 | Different orgs/providers isolated | Limits of `org-a/openai` do not affect `org-b/openai` or `org-a/anthropic` | [ ] |
-| L3-04 | Concurrent requests race | Window counts are consistent with sequential ordering | [ ] |
-| L3-05 | Reset clears state | `POST /reset` zeroes windows and queue | [ ] |
-| L3-06 | `estimatedTokens` missing or negative | Treated as 1 token, not rejected | [ ] |
+| L3-01 | Empty store | Empty table with helpful message, no crash | [ ] |
+| L3-02 | Backend returns 500 | Error toast shown, table loading state cleared | [ ] |
+| L3-03 | Unauthorized (non-admin) | `authorize('admin:all')` on backend rejects; dashboard hides or disables link | [ ] |
+| L3-04 | Invalid export format | Frontend restricts to `jsonl/alpaca/chatml`; malformed request not sent | [ ] |
+| L3-05 | Select-all and label bulk | If time permits, multi-select with bulk label apply | [ ] |
 
 ---
 
@@ -80,9 +88,9 @@
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No raw request content stored in the throttle queue | [ ] |
-| S-02 | Configure endpoint requires admin permission | [ ] |
-| S-03 | Status endpoint only exposes counts, not content | [ ] |
+| S-01 | All API calls include `Authorization` header from `authHeaders()` | [ ] |
+| S-02 | No raw PII from `input`/`output` displayed in full without a toggle | [ ] |
+| S-03 | Export endpoint remains `admin:all` gated | [ ] |
 
 ---
 

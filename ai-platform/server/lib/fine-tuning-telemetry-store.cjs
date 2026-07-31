@@ -134,8 +134,11 @@ function listEntries(orgId, filters) {
   const excludeExcluded = label !== 'exclude';
   const startDate = f.startDate ? new Date(f.startDate) : null;
   const endDate = f.endDate ? new Date(f.endDate) : null;
+  const q = (f.q || '').trim().toLowerCase();
+  const page = Number.isFinite(f.page) && f.page > 0 ? f.page : null;
+  const limit = Number.isFinite(f.limit) && f.limit > 0 ? f.limit : null;
 
-  return store.entries
+  let filtered = store.entries
     .filter(function (e) { return e.orgId === (orgId || 'default'); })
     .filter(function (e) { return !excludeExcluded || e.label !== 'exclude'; })
     .filter(function (e) { return (e.score || 0) >= minRating; })
@@ -147,8 +150,30 @@ function listEntries(orgId, filters) {
       if (startDate && t < startDate) return false;
       if (endDate && t > endDate) return false;
       return true;
-    })
-    .sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+    });
+
+  if (q) {
+    filtered = filtered.filter(function (e) {
+      return (
+        (e.input || '').toLowerCase().includes(q) ||
+        (e.output || '').toLowerCase().includes(q) ||
+        (e.model || '').toLowerCase().includes(q) ||
+        (e.userId || '').toLowerCase().includes(q) ||
+        (e.eventId || '').toLowerCase().includes(q)
+      );
+    });
+  }
+
+  filtered.sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+
+  if (page === null || limit === null) {
+    return filtered;
+  }
+
+  const total = filtered.length;
+  const start = (page - 1) * limit;
+  const pageEntries = filtered.slice(start, start + limit);
+  return { entries: pageEntries, total, page, limit };
 }
 
 function labelEntry(eventId, label) {

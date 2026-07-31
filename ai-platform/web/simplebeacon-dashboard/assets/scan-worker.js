@@ -280,6 +280,17 @@ async function scanFiles(files, deepScan, state = null) {
     let ignoredByPattern = state?.ignoredByPattern || 0;
     let issuesTruncated = state?.issuesTruncated || false;
     const ignoreCtx = state?.ignoreCtx || null;
+    const total = state?.totalFiles || files.length;
+    /**
+     * Post a progress message to the main thread.
+     * Called from ALL file processing paths (binary, skipped, error, analyzed)
+     * so the UI doesn't appear frozen on binary-heavy projects.
+     */
+    const postProgress = (currentFile) => {
+        if (processed % 25 === 0) {
+            self.postMessage({ type: 'progress', processed, total, currentFile, ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
+        }
+    };
     for (const file of files) {
         if (issues.length >= MAX_ISSUES) {
             issuesTruncated = true;
@@ -296,6 +307,7 @@ async function scanFiles(files, deepScan, state = null) {
                 ignoredByPattern++;
             }
             processed++;
+            postProgress(file.path);
             // yield occasionally to keep UI responsive
             if (processed % YIELD_INTERVAL === 0) {
                 await new Promise(r => setTimeout(r, 0));
@@ -307,6 +319,7 @@ async function scanFiles(files, deepScan, state = null) {
             if (!fileObj || typeof fileObj.slice !== 'function') {
                 textErrors++;
                 processed++;
+                postProgress(file.path);
                 continue;
             }
             const size = fileObj.size || 0;
@@ -315,6 +328,7 @@ async function scanFiles(files, deepScan, state = null) {
                 // telemetry
                 // also map to binaryFile counter
                 processed++;
+                postProgress(file.path);
                 if (processed % YIELD_INTERVAL === 0) {
                     await new Promise(r => setTimeout(r, 0));
                 }
@@ -326,6 +340,7 @@ async function scanFiles(files, deepScan, state = null) {
                 if (!deepScan && /(?:\b|\/)(?:vendor|third_party|thirdparty|node_modules)(?:\b|\/)/i.test(normalized)) {
                     heavyVendor += 1;
                     processed++;
+                    postProgress(file.path);
                     if (processed % YIELD_INTERVAL === 0) {
                         await new Promise(r => setTimeout(r, 0));
                     }
@@ -340,6 +355,7 @@ async function scanFiles(files, deepScan, state = null) {
                     // chunk analyzer failed or timed out - skip to avoid OOM
                     heavyVendor += 1;
                     processed++;
+                    postProgress(file.path);
                     if (processed % YIELD_INTERVAL === 0) {
                         await new Promise(r => setTimeout(r, 0));
                     }
@@ -373,10 +389,7 @@ async function scanFiles(files, deepScan, state = null) {
                 }
             }
             processed++;
-            const total = state?.totalFiles || files.length;
-            if (processed % 25 === 0) {
-                self.postMessage({ type: 'progress', processed, total, currentFile: file.path, ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
-            }
+            postProgress(file.path);
             // yield occasionally to keep main thread responsive
             if (processed % YIELD_INTERVAL === 0) {
                 await new Promise(r => setTimeout(r, 0));
@@ -385,13 +398,13 @@ async function scanFiles(files, deepScan, state = null) {
         catch (err) {
                     textErrors++;
                     processed++;
+                    postProgress(file.path);
                     try {
                         self.postMessage({ type: 'file-error', scanId: self.scanState?.scanId || null, file: file.path, name: err && err.name ? err.name : null, message: err && err.message ? err.message : String(err), stack: err && err.stack ? err.stack : null });
                     }
                     catch (_a) { }
         }
     }
-    const total = state?.totalFiles || files.length;
     self.postMessage({ type: 'progress', processed, total, currentFile: files.length ? files[files.length - 1].path : '', ignoredDir, ignoredByPattern, heavyVendor, binarySkipped });
     return {
         processed,
@@ -447,6 +460,7 @@ self.onmessage = async (e) => {
         }
         try {
             const batch = Array.isArray(files) ? files : [];
+            self.postMessage({ type: 'batch-started', scanId, batchOffset: batchOffset || 0, batchSize: batch.length, processed: state.processed, total: state.totalFiles });
             const results = await scanFiles(batch, state.deepScan, state);
             state.allResults = results.allResults;
             state.issues = results.issues;

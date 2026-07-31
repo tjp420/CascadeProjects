@@ -28,6 +28,9 @@ function normalizeFilters(query) {
   if (query.operation) filters.operation = query.operation;
   if (query.startDate) filters.startDate = query.startDate;
   if (query.endDate) filters.endDate = query.endDate;
+  if (query.q) filters.q = String(query.q);
+  if (query.page !== undefined) filters.page = Number(query.page);
+  if (query.limit !== undefined) filters.limit = Number(query.limit);
   return filters;
 }
 
@@ -36,8 +39,12 @@ router.get('/collect', authorize('admin:all'), function (req, res) {
   try {
     const orgId = resolveOrgId(req);
     const filters = normalizeFilters(req.query);
-    const entries = telemetry.listEntries(orgId, filters);
-    res.json({ success: true, orgId, count: entries.length, entries });
+    const result = telemetry.listEntries(orgId, filters);
+    if (Array.isArray(result)) {
+      res.json({ success: true, orgId, count: result.length, entries: result });
+    } else {
+      res.json({ success: true, orgId, ...result, count: result.entries.length });
+    }
   } catch (err) {
     sendError(res, 500, 'collect_failed', { message: err.message });
   }
