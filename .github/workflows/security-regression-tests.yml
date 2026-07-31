@@ -30,6 +30,7 @@ on:
       - 'ai-platform/server/lib/__tests__/pii-stream-block-aware.test.cjs'
       - 'ai-platform/server/lib/__tests__/audit-log-scrubbing.test.cjs'
       - 'ai-platform/server/lib/__tests__/audit-healing-worker.test.cjs'
+      - 'ai-platform/server/lib/__tests__/pii-context-aware.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   push:
     branches: [main]
@@ -53,6 +54,7 @@ on:
       - 'ai-platform/server/lib/__tests__/pii-stream-block-aware.test.cjs'
       - 'ai-platform/server/lib/__tests__/audit-log-scrubbing.test.cjs'
       - 'ai-platform/server/lib/__tests__/audit-healing-worker.test.cjs'
+      - 'ai-platform/server/lib/__tests__/pii-context-aware.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   workflow_dispatch:
 
@@ -89,7 +91,7 @@ jobs:
             --verbose \
             --ci \
             --bail=1 \
-            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker)\.test\.cjs" \
+            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker|pii-context-aware)\.test\.cjs" \
             --coverage \
             --coverageReporters=text-summary \
             --coverageReporters=lcov \
