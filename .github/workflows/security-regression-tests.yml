@@ -1,6 +1,7 @@
 # Security regression tests — runs on every PR or push touching security-critical paths.
-# Covers: org partition enforcement, webhook key auto-purge, multi-tenant PII policy sync.
-# Fail-fast: stops on first failing suite. Uploads JUnit coverage report as artifact.
+# Covers: org partition enforcement, violation retention policy, webhook key auto-purge,
+#         multi-tenant PII policy sync, E2E partition API integration.
+# Fail-fast: stops on first failing suite. Uploads LCOV coverage report as artifact.
 
 name: Security Regression Tests
 
@@ -9,27 +10,35 @@ on:
     branches: [main, master, develop]
     paths:
       - 'ai-platform/server/middleware/**'
+      - 'ai-platform/server/routes/audit-routes.cjs'
       - 'ai-platform/server/lib/alert-rule-store.cjs'
       - 'ai-platform/server/lib/pii-policy-store.cjs'
       - 'ai-platform/server/lib/security-monitor-settings-store.cjs'
       - 'ai-platform/server/lib/rbac-store.cjs'
       - 'ai-platform/server/lib/crypto-utils.cjs'
       - 'ai-platform/server/lib/__tests__/org-partition-enforcement.test.cjs'
+      - 'ai-platform/server/lib/__tests__/violation-retention-policy.test.cjs'
       - 'ai-platform/server/lib/__tests__/alert-rule-store-purge.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-policy-sync.test.cjs'
+      - 'ai-platform/server/lib/__tests__/pii-regulatory-simulation.test.cjs'
+      - 'ai-platform/server/lib/__tests__/partition-e2e-integration.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   push:
     branches: [main]
     paths:
       - 'ai-platform/server/middleware/**'
+      - 'ai-platform/server/routes/audit-routes.cjs'
       - 'ai-platform/server/lib/alert-rule-store.cjs'
       - 'ai-platform/server/lib/pii-policy-store.cjs'
       - 'ai-platform/server/lib/security-monitor-settings-store.cjs'
       - 'ai-platform/server/lib/rbac-store.cjs'
       - 'ai-platform/server/lib/crypto-utils.cjs'
       - 'ai-platform/server/lib/__tests__/org-partition-enforcement.test.cjs'
+      - 'ai-platform/server/lib/__tests__/violation-retention-policy.test.cjs'
       - 'ai-platform/server/lib/__tests__/alert-rule-store-purge.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-policy-sync.test.cjs'
+      - 'ai-platform/server/lib/__tests__/pii-regulatory-simulation.test.cjs'
+      - 'ai-platform/server/lib/__tests__/partition-e2e-integration.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   workflow_dispatch:
 
@@ -66,7 +75,7 @@ jobs:
             --verbose \
             --ci \
             --bail=1 \
-            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|alert-rule-store-purge|pii-policy-sync)\.test\.cjs" \
+            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration)\.test\.cjs" \
             --coverage \
             --coverageReporters=text-summary \
             --coverageReporters=lcov \
@@ -95,10 +104,11 @@ jobs:
           echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Covered Modules" >> $GITHUB_STEP_SUMMARY
-          echo "- \`server/middleware/authorize.cjs\` — Org partition enforcement" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/middleware/authorize.cjs\` — Org partition enforcement + violation retention" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/routes/audit-routes.cjs\` — Partition API endpoints (E2E)" >> $GITHUB_STEP_SUMMARY
           echo "- \`server/lib/alert-rule-store.cjs\` — Webhook key auto-purge" >> $GITHUB_STEP_SUMMARY
-          echo "- \`server/lib/pii-policy-store.cjs\` — Multi-tenant policy sync" >> $GITHUB_STEP_SUMMARY
-          echo "- \`server/lib/security-monitor-settings-store.cjs\` — Partition config settings" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/lib/pii-policy-store.cjs\` — Multi-tenant policy sync + regulatory PII simulation" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/lib/security-monitor-settings-store.cjs\` — Partition config + retention settings" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload coverage report
         if: always()

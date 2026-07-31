@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Security Monitor Settings Store ΓÇö Persisted configuration for
+ * Security Monitor Settings Store ?????? Persisted configuration for
  * anomaly detection thresholds, alert cooldown profiles, and rolling
  * baseline parameters. Allows administrators to live-update security
  * monitor behavior without restarting the server.
@@ -33,6 +33,11 @@ const DEFAULT_SETTINGS = {
   orgPartitionEnforcementEnabled: true,
   orgPartitionAlertOnViolation: true,
   orgPartitionViolationAlertThreshold: 5,
+  // Violation retention policy
+  orgPartitionViolationTtlMs: 24 * 60 * 60 * 1000, // 24 hours
+  orgPartitionViolationMaxLog: 1000,
+  orgPartitionViolationCleanupIntervalMs: 5 * 60 * 1000, // 5 minutes
+  orgPartitionViolationMemoryGuardMb: 50, // refuse to store new violations above this
   updatedAt: null,
 };
 
@@ -107,6 +112,36 @@ function updateSettings(updates) {
     return {
       success: false,
       error: 'orgPartitionViolationAlertThreshold must be at least 1',
+    };
+  }
+  if (updated.orgPartitionViolationTtlMs !== undefined && updated.orgPartitionViolationTtlMs < 60000) {
+    return {
+      success: false,
+      error: 'orgPartitionViolationTtlMs must be at least 60000 (1 minute)',
+    };
+  }
+  if (updated.orgPartitionViolationMaxLog !== undefined && updated.orgPartitionViolationMaxLog < 10) {
+    return {
+      success: false,
+      error: 'orgPartitionViolationMaxLog must be at least 10',
+    };
+  }
+  if (
+    updated.orgPartitionViolationCleanupIntervalMs !== undefined &&
+    updated.orgPartitionViolationCleanupIntervalMs < 10000
+  ) {
+    return {
+      success: false,
+      error: 'orgPartitionViolationCleanupIntervalMs must be at least 10000 (10 seconds)',
+    };
+  }
+  if (
+    updated.orgPartitionViolationMemoryGuardMb !== undefined &&
+    updated.orgPartitionViolationMemoryGuardMb < 1
+  ) {
+    return {
+      success: false,
+      error: 'orgPartitionViolationMemoryGuardMb must be at least 1',
     };
   }
 

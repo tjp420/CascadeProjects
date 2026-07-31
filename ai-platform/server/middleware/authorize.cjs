@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Authorization Middleware ΓÇö checks user permissions against required
+ * Authorization Middleware ?????? checks user permissions against required
  * permissions for each endpoint. Must be used after authenticate middleware.
  *
  * Usage:
@@ -35,22 +35,162 @@ function getViolationAlertThreshold() {
   return getSettings().orgPartitionViolationAlertThreshold || 5;
 }
 
+function getViolationTtlMs() {
+  return getSettings().orgPartitionViolationTtlMs || 24 * 60 * 60 * 1000;
+}
+
+function getViolationMaxLog() {
+  const max = getSettings().orgPartitionViolationMaxLog;
+  return typeof max === 'number' && max >= 10 ? max : 1000;
+}
+
+function getViolationMemoryGuardMb() {
+  const mb = getSettings().orgPartitionViolationMemoryGuardMb;
+  return typeof mb === 'number' && mb >= 1 ? mb : 50;
+}
+
+function getViolationCleanupIntervalMs() {
+  const interval = getSettings().orgPartitionViolationCleanupIntervalMs;
+  return typeof interval === 'number' && interval >= 10000 ? interval : 5 * 60 * 1000;
+}
+
 function getOrgId(req) {
   return req.user?.id || req.user?.email || 'default';
 }
 
-// ΓöÇΓöÇ Org Partition Enforcement ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ?????? Org Partition Enforcement ??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 
 let _partitionViolations = [];
-const MAX_VIOLATION_LOG = 100;
 let _violationAlertCooldown = new Map();
 const VIOLATION_ALERT_COOLDOWN_MS = 15 * 60 * 1000;
+let _cleanupTimer = null;
+let _lastCleanupRun = 0;
+
+/**
+ * Estimate the memory footprint of the violation buffer in MB.
+ * Each violation object is roughly 200-400 bytes; we use a conservative
+ * estimate of 0.5 KB per entry to account for V8 object overhead.
+ * @returns {number} Estimated MB consumed by _partitionViolations
+ */
+function estimateViolationMemoryMb() {
+  return (_partitionViolations.length * 0.5) / 1024;
+}
+
+/**
+ * Remove expired violations from the in-memory buffer.
+ * Violations older than the configured TTL are purged.
+ * @returns {number} Number of violations purged
+ */
+function purgeExpiredViolations() {
+  const ttlMs = getViolationTtlMs();
+  const cutoff = Date.now() - ttlMs;
+  const before = _partitionViolations.length;
+
+  _partitionViolations = _partitionViolations.filter((v) => {
+    const ts = new Date(v.at).getTime();
+    return ts > cutoff;
+  });
+
+  _lastCleanupRun = Date.now();
+  return before - _partitionViolations.length;
+}
+
+/**
+ * Ensure the violation buffer doesn't exceed the max log size or
+ * the memory pressure guard threshold. Called after every recordViolation().
+ * @returns {number} Number of violations trimmed
+ */
+function enforceViolationCap() {
+  const maxLog = getViolationMaxLog();
+  const memoryGuardMb = getViolationMemoryGuardMb();
+  let trimmed = 0;
+
+  // Enforce count cap
+  if (_partitionViolations.length > maxLog) {
+    trimmed = _partitionViolations.length - maxLog;
+    _partitionViolations = _partitionViolations.slice(0, maxLog);
+  }
+
+  // Enforce memory guard ??? keep trimming until under the MB threshold
+  while (estimateViolationMemoryMb() > memoryGuardMb && _partitionViolations.length > 0) {
+    _partitionViolations.pop();
+    trimmed++;
+  }
+
+  return trimmed;
+}
+
+/**
+ * Maybe run a cleanup cycle if enough time has elapsed since the last run.
+ * This is called lazily from recordViolation() rather than using a setInterval
+ * to avoid timer leaks in test environments. A setInterval is also started
+ * for background cleanup when the module is first loaded in production.
+ */
+function maybeRunCleanup() {
+  const now = Date.now();
+  const interval = getViolationCleanupIntervalMs();
+  if (now - _lastCleanupRun >= interval) {
+    purgeExpiredViolations();
+    enforceViolationCap();
+  }
+}
+
+/**
+ * Start a background cleanup timer. Safe to call multiple times ???
+ * it will clear any existing timer first.
+ */
+function startCleanupTimer() {
+  if (_cleanupTimer) clearInterval(_cleanupTimer);
+  const interval = getViolationCleanupIntervalMs();
+  _cleanupTimer = setInterval(() => {
+    try {
+      purgeExpiredViolations();
+      enforceViolationCap();
+    } catch {}
+  }, interval);
+  // Don't keep the process alive just for this timer
+  if (_cleanupTimer.unref) _cleanupTimer.unref();
+}
+
+/**
+ * Stop the background cleanup timer (for tests / shutdown).
+ */
+function stopCleanupTimer() {
+  if (_cleanupTimer) {
+    clearInterval(_cleanupTimer);
+    _cleanupTimer = null;
+  }
+}
+
+/**
+ * Clear all violations from the buffer (for tests / admin reset).
+ * @returns {number} Number of violations cleared
+ */
+function clearViolations() {
+  const count = _partitionViolations.length;
+  _partitionViolations = [];
+  return count;
+}
 
 function recordViolation(violation) {
-  _partitionViolations.unshift({ ...violation, at: new Date().toISOString() });
-  if (_partitionViolations.length > MAX_VIOLATION_LOG) {
-    _partitionViolations = _partitionViolations.slice(0, MAX_VIOLATION_LOG);
+  // Run lazy cleanup if interval has elapsed
+  maybeRunCleanup();
+
+  // Memory pressure guard ??? refuse to store if already over the guard limit
+  const memoryGuardMb = getViolationMemoryGuardMb();
+  if (estimateViolationMemoryMb() > memoryGuardMb) {
+    // Aggressively trim before adding
+    enforceViolationCap();
+    // If still over, refuse to store the new violation
+    if (estimateViolationMemoryMb() > memoryGuardMb) {
+      return;
+    }
   }
+
+  _partitionViolations.unshift({ ...violation, at: new Date().toISOString() });
+
+  // Enforce cap after adding
+  enforceViolationCap();
 
   if (!shouldAlertOnViolation()) return;
 
@@ -89,6 +229,12 @@ function getPartitionStats() {
     enforcementEnabled: isPartitionEnforcementEnabled(),
     alertOnViolation: shouldAlertOnViolation(),
     violationAlertThreshold: getViolationAlertThreshold(),
+    // Retention policy info
+    violationTtlMs: getViolationTtlMs(),
+    violationMaxLog: getViolationMaxLog(),
+    violationMemoryGuardMb: getViolationMemoryGuardMb(),
+    estimatedMemoryMb: Math.round(estimateViolationMemoryMb() * 1000) / 1000,
+    lastCleanupRun: _lastCleanupRun || null,
     settingsUpdatedAt: settings.updatedAt,
   };
 }
@@ -176,7 +322,7 @@ function enforceOrgPartition() {
 
 /**
  * Express middleware factory that requires a specific permission.
- * @param {string} requiredPermission ΓÇö e.g. 'write:tickets', 'delete:all', 'read:audit'
+ * @param {string} requiredPermission ?????? e.g. 'write:tickets', 'delete:all', 'read:audit'
  * @returns {function} Express middleware
  */
 function authorize(requiredPermission) {
@@ -257,4 +403,11 @@ module.exports = {
   resolveCallerOrgId,
   getPartitionViolations,
   getPartitionStats,
+  // Violation retention policy
+  purgeExpiredViolations,
+  enforceViolationCap,
+  clearViolations,
+  startCleanupTimer,
+  stopCleanupTimer,
+  estimateViolationMemoryMb,
 };
