@@ -18,6 +18,7 @@
     "lint:fix:root": "eslint . --ext .js,.cjs,.mjs,.ts,.tsx --ignore-path .gitignore --fix",
     "quality:check": "npm run quality:check --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
+    "test:integration": "node ai-platform/tests/run-all.cjs",
     "test:coverage": "npm run test:coverage --workspaces --if-present",
     "quality:monthly": "cd packages/simplebeacon-cli && node bin/simplebeacon.js scan --path ../.. --gate --full --format json --output .simplebeacon/monthly-quality-report.json && npm audit && cd ../../ai-platform && npm audit && cd ../coming-soon && npm audit",
     "ai:check": "node scripts/ai-check.js",

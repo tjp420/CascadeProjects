@@ -1,0 +1,44 @@
+name: Platform Integration Tests
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'ai-platform/server/**'
+      - 'ai-platform/tests/**'
+      - 'ai-platform/simplebeacon-server.cjs'
+      - '.github/workflows/platform-integration.yml'
+
+jobs:
+  integration-tests:
+    name: Platform API Integration Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run platform integration tests
+        working-directory: ai-platform
+        env:
+          NODE_ENV: development
+          PORT: 3999
+        run: node tests/run-all.cjs
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: ai-platform/.simplebeacon/
+          retention-days: 7

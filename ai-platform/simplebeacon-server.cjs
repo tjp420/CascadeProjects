@@ -1464,6 +1464,15 @@ async function startServer() {
     logger.error('[Routes] RBAC not loaded:', err?.message || err);
   }
 
+  // Compliance report generator — EU AI Act, SOC2, OWASP assessments
+  try {
+    const complianceRoutes = require('./server/routes/compliance-routes.cjs');
+    app.use('/api/compliance', complianceRoutes);
+    logger.info('[Routes] Compliance reports loaded at /api/compliance');
+  } catch (err) {
+    logger.error('[Routes] Compliance reports not loaded:', err?.message || err);
+  }
+
   // Whitelabel partner branding — custom logos, colors, domains
   try {
     const whitelabelRoutes = require('./server/routes/whitelabel-routes.cjs');
@@ -1903,6 +1912,27 @@ async function startServer() {
   } catch (err) {
     logger.error('❌ WebSocket server setup failed:', safeErrorMessage(err));
     wss = null;
+  }
+
+  // Wire incident broadcaster → WebSocket clients (real-time incident streaming)
+  try {
+    const { setIncidentBroadcaster } = require('./server/lib/alert-dispatcher.cjs');
+    setIncidentBroadcaster((message) => {
+      if (!wss || wss.clients.size === 0) return;
+      const payload = JSON.stringify(message);
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          try {
+            client.send(payload);
+          } catch {
+            // socket may have closed between check and send
+          }
+        }
+      });
+    });
+    logger.info('[WebSocket] Incident broadcaster wired to WebSocket clients');
+  } catch (err) {
+    logger.warn('[WebSocket] Failed to wire incident broadcaster:', safeErrorMessage(err));
   }
 
   server.on('error', (err) => {
