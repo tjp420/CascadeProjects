@@ -1,25 +1,20 @@
-# Test Plan: Slack Destination for Alert Dispatcher
+# Test Plan: Email Destination for Alert Dispatcher
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Implement Slack Incoming Webhook message formatting for alert delivery.
+**Feature:** Implement email destination for alert delivery using existing email-service.cjs.
 
 ## Context
 
-The alert dispatcher (`alert-dispatcher.cjs`) currently sends raw JSON payloads to all destination types. Slack Incoming Webhooks expect a specific message format with `text` field and optional `blocks` for rich formatting. The current "Slack-specific formatting" code (line 62-64) only sets the Content-Type header — it doesn't format the body.
+The alert dispatcher (`alert-dispatcher.cjs`) currently supports webhook and Slack destinations. The codebase already has a complete email service (`server/lib/email-service.cjs`) with `sendEmail({ to, subject, text, html })` that supports Cloudflare Email → Resend → SMTP → disk queue fallback. We need to wire the alert dispatcher to use this service when `destinationType === 'email'`.
 
 ## Change
 
 **Single file:** `server/lib/alert-dispatcher.cjs`
 
-Add a `formatSlackMessage(payload)` function that converts the alert payload into a Slack message with:
-- Severity-colored attachment (red=critical, orange=high, yellow=medium, blue=info)
-- Event type as title
-- Message as main text
-- Data fields as attachment fields
-- Timestamp
-
-Modify `deliverAlert()` to use the formatted Slack message body when `destinationType === 'slack'`.
+1. Add `formatEmailMessage(payload)` function that builds email subject, text body, and HTML body from the alert payload.
+2. Modify `deliverAlert()` to call `sendEmail()` when `destinationType === 'email'`, using the recipient from `rule.destination?.email` or `rule.webhookUrl` (reusing the URL field as email recipient for simplicity).
+3. Skip the HTTP fetch loop for email destinations — use the email service directly.
 
 ## Objective Check-Items
 
@@ -35,15 +30,16 @@ Modify `deliverAlert()` to use the formatted Slack message body when `destinatio
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | Create Slack rule + trigger → dispatcher sends Slack-formatted body | Body contains `text` and `attachments` fields |
-| L2.2 | Slack message has severity-colored attachment | Color matches severity |
-| L2.3 | Webhook destination still sends raw JSON (no regression) | Body is raw JSON payload |
-| L2.4 | Slack delivery to non-existent URL records incident as failed | Status: failed |
+| L2.1 | Create email rule + trigger → dispatcher attempts email send | Incident recorded |
+| L2.2 | Email format has subject, text, and html | All 3 fields populated |
+| L2.3 | Webhook destination still works (no regression) | Raw JSON body preserved |
+| L2.4 | Slack destination still works (no regression) | Slack-formatted body preserved |
+| L2.5 | Email to invalid address records incident as failed | Status: failed |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
 | L3.1 | Single file changed | Only alert-dispatcher.cjs |
-| L3.2 | No new dependencies | Uses built-in fetch |
-| L3.3 | Webhook destination unchanged | Raw JSON body preserved for non-Slack |
+| L3.2 | No new dependencies | Uses existing email-service.cjs |
+| L3.3 | Webhook/Slack destinations unchanged | No regression in existing paths |
