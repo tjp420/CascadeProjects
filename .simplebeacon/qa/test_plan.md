@@ -1,31 +1,24 @@
-# Test Plan: Realtime Analysis Result Rendering in Dashboard
+# Test Plan: Filter/Sort for Realtime Live Issues Table
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Wire `realtimeAnalysisService` `analysis_result` events to the
-AnalyzeView UI so streaming analysis findings render live as they arrive.
+**Feature:** Add severity filter buttons and sort controls to the live
+analysis stream panel in AnalyzeView.
 
 ## Context
 
-The `realtimeAnalysisService.js` (shipped in prior commit) connects to the
-server's WebSocket on port 8082 and dispatches events. The server sends
-`{ type: 'analysis_result', chunkId, result, timestamp }` messages where
-`result` contains `{ issues, recommendations, confidence, processingTime }`.
-
-Currently the service listens for `type: 'result'` — a bug. The server
-actually sends `type: 'analysis_result'`. This must be fixed.
-
-The AnalyzeView has a `#analyze-results` container and a `renderResults()`
-method, but these are designed for complete scan reports, not incremental
-streaming. We need a lightweight streaming results panel that accumulates
-findings as chunks arrive, without replacing the full scan results area.
+The `_renderRealtimeStreamResults()` method (shipped in prior commit)
+renders a flat issues table from `_realtimeChunks`. As chunks accumulate,
+users need to triage by severity and sort by chunk order or severity
+weight. The existing `codebase-cat-filter` pattern in
+`renderCodebaseHealthSection` uses `btn-ghost`/`btn-primary` toggle
+buttons with `data-cat` attributes and an `applyFilter()` function.
 
 ## Files to Change
 
 | File | Change |
 |------|--------|
-| `js-es2018/services/realtimeAnalysisService.js` | Fix message type: `analysis_result` not `result` |
-| `js-es2018/views/AnalyzeView.js` | Add streaming results panel + wire `on('analysis_result')` listener |
+| `js-es2018/views/AnalyzeView.js` | Add filter state, filter buttons, sort control, and wire handlers |
 
 ## Objective Check-Items
 
@@ -33,28 +26,28 @@ findings as chunks arrive, without replacing the full scan results area.
 
 | # | Item | Expected |
 |---|------|----------|
-| L1.1 | `node -c realtimeAnalysisService.js` | exit 0 |
-| L1.2 | `node -c AnalyzeView.js` | exit 0 |
-| L1.3 | `npx simplebeacon scan --gate` | PASS (exit 0) |
-| L1.4 | WebSocket integration test still passes | 16/16 pass |
+| L1.1 | `node -c AnalyzeView.js` | exit 0 |
+| L1.2 | `npx simplebeacon scan --gate` | PASS (exit 0) |
+| L1.3 | WebSocket integration test still passes | 16/16 pass |
 
 ### Level 2 — Behavioral
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | Service emits `analysis_result` event when server sends `type: 'analysis_result'` | Event fired with `{ chunkId, result, timestamp }` |
-| L2.2 | AnalyzeView shows a streaming results panel when realtime monitoring is enabled | Panel visible with chunk count |
-| L2.3 | Each received chunk appends findings to the panel | Issues list grows incrementally |
-| L2.4 | Panel shows chunk ID, issue count, confidence, and processing time | All fields rendered |
-| L2.5 | Toggling realtime monitoring off clears the streaming panel | Panel removed from DOM |
-| L2.6 | Status indicator dot still works (green/amber/red/gray) | Unchanged from prior commit |
+| L2.1 | Severity filter buttons render: All, Critical, High, Medium, Low | 5 buttons visible |
+| L2.2 | Clicking a severity filter shows only matching issues | Rows filtered by severity |
+| L2.3 | "All" filter shows all issues | All rows visible |
+| L2.4 | Sort toggle: by chunk order (default) vs by severity weight | Issues re-ordered |
+| L2.5 | Filter state persists across re-renders (new chunks arrive) | Active filter maintained |
+| L2.6 | Filtered count shown ("X shown · Y filtered out") | Count label updates |
+| L2.7 | Empty state when filter matches zero issues | "No issues match filter" message |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
-| L3.1 | No new files created (Broom strategy) | Only existing files edited |
-| L3.2 | No new dependencies added | package.json unchanged |
-| L3.3 | Streaming panel does not replace `#analyze-results` | Full scan results preserved |
-| L3.4 | Message type matches server's actual output | `analysis_result` not `result` |
-| L3.5 | No ghost DOM elements or hallucinated selectors | All selectors verified against template |
+| L3.1 | No new files created (Broom strategy) | Only AnalyzeView.js edited |
+| L3.2 | No new dependencies | package.json unchanged |
+| L3.3 | Filter pattern matches existing codebase-cat-filter convention | btn-ghost/btn-primary toggle |
+| L3.4 | Filter state stored on the view instance, not in DOM | `this._realtimeFilter` |
+| L3.5 | Re-render preserves filter state | Filter not reset on new chunk |
