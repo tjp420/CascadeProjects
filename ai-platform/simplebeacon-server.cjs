@@ -1217,6 +1217,15 @@ async function startServer() {
     logger.error('[Routes] SSO config routes not loaded:', err?.message || err);
   }
 
+  // Enterprise analytics facade — compact payload for admin dashboard
+  try {
+    const enterpriseAnalytics = require('./server/routes/enterprise-analytics-routes.cjs');
+    app.use('/api/enterprise/analytics', enterpriseAnalytics);
+    logger.info('[Routes] Enterprise analytics loaded at /api/enterprise/analytics');
+  } catch (err) {
+    logger.error('[Routes] Enterprise analytics not loaded:', err?.message || err);
+  }
+
   // Integration marketplace — Slack, Teams, Jira, GitHub PR
   try {
     const integrationRoutes = require('./server/routes/integration-routes.cjs');
@@ -1233,6 +1242,15 @@ async function startServer() {
     logger.info('[Routes] Usage analytics loaded at /api/analytics');
   } catch (err) {
     logger.error('[Routes] Usage analytics not loaded:', err?.message || err);
+  }
+
+  // Deployment gate — CI/CD policy enforcement endpoints
+  try {
+    const deploymentGateRoutes = require('./server/routes/deployment-gate-routes.cjs');
+    app.use('/api/deployment-gate', deploymentGateRoutes);
+    logger.info('[Routes] Deployment gate loaded at /api/deployment-gate');
+  } catch (err) {
+    logger.error('[Routes] Deployment gate not loaded:', err?.message || err);
   }
 
   // Whitelabel partner branding — custom logos, colors, domains

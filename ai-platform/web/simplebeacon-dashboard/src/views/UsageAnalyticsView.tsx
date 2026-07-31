@@ -12,6 +12,7 @@ import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
   ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X, Clock, Send, Settings,
+  ShieldCheck,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -188,6 +189,13 @@ export function UsageAnalyticsView() {
   const [dispatchingRow, setDispatchingRow] = useState<string | null>(null);
   const [reportSchedules, setReportSchedules] = useState<Record<string, ReportSchedule>>({});
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [gatePolicy, setGatePolicy] = useState<Record<string, any>>({});
+  const [gateHistory, setGateHistory] = useState<any[]>([]);
+  const [gateEvaluating, setGateEvaluating] = useState(false);
+  const [gateEvalRepo, setGateEvalRepo] = useState('');
+  const [gateEvalResult, setGateEvalResult] = useState<any>(null);
+  const [showGatePolicyModal, setShowGatePolicyModal] = useState(false);
+  const [gatePolicyForm, setGatePolicyForm] = useState({ minPostureScore: 70, maxCritical: 0, maxHigh: 5, maxMedium: 20, maxLow: 50, blockOnGateFail: true, blockOnSlaBreached: false, blockOnUnticketedCritical: false });
   const [scheduleForm, setScheduleForm] = useState({
     id: '', name: '', enabled: true, frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
     dayOfWeek: 1, dayOfMonth: 1, hour: 8, minute: 0, format: 'csv' as 'csv' | 'json',
@@ -569,6 +577,76 @@ export function UsageAnalyticsView() {
       setScheduleRunning(null);
     }
   }, [fetchReportSchedules]);
+
+  // ── Deployment Gate ───────────────────────────────────────────────────────
+  const fetchGatePolicy = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/deployment-gate/policy'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setGatePolicy(data.policy || {});
+        setGatePolicyForm({
+          minPostureScore: data.policy?.minPostureScore ?? 70,
+          maxCritical: data.policy?.maxCritical ?? 0,
+          maxHigh: data.policy?.maxHigh ?? 5,
+          maxMedium: data.policy?.maxMedium ?? 20,
+          maxLow: data.policy?.maxLow ?? 50,
+          blockOnGateFail: data.policy?.blockOnGateFail ?? true,
+          blockOnSlaBreached: data.policy?.blockOnSlaBreached ?? false,
+          blockOnUnticketedCritical: data.policy?.blockOnUnticketedCritical ?? false,
+        });
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchGateHistory = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/deployment-gate/history?limit=20'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setGateHistory(data.history || []);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchGatePolicy(); fetchGateHistory(); }, [fetchGatePolicy, fetchGateHistory]);
+
+  const saveGatePolicy = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/deployment-gate/policy'), {
+        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(gatePolicyForm),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setGatePolicy(data.policy);
+        setShowGatePolicyModal(false);
+        toast.success('Deployment gate policy saved');
+      } else { toast.error('Failed to save gate policy'); }
+    } catch { toast.error('Failed to save gate policy'); }
+  }, [gatePolicyForm]);
+
+  const evaluateGate = useCallback(async () => {
+    if (!gateEvalRepo.trim()) { toast.error('Repository is required'); return; }
+    setGateEvaluating(true);
+    setGateEvalResult(null);
+    try {
+      const params = new URLSearchParams();
+      params.set('repository', gateEvalRepo.trim());
+      if (branchFilter) params.set('branch', branchFilter);
+      params.set('triggeredBy', 'dashboard');
+      const resp = await fetch(apiUrl(`/deployment-gate/evaluate?${params}`), { headers: authHeaders() });
+      const data = await resp.json();
+      setGateEvalResult({ status: resp.status, ...data });
+      fetchGateHistory();
+      if (resp.ok) toast.success(`Gate PASSED for ${gateEvalRepo}`);
+      else toast.error(`Gate FAILED for ${gateEvalRepo}`);
+    } catch {
+      toast.error('Failed to evaluate deployment gate');
+    } finally {
+      setGateEvaluating(false);
+    }
+  }, [gateEvalRepo, branchFilter, fetchGateHistory]);
 
   const exportLedger = useCallback(async (format: 'csv' | 'json') => {
     try {
@@ -1694,6 +1772,204 @@ export function UsageAnalyticsView() {
               <Button variant="outline" size="sm" onClick={() => setShowScheduleModal(false)}>Cancel</Button>
               <Button size="sm" onClick={saveReportSchedule}>
                 <Calendar className="h-3 w-3" /> Save Schedule
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deployment Gate Panel */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ShieldCheck className="h-4 w-4" /> CI/CD Deployment Gate
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Evaluate scan posture against organizational policy thresholds. Returns pass/fail for CI/CD pipeline integration.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Evaluate Section */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="repository name (e.g. my-org/my-repo)"
+                value={gateEvalRepo}
+                onChange={(e) => setGateEvalRepo(e.target.value)}
+                className="flex h-8 flex-1 rounded-md border border-input bg-transparent px-2 py-1 text-sm"
+                onKeyDown={(e) => { if (e.key === 'Enter') evaluateGate(); }}
+              />
+              <Button size="sm" onClick={evaluateGate} disabled={gateEvaluating}>
+                {gateEvaluating ? <RefreshCw className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
+                Evaluate
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowGatePolicyModal(true)}>
+                <Settings className="h-3 w-3" /> Policy
+              </Button>
+            </div>
+
+            {/* Evaluation Result */}
+            {gateEvalResult && (
+              <div className={`p-3 rounded-lg border ${gateEvalResult.pass ? 'border-green-500/30 bg-green-500/5' : 'border-red-500/30 bg-red-500/5'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  {gateEvalResult.pass ? (
+                    <><Check className="h-4 w-4 text-green-600" /><span className="font-medium text-green-600">PASSED</span></>
+                  ) : (
+                    <><X className="h-4 w-4 text-red-600" /><span className="font-medium text-red-600">FAILED</span></>
+                  )}
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    Posture: {gateEvalResult.scan?.postureScore ?? 'N/A'} · Gate: {gateEvalResult.scan?.gateStatus ?? 'N/A'}
+                  </span>
+                </div>
+                {gateEvalResult.failures?.length > 0 && (
+                  <div className="space-y-1">
+                    {gateEvalResult.failures.map((f: any, i: number) => (
+                      <div key={i} className="text-xs text-red-600 dark:text-red-400 flex items-start gap-1.5">
+                        <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                        <span><strong>{f.rule}</strong>: {f.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {gateEvalResult.scan && (
+                  <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+                    Scan: {gateEvalResult.scan.scanId} · {gateEvalResult.scan.repository}@{gateEvalResult.scan.branch || 'N/A'}
+                    {gateEvalResult.scan.commitSha && ` · ${gateEvalResult.scan.commitSha.slice(0, 7)}`}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Policy Summary */}
+          <div className="p-3 rounded-lg border bg-muted/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Active Policy Thresholds</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div><span className="text-muted-foreground">Min Posture:</span> <span className="font-medium">{gatePolicy.minPostureScore ?? 70}</span></div>
+              <div><span className="text-muted-foreground">Max Critical:</span> <span className="font-medium">{gatePolicy.maxCritical ?? 0}</span></div>
+              <div><span className="text-muted-foreground">Max High:</span> <span className="font-medium">{gatePolicy.maxHigh ?? 5}</span></div>
+              <div><span className="text-muted-foreground">Max Medium:</span> <span className="font-medium">{gatePolicy.maxMedium ?? 20}</span></div>
+              <div><span className="text-muted-foreground">Max Low:</span> <span className="font-medium">{gatePolicy.maxLow ?? 50}</span></div>
+              <div><span className="text-muted-foreground">Block on Gate Fail:</span> <span className="font-medium">{gatePolicy.blockOnGateFail ? 'Yes' : 'No'}</span></div>
+              <div><span className="text-muted-foreground">Block on SLA:</span> <span className="font-medium">{gatePolicy.blockOnSlaBreached ? 'Yes' : 'No'}</span></div>
+              <div><span className="text-muted-foreground">Block Unticketed Critical:</span> <span className="font-medium">{gatePolicy.blockOnUnticketedCritical ? 'Yes' : 'No'}</span></div>
+            </div>
+          </div>
+
+          {/* Recent Evaluations */}
+          {gateHistory.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Recent Gate Evaluations</span>
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {gateHistory.map((h, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-muted/30">
+                    {h.pass ? (
+                      <Check className="h-3 w-3 text-green-600 shrink-0" />
+                    ) : (
+                      <X className="h-3 w-3 text-red-600 shrink-0" />
+                    )}
+                    <span className="truncate flex-1">{h.repository || 'N/A'}@{h.branch || 'N/A'}</span>
+                    <span className="text-muted-foreground tabular-nums">Score: {h.postureScore ?? 'N/A'}</span>
+                    {h.failures?.length > 0 && (
+                      <span className="text-red-600 dark:text-red-400">{h.failures.length} failure(s)</span>
+                    )}
+                    <span className="text-muted-foreground text-[10px]">{new Date(h.evaluatedAt).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CI Integration Snippet */}
+          <div className="p-3 rounded-lg border bg-muted/10">
+            <span className="text-xs font-medium text-muted-foreground">GitHub Actions Integration</span>
+            <pre className="text-[10px] mt-1 p-2 rounded bg-muted/30 overflow-x-auto text-muted-foreground">
+{`- name: Simplebeacon Deployment Gate
+  run: |
+    RESULT=$(curl -s -w "\\n%{http_code}" \\
+      -H "Authorization: Bearer $\{{{ secrets.SIMPLEBEACON_TOKEN \}}}" \\
+      "https://your-host/api/deployment-gate/evaluate?repository=$\{{{ github.repository \}}}&branch=$\{{{ github.ref_name \}}}")
+    CODE=$(echo "$RESULT" | tail -1)
+    if [ "$CODE" != "200" ]; then
+      echo "Deployment gate FAILED"
+      exit 1
+    fi
+    echo "Deployment gate PASSED"`}
+            </pre>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gate Policy Configuration Modal */}
+      {showGatePolicyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowGatePolicyModal(false)}>
+          <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-medium">Deployment Gate Policy</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowGatePolicyModal(false)}><X className="h-4 w-4" /></Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Configure organizational thresholds for CI/CD deployment gate evaluations. These thresholds are applied to all gate evaluations unless overridden by query parameters.</p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Min Posture Score</label>
+                  <input type="number" min={0} max={100} value={gatePolicyForm.minPostureScore}
+                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, minPostureScore: parseInt(e.target.value, 10) || 0 }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Max Critical</label>
+                  <input type="number" min={0} value={gatePolicyForm.maxCritical}
+                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, maxCritical: parseInt(e.target.value, 10) || 0 }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Max High</label>
+                  <input type="number" min={0} value={gatePolicyForm.maxHigh}
+                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, maxHigh: parseInt(e.target.value, 10) || 0 }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Max Medium</label>
+                  <input type="number" min={0} value={gatePolicyForm.maxMedium}
+                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, maxMedium: parseInt(e.target.value, 10) || 0 }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Max Low</label>
+                  <input type="number" min={0} value={gatePolicyForm.maxLow}
+                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, maxLow: parseInt(e.target.value, 10) || 0 }))}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1" />
+                </div>
+              </div>
+              <div className="space-y-2 pt-2 border-t">
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={gatePolicyForm.blockOnGateFail}
+                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, blockOnGateFail: e.target.checked }))}
+                    className="h-4 w-4 rounded" />
+                  <span>Block if scan gate status is <strong>fail</strong></span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={gatePolicyForm.blockOnSlaBreached}
+                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, blockOnSlaBreached: e.target.checked }))}
+                    className="h-4 w-4 rounded" />
+                  <span>Block on <strong>SLA-breached</strong> unticketed violations</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={gatePolicyForm.blockOnUnticketedCritical}
+                    onChange={(e) => setGatePolicyForm(prev => ({ ...prev, blockOnUnticketedCritical: e.target.checked }))}
+                    className="h-4 w-4 rounded" />
+                  <span>Block on <strong>unticketed critical</strong> violations</span>
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" size="sm" onClick={() => setShowGatePolicyModal(false)}>Cancel</Button>
+              <Button size="sm" onClick={saveGatePolicy}>
+                <ShieldCheck className="h-3 w-3" /> Save Policy
               </Button>
             </div>
           </div>
