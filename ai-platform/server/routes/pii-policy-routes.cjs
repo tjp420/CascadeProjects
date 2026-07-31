@@ -18,6 +18,7 @@
 
 const express = require('express');
 const piiPolicyStore = require('../lib/pii-policy-store.cjs');
+const auditLogger = require('../lib/audit-logger.cjs');
 const { authenticate } = require('../middleware/auth.cjs');
 const { authorize } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -199,6 +200,44 @@ router.post('/seed', authorize('admin:all'), (req, res) => {
 // GET /api/pii/frameworks — list supported compliance frameworks
 router.get('/frameworks', (req, res) => {
   res.json({ success: true, frameworks: piiPolicyStore.COMPLIANCE_FRAMEWORKS });
+});
+
+// POST /api/pii/scrub/preview — dry-run preview of PII scrubbing on historical audit entries (admin only)
+router.post('/scrub/preview', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = req.body.orgId || getOrgId(req);
+    const result = auditLogger.previewPiiScrub(orgId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[PII] scrub_preview_failed:', err.message);
+    sendError(res, 500, 'pii_scrub_preview_failed', { message: err.message });
+  }
+});
+
+// POST /api/pii/scrub/run — execute PII scrubbing on historical audit entries (admin only)
+router.post('/scrub/run', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = req.body.orgId || getOrgId(req);
+    const result = auditLogger.runPiiScrub(orgId);
+    logger.info(
+      `[PII] Scrub run for org ${orgId}: ${result.scrubbed}/${result.scanned} entries scrubbed, seal: ${result.sealEntryId}`
+    );
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[PII] scrub_run_failed:', err.message);
+    sendError(res, 500, 'pii_scrub_run_failed', { message: err.message });
+  }
+});
+
+// GET /api/pii/scrub/status — get last scrub operation status (admin only)
+router.get('/scrub/status', authorize('admin:all'), (req, res) => {
+  try {
+    const status = auditLogger.getScrubStatus();
+    res.json({ success: true, status });
+  } catch (err) {
+    logger.warn('[PII] scrub_status_failed:', err.message);
+    sendError(res, 500, 'pii_scrub_status_failed', { message: err.message });
+  }
 });
 
 module.exports = router;

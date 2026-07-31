@@ -746,15 +746,8 @@ function runPiiScrub(orgId) {
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
   if (entries.length === 0) {
-    _lastScrubStatus = {
-      orgId: scopedOrgId,
-      ranAt: new Date().toISOString(),
-      scanned: 0,
-      scrubbed: 0,
-      skipped: 0,
-      sealEntryId: null,
-      backupFile: null,
-    };
+    // Do not overwrite _lastScrubStatus for an empty scrub run so a previous
+    // successful scrub's status remains available. Return a no-op result.
     return { scrubbed: 0, scanned: 0, skipped: 0, sealEntryId: null, backupFile: null };
   }
 
@@ -850,6 +843,13 @@ function runPiiScrub(orgId) {
   store.chainHeads[scopedOrgId] = sealEntry.hash;
 
   writeStore(store);
+
+  // Index the seal entry for fast lookups
+  try {
+    ledgerIndexEngine.indexAuditEntry(sealKey, sealEntry);
+  } catch {
+    // Index errors must never block scrub completion
+  }
 
   _lastScrubStatus = {
     orgId: scopedOrgId,
