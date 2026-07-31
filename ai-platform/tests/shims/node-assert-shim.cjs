@@ -118,6 +118,17 @@ const assert = {
     if (err) throw err;
   },
 
+  equal(actual, expected, message) {
+    // eslint-disable-next-line eqeqeq
+    if (actual == expected) return;
+    throw new AssertionError(message || `Expected ${String(actual)} to equal ${String(expected)}`);
+  },
+
+  match(value, regexp, message) {
+    if (regexp instanceof RegExp && regexp.test(String(value))) return;
+    throw new AssertionError(message || `Expected ${String(value)} to match ${regexp}`);
+  },
+
   fail(message) {
     throw new AssertionError(message || 'Assertion failed');
   }

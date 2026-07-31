@@ -44,7 +44,8 @@ module.exports = {
     'middleware/__tests__/upload-security\\.test\\.cjs$',
     'middleware/__tests__/simplebeacon-subscription\\.test\\.cjs$',
     'middleware/__tests__/audit\\.test\\.cjs$',
-    'bootstrap/__tests__/phase2-integration\\.test\\.cjs$'
+    'bootstrap/__tests__/phase2-integration\\.test\\.cjs$',
+    'server/lib/__tests__/agentic-orchestration\\.test\\.cjs$'
   ],
   moduleFileExtensions: ['js', 'cjs', 'json', 'jsx', 'ts', 'tsx', 'node'],
   moduleNameMapper: {
