@@ -35,6 +35,7 @@ const sessionAuditStore = require('../lib/session-audit-store.cjs');
 const perfStore = require('../lib/proxy-performance-store.cjs');
 const quotaStore = require('../lib/rate-limit-quota-store.cjs');
 const moderationStore = require('../lib/content-moderation-store.cjs');
+const failoverStore = require('../lib/provider-failover-store.cjs');
 
 // Lazy-load prompt service for custom user prompts
 let promptService;
@@ -703,40 +704,77 @@ function setupChatbotAPI(app) {
       const queuedAt = Date.now();
       perfStore.requestQueued();
 
+      // Provider failover: select best available provider
+      const failoverSelection = failoverStore.selectProvider(effectiveProvider);
+      const actualProvider = failoverSelection.provider;
+      if (failoverSelection.failover) {
+        logger.info('[Chatbot API] Provider failover activated:', {
+          requestId,
+          from: effectiveProvider,
+          to: actualProvider,
+        });
+      }
+
       // Generate response using the selected (or routed) provider
       const inferenceStart = Date.now();
       let response;
       try {
-        response = await cloudInf.generateWithProvider(effectiveProvider, messages, {
+        response = await cloudInf.generateWithProvider(actualProvider, messages, {
           userCredentials,
           timeoutMs: constants.TIMEOUT_1M,
           ollamaModel:
-            effectiveProvider === 'ollama' ? effectiveModel || userCredentials?.ollamaModel || null : null,
+            actualProvider === 'ollama' ? effectiveModel || userCredentials?.ollamaModel || null : null,
           model:
-            effectiveProvider === 'openai'
+            actualProvider === 'openai'
               ? effectiveModel || userCredentials?.openaiModel || null
-              : effectiveProvider === 'anthropic'
+              : actualProvider === 'anthropic'
                 ? effectiveModel || userCredentials?.anthropicModel || null
                 : null,
         });
         perfStore.requestDequeued();
+        failoverStore.recordSuccess(actualProvider, Date.now() - inferenceStart);
       } catch (infErr) {
         perfStore.requestDequeued();
-        // Record failed request in performance store
-        try {
-          perfStore.recordRequest({
-            provider: effectiveProvider,
-            model: effectiveModel || '',
-            queuedAt,
-            dispatchedAt: inferenceStart,
-            completedAt: Date.now(),
-            success: false,
-            errorType: infErr.name || 'InferenceError',
-            userId: userEmail || 'anonymous',
-            requestId,
-          });
-        } catch { /* never block on perf errors */ }
-        throw infErr;
+        failoverStore.recordFailure(actualProvider, infErr.name || 'InferenceError');
+
+        // Attempt failover to next available provider if not already failed over
+        if (!failoverSelection.failover && !failoverSelection.allUnavailable) {
+          const retrySelection = failoverStore.selectProvider(effectiveProvider);
+          if (retrySelection.provider !== actualProvider && retrySelection.provider !== effectiveProvider) {
+            logger.info('[Chatbot API] Attempting failover retry:', {
+              requestId,
+              from: actualProvider,
+              to: retrySelection.provider,
+            });
+            try {
+              const retryStart = Date.now();
+              response = await cloudInf.generateWithProvider(retrySelection.provider, messages, {
+                userCredentials,
+                timeoutMs: constants.TIMEOUT_1M,
+                ollamaModel:
+                  retrySelection.provider === 'ollama' ? effectiveModel || userCredentials?.ollamaModel || null : null,
+                model:
+                  retrySelection.provider === 'openai'
+                    ? effectiveModel || userCredentials?.openaiModel || null
+                    : retrySelection.provider === 'anthropic'
+                      ? effectiveModel || userCredentials?.anthropicModel || null
+                      : null,
+              });
+              failoverStore.recordSuccess(retrySelection.provider, Date.now() - retryStart);
+              logger.info('[Chatbot API] Failover retry succeeded:', {
+                requestId,
+                provider: retrySelection.provider,
+              });
+            } catch (retryErr) {
+              failoverStore.recordFailure(retrySelection.provider, retryErr.name || 'InferenceError');
+              throw infErr; // Throw original error
+            }
+          } else {
+            throw infErr;
+          }
+        } else {
+          throw infErr;
+        }
       }
 
       const inferenceDuration = Date.now() - inferenceStart;

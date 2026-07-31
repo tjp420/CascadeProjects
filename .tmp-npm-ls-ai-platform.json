@@ -1,0 +1,804 @@
+{
+  "version": "1.0.0",
+  "name": "simplebeacon-platform",
+  "problems": [
+    "missing: @eslint/js@^9.39.4, required by simplebeacon-platform@1.0.0",
+    "missing: @playwright/test@^1.62.0, required by simplebeacon-platform@1.0.0",
+    "missing: @simplebeacon/intelligence@file:C:\\Users\\user\\CascadeProjects\\ai-platform\\packages\\simplebeacon-intelligence, required by simplebeacon-platform@1.0.0",
+    "missing: archiver@^7.0.1, required by simplebeacon-platform@1.0.0",
+    "missing: axios@^1.6.5, required by simplebeacon-platform@1.0.0",
+    "missing: bcryptjs@^3.0.3, required by simplebeacon-platform@1.0.0",
+    "missing: chokidar@^3.5.3, required by simplebeacon-platform@1.0.0",
+    "missing: cors@^2.8.6, required by simplebeacon-platform@1.0.0",
+    "missing: dotenv@^16.6.1, required by simplebeacon-platform@1.0.0",
+    "missing: express-rate-limit@^8.5.2, required by simplebeacon-platform@1.0.0",
+    "missing: globals@^15.14.0, required by simplebeacon-platform@1.0.0",
+    "missing: helmet@^7.0.0, required by simplebeacon-platform@1.0.0",
+    "missing: http-errors@^2.0.1, required by simplebeacon-platform@1.0.0",
+    "missing: jest@^30.2.0, required by simplebeacon-platform@1.0.0",
+    "missing: joi@^18.2.1, required by simplebeacon-platform@1.0.0",
+    "missing: jsonwebtoken@^9.0.3, required by simplebeacon-platform@1.0.0",
+    "missing: multer@^1.4.5-lts.1, required by simplebeacon-platform@1.0.0",
+    "missing: nodemailer@9.0.3, required by simplebeacon-platform@1.0.0",
+    "missing: nodemon@^3.0.1, required by simplebeacon-platform@1.0.0",
+    "missing: pg@^8.21.0, required by simplebeacon-platform@1.0.0",
+    "missing: playwright@^1.62.0, required by simplebeacon-platform@1.0.0",
+    "missing: redis@^4.7.1, required by simplebeacon-platform@1.0.0",
+    "missing: simple-git@^3.20.0, required by simplebeacon-platform@1.0.0",
+    "missing: speakeasy@^2.0.0, required by simplebeacon-platform@1.0.0",
+    "missing: stripe@^22.1.1, required by simplebeacon-platform@1.0.0",
+    "missing: supertest@^7.0.0, required by simplebeacon-platform@1.0.0",
+    "missing: tmp@^0.2.7, required by simplebeacon-platform@1.0.0",
+    "missing: unzipper@^0.12.3, required by simplebeacon-platform@1.0.0",
+    "missing: webpack-cli@^5.1.4, required by simplebeacon-platform@1.0.0",
+    "missing: webpack@^5.88.2, required by simplebeacon-platform@1.0.0",
+    "missing: winston@^3.8.0, required by simplebeacon-platform@1.0.0",
+    "missing: ws@^8.21.0, required by simplebeacon-platform@1.0.0",
+    "missing: @eslint-community/eslint-utils@^4.8.0, required by eslint@9.39.5",
+    "missing: @eslint-community/regexpp@^4.12.1, required by eslint@9.39.5",
+    "missing: @eslint/eslintrc@^3.3.6, required by eslint@9.39.5",
+    "missing: @eslint/js@9.39.5, required by eslint@9.39.5",
+    "missing: @humanfs/node@^0.16.6, required by eslint@9.39.5",
+    "missing: @humanwhocodes/module-importer@^1.0.1, required by eslint@9.39.5",
+    "missing: @humanwhocodes/retry@^0.4.2, required by eslint@9.39.5",
+    "missing: @types/estree@^1.0.6, required by eslint@9.39.5",
+    "missing: chalk@^4.0.0, required by eslint@9.39.5",
+    "missing: cross-spawn@^7.0.6, required by eslint@9.39.5",
+    "missing: espree@^10.4.0, required by eslint@9.39.5",
+    "missing: esquery@^1.5.0, required by eslint@9.39.5",
+    "missing: esutils@^2.0.2, required by eslint@9.39.5",
+    "missing: fast-deep-equal@^3.1.3, required by eslint@9.39.5",
+    "missing: file-entry-cache@^8.0.0, required by eslint@9.39.5",
+    "missing: ignore@^5.2.0, required by eslint@9.39.5",
+    "missing: imurmurhash@^0.1.4, required by eslint@9.39.5",
+    "missing: is-glob@^4.0.0, required by eslint@9.39.5",
+    "missing: json-stable-stringify-without-jsonify@^1.0.1, required by eslint@9.39.5",
+    "missing: lodash.merge@^4.6.2, required by eslint@9.39.5",
+    "missing: minimatch@^3.1.5, required by eslint@9.39.5",
+    "missing: natural-compare@^1.4.0, required by eslint@9.39.5",
+    "missing: optionator@^0.9.3, required by eslint@9.39.5",
+    "missing: accepts@~1.3.8, required by express@4.22.2",
+    "missing: array-flatten@1.1.1, required by express@4.22.2",
+    "missing: body-parser@~1.20.5, required by express@4.22.2",
+    "missing: content-disposition@~0.5.4, required by express@4.22.2",
+    "missing: content-type@~1.0.4, required by express@4.22.2",
+    "missing: cookie-signature@~1.0.6, required by express@4.22.2",
+    "missing: cookie@~0.7.1, required by express@4.22.2",
+    "missing: depd@2.0.0, required by express@4.22.2",
+    "missing: encodeurl@~2.0.0, required by express@4.22.2",
+    "missing: escape-html@~1.0.3, required by express@4.22.2",
+    "missing: etag@~1.8.1, required by express@4.22.2",
+    "missing: finalhandler@~1.3.1, required by express@4.22.2",
+    "missing: fresh@~0.5.2, required by express@4.22.2",
+    "missing: http-errors@~2.0.0, required by express@4.22.2",
+    "missing: merge-descriptors@1.0.3, required by express@4.22.2",
+    "missing: methods@~1.1.2, required by express@4.22.2",
+    "missing: on-finished@~2.4.1, required by express@4.22.2",
+    "missing: parseurl@~1.3.3, required by express@4.22.2",
+    "missing: path-to-regexp@~0.1.12, required by express@4.22.2",
+    "missing: proxy-addr@~2.0.7, required by express@4.22.2",
+    "missing: qs@~6.15.1, required by express@4.22.2",
+    "missing: range-parser@~1.2.1, required by express@4.22.2",
+    "missing: safe-buffer@5.2.1, required by express@4.22.2",
+    "missing: send@~0.19.0, required by express@4.22.2",
+    "missing: serve-static@~1.16.2, required by express@4.22.2",
+    "missing: setprototypeof@1.2.0, required by express@4.22.2",
+    "missing: statuses@~2.0.1, required by express@4.22.2",
+    "missing: type-is@~1.6.18, required by express@4.22.2",
+    "missing: utils-merge@1.0.1, required by express@4.22.2",
+    "missing: vary@~1.1.2, required by express@4.22.2",
+    "missing: minimatch@^3.1.5, required by @eslint/config-array@0.21.2",
+    "missing: @types/json-schema@^7.0.15, required by @eslint/core@0.17.0",
+    "missing: levn@^0.4.1, required by @eslint/plugin-kit@0.4.1",
+    "missing: fast-deep-equal@^3.1.1, required by ajv@6.15.0",
+    "missing: fast-json-stable-stringify@^2.0.0, required by ajv@6.15.0",
+    "missing: json-schema-traverse@^0.4.1, required by ajv@6.15.0",
+    "missing: uri-js@^4.2.2, required by ajv@6.15.0",
+    "missing: esrecurse@^4.3.0, required by eslint-scope@8.4.0",
+    "missing: path-exists@^4.0.0, required by find-up@5.0.0",
+    "missing: is-glob@^4.0.3, required by glob-parent@6.0.2",
+    "missing: p-limit@^3.0.2, required by p-locate@5.0.0"
+  ],
+  "dependencies": {
+    "@eslint/js": {
+      "required": "^9.39.4",
+      "missing": true,
+      "problems": [
+        "missing: @eslint/js@^9.39.4, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "@playwright/test": {
+      "missing": true,
+      "problems": [
+        "missing: @playwright/test@^1.62.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "@simplebeacon/intelligence": {
+      "missing": true,
+      "problems": [
+        "missing: @simplebeacon/intelligence@file:C:\\Users\\user\\CascadeProjects\\ai-platform\\packages\\simplebeacon-intelligence, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "archiver": {
+      "missing": true,
+      "problems": [
+        "missing: archiver@^7.0.1, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "axios": {
+      "missing": true,
+      "problems": [
+        "missing: axios@^1.6.5, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "bcryptjs": {
+      "missing": true,
+      "problems": [
+        "missing: bcryptjs@^3.0.3, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "chokidar": {
+      "missing": true,
+      "problems": [
+        "missing: chokidar@^3.5.3, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "cors": {
+      "missing": true,
+      "problems": [
+        "missing: cors@^2.8.6, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "dotenv": {
+      "missing": true,
+      "problems": [
+        "missing: dotenv@^16.6.1, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "eslint": {
+      "version": "9.39.5",
+      "overridden": false,
+      "dependencies": {
+        "@eslint-community/eslint-utils": {
+          "missing": true,
+          "problems": [
+            "missing: @eslint-community/eslint-utils@^4.8.0, required by eslint@9.39.5"
+          ]
+        },
+        "@eslint-community/regexpp": {
+          "missing": true,
+          "problems": [
+            "missing: @eslint-community/regexpp@^4.12.1, required by eslint@9.39.5"
+          ]
+        },
+        "@eslint/config-array": {
+          "version": "0.21.2",
+          "overridden": false,
+          "dependencies": {
+            "@eslint/object-schema": {
+              "version": "2.1.7",
+              "overridden": false
+            },
+            "debug": {
+              "version": "4.4.3"
+            },
+            "minimatch": {
+              "missing": true,
+              "problems": [
+                "missing: minimatch@^3.1.5, required by @eslint/config-array@0.21.2"
+              ]
+            }
+          }
+        },
+        "@eslint/config-helpers": {
+          "version": "0.4.2",
+          "overridden": false,
+          "dependencies": {
+            "@eslint/core": {
+              "version": "0.17.0"
+            }
+          }
+        },
+        "@eslint/core": {
+          "version": "0.17.0",
+          "overridden": false,
+          "dependencies": {
+            "@types/json-schema": {
+              "missing": true,
+              "problems": [
+                "missing: @types/json-schema@^7.0.15, required by @eslint/core@0.17.0"
+              ]
+            }
+          }
+        },
+        "@eslint/eslintrc": {
+          "missing": true,
+          "problems": [
+            "missing: @eslint/eslintrc@^3.3.6, required by eslint@9.39.5"
+          ]
+        },
+        "@eslint/js": {
+          "missing": true,
+          "problems": [
+            "missing: @eslint/js@9.39.5, required by eslint@9.39.5"
+          ]
+        },
+        "@eslint/plugin-kit": {
+          "version": "0.4.1",
+          "overridden": false,
+          "dependencies": {
+            "@eslint/core": {
+              "version": "0.17.0"
+            },
+            "levn": {
+              "missing": true,
+              "problems": [
+                "missing: levn@^0.4.1, required by @eslint/plugin-kit@0.4.1"
+              ]
+            }
+          }
+        },
+        "@humanfs/node": {
+          "missing": true,
+          "problems": [
+            "missing: @humanfs/node@^0.16.6, required by eslint@9.39.5"
+          ]
+        },
+        "@humanwhocodes/module-importer": {
+          "missing": true,
+          "problems": [
+            "missing: @humanwhocodes/module-importer@^1.0.1, required by eslint@9.39.5"
+          ]
+        },
+        "@humanwhocodes/retry": {
+          "missing": true,
+          "problems": [
+            "missing: @humanwhocodes/retry@^0.4.2, required by eslint@9.39.5"
+          ]
+        },
+        "@types/estree": {
+          "missing": true,
+          "problems": [
+            "missing: @types/estree@^1.0.6, required by eslint@9.39.5"
+          ]
+        },
+        "ajv": {
+          "version": "6.15.0",
+          "overridden": false,
+          "dependencies": {
+            "fast-deep-equal": {
+              "missing": true,
+              "problems": [
+                "missing: fast-deep-equal@^3.1.1, required by ajv@6.15.0"
+              ]
+            },
+            "fast-json-stable-stringify": {
+              "missing": true,
+              "problems": [
+                "missing: fast-json-stable-stringify@^2.0.0, required by ajv@6.15.0"
+              ]
+            },
+            "json-schema-traverse": {
+              "missing": true,
+              "problems": [
+                "missing: json-schema-traverse@^0.4.1, required by ajv@6.15.0"
+              ]
+            },
+            "uri-js": {
+              "missing": true,
+              "problems": [
+                "missing: uri-js@^4.2.2, required by ajv@6.15.0"
+              ]
+            }
+          }
+        },
+        "chalk": {
+          "missing": true,
+          "problems": [
+            "missing: chalk@^4.0.0, required by eslint@9.39.5"
+          ]
+        },
+        "cross-spawn": {
+          "missing": true,
+          "problems": [
+            "missing: cross-spawn@^7.0.6, required by eslint@9.39.5"
+          ]
+        },
+        "debug": {
+          "version": "4.4.3",
+          "overridden": false,
+          "dependencies": {
+            "ms": {
+              "version": "2.1.3",
+              "overridden": false
+            }
+          }
+        },
+        "escape-string-regexp": {
+          "version": "4.0.0",
+          "overridden": false
+        },
+        "eslint-scope": {
+          "version": "8.4.0",
+          "overridden": false,
+          "dependencies": {
+            "esrecurse": {
+              "missing": true,
+              "problems": [
+                "missing: esrecurse@^4.3.0, required by eslint-scope@8.4.0"
+              ]
+            },
+            "estraverse": {
+              "version": "5.3.0",
+              "overridden": false
+            }
+          }
+        },
+        "eslint-visitor-keys": {
+          "version": "4.2.1",
+          "overridden": false
+        },
+        "espree": {
+          "missing": true,
+          "problems": [
+            "missing: espree@^10.4.0, required by eslint@9.39.5"
+          ]
+        },
+        "esquery": {
+          "missing": true,
+          "problems": [
+            "missing: esquery@^1.5.0, required by eslint@9.39.5"
+          ]
+        },
+        "esutils": {
+          "missing": true,
+          "problems": [
+            "missing: esutils@^2.0.2, required by eslint@9.39.5"
+          ]
+        },
+        "fast-deep-equal": {
+          "missing": true,
+          "problems": [
+            "missing: fast-deep-equal@^3.1.3, required by eslint@9.39.5"
+          ]
+        },
+        "file-entry-cache": {
+          "missing": true,
+          "problems": [
+            "missing: file-entry-cache@^8.0.0, required by eslint@9.39.5"
+          ]
+        },
+        "find-up": {
+          "version": "5.0.0",
+          "overridden": false,
+          "dependencies": {
+            "locate-path": {
+              "version": "6.0.0",
+              "overridden": false,
+              "dependencies": {
+                "p-locate": {
+                  "version": "5.0.0",
+                  "overridden": false,
+                  "dependencies": {
+                    "p-limit": {
+                      "missing": true,
+                      "problems": [
+                        "missing: p-limit@^3.0.2, required by p-locate@5.0.0"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "path-exists": {
+              "missing": true,
+              "problems": [
+                "missing: path-exists@^4.0.0, required by find-up@5.0.0"
+              ]
+            }
+          }
+        },
+        "glob-parent": {
+          "version": "6.0.2",
+          "overridden": false,
+          "dependencies": {
+            "is-glob": {
+              "missing": true,
+              "problems": [
+                "missing: is-glob@^4.0.3, required by glob-parent@6.0.2"
+              ]
+            }
+          }
+        },
+        "ignore": {
+          "missing": true,
+          "problems": [
+            "missing: ignore@^5.2.0, required by eslint@9.39.5"
+          ]
+        },
+        "imurmurhash": {
+          "missing": true,
+          "problems": [
+            "missing: imurmurhash@^0.1.4, required by eslint@9.39.5"
+          ]
+        },
+        "is-glob": {
+          "missing": true,
+          "problems": [
+            "missing: is-glob@^4.0.0, required by eslint@9.39.5"
+          ]
+        },
+        "jiti": {},
+        "json-stable-stringify-without-jsonify": {
+          "missing": true,
+          "problems": [
+            "missing: json-stable-stringify-without-jsonify@^1.0.1, required by eslint@9.39.5"
+          ]
+        },
+        "lodash.merge": {
+          "missing": true,
+          "problems": [
+            "missing: lodash.merge@^4.6.2, required by eslint@9.39.5"
+          ]
+        },
+        "minimatch": {
+          "missing": true,
+          "problems": [
+            "missing: minimatch@^3.1.5, required by eslint@9.39.5"
+          ]
+        },
+        "natural-compare": {
+          "missing": true,
+          "problems": [
+            "missing: natural-compare@^1.4.0, required by eslint@9.39.5"
+          ]
+        },
+        "optionator": {
+          "missing": true,
+          "problems": [
+            "missing: optionator@^0.9.3, required by eslint@9.39.5"
+          ]
+        }
+      }
+    },
+    "express-rate-limit": {
+      "missing": true,
+      "problems": [
+        "missing: express-rate-limit@^8.5.2, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "express": {
+      "version": "4.22.2",
+      "overridden": false,
+      "dependencies": {
+        "accepts": {
+          "missing": true,
+          "problems": [
+            "missing: accepts@~1.3.8, required by express@4.22.2"
+          ]
+        },
+        "array-flatten": {
+          "missing": true,
+          "problems": [
+            "missing: array-flatten@1.1.1, required by express@4.22.2"
+          ]
+        },
+        "body-parser": {
+          "missing": true,
+          "problems": [
+            "missing: body-parser@~1.20.5, required by express@4.22.2"
+          ]
+        },
+        "content-disposition": {
+          "missing": true,
+          "problems": [
+            "missing: content-disposition@~0.5.4, required by express@4.22.2"
+          ]
+        },
+        "content-type": {
+          "missing": true,
+          "problems": [
+            "missing: content-type@~1.0.4, required by express@4.22.2"
+          ]
+        },
+        "cookie-signature": {
+          "missing": true,
+          "problems": [
+            "missing: cookie-signature@~1.0.6, required by express@4.22.2"
+          ]
+        },
+        "cookie": {
+          "missing": true,
+          "problems": [
+            "missing: cookie@~0.7.1, required by express@4.22.2"
+          ]
+        },
+        "debug": {
+          "version": "2.6.9",
+          "overridden": false,
+          "dependencies": {
+            "ms": {
+              "version": "2.0.0",
+              "overridden": false
+            }
+          }
+        },
+        "depd": {
+          "missing": true,
+          "problems": [
+            "missing: depd@2.0.0, required by express@4.22.2"
+          ]
+        },
+        "encodeurl": {
+          "missing": true,
+          "problems": [
+            "missing: encodeurl@~2.0.0, required by express@4.22.2"
+          ]
+        },
+        "escape-html": {
+          "missing": true,
+          "problems": [
+            "missing: escape-html@~1.0.3, required by express@4.22.2"
+          ]
+        },
+        "etag": {
+          "missing": true,
+          "problems": [
+            "missing: etag@~1.8.1, required by express@4.22.2"
+          ]
+        },
+        "finalhandler": {
+          "missing": true,
+          "problems": [
+            "missing: finalhandler@~1.3.1, required by express@4.22.2"
+          ]
+        },
+        "fresh": {
+          "missing": true,
+          "problems": [
+            "missing: fresh@~0.5.2, required by express@4.22.2"
+          ]
+        },
+        "http-errors": {
+          "missing": true,
+          "problems": [
+            "missing: http-errors@~2.0.0, required by express@4.22.2"
+          ]
+        },
+        "merge-descriptors": {
+          "missing": true,
+          "problems": [
+            "missing: merge-descriptors@1.0.3, required by express@4.22.2"
+          ]
+        },
+        "methods": {
+          "missing": true,
+          "problems": [
+            "missing: methods@~1.1.2, required by express@4.22.2"
+          ]
+        },
+        "on-finished": {
+          "missing": true,
+          "problems": [
+            "missing: on-finished@~2.4.1, required by express@4.22.2"
+          ]
+        },
+        "parseurl": {
+          "missing": true,
+          "problems": [
+            "missing: parseurl@~1.3.3, required by express@4.22.2"
+          ]
+        },
+        "path-to-regexp": {
+          "missing": true,
+          "problems": [
+            "missing: path-to-regexp@~0.1.12, required by express@4.22.2"
+          ]
+        },
+        "proxy-addr": {
+          "missing": true,
+          "problems": [
+            "missing: proxy-addr@~2.0.7, required by express@4.22.2"
+          ]
+        },
+        "qs": {
+          "missing": true,
+          "problems": [
+            "missing: qs@~6.15.1, required by express@4.22.2"
+          ]
+        },
+        "range-parser": {
+          "missing": true,
+          "problems": [
+            "missing: range-parser@~1.2.1, required by express@4.22.2"
+          ]
+        },
+        "safe-buffer": {
+          "missing": true,
+          "problems": [
+            "missing: safe-buffer@5.2.1, required by express@4.22.2"
+          ]
+        },
+        "send": {
+          "missing": true,
+          "problems": [
+            "missing: send@~0.19.0, required by express@4.22.2"
+          ]
+        },
+        "serve-static": {
+          "missing": true,
+          "problems": [
+            "missing: serve-static@~1.16.2, required by express@4.22.2"
+          ]
+        },
+        "setprototypeof": {
+          "missing": true,
+          "problems": [
+            "missing: setprototypeof@1.2.0, required by express@4.22.2"
+          ]
+        },
+        "statuses": {
+          "missing": true,
+          "problems": [
+            "missing: statuses@~2.0.1, required by express@4.22.2"
+          ]
+        },
+        "type-is": {
+          "missing": true,
+          "problems": [
+            "missing: type-is@~1.6.18, required by express@4.22.2"
+          ]
+        },
+        "utils-merge": {
+          "missing": true,
+          "problems": [
+            "missing: utils-merge@1.0.1, required by express@4.22.2"
+          ]
+        },
+        "vary": {
+          "missing": true,
+          "problems": [
+            "missing: vary@~1.1.2, required by express@4.22.2"
+          ]
+        }
+      }
+    },
+    "globals": {
+      "missing": true,
+      "problems": [
+        "missing: globals@^15.14.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "helmet": {
+      "missing": true,
+      "problems": [
+        "missing: helmet@^7.0.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "http-errors": {
+      "missing": true,
+      "problems": [
+        "missing: http-errors@^2.0.1, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "jest": {
+      "missing": true,
+      "problems": [
+        "missing: jest@^30.2.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "joi": {
+      "missing": true,
+      "problems": [
+        "missing: joi@^18.2.1, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "jsonwebtoken": {
+      "missing": true,
+      "problems": [
+        "missing: jsonwebtoken@^9.0.3, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "multer": {
+      "missing": true,
+      "problems": [
+        "missing: multer@^1.4.5-lts.1, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "nodemailer": {
+      "missing": true,
+      "problems": [
+        "missing: nodemailer@9.0.3, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "nodemon": {
+      "missing": true,
+      "problems": [
+        "missing: nodemon@^3.0.1, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "pg": {
+      "missing": true,
+      "problems": [
+        "missing: pg@^8.21.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "playwright": {
+      "missing": true,
+      "problems": [
+        "missing: playwright@^1.62.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "redis": {
+      "missing": true,
+      "problems": [
+        "missing: redis@^4.7.1, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "simple-git": {
+      "missing": true,
+      "problems": [
+        "missing: simple-git@^3.20.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "speakeasy": {
+      "missing": true,
+      "problems": [
+        "missing: speakeasy@^2.0.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "stripe": {
+      "missing": true,
+      "problems": [
+        "missing: stripe@^22.1.1, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "supertest": {
+      "missing": true,
+      "problems": [
+        "missing: supertest@^7.0.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "tmp": {
+      "missing": true,
+      "problems": [
+        "missing: tmp@^0.2.7, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "unzipper": {
+      "missing": true,
+      "problems": [
+        "missing: unzipper@^0.12.3, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "webpack-cli": {
+      "missing": true,
+      "problems": [
+        "missing: webpack-cli@^5.1.4, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "webpack": {
+      "missing": true,
+      "problems": [
+        "missing: webpack@^5.88.2, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "winston": {
+      "missing": true,
+      "problems": [
+        "missing: winston@^3.8.0, required by simplebeacon-platform@1.0.0"
+      ]
+    },
+    "ws": {
+      "missing": true,
+      "problems": [
+        "missing: ws@^8.21.0, required by simplebeacon-platform@1.0.0"
+      ]
+    }
+  },
+  "error": {
+    "code": "ELSPROBLEMS",
+    "summary": "missing: @eslint/js@^9.39.4, required by simplebeacon-platform@1.0.0\nmissing: @playwright/test@^1.62.0, required by simplebeacon-platform@1.0.0\nmissing: @simplebeacon/intelligence@file:C:\\Users\\user\\CascadeProjects\\ai-platform\\packages\\simplebeacon-intelligence, required by simplebeacon-platform@1.0.0\nmissing: archiver@^7.0.1, required by simplebeacon-platform@1.0.0\nmissing: axios@^1.6.5, required by simplebeacon-platform@1.0.0\nmissing: bcryptjs@^3.0.3, required by simplebeacon-platform@1.0.0\nmissing: chokidar@^3.5.3, required by simplebeacon-platform@1.0.0\nmissing: cors@^2.8.6, required by simplebeacon-platform@1.0.0\nmissing: dotenv@^16.6.1, required by simplebeacon-platform@1.0.0\nmissing: express-rate-limit@^8.5.2, required by simplebeacon-platform@1.0.0\nmissing: globals@^15.14.0, required by simplebeacon-platform@1.0.0\nmissing: helmet@^7.0.0, required by simplebeacon-platform@1.0.0\nmissing: http-errors@^2.0.1, required by simplebeacon-platform@1.0.0\nmissing: jest@^30.2.0, required by simplebeacon-platform@1.0.0\nmissing: joi@^18.2.1, required by simplebeacon-platform@1.0.0\nmissing: jsonwebtoken@^9.0.3, required by simplebeacon-platform@1.0.0\nmissing: multer@^1.4.5-lts.1, required by simplebeacon-platform@1.0.0\nmissing: nodemailer@9.0.3, required by simplebeacon-platform@1.0.0\nmissing: nodemon@^3.0.1, required by simplebeacon-platform@1.0.0\nmissing: pg@^8.21.0, required by simplebeacon-platform@1.0.0\nmissing: playwright@^1.62.0, required by simplebeacon-platform@1.0.0\nmissing: redis@^4.7.1, required by simplebeacon-platform@1.0.0\nmissing: simple-git@^3.20.0, required by simplebeacon-platform@1.0.0\nmissing: speakeasy@^2.0.0, required by simplebeacon-platform@1.0.0\nmissing: stripe@^22.1.1, required by simplebeacon-platform@1.0.0\nmissing: supertest@^7.0.0, required by simplebeacon-platform@1.0.0\nmissing: tmp@^0.2.7, required by simplebeacon-platform@1.0.0\nmissing: unzipper@^0.12.3, required by simplebeacon-platform@1.0.0\nmissing: webpack-cli@^5.1.4, required by simplebeacon-platform@1.0.0\nmissing: webpack@^5.88.2, required by simplebeacon-platform@1.0.0\nmissing: winston@^3.8.0, required by simplebeacon-platform@1.0.0\nmissing: ws@^8.21.0, required by simplebeacon-platform@1.0.0\nmissing: @eslint-community/eslint-utils@^4.8.0, required by eslint@9.39.5\nmissing: @eslint-community/regexpp@^4.12.1, required by eslint@9.39.5\nmissing: @eslint/eslintrc@^3.3.6, required by eslint@9.39.5\nmissing: @eslint/js@9.39.5, required by eslint@9.39.5\nmissing: @humanfs/node@^0.16.6, required by eslint@9.39.5\nmissing: @humanwhocodes/module-importer@^1.0.1, required by eslint@9.39.5\nmissing: @humanwhocodes/retry@^0.4.2, required by eslint@9.39.5\nmissing: @types/estree@^1.0.6, required by eslint@9.39.5\nmissing: chalk@^4.0.0, required by eslint@9.39.5\nmissing: cross-spawn@^7.0.6, required by eslint@9.39.5\nmissing: espree@^10.4.0, required by eslint@9.39.5\nmissing: esquery@^1.5.0, required by eslint@9.39.5\nmissing: esutils@^2.0.2, required by eslint@9.39.5\nmissing: fast-deep-equal@^3.1.3, required by eslint@9.39.5\nmissing: file-entry-cache@^8.0.0, required by eslint@9.39.5\nmissing: ignore@^5.2.0, required by eslint@9.39.5\nmissing: imurmurhash@^0.1.4, required by eslint@9.39.5\nmissing: is-glob@^4.0.0, required by eslint@9.39.5\nmissing: json-stable-stringify-without-jsonify@^1.0.1, required by eslint@9.39.5\nmissing: lodash.merge@^4.6.2, required by eslint@9.39.5\nmissing: minimatch@^3.1.5, required by eslint@9.39.5\nmissing: natural-compare@^1.4.0, required by eslint@9.39.5\nmissing: optionator@^0.9.3, required by eslint@9.39.5\nmissing: accepts@~1.3.8, required by express@4.22.2\nmissing: array-flatten@1.1.1, required by express@4.22.2\nmissing: body-parser@~1.20.5, required by express@4.22.2\nmissing: content-disposition@~0.5.4, required by express@4.22.2\nmissing: content-type@~1.0.4, required by express@4.22.2\nmissing: cookie-signature@~1.0.6, required by express@4.22.2\nmissing: cookie@~0.7.1, required by express@4.22.2\nmissing: depd@2.0.0, required by express@4.22.2\nmissing: encodeurl@~2.0.0, required by express@4.22.2\nmissing: escape-html@~1.0.3, required by express@4.22.2\nmissing: etag@~1.8.1, required by express@4.22.2\nmissing: finalhandler@~1.3.1, required by express@4.22.2\nmissing: fresh@~0.5.2, required by express@4.22.2\nmissing: http-errors@~2.0.0, required by express@4.22.2\nmissing: merge-descriptors@1.0.3, required by express@4.22.2\nmissing: methods@~1.1.2, required by express@4.22.2\nmissing: on-finished@~2.4.1, required by express@4.22.2\nmissing: parseurl@~1.3.3, required by express@4.22.2\nmissing: path-to-regexp@~0.1.12, required by express@4.22.2\nmissing: proxy-addr@~2.0.7, required by express@4.22.2\nmissing: qs@~6.15.1, required by express@4.22.2\nmissing: range-parser@~1.2.1, required by express@4.22.2\nmissing: safe-buffer@5.2.1, required by express@4.22.2\nmissing: send@~0.19.0, required by express@4.22.2\nmissing: serve-static@~1.16.2, required by express@4.22.2\nmissing: setprototypeof@1.2.0, required by express@4.22.2\nmissing: statuses@~2.0.1, required by express@4.22.2\nmissing: type-is@~1.6.18, required by express@4.22.2\nmissing: utils-merge@1.0.1, required by express@4.22.2\nmissing: vary@~1.1.2, required by express@4.22.2\nmissing: minimatch@^3.1.5, required by @eslint/config-array@0.21.2\nmissing: @types/json-schema@^7.0.15, required by @eslint/core@0.17.0\nmissing: levn@^0.4.1, required by @eslint/plugin-kit@0.4.1\nmissing: fast-deep-equal@^3.1.1, required by ajv@6.15.0\nmissing: fast-json-stable-stringify@^2.0.0, required by ajv@6.15.0\nmissing: json-schema-traverse@^0.4.1, required by ajv@6.15.0\nmissing: uri-js@^4.2.2, required by ajv@6.15.0\nmissing: esrecurse@^4.3.0, required by eslint-scope@8.4.0\nmissing: path-exists@^4.0.0, required by find-up@5.0.0\nmissing: is-glob@^4.0.3, required by glob-parent@6.0.2\nmissing: p-limit@^3.0.2, required by p-locate@5.0.0",
+    "detail": ""
+  }
+}

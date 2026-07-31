@@ -30,6 +30,9 @@ const DEFAULT_SETTINGS = {
   maxAlertsPerOrgPerHour: 20,
   webhookKeyAutoPurgeEnabled: true,
   webhookKeyGraceWindowMs: 24 * 60 * 60 * 1000,
+  orgPartitionEnforcementEnabled: true,
+  orgPartitionAlertOnViolation: true,
+  orgPartitionViolationAlertThreshold: 5,
   updatedAt: null,
 };
 
@@ -96,6 +99,15 @@ function updateSettings(updates) {
   }
   if (updated.webhookKeyGraceWindowMs !== undefined && updated.webhookKeyGraceWindowMs < 60000) {
     return { success: false, error: 'webhookKeyGraceWindowMs must be at least 60000 (1 minute)' };
+  }
+  if (
+    updated.orgPartitionViolationAlertThreshold !== undefined &&
+    updated.orgPartitionViolationAlertThreshold < 1
+  ) {
+    return {
+      success: false,
+      error: 'orgPartitionViolationAlertThreshold must be at least 1',
+    };
   }
 
   // Validate severity levels

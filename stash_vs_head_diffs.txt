@@ -1,0 +1,11 @@
+
+  echo "=== ai-platform/server/lib/__tests__/pii-policy-store.test.cjs ==="; git diff 'stash@{0}' HEAD -- ai-platform/server/lib/__tests__/pii-policy-store.test.cjs ; true; 
+  echo "\n=== ai-platform/server/lib/audit-logger.cjs ==="; git diff 'stash@{0}' HEAD -- ai-platform/server/lib/audit-logger.cjs ; true; 
+  echo "\n=== ai-platform/server/lib/pii-policy-store.cjs ==="; git diff 'stash@{0}' HEAD -- ai-platform/server/lib/pii-policy-store.cjs ; true; 
+  echo "\n=== ai-platform/server/routes/chatbot-api.cjs ==="; git diff 'stash@{0}' HEAD -- ai-platform/server/routes/chatbot-api.cjs ; true; 
+  echo "\n=== ai-platform/server/routes/pii-policy-routes.cjs ==="; git diff 'stash@{0}' HEAD -- ai-platform/server/routes/pii-policy-routes.cjs ; true; 
+  echo "\n=== ai-platform/web/simplebeacon-dashboard/assets/main.css ==="; git diff 'stash@{0}' HEAD -- ai-platform/web/simplebeacon-dashboard/assets/main.css ; true; 
+  echo "\n=== ai-platform/web/simplebeacon-dashboard/assets/main.js ==="; git diff 'stash@{0}' HEAD -- ai-platform/web/simplebeacon-dashboard/assets/main.js ; true; 
+  echo "\n=== ai-platform/web/simplebeacon-dashboard/assets/main.js.map ==="; git diff 'stash@{0}' HEAD -- ai-platform/web/simplebeacon-dashboard/assets/main.js.map ; true; 
+  echo "\n=== ai-platform/web/simplebeacon-dashboard/tsconfig.tsbuildinfo ==="; git diff 'stash@{0}' HEAD -- ai-platform/web/simplebeacon-dashboard/tsconfig.tsbuildinfo ; true; 
+

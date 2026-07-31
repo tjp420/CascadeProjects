@@ -1576,6 +1576,32 @@ async function startServer() {
     logger.error('[Routes] Backup snapshot not loaded:', err?.message || err);
   }
 
+  // Data retention — automated purge lifecycle for historic data
+  try {
+    const retentionRoutes = require('./server/routes/data-retention-routes.cjs');
+    app.use('/api/data-retention', retentionRoutes);
+    logger.info('[Routes] Data retention loaded at /api/data-retention');
+
+    // Start the automatic purge scheduler
+    const retentionStore = require('./server/lib/data-retention-store.cjs');
+    retentionStore.startScheduler();
+  } catch (err) {
+    logger.error('[Routes] Data retention not loaded:', err?.message || err);
+  }
+
+  // Provider failover — multi-region circuit breaker and dynamic re-routing
+  try {
+    const failoverRoutes = require('./server/routes/provider-failover-routes.cjs');
+    app.use('/api/provider-failover', failoverRoutes);
+    logger.info('[Routes] Provider failover loaded at /api/provider-failover');
+
+    // Start health check scheduler if enabled
+    const failoverStore = require('./server/lib/provider-failover-store.cjs');
+    failoverStore.startHealthChecks();
+  } catch (err) {
+    logger.error('[Routes] Provider failover not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');

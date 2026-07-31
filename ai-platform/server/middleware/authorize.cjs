@@ -14,6 +14,30 @@
 
 const rbacStore = require('../lib/rbac-store.cjs');
 
+// Lazy-load settings store to avoid circular dependency at module init
+function getSettings() {
+  try {
+    return require('../lib/security-monitor-settings-store.cjs').getSettings();
+  } catch {
+    return {};
+  }
+}
+
+function isPartitionEnforcementEnabled() {
+  const settings = getSettings();
+  return settings.orgPartitionEnforcementEnabled !== false;
+}
+
+function shouldAlertOnViolation() {
+  const settings = getSettings();
+  return settings.orgPartitionAlertOnViolation !== false;
+}
+
+function getViolationAlertThreshold() {
+  const settings = getSettings();
+  return settings.orgPartitionViolationAlertThreshold || 5;
+}
+
 function getOrgId(req) {
   return req.user?.id || req.user?.email || 'default';
 }
@@ -22,11 +46,52 @@ function getOrgId(req) {
 
 let _partitionViolations = [];
 const MAX_VIOLATION_LOG = 100;
+let _violationAlertCooldown = new Map(); // orgId -> last alert timestamp
+const VIOLATION_ALERT_COOLDOWN_MS = 15 * 60 * 1000; // 15 min
 
 function recordViolation(violation) {
   _partitionViolations.unshift({ ...violation, at: new Date().toISOString() });
   if (_partitionViolations.length > MAX_VIOLATION_LOG) {
     _partitionViolations = _partitionViolations.slice(0, MAX_VIOLATION_LOG);
+  }
+
+  // Check if we should fire an alert
+  if (!shouldAlertOnViolation()) return;
+
+  const threshold = getViolationAlertThreshold();
+  const callerOrgId = violation.callerOrgId;
+
+  // Count violations from this org in the recent buffer
+  const recentOrgViolations = _partitionViolations.filter(
+    (v) => v.callerOrgId === callerOrgId
+  ).length;
+
+  if (recentOrgViolations >= threshold) {
+    // Cooldown check — don't spam alerts
+    const lastAlert = _violationAlertCooldown.get(callerOrgId);
+    const now = Date.now();
+    if (lastAlert && now - lastAlert < VIOLATION_ALERT_COOLDOWN_MS) return;
+
+    _violationAlertCooldown.set(callerOrgId, now);
+
+    // Fire alert via the alert dispatcher (lazy-load to avoid circular dep)
+    try {
+      const { processEvent } = require('../lib/alert-dispatcher.cjs');
+      processEvent(callerOrgId, 'org_partition_violation_spike', {
+        severity: 'high',
+        message: `Org partition violation spike: ${recentOrgViolations} cross-org access attempts blocked`,
+        data: {
+          orgId: callerOrgId,
+          violationCount: recentOrgViolations,
+          threshold,
+          recentViolation: violation,
+        },
+      }).catch(() => {
+        // silent — alert dispatch failure shouldn't block the 403 response
+      });
+    } catch {
+      // silent
+    }
   }
 }
 
@@ -35,10 +100,14 @@ function getPartitionViolations() {
 }
 
 function getPartitionStats() {
+  const settings = getSettings();
   return {
     totalViolations: _partitionViolations.length,
     recentViolations: _partitionViolations.slice(0, 10),
-    enforcementEnabled: true,
+    enforcementEnabled: isPartitionEnforcementEnabled(),
+    alertOnViolation: shouldAlertOnViolation(),
+    violationAlertThreshold: getViolationAlertThreshold(),
+    settingsUpdatedAt: settings.updatedAt,
   };
 }
 
@@ -85,6 +154,14 @@ function enforceOrgPartition() {
 
     if (clientOrgId === callerOrgId) {
       req.resolvedOrgId = callerOrgId;
+      return next();
+    }
+
+    // If enforcement is disabled, allow through but still track
+    if (!isPartitionEnforcementEnabled()) {
+      req.resolvedOrgId = clientOrgId;
+      req.crossOrgAccess = true;
+      req.partitionEnforcementBypassed = true;
       return next();
     }
 
