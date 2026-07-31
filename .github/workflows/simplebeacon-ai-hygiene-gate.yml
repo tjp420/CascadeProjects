@@ -53,7 +53,7 @@ jobs:
           SIMPLEBEACON_PARALLEL_MIN_FILES: '48'
           SIMPLEBEACON_LICENSE_TOKEN: ${{ secrets.SIMPLEBEACON_TOKEN }}
         run: |
-          node packages/simplebeacon-cli/bin/simplebeacon.js scan \
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path . \
             --format json \
             --output .simplebeacon/report.json \
@@ -62,7 +62,7 @@ jobs:
             --ci \
             --offline \
             --verbose
-          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js gate status
 
       - name: Upsell reminder
         if: github.event_name == 'pull_request' && always()

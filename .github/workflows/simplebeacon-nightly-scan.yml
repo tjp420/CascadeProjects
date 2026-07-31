@@ -40,7 +40,7 @@ jobs:
           SIMPLEBEACON_PARALLEL_MIN_FILES: '48'
           SIMPLEBEACON_OFFLINE: '1'
         run: |
-          node packages/simplebeacon-cli/bin/simplebeacon.js scan \
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path ai-platform \
             --full \
             --format json \
@@ -49,21 +49,21 @@ jobs:
             --with-jest \
             --offline \
             --verbose
-          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js gate status
 
       - name: Run File-Reduction Dry-Run
         run: |
-          node packages/simplebeacon-cli/bin/simplebeacon.js reduce \
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js reduce \
             --format json \
             --output ai-platform/.simplebeacon/nightly-file-reduction.json
         continue-on-error: true
 
       - name: Run Accuracy Tracker
         run: |
-          node packages/simplebeacon-cli/bin/simplebeacon.js accuracy \
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js accuracy \
             --format json \
             --output ai-platform/.simplebeacon/nightly-scanner-accuracy.json
-          node packages/simplebeacon-cli/bin/simplebeacon.js accuracy || true
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js accuracy || true
         continue-on-error: true
 
       - name: Generate Marketing Content
@@ -95,7 +95,7 @@ jobs:
           echo "## SimpleBeacon Nightly Scan — $(date -u +%Y-%m-%d)" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           if [ -f ai-platform/.simplebeacon/nightly-report.json ]; then
-            node packages/simplebeacon-cli/bin/simplebeacon.js comment \
+            node ../packages/simplebeacon-cli/bin/simplebeacon.js comment \
               --report ai-platform/.simplebeacon/nightly-report.json \
               --print-only >> "$GITHUB_STEP_SUMMARY" 2>&1 || true
           else

@@ -58,7 +58,7 @@ jobs:
           SIMPLEBEACON_PARALLEL_MIN_FILES: '48'
           SIMPLEBEACON_OFFLINE: '1'
         run: |
-          node packages/simplebeacon-cli/bin/simplebeacon.js scan \
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path . \
             --format json \
             --output .simplebeacon/report.json \
@@ -66,13 +66,13 @@ jobs:
             --gate \
             --offline \
             --verbose
-          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js gate status
 
       - name: Phase 2 — Local remediation dry-run (if gate failed)
         if: failure() && steps.scan.outcome == 'failure'
         run: |
           echo "🔧 [Conductor] Gate failed — suggesting local remediation..."
-          node packages/simplebeacon-cli/bin/simplebeacon.js scan \
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path . \
             --gate \
             --fix \
@@ -88,7 +88,7 @@ jobs:
             echo "No report found; skipping analyzer suite."
             exit 0
           fi
-          node packages/simplebeacon-cli/bin/simplebeacon.js assess \
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js assess \
             --report "$REPORT" \
             --with-analyzer-suite \
             --offline || true
@@ -111,7 +111,7 @@ jobs:
             echo "No report found; skipping comment."
             exit 0
           fi
-          node packages/simplebeacon-cli/bin/simplebeacon.js comment \
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js comment \
             --report "$REPORT" \
             --repo "$GITHUB_REPOSITORY" \
             --issue-number "$GITHUB_PR_NUMBER" || true
