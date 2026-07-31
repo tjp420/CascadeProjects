@@ -341,4 +341,22 @@ router.put('/partition-retention/config', authorize('admin:all'), (req, res) => 
   }
 });
 
+// ── GET /api/audit/verify-integrity ─────────────────────────────────────────
+//   Admin-only: verifies the audit log hash chain for the caller's org.
+//   Returns whether the chain is valid, plus details of any broken links
+//   or tampered entries.
+router.get('/verify-integrity', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const result = auditLogger.verifyChain(orgId);
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (err) {
+    logger.warn('[Audit] verify_integrity_failed:', err.message);
+    sendError(res, 500, 'verify_integrity_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

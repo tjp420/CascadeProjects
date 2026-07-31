@@ -4,8 +4,58 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'audit-log.json');
+const STORE_PATH =
+  process.env.AUDIT_LOG_PATH ||
+  path.join(process.cwd(), '.simplebeacon', 'audit-log.json');
 const MAX_ENTRIES_PER_ORG = 1000;
+const GENESIS_HASH = '0'.repeat(64); // 64-char zero hash as chain genesis
+
+/**
+ * Compute the SHA-256 hash of a canonical string representation of an audit
+ * entry (excluding the hash field itself). This creates a tamper-evident
+ * chain where each entry's hash incorporates the previous entry's hash.
+ * @param {object} entry — The audit entry (must NOT include the hash field)
+ * @param {string} prevHash — The previous entry's hash (or GENESIS_HASH)
+ * @returns {string} 64-char hex SHA-256 digest
+ */
+function computeEntryHash(entry, prevHash) {
+  // Canonical payload: prevHash + all entry fields (excluding 'hash' and 'prevHash')
+  // We use a stable JSON stringification by building the payload in a fixed
+  // key order. JSON.stringify without a replacer preserves insertion order
+  // and fully serializes nested objects.
+  const payload = {
+    prevHash,
+    id: entry.id,
+    orgId: entry.orgId,
+    timestamp: entry.timestamp,
+    actorId: entry.actorId,
+    actorEmail: entry.actorEmail,
+    action: entry.action,
+    entity: entry.entity,
+    entityId: entry.entityId,
+    changes: entry.changes,
+    metadata: entry.metadata,
+  };
+  // No replacer array — it strips nested object keys. Insertion order is
+  // deterministic since we control the payload construction above.
+  const canonical = JSON.stringify(payload);
+  return crypto.createHash('sha256').update(canonical).digest('hex');
+}
+
+/**
+ * Get the latest hash in the chain for a given org.
+ * Used to link the next entry to the previous one.
+ * @param {object} store — The full store object
+ * @param {string} orgId — Tenant org ID
+ * @returns {string} The latest entry's hash, or GENESIS_HASH if no entries
+ */
+function getLatestHash(store, orgId) {
+  const orgEntries = Object.values(store.entries)
+    .filter((e) => e.orgId === orgId)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  if (orgEntries.length === 0) return GENESIS_HASH;
+  return orgEntries[orgEntries.length - 1].hash || GENESIS_HASH;
+}
 
 function readStore() {
   try {
@@ -87,6 +137,11 @@ function log(params) {
     metadata: params.metadata || null,
   };
 
+  // Compute hash chain link
+  const prevHash = getLatestHash(store, orgId);
+  entry.prevHash = prevHash;
+  entry.hash = computeEntryHash(entry, prevHash);
+
   const key = makeKey(orgId, id);
   store.entries[key] = entry;
 
@@ -167,9 +222,67 @@ function getStats(orgId) {
   };
 }
 
+/**
+ * Verify the integrity of the audit log hash chain for a given org.
+ * Checks that every entry's hash matches a recomputed hash, and that
+ * each entry's prevHash matches the previous entry's hash.
+ * @param {string} orgId — Tenant org ID
+ * @returns {{ valid: boolean, totalEntries: number, verifiedEntries: number, brokenLinks: array, tamperedEntries: array }}
+ */
+function verifyChain(orgId) {
+  const store = readStore();
+  const scoped = Object.values(store.entries)
+    .filter((e) => e.orgId === (orgId || 'default'))
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  const brokenLinks = [];
+  const tamperedEntries = [];
+  let expectedPrevHash = GENESIS_HASH;
+  let verifiedEntries = 0;
+
+  for (const entry of scoped) {
+    // Check prevHash linkage
+    if (entry.prevHash !== expectedPrevHash) {
+      brokenLinks.push({
+        id: entry.id,
+        expected: expectedPrevHash,
+        actual: entry.prevHash,
+      });
+    }
+
+    // Recompute hash and compare
+    const entryWithoutHash = { ...entry };
+    delete entryWithoutHash.hash;
+    const recomputed = computeEntryHash(entryWithoutHash, entry.prevHash);
+
+    if (entry.hash !== recomputed) {
+      tamperedEntries.push({
+        id: entry.id,
+        expected: recomputed,
+        actual: entry.hash,
+      });
+    } else {
+      verifiedEntries++;
+    }
+
+    expectedPrevHash = entry.hash;
+  }
+
+  return {
+    valid: brokenLinks.length === 0 && tamperedEntries.length === 0,
+    totalEntries: scoped.length,
+    verifiedEntries,
+    brokenLinks,
+    tamperedEntries,
+  };
+}
+
 module.exports = {
   log,
   query,
   getStats,
   computeDiff,
+  verifyChain,
+  computeEntryHash,
+  GENESIS_HASH,
 };
