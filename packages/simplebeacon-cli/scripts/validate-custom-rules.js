@@ -4,16 +4,24 @@ const fs = require('fs');
 const path = require('path');
 
 // simple argv parser to avoid external dependencies in CI
+// supports both --key value and --key=value syntax
 const rawArgs = process.argv.slice(2);
 const argv = {};
 for (let i = 0; i < rawArgs.length; i++) {
   const a = rawArgs[i];
   if (a.startsWith('--')) {
-    const k = a.replace(/^--+/, '');
+    const eqIdx = a.indexOf('=');
+    let k, val;
+    if (eqIdx !== -1) {
+      k = a.slice(2, eqIdx);
+      val = a.slice(eqIdx + 1);
+    } else {
+      k = a.replace(/^--+/, '');
+      val = rawArgs[i+1] && !rawArgs[i+1].startsWith('--') ? rawArgs[++i] : true;
+    }
     if (k === 'error-on-missing-fix' || k === 'strict-regex') {
       argv[k] = true;
     } else {
-      const val = rawArgs[i+1] && !rawArgs[i+1].startsWith('--') ? rawArgs[++i] : true;
       argv[k] = val;
     }
   }
