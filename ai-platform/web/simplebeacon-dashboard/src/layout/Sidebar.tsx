@@ -24,6 +24,7 @@ import {
   BookOpen,
   Download,
   Building2,
+  Server,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -74,6 +75,7 @@ const navGroups: NavGroup[] = [
       { view: 'platform', label: 'Platform', icon: BarChart3 },
       { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
       { view: 'organization', label: 'Organization', icon: Building2 },
+      { view: 'enterprise', label: 'Enterprise', icon: Server },
       { view: 'profile', label: 'Profile', icon: User },
       { view: 'admin', label: 'Admin', icon: Users },
     ],

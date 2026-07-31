@@ -268,7 +268,6 @@ export function slimReportForSummary(report) {
       ruleScopedFilesAnalyzed: report.ruleScopedFilesAnalyzed,
       fictionJsonFilesScanned: report.fictionJsonFilesScanned,
       severityCounts: report.severityCounts,
-      scanScope: report.scanScope,
       scanTargetProfile: report.scanTargetProfile,
       handoffEligible: report.handoffEligible,
       benchmarkScan: report.benchmarkScan,

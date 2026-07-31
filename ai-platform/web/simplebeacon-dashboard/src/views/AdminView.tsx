@@ -3,9 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Users, RefreshCw, AlertCircle, Shield, UserCircle, Activity, Crown, Ban, CheckCircle2 } from 'lucide-react';
-import { apiUrl, authHeaders } from '@/config';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Users, RefreshCw, AlertCircle, Shield, UserCircle, Activity, Crown, Ban, CheckCircle2,
+  Building2, Server, Clock, DollarSign, Key, TrendingUp, ChevronRight, Download,
+} from 'lucide-react';
+import { apiUrl, authHeaders, getApiBase } from '@/config';
 import { navigate } from '@/router/HashRouter';
+import { toast } from 'sonner';
 
 type AdminStats = {
   totalAccounts?: number;
@@ -27,12 +33,132 @@ type AdminUser = {
   createdAt?: string;
 };
 
+type EnterpriseOrg = {
+  orgId: string;
+  companyName: string;
+  adminEmail: string;
+  tier: string;
+  status: string;
+  seatCount: number;
+  seatsUsed: number;
+  provisionedEmails: string[];
+  contractValue: number | null;
+  contractPeriodMonths: number;
+  createdAt: string;
+  expiresAt: string;
+  trial: boolean;
+  trialStartedAt?: string;
+  trialExpiresAt?: string;
+};
+
+type AuditEntry = {
+  eventId: string;
+  timestamp: string;
+  action: string;
+  orgId: string;
+  actor: string;
+  actorIp: string | null;
+  description: string;
+  before: object | null;
+  after: object | null;
+  metadata: object;
+  previousHash: string | null;
+  hash: string;
+};
+
+type AuditStats = {
+  totalEntries: number;
+  actionCounts: Record<string, number>;
+  orgCounts: Record<string, number>;
+  last24h: number;
+};
+
+const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+  org_created: { label: 'Org Created', color: 'text-green-600' },
+  trial_started: { label: 'Trial Started', color: 'text-blue-600' },
+  seat_added: { label: 'Seat Added', color: 'text-green-600' },
+  seat_removed: { label: 'Seat Removed', color: 'text-red-600' },
+  api_key_generated: { label: 'API Key Generated', color: 'text-amber-600' },
+  azure_devops_generated: { label: 'Azure DevOps Generated', color: 'text-purple-600' },
+  org_updated: { label: 'Org Updated', color: 'text-blue-600' },
+  contract_upgraded: { label: 'Contract Upgraded', color: 'text-green-600' },
+};
+
+function enterpriseUrl(path: string): string {
+  const base = getApiBase();
+  return `${base}/api${path}`;
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch { return iso; }
+}
+
+function daysUntil(iso: string): number {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+}
+
 export function AdminView() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
+  const [adminTab, setAdminTab] = useState('users');
+  const [enterpriseOrgs, setEnterpriseOrgs] = useState<EnterpriseOrg[]>([]);
+  const [enterpriseLoading, setEnterpriseLoading] = useState(false);
+  const [expandedOrg, setExpandedOrg] = useState<string | null>(null);
+  const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
+  const [auditStats, setAuditStats] = useState<AuditStats | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditFilter, setAuditFilter] = useState<string>('all');
+  const [auditOrgFilter, setAuditOrgFilter] = useState<string>('all');
+  const [chainValid, setChainValid] = useState<boolean | null>(null);
+
+  const fetchAuditLogs = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: '100' });
+      if (auditFilter !== 'all') params.set('action', auditFilter);
+      if (auditOrgFilter !== 'all') params.set('orgId', auditOrgFilter);
+      const [entriesRes, statsRes, verifyRes] = await Promise.allSettled([
+        fetch(enterpriseUrl(`/enterprise/audit?${params}`), { headers: authHeaders() }),
+        fetch(enterpriseUrl('/enterprise/audit/stats'), { headers: authHeaders() }),
+        fetch(enterpriseUrl('/enterprise/audit/verify'), { headers: authHeaders() }),
+      ]);
+      if (entriesRes.status === 'fulfilled' && entriesRes.value.ok) {
+        const data = await entriesRes.value.json();
+        setAuditEntries(data.entries || []);
+      }
+      if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
+        const data = await statsRes.value.json();
+        setAuditStats({ totalEntries: data.totalEntries, actionCounts: data.actionCounts, orgCounts: data.orgCounts, last24h: data.last24h });
+      }
+      if (verifyRes.status === 'fulfilled' && verifyRes.value.ok) {
+        const data = await verifyRes.value.json();
+        setChainValid(data.valid);
+      }
+    } catch {
+      // Audit API may not be available
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [auditFilter, auditOrgFilter]);
+
+  const fetchEnterpriseOrgs = useCallback(async () => {
+    setEnterpriseLoading(true);
+    try {
+      const res = await fetch(enterpriseUrl('/enterprise/organizations'), { headers: authHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      setEnterpriseOrgs(data.organizations || []);
+    } catch {
+      // Enterprise API may not be available in all deployments
+    } finally {
+      setEnterpriseLoading(false);
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -78,7 +204,12 @@ export function AdminView() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    fetchEnterpriseOrgs();
+  }, [fetchData, fetchEnterpriseOrgs]);
+
+  useEffect(() => {
+    if (adminTab === 'audit') fetchAuditLogs();
+  }, [adminTab, fetchAuditLogs]);
 
   if (loading) {
     return (
@@ -145,14 +276,28 @@ export function AdminView() {
     return { variant: 'secondary' as const, icon: UserCircle };
   };
 
+  // Enterprise KPIs
+  const totalOrgs = enterpriseOrgs.length;
+  const totalSeats = enterpriseOrgs.reduce((sum, o) => sum + o.seatCount, 0);
+  const usedSeats = enterpriseOrgs.reduce((sum, o) => sum + o.seatsUsed, 0);
+  const trialOrgs = enterpriseOrgs.filter(o => o.trial);
+  const activeOrgs = enterpriseOrgs.filter(o => !o.trial);
+  const totalContractValue = enterpriseOrgs.reduce((sum, o) => sum + (o.contractValue || 0), 0);
+  const expiringTrials = trialOrgs.filter(o => o.trialExpiresAt && daysUntil(o.trialExpiresAt) <= 7);
+
   return (
     <div className="mx-auto max-w-5xl p-6 space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">Admin</h1>
-        <p className="text-foreground-muted">User management and system administration</p>
-        <Button size="sm" variant="outline" onClick={fetchData} className="w-fit">
-          <RefreshCw className="h-4 w-4" /> Refresh
-        </Button>
+        <p className="text-foreground-muted">User management, enterprise tenants, and system administration</p>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={fetchData} className="w-fit">
+            <RefreshCw className="h-4 w-4" /> Refresh Users
+          </Button>
+          <Button size="sm" variant="outline" onClick={fetchEnterpriseOrgs} className="w-fit">
+            <RefreshCw className="h-4 w-4" /> Refresh Tenants
+          </Button>
+        </div>
       </div>
 
       {/* Stats Overview */}
@@ -189,86 +334,569 @@ export function AdminView() {
         </div>
       )}
 
-      {/* Tier & Status Breakdown */}
-      {stats?.tierCounts && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Tier Distribution</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            {Object.entries(stats.tierCounts).map(([tier, count]) => {
-              const { variant, icon: Icon } = tierBadge(tier);
-              return (
-                <div key={tier} className="flex items-center gap-2 rounded-lg border px-3 py-2">
-                  <Icon className="h-4 w-4" />
-                  <span className="text-sm font-medium capitalize">{tier}</span>
-                  <Badge variant={variant}>{count}</Badge>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+      {/* Enterprise KPI Cards */}
+      {totalOrgs > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="flex flex-col items-center gap-1 py-4">
+              <Building2 className="h-6 w-6 text-primary" />
+              <span className="text-lg font-bold">{totalOrgs}</span>
+              <span className="text-xs text-foreground-muted">Enterprise Tenants</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center gap-1 py-4">
+              <Server className="h-6 w-6 text-blue-500" />
+              <span className="text-lg font-bold">{usedSeats}/{totalSeats}</span>
+              <span className="text-xs text-foreground-muted">Seats Provisioned</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center gap-1 py-4">
+              <DollarSign className="h-6 w-6 text-green-500" />
+              <span className="text-lg font-bold">${totalContractValue.toLocaleString()}</span>
+              <span className="text-xs text-foreground-muted">Contract Value</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center gap-1 py-4">
+              <Clock className={`h-6 w-6 ${expiringTrials.length > 0 ? 'text-amber-500' : 'text-foreground-muted'}`} />
+              <span className="text-lg font-bold">{trialOrgs.length}</span>
+              <span className="text-xs text-foreground-muted">Active Trials</span>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
-      {stats?.statusCounts && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Account Status</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            {Object.entries(stats.statusCounts).map(([status, count]) => (
-              <div key={status} className="flex items-center gap-2 rounded-lg border px-3 py-2">
-                {status === 'active' ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Ban className="h-4 w-4 text-red-500" />}
-                <span className="text-sm font-medium capitalize">{status}</span>
-                <Badge variant={status === 'active' ? 'success' : 'danger'}>{count}</Badge>
+      {/* Expiring Trial Alert */}
+      {expiringTrials.length > 0 && (
+        <Card className="border-amber-300 dark:border-amber-800">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 text-amber-500 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                  {expiringTrials.length} trial{expiringTrials.length !== 1 ? 's' : ''} expiring within 7 days
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {expiringTrials.map(o => o.companyName).join(', ')}
+                </p>
               </div>
-            ))}
+              <Button size="sm" variant="outline" onClick={() => setAdminTab('tenants')}>
+                View Tenants <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      <Separator />
+      <Tabs value={adminTab} onValueChange={setAdminTab}>
+        <TabsList>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="tenants">Enterprise Tenants</TabsTrigger>
+          <TabsTrigger value="audit">Audit Log</TabsTrigger>
+        </TabsList>
 
-      {/* User List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Users</CardTitle>
-          <CardDescription>Recent registered users</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {users.length === 0 ? (
-            <p className="text-sm text-foreground-muted text-center py-4">No users found</p>
-          ) : (
-            <div className="space-y-2">
-              {users.map((user, i) => {
-                const { variant, icon: Icon } = tierBadge(user.trustLevel);
-                return (
-                  <div key={user.id || i} className="flex items-center gap-3 rounded-lg border p-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-6">
+          {/* Tier & Status Breakdown */}
+          {stats?.tierCounts && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tier Distribution</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-3">
+                {Object.entries(stats.tierCounts).map(([tier, count]) => {
+                  const { variant, icon: Icon } = tierBadge(tier);
+                  return (
+                    <div key={tier} className="flex items-center gap-2 rounded-lg border px-3 py-2">
                       <Icon className="h-4 w-4" />
+                      <span className="text-sm font-medium capitalize">{tier}</span>
+                      <Badge variant={variant}>{count}</Badge>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{user.name || user.email || 'Unknown'}</span>
-                        {user.online && (
-                          <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" title="Online" />
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {stats?.statusCounts && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Account Status</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-3">
+                {Object.entries(stats.statusCounts).map(([status, count]) => (
+                  <div key={status} className="flex items-center gap-2 rounded-lg border px-3 py-2">
+                    {status === 'active' ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Ban className="h-4 w-4 text-red-500" />}
+                    <span className="text-sm font-medium capitalize">{status}</span>
+                    <Badge variant={status === 'active' ? 'success' : 'danger'}>{count}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          <Separator />
+
+          {/* User List */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Users</CardTitle>
+              <CardDescription>Recent registered users</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {users.length === 0 ? (
+                <p className="text-sm text-foreground-muted text-center py-4">No users found</p>
+              ) : (
+                <div className="space-y-2">
+                  {users.map((user, i) => {
+                    const { variant, icon: Icon } = tierBadge(user.trustLevel);
+                    return (
+                      <div key={user.id || i} className="flex items-center gap-3 rounded-lg border p-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium truncate">{user.name || user.email || 'Unknown'}</span>
+                            {user.online && (
+                              <span className="h-2 w-2 rounded-full bg-green-500 shrink-0" title="Online" />
+                            )}
+                          </div>
+                          <span className="text-xs text-foreground-muted truncate block">{user.email || '—'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant={variant} className="text-xs capitalize">{user.trustLevel || 'bronze'}</Badge>
+                          <Badge variant={user.status === 'active' ? 'success' : 'danger'} className="text-xs capitalize">
+                            {user.status || 'active'}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Enterprise Tenants Tab */}
+        <TabsContent value="tenants" className="space-y-4">
+          {enterpriseLoading ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-3 py-12">
+                <RefreshCw className="h-8 w-8 text-foreground-muted animate-spin" />
+                <p className="text-sm text-foreground-muted">Loading enterprise tenants…</p>
+              </CardContent>
+            </Card>
+          ) : totalOrgs === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-4 py-12">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Building2 className="h-8 w-8 text-primary" />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-lg font-semibold">No Enterprise Tenants</h2>
+                  <p className="text-muted-foreground mt-1">Provision enterprise organizations from the Enterprise panel.</p>
+                </div>
+                <Button variant="outline" onClick={() => navigate('enterprise')}>
+                  <Building2 className="h-4 w-4" /> Go to Enterprise
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Active Contracts */}
+              {activeOrgs.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      Active Contracts ({activeOrgs.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {activeOrgs.map((org) => (
+                      <div
+                        key={org.orgId}
+                        className={`rounded-lg border p-4 transition-colors cursor-pointer hover:bg-muted/50 ${
+                          expandedOrg === org.orgId ? 'ring-1 ring-primary' : ''
+                        }`}
+                        onClick={() => setExpandedOrg(expandedOrg === org.orgId ? null : org.orgId)}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                              <Building2 className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{org.companyName}</p>
+                              <p className="text-xs text-muted-foreground truncate">{org.adminEmail}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <p className="text-sm font-medium">{org.seatsUsed}/{org.seatCount} seats</p>
+                              <p className="text-xs text-muted-foreground">
+                                {org.contractValue ? `$${org.contractValue.toLocaleString()}` : 'Custom'}
+                              </p>
+                            </div>
+                            <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${expandedOrg === org.orgId ? 'rotate-90' : ''}`} />
+                          </div>
+                        </div>
+
+                        {expandedOrg === org.orgId && (
+                          <div className="mt-4 pt-4 border-t border-border space-y-3">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                              <div>
+                                <span className="text-muted-foreground text-xs">Org ID</span>
+                                <p className="font-mono text-xs">{org.orgId}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground text-xs">Created</span>
+                                <p className="font-medium">{formatDate(org.createdAt)}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground text-xs">Expires</span>
+                                <p className="font-medium">{formatDate(org.expiresAt)}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground text-xs">Contract</span>
+                                <p className="font-medium">{org.contractPeriodMonths} months</p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Seat utilization</span>
+                                <span className="font-medium">{Math.round((org.seatsUsed / org.seatCount) * 100)}%</span>
+                              </div>
+                              <Progress
+                                value={(org.seatsUsed / org.seatCount) * 100}
+                                indicatorClassName={org.seatsUsed >= org.seatCount ? 'bg-destructive' : 'bg-primary'}
+                              />
+                            </div>
+
+                            {org.provisionedEmails.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-muted-foreground text-xs">Provisioned Members</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {org.provisionedEmails.map((email, idx) => (
+                                    <Badge key={email} variant={idx === 0 ? 'warning' : 'secondary'} className="text-xs">
+                                      {idx === 0 && <Crown className="h-3 w-3 mr-1" />}
+                                      {email}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex gap-2 pt-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => { e.stopPropagation(); navigate('enterprise'); }}
+                              >
+                                <Building2 className="h-3.5 w-3.5" /> Manage in Enterprise
+                              </Button>
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <span className="text-xs text-foreground-muted truncate block">{user.email || '—'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={variant} className="text-xs capitalize">{user.trustLevel || 'bronze'}</Badge>
-                      <Badge variant={user.status === 'active' ? 'success' : 'danger'} className="text-xs capitalize">
-                        {user.status || 'active'}
-                      </Badge>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Active Trials */}
+              {trialOrgs.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Clock className="h-5 w-5 text-amber-500" />
+                      Active Trials ({trialOrgs.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {trialOrgs.map((org) => {
+                      const daysLeft = org.trialExpiresAt ? daysUntil(org.trialExpiresAt) : 0;
+                      const isExpiring = daysLeft <= 7;
+                      return (
+                        <div
+                          key={org.orgId}
+                          className={`rounded-lg border p-4 transition-colors cursor-pointer hover:bg-muted/50 ${
+                            expandedOrg === org.orgId ? 'ring-1 ring-primary' : ''
+                          } ${isExpiring ? 'border-amber-300 dark:border-amber-800' : ''}`}
+                          onClick={() => setExpandedOrg(expandedOrg === org.orgId ? null : org.orgId)}
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10 shrink-0">
+                                <Clock className="h-5 w-5 text-amber-500" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium truncate">{org.companyName}</p>
+                                <p className="text-xs text-muted-foreground truncate">{org.adminEmail}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <div className="text-right">
+                                <p className={`text-sm font-medium ${isExpiring ? 'text-amber-600' : ''}`}>
+                                  {daysLeft} days left
+                                </p>
+                                <p className="text-xs text-muted-foreground">{org.seatsUsed}/{org.seatCount} seats</p>
+                              </div>
+                              <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${expandedOrg === org.orgId ? 'rotate-90' : ''}`} />
+                            </div>
+                          </div>
+
+                          {expandedOrg === org.orgId && (
+                            <div className="mt-4 pt-4 border-t border-border space-y-3">
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-muted-foreground">Trial progress</span>
+                                  <span className="font-medium">{daysLeft}/30 days remaining</span>
+                                </div>
+                                <Progress
+                                  value={(daysLeft / 30) * 100}
+                                  indicatorClassName={isExpiring ? 'bg-amber-500' : 'bg-primary'}
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                                <div>
+                                  <span className="text-muted-foreground text-xs">Trial Started</span>
+                                  <p className="font-medium">{org.trialStartedAt ? formatDate(org.trialStartedAt) : '—'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground text-xs">Trial Expires</span>
+                                  <p className="font-medium">{org.trialExpiresAt ? formatDate(org.trialExpiresAt) : '—'}</p>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground text-xs">Seats</span>
+                                  <p className="font-medium">{org.seatsUsed}/{org.seatCount}</p>
+                                </div>
+                              </div>
+
+                              {org.provisionedEmails.length > 0 && (
+                                <div className="space-y-1">
+                                  <span className="text-muted-foreground text-xs">Provisioned Members</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {org.provisionedEmails.map((email, idx) => (
+                                      <Badge key={email} variant={idx === 0 ? 'warning' : 'secondary'} className="text-xs">
+                                        {idx === 0 && <Crown className="h-3 w-3 mr-1" />}
+                                        {email}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => { e.stopPropagation(); navigate('enterprise'); }}
+                                >
+                                  <TrendingUp className="h-3.5 w-3.5" /> Convert to Contract
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        {/* Audit Log Tab */}
+        <TabsContent value="audit" className="space-y-4">
+          {auditLoading ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-3 py-12">
+                <RefreshCw className="h-8 w-8 text-foreground-muted animate-spin" />
+                <p className="text-sm text-foreground-muted">Loading audit trail…</p>
+              </CardContent>
+            </Card>
+          ) : auditEntries.length === 0 && !auditStats ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-4 py-12">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Shield className="h-8 w-8 text-primary" />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-lg font-semibold">No Audit Entries</h2>
+                  <p className="text-muted-foreground mt-1">Administrative actions will appear here once enterprise operations are performed.</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Audit Stats + Chain Verification */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-1 py-4">
+                    <Shield className="h-6 w-6 text-primary" />
+                    <span className="text-lg font-bold">{auditStats?.totalEntries ?? 0}</span>
+                    <span className="text-xs text-foreground-muted">Total Events</span>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-1 py-4">
+                    <Activity className="h-6 w-6 text-green-500" />
+                    <span className="text-lg font-bold">{auditStats?.last24h ?? 0}</span>
+                    <span className="text-xs text-foreground-muted">Last 24h</span>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-1 py-4">
+                    <Building2 className="h-6 w-6 text-blue-500" />
+                    <span className="text-lg font-bold">{Object.keys(auditStats?.orgCounts || {}).length}</span>
+                    <span className="text-xs text-foreground-muted">Orgs Tracked</span>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="flex flex-col items-center gap-1 py-4">
+                    {chainValid === true ? (
+                      <>
+                        <CheckCircle2 className="h-6 w-6 text-green-500" />
+                        <span className="text-sm font-bold text-green-600">Valid</span>
+                        <span className="text-xs text-foreground-muted">Chain Integrity</span>
+                      </>
+                    ) : chainValid === false ? (
+                      <>
+                        <AlertCircle className="h-6 w-6 text-red-500" />
+                        <span className="text-sm font-bold text-red-600">Broken</span>
+                        <span className="text-xs text-foreground-muted">Chain Integrity</span>
+                      </>
+                    ) : (
+                      <>
+                        <Shield className="h-6 w-6 text-foreground-muted" />
+                        <span className="text-sm font-bold">—</span>
+                        <span className="text-xs text-foreground-muted">Chain Integrity</span>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-muted-foreground">Filter:</span>
+                <select
+                  value={auditFilter}
+                  onChange={(e) => setAuditFilter(e.target.value)}
+                  className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                >
+                  <option value="all">All Actions</option>
+                  {Object.entries(ACTION_LABELS).map(([key, { label }]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
+                <select
+                  value={auditOrgFilter}
+                  onChange={(e) => setAuditOrgFilter(e.target.value)}
+                  className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                >
+                  <option value="all">All Organizations</option>
+                  {enterpriseOrgs.map(o => (
+                    <option key={o.orgId} value={o.orgId}>{o.companyName}</option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const params = new URLSearchParams();
+                    if (auditFilter !== 'all') params.set('action', auditFilter);
+                    if (auditOrgFilter !== 'all') params.set('orgId', auditOrgFilter);
+                    const url = enterpriseUrl(`/enterprise/audit/export?${params}`);
+                    window.open(url, '_blank');
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5" /> Export JSON
+                </Button>
+              </div>
+
+              {/* Action Breakdown */}
+              {auditStats && Object.keys(auditStats.actionCounts).length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Action Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-3">
+                    {Object.entries(auditStats.actionCounts).map(([action, count]) => {
+                      const info = ACTION_LABELS[action];
+                      return (
+                        <div key={action} className="flex items-center gap-2 rounded-lg border px-3 py-2">
+                          <span className={`text-sm font-medium ${info?.color || 'text-foreground'}`}>
+                            {info?.label || action}
+                          </span>
+                          <Badge variant="secondary">{count}</Badge>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Audit Entry List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Audit Trail</CardTitle>
+                  <CardDescription>Immutable, hash-chained administrative action log</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {auditEntries.length === 0 ? (
+                    <p className="text-sm text-foreground-muted text-center py-4">No audit entries match the current filters</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {auditEntries.map((entry) => {
+                        const info = ACTION_LABELS[entry.action];
+                        return (
+                          <div key={entry.eventId} className="rounded-lg border p-3 space-y-2">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={`text-sm font-medium ${info?.color || 'text-foreground'}`}>
+                                  {info?.label || entry.action}
+                                </span>
+                                <span className="text-xs text-muted-foreground truncate">— {entry.description}</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                {new Date(entry.timestamp).toLocaleString('en-US', {
+                                  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Key className="h-3 w-3" />
+                                <span className="font-mono">{entry.actor}</span>
+                              </span>
+                              {entry.actorIp && (
+                                <span className="font-mono">IP: {entry.actorIp}</span>
+                              )}
+                              <span className="font-mono">Org: {entry.orgId}</span>
+                              <span className="font-mono text-[10px] text-muted-foreground/70" title={entry.hash}>
+                                SHA-256: {entry.hash.slice(0, 12)}…
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

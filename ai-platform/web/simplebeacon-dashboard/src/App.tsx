@@ -34,6 +34,7 @@ import { AboutView } from './views/AboutView';
 import { GettingStartedView } from './views/GettingStartedView';
 import { ComplianceView } from './views/ComplianceView';
 import { OrganizationView } from './views/OrganizationView';
+import { EnterpriseView } from './views/EnterpriseView';
 
 // Lazy-loaded views — code-split to keep initial bundle small
 const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
@@ -88,6 +89,7 @@ const VIEW_TITLES: Record<string, string> = {
   'getting-started': 'Getting Started',
   compliance: 'Compliance',
   organization: 'Organization',
+  enterprise: 'Enterprise',
   'team-metrics': 'Team Metrics',
 };
 
@@ -118,6 +120,7 @@ const viewMap: Record<string, React.ComponentType> = {
   'getting-started': GettingStartedView,
   compliance: ComplianceView,
   organization: OrganizationView,
+  enterprise: EnterpriseView,
   'team-metrics': TeamMetricsView,
 };
 
