@@ -20,6 +20,7 @@
  *   POST /api/analytics/violations/bulk-unmark-ticketed — Remove ticket status from multiple violations
  *   GET  /api/analytics/violations/ticket-statuses — Get all ticketed violation statuses
  *   GET  /api/analytics/violations/summary       — Remediation coverage summary with per-category breakdown
+ *   GET  /api/analytics/violations/export         — Download filtered violations as CSV or JSON compliance ledger
  *   POST /api/analytics/record             — Record a scan (internal/CI)
  *
  * @module analytics-routes
@@ -683,6 +684,124 @@ router.get('/violations/summary', (req, res) => {
   } catch (err) {
     logger.error('[Analytics] Violations summary failed:', err.message);
     res.status(500).json({ error: 'violations_summary_failed', message: err.message });
+  }
+});
+
+// GET /api/analytics/violations/export — download filtered violations as CSV or JSON compliance ledger
+router.get('/violations/export', (req, res) => {
+  try {
+    const format = (req.query.format || 'csv').toLowerCase();
+    const filters = {
+      orgId: req.query.orgId,
+      repository: req.query.repository,
+      branch: req.query.branch,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      limit: 100000,
+      offset: 0,
+    };
+    const ticketStatusFilter = (req.query.ticketStatus || 'all').toLowerCase();
+    const ticketTargetFilter = (req.query.ticketTarget || '').toLowerCase();
+    const slaBreachedFilter = (req.query.slaBreached || '').toLowerCase() === 'true';
+
+    const result = analyticsStore.getScans(filters);
+    const ticketedKeys = ticketStatusStore.getTicketedKeys();
+    const allStatuses = ticketStatusStore.getAllTicketStatuses();
+    const now = Date.now();
+
+    const violations = [];
+    for (const scan of result.scans) {
+      const cats = scan.categoryCounts || {};
+      for (const [category, count] of Object.entries(cats)) {
+        if (count <= 0) continue;
+        const ticketKey = `${scan.scanId}::${category}`;
+        const isTicketed = ticketedKeys.has(ticketKey);
+        const ticketEntry = allStatuses[ticketKey];
+
+        if (ticketStatusFilter === 'unticketed' && isTicketed) continue;
+        if (ticketStatusFilter === 'ticketed' && !isTicketed) continue;
+        if (ticketTargetFilter && (!ticketEntry || ticketEntry.ticketTarget !== ticketTargetFilter)) continue;
+
+        const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
+        const slaLimit = SLA_THRESHOLDS[guidance.priority] || SLA_THRESHOLDS.medium;
+        const scanDate = new Date(scan.timestamp);
+        const daysOpen = Math.floor((now - scanDate.getTime()) / 86400000);
+        const slaBreached = !isTicketed && daysOpen > slaLimit;
+        const slaDaysOver = slaBreached ? daysOpen - slaLimit : 0;
+
+        if (slaBreachedFilter && !slaBreached) continue;
+
+        violations.push({
+          scanId: scan.scanId,
+          timestamp: scan.timestamp,
+          repository: scan.repository,
+          branch: scan.branch,
+          commitSha: scan.commitSha,
+          triggeredBy: scan.triggeredBy,
+          category,
+          count,
+          postureScore: scan.postureScore,
+          gateStatus: scan.gateStatus,
+          priority: guidance.priority,
+          remediationStrategy: guidance.strategy,
+          remediationDescription: guidance.description,
+          remediationSteps: guidance.steps.join(' | '),
+          ticketed: isTicketed ? 'Yes' : 'No',
+          ticketRef: ticketEntry?.ticketRef || '',
+          ticketTarget: ticketEntry?.ticketTarget || '',
+          ticketMarkedAt: ticketEntry?.markedAt || '',
+          daysOpen,
+          slaLimit,
+          slaBreached: slaBreached ? 'Yes' : 'No',
+          slaDaysOver,
+        });
+      }
+    }
+
+    violations.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="compliance-ledger-${new Date().toISOString().slice(0, 10)}.json"`);
+      res.json({
+        exportedAt: new Date().toISOString(),
+        totalRecords: violations.length,
+        filters: { repository: filters.repository || 'all', branch: filters.branch || 'all', ticketStatus: ticketStatusFilter, slaBreachedOnly: slaBreachedFilter },
+        violations,
+      });
+      return;
+    }
+
+    // CSV format
+    const headers = [
+      'Scan ID', 'Timestamp', 'Repository', 'Branch', 'Commit SHA', 'Triggered By',
+      'Category', 'Findings Count', 'Posture Score', 'Gate Status',
+      'Priority', 'Remediation Strategy', 'Remediation Description', 'Remediation Steps',
+      'Ticketed', 'Ticket Ref', 'Ticket Target', 'Ticket Marked At',
+      'Days Open', 'SLA Limit (days)', 'SLA Breached', 'SLA Days Over',
+    ];
+    const escapeCsv = (val) => {
+      const s = String(val ?? '');
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+    const rows = violations.map(v => [
+      v.scanId, v.timestamp, v.repository, v.branch, v.commitSha, v.triggeredBy,
+      v.category, v.count, v.postureScore, v.gateStatus,
+      v.priority, v.remediationStrategy, v.remediationDescription, v.remediationSteps,
+      v.ticketed, v.ticketRef, v.ticketTarget, v.ticketMarkedAt,
+      v.daysOpen, v.slaLimit, v.slaBreached, v.slaDaysOver,
+    ].map(escapeCsv).join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="compliance-ledger-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    logger.error('[Analytics] Violations export failed:', err.message);
+    res.status(500).json({ error: 'violations_export_failed', message: err.message });
   }
 });
 

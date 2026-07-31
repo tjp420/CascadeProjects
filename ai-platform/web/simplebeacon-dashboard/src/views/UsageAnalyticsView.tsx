@@ -366,6 +366,32 @@ export function UsageAnalyticsView() {
     });
   }, [violations]);
 
+  const exportLedger = useCallback(async (format: 'csv' | 'json') => {
+    try {
+      const params = new URLSearchParams();
+      params.set('format', format);
+      if (repoFilter) params.set('repository', repoFilter);
+      if (branchFilter) params.set('branch', branchFilter);
+      if (ticketStatusFilter !== 'all') params.set('ticketStatus', ticketStatusFilter);
+      if (ticketTargetFilter) params.set('ticketTarget', ticketTargetFilter);
+      if (slaBreachedFilter) params.set('slaBreached', 'true');
+      const resp = await fetch(apiUrl(`/analytics/violations/export?${params}`), { headers: authHeaders() });
+      if (!resp.ok) throw new Error('export_failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `compliance-ledger-${new Date().toISOString().slice(0, 10)}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Compliance ledger exported as ${format.toUpperCase()}`);
+    } catch {
+      toast.error('Failed to export compliance ledger');
+    }
+  }, [repoFilter, branchFilter, ticketStatusFilter, ticketTargetFilter, slaBreachedFilter]);
+
   const generateTicket = useCallback(async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
     const rowKey = `${scanId}-${category}`;
     setTicketLoading(rowKey);
@@ -724,14 +750,28 @@ export function UsageAnalyticsView() {
       {/* Violations Table with Remediation Guidance */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Wrench className="h-4 w-4" /> Violations & Remediation Guidance
-          </CardTitle>
-          <CardDescription>
-            {violationsTotal > 0
-              ? `${violationsTotal} violation entries — click a row to expand remediation steps`
-              : 'No violation data available'}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Wrench className="h-4 w-4" /> Violations & Remediation Guidance
+              </CardTitle>
+              <CardDescription>
+                {violationsTotal > 0
+                  ? `${violationsTotal} violation entries — click a row to expand remediation steps`
+                  : 'No violation data available'}
+              </CardDescription>
+            </div>
+            {violationsTotal > 0 && (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => exportLedger('csv')}>
+                  <Download className="h-3 w-3" /> Export CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => exportLedger('json')}>
+                  <FileJson className="h-3 w-3" /> Export JSON
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {/* Remediation Summary Panel */}
