@@ -115,6 +115,7 @@
     "verify:v1-internal-profile": "node tools/verify-v1-internal-profile.cjs",
     "verify:production-deploy": "node tools/verify-production-deploy-readiness.cjs",
     "verify:route-smoke": "node tools/run-route-smoke-suite.js",
+    "seed:analytics": "node tools/seed-analytics.cjs --clear",
     "smoke:test": "node tools/run-route-smoke-suite.js",
     "e2e:install-browsers": "npx playwright install --with-deps",
     "e2e": "npx start-server-and-test \"npm run dev\" http://127.0.0.1:58000/api/health \"npx playwright test ./web/simplebeacon-dashboard/e2e --config=./web/simplebeacon-dashboard/playwright.config.ts --project=chromium\"",
