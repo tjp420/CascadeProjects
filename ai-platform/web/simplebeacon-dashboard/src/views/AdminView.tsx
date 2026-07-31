@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Users, RefreshCw, AlertCircle, Shield, UserCircle, Activity, Crown, Ban, CheckCircle2,
   Building2, Server, Clock, DollarSign, Key, TrendingUp, ChevronRight, Download,
-  Lock, Plus, Trash2, Zap, Globe,
+  Lock, Plus, Trash2, Zap, Globe, UserPlus, X, Copy,
 } from 'lucide-react';
 import { apiUrl, authHeaders, getApiBase } from '@/config';
 import { navigate } from '@/router/HashRouter';
@@ -133,6 +133,13 @@ export function AdminView() {
   const [ssoConfigs, setSsoConfigs] = useState<SsoConfig[]>([]);
   const [ssoLoading, setSsoLoading] = useState(false);
   const [ssoStats, setSsoStats] = useState<{ totalConfigs: number; enabledConfigs: number; byMethod: Record<string, number>; byProvider: Record<string, number> } | null>(null);
+  const [showOnboardForm, setShowOnboardForm] = useState(false);
+  const [showTrialForm, setShowTrialForm] = useState(false);
+  const [onboardResult, setOnboardResult] = useState<{ orgId: string; apiKey: string; adminLicenseToken: string; companyName: string } | null>(null);
+  const [onboardForm, setOnboardForm] = useState({ companyName: '', adminEmail: '', contactName: '', seats: '10', contractValue: '', contractPeriodMonths: '12', notes: '' });
+  const [trialForm, setTrialForm] = useState({ companyName: '', adminEmail: '', contactName: '', seatCount: '5' });
+  const [addSeatEmail, setAddSeatEmail] = useState<string>('');
+  const [addSeatOrgId, setAddSeatOrgId] = useState<string | null>(null);
   const [showSsoForm, setShowSsoForm] = useState(false);
   const [ssoForm, setSsoForm] = useState<{ orgId: string; displayName: string; method: 'saml' | 'oidc'; providerType: string; domain: string; enabled: boolean; samlEntryPoint: string; samlCert: string; oidcClientId: string; oidcClientSecret: string; oidcIssuer: string }>({ orgId: '', displayName: '', method: 'oidc', providerType: 'okta', domain: '', enabled: true, samlEntryPoint: '', samlCert: '', oidcClientId: '', oidcClientSecret: '', oidcIssuer: '' });
 
@@ -264,6 +271,113 @@ export function AdminView() {
     } finally {
       setEnterpriseLoading(false);
     }
+  }, []);
+
+  const submitOnboard = useCallback(async () => {
+    try {
+      const body: Record<string, unknown> = {
+        companyName: onboardForm.companyName,
+        adminEmail: onboardForm.adminEmail,
+        contactName: onboardForm.contactName || undefined,
+        seats: parseInt(onboardForm.seats, 10) || 10,
+        contractValue: onboardForm.contractValue ? parseInt(onboardForm.contractValue, 10) : undefined,
+        contractPeriodMonths: parseInt(onboardForm.contractPeriodMonths, 10) || 12,
+        notes: onboardForm.notes || undefined,
+      };
+      const res = await fetch(enterpriseUrl('/enterprise/onboard'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOnboardResult({ orgId: data.orgId, apiKey: data.apiKey, adminLicenseToken: data.adminLicenseToken, companyName: data.companyName });
+        toast.success(`Organization onboarded: ${data.companyName}`);
+        setShowOnboardForm(false);
+        fetchEnterpriseOrgs();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || err.message || 'Onboarding failed');
+      }
+    } catch {
+      toast.error('Failed to submit onboarding request');
+    }
+  }, [onboardForm, fetchEnterpriseOrgs]);
+
+  const submitTrial = useCallback(async () => {
+    try {
+      const body: Record<string, unknown> = {
+        companyName: trialForm.companyName,
+        adminEmail: trialForm.adminEmail,
+        contactName: trialForm.contactName || undefined,
+        seatCount: parseInt(trialForm.seatCount, 10) || 5,
+      };
+      const res = await fetch(enterpriseUrl('/enterprise/trial'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOnboardResult({ orgId: data.orgId, apiKey: data.apiKey, adminLicenseToken: data.adminLicenseToken, companyName: data.companyName });
+        toast.success(`Trial started for ${data.companyName} — 30 days`);
+        setShowTrialForm(false);
+        fetchEnterpriseOrgs();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || err.message || 'Trial provisioning failed');
+      }
+    } catch {
+      toast.error('Failed to submit trial request');
+    }
+  }, [trialForm, fetchEnterpriseOrgs]);
+
+  const addSeat = useCallback(async (orgId: string, email: string) => {
+    try {
+      const res = await fetch(enterpriseUrl(`/enterprise/organizations/${orgId}/seats`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Seat provisioned for ${data.email}`);
+        setAddSeatEmail('');
+        setAddSeatOrgId(null);
+        fetchEnterpriseOrgs();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || err.message || 'Failed to add seat');
+      }
+    } catch {
+      toast.error('Failed to add seat');
+    }
+  }, [fetchEnterpriseOrgs]);
+
+  const removeSeat = useCallback(async (orgId: string, email: string) => {
+    try {
+      const res = await fetch(enterpriseUrl(`/enterprise/organizations/${orgId}/seats/${encodeURIComponent(email)}`), {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        toast.success(`Seat revoked for ${email}`);
+        fetchEnterpriseOrgs();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || err.message || 'Failed to remove seat');
+      }
+    } catch {
+      toast.error('Failed to remove seat');
+    }
+  }, [fetchEnterpriseOrgs]);
+
+  const copyToClipboard = useCallback((text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(`${label} copied to clipboard`);
+    }).catch(() => {
+      toast.error('Failed to copy');
+    });
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -594,6 +708,151 @@ export function AdminView() {
 
         {/* Enterprise Tenants Tab */}
         <TabsContent value="tenants" className="space-y-4">
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setShowTrialForm(!showTrialForm); setShowOnboardForm(false); setOnboardResult(null); }}>
+              <Clock className="h-4 w-4" /> Start Trial
+            </Button>
+            <Button onClick={() => { setShowOnboardForm(!showOnboardForm); setShowTrialForm(false); setOnboardResult(null); }}>
+              <Plus className="h-4 w-4" /> Onboard Organization
+            </Button>
+          </div>
+
+          {/* Onboarding Result Display */}
+          {onboardResult && (
+            <Card className="border-green-500/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg text-green-600">
+                  <CheckCircle2 className="h-5 w-5" /> Organization Provisioned Successfully
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="rounded-lg border p-3 space-y-1">
+                    <span className="text-xs text-muted-foreground">Organization ID</span>
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm font-mono flex-1">{onboardResult.orgId}</code>
+                      <Button size="sm" variant="ghost" onClick={() => copyToClipboard(onboardResult.orgId, 'Org ID')}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border p-3 space-y-1">
+                    <span className="text-xs text-muted-foreground">Company</span>
+                    <p className="text-sm font-medium">{onboardResult.companyName}</p>
+                  </div>
+                  <div className="rounded-lg border p-3 space-y-1">
+                    <span className="text-xs text-muted-foreground">API Key</span>
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm font-mono flex-1 truncate">{onboardResult.apiKey}</code>
+                      <Button size="sm" variant="ghost" onClick={() => copyToClipboard(onboardResult.apiKey, 'API Key')}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border p-3 space-y-1">
+                    <span className="text-xs text-muted-foreground">Admin License Token</span>
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm font-mono flex-1 truncate">{onboardResult.adminLicenseToken}</code>
+                      <Button size="sm" variant="ghost" onClick={() => copyToClipboard(onboardResult.adminLicenseToken, 'License Token')}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setOnboardResult(null)}>
+                  <X className="h-3.5 w-3.5" /> Dismiss
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Onboarding Form */}
+          {showOnboardForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Onboard New Enterprise Organization</CardTitle>
+                <CardDescription>Provision a new enterprise tenant with seat pool and API access</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Company Name *</label>
+                    <input type="text" value={onboardForm.companyName} onChange={(e) => setOnboardForm({ ...onboardForm, companyName: e.target.value })} placeholder="Acme Corporation" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Admin Email *</label>
+                    <input type="email" value={onboardForm.adminEmail} onChange={(e) => setOnboardForm({ ...onboardForm, adminEmail: e.target.value })} placeholder="admin@acme.com" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Contact Name</label>
+                    <input type="text" value={onboardForm.contactName} onChange={(e) => setOnboardForm({ ...onboardForm, contactName: e.target.value })} placeholder="John Smith" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Seat Count</label>
+                    <input type="number" value={onboardForm.seats} onChange={(e) => setOnboardForm({ ...onboardForm, seats: e.target.value })} min="1" max="500" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Contract Value ($)</label>
+                    <input type="number" value={onboardForm.contractValue} onChange={(e) => setOnboardForm({ ...onboardForm, contractValue: e.target.value })} placeholder="25000" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Contract Period (months)</label>
+                    <input type="number" value={onboardForm.contractPeriodMonths} onChange={(e) => setOnboardForm({ ...onboardForm, contractPeriodMonths: e.target.value })} min="1" max="36" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Notes</label>
+                  <textarea value={onboardForm.notes} onChange={(e) => setOnboardForm({ ...onboardForm, notes: e.target.value })} placeholder="Internal notes about this customer…" rows={2} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowOnboardForm(false)}>Cancel</Button>
+                  <Button onClick={submitOnboard} disabled={!onboardForm.companyName || !onboardForm.adminEmail}>
+                    <Building2 className="h-4 w-4" /> Provision Organization
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Trial Form */}
+          {showTrialForm && (
+            <Card className="border-amber-500/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock className="h-5 w-5 text-amber-500" /> Start Enterprise Trial
+                </CardTitle>
+                <CardDescription>30-day evaluation with up to 10 seats — no contract required</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Company Name *</label>
+                    <input type="text" value={trialForm.companyName} onChange={(e) => setTrialForm({ ...trialForm, companyName: e.target.value })} placeholder="Acme Corporation" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Admin Email *</label>
+                    <input type="email" value={trialForm.adminEmail} onChange={(e) => setTrialForm({ ...trialForm, adminEmail: e.target.value })} placeholder="admin@acme.com" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Contact Name</label>
+                    <input type="text" value={trialForm.contactName} onChange={(e) => setTrialForm({ ...trialForm, contactName: e.target.value })} placeholder="John Smith" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Seat Count (max 10)</label>
+                    <input type="number" value={trialForm.seatCount} onChange={(e) => setTrialForm({ ...trialForm, seatCount: e.target.value })} min="1" max="10" className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowTrialForm(false)}>Cancel</Button>
+                  <Button onClick={submitTrial} disabled={!trialForm.companyName || !trialForm.adminEmail}>
+                    <Clock className="h-4 w-4" /> Start 30-Day Trial
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {enterpriseLoading ? (
             <Card>
               <CardContent className="flex flex-col items-center gap-3 py-12">
@@ -694,12 +953,60 @@ export function AdminView() {
                                 <span className="text-muted-foreground text-xs">Provisioned Members</span>
                                 <div className="flex flex-wrap gap-1.5">
                                   {org.provisionedEmails.map((email, idx) => (
-                                    <Badge key={email} variant={idx === 0 ? 'warning' : 'secondary'} className="text-xs">
-                                      {idx === 0 && <Crown className="h-3 w-3 mr-1" />}
-                                      {email}
-                                    </Badge>
+                                    <div key={email} className="flex items-center gap-1 rounded-md border px-2 py-1">
+                                      {idx === 0 && <Crown className="h-3 w-3 text-amber-500" />}
+                                      <span className="text-xs">{email}</span>
+                                      {idx !== 0 && (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); removeSeat(org.orgId, email); }}
+                                          className="text-muted-foreground hover:text-destructive"
+                                          title="Revoke seat"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      )}
+                                    </div>
                                   ))}
                                 </div>
+                              </div>
+                            )}
+
+                            {org.seatsUsed < org.seatCount && (
+                              <div className="flex items-center gap-2 pt-1">
+                                {addSeatOrgId === org.orgId ? (
+                                  <>
+                                    <input
+                                      type="email"
+                                      value={addSeatEmail}
+                                      onChange={(e) => setAddSeatEmail(e.target.value)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      placeholder="user@company.com"
+                                      className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      onClick={(e) => { e.stopPropagation(); addSeat(org.orgId, addSeatEmail); }}
+                                      disabled={!addSeatEmail}
+                                    >
+                                      <UserPlus className="h-3.5 w-3.5" /> Add
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => { e.stopPropagation(); setAddSeatOrgId(null); setAddSeatEmail(''); }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => { e.stopPropagation(); setAddSeatOrgId(org.orgId); setAddSeatEmail(''); }}
+                                  >
+                                    <UserPlus className="h-3.5 w-3.5" /> Add Seat
+                                  </Button>
+                                )}
                               </div>
                             )}
 
@@ -795,12 +1102,60 @@ export function AdminView() {
                                   <span className="text-muted-foreground text-xs">Provisioned Members</span>
                                   <div className="flex flex-wrap gap-1.5">
                                     {org.provisionedEmails.map((email, idx) => (
-                                      <Badge key={email} variant={idx === 0 ? 'warning' : 'secondary'} className="text-xs">
-                                        {idx === 0 && <Crown className="h-3 w-3 mr-1" />}
-                                        {email}
-                                      </Badge>
+                                      <div key={email} className="flex items-center gap-1 rounded-md border px-2 py-1">
+                                        {idx === 0 && <Crown className="h-3 w-3 text-amber-500" />}
+                                        <span className="text-xs">{email}</span>
+                                        {idx !== 0 && (
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); removeSeat(org.orgId, email); }}
+                                            className="text-muted-foreground hover:text-destructive"
+                                            title="Revoke seat"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        )}
+                                      </div>
                                     ))}
                                   </div>
+                                </div>
+                              )}
+
+                              {org.seatsUsed < org.seatCount && (
+                                <div className="flex items-center gap-2 pt-1">
+                                  {addSeatOrgId === org.orgId ? (
+                                    <>
+                                      <input
+                                        type="email"
+                                        value={addSeatEmail}
+                                        onChange={(e) => setAddSeatEmail(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        placeholder="user@company.com"
+                                        className="flex-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                                      />
+                                      <Button
+                                        size="sm"
+                                        onClick={(e) => { e.stopPropagation(); addSeat(org.orgId, addSeatEmail); }}
+                                        disabled={!addSeatEmail}
+                                      >
+                                        <UserPlus className="h-3.5 w-3.5" /> Add
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={(e) => { e.stopPropagation(); setAddSeatOrgId(null); setAddSeatEmail(''); }}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => { e.stopPropagation(); setAddSeatOrgId(org.orgId); setAddSeatEmail(''); }}
+                                    >
+                                      <UserPlus className="h-3.5 w-3.5" /> Add Seat
+                                    </Button>
+                                  )}
                                 </div>
                               )}
 
