@@ -11,6 +11,12 @@ module.exports = {
     '<rootDir>/.simplebeacon/',
     '<rootDir>/dist/',
     '<rootDir>/node_modules/',
+    // Ignore generated build artifacts and vendored bundles that contain their own package.json
+    '<rootDir>/.+?/js-es2018/',
+    '<rootDir>/.+?/js/.+?/utils-lib/',
+    '<rootDir>/.+?/js-es2018/.+?/utils-lib/',
+    '<rootDir>/.+?/vsix-staging/',
+    '<rootDir>/.+?/local-agent/dist/',
   ],
 
   // 3. High-Density Coverage Harvesting (Istanbul)
