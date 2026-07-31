@@ -1253,6 +1253,15 @@ async function startServer() {
     logger.error('[Routes] Webhook signing not loaded:', err?.message || err);
   }
 
+  // Agentic orchestration — multi-agent executor loop with guardrail inspection
+  try {
+    const agenticRoutes = require('./server/routes/agentic-orchestration-routes.cjs');
+    app.use('/api/agentic', agenticRoutes);
+    logger.info('[Routes] Agentic orchestration loaded at /api/agentic');
+  } catch (err) {
+    logger.error('[Routes] Agentic orchestration not loaded:', err?.message || err);
+  }
+
   // Usage analytics — scan metrics, trends, posture scores
   try {
     const analyticsRoutes = require('./server/routes/analytics-routes.cjs');

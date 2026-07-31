@@ -8,6 +8,7 @@ import { ProviderFailoverDashboard } from '@/components/ProviderFailoverDashboar
 import { IdentityFederationDashboard } from '@/components/IdentityFederationDashboard';
 import { SemanticCacheDashboard } from '@/components/SemanticCacheDashboard';
 import { WebhookSigningDashboard } from '@/components/WebhookSigningDashboard';
+import { AgenticOrchestrationDashboard } from '@/components/AgenticOrchestrationDashboard';
 
 type ScanResultData = {
   projectPath?: string;
@@ -386,6 +387,7 @@ export function SecurityView() {
       <IdentityFederationDashboard />
       <SemanticCacheDashboard />
       <WebhookSigningDashboard />
+      <AgenticOrchestrationDashboard />
     </div>
   );
 }
