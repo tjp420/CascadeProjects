@@ -461,6 +461,35 @@ export function AdminView() {
     fetchEnterpriseOrgs();
   }, [fetchData, fetchEnterpriseOrgs]);
 
+  // If the route hash includes a `tab` query (e.g. #/admin?tab=analytics), honor it.
+  useEffect(() => {
+    function applyTabFromLocation() {
+      try {
+        // Prefer search params (path-based routing)
+        const search = window.location.search || '';
+        const sParams = new URLSearchParams(search);
+        const t1 = sParams.get('tab');
+        // debug: log detected search tab
+        // eslint-disable-next-line no-console
+        console.debug('AdminView: detected search tab=', t1, 'search=', search);
+        if (t1 && t1 !== adminTab) { setAdminTab(t1); return; }
+        // Fallback to hash query
+        const hash = window.location.hash.slice(1) || '';
+        const parts = hash.split('?');
+        const qs = parts[1] || '';
+        const params = new URLSearchParams(qs);
+        const t = params.get('tab');
+        // eslint-disable-next-line no-console
+        console.debug('AdminView: detected hash tab=', t, 'hash=', hash);
+        if (t && t !== adminTab) setAdminTab(t);
+      } catch (e) { /* ignore */ }
+    }
+    applyTabFromLocation();
+    window.addEventListener('hashchange', applyTabFromLocation);
+    window.addEventListener('popstate', applyTabFromLocation);
+    return () => { window.removeEventListener('hashchange', applyTabFromLocation); window.removeEventListener('popstate', applyTabFromLocation); };
+  }, [adminTab]);
+
   useEffect(() => {
     if (adminTab === 'audit') fetchAuditLogs();
   }, [adminTab, fetchAuditLogs]);
