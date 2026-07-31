@@ -1,0 +1,448 @@
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\admin-api.cjs
+  Identifier 'email' declared 5 times at lines: 30, 139, 175, 413, 471
+  Identifier 'tier' declared 2 times at lines: 33, 917
+  Identifier 'result' declared 6 times at lines: 65, 646, 665, 752, 844, 1205
+  Identifier 'row' declared 5 times at lines: 69, 157, 164, 899, 904
+  Identifier 'user' declared 4 times at lines: 78, 842, 996, 1012
+  Identifier 'byEmail' declared 2 times at lines: 156, 458
+  Identifier 'mapped' declared 2 times at lines: 158, 165
+  Identifier 'key' declared 5 times at lines: 159, 166, 464, 900, 905
+  Identifier 's' declared 2 times at lines: 218, 302
+  Identifier 'secret' declared 2 times at lines: 225, 241
+  Identifier 'claims' declared 2 times at lines: 259, 277
+  Identifier 'expired' declared 2 times at lines: 260, 278
+  Identifier 'normalized' declared 2 times at lines: 317, 356
+  Identifier 'licenseToken' declared 2 times at lines: 325, 476
+  Identifier 'tokenStatus' declared 2 times at lines: 327, 477
+  Identifier 'sqlite' declared 17 times at lines: 360, 480, 649, 676, 923, 965, 983, 1010, 1064, 1070, 1096, 1111, 1145, 1178, 1203, 1232, 1236
+  Identifier 'customer' declared 2 times at lines: 361, 486
+  Identifier 'sub' declared 2 times at lines: 474, 1244
+  Identifier 'customers' declared 2 times at lines: 485, 653
+  Identifier 'subs' declared 2 times at lines: 496, 1240
+  Identifier 'rows' declared 2 times at lines: 597, 763
+  Identifier 'total' declared 2 times at lines: 623, 728
+  Identifier 'page' declared 2 times at lines: 632, 799
+  Identifier 'hasMore' declared 2 times at lines: 633, 764
+  Identifier 'users' declared 6 times at lines: 652, 765, 1051, 1100, 1137, 1182
+  Identifier 'allUsers' declared 2 times at lines: 775, 913
+  Identifier 'active' declared 4 times at lines: 801, 861, 884, 947
+  Identifier 'activity' declared 2 times at lines: 805, 862
+  Identifier 'adminEmail' declared 6 times at lines: 961, 982, 1063, 1095, 1177, 1231
+  Identifier 'passwordValid' declared 5 times at lines: 984, 1065, 1097, 1179, 1233
+  Identifier 'target' declared 4 times at lines: 1052, 1101, 1138, 1183
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\ai-context-routes.cjs
+  Identifier 'platformRoot' declared 2 times at lines: 19, 80
+  Identifier 'safePath' declared 2 times at lines: 20, 81
+  Identifier 'contextPath' declared 2 times at lines: 24, 84
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\alert-routes.cjs
+  Identifier 'orgId' declared 12 times at lines: 42, 54, 67, 130, 154, 173, 194, 241, 269, 287, 349, 388
+  Identifier 'rules' declared 2 times at lines: 43, 175
+  Identifier 'rule' declared 6 times at lines: 55, 95, 198, 291, 352, 389
+  Identifier 'result' declared 5 times at lines: 155, 247, 302, 356, 471
+  Identifier 'status' declared 3 times at lines: 270, 307, 464
+  Identifier 'ruleId' declared 2 times at lines: 288, 350
+  Identifier 'securityMonitor' declared 2 times at lines: 408, 463
+  Identifier 'graceMs' declared 2 times at lines: 431, 460
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\analytics-routes.cjs
+  Identifier 'stats' declared 2 times at lines: 274, 376
+  Identifier 'filters' declared 6 times at lines: 299, 327, 343, 504, 871, 957
+  Identifier 'result' declared 9 times at lines: 307, 518, 607, 747, 880, 970, 1143, 1337, 1719
+  Identifier 'trend' declared 2 times at lines: 333, 379
+  Identifier 'heatmap' declared 2 times at lines: 347, 380
+  Identifier 'limit' declared 2 times at lines: 357, 577
+  Identifier 'format' declared 2 times at lines: 368, 955
+  Identifier 'orgId' declared 20 times at lines: 370, 502, 605, 719, 745, 773, 821, 858, 870, 954, 1133, 1319, 1548, 1569, 1597, 1621, 1652, 1691, 1715, 1765
+  Identifier 'escapeCsv' declared 2 times at lines: 430, 1073
+  Identifier 's' declared 2 times at lines: 432, 1074
+  Identifier 'rows' declared 2 times at lines: 439, 1084
+  Identifier 'scan' declared 7 times at lines: 441, 523, 608, 889, 976, 1144, 1338
+  Identifier 'csv' declared 2 times at lines: 475, 1113
+  Identifier 'categoryFilter' declared 2 times at lines: 503, 956
+  Identifier 'ticketStatusFilter' declared 2 times at lines: 513, 966
+  Identifier 'ticketTargetFilter' declared 2 times at lines: 514, 967
+  Identifier 'slaBreachedFilter' declared 2 times at lines: 515, 968
+  Identifier 'now' declared 3 times at lines: 516, 887, 973
+  Identifier 'ticketedKeys' declared 3 times at lines: 519, 881, 971
+  Identifier 'allStatuses' declared 2 times at lines: 520, 972
+  Identifier 'violations' declared 2 times at lines: 522, 975
+  Identifier 'cats' declared 3 times at lines: 524, 890, 977
+  Identifier 'ticketKey' declared 3 times at lines: 528, 893, 981
+  Identifier 'isTicketed' declared 3 times at lines: 529, 894, 982
+  Identifier 'ticketEntry' declared 2 times at lines: 530, 983
+  Identifier 'guidance' declared 6 times at lines: 539, 617, 898, 990, 1153, 1343
+  Identifier 'slaLimit' declared 3 times at lines: 540, 899, 991
+  Identifier 'scanDate' declared 3 times at lines: 541, 900, 992
+  Identifier 'daysOpen' declared 3 times at lines: 542, 901, 993
+  Identifier 'slaBreached' declared 3 times at lines: 543, 902, 994
+  Identifier 'slaDaysOver' declared 2 times at lines: 544, 995
+  Identifier 'ticketTarget' declared 3 times at lines: 606, 1134, 1320
+  Identifier 'count' declared 3 times at lines: 611, 1147, 1340
+  Identifier 'priorityMap' declared 3 times at lines: 618, 1154, 1344
+  Identifier 'priorityLabel' declared 3 times at lines: 619, 1155, 1345
+  Identifier 'title' declared 3 times at lines: 621, 1156, 1346
+  Identifier 'descriptionLines' declared 3 times at lines: 622, 1158, 1347
+  Identifier 'markdownDescription' declared 3 times at lines: 645, 1180, 1369
+  Identifier 'entry' declared 3 times at lines: 720, 783, 1771
+  Identifier 'results' declared 2 times at lines: 774, 1510
+  Identifier 'succeeded' declared 3 times at lines: 775, 822, 1511
+  Identifier 'failed' declared 3 times at lines: 776, 823, 1512
+  Identifier 'v' declared 2 times at lines: 777, 824
+  Identifier 'headers' declared 3 times at lines: 1049, 1186, 1375
+  Identifier 'config' declared 3 times at lines: 1135, 1321, 1571
+  Identifier 'apiUrl' declared 2 times at lines: 1185, 1374
+  Identifier 'body' declared 2 times at lines: 1187, 1376
+  Identifier 'apiResp' declared 2 times at lines: 1256, 1446
+  Identifier 'respText' declared 3 times at lines: 1262, 1457, 1466
+  Identifier 'respData' declared 2 times at lines: 1263, 1467
+  Identifier 'ticketRef' declared 2 times at lines: 1283, 1482
+  Identifier 'oldConfig' declared 2 times at lines: 1570, 1599
+  Identifier 'oldSchedule' declared 2 times at lines: 1653, 1693
+  Identifier 'schedule' declared 2 times at lines: 1654, 1717
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\audit-routes.cjs
+  Identifier 'orgId' declared 15 times at lines: 48, 69, 82, 141, 163, 185, 225, 239, 283, 297, 324, 350, 364, 391, 515
+  Identifier 'result' declared 5 times at lines: 49, 84, 298, 351, 516
+  Identifier 'stats' declared 4 times at lines: 70, 340, 378, 544
+  Identifier 'format' declared 2 times at lines: 83, 392
+  Identifier 'rows' declared 2 times at lines: 107, 408
+  Identifier 'dateStr' declared 3 times at lines: 146, 168, 395
+  Identifier 'policy' declared 3 times at lines: 226, 270, 284
+  Identifier 'v' declared 4 times at lines: 243, 251, 262, 473
+  Identifier 'windowHours' declared 2 times at lines: 365, 393
+  Identifier 'summary' declared 2 times at lines: 366, 394
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\auth.cjs
+  Identifier 'token' declared 2 times at lines: 46, 66
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\backup-snapshot-routes.cjs
+  Identifier 'result' declared 6 times at lines: 62, 75, 90, 99, 121, 131
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\chatbot-api.cjs
+  Identifier 'personalityPrompt' declared 2 times at lines: 355, 466
+  Identifier 'userEmail' declared 2 times at lines: 384, 977
+  Identifier 'userCredentials' declared 2 times at lines: 385, 978
+  Identifier 'ollamaBaseUrl' declared 3 times at lines: 416, 817, 979
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\chatbot-api.test.cjs
+  Identifier 'res' declared 4 times at lines: 117, 137, 164, 184
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\compliance-routes.cjs
+  Identifier 'orgId' declared 6 times at lines: 27, 80, 101, 113, 134, 157
+  Identifier 'report' declared 3 times at lines: 41, 102, 114
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\content-moderation-routes.cjs
+  Identifier 'result' declared 3 times at lines: 40, 50, 89
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\demo-simplebeacon-api.cjs
+  Identifier 'context' declared 4 times at lines: 109, 119, 133, 147
+  Identifier 'assessment' declared 2 times at lines: 134, 148
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\deployment-gate-routes.cjs
+  Identifier 'result' declared 2 times at lines: 63, 280
+  Identifier 'ticketedKeys' declared 2 times at lines: 78, 101
+  Identifier 'cats' declared 2 times at lines: 81, 103
+  Identifier 'ticketKey' declared 2 times at lines: 84, 108
+  Identifier 'priority' declared 2 times at lines: 87, 106
+  Identifier 'orgId' declared 4 times at lines: 253, 322, 334, 378
+  Identifier 'policy' declared 3 times at lines: 263, 323, 346
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\egress-policy-routes.cjs
+  Identifier 'orgId' declared 6 times at lines: 36, 50, 62, 91, 119, 174
+  Identifier 'policy' declared 3 times at lines: 48, 89, 117
+  Identifier 'result' declared 2 times at lines: 63, 102
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\enterprise-analytics-routes.cjs
+  Identifier 'orgId' declared 2 times at lines: 21, 52
+  Identifier 'repository' declared 2 times at lines: 23, 53
+  Identifier 'repositories' declared 2 times at lines: 37, 54
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\eu-ai-act-audit-route.cjs
+  Identifier 'value' declared 2 times at lines: 22, 36
+  Identifier 'candidate' declared 2 times at lines: 81, 89
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\fix-orchestrator-api.cjs
+  Identifier 'baseDir' declared 2 times at lines: 97, 173
+  Identifier 'absolutePath' declared 2 times at lines: 98, 174
+  Identifier 'content' declared 2 times at lines: 107, 183
+  Identifier 'patch' declared 2 times at lines: 114, 190
+  Identifier 'patched' declared 2 times at lines: 129, 210
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\flexible-analyze-api.cjs
+  Identifier 'opts' declared 2 times at lines: 193, 208
+  Identifier 'monorepoRoot' declared 2 times at lines: 194, 210
+  Identifier 'tier' declared 2 times at lines: 230, 1507
+  Identifier 'candidate' declared 3 times at lines: 317, 2855, 3352
+  Identifier 'registry' declared 6 times at lines: 324, 580, 2274, 2373, 2742, 2927
+  Identifier 'userCredentials' declared 8 times at lines: 325, 583, 645, 1082, 2275, 2374, 2743, 2928
+  Identifier 'allowedRoots' declared 3 times at lines: 326, 458, 2822
+  Identifier 'orgId' declared 3 times at lines: 473, 484, 2639
+  Identifier 'branding' declared 3 times at lines: 474, 486, 2647
+  Identifier 'body' declared 13 times at lines: 483, 543, 1157, 1208, 2365, 2420, 2468, 2516, 2606, 2731, 2905, 2981, 3119
+  Identifier 'cacheKey' declared 2 times at lines: 504, 3125
+  Identifier 'cacheDir' declared 2 times at lines: 505, 3126
+  Identifier 'projectPath' declared 16 times at lines: 506, 533, 545, 1210, 2209, 2322, 2366, 2421, 2445, 2469, 2498, 2770, 2907, 2987, 3127, 3167
+  Identifier 'cacheExists' declared 2 times at lines: 507, 3129
+  Identifier 'safeRepoUrl' declared 2 times at lines: 513, 3140
+  Identifier 'tempFetchDir' declared 3 times at lines: 530, 541, 1212
+  Identifier 'rawPath' declared 5 times at lines: 544, 1209, 2210, 2316, 2821
+  Identifier 'isWebsite' declared 2 times at lines: 546, 1211
+  Identifier 'resolved' declared 2 times at lines: 549, 1215
+  Identifier 'debug' declared 3 times at lines: 554, 2221, 2297
+  Identifier 'errorPayload' declared 3 times at lines: 556, 2223, 2299
+  Identifier 'aiProvider' declared 4 times at lines: 576, 2372, 2741, 2906
+  Identifier 'analysisType' declared 3 times at lines: 577, 1529, 3249
+  Identifier 'result' declared 5 times at lines: 584, 1177, 1869, 3457, 3501
+  Identifier 'understandingMode' declared 3 times at lines: 604, 2242, 2371
+  Identifier 'scanProfile' declared 2 times at lines: 605, 2238
+  Identifier 'scanContext' declared 2 times at lines: 606, 2239
+  Identifier 'explicitMaxDeep' declared 2 times at lines: 609, 2249
+  Identifier 'maxDeepAnalyze' declared 2 times at lines: 610, 2250
+  Identifier 'fileCount' declared 2 times at lines: 625, 1224
+  Identifier 'startedAt' declared 3 times at lines: 636, 1236, 2245
+  Identifier 'report' declared 17 times at lines: 638, 692, 729, 944, 964, 984, 1004, 1740, 2265, 2376, 2431, 2455, 2607, 2776, 2908, 2982, 3307
+  Identifier 'results' declared 4 times at lines: 750, 1238, 1841, 3482
+  Identifier 'userTier' declared 2 times at lines: 754, 1167
+  Identifier 'scanRes' declared 2 times at lines: 760, 1259
+  Identifier 'dataCleanupForCompliance' declared 3 times at lines: 879, 1958, 3529
+  Identifier 'summary' declared 2 times at lines: 895, 1366
+  Identifier 'npmAudit' declared 3 times at lines: 1049, 3004, 3177
+  Identifier 'dataCleanup' declared 2 times at lines: 1050, 3017
+  Identifier 'providerOpts' declared 3 times at lines: 1088, 2744, 2930
+  Identifier 'enhanced' declared 2 times at lines: 1094, 2948
+  Identifier 'scanId' declared 3 times at lines: 1223, 1697, 2189
+  Identifier 'job' declared 3 times at lines: 1244, 1725, 2190
+  Identifier 'reportJson' declared 3 times at lines: 1387, 2029, 3654
+  Identifier 'record' declared 2 times at lines: 1480, 1538
+  Identifier 'payload' declared 2 times at lines: 1505, 2929
+  Identifier 'parsed' declared 2 times at lines: 1556, 3259
+  Identifier 'i' declared 3 times at lines: 1561, 2830, 3264
+  Identifier 'relPath' declared 2 times at lines: 1562, 3265
+  Identifier 'zipPath' declared 3 times at lines: 1571, 3078, 3275
+  Identifier 'safeRel' declared 2 times at lines: 1585, 3266
+  Identifier 'tempConfigPath' declared 2 times at lines: 1604, 3346
+  Identifier 'analysis' declared 2 times at lines: 1749, 3313
+  Identifier 'runComplete' declared 2 times at lines: 1842, 3485
+  Identifier 'ANALYZER_TIMEOUT' declared 2 times at lines: 1853, 3486
+  Identifier 'runAnalyzer' declared 2 times at lines: 1862, 3494
+  Identifier 't0' declared 2 times at lines: 1866, 3498
+  Identifier 'profile' declared 3 times at lines: 1915, 2331, 3560
+  Identifier 'fileReduction' declared 2 times at lines: 1925, 3567
+  Identifier 'dataQuality' declared 2 times at lines: 1928, 3568
+  Identifier 'inventory' declared 3 times at lines: 1929, 2356, 3569
+  Identifier 'plan' declared 2 times at lines: 1930, 3570
+  Identifier 'safeDirs' declared 2 times at lines: 1931, 3571
+  Identifier 'reviewDirs' declared 2 times at lines: 1932, 3572
+  Identifier 'brief' declared 2 times at lines: 1933, 3573
+  Identifier 'reportModulePath' declared 3 times at lines: 1997, 2750, 3620
+  Identifier 'typeMap' declared 2 times at lines: 2030, 3655
+  Identifier 'specific' declared 2 times at lines: 2049, 3673
+  Identifier 'jobMeta' declared 2 times at lines: 2110, 2144
+  Identifier 'recipient' declared 2 times at lines: 2114, 2696
+  Identifier 'file' declared 2 times at lines: 2167, 3080
+  Identifier 'rawScan' declared 2 times at lines: 2521, 2732
+  Identifier 'completeScan' declared 3 times at lines: 2522, 2673, 2734
+  Identifier 'zipResult' declared 2 times at lines: 2546, 2675
+  Identifier 'clientName' declared 2 times at lines: 2632, 2771
+  Identifier 'entries' declared 2 times at lines: 2871, 3109
+  Identifier 'tmpDir' declared 2 times at lines: 3076, 3248
+  Identifier 'raw' declared 2 times at lines: 3359, 3475
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\guardrail-routes.cjs
+  Identifier 'orgId' declared 2 times at lines: 23, 44
+  Identifier 'result' declared 2 times at lines: 24, 59
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\integration-routes.cjs
+  Identifier 'config' declared 2 times at lines: 78, 120
+  Identifier 'result' declared 2 times at lines: 134, 151
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\key-rotation-routes.cjs
+  Identifier 'result' declared 2 times at lines: 54, 78
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\ledger-index-routes.cjs
+  Identifier 'stats' declared 2 times at lines: 28, 57
+  Identifier 'orgId' declared 2 times at lines: 69, 82
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\license-routes.cjs
+  Identifier 'secret' declared 3 times at lines: 25, 36, 89
+  Identifier 'claims' declared 2 times at lines: 45, 100
+  Identifier 'tier' declared 3 times at lines: 48, 104, 132
+  Identifier 'entry' declared 3 times at lines: 49, 61, 101
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\local-models-api.cjs
+  Identifier 'activeModel' declared 2 times at lines: 92, 171
+  Identifier 'result' declared 11 times at lines: 101, 110, 119, 136, 161, 180, 189, 200, 209, 218, 229
+  Identifier 'status' declared 3 times at lines: 120, 137, 162
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\meta-routes.cjs
+  Identifier 'fsPromises' declared 2 times at lines: 51, 121
+  Identifier 'pathUtil' declared 2 times at lines: 52, 122
+  Identifier 'projectPath' declared 2 times at lines: 53, 123
+  Identifier 'items' declared 2 times at lines: 57, 127
+  Identifier 'item' declared 2 times at lines: 58, 128
+  Identifier 'itemPath' declared 2 times at lines: 59, 129
+  Identifier 'content' declared 2 times at lines: 64, 134
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\model-eval-routes.cjs
+  Identifier 'refusalTerms' declared 3 times at lines: 142, 191, 220
+  Identifier 'hasRefusal' declared 3 times at lines: 155, 200, 235
+  Identifier 'result' declared 3 times at lines: 278, 434, 513
+  Identifier 'durationMs' declared 3 times at lines: 284, 300, 438
+  Identifier 'orgId' declared 8 times at lines: 321, 333, 347, 374, 398, 512, 529, 542
+  Identifier 'suite' declared 3 times at lines: 334, 353, 409
+  Identifier 'run' declared 2 times at lines: 463, 530
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\model-routing-routes.cjs
+  Identifier 'result' declared 6 times at lines: 55, 66, 77, 99, 120, 136
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\pii-policy-routes.cjs
+  Identifier 'orgId' declared 11 times at lines: 45, 59, 71, 99, 127, 184, 196, 214, 226, 450, 629
+  Identifier 'policy' declared 3 times at lines: 57, 97, 125
+  Identifier 'result' declared 6 times at lines: 72, 110, 215, 227, 636, 771
+  Identifier 'p' declared 2 times at lines: 375, 543
+  Identifier 'sm' declared 2 times at lines: 428, 597
+  Identifier 'bundle' declared 2 times at lines: 452, 630
+  Identifier 'currentOrg' declared 2 times at lines: 651, 684
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\proxy-performance-routes.cjs
+  Identifier 'limit' declared 2 times at lines: 39, 58
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\rate-limit-quota-routes.cjs
+  Identifier 'result' declared 2 times at lines: 45, 55
+  Identifier 'usage' declared 2 times at lines: 65, 83
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\rbac-routes.cjs
+  Identifier 'orgId' declared 8 times at lines: 22, 54, 66, 93, 116, 130, 143, 160
+  Identifier 'userId' declared 3 times at lines: 23, 131, 144
+  Identifier 'resolved' declared 3 times at lines: 25, 119, 132
+  Identifier 'assignment' declared 2 times at lines: 72, 117
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\realtime-analysis-api.cjs
+  Identifier 'sessionId' declared 2 times at lines: 53, 263
+  Identifier 'session' declared 7 times at lines: 54, 113, 141, 177, 204, 232, 269
+  Identifier 'timeout' declared 2 times at lines: 68, 236
+  Identifier 'result' declared 2 times at lines: 150, 294
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\repository-scanner-api.cjs
+  Identifier 'ext' declared 2 times at lines: 45, 87
+  Identifier 'items' declared 3 times at lines: 156, 197, 346
+  Identifier 'item' declared 3 times at lines: 163, 204, 353
+  Identifier 'itemPath' declared 2 times at lines: 174, 362
+  Identifier 'content' declared 3 times at lines: 177, 210, 364
+  Identifier 'issues' declared 2 times at lines: 268, 338
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\security-monitor-settings-routes.cjs
+  Identifier 'result' declared 2 times at lines: 43, 70
+  Identifier 'securityMonitor' declared 5 times at lines: 52, 74, 90, 102, 115
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\session-audit-routes.cjs
+  Identifier 'result' declared 2 times at lines: 39, 74
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\sso-auth-handler.cjs
+  Identifier 'parsed' declared 3 times at lines: 39, 103, 138
+  Identifier 'options' declared 2 times at lines: 105, 139
+  Identifier 'req' declared 2 times at lines: 116, 149
+  Identifier 'data' declared 2 times at lines: 117, 150
+  Identifier 'json' declared 2 times at lines: 123, 156
+  Identifier 'email' declared 2 times at lines: 258, 633
+  Identifier 'config' declared 6 times at lines: 296, 359, 477, 551, 721, 741
+  Identifier 'discovery' declared 2 times at lines: 302, 365
+  Identifier 'state' declared 2 times at lines: 303, 483
+  Identifier 'appBaseUrl' declared 3 times at lines: 308, 484, 746
+  Identifier 'frontendUrl' declared 5 times at lines: 346, 458, 463, 584, 589
+  Identifier 'stateData' declared 2 times at lines: 354, 542
+  Identifier 'userInfoResponse' declared 2 times at lines: 410, 418
+  Identifier 'user' declared 2 times at lines: 435, 562
+  Identifier 'jwt' declared 2 times at lines: 436, 563
+  Identifier 'redirectUrl' declared 3 times at lines: 459, 506, 585
+  Identifier 'acsUrl' declared 2 times at lines: 485, 747
+  Identifier 'entityId' declared 2 times at lines: 486, 748
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\sso-config-routes.cjs
+  Identifier 'configs' declared 3 times at lines: 31, 34, 49
+  Identifier 'stats' declared 2 times at lines: 35, 201
+  Identifier 'config' declared 4 times at lines: 81, 215, 287, 307
+  Identifier 'existing' declared 2 times at lines: 130, 173
+  Identifier 'updated' declared 2 times at lines: 140, 342
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\sso-routes.cjs
+  Identifier 'provider' declared 4 times at lines: 49, 95, 149, 204
+  Identifier 'state' declared 3 times at lines: 51, 91, 145
+  Identifier 'cfg' declared 2 times at lines: 59, 97
+  Identifier 'org' declared 2 times at lines: 101, 152
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\stripe-webhook-routes.cjs
+  Identifier 'customerEmail' declared 2 times at lines: 140, 250
+  Identifier 'customerId' declared 3 times at lines: 141, 206, 233
+  Identifier 'priceId' declared 2 times at lines: 143, 207
+  Identifier 'tierConfig' declared 2 times at lines: 154, 208
+  Identifier 'emailResult' declared 2 times at lines: 181, 286
+  Identifier 'subscription' declared 2 times at lines: 203, 230
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\stripe-webhook-routes.test.cjs
+  Identifier 'timestamp' declared 2 times at lines: 21, 98
+  Identifier 'signedPayload' declared 3 times at lines: 22, 101, 121
+  Identifier 'savedEnv' declared 3 times at lines: 38, 253, 335
+  Identifier 'tempQueueDir' declared 2 times at lines: 39, 334
+  Identifier 'k' declared 3 times at lines: 46, 260, 342
+  Identifier 'router' declared 5 times at lines: 70, 132, 184, 218, 377
+  Identifier 'event' declared 2 times at lines: 81, 111
+  Identifier 'parts' declared 2 times at lines: 93, 116
+  Identifier 'part' declared 2 times at lines: 94, 117
+  Identifier 'expectedSignature' declared 2 times at lines: 102, 122
+  Identifier 'statusCode' declared 3 times at lines: 135, 186, 220
+  Identifier 'responseBody' declared 3 times at lines: 136, 187, 221
+  Identifier 'res' declared 3 times at lines: 137, 188, 222
+  Identifier 'req' declared 3 times at lines: 152, 200, 234
+  Identifier 'next' declared 3 times at lines: 157, 204, 238
+  Identifier 'tempStorePath' declared 2 times at lines: 252, 333
+  Identifier 'tempDir' declared 2 times at lines: 267, 349
+  Identifier 'first' declared 3 times at lines: 285, 396, 410
+  Identifier 'invoiceEvent' declared 2 times at lines: 386, 404
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\token-auth.cjs
+  Identifier 'redis' declared 8 times at lines: 33, 122, 136, 179, 213, 388, 429, 515
+  Identifier 'deviceKey' declared 2 times at lines: 171, 236
+  Identifier 'challengeId' declared 2 times at lines: 177, 369
+  Identifier 'challengeRaw' declared 2 times at lines: 214, 430
+  Identifier 'challengeData' declared 2 times at lines: 224, 440
+  Identifier 'account' declared 6 times at lines: 271, 356, 539, 627, 750, 808
+  Identifier 'accessTokenPayload' declared 2 times at lines: 278, 634
+  Identifier 'now' declared 2 times at lines: 288, 644
+  Identifier 'accessTokenExpires' declared 2 times at lines: 289, 645
+  Identifier 'sessionExpires' declared 2 times at lines: 301, 657
+  Identifier 'refreshExpires' declared 2 times at lines: 316, 672
+  Identifier 'accountId' declared 3 times at lines: 441, 506, 805
+  Identifier 'ticketHash' declared 2 times at lines: 471, 514
+  Identifier 'activeDevices' declared 2 times at lines: 546, 756
+  Identifier 'session' declared 2 times at lines: 621, 712
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\upload.cjs
+  Identifier 'ext' declared 3 times at lines: 96, 506, 580
+  Identifier 'uploadId' declared 2 times at lines: 152, 224
+  Identifier 'startTime' declared 2 times at lines: 153, 225
+  Identifier 'analysis' declared 7 times at lines: 171, 271, 345, 361, 453, 494, 563
+  Identifier 'uploadDir' declared 2 times at lines: 174, 207
+  Identifier 'processingTime' declared 2 times at lines: 177, 276
+  Identifier 'tempDir' declared 2 times at lines: 242, 294
+  Identifier 'stats' declared 3 times at lines: 319, 611, 694
+  Identifier 'items' declared 2 times at lines: 662, 686
+  Identifier 'item' declared 2 times at lines: 664, 688
+  Identifier 'fullPath' declared 2 times at lines: 665, 689
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\webauthn-api.cjs
+  Identifier 'user' declared 2 times at lines: 65, 171
+  Identifier 'pending' declared 2 times at lines: 122, 157
+  Identifier 'email' declared 3 times at lines: 129, 197, 215
+  Identifier 'store' declared 4 times at lines: 136, 164, 203, 222
+  Identifier 'stored' declared 2 times at lines: 165, 223
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\whitelabel-routes.cjs
+  Identifier 'partner' declared 6 times at lines: 55, 69, 85, 114, 169, 185
+  Identifier 'domain' declared 2 times at lines: 113, 146
+
+File: C:\Users\user\CascadeProjects\ai-platform\server\routes\workspaces.cjs
+  Identifier 'client' declared 5 times at lines: 35, 52, 77, 107, 139

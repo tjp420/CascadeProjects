@@ -1,0 +1,16 @@
+Trial: upgrade jest to latest + syntax hardening for modern parsers
+
+What this branch contains:
+- Upgraded `jest` to latest for compatibility testing (trial only).
+- Fixed a duplicate block-scoped declaration in `server/routes/chatbot-api.cjs` that caused parse errors under newer parsers.
+- Ran an automated scan across `server/routes` to flag repeated `const`/`let` identifiers as candidates for review.
+
+Scan notes:
+- The scan found multiple repeated identifier names across router files (e.g., `result`, `orgId`, `userEmail`, `response`, etc.). Many are declared in separate function scopes and are benign; some may indicate duplicate block-scoped declarations and should be reviewed.
+- The branch includes an isolated fix for the concrete parse failure that broke tests; the full suite passes here: 147 suites, 1247 tests.
+
+Next steps:
+- Review flagged router files for any duplicate `const`/`let` declarations that occur within the same block/function and fix as needed.
+- If acceptable, merge this trial branch or use it as a base for subsequent dependency upgrades.
+
+CI: Full test suite run locally passed with `jest@latest` after the fix.
