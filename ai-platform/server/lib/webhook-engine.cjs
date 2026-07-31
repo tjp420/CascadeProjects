@@ -11,13 +11,25 @@ const https = require('https');
 const { URL } = require('url');
 const logger = require('../lib/app-logger.cjs');
 const integrationStore = require('./integration-config-store.cjs');
+const signingStore = require('./webhook-signing-store.cjs');
 
 // ── HTTP helpers ────────────────────────────────────────────────────────────
 
-function httpsPostJson(url, body, headers = {}) {
+function httpsPostJson(url, body, headers = {}, context = {}) {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     const postData = JSON.stringify(body);
+
+    // Build signature headers for outbound webhook delivery
+    var signHeaders = {};
+    var signed = false;
+    try {
+      signHeaders = signingStore.buildSignatureHeaders(postData, context.orgId, context.keyId);
+      signed = Object.keys(signHeaders).length > 0;
+    } catch (err) {
+      logger.warn('[WebhookEngine] Signature header generation failed:', err.message);
+    }
+
     const options = {
       hostname: parsed.hostname,
       port: parsed.port || 443,
@@ -27,16 +39,39 @@ function httpsPostJson(url, body, headers = {}) {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(postData),
         ...headers,
+        ...signHeaders,
       },
     };
+    const startMs = Date.now();
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
-        resolve({ status: res.statusCode, data });
+        var latencyMs = Date.now() - startMs;
+        try {
+          signingStore.recordDelivery({
+            url: url, orgId: context.orgId || null, event: context.event || null,
+            keyId: signHeaders['X-Beacon-Key-Id'] || null, signed: signed,
+            attempt: context.attempt || 0,
+            status: res.statusCode >= 200 && res.statusCode < 300 ? 'success' : 'failed',
+            statusCode: res.statusCode, latencyMs: latencyMs, retried: (context.attempt || 0) > 0,
+          });
+        } catch {}
+        resolve({ status: res.statusCode, data, latencyMs, signed });
       });
     });
-    req.on('error', reject);
+    req.on('error', (err) => {
+      var latencyMs = Date.now() - startMs;
+      try {
+        signingStore.recordDelivery({
+          url: url, orgId: context.orgId || null, event: context.event || null,
+          keyId: signHeaders['X-Beacon-Key-Id'] || null, signed: signed,
+          attempt: context.attempt || 0, status: 'failed', statusCode: null,
+          latencyMs: latencyMs, error: err.message, retried: (context.attempt || 0) > 0,
+        });
+      } catch {}
+      reject(err);
+    });
     req.write(postData);
     req.end();
   });
@@ -191,15 +226,15 @@ function formatSlackPayload(payload) {
   return { blocks, attachments: [{ color, blocks }] };
 }
 
-async function sendSlack(config, payload) {
+async function sendSlack(config, payload, dispatchCtx) {
   const webhookUrl = config.config.webhookUrl;
   if (!webhookUrl) throw new Error('Slack webhook URL not configured');
   const body = formatSlackPayload(payload);
-  const result = await httpsPostJson(webhookUrl, body);
+  const result = await httpsPostJson(webhookUrl, body, {}, dispatchCtx);
   if (result.status !== 200) {
     throw new Error(`Slack webhook failed: ${result.status} — ${result.data}`);
   }
-  return { success: true, status: result.status };
+  return { success: true, status: result.status, signed: result.signed };
 }
 
 // ── Microsoft Teams Adapter ─────────────────────────────────────────────────
@@ -279,15 +314,15 @@ function formatTeamsPayload(payload) {
   return card;
 }
 
-async function sendTeams(config, payload) {
+async function sendTeams(config, payload, dispatchCtx) {
   const webhookUrl = config.config.webhookUrl;
   if (!webhookUrl) throw new Error('Teams webhook URL not configured');
   const body = formatTeamsPayload(payload);
-  const result = await httpsPostJson(webhookUrl, body);
+  const result = await httpsPostJson(webhookUrl, body, {}, dispatchCtx);
   if (result.status !== 200) {
     throw new Error(`Teams webhook failed: ${result.status} — ${result.data}`);
   }
-  return { success: true, status: result.status };
+  return { success: true, status: result.status, signed: result.signed };
 }
 
 // ── Jira Adapter ────────────────────────────────────────────────────────────
@@ -331,7 +366,7 @@ async function sendJira(config, payload) {
 
   const result = await httpsPostJson(jiraUrl, issueBody, {
     'Authorization': `Basic ${auth}`,
-  });
+  }, { orgId: payload.orgId, event: payload.event });
 
   if (result.status !== 201) {
     throw new Error(`Jira issue creation failed: ${result.status} — ${result.data}`);
@@ -392,7 +427,7 @@ async function sendGitHub(config, payload) {
     'Authorization': `token ${token}`,
     'Accept': 'application/vnd.github.v3+json',
     'User-Agent': 'SimpleBeacon-Integration',
-  });
+  }, { orgId: payload.orgId, event: payload.event });
 
   if (result.status !== 201) {
     throw new Error(`GitHub PR comment failed: ${result.status} — ${result.data}`);
@@ -489,7 +524,8 @@ async function dispatchEvent(event, context) {
     }
 
     try {
-      const result = await adapter(config, payload);
+      const dispatchCtx = { orgId, event };
+      const result = await adapter(config, payload, dispatchCtx);
       results.push({ configId: config.configId, type: config.type, ...result });
       logger.info(`[Integrations] ${config.type} dispatch success for org ${orgId} event ${event}`);
     } catch (err) {

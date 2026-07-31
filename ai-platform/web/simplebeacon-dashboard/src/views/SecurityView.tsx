@@ -7,6 +7,7 @@ import { getApiBase, apiUrl, authHeaders } from '@/config';
 import { ProviderFailoverDashboard } from '@/components/ProviderFailoverDashboard';
 import { IdentityFederationDashboard } from '@/components/IdentityFederationDashboard';
 import { SemanticCacheDashboard } from '@/components/SemanticCacheDashboard';
+import { WebhookSigningDashboard } from '@/components/WebhookSigningDashboard';
 
 type ScanResultData = {
   projectPath?: string;
@@ -384,6 +385,7 @@ export function SecurityView() {
       <ProviderFailoverDashboard />
       <IdentityFederationDashboard />
       <SemanticCacheDashboard />
+      <WebhookSigningDashboard />
     </div>
   );
 }

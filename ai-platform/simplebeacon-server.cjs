@@ -1244,6 +1244,15 @@ async function startServer() {
     logger.error('[Routes] Integration marketplace not loaded:', err?.message || err);
   }
 
+  // Webhook signing — asymmetric cryptographic signing for outbound webhooks
+  try {
+    const webhookSigningRoutes = require('./server/routes/webhook-signing-routes.cjs');
+    app.use('/api/webhook-signing', webhookSigningRoutes);
+    logger.info('[Routes] Webhook signing loaded at /api/webhook-signing');
+  } catch (err) {
+    logger.error('[Routes] Webhook signing not loaded:', err?.message || err);
+  }
+
   // Usage analytics — scan metrics, trends, posture scores
   try {
     const analyticsRoutes = require('./server/routes/analytics-routes.cjs');

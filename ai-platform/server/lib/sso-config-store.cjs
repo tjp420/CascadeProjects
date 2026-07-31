@@ -11,8 +11,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const SSO_CONFIG_PATH = process.env.SSO_CONFIG_PATH
-  || path.join(__dirname, '../../.simplebeacon', 'sso-configs.json');
+const SSO_CONFIG_PATH =
+  process.env.SSO_CONFIG_PATH || path.join(__dirname, '../../.simplebeacon', 'sso-configs.json');
 
 let _cache = null;
 let _cacheDirty = true;
@@ -116,12 +116,16 @@ function maskSecret(secret) {
  */
 function getAllConfigs() {
   const store = readStore();
-  return store.configs.map(c => ({
+  return store.configs.map((c) => ({
     ...c,
-    oidc: c.oidc ? {
-      ...c.oidc,
-      clientSecret: c.oidc.clientSecret ? maskSecret(decryptSecret(c.oidc.clientSecret)) : undefined,
-    } : undefined,
+    oidc: c.oidc
+      ? {
+          ...c.oidc,
+          clientSecret: c.oidc.clientSecret
+            ? maskSecret(decryptSecret(c.oidc.clientSecret))
+            : undefined,
+        }
+      : undefined,
   }));
 }
 
@@ -133,13 +137,17 @@ function getAllConfigs() {
 function getConfigsByOrg(orgId) {
   const store = readStore();
   return store.configs
-    .filter(c => c.orgId === orgId)
-    .map(c => ({
+    .filter((c) => c.orgId === orgId)
+    .map((c) => ({
       ...c,
-      oidc: c.oidc ? {
-        ...c.oidc,
-        clientSecret: c.oidc.clientSecret ? maskSecret(decryptSecret(c.oidc.clientSecret)) : undefined,
-      } : undefined,
+      oidc: c.oidc
+        ? {
+            ...c.oidc,
+            clientSecret: c.oidc.clientSecret
+              ? maskSecret(decryptSecret(c.oidc.clientSecret))
+              : undefined,
+          }
+        : undefined,
     }));
 }
 
@@ -150,7 +158,7 @@ function getConfigsByOrg(orgId) {
  */
 function getConfig(providerId) {
   const store = readStore();
-  return store.configs.find(c => c.providerId === providerId) || null;
+  return store.configs.find((c) => c.providerId === providerId) || null;
 }
 
 /**
@@ -160,7 +168,7 @@ function getConfig(providerId) {
  */
 function getConfigDecrypted(providerId) {
   const store = readStore();
-  const config = store.configs.find(c => c.providerId === providerId);
+  const config = store.configs.find((c) => c.providerId === providerId);
   if (!config) return null;
   if (config.oidc && config.oidc.clientSecret) {
     config.oidc._decryptedSecret = decryptSecret(config.oidc.clientSecret);
@@ -178,7 +186,7 @@ function resolveConfigByDomain(email) {
   if (!m) return null;
   const domain = m[1].toLowerCase();
   const store = readStore();
-  return store.configs.find(c => c.enabled && c.domain === domain) || null;
+  return store.configs.find((c) => c.enabled && c.domain === domain) || null;
 }
 
 /**
@@ -199,10 +207,14 @@ function createConfig(params) {
     domain: params.domain || '',
     enabled: params.enabled !== false,
     saml: params.saml || null,
-    oidc: params.oidc ? {
-      ...params.oidc,
-      clientSecret: params.oidc.clientSecret ? encryptSecret(params.oidc.clientSecret) : undefined,
-    } : null,
+    oidc: params.oidc
+      ? {
+          ...params.oidc,
+          clientSecret: params.oidc.clientSecret
+            ? encryptSecret(params.oidc.clientSecret)
+            : undefined,
+        }
+      : null,
     createdAt: now,
     updatedAt: now,
   };
@@ -220,7 +232,7 @@ function createConfig(params) {
  */
 function updateConfig(providerId, updates) {
   const store = readStore();
-  const idx = store.configs.findIndex(c => c.providerId === providerId);
+  const idx = store.configs.findIndex((c) => c.providerId === providerId);
   if (idx === -1) return null;
 
   const config = store.configs[idx];
@@ -255,7 +267,7 @@ function updateConfig(providerId, updates) {
  */
 function deleteConfig(providerId) {
   const store = readStore();
-  const idx = store.configs.findIndex(c => c.providerId === providerId);
+  const idx = store.configs.findIndex((c) => c.providerId === providerId);
   if (idx === -1) return false;
   store.configs.splice(idx, 1);
   writeStore(store);
