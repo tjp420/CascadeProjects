@@ -79,11 +79,11 @@ module.exports = async function oracleSearch(query, options = {}) {
   for (let i = 0; i < links.length; i++) {
     const link = links[i];
     // fetch page text
-    // eslint-disable-next-line no-await-in-loop
+     
     const page = await fetchPageText(link, 10000);
     outputs.push(page);
     if (i < links.length - 1 && delayMs > 0) {
-      // eslint-disable-next-line no-await-in-loop
+       
       await new Promise(r => setTimeout(r, delayMs));
     }
   }

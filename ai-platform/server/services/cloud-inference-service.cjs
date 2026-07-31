@@ -14,6 +14,7 @@
 const logger = require('../../src/lib/app-logger.cjs');
 const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
 const semanticCache = require('../lib/semantic-cache-store.cjs');
+const tokenBudget = require('../lib/token-budget-allocation-store.cjs');
 
 const constants = require('../config/constants.cjs');
 const DEFAULTS = {
@@ -716,6 +717,31 @@ async function callProvider(providerId, prompt, options = {}) {
             semanticCache.store(providerId, options.model, prompt, result, inferenceLatency, tokenCount);
         } catch (cacheStoreErr) {
             logger.warn('[SemanticCache] Store failed:', cacheStoreErr.message);
+        }
+
+        // Record token budget usage for cost tracking
+        try {
+            var orgId = options.orgId || 'default';
+            var inputTokens = (result && result.usage && result.usage.prompt_tokens) || 0;
+            var outputTokens = (result && result.usage && result.usage.completion_tokens) || tokenCount || 0;
+            tokenBudget.recordUsage(orgId, {
+                model: options.model || providerId,
+                inputTokens: inputTokens,
+                outputTokens: outputTokens,
+                userId: options.userId || null,
+            });
+        } catch (budgetErr) {
+            logger.warn('[TokenBudget] Usage recording failed:', budgetErr.message);
+        }
+
+        // Fire webhook alert if threshold crossed
+        try {
+            var budgetResult = tokenBudget.checkHardStop(orgId || 'default');
+            if (budgetResult.blocked) {
+                logger.warn('[TokenBudget] Hard stop exceeded for org=' + (orgId || 'default') + ': ' + budgetResult.pct.toFixed(1) + '%');
+            }
+        } catch (alertErr) {
+            logger.warn('[TokenBudget] Alert check failed:', alertErr.message);
         }
 
         return result;

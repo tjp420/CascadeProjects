@@ -359,4 +359,71 @@ router.get('/verify-integrity', authorize('admin:all'), (req, res) => {
   }
 });
 
+// ── POST /api/audit/heal-chain ──────────────────────────────────────────────
+//   Admin-only: heals the audit log hash chain for the caller's org.
+//   Detects broken/tampered entries, moves them to quarantine, and re-links
+//   the remaining entries with new hashes.
+router.post('/heal-chain', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const result = auditLogger.healChain(orgId);
+
+    logger.info(`[Audit] Chain heal triggered by ${req.user?.email || 'admin'} for org ${orgId}: ${result.quarantined.length} quarantined, ${result.relinked} relinked`);
+
+    try {
+      auditLogger.log({
+        orgId,
+        actorId: req.user?.id || 'unknown',
+        actorEmail: req.user?.email || 'unknown',
+        action: 'chain_heal',
+        entity: 'audit_log',
+        entityId: 'chain',
+        metadata: {
+          healed: result.healed,
+          quarantinedCount: result.quarantined.length,
+          relinked: result.relinked,
+          remaining: result.remaining,
+        },
+      });
+    } catch (logErr) {
+      logger.warn('[Audit] Failed to audit-log chain heal:', logErr.message);
+    }
+
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[Audit] heal_chain_failed:', err.message);
+    sendError(res, 500, 'heal_chain_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/quarantine ───────────────────────────────────────────────
+//   Admin-only: returns quarantined audit entries (optionally filtered by org).
+router.get('/quarantine', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = req.query.allOrgs === 'true' ? null : getOrgId(req);
+    const result = auditLogger.getQuarantine(orgId);
+    res.json({
+      success: true,
+      totalEntries: result.entries.length,
+      entries: result.entries,
+      metadata: result.metadata,
+    });
+  } catch (err) {
+    logger.warn('[Audit] quarantine_get_failed:', err.message);
+    sendError(res, 500, 'quarantine_get_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/heal-stats ───────────────────────────────────────────────
+//   Admin-only: returns auto-healing worker stats.
+router.get('/heal-stats', authorize('admin:all'), (req, res) => {
+  try {
+    const stats = auditLogger.getHealStats();
+    res.json({ success: true, ...stats });
+  } catch (err) {
+    logger.warn('[Audit] heal_stats_failed:', err.message);
+    sendError(res, 500, 'heal_stats_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

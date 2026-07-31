@@ -389,6 +389,275 @@ function verifyChain(orgId) {
   };
 }
 
+// ── Auto-Healing Worker ─────────────────────────────────────────────────────
+//
+// The auto-healing worker periodically runs verifyChain() for all orgs and
+// quarantines broken/tampered entries. When an entry is quarantined:
+//   1. It is moved to a separate quarantine file (audit-log-quarantine.json)
+//   2. It is removed from the main audit log
+//   3. The remaining entries are re-linked with new hashes
+//
+// This prevents tampered entries from poisoning the chain while preserving
+// the tamper evidence in the quarantine file for forensic analysis.
+//
+// Configuration:
+//   AUDIT_LOG_QUARANTINE_PATH — path to quarantine file (default: alongside
+//     the main audit log)
+//   AUDIT_HEAL_INTERVAL_MS — background timer interval (default: 300000 = 5min)
+//   AUDIT_HEAL_ENABLED — set to 'false' to disable auto-healing on startup
+
+const QUARANTINE_PATH =
+  process.env.AUDIT_LOG_QUARANTINE_PATH ||
+  (STORE_PATH.replace(/\.json$/, '-quarantine.json'));
+
+const DEFAULT_HEAL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+let _healTimer = null;
+let _healRunning = false;
+let _lastHealRun = null;
+let _healStats = {
+  totalRuns: 0,
+  totalQuarantined: 0,
+  totalRelinked: 0,
+  lastResult: null,
+};
+
+/**
+ * Read the quarantine store.
+ * @returns {{ entries: object[], metadata: object }}
+ */
+function readQuarantineStore() {
+  try {
+    if (!fs.existsSync(QUARANTINE_PATH)) return { entries: [], metadata: { createdAt: new Date().toISOString() } };
+    const raw = fs.readFileSync(QUARANTINE_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (!parsed.entries || !Array.isArray(parsed.entries)) {
+      return { entries: [], metadata: { createdAt: new Date().toISOString() } };
+    }
+    return parsed;
+  } catch {
+    return { entries: [], metadata: { createdAt: new Date().toISOString() } };
+  }
+}
+
+/**
+ * Write the quarantine store.
+ * @param {{ entries: array, metadata: object }} store
+ */
+function writeQuarantineStore(store) {
+  const dir = path.dirname(QUARANTINE_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(QUARANTINE_PATH, JSON.stringify(store, null, 2));
+}
+
+/**
+ * Get all organization IDs that have entries in the audit log.
+ * @returns {string[]}
+ */
+function getAllOrgIds() {
+  const store = readStore();
+  const orgIds = new Set();
+  for (const entry of Object.values(store.entries)) {
+    if (entry.orgId) orgIds.add(entry.orgId);
+  }
+  return [...orgIds];
+}
+
+/**
+ * Heal the audit log chain for a given org. Detects broken/tampered entries,
+ * moves them to the quarantine store, and re-links the remaining entries
+ * with new hashes.
+ *
+ * @param {string} orgId — Tenant org ID
+ * @returns {{ healed: boolean, quarantined: array, relinked: number, remaining: number }}
+ */
+function healChain(orgId) {
+  const orgIdNormalized = orgId || 'default';
+  const verification = verifyChain(orgIdNormalized);
+
+  if (verification.valid) {
+    return { healed: false, quarantined: [], relinked: 0, remaining: verification.totalEntries };
+  }
+
+  // Collect IDs of broken/tampered entries
+  const brokenIds = new Set();
+  for (const link of verification.brokenLinks) {
+    brokenIds.add(link.id);
+  }
+  for (const tampered of verification.tamperedEntries) {
+    brokenIds.add(tampered.id);
+  }
+
+  // Read the main store
+  const store = readStore();
+
+  // Get all entries for this org, sorted by timestamp
+  const orgEntries = Object.entries(store.entries)
+    .filter(([, e]) => e.orgId === orgIdNormalized)
+    .sort(([, a], [, b]) => a.timestamp.localeCompare(b.timestamp));
+
+  // Move broken entries to quarantine
+  const quarantined = [];
+  const quarantineStore = readQuarantineStore();
+
+  for (const [key, entry] of orgEntries) {
+    if (brokenIds.has(entry.id)) {
+      quarantined.push({
+        ...entry,
+        quarantinedAt: new Date().toISOString(),
+        quarantineReason: verification.tamperedEntries.some((t) => t.id === entry.id)
+          ? 'content_tampered'
+          : 'broken_link',
+      });
+      delete store.entries[key];
+    }
+  }
+
+  // Save quarantine store
+  quarantineStore.entries.push(...quarantined);
+  quarantineStore.metadata.lastUpdated = new Date().toISOString();
+  quarantineStore.metadata.totalQuarantined = quarantineStore.entries.length;
+  writeQuarantineStore(quarantineStore);
+
+  // Re-link remaining entries with new hashes
+  const remainingEntries = Object.entries(store.entries)
+    .filter(([, e]) => e.orgId === orgIdNormalized)
+    .sort(([, a], [, b]) => a.timestamp.localeCompare(b.timestamp));
+
+  let prevHash = GENESIS_HASH;
+  let relinked = 0;
+
+  for (const [key, entry] of remainingEntries) {
+    entry.prevHash = prevHash;
+    // Recompute hash over the entry (excluding the hash field itself)
+    const entryWithoutHash = { ...entry };
+    delete entryWithoutHash.hash;
+    entry.hash = computeEntryHash(entryWithoutHash, prevHash);
+    prevHash = entry.hash;
+    relinked++;
+  }
+
+  // Save the healed main store
+  writeStore(store);
+
+  // Update heal stats
+  _healStats.totalRuns++;
+  _healStats.totalQuarantined += quarantined.length;
+  _healStats.totalRelinked += relinked;
+  _healStats.lastResult = {
+    orgId: orgIdNormalized,
+    healed: true,
+    quarantined: quarantined.length,
+    relinked,
+    remaining: remainingEntries.length,
+    timestamp: new Date().toISOString(),
+  };
+
+  return {
+    healed: true,
+    quarantined: quarantined.map((q) => ({
+      id: q.id,
+      reason: q.quarantineReason,
+      quarantinedAt: q.quarantinedAt,
+    })),
+    relinked,
+    remaining: remainingEntries.length,
+  };
+}
+
+/**
+ * Get the quarantine store contents, optionally filtered by orgId.
+ * @param {string} [orgId] — Optional org filter
+ * @returns {{ entries: array, metadata: object }}
+ */
+function getQuarantine(orgId) {
+  const store = readQuarantineStore();
+  if (orgId) {
+    return {
+      entries: store.entries.filter((e) => e.orgId === orgId),
+      metadata: store.metadata,
+    };
+  }
+  return store;
+}
+
+/**
+ * Run healing for all orgs that have audit log entries.
+ * @returns {array} Array of heal results per org
+ */
+function healAllOrgs() {
+  if (_healRunning) return [];
+  _healRunning = true;
+  _lastHealRun = new Date().toISOString();
+
+  try {
+    const orgIds = getAllOrgIds();
+    const results = [];
+    for (const orgId of orgIds) {
+      try {
+        const result = healChain(orgId);
+        if (result.healed) {
+          results.push({ orgId, ...result });
+        }
+      } catch (err) {
+        // Continue healing other orgs even if one fails
+        results.push({ orgId, error: err.message, healed: false });
+      }
+    }
+    return results;
+  } finally {
+    _healRunning = false;
+  }
+}
+
+/**
+ * Start the background auto-healing timer.
+ * @param {number} [intervalMs] — Override interval (default: AUDIT_HEAL_INTERVAL_MS or 5min)
+ * @returns {boolean} True if timer was started
+ */
+function startAutoHeal(intervalMs) {
+  if (_healTimer) return false; // Already running
+  if (process.env.AUDIT_HEAL_ENABLED === 'false') return false;
+
+  const interval = intervalMs || parseInt(process.env.AUDIT_HEAL_INTERVAL_MS, 10) || DEFAULT_HEAL_INTERVAL_MS;
+
+  _healTimer = setInterval(() => {
+    try {
+      healAllOrgs();
+    } catch {
+      // Swallow errors in background timer — don't crash the process
+    }
+  }, interval);
+
+  // Don't keep the process alive just for the timer
+  if (_healTimer.unref) _healTimer.unref();
+
+  return true;
+}
+
+/**
+ * Stop the background auto-healing timer.
+ */
+function stopAutoHeal() {
+  if (_healTimer) {
+    clearInterval(_healTimer);
+    _healTimer = null;
+  }
+}
+
+/**
+ * Get auto-healing stats.
+ * @returns {{ totalRuns: number, totalQuarantined: number, totalRelinked: number, lastResult: object|null, lastHealRun: string|null, isRunning: boolean }}
+ */
+function getHealStats() {
+  return {
+    ..._healStats,
+    lastHealRun: _lastHealRun,
+    isRunning: _healRunning,
+    timerActive: _healTimer !== null,
+  };
+}
+
 module.exports = {
   log,
   query,
@@ -397,5 +666,12 @@ module.exports = {
   verifyChain,
   computeEntryHash,
   scrubAuditEntry,
+  healChain,
+  healAllOrgs,
+  getQuarantine,
+  startAutoHeal,
+  stopAutoHeal,
+  getHealStats,
+  getAllOrgIds,
   GENESIS_HASH,
 };
