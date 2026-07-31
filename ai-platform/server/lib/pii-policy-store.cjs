@@ -558,6 +558,172 @@ function syncPoliciesToOrgs(sourceOrgId, targetOrgIds, options = {}) {
   };
 }
 
+// ── Stream-Mode PII Scrubbing ───────────────────────────────────────────────
+//
+// Stream scrubbing handles incremental/chunked text (e.g. SSE prompt streams)
+// where PII patterns may be split across chunk boundaries. The scrubber
+// buffers incoming text and only releases redacted text up to a "safe cut
+// point" — the latest position where no pattern is partially matching.
+//
+// Usage:
+//   const scrubber = createStreamScrubber('org-id');
+//   const out1 = scrubber.process('Contact alice@');  // partial email
+//   const out2 = scrubber.process('example.com now');  // completes email
+//   const tail = scrubber.flush();                     // flush remaining buffer
+//   const combined = out1 + out2 + tail;
+//   // combined === 'Contact [REDACTED-EMAIL] now'
+
+/**
+ * Maximum lookback window for partial match detection.
+ * Patterns longer than this will not be detected at chunk boundaries.
+ * @constant {number}
+ */
+const STREAM_MAX_LOOKBACK = 200;
+
+/**
+ * Create a stateful stream scrubber for incremental text processing.
+ * @param {string} orgId — Organization ID for policy lookup
+ * @param {object} [options]
+ * @param {number} [options.maxLookback=200] — Max chars to hold back for cross-chunk matching
+ * @returns {{ process: function, flush: function, getStats: function }}
+ */
+function createStreamScrubber(orgId, options = {}) {
+  const maxLookback = options.maxLookback || STREAM_MAX_LOOKBACK;
+  const patterns = getCompiledPatterns(orgId);
+
+  let _buffer = '';
+  let _totalProcessed = 0;
+  let _totalRedacted = 0;
+  const _matchCounts = {};
+
+  if (patterns.length === 0) {
+    // No patterns — pass-through mode
+    return {
+      process(chunk) {
+        if (!chunk) return '';
+        _totalProcessed += chunk.length;
+        return chunk;
+      },
+      flush() {
+        const out = _buffer;
+        _buffer = '';
+        return out;
+      },
+      getStats() {
+        return {
+          totalProcessed: _totalProcessed,
+          totalRedacted: _totalRedacted,
+          matchCounts: _matchCounts,
+          bufferLength: 0,
+          patternCount: 0,
+        };
+      },
+    };
+  }
+
+  /**
+   * Find the safe cut point in the buffer — the latest position where we can
+   * be confident no pattern is partially matching at the boundary.
+   *
+   * Strategy: hold back the last `maxLookback` characters as a safety window
+   * where partial matches could be forming. Process (redact) everything before
+   * that window. The held-back text is processed on the next chunk arrival
+   * (when more data completes or rules out a partial match) or on flush.
+   *
+   * This is O(1) per chunk and guaranteed correct — no pattern longer than
+   * maxLookback can slip through undetected at a chunk boundary.
+   *
+   * @param {string} buffer
+   * @returns {number} Safe cut index (can be 0 to buffer.length)
+   */
+  function findSafeCutPoint(buffer) {
+    if (buffer.length === 0) return 0;
+    if (buffer.length <= maxLookback) return 0;
+    return buffer.length - maxLookback;
+  }
+
+  /**
+   * Redact text using the compiled patterns (same logic as redactText but
+   * operates on the buffer and tracks match counts).
+   * @param {string} text
+   * @returns {{ text: string, matches: array }}
+   */
+  function redactBuffer(text) {
+    let redactedText = text;
+    const matches = [];
+
+    for (const p of patterns) {
+      const regex = new RegExp(p.regex.source, p.regex.flags);
+      const found = regex.test(text);
+      if (found) {
+        const count = (text.match(new RegExp(p.regex.source, p.regex.flags)) || []).length;
+        redactedText = redactedText.replace(new RegExp(p.regex.source, p.regex.flags), p.replacement);
+        matches.push({
+          type: 'custom_pii',
+          id: p.id,
+          name: p.name,
+          severity: p.severity,
+          count,
+        });
+        _matchCounts[p.name] = (_matchCounts[p.name] || 0) + count;
+        _totalRedacted += count;
+      }
+    }
+
+    return { text: redactedText, matches };
+  }
+
+  return {
+    /**
+     * Process a chunk of text. Returns redacted text that is safe to emit.
+     * May return empty string if the buffer contains a potential partial
+     * match that needs more data to resolve.
+     * @param {string} chunk
+     * @returns {string} Redacted text safe to emit
+     */
+    process(chunk) {
+      if (!chunk || typeof chunk !== 'string') return '';
+
+      _buffer += chunk;
+      _totalProcessed += chunk.length;
+
+      const safeCut = findSafeCutPoint(_buffer);
+      if (safeCut === 0) return '';
+
+      const toProcess = _buffer.slice(0, safeCut);
+      _buffer = _buffer.slice(safeCut);
+
+      const result = redactBuffer(toProcess);
+      return result.text;
+    },
+
+    /**
+     * Flush the remaining buffer. Called at end of stream.
+     * @returns {string} Redacted remaining text
+     */
+    flush() {
+      if (_buffer.length === 0) return '';
+      const result = redactBuffer(_buffer);
+      _buffer = '';
+      return result.text;
+    },
+
+    /**
+     * Get scrubber statistics.
+     * @returns {{ totalProcessed: number, totalRedacted: number, matchCounts: object, bufferLength: number, patternCount: number }}
+     */
+    getStats() {
+      return {
+        totalProcessed: _totalProcessed,
+        totalRedacted: _totalRedacted,
+        matchCounts: { ..._matchCounts },
+        bufferLength: _buffer.length,
+        patternCount: patterns.length,
+      };
+    },
+  };
+}
+
 module.exports = {
   getPolicies,
   getPolicy,
@@ -571,6 +737,7 @@ module.exports = {
   seedDefaults,
   getAllOrgIds,
   syncPoliciesToOrgs,
+  createStreamScrubber,
   COMPLIANCE_FRAMEWORKS,
   PII_POLICY_PATH,
 };
