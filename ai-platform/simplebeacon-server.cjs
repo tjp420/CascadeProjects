@@ -1262,6 +1262,15 @@ async function startServer() {
     logger.error('[Routes] Audit trail not loaded:', err?.message || err);
   }
 
+  // Model evaluation — LLM benchmarking & adversarial test workspace
+  try {
+    const modelEvalRoutes = require('./server/routes/model-eval-routes.cjs');
+    app.use('/api/model-eval', modelEvalRoutes);
+    logger.info('[Routes] Model evaluation loaded at /api/model-eval');
+  } catch (err) {
+    logger.error('[Routes] Model evaluation not loaded:', err?.message || err);
+  }
+
   // Whitelabel partner branding — custom logos, colors, domains
   try {
     const whitelabelRoutes = require('./server/routes/whitelabel-routes.cjs');

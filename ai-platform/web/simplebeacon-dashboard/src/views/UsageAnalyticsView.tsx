@@ -12,7 +12,7 @@ import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
   ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X, Clock, Send, Settings,
-  ShieldCheck, ScrollText,
+  ShieldCheck, ScrollText, FlaskConical,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -199,6 +199,13 @@ export function UsageAnalyticsView() {
   const [auditLog, setAuditLog] = useState<any[]>([]);
   const [auditStats, setAuditStats] = useState<any>(null);
   const [auditFilter, setAuditFilter] = useState('');
+  const [evalSuites, setEvalSuites] = useState<Record<string, any>>({});
+  const [evalRuns, setEvalRuns] = useState<any[]>([]);
+  const [evalStats, setEvalStats] = useState<any>(null);
+  const [evalRunning, setEvalRunning] = useState(false);
+  const [evalProvider, setEvalProvider] = useState('openai');
+  const [evalSuiteId, setEvalSuiteId] = useState('default');
+  const [evalRunDetail, setEvalRunDetail] = useState<any>(null);
   const [scheduleForm, setScheduleForm] = useState({
     id: '', name: '', enabled: true, frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
     dayOfWeek: 1, dayOfMonth: 1, hour: 8, minute: 0, format: 'csv' as 'csv' | 'json',
@@ -692,6 +699,73 @@ export function UsageAnalyticsView() {
         toast.success(`Audit log exported as ${format.toUpperCase()}`);
       }
     } catch { toast.error('Failed to export audit log'); }
+  }, []);
+
+  // ── Model Evaluation ──────────────────────────────────────────────────────
+  const fetchEvalSuites = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/model-eval/suites'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setEvalSuites(data.suites || {});
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchEvalRuns = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/model-eval/runs?limit=20'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setEvalRuns(data.runs || []);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchEvalStats = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/model-eval/stats'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setEvalStats(data.stats);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchEvalSuites(); fetchEvalRuns(); fetchEvalStats(); }, [fetchEvalSuites, fetchEvalRuns, fetchEvalStats]);
+
+  const runEvaluation = useCallback(async () => {
+    setEvalRunning(true);
+    setEvalRunDetail(null);
+    try {
+      const resp = await fetch(apiUrl('/model-eval/run'), {
+        method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ suiteId: evalSuiteId, provider: evalProvider }),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.run) {
+        setEvalRunDetail(data.run);
+        fetchEvalRuns();
+        fetchEvalStats();
+        toast.success(`Evaluation complete: ${data.run.passed}/${data.run.totalTests} passed`);
+      } else {
+        toast.error(data.error || 'Evaluation failed');
+      }
+    } catch {
+      toast.error('Failed to run evaluation');
+    } finally {
+      setEvalRunning(false);
+    }
+  }, [evalSuiteId, evalProvider, fetchEvalRuns, fetchEvalStats]);
+
+  const fetchRunDetail = useCallback(async (runId: string) => {
+    try {
+      const resp = await fetch(apiUrl(`/model-eval/runs/${runId}`), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setEvalRunDetail(data.run);
+      }
+    } catch { /* silent */ }
   }, []);
 
   const exportLedger = useCallback(async (format: 'csv' | 'json') => {
@@ -2125,6 +2199,140 @@ export function UsageAnalyticsView() {
             </div>
           ) : (
             <div className="text-center py-8 text-sm text-muted-foreground">No audit entries found</div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Model Evaluation Workspace Panel */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FlaskConical className="h-4 w-4" /> Model Evaluation Workspace
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Run adversarial test suites against LLM providers to benchmark bias, hallucination, injection resistance, and policy compliance.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Stats Summary */}
+          {evalStats && (
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Total Runs</div>
+                <div className="text-lg font-bold">{evalStats.totalRuns}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Pass Rate</div>
+                <div className="text-lg font-bold">{evalStats.passRate}%</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Tests Run</div>
+                <div className="text-lg font-bold">{evalStats.totalTests}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">By Provider</div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {Object.entries(evalStats.byProvider || {}).map(([prov, count]: any) => (
+                    <Badge key={prov} variant="outline" className="text-[10px]">{prov}: {count}</Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Category Breakdown */}
+          {evalStats?.byCategory && Object.keys(evalStats.byCategory).length > 0 && (
+            <div className="p-3 rounded-lg border bg-muted/20 space-y-2">
+              <span className="text-xs font-medium text-muted-foreground">Category Breakdown</span>
+              <div className="grid grid-cols-5 gap-2 text-xs">
+                {Object.entries(evalStats.byCategory).map(([cat, data]: any) => (
+                  <div key={cat} className="text-center">
+                    <div className="text-muted-foreground capitalize">{cat.replace(/_/g, ' ')}</div>
+                    <div className="font-medium">{data.passed}/{data.passed + data.failed}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Run Controls */}
+          <div className="flex items-center gap-2">
+            <select
+              value={evalProvider}
+              onChange={(e) => setEvalProvider(e.target.value)}
+              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+            >
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="ollama">Ollama (local)</option>
+            </select>
+            <select
+              value={evalSuiteId}
+              onChange={(e) => setEvalSuiteId(e.target.value)}
+              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+            >
+              {Object.values(evalSuites).map((s: any) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <Button size="sm" onClick={runEvaluation} disabled={evalRunning}>
+              {evalRunning ? <RefreshCw className="h-3 w-3 animate-spin" /> : <FlaskConical className="h-3 w-3" />}
+              Run Evaluation
+            </Button>
+          </div>
+
+          {/* Run Detail */}
+          {evalRunDetail && (
+            <div className="p-3 rounded-lg border space-y-2">
+              <div className="flex items-center gap-2 text-xs">
+                <Badge variant="outline">{evalRunDetail.provider}</Badge>
+                <Badge variant="secondary">{evalRunDetail.model}</Badge>
+                <span className="font-medium">
+                  {evalRunDetail.passed}/{evalRunDetail.totalTests} passed
+                  ({evalRunDetail.totalTests > 0 ? Math.round((evalRunDetail.passed / evalRunDetail.totalTests) * 100) : 0}%)
+                </span>
+                <span className="text-muted-foreground ml-auto">{new Date(evalRunDetail.timestamp).toLocaleString()}</span>
+              </div>
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {evalRunDetail.results?.map((r: any, i: number) => (
+                  <div key={i} className="flex items-start gap-2 text-xs p-1.5 rounded hover:bg-muted/30 border-l-2"
+                    style={{ borderColor: r.passed ? '#22c55e' : r.error ? '#f59e0b' : '#ef4444' }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        {r.passed ? <Check className="h-3 w-3 text-green-600" /> : r.error ? <Clock className="h-3 w-3 text-amber-600" /> : <X className="h-3 w-3 text-red-600" />}
+                        <span className="font-medium capitalize">{r.category?.replace(/_/g, ' ')}</span>
+                        <span className="text-muted-foreground">Score: {r.score}</span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">{r.reason}</div>
+                      {r.response && (
+                        <details className="mt-1">
+                          <summary className="text-[10px] text-muted-foreground cursor-pointer">Response</summary>
+                          <div className="text-[10px] mt-1 p-1.5 rounded bg-muted/20 whitespace-pre-wrap">{r.response.slice(0, 500)}</div>
+                        </details>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Runs */}
+          {evalRuns.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Recent Evaluation Runs</span>
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {evalRuns.map((run, i) => (
+                  <div key={run.id || i} className="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-muted/30 cursor-pointer"
+                    onClick={() => fetchRunDetail(run.id)}>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{run.provider}</Badge>
+                    <span className="truncate flex-1">{run.model}</span>
+                    <span className="tabular-nums">{run.passed}/{run.totalTests}</span>
+                    <span className="text-muted-foreground text-[10px]">{new Date(run.timestamp).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
