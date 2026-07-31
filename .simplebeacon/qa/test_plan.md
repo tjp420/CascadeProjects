@@ -1,12 +1,12 @@
-# Test Plan: Multi-Tenant Cryptographic Sandbox Isolation Keys
+# Test Plan: Real-Time Token-Throttling Backpressure Mesh
 
-> Per-directory derived encryption keys for multi-tenant database record directories, extending the existing `enc:sb:` sandbox key infrastructure.
+> A reactive gateway queue that tracks per-provider, per-organization token-per-minute (TPM) and request-per-minute (RPM) consumption, smoothing or delaying requests when external LLM providers would be rate-limited.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Multi-Tenant Cryptographic Sandbox Isolation Keys |
+| Feature / change | Real-Time Token-Throttling Backpressure Mesh |
 | Author (Builder) | Devin |
 | Date | 2026-08-01 |
 | Branch | feat/agentic-orchestration |
@@ -18,20 +18,25 @@
 
 | File | Purpose |
 |------|---------|
-| `ai-platform/server/lib/crypto-utils.cjs` | Extend with `deriveDirectoryKey`, `encryptForDirectory`, `decryptForDirectory`, `isDirectoryEncrypted`, `directoryKeyFingerprint` |
-| `ai-platform/server/routes/workspace-config-routes.cjs` | Add `GET /api/workspace/isolation-key/:directory` to expose a public fingerprint for an org+record-directory key |
-| `ai-platform/server/lib/__tests__/sandbox-isolation-keys.test.cjs` | Jest tests for derivation, encryption round-trip, cross-directory key isolation, and invalid input handling |
+| `ai-platform/server/lib/token-throttle-mesh.cjs` | Core backpressure store: tracks per (orgId, provider) TPM/RPM windows, queues blocked requests, exposes `throttleRequest` |
+| `ai-platform/server/lib/token-throttle-mesh.test.cjs` | Jest tests for rate-limit detection, queueing, delay, and configuration |
+| `ai-platform/server/routes/token-throttle-routes.cjs` | REST endpoints for status and configuration |
+| `ai-platform/server/index.cjs` | Mount `/api/token-throttle` router |
+| `ai-platform/server/services/cloud-inference-service.cjs` | Integrate `tokenThrottle.throttleRequest` before external provider calls |
 
 ### APIs / routes
 
-- `GET /api/workspace/isolation-key/:directory?orgId=<orgId>` — returns the SHA-256 fingerprint of the derived key for the given org and directory. Returns `400` if `orgId` or `directory` missing.
+- `GET /api/token-throttle/status?orgId=<orgId>&provider=<provider>` — returns current window usage, limits, queue depth, and next available slot
+- `POST /api/token-throttle/configure` — body `{ orgId, provider, rpm, tpm }` to set or update limits; `0` disables throttling
+- `POST /api/token-throttle/reset` — body `{ orgId, provider }` to clear window and queue
 
-### Isolation model
+### Throttling model
 
-- A master `ENCRYPTION_KEY` is mixed via HMAC with a domain-separated salt: `sb:dir:<orgId>:<directory>`.
-- Two different `(orgId, directory)` tuples must produce uncorrelated 32-byte AES-GCM keys.
-- The ciphertext format reuses `enc:sb:` prefix with structure `iv:tag:ciphertext`.
-- Directory keys are **not persisted**; they are deterministically derived on demand.
+- Sliding 60-second windows per `(orgId, provider)`.
+- `rpm` and `tpm` limits default to environment variables `DEFAULT_LLM_RPM` and `DEFAULT_LLM_TPM` or `0` (disabled).
+- A request with `estimatedTokens` is allowed if `currentRpm < rpm` and `currentTpm + estimatedTokens <= tpm`.
+- If disallowed, the request is queued and delayed until the next window slot, up to `MAX_BACKPRESSURE_MS` (default 30s) after which it is rejected with `429`.
+- `cloud-inference-service.cjs` calls `throttleRequest` before issuing the actual provider request; after success it records actual tokens via existing `tokenBudget.recordUsage`.
 
 ---
 
@@ -39,7 +44,7 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on modified files | `node -c ai-platform/server/lib/crypto-utils.cjs`, `node -c ai-platform/server/routes/workspace-config-routes.cjs` | [ ] |
+| L1-01 | Syntax on new `.cjs` files | `node -c ai-platform/server/lib/token-throttle-mesh.cjs`, `node -c ai-platform/server/routes/token-throttle-routes.cjs`, `node -c ai-platform/server/index.cjs` | [ ] |
 | L1-02 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
 | L1-03 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
 | L1-04 | npm audit (no package.json changes expected) | `npm audit` in touched package roots | [ ] |
@@ -50,11 +55,11 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Directory key is deterministic | Call `deriveDirectoryKey('org-a', 'customers')` twice | Same 32-byte Buffer both times | [ ] |
-| L2-02 | Org + directory produces unique key | Compare `deriveDirectoryKey('org-a', 'customers')` vs `deriveDirectoryKey('org-b', 'customers')` | Different keys | [ ] |
-| L2-03 | Different directories for same org differ | Compare `deriveDirectoryKey('org-a', 'customers')` vs `deriveDirectoryKey('org-a', 'payments')` | Different keys | [ ] |
-| L2-04 | Encryption round-trip | `encryptForDirectory('secret', 'org-a', 'customers')` then `decryptForDirectory(...)` | Returns `secret` | [ ] |
-| L2-05 | Fingerprint API | `GET /api/workspace/isolation-key/customers?orgId=org-a` | Returns `success: true` and `fingerprint` (sha256 hex) | [ ] |
+| L2-01 | Request under RPM/TPM limit | `throttleRequest({ orgId: 'org-a', provider: 'openai', estimatedTokens: 100 }, fn)` with limits 10 rpm / 1000 tpm | `fn` is called immediately and resolves | [ ] |
+| L2-02 | RPM limit blocks subsequent requests | Issue 11 requests at 10 rpm | 11th is delayed or queued | [ ] |
+| L2-03 | TPM limit blocks oversized request | `estimatedTokens` 900 with limit 1000 after 200 tokens consumed | Request is delayed | [ ] |
+| L2-04 | Status endpoint reflects live windows | `GET /api/token-throttle/status?orgId=org-a&provider=openai` after a request | Returns `currentRpm`, `currentTpm`, `limitRpm`, `limitTpm` | [ ] |
+| L2-05 | Configure endpoint updates limits | `POST .../configure` then check status | Limits updated | [ ] |
 
 ---
 
@@ -62,13 +67,12 @@
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Decrypting with wrong org fails | `decryptForDirectory(ciphertext, 'org-b', 'customers')` on `org-a` ciphertext | Returns empty string (auth tag mismatch) | [ ] |
-| L3-02 | Decrypting with wrong directory fails | `decryptForDirectory(ciphertext, 'org-a', 'payments')` | Returns empty string | [ ] |
-| L3-03 | Missing orgId throws | `deriveDirectoryKey('', 'customers')` | Throws `TypeError` | [ ] |
-| L3-04 | Missing directory throws | `deriveDirectoryKey('org-a', '')` | Throws `TypeError` | [ ] |
-| L3-05 | API without orgId returns 400 | `GET /api/workspace/isolation-key/customers` | 400 with `missing orgId` | [ ] |
-| L3-06 | API without directory returns 400 | `GET /api/workspace/isolation-key/?orgId=org-a` | 400 with `missing directory` | [ ] |
-| L3-07 | Key fingerprint does not reveal key | The fingerprint is a sha256 of the key, never the raw key | Assert response contains only `fingerprint` and `directory` | [ ] |
+| L3-01 | Throttling disabled (limits 0) | All requests pass through | [ ] |
+| L3-02 | Timeout > MAX_BACKPRESSURE_MS | Rejected with `retryAfterMs` | [ ] |
+| L3-03 | Different orgs/providers isolated | Limits of `org-a/openai` do not affect `org-b/openai` or `org-a/anthropic` | [ ] |
+| L3-04 | Concurrent requests race | Window counts are consistent with sequential ordering | [ ] |
+| L3-05 | Reset clears state | `POST /reset` zeroes windows and queue | [ ] |
+| L3-06 | `estimatedTokens` missing or negative | Treated as 1 token, not rejected | [ ] |
 
 ---
 
@@ -76,10 +80,9 @@
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | Directory key uses HMAC-SHA256 with domain-separated salt `sb:dir:<orgId>:<directory>` | [ ] |
-| S-02 | AES-256-GCM with 16-byte IV and 16-byte auth tag | [ ] |
-| S-03 | No raw key material is logged, returned, or persisted | [ ] |
-| S-04 | Directory keys are deterministic and reproducible without new secrets | [ ] |
+| S-01 | No raw request content stored in the throttle queue | [ ] |
+| S-02 | Configure endpoint requires admin permission | [ ] |
+| S-03 | Status endpoint only exposes counts, not content | [ ] |
 
 ---
 

@@ -15,6 +15,7 @@ const logger = require('../../src/lib/app-logger.cjs');
 const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
 const semanticCache = require('../lib/semantic-cache-store.cjs');
 const tokenBudget = require('../lib/token-budget-allocation-store.cjs');
+const tokenThrottle = require('../lib/token-throttle-mesh.cjs');
 
 const constants = require('../config/constants.cjs');
 const DEFAULTS = {
@@ -123,7 +124,7 @@ function recordSuccess(providerId) {
  * @param {number} [timeoutMs]
  * @returns {Promise<Response>}
  */
-async function fetchWithTimeout(url, options = {}, timeoutMs = constants.TIMEOUT_30S) {
+async function fetchWithTimeoutInternal(url, options, timeoutMs) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -148,6 +149,20 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = constants.TIMEOUT
         }
         throw error;
     }
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = constants.TIMEOUT_30S) {
+    const provider = options.provider || 'llm';
+    const orgId = options.orgId || 'default';
+    const estimatedTokens = typeof options.estimatedTokens === 'number' && options.estimatedTokens > 0
+        ? options.estimatedTokens : 1;
+
+    return tokenThrottle.throttleRequest({
+        orgId,
+        provider,
+        estimatedTokens,
+        fn: () => fetchWithTimeoutInternal(url, options, timeoutMs)
+    });
 }
 
 /**
@@ -810,6 +825,9 @@ async function callOpenAI(prompt, options = {}) {
             'Content-Type': 'application/json',
             ...(requestId ? { 'X-Request-ID': requestId } : {})
         },
+        orgId: options.orgId,
+        provider: 'openai',
+        estimatedTokens: 2000,
         body: JSON.stringify({
             model: options.model || cfg.model,
             messages: messages,
@@ -874,6 +892,9 @@ async function callAnthropic(prompt, options = {}) {
             'Content-Type': 'application/json',
             ...(requestId ? { 'X-Request-ID': requestId } : {})
         },
+        orgId: options.orgId,
+        provider: 'anthropic',
+        estimatedTokens: 2000,
         body: JSON.stringify({
             model: options.model || cfg.model,
             max_tokens: 2000,
