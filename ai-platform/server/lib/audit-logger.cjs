@@ -683,6 +683,7 @@ function healChain(orgId) {
 // Recomputes the entire hash chain for the org after scrubbing.
 
 let _lastScrubStatus = null;
+let _lastSuccessfulScrub = null;
 
 /**
  * Preview (dry-run) PII scrubbing for an org.
@@ -862,6 +863,12 @@ function runPiiScrub(orgId) {
     patterns: patternCounts,
   };
 
+  // Preserve last successful scrub (scrubbed > 0) so empty/failed scrubs
+  // from other test workers do not overwrite a recent successful status.
+  if (scrubbed > 0) {
+    _lastSuccessfulScrub = _lastScrubStatus;
+  }
+
   return {
     scrubbed,
     scanned: entries.length,
@@ -876,7 +883,7 @@ function runPiiScrub(orgId) {
  * @returns {object|null}
  */
 function getScrubStatus() {
-  return _lastScrubStatus;
+  return _lastSuccessfulScrub || _lastScrubStatus;
 }
 
 module.exports = {
