@@ -73,6 +73,10 @@ type ViolationRow = {
   postureScore: number;
   gateStatus: string;
   remediation: RemediationGuidance;
+  ticketed: boolean;
+  ticketRef: string | null;
+  ticketTarget: string | null;
+  ticketMarkedAt: string | null;
 };
 
 type TicketStatus = {
@@ -118,6 +122,8 @@ export function UsageAnalyticsView() {
   const [ticketStatuses, setTicketStatuses] = useState<Record<string, TicketStatus>>({});
   const [ticketRefInput, setTicketRefInput] = useState<string>('');
   const [markingRow, setMarkingRow] = useState<string | null>(null);
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<'all' | 'ticketed' | 'unticketed'>('all');
+  const [ticketTargetFilter, setTicketTargetFilter] = useState<string>('');
   const violationsPageSize = 10;
 
   const fetchFilters = useCallback(async () => {
@@ -170,6 +176,8 @@ export function UsageAnalyticsView() {
       params.set('offset', String(page * violationsPageSize));
       if (repoFilter) params.set('repository', repoFilter);
       if (branchFilter) params.set('branch', branchFilter);
+      if (ticketStatusFilter !== 'all') params.set('ticketStatus', ticketStatusFilter);
+      if (ticketTargetFilter) params.set('ticketTarget', ticketTargetFilter);
       const resp = await fetch(apiUrl(`/analytics/violations?${params}`), { headers: authHeaders() });
       if (resp.ok) {
         const data = await resp.json();
@@ -179,7 +187,7 @@ export function UsageAnalyticsView() {
     } catch {
       // silent — violations table is supplementary
     }
-  }, [repoFilter, branchFilter]);
+  }, [repoFilter, branchFilter, ticketStatusFilter, ticketTargetFilter]);
 
   useEffect(() => { fetchViolations(violationsPage); }, [fetchViolations, violationsPage]);
 
@@ -604,6 +612,36 @@ export function UsageAnalyticsView() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Ticket Status Filters */}
+          <div className="flex items-center gap-3 pb-3 mb-2 border-b">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-muted-foreground">Status:</label>
+              <select
+                className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs"
+                value={ticketStatusFilter}
+                onChange={(e) => { setTicketStatusFilter(e.target.value as any); setViolationsPage(0); }}
+              >
+                <option value="all">All Violations</option>
+                <option value="unticketed">Unticketed Only</option>
+                <option value="ticketed">Ticketed Only</option>
+              </select>
+            </div>
+            {ticketStatusFilter === 'ticketed' && (
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-muted-foreground">Target:</label>
+                <select
+                  className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs"
+                  value={ticketTargetFilter}
+                  onChange={(e) => { setTicketTargetFilter(e.target.value); setViolationsPage(0); }}
+                >
+                  <option value="">All Targets</option>
+                  <option value="jira">Jira</option>
+                  <option value="linear">Linear</option>
+                  <option value="github">GitHub</option>
+                </select>
+              </div>
+            )}
+          </div>
           {violations.length > 0 ? (
             <div className="space-y-1">
               {/* Header row */}
@@ -621,9 +659,7 @@ export function UsageAnalyticsView() {
                   : v.remediation.priority === 'high' ? 'bg-orange-500'
                   : v.remediation.priority === 'medium' ? 'bg-yellow-500'
                   : 'bg-blue-500';
-                const ticketKey = `${v.scanId}::${v.category}`;
-                const ticketStatus = ticketStatuses[ticketKey];
-                const isTicketed = !!ticketStatus;
+                const isTicketed = v.ticketed;
                 return (
                   <div key={rowKey} className={`rounded-md ${isTicketed ? 'bg-green-500/5 border border-green-500/20' : ''}`}>
                     <div
@@ -646,9 +682,9 @@ export function UsageAnalyticsView() {
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {v.repository} · {v.branch} · {new Date(v.timestamp).toLocaleDateString()}
-                          {isTicketed && ticketStatus?.ticketRef && (
+                          {isTicketed && v.ticketRef && (
                             <span className="ml-2 text-green-600 dark:text-green-400">
-                              · <a href={ticketStatus.ticketRef} target="_blank" rel="noopener noreferrer" className="underline">{ticketStatus.ticketRef}</a>
+                              · <a href={v.ticketRef} target="_blank" rel="noopener noreferrer" className="underline">{v.ticketRef}</a>
                             </span>
                           )}
                         </div>
@@ -721,7 +757,7 @@ export function UsageAnalyticsView() {
                           {isTicketed ? (
                             <>
                               <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30">
-                                <Ticket className="h-3 w-3 mr-1" /> {ticketStatus.ticketTarget} · {ticketStatus.markedAt?.slice(0, 10)}
+                                <Ticket className="h-3 w-3 mr-1" /> {v.ticketTarget} · {v.ticketMarkedAt?.slice(0, 10)}
                               </Badge>
                               <Button variant="outline" size="sm" onClick={() => unmarkTicketed(v.scanId, v.category)}>
                                 <X className="h-3 w-3" /> Remove Ticket Status

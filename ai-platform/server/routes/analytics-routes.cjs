@@ -320,6 +320,8 @@ router.get('/export', (req, res) => {
 });
 
 // GET /api/analytics/violations — paginated violation rows with remediation guidance
+//   Query params: orgId, repository, branch, startDate, endDate, limit, offset,
+//                 ticketStatus (all|ticketed|unticketed), ticketTarget (jira|linear|github)
 router.get('/violations', (req, res) => {
   try {
     const filters = {
@@ -331,13 +333,28 @@ router.get('/violations', (req, res) => {
       limit: parseInt(req.query.limit, 10) || 50,
       offset: parseInt(req.query.offset, 10) || 0,
     };
+    const ticketStatusFilter = (req.query.ticketStatus || 'all').toLowerCase();
+    const ticketTargetFilter = (req.query.ticketTarget || '').toLowerCase();
+
     const result = analyticsStore.getScans(filters);
+    const ticketedKeys = ticketStatusStore.getTicketedKeys();
+    const allStatuses = ticketStatusStore.getAllTicketStatuses();
 
     const violations = [];
     for (const scan of result.scans) {
       const cats = scan.categoryCounts || {};
       for (const [category, count] of Object.entries(cats)) {
         if (count <= 0) continue;
+        const ticketKey = `${scan.scanId}::${category}`;
+        const isTicketed = ticketedKeys.has(ticketKey);
+        const ticketEntry = allStatuses[ticketKey];
+
+        // Filter by ticket status
+        if (ticketStatusFilter === 'unticketed' && isTicketed) continue;
+        if (ticketStatusFilter === 'ticketed' && !isTicketed) continue;
+        // Filter by ticket target
+        if (ticketTargetFilter && (!ticketEntry || ticketEntry.ticketTarget !== ticketTargetFilter)) continue;
+
         const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
         violations.push({
           scanId: scan.scanId,
@@ -352,6 +369,10 @@ router.get('/violations', (req, res) => {
           postureScore: scan.postureScore,
           gateStatus: scan.gateStatus,
           remediation: guidance,
+          ticketed: isTicketed,
+          ticketRef: ticketEntry?.ticketRef || null,
+          ticketTarget: ticketEntry?.ticketTarget || null,
+          ticketMarkedAt: ticketEntry?.markedAt || null,
         });
       }
     }
