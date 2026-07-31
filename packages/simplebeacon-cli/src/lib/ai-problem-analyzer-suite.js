@@ -1157,14 +1157,9 @@ function buildAiSystemsIssueAnalysis(selectedIssueIds = [], analyzerInputs = {})
 // ---------------------------------------------------------------------------
 module.exports = {
   ANALYZER_CATALOG, AI_SYSTEM_ISSUES, CATEGORY_DEFINITIONS, ISSUE_BY_ID, ANALYZER_BY_ID, ANALYZER_BY_ISSUE_ID,
-  clampScore, normalizeRiskScore, severityFromRisk, riskBandFromRisk, finalizeRiskAssessment, normalizeSelectedIds,
+  normalizeRiskScore, severityFromRisk, riskBandFromRisk, finalizeRiskAssessment, normalizeSelectedIds,
   buildStubResult, enrichScanContextForAnalyzers, collectAnalyzerInputs, resolveAnalyzerContext,
   buildAiSystemsIssueAnalysis, summarizeRisk, buildCategoryDistribution, buildCoverageGaps, summarizeExecutionStatus,
-  executeAnalyzer, toId, isScanReportContext,
-  // Utility helpers
-  isBlank, isEmpty, ensureArray, capitalize, pluralize, truncate,
-  tryFn, memoize, hash, randomId, sleep, delay, parseJsonSafe,
-  deepEqual, unique, partition, sortBy, flatten, range, chunk, times,
-  get, set, seq, identity, constant, random
+  executeAnalyzer, toId, isScanReportContext
 };
 

@@ -385,7 +385,6 @@ module.exports = {
     sanitizeAiProblemAnalyzerExport,
     aiProblemAnalyzerExportFilename,
     redactPathForExport,
-    projectLabelFromPath,
     reconcileRiskSummary,
     peakSeverityFromCounts,
     buildSlimPayload,

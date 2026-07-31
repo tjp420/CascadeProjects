@@ -18,4 +18,20 @@ function assertNever(value, message = 'Unexpected value') {
     throw new Error(`${message}: ${display}`);
 }
 
-module.exports = { noop, assertNever };
+/**
+ * Memoize a function result based on JSON-serialized arguments.
+ * @param {Function} fn
+ * @returns {Function}
+ */
+function memoize(fn) {
+    const cache = new Map();
+    return function (...args) {
+        const key = JSON.stringify(args);
+        if (cache.has(key)) return cache.get(key);
+        const result = fn.apply(this, args);
+        cache.set(key, result);
+        return result;
+    };
+}
+
+module.exports = { noop, assertNever, memoize };

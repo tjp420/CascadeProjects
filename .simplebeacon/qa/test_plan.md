@@ -1,64 +1,69 @@
-# Test Plan: Scan Worker Progress Fix for Large File Counts
+# Test Plan: Export Collision Cleanup
 
 **Date:** 2026-07-31
 **Branch:** main
-**Issue:** Local scan appears stuck on projects with many binary files (e.g., 7,754 files in a Games project). Worker processes files but sends no progress messages for binary/skipped/error paths, causing the UI to show no updates.
+**Issue:** 48 `SimplebeaconExportCollision` warnings on server startup from the
+simplebeacon barrel loader (`packages/simplebeacon-cli/src/index.js`).
 
 ## Root Cause
 
-In `scan-worker.js`, `scanFiles()` has five code paths that increment `processed`:
-1. `shouldSkipFile` (ignored dirs/patterns) — no progress message
-2. `isBinary` (binary files) — no progress message
-3. Large vendor file skip — no progress message
-4. `file.text()` error catch — no progress message
-5. Full text analysis — sends progress every 25 files (the ONLY path that does)
+The barrel loader in `index.js` flattens ~50 module exports into one namespace.
+Five modules re-export utility functions that are already exported by dedicated
+utility modules, causing collisions:
 
-For binary-heavy projects (Games, media, etc.), 90%+ of files hit paths 1-4, so zero
-progress messages are sent within a batch. The user sees the worker "started" then nothing.
+| Module | Colliding Exports | Canonical Source |
+|--------|-------------------|-------------------|
+| `reporters/audit-report.js` | 40 utilities (isBlank, isEmpty, capitalize, etc.) | `utils/string`, `utils/object`, `utils/functional`, `utils/async` |
+| `lib/ai-problem-analyzer-suite.js` | 28 utilities | Same as above |
+| `compliance-checklist.js` | `formatBytes` | `lib/format-utils` (via `scan.js`) |
+| `config.js` | `normalizePathKey` | `lib/path-utils` |
+| `lib/simplebeacon-report-export-sanitize.js` | `redactProjectPathForExport`, `projectLabelFromPath` | `lib/assessment-export-sanitize.js` |
+| `lib/ai-problem-analyzer-export-sanitize.js` | `projectLabelFromPath` | `lib/assessment-export-sanitize.js` |
+| `utils/async-advanced.js` | `retry`, `withTimeout`, `delay` | `utils/async` |
 
-## Fix
+## Fix Strategy
 
-1. **scan-worker.js**: Extract a `postProgress()` helper and call it from ALL paths
-   that increment `processed`. Post every 25 files regardless of file type.
-2. **localScanService.js**: Remove dead duplicate `worker.onmessage` assignment.
-   Add batch-level diagnostic logging. Add overall scan timeout (30 min).
-3. **scan-worker.js**: Add `batch-started` message so main thread knows when each
-   batch begins processing (not just when it completes).
+Remove utility re-exports from the five secondary modules. Keep them in the
+canonical dedicated utility modules. No external code imports these utilities
+from the secondary modules (verified by subagent search).
 
 ## Objective Check-Items
 
-### Level 1 — Deterministic (required)
+### Level 1 — Deterministic
 
 | # | Item | Command | Pass Criteria |
 |---|------|---------|---------------|
-| L1.1 | scan-worker.js syntax | `node -c scan-worker.js` | No errors |
-| L1.2 | localScanService.js syntax | `node -c localScanService.js` | No errors |
+| L1.1 | All changed files syntax check | `node -c <file>` | Exit 0 for each |
+| L1.2 | CLI tests pass | `cd packages/simplebeacon-cli && npm test` | All pass |
 | L1.3 | Gate scan passes | `npx simplebeacon scan --gate` | Exit 0 |
 
 ### Level 2 — Behavioral
 
 | # | Item | Method | Pass Criteria |
 |---|------|--------|---------------|
-| L2.1 | Progress posted for binary files | Code review | `postProgress` called in binary skip path |
-| L2.2 | Progress posted for skipped files | Code review | `postProgress` called in shouldSkipFile path |
-| L2.3 | Progress posted for error files | Code review | `postProgress` called in catch block |
-| L2.4 | Progress posted for large vendor files | Code review | `postProgress` called in vendor skip path |
-| L2.5 | Batch-started message sent | Code review | Worker posts `batch-started` before processing |
-| L2.6 | Overall scan timeout exists | Code review | 30-min timeout terminates worker |
-| L2.7 | No duplicate onmessage | Code review | Only one `worker.onmessage` assignment |
+| L2.1 | No collision warnings | Run server, check stderr | Zero SimplebeaconExportCollision warnings |
+| L2.2 | audit-report functions still work | Run existing tests | audit-report.test.js passes |
+| L2.3 | ai-problem-analyzer functions still work | Run existing tests | All analyzer tests pass |
+| L2.4 | compliance-checklist formatBytes still works internally | Code review | Internal usage preserved |
 
-### Level 3 — Self-review / drift
+### Level 3 — Self-review
 
 | # | Item | Pass Criteria |
 |---|------|---------------|
-| L3.1 | No new files created | Broom strategy — edit existing files only |
+| L3.1 | No new files created | Broom strategy |
 | L3.2 | No new dependencies | package.json unchanged |
-| L3.3 | Progress frequency unchanged | Still every 25 files (not flooding main thread) |
-| L3.4 | Existing behavior preserved | Text analysis path still works as before |
+| L3.3 | Internal usage of utilities preserved | Functions still defined locally, just not re-exported |
+| L3.4 | No external imports of removed re-exports | Verified by subagent search |
 
 ## Files Changed
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `ai-platform/web/simplebeacon-dashboard/js-es2018/workers/scan-worker.js` | MODIFIED | Add `postProgress` helper, call from all paths, add `batch-started` message |
-| `ai-platform/web/simplebeacon-dashboard/js-es2018/services/localScanService.js` | MODIFIED | Remove dead onmessage, add batch diagnostics, add overall timeout |
+| File | Action |
+|------|--------|
+| `packages/simplebeacon-cli/src/reporters/audit-report.js` | Remove 40 utility re-exports from module.exports |
+| `packages/simplebeacon-cli/src/lib/ai-problem-analyzer-suite.js` | Remove 28 utility re-exports from module.exports |
+| `packages/simplebeacon-cli/src/scan.js` | Remove `formatBytes` from module.exports |
+| `packages/simplebeacon-cli/src/config.js` | Remove `normalizePathKey` from module.exports |
+| `packages/simplebeacon-cli/src/compliance-checklist.js` | Remove `formatBytes` from module.exports |
+| `packages/simplebeacon-cli/src/lib/simplebeacon-report-export-sanitize.js` | Remove `redactProjectPathForExport`, `projectLabelFromPath` from module.exports |
+| `packages/simplebeacon-cli/src/lib/ai-problem-analyzer-export-sanitize.js` | Remove `projectLabelFromPath` from module.exports |
+| `packages/simplebeacon-cli/src/utils/async-advanced.js` | Remove `retry`, `withTimeout`, `delay` from module.exports if duplicated |

@@ -261,7 +261,6 @@ module.exports = {
     detectNpmAuditSummary,
     detectProductionAuthProfile,
     resolveChecklistBase,
-    formatBytes,
     DEFAULT_CHECKLIST,
     EU_AI_ACT_CHECKLIST,
     CHECKLIST_PROFILES

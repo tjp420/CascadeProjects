@@ -115,4 +115,44 @@ function isBlank(value) {
     return value == null || (typeof value === 'string' && value.trim().length === 0);
 }
 
-module.exports = { kebabCase, camelCase, snakeCase, padStart, padEnd, escapeRegExp, formatDuration, formatNumber, isBlank };
+/**
+ * Capitalize the first character of a string.
+ * @param {any} value
+ * @returns {string}
+ */
+function capitalize(value) {
+    const s = String(value ?? '');
+    if (!s) return s;
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Pluralize a word based on count.
+ * @param {number} count
+ * @param {string} singular
+ * @param {string} [plural]
+ * @returns {string}
+ */
+function pluralize(count, singular, plural) {
+    const n = Number(count);
+    if (!Number.isFinite(n)) return `${count} ${singular}`;
+    const word = n === 1 ? singular : (plural ?? `${singular}s`);
+    return `${n} ${word}`;
+}
+
+/**
+ * Truncate a string to a max length with a suffix.
+ * @param {any} str
+ * @param {number} [maxLen=80]
+ * @param {string} [suffix='…']
+ * @returns {string}
+ */
+function truncate(str, maxLen = 80, suffix = '…') {
+    const s = String(str ?? '');
+    const limit = Number.isFinite(maxLen) && maxLen > 0 ? Math.floor(maxLen) : 80;
+    if (s.length <= limit) return s;
+    const endLen = Math.max(0, limit - String(suffix ?? '…').length);
+    return s.slice(0, endLen) + String(suffix ?? '…');
+}
+
+module.exports = { kebabCase, camelCase, snakeCase, padStart, padEnd, escapeRegExp, formatDuration, formatNumber, isBlank, capitalize, pluralize, truncate };

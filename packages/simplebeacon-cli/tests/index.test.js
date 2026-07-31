@@ -76,9 +76,7 @@ describe('index.js public API', () => {
 
     it('Simplebeacon.report contains expected keys', () => {
         assert.strictEqual(typeof Simplebeacon.report.formatJsonReport, 'function');
-        assert.strictEqual(typeof Simplebeacon.report.capitalize, 'function');
-        assert.strictEqual(typeof Simplebeacon.report.pluralize, 'function');
-        assert.strictEqual(typeof Simplebeacon.report.truncate, 'function');
+        assert.strictEqual(typeof Simplebeacon.report.compileAuditReportMarkdown, 'function');
     });
 
     it('Simplebeacon.utils contains expected keys', () => {

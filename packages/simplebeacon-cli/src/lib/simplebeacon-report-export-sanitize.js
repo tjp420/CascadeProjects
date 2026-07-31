@@ -818,9 +818,7 @@ module.exports = {
     isProductDefaultMockScanPaths,
     reconcileBenchmarkScanMetrics,
     dedupeExportNotes,
-    redactProjectPathForExport,
     redactBenchmarkExportPathFields,
-    projectLabelFromPath,
     stripInternalReportExportFields,
     simplebeaconReportExportFilename
 };

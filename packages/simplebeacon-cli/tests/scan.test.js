@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+const { formatBytes } = require('../src/lib/format-utils');
 const {
-    formatBytes,
     categoryForExt,
     globToRegex,
     cachedGlobToRegex,

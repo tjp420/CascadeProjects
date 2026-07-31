@@ -2,7 +2,7 @@
  * Markdown/JSON reporting for file-reduction findings.
  */
 
-const { formatBytes } = require('../scan');
+const { formatBytes } = require('../lib/format-utils');
 
 function generateSummary(report) {
     const summary = report.summary || {};

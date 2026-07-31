@@ -299,8 +299,7 @@ const Simplebeacon = deepFreeze({
         './utils/object',
         './utils/string',
         './utils/functional',
-        './utils/async-advanced',
-        './lib/ai-problem-analyzer-suite'
+        './utils/async-advanced'
     ])
 });
 

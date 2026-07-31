@@ -1908,6 +1908,5 @@ module.exports = {
     loadSimplebeaconIgnorePatterns,
     isIgnoredPath,
     globToRegex,
-    cachedGlobToRegex,
-    formatBytes
+    cachedGlobToRegex
 };

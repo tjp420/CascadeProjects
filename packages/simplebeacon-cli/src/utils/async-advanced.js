@@ -152,8 +152,5 @@ function delay(ms) {
 module.exports = {
     debounceAsync,
     throttleAsync,
-    memoizeAsync,
-    retry,
-    withTimeout,
-    delay
+    memoizeAsync
 };

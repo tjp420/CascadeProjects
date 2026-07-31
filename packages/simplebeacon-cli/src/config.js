@@ -516,6 +516,5 @@ module.exports = {
     buildInitConfig,
     buildInitBaseline,
     mergeBaseline,
-    readJsonFile,
-    normalizePathKey
+    readJsonFile
 };
