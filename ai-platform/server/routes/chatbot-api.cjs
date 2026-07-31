@@ -34,6 +34,7 @@ const modelRoutingStore = require('../lib/model-routing-store.cjs');
 const sessionAuditStore = require('../lib/session-audit-store.cjs');
 const perfStore = require('../lib/proxy-performance-store.cjs');
 const quotaStore = require('../lib/rate-limit-quota-store.cjs');
+const moderationStore = require('../lib/content-moderation-store.cjs');
 
 // Lazy-load prompt service for custom user prompts
 let promptService;
@@ -616,6 +617,33 @@ function setupChatbotAPI(app) {
         /* ignore weather path errors */
       }
 
+      // Content Moderation: score prompt for toxicity and sentiment
+      let moderationResult = null;
+      try {
+        moderationResult = moderationStore.moderateText(message, {
+          direction: 'inbound',
+          userId: userEmail || 'anonymous',
+          requestId,
+          provider,
+        });
+        if (moderationResult.verdict === 'block') {
+          logger.info('[Chatbot API] Prompt blocked by content moderation:', {
+            requestId,
+            toxicityScore: moderationResult.toxicityScore,
+            categories: moderationResult.categories,
+          });
+          return res.status(403).json({
+            success: false,
+            error: 'content_moderation_blocked',
+            message: 'Your message was blocked by the content moderation firewall.',
+            toxicityScore: moderationResult.toxicityScore,
+            categories: moderationResult.categories,
+          });
+        }
+      } catch (e) {
+        logger.warn('[Chatbot API] Content moderation failed:', e.message);
+      }
+
       // Model-Routing Optimizer: evaluate prompt complexity and token length
       // to dynamically select the optimal model tier
       let routingDecision = null;
@@ -715,7 +743,7 @@ function setupChatbotAPI(app) {
 
       // Record performance metrics
       try {
-        const responseText = response.text || response.content || '';
+        let responseText = response.text || response.content || '';
         const tokenCount = response.usage?.total_tokens || response.usage?.output_tokens ||
           Math.ceil(responseText.length / 4);
         perfStore.recordRequest({
@@ -749,7 +777,7 @@ function setupChatbotAPI(app) {
       // safety restrictions (e.g. unbreakable-oracle, dolphin-mistral).
       const serverRefusalPattern =
         /I(?:'|[\u2019])?m sorry, but I can(?:'|[\u2019])?t (?:assist|help|provide|fulfill)|I cannot (?:provide|assist|help|fulfill)|I(?:'|[\u2019])?m unable to (?:assist|help|provide|fulfill)|I will not (?:assist|help|provide|fulfill)|I can(?:'|[\u2019])?t (?:help|provide|answer|fulfill|provide information about|assist with that)/i;
-      const responseText = response.text || response.content || '';
+      responseText = response.text || response.content || '';
       if (serverRefusalPattern.test(responseText)) {
         logger.warn('[Chatbot API] Refusal detected, retrying with stronger prompt:', {
           requestId,
@@ -862,6 +890,33 @@ function setupChatbotAPI(app) {
         responseLength: response.text?.length || 0,
         hasTiming: !!response.timing,
       });
+
+      // Content Moderation: score outbound response for toxicity
+      const outboundText = response.text || response.content || '';
+      let responseModeration = null;
+      try {
+        responseModeration = moderationStore.moderateText(outboundText, {
+          direction: 'outbound',
+          userId: userEmail || 'anonymous',
+          requestId,
+          provider: response.provider || effectiveProvider,
+        });
+        if (responseModeration.verdict === 'block') {
+          logger.warn('[Chatbot API] Response blocked by content moderation:', {
+            requestId,
+            toxicityScore: responseModeration.toxicityScore,
+            categories: responseModeration.categories,
+          });
+          return res.status(403).json({
+            success: false,
+            error: 'response_moderation_blocked',
+            message: 'The AI response was blocked by the content moderation firewall.',
+            toxicityScore: responseModeration.toxicityScore,
+          });
+        }
+      } catch (e) {
+        logger.warn('[Chatbot API] Response moderation failed:', e.message);
+      }
 
       // Record conversation turn in session audit store for compliance replay
       const sessionId = req.body?.sessionId || sessionAuditStore.generateSessionId();
