@@ -2,6 +2,7 @@
 const request = require('supertest');
 const express = require('express');
 const path = require('path');
+const { clearChatbotMockMode } = require('./helpers/chatbot-mock-env.js');
 
 // Mock heavy config constants to avoid loading full config facade during unit tests
 jest.mock('../server/config/constants.cjs', () => ({
@@ -27,6 +28,7 @@ describe('Chatbot removeFilters gating', () => {
     process.env.NODE_ENV = 'test';
     process.env.PORT = '0';
     process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'test-openai-key';
+    clearChatbotMockMode();
 
     // Create express app and basic middleware
     serverApp = express();
@@ -68,6 +70,7 @@ describe('Chatbot removeFilters gating', () => {
   afterAll(() => {
     jest.restoreAllMocks();
     delete process.env.OPENAI_API_KEY;
+    clearChatbotMockMode();
   });
 
   test('unauthenticated/non-admin request with removeFilters=true is ignored and logs security event', async () => {

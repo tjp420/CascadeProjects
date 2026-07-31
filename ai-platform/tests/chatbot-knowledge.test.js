@@ -1,6 +1,13 @@
 // simplebeacon-ignore: test fixtures, dev-only
 const request = require('supertest');
 const express = require('express');
+const { clearChatbotMockMode } = require('./helpers/chatbot-mock-env.js');
+
+// Prevent prompt-firewall from blocking test messages — force allow verdict
+jest.mock('../server/lib/prompt-firewall.cjs', () => ({
+  analyzePrompt: jest.fn(() => ({ verdict: 'allow', text: '', matches: [], summary: '' })),
+  shouldBlockPrompt: jest.fn(() => false),
+}));
 
 jest.mock('../server/config/constants.cjs', () => ({
   TIMEOUT_8S: 8000,
@@ -21,6 +28,7 @@ describe('Chatbot knowledge injection', () => {
     process.env.NODE_ENV = 'test';
     process.env.PORT = '0';
     process.env.OPENAI_API_KEY = 'test-key';
+    clearChatbotMockMode();
 
     serverApp = express();
     serverApp.use(express.json());
@@ -29,6 +37,12 @@ describe('Chatbot knowledge injection', () => {
     audit = require('../server/middleware/audit.cjs');
     jest.spyOn(audit, 'logSecurityEvent').mockImplementation(() => {});
     jest.spyOn(audit, 'logUserAction').mockImplementation(() => {});
+
+    // Prevent prompt-firewall from blocking test messages — force allow verdict
+    jest.mock('../server/lib/prompt-firewall.cjs', () => ({
+      analyzePrompt: jest.fn(() => ({ verdict: 'allow', text: '', matches: [], summary: '' })),
+      shouldBlockPrompt: jest.fn(() => false),
+    }));
 
     cloudInf = require('../server/services/cloud-inference-service.cjs');
     generateSpy = jest.fn(async (provider, messages) => ({
@@ -45,6 +59,7 @@ describe('Chatbot knowledge injection', () => {
   afterAll(() => {
     jest.restoreAllMocks();
     delete process.env.OPENAI_API_KEY;
+    clearChatbotMockMode();
   });
 
   test('getRelevantKnowledge matches remove-filters triggers', () => {
@@ -64,7 +79,9 @@ describe('Chatbot knowledge injection', () => {
       provider: 'openai',
       personality: 'helpful',
     });
-
+    // Debug: print response for failing case
+    // eslint-disable-next-line no-console
+    console.log('TEST RESPONSE BODY:', response.status, JSON.stringify(response.body));
     expect(response.status).toBe(200);
     expect(generateSpy).toHaveBeenCalled();
     const messages = generateSpy.mock.calls[0][1];

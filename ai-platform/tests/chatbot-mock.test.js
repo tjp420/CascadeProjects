@@ -1,6 +1,7 @@
 // simplebeacon-ignore: test fixtures, dev-only
 const request = require('supertest');
 const express = require('express');
+const { setChatbotMockMode, clearChatbotMockMode } = require('./helpers/chatbot-mock-env.js');
 
 jest.mock('../server/config/constants.cjs', () => ({
   TIMEOUT_8S: 8000,
@@ -22,7 +23,7 @@ describe('Chatbot mock provider mode', () => {
   beforeAll(() => {
     process.env.NODE_ENV = 'test';
     process.env.PORT = '0';
-    process.env.SIMPLEBEACON_CHATBOT_MOCK = 'true';
+    setChatbotMockMode(true);
 
     serverApp = express();
     serverApp.use(express.json());
@@ -34,7 +35,7 @@ describe('Chatbot mock provider mode', () => {
 
   afterAll(() => {
     jest.restoreAllMocks();
-    delete process.env.SIMPLEBEACON_CHATBOT_MOCK;
+    clearChatbotMockMode();
   });
 
   test('POST /api/chatbot/message returns mock response without API keys', async () => {
@@ -91,7 +92,7 @@ describe('Chatbot message rate limiting', () => {
   beforeAll(() => {
     process.env.NODE_ENV = 'test';
     process.env.PORT = '0';
-    process.env.SIMPLEBEACON_CHATBOT_MOCK = 'true';
+    setChatbotMockMode(true);
 
     rateApp = express();
     rateApp.use(express.json());
@@ -102,7 +103,7 @@ describe('Chatbot message rate limiting', () => {
   });
 
   afterAll(() => {
-    delete process.env.SIMPLEBEACON_CHATBOT_MOCK;
+    clearChatbotMockMode();
   });
 
   test('POST /api/chatbot/message returns 429 after 30 messages in 1 minute', async () => {
