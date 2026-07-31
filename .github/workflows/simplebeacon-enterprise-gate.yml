@@ -36,6 +36,11 @@ jobs:
       - name: Install workspace (monorepo lockfile)
         run: npm ci --ignore-scripts
 
+      - name: Validate Custom Enterprise Rules Schema
+        run: |
+          node packages/simplebeacon-cli/scripts/validate-custom-rules.js --rules-dir=./.simplebeacon/rules/
+        continue-on-error: false
+
       - name: Fetch Tree-sitter WASM grammars
         run: npm run fetch-grammars --workspace=@simplebeacon/intelligence
 
@@ -45,7 +50,7 @@ jobs:
           SIMPLEBEACON_PARALLEL_MIN_FILES: '48'
           SIMPLEBEACON_OFFLINE: '1'
         run: |
-          node ../packages/simplebeacon-cli/bin/simplebeacon.js scan \
+          node packages/simplebeacon-cli/bin/simplebeacon.js scan \
             --path ai-platform \
             --format json \
             --output ai-platform/.simplebeacon/report.json \
@@ -53,7 +58,7 @@ jobs:
             --gate \
             --offline \
             --verbose
-          node ../packages/simplebeacon-cli/bin/simplebeacon.js gate status
+          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
 
       - name: Post PR gate summary
         if: github.event_name == 'pull_request' && always()

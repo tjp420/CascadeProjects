@@ -11,7 +11,8 @@ function startServer() {
     ...process.env,
     NODE_ENV: 'production',
     PORT,
-    SIMPLEBEACON_LICENSE_SECRET: ''
+    SIMPLEBEACON_LICENSE_SECRET: '',
+    JWT_SECRET: 'ci-test-jwt-secret-for-playwright-gate-only'
   };
 
   const server = spawn(process.execPath, ['ai-platform/server/index.cjs'], {
