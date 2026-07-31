@@ -6,6 +6,7 @@ on:
     paths:
       - '.simplebeacon/docs/**'
       - 'packages/simplebeacon-cli/scripts/bundle-procurement-kit.js'
+  workflow_dispatch:
 
 jobs:
   publish-kit:
@@ -28,6 +29,20 @@ jobs:
       - name: Compile Cryptographic Procurement Package
         run: npm run enterprise:kit
 
+      - name: Verify Archive Integrity
+        run: |
+          if [ ! -f generated/simplebeacon-procurement-kit.zip ]; then
+            echo "::error::Procurement kit archive not found"
+            exit 1
+          fi
+          echo "✅ Archive generated successfully"
+          ls -lh generated/simplebeacon-procurement-kit.zip
+
+      - name: Clear Previous Rolling Tag
+        run: |
+          git tag -d procurement-kit-latest || true
+          git push origin :refs/tags/procurement-kit-latest || true
+
       - name: Publish to Rolling Release Tag
         uses: softprops/action-gh-release@v2
         with:
@@ -42,4 +57,3 @@ jobs:
             - Commit Reference: ${{ github.sha }}
           files: generated/simplebeacon-procurement-kit.zip
           make_latest: true
-          overwrite: true
