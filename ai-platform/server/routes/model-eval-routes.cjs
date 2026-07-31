@@ -184,6 +184,7 @@ router.get('/suites', (req, res) => {
     const suites = evalStore.getAllSuites(orgId);
     res.json({ success: true, suites });
   } catch (err) {
+    logger.warn('[ModelEval] suites_fetch_failed failed:', err.message);
     sendError(res, 500, 'suites_fetch_failed', { message: err.message });
   }
 });
@@ -197,6 +198,7 @@ router.get('/suites/:id', (req, res) => {
     if (!suite) return sendError(res, 404, 'suite_not_found');
     res.json({ success: true, suite });
   } catch (err) {
+    logger.warn('[ModelEval] suite_fetch_failed failed:', err.message);
     sendError(res, 500, 'suite_fetch_failed', { message: err.message });
   }
 });
@@ -213,6 +215,7 @@ router.post('/suites', (req, res) => {
     auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'CREATE', entity: 'eval_suite', entityId: id, newValue: suite, metadata: { route: req.originalUrl } });
     res.json({ success: true, suite });
   } catch (err) {
+    logger.warn('[ModelEval] suite_save_failed failed:', err.message);
     sendError(res, 500, 'suite_save_failed', { message: err.message });
   }
 });
@@ -226,6 +229,7 @@ router.delete('/suites/:id', (req, res) => {
     auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'DELETE', entity: 'eval_suite', entityId: req.params.id, oldValue: oldSuite, metadata: { route: req.originalUrl } });
     res.json({ success: true, deleted: req.params.id });
   } catch (err) {
+    logger.warn('[ModelEval] suite_delete_failed failed:', err.message);
     sendError(res, 500, 'suite_delete_failed', { message: err.message });
   }
 });
@@ -316,6 +320,7 @@ router.post('/run', promptFirewall(), async (req, res) => {
 
     res.json({ success: true, run });
   } catch (err) {
+    logger.warn('[ModelEval] eval_run_failed failed:', err.message);
     sendError(res, 500, 'eval_run_failed', { message: err.message });
   }
 });
@@ -333,6 +338,7 @@ router.get('/runs', (req, res) => {
     });
     res.json({ success: true, ...result });
   } catch (err) {
+    logger.warn('[ModelEval] runs_fetch_failed failed:', err.message);
     sendError(res, 500, 'runs_fetch_failed', { message: err.message });
   }
 });
@@ -345,6 +351,7 @@ router.get('/runs/:id', (req, res) => {
     if (!run) return sendError(res, 404, 'run_not_found');
     res.json({ success: true, run });
   } catch (err) {
+    logger.warn('[ModelEval] run_fetch_failed failed:', err.message);
     sendError(res, 500, 'run_fetch_failed', { message: err.message });
   }
 });
@@ -356,6 +363,7 @@ router.get('/stats', (req, res) => {
     const stats = evalStore.getRunStats(orgId);
     res.json({ success: true, stats });
   } catch (err) {
+    logger.warn('[ModelEval] stats_fetch_failed failed:', err.message);
     sendError(res, 500, 'stats_fetch_failed', { message: err.message });
   }
 });

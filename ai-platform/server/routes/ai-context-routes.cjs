@@ -85,6 +85,7 @@ router.get('/ai-context', async (req, res) => {
             sendError(res, 404, 'No AI context file found. Upload a report and click "Send to AI Agent" first.');
         }
     } catch (err) {
+        logger.warn('[AIContext] operation failed:', err.message);
         sendError(res, 500, err.message);
     }
 });

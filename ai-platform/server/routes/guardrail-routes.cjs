@@ -32,6 +32,7 @@ router.get('/incidents', (req, res) => {
     });
     res.json({ success: true, ...result });
   } catch (err) {
+    logger.warn('[Guardrail] incidents_fetch_failed failed:', err.message);
     sendError(res, 500, 'incidents_fetch_failed', { message: err.message });
   }
 });
@@ -43,6 +44,7 @@ router.get('/stats', (req, res) => {
     const stats = incidentStore.getStats(orgId);
     res.json({ success: true, stats });
   } catch (err) {
+    logger.warn('[Guardrail] guardrail_stats_failed failed:', err.message);
     sendError(res, 500, 'guardrail_stats_failed', { message: err.message });
   }
 });
@@ -56,6 +58,7 @@ router.post('/test', (req, res) => {
     const result = analyzePrompt(text);
     res.json({ success: true, result });
   } catch (err) {
+    logger.warn('[Guardrail] guardrail_test_failed failed:', err.message);
     sendError(res, 500, 'guardrail_test_failed', { message: err.message });
   }
 });

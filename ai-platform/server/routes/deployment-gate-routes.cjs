@@ -6,6 +6,7 @@ const { authenticate, optionalAuthenticate } = require('../middleware/auth.cjs')
 const deploymentGateStore = require('../lib/deployment-gate-store.cjs');
 const ticketStatusStore = require('../lib/ticket-status-store.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
+const { processEvent: triggerAlert } = require('../lib/alert-dispatcher.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 
 // Lazy-load analytics store to avoid circular deps
@@ -275,9 +276,19 @@ router.get('/evaluate', (req, res) => {
     // Record in history
     deploymentGateStore.recordEvaluation(orgId, response);
 
+    // Fire alert on gate failure
+    if (!result.pass) {
+      triggerAlert(orgId, 'gate_failed', {
+        severity: 'high',
+        message: `Deployment gate failed for ${repository || 'unknown repo'}`,
+        data: { repository, branch, commitSha, evaluationId, violations: result.violations, triggeredBy },
+      }).catch(() => {});
+    }
+
     const status = result.pass ? 200 : 403;
     res.status(status).json(response);
   } catch (err) {
+    logger.warn('[DeploymentGate] gate_evaluation_failed:', err.message);
     sendError(res, 500, 'gate_evaluation_failed', { message: err.message });
   }
 });
@@ -289,6 +300,7 @@ router.get('/policy', (req, res) => {
     const policy = deploymentGateStore.getPolicy(orgId);
     res.json({ success: true, policy });
   } catch (err) {
+    logger.warn(`[DeploymentGate] policy_fetch_failed: ${err.message}`);
     sendError(res, 500, 'policy_fetch_failed', { message: err.message });
   }
 });
@@ -306,6 +318,7 @@ router.post('/policy', (req, res) => {
     auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'UPDATE', entity: 'deployment_gate_policy', entityId: orgId, oldValue: oldPolicy, newValue: policy, metadata: { route: req.originalUrl } });
     res.json({ success: true, policy });
   } catch (err) {
+    logger.warn(`[DeploymentGate] policy_save_failed: ${err.message}`);
     sendError(res, 500, 'policy_save_failed', { message: err.message });
   }
 });
@@ -319,6 +332,7 @@ router.get('/history', (req, res) => {
     const history = deploymentGateStore.getHistory(orgId, limit);
     res.json({ success: true, history, count: history.length });
   } catch (err) {
+    logger.warn(`[DeploymentGate] history_fetch_failed: ${err.message}`);
     sendError(res, 500, 'history_fetch_failed', { message: err.message });
   }
 });

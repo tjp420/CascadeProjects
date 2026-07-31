@@ -3,6 +3,7 @@
 const path = require('path');
 const fs = require('fs');
 const { sendError } = require('../lib/response-helpers.cjs');
+const logger = require('../lib/app-logger.cjs');
 
 const {
   buildAssessmentReport,
@@ -69,6 +70,7 @@ function setupSimplebeaconDemoAPI(app) {
       const report = await readJson(path.join(DEMO_DIR, 'report.json'));
       res.json(report);
     } catch (err) {
+      logger.warn('[Demo] Demo report not found failed:', err.message);
       sendError(res, 404, 'Demo report not found', { message: err.message });
     }
   });
@@ -77,6 +79,7 @@ function setupSimplebeaconDemoAPI(app) {
     try {
       res.json(await readJson(path.join(DEMO_DIR, 'baseline.json')));
     } catch (err) {
+      logger.warn('[Demo] Demo baseline not found failed:', err.message);
       sendError(res, 404, 'Demo baseline not found', { message: err.message });
     }
   });
@@ -85,6 +88,7 @@ function setupSimplebeaconDemoAPI(app) {
     try {
       res.json(await readJson(path.join(DEMO_DIR, 'config.json')));
     } catch (err) {
+      logger.warn('[Demo] Demo config not found failed:', err.message);
       sendError(res, 404, 'Demo config not found', { message: err.message });
     }
   });
@@ -102,6 +106,7 @@ function setupSimplebeaconDemoAPI(app) {
       const context = await loadDemoContext();
       res.json(buildDashboardPayload(context));
     } catch (err) {
+      logger.warn('[Demo] Demo dashboard not found failed:', err.message);
       sendError(res, 404, 'Demo dashboard not found', { message: err.message });
     }
   });
@@ -115,6 +120,7 @@ function setupSimplebeaconDemoAPI(app) {
       }
       res.json(buildScanResults(context.report, entry, context.baseline));
     } catch (err) {
+      logger.warn('[Demo] Demo results not found failed:', err.message);
       sendError(res, 404, 'Demo results not found', { message: err.message });
     }
   });
@@ -128,6 +134,7 @@ function setupSimplebeaconDemoAPI(app) {
       });
       res.json(assessment);
     } catch (err) {
+      logger.warn('[Demo] Demo assessment not found failed:', err.message);
       sendError(res, 404, 'Demo assessment not found', { message: err.message });
     }
   });
@@ -144,6 +151,7 @@ function setupSimplebeaconDemoAPI(app) {
         { assessment, npmAudit: null, pageSamples: {} }
       ));
     } catch (err) {
+      logger.warn('[Demo] Demo audit not found failed:', err.message);
       sendError(res, 404, 'Demo audit not found', { message: err.message });
     }
   });

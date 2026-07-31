@@ -38,6 +38,7 @@ router.get('/log', (req, res) => {
     });
     res.json({ success: true, ...result });
   } catch (err) {
+    logger.warn('[Audit] audit_query_failed failed:', err.message);
     sendError(res, 500, 'audit_query_failed', { message: err.message });
   }
 });
@@ -49,6 +50,7 @@ router.get('/stats', (req, res) => {
     const stats = auditLogger.getStats(orgId);
     res.json({ success: true, stats });
   } catch (err) {
+    logger.warn('[Audit] audit_stats_failed failed:', err.message);
     sendError(res, 500, 'audit_stats_failed', { message: err.message });
   }
 });
@@ -88,6 +90,7 @@ router.get('/export', (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="audit-log-${new Date().toISOString().slice(0, 10)}.csv"`);
     res.send(rows.join('\n'));
   } catch (err) {
+    logger.warn('[Audit] audit_export_failed failed:', err.message);
     sendError(res, 500, 'audit_export_failed', { message: err.message });
   }
 });

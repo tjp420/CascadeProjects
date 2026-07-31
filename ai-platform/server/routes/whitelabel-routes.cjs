@@ -33,6 +33,7 @@ router.get('/stats', (req, res) => {
   try {
     res.json({ success: true, ...wlStore.getStats() });
   } catch (err) {
+    logger.warn('[Whitelabel] stats_failed failed:', err.message);
     sendError(res, 500, 'stats_failed', { message: err.message });
   }
 });
@@ -43,6 +44,7 @@ router.get('/partners', (req, res) => {
     const partners = wlStore.getAllPartners();
     res.json({ success: true, partners });
   } catch (err) {
+    logger.warn('[Whitelabel] list_failed failed:', err.message);
     sendError(res, 500, 'list_failed', { message: err.message });
   }
 });
@@ -65,6 +67,7 @@ router.get('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERN
     if (!partner) return sendError(res, 404, 'not_found');
     res.json({ success: true, partner });
   } catch (err) {
+    logger.warn('[Whitelabel] get_failed failed:', err.message);
     sendError(res, 500, 'get_failed', { message: err.message });
   }
 });
@@ -75,6 +78,7 @@ router.put('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERN
     const partner = wlStore.updatePartner(req.params.partnerId, req.body || {});
     res.json({ success: true, partner });
   } catch (err) {
+    logger.warn('[Whitelabel] update_failed failed:', err.message);
     sendError(res, 400, 'update_failed', { message: err.message });
   }
 });
@@ -86,6 +90,7 @@ router.delete('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATT
     if (!deleted) return sendError(res, 404, 'not_found');
     res.json({ success: true, deleted: true });
   } catch (err) {
+    logger.warn('[Whitelabel] delete_failed failed:', err.message);
     sendError(res, 500, 'delete_failed', { message: err.message });
   }
 });
@@ -100,6 +105,7 @@ router.get('/resolve', (req, res) => {
     }
     res.json({ success: true, found: true, partnerId: partner.partnerId, brand: partner.brand });
   } catch (err) {
+    logger.warn('[Whitelabel] resolve_failed failed:', err.message);
     sendError(res, 500, 'resolve_failed', { message: err.message });
   }
 });
@@ -113,6 +119,7 @@ router.get('/:partnerId/brand.css', validateParam('partnerId', VALIDATION_PATTER
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.send(css);
   } catch (err) {
+    logger.warn('[Whitelabel] css_failed failed:', err.message);
     sendError(res, 500, 'css_failed', { message: err.message });
   }
 });
@@ -132,6 +139,7 @@ router.get('/brand.css', (req, res) => {
     res.setHeader('X-Whitelabel-Partner', result.partnerId);
     res.send(result.css);
   } catch (err) {
+    logger.warn('[Whitelabel] css_failed failed:', err.message);
     sendError(res, 500, 'css_failed', { message: err.message });
   }
 });
@@ -142,6 +150,7 @@ router.post('/partners/:partnerId/subtenants', validateParam('partnerId', VALIDA
     const partner = wlStore.addSubTenant(req.params.partnerId, req.body || {});
     res.status(201).json({ success: true, subTenants: partner.subTenants });
   } catch (err) {
+    logger.warn('[Whitelabel] add_subtenant_failed failed:', err.message);
     sendError(res, 400, 'add_subtenant_failed', { message: err.message });
   }
 });
@@ -152,6 +161,7 @@ router.delete('/partners/:partnerId/subtenants/:orgId', validateParam('partnerId
     const partner = wlStore.removeSubTenant(req.params.partnerId, req.params.orgId);
     res.json({ success: true, subTenants: partner.subTenants });
   } catch (err) {
+    logger.warn('[Whitelabel] remove_subtenant_failed failed:', err.message);
     sendError(res, 400, 'remove_subtenant_failed', { message: err.message });
   }
 });

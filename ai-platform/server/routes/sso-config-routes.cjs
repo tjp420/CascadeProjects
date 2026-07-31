@@ -35,6 +35,7 @@ router.get('/configs', async (req, res) => {
     const stats = ssoConfigStore.getStats();
     return res.json({ success: true, configs, stats, ...stats });
   } catch (err) {
+    logger.warn('[SSOConfig] sso_list_failed failed:', err.message);
     sendError(res, 500, 'sso_list_failed', { message: err.message });
   }
 });
@@ -45,6 +46,7 @@ router.get('/configs/:orgId', validateParam('orgId', VALIDATION_PATTERNS.orgId),
     const configs = ssoConfigStore.getConfigsByOrg(req.params.orgId);
     res.json({ success: true, configs });
   } catch (err) {
+    logger.warn('[SSOConfig] sso_list_failed failed:', err.message);
     sendError(res, 500, 'sso_list_failed', { message: err.message });
   }
 });
@@ -185,6 +187,7 @@ router.get('/stats', async (req, res) => {
     const stats = ssoConfigStore.getStats();
     res.json({ success: true, ...stats });
   } catch (err) {
+    logger.warn('[SSOConfig] sso_stats_failed failed:', err.message);
     sendError(res, 500, 'sso_stats_failed', { message: err.message });
   }
 });
@@ -248,6 +251,7 @@ router.get('/test/:providerId', validateParam('providerId', VALIDATION_PATTERNS.
 
     res.json({ success: true, ...results });
   } catch (err) {
+    logger.warn('[SSOConfig] sso_test_failed failed:', err.message);
     sendError(res, 500, 'sso_test_failed', { message: err.message });
   }
 });

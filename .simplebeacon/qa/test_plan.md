@@ -1,70 +1,43 @@
-# Test Plan: Phase 2 — Auth Route Consolidation
+# Test Plan: Phase 5 — Error Logging Standardization
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Consolidate duplicate auth endpoints and fix security issues.
+**Feature:** Add logger calls to catch blocks that send error responses without logging.
 
 ## Context
 
-The auth audit found 4 auth route files with significant duplication:
-- `auth.cjs` (115 lines) — canonical, mounted at `/api/auth` in production
-- `auth-routes.cjs` (95 lines) — mounted at `/api/v2/auth` in index.cjs, NO frontend callers
-- `auth-inline-routes.cjs` (217 lines) — mounted at `/api` in index.cjs, has license endpoints
-- `token-auth.cjs` (807 lines) — mounted at `/auth` in index.cjs, NO frontend callers
-
-Frontend/CLI audit confirmed:
-- All frontend auth calls use `/api/auth/*` (served by `auth.cjs`)
-- CLI calls `/api/license/validate` (served by `auth-inline-routes.cjs`)
-- No calls to `/api/v2/auth/*` or `/tokens/*` found
-- Response format: `{ token, user }` for login/register, `{ token }` for refresh
+The audit found 46 catch blocks across 9 route files that call `sendError()` to send an error response to the client but do NOT log the error server-side. This makes debugging production issues impossible — the client sees an error but the server has no record of what went wrong.
 
 ## Changes
 
-### Phase 1: Security fixes + license extraction
+For each silent catch block, add a `logger.warn(...)` or `logger.error(...)` call before the `sendError(...)` call. The pattern to follow:
 
-1. **Fix logout no-op in `auth.cjs`** (security concern)
-   - Currently: `res.json({ success: true, message: 'Logged out successfully' })` — no token invalidation
-   - Fix: Add token blocklist check using `token-service.cjs` if available, otherwise keep as client-side discard with a clear comment
+```javascript
+// Before (silent):
+} catch (err) {
+  return sendError(res, 500, 'operation_failed', { message: err.message });
+}
 
-2. **Extract license endpoints from `auth-inline-routes.cjs`** to new `license-routes.cjs`
-   - Move: `/license/validate`, `/auth/token-status`, `/auth/register-token`, `/tokens/sandbox`
-   - This separates auth concerns from license/token management
+// After (logged):
+} catch (err) {
+  logger.warn('[ModuleName] operation failed:', err.message);
+  return sendError(res, 500, 'operation_failed', { message: err.message });
+}
+```
 
-3. **Add `/api/auth/recover` endpoint to `auth.cjs`**
-   - Frontend calls `/api/auth/recover` but it doesn't exist in `auth.cjs`
-   - Check if it exists in `auth-inline-routes.cjs` or needs to be created
+## Files to Change (9 files, 46 catch blocks)
 
-### Phase 2: Deprecation documentation
-
-4. **Mark `auth-routes.cjs` as deprecated**
-   - No frontend callers, duplicate of `auth.cjs` endpoints
-   - Add deprecation comment, do NOT delete (may be used by index.cjs deployments)
-
-5. **Keep `token-auth.cjs` as-is**
-   - Advanced device-key auth, no overlap with frontend auth
-   - Different use case, keep separate
-
-6. **Keep `sso-routes.cjs` as-is**
-   - Clean separation, no overlap
-
-## Files to Change
-
-### New file (1)
-| File | Purpose |
-|------|---------|
-| `server/routes/license-routes.cjs` | License token endpoints extracted from auth-inline-routes.cjs |
-
-### Edits (3 files)
-| File | Change |
-|------|--------|
-| `server/routes/auth.cjs` | Fix logout, add recover endpoint if missing |
-| `server/routes/auth-inline-routes.cjs` | Remove license endpoints (moved to license-routes.cjs) |
-| `server/routes/auth-routes.cjs` | Add deprecation comment |
-
-### Mount point updates (1 file)
-| File | Change |
-|------|--------|
-| `server/index.cjs` | Add mount for license-routes.cjs |
+| File | Silent Catches | Has Logger Import? |
+|------|---------------|-------------------|
+| model-eval-routes.cjs | 9 | yes |
+| alert-routes.cjs | 8 | TBD |
+| demo-simplebeacon-api.cjs | 8 | NO — need to add |
+| whitelabel-routes.cjs | 8 | yes |
+| deployment-gate-routes.cjs | 4 | yes |
+| audit-routes.cjs | 3 | yes |
+| guardrail-routes.cjs | 3 | TBD |
+| sso-config-routes.cjs | 2 | yes |
+| ai-context-routes.cjs | 1 | yes |
 
 ## Objective Check-Items
 
@@ -72,26 +45,21 @@ Frontend/CLI audit confirmed:
 
 | # | Item | Expected |
 |---|------|----------|
-| L1.1 | `node -c` on all changed files | exit 0 |
-| L1.2 | `npx simplebeacon scan --gate` (local CLI) | PASS (exit 0) |
+| L1.1 | `node -c` on all 9 changed files | exit 0 |
+| L1.2 | `npx simplebeacon scan --gate` | PASS (exit 0) |
 | L1.3 | WebSocket integration test | 16/16 pass |
 
 ### Level 2 — Behavioral
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | POST /api/auth/login works | 200 with `{ token, user }` |
-| L2.2 | POST /api/auth/register works | 200 with `{ token, user }` |
-| L2.3 | POST /api/auth/logout works | 200 with success message |
-| L2.4 | POST /api/auth/refresh works | 200 with `{ token }` |
-| L2.5 | GET /api/auth/me works | 200 with `{ success, user }` |
-| L2.6 | POST /api/license/validate works | 200 or 400 with validation result |
+| L2.1 | Error responses still work correctly | Same status codes and response bodies |
+| L2.2 | Server logs now contain error details | logger.warn/error calls visible in server output |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
-| L3.1 | No mount path changes for existing endpoints | Backward compatible |
-| L3.2 | No response format changes | `{ token, user }` preserved |
-| L3.3 | License endpoints preserved | CLI continues to work |
-| L3.4 | No new dependencies | Uses existing modules |
+| L3.1 | No response format changes | sendError calls unchanged |
+| L3.2 | No new files created | Only edits to existing files |
+| L3.3 | No new dependencies | Uses existing logger module |
