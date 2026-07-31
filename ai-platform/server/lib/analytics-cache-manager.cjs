@@ -141,6 +141,9 @@ function trackCachedMetric(orgId, entry) {
     pruneStaleBuckets(now);
     lastPruneAt = now;
   }
+
+  // Throttled WebSocket broadcast to connected dashboard clients
+  maybeBroadcastAnalytics(scopedOrgId);
 }
 
 /**
@@ -340,6 +343,7 @@ function getCacheStats() {
 function reset() {
   cache.clear();
   bootstrapped.clear();
+  lastBroadcastAt.clear();
   lastPruneAt = 0;
 }
 
@@ -347,6 +351,7 @@ module.exports = {
   trackCachedMetric,
   getDashboardSummary,
   setBootstrapFunction,
+  setAnalyticsBroadcaster,
   getCacheStats,
   reset,
   // Exposed for testing

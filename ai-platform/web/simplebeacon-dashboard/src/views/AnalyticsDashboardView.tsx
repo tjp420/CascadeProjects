@@ -30,8 +30,11 @@ import {
   TrendingUp,
   Zap,
   Clock,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
+import { useAnalyticsSocket } from '@/hooks/useAnalyticsSocket';
 import { toast } from 'sonner';
 
 type DashboardSummary = {
@@ -65,6 +68,18 @@ export function AnalyticsDashboardView() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // WebSocket subscription for real-time ANALYTICS_UPDATE push
+  const { pushedSummary, connected: wsConnected } = useAnalyticsSocket(autoRefresh);
+
+  // When a pushed summary arrives, update state immediately (no polling needed)
+  useEffect(() => {
+    if (pushedSummary) {
+      setSummary(pushedSummary);
+      setLastUpdated(new Date().toLocaleTimeString());
+      setLoading(false);
+    }
+  }, [pushedSummary]);
+
   const fetchSummary = useCallback(async (wh: number) => {
     try {
       setError(null);
@@ -93,15 +108,16 @@ export function AnalyticsDashboardView() {
     }
   }, [summary]);
 
-  // Initial load + window change
+  // Initial load + window change — always fetch via HTTP first for immediate data
   useEffect(() => {
     setLoading(true);
     fetchSummary(windowHours);
   }, [fetchSummary, windowHours]);
 
-  // Auto-refresh polling
+  // Auto-refresh polling — only active when WebSocket is NOT connected
+  // (WebSocket push handles real-time updates when connected)
   useEffect(() => {
-    if (!autoRefresh) {
+    if (!autoRefresh || wsConnected) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -119,7 +135,7 @@ export function AnalyticsDashboardView() {
         intervalRef.current = null;
       }
     };
-  }, [autoRefresh, windowHours, fetchSummary]);
+  }, [autoRefresh, windowHours, fetchSummary, wsConnected]);
 
   const handleRefresh = () => {
     setLoading(true);
@@ -208,6 +224,15 @@ export function AnalyticsDashboardView() {
                 <Clock className="h-3 w-3" /> {lastUpdated}
               </span>
             )}
+            {/* WebSocket connection indicator */}
+            <span className="text-xs flex items-center gap-1" title={wsConnected ? 'Live WebSocket connection' : 'WebSocket disconnected — using polling'}>
+              {wsConnected ? (
+                <Wifi className="h-3.5 w-3.5 text-emerald-500" />
+              ) : (
+                <WifiOff className="h-3.5 w-3.5 text-foreground-muted" />
+              )}
+              {wsConnected ? 'Live' : 'Polling'}
+            </span>
             <Button
               onClick={() => setAutoRefresh(!autoRefresh)}
               variant={autoRefresh ? 'default' : 'outline'}

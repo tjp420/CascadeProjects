@@ -1944,6 +1944,27 @@ async function startServer() {
     logger.warn('[WebSocket] Failed to wire incident broadcaster:', safeErrorMessage(err));
   }
 
+  // Wire analytics broadcaster → WebSocket clients (real-time ANALYTICS_UPDATE push)
+  try {
+    const { setAnalyticsBroadcaster } = require('./server/lib/analytics-cache-manager.cjs');
+    setAnalyticsBroadcaster((message) => {
+      if (!wss || wss.clients.size === 0) return;
+      const payload = JSON.stringify(message);
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          try {
+            client.send(payload);
+          } catch {
+            // socket may have closed between check and send
+          }
+        }
+      });
+    });
+    logger.info('[WebSocket] Analytics broadcaster wired to WebSocket clients');
+  } catch (err) {
+    logger.warn('[WebSocket] Failed to wire analytics broadcaster:', safeErrorMessage(err));
+  }
+
   // Wire log streaming + burst detection + metrics broadcasting via WebSocket
   try {
     const {
