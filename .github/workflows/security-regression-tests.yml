@@ -1,0 +1,119 @@
+# Security regression tests — runs on every PR or push touching security-critical paths.
+# Covers: org partition enforcement, webhook key auto-purge, multi-tenant PII policy sync.
+# Fail-fast: stops on first failing suite. Uploads JUnit coverage report as artifact.
+
+name: Security Regression Tests
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'ai-platform/server/middleware/**'
+      - 'ai-platform/server/lib/alert-rule-store.cjs'
+      - 'ai-platform/server/lib/pii-policy-store.cjs'
+      - 'ai-platform/server/lib/security-monitor-settings-store.cjs'
+      - 'ai-platform/server/lib/rbac-store.cjs'
+      - 'ai-platform/server/lib/crypto-utils.cjs'
+      - 'ai-platform/server/lib/__tests__/org-partition-enforcement.test.cjs'
+      - 'ai-platform/server/lib/__tests__/alert-rule-store-purge.test.cjs'
+      - 'ai-platform/server/lib/__tests__/pii-policy-sync.test.cjs'
+      - '.github/workflows/security-regression-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ai-platform/server/middleware/**'
+      - 'ai-platform/server/lib/alert-rule-store.cjs'
+      - 'ai-platform/server/lib/pii-policy-store.cjs'
+      - 'ai-platform/server/lib/security-monitor-settings-store.cjs'
+      - 'ai-platform/server/lib/rbac-store.cjs'
+      - 'ai-platform/server/lib/crypto-utils.cjs'
+      - 'ai-platform/server/lib/__tests__/org-partition-enforcement.test.cjs'
+      - 'ai-platform/server/lib/__tests__/alert-rule-store-purge.test.cjs'
+      - 'ai-platform/server/lib/__tests__/pii-policy-sync.test.cjs'
+      - '.github/workflows/security-regression-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  security-regression:
+    name: Security Regression Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install ai-platform dependencies
+        run: |
+          cd ai-platform
+          npm ci --ignore-scripts
+
+      - name: Run security regression suites (fail-fast)
+        id: run-tests
+        working-directory: ai-platform
+        run: |
+          npx jest --config jest.config.cjs \
+            --verbose \
+            --ci \
+            --bail=1 \
+            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|alert-rule-store-purge|pii-policy-sync)\.test\.cjs" \
+            --coverage \
+            --coverageReporters=text-summary \
+            --coverageReporters=lcov \
+            --collectCoverageFrom='server/middleware/authorize.cjs' \
+            --collectCoverageFrom='server/lib/alert-rule-store.cjs' \
+            --collectCoverageFrom='server/lib/pii-policy-store.cjs' \
+            --collectCoverageFrom='server/lib/security-monitor-settings-store.cjs' \
+            2>&1 | tee /tmp/jest-output.txt
+
+          # Extract pass/fail summary
+          SUITES=$(grep -oP 'Test Suites:\s+\K\d+ passed' /tmp/jest-output.txt | head -1 || echo "0")
+          TESTS=$(grep -oP 'Tests:\s+\K\d+ passed' /tmp/jest-output.txt | head -1 || echo "0")
+          echo "suites_passed=$SUITES" >> $GITHUB_OUTPUT
+          echo "tests_passed=$TESTS" >> $GITHUB_OUTPUT
+
+      - name: Generate step summary
+        if: always()
+        run: |
+          echo "## Security Regression Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Suites Passed | ${{ steps.run-tests.outputs.suites_passed || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Passed | ${{ steps.run-tests.outputs.tests_passed || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trigger | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Covered Modules" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/middleware/authorize.cjs\` — Org partition enforcement" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/lib/alert-rule-store.cjs\` — Webhook key auto-purge" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/lib/pii-policy-store.cjs\` — Multi-tenant policy sync" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/lib/security-monitor-settings-store.cjs\` — Partition config settings" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-regression-coverage
+          path: ai-platform/coverage/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload test output log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-regression-log
+          path: /tmp/jest-output.txt
+          if-no-files-found: ignore
+          retention-days: 7
