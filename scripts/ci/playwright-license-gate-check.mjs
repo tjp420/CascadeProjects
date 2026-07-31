@@ -12,13 +12,9 @@ function startServer() {
     NODE_ENV: 'production',
     PORT,
     SIMPLEBEACON_LICENSE_SECRET: '',
-<<<<<<< HEAD
-    JWT_SECRET: 'ci-test-jwt-secret-for-playwright-gate-only'
-=======
     JWT_SECRET: 'ci-test-jwt-secret-for-playwright-gate-only',
-    JWT_REFRESH_SECRET: 'ci-test-jwt-refresh-secret-for-playwright-gate-only'
-      JWT_REFRESH_SECRET: 'ci-test-jwt-refresh-secret-for-playwright-gate-only'
->>>>>>> origin/main
+    JWT_REFRESH_SECRET: 'ci-test-jwt-refresh-secret-for-playwright-gate-only',
+    TOKEN_ACCOUNT_SIGNING_KEY: Buffer.from('ci-test-token-account-signing-key-for-playwright-gate-only').toString('base64')
   };
 
   const server = spawn(process.execPath, ['ai-platform/server/index.cjs'], {
