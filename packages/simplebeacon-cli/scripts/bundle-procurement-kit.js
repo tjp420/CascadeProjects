@@ -121,6 +121,12 @@ async function main() {
     if (fs.existsSync(alt)) fs.copyFileSync(alt, path.join(tmpDir, 'verify-isolation.json'));
   }
 
+  // include dependency security report if produced by CI audit
+  const secReport = path.resolve(repoRoot, '.simplebeacon/dependency-security-report.json');
+  if (fs.existsSync(secReport)) {
+    fs.copyFileSync(secReport, path.join(tmpDir, 'dependency-security-report.json'));
+  }
+
   // also include rules README if present
   const rulesReadme = path.resolve(repoRoot, '.simplebeacon/rules/README.md');
   if (fs.existsSync(rulesReadme)) {

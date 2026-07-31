@@ -26,6 +26,20 @@ jobs:
       - name: Install Runtime Dependencies
         run: npm ci
 
+      - name: Audit Production Supply Chain
+        # Generate a JSON audit report and fail only on critical vulnerabilities
+        run: |
+          mkdir -p ./.simplebeacon
+          npm audit --audit-level=critical --json > ./.simplebeacon/dependency-security-report.json
+
+      - name: Publish Audit Summary to Step Output
+        if: always()
+        run: |
+          echo "### npm audit (production, critical-level)" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat ./.simplebeacon/dependency-security-report.json >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
       - name: Compile Cryptographic Procurement Package
         run: npm run enterprise:kit
 
