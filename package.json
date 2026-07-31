@@ -32,6 +32,8 @@
     "release:vscode:bump:patch": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-vscode.ps1 -BumpVersion patch",
     "release:vscode:bump:minor": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-vscode.ps1 -BumpVersion minor",
     "release:vscode:bump:major": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/release-vscode.ps1 -BumpVersion major",
+    "enterprise:onboard": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/enterprise-onboard.ps1",
+    "enterprise:trial": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/enterprise-onboard.ps1 -Trial",
     "deploy:coming-soon": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1",
     "deploy:coming-soon:lighthouse": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -RunLighthouse",
     "deploy:coming-soon:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/deploy-coming-soon.ps1 -SkipDeploy",

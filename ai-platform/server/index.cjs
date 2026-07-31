@@ -82,6 +82,7 @@ const {
   setupSimplebeaconBillingWebhook,
   setupSimplebeaconBillingRoutes
 } = require('../src/api/simplebeacon-billing-api.cjs');
+const { setupEnterpriseOnboardingRoutes } = require('../src/api/enterprise-onboarding.cjs');
 const pathHealthRouter = require('./api/metrics/path-health.cjs');
 const { runNpmAuditAsync } = require('./lib/npm-audit-runner.cjs');
 const { registerEuAiActSprintRoute } = require('./lib/eu-ai-act-sprint-route.cjs');
@@ -1156,6 +1157,13 @@ try {
     setupSimplebeaconBillingRoutes(app);
 } catch (e) {
     logger.warn('[Simplebeacon] billing routes setup skipped:', e.message);
+}
+
+// Enterprise onboarding — organization provisioning, seat management, Azure DevOps integration
+try {
+    setupEnterpriseOnboardingRoutes(app);
+} catch (e) {
+    logger.warn('[Enterprise] onboarding routes setup skipped:', e.message);
 }
 
 // Public compliance schema endpoint — no auth, no project access, no code upload
