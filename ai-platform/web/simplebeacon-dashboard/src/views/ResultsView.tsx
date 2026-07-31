@@ -72,6 +72,7 @@ export function ResultsView() {
   const [filter, setFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
+  const [selectedCell, setSelectedCell] = useState<{ impact: string; likelihood: string } | null>(null);
   const [result, setResult] = useState<ScanResultData | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
@@ -122,10 +123,36 @@ export function ResultsView() {
     )
   );
 
+  const heatmapGrid = useMemo(() => {
+    const score: Record<string, number> = { low: 1, medium: 2, high: 3 };
+    const grid: Record<string, Record<string, number>> = {
+      high: { high: 0, medium: 0, low: 0 },
+      medium: { high: 0, medium: 0, low: 0 },
+      low: { high: 0, medium: 0, low: 0 },
+    };
+    allIssues.forEach(i => {
+      const sev = (i.severity || 'low').toLowerCase();
+      const impact = sev === 'critical' || sev === 'high' ? 'high' : sev === 'medium' ? 'medium' : 'low';
+      const count = Number(i.count) || 1;
+      const likelihood = count > 5 ? 'high' : count > 1 ? 'medium' : 'low';
+      grid[impact][likelihood] += count;
+    });
+    return grid;
+  }, [allIssues]);
+
   const filteredIssues = useMemo(() => {
     let issues = allIssues;
     if (filter !== 'all') {
       issues = issues.filter(i => i.severity === filter);
+    }
+    if (selectedCell) {
+      issues = issues.filter(i => {
+        const sev = (i.severity || 'low').toLowerCase();
+        const impact = sev === 'critical' || sev === 'high' ? 'high' : sev === 'medium' ? 'medium' : 'low';
+        const count = Number(i.count) || 1;
+        const likelihood = count > 5 ? 'high' : count > 1 ? 'medium' : 'low';
+        return impact === selectedCell.impact && likelihood === selectedCell.likelihood;
+      });
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -137,7 +164,7 @@ export function ResultsView() {
     }
     issues = issues.filter(i => !String(i.filePath || '').includes('node_modules'));
     return issues;
-  }, [allIssues, filter, searchQuery]);
+  }, [allIssues, filter, searchQuery, selectedCell]);
 
   const issueCategories = useMemo(() => {
     const catMap: Record<string, number> = {};
@@ -241,6 +268,62 @@ export function ResultsView() {
         currentScanGrade={currentScanGrade}
       />
 
+      {/* Risk Heatmap Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Risk Heatmap</CardTitle>
+          <CardDescription>
+            3x3 matrix of issue impact vs. likelihood. Click or press Enter on a cell to filter findings.
+            {selectedCell && ` · filtering: ${selectedCell.impact} impact, ${selectedCell.likelihood} likelihood`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-1 max-w-md">
+            <div />
+            <div className="text-xs text-center text-foreground-muted font-medium">Low Lk</div>
+            <div className="text-xs text-center text-foreground-muted font-medium">Med Lk</div>
+            <div className="text-xs text-center text-foreground-muted font-medium">High Lk</div>
+            {(['high', 'medium', 'low'] as const).map(imp => (
+              <div key={imp} className="contents">
+                <div className="text-xs text-right text-foreground-muted font-medium self-center pr-1 capitalize">{imp} Imp</div>
+                {(['low', 'medium', 'high'] as const).map(lk => {
+                  const count = heatmapGrid[imp][lk];
+                  const score: Record<string, number> = { low: 1, medium: 2, high: 3 };
+                  const total = score[imp] * score[lk];
+                  const cellClass = total >= 6 ? 'bg-red-500/15 text-red-500 border-red-500/30' : total >= 3 ? 'bg-amber-500/15 text-amber-500 border-amber-500/30' : 'bg-green-500/15 text-green-500 border-green-500/30';
+                  const isSelected = selectedCell?.impact === imp && selectedCell?.likelihood === lk;
+                  return (
+                    <div
+                      key={`${imp}-${lk}`}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${imp} impact, ${lk} likelihood: ${count} issues`}
+                      title={`${imp} impact / ${lk} likelihood — ${count} issue${count === 1 ? '' : 's'}`}
+                      onClick={() => setSelectedCell(isSelected ? null : { impact: imp, likelihood: lk })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedCell(isSelected ? null : { impact: imp, likelihood: lk });
+                        }
+                      }}
+                      className={`rounded-md border p-3 text-center cursor-pointer transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring ${cellClass} ${isSelected ? 'ring-2 ring-ring' : ''}`}
+                    >
+                      <div className="text-lg font-bold">{count}</div>
+                      <div className="text-[10px] opacity-60">{total >= 6 ? 'Red' : total >= 3 ? 'Amber' : 'Green'}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          {selectedCell && (
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setSelectedCell(null)}>
+              Clear heatmap filter
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Findings Table + Detail Tabs */}
       <Tabs defaultValue="findings">
         <TabsList>
@@ -259,6 +342,7 @@ export function ResultsView() {
                   {(result?.issueCount ?? allIssues.reduce((sum, i) => sum + (Number(i.count) || 1), 0)).toLocaleString()} total issue{(result?.issueCount ?? allIssues.length) !== 1 ? 's' : ''}
                   {findingsDetailLimited && ' · detailed list limited — export JSON or use CLI for full paths'}
                   {filter !== 'all' && ` · filtered by ${filter}`}
+                  {selectedCell && ` · heatmap: ${selectedCell.impact}/${selectedCell.likelihood}`}
                   {searchQuery && ` · matching "${searchQuery}"`}
                 </CardDescription>
               </CardHeader>
