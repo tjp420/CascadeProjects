@@ -124,7 +124,7 @@ class RealtimeAnalysisService {
 
     /**
      * Register an event listener.
-     * @param {'status'|'result'|'error'|'state'|'pong'} event
+     * @param {'status'|'analysis_result'|'error'|'state'|'pong'|'message'} event
      * @param {Function} callback
      * @returns {() => void} unsubscribe function
      */
@@ -243,8 +243,8 @@ class RealtimeAnalysisService {
             case 'pong':
                 this._emit('pong', msg);
                 break;
-            case 'result':
-                this._emit('result', msg);
+            case 'analysis_result':
+                this._emit('analysis_result', msg);
                 break;
             case 'error':
                 this._emit('error', { message: msg.error || 'Server error', sessionId: msg.sessionId });

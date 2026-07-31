@@ -1594,6 +1594,7 @@ export class AnalyzeView {
         ${this.busy ? this.renderProgress() : ''}
 
         <div id="analyze-file-results-section" class="analyze-file-results-section"></div>
+        <div id="realtime-stream-results"></div>
         <div id="analyze-results">${this.renderResults()}</div>
 
       <!-- Directory browser modal -->
@@ -4840,6 +4841,59 @@ export class AnalyzeView {
         dot.style.opacity = state === 'disconnected' ? '0.4' : '1';
         dot.title = labels[state] || labels.disconnected;
     }
+    _renderRealtimeStreamResults() {
+        const container = this._root?.querySelector('#realtime-stream-results');
+        if (!container) return;
+        const chunks = this._realtimeChunks || [];
+        if (chunks.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        const totalIssues = chunks.reduce((sum, c) => sum + (c.result?.issues?.length || 0), 0);
+        const avgConfidence = chunks.length > 0
+            ? (chunks.reduce((sum, c) => sum + (c.result?.confidence || 0), 0) / chunks.length * 100).toFixed(0)
+            : '—';
+        const totalTime = chunks.reduce((sum, c) => sum + (c.result?.processingTime || 0), 0);
+        const issueRows = chunks.flatMap((c) => {
+            const issues = c.result?.issues || [];
+            return issues.map((issue) => `
+              <tr>
+                <td><span class="gate-badge ${issue.severity === 'critical' || issue.severity === 'high' ? 'warn' : 'pass'}">${escapeHtml(issue.severity || '—')}</span></td>
+                <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(issue.category || issue.rule || '—')}</td>
+                <td><code style="font-size:var(--font-size-xs);">${escapeHtml(issue.message || issue.description || '—')}</code></td>
+                <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(c.chunkId || '—')}</td>
+              </tr>`);
+        }).join('');
+        container.innerHTML = `
+          <div class="card" style="padding:var(--space-4);margin-top:var(--space-4);border:1px solid var(--border);border-radius:8px;">
+            <div class="section-heading" style="margin-bottom:var(--space-3);">
+              <h2 style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-lg);">
+                <span style="font-size:1.25rem;">⚡</span> Live Analysis Stream
+                <span class="gate-badge pass" style="margin-left:0.5rem;font-size:0.7rem;">${chunks.length} chunks</span>
+              </h2>
+            </div>
+            <div class="metrics-row mb-4">
+              <div class="metric-chip"><strong>${chunks.length}</strong> chunks</div>
+              <div class="metric-chip"><strong>${totalIssues}</strong> issues</div>
+              <div class="metric-chip"><strong>${avgConfidence}%</strong> avg confidence</div>
+              <div class="metric-chip"><strong>${totalTime}ms</strong> total time</div>
+            </div>
+            ${totalIssues > 0 ? `
+              <div style="overflow-x:auto;">
+                <table style="width:100%;font-size:var(--font-size-sm);border-collapse:collapse;">
+                  <thead>
+                    <tr style="text-align:left;border-bottom:1px solid var(--border);">
+                      <th style="padding:0.5rem;">Severity</th>
+                      <th style="padding:0.5rem;">Category</th>
+                      <th style="padding:0.5rem;">Message</th>
+                      <th style="padding:0.5rem;">Chunk</th>
+                    </tr>
+                  </thead>
+                  <tbody>${issueRows}</tbody>
+                </table>
+              </div>` : '<p class="text-muted" style="font-size:var(--font-size-sm);">No issues detected in streamed chunks.</p>'}
+          </div>`;
+    }
     updateAgentStatusUI(root, text = '', available = false) {
         var _a;
         const wrap = root === null || root === void 0 ? void 0 : root.querySelector('#agent-status-wrap');
@@ -5429,6 +5483,7 @@ export class AnalyzeView {
                 localStorage.setItem('simplebeacon_realtime_monitor', this.realtimeMonitorEnabled ? '1' : '0');
             }
             if (this.realtimeMonitorEnabled) {
+                this._realtimeChunks = [];
                 try {
                     await realtimeAnalysisService.start({ profile: 'balanced', analysisType: 'general' });
                     showToast('Real-time monitoring enabled — WebSocket connected', 'success');
@@ -5437,12 +5492,24 @@ export class AnalyzeView {
                 }
             } else {
                 realtimeAnalysisService.stop();
+                this._realtimeChunks = [];
+                this._renderRealtimeStreamResults();
                 showToast('Real-time monitoring disabled', 'info');
             }
         });
         // Update realtime status indicator when connection state changes
         this._realtimeStateUnsub = realtimeAnalysisService.on('state', (data) => {
             this._updateRealtimeStatusIndicator(data.state);
+        });
+        // Render streaming analysis results as they arrive
+        this._realtimeResultUnsub = realtimeAnalysisService.on('analysis_result', (data) => {
+            if (!this._realtimeChunks) this._realtimeChunks = [];
+            this._realtimeChunks.push({ chunkId: data.chunkId, result: data.result, timestamp: data.timestamp });
+            // Keep last 50 chunks to avoid unbounded memory growth
+            if (this._realtimeChunks.length > 50) {
+                this._realtimeChunks = this._realtimeChunks.slice(-50);
+            }
+            this._renderRealtimeStreamResults();
         });
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', async () => {
             const agentAvailable = !!(this.agentStatus && this.agentStatus.available);
