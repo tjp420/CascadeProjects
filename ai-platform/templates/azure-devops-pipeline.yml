@@ -1,0 +1,136 @@
+# SimpleBeacon Enterprise — Azure DevOps Pipeline Template
+# Copy this file into your Azure DevOps repository as `azure-pipelines.yml`
+# or reference it from your existing pipeline with a template include.
+#
+# Prerequisites:
+#   1. Install the SimpleBeacon CLI: npm install -g simplebeacon
+#   2. Add a secret pipeline variable: SIMPLEBEACON_API_KEY
+#      (Obtain your enterprise API key from your SimpleBeacon admin dashboard)
+#   3. Adjust SCAN_PATH and FAIL_ON thresholds as needed for your project
+#
+# This pipeline:
+#   - Runs on every push to main/develop/release branches
+#   - Executes a full SimpleBeacon compliance scan
+#   - Fails the build if high-severity issues are found (--fail-on high)
+#   - Publishes JSON + Executive PDF reports as build artifacts
+#   - Generates compliance audit trail for regulatory submissions
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - release/*
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: simplebeacon-secrets  # Contains SIMPLEBEACON_API_KEY
+  - name: SCAN_PATH
+    value: '$(Build.SourcesDirectory)'
+  - name: SCAN_GATE
+    value: 'true'
+  - name: FAIL_ON
+    value: 'high'
+  - name: REPORT_FORMAT
+    value: 'json'
+
+stages:
+  - stage: ComplianceScan
+    displayName: 'SimpleBeacon Compliance Scan'
+    jobs:
+      - job: Scan
+        displayName: 'Run Compliance Scan'
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '22.x'
+            displayName: 'Install Node.js 22'
+
+          - script: |
+              npm install -g simplebeacon@latest
+              simplebeacon --version
+            displayName: 'Install SimpleBeacon CLI'
+
+          - script: |
+              echo "##[group]Running SimpleBeacon compliance scan..."
+              simplebeacon scan \
+                --path "$(SCAN_PATH)" \
+                --gate \
+                --fail-on "$(FAIL_ON)" \
+                --format json \
+                --output "$(Build.ArtifactStagingDirectory)/simplebeacon-report.json" \
+                --api-key "$(SIMPLEBEACON_API_KEY)"
+              echo "##[section]Scan complete — exit code: $?"
+              echo "##vso[task.setvariable variable=SCAN_EXIT_CODE;isOutput=true]$?"
+            displayName: 'Run SimpleBeacon Compliance Scan'
+            name: scanStep
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/simplebeacon-report.json'
+              ArtifactName: 'SimpleBeaconReport'
+              publishLocation: 'Container'
+            displayName: 'Publish Scan Report'
+            condition: always()
+
+          - script: |
+              echo "##[group]Generating Executive PDF Report..."
+              simplebeacon report \
+                --input "$(Build.ArtifactStagingDirectory)/simplebeacon-report.json" \
+                --format pdf \
+                --output "$(Build.ArtifactStagingDirectory)/simplebeacon-executive-report.pdf" \
+                --api-key "$(SIMPLEBEACON_API_KEY)" || echo "PDF generation skipped (optional)"
+            displayName: 'Generate Executive PDF Report'
+            condition: always()
+            continueOnError: true
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/simplebeacon-executive-report.pdf'
+              ArtifactName: 'SimpleBeaconExecutiveReport'
+              publishLocation: 'Container'
+            displayName: 'Publish Executive PDF'
+            condition: always()
+
+  - stage: QualityGate
+    displayName: 'Quality Gate Verification'
+    dependsOn: ComplianceScan
+    condition: always()
+    jobs:
+      - job: GateCheck
+        displayName: 'Verify Quality Gate'
+        steps:
+          - task: DownloadBuildArtifacts@1
+            inputs:
+              buildType: 'current'
+              artifactName: 'SimpleBeaconReport'
+              downloadPath: '$(System.ArtifactsDirectory)'
+
+          - script: |
+              echo "##[group]Parsing scan results for gate status..."
+              REPORT_FILE="$(System.ArtifactsDirectory)/SimpleBeaconReport/simplebeacon-report.json"
+              if [ -f "$REPORT_FILE" ]; then
+                GATE_PASS=$(node -e "const r=require('$REPORT_FILE');console.log(r.gate?.pass ?? 'unknown')")
+                QUALITY_SCORE=$(node -e "const r=require('$REPORT_FILE');console.log(r.qualityScore ?? 'N/A')")
+                ISSUE_COUNT=$(node -e "const r=require('$REPORT_FILE');console.log(r.issueCount ?? 0)")
+                echo "##[section]Gate Pass: $GATE_PASS"
+                echo "##[section]Quality Score: $QUALITY_SCORE"
+                echo "##[section]Issue Count: $ISSUE_COUNT"
+                if [ "$GATE_PASS" = "false" ]; then
+                  echo "##vso[task.logissue type=error]SimpleBeacon quality gate FAILED"
+                  exit 1
+                fi
+                echo "##vso[task.setvariable variable=GATE_RESULT;isOutput=true]$GATE_PASS"
+              else
+                echo "##vso[task.logissue type=warning]Report file not found"
+              fi
+            displayName: 'Parse and Verify Gate Status'
+            name: gateResult

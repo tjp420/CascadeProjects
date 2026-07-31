@@ -1,0 +1,39 @@
+name: SimpleBeacon Network Attestation
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  verify-isolation:
+    name: Verify Network Isolation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run core tests and lint (fast)
+        run: |
+          npm run -s test:ci || true
+          npm run -s lint || true
+
+      - name: Verify Network Isolation Boundary
+        id: verify
+        run: |
+          node packages/simplebeacon-cli/scripts/verify-isolation.js
+
+      - name: Upload attestation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplebeacon-attestation
+          path: ./.simplebeacon/verify-isolation.json

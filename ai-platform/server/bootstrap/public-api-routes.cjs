@@ -67,7 +67,11 @@ const PUBLIC_API_PATHS = new Set([
     'mock-conversion',
     'mock-validation',
     'mock-cleaning',
-    'gguf/mock-analysis-report'
+    'gguf/mock-analysis-report',
+    // Enterprise onboarding — org provisioning, seat management, trial, Azure DevOps
+    'enterprise/onboard',
+    'enterprise/organizations',
+    'enterprise/trial'
 ]);
 
 /**
