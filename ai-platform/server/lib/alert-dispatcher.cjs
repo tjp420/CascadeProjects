@@ -165,12 +165,115 @@ async function deliverEmailAlert(rule, payload) {
 }
 
 /**
+ * Map SimpleBeacon severity to PagerDuty severity.
+ * PagerDuty accepts: critical, error, warning, info
+ */
+const PAGERDUTY_SEVERITY_MAP = {
+  critical: 'critical',
+  high: 'error',
+  medium: 'warning',
+  low: 'info',
+  info: 'info',
+};
+
+/**
+ * Format an alert payload as a PagerDuty Events API v2 event.
+ * @param {object} payload — the alert payload from buildPayload()
+ * @param {object} rule — the alert rule (for routing key and dedup key)
+ * @returns {object} PagerDuty Events v2 payload
+ */
+function formatPagerDutyEvent(payload, rule) {
+  const routingKey = rule.destination?.routingKey || rule.webhookUrl || '';
+  const dedupKey = rule.destination?.dedupKey || `${payload.orgId}:${payload.event}`;
+
+  return {
+    routing_key: routingKey,
+    event_action: 'trigger',
+    dedup_key: dedupKey.slice(0, 255),
+    payload: {
+      summary: payload.message.slice(0, 1024),
+      source: payload.data?.repository || payload.data?.source || payload.source,
+      severity: PAGERDUTY_SEVERITY_MAP[payload.severity] || 'info',
+      timestamp: payload.timestamp,
+      component: payload.data?.component || '',
+      group: payload.data?.group || payload.orgId,
+      class: payload.event,
+      custom_details: payload.data || {},
+    },
+  };
+}
+
+/**
+ * Deliver an alert via PagerDuty Events API v2.
+ * POSTs to https://events.pagerduty.com/v2/enqueue with retry logic.
+ * @param {object} rule — the alert rule
+ * @param {object} payload — the alert payload
+ * @returns {Promise<object>} delivery result
+ */
+async function deliverPagerDutyAlert(rule, payload) {
+  const event = formatPagerDutyEvent(payload, rule);
+  if (!event.routing_key) {
+    return { status: 'failed', error: 'No PagerDuty routing key configured (set destination.routingKey or webhookUrl)', attempts: 0, responseStatus: null, responseBody: '', durationMs: 0 };
+  }
+
+  const body = JSON.stringify(event);
+  let lastError = '';
+  let attempts = 0;
+  const startTime = Date.now();
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    attempts++;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('https://events.pagerduty.com/v2/enqueue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const responseText = await response.text();
+      const durationMs = Date.now() - startTime;
+
+      if (response.ok) {
+        return { status: 'delivered', error: '', attempts, responseStatus: response.status, responseBody: responseText.slice(0, 500), durationMs };
+      }
+
+      lastError = `HTTP ${response.status}: ${responseText.slice(0, 200)}`;
+
+      // 4xx errors are not retryable
+      if (response.status >= 400 && response.status < 500) {
+        return { status: 'failed', error: lastError, attempts, responseStatus: response.status, responseBody: responseText.slice(0, 500), durationMs };
+      }
+    } catch (err) {
+      lastError = err.message;
+    }
+
+    if (attempt < MAX_RETRIES - 1) {
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+
+  const durationMs = Date.now() - startTime;
+  return { status: 'failed', error: lastError, attempts, responseStatus: null, responseBody: '', durationMs };
+}
+
+/**
  * Deliver a single alert to its destination with retry logic.
  */
 async function deliverAlert(rule, payload) {
   // Email destination uses a separate delivery path (no HTTP fetch)
   if (rule.destinationType === 'email') {
     return deliverEmailAlert(rule, payload);
+  }
+
+  // PagerDuty destination uses the Events API v2 endpoint
+  if (rule.destinationType === 'pagerduty') {
+    return deliverPagerDutyAlert(rule, payload);
   }
 
   const url = rule.webhookUrl || rule.destination?.url;
@@ -325,4 +428,5 @@ module.exports = {
   signPayload,
   formatSlackMessage,
   formatEmailMessage,
+  formatPagerDutyEvent,
 };

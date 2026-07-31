@@ -1,20 +1,46 @@
-# Test Plan: Email Destination for Alert Dispatcher
+# Test Plan: PagerDuty Destination Implementation
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Implement email destination for alert delivery using existing email-service.cjs.
+**Feature:** Implement PagerDuty Events API v2 destination for alert delivery.
 
 ## Context
 
-The alert dispatcher (`alert-dispatcher.cjs`) currently supports webhook and Slack destinations. The codebase already has a complete email service (`server/lib/email-service.cjs`) with `sendEmail({ to, subject, text, html })` that supports Cloudflare Email → Resend → SMTP → disk queue fallback. We need to wire the alert dispatcher to use this service when `destinationType === 'email'`.
+The alert dispatcher supports webhook, Slack, and email destinations. PagerDuty is the last remaining destination type. The PagerDuty Events API v2 accepts POST requests to `https://events.pagerduty.com/v2/enqueue` with a specific payload format.
+
+## PagerDuty Events API v2 Schema
+
+**Endpoint:** `POST https://events.pagerduty.com/v2/enqueue`
+
+**Required fields:**
+- `routing_key` — 32-char integration key (from `rule.destination.routingKey` or `rule.webhookUrl`)
+- `event_action` — `trigger` (for new alerts)
+- `payload.summary` — brief text summary
+- `payload.source` — affected system location
+- `payload.severity` — `critical`, `error`, `warning`, or `info`
+
+**Optional fields:**
+- `dedup_key` — for correlating triggers and resolves (max 255 chars)
+- `payload.timestamp` — ISO 8601
+- `payload.custom_details` — additional details object
+- `payload.component` — component of source machine
+- `payload.group` — logical grouping
+
+**Severity mapping:** SimpleBeacon → PagerDuty
+- `critical` → `critical`
+- `high` → `error`
+- `medium` → `warning`
+- `low` → `info`
+- `info` → `info`
 
 ## Change
 
 **Single file:** `server/lib/alert-dispatcher.cjs`
 
-1. Add `formatEmailMessage(payload)` function that builds email subject, text body, and HTML body from the alert payload.
-2. Modify `deliverAlert()` to call `sendEmail()` when `destinationType === 'email'`, using the recipient from `rule.destination?.email` or `rule.webhookUrl` (reusing the URL field as email recipient for simplicity).
-3. Skip the HTTP fetch loop for email destinations — use the email service directly.
+1. Add `PAGERDUTY_SEVERITY_MAP` constant for severity mapping.
+2. Add `formatPagerDutyEvent(payload, rule)` function that builds the Events v2 payload.
+3. Add `deliverPagerDutyAlert(rule, payload)` function that POSTs to the PagerDuty API.
+4. Modify `deliverAlert()` to delegate to `deliverPagerDutyAlert()` when `destinationType === 'pagerduty'`.
 
 ## Objective Check-Items
 
@@ -30,16 +56,17 @@ The alert dispatcher (`alert-dispatcher.cjs`) currently supports webhook and Sla
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | Create email rule + trigger → dispatcher attempts email send | Incident recorded |
-| L2.2 | Email format has subject, text, and html | All 3 fields populated |
-| L2.3 | Webhook destination still works (no regression) | Raw JSON body preserved |
-| L2.4 | Slack destination still works (no regression) | Slack-formatted body preserved |
-| L2.5 | Email to invalid address records incident as failed | Status: failed |
+| L2.1 | Create PagerDuty rule + trigger → dispatcher attempts delivery | Incident recorded |
+| L2.2 | PagerDuty payload has correct schema | routing_key, event_action, payload with summary/source/severity |
+| L2.3 | Severity mapping correct | critical→critical, high→error, medium→warning, info→info |
+| L2.4 | Webhook destination still works (no regression) | Raw JSON body preserved |
+| L2.5 | Slack destination still works (no regression) | Slack-formatted body preserved |
+| L2.6 | Email destination still works (no regression) | Email queued via email-service |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
 | L3.1 | Single file changed | Only alert-dispatcher.cjs |
-| L3.2 | No new dependencies | Uses existing email-service.cjs |
-| L3.3 | Webhook/Slack destinations unchanged | No regression in existing paths |
+| L3.2 | No new dependencies | Uses built-in fetch |
+| L3.3 | Webhook/Slack/email destinations unchanged | No regression in existing paths |
