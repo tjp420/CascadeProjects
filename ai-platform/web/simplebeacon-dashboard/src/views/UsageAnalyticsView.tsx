@@ -11,7 +11,7 @@ import {
 import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
-  ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X, Clock,
+  ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X, Clock, Send, Settings,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -110,6 +110,17 @@ type ViolationSummary = {
   categories: CategorySummary[];
 };
 
+type WebhookConfig = {
+  target: string;
+  apiUrl: string;
+  authToken: string;
+  projectKey: string;
+  teamId: string;
+  repoOwner: string;
+  repoName: string;
+  updatedAt: string;
+};
+
 const SEVERITY_COLORS = {
   critical: '#FF0000',
   high: '#FF6600',
@@ -151,6 +162,10 @@ export function UsageAnalyticsView() {
   const [bulkTicketRef, setBulkTicketRef] = useState<string>('');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [slaBreachedFilter, setSlaBreachedFilter] = useState(false);
+  const [webhookConfigs, setWebhookConfigs] = useState<Record<string, WebhookConfig>>({});
+  const [showWebhookConfig, setShowWebhookConfig] = useState(false);
+  const [webhookForm, setWebhookForm] = useState({ target: 'jira', apiUrl: '', authToken: '', projectKey: '', teamId: '', repoOwner: '', repoName: '' });
+  const [dispatchingRow, setDispatchingRow] = useState<string | null>(null);
   const violationsPageSize = 10;
 
   const fetchFilters = useCallback(async () => {
@@ -365,6 +380,80 @@ export function UsageAnalyticsView() {
       return next;
     });
   }, [violations]);
+
+  const fetchWebhookConfigs = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/analytics/webhook/configs'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setWebhookConfigs(data.configs || {});
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
+  useEffect(() => { fetchWebhookConfigs(); }, [fetchWebhookConfigs]);
+
+  const saveWebhookConfig = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/analytics/webhook/configs'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(webhookForm),
+      });
+      if (!resp.ok) throw new Error('save_failed');
+      await fetchWebhookConfigs();
+      toast.success(`Webhook configuration saved for ${webhookForm.target}`);
+    } catch {
+      toast.error('Failed to save webhook configuration');
+    }
+  }, [webhookForm, fetchWebhookConfigs]);
+
+  const deleteWebhookConfig = useCallback(async (target: string) => {
+    try {
+      const resp = await fetch(apiUrl(`/analytics/webhook/configs/${target}`), {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      if (!resp.ok) throw new Error('delete_failed');
+      await fetchWebhookConfigs();
+      toast.success(`Webhook configuration deleted for ${target}`);
+    } catch {
+      toast.error('Failed to delete webhook configuration');
+    }
+  }, [fetchWebhookConfigs]);
+
+  const dispatchTicket = useCallback(async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
+    const rowKey = `${scanId}-${category}`;
+    setDispatchingRow(rowKey);
+    try {
+      const resp = await fetch(apiUrl('/analytics/violations/dispatch-ticket'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scanId, category, target }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        if (data.error === 'webhook_not_configured') {
+          setShowWebhookConfig(true);
+          setWebhookForm(prev => ({ ...prev, target }));
+          toast.error(`No webhook configured for ${target}. Please configure it first.`);
+        } else {
+          throw new Error(data.message || 'dispatch_failed');
+        }
+        return;
+      }
+      await fetchTicketStatuses();
+      await fetchViolationSummary();
+      await fetchViolations(violationsPage);
+      toast.success(`Ticket dispatched to ${target}${data.ticketRef ? ': ' + data.ticketRef : ''}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to dispatch ticket');
+    } finally {
+      setDispatchingRow(null);
+    }
+  }, [fetchTicketStatuses, fetchViolationSummary, fetchViolations, violationsPage]);
 
   const exportLedger = useCallback(async (format: 'csv' | 'json') => {
     try {
@@ -1036,6 +1125,25 @@ export function UsageAnalyticsView() {
                               </Button>
                             </>
                           )}
+                          <div className="flex items-center gap-2 ml-auto">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              disabled={dispatchingRow === rowKey}
+                              onClick={() => dispatchTicket(v.scanId, v.category, ticketTarget)}
+                            >
+                              {dispatchingRow === rowKey ? 'Dispatching...' : (<><Send className="h-3 w-3" /> Dispatch</>)}
+                            </Button>
+                            {webhookConfigs[ticketTarget] ? (
+                              <span className="text-xs text-green-600 dark:text-green-400" title={webhookConfigs[ticketTarget].apiUrl}>
+                                ● Configured
+                              </span>
+                            ) : (
+                              <Button variant="ghost" size="sm" onClick={() => { setShowWebhookConfig(true); setWebhookForm(prev => ({ ...prev, target: ticketTarget })); }}>
+                                <Settings className="h-3 w-3" /> Configure
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         {ticketPayload && ticketRowKey === rowKey && (
                           <pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto max-h-48 border">
@@ -1079,6 +1187,115 @@ export function UsageAnalyticsView() {
                   </div>
                 );
               })}
+              {/* Webhook Configuration Modal */}
+              {showWebhookConfig && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowWebhookConfig(false)}>
+                  <div className="bg-background rounded-lg border shadow-lg p-6 w-full max-w-lg space-y-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-medium">Webhook Configuration</h3>
+                      <Button variant="ghost" size="sm" onClick={() => setShowWebhookConfig(false)}><X className="h-4 w-4" /></Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Configure the API endpoint and credentials for direct ticket dispatch. Auth tokens are stored locally and masked in API responses.</p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Target Platform</label>
+                        <select
+                          className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                          value={webhookForm.target}
+                          onChange={(e) => setWebhookForm(prev => ({ ...prev, target: e.target.value }))}
+                        >
+                          <option value="jira">Jira</option>
+                          <option value="linear">Linear</option>
+                          <option value="github">GitHub Issues</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">API URL</label>
+                        <input
+                          type="text"
+                          placeholder={webhookForm.target === 'jira' ? 'https://yourorg.atlassian.net/rest/api/2/issue' : webhookForm.target === 'linear' ? 'https://api.linear.app/graphql' : 'https://api.github.com/repos/{owner}/{repo}/issues'}
+                          value={webhookForm.apiUrl}
+                          onChange={(e) => setWebhookForm(prev => ({ ...prev, apiUrl: e.target.value }))}
+                          className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Auth Token / API Key</label>
+                        <input
+                          type="password"
+                          placeholder="Paste your API token or PAT..."
+                          value={webhookForm.authToken}
+                          onChange={(e) => setWebhookForm(prev => ({ ...prev, authToken: e.target.value }))}
+                          className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                        />
+                      </div>
+                      {webhookForm.target === 'jira' && (
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">Project Key (e.g. SEC)</label>
+                          <input
+                            type="text"
+                            placeholder="SEC"
+                            value={webhookForm.projectKey}
+                            onChange={(e) => setWebhookForm(prev => ({ ...prev, projectKey: e.target.value }))}
+                            className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                          />
+                        </div>
+                      )}
+                      {webhookForm.target === 'linear' && (
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">Team ID (optional)</label>
+                          <input
+                            type="text"
+                            placeholder="team-uuid"
+                            value={webhookForm.teamId}
+                            onChange={(e) => setWebhookForm(prev => ({ ...prev, teamId: e.target.value }))}
+                            className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                          />
+                        </div>
+                      )}
+                      {webhookForm.target === 'github' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Repo Owner</label>
+                            <input
+                              type="text"
+                              placeholder="org-name"
+                              value={webhookForm.repoOwner}
+                              onChange={(e) => setWebhookForm(prev => ({ ...prev, repoOwner: e.target.value }))}
+                              className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Repo Name</label>
+                            <input
+                              type="text"
+                              placeholder="repo-name"
+                              value={webhookForm.repoName}
+                              onChange={(e) => setWebhookForm(prev => ({ ...prev, repoName: e.target.value }))}
+                              className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm mt-1"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <div className="flex gap-2">
+                        {webhookConfigs[webhookForm.target] && (
+                          <Button variant="outline" size="sm" onClick={() => deleteWebhookConfig(webhookForm.target)}>
+                            <X className="h-3 w-3" /> Delete Config
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setShowWebhookConfig(false)}>Cancel</Button>
+                        <Button size="sm" onClick={saveWebhookConfig} disabled={!webhookForm.apiUrl.trim()}>
+                          <Settings className="h-3 w-3" /> Save Configuration
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* Pagination */}
               {violationsTotal > violationsPageSize && (
                 <div className="flex items-center justify-between pt-3 border-t">

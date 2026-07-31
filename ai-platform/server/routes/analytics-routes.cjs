@@ -21,6 +21,10 @@
  *   GET  /api/analytics/violations/ticket-statuses — Get all ticketed violation statuses
  *   GET  /api/analytics/violations/summary       — Remediation coverage summary with per-category breakdown
  *   GET  /api/analytics/violations/export         — Download filtered violations as CSV or JSON compliance ledger
+ *   POST /api/analytics/violations/dispatch-ticket — Dispatch a ticket payload to an external tracker via webhook
+ *   GET  /api/analytics/webhook/configs            — Get all webhook configurations
+ *   POST /api/analytics/webhook/configs            — Save a webhook configuration for a target platform
+ *   DELETE /api/analytics/webhook/configs/:target  — Delete a webhook configuration
  *   POST /api/analytics/record             — Record a scan (internal/CI)
  *
  * @module analytics-routes
@@ -30,6 +34,7 @@ const express = require('express');
 const logger = require('../lib/app-logger.cjs');
 const analyticsStore = require('../lib/usage-analytics-store.cjs');
 const ticketStatusStore = require('../lib/ticket-status-store.cjs');
+const webhookConfigStore = require('../lib/webhook-config-store.cjs');
 
 const router = express.Router();
 
@@ -802,6 +807,178 @@ router.get('/violations/export', (req, res) => {
   } catch (err) {
     logger.error('[Analytics] Violations export failed:', err.message);
     res.status(500).json({ error: 'violations_export_failed', message: err.message });
+  }
+});
+
+// POST /api/analytics/violations/dispatch-ticket — dispatch a ticket to an external tracker via webhook
+router.post('/violations/dispatch-ticket', async (req, res) => {
+  try {
+    const { scanId, category, target } = req.body || {};
+    if (!scanId) return res.status(400).json({ error: 'scanId is required' });
+    if (!category) return res.status(400).json({ error: 'category is required' });
+
+    const ticketTarget = (target || 'jira').toLowerCase();
+    const config = webhookConfigStore.getConfig(ticketTarget);
+    if (!config || !config.apiUrl) {
+      return res.status(400).json({ error: 'webhook_not_configured', message: `No webhook configuration found for ${ticketTarget}. Configure it first.` });
+    }
+
+    // Generate the ticket payload (reuse the same logic as ticket-payload endpoint)
+    const result = analyticsStore.getScans({ limit: 100000, offset: 0 });
+    const scan = result.scans.find(s => s.scanId === scanId);
+    if (!scan) return res.status(404).json({ error: 'scan_not_found', message: 'Scan not found' });
+
+    const count = (scan.categoryCounts || {})[category] || 0;
+    if (count === 0) return res.status(404).json({ error: 'category_not_found', message: 'Category not found in this scan' });
+
+    const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
+    const priorityMap = { critical: 'P0', high: 'P1', medium: 'P2', low: 'P3' };
+    const priorityLabel = priorityMap[guidance.priority] || 'P2';
+    const title = `[${priorityLabel}] ${category} — ${count} finding${count > 1 ? 's' : ''} in ${scan.repository}/${scan.branch}`;
+
+    const descriptionLines = [
+      `h2. Violation Summary`, ``,
+      `*Category:* ${category}`, `*Findings:* ${count}`, `*Repository:* ${scan.repository}`,
+      `*Branch:* ${scan.branch}`, `*Commit:* ${scan.commitSha}`, `*Scan ID:* ${scan.scanId}`,
+      `*Scan Date:* ${scan.timestamp}`, `*Triggered By:* ${scan.triggeredBy}`,
+      `*Gate Status:* ${scan.gateStatus}`, `*Posture Score:* ${scan.postureScore}/100`, ``,
+      `h2. Remediation Strategy: ${guidance.strategy}`, ``, `${guidance.description}`, ``,
+      `h2. Remediation Steps`, ``, ...guidance.steps.map((step, i) => `#${i + 1}. ${step}`),
+    ];
+    const markdownDescription = descriptionLines.join('\n').replace(/h2\.\s/g, '## ').replace(/\*/g, '**');
+
+    let apiUrl = config.apiUrl;
+    let headers = { 'Content-Type': 'application/json' };
+    let body;
+
+    if (ticketTarget === 'jira') {
+      if (config.authToken) headers['Authorization'] = `Bearer ${config.authToken}`;
+      if (config.projectKey) {
+        apiUrl = config.apiUrl.replace('{projectKey}', config.projectKey);
+      }
+      body = {
+        fields: {
+          project: { key: config.projectKey || 'SEC' },
+          summary: title,
+          description: descriptionLines.join('\n'),
+          issuetype: { name: guidance.priority === 'critical' || guidance.priority === 'high' ? 'Bug' : 'Task' },
+          priority: { name: guidance.priority === 'critical' ? 'Highest' : guidance.priority === 'high' ? 'High' : guidance.priority === 'medium' ? 'Medium' : 'Low' },
+          labels: ['simplebeacon', 'compliance', guidance.strategy, `priority-${guidance.priority}`],
+        },
+      };
+    } else if (ticketTarget === 'linear') {
+      headers['Authorization'] = config.authToken;
+      body = {
+        title,
+        description: markdownDescription,
+        priority: guidance.priority === 'critical' ? 1 : guidance.priority === 'high' ? 2 : guidance.priority === 'medium' ? 3 : 4,
+        labels: ['simplebeacon', 'compliance', guidance.strategy],
+        metadata: { scanId: scan.scanId, category, repository: scan.repository, branch: scan.branch },
+      };
+      if (config.teamId) body.teamId = config.teamId;
+    } else if (ticketTarget === 'github') {
+      headers['Authorization'] = `Bearer ${config.authToken}`;
+      apiUrl = config.apiUrl
+        .replace('{owner}', config.repoOwner || '')
+        .replace('{repo}', config.repoName || '');
+      body = {
+        title,
+        body: markdownDescription,
+        labels: ['compliance', guidance.priority, guidance.strategy, 'simplebeacon'],
+      };
+    } else {
+      return res.status(400).json({ error: 'invalid_target', message: `Unknown target: ${ticketTarget}` });
+    }
+
+    const apiResp = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    const respText = await apiResp.text();
+    let respData;
+    try { respData = JSON.parse(respText); } catch { respData = { raw: respText }; }
+
+    if (!apiResp.ok) {
+      logger.error(`[Analytics] Dispatch to ${ticketTarget} failed: ${apiResp.status}`, respText.substring(0, 200));
+      return res.status(502).json({
+        error: 'dispatch_failed',
+        message: `External API returned ${apiResp.status}`,
+        target: ticketTarget,
+        response: respData,
+      });
+    }
+
+    // Extract ticket URL/ID from response
+    let ticketRef = '';
+    if (ticketTarget === 'jira' && respData.key) {
+      ticketRef = respData.self ? `${config.apiUrl.split('/rest/')[0]}/browse/${respData.key}` : respData.key;
+    } else if (ticketTarget === 'linear' && respData.data?.id) {
+      ticketRef = respData.data.url || respData.data.id;
+    } else if (ticketTarget === 'github' && respData.html_url) {
+      ticketRef = respData.html_url;
+    } else if (respData.id) {
+      ticketRef = respData.id;
+    }
+
+    // Auto-mark as ticketed
+    if (ticketRef) {
+      ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget);
+    }
+
+    res.json({
+      success: true,
+      target: ticketTarget,
+      ticketRef,
+      response: respData,
+    });
+  } catch (err) {
+    logger.error('[Analytics] Dispatch ticket failed:', err.message);
+    res.status(500).json({ error: 'dispatch_error', message: err.message });
+  }
+});
+
+// GET /api/analytics/webhook/configs — get all webhook configurations
+router.get('/webhook/configs', (req, res) => {
+  try {
+    const configs = webhookConfigStore.getAllConfigs();
+    // Mask auth tokens in response
+    const masked = {};
+    for (const [key, val] of Object.entries(configs)) {
+      masked[key] = { ...val, authToken: val.authToken ? '••••••••' : '' };
+    }
+    res.json({ success: true, configs: masked });
+  } catch (err) {
+    logger.error('[Analytics] Get webhook configs failed:', err.message);
+    res.status(500).json({ error: 'webhook_configs_failed', message: err.message });
+  }
+});
+
+// POST /api/analytics/webhook/configs — save a webhook configuration
+router.post('/webhook/configs', (req, res) => {
+  try {
+    const { target, apiUrl, authToken, projectKey, teamId, repoOwner, repoName } = req.body || {};
+    if (!target) return res.status(400).json({ error: 'target is required' });
+    if (!apiUrl) return res.status(400).json({ error: 'apiUrl is required' });
+
+    const config = webhookConfigStore.setConfig(target, { apiUrl, authToken, projectKey, teamId, repoOwner, repoName });
+    res.json({ success: true, config: { ...config, authToken: '••••••••' } });
+  } catch (err) {
+    logger.error('[Analytics] Save webhook config failed:', err.message);
+    res.status(500).json({ error: 'webhook_config_save_failed', message: err.message });
+  }
+});
+
+// DELETE /api/analytics/webhook/configs/:target — delete a webhook configuration
+router.delete('/webhook/configs/:target', (req, res) => {
+  try {
+    const { target } = req.params;
+    webhookConfigStore.deleteConfig(target);
+    res.json({ success: true, deleted: target });
+  } catch (err) {
+    logger.error('[Analytics] Delete webhook config failed:', err.message);
+    res.status(500).json({ error: 'webhook_config_delete_failed', message: err.message });
   }
 });
 
