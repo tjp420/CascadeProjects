@@ -123,6 +123,19 @@ function log(params) {
     metadata: params.metadata || null,
   };
 
+  // Apply PII redaction to free-text metadata before hashing.
+  // This ensures the hash chain is computed on the redacted content,
+  // maintaining chain integrity while preventing PII from entering
+  // the immutable audit log.
+  if (entry.metadata && typeof entry.metadata === 'string') {
+    try {
+      const { text: redactedMetadata } = piiPolicyStore.redactText(entry.metadata, orgId);
+      entry.metadata = redactedMetadata;
+    } catch {
+      // PII redaction errors must never block audit logging
+    }
+  }
+
   const key = makeKey(orgId, id);
   const previousHash = store.chainHeads[orgId] || GENESIS_HASH;
   entry.previousHash = previousHash;

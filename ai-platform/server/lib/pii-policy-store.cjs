@@ -31,9 +31,77 @@ let _cacheDirty = true;
  * @property {string} replacement — Replacement text (e.g. '[REDACTED-EMP-ID]')
  * @property {'high'|'medium'|'low'} severity — Severity level
  * @property {boolean} enabled    — Whether this policy is active
+ * @property {string[]} compliance — Compliance frameworks this pattern satisfies (e.g. ['GDPR', 'HIPAA', 'PCI-DSS'])
+ * @property {boolean} isDefault  — Whether this is a built-in seed pattern
  * @property {string} createdAt   — ISO timestamp
  * @property {string} updatedAt   — ISO timestamp
  */
+
+/**
+ * Supported compliance frameworks.
+ */
+const COMPLIANCE_FRAMEWORKS = ['GDPR', 'HIPAA', 'PCI-DSS', 'CCPA', 'SOX'];
+
+/**
+ * Default seed patterns for common PII types. These are automatically
+ * created for an org when no policies exist yet.
+ */
+const DEFAULT_SEED_PATTERNS = [
+  {
+    name: 'Email Address',
+    description: 'Standard email addresses (user@domain.com)',
+    pattern: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}',
+    flags: 'gi',
+    replacement: '[REDACTED-EMAIL]',
+    severity: 'high',
+    compliance: ['GDPR', 'CCPA'],
+  },
+  {
+    name: 'US Social Security Number',
+    description: 'SSN in XXX-XX-XXXX or XXXXXXXXX format',
+    pattern: '\\b\\d{3}-?\\d{2}-?\\d{4}\\b',
+    flags: 'g',
+    replacement: '[REDACTED-SSN]',
+    severity: 'high',
+    compliance: ['GDPR', 'HIPAA', 'CCPA'],
+  },
+  {
+    name: 'Credit Card Number',
+    description: 'Visa/Mastercard/Amex patterns (groups of 4 digits)',
+    pattern: '\\b(?:\\d[ -]*?){13,19}\\b',
+    flags: 'g',
+    replacement: '[REDACTED-CC]',
+    severity: 'high',
+    compliance: ['PCI-DSS', 'GDPR'],
+  },
+  {
+    name: 'US Phone Number',
+    description: 'Phone in (XXX) XXX-XXXX or XXX-XXX-XXXX format',
+    pattern: '\\b\\(?\\d{3}\\)?[ -]?\\d{3}[ -]?\\d{4}\\b',
+    flags: 'g',
+    replacement: '[REDACTED-PHONE]',
+    severity: 'medium',
+    compliance: ['GDPR', 'CCPA'],
+  },
+  {
+    name: 'IPv4 Address',
+    description: 'Standard IPv4 addresses (XXX.XXX.XXX.XXX)',
+    pattern: '\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b',
+    flags: 'g',
+    replacement: '[REDACTED-IP]',
+    severity: 'low',
+    compliance: ['GDPR'],
+  },
+  {
+    name: 'API Key (Bearer Token)',
+    description: 'Bearer token patterns in Authorization headers',
+    pattern: '(?i)bearer\\s+[a-zA-Z0-9._-]+',
+    flags: 'g',
+    replacement: '[REDACTED-TOKEN]',
+    severity: 'high',
+    compliance: ['SOX', 'PCI-DSS'],
+  },
+];
 
 function readStore() {
   if (_cache && !_cacheDirty) return _cache;
@@ -111,7 +179,7 @@ function getPolicy(id) {
  * @returns {{ success: boolean, policy?: PiiPolicy, error?: string }}
  */
 function createPolicy(params) {
-  const { orgId, name, description, pattern, flags, replacement, severity, enabled } = params;
+  const { orgId, name, description, pattern, flags, replacement, severity, enabled, compliance, isDefault } = params;
 
   if (!orgId) return { success: false, error: 'orgId is required' };
   if (!name || typeof name !== 'string') return { success: false, error: 'name is required' };
@@ -125,6 +193,11 @@ function createPolicy(params) {
   const validSeverities = ['high', 'medium', 'low'];
   const sev = validSeverities.includes(severity) ? severity : 'medium';
 
+  // Validate compliance frameworks
+  const complianceTags = Array.isArray(compliance)
+    ? compliance.filter((c) => COMPLIANCE_FRAMEWORKS.includes(c))
+    : [];
+
   const store = readStore();
   const now = new Date().toISOString();
   const policy = {
@@ -137,6 +210,8 @@ function createPolicy(params) {
     replacement,
     severity: sev,
     enabled: enabled !== false,
+    compliance: complianceTags,
+    isDefault: isDefault === true,
     createdAt: now,
     updatedAt: now,
   };
@@ -168,6 +243,16 @@ function updatePolicy(id, updates) {
     const validSeverities = ['high', 'medium', 'low'];
     if (!validSeverities.includes(updates.severity)) {
       return { success: false, error: 'Invalid severity' };
+    }
+  }
+
+  if (updates.compliance !== undefined) {
+    if (!Array.isArray(updates.compliance)) {
+      return { success: false, error: 'compliance must be an array' };
+    }
+    const invalid = updates.compliance.filter((c) => !COMPLIANCE_FRAMEWORKS.includes(c));
+    if (invalid.length > 0) {
+      return { success: false, error: `Invalid compliance frameworks: ${invalid.join(', ')}` };
     }
   }
 
@@ -268,16 +353,54 @@ function redactText(text, orgId) {
 function getStats(orgId) {
   const policies = getPolicies(orgId);
   const bySeverity = { high: 0, medium: 0, low: 0 };
+  const byCompliance = {};
   let enabled = 0;
+  let defaultCount = 0;
   for (const p of policies) {
     bySeverity[p.severity] = (bySeverity[p.severity] || 0) + 1;
     if (p.enabled) enabled++;
+    if (p.isDefault) defaultCount++;
+    if (Array.isArray(p.compliance)) {
+      for (const c of p.compliance) {
+        byCompliance[c] = (byCompliance[c] || 0) + 1;
+      }
+    }
   }
   return {
     totalPolicies: policies.length,
     enabledPolicies: enabled,
     bySeverity,
+    byCompliance,
+    defaultCount,
   };
+}
+
+/**
+ * Seed default PII patterns for an organization if none exist.
+ * @param {string} orgId
+ * @returns {number} — number of patterns seeded
+ */
+function seedDefaults(orgId) {
+  const existing = getPolicies(orgId);
+  if (existing.length > 0) return 0;
+
+  let seeded = 0;
+  for (const seed of DEFAULT_SEED_PATTERNS) {
+    const result = createPolicy({
+      orgId,
+      name: seed.name,
+      description: seed.description,
+      pattern: seed.pattern,
+      flags: seed.flags,
+      replacement: seed.replacement,
+      severity: seed.severity,
+      compliance: seed.compliance,
+      enabled: true,
+      isDefault: true,
+    });
+    if (result.success) seeded++;
+  }
+  return seeded;
 }
 
 module.exports = {
@@ -290,5 +413,7 @@ module.exports = {
   redactText,
   getStats,
   validateRegex,
+  seedDefaults,
+  COMPLIANCE_FRAMEWORKS,
   PII_POLICY_PATH,
 };

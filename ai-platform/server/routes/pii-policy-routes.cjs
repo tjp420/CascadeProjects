@@ -71,6 +71,7 @@ router.post('/policies', authorize('admin:all'), (req, res) => {
       replacement: req.body.replacement,
       severity: req.body.severity,
       enabled: req.body.enabled,
+      compliance: req.body.compliance,
     });
     if (!result.success) {
       return sendError(res, 400, 'pii_create_failed', { message: result.error });
@@ -92,7 +93,7 @@ router.put('/policies/:id', authorize('admin:all'), (req, res) => {
     if (policy.orgId !== orgId) return sendError(res, 403, 'pii_policy_access_denied');
 
     const updates = {};
-    const allowedFields = ['name', 'description', 'pattern', 'flags', 'replacement', 'severity', 'enabled'];
+    const allowedFields = ['name', 'description', 'pattern', 'flags', 'replacement', 'severity', 'enabled', 'compliance'];
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
@@ -180,6 +181,24 @@ router.get('/stats', (req, res) => {
     logger.warn('[PII] stats_failed:', err.message);
     sendError(res, 500, 'pii_stats_failed', { message: err.message });
   }
+});
+
+// POST /api/pii/seed — seed default PII patterns for org (admin only)
+router.post('/seed', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const seeded = piiPolicyStore.seedDefaults(orgId);
+    logger.info(`[PII] Seeded ${seeded} default patterns for org ${orgId}`);
+    res.json({ success: true, seeded });
+  } catch (err) {
+    logger.warn('[PII] seed_failed:', err.message);
+    sendError(res, 500, 'pii_seed_failed', { message: err.message });
+  }
+});
+
+// GET /api/pii/frameworks — list supported compliance frameworks
+router.get('/frameworks', (req, res) => {
+  res.json({ success: true, frameworks: piiPolicyStore.COMPLIANCE_FRAMEWORKS });
 });
 
 module.exports = router;
