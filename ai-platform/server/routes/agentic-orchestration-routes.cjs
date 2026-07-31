@@ -61,6 +61,22 @@ const QUOTA = {
 // per-org sliding window timestamps
 const orgRateWindows = new Map(); // orgId -> [timestamp_ms, ...]
 
+function getAuditContext(req) {
+  try {
+    const sourceIp = (req.headers && (req.headers['x-forwarded-for'] || req.headers['x-real-ip'])) || req.ip || (req.connection && req.connection.remoteAddress) || null;
+    const headers = {
+      'user-agent': req.headers && req.headers['user-agent'],
+      'x-request-id': req.headers && req.headers['x-request-id'],
+      'x-test-user': req.headers && req.headers['x-test-user'],
+    };
+    const body = req.body || {};
+    const hash = crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
+    return { sourceIp, headers, payloadHash: hash, at: new Date().toISOString() };
+  } catch (e) {
+    return { sourceIp: null, headers: {}, payloadHash: null, at: new Date().toISOString() };
+  }
+}
+
 function isOverActiveQuota(orgId) {
   try {
     const active = agenticStore.getActiveExecutions(orgId) || [];
@@ -167,7 +183,7 @@ router.post('/agents/:id/execute', authorize('admin:all'), asyncHandler(async fu
   var options = req.body.options || {};
   // Enforce active-execution quota per org
   if (isOverActiveQuota(orgId)) {
-    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_QUOTA_EXHAUSTED', { orgId, agentId: req.params.id, user: req.user && req.user.id }); } catch (e) {}
+    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_QUOTA_EXHAUSTED', Object.assign({ orgId, agentId: req.params.id, user: req.user && req.user.id }, getAuditContext(req))); } catch (e) {}
     return sendError(res, 429, 'rate_limited', { message: 'max_active_executions_reached' });
   }
 
@@ -176,7 +192,7 @@ router.post('/agents/:id/execute', authorize('admin:all'), asyncHandler(async fu
   if (!rl.allowed) {
     const retrySecs = Math.ceil((rl.retryAfterMs || 0) / 1000);
     res.setHeader('Retry-After', String(retrySecs));
-    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_RATE_LIMIT_TRIPPED', { orgId, agentId: req.params.id, user: req.user && req.user.id, retryAfter: retrySecs }); } catch (e) {}
+    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_RATE_LIMIT_TRIPPED', Object.assign({ orgId, agentId: req.params.id, user: req.user && req.user.id, retryAfter: retrySecs }, getAuditContext(req))); } catch (e) {}
     return sendError(res, 429, 'rate_limited', { message: 'rate_limit_exceeded', retryAfter: retrySecs });
   }
 

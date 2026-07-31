@@ -183,8 +183,12 @@ describe('agentic-orchestration routes (static checks)', () => {
       if (r.status === 429) { got429 = true; break; }
     }
     assert.ok(got429, 'Expected at least one 429 rate_limited response within 5 attempts');
-    // Verify audit event recorded
+    // Verify audit event recorded with context
     const audit = global.__auditMock;
-    assert.ok(audit && audit.events && audit.events.some(e => e.type === 'AGENTIC_RATE_LIMIT_TRIPPED' || e.type === 'AGENTIC_QUOTA_EXHAUSTED'), 'Expected audit event for rate limit or quota');
+    const ev = audit && audit.events && audit.events.find(e => e.type === 'AGENTIC_RATE_LIMIT_TRIPPED' || e.type === 'AGENTIC_QUOTA_EXHAUSTED');
+    assert.ok(ev, 'Expected audit event for rate limit or quota');
+    assert.ok(ev.data && typeof ev.data.payloadHash === 'string' && ev.data.payloadHash.length === 64, 'Expected sha256 payloadHash');
+    assert.ok('sourceIp' in ev.data, 'Expected sourceIp in audit data');
+    assert.ok(ev.data.headers && ('x-test-user' in ev.data.headers), 'Expected x-test-user header in audit headers');
   });
 });

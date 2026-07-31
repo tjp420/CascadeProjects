@@ -68,6 +68,8 @@ jest.mock('../../../server/services/cloud-inference-service.cjs', () => ({
 // Mock audit logger so we can assert calls on quota/rate-limit
 jest.mock('../../../server/lib/audit-logger.cjs', () => ({
   logEvent: jest.fn(),
+  // provide a placeholder so getAuditContext isn't undefined when required
+  _placeholder: true,
 }));
 
 function buildApp() {
@@ -148,5 +150,8 @@ describe('agentic-orchestration routes (Jest mirror)', () => {
     // Assert audit logger called
     const audit = require('../../../server/lib/audit-logger.cjs');
     expect(audit.logEvent).toHaveBeenCalled();
+    // inspect last call args for context
+    const lastCall = audit.logEvent.mock.calls[audit.logEvent.mock.calls.length - 1];
+    expect(lastCall[1]).toEqual(expect.objectContaining({ payloadHash: expect.any(String), sourceIp: expect.anything(), headers: expect.any(Object) }));
   });
 });
