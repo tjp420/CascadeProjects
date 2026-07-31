@@ -130,7 +130,10 @@ async function main() {
   // Compute SHA-256 checksums for all files in tmpDir and write checksums.sha256
   try {
     const crypto = require('crypto');
-    const files = fs.readdirSync(tmpDir).filter(f => fs.statSync(path.join(tmpDir, f)).isFile());
+    // Exclude the manifest itself from the checksum list to avoid the self-checksum paradox
+    const files = fs.readdirSync(tmpDir)
+      .filter(f => fs.statSync(path.join(tmpDir, f)).isFile())
+      .filter(f => f !== 'checksums.sha256');
     const lines = [];
     for (const f of files) {
       const buf = fs.readFileSync(path.join(tmpDir, f));
