@@ -22,6 +22,7 @@
  *   GET  /api/analytics/violations/summary       — Remediation coverage summary with per-category breakdown
  *   GET  /api/analytics/violations/export         — Download filtered violations as CSV or JSON compliance ledger
  *   POST /api/analytics/violations/dispatch-ticket — Dispatch a ticket payload to an external tracker via webhook
+ *   POST /api/analytics/violations/bulk-dispatch-ticket — Dispatch tickets to multiple violations with rate limiting and retry backoff
  *   GET  /api/analytics/webhook/configs            — Get all webhook configurations
  *   POST /api/analytics/webhook/configs            — Save a webhook configuration for a target platform
  *   DELETE /api/analytics/webhook/configs/:target  — Delete a webhook configuration
@@ -786,7 +787,11 @@ router.get('/violations/export', (req, res) => {
       'Days Open', 'SLA Limit (days)', 'SLA Breached', 'SLA Days Over',
     ];
     const escapeCsv = (val) => {
-      const s = String(val ?? '');
+      let s = String(val ?? '');
+      // CSV injection neutralization: prefix dangerous chars with single quote
+      if (/^[=+\-@]/.test(s)) {
+        s = `'${s}`;
+      }
       if (s.includes(',') || s.includes('"') || s.includes('\n')) {
         return `"${s.replace(/"/g, '""')}"`;
       }
@@ -936,6 +941,141 @@ router.post('/violations/dispatch-ticket', async (req, res) => {
   } catch (err) {
     logger.error('[Analytics] Dispatch ticket failed:', err.message);
     res.status(500).json({ error: 'dispatch_error', message: err.message });
+  }
+});
+
+// POST /api/analytics/violations/bulk-dispatch-ticket — dispatch tickets to multiple violations with rate limiting
+router.post('/violations/bulk-dispatch-ticket', async (req, res) => {
+  try {
+    const { violations, target } = req.body || {};
+    if (!Array.isArray(violations) || violations.length === 0) return res.status(400).json({ error: 'violations array is required' });
+    const ticketTarget = (target || 'jira').toLowerCase();
+    const config = webhookConfigStore.getConfig(ticketTarget);
+    if (!config || !config.apiUrl) {
+      return res.status(400).json({ error: 'webhook_not_configured', message: `No webhook configuration found for ${ticketTarget}.` });
+    }
+
+    const MAX_CONCURRENT = 3;
+    const BATCH_DELAY_MS = 500;
+    const MAX_RETRIES = 3;
+    const BASE_BACKOFF_MS = 1000;
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    async function dispatchOne(scanId, category) {
+      // Generate payload
+      const result = analyticsStore.getScans({ limit: 100000, offset: 0 });
+      const scan = result.scans.find(s => s.scanId === scanId);
+      if (!scan) return { scanId, category, success: false, error: 'scan_not_found' };
+      const count = (scan.categoryCounts || {})[category] || 0;
+      if (count === 0) return { scanId, category, success: false, error: 'category_not_found' };
+
+      const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
+      const priorityMap = { critical: 'P0', high: 'P1', medium: 'P2', low: 'P3' };
+      const priorityLabel = priorityMap[guidance.priority] || 'P2';
+      const title = `[${priorityLabel}] ${category} — ${count} finding${count > 1 ? 's' : ''} in ${scan.repository}/${scan.branch}`;
+      const descriptionLines = [
+        `h2. Violation Summary`, ``,
+        `*Category:* ${category}`, `*Findings:* ${count}`, `*Repository:* ${scan.repository}`,
+        `*Branch:* ${scan.branch}`, `*Commit:* ${scan.commitSha}`, `*Scan ID:* ${scan.scanId}`,
+        `*Scan Date:* ${scan.timestamp}`, `*Triggered By:* ${scan.triggeredBy}`,
+        `*Gate Status:* ${scan.gateStatus}`, `*Posture Score:* ${scan.postureScore}/100`, ``,
+        `h2. Remediation Strategy: ${guidance.strategy}`, ``, `${guidance.description}`, ``,
+        `h2. Remediation Steps`, ``, ...guidance.steps.map((step, i) => `#${i + 1}. ${step}`),
+      ];
+      const markdownDescription = descriptionLines.join('\n').replace(/h2\.\s/g, '## ').replace(/\*/g, '**');
+
+      let apiUrl = config.apiUrl;
+      let headers = { 'Content-Type': 'application/json' };
+      let body;
+
+      if (ticketTarget === 'jira') {
+        if (config.authToken) headers['Authorization'] = `Bearer ${config.authToken}`;
+        apiUrl = config.apiUrl.replace('{projectKey}', config.projectKey || '');
+        body = { fields: { project: { key: config.projectKey || 'SEC' }, summary: title, description: descriptionLines.join('\n'), issuetype: { name: guidance.priority === 'critical' || guidance.priority === 'high' ? 'Bug' : 'Task' }, priority: { name: guidance.priority === 'critical' ? 'Highest' : guidance.priority === 'high' ? 'High' : guidance.priority === 'medium' ? 'Medium' : 'Low' }, labels: ['simplebeacon', 'compliance', guidance.strategy, `priority-${guidance.priority}`] } };
+      } else if (ticketTarget === 'linear') {
+        headers['Authorization'] = config.authToken;
+        body = { title, description: markdownDescription, priority: guidance.priority === 'critical' ? 1 : guidance.priority === 'high' ? 2 : guidance.priority === 'medium' ? 3 : 4, labels: ['simplebeacon', 'compliance', guidance.strategy], metadata: { scanId: scan.scanId, category, repository: scan.repository, branch: scan.branch } };
+        if (config.teamId) body.teamId = config.teamId;
+      } else if (ticketTarget === 'github') {
+        headers['Authorization'] = `Bearer ${config.authToken}`;
+        apiUrl = config.apiUrl.replace('{owner}', config.repoOwner || '').replace('{repo}', config.repoName || '');
+        body = { title, body: markdownDescription, labels: ['compliance', guidance.priority, guidance.strategy, 'simplebeacon'] };
+      } else {
+        return { scanId, category, success: false, error: 'invalid_target' };
+      }
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const apiResp = await fetch(apiUrl, { method: 'POST', headers, body: JSON.stringify(body) });
+          if (apiResp.status === 429 || apiResp.status >= 500) {
+            if (attempt < MAX_RETRIES) {
+              const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt);
+              await sleep(backoff);
+              continue;
+            }
+            const respText = await apiResp.text();
+            return { scanId, category, success: false, error: `rate_limited_${apiResp.status}`, response: respText.substring(0, 200) };
+          }
+          const respText = await apiResp.text();
+          let respData;
+          try { respData = JSON.parse(respText); } catch { respData = { raw: respText }; }
+          if (!apiResp.ok) {
+            return { scanId, category, success: false, error: `api_${apiResp.status}`, response: respData };
+          }
+          let ticketRef = '';
+          if (ticketTarget === 'jira' && respData.key) ticketRef = `${config.apiUrl.split('/rest/')[0]}/browse/${respData.key}`;
+          else if (ticketTarget === 'linear' && respData.data?.id) ticketRef = respData.data.url || respData.data.id;
+          else if (ticketTarget === 'github' && respData.html_url) ticketRef = respData.html_url;
+          else if (respData.id) ticketRef = respData.id;
+          if (ticketRef) ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget);
+          return { scanId, category, success: true, ticketRef };
+        } catch (fetchErr) {
+          if (attempt < MAX_RETRIES) {
+            await sleep(BASE_BACKOFF_MS * Math.pow(2, attempt));
+            continue;
+          }
+          return { scanId, category, success: false, error: 'fetch_error', message: fetchErr.message };
+        }
+      }
+      return { scanId, category, success: false, error: 'max_retries_exceeded' };
+    }
+
+    // Process in batches of MAX_CONCURRENT with BATCH_DELAY_MS between batches
+    const results = [];
+    let succeeded = 0;
+    let failed = 0;
+    let rateLimited = 0;
+    for (let i = 0; i < violations.length; i += MAX_CONCURRENT) {
+      const batch = violations.slice(i, i + MAX_CONCURRENT);
+      const batchResults = await Promise.all(
+        batch.map(v => dispatchOne(v.scanId, v.category))
+      );
+      for (const r of batchResults) {
+        results.push(r);
+        if (r.success) succeeded++;
+        else {
+          failed++;
+          if (r.error?.startsWith('rate_limited')) rateLimited++;
+        }
+      }
+      if (i + MAX_CONCURRENT < violations.length) {
+        await sleep(BATCH_DELAY_MS);
+      }
+    }
+
+    res.json({
+      success: true,
+      target: ticketTarget,
+      total: violations.length,
+      succeeded,
+      failed,
+      rateLimited,
+      results,
+    });
+  } catch (err) {
+    logger.error('[Analytics] Bulk dispatch ticket failed:', err.message);
+    res.status(500).json({ error: 'bulk_dispatch_error', message: err.message });
   }
 });
 
