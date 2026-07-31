@@ -11,6 +11,7 @@
  *   GET  /api/analytics/trends             — Time-series trend data
  *   GET  /api/analytics/heatmap            — Violation heatmap by category
  *   GET  /api/analytics/repositories       — Top repositories by scan count
+ *   GET  /api/analytics/export             — Download analytics as CSV or JSON
  *   POST /api/analytics/record             — Record a scan (internal/CI)
  *
  * @module analytics-routes
@@ -110,6 +111,97 @@ router.get('/repositories', (req, res) => {
     res.json({ success: true, repositories: repos });
   } catch (err) {
     res.status(500).json({ error: 'repositories_failed', message: err.message });
+  }
+});
+
+// GET /api/analytics/export — download analytics as CSV or JSON
+router.get('/export', (req, res) => {
+  try {
+    const format = (req.query.format || 'csv').toLowerCase();
+    const days = parseInt(String(req.query.days || '90'), 10) || 90;
+    const orgId = req.query.orgId || null;
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    const stats = orgId ? analyticsStore.getOrgSummary(orgId) : analyticsStore.getGlobalStats();
+    const trend = analyticsStore.getTrendData({ orgId, startDate, granularity: 'day' });
+    const heatmap = analyticsStore.getViolationHeatmap({ orgId, startDate });
+    const repositories = analyticsStore.getTopRepositories(orgId, 50);
+    const scanResult = analyticsStore.getScans({ orgId, startDate, limit: 10000, offset: 0 });
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="analytics-export-${new Date().toISOString().slice(0, 10)}.json"`);
+      res.json({
+        exportedAt: new Date().toISOString(),
+        filters: { days, orgId, startDate },
+        stats,
+        trend,
+        heatmap,
+        repositories,
+        scans: scanResult.scans,
+        totalScans: scanResult.total,
+      });
+      return;
+    }
+
+    // CSV format — flatten scan records as rows
+    const csvHeaders = [
+      'scanId', 'orgId', 'timestamp', 'repository', 'branch', 'triggeredBy',
+      'codeFilesAnalyzed', 'totalFindings', 'critical', 'high', 'medium', 'low', 'info',
+      'gateStatus', 'postureScore', 'scanDurationMs',
+    ];
+
+    const escapeCsv = (val) => {
+      if (val == null) return '';
+      const s = String(val);
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+
+    const rows = [csvHeaders.join(',')];
+
+    for (const scan of scanResult.scans) {
+      rows.push([
+        escapeCsv(scan.scanId),
+        escapeCsv(scan.orgId),
+        escapeCsv(scan.timestamp),
+        escapeCsv(scan.repository),
+        escapeCsv(scan.branch),
+        escapeCsv(scan.triggeredBy),
+        scan.codeFilesAnalyzed,
+        scan.totalFindings,
+        scan.severityCounts.critical,
+        scan.severityCounts.high,
+        scan.severityCounts.medium,
+        scan.severityCounts.low,
+        scan.severityCounts.info,
+        escapeCsv(scan.gateStatus),
+        scan.postureScore,
+        scan.scanDurationMs,
+      ].join(','));
+    }
+
+    // Append summary section
+    rows.push('');
+    rows.push(`# Summary Export — ${new Date().toISOString()}`);
+    rows.push(`# Total Scans,${stats.totalScans}`);
+    rows.push(`# Total Files,${stats.totalFilesAnalyzed ?? stats.totalFiles ?? ''}`);
+    rows.push(`# Total Findings,${stats.totalFindings}`);
+    rows.push(`# Avg Posture,${stats.avgPostureScore ?? ''}`);
+    rows.push(`# Orgs,${stats.totalOrgs ?? (stats.orgId ? 1 : '')}`);
+    rows.push(`# Trend Points,${trend.length}`);
+    rows.push(`# Heatmap Categories,${Object.keys(heatmap).length}`);
+
+    const csv = rows.join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="analytics-export-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    logger.error('[Analytics] Export failed:', err.message);
+    res.status(500).json({ error: 'export_failed', message: err.message });
   }
 });
 

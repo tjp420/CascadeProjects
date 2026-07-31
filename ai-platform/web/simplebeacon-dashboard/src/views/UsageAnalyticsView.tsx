@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
-  Shield, Activity, Building2, Gauge, Calendar,
+  Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -69,38 +69,50 @@ export function UsageAnalyticsView() {
   const [repositories, setRepositories] = useState<RepositoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [granularity, setGranularity] = useState<'day' | 'week' | 'month'>('day');
+  const [days, setDays] = useState<number>(90);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsResp, trendResp, heatmapResp, reposResp] = await Promise.all([
-        fetch(apiUrl('/analytics/stats'), { headers: authHeaders() }),
-        fetch(apiUrl(`/analytics/trends?granularity=${granularity}`), { headers: authHeaders() }),
-        fetch(apiUrl('/analytics/heatmap'), { headers: authHeaders() }),
-        fetch(apiUrl('/analytics/repositories?limit=10'), { headers: authHeaders() }),
-      ]);
-
-      if (statsResp.ok) setStats(await statsResp.json());
-      if (trendResp.ok) {
-        const data = await trendResp.json();
-        setTrend(data.trend || []);
-      }
-      if (heatmapResp.ok) {
-        const data = await heatmapResp.json();
-        setHeatmap(data.heatmap || []);
-      }
-      if (reposResp.ok) {
-        const data = await reposResp.json();
-        setRepositories(data.repositories || []);
+      // Unified enterprise analytics facade reduces roundtrips.
+      const resp = await fetch(apiUrl(`/enterprise/analytics?days=${days}`), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        // facade returns { stats, trend, heatmap, repositories }
+        if (data.stats) setStats(data.stats);
+        if (data.trend) setTrend(data.trend || []);
+        if (data.heatmap) setHeatmap(data.heatmap || []);
+        if (data.repositories) setRepositories(data.repositories || []);
+      } else {
+        throw new Error('analytics_request_failed');
       }
     } catch {
       toast.error('Failed to load analytics data');
     } finally {
       setLoading(false);
     }
-  }, [granularity]);
+  }, [granularity, days]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const handleExport = useCallback(async (format: 'csv' | 'json') => {
+    try {
+      const resp = await fetch(apiUrl(`/analytics/export?format=${format}&days=${days}`), { headers: authHeaders() });
+      if (!resp.ok) throw new Error('export_failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `analytics-export-${new Date().toISOString().slice(0, 10)}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Exported as ${format.toUpperCase()}`);
+    } catch {
+      toast.error(`Failed to export ${format.toUpperCase()}`);
+    }
+  }, [days]);
 
   const severityData = stats ? [
     { name: 'Critical', value: stats.severityTotals.critical, fill: SEVERITY_COLORS.critical },
@@ -145,8 +157,23 @@ export function UsageAnalyticsView() {
             <option value="week">Weekly</option>
             <option value="month">Monthly</option>
           </select>
+          <select
+            className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+          >
+            <option value={30}>30 days</option>
+            <option value={60}>60 days</option>
+            <option value={90}>90 days</option>
+          </select>
           <Button variant="outline" size="sm" onClick={fetchAll} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleExport('csv')} disabled={loading}>
+            <Download className="h-4 w-4" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleExport('json')} disabled={loading}>
+            <FileJson className="h-4 w-4" /> JSON
           </Button>
         </div>
       </div>
