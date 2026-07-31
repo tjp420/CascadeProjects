@@ -1563,6 +1563,19 @@ async function startServer() {
     logger.error('[Routes] Content moderation not loaded:', err?.message || err);
   }
 
+  // Backup snapshot — encrypted, signed, compressed state backups
+  try {
+    const backupRoutes = require('./server/routes/backup-snapshot-routes.cjs');
+    app.use('/api/backup', backupRoutes);
+    logger.info('[Routes] Backup snapshot loaded at /api/backup');
+
+    // Start the automatic snapshot scheduler
+    const backupStore = require('./server/lib/backup-snapshot-store.cjs');
+    backupStore.startScheduler();
+  } catch (err) {
+    logger.error('[Routes] Backup snapshot not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');

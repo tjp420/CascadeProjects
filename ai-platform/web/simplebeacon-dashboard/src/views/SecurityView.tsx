@@ -24,6 +24,7 @@ import { SessionAuditViewer } from '@/components/SessionAuditViewer';
 import { ProxyPerformanceDashboard } from '@/components/ProxyPerformanceDashboard';
 import { RateLimitQuotaDashboard } from '@/components/RateLimitQuotaDashboard';
 import { ContentModerationDashboard } from '@/components/ContentModerationDashboard';
+import { BackupSnapshotDashboard } from '@/components/BackupSnapshotDashboard';
 import { PermissionGate } from '@/components/PermissionGate';
 
 type ScanResultData = {
@@ -501,6 +502,10 @@ export function SecurityView() {
 
       <PermissionGate permission="admin:all" fallback={null}>
         <ContentModerationDashboard />
+      </PermissionGate>
+
+      <PermissionGate permission="admin:all" fallback={null}>
+        <BackupSnapshotDashboard />
       </PermissionGate>
     </div>
   );
