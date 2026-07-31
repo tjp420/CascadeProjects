@@ -261,4 +261,141 @@ router.get('/event-types', (req, res) => {
   });
 });
 
+// ── Webhook Signing Key Rotation ────────────────────────────────────────────
+
+// GET /api/alerts/rules/:id/rotation-status — check grace window state
+router.get('/rules/:id/rotation-status', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const status = ruleStore.getRotationStatus(req.params.id, orgId);
+    res.json({ success: true, ...status });
+  } catch (err) {
+    logger.warn('[Alerts] rotation_status_failed:', err.message);
+    sendError(res, 500, 'rotation_status_failed', { message: err.message });
+  }
+});
+
+// POST /api/alerts/rules/:id/rotate-secret — rotate webhook HMAC signing key
+//
+// Body:
+//   newSecret: string  (optional — if omitted, a 32-byte hex secret is generated)
+//   graceWindowMs: number  (optional — override default 24h grace window for status reporting)
+//
+// Returns the new secret in plaintext (one-time view) plus rotation status.
+router.post('/rules/:id/rotate-secret', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const ruleId = req.params.id;
+
+    // Verify rule exists
+    const rule = ruleStore.getRule(ruleId, orgId);
+    if (!rule) return sendError(res, 404, 'rule_not_found', { message: 'Alert rule not found' });
+
+    if (rule.destinationType !== 'webhook') {
+      return sendError(res, 400, 'not_webhook_rule', {
+        message: 'Secret rotation is only applicable to webhook destination rules.',
+      });
+    }
+
+    // Generate or use provided secret
+    const newSecret = req.body?.newSecret || ruleStore.generateSecret(32);
+    const result = ruleStore.rotateSecret(ruleId, orgId, newSecret);
+    if (!result.success) {
+      return sendError(res, 400, 'rotation_failed', { message: result.error });
+    }
+
+    const status = ruleStore.getRotationStatus(ruleId, orgId, req.body?.graceWindowMs);
+
+    // Audit log the rotation
+    try {
+      auditLogger.log({
+        orgId,
+        actorId: req.user?.id || 'system',
+        actorEmail: req.user?.email || 'system',
+        action: 'webhook_key_rotation',
+        entity: 'alert_rule',
+        entityId: ruleId,
+        metadata: {
+          ruleName: rule.name,
+          graceWindowMs: status.graceWindowMs,
+          graceWindowEndsAt: status.graceWindowEndsAt,
+        },
+      });
+    } catch (logErr) {
+      logger.warn('[Alerts] Failed to audit-log key rotation:', logErr.message);
+    }
+
+    logger.info(`[Alerts] Webhook secret rotated for rule ${ruleId} (org ${orgId}). Grace window active until ${status.graceWindowEndsAt}`);
+
+    // Return the new secret in plaintext — this is the only time it's shown
+    res.json({
+      success: true,
+      newSecret,
+      rotation: status,
+      note: 'Store this secret securely. It will not be shown again in plaintext.',
+    });
+  } catch (err) {
+    logger.warn('[Alerts] rotate_secret_failed:', err.message);
+    sendError(res, 500, 'rotate_secret_failed', { message: err.message });
+  }
+});
+
+// POST /api/alerts/rules/:id/clear-previous-secret — purge old secret after grace window
+//
+// Body:
+//   force: boolean  (if true, clear even if grace window is still active)
+router.post('/rules/:id/clear-previous-secret', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const ruleId = req.params.id;
+
+    const rule = ruleStore.getRule(ruleId, orgId);
+    if (!rule) return sendError(res, 404, 'rule_not_found', { message: 'Alert rule not found' });
+
+    const force = Boolean(req.body?.force);
+    const result = ruleStore.clearPreviousSecret(ruleId, orgId, force);
+    if (!result.success) {
+      return sendError(res, 400, 'clear_previous_failed', { message: result.error });
+    }
+
+    // Audit log the purge
+    try {
+      auditLogger.log({
+        orgId,
+        actorId: req.user?.id || 'system',
+        actorEmail: req.user?.email || 'system',
+        action: 'webhook_key_purge_previous',
+        entity: 'alert_rule',
+        entityId: ruleId,
+        metadata: { ruleName: rule.name, force, cleared: result.cleared },
+      });
+    } catch (logErr) {
+      logger.warn('[Alerts] Failed to audit-log previous secret purge:', logErr.message);
+    }
+
+    logger.info(`[Alerts] Previous webhook secret cleared for rule ${ruleId} (org ${orgId}), force=${force}`);
+    res.json({ success: true, cleared: result.cleared });
+  } catch (err) {
+    logger.warn('[Alerts] clear_previous_secret_failed:', err.message);
+    sendError(res, 500, 'clear_previous_secret_failed', { message: err.message });
+  }
+});
+
+// POST /api/alerts/rules/:id/generate-secret — generate a random secret without rotating
+// Useful for the UI to pre-fill a suggested secret in the rotation form
+router.post('/rules/:id/generate-secret', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const rule = ruleStore.getRule(req.params.id, orgId);
+    if (!rule) return sendError(res, 404, 'rule_not_found', { message: 'Alert rule not found' });
+
+    const bytes = req.body?.bytes || 32;
+    const secret = ruleStore.generateSecret(bytes);
+    res.json({ success: true, secret });
+  } catch (err) {
+    logger.warn('[Alerts] generate_secret_failed:', err.message);
+    sendError(res, 500, 'generate_secret_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

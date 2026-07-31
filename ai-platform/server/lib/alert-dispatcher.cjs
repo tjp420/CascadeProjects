@@ -307,6 +307,7 @@ async function deliverAlert(rule, payload) {
   const isSlack = rule.destinationType === 'slack';
   const body = isSlack ? formatSlackMessage(payload) : JSON.stringify(payload);
   const secret = rule.destination?.secret || '';
+  const previousSecret = rule.destination?.previousSecret || '';
   const signature = signPayload(body, secret);
 
   const headers = {
@@ -314,6 +315,16 @@ async function deliverAlert(rule, payload) {
     'X-SimpleBeacon-Event': payload.event,
     'X-SimpleBeacon-Signature': signature,
   };
+
+  // During a rotation grace window, also send the previous signature so
+  // receivers that haven't updated their configured secret yet can still
+  // verify the payload. The grace window is controlled by the rule store.
+  if (previousSecret) {
+    const previousSignature = signPayload(body, previousSecret);
+    if (previousSignature) {
+      headers['X-SimpleBeacon-Signature-Previous'] = previousSignature;
+    }
+  }
 
   let lastError = '';
   let attempts = 0;

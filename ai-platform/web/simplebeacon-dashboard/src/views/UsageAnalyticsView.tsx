@@ -50,6 +50,10 @@ import {
   ShieldAlert,
   Bell,
   Users,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Zap,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -297,6 +301,16 @@ export function UsageAnalyticsView() {
     cooldownMinutes: 0,
     severityFilter: 'all',
   });
+
+  // Webhook key rotation state
+  const [rotationModalRule, setRotationModalRule] = useState<any>(null);
+  const [rotationNewSecret, setRotationNewSecret] = useState('');
+  const [rotationShowSecret, setRotationShowSecret] = useState(false);
+  const [rotationResult, setRotationResult] = useState<any>(null);
+  const [rotationStatus, setRotationStatus] = useState<any>(null);
+  const [rotating, setRotating] = useState(false);
+  const [rotationCopied, setRotationCopied] = useState(false);
+
   const [rbacRoles, setRbacRoles] = useState<any[]>([]);
   const [rbacAssignments, setRbacAssignments] = useState<any[]>([]);
   const [rbacStats, setRbacStats] = useState<any>(null);
@@ -1184,6 +1198,117 @@ export function UsageAnalyticsView() {
     },
     [fetchAlertIncidents]
   );
+
+  // ── Webhook Key Rotation ───────────────────────────────────────────────────
+  const openRotationModal = useCallback(async (rule: any) => {
+    setRotationModalRule(rule);
+    setRotationNewSecret('');
+    setRotationShowSecret(false);
+    setRotationResult(null);
+    setRotationCopied(false);
+    // Fetch current rotation status
+    try {
+      const resp = await fetch(apiUrl(`/alerts/rules/${rule.id}/rotation-status`), {
+        headers: authHeaders(),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        setRotationStatus(data);
+      } else {
+        setRotationStatus(null);
+      }
+    } catch {
+      setRotationStatus(null);
+    }
+  }, []);
+
+  const handleGenerateSecret = async () => {
+    try {
+      const ruleId = rotationModalRule?.id;
+      if (!ruleId) return;
+      const resp = await fetch(apiUrl(`/alerts/rules/${ruleId}/generate-secret`), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bytes: 32 }),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        setRotationNewSecret(data.secret);
+        toast.success('Random secret generated');
+      } else {
+        toast.error('Failed to generate secret');
+      }
+    } catch {
+      toast.error('Failed to generate secret');
+    }
+  };
+
+  const handleRotateSecret = async () => {
+    if (!rotationModalRule) return;
+    setRotating(true);
+    setRotationResult(null);
+    try {
+      const body: any = {};
+      if (rotationNewSecret) body.newSecret = rotationNewSecret;
+      const resp = await fetch(apiUrl(`/alerts/rules/${rotationModalRule.id}/rotate-secret`), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        toast.error(data.message || data.error || 'Rotation failed');
+        return;
+      }
+      setRotationResult(data);
+      setRotationStatus(data.rotation);
+      toast.success('Webhook signing key rotated', {
+        description: `Grace window active until ${new Date(data.rotation?.graceWindowEndsAt || 0).toLocaleString()}`,
+      });
+      // Refresh rules to reflect updated timestamps
+      fetchAlertRules();
+    } catch (err) {
+      toast.error('Failed to rotate signing key');
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  const handleClearPreviousSecret = async (force: boolean) => {
+    if (!rotationModalRule) return;
+    try {
+      const resp = await fetch(apiUrl(`/alerts/rules/${rotationModalRule.id}/clear-previous-secret`), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        toast.error(data.message || data.error || 'Failed to clear previous secret');
+        return;
+      }
+      toast.success(data.cleared ? 'Previous secret purged' : 'No previous secret to clear');
+      // Refresh status
+      const statusResp = await fetch(apiUrl(`/alerts/rules/${rotationModalRule.id}/rotation-status`), {
+        headers: authHeaders(),
+      });
+      const statusData = await statusResp.json();
+      if (statusResp.ok && statusData.success) {
+        setRotationStatus(statusData);
+      }
+    } catch {
+      toast.error('Failed to clear previous secret');
+    }
+  };
+
+  const copyNewSecret = () => {
+    if (rotationResult?.newSecret) {
+      navigator.clipboard.writeText(rotationResult.newSecret);
+      setRotationCopied(true);
+      setTimeout(() => setRotationCopied(false), 2000);
+      toast.success('Secret copied to clipboard');
+    }
+  };
 
   // ── RBAC ──────────────────────────────────────────────────────────────────
   const fetchRbacRoles = useCallback(async () => {
@@ -3662,6 +3787,18 @@ export function UsageAnalyticsView() {
                     >
                       Test
                     </Button>
+                    {rule.destinationType === 'webhook' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-[10px] text-blue-600"
+                        onClick={() => openRotationModal(rule)}
+                        title="Rotate HMAC signing key"
+                      >
+                        <KeyRound className="h-3 w-3 mr-0.5" />
+                        Rotate Key
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -3938,6 +4075,164 @@ export function UsageAnalyticsView() {
                 Save Rule
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Webhook Key Rotation Modal */}
+      {rotationModalRule && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setRotationModalRule(null)}
+        >
+          <div
+            className="bg-background rounded-lg p-6 w-[560px] max-h-[85vh] overflow-y-auto space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-blue-600" />
+                Rotate Webhook Signing Key
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => setRotationModalRule(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              <p>
+                Rule: <span className="font-medium text-foreground">{rotationModalRule.name}</span> ({rotationModalRule.id})
+              </p>
+              <p className="mt-1">
+                Rotating the signing key generates a new HMAC secret for <code>X-SimpleBeacon-Signature</code>.
+                During the grace window, both the new and previous signatures are sent so receivers
+                can update their configured secret without dropping alerts.
+              </p>
+            </div>
+
+            {/* Current rotation status */}
+            {rotationStatus && (
+              <div className={`rounded-md border p-3 text-xs ${rotationStatus.graceActive ? 'border-amber-500/30 bg-amber-500/5' : 'border-border bg-muted/20'}`}>
+                <p className="font-medium mb-1">Current Rotation Status</p>
+                <div className="space-y-0.5 text-muted-foreground">
+                  <p>Previous secret: {rotationStatus.hasPreviousSecret ? <span className="text-amber-600">active (grace window)</span> : <span className="text-green-600">none</span>}</p>
+                  {rotationStatus.rotatedAt && (
+                    <p>Rotated at: {new Date(rotationStatus.rotatedAt).toLocaleString()}</p>
+                  )}
+                  {rotationStatus.graceWindowEndsAt && (
+                    <p>Grace window ends: {new Date(rotationStatus.graceWindowEndsAt).toLocaleString()}</p>
+                  )}
+                  <p>Grace active: <span className={rotationStatus.graceActive ? 'text-amber-600 font-medium' : 'text-green-600'}>{rotationStatus.graceActive ? 'YES — both keys accepted' : 'NO'}</span></p>
+                </div>
+                {rotationStatus.hasPreviousSecret && (
+                  <div className="mt-2 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px]"
+                      onClick={() => handleClearPreviousSecret(false)}
+                      disabled={rotationStatus.graceActive}
+                      title={rotationStatus.graceActive ? 'Grace window still active — use force to override' : 'Purge previous secret'}
+                    >
+                      Purge Previous Secret
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px] text-red-600"
+                      onClick={() => handleClearPreviousSecret(true)}
+                    >
+                      Force Purge
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* New secret input */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                New Secret {rotationResult ? '(rotated)' : '(leave blank to auto-generate)'}
+              </label>
+              {!rotationResult && (
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={rotationShowSecret ? 'text' : 'password'}
+                      value={rotationNewSecret}
+                      onChange={(e) => setRotationNewSecret(e.target.value)}
+                      placeholder="Auto-generate 64-char hex secret"
+                      className="w-full h-8 rounded-md border border-input bg-transparent px-2 pr-8 font-mono text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setRotationShowSecret(!rotationShowSecret)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {rotationShowSecret ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handleGenerateSecret}>
+                    <Zap className="h-3 w-3 mr-1" />
+                    Generate
+                  </Button>
+                </div>
+              )}
+              {rotationResult && (
+                <div className="space-y-2">
+                  <div className="rounded-md border border-green-500/30 bg-green-500/5 p-3">
+                    <p className="text-xs font-medium text-green-700 mb-1">
+                      Rotation successful — save this secret now!
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mb-2">
+                      This is the only time the secret will be shown in plaintext.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs font-mono bg-background rounded px-2 py-1 break-all">
+                        {rotationResult.newSecret}
+                      </code>
+                      <Button variant="outline" size="sm" className="h-7 shrink-0" onClick={copyNewSecret}>
+                        {rotationCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      </Button>
+                    </div>
+                    {rotationResult.rotation && (
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        Grace window active until {new Date(rotationResult.rotation.graceWindowEndsAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      setRotationResult(null);
+                      setRotationNewSecret('');
+                    }}
+                  >
+                    Rotate Again
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            {!rotationResult && (
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => setRotationModalRule(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={handleRotateSecret}
+                  disabled={rotating}
+                >
+                  {rotating ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <KeyRound className="h-3 w-3 mr-1" />}
+                  Rotate Signing Key
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
