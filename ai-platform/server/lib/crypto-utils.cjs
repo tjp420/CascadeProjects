@@ -118,8 +118,58 @@ function decrypt(stored) {
   return '';
 }
 
+const SANDBOX_PREFIX = 'enc:sb:';
+
 function isEncrypted(value) {
   return typeof value === 'string' && value.startsWith(PREFIX);
+}
+
+function deriveOrgKey(orgId) {
+  if (!orgId || typeof orgId !== 'string') {
+    throw new TypeError('orgId must be a non-empty string');
+  }
+  const salt = Buffer.from(`sb:org:${orgId}`, 'utf8');
+  return crypto.createHmac('sha256', ENCRYPTION_KEY).update(salt).digest();
+}
+
+function isOrgEncrypted(value) {
+  return typeof value === 'string' && value.startsWith(SANDBOX_PREFIX);
+}
+
+function encryptForOrg(plaintext, orgId) {
+  if (!plaintext) return '';
+  if (typeof plaintext !== 'string') plaintext = String(plaintext);
+  const key = deriveOrgKey(orgId);
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGO, key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `${SANDBOX_PREFIX}${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
+}
+
+function decryptForOrg(stored, orgId) {
+  if (!stored || typeof stored !== 'string') return '';
+  if (!stored.startsWith(SANDBOX_PREFIX)) return '';
+  const payload = stored.slice(SANDBOX_PREFIX.length);
+  const parts = payload.split(':');
+  if (parts.length !== 3) return '';
+
+  const tryDecrypt = (key) => {
+    try {
+      const iv = Buffer.from(parts[0], 'hex');
+      const tag = Buffer.from(parts[1], 'hex');
+      const encrypted = Buffer.from(parts[2], 'hex');
+      const decipher = crypto.createDecipheriv(ALGO, key, iv);
+      decipher.setAuthTag(tag);
+      return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
+    } catch {
+      return null;
+    }
+  };
+
+  const key = deriveOrgKey(orgId);
+  const result = tryDecrypt(key);
+  return result !== null ? result : '';
 }
 
 function encryptObject(obj, fields) {
@@ -154,6 +204,10 @@ module.exports = {
   encrypt,
   decrypt,
   isEncrypted,
+  deriveOrgKey,
+  isOrgEncrypted,
+  encryptForOrg,
+  decryptForOrg,
   encryptObject,
   decryptObject,
   maskSecret,

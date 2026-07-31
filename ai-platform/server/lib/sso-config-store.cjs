@@ -10,6 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const cryptoUtils = require('./crypto-utils.cjs');
 
 const SSO_CONFIG_PATH =
   process.env.SSO_CONFIG_PATH || path.join(__dirname, '../../.simplebeacon', 'sso-configs.json');
@@ -111,6 +112,22 @@ function maskSecret(secret) {
 }
 
 /**
+ * Decrypt a client secret, preferring the per-org sandbox format and
+ * falling back to the legacy base64-encrypted single-key format.
+ * @param {string} encrypted
+ * @param {string} orgId
+ * @returns {string|null}
+ */
+function decryptClientSecret(encrypted, orgId) {
+  if (!encrypted) return null;
+  if (cryptoUtils.isOrgEncrypted(encrypted)) {
+    const v = cryptoUtils.decryptForOrg(encrypted, orgId);
+    return v || null;
+  }
+  return decryptSecret(encrypted);
+}
+
+/**
  * Get all SSO configs (secrets masked) for admin dashboard listing.
  * @returns {Array}
  */
@@ -122,7 +139,7 @@ function getAllConfigs() {
       ? {
           ...c.oidc,
           clientSecret: c.oidc.clientSecret
-            ? maskSecret(decryptSecret(c.oidc.clientSecret))
+            ? maskSecret(decryptClientSecret(c.oidc.clientSecret, c.orgId))
             : undefined,
         }
       : undefined,
@@ -144,7 +161,7 @@ function getConfigsByOrg(orgId) {
         ? {
             ...c.oidc,
             clientSecret: c.oidc.clientSecret
-              ? maskSecret(decryptSecret(c.oidc.clientSecret))
+              ? maskSecret(decryptClientSecret(c.oidc.clientSecret, c.orgId))
               : undefined,
           }
         : undefined,
@@ -171,7 +188,7 @@ function getConfigDecrypted(providerId) {
   const config = store.configs.find((c) => c.providerId === providerId);
   if (!config) return null;
   if (config.oidc && config.oidc.clientSecret) {
-    config.oidc._decryptedSecret = decryptSecret(config.oidc.clientSecret);
+    config.oidc._decryptedSecret = decryptClientSecret(config.oidc.clientSecret, config.orgId);
   }
   return config;
 }
@@ -211,7 +228,7 @@ function createConfig(params) {
       ? {
           ...params.oidc,
           clientSecret: params.oidc.clientSecret
-            ? encryptSecret(params.oidc.clientSecret)
+            ? cryptoUtils.encryptForOrg(params.oidc.clientSecret, params.orgId)
             : undefined,
         }
       : null,
@@ -247,7 +264,7 @@ function updateConfig(providerId, updates) {
   if (updates.oidc) {
     updated.oidc = { ...config.oidc, ...updates.oidc };
     if (updates.oidc.clientSecret) {
-      updated.oidc.clientSecret = encryptSecret(updates.oidc.clientSecret);
+      updated.oidc.clientSecret = cryptoUtils.encryptForOrg(updates.oidc.clientSecret, config.orgId);
     }
   }
 

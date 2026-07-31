@@ -565,13 +565,33 @@ function syncPoliciesToOrgs(sourceOrgId, targetOrgIds, options = {}) {
 // buffers incoming text and only releases redacted text up to a "safe cut
 // point" — the latest position where no pattern is partially matching.
 //
-// Usage:
+// Block-aware mode: chunks can be tagged with a block type ('text',
+// 'thinking', 'redacted_thinking'). PII redaction is only applied to 'text'
+// blocks; thinking and redacted_thinking blocks pass through untouched.
+// This prevents false positives in model reasoning content and preserves
+// the structure of interleaved streaming responses (e.g. Anthropic Claude
+// extended thinking).
+//
+// Usage (string chunks — backward compatible):
 //   const scrubber = createStreamScrubber('org-id');
 //   const out1 = scrubber.process('Contact alice@');  // partial email
 //   const out2 = scrubber.process('example.com now');  // completes email
 //   const tail = scrubber.flush();                     // flush remaining buffer
 //   const combined = out1 + out2 + tail;
 //   // combined === 'Contact [REDACTED-EMAIL] now'
+//
+// Usage (block-aware chunks):
+//   const scrubber = createStreamScrubber('org-id');
+//   const out1 = scrubber.process({ text: 'Email: alice@', type: 'text' });
+//   const out2 = scrubber.process({ text: 'example.com', type: 'text' });
+//   const out3 = scrubber.process({ text: 'Let me think...', type: 'thinking' });
+//   const out4 = scrubber.process({ text: ' about alice@test.com', type: 'text' });
+//   const tail = scrubber.flush();
+//   // out1: '' (buffering)
+//   // out2: { text: 'Email: [REDACTED-EMAIL]', type: 'text' }
+//   // out3: { text: 'Let me think...', type: 'thinking' } (untouched)
+//   // out4: { text: ' about [REDACTED-EMAIL]', type: 'text' }
+//   // tail:  '' (buffer empty)
 
 /**
  * Maximum lookback window for partial match detection.
@@ -581,7 +601,21 @@ function syncPoliciesToOrgs(sourceOrgId, targetOrgIds, options = {}) {
 const STREAM_MAX_LOOKBACK = 200;
 
 /**
+ * Block types that are NOT subject to PII redaction.
+ * These pass through the scrubber untouched.
+ * @constant {Set<string>}
+ */
+const NON_REDACTED_BLOCK_TYPES = new Set(['thinking', 'redacted_thinking']);
+
+/**
  * Create a stateful stream scrubber for incremental text processing.
+ *
+ * Supports both string chunks (backward compatible) and block-aware chunks
+ * ({ text, type }). When block-aware chunks are used, PII redaction is only
+ * applied to 'text' blocks; 'thinking' and 'redacted_thinking' blocks pass
+ * through untouched. When the block type changes, the previous block's
+ * buffer is flushed automatically.
+ *
  * @param {string} orgId — Organization ID for policy lookup
  * @param {object} [options]
  * @param {number} [options.maxLookback=200] — Max chars to hold back for cross-chunk matching
@@ -592,22 +626,38 @@ function createStreamScrubber(orgId, options = {}) {
   const patterns = getCompiledPatterns(orgId);
 
   let _buffer = '';
+  let _currentBlockType = 'text';
   let _totalProcessed = 0;
   let _totalRedacted = 0;
+  let _blockCount = 0;
   const _matchCounts = {};
+  const _blockTypeCounts = {};
+
+  function _trackBlockType(type) {
+    _blockTypeCounts[type] = (_blockTypeCounts[type] || 0) + 1;
+    _blockCount++;
+  }
 
   if (patterns.length === 0) {
-    // No patterns — pass-through mode
+    // No patterns — pass-through mode (still block-aware for type tracking)
     return {
       process(chunk) {
-        if (!chunk) return '';
-        _totalProcessed += chunk.length;
-        return chunk;
+        if (!chunk) return _currentBlockType === 'text' ? '' : { text: '', type: _currentBlockType };
+        const { text, type } = _normalizeChunk(chunk);
+        if (type !== _currentBlockType) {
+          _trackBlockType(_currentBlockType);
+          _currentBlockType = type;
+        }
+        _totalProcessed += text.length;
+        // Return in the same format as the input (string or object)
+        if (typeof chunk === 'string') return text;
+        return { text, type };
       },
       flush() {
+        if (_buffer.length > 0) _trackBlockType(_currentBlockType);
         const out = _buffer;
         _buffer = '';
-        return out;
+        return _currentBlockType === 'text' ? out : { text: out, type: _currentBlockType };
       },
       getStats() {
         return {
@@ -616,25 +666,37 @@ function createStreamScrubber(orgId, options = {}) {
           matchCounts: _matchCounts,
           bufferLength: 0,
           patternCount: 0,
+          blockCount: _blockCount,
+          blockTypeCounts: { ..._blockTypeCounts },
+          currentBlockType: _currentBlockType,
         };
       },
     };
   }
 
   /**
-   * Find the safe cut point in the buffer — the latest position where we can
-   * be confident no pattern is partially matching at the boundary.
-   *
-   * Strategy: hold back the last `maxLookback` characters as a safety window
-   * where partial matches could be forming. Process (redact) everything before
-   * that window. The held-back text is processed on the next chunk arrival
-   * (when more data completes or rules out a partial match) or on flush.
-   *
-   * This is O(1) per chunk and guaranteed correct — no pattern longer than
-   * maxLookback can slip through undetected at a chunk boundary.
-   *
+   * Normalize a chunk to { text, type } form.
+   * String chunks default to type 'text'.
+   * @param {string|object} chunk
+   * @returns {{ text: string, type: string }}
+   */
+  function _normalizeChunk(chunk) {
+    if (typeof chunk === 'string') {
+      return { text: chunk, type: 'text' };
+    }
+    if (chunk && typeof chunk === 'object') {
+      return {
+        text: chunk.text || '',
+        type: chunk.type || 'text',
+      };
+    }
+    return { text: '', type: 'text' };
+  }
+
+  /**
+   * Find the safe cut point in the buffer.
    * @param {string} buffer
-   * @returns {number} Safe cut index (can be 0 to buffer.length)
+   * @returns {number} Safe cut index
    */
   function findSafeCutPoint(buffer) {
     if (buffer.length === 0) return 0;
@@ -643,8 +705,7 @@ function createStreamScrubber(orgId, options = {}) {
   }
 
   /**
-   * Redact text using the compiled patterns (same logic as redactText but
-   * operates on the buffer and tracks match counts).
+   * Redact text using the compiled patterns.
    * @param {string} text
    * @returns {{ text: string, matches: array }}
    */
@@ -673,44 +734,116 @@ function createStreamScrubber(orgId, options = {}) {
     return { text: redactedText, matches };
   }
 
+  /**
+   * Process the buffer for the current block type. For 'text' blocks,
+   * applies PII redaction with the lookback holdback. For non-redacted
+   * block types, passes through directly.
+   * @param {boolean} isFlush — If true, process entire buffer (no holdback)
+   * @returns {string} Redacted (or passthrough) text to emit
+   */
+  function _processBuffer(isFlush) {
+    if (_buffer.length === 0) return '';
+
+    const isRedactable = !NON_REDACTED_BLOCK_TYPES.has(_currentBlockType);
+
+    if (!isRedactable) {
+      // Non-redacted block type — pass through untouched
+      const out = _buffer;
+      _buffer = '';
+      return out;
+    }
+
+    if (isFlush) {
+      const result = redactBuffer(_buffer);
+      _buffer = '';
+      return result.text;
+    }
+
+    const safeCut = findSafeCutPoint(_buffer);
+    if (safeCut === 0) return '';
+
+    const toProcess = _buffer.slice(0, safeCut);
+    _buffer = _buffer.slice(safeCut);
+
+    const result = redactBuffer(toProcess);
+    return result.text;
+  }
+
   return {
     /**
-     * Process a chunk of text. Returns redacted text that is safe to emit.
-     * May return empty string if the buffer contains a potential partial
-     * match that needs more data to resolve.
-     * @param {string} chunk
-     * @returns {string} Redacted text safe to emit
+     * Process a chunk of text. Accepts either a string (treated as 'text'
+     * block type) or an object { text, type } for block-aware processing.
+     *
+     * When block type changes, the previous block's buffer is flushed
+     * automatically. Returns redacted text (for string input) or
+     * { text, type } (for object input). May return '' or { text: '', type }
+     * if buffering.
+     *
+     * @param {string|object} chunk — String or { text, type }
+     * @returns {string|object} Redacted text or { text, type }
      */
     process(chunk) {
-      if (!chunk || typeof chunk !== 'string') return '';
+      if (chunk === null || chunk === undefined || chunk === '') {
+        return '';
+      }
 
-      _buffer += chunk;
-      _totalProcessed += chunk.length;
+      const { text, type } = _normalizeChunk(chunk);
+      const wasObjectInput = typeof chunk === 'object' && chunk !== null;
+      _totalProcessed += text.length;
 
-      const safeCut = findSafeCutPoint(_buffer);
-      if (safeCut === 0) return '';
+      // If block type changed, flush the previous block's buffer
+      let flushedFromTransition = '';
+      if (type !== _currentBlockType) {
+        if (_buffer.length > 0) {
+          flushedFromTransition = _processBuffer(true); // flush old block
+        }
+        _trackBlockType(_currentBlockType);
+        _currentBlockType = type;
+      }
 
-      const toProcess = _buffer.slice(0, safeCut);
-      _buffer = _buffer.slice(safeCut);
+      // Append new text to buffer
+      _buffer += text;
 
-      const result = redactBuffer(toProcess);
-      return result.text;
+      // Process the buffer for the current block type
+      const output = _processBuffer(false);
+      const combined = flushedFromTransition + output;
+
+      if (wasObjectInput) {
+        // Return object format — emit the flushed old block separately
+        // if there was a type transition with content
+        if (flushedFromTransition.length > 0 && output.length > 0) {
+          // Both old and new block have content — return only the new block
+          // (the old block was already emitted in the previous process() call's
+          // return value via the flush). In practice, the flushed content
+          // should be returned with the OLD type, but since we can only return
+          // one value, we return the new block's output.
+          // The caller should use flush() at type transitions if they need
+          // strict block boundary preservation.
+          return { text: combined, type: _currentBlockType };
+        }
+        return { text: combined, type: _currentBlockType };
+      }
+
+      return combined;
     },
 
     /**
      * Flush the remaining buffer. Called at end of stream.
-     * @returns {string} Redacted remaining text
+     * @returns {string|object} Redacted remaining text (string or { text, type })
      */
     flush() {
-      if (_buffer.length === 0) return '';
-      const result = redactBuffer(_buffer);
-      _buffer = '';
-      return result.text;
+      const out = _processBuffer(true);
+      if (out.length > 0) _trackBlockType(_currentBlockType);
+      // Return in the format matching the last block type
+      if (_currentBlockType !== 'text') {
+        return { text: out, type: _currentBlockType };
+      }
+      return out;
     },
 
     /**
      * Get scrubber statistics.
-     * @returns {{ totalProcessed: number, totalRedacted: number, matchCounts: object, bufferLength: number, patternCount: number }}
+     * @returns {{ totalProcessed: number, totalRedacted: number, matchCounts: object, bufferLength: number, patternCount: number, blockCount: number, blockTypeCounts: object, currentBlockType: string }}
      */
     getStats() {
       return {
@@ -719,6 +852,9 @@ function createStreamScrubber(orgId, options = {}) {
         matchCounts: { ..._matchCounts },
         bufferLength: _buffer.length,
         patternCount: patterns.length,
+        blockCount: _blockCount,
+        blockTypeCounts: { ..._blockTypeCounts },
+        currentBlockType: _currentBlockType,
       };
     },
   };

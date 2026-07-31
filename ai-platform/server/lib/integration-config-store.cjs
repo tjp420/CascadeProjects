@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('../lib/app-logger.cjs');
+const cryptoUtils = require('./crypto-utils.cjs');
 
 const STORE_PATH = process.env.INTEGRATION_STORE_PATH
   || path.join(__dirname, '../../.simplebeacon', 'integration-configs.json');
@@ -52,6 +53,15 @@ function maskSecret(ciphertext) {
   if (!ciphertext) return undefined;
   if (!ciphertext.startsWith('enc:')) return String(ciphertext).slice(0, 4) + '****';
   return '****';
+}
+
+function decryptClientSecret(ciphertext, orgId) {
+  if (!ciphertext) return ciphertext;
+  if (cryptoUtils.isOrgEncrypted(ciphertext)) {
+    const v = cryptoUtils.decryptForOrg(ciphertext, orgId);
+    return v || null;
+  }
+  return decryptSecret(ciphertext);
 }
 
 let _cache = null;
@@ -153,7 +163,7 @@ function getConfigDecrypted(configId) {
   const type = INTEGRATION_TYPES[config.type];
   if (type) {
     for (const field of type.secretFields) {
-      if (decrypted[field]) decrypted[field] = decryptSecret(decrypted[field]);
+      if (decrypted[field]) decrypted[field] = decryptClientSecret(decrypted[field], config.orgId);
     }
   }
   return { ...config, config: decrypted };
@@ -168,7 +178,7 @@ function getConfigsByOrgDecrypted(orgId) {
       const type = INTEGRATION_TYPES[c.type];
       if (type) {
         for (const field of type.secretFields) {
-          if (decrypted[field]) decrypted[field] = decryptSecret(decrypted[field]);
+          if (decrypted[field]) decrypted[field] = decryptClientSecret(decrypted[field], c.orgId);
         }
       }
       return { ...c, config: decrypted };
@@ -196,7 +206,7 @@ function createConfig(params) {
   for (const [key, value] of Object.entries(params)) {
     if (['configId', 'orgId', 'type', 'name', 'enabled', 'events', 'createdAt', 'updatedAt'].includes(key)) continue;
     if (type.secretFields.includes(key)) {
-      config.config[key] = encryptSecret(String(value));
+      config.config[key] = cryptoUtils.encryptForOrg(String(value), params.orgId);
     } else {
       config.config[key] = value;
     }
@@ -222,7 +232,7 @@ function updateConfig(configId, updates) {
   for (const [key, value] of Object.entries(updates)) {
     if (['configId', 'orgId', 'type', 'name', 'enabled', 'events', 'createdAt', 'updatedAt'].includes(key)) continue;
     if (type.secretFields.includes(key)) {
-      config.config[key] = encryptSecret(String(value));
+      config.config[key] = cryptoUtils.encryptForOrg(String(value), config.orgId);
     } else {
       config.config[key] = value;
     }
