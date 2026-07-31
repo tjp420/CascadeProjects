@@ -54,7 +54,8 @@ module.exports = {
     '<rootDir>/local-agent/dist/',
     // regex-friendly globs for generated ES2018 and utils-lib bundles
     '<rootDir>/.+?/js-es2018/',
-    '<rootDir>/.+?/js/.+?/utils-lib/',
+    '<rootDir>/.+?/js/utils-lib/',
+    '<rootDir>/.+?/js-es2018/utils-lib/',
   ],
   moduleFileExtensions: ['js', 'cjs', 'json', 'jsx', 'ts', 'tsx', 'node'],
   moduleNameMapper: {
