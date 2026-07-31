@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { IntegrationsView } from './IntegrationsView';
 import { UsageAnalyticsView } from './UsageAnalyticsView';
+import { WhitelabelAdminView } from './WhitelabelAdminView';
 import { apiUrl, authHeaders, getApiBase } from '@/config';
 import { navigate } from '@/router/HashRouter';
 import { toast } from 'sonner';
@@ -655,6 +656,7 @@ export function AdminView() {
           <TabsTrigger value="sso">SSO</TabsTrigger>
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="whitelabel">Whitelabel</TabsTrigger>
         </TabsList>
 
         {/* Users Tab */}
@@ -1700,6 +1702,11 @@ export function AdminView() {
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
           <UsageAnalyticsView />
+        </TabsContent>
+
+        {/* Whitelabel Tab */}
+        <TabsContent value="whitelabel" className="space-y-4">
+          <WhitelabelAdminView />
         </TabsContent>
       </Tabs>
     </div>

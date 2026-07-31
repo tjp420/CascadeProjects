@@ -1235,6 +1235,15 @@ async function startServer() {
     logger.error('[Routes] Usage analytics not loaded:', err?.message || err);
   }
 
+  // Whitelabel partner branding — custom logos, colors, domains
+  try {
+    const whitelabelRoutes = require('./server/routes/whitelabel-routes.cjs');
+    app.use('/api/whitelabel', whitelabelRoutes);
+    logger.info('[Routes] Whitelabel branding loaded at /api/whitelabel');
+  } catch (err) {
+    logger.error('[Routes] Whitelabel branding not loaded:', err?.message || err);
+  }
+
   // Newsletter subscription — public, no auth required (pricing page email signup)
   try {
     const subscriptionRoutes = require('../coming-soon/routes/subscriptions.cjs');
