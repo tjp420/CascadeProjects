@@ -61,6 +61,10 @@ export default [
       'web/dashboard/js-es2018/vendor/**',
       'web/simplebeacon-dashboard/assets/**',
       'web/dashboard/assets/**',
+      'web/simplebeacon-dashboard/dist/**',
+      'web/simplebeacon-dashboard/pages-publish/**',
+      'web/dashboard/dist/**',
+      'web/dashboard/pages-publish/**',
       'local-agent/**'
     ]
   }
