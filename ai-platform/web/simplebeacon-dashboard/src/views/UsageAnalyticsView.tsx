@@ -141,6 +141,9 @@ export function UsageAnalyticsView() {
   const [ticketStatusFilter, setTicketStatusFilter] = useState<'all' | 'ticketed' | 'unticketed'>('all');
   const [ticketTargetFilter, setTicketTargetFilter] = useState<string>('');
   const [violationSummary, setViolationSummary] = useState<ViolationSummary | null>(null);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [bulkTicketRef, setBulkTicketRef] = useState<string>('');
+  const [bulkLoading, setBulkLoading] = useState(false);
   const violationsPageSize = 10;
 
   const fetchFilters = useCallback(async () => {
@@ -279,6 +282,81 @@ export function UsageAnalyticsView() {
       toast.error('Failed to remove ticket status');
     }
   }, [fetchTicketStatuses, fetchViolationSummary]);
+
+  const bulkMarkTicketed = useCallback(async () => {
+    if (!bulkTicketRef.trim() || selectedRows.size === 0) return;
+    setBulkLoading(true);
+    try {
+      const violations = Array.from(selectedRows).map(key => {
+        const [scanId, category] = key.split('::');
+        return { scanId, category };
+      });
+      const resp = await fetch(apiUrl('/analytics/violations/bulk-mark-ticketed'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ violations, ticketRef: bulkTicketRef.trim(), ticketTarget }),
+      });
+      if (!resp.ok) throw new Error('bulk_mark_failed');
+      const data = await resp.json();
+      await fetchTicketStatuses();
+      await fetchViolationSummary();
+      await fetchViolations(violationsPage);
+      setSelectedRows(new Set());
+      setBulkTicketRef('');
+      toast.success(`Marked ${data.succeeded} of ${data.total} violations as ticketed`);
+    } catch {
+      toast.error('Failed to bulk mark violations');
+    } finally {
+      setBulkLoading(false);
+    }
+  }, [bulkTicketRef, selectedRows, ticketTarget, fetchTicketStatuses, fetchViolationSummary, fetchViolations, violationsPage]);
+
+  const bulkUnmarkTicketed = useCallback(async () => {
+    if (selectedRows.size === 0) return;
+    setBulkLoading(true);
+    try {
+      const violations = Array.from(selectedRows).map(key => {
+        const [scanId, category] = key.split('::');
+        return { scanId, category };
+      });
+      const resp = await fetch(apiUrl('/analytics/violations/bulk-unmark-ticketed'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ violations }),
+      });
+      if (!resp.ok) throw new Error('bulk_unmark_failed');
+      const data = await resp.json();
+      await fetchTicketStatuses();
+      await fetchViolationSummary();
+      await fetchViolations(violationsPage);
+      setSelectedRows(new Set());
+      toast.success(`Removed ticket status from ${data.succeeded} of ${data.total} violations`);
+    } catch {
+      toast.error('Failed to bulk unmark violations');
+    } finally {
+      setBulkLoading(false);
+    }
+  }, [selectedRows, fetchTicketStatuses, fetchViolationSummary, fetchViolations, violationsPage]);
+
+  const toggleRowSelection = useCallback((rowKey: string) => {
+    setSelectedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(rowKey)) next.delete(rowKey);
+      else next.add(rowKey);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedRows(prev => {
+      if (prev.size === violations.length) return new Set();
+      const next = new Set<string>();
+      for (const v of violations) {
+        next.add(`${v.scanId}::${v.category}`);
+      }
+      return next;
+    });
+  }, [violations]);
 
   const generateTicket = useCallback(async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
     const rowKey = `${scanId}-${category}`;
@@ -728,10 +806,52 @@ export function UsageAnalyticsView() {
               </div>
             )}
           </div>
+          {/* Bulk Action Bar */}
+          {selectedRows.size > 0 && (
+            <div className="flex items-center gap-3 p-3 mb-2 rounded-lg border bg-primary/5">
+              <span className="text-sm font-medium">{selectedRows.size} selected</span>
+              <input
+                type="text"
+                placeholder="Paste shared ticket URL or ID..."
+                value={bulkTicketRef}
+                onChange={(e) => setBulkTicketRef(e.target.value)}
+                className="flex h-8 w-64 rounded-md border border-input bg-transparent px-2 py-1 text-xs"
+              />
+              <Button
+                variant="default"
+                size="sm"
+                disabled={!bulkTicketRef.trim() || bulkLoading}
+                onClick={bulkMarkTicketed}
+              >
+                {bulkLoading ? 'Processing...' : 'Bulk Mark Ticketed'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={bulkLoading}
+                onClick={bulkUnmarkTicketed}
+              >
+                Bulk Remove Ticket Status
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedRows(new Set())}
+              >
+                Clear Selection
+              </Button>
+            </div>
+          )}
           {violations.length > 0 ? (
             <div className="space-y-1">
               {/* Header row */}
-              <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 text-xs font-medium text-muted-foreground pb-2 border-b">
+              <div className="grid grid-cols-[auto_auto_1fr_auto_auto_auto] gap-3 text-xs font-medium text-muted-foreground pb-2 border-b items-center">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded"
+                  checked={selectedRows.size === violations.length && violations.length > 0}
+                  onChange={toggleSelectAll}
+                />
                 <span className="w-6" />
                 <span>Category</span>
                 <span className="text-right">Count</span>
@@ -746,12 +866,21 @@ export function UsageAnalyticsView() {
                   : v.remediation.priority === 'medium' ? 'bg-yellow-500'
                   : 'bg-blue-500';
                 const isTicketed = v.ticketed;
+                const ticketKey = `${v.scanId}::${v.category}`;
+                const isSelected = selectedRows.has(ticketKey);
                 return (
-                  <div key={rowKey} className={`rounded-md ${isTicketed ? 'bg-green-500/5 border border-green-500/20' : ''}`}>
+                  <div key={rowKey} className={`rounded-md ${isTicketed ? 'bg-green-500/5 border border-green-500/20' : ''} ${isSelected ? 'ring-2 ring-primary/30' : ''}`}>
                     <div
-                      className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 items-center py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer text-sm"
+                      className="grid grid-cols-[auto_auto_1fr_auto_auto_auto] gap-3 items-center py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer text-sm"
                       onClick={() => setExpandedRow(isExpanded ? null : rowKey)}
                     >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded"
+                        checked={isSelected}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => toggleRowSelection(ticketKey)}
+                      />
                       <span className="w-6 flex items-center justify-center">
                         {isExpanded
                           ? <ChevronDown className="h-4 w-4 text-muted-foreground" />

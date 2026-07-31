@@ -16,6 +16,8 @@
  *   POST /api/analytics/violations/ticket-payload  — Generate pre-filled ticket payload
  *   POST /api/analytics/violations/mark-ticketed   — Mark a violation as ticketed
  *   POST /api/analytics/violations/unmark-ticketed — Remove ticket status from a violation
+ *   POST /api/analytics/violations/bulk-mark-ticketed   — Mark multiple violations as ticketed
+ *   POST /api/analytics/violations/bulk-unmark-ticketed — Remove ticket status from multiple violations
  *   GET  /api/analytics/violations/ticket-statuses — Get all ticketed violation statuses
  *   GET  /api/analytics/violations/summary       — Remediation coverage summary with per-category breakdown
  *   POST /api/analytics/record             — Record a scan (internal/CI)
@@ -519,6 +521,59 @@ router.post('/violations/unmark-ticketed', (req, res) => {
   } catch (err) {
     logger.error('[Analytics] Unmark ticketed failed:', err.message);
     res.status(500).json({ error: 'unmark_ticketed_failed', message: err.message });
+  }
+});
+
+// POST /api/analytics/violations/bulk-mark-ticketed — mark multiple violations as ticketed
+router.post('/violations/bulk-mark-ticketed', (req, res) => {
+  try {
+    const { violations, ticketRef, ticketTarget } = req.body || {};
+    if (!Array.isArray(violations) || violations.length === 0) return res.status(400).json({ error: 'violations array is required' });
+    if (!ticketRef) return res.status(400).json({ error: 'ticketRef is required' });
+
+    const results = [];
+    let succeeded = 0;
+    let failed = 0;
+    for (const v of violations) {
+      if (!v.scanId || !v.category) { failed++; continue; }
+      try {
+        const entry = ticketStatusStore.markTicketed(v.scanId, v.category, ticketRef, ticketTarget || 'jira');
+        results.push(entry);
+        succeeded++;
+      } catch {
+        failed++;
+      }
+    }
+
+    res.json({ success: true, succeeded, failed, total: violations.length, results });
+  } catch (err) {
+    logger.error('[Analytics] Bulk mark ticketed failed:', err.message);
+    res.status(500).json({ error: 'bulk_mark_failed', message: err.message });
+  }
+});
+
+// POST /api/analytics/violations/bulk-unmark-ticketed — remove ticket status from multiple violations
+router.post('/violations/bulk-unmark-ticketed', (req, res) => {
+  try {
+    const { violations } = req.body || {};
+    if (!Array.isArray(violations) || violations.length === 0) return res.status(400).json({ error: 'violations array is required' });
+
+    let succeeded = 0;
+    let failed = 0;
+    for (const v of violations) {
+      if (!v.scanId || !v.category) { failed++; continue; }
+      try {
+        ticketStatusStore.unmarkTicketed(v.scanId, v.category);
+        succeeded++;
+      } catch {
+        failed++;
+      }
+    }
+
+    res.json({ success: true, succeeded, failed, total: violations.length });
+  } catch (err) {
+    logger.error('[Analytics] Bulk unmark ticketed failed:', err.message);
+    res.status(500).json({ error: 'bulk_unmark_failed', message: err.message });
   }
 });
 
