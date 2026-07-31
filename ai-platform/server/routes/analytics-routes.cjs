@@ -12,6 +12,7 @@
  *   GET  /api/analytics/heatmap            — Violation heatmap by category
  *   GET  /api/analytics/repositories       — Top repositories by scan count
  *   GET  /api/analytics/export             — Download analytics as CSV or JSON
+ *   GET  /api/analytics/violations         — Paginated violation rows with remediation guidance
  *   POST /api/analytics/record             — Record a scan (internal/CI)
  *
  * @module analytics-routes
@@ -22,6 +23,111 @@ const logger = require('../lib/app-logger.cjs');
 const analyticsStore = require('../lib/usage-analytics-store.cjs');
 
 const router = express.Router();
+
+const REMEDIATION_GUIDANCE = {
+  'EU AI Act — Prohibited Practices': {
+    strategy: 'eliminate',
+    priority: 'critical',
+    description: 'Remove the prohibited AI practice entirely. EU AI Act Article 5 bans certain uses (social scoring, manipulative AI, real-time biometric ID in public spaces).',
+    steps: ['Identify the prohibited use case in the codebase', 'Remove or replace the functionality with a compliant alternative', 'Document the decision in the AI conformity assessment'],
+  },
+  'EU AI Act — High-Risk Obligations': {
+    strategy: 'comply',
+    priority: 'critical',
+    description: 'High-risk AI systems require risk management, data governance, transparency, and human oversight under EU AI Act Articles 8-15.',
+    steps: ['Implement a risk management system', 'Ensure training data quality and bias mitigation', 'Add human oversight mechanisms', 'Create technical documentation and logging'],
+  },
+  'California SB 1047 — Critical Harm': {
+    strategy: 'contain',
+    priority: 'critical',
+    description: 'SB 1047 requires safety evaluations for frontier models capable of causing critical harm. Implement safety shutdown protocols and red-team testing.',
+    steps: ['Conduct safety evaluation before deployment', 'Implement emergency shutdown capability', 'Document critical harm risk assessment', 'Submit safety certification'],
+  },
+  'GDPR — Data Subject Rights': {
+    strategy: 'implement',
+    priority: 'high',
+    description: 'Ensure data subject rights are implementable: right to access, rectification, erasure, and portability under GDPR Articles 15-20.',
+    steps: ['Add data export endpoints for portability', 'Implement deletion workflows for erasure requests', 'Build consent management UI', 'Audit data retention policies'],
+  },
+  'HIPAA — PHI Exposure': {
+    strategy: 'encrypt',
+    priority: 'critical',
+    description: 'Protected Health Information must be encrypted at rest and in transit. Implement access controls and audit logging per HIPAA Security Rule.',
+    steps: ['Encrypt all PHI fields at rest (AES-256)', 'Enforce TLS 1.2+ for all PHI transit', 'Implement role-based access control', 'Enable audit logging for all PHI access'],
+  },
+  'OWASP — Injection': {
+    strategy: 'parameterize',
+    priority: 'high',
+    description: 'Use parameterized queries and input validation to prevent SQL, NoSQL, and command injection attacks.',
+    steps: ['Replace string concatenation with parameterized queries', 'Add input validation and sanitization', 'Use ORM query builders where possible', 'Implement allowlists for user input'],
+  },
+  'OWASP — Broken Access Control': {
+    strategy: 'enforce',
+    priority: 'high',
+    description: 'Enforce proper authorization checks on every protected resource. Implement deny-by-default and principle of least privilege.',
+    steps: ['Add authorization middleware to all protected routes', 'Implement deny-by-default access policies', 'Audit role assignments and permissions', 'Add ownership checks on resource access'],
+  },
+  'OWASP — Security Misconfiguration': {
+    strategy: 'harden',
+    priority: 'medium',
+    description: 'Apply security hardening to all components: disable default credentials, remove unused features, set secure headers.',
+    steps: ['Remove default credentials and change default ports', 'Set security headers (CSP, HSTS, X-Frame-Options)', 'Disable debug mode in production', 'Remove unused endpoints and features'],
+  },
+  'OWASP — Vulnerable Dependencies': {
+    strategy: 'upgrade',
+    priority: 'high',
+    description: 'Update or replace dependencies with known CVEs. Use dependency scanning in CI to catch vulnerabilities early.',
+    steps: ['Run npm audit / pip audit / snyk scan', 'Upgrade vulnerable packages to safe versions', 'Replace unmaintained dependencies', 'Add dependency scanning to CI pipeline'],
+  },
+  'Hardcoded Secrets': {
+    strategy: 'externalize',
+    priority: 'critical',
+    description: 'Move all secrets to environment variables or a secrets manager. Never hardcode API keys, passwords, or tokens in source code.',
+    steps: ['Identify all hardcoded secrets in the codebase', 'Move secrets to environment variables or vault', 'Rotate all exposed credentials', 'Add pre-commit hooks for secret detection'],
+  },
+  'Unsafe Deserialization': {
+    strategy: 'validate',
+    priority: 'high',
+    description: 'Replace unsafe deserialization (pickle, eval, JSON.parse with reviver) with schema-validated parsing.',
+    steps: ['Replace pickle with JSON or protobuf', 'Add schema validation before deserialization', 'Use allowlists for deserializable types', 'Implement integrity checks on serialized data'],
+  },
+  'Missing Input Validation': {
+    strategy: 'validate',
+    priority: 'medium',
+    description: 'Add input validation on all API endpoints and user-facing forms. Use schema validation libraries.',
+    steps: ['Define input schemas for all endpoints', 'Add validation middleware (zod, joi, pydantic)', 'Sanitize string inputs to prevent XSS', 'Return 400 with clear error messages on invalid input'],
+  },
+  'Improper Error Handling': {
+    strategy: 'wrap',
+    priority: 'low',
+    description: 'Wrap operations in try/catch blocks with meaningful error messages. Avoid exposing stack traces to users.',
+    steps: ['Add try/catch around all async operations', 'Return generic error messages to users', 'Log detailed errors server-side only', 'Add error monitoring (Sentry, Rollbar)'],
+  },
+  'Non-deterministic Output': {
+    strategy: 'seed',
+    priority: 'medium',
+    description: 'AI model outputs must be reproducible for auditing. Set random seeds and log model parameters.',
+    steps: ['Set fixed random seeds for reproducibility', 'Log model version and parameters with each output', 'Implement output caching for identical inputs', 'Add deterministic test cases'],
+  },
+  'Missing Model Card': {
+    strategy: 'document',
+    priority: 'medium',
+    description: 'Create a model card documenting intended use, training data, performance metrics, and known limitations.',
+    steps: ['Document model architecture and training data', 'Add performance metrics and evaluation results', 'List known limitations and biases', 'Publish model card with the model artifact'],
+  },
+  'Bias Detection Gap': {
+    strategy: 'evaluate',
+    priority: 'high',
+    description: 'Implement bias evaluation across protected demographics. Add fairness metrics to the model evaluation pipeline.',
+    steps: ['Define fairness metrics (demographic parity, equalized odds)', 'Test model outputs across demographic groups', 'Add bias detection to CI evaluation', 'Document mitigation strategies for detected biases'],
+  },
+  _default: {
+    strategy: 'review',
+    priority: 'medium',
+    description: 'Review the finding and apply appropriate remediation based on severity and context.',
+    steps: ['Analyze the finding in context of the codebase', 'Determine appropriate fix strategy', 'Implement the fix with tests', 'Verify the fix resolves the finding'],
+  },
+};
 
 // GET /api/analytics/stats — global stats
 router.get('/stats', (req, res) => {
@@ -205,6 +311,68 @@ router.get('/export', (req, res) => {
   } catch (err) {
     logger.error('[Analytics] Export failed:', err.message);
     res.status(500).json({ error: 'export_failed', message: err.message });
+  }
+});
+
+// GET /api/analytics/violations — paginated violation rows with remediation guidance
+router.get('/violations', (req, res) => {
+  try {
+    const filters = {
+      orgId: req.query.orgId,
+      repository: req.query.repository,
+      branch: req.query.branch,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      limit: parseInt(req.query.limit, 10) || 50,
+      offset: parseInt(req.query.offset, 10) || 0,
+    };
+    const result = analyticsStore.getScans(filters);
+
+    const violations = [];
+    for (const scan of result.scans) {
+      const cats = scan.categoryCounts || {};
+      for (const [category, count] of Object.entries(cats)) {
+        if (count <= 0) continue;
+        const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
+        violations.push({
+          scanId: scan.scanId,
+          orgId: scan.orgId,
+          timestamp: scan.timestamp,
+          repository: scan.repository,
+          branch: scan.branch,
+          commitSha: scan.commitSha,
+          triggeredBy: scan.triggeredBy,
+          category,
+          count,
+          postureScore: scan.postureScore,
+          gateStatus: scan.gateStatus,
+          remediation: guidance,
+        });
+      }
+    }
+
+    // Sort by timestamp descending (most recent first)
+    violations.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+    const total = violations.length;
+    const limit = filters.limit;
+    const offset = filters.offset;
+    const paged = violations.slice(offset, offset + limit);
+
+    res.json({
+      success: true,
+      violations: paged,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasNext: offset + limit < total,
+        hasPrev: offset > 0,
+      },
+    });
+  } catch (err) {
+    logger.error('[Analytics] Violations failed:', err.message);
+    res.status(500).json({ error: 'violations_failed', message: err.message });
   }
 });
 

@@ -11,6 +11,7 @@ import {
 import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
+  ChevronDown, ChevronRight, Wrench,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -52,6 +53,28 @@ type RepositoryEntry = {
   lastScanAt: string | null;
 };
 
+type RemediationGuidance = {
+  strategy: string;
+  priority: string;
+  description: string;
+  steps: string[];
+};
+
+type ViolationRow = {
+  scanId: string;
+  orgId: string;
+  timestamp: string;
+  repository: string;
+  branch: string;
+  commitSha: string;
+  triggeredBy: string;
+  category: string;
+  count: number;
+  postureScore: number;
+  gateStatus: string;
+  remediation: RemediationGuidance;
+};
+
 const SEVERITY_COLORS = {
   critical: '#FF0000',
   high: '#FF6600',
@@ -74,6 +97,11 @@ export function UsageAnalyticsView() {
   const [branchFilter, setBranchFilter] = useState<string>('');
   const [repoOptions, setRepoOptions] = useState<string[]>([]);
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
+  const [violations, setViolations] = useState<ViolationRow[]>([]);
+  const [violationsTotal, setViolationsTotal] = useState(0);
+  const [violationsPage, setViolationsPage] = useState(0);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const violationsPageSize = 10;
 
   const fetchFilters = useCallback(async () => {
     try {
@@ -117,6 +145,26 @@ export function UsageAnalyticsView() {
   }, [granularity, days, repoFilter, branchFilter]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const fetchViolations = useCallback(async (page: number) => {
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', String(violationsPageSize));
+      params.set('offset', String(page * violationsPageSize));
+      if (repoFilter) params.set('repository', repoFilter);
+      if (branchFilter) params.set('branch', branchFilter);
+      const resp = await fetch(apiUrl(`/analytics/violations?${params}`), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setViolations(data.violations || []);
+        setViolationsTotal(data.pagination?.total || 0);
+      }
+    } catch {
+      // silent — violations table is supplementary
+    }
+  }, [repoFilter, branchFilter]);
+
+  useEffect(() => { fetchViolations(violationsPage); }, [fetchViolations, violationsPage]);
 
   const handleExport = useCallback(async (format: 'csv' | 'json') => {
     try {
@@ -442,6 +490,122 @@ export function UsageAnalyticsView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Violations Table with Remediation Guidance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Wrench className="h-4 w-4" /> Violations & Remediation Guidance
+          </CardTitle>
+          <CardDescription>
+            {violationsTotal > 0
+              ? `${violationsTotal} violation entries — click a row to expand remediation steps`
+              : 'No violation data available'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {violations.length > 0 ? (
+            <div className="space-y-1">
+              {/* Header row */}
+              <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 text-xs font-medium text-muted-foreground pb-2 border-b">
+                <span className="w-6" />
+                <span>Category</span>
+                <span className="text-right">Count</span>
+                <span className="text-center">Priority</span>
+                <span className="text-right">Posture</span>
+              </div>
+              {violations.map((v) => {
+                const rowKey = `${v.scanId}-${v.category}`;
+                const isExpanded = expandedRow === rowKey;
+                const priorityColor = v.remediation.priority === 'critical' ? 'bg-red-500'
+                  : v.remediation.priority === 'high' ? 'bg-orange-500'
+                  : v.remediation.priority === 'medium' ? 'bg-yellow-500'
+                  : 'bg-blue-500';
+                return (
+                  <div key={rowKey} className="rounded-md">
+                    <div
+                      className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 items-center py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer text-sm"
+                      onClick={() => setExpandedRow(isExpanded ? null : rowKey)}
+                    >
+                      <span className="w-6 flex items-center justify-center">
+                        {isExpanded
+                          ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{v.category}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {v.repository} · {v.branch} · {new Date(v.timestamp).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <span className="text-right font-medium tabular-nums">{v.count}</span>
+                      <span className="flex justify-center">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-white ${priorityColor}`}>
+                          {v.remediation.priority}
+                        </span>
+                      </span>
+                      <span className="text-right tabular-nums text-muted-foreground">{v.postureScore}</span>
+                    </div>
+                    {isExpanded && (
+                      <div className="ml-9 mr-2 mb-2 p-3 rounded-md bg-muted/30 border text-sm space-y-2">
+                        <div>
+                          <span className="font-medium">Strategy: </span>
+                          <Badge variant="outline" className="ml-1">{v.remediation.strategy}</Badge>
+                        </div>
+                        <p className="text-muted-foreground">{v.remediation.description}</p>
+                        <div>
+                          <span className="font-medium text-xs">Remediation Steps:</span>
+                          <ol className="list-decimal list-inside mt-1 space-y-1 text-xs text-muted-foreground">
+                            {v.remediation.steps.map((step, i) => (
+                              <li key={i}>{step}</li>
+                            ))}
+                          </ol>
+                        </div>
+                        <div className="flex gap-3 text-xs text-muted-foreground pt-1 border-t">
+                          <span>Scan: <code className="font-mono">{v.scanId}</code></span>
+                          <span>Commit: <code className="font-mono">{v.commitSha}</code></span>
+                          <span>Trigger: {v.triggeredBy}</span>
+                          <span>Gate: {v.gateStatus}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {/* Pagination */}
+              {violationsTotal > violationsPageSize && (
+                <div className="flex items-center justify-between pt-3 border-t">
+                  <span className="text-xs text-muted-foreground">
+                    Showing {violationsPage * violationsPageSize + 1}–{Math.min((violationsPage + 1) * violationsPageSize, violationsTotal)} of {violationsTotal}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={violationsPage === 0}
+                      onClick={() => setViolationsPage(p => Math.max(0, p - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={(violationsPage + 1) * violationsPageSize >= violationsTotal}
+                      onClick={() => setViolationsPage(p => p + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex h-[200px] items-center justify-center text-muted-foreground text-sm">
+              No violations data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
