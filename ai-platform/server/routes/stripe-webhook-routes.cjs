@@ -16,6 +16,7 @@ const { getTierConfigByPriceId } = require('../config/stripe.cjs');
 const { setSubscriptionActive, getSubscriptionByEmail } = require('../lib/simplebeacon-subscription-store.cjs');
 const { sendEmail } = require('../lib/email-service.cjs');
 const { recordProcessedEvent } = require('../lib/stripe-event-store.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -26,15 +27,15 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
   if (!webhookSecret) {
     logger.error('[StripeWebhook] STRIPE_WEBHOOK_SECRET not configured');
-    return res.status(503).json({ error: 'stripe_not_configured' });
+    return sendError(res, 503, 'stripe_not_configured');
   }
 
   if (!signature) {
-    return res.status(400).json({ error: 'missing_signature' });
+    return sendError(res, 400, 'missing_signature');
   }
 
   if (!req.body || !Buffer.isBuffer(req.body) || req.body.length === 0) {
-    return res.status(400).json({ error: 'missing_body' });
+    return sendError(res, 400, 'missing_body');
   }
 
   // Verify webhook signature
@@ -43,7 +44,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     event = verifyStripeSignature(req.body, signature, webhookSecret);
   } catch (err) {
     logger.error('[StripeWebhook] Signature verification failed:', err.message);
-    return res.status(400).json({ error: 'invalid_signature' });
+    return sendError(res, 400, 'invalid_signature');
   }
 
   logger.info('[StripeWebhook] Received event:', event.type, event.id);
@@ -78,7 +79,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
   } catch (err) {
     logger.error('[StripeWebhook] Event handler failed for', event.type, ':', err.message);
-    return res.status(500).json({ error: 'handler_failed', type: event.type });
+    return sendError(res, 500, 'handler_failed', { type: event.type });
   }
 
   res.json({ received: true, type: event.type });

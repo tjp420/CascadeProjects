@@ -10,6 +10,7 @@ const express = require('express');
 const crypto = require('crypto');
 
 const { authenticate } = require('../middleware/auth.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 // In-memory store for PR reports; production should use a durable store
 const prReportStore = new Map();
@@ -124,7 +125,7 @@ function setupPrIntegrationAPI(app, _options = {}) {
     const key = `${repository}:${sha}`;
     const report = prReportStore.get(key);
     if (!report) {
-      return res.status(404).json({ success: false, error: 'Report not found' });
+      return sendError(res, 404, 'Report not found');
     }
     res.json({ success: true, data: report });
   });

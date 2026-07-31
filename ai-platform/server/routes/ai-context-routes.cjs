@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const logger = require('../lib/app-logger.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.post('/ai-context', express.json({ limit: '10mb' }), async (req, res) => 
     try {
         const { projectPath, notes, reportSummary, issues } = req.body || {};
         if (!projectPath || typeof projectPath !== 'string') {
-            return res.status(400).json({ success: false, error: 'projectPath is required' });
+            return sendError(res, 400, 'projectPath is required');
         }
 
         // Resolve relative paths against the platform root (repo root) instead of server cwd
@@ -60,7 +61,7 @@ router.post('/ai-context', express.json({ limit: '10mb' }), async (req, res) => 
         res.json({ success: true, path: contextPath, content: md, message: 'AI context saved. Mention @.simplebeacon/ai-context.md in chat.' });
     } catch (err) {
         logger.error('[AI-Context]', err);
-        res.status(500).json({ success: false, error: err.message });
+        sendError(res, 500, err.message);
     }
 });
 
@@ -76,15 +77,15 @@ router.get('/ai-context', async (req, res) => {
             const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
             const raw = await readTextFileWithLimit(contextPath, 256 * 1024);
             if (!raw) {
-                return res.status(404).json({ success: false, error: 'No AI context file found. Upload a report and click "Send to AI Agent" first.' });
+                return sendError(res, 404, 'No AI context file found. Upload a report and click "Send to AI Agent" first.');
             }
             const content = redactTextSecrets(raw);
             res.json({ success: true, path: contextPath, content });
         } catch {
-            res.status(404).json({ success: false, error: 'No AI context file found. Upload a report and click "Send to AI Agent" first.' });
+            sendError(res, 404, 'No AI context file found. Upload a report and click "Send to AI Agent" first.');
         }
     } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        sendError(res, 500, err.message);
     }
 });
 

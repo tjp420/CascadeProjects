@@ -1,0 +1,49 @@
+fix: delete 12 server patch-fix files + add query param bounds checking
+
+Backend Phase 1 cleanup. Addresses DoS prevention and technical debt
+in the server/ directory.
+
+Patch file cleanup (12 files deleted, 6781 lines removed):
+- All 12 .patch-fix files in server/ were unreferenced patch artifacts
+- grep confirmed 0 require/import references to any .patch-fix file
+- Same cleanup pattern as frontend Phase 1 (7 patch files deleted)
+- Files: ai-proxy-gateway, dlp-dashboard, ai-analyst, compliance-rules,
+  enhanced-ai-orchestrator, recoverable-io, user-ai-keys-store,
+  flexible-analyze-api, cloud-inference-service, enhanced-model-manager,
+  test-gateway, data-processor
+
+Query parameter bounds checking (DoS prevention):
+- analytics-routes.cjs: 4 query params now bounded
+  - /scans limit: Math.min(Math.max(..., 1), 1000)
+  - /repositories limit: Math.min(Math.max(..., 1), 100)
+  - /export days: Math.min(Math.max(..., 1), 365)
+  - /violations limit: Math.min(Math.max(..., 1), 1000)
+- enterprise-analytics-routes.cjs: 2 query params bounded
+  - days: Math.min(Math.max(..., 1), 365)
+  - limit: Math.min(Math.max(..., 1), 100)
+- pr-integration-api.cjs: 1 query param bounded
+  - limit: added Math.max(1, ...) lower bound (already had Math.min(100))
+
+Audit corrections:
+- admin-api.cjs already had proper bounds checking (MAX_USER_PAGE_LIMIT=500)
+- oracle-search.cjs already had bounds checking (Math.min(5, Math.max(1, ...)))
+- No changes needed for those files
+
+Backend audit found 23 total issues. This commit addresses:
+- 12 patch file deletions (MEDIUM severity)
+- 6 query param bounds checks (HIGH severity — DoS prevention)
+
+Deferred to future commits:
+- Auth route consolidation (4 files with duplicate endpoints)
+- Route parameter validation (7 occurrences, SQL injection risk)
+- Response format standardization (50+ files)
+- Try/catch blocks + consistent error logging
+
+QA: test_plan.md + software_health_report.md per QA framework.
+All Level 1/2/3 checks pass. Gate scan PASS (local CLI). Integration
+test 16/16. Bounds verified with live server: ?limit=999999 clamped
+to 1000, ?days=999999 clamped to 365.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

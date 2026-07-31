@@ -18,6 +18,7 @@ const { getLicenseToken, insertLicenseToken } = require('../lib/token-db.cjs');
 const { verifyLicenseToken } = require('../lib/simplebeacon-proxy.cjs');
 const { isDatabaseEnabled, getDatabaseConfig } = require('../config/database.cjs');
 const DatabaseAdapter = require('../lib/database-adapter.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -167,14 +168,14 @@ router.post('/license/validate', (req, res) => {
 router.post('/auth/register-token', (req, res) => {
   const { token, email } = req.body || {};
   if (!token || typeof token !== 'string') {
-    return res.status(400).json({ error: 'Token required' });
+    return sendError(res, 400, 'Token required');
   }
   if (!email || typeof email !== 'string' || !email.includes('@')) {
-    return res.status(400).json({ error: 'Valid email required' });
+    return sendError(res, 400, 'Valid email required');
   }
   const existing = getLicenseToken(token);
   if (existing) {
-    return res.status(409).json({ error: 'Token already registered', email: existing.email });
+    return sendError(res, 409, 'Token already registered', { email: existing.email });
   }
   let tier = 'community';
   try {

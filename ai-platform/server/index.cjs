@@ -1117,6 +1117,15 @@ logger.info('[SSO] Enterprise SSO routes mounted at /api/v2/auth/sso');
 app.use('/api/enterprise/sso', ssoConfigRoutes);
 logger.info('[SSO] SSO config routes mounted at /api/enterprise/sso');
 
+// Enterprise analytics facade — compact payload for admin dashboard
+try {
+  const enterpriseAnalytics = require('./routes/enterprise-analytics-routes.cjs');
+  app.use('/api/enterprise/analytics', enterpriseAnalytics);
+  logger.info('[Enterprise] Analytics mounted at /api/enterprise/analytics');
+} catch (e) {
+  logger.warn('[Enterprise] Analytics route not mounted:', e?.message || e);
+}
+
 // Dashboard stub APIs — dashboard-home, dev-tools, coverage-reports, security, quality, help
 try {
     setupDashboardStubAPIs(app, webRoot, { authMiddleware: optionalAuthenticate });

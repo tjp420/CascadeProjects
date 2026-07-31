@@ -25,6 +25,7 @@ const {
     ensureRegistry
 } = require('../services/local-model-service.cjs');
 const { analyzeWithModel } = require('../services/model-inference-service.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 /**
  * Should log runtime info.
@@ -77,7 +78,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const payload = await listModels(baseDir);
             res.json({ success: true, ...payload });
         } catch (error) {
-            res.status(500).json({ success: false, error: error.message });
+            sendError(res, 500, error.message);
         }
     });
 
@@ -86,7 +87,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const activeModel = await getActiveModelInfo(baseDir);
             res.json({ success: true, activeModel });
         } catch (error) {
-            res.status(500).json({ success: false, error: error.message });
+            sendError(res, 500, error.message);
         }
     });
 
@@ -95,7 +96,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const result = await analyzeWithModel(baseDir, 'active', req.body || {});
             res.json(result);
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 
@@ -104,7 +105,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const result = await analyzeWithModel(baseDir, req.params.id, req.body || {});
             res.json(result);
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 
@@ -114,17 +115,17 @@ function setupLocalModelsAPI(app, options = {}) {
             const status = result.deduplicated ? 200 : 201;
             res.status(status).json({ success: true, ...result });
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 
     app.post('/api/models/upload', (req, res) => {
         upload.single('model')(req, res, async (err) => {
             if (err) {
-                return res.status(400).json({ success: false, error: err.message });
+                return sendError(res, 400, err.message);
             }
             if (!req.file) {
-                return res.status(400).json({ success: false, error: 'No model file uploaded' });
+                return sendError(res, 400, 'No model file uploaded');
             }
             try {
                 const result = await registerUploadedModel(baseDir, req.file, req.body || {});
@@ -134,7 +135,7 @@ function setupLocalModelsAPI(app, options = {}) {
                 try {
                     await require('fs').promises.unlink(req.file.path);
                 } catch { /* ignore cleanup errors */ }
-                res.status(500).json({ success: false, error: error.message });
+                sendError(res, 500, error.message);
             }
         });
     });
@@ -144,7 +145,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const orphans = await listOrphanedUploads(baseDir);
             res.json({ success: true, orphans });
         } catch (error) {
-            res.status(500).json({ success: false, error: error.message });
+            sendError(res, 500, error.message);
         }
     });
 
@@ -154,7 +155,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const status = result.deduplicated ? 200 : 201;
             res.status(status).json({ success: true, ...result });
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 
@@ -163,7 +164,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const activeModel = await activateModel(baseDir, req.params.id);
             res.json({ success: true, activeModel });
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 
@@ -172,7 +173,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const result = await testModel(baseDir, req.params.id);
             res.json({ success: true, ...result });
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 
@@ -183,7 +184,7 @@ function setupLocalModelsAPI(app, options = {}) {
             });
             res.json({ success: true, ...result });
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 
@@ -192,7 +193,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const result = await refreshModelHash(baseDir, req.params.id);
             res.json({ success: true, ...result });
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 
@@ -201,7 +202,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const result = await removeModel(baseDir, req.params.id);
             res.json({ success: true, ...result });
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 
@@ -210,7 +211,7 @@ function setupLocalModelsAPI(app, options = {}) {
             const result = await updateSettings(baseDir, req.body || {});
             res.json({ success: true, ...result });
         } catch (error) {
-            res.status(400).json({ success: false, error: error.message });
+            sendError(res, 400, error.message);
         }
     });
 

@@ -1,0 +1,29 @@
+feat: add severity filter and sort controls to live analysis stream
+
+Adds interactive filter and sort capabilities to the realtime analysis
+issues table in the dashboard, following the existing codebase-cat-filter
+UI pattern (btn-ghost/btn-primary toggle buttons).
+
+AnalyzeView.js changes:
+- Added _realtimeFilter state on view instance: { severity, sort }
+- Severity filter buttons: All, Critical, High, Medium, Low
+  - Each shows issue count badge
+  - Clicking filters the issues table to matching severity
+- Sort toggle: Chunk order (default) vs Severity
+  - Severity sort uses weight map: critical=0, high=1, medium=2, low=3
+- Filtered count label: "X shown · Y filtered out"
+- Empty state: "No issues match the active filter." when zero matches
+- Filter state persists across re-renders (new chunks don't reset filter)
+- Filter reset to defaults on toggle off
+
+Pattern matches existing codebase-cat-filter convention:
+- btn-ghost/btn-primary toggle for active state
+- data-sev / data-sort attributes for handler dispatch
+- Re-render on filter change (no DOM row show/hide — full re-render)
+
+QA: test_plan.md + software_health_report.md per QA framework.
+All Level 1/2/3 checks pass. Gate scan PASS. Integration test 16/16.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

@@ -1,0 +1,32 @@
+refactor: delete dead utils-format.js legacy file (416 lines, 0 imports)
+
+utils-format.js was a legacy staging file containing 26 exported
+functions. Investigation revealed:
+
+- 0 files import from utils-format.js (grep confirmed)
+- 21 of 26 functions are duplicates of utils-lib/ modules:
+  escapeRegExp, formatNumber, formatPercent, formatBytes, clamp,
+  formatDuration, formatDate, relativeTime, formatAiSummarySkipMessage,
+  isBlank, capitalize, truncate, pluralize, kebabCase, camelCase,
+  snakeCase, stripHtml, padStart, padEnd, roundTo, noop
+- 5 "unique" functions were either internal aliases (timeAgo →
+  relativeTime), had local copies elsewhere (slugify in
+  RemediationRoadmapView.js), or were never called (words, repeat,
+  titleCase, inRange)
+
+The file was completely dead code — superseded by utils-lib/ modules
+but never deleted. Removing it eliminates 416 lines of duplicate
+implementations that could confuse future developers.
+
+Audit Phase 2 progress:
+- Phase 1 (complete): escapeHtml security fix + 10 legacy/patch files
+- Phase 2 (this): utils-format.js deleted (26 functions, 416 lines)
+- Phase 2 (remaining): isRemoteDashboardHost, isAbsoluteLocalPath,
+  normalizeSlashes, flow/negate, basenamePath, isPlausibleProjectPath
+
+QA: test_plan.md + software_health_report.md per QA framework.
+All Level 1/2/3 checks pass. Gate scan PASS. Integration test 16/16.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

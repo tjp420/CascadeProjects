@@ -24,6 +24,7 @@ const express = require('express');
 const logger = require('../lib/app-logger.cjs');
 const wlStore = require('../lib/whitelabel-config-store.cjs');
 const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ router.get('/stats', (req, res) => {
   try {
     res.json({ success: true, ...wlStore.getStats() });
   } catch (err) {
-    res.status(500).json({ error: 'stats_failed', message: err.message });
+    sendError(res, 500, 'stats_failed', { message: err.message });
   }
 });
 
@@ -42,7 +43,7 @@ router.get('/partners', (req, res) => {
     const partners = wlStore.getAllPartners();
     res.json({ success: true, partners });
   } catch (err) {
-    res.status(500).json({ error: 'list_failed', message: err.message });
+    sendError(res, 500, 'list_failed', { message: err.message });
   }
 });
 
@@ -53,7 +54,7 @@ router.post('/partners', (req, res) => {
     res.status(201).json({ success: true, partner });
   } catch (err) {
     logger.error('[Whitelabel] Create failed:', err.message);
-    res.status(400).json({ error: 'create_failed', message: err.message });
+    sendError(res, 400, 'create_failed', { message: err.message });
   }
 });
 
@@ -61,10 +62,10 @@ router.post('/partners', (req, res) => {
 router.get('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
   try {
     const partner = wlStore.getPartner(req.params.partnerId);
-    if (!partner) return res.status(404).json({ error: 'not_found' });
+    if (!partner) return sendError(res, 404, 'not_found');
     res.json({ success: true, partner });
   } catch (err) {
-    res.status(500).json({ error: 'get_failed', message: err.message });
+    sendError(res, 500, 'get_failed', { message: err.message });
   }
 });
 
@@ -74,7 +75,7 @@ router.put('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERN
     const partner = wlStore.updatePartner(req.params.partnerId, req.body || {});
     res.json({ success: true, partner });
   } catch (err) {
-    res.status(400).json({ error: 'update_failed', message: err.message });
+    sendError(res, 400, 'update_failed', { message: err.message });
   }
 });
 
@@ -82,10 +83,10 @@ router.put('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERN
 router.delete('/partners/:partnerId', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
   try {
     const deleted = wlStore.deletePartner(req.params.partnerId);
-    if (!deleted) return res.status(404).json({ error: 'not_found' });
+    if (!deleted) return sendError(res, 404, 'not_found');
     res.json({ success: true, deleted: true });
   } catch (err) {
-    res.status(500).json({ error: 'delete_failed', message: err.message });
+    sendError(res, 500, 'delete_failed', { message: err.message });
   }
 });
 
@@ -99,7 +100,7 @@ router.get('/resolve', (req, res) => {
     }
     res.json({ success: true, found: true, partnerId: partner.partnerId, brand: partner.brand });
   } catch (err) {
-    res.status(500).json({ error: 'resolve_failed', message: err.message });
+    sendError(res, 500, 'resolve_failed', { message: err.message });
   }
 });
 
@@ -107,12 +108,12 @@ router.get('/resolve', (req, res) => {
 router.get('/:partnerId/brand.css', validateParam('partnerId', VALIDATION_PATTERNS.partnerId), (req, res) => {
   try {
     const css = wlStore.getBrandCss(req.params.partnerId);
-    if (!css) return res.status(404).json({ error: 'not_found' });
+    if (!css) return sendError(res, 404, 'not_found');
     res.setHeader('Content-Type', 'text/css');
     res.setHeader('Cache-Control', 'public, max-age=300');
     res.send(css);
   } catch (err) {
-    res.status(500).json({ error: 'css_failed', message: err.message });
+    sendError(res, 500, 'css_failed', { message: err.message });
   }
 });
 
@@ -131,7 +132,7 @@ router.get('/brand.css', (req, res) => {
     res.setHeader('X-Whitelabel-Partner', result.partnerId);
     res.send(result.css);
   } catch (err) {
-    res.status(500).json({ error: 'css_failed', message: err.message });
+    sendError(res, 500, 'css_failed', { message: err.message });
   }
 });
 
@@ -141,7 +142,7 @@ router.post('/partners/:partnerId/subtenants', validateParam('partnerId', VALIDA
     const partner = wlStore.addSubTenant(req.params.partnerId, req.body || {});
     res.status(201).json({ success: true, subTenants: partner.subTenants });
   } catch (err) {
-    res.status(400).json({ error: 'add_subtenant_failed', message: err.message });
+    sendError(res, 400, 'add_subtenant_failed', { message: err.message });
   }
 });
 
@@ -151,7 +152,7 @@ router.delete('/partners/:partnerId/subtenants/:orgId', validateParam('partnerId
     const partner = wlStore.removeSubTenant(req.params.partnerId, req.params.orgId);
     res.json({ success: true, subTenants: partner.subTenants });
   } catch (err) {
-    res.status(400).json({ error: 'remove_subtenant_failed', message: err.message });
+    sendError(res, 400, 'remove_subtenant_failed', { message: err.message });
   }
 });
 

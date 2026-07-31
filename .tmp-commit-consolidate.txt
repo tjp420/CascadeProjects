@@ -1,0 +1,44 @@
+refactor: consolidate isRemoteDashboardHost, isAbsoluteLocalPath, normalizeSlashes into utils-lib
+
+Eliminates 5 duplicate function definitions by consolidating them into
+their canonical utils-lib modules.
+
+isRemoteDashboardHost (3 definitions → 1):
+- Was defined locally in AnalyView.js, ScanStatus.js, scanStrategy.js
+- Now exported from utils-lib/url.js (alongside existing _isLoopbackHost)
+- Re-exported from utils.js for convenience
+- All 3 consumers now import from utils.js
+
+isAbsoluteLocalPath (2 definitions → 1):
+- Was defined locally in AnalyView.js, ScanStatus.js
+- Now exported from utils-lib/path.js (alongside normalizeSlashes)
+- Re-exported from utils.js
+- Both consumers now import from utils.js
+
+normalizeSlashes (bug fix — canonical source correction):
+- utils.js was re-exporting from StringUtils (utils-lib/string.js)
+  — the simple version that only takes (path)
+- Now re-exports from PathUtils (utils-lib/path.js) — the extended
+  version that takes (path, opts) with stripLeadingDot and lowercase
+- Backward-compatible: opts defaults to {} so behavior is identical
+  when called without opts
+- This fixes a subtle bug where callers using utils.js normalizeSlashes
+  couldn't use the opts parameter
+
+Files changed (6):
+- utils-lib/url.js: added isRemoteDashboardHost export
+- utils-lib/path.js: added isAbsoluteLocalPath export
+- utils.js: added 2 re-exports, fixed normalizeSlashes source
+- views/AnalyzeView.js: removed 2 local defs, added to import
+- components/ScanStatus.js: removed 2 local defs, added to import
+- services/scanStrategy.js: removed 1 local def, added import
+
+Verified: grep confirms 0 local definitions remain. All 6 files pass
+node -c. Gate scan PASS. Integration test 16/16.
+
+QA: test_plan.md + software_health_report.md per QA framework.
+All Level 1/2/3 checks pass. normalizeSlashes bug fix documented.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

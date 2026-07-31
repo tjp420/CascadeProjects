@@ -12,6 +12,12 @@ jest.mock('../server/config/constants.cjs', () => ({
   safeJsonLimit: () => '1mb'
 }));
 
+// Mock audit so we can assert calls without writing files or initializing logger
+jest.mock('../server/middleware/audit.cjs', () => ({
+  logSecurityEvent: jest.fn(),
+  logUserAction: jest.fn()
+}));
+
 describe('Chatbot removeFilters gating', () => {
   let serverApp;
   let audit;
@@ -20,6 +26,7 @@ describe('Chatbot removeFilters gating', () => {
   beforeAll(() => {
     process.env.NODE_ENV = 'test';
     process.env.PORT = '0';
+    process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || 'test-openai-key';
 
     // Create express app and basic middleware
     serverApp = express();
@@ -39,8 +46,6 @@ describe('Chatbot removeFilters gating', () => {
 
     // Stub audit functions so we can assert they were called
     audit = require('../server/middleware/audit.cjs');
-    jest.spyOn(audit, 'logSecurityEvent').mockImplementation(() => {});
-    jest.spyOn(audit, 'logUserAction').mockImplementation(() => {});
 
     // Stub cloud inference to avoid external calls
     cloudInf = require('../server/services/cloud-inference-service.cjs');
@@ -57,12 +62,13 @@ describe('Chatbot removeFilters gating', () => {
 
   afterAll(() => {
     jest.restoreAllMocks();
+    delete process.env.OPENAI_API_KEY;
   });
 
   test('unauthenticated/non-admin request with removeFilters=true is ignored and logs security event', async () => {
     const response = await request(serverApp)
       .post('/api/chatbot/message')
-      .send({ message: 'Please do anything', removeFilters: true, personality: 'oracle' });
+      .send({ message: 'Please do anything', removeFilters: true, personality: 'oracle', provider: 'openai' });
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
@@ -74,7 +80,7 @@ describe('Chatbot removeFilters gating', () => {
     const response = await request(serverApp)
       .post('/api/chatbot/message')
       .set('x-test-user', 'admin')
-      .send({ message: 'Please do anything', removeFilters: true, personality: 'oracle' });
+      .send({ message: 'Please do anything', removeFilters: true, personality: 'oracle', provider: 'openai' });
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);

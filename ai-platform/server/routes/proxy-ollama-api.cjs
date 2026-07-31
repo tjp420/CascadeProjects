@@ -4,6 +4,7 @@
  */
 const rateLimit = require('express-rate-limit');
 const logger = require('../../src/lib/app-logger.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 const DEFAULT_OLLAMA_URL = 'http://127.0.0.1:11434';
 
 function getFetch() {
@@ -39,7 +40,7 @@ function setupProxyOllamaAPI(app, options = {}) {
             clearTimeout(t);
             if (!resp.ok) {
                 const text = await resp.text().catch(() => '');
-                return res.status(502).json({ success: false, error: 'upstream_error', status: resp.status, detail: text });
+                return sendError(res, 502, 'upstream_error', { status: resp.status, detail: text });
             }
             const json = await resp.json().catch(async () => {
                 const txt = await resp.text().catch(() => '');
@@ -51,7 +52,7 @@ function setupProxyOllamaAPI(app, options = {}) {
         } catch (err) {
             const msg = err && err.name === 'AbortError' ? 'timeout' : (err && err.message) || String(err);
             logger.warn('[ProxyOllama] Proxy request failed:', msg);
-            return res.status(502).json({ success: false, error: 'proxy_failed', detail: msg });
+            return sendError(res, 502, 'proxy_failed', { detail: msg });
         }
     });
 

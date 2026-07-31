@@ -1,0 +1,39 @@
+fix: eliminate 48 export collision warnings from simplebeacon barrel loader
+
+The barrel loader in packages/simplebeacon-cli/src/index.js flattens ~50 module
+exports into one namespace. Seven modules re-exported utility functions that
+were already exported by dedicated utility modules, causing 48
+SimplebeaconExportCollision warnings on every server/CLI startup.
+
+Root cause: modules like reporters/audit-report.js and lib/ai-problem-analyzer-suite.js
+defined their own local copies of 30+ utility functions (isBlank, isEmpty, capitalize,
+sleep, delay, hash, etc.) and re-exported them, colliding with the canonical
+utils/string, utils/object, utils/functional, and utils/async modules.
+
+Fix: removed utility re-exports from 7 secondary modules. Enriched the canonical
+utility modules with functions that were only defined in secondary modules:
+- utils/string.js: added capitalize, pluralize, truncate
+- utils/functional.js: added memoize
+
+Also removed lib/ai-problem-analyzer-suite from the Simplebeacon.utils namespace
+(it's an analyzer module, not a utility module).
+
+Updated 2 tests to reflect new canonical locations:
+- tests/scan.test.js: import formatBytes from lib/format-utils
+- tests/index.test.js: check Simplebeacon.report.compileAuditReportMarkdown
+  instead of capitalize/pluralize/truncate (now in Simplebeacon.utils)
+
+Updated 1 import: reporters/file-reduction-report.js now imports formatBytes
+from lib/format-utils instead of ../scan.
+
+Results:
+- Collision warnings: 48 → 0
+- CLI tests: 575 pass, 0 fail, 2 skipped
+- Gate scan: PASS (exit 0)
+
+QA: test_plan.md + software_health_report.md written per QA framework.
+All Level 1/2/3 checks pass.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

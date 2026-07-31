@@ -1,0 +1,30 @@
+feat: add realtime analysis WebSocket client for dashboard
+
+Adds a frontend service that connects to the server's
+/api/realtime/stream WebSocket endpoint for streaming code analysis.
+
+New file:
+- js-es2018/services/realtimeAnalysisService.js — singleton service with:
+  - Session creation via POST /api/realtime/session
+  - WebSocket connect with sessionId query param
+  - Automatic reconnection with exponential backoff (max 10 attempts)
+  - Ping keepalive every 30s
+  - Event-based API: on('status'|'result'|'error'|'state'|'pong', cb)
+  - Clean shutdown via stop() (closes WS + deletes session)
+  - URL resolution from apiBase() (localhost:8082 for dev, wss:// for prod)
+
+AnalyzeView.js changes:
+- Import realtimeAnalysisService
+- Wire #analyze-realtime-monitor toggle to start/stop the WS service
+  (previously only persisted a localStorage flag with no backend connection)
+- Add #realtime-ws-status indicator dot next to "Real-time monitoring" label
+  that changes color based on connection state:
+  green=connected, amber=connecting/reconnecting, red=error, gray=disconnected
+- Add _updateRealtimeStatusIndicator() method for state-driven UI updates
+
+Verified: 16/16 WebSocket integration test assertions pass against live
+server. Gate scan passes.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

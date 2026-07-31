@@ -29,7 +29,11 @@ const { renderCertificateHtml } = require('../../../server/lib/code-hygiene-cert
 const { buildCompleteAuditReport } = require('../../../server/lib/complete-scan-audit-report.cjs');
 
 describe('report-bundle-builder', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.SIMPLEBEACON_LICENSE_SECRET = process.env.SIMPLEBEACON_LICENSE_SECRET || 'test-secret';
+  });
+  afterEach(() => { delete process.env.SIMPLEBEACON_LICENSE_SECRET; });
 
   test('exports buildReportBundle function', () => {
     expect(typeof buildReportBundle).toBe('function');

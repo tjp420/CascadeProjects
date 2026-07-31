@@ -10,6 +10,7 @@ const { toClientError } = require('../../shared-utils/index.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { resolvePlatformRoot } = require('../lib/simplebeacon-proxy.cjs');
 const { optionalAuthenticate } = require('../middleware/auth.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 /**
  * Resolve project path.
@@ -196,13 +197,10 @@ function registerEuAiActAuditRoute(app, options = {}) {
       await buildAuditReport(req, res, req.body || {});
     } catch (error) {
       if (error.code === 'eu_ai_act_artifacts_missing') {
-        return res.status(422).json({ success: false, error: error.message });
+        return sendError(res, 422, error.message);
       }
       logger.warn('[eu-ai-act-audit-report] generation failed', { error: error.message });
-      return res.status(400).json({
-        success: false,
-        error: toClientError(error, 'EU AI Act audit report generation failed')
-      });
+      return sendError(res, 400, toClientError(error, 'EU AI Act audit report generation failed'));
     }
   });
 
@@ -211,13 +209,10 @@ function registerEuAiActAuditRoute(app, options = {}) {
       await buildAuditReport(req, res, req.query || {});
     } catch (error) {
       if (error.code === 'eu_ai_act_artifacts_missing') {
-        return res.status(422).json({ success: false, error: error.message });
+        return sendError(res, 422, error.message);
       }
       logger.warn('[eu-ai-act-audit-report] generation failed', { error: error.message });
-      return res.status(400).json({
-        success: false,
-        error: toClientError(error, 'EU AI Act audit report generation failed')
-      });
+      return sendError(res, 400, toClientError(error, 'EU AI Act audit report generation failed'));
     }
   });
 

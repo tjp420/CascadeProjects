@@ -1,0 +1,41 @@
+2026-07-31T06:07:47.031Z  INFO: [token-service] JWT configuration loaded: {
+  algorithm: 'HS256',
+  issuer: 'cascade-ai-platform',
+  audience: 'cascade-ai-users',
+  expiresIn: '1h',
+  hasSecret: true,
+  secretSource: 'env',
+  secretLength: 58,
+  secretFromEnv: true
+}
+[Chatbot API] Loaded 1 knowledge entries
+2026-07-31T06:07:48.820Z  INFO: [Simplebeacon] SIMPLEBEACON_LANDING=(unset) internalDashboard=true → /=dashboard
+[Realtime API] WebSocket server started on port 8082
+2026-07-31T06:07:48.842Z  INFO: [Simplebeacon] Registered GET /api/analyze/data-cleanup
+2026-07-31T06:07:48.847Z  INFO: 🌐 Legacy WebSocket server running on ws://localhost:8081
+2026-07-31T06:07:48.858Z  INFO: [Simplebeacon] Registered POST and GET /api/analyze/eu-ai-act-audit-report
+[Chatbot API] Registered POST /api/chatbot/message
+[Chatbot API] Registered GET /api/chatbot/providers
+[Chatbot API] Registered GET /api/chatbot/disclosure
+2026-07-31T06:07:48.894Z  INFO: [WebAuthn API] Registered /api/webauthn/* routes
+2026-07-31T06:07:48.911Z  INFO: [Routes] SSO auth handler loaded at /api/sso
+2026-07-31T06:07:48.912Z  INFO: [Routes] SSO config routes loaded at /api/enterprise/sso
+2026-07-31T06:07:48.915Z  INFO: [Routes] Enterprise analytics loaded at /api/enterprise/analytics
+2026-07-31T06:07:48.920Z  INFO: [Routes] Integration marketplace loaded at /api/integrations
+2026-07-31T06:07:48.922Z  INFO: [Routes] Usage analytics loaded at /api/analytics
+2026-07-31T06:07:48.924Z  INFO: [Routes] Whitelabel branding loaded at /api/whitelabel
+2026-07-31T06:07:49.009Z  INFO: [TokenValidate] Token validation route mounted
+2026-07-31T06:07:49.011Z  INFO: [Referral] Referral API routes mounted
+[EmailRetryWorker] No pending emails to retry.
+2026-07-31T06:07:49.013Z  INFO: [EmailRetry] Background worker started (300s interval).
+2026-07-31T06:07:49.018Z  INFO: 🚀 Simplebeacon server running on http://localhost:58000
+2026-07-31T06:07:49.018Z  INFO: ✉️ Outreach API at: http://localhost:58000/api/simplebeacon/outreach/config
+2026-07-31T06:07:49.025Z  INFO: 📂 Allowed analysis roots: C:\Users\Trevor; C:\Users\Trevor\CascadeProjects; C:\Users\Trevor\CascadeProjects_BACKUP_20260521; C:\Users\Trevor\AI-Guardrail-system; J:\AI project backup; E:\Ai; I:\AGI Chatbot\agi-chatbot; C:\Users\Trevor\CascadeProjects\coming-soon
+2026-07-31T06:07:49.025Z  INFO: 🛡️ Simplebeacon dashboard at: http://localhost:58000/
+2026-07-31T06:07:49.025Z  INFO: 🔒 /app and dashboard APIs require vault session (24h cookie after vault login)
+2026-07-31T06:07:49.025Z  INFO: 🧪 STAGING: see coming-soon/STAGING.md (payments flag in site-config.js)
+2026-07-31T06:07:49.025Z  INFO: 🔧 Simplebeacon API at: http://localhost:58000/api/simplebeacon/
+2026-07-31T06:07:49.025Z  INFO: 🌐 WebSocket available at: ws://localhost:58000/ws (legacy: ws://localhost:8081)
+2026-07-31T06:07:49.025Z  INFO: 🔐 Phase 2 auth: optional (set REQUIRE_AUTH=true)
+2026-07-31T06:07:49.025Z  INFO: 🗄️ Phase 2 database: disabled
+2026-07-31T06:07:49.025Z  INFO: ⚡ Phase 2 redis: disabled

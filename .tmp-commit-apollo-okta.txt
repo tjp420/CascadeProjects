@@ -1,0 +1,30 @@
+feat: add Apollo lead ingestion script + Okta SAML onboarding manual
+
+apollo-lead-ingestion.js (marketing/outreach/):
+- Standalone Node.js script integrating with Apollo.io REST API v2
+- Searches organizations by keywords (AI, compliance, regulatory)
+- Searches people by target titles (CLO, CCO, CRO, General Counsel, VP Compliance)
+- Enriches person records with full contact details
+- Maps Apollo records to existing prospect schema (prospect-scraper.js)
+- Uses prospect-scraper.js helpers: classifyPersona, calculateQualificationScore,
+  generateProspectId, saveProspects
+- Rate limited (100 req/min), cursor-based pagination, deduplication
+- CLI: --keywords, --max-companies, --max-people-per-company, --dry-run
+- Requires APOLLO_API_KEY env var, no external deps (Node https only)
+- Exports: searchOrganizations, searchPeople, enrichPerson, apolloToProspect,
+  ingestFromApollo + helper functions
+
+OKTA-SAML-ONBOARDING.md (docs/):
+- 566-line enterprise IT onboarding manual for Okta SAML 2.0 SSO
+- 12 sections: overview, Okta app creation, SAML config, metadata download,
+  SimpleBeacon admin registration, testing, user assignment, go-live,
+  API alternative (curl), troubleshooting, security notes, quick reference
+- ASCII architecture diagram showing IdP to SP flow
+- Field mapping tables (Okta field to SimpleBeacon form field to schema)
+- Covers AES-256-GCM encryption, secret masking, open redirect protection,
+  audit logging
+- Professional enterprise-ready tone, no emojis
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

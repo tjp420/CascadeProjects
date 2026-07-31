@@ -1,0 +1,17 @@
+[Chatbot API] SUPPORT_EMAIL env var not set ΓÇö appeal process will be unavailable
+(node:162336) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ValidationError: Custom keyGenerator appears to use request IP without calling the ipKeyGenerator helper function for IPv6 addresses. This could allow IPv6 users to bypass limits. See https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/ for more information.
+    at Object.keyGeneratorIpFallback (C:\Users\user\CascadeProjects\node_modules\express-rate-limit\dist\index.cjs:668:13)
+    at wrappedValidations.<computed> [as keyGeneratorIpFallback] (C:\Users\user\CascadeProjects\node_modules\express-rate-limit\dist\index.cjs:720:22)
+    at parseOptions (C:\Users\user\CascadeProjects\node_modules\express-rate-limit\dist\index.cjs:797:16)
+    at rateLimit (C:\Users\user\CascadeProjects\node_modules\express-rate-limit\dist\index.cjs:879:18)
+    at Object.setupProxyOllamaAPI (C:\Users\user\CascadeProjects\ai-platform\server\routes\proxy-ollama-api.cjs:23:21)
+    at Object.fn (C:\Users\user\CascadeProjects\ai-platform\simplebeacon-server.cjs:1139:90)
+    at bootstrapPhase2Routes (C:\Users\user\CascadeProjects\ai-platform\simplebeacon-server.cjs:1165:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async startServer (C:\Users\user\CascadeProjects\ai-platform\simplebeacon-server.cjs:1197:3) {
+  code: 'ERR_ERL_KEY_GEN_IPV6',
+  help: 'https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/'
+}
+2026-07-31T06:07:48.869Z  WARN: [simplebeacon-api] default report path: C:/Users/user/CascadeProjects/ai-platform/.simplebeacon/report.json project root: C:/Users/user/CascadeProjects/ai-platform

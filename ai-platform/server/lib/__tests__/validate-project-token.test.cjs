@@ -20,7 +20,12 @@ function mockReqRes(headers = {}, body = {}, query = {}) {
 }
 
 describe('validate-project-token', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Ensure license secret is set so middleware calls verifyLicenseToken
+    process.env.SIMPLEBEACON_LICENSE_SECRET = process.env.SIMPLEBEACON_LICENSE_SECRET || 'test-secret';
+  });
+  afterEach(() => { delete process.env.SIMPLEBEACON_LICENSE_SECRET; });
 
   test('exports validateProjectToken function', () => {
     expect(typeof validateProjectToken).toBe('function');

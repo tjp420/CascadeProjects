@@ -20,6 +20,7 @@ const {
 } = require('../lib/path-safety.cjs');
 const { toClientError } = require('../../shared-utils/index.cjs');
 const { runAudit } = require('../lib/ai-math-audit.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 /**
  * Resolve the directory that contains model numerical logs for a project.
@@ -55,14 +56,14 @@ function setupAiMathAuditRoute(app, baseDir) {
       const body = req.body || {};
       const rawPath = String(body.projectPath || body.path || '').trim();
       if (!rawPath) {
-        return res.status(400).json({ success: false, error: 'Missing projectPath' });
+        return sendError(res, 400, 'Missing projectPath');
       }
 
       let projectPath;
       try {
         projectPath = assertSafeProjectPath(rawPath, allowedRoots);
       } catch (err) {
-        return res.status(403).json({ success: false, error: err.message });
+        return sendError(res, 403, err.message);
       }
 
       const logDir = resolveLogDir(projectPath);

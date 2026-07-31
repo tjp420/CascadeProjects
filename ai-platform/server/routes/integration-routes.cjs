@@ -25,6 +25,7 @@ const logger = require('../lib/app-logger.cjs');
 const integrationStore = require('../lib/integration-config-store.cjs');
 const webhookEngine = require('../lib/webhook-engine.cjs');
 const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ const integrationRateLimit = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res) => res.status(429).json({ error: 'too_many_requests', message: 'Too many requests' }),
+  handler: (req, res) => sendError(res, 429, 'too_many_requests', { message: 'Too many requests' }),
 });
 
 // GET /api/integrations — list all configs (masked)
@@ -45,7 +46,7 @@ router.get('/', (req, res) => {
       : integrationStore.getAllConfigs();
     res.json({ success: true, configs });
   } catch (err) {
-    res.status(500).json({ error: 'list_failed', message: err.message });
+    sendError(res, 500, 'list_failed', { message: err.message });
   }
 });
 
@@ -64,7 +65,7 @@ router.get('/stats', (req, res) => {
   try {
     res.json({ success: true, ...integrationStore.getStats() });
   } catch (err) {
-    res.status(500).json({ error: 'stats_failed', message: err.message });
+    sendError(res, 500, 'stats_failed', { message: err.message });
   }
 });
 
@@ -72,7 +73,7 @@ router.get('/stats', (req, res) => {
 router.post('/', integrationRateLimit, (req, res) => {
   try {
     const { type, orgId, name, enabled, events, ...rest } = req.body || {};
-    if (!type) return res.status(400).json({ error: 'type is required' });
+    if (!type) return sendError(res, 400, 'type is required');
 
     const config = integrationStore.createConfig({
       type, orgId, name, enabled, events, ...rest,
@@ -80,7 +81,7 @@ router.post('/', integrationRateLimit, (req, res) => {
     res.status(201).json({ success: true, config });
   } catch (err) {
     logger.error('[Integrations] Create failed:', err.message);
-    res.status(400).json({ error: 'create_failed', message: err.message });
+    sendError(res, 400, 'create_failed', { message: err.message });
   }
 });
 
@@ -90,7 +91,7 @@ router.put('/:configId', validateParam('configId', VALIDATION_PATTERNS.configId)
     const updated = integrationStore.updateConfig(req.params.configId, req.body || {});
     res.json({ success: true, config: updated });
   } catch (err) {
-    res.status(400).json({ error: 'update_failed', message: err.message });
+    sendError(res, 400, 'update_failed', { message: err.message });
   }
 });
 
@@ -98,10 +99,10 @@ router.put('/:configId', validateParam('configId', VALIDATION_PATTERNS.configId)
 router.delete('/:configId', validateParam('configId', VALIDATION_PATTERNS.configId), (req, res) => {
   try {
     const deleted = integrationStore.deleteConfig(req.params.configId);
-    if (!deleted) return res.status(404).json({ error: 'not_found' });
+    if (!deleted) return sendError(res, 404, 'not_found');
     res.json({ success: true, deleted: true });
   } catch (err) {
-    res.status(500).json({ error: 'delete_failed', message: err.message });
+    sendError(res, 500, 'delete_failed', { message: err.message });
   }
 });
 
@@ -109,8 +110,8 @@ router.delete('/:configId', validateParam('configId', VALIDATION_PATTERNS.config
 router.post('/:configId/test', validateParam('configId', VALIDATION_PATTERNS.configId), async (req, res) => {
   try {
     const config = integrationStore.getConfigDecrypted(req.params.configId);
-    if (!config) return res.status(404).json({ error: 'not_found' });
-    if (!config.enabled) return res.status(400).json({ error: 'config_disabled' });
+    if (!config) return sendError(res, 404, 'not_found');
+    if (!config.enabled) return sendError(res, 400, 'config_disabled');
 
     const testPayload = webhookEngine.buildEventPayload('scan_completed', {
       orgId: config.orgId,
@@ -120,13 +121,13 @@ router.post('/:configId/test', validateParam('configId', VALIDATION_PATTERNS.con
     });
 
     const adapter = webhookEngine.ADAPTERS[config.type];
-    if (!adapter) return res.status(400).json({ error: 'no_adapter' });
+    if (!adapter) return sendError(res, 400, 'no_adapter');
 
     const result = await adapter(config, testPayload);
     res.json({ success: true, ...result });
   } catch (err) {
     logger.error('[Integrations] Test failed:', err.message);
-    res.status(500).json({ error: 'test_failed', message: err.message });
+    sendError(res, 500, 'test_failed', { message: err.message });
   }
 });
 
@@ -135,14 +136,14 @@ router.post('/dispatch', integrationRateLimit, async (req, res) => {
   try {
     const { event, orgId, ...context } = req.body || {};
     if (!event || !orgId) {
-      return res.status(400).json({ error: 'event and orgId are required' });
+      return sendError(res, 400, 'event and orgId are required');
     }
 
     const result = await webhookEngine.dispatchEvent(event, { orgId, ...context });
     res.json({ success: true, ...result });
   } catch (err) {
     logger.error('[Integrations] Dispatch failed:', err.message);
-    res.status(500).json({ error: 'dispatch_failed', message: err.message });
+    sendError(res, 500, 'dispatch_failed', { message: err.message });
   }
 });
 

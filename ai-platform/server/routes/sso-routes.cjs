@@ -13,6 +13,7 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../lib/app-logger.cjs');
 const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 function maskEmail(email) {
   const e = String(email || '');
@@ -60,7 +61,7 @@ router.get('/login/:provider', validateParam('provider', VALIDATION_PATTERNS.pro
     return res.redirect('' + authorizeUrl);
   } catch (error) {
     logger.error('[SSO] Login initiation failed:', error.message);
-    res.status(500).json({ success: false, error: 'SSO login initiation failed', details: error.message });
+    sendError(res, 500, 'SSO login initiation failed', { details: error.message });
   }
 });
 
@@ -72,12 +73,12 @@ router.post('/saml/callback', express.urlencoded({ extended: false, limit: '1mb'
   try {
     const { SAMLResponse, RelayState } = req.body || {};
     if (!SAMLResponse) {
-      return res.status(400).json({ success: false, error: 'Missing SAMLResponse' });
+      return sendError(res, 400, 'Missing SAMLResponse');
     }
 
     const state = verifyState(RelayState);
     if (!state) {
-      return res.status(403).json({ success: false, error: 'Invalid or expired SAML state' });
+      return sendError(res, 403, 'Invalid or expired SAML state');
     }
     const provider = state.provider;
 
@@ -88,7 +89,7 @@ router.post('/saml/callback', express.urlencoded({ extended: false, limit: '1mb'
     const org = await resolveOrganizationByDomain(assertion.email, req.db);
     if (!org || !org.ssoEnabled) {
       logger.warn(`[SSO] Domain not configured for SAML SSO: ${maskEmail(assertion.email)}`);
-      return res.status(403).json({ success: false, error: 'Organization not enabled for SSO' });
+      return sendError(res, 403, 'Organization not enabled for SSO');
     }
 
     const { user, accessToken, refreshToken } = await issueTokensForSsoUser(
@@ -106,7 +107,7 @@ router.post('/saml/callback', express.urlencoded({ extended: false, limit: '1mb'
     });
   } catch (error) {
     logger.error('[SSO] SAML callback failed:', error.message);
-    res.status(500).json({ success: false, error: 'SAML callback failed', details: error.message });
+    sendError(res, 500, 'SAML callback failed', { details: error.message });
   }
 });
 
@@ -118,15 +119,15 @@ router.get('/oidc/callback', async (req, res) => {
   try {
     const { code, state: stateParam, error: idpError } = req.query || {};
     if (idpError) {
-      return res.status(400).json({ success: false, error: 'IdP error', idpError });
+      return sendError(res, 400, 'IdP error', idpError);
     }
     if (!code) {
-      return res.status(400).json({ success: false, error: 'Missing authorization code' });
+      return sendError(res, 400, 'Missing authorization code');
     }
 
     const state = verifyState(stateParam);
     if (!state) {
-      return res.status(403).json({ success: false, error: 'Invalid or expired OIDC state' });
+      return sendError(res, 403, 'Invalid or expired OIDC state');
     }
     const provider = state.provider;
 
@@ -134,7 +135,7 @@ router.get('/oidc/callback', async (req, res) => {
     const org = await resolveOrganizationByDomain(idpProfile.email, req.db);
     if (!org || !org.ssoEnabled) {
       logger.warn(`[SSO] Domain not configured for OIDC SSO: ${maskEmail(idpProfile.email)}`);
-      return res.status(403).json({ success: false, error: 'Organization not enabled for SSO' });
+      return sendError(res, 403, 'Organization not enabled for SSO');
     }
 
     const { user, accessToken, refreshToken } = await issueTokensForSsoUser(
@@ -152,7 +153,7 @@ router.get('/oidc/callback', async (req, res) => {
     });
   } catch (error) {
     logger.error('[SSO] OIDC callback failed:', error.message);
-    res.status(500).json({ success: false, error: 'OIDC callback failed', details: error.message });
+    sendError(res, 500, 'OIDC callback failed', { details: error.message });
   }
 });
 
@@ -190,7 +191,7 @@ router.get('/metadata/:provider', validateParam('provider', VALIDATION_PATTERNS.
     res.send(metadata);
   } catch (error) {
     logger.error('[SSO] Metadata generation failed:', error.message);
-    res.status(500).json({ success: false, error: 'Metadata generation failed' });
+    sendError(res, 500, 'Metadata generation failed');
   }
 });
 

@@ -7,6 +7,7 @@ const express = require('express');
 const { setWorkspaceRlsContext, requirePermission } = require('../lib/rbac.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ function setupWorkspaceRoutes(db) {
       res.json({ workspaces: rows });
     } catch (error) {
       logger.error('[Workspaces] GET / failed:', error.message);
-      res.status(500).json({ error: 'Failed to list workspaces' });
+      sendError(res, 500, 'Failed to list workspaces');
     }
   });
 
@@ -54,12 +55,12 @@ function setupWorkspaceRoutes(db) {
         [req.params.id]
       );
       if (rows.length === 0) {
-        return res.status(404).json({ error: 'Workspace not found' });
+        return sendError(res, 404, 'Workspace not found');
       }
       res.json({ workspace: rows[0] });
     } catch (error) {
       logger.error('[Workspaces] GET /:id failed:', error.message);
-      res.status(500).json({ error: 'Failed to fetch workspace' });
+      sendError(res, 500, 'Failed to fetch workspace');
     }
   });
 
@@ -71,7 +72,7 @@ function setupWorkspaceRoutes(db) {
     try {
       const { name, slug, settings } = req.body;
       if (!name || typeof name !== 'string') {
-        return res.status(400).json({ error: 'Workspace name is required' });
+        return sendError(res, 400, 'Workspace name is required');
       }
       const client = req.scopedClient || db;
       const { rows } = await client.query(
@@ -83,7 +84,7 @@ function setupWorkspaceRoutes(db) {
       res.status(201).json({ workspace: rows[0] });
     } catch (error) {
       logger.error('[Workspaces] POST / failed:', error.message);
-      res.status(500).json({ error: 'Failed to create workspace' });
+      sendError(res, 500, 'Failed to create workspace');
     }
   });
 
@@ -106,12 +107,12 @@ function setupWorkspaceRoutes(db) {
         [name || null, slug || null, settings ? JSON.stringify(settings) : null, req.params.id]
       );
       if (rows.length === 0) {
-        return res.status(404).json({ error: 'Workspace not found' });
+        return sendError(res, 404, 'Workspace not found');
       }
       res.json({ workspace: rows[0] });
     } catch (error) {
       logger.error('[Workspaces] PATCH /:id failed:', error.message);
-      res.status(500).json({ error: 'Failed to update workspace' });
+      sendError(res, 500, 'Failed to update workspace');
     }
   });
 
@@ -127,12 +128,12 @@ function setupWorkspaceRoutes(db) {
         [req.params.id]
       );
       if (rowCount === 0) {
-        return res.status(404).json({ error: 'Workspace not found' });
+        return sendError(res, 404, 'Workspace not found');
       }
       res.status(204).send();
     } catch (error) {
       logger.error('[Workspaces] DELETE /:id failed:', error.message);
-      res.status(500).json({ error: 'Failed to delete workspace' });
+      sendError(res, 500, 'Failed to delete workspace');
     }
   });
 

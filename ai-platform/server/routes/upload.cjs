@@ -19,6 +19,7 @@ const crypto = require('crypto');
 const chokidar = require('chokidar');
 const simpleGit = require('simple-git');
 const constants = require('../config/constants.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 const router = express.Router();
 
 /** In-memory upload history (persisted per process; sufficient for dashboard wiring). */
@@ -142,10 +143,7 @@ router.post('/files', upload.array('files'), async (req, res) => {
     
     try {
         if (!req.files || req.files.length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'No files uploaded'
-            });
+            return sendError(res, 400, 'No files uploaded');
         }
 
         const uploadedFiles = req.files.map(file => ({
@@ -226,10 +224,7 @@ router.post('/git', async (req, res) => {
         } = req.body;
 
         if (!repoUrl) {
-            return res.status(400).json({
-                success: false,
-                error: 'Repository URL is required'
-            });
+            return sendError(res, 400, 'Repository URL is required');
         }
 
         // Create temporary directory
@@ -307,10 +302,7 @@ router.post('/watch', async (req, res) => {
         const { directory, watchSubdirectories = true } = req.body;
 
         if (!directory) {
-            return res.status(400).json({
-                success: false,
-                error: 'Directory path is required'
-            });
+            return sendError(res, 400, 'Directory path is required');
         }
 
         // Validate directory exists and is accessible
@@ -405,10 +397,7 @@ router.post('/watch', async (req, res) => {
 
     } catch (error) {
         logger.error('[Upload] Directory watch error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        sendError(res, 500, error.message);
     }
 });
 
@@ -421,10 +410,7 @@ router.delete('/watch/:watchId', async (req, res) => {
         const { watchId } = req.params;
 
         if (!global.activeWatchers || !global.activeWatchers.has(watchId)) {
-            return res.status(404).json({
-                success: false,
-                error: 'Watch session not found'
-            });
+            return sendError(res, 404, 'Watch session not found');
         }
 
         const watchSession = global.activeWatchers.get(watchId);
@@ -439,10 +425,7 @@ router.delete('/watch/:watchId', async (req, res) => {
 
     } catch (error) {
         logger.error('[Upload] Stop watch error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        sendError(res, 500, error.message);
     }
 });
 
@@ -456,10 +439,7 @@ router.post('/api/:provider', async (req, res) => {
         const { repositoryUrl, accessToken } = req.body;
 
         if (!repositoryUrl) {
-            return res.status(400).json({
-                success: false,
-                error: 'Repository URL is required'
-            });
+            return sendError(res, 400, 'Repository URL is required');
         }
 
         // Provider-specific integration
@@ -491,10 +471,7 @@ router.post('/api/:provider', async (req, res) => {
 
     } catch (error) {
         logger.error('[Upload] API integration error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
+        sendError(res, 500, error.message);
     }
 });
 

@@ -1,0 +1,43 @@
+fix: replace insecure local escapeHtml copies + delete 10 legacy/patch files
+
+Phase 1 of frontend code audit cleanup. Addresses a security issue and
+removes unreferenced legacy files.
+
+Security fix — escapeHtml missing backtick/equals escaping:
+Three files had local escapeHtml copies that only escaped 5 characters
+(& < > " ') instead of the canonical 7 (also ` and =). This is an XSS
+vector for attribute injection. Fixed by replacing local copies with
+imports from utils.js (which uses utils-lib/string.js).
+
+Affected files:
+- lib/analyzePathAllowlist.js — added import, removed local copy
+- components/DownloadCredentialsModal.js — added import, removed local copy
+- views/SignInView.js — added escapeHtml to existing import, removed local copy
+
+Legacy file deletion (3 files, never imported, all functions in utils-lib):
+- _new-helpers.js — 21 functions all available in utils-lib/ modules
+- _path-helpers.js — 3 functions in utils-lib/vscode.js
+- _format-helpers.js — roundTo in utils-lib/number.js, others unused
+
+Patch file deletion (7 temporary artifacts, patches already applied):
+- utils-format.js.patch-fix
+- utils-lib/format.js.patch-fix
+- utils/snippetDiagnostic.js.patch-fix
+- views/AboutView.js.patch-fix
+- views/AnalyzeView.js.patch-fix
+- views/ChatbotView.js.patch-fix
+- views/SettingsView.js.patch-fix
+
+Verified: grep confirmed 0 imports reference any deleted file.
+All 3 edited files pass node -c. Gate scan PASS. Integration test 16/16.
+
+Audit found 27 total duplicate functions; Phase 2 will address remaining
+duplicates in utils-format.js, isRemoteDashboardHost, isAbsoluteLocalPath,
+flow/negate, normalizeSlashes, basenamePath, isPlausibleProjectPath.
+
+QA: test_plan.md + software_health_report.md per QA framework.
+All Level 1/2/3 checks pass. Security defect documented and fixed.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

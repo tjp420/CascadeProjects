@@ -2,6 +2,7 @@
 const logger = require('../lib/app-logger.cjs');
 const path = require('path');
 const { scanForMockFiles } = require('../lib/mock-data-file-scanner.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 const {
   calculateQualityScore,
   calculateDataSize,
@@ -44,7 +45,7 @@ function setupMockDataAPI(app, options = {}) {
       });
     } catch (error) {
       logger.error('Mock analysis error:', error);
-      res.status(500).json({ error: 'Failed to analyze mock data' });
+      sendError(res, 500, 'Failed to analyze mock data');
     }
   });
 
@@ -64,7 +65,7 @@ function setupMockDataAPI(app, options = {}) {
       });
     } catch (error) {
       logger.error('Mock conversion error:', error);
-      res.status(500).json({ error: 'Failed to convert mock data' });
+      sendError(res, 500, 'Failed to convert mock data');
     }
   });
 
@@ -85,7 +86,7 @@ function setupMockDataAPI(app, options = {}) {
       });
     } catch (error) {
       logger.error('Mock validation error:', error);
-      res.status(500).json({ error: 'Failed to validate mock data' });
+      sendError(res, 500, 'Failed to validate mock data');
     }
   });
 
@@ -103,7 +104,7 @@ function setupMockDataAPI(app, options = {}) {
       });
     } catch (error) {
       logger.error('Mock generation error:', error);
-      res.status(500).json({ error: 'Failed to generate mock data' });
+      sendError(res, 500, 'Failed to generate mock data');
     }
   });
 
@@ -132,7 +133,7 @@ function setupMockDataAPI(app, options = {}) {
       });
     } catch (error) {
       logger.error('Mock cleaning error:', error);
-      res.status(500).json({ error: 'Failed to clean mock data' });
+      sendError(res, 500, 'Failed to clean mock data');
     }
   });
 
@@ -152,7 +153,7 @@ function setupMockDataAPI(app, options = {}) {
       });
     } catch (error) {
       logger.error('Mock export error:', error);
-      res.status(500).json({ error: 'Failed to export mock data' });
+      sendError(res, 500, 'Failed to export mock data');
     }
   });
 }

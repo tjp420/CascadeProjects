@@ -63,6 +63,7 @@ const db = require('../lib/token-db.cjs');
 
 // Ed25519 signing key (Account Root private key — from KMS/HSM in production)
 const { resolveSecret } = require('../lib/secret-config.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 const ACCOUNT_SIGNING_KEY = Buffer.from(resolveSecret('TOKEN_ACCOUNT_SIGNING_KEY') || '', 'base64');
 
 // Constants
@@ -162,12 +163,12 @@ router.post('/device-challenge', async (req, res) => {
     try {
         const { device_key_id } = req.body || {};
         if (!device_key_id) {
-            return res.status(400).json({ success: false, error: 'device_key_id is required' });
+            return sendError(res, 400, 'device_key_id is required');
         }
 
         const deviceKey = await db.getDeviceKey(device_key_id);
         if (!deviceKey || deviceKey.revoked_at) {
-            return res.status(403).json({ success: false, error: 'Device key not found or revoked' });
+            return sendError(res, 403, 'Device key not found or revoked');
         }
 
         const challenge = crypto.randomBytes(32).toString('hex');
@@ -190,7 +191,7 @@ router.post('/device-challenge', async (req, res) => {
         res.json({ success: true, challenge_id: challengeId, challenge });
     } catch (err) {
         logger.error('[device-challenge]', err);
-        res.status(500).json({ success: false, error: toClientError(err, 'Challenge generation failed') });
+        sendError(res, 500, toClientError(err, 'Challenge generation failed'));
     }
 });
 
@@ -201,7 +202,7 @@ router.post('/device-verify', async (req, res) => {
     try {
         const { challenge_id, signature, device_key_id } = req.body || {};
         if (!challenge_id || !signature || !device_key_id) {
-            return res.status(400).json({ success: false, error: 'challenge_id, signature, and device_key_id are required' });
+            return sendError(res, 400, 'challenge_id, signature, and device_key_id are required');
         }
 
         const redis = getRedis();
@@ -212,12 +213,12 @@ router.post('/device-verify', async (req, res) => {
             challengeRaw = global._challengeStore ? global._challengeStore.get(challenge_id) : null;
         }
         if (!challengeRaw) {
-            return res.status(400).json({ success: false, error: 'Challenge expired or invalid' });
+            return sendError(res, 400, 'Challenge expired or invalid');
         }
 
         const challengeData = JSON.parse(challengeRaw);
         if (challengeData.device_key_id !== device_key_id) {
-            return res.status(403).json({ success: false, error: 'Challenge device mismatch' });
+            return sendError(res, 403, 'Challenge device mismatch');
         }
 
         // Consume challenge to prevent replay
@@ -229,7 +230,7 @@ router.post('/device-verify', async (req, res) => {
 
         const deviceKey = await db.getDeviceKey(device_key_id);
         if (!deviceKey || deviceKey.revoked_at) {
-            return res.status(403).json({ success: false, error: 'Device key not found or revoked' });
+            return sendError(res, 403, 'Device key not found or revoked');
         }
 
         // Verify Ed25519 signature (challenge + device_key_id signed by device private key)
@@ -241,11 +242,11 @@ router.post('/device-verify', async (req, res) => {
             const { ed25519 } = require('@noble/curves/ed25519');
             isValid = ed25519.verify(signatureBuffer, verifyPayload, publicKeyBuffer);
         } catch {
-            return res.status(503).json({ success: false, error: 'Ed25519 verification unavailable. Install: npm install @noble/curves jose redis' });
+            return sendError(res, 503, 'Ed25519 verification unavailable. Install: npm install @noble/curves jose redis');
         }
         if (!isValid) {
             auditEvent(deviceKey.account_id, 'recovery_failed', device_key_id, { reason: 'invalid_signature' }, req);
-            return res.status(403).json({ success: false, error: 'Signature verification failed' });
+            return sendError(res, 403, 'Signature verification failed');
         }
 
         // Update last seen
@@ -254,7 +255,7 @@ router.post('/device-verify', async (req, res) => {
         // Get account
         const account = await db.getAccount(deviceKey.account_id);
         if (!account || account.status !== 'active') {
-            return res.status(403).json({ success: false, error: 'Account inactive or suspended' });
+            return sendError(res, 403, 'Account inactive or suspended');
         }
 
         // Issue Access Token
@@ -317,7 +318,7 @@ router.post('/device-verify', async (req, res) => {
         });
     } catch (err) {
         logger.error('[device-verify]', err);
-        res.status(500).json({ success: false, error: toClientError(err, 'Device verification failed') });
+        sendError(res, 500, toClientError(err, 'Device verification failed'));
     }
 });
 
@@ -328,12 +329,12 @@ router.post('/recover-init', async (req, res) => {
     try {
         const { account_id, recovery_factor_type } = req.body || {};
         if (!account_id || !recovery_factor_type) {
-            return res.status(400).json({ success: false, error: 'account_id and recovery_factor_type are required' });
+            return sendError(res, 400, 'account_id and recovery_factor_type are required');
         }
 
         const account = await db.getAccount(account_id);
         if (!account) {
-            return res.status(404).json({ success: false, error: 'Account not found' });
+            return sendError(res, 404, 'Account not found');
         }
 
         const factors = await db.getRecoveryFactors(account_id);
@@ -341,7 +342,7 @@ router.post('/recover-init', async (req, res) => {
             (f) => f.factor_type === recovery_factor_type && f.enabled && !f.revoked_at
         );
         if (!activeFactor) {
-            return res.status(403).json({ success: false, error: 'Recovery factor not available' });
+            return sendError(res, 403, 'Recovery factor not available');
         }
 
         const challengeId = crypto.randomUUID();
@@ -377,7 +378,7 @@ router.post('/recover-init', async (req, res) => {
         });
     } catch (err) {
         logger.error('[recover-init]', err);
-        res.status(500).json({ success: false, error: toClientError(err, 'Recovery initiation failed') });
+        sendError(res, 500, toClientError(err, 'Recovery initiation failed'));
     }
 });
 
@@ -388,7 +389,7 @@ router.post('/recover-verify', async (req, res) => {
     try {
         const { challenge_id, otp, factor_type } = req.body || {};
         if (!challenge_id || !otp || !factor_type) {
-            return res.status(400).json({ success: false, error: 'challenge_id, otp, and factor_type are required' });
+            return sendError(res, 400, 'challenge_id, otp, and factor_type are required');
         }
 
         const redis = getRedis();
@@ -399,7 +400,7 @@ router.post('/recover-verify', async (req, res) => {
             challengeRaw = global._recoveryStore ? global._recoveryStore.get(challenge_id) : null;
         }
         if (!challengeRaw) {
-            return res.status(400).json({ success: false, error: 'Challenge expired' });
+            return sendError(res, 400, 'Challenge expired');
         }
 
         const challengeData = JSON.parse(challengeRaw);
@@ -415,7 +416,7 @@ router.post('/recover-verify', async (req, res) => {
 
         if (!verified) {
             auditEvent(accountId, 'recovery_failed', 'system', { factor_type, reason: 'invalid_otp' }, req);
-            return res.status(403).json({ success: false, error: 'Verification failed' });
+            return sendError(res, 403, 'Verification failed');
         }
 
         // Consume recovery challenge to prevent replay
@@ -445,7 +446,7 @@ router.post('/recover-verify', async (req, res) => {
         res.json({ success: true, enrollment_ticket: enrollmentTicket });
     } catch (err) {
         logger.error('[recover-verify]', err);
-        res.status(500).json({ success: false, error: toClientError(err, 'Recovery verification failed') });
+        sendError(res, 500, toClientError(err, 'Recovery verification failed'));
     }
 });
 
@@ -456,7 +457,7 @@ router.post('/enroll-device', optionalAuthenticate, async (req, res) => {
     try {
         const { enrollment_ticket, device_public_key, device_name, key_type } = req.body || {};
         if (!device_public_key || !key_type) {
-            return res.status(400).json({ success: false, error: 'device_public_key and key_type are required' });
+            return sendError(res, 400, 'device_public_key and key_type are required');
         }
 
         let accountId = null;
@@ -476,7 +477,7 @@ router.post('/enroll-device', optionalAuthenticate, async (req, res) => {
                 ticketRaw = global._enrollStore ? global._enrollStore.get(ticketHash) : null;
             }
             if (!ticketRaw) {
-                return res.status(403).json({ success: false, error: 'Invalid or expired enrollment ticket' });
+                return sendError(res, 403, 'Invalid or expired enrollment ticket');
             }
             const ticketData = JSON.parse(ticketRaw);
             accountId = ticketData.account_id;
@@ -489,12 +490,12 @@ router.post('/enroll-device', optionalAuthenticate, async (req, res) => {
                 global._enrollStore.delete(ticketHash);
             }
         } else {
-            return res.status(401).json({ success: false, error: 'Authentication or enrollment ticket required' });
+            return sendError(res, 401, 'Authentication or enrollment ticket required');
         }
 
         const account = await db.getAccount(accountId);
         if (!account) {
-            return res.status(404).json({ success: false, error: 'Account not found' });
+            return sendError(res, 404, 'Account not found');
         }
 
         // Check device limit
@@ -525,7 +526,7 @@ router.post('/enroll-device', optionalAuthenticate, async (req, res) => {
         res.json({ success: true, device_key_id: deviceKeyId });
     } catch (err) {
         logger.error('[enroll-device]', err);
-        res.status(500).json({ success: false, error: toClientError(err, 'Device enrollment failed') });
+        sendError(res, 500, toClientError(err, 'Device enrollment failed'));
     }
 });
 
@@ -536,23 +537,23 @@ router.post('/refresh', async (req, res) => {
     try {
         const { refresh_token } = req.body || {};
         if (!refresh_token) {
-            return res.status(400).json({ success: false, error: 'refresh_token is required' });
+            return sendError(res, 400, 'refresh_token is required');
         }
 
         const tokenHash = await hashToken(refresh_token);
         const refreshRecord = await db.getRefreshTokenByHash(tokenHash);
         if (!refreshRecord || refreshRecord.revoked_at || refreshRecord.used_at) {
-            return res.status(403).json({ success: false, error: 'Invalid or reused refresh token' });
+            return sendError(res, 403, 'Invalid or reused refresh token');
         }
 
         if (new Date(refreshRecord.expires_at) < new Date()) {
-            return res.status(403).json({ success: false, error: 'Refresh token expired' });
+            return sendError(res, 403, 'Refresh token expired');
         }
 
         // In-process race guard: prevent concurrent reuse in the same process
         const raceKey = `refresh_used:${refreshRecord.id}`;
         if (global._refreshRaceGuard && global._refreshRaceGuard.has(raceKey)) {
-            return res.status(403).json({ success: false, error: 'Refresh token already being processed' });
+            return sendError(res, 403, 'Refresh token already being processed');
         }
         if (!global._refreshRaceGuard) global._refreshRaceGuard = new Set();
         global._refreshRaceGuard.add(raceKey);
@@ -573,7 +574,7 @@ router.post('/refresh', async (req, res) => {
 
         const account = await db.getAccount(refreshRecord.account_id);
         if (!account || account.status !== 'active') {
-            return res.status(403).json({ success: false, error: 'Account inactive' });
+            return sendError(res, 403, 'Account inactive');
         }
 
         // Issue new Access Token
@@ -636,7 +637,7 @@ router.post('/refresh', async (req, res) => {
         });
     } catch (err) {
         logger.error('[refresh]', err);
-        res.status(500).json({ success: false, error: toClientError(err, 'Token refresh failed') });
+        sendError(res, 500, toClientError(err, 'Token refresh failed'));
     }
 });
 
@@ -647,7 +648,7 @@ router.post('/logout', optionalAuthenticate, async (req, res) => {
     try {
         const { session_token } = req.body || {};
         if (!session_token) {
-            return res.status(400).json({ success: false, error: 'session_token is required' });
+            return sendError(res, 400, 'session_token is required');
         }
 
         const session = await db.getSessionToken(session_token);
@@ -657,7 +658,7 @@ router.post('/logout', optionalAuthenticate, async (req, res) => {
 
         // Ownership check: authenticated user can only revoke their own sessions
         if (req.user && session.account_id !== req.user.sub) {
-            return res.status(403).json({ success: false, error: 'You can only revoke your own sessions' });
+            return sendError(res, 403, 'You can only revoke your own sessions');
         }
 
         // Revoke session
@@ -675,7 +676,7 @@ router.post('/logout', optionalAuthenticate, async (req, res) => {
         res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
         logger.error('[logout]', err);
-        res.status(500).json({ success: false, error: toClientError(err, 'Logout failed') });
+        sendError(res, 500, toClientError(err, 'Logout failed'));
     }
 });
 
@@ -685,12 +686,12 @@ router.post('/logout', optionalAuthenticate, async (req, res) => {
 router.get('/me', optionalAuthenticate, async (req, res) => {
     try {
         if (!req.user) {
-            return res.status(401).json({ success: false, error: 'Authentication required' });
+            return sendError(res, 401, 'Authentication required');
         }
 
         const account = await db.getAccount(req.user.sub);
         if (!account) {
-            return res.status(404).json({ success: false, error: 'Account not found' });
+            return sendError(res, 404, 'Account not found');
         }
 
         const devices = await db.getDeviceKeys(account.id);
@@ -710,7 +711,7 @@ router.get('/me', optionalAuthenticate, async (req, res) => {
         });
     } catch (err) {
         logger.error('[me]', err);
-        res.status(500).json({ success: false, error: toClientError(err, 'Failed to fetch account') });
+        sendError(res, 500, toClientError(err, 'Failed to fetch account'));
     }
 });
 
@@ -721,7 +722,7 @@ router.post('/register', async (req, res) => {
     try {
         const { email, password, account_type, features } = req.body || {};
         if (!email || !password) {
-            return res.status(400).json({ success: false, error: 'email and password are required' });
+            return sendError(res, 400, 'email and password are required');
         }
 
         const bcrypt = require('bcryptjs');
@@ -734,7 +735,7 @@ router.post('/register', async (req, res) => {
             const accountPrivKey = ed25519.utils.randomPrivateKey();
             accountPubKey = ed25519.getPublicKey(accountPrivKey);
         } catch {
-            return res.status(503).json({ success: false, error: 'Ed25519 key generation unavailable. Install: npm install @noble/curves jose redis' });
+            return sendError(res, 503, 'Ed25519 key generation unavailable. Install: npm install @noble/curves jose redis');
         }
 
         // Store private key in secure storage (KMS/HSM in production)
@@ -799,7 +800,7 @@ router.post('/register', async (req, res) => {
         });
     } catch (err) {
         logger.error('[register]', err);
-        res.status(500).json({ success: false, error: toClientError(err, 'Account registration failed') });
+        sendError(res, 500, toClientError(err, 'Account registration failed'));
     }
 });
 

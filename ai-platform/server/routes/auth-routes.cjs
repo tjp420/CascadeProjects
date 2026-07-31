@@ -14,6 +14,7 @@ const {
   blacklistAccessToken
 } = require('../lib/token-service.cjs');
 const logger = require('../lib/app-logger.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 /**
  * POST /api/v2/auth/refresh
@@ -24,10 +25,7 @@ router.post('/refresh', async (req, res) => {
   try {
     const { refreshToken } = req.body || {};
     if (!refreshToken || typeof refreshToken !== 'string') {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing refreshToken in request body'
-      });
+      return sendError(res, 400, 'Missing refreshToken in request body');
     }
 
     const result = await rotateRefreshToken(refreshToken, {

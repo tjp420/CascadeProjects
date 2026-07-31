@@ -7,6 +7,7 @@ const express = require('express');
 const { queryAuditLogs } = require('../middleware/audit.cjs');
 const { authenticate } = require('../middleware/auth.cjs');
 const logger = require('../lib/app-logger.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -49,11 +50,7 @@ router.get('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     logger.error('[Audit API] Failed to retrieve audit logs:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve audit logs',
-      message: error.message
-    });
+    sendError(res, 500, 'Failed to retrieve audit logs', { message: error.message });
   }
 });
 

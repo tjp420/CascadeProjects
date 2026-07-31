@@ -6,15 +6,19 @@
  */
 
 // Set test environment
-// Mock heavy config constants to avoid loading the full constants facade in tests
-jest.mock('../server/config/constants.cjs', () => ({
-  TIMEOUT_30S: 30000,
-  TIMEOUT_8S: 8000,
-  TIMEOUT_12S: 12000,
-  TIMEOUT_1M: 60000,
-  MAX_RATE_LIMIT: 1000,
-  safeJsonLimit: () => '1mb'
-}));
+// Optionally mock heavy config constants to avoid loading the full constants
+// facade in tests. Set MOCK_CONSTANTS=1 to enable the mock; otherwise the
+// real `constants.cjs` is used so most tests run against production-like values.
+if (process.env.MOCK_CONSTANTS === '1') {
+  jest.mock('../server/config/constants.cjs', () => ({
+    TIMEOUT_30S: 30000,
+    TIMEOUT_8S: 8000,
+    TIMEOUT_12S: 12000,
+    TIMEOUT_1M: 60000,
+    MAX_RATE_LIMIT: 1000,
+    safeJsonLimit: () => '1mb'
+  }));
+}
 const constants = require('../server/config/constants.cjs');
 
 // Normalize `minimatch` shape for Jest runtime: some installed versions export

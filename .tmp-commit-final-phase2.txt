@@ -1,0 +1,48 @@
+refactor: remove dead flow/negate from async.js + consolidate basenamePath (3→1)
+
+Final Phase 2 cleanup. Eliminates the last safe-to-consolidate
+duplicates from the frontend audit.
+
+flow/negate (dead code removal):
+- flow and negate were defined in both utils-lib/async.js and
+  utils-lib/function.js with identical logic
+- Neither function is called anywhere in the codebase (dead code)
+- utils.js was re-exporting from AsyncUtils — fixed to FunctionUtils
+- Removed flow and negate from async.js (22 lines deleted)
+
+basenamePath (3 definitions → 1):
+- Was defined locally in:
+  - lib/analyzePathSuggestions.js (line 17, not exported)
+  - views/AnalyzeView.js (line 1268, identical copy)
+  - views/AnalyzePathSection.js (line 6, slightly different fallback)
+- Now exported from lib/analyzePathSuggestions.js (canonical source)
+- Both consumers import from canonical source
+- Fallback behavior unified: all use `|| projectPath` (canonical)
+
+Deferred: isPlausibleProjectPath
+- The two definitions are functionally different:
+  - lib/pageRepoScan.js uses stripArtifactSuffixes(raw) to clean paths
+  - views/AnalyzeView.js has extra rejection patterns for
+    allowedAnalysisRoots, ANALYZE_ALLOWED_ROOTS, restart the server,
+    and file extensions (.bat|.cmd|.exe|.ps1|.sh|.js|.json|.html?|.md|.txt)
+- Merging requires careful logic reconciliation — deferred to future commit
+
+Files changed (5):
+- utils-lib/async.js: removed dead flow and negate exports
+- utils.js: fixed flow/negate re-export source (AsyncUtils → FunctionUtils)
+- lib/analyzePathSuggestions.js: exported basenamePath (was private)
+- views/AnalyzeView.js: removed local basenamePath, added to import
+- views/AnalyzePathSection.js: removed local basenamePath, added to import
+
+Audit final metrics:
+- Duplicate functions: 27 → 1 (deferred) = 96% resolved
+- Dead code lines removed: 600+
+- Security issues fixed: 3 (escapeHtml XSS)
+- Bug fixes: 1 (normalizeSlashes canonical source)
+
+QA: test_plan.md + software_health_report.md per QA framework.
+All Level 1/2/3 checks pass. Gate scan PASS. Integration test 16/16.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

@@ -12,6 +12,7 @@ const { ensureRegistry } = require('../services/local-model-service.cjs');
 const { getUserAiCredentials } = require('../lib/user-ai-keys-store.cjs');
 const logger = require('../../src/lib/app-logger.cjs');
 const rateLimit = require('express-rate-limit');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 // In-memory storage for active analysis sessions
 const activeSessions = new Map();
@@ -111,10 +112,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
             
         } catch (error) {
             logger.error('[Realtime API] Session creation failed:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Failed to create analysis session' 
-            });
+            sendError(res, 500, 'Failed to create analysis session');
         }
     });
     
@@ -128,10 +126,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
             
             const session = activeSessions.get(sessionId);
             if (!session) {
-                return res.status(404).json({ 
-                    success: false, 
-                    error: 'Session not found or expired' 
-                });
+                return sendError(res, 404, 'Session not found or expired');
             }
             
             // Update last activity
@@ -156,10 +151,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
             
         } catch (error) {
             logger.error('[Realtime API] Chunk analysis failed:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Failed to analyze chunk' 
-            });
+            sendError(res, 500, 'Failed to analyze chunk');
         }
     });
     
@@ -172,10 +164,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
             const session = activeSessions.get(sessionId);
             
             if (!session) {
-                return res.status(404).json({ 
-                    success: false, 
-                    error: 'Session not found or expired' 
-                });
+                return sendError(res, 404, 'Session not found or expired');
             }
             
             const results = session.analyzer.getAllResults();
@@ -190,10 +179,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
             
         } catch (error) {
             logger.error('[Realtime API] Results retrieval failed:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Failed to retrieve results' 
-            });
+            sendError(res, 500, 'Failed to retrieve results');
         }
     });
     
@@ -206,10 +192,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
             const session = activeSessions.get(sessionId);
             
             if (!session) {
-                return res.status(404).json({ 
-                    success: false, 
-                    error: 'Session not found or expired' 
-                });
+                return sendError(res, 404, 'Session not found or expired');
             }
             
             res.json({
@@ -225,10 +208,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
             
         } catch (error) {
             logger.error('[Realtime API] Status check failed:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Failed to get session status' 
-            });
+            sendError(res, 500, 'Failed to get session status');
         }
     });
     
@@ -257,10 +237,7 @@ function setupRealtimeAnalysisAPI(app, options = {}) {
             
         } catch (error) {
             logger.error('[Realtime API] Session closure failed:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Failed to close session' 
-            });
+            sendError(res, 500, 'Failed to close session');
         }
     });
     

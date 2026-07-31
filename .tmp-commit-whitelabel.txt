@@ -1,0 +1,35 @@
+feat: wire whitelabel sub-domain routing into dashboard HTML + React BrandProvider
+
+whitelabel-middleware.cjs (NEW):
+- Express middleware that intercepts hostname on every request
+- Resolution order: exact domain → subdomain → wildcard suffix → default
+- extractSubdomain() parses "acme.simplebeacon.ai" → "acme"
+- buildBrandInjection() generates inline <style> with CSS variables + JSON config
+- Never blocks request on error (catch → next() with DEFAULT_BRAND)
+- Skips localhost/127.0.0.1/::1
+
+BrandContext.tsx (NEW):
+- React context provider with useBrand() hook
+- Reads window.__SIMPLEBEACON_BRAND__ (server-injected) first
+- Falls back to fetch /api/whitelabel/resolve?domain=hostname
+- applyBrandCss() injects CSS variables into :root at runtime
+- Updates document.title and favicon when partner is resolved
+- Exports: BrandProvider, useBrand, DEFAULT_BRAND, types
+
+index.cjs (MODIFIED):
+- Mount whitelabelMiddleware after CORS/CSP, before dashboard routes
+- sendDashboardWithRuntimeConfig() now injects brand CSS + config into HTML <head>
+- Sets X-Whitelabel-Partner response header when partner resolved
+
+App.tsx (MODIFIED):
+- Wrap entire app with <BrandProvider> outside <ToastProvider>
+- Import BrandProvider from ./contexts/BrandContext
+
+Existing whitelabel-config-store.cjs and whitelabel-routes.cjs: UNCHANGED
+
+QA: test_plan.md + software_health_report.md written per QA framework.
+All Level 1/2/3 checks pass. Gate scan passes.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

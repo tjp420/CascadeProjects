@@ -2,6 +2,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const {
   buildAssessmentReport,
@@ -54,10 +55,7 @@ async function loadDemoContext() {
  * @returns {any}
  */
 function demoReadonly(_req, res) {
-  return res.status(403).json({
-    error: 'demo_readonly',
-    message: 'Demo dashboard is read-only. Run npx simplebeacon locally or sign in at /app for your workspace.'
-  });
+  return sendError(res, 403, 'demo_readonly', { message: 'Demo dashboard is read-only. Run npx simplebeacon locally or sign in at /app for your workspace.' });
 }
 
 /**
@@ -71,7 +69,7 @@ function setupSimplebeaconDemoAPI(app) {
       const report = await readJson(path.join(DEMO_DIR, 'report.json'));
       res.json(report);
     } catch (err) {
-      res.status(404).json({ error: 'Demo report not found', message: err.message });
+      sendError(res, 404, 'Demo report not found', { message: err.message });
     }
   });
 
@@ -79,7 +77,7 @@ function setupSimplebeaconDemoAPI(app) {
     try {
       res.json(await readJson(path.join(DEMO_DIR, 'baseline.json')));
     } catch (err) {
-      res.status(404).json({ error: 'Demo baseline not found', message: err.message });
+      sendError(res, 404, 'Demo baseline not found', { message: err.message });
     }
   });
 
@@ -87,7 +85,7 @@ function setupSimplebeaconDemoAPI(app) {
     try {
       res.json(await readJson(path.join(DEMO_DIR, 'config.json')));
     } catch (err) {
-      res.status(404).json({ error: 'Demo config not found', message: err.message });
+      sendError(res, 404, 'Demo config not found', { message: err.message });
     }
   });
 
@@ -104,7 +102,7 @@ function setupSimplebeaconDemoAPI(app) {
       const context = await loadDemoContext();
       res.json(buildDashboardPayload(context));
     } catch (err) {
-      res.status(404).json({ error: 'Demo dashboard not found', message: err.message });
+      sendError(res, 404, 'Demo dashboard not found', { message: err.message });
     }
   });
 
@@ -113,11 +111,11 @@ function setupSimplebeaconDemoAPI(app) {
       const context = await loadDemoContext();
       const entry = findHistoryEntry(context.history, req.params.scanId);
       if (!entry) {
-        return res.status(404).json({ error: 'Scan not found', scanId: req.params.scanId });
+        return sendError(res, 404, 'Scan not found', { scanId: req.params.scanId });
       }
       res.json(buildScanResults(context.report, entry, context.baseline));
     } catch (err) {
-      res.status(404).json({ error: 'Demo results not found', message: err.message });
+      sendError(res, 404, 'Demo results not found', { message: err.message });
     }
   });
 
@@ -130,7 +128,7 @@ function setupSimplebeaconDemoAPI(app) {
       });
       res.json(assessment);
     } catch (err) {
-      res.status(404).json({ error: 'Demo assessment not found', message: err.message });
+      sendError(res, 404, 'Demo assessment not found', { message: err.message });
     }
   });
 
@@ -146,7 +144,7 @@ function setupSimplebeaconDemoAPI(app) {
         { assessment, npmAudit: null, pageSamples: {} }
       ));
     } catch (err) {
-      res.status(404).json({ error: 'Demo audit not found', message: err.message });
+      sendError(res, 404, 'Demo audit not found', { message: err.message });
     }
   });
 

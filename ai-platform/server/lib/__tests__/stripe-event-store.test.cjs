@@ -6,19 +6,15 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-function freshEventStore(env = {}) {
-  const saved = {};
-  for (const [k, v] of Object.entries(env)) {
-    saved[k] = process.env[k];
-    process.env[k] = v;
-  }
-  delete require.cache[require.resolve('../stripe-event-store.cjs')];
-  const mod = require('../stripe-event-store.cjs');
-  for (const [k, v] of Object.entries(saved)) {
-    if (v === undefined) delete process.env[k];
-    else process.env[k] = v;
-  }
-  return mod;
+const _debugLogPath = path.join(os.tmpdir(), 'sb-stripe-test-debug.log');
+function _debugLog(...args) {
+  try { fs.appendFileSync(_debugLogPath, args.map(a => String(a)).join(' ') + '\n'); } catch (e) {}
+}
+
+// Use factory to create isolated store instances per-test
+function createEventStoreInstance(storePath) {
+  const factory = require('../stripe-event-store.cjs').createEventStore;
+  return factory({ storePath });
 }
 
 describe('stripe-event-store', () => {
@@ -40,7 +36,7 @@ describe('stripe-event-store', () => {
   beforeEach(() => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-event-store-'));
     tempStorePath = path.join(tempDir, 'stripe-events.json');
-    mod = freshEventStore({ STRIPE_EVENT_STORE: tempStorePath });
+    mod = createEventStoreInstance(tempStorePath);
   });
 
   afterEach(() => {

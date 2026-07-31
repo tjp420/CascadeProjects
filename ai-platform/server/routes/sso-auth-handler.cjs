@@ -231,11 +231,11 @@ function provisionSsoUser(userInfo, config) {
 
 async function initiateOidcLogin(req, res) {
   const { providerId } = req.query;
-  if (!providerId) return res.status(400).json({ error: 'providerId required' });
+  if (!providerId) return sendError(res, 400, 'providerId required');
 
   const config = ssoConfigStore.getConfigDecrypted(providerId);
   if (!config || !config.enabled || config.method !== 'oidc') {
-    return res.status(404).json({ error: 'OIDC provider not found or disabled' });
+    return sendError(res, 404, 'OIDC provider not found or disabled');
   }
 
   try {
@@ -272,7 +272,7 @@ async function initiateOidcLogin(req, res) {
     safeRedirect(res, authUrl);
   } catch (err) {
     logger.error('[SSO] OIDC initiation failed:', err.message);
-    res.status(500).json({ error: 'OIDC initiation failed', message: err.message });
+    sendError(res, 500, 'OIDC initiation failed', { message: err.message });
   }
 }
 
@@ -288,17 +288,17 @@ async function oidcCallback(req, res) {
   }
 
   if (!code || !state) {
-    return res.status(400).json({ error: 'Missing code or state parameter' });
+    return sendError(res, 400, 'Missing code or state parameter');
   }
 
   const stateData = consumeState(state);
   if (!stateData || stateData.method !== 'oidc') {
-    return res.status(400).json({ error: 'Invalid or expired state' });
+    return sendError(res, 400, 'Invalid or expired state');
   }
 
   const config = ssoConfigStore.getConfigDecrypted(stateData.providerId);
   if (!config) {
-    return res.status(404).json({ error: 'SSO provider configuration not found' });
+    return sendError(res, 404, 'SSO provider configuration not found');
   }
 
   try {
@@ -398,11 +398,11 @@ async function oidcCallback(req, res) {
 
 async function initiateSamlLogin(req, res) {
   const { providerId } = req.query;
-  if (!providerId) return res.status(400).json({ error: 'providerId required' });
+  if (!providerId) return sendError(res, 400, 'providerId required');
 
   const config = ssoConfigStore.getConfigDecrypted(providerId);
   if (!config || !config.enabled || config.method !== 'saml') {
-    return res.status(404).json({ error: 'SAML provider not found or disabled' });
+    return sendError(res, 404, 'SAML provider not found or disabled');
   }
 
   try {
@@ -434,7 +434,7 @@ async function initiateSamlLogin(req, res) {
     safeRedirect(res, redirectUrl);
   } catch (err) {
     logger.error('[SSO] SAML initiation failed:', err.message);
-    res.status(500).json({ error: 'SAML initiation failed', message: err.message });
+    sendError(res, 500, 'SAML initiation failed', { message: err.message });
   }
 }
 
@@ -462,7 +462,7 @@ async function samlAcs(req, res) {
   const { SAMLResponse, RelayState } = req.body || {};
 
   if (!SAMLResponse) {
-    return res.status(400).json({ error: 'Missing SAMLResponse' });
+    return sendError(res, 400, 'Missing SAMLResponse');
   }
 
   let stateData = null;
@@ -471,12 +471,12 @@ async function samlAcs(req, res) {
   }
 
   if (!stateData || stateData.method !== 'saml') {
-    return res.status(400).json({ error: 'Invalid or expired RelayState' });
+    return sendError(res, 400, 'Invalid or expired RelayState');
   }
 
   const config = ssoConfigStore.getConfigDecrypted(stateData.providerId);
   if (!config) {
-    return res.status(404).json({ error: 'SSO provider configuration not found' });
+    return sendError(res, 404, 'SSO provider configuration not found');
   }
 
   try {
@@ -608,7 +608,7 @@ function parseSamlAssertion(xml, config) {
 
 async function resolveSsoByDomain(req, res) {
   const { email } = req.query;
-  if (!email) return res.status(400).json({ error: 'email parameter required' });
+  if (!email) return sendError(res, 400, 'email parameter required');
 
   const config = ssoConfigStore.resolveConfigByDomain(email);
   if (!config) {
@@ -628,11 +628,11 @@ async function resolveSsoByDomain(req, res) {
 
 async function samlMetadata(req, res) {
   const { providerId } = req.query;
-  if (!providerId) return res.status(400).json({ error: 'providerId required' });
+  if (!providerId) return sendError(res, 400, 'providerId required');
 
   const config = ssoConfigStore.getConfig(providerId);
   if (!config || config.method !== 'saml') {
-    return res.status(404).json({ error: 'SAML provider not found' });
+    return sendError(res, 404, 'SAML provider not found');
   }
 
   const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
@@ -658,6 +658,7 @@ async function samlMetadata(req, res) {
 // ── Express Router Setup ────────────────────────────────────────────────────
 
 const express = require('express');
+const { sendError } = require('../lib/response-helpers.cjs');
 const router = express.Router();
 
 // OIDC routes

@@ -1,0 +1,21 @@
+Γ£ô Simplebeacon running in read-only mode
+Γ£ô Local-only scan ΓÇö code is not transmitted unless you pass --upload
+Γ£ô Your source files are never modified by Simplebeacon
+
+(node:211536) SimplebeaconExportCollision: [simplebeacon] Export collision: "clampScore" from "ai-problem-analyzer-suite" shadows "ai-problem-analyzer-export-sanitize". Access via Simplebeacon namespace to disambiguate.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:211536) SimplebeaconExportCollision: [simplebeacon] Export collision: "capitalize" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:211536) SimplebeaconExportCollision: [simplebeacon] Export collision: "pluralize" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+(node:211536) SimplebeaconExportCollision: [simplebeacon] Export collision: "truncate" from "string-utils" shadows "reporters/audit-report". Access via Simplebeacon namespace to disambiguate.
+Γ£ô No network activity detected during scan
+Report written to .simplebeacon/report.json
+
+ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ
+Γöé ≡ƒÄë Scan Passed! Help secure the engineering ecosystem.                   Γöé
+Γöé                                                                          Γöé
+Γöé Share SimpleBeacon with your network and earn $50 server credits.        Γöé
+Γöé Link: https://simplebeacon.ai/                                           Γöé
+Γöé Tip: set SIMPLEBEACON_REFERRER_EMAIL for your personal tracking link.    Γöé
+Γöé                                                                          Γöé
+Γöé Run 'simplebeacon refer --link' to manage or extract tracking codes.     Γöé
+ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ

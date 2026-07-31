@@ -1,0 +1,61 @@
+2026-07-31T08:35:29.874Z  INFO: [token-service] JWT configuration loaded: {
+  algorithm: 'HS256',
+  issuer: 'cascade-ai-platform',
+  audience: 'cascade-ai-users',
+  expiresIn: '1h',
+  hasSecret: true,
+  secretSource: 'env',
+  secretLength: 58,
+  secretFromEnv: true
+}
+[Chatbot API] SUPPORT_EMAIL env var not set ΓÇö appeal process will be unavailable
+[Chatbot API] Loaded 1 knowledge entries
+2026-07-31T08:35:31.676Z  INFO: [Simplebeacon] SIMPLEBEACON_LANDING=(unset) internalDashboard=true ΓåÆ /=dashboard
+[Realtime API] WebSocket server started on port 8082
+2026-07-31T08:35:31.696Z  INFO: [Simplebeacon] Registered GET /api/analyze/data-cleanup
+(node:78624) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-07-31T08:35:31.700Z  INFO: ≡ƒîÉ Legacy WebSocket server running on ws://localhost:8081
+2026-07-31T08:35:31.711Z  INFO: [Simplebeacon] Registered POST and GET /api/analyze/eu-ai-act-audit-report
+ValidationError: Custom keyGenerator appears to use request IP without calling the ipKeyGenerator helper function for IPv6 addresses. This could allow IPv6 users to bypass limits. See https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/ for more information.
+    at Object.keyGeneratorIpFallback (C:\Users\user\CascadeProjects\node_modules\express-rate-limit\dist\index.cjs:668:13)
+    at wrappedValidations.<computed> [as keyGeneratorIpFallback] (C:\Users\user\CascadeProjects\node_modules\express-rate-limit\dist\index.cjs:720:22)
+    at parseOptions (C:\Users\user\CascadeProjects\node_modules\express-rate-limit\dist\index.cjs:797:16)
+    at rateLimit (C:\Users\user\CascadeProjects\node_modules\express-rate-limit\dist\index.cjs:879:18)
+    at Object.setupProxyOllamaAPI (C:\Users\user\CascadeProjects\ai-platform\server\routes\proxy-ollama-api.cjs:24:21)
+    at Object.fn (C:\Users\user\CascadeProjects\ai-platform\simplebeacon-server.cjs:1139:90)
+    at bootstrapPhase2Routes (C:\Users\user\CascadeProjects\ai-platform\simplebeacon-server.cjs:1165:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async startServer (C:\Users\user\CascadeProjects\ai-platform\simplebeacon-server.cjs:1197:3) {
+  code: 'ERR_ERL_KEY_GEN_IPV6',
+  help: 'https://express-rate-limit.github.io/ERR_ERL_KEY_GEN_IPV6/'
+}
+2026-07-31T08:35:31.722Z  WARN: [simplebeacon-api] default report path: C:/Users/user/CascadeProjects/ai-platform/.simplebeacon/report.json project root: C:/Users/user/CascadeProjects/ai-platform
+[Chatbot API] Registered POST /api/chatbot/message
+[Chatbot API] Registered GET /api/chatbot/providers
+[Chatbot API] Registered GET /api/chatbot/disclosure
+2026-07-31T08:35:31.746Z  INFO: [WebAuthn API] Registered /api/webauthn/* routes
+2026-07-31T08:35:31.761Z  INFO: [Routes] SSO auth handler loaded at /api/sso
+2026-07-31T08:35:31.763Z  INFO: [Routes] SSO config routes loaded at /api/enterprise/sso
+2026-07-31T08:35:31.765Z  INFO: [Routes] Enterprise analytics loaded at /api/enterprise/analytics
+2026-07-31T08:35:31.770Z  INFO: [Routes] Integration marketplace loaded at /api/integrations
+2026-07-31T08:35:31.778Z  INFO: [ReportScheduler] Background scheduler started (60s check interval)
+2026-07-31T08:35:31.778Z  INFO: [Routes] Usage analytics loaded at /api/analytics
+2026-07-31T08:35:31.780Z  INFO: [Routes] Deployment gate loaded at /api/deployment-gate
+2026-07-31T08:35:31.781Z  INFO: [Routes] Audit trail loaded at /api/audit
+2026-07-31T08:35:31.783Z  INFO: [Routes] Whitelabel branding loaded at /api/whitelabel
+2026-07-31T08:35:31.938Z  INFO: [TokenValidate] Token validation route mounted
+2026-07-31T08:35:31.945Z  INFO: [Referral] Referral API routes mounted
+[EmailRetryWorker] No pending emails to retry.
+2026-07-31T08:35:31.948Z  INFO: [EmailRetry] Background worker started (300s interval).
+2026-07-31T08:35:31.952Z  INFO: ≡ƒÜÇ Simplebeacon server running on http://localhost:58000
+2026-07-31T08:35:31.952Z  INFO: Γ£ë∩╕Å Outreach API at: http://localhost:58000/api/simplebeacon/outreach/config
+2026-07-31T08:35:31.959Z  INFO: ≡ƒôé Allowed analysis roots: C:\Users\Trevor; C:\Users\Trevor\CascadeProjects; C:\Users\Trevor\CascadeProjects_BACKUP_20260521; C:\Users\Trevor\AI-Guardrail-system; J:\AI project backup; E:\Ai; I:\AGI Chatbot\agi-chatbot; C:\Users\Trevor\CascadeProjects\coming-soon
+2026-07-31T08:35:31.959Z  INFO: ≡ƒ¢í∩╕Å Simplebeacon dashboard at: http://localhost:58000/
+2026-07-31T08:35:31.959Z  INFO: ≡ƒöÆ /app and dashboard APIs require vault session (24h cookie after vault login)
+2026-07-31T08:35:31.959Z  INFO: ≡ƒº¬ STAGING: see coming-soon/STAGING.md (payments flag in site-config.js)
+2026-07-31T08:35:31.959Z  INFO: ≡ƒöº Simplebeacon API at: http://localhost:58000/api/simplebeacon/
+2026-07-31T08:35:31.959Z  INFO: ≡ƒîÉ WebSocket available at: ws://localhost:58000/ws (legacy: ws://localhost:8081)
+2026-07-31T08:35:31.959Z  INFO: ≡ƒöÉ Phase 2 auth: optional (set REQUIRE_AUTH=true)
+2026-07-31T08:35:31.959Z  INFO: ≡ƒùä∩╕Å Phase 2 database: disabled
+2026-07-31T08:35:31.959Z  INFO: ΓÜí Phase 2 redis: disabled

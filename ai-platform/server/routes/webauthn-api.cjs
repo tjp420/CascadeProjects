@@ -7,6 +7,7 @@ const path = require('path');
 const logger = require('../lib/app-logger.cjs');
 const { generateToken, optionalAuthenticate } = require('../middleware/auth.cjs');
 const { findUserByEmail, registerUser, toAuthUser } = require('../services/user-service.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const PROJECT_ROOT = path.join(__dirname, '../..');
 const STORE_PATH = process.env.SIMPLEBEACON_WEBAUTHN_STORE
@@ -112,14 +113,14 @@ function setupWebAuthnAPI(app) {
       const { challengeId, credential, label } = req.body || {};
       const pending = challengeId ? pendingChallenges.get(challengeId) : null;
       if (!pending || pending.purpose !== 'register' || pending.expiresAt <= Date.now()) {
-        return res.status(400).json({ success: false, error: 'Challenge expired or invalid' });
+        return sendError(res, 400, 'Challenge expired or invalid');
       }
       if (!credential?.id) {
-        return res.status(400).json({ success: false, error: 'Missing credential' });
+        return sendError(res, 400, 'Missing credential');
       }
       const email = String(req.user?.email || pending.email || '').trim().toLowerCase();
       if (!email) {
-        return res.status(401).json({ success: false, error: 'Sign in before registering a security key' });
+        return sendError(res, 401, 'Sign in before registering a security key');
       }
       const userId = req.user?.id || pending.userId || email;
       const store = readStore();
@@ -136,7 +137,7 @@ function setupWebAuthnAPI(app) {
       res.json({ success: true, credentialId: credential.id });
     } catch (err) {
       logger.error('[WebAuthn] register failed:', err.message);
-      res.status(500).json({ success: false, error: 'Registration failed' });
+      sendError(res, 500, 'Registration failed');
     }
   });
 
@@ -145,21 +146,21 @@ function setupWebAuthnAPI(app) {
       const { challengeId, credential } = req.body || {};
       const pending = challengeId ? pendingChallenges.get(challengeId) : null;
       if (!pending || pending.purpose !== 'authenticate' || pending.expiresAt <= Date.now()) {
-        return res.status(400).json({ success: false, error: 'Challenge expired or invalid' });
+        return sendError(res, 400, 'Challenge expired or invalid');
       }
       if (!credential?.id) {
-        return res.status(400).json({ success: false, error: 'Missing credential' });
+        return sendError(res, 400, 'Missing credential');
       }
       const store = readStore();
       const stored = store[credential.id];
       if (!stored) {
-        return res.status(401).json({ success: false, error: 'Unknown security key — register it in Profile first' });
+        return sendError(res, 401, 'Unknown security key — register it in Profile first');
       }
       pendingChallenges.delete(challengeId);
       const db = req.app?.locals?.db || null;
       const user = await resolveUserForEmail(db, stored.email);
       if (!user) {
-        return res.status(401).json({ success: false, error: 'No account linked to this security key' });
+        return sendError(res, 401, 'No account linked to this security key');
       }
       const token = generateToken(user);
       res.json({
@@ -178,14 +179,14 @@ function setupWebAuthnAPI(app) {
       });
     } catch (err) {
       logger.error('[WebAuthn] authenticate failed:', err.message);
-      res.status(500).json({ success: false, error: 'Authentication failed' });
+      sendError(res, 500, 'Authentication failed');
     }
   });
 
   app.get('/api/webauthn/credentials', optionalAuthenticate, (req, res) => {
     const email = String(req.user?.email || '').trim().toLowerCase();
     if (!email) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
+      return sendError(res, 401, 'Authentication required');
     }
     const store = readStore();
     const credentials = Object.entries(store)
@@ -201,13 +202,13 @@ function setupWebAuthnAPI(app) {
   app.delete('/api/webauthn/credentials/:credentialId', optionalAuthenticate, (req, res) => {
     const email = String(req.user?.email || '').trim().toLowerCase();
     if (!email) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
+      return sendError(res, 401, 'Authentication required');
     }
     const credentialId = String(req.params.credentialId || '').trim();
     const store = readStore();
     const stored = store[credentialId];
     if (!stored || String(stored.email || '').toLowerCase() !== email) {
-      return res.status(404).json({ success: false, error: 'Security key not found' });
+      return sendError(res, 404, 'Security key not found');
     }
     delete store[credentialId];
     writeStore(store);

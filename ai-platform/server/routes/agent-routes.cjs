@@ -1,4 +1,5 @@
 const express = require('express');
+const { sendError } = require('../lib/response-helpers.cjs');
 const router = express.Router();
 
 // Agent execution status (in-memory, no castles)
@@ -8,10 +9,10 @@ let currentAgentStatus = { status: 'idle', goal: null, startedAt: null, complete
 router.post('/agent/execute', (req, res) => {
   const { goal } = req.body || {};
   if (!goal || typeof goal !== 'string') {
-    return res.status(400).json({ success: false, error: 'goal (string) is required in request body' });
+    return sendError(res, 400, 'goal (string) is required in request body');
   }
   // Agent execution not currently available - orchestrator.js not implemented
-  return res.status(501).json({ success: false, error: 'Agent execution not implemented' });
+  return sendError(res, 501, 'Agent execution not implemented');
 
   // Agent execution temporarily disabled
   /*

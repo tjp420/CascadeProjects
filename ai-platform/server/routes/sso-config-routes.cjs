@@ -19,6 +19,7 @@ const logger = require('../lib/app-logger.cjs');
 const ssoConfigStore = require('../lib/sso-config-store.cjs');
 const auditStore = require('../lib/enterprise-audit-store.cjs');
 const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.get('/configs', async (req, res) => {
     const stats = ssoConfigStore.getStats();
     return res.json({ success: true, configs, stats, ...stats });
   } catch (err) {
-    res.status(500).json({ error: 'sso_list_failed', message: err.message });
+    sendError(res, 500, 'sso_list_failed', { message: err.message });
   }
 });
 
@@ -44,7 +45,7 @@ router.get('/configs/:orgId', validateParam('orgId', VALIDATION_PATTERNS.orgId),
     const configs = ssoConfigStore.getConfigsByOrg(req.params.orgId);
     res.json({ success: true, configs });
   } catch (err) {
-    res.status(500).json({ error: 'sso_list_failed', message: err.message });
+    sendError(res, 500, 'sso_list_failed', { message: err.message });
   }
 });
 
@@ -63,16 +64,16 @@ router.post('/configs', async (req, res) => {
     } = req.body || {};
 
     if (!orgId) {
-      return res.status(400).json({ error: 'orgId is required' });
+      return sendError(res, 400, 'orgId is required');
     }
     if (!method || !['saml', 'oidc'].includes(method)) {
-      return res.status(400).json({ error: 'method must be "saml" or "oidc"' });
+      return sendError(res, 400, 'method must be "saml" or "oidc"');
     }
     if (method === 'saml' && (!saml?.entryPoint || !saml?.cert)) {
-      return res.status(400).json({ error: 'saml.entryPoint and saml.cert are required for SAML' });
+      return sendError(res, 400, 'saml.entryPoint and saml.cert are required for SAML');
     }
     if (method === 'oidc' && (!oidc?.clientId || !oidc?.clientSecret || !oidc?.issuer)) {
-      return res.status(400).json({ error: 'oidc.clientId, oidc.clientSecret, and oidc.issuer are required for OIDC' });
+      return sendError(res, 400, 'oidc.clientId, oidc.clientSecret, and oidc.issuer are required for OIDC');
     }
 
     const config = ssoConfigStore.createConfig({
@@ -108,7 +109,7 @@ router.post('/configs', async (req, res) => {
     });
   } catch (err) {
     logger.error('[SSO] Config creation failed:', err.message);
-    res.status(500).json({ error: 'sso_create_failed', message: err.message });
+    sendError(res, 500, 'sso_create_failed', { message: err.message });
   }
 });
 
@@ -117,7 +118,7 @@ router.put('/configs/:providerId', validateParam('providerId', VALIDATION_PATTER
   try {
     const existing = ssoConfigStore.getConfig(req.params.providerId);
     if (!existing) {
-      return res.status(404).json({ error: 'sso_config_not_found' });
+      return sendError(res, 404, 'sso_config_not_found');
     }
 
     const updates = { ...req.body };
@@ -147,7 +148,7 @@ router.put('/configs/:providerId', validateParam('providerId', VALIDATION_PATTER
     });
   } catch (err) {
     logger.error('[SSO] Config update failed:', err.message);
-    res.status(500).json({ error: 'sso_update_failed', message: err.message });
+    sendError(res, 500, 'sso_update_failed', { message: err.message });
   }
 });
 
@@ -156,7 +157,7 @@ router.delete('/configs/:providerId', validateParam('providerId', VALIDATION_PAT
   try {
     const existing = ssoConfigStore.getConfig(req.params.providerId);
     if (!existing) {
-      return res.status(404).json({ error: 'sso_config_not_found' });
+      return sendError(res, 404, 'sso_config_not_found');
     }
 
     ssoConfigStore.deleteConfig(req.params.providerId);
@@ -174,7 +175,7 @@ router.delete('/configs/:providerId', validateParam('providerId', VALIDATION_PAT
     res.json({ success: true });
   } catch (err) {
     logger.error('[SSO] Config deletion failed:', err.message);
-    res.status(500).json({ error: 'sso_delete_failed', message: err.message });
+    sendError(res, 500, 'sso_delete_failed', { message: err.message });
   }
 });
 
@@ -184,7 +185,7 @@ router.get('/stats', async (req, res) => {
     const stats = ssoConfigStore.getStats();
     res.json({ success: true, ...stats });
   } catch (err) {
-    res.status(500).json({ error: 'sso_stats_failed', message: err.message });
+    sendError(res, 500, 'sso_stats_failed', { message: err.message });
   }
 });
 
@@ -193,7 +194,7 @@ router.get('/test/:providerId', validateParam('providerId', VALIDATION_PATTERNS.
   try {
     const config = ssoConfigStore.getConfigDecrypted(req.params.providerId);
     if (!config) {
-      return res.status(404).json({ error: 'sso_config_not_found' });
+      return sendError(res, 404, 'sso_config_not_found');
     }
 
     const results = { providerId: config.providerId, method: config.method, checks: [] };
@@ -247,7 +248,7 @@ router.get('/test/:providerId', validateParam('providerId', VALIDATION_PATTERNS.
 
     res.json({ success: true, ...results });
   } catch (err) {
-    res.status(500).json({ error: 'sso_test_failed', message: err.message });
+    sendError(res, 500, 'sso_test_failed', { message: err.message });
   }
 });
 

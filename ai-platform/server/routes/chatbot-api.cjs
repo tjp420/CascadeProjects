@@ -26,6 +26,7 @@ const { logSecurityEvent, logUserAction } = require('../middleware/audit.cjs');
 const fs = require('fs');
 const path = require('path');
 const { readTextFileWithLimit, redactTextSecrets } = require('../lib/recoverable-io.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 // Lazy-load prompt service for custom user prompts
 let promptService;
@@ -269,7 +270,7 @@ function setupChatbotAPI(app) {
     keyGenerator: (r) => (r.user && r.user.email) ? String(r.user.email).toLowerCase() : r.ip,
     handler: (r, res) => {
       try { logSecurityEvent('chatbot_message_rate_limited', { ip: r.ip, path: r.originalUrl }, r.user, r); } catch (e) {}
-      return res.status(429).json({ success: false, error: 'rate_limited', message: 'Too many chatbot messages, try later' });
+      return sendError(res, 429, 'rate_limited', { message: 'Too many chatbot messages, try later' });
     }
   });
 
@@ -297,7 +298,7 @@ function setupChatbotAPI(app) {
       const requestId = `chat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
       if (!message || typeof message !== 'string') {
-        return res.status(400).json({ error: 'Message is required and must be a string' });
+        return sendError(res, 400, 'Message is required and must be a string');
       }
 
       const ALLOWED_PROVIDERS = ['openai', 'anthropic', 'ollama'];
@@ -334,7 +335,7 @@ function setupChatbotAPI(app) {
 
       // Defend against massive payload sizes
       if (message.length > constants.TIMEOUT_12S) {
-        return res.status(400).json({ error: 'Message content length exceeds safe processing limit' });
+        return sendError(res, 400, 'Message content length exceeds safe processing limit');
       }
 
       // Process and sanitize history using secure boundaries
@@ -389,16 +390,10 @@ function setupChatbotAPI(app) {
         }
       }
       if (provider === 'openai' && !isOpenAIAvailable) {
-        return res.status(400).json({
-          error: 'OpenAI is not configured',
-          message: 'Configure OpenAI API key in Settings → AI providers or set OPENAI_API_KEY environment variable'
-        });
+        return sendError(res, 400, 'OpenAI is not configured', { message: 'Configure OpenAI API key in Settings → AI providers or set OPENAI_API_KEY environment variable' });
       }
       if (provider === 'anthropic' && !isAnthropicAvailable) {
-        return res.status(400).json({
-          error: 'Anthropic is not configured',
-          message: 'Configure Anthropic API key in Settings → AI providers or set ANTHROPIC_API_KEY environment variable'
-        });
+        return sendError(res, 400, 'Anthropic is not configured', { message: 'Configure Anthropic API key in Settings → AI providers or set ANTHROPIC_API_KEY environment variable' });
       }
 
       // Build rich project context from scan reports and package metadata.
@@ -434,7 +429,7 @@ function setupChatbotAPI(app) {
         keyGenerator: (r) => (r.user && r.user.email) ? String(r.user.email).toLowerCase() : r.ip,
         handler: (r, res) => {
           try { logSecurityEvent('remove_filters_rate_limited', { ip: r.ip, path: r.originalUrl }, r.user, r); } catch (e) {}
-          return res.status(429).json({ success: false, error: 'rate_limited', message: 'Too many filter removal attempts, try later' });
+          return sendError(res, 429, 'rate_limited', { message: 'Too many filter removal attempts, try later' });
         }
       });
 
@@ -751,7 +746,7 @@ function setupChatbotAPI(app) {
       });
     } catch (error) {
       logger.error('[Chatbot API] Error fetching providers:', error);
-      res.status(500).json({ error: 'Failed to fetch providers' });
+      sendError(res, 500, 'Failed to fetch providers');
     }
   });
 

@@ -12,6 +12,7 @@
 const express = require('express');
 const logger = require('../lib/app-logger.cjs');
 const analyticsStore = require('../lib/usage-analytics-store.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get('/', (req, res) => {
     res.json({ success: true, stats, trend, heatmap, repositories });
   } catch (err) {
     logger.error('[EnterpriseAnalytics] Failed to serve analytics:', err?.message || err);
-    res.status(500).json({ error: 'enterprise_analytics_failed', message: String(err) });
+    sendError(res, 500, 'enterprise_analytics_failed', { message: String(err) });
   }
 });
 
@@ -50,7 +51,7 @@ router.get('/filters', (req, res) => {
     res.json({ success: true, repositories, branches });
   } catch (err) {
     logger.error('[EnterpriseAnalytics] Filters failed:', err?.message || err);
-    res.status(500).json({ error: 'filters_failed', message: String(err) });
+    sendError(res, 500, 'filters_failed', { message: String(err) });
   }
 });
 

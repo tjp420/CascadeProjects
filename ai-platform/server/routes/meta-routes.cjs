@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const logger = require('../lib/app-logger.cjs');
 const { contentNeedsValidation } = require('../lib/file-quality-heuristics.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -76,7 +77,7 @@ router.get('/project-structure', async (req, res) => {
     res.json({ files });
   } catch (error) {
     logger.error('Project structure scan error:', error);
-    res.status(500).json({ error: 'Failed to scan project structure' });
+    sendError(res, 500, 'Failed to scan project structure');
   }
 });
 
@@ -110,7 +111,7 @@ router.get('/releases', (req, res) => {
     res.json(releases);
   } catch (error) {
     logger.error('Releases analysis error:', error);
-    res.status(500).json({ error: 'Failed to analyze releases' });
+    sendError(res, 500, 'Failed to analyze releases');
   }
 });
 
@@ -155,7 +156,7 @@ router.get('/backlog', async (req, res) => {
     res.json(backlog);
   } catch (error) {
     logger.error('Backlog scan error:', error);
-    res.status(500).json({ error: 'Failed to scan backlog' });
+    sendError(res, 500, 'Failed to scan backlog');
   }
 });
 

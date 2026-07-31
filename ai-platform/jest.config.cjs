@@ -5,8 +5,9 @@
  * @license MIT
  */
 
-const constants = require('./server/config/constants.cjs');
-const TEST_TIMEOUT_MS = constants.TIMEOUT_30S;
+// Avoid requiring the full constants facade at Jest config time to prevent
+// potential circular require issues during test runner startup.
+const TEST_TIMEOUT_MS = 30 * 1000; // 30s
 
 module.exports = {
   testEnvironment: 'node',

@@ -1,0 +1,39 @@
+test: fix Playwright E2E + add whitelabel brand injection tests + seed analytics
+
+Playwright E2E Fix:
+- Install @playwright/test as devDependency
+- Fix playwright.config.ts: baseURL → http://localhost:5173, add webServer
+  config to auto-start Vite dev server
+- Fix smoke.spec.ts: all navigation paths updated to use /dashboard/ base
+  prefix (was /#/signin, now /dashboard/?sb_force_signin=1#/signin)
+- Add test:e2e and test:e2e:ui scripts to package.json
+- Result: 9/9 smoke tests pass (was 4 failing)
+
+Whitelabel E2E Verification (NEW: e2e/whitelabel.spec.ts):
+- 6 frontend tests: applyBrandCss creates style element with CSS variables,
+  getComputedStyle returns correct values, document title updates with
+  partner productName, customCss appended after variables, favicon updates
+- 1 HTML injection test: window.__SIMPLEBEACON_BRAND__ set via addInitScript
+- 2 backend API tests (skipped unless SB_EXPRESS_RUNNING): tests
+  /api/whitelabel/resolve and /api/whitelabel/brand.css endpoints
+- Result: 6 passed, 2 skipped, 0 failed
+
+Analytics Data Seeding:
+- Ran existing tools/seed-analytics.cjs --clear to populate
+  .simplebeacon/usage-analytics.json with 868 scans across 4 orgs
+- Verified all 4 API data sources serve seeded data:
+  getGlobalStats (868 scans, 78 avg posture),
+  getTrendData (28 weekly points),
+  getViolationHeatmap (16 categories),
+  getTopRepositories (10 repos)
+- No code changes needed — existing routes and store work with seeded data
+
+BrandContext.tsx: removed temporary debug console.log
+
+QA: test_plan.md + software_health_report.md written per QA framework.
+All Level 1/2/3 checks pass. Gate scan passes. 15/17 Playwright tests pass
+(2 skipped — require Express server).
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

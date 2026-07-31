@@ -1,6 +1,7 @@
 const rateLimit = require('express-rate-limit');
 const logger = require('../../src/lib/app-logger.cjs');
 const { getWeather } = require('../services/weather-service.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 function setupExternalWeatherAPI(app, options = {}) {
   const limiter = rateLimit({
@@ -23,13 +24,13 @@ function setupExternalWeatherAPI(app, options = {}) {
 
   app.get('/api/external/weather', limiter, async (req, res) => {
     const city = req.query.city || req.query.q || '';
-    if (!city) return res.status(400).json({ success: false, error: 'city query parameter is required' });
+    if (!city) return sendError(res, 400, 'city query parameter is required');
     try {
       const data = await getWeather(city);
       return res.json({ success: true, city: city, data });
     } catch (err) {
       logger.warn('[ExternalWeather] Failed to fetch weather:', err.message);
-      return res.status(502).json({ success: false, error: 'Failed to fetch weather', details: err.message });
+      return sendError(res, 502, 'Failed to fetch weather', { details: err.message });
     }
   });
 

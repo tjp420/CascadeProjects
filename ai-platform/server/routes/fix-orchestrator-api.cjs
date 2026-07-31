@@ -18,6 +18,7 @@ const fs = require('fs');
 const { buildPatch, applyPatch, generateDiff } = require('../lib/fix-orchestrator/patch-strategies.cjs');
 const logger = require('../lib/app-logger.cjs');
 const { setWorkspaceRlsContext, requirePermission } = require('../lib/rbac.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ async function auditRemediation(req, action, meta = {}) {
 function enforceConfidenceGate(req, res, next) {
   const { finding } = req.body || {};
   if (!finding) {
-    return res.status(400).json({ success: false, error: 'Missing finding' });
+    return sendError(res, 400, 'Missing finding');
   }
   // buildPatch is lightweight; we just need confidence here
   // If the route needs the patch anyway, it rebuilds below
@@ -69,15 +70,15 @@ function enforceConfidenceGate(req, res, next) {
 router.get('/archive/download', async (req, res) => {
   try {
     const name = req.query.name;
-    if (!name) return res.status(400).json({ success: false, error: 'Missing name' });
+    if (!name) return sendError(res, 400, 'Missing name');
     const archiveDir = path.join(__dirname, '..', '.simplebeacon', 'archive');
     const filePath = path.join(archiveDir, path.basename(String(name)));
-    if (!filePath.startsWith(archiveDir)) return res.status(403).json({ success: false, error: 'Invalid path' });
-    if (!fs.existsSync(filePath)) return res.status(404).json({ success: false, error: 'Not found' });
+    if (!filePath.startsWith(archiveDir)) return sendError(res, 403, 'Invalid path');
+    if (!fs.existsSync(filePath)) return sendError(res, 404, 'Not found');
     return res.sendFile(filePath);
   } catch (err) {
     logger.error('[Archive] download failed: ' + err.message);
-    return res.status(500).json({ success: false, error: err.message });
+    return sendError(res, 500, err.message);
   }
 });
 
@@ -88,21 +89,21 @@ router.post('/preview',
     try {
       const { finding } = req.body || {};
       if (!finding || !finding.filePath) {
-        return res.status(400).json({ success: false, error: 'Missing finding or filePath' });
+        return sendError(res, 400, 'Missing finding or filePath');
       }
 
       const baseDir = resolveWorkspaceBaseDir(req);
       const absolutePath = path.resolve(baseDir, finding.filePath);
       if (!absolutePath.startsWith(baseDir)) {
         await auditRemediation(req, 'preview_blocked', { reason: 'path_escape', filePath: finding.filePath });
-        return res.status(403).json({ success: false, error: 'File path outside workspace' });
+        return sendError(res, 403, 'File path outside workspace');
       }
 
       let content;
       try {
         content = await fs.promises.readFile(absolutePath, 'utf8');
       } catch (err) {
-        return res.status(404).json({ success: false, error: 'File not found: ' + finding.filePath });
+        return sendError(res, 404, 'File not found: ' + finding.filePath);
       }
 
       const patch = buildPatch(finding, content);
@@ -151,7 +152,7 @@ router.post('/preview',
     } catch (error) {
       logger.error('[FixOrchestrator] Preview failed: ' + error.message);
       await auditRemediation(req, 'preview_error', { error: error.message });
-      res.status(500).json({ success: false, error: error.message });
+      sendError(res, 500, error.message);
     }
   }
 );
@@ -164,21 +165,21 @@ router.post('/apply',
     try {
       const { finding, backup = true } = req.body || {};
       if (!finding || !finding.filePath) {
-        return res.status(400).json({ success: false, error: 'Missing finding or filePath' });
+        return sendError(res, 400, 'Missing finding or filePath');
       }
 
       const baseDir = resolveWorkspaceBaseDir(req);
       const absolutePath = path.resolve(baseDir, finding.filePath);
       if (!absolutePath.startsWith(baseDir)) {
         await auditRemediation(req, 'apply_blocked', { reason: 'path_escape', filePath: finding.filePath });
-        return res.status(403).json({ success: false, error: 'File path outside workspace' });
+        return sendError(res, 403, 'File path outside workspace');
       }
 
       let content;
       try {
         content = await fs.promises.readFile(absolutePath, 'utf8');
       } catch (err) {
-        return res.status(404).json({ success: false, error: 'File not found: ' + finding.filePath });
+        return sendError(res, 404, 'File not found: ' + finding.filePath);
       }
 
       const patch = buildPatch(finding, content);
@@ -225,7 +226,7 @@ router.post('/apply',
     } catch (error) {
       logger.error('[FixOrchestrator] Apply failed: ' + error.message);
       await auditRemediation(req, 'apply_error', { error: error.message, backupPath });
-      res.status(500).json({ success: false, error: error.message });
+      sendError(res, 500, error.message);
     }
   }
 );
