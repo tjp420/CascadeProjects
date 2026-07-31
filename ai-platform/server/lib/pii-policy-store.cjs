@@ -1024,6 +1024,199 @@ function createStreamScrubber(orgId, options = {}) {
   };
 }
 
+// ── Scrubber Lifecycle Manager ──────────────────────────────────────────────
+//
+// Manages stream scrubber instances per org+session. Prevents scrubber leaks
+// from long-lived connections (e.g. SSE streams, WebSocket sessions) by:
+//   1. Tracking active scrubbers in a registry keyed by orgId+sessionId
+//   2. Expiring idle scrubbers after a configurable TTL
+//   3. Enforcing a max concurrent scrubber limit with LRU eviction
+//
+// Usage:
+//   const registry = createScrubberRegistry({ maxScrubbers: 100, ttlMs: 60000 });
+//   const scrubber = registry.getOrCreate('org-id', 'session-1');
+//   const out = scrubber.process('text with alice@test.com');
+//   registry.touch('org-id', 'session-1'); // Update last-access time
+//   registry.destroy('org-id', 'session-1'); // Manual cleanup
+//   registry.cleanup(); // Run TTL sweep
+//   registry.getStats(); // Registry health metrics
+
+const DEFAULT_MAX_SCRUBBERS = 100;
+const DEFAULT_SCRUBBER_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Create a scrubber lifecycle registry.
+ * @param {object} [options]
+ * @param {number} [options.maxScrubbers=100] — Max concurrent scrubbers
+ * @param {number} [options.ttlMs=300000] — Idle TTL in ms (default: 5min)
+ * @param {object} [options.scrubberOptions] — Default options for created scrubbers
+ * @returns {{ getOrCreate, get, touch, destroy, cleanup, getStats, clear }}
+ */
+function createScrubberRegistry(options = {}) {
+  const maxScrubbers = options.maxScrubbers || DEFAULT_MAX_SCRUBBERS;
+  const ttlMs = options.ttlMs || DEFAULT_SCRUBBER_TTL_MS;
+  const scrubberOptions = options.scrubberOptions || {};
+
+  // Map of key -> { scrubber, orgId, sessionId, createdAt, lastAccessedAt }
+  const _registry = new Map();
+  let _totalCreated = 0;
+  let _totalEvicted = 0;
+  let _totalExpired = 0;
+
+  function _key(orgId, sessionId) {
+    return `${orgId}::${sessionId}`;
+  }
+
+  /**
+   * Get or create a scrubber for the given org+session.
+   * If the scrubber exists, updates lastAccessedAt and returns it.
+   * If not, creates a new one. If maxScrubbers is hit, evicts the LRU entry.
+   * @param {string} orgId
+   * @param {string} sessionId
+   * @param {object} [overrideOptions] — Override default scrubber options
+   * @returns {object} The stream scrubber instance
+   */
+  function getOrCreate(orgId, sessionId, overrideOptions) {
+    const key = _key(orgId, sessionId);
+
+    if (_registry.has(key)) {
+      const entry = _registry.get(key);
+      entry.lastAccessedAt = Date.now();
+      // Move to end of Map (most recently used)
+      _registry.delete(key);
+      _registry.set(key, entry);
+      return entry.scrubber;
+    }
+
+    // Enforce max scrubbers — evict LRU (first entry in Map)
+    while (_registry.size >= maxScrubbers) {
+      const lruKey = _registry.keys().next().value;
+      _registry.delete(lruKey);
+      _totalEvicted++;
+    }
+
+    const mergedOptions = { ...scrubberOptions, ...(overrideOptions || {}) };
+    const scrubber = createStreamScrubber(orgId, mergedOptions);
+    const now = Date.now();
+    _registry.set(key, {
+      scrubber,
+      orgId,
+      sessionId,
+      createdAt: now,
+      lastAccessedAt: now,
+    });
+    _totalCreated++;
+
+    return scrubber;
+  }
+
+  /**
+   * Get an existing scrubber without creating one.
+   * @param {string} orgId
+   * @param {string} sessionId
+   * @returns {object|null} The scrubber, or null if not found
+   */
+  function get(orgId, sessionId) {
+    const key = _key(orgId, sessionId);
+    const entry = _registry.get(key);
+    return entry ? entry.scrubber : null;
+  }
+
+  /**
+   * Update the last-access time for a scrubber (without processing).
+   * @param {string} orgId
+   * @param {string} sessionId
+   */
+  function touch(orgId, sessionId) {
+    const key = _key(orgId, sessionId);
+    const entry = _registry.get(key);
+    if (entry) {
+      entry.lastAccessedAt = Date.now();
+      _registry.delete(key);
+      _registry.set(key, entry);
+    }
+  }
+
+  /**
+   * Destroy a specific scrubber and remove it from the registry.
+   * @param {string} orgId
+   * @param {string} sessionId
+   * @returns {boolean} True if the scrubber was found and destroyed
+   */
+  function destroy(orgId, sessionId) {
+    const key = _key(orgId, sessionId);
+    return _registry.delete(key);
+  }
+
+  /**
+   * Run a TTL sweep — remove all scrubbers that have been idle longer than ttlMs.
+   * @returns {number} Number of expired scrubbers removed
+   */
+  function cleanup() {
+    const now = Date.now();
+    let expired = 0;
+
+    for (const [key, entry] of _registry) {
+      if (now - entry.lastAccessedAt > ttlMs) {
+        _registry.delete(key);
+        expired++;
+      }
+    }
+
+    _totalExpired += expired;
+    return expired;
+  }
+
+  /**
+   * Clear all scrubbers from the registry.
+   */
+  function clear() {
+    _registry.clear();
+  }
+
+  /**
+   * Get registry health stats.
+   * @returns {{ activeScrubbers: number, maxScrubbers: number, ttlMs: number, totalCreated: number, totalEvicted: number, totalExpired: number, scrubbers: array }}
+   */
+  function getStats() {
+    const now = Date.now();
+    const scrubbers = [];
+
+    for (const [key, entry] of _registry) {
+      const scrubberStats = entry.scrubber.getStats();
+      scrubbers.push({
+        key,
+        orgId: entry.orgId,
+        sessionId: entry.sessionId,
+        createdAt: entry.createdAt,
+        lastAccessedAt: entry.lastAccessedAt,
+        idleMs: now - entry.lastAccessedAt,
+        scrubberStats,
+      });
+    }
+
+    return {
+      activeScrubbers: _registry.size,
+      maxScrubbers,
+      ttlMs,
+      totalCreated: _totalCreated,
+      totalEvicted: _totalEvicted,
+      totalExpired: _totalExpired,
+      scrubbers,
+    };
+  }
+
+  return {
+    getOrCreate,
+    get,
+    touch,
+    destroy,
+    cleanup,
+    clear,
+    getStats,
+  };
+}
+
 module.exports = {
   getPolicies,
   getPolicy,
@@ -1038,6 +1231,7 @@ module.exports = {
   getAllOrgIds,
   syncPoliciesToOrgs,
   createStreamScrubber,
+  createScrubberRegistry,
   _splitCodeSegments,
   COMPLIANCE_FRAMEWORKS,
   PII_POLICY_PATH,

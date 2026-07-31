@@ -4,10 +4,18 @@ const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
 const { authorize, enforceOrgPartition, getPartitionStats, getPartitionViolations, clearViolations } = require('../middleware/authorize.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
+const piiPolicyStore = require('../lib/pii-policy-store.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../lib/app-logger.cjs').child('audit-routes');
 
 const router = express.Router();
+
+// Shared scrubber registry for stream-mode PII scrubbing lifecycle management.
+// Created once at module load; accessible via /api/audit/scrubber-stats.
+const scrubberRegistry = piiPolicyStore.createScrubberRegistry({
+  maxScrubbers: parseInt(process.env.SCRUBBER_REGISTRY_MAX, 10) || 100,
+  ttlMs: parseInt(process.env.SCRUBBER_REGISTRY_TTL_MS, 10) || 5 * 60 * 1000,
+});
 
 function getOrgId(req) {
   return req.user?.id || req.user?.email || 'default';
@@ -423,6 +431,25 @@ router.get('/heal-stats', authorize('admin:all'), (req, res) => {
   } catch (err) {
     logger.warn('[Audit] heal_stats_failed:', err.message);
     sendError(res, 500, 'heal_stats_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/scrubber-stats ───────────────────────────────────────────
+//   Admin-only: returns scrubber registry health stats (active scrubbers,
+//   memory bounds, TTL config, per-scrubber metrics).
+router.get('/scrubber-stats', authorize('admin:all'), (req, res) => {
+  try {
+    // Run TTL cleanup before reporting stats
+    const expired = scrubberRegistry.cleanup();
+    if (expired > 0) {
+      logger.info(`[Audit] Scrubber registry: expired ${expired} idle scrubbers`);
+    }
+
+    const stats = scrubberRegistry.getStats();
+    res.json({ success: true, ...stats });
+  } catch (err) {
+    logger.warn('[Audit] scrubber_stats_failed:', err.message);
+    sendError(res, 500, 'scrubber_stats_failed', { message: err.message });
   }
 });
 
