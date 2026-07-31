@@ -15,6 +15,25 @@ function getOrgId(req) {
 
 router.use(authenticate);
 
+// ── GET /api/rbac/me ────────────────────────────────────────────────────────
+//   Returns the current user's resolved role and permissions
+router.get('/me', (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const userId = req.user?.id || req.user?.email || '';
+    const fallbackRole = req.user?.role || '';
+    const resolved = rbacStore.resolveUserRole(userId, orgId, fallbackRole);
+    res.json({
+      success: true,
+      role: resolved.role,
+      permissions: resolved.permissions,
+      source: resolved.source,
+    });
+  } catch (err) {
+    sendError(res, 500, 'rbac_resolve_failed', { message: err.message });
+  }
+});
+
 // ── GET /api/rbac/roles ─────────────────────────────────────────────────────
 //   List all available roles with their permissions
 router.get('/roles', (req, res) => {

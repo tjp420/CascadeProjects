@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePrefetch } from '@/hooks/usePrefetch';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface SidebarProps {
   currentView: string;
@@ -44,6 +45,7 @@ interface NavItem {
   view: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  permission?: string;
 }
 
 interface NavGroup {
@@ -56,40 +58,40 @@ const navGroups: NavGroup[] = [
     label: 'Scan',
     items: [
       { view: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { view: 'analyze', label: 'Analyze', icon: FolderSearch },
-      { view: 'results', label: 'Results', icon: ClipboardList },
-      { view: 'repository-health', label: 'Repo Health', icon: Package },
+      { view: 'analyze', label: 'Analyze', icon: FolderSearch, permission: 'write:scans' },
+      { view: 'results', label: 'Results', icon: ClipboardList, permission: 'read:all' },
+      { view: 'repository-health', label: 'Repo Health', icon: Package, permission: 'read:all' },
     ],
   },
   {
     label: 'Compliance',
     items: [
-      { view: 'audit', label: 'Audit Report', icon: ClipboardCheck },
-      { view: 'security', label: 'Security', icon: Lock },
-      { view: 'quality', label: 'Quality', icon: Award },
-      { view: 'trust', label: 'Trust', icon: BadgeCheck },
+      { view: 'audit', label: 'Audit Report', icon: ClipboardCheck, permission: 'read:audit' },
+      { view: 'security', label: 'Security', icon: Lock, permission: 'read:all' },
+      { view: 'quality', label: 'Quality', icon: Award, permission: 'read:all' },
+      { view: 'trust', label: 'Trust', icon: BadgeCheck, permission: 'read:all' },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { view: 'assessments', label: 'Assessments', icon: FileText },
-      { view: 'remediation', label: 'Remediation', icon: Map },
-      { view: 'platform', label: 'Platform', icon: BarChart3 },
-      { view: 'analytics-dashboard', label: 'Audit Analytics', icon: Activity },
-      { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
-      { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Mail },
-      { view: 'organization', label: 'Organization', icon: Building2 },
-      { view: 'enterprise', label: 'Enterprise', icon: Server },
+      { view: 'assessments', label: 'Assessments', icon: FileText, permission: 'read:all' },
+      { view: 'remediation', label: 'Remediation', icon: Map, permission: 'read:all' },
+      { view: 'platform', label: 'Platform', icon: BarChart3, permission: 'read:analytics' },
+      { view: 'analytics-dashboard', label: 'Audit Analytics', icon: Activity, permission: 'read:analytics' },
+      { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp, permission: 'read:analytics' },
+      { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Mail, permission: 'read:analytics' },
+      { view: 'organization', label: 'Organization', icon: Building2, permission: 'admin:all' },
+      { view: 'enterprise', label: 'Enterprise', icon: Server, permission: 'admin:all' },
       { view: 'profile', label: 'Profile', icon: User },
-      { view: 'admin', label: 'Admin', icon: Users },
+      { view: 'admin', label: 'Admin', icon: Users, permission: 'admin:all' },
     ],
   },
   {
     label: 'System',
     items: [
-      { view: 'tools', label: 'Tools', icon: Wrench },
-      { view: 'settings', label: 'Settings', icon: Settings },
+      { view: 'tools', label: 'Tools', icon: Wrench, permission: 'write:all' },
+      { view: 'settings', label: 'Settings', icon: Settings, permission: 'admin:all' },
       { view: 'help', label: 'Help', icon: HelpCircle },
       { view: 'getting-started', label: 'Getting Started', icon: Rocket },
       { view: 'chatbot', label: 'Chatbot', icon: Bot },
@@ -110,6 +112,7 @@ export function Sidebar({
   isAuthenticated,
 }: SidebarProps) {
   const { prefetchOnHover } = usePrefetch(currentView);
+  const { hasPermission, loading: permsLoading } = usePermissions(!!isAuthenticated);
   return (
     <>
       {isOpen && <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />}
@@ -147,6 +150,8 @@ export function Sidebar({
               isAdmin={!!isAdmin}
               isAuthenticated={!!isAuthenticated}
               onHover={prefetchOnHover}
+              hasPermission={hasPermission}
+              permsLoading={permsLoading}
             />
           ))}
         </nav>
@@ -208,6 +213,8 @@ function NavGroupSection({
   isAdmin,
   isAuthenticated,
   onHover,
+  hasPermission,
+  permsLoading,
 }: {
   group: NavGroup;
   currentView: string;
@@ -215,6 +222,8 @@ function NavGroupSection({
   isAdmin: boolean;
   isAuthenticated: boolean;
   onHover: (view: string) => void;
+  hasPermission: (perm: string) => boolean;
+  permsLoading: boolean;
 }) {
   return (
     <div className="mb-2">
@@ -229,6 +238,8 @@ function NavGroupSection({
             if (!isAdmin && item.view === 'admin') return false;
             // Hide auth-required items from signed-out users
             if (!isAuthenticated && AUTH_REQUIRED_VIEWS.has(item.view)) return false;
+            // Hide items requiring permissions the user doesn't have
+            if (item.permission && !permsLoading && !hasPermission(item.permission)) return false;
             return true;
           })
           .map((item) => {
