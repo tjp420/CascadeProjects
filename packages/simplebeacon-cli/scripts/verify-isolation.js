@@ -72,6 +72,8 @@ function isPrivateOrLoopback(ip) {
     if (a === 143 && b === 55) return true;
     // Cloudflare (104.16.x.x) — used by GitHub services
     if (a === 104 && b === 16) return true;
+    // Azure WireServer (168.63.129.16) — Azure host infrastructure on GitHub runners
+    if (a === 168 && b === 63) return true;
     return false;
   }
   // IPv6: treat fe80, fc00, fd00, ::1 as local

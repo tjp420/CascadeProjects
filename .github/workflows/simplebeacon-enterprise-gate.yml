@@ -58,7 +58,7 @@ jobs:
             --gate \
             --offline \
             --verbose
-          node packages/simplebeacon-cli/bin/simplebeacon.js gate status
+          node packages/simplebeacon-cli/bin/simplebeacon.js gate status --report ai-platform/.simplebeacon/report.json
 
       - name: Post PR gate summary
         if: github.event_name == 'pull_request' && always()

@@ -238,7 +238,6 @@ function formatTeamsPayload(payload) {
         body: [
           {
             type: 'Container',
-            style: 'attention',
             items: [
               { type: 'TextBlock', text: `SimpleBeacon: ${payload.eventLabel}`, size: 'Large', weight: 'Bolder' },
             ],

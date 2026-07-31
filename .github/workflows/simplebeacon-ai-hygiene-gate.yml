@@ -59,10 +59,9 @@ jobs:
             --output .simplebeacon/report.json \
             --anonymize \
             --gate \
-            --ci \
             --offline \
             --verbose
-          node ../packages/simplebeacon-cli/bin/simplebeacon.js gate status
+          node ../packages/simplebeacon-cli/bin/simplebeacon.js gate status --report .simplebeacon/report.json
 
       - name: Upsell reminder
         if: github.event_name == 'pull_request' && always()
