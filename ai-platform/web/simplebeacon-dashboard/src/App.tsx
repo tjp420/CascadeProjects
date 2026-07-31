@@ -11,6 +11,7 @@ import { isTokenExpired } from './config';
 // P1 views — Dashboard is always needed, keep eager
 import { DashboardView } from './views/DashboardView';
 import { SignInView } from './views/SignInView';
+import { PermissionGuard } from './components/PermissionGuard';
 
 // Lazy-loaded views — code-split to keep initial bundle small
 const AnalyzeView = lazy(() => import('./views/AnalyzeView').then((m) => ({ default: m.AnalyzeView })));
@@ -137,6 +138,29 @@ const viewMap: Record<string, ComponentType> = {
   'analytics-dashboard': AnalyticsDashboardView,
 };
 
+// Route-level permission requirements — mirrors the sidebar permission declarations.
+// Views not listed here are accessible to all authenticated users.
+const VIEW_PERMISSIONS: Record<string, string> = {
+  analyze: 'write:scans',
+  results: 'read:all',
+  'repository-health': 'read:all',
+  audit: 'read:audit',
+  security: 'read:all',
+  quality: 'read:all',
+  trust: 'read:all',
+  assessments: 'read:all',
+  remediation: 'read:all',
+  platform: 'read:analytics',
+  'analytics-dashboard': 'read:analytics',
+  'team-metrics': 'read:analytics',
+  'outreach-analytics': 'read:analytics',
+  organization: 'admin:all',
+  enterprise: 'admin:all',
+  admin: 'admin:all',
+  tools: 'write:all',
+  settings: 'admin:all',
+};
+
 export default function App() {
   const [route, setRoute] = useState(getCurrentRoute());
   const { isAuthenticated, isFreeTier, user } = useAuth();
@@ -196,15 +220,17 @@ export default function App() {
           isFreeTier={isFreeTier}
           user={user}
         >
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center p-20 text-sm text-foreground-muted">
-                Loading...
-              </div>
-            }
-          >
-            <CurrentView />
-          </Suspense>
+          <PermissionGuard requiredPermission={VIEW_PERMISSIONS[route.view]}>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center p-20 text-sm text-foreground-muted">
+                  Loading...
+                </div>
+              }
+            >
+              <CurrentView />
+            </Suspense>
+          </PermissionGuard>
         </AppShell>
       </ToastProvider>
     </BrandProvider>
