@@ -20,6 +20,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('./app-logger.cjs');
+const webhookEngine = require('./webhook-engine.cjs');
 
 const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'token-budgets.json');
 const MAX_ALERTS = 300;
@@ -48,6 +49,7 @@ const DEFAULT_BUDGET_CONFIG = {
   autoResetEnabled: true,
   webhookAlertsEnabled: true,
   webhookEvent: 'budget_threshold_exceeded',
+  alertIntervals: [],
 };
 
 const PERIOD_DAYS = {
@@ -219,6 +221,23 @@ function recordUsage(orgId, usage, scope) {
   var budget = store.budgets[key];
   if (!budget || !budget.enabled) return { recorded: false, reason: 'no_budget' };
 
+  // Auto-reset on period rollover before recording new spend
+  var now = new Date();
+  var budgetConfig = budget.config || DEFAULT_BUDGET_CONFIG;
+  if (budgetConfig.autoResetEnabled !== false && now > new Date(budget.periodEnd)) {
+    var periodDays = PERIOD_DAYS[budget.period] || 30;
+    budget.periodStart = now.toISOString();
+    budget.periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000).toISOString();
+    budget.spentUSD = 0;
+    budget.tokenCount = 0;
+    budget.inputTokens = 0;
+    budget.outputTokens = 0;
+    budget.byModel = {};
+    budget.byUser = {};
+    budget.alerts = [];
+    logger.info('[TokenBudget] Auto-reset budget for org=' + orgId + ' scope=' + (scope || 'org'));
+  }
+
   var model = usage.model || 'default';
   var inputTokens = usage.inputTokens || 0;
   var outputTokens = usage.outputTokens || 0;
@@ -247,12 +266,12 @@ function recordUsage(orgId, usage, scope) {
     budget.byUser[usage.userId].calls += 1;
   }
 
-  budget.updatedAt = new Date().toISOString();
-  writeStore(store);
-
   // Check thresholds
   var pct = (budget.spentUSD / budget.limitUSD) * 100;
   var thresholdCrossed = checkThresholds(budget, pct, orgId, scope);
+
+  budget.updatedAt = new Date().toISOString();
+  writeStore(store);
 
   return {
     recorded: true,
@@ -266,24 +285,45 @@ function recordUsage(orgId, usage, scope) {
 // ── Threshold Checking & Alerts ──────────────────────────────────────────────
 
 function checkThresholds(budget, pct, orgId, scope) {
-  var config = budget.config;
-  var crossed = null;
+  var config = budget.config || DEFAULT_BUDGET_CONFIG;
 
-  if (pct >= config.hardStopPercent) {
-    crossed = { type: 'hard_stop', pct: pct, budget: budget };
-  } else if (pct >= config.softCapPercent) {
-    crossed = { type: 'soft_cap', pct: pct, budget: budget };
+  // Build the interval set: explicit alertIntervals take priority, otherwise fall back to soft/hard caps
+  var intervals = [];
+  if (Array.isArray(config.alertIntervals) && config.alertIntervals.length > 0) {
+    intervals = config.alertIntervals.slice().map(Number).filter(function (v) { return !isNaN(v) && v > 0; }).sort(function (a, b) { return a - b; });
+  }
+  if (intervals.length === 0) {
+    intervals = [config.softCapPercent || 80, config.hardStopPercent || 100];
   }
 
-  if (!crossed) return null;
+  // Find the highest interval that has been crossed
+  var crossedValue = null;
+  for (var i = intervals.length - 1; i >= 0; i--) {
+    if (pct >= intervals[i]) {
+      crossedValue = intervals[i];
+      break;
+    }
+  }
+  if (crossedValue === null) return null;
 
-  // Dedup: check cooldown
-  var alertKey = orgId + '::' + (scope || 'org') + '::' + crossed.type;
+  // Classify the alert severity and threshold type
+  var thresholdType = 'interval';
+  var severity = 'medium';
+  if (pct >= (config.hardStopPercent || 100)) {
+    thresholdType = 'hard_stop';
+    severity = 'critical';
+  } else if (pct >= (config.softCapPercent || 80)) {
+    thresholdType = 'soft_cap';
+    severity = 'high';
+  }
+
+  // Dedup: per-org/scope/threshold-value cooldown
+  var alertKey = orgId + '::' + (scope || 'org') + '::' + thresholdType + '::' + crossedValue;
   var now = Date.now();
   var lastAlert = recentAlerts.get(alertKey);
   var cooldownMs = (config.alertCooldownMinutes || 30) * 60 * 1000;
   if (lastAlert && (now - lastAlert) < cooldownMs) {
-    return { type: crossed.type, pct: pct, deduped: true };
+    return { type: thresholdType, pct: pct, deduped: true, crossed: crossedValue };
   }
 
   recentAlerts.set(alertKey, now);
@@ -292,7 +332,8 @@ function checkThresholds(budget, pct, orgId, scope) {
   var alertEntry = {
     id: 'alert-' + crypto.randomBytes(4).toString('hex'),
     timestamp: new Date().toISOString(),
-    type: crossed.type,
+    type: thresholdType,
+    crossedValue: crossedValue,
     pct: Math.round(pct * 100) / 100,
     spentUSD: budget.spentUSD,
     limitUSD: budget.limitUSD,
@@ -301,15 +342,36 @@ function checkThresholds(budget, pct, orgId, scope) {
   };
   budget.alerts.push(alertEntry);
   if (budget.alerts.length > 50) budget.alerts.shift();
-  writeStore(readStore());
 
   // Record in global alert history
   alertHistory.push(alertEntry);
   if (alertHistory.length > MAX_ALERTS) alertHistory.shift();
 
-  logger.warn('[TokenBudget] ' + crossed.type.toUpperCase() + ' threshold crossed for org=' + orgId + ': ' + pct.toFixed(1) + '% ($' + budget.spentUSD.toFixed(2) + '/$' + budget.limitUSD + ')');
+  logger.warn('[TokenBudget] ' + thresholdType.toUpperCase() + ' threshold crossed for org=' + orgId + ': ' + pct.toFixed(1) + '% ($' + budget.spentUSD.toFixed(2) + '/$' + budget.limitUSD + ')');
 
-  return { type: crossed.type, pct: pct, alert: alertEntry };
+  // Dispatch webhook via the integration engine
+  if (config.webhookAlertsEnabled !== false) {
+    var event = config.webhookEvent || 'budget_threshold_exceeded';
+    var summary = 'Budget ' + thresholdType + ' crossed for org ' + orgId +
+      ' (' + (scope || 'org') + ') at ' + pct.toFixed(1) + '%' +
+      ' — $' + budget.spentUSD.toFixed(2) + ' / $' + budget.limitUSD +
+      ' (threshold ' + crossedValue + '%)';
+    webhookEngine.dispatchEvent(event, {
+      orgId: orgId,
+      severity: severity,
+      summary: summary,
+      percentUsed: pct,
+      spentUSD: budget.spentUSD,
+      limitUSD: budget.limitUSD,
+      scope: scope || 'org',
+      thresholdType: thresholdType,
+      thresholdValue: crossedValue,
+    }).catch(function (err) {
+      logger.warn('[TokenBudget] Webhook dispatch failed:', err.message);
+    });
+  }
+
+  return { type: thresholdType, pct: pct, alert: alertEntry, crossed: crossedValue };
 }
 
 /**

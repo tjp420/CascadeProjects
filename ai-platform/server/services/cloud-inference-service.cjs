@@ -690,6 +690,18 @@ async function callProvider(providerId, prompt, options = {}) {
         throw new Error(`503: The circuit breaker for provider '${providerId}' is currently open due to high error frequencies. Try again later.`);
     }
 
+    // Pre-call budget hard-stop gate
+    var orgId = options.orgId || 'default';
+    try {
+        var hardStopResult = tokenBudget.checkHardStop(orgId);
+        if (hardStopResult.blocked) {
+            throw new Error(`403: Budget hard stop exceeded for org=${orgId} (${hardStopResult.pct.toFixed(1)}% of $${hardStopResult.limitUSD})`);
+        }
+    } catch (budgetErr) {
+        if (budgetErr && budgetErr.message && budgetErr.message.indexOf('Budget hard stop') !== -1) throw budgetErr;
+        logger.warn('[TokenBudget] Hard-stop check failed:', budgetErr.message);
+    }
+
     var inferenceStart = Date.now();
     try {
         const result = await retryWithBackoff(async () => {

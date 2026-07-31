@@ -124,6 +124,7 @@ const EVENT_TYPES = {
   trial_started: 'Trial Started',
   trial_expiring: 'Trial Expiring Soon',
   org_onboarded: 'Organization Onboarded',
+  budget_threshold_exceeded: 'Budget Threshold Exceeded',
 };
 
 function maskConfig(config) {

@@ -91,6 +91,7 @@ const { setupPrIntegrationAPI } = require('./routes/pr-integration-api.cjs');
 const fixOrchestratorRouter = require('./routes/fix-orchestrator-api.cjs');
 const ssoRoutes = require('./routes/sso-routes.cjs');
 const ssoConfigRoutes = require('./routes/sso-config-routes.cjs');
+const tokenBudgetRoutes = require('./routes/token-budget-allocation-routes.cjs');
 const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
 const auditLogRouter = require('./routes/audit.cjs');
 const authRoutes = require('./routes/auth-routes.cjs');
@@ -1239,6 +1240,9 @@ try {
 
 // AI Context routes — scan data + notes to .simplebeacon/ai-context.md
 app.use('/api', require('./routes/ai-context-routes.cjs'));
+
+// Token budget allocation routes — per-org fiscal guardrails
+app.use('/api/token-budget', tokenBudgetRoutes);
 
 // Static file serving for saved scan data exports
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));
