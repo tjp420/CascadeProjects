@@ -17,12 +17,12 @@ jobs:
     - name: Initialize Node.js Environment Runtime
       uses: actions/setup-node@v4
       with:
-        node-node-version: '20'
+        node-version: '22'
         cache: 'npm'
 
     - name: Install Analysis Dependencies
       run: |
-        npm install @swc/core minimatch
+        npm install @swc/core minimatch --legacy-peer-deps
 
     - name: Execute SimpleBeacon Engine Core Gate
       id: run-audit
