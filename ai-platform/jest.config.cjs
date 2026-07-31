@@ -46,6 +46,16 @@ module.exports = {
     'middleware/__tests__/audit\\.test\\.cjs$',
     'bootstrap/__tests__/phase2-integration\\.test\\.cjs$',
   ],
+  // Prevent haste collisions from build artifacts and generated bundles
+  modulePathIgnorePatterns: [
+    '<rootDir>/.simplebeacon/',
+    '<rootDir>/dist/',
+    '<rootDir>/node_modules/',
+    '<rootDir>/local-agent/dist/',
+    // regex-friendly globs for generated ES2018 and utils-lib bundles
+    '<rootDir>/.+?/js-es2018/',
+    '<rootDir>/.+?/js/.+?/utils-lib/',
+  ],
   moduleFileExtensions: ['js', 'cjs', 'json', 'jsx', 'ts', 'tsx', 'node'],
   moduleNameMapper: {
     '\\.\\./shared-utils/index\\.cjs$': '<rootDir>/shared-utils/index.cjs',
