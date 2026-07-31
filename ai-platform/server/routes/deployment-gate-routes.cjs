@@ -19,6 +19,9 @@ function getAnalyticsStore() {
 
 const router = express.Router();
 
+// local logger
+const logger = require('../lib/app-logger.cjs');
+
 // SLA thresholds (mirrors analytics-routes.cjs)
 const SLA_THRESHOLDS = {
   critical: 2,

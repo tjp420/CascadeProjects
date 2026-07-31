@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Shield,
   Plus,
@@ -17,6 +18,10 @@ import {
   Eye,
   EyeOff,
   FlaskConical,
+  Sparkles,
+  BarChart3,
+  FileCheck,
+  Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiUrl, authHeaders } from '@/config';
@@ -31,8 +36,18 @@ interface PiiPolicy {
   replacement: string;
   severity: string;
   enabled: boolean;
+  compliance?: string[];
+  isDefault?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+interface PiiStats {
+  totalPolicies: number;
+  enabledPolicies: number;
+  bySeverity: Record<string, number>;
+  byCompliance: Record<string, number>;
+  defaultCount: number;
 }
 
 interface TestResult {
