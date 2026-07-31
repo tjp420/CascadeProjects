@@ -22,7 +22,7 @@ jobs:
 
     - name: Install Analysis Dependencies
       run: |
-        npm install @swc/core minimatch --legacy-peer-deps
+        npm install @swc/core minimatch@3.1.5 --force
 
     - name: Execute SimpleBeacon Engine Core Gate
       id: run-audit
