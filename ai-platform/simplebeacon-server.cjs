@@ -1545,6 +1545,15 @@ async function startServer() {
     logger.error('[Routes] Proxy performance not loaded:', err?.message || err);
   }
 
+  // Rate-limit quota management — token bucket per user/org/tier
+  try {
+    const quotaRoutes = require('./server/routes/rate-limit-quota-routes.cjs');
+    app.use('/api/rate-limit', quotaRoutes);
+    logger.info('[Routes] Rate-limit quota loaded at /api/rate-limit');
+  } catch (err) {
+    logger.error('[Routes] Rate-limit quota not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');

@@ -22,6 +22,7 @@ import { LedgerIndexDashboard } from '@/components/LedgerIndexDashboard';
 import { ModelRoutingWorkspace } from '@/components/ModelRoutingWorkspace';
 import { SessionAuditViewer } from '@/components/SessionAuditViewer';
 import { ProxyPerformanceDashboard } from '@/components/ProxyPerformanceDashboard';
+import { RateLimitQuotaDashboard } from '@/components/RateLimitQuotaDashboard';
 import { PermissionGate } from '@/components/PermissionGate';
 
 type ScanResultData = {
@@ -491,6 +492,10 @@ export function SecurityView() {
 
       <PermissionGate permission="admin:all" fallback={null}>
         <ProxyPerformanceDashboard />
+      </PermissionGate>
+
+      <PermissionGate permission="admin:all" fallback={null}>
+        <RateLimitQuotaDashboard />
       </PermissionGate>
     </div>
   );

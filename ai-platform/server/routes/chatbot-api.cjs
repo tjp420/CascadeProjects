@@ -33,6 +33,7 @@ const { promptFirewall } = require('../middleware/prompt-firewall.cjs');
 const modelRoutingStore = require('../lib/model-routing-store.cjs');
 const sessionAuditStore = require('../lib/session-audit-store.cjs');
 const perfStore = require('../lib/proxy-performance-store.cjs');
+const quotaStore = require('../lib/rate-limit-quota-store.cjs');
 
 // Lazy-load prompt service for custom user prompts
 let promptService;
@@ -639,6 +640,35 @@ function setupChatbotAPI(app) {
         }
       } catch (e) {
         logger.warn('[Chatbot API] Model routing failed, using original provider:', e.message);
+      }
+
+      // Rate-limit quota enforcement: check user + org + tier quotas
+      const quotaContexts = {};
+      if (userEmail) quotaContexts.user = userEmail;
+      if (req.user?.orgId) quotaContexts.org = req.user.orgId;
+      if (routingDecision?.tier?.id) quotaContexts.tier = routingDecision.tier.id;
+
+      if (Object.keys(quotaContexts).length > 0) {
+        const quotaResult = quotaStore.checkQuotas(quotaContexts, 1);
+        if (!quotaResult.allowed) {
+          const detail = quotaResult.details[0];
+          logger.info('[Chatbot API] Quota exceeded:', {
+            requestId,
+            scope: detail.scope,
+            key: detail.key,
+            remaining: detail.remaining,
+          });
+          return res.status(429).json({
+            success: false,
+            error: 'quota_exceeded',
+            message: `Rate limit exceeded for ${detail.scope}:${detail.key}`,
+            retryAfterMs: detail.resetInMs,
+          });
+        }
+        res.setHeader('X-RateLimit-Cost', String(quotaResult.cost));
+        for (const d of quotaResult.details) {
+          res.setHeader(`X-RateLimit-${d.scope}-Remaining`, String(d.remaining));
+        }
       }
 
       // Track queue backpressure
