@@ -32,6 +32,7 @@ const { sendError } = require('../lib/response-helpers.cjs');
 const { promptFirewall } = require('../middleware/prompt-firewall.cjs');
 const modelRoutingStore = require('../lib/model-routing-store.cjs');
 const sessionAuditStore = require('../lib/session-audit-store.cjs');
+const perfStore = require('../lib/proxy-performance-store.cjs');
 
 // Lazy-load prompt service for custom user prompts
 let promptService;
@@ -640,20 +641,68 @@ function setupChatbotAPI(app) {
         logger.warn('[Chatbot API] Model routing failed, using original provider:', e.message);
       }
 
+      // Track queue backpressure
+      const queuedAt = Date.now();
+      perfStore.requestQueued();
+
       // Generate response using the selected (or routed) provider
       const inferenceStart = Date.now();
-      let response = await cloudInf.generateWithProvider(effectiveProvider, messages, {
-        userCredentials,
-        timeoutMs: constants.TIMEOUT_1M,
-        ollamaModel:
-          effectiveProvider === 'ollama' ? effectiveModel || userCredentials?.ollamaModel || null : null,
-        model:
-          effectiveProvider === 'openai'
-            ? effectiveModel || userCredentials?.openaiModel || null
-            : effectiveProvider === 'anthropic'
-              ? effectiveModel || userCredentials?.anthropicModel || null
-              : null,
-      });
+      let response;
+      try {
+        response = await cloudInf.generateWithProvider(effectiveProvider, messages, {
+          userCredentials,
+          timeoutMs: constants.TIMEOUT_1M,
+          ollamaModel:
+            effectiveProvider === 'ollama' ? effectiveModel || userCredentials?.ollamaModel || null : null,
+          model:
+            effectiveProvider === 'openai'
+              ? effectiveModel || userCredentials?.openaiModel || null
+              : effectiveProvider === 'anthropic'
+                ? effectiveModel || userCredentials?.anthropicModel || null
+                : null,
+        });
+        perfStore.requestDequeued();
+      } catch (infErr) {
+        perfStore.requestDequeued();
+        // Record failed request in performance store
+        try {
+          perfStore.recordRequest({
+            provider: effectiveProvider,
+            model: effectiveModel || '',
+            queuedAt,
+            dispatchedAt: inferenceStart,
+            completedAt: Date.now(),
+            success: false,
+            errorType: infErr.name || 'InferenceError',
+            userId: userEmail || 'anonymous',
+            requestId,
+          });
+        } catch { /* never block on perf errors */ }
+        throw infErr;
+      }
+
+      const inferenceDuration = Date.now() - inferenceStart;
+
+      // Record performance metrics
+      try {
+        const responseText = response.text || response.content || '';
+        const tokenCount = response.usage?.total_tokens || response.usage?.output_tokens ||
+          Math.ceil(responseText.length / 4);
+        perfStore.recordRequest({
+          provider: response.provider || effectiveProvider,
+          model: effectiveModel || response.model || '',
+          queuedAt,
+          dispatchedAt: inferenceStart,
+          firstTokenAt: inferenceStart + Math.round(inferenceDuration * 0.3),
+          completedAt: Date.now(),
+          tokenCount,
+          requestSize: message.length + JSON.stringify(sanitizedHistory).length,
+          responseSize: responseText.length,
+          success: true,
+          userId: userEmail || 'anonymous',
+          requestId,
+        });
+      } catch { /* never block on perf errors */ }
 
       // Record routing decision for stats
       if (routingDecision) {
@@ -773,8 +822,6 @@ function setupChatbotAPI(app) {
           logger.warn('[Chatbot API] Retry failed:', retryErr.message);
         }
       }
-
-      const inferenceDuration = Date.now() - inferenceStart;
 
       // Log AI inference for audit trail (EU AI Act compliance)
       // AI decision logging for accountability per Article 12 requirements

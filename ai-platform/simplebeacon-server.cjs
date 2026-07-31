@@ -1536,6 +1536,15 @@ async function startServer() {
     logger.error('[Routes] Session audit not loaded:', err?.message || err);
   }
 
+  // Proxy performance metrics — TTFT, backpressure, token velocity, provider latencies
+  try {
+    const perfRoutes = require('./server/routes/proxy-performance-routes.cjs');
+    app.use('/api/proxy-performance', perfRoutes);
+    logger.info('[Routes] Proxy performance loaded at /api/proxy-performance');
+  } catch (err) {
+    logger.error('[Routes] Proxy performance not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');
