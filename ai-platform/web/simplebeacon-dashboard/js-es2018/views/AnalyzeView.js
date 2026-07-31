@@ -7,6 +7,7 @@ import { fingerprintDirectory, formatFingerprint } from '../services/fingerprint
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard, canUseParentBridgeFetch } from '../services/localAgentService.js?v=20260726dropfix4';
 import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260726dropfix3';
 import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260726browserdrop2';
+import { realtimeAnalysisService } from '../services/realtimeAnalysisService.js?v=20260731rt1';
 
 const DROP_SKIP_DIRS = new Set([
     'node_modules', '.git', 'dist', 'build', '.simplebeacon',
@@ -2870,7 +2871,7 @@ export class AnalyzeView {
                 </select>
               </div>
               <div class="analyze-realtime-monitor-wrap">
-                <label class="text-muted" style="font-size: var(--font-size-xs);">Real-time monitoring</label>
+                <label class="text-muted" style="font-size: var(--font-size-xs); display:flex; align-items:center; gap:0.4rem;">Real-time monitoring <span id="realtime-ws-status" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--text-muted);opacity:0.4;" title="WebSocket: disconnected"></span></label>
                 <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
                   <input type="checkbox" id="analyze-realtime-monitor" aria-label="Enable real-time file monitoring" ${this.realtimeMonitorEnabled ? 'checked' : ''}>
                   <span>Watch filesystem changes and auto-rescan</span>
@@ -4817,6 +4818,28 @@ export class AnalyzeView {
             return;
         pathInput.value = fullPath ? formatPathInputValue(fullPath) : '';
     }
+    _updateRealtimeStatusIndicator(state) {
+        const dot = this._root?.querySelector('#realtime-ws-status');
+        if (!dot)
+            return;
+        const colors = {
+            connected: 'var(--success-color, #22c55e)',
+            connecting: 'var(--warning-color, #f59e0b)',
+            reconnecting: 'var(--warning-color, #f59e0b)',
+            error: 'var(--danger-color, #ef4444)',
+            disconnected: 'var(--text-muted, #6b7280)'
+        };
+        const labels = {
+            connected: 'WebSocket: connected',
+            connecting: 'WebSocket: connecting…',
+            reconnecting: 'WebSocket: reconnecting…',
+            error: 'WebSocket: error',
+            disconnected: 'WebSocket: disconnected'
+        };
+        dot.style.background = colors[state] || colors.disconnected;
+        dot.style.opacity = state === 'disconnected' ? '0.4' : '1';
+        dot.title = labels[state] || labels.disconnected;
+    }
     updateAgentStatusUI(root, text = '', available = false) {
         var _a;
         const wrap = root === null || root === void 0 ? void 0 : root.querySelector('#agent-status-wrap');
@@ -5400,12 +5423,26 @@ export class AnalyzeView {
             }
         });
         // Real-time monitoring toggle
-        (_m = el.querySelector('#analyze-realtime-monitor')) === null || _m === void 0 ? void 0 : _m.addEventListener('change', (event) => {
+        (_m = el.querySelector('#analyze-realtime-monitor')) === null || _m === void 0 ? void 0 : _m.addEventListener('change', async (event) => {
             this.realtimeMonitorEnabled = Boolean(event.target.checked);
             if (typeof localStorage !== 'undefined') {
                 localStorage.setItem('simplebeacon_realtime_monitor', this.realtimeMonitorEnabled ? '1' : '0');
             }
-            showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
+            if (this.realtimeMonitorEnabled) {
+                try {
+                    await realtimeAnalysisService.start({ profile: 'balanced', analysisType: 'general' });
+                    showToast('Real-time monitoring enabled — WebSocket connected', 'success');
+                } catch (err) {
+                    showToast('Real-time monitoring enabled (WebSocket unavailable — will retry)', 'info');
+                }
+            } else {
+                realtimeAnalysisService.stop();
+                showToast('Real-time monitoring disabled', 'info');
+            }
+        });
+        // Update realtime status indicator when connection state changes
+        this._realtimeStateUnsub = realtimeAnalysisService.on('state', (data) => {
+            this._updateRealtimeStatusIndicator(data.state);
         });
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', async () => {
             const agentAvailable = !!(this.agentStatus && this.agentStatus.available);
