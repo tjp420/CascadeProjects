@@ -3,6 +3,7 @@
 const auditLogger = require('./audit-logger.cjs');
 const guardrailIncidentStore = require('./guardrail-incident-store.cjs');
 const { processEvent } = require('./alert-dispatcher.cjs');
+const alertRuleStore = require('./alert-rule-store.cjs');
 const logger = require('./app-logger.cjs');
 const settingsStore = require('./security-monitor-settings-store.cjs');
 
@@ -42,6 +43,15 @@ function isGuardrailCheckEnabled() {
   return getSettings().guardrailAnomalyCheckEnabled !== false;
 }
 
+function isWebhookKeyAutoPurgeEnabled() {
+  return getSettings().webhookKeyAutoPurgeEnabled !== false;
+}
+
+function getWebhookKeyGraceWindowMs() {
+  const ms = getSettings().webhookKeyGraceWindowMs;
+  return ms || alertRuleStore.DEFAULT_GRACE_WINDOW_MS;
+}
+
 const lastAlertedAt = new Map();
 const lastGuardrailCounts = new Map();
 
@@ -50,6 +60,7 @@ let lastRunAt = null;
 let lastRunDurationMs = 0;
 let lastResults = null; // { orgsChecked, chainResults: [{ orgId, valid, ... }], guardrailResults: [...] }
 let runCount = 0;
+let lastKeyPurgeResult = null; // { purged, checked, details, runAt }
 
 function getKnownOrgIds() {
   const orgIds = new Set();
@@ -173,10 +184,51 @@ async function runChecks() {
     } // end guardrailAnomalyCheckEnabled
   }
 
+  // Webhook key rotation auto-purge — clean up expired previous secrets
+  let keyPurgeResult = null;
+  if (isWebhookKeyAutoPurgeEnabled()) {
+    try {
+      const graceMs = getWebhookKeyGraceWindowMs();
+      keyPurgeResult = alertRuleStore.purgeExpiredPreviousSecrets(graceMs);
+      if (keyPurgeResult.purged > 0) {
+        logger.info(
+          `[SecurityMonitor] Auto-purged ${keyPurgeResult.purged} expired webhook previous secret(s) (checked ${keyPurgeResult.checked}, grace=${graceMs}ms)`
+        );
+        // Audit log the auto-purge
+        try {
+          auditLogger.log({
+            orgId: 'system',
+            actorId: 'security-monitor',
+            actorEmail: 'security-monitor',
+            action: 'webhook_key_auto_purge',
+            entity: 'alert_rule',
+            entityId: 'batch',
+            metadata: {
+              purged: keyPurgeResult.purged,
+              checked: keyPurgeResult.checked,
+              graceWindowMs: graceMs,
+              details: keyPurgeResult.details.filter((d) => d.purged).map((d) => ({
+                ruleId: d.ruleId,
+                orgId: d.orgId,
+                ruleName: d.ruleName,
+                reason: d.reason,
+              })),
+            },
+          });
+        } catch (logErr) {
+          logger.warn('[SecurityMonitor] Failed to audit-log key auto-purge:', logErr.message);
+        }
+      }
+      lastKeyPurgeResult = { ...keyPurgeResult, runAt: new Date().toISOString() };
+    } catch (purgeErr) {
+      logger.warn('[SecurityMonitor] Webhook key auto-purge failed:', purgeErr.message);
+    }
+  }
+
   lastRunAt = new Date().toISOString();
   lastRunDurationMs = Date.now() - startTime;
   runCount++;
-  lastResults = { orgsChecked: orgIds.length, chainResults, guardrailResults };
+  lastResults = { orgsChecked: orgIds.length, chainResults, guardrailResults, keyPurgeResult };
 }
 
 /**
@@ -203,11 +255,14 @@ function getStatus() {
     alertCooldownMs: getAlertCooldownMs(),
     chainIntegrityCheckEnabled: isChainCheckEnabled(),
     guardrailAnomalyCheckEnabled: isGuardrailCheckEnabled(),
+    webhookKeyAutoPurgeEnabled: isWebhookKeyAutoPurgeEnabled(),
+    webhookKeyGraceWindowMs: getWebhookKeyGraceWindowMs(),
     lastRunAt,
     lastRunDurationMs,
     runCount,
     orgsTracked: lastResults ? lastResults.orgsChecked : 0,
     lastResults,
+    lastKeyPurgeResult,
     settingsUpdatedAt: settings.updatedAt,
   };
 }

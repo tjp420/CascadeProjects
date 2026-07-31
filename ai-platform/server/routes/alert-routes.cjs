@@ -398,4 +398,109 @@ router.post('/rules/:id/generate-secret', authorize('admin:all'), (req, res) => 
   }
 });
 
+// ── Webhook Key Auto-Purge ──────────────────────────────────────────────────
+
+// GET /api/alerts/rotation/cleanup-status — get auto-purge status from security monitor
+router.get('/rotation/cleanup-status', authorize('admin:all'), (req, res) => {
+  try {
+    let monitorStatus = null;
+    try {
+      const securityMonitor = require('../lib/security-monitor.cjs');
+      monitorStatus = securityMonitor.getStatus();
+    } catch {
+      // Monitor may not be running
+    }
+
+    const settings = monitorStatus
+      ? {
+          autoPurgeEnabled: monitorStatus.webhookKeyAutoPurgeEnabled,
+          graceWindowMs: monitorStatus.webhookKeyGraceWindowMs,
+          monitorRunning: monitorStatus.running,
+          lastRunAt: monitorStatus.lastRunAt,
+        }
+      : null;
+
+    const lastPurge = monitorStatus?.lastKeyPurgeResult || null;
+
+    // Also scan for rules with pending previous secrets (not yet purged)
+    const allRules = ruleStore.getAllRulesAllOrgs();
+    const pending = allRules
+      .filter((r) => r.destination?.previousSecret)
+      .map((r) => {
+        const rotatedAt = r.destination?.secretRotatedAt;
+        const graceMs = monitorStatus?.webhookKeyGraceWindowMs || ruleStore.DEFAULT_GRACE_WINDOW_MS;
+        const expiresAt = rotatedAt ? new Date(new Date(rotatedAt).getTime() + graceMs).toISOString() : null;
+        const expired = expiresAt ? Date.now() >= new Date(expiresAt).getTime() : false;
+        return {
+          ruleId: r.id,
+          orgId: r.orgId,
+          ruleName: r.name,
+          rotatedAt,
+          expiresAt,
+          expired,
+        };
+      });
+
+    res.json({
+      success: true,
+      settings,
+      lastPurge,
+      pending,
+      pendingCount: pending.length,
+    });
+  } catch (err) {
+    logger.warn('[Alerts] cleanup_status_failed:', err.message);
+    sendError(res, 500, 'cleanup_status_failed', { message: err.message });
+  }
+});
+
+// POST /api/alerts/rotation/cleanup-now — manually trigger a purge sweep of expired previous secrets
+router.post('/rotation/cleanup-now', authorize('admin:all'), (req, res) => {
+  try {
+    let graceMs = req.body?.graceWindowMs;
+    if (!graceMs) {
+      try {
+        const securityMonitor = require('../lib/security-monitor.cjs');
+        const status = securityMonitor.getStatus();
+        graceMs = status.webhookKeyGraceWindowMs;
+      } catch {
+        graceMs = ruleStore.DEFAULT_GRACE_WINDOW_MS;
+      }
+    }
+
+    const result = ruleStore.purgeExpiredPreviousSecrets(graceMs);
+
+    // Audit log the manual purge
+    try {
+      auditLogger.log({
+        orgId: getOrgId(req),
+        actorId: req.user?.id || 'system',
+        actorEmail: req.user?.email || 'system',
+        action: 'webhook_key_manual_purge',
+        entity: 'alert_rule',
+        entityId: 'batch',
+        metadata: {
+          purged: result.purged,
+          checked: result.checked,
+          graceWindowMs: graceMs,
+          details: result.details.filter((d) => d.purged).map((d) => ({
+            ruleId: d.ruleId,
+            orgId: d.orgId,
+            ruleName: d.ruleName,
+            reason: d.reason,
+          })),
+        },
+      });
+    } catch (logErr) {
+      logger.warn('[Alerts] Failed to audit-log manual purge:', logErr.message);
+    }
+
+    logger.info(`[Alerts] Manual key cleanup: purged ${result.purged} of ${result.checked} checked`);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[Alerts] cleanup_now_failed:', err.message);
+    sendError(res, 500, 'cleanup_now_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

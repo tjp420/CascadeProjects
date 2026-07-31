@@ -310,6 +310,8 @@ export function UsageAnalyticsView() {
   const [rotationStatus, setRotationStatus] = useState<any>(null);
   const [rotating, setRotating] = useState(false);
   const [rotationCopied, setRotationCopied] = useState(false);
+  const [cleanupStatus, setCleanupStatus] = useState<any>(null);
+  const [cleanupRunning, setCleanupRunning] = useState(false);
 
   const [rbacRoles, setRbacRoles] = useState<any[]>([]);
   const [rbacAssignments, setRbacAssignments] = useState<any[]>([]);
@@ -1200,6 +1202,42 @@ export function UsageAnalyticsView() {
   );
 
   // ── Webhook Key Rotation ───────────────────────────────────────────────────
+  const fetchCleanupStatus = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/alerts/rotation/cleanup-status'), {
+        headers: authHeaders(),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        setCleanupStatus(data);
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
+  const handleCleanupNow = async () => {
+    setCleanupRunning(true);
+    try {
+      const resp = await fetch(apiUrl('/alerts/rotation/cleanup-now'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        toast.success(`Purge sweep complete — ${data.purged} purged, ${data.checked} checked`);
+        fetchCleanupStatus();
+      } else {
+        toast.error(data.message || data.error || 'Cleanup failed');
+      }
+    } catch {
+      toast.error('Failed to run cleanup sweep');
+    } finally {
+      setCleanupRunning(false);
+    }
+  };
+
   const openRotationModal = useCallback(async (rule: any) => {
     setRotationModalRule(rule);
     setRotationNewSecret('');
@@ -1220,7 +1258,9 @@ export function UsageAnalyticsView() {
     } catch {
       setRotationStatus(null);
     }
-  }, []);
+    // Fetch auto-purge cleanup status
+    fetchCleanupStatus();
+  }, [fetchCleanupStatus]);
 
   const handleGenerateSecret = async () => {
     try {
@@ -4146,6 +4186,69 @@ export function UsageAnalyticsView() {
                     </Button>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Auto-Purge Status */}
+            {cleanupStatus && (
+              <div className="rounded-md border border-blue-500/20 bg-blue-500/5 p-3 text-xs">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="font-medium flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-blue-500" />
+                    Grace Period Auto-Purge
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[10px]"
+                    onClick={handleCleanupNow}
+                    disabled={cleanupRunning}
+                  >
+                    {cleanupRunning ? <RefreshCw className="h-3 w-3 animate-spin mr-1" /> : <Zap className="h-3 w-3 mr-1" />}
+                    Run Sweep Now
+                  </Button>
+                </div>
+                <div className="space-y-0.5 text-muted-foreground">
+                  <p>
+                    Auto-purge: {cleanupStatus.settings?.autoPurgeEnabled
+                      ? <span className="text-green-600">enabled</span>
+                      : <span className="text-red-600">disabled</span>}
+                  </p>
+                  <p>
+                    Grace window: {cleanupStatus.settings?.graceWindowMs
+                      ? `${Math.round(cleanupStatus.settings.graceWindowMs / 3600000)}h`
+                      : '24h (default)'}
+                  </p>
+                  <p>
+                    Monitor: {cleanupStatus.settings?.monitorRunning
+                      ? <span className="text-green-600">running</span>
+                      : <span className="text-amber-600">stopped</span>}
+                    {cleanupStatus.settings?.lastRunAt && (
+                      <span className="ml-1">· last check: {new Date(cleanupStatus.settings.lastRunAt).toLocaleString()}</span>
+                    )}
+                  </p>
+                  <p>
+                    Pending previous secrets: <span className={cleanupStatus.pendingCount > 0 ? 'text-amber-600 font-medium' : 'text-green-600'}>{cleanupStatus.pendingCount}</span>
+                  </p>
+                  {cleanupStatus.lastPurge && (
+                    <p>
+                      Last auto-purge: {cleanupStatus.lastPurge.purged} purged of {cleanupStatus.lastPurge.checked} checked
+                      <span className="ml-1 text-[10px]">at {new Date(cleanupStatus.lastPurge.runAt).toLocaleString()}</span>
+                    </p>
+                  )}
+                  {cleanupStatus.pending?.length > 0 && (
+                    <div className="mt-1.5 space-y-0.5">
+                      {cleanupStatus.pending.map((p: any) => (
+                        <div key={p.ruleId} className="flex items-center gap-2 text-[10px]">
+                          <span className="font-mono">{p.ruleName}</span>
+                          <span className={p.expired ? 'text-red-600' : 'text-amber-600'}>
+                            {p.expired ? 'expired — pending purge' : `expires ${new Date(p.expiresAt).toLocaleString()}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

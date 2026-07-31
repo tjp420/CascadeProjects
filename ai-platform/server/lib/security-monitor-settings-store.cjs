@@ -28,6 +28,8 @@ const DEFAULT_SETTINGS = {
   chainIntegrityCheckEnabled: true,
   guardrailAnomalyCheckEnabled: true,
   maxAlertsPerOrgPerHour: 20,
+  webhookKeyAutoPurgeEnabled: true,
+  webhookKeyGraceWindowMs: 24 * 60 * 60 * 1000,
   updatedAt: null,
 };
 
@@ -91,6 +93,9 @@ function updateSettings(updates) {
   }
   if (updated.maxAlertsPerOrgPerHour !== undefined && updated.maxAlertsPerOrgPerHour < 1) {
     return { success: false, error: 'maxAlertsPerOrgPerHour must be at least 1' };
+  }
+  if (updated.webhookKeyGraceWindowMs !== undefined && updated.webhookKeyGraceWindowMs < 60000) {
+    return { success: false, error: 'webhookKeyGraceWindowMs must be at least 60000 (1 minute)' };
   }
 
   // Validate severity levels

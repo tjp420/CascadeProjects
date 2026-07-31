@@ -98,6 +98,15 @@ function getAllRules(orgId) {
     .map(decryptRule);
 }
 
+/**
+ * Get all rules across all organizations (for cross-tenant maintenance tasks).
+ * @returns {Array} — decrypted rules
+ */
+function getAllRulesAllOrgs() {
+  const store = readStore();
+  return Object.values(store.rules).map(decryptRule);
+}
+
 function setRule(ruleId, rule, orgId) {
   const store = readStore();
   const key = makeKey(orgId, ruleId);
@@ -320,11 +329,82 @@ function generateSecret(bytes) {
   return crypto.randomBytes(bytes || 32).toString('hex');
 }
 
+/**
+ * Scan all rules across all orgs and purge expired previous secrets.
+ * Called automatically by the security monitor's background worker.
+ *
+ * @param {number} graceWindowMs — grace window in milliseconds (defaults to DEFAULT_GRACE_WINDOW_MS)
+ * @returns {{ purged: number, checked: number, details: Array<{ ruleId: string, orgId: string, ruleName: string, purged: boolean, reason: string }> }}
+ */
+function purgeExpiredPreviousSecrets(graceWindowMs) {
+  const gw = graceWindowMs || DEFAULT_GRACE_WINDOW_MS;
+  const store = readStore();
+  const now = Date.now();
+  let purged = 0;
+  let checked = 0;
+  const details = [];
+
+  for (const [key, rule] of Object.entries(store.rules)) {
+    if (!rule.destination?.previousSecret) continue;
+    checked++;
+    const rotatedAt = rule.destination?.secretRotatedAt;
+    if (!rotatedAt) {
+      // No timestamp — shouldn't happen, but purge to be safe
+      delete rule.destination.previousSecret;
+      delete rule.destination.secretRotatedAt;
+      rule.updatedAt = new Date().toISOString();
+      purged++;
+      details.push({
+        ruleId: rule.id,
+        orgId: rule.orgId,
+        ruleName: rule.name,
+        purged: true,
+        reason: 'missing_rotated_at_timestamp',
+      });
+      continue;
+    }
+
+    const expiresAt = new Date(rotatedAt).getTime() + gw;
+    if (now >= expiresAt) {
+      delete rule.destination.previousSecret;
+      delete rule.destination.secretRotatedAt;
+      rule.updatedAt = new Date().toISOString();
+      purged++;
+      details.push({
+        ruleId: rule.id,
+        orgId: rule.orgId,
+        ruleName: rule.name,
+        purged: true,
+        reason: 'grace_window_expired',
+        rotatedAt,
+        expiredAt: new Date(expiresAt).toISOString(),
+      });
+    } else {
+      details.push({
+        ruleId: rule.id,
+        orgId: rule.orgId,
+        ruleName: rule.name,
+        purged: false,
+        reason: 'grace_window_active',
+        rotatedAt,
+        expiresAt: new Date(expiresAt).toISOString(),
+      });
+    }
+  }
+
+  if (purged > 0) {
+    writeStore(store);
+  }
+
+  return { purged, checked, details };
+}
+
 module.exports = {
   EVENT_TYPES,
   DESTINATION_TYPES,
   getRule,
   getAllRules,
+  getAllRulesAllOrgs,
   setRule,
   deleteRule,
   updateFireStats,
@@ -333,5 +413,6 @@ module.exports = {
   getRotationStatus,
   clearPreviousSecret,
   generateSecret,
+  purgeExpiredPreviousSecrets,
   DEFAULT_GRACE_WINDOW_MS,
 };
