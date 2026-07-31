@@ -1,6 +1,7 @@
 module.exports = function evaluateGatePass(rule, { report }) {
+    const pass = Boolean(report.gate?.pass);
     const filesScanned = report.totalFiles ?? report.filesAnalyzed ?? report.repositoryFilesTotal ?? 0;
-    if (filesScanned === 0) {
+    if (filesScanned === 0 && !pass) {
         return {
             id: rule.id,
             title: rule.title,
@@ -11,7 +12,17 @@ module.exports = function evaluateGatePass(rule, { report }) {
             evidence: 'No files scanned — gate not evaluated'
         };
     }
-    const pass = Boolean(report.gate?.pass);
+    if (filesScanned === 0 && pass) {
+        return {
+            id: rule.id,
+            title: rule.title,
+            category: rule.category,
+            severity: rule.severity,
+            remediation: rule.remediation || null,
+            status: 'pass',
+            evidence: 'Gate pass — no blocking issues at configured severities'
+        };
+    }
     return {
         id: rule.id,
         title: rule.title,
