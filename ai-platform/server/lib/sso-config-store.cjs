@@ -37,6 +37,10 @@ let _cacheDirty = true;
  * @property {string} [oidc.redirectUri]  — Callback URL
  * @property {string} createdAt
  * @property {string} updatedAt
+ * @property {object} [claimMappings]  — IdP claim-to-RBAC role mappings
+ * @property {string} [claimMappings.claimPath]   — Claim name to inspect (e.g. 'groups', 'role', 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role')
+ * @property {Array}  [claimMappings.mappings]    — Array of { matchValue, matchMode, role }
+ * @property {string} [claimMappings.defaultRole] — Fallback role if no mapping matches (default: 'viewer')
  */
 
 function readStore() {
@@ -215,6 +219,7 @@ function createConfig(params) {
             : undefined,
         }
       : null,
+    claimMappings: params.claimMappings || null,
     createdAt: now,
     updatedAt: now,
   };
@@ -253,6 +258,10 @@ function updateConfig(providerId, updates) {
 
   if (updates.saml) {
     updated.saml = { ...config.saml, ...updates.saml };
+  }
+
+  if (updates.claimMappings !== undefined) {
+    updated.claimMappings = updates.claimMappings || null;
   }
 
   store.configs[idx] = updated;

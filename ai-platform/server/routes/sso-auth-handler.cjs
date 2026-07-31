@@ -19,6 +19,7 @@ const https = require('https');
 const { URL, URLSearchParams } = require('url');
 const logger = require('../lib/app-logger.cjs');
 const ssoConfigStore = require('../lib/sso-config-store.cjs');
+const rbacStore = require('../lib/rbac-store.cjs');
 const { generateToken } = require('../lib/auth/token-service.cjs');
 const auditStore = require('../lib/enterprise-audit-store.cjs');
 const ssoHardening = require('../lib/sso-production-hardening.cjs');
@@ -210,6 +211,49 @@ function validateIdToken(idToken, config, expectedNonce) {
 
 // ── User Provisioning ───────────────────────────────────────────────────────
 
+/**
+ * Resolve an internal RBAC role from IdP claims using the provider's claim mappings.
+ * @param {object} claims — Raw claims from OIDC userinfo / ID token or SAML attributes
+ * @param {object} config — SSO provider config with optional claimMappings
+ * @returns {string} Resolved role ID ('admin', 'auditor', 'operator', 'viewer')
+ */
+function resolveRoleFromClaims(claims, config) {
+  const mappings = config.claimMappings;
+  if (!mappings || !mappings.claimPath || !mappings.mappings) {
+    return 'viewer';
+  }
+
+  const claimValue = claims[mappings.claimPath];
+  if (claimValue === undefined || claimValue === null) {
+    return mappings.defaultRole || 'viewer';
+  }
+
+  const values = Array.isArray(claimValue) ? claimValue : [String(claimValue)];
+
+  for (const mapping of mappings.mappings) {
+    if (!mapping.matchValue || !mapping.role) continue;
+    const matchMode = mapping.matchMode || 'equals';
+    for (const v of values) {
+      const strVal = String(v);
+      if (matchMode === 'equals' && strVal === mapping.matchValue) {
+        return mapping.role;
+      }
+      if (matchMode === 'contains' && strVal.includes(mapping.matchValue)) {
+        return mapping.role;
+      }
+      if (matchMode === 'regex') {
+        try {
+          if (new RegExp(mapping.matchValue).test(strVal)) {
+            return mapping.role;
+          }
+        } catch {}
+      }
+    }
+  }
+
+  return mappings.defaultRole || 'viewer';
+}
+
 function provisionSsoUser(userInfo, config) {
   const email = userInfo.email || userInfo['email'] || userInfo.preferred_username;
   if (!email) throw new Error('No email returned from IdP');
@@ -219,12 +263,23 @@ function provisionSsoUser(userInfo, config) {
   const orgId = config.orgId || 'sso';
   const userId = `sso:${orgId}:${crypto.createHash('sha256').update(email).digest('hex').slice(0, 16)}`;
 
+  const resolvedRole = resolveRoleFromClaims(userInfo, config);
+
+  if (resolvedRole && rbacStore.ROLES[resolvedRole]) {
+    try {
+      rbacStore.setAssignment(userId, resolvedRole, orgId, email);
+      logger.info(`[SSO] Assigned role '${resolvedRole}' to ${email} via claim mapping`);
+    } catch (err) {
+      logger.warn(`[SSO] Failed to assign role '${resolvedRole}' to ${email}: ${err.message}`);
+    }
+  }
+
   return {
     id: userId,
     email,
     name,
     trustLevel: 'silver',
-    role: 'sso-user',
+    role: resolvedRole,
     tier: 'enterprise',
     features: ['sso', 'enterprise_dashboard', 'compliance_scan'],
     ssoProviderId: config.providerId,
@@ -639,6 +694,21 @@ function parseSamlAssertion(xml, config) {
       attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
       attributes.email ||
       email,
+    role:
+      attributes['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+      attributes.role ||
+      attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role'] ||
+      undefined,
+    groups:
+      attributes['http://schemas.xmlsoap.org/claims/Group'] ||
+      attributes.groups ||
+      attributes.group ||
+      attributes.memberOf ||
+      undefined,
+    department:
+      attributes['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/department'] ||
+      attributes.department ||
+      undefined,
   };
 }
 
