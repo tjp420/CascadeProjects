@@ -12,7 +12,7 @@ import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
   ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X, Clock, Send, Settings,
-  ShieldCheck,
+  ShieldCheck, ScrollText,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -196,6 +196,9 @@ export function UsageAnalyticsView() {
   const [gateEvalResult, setGateEvalResult] = useState<any>(null);
   const [showGatePolicyModal, setShowGatePolicyModal] = useState(false);
   const [gatePolicyForm, setGatePolicyForm] = useState({ minPostureScore: 70, maxCritical: 0, maxHigh: 5, maxMedium: 20, maxLow: 50, blockOnGateFail: true, blockOnSlaBreached: false, blockOnUnticketedCritical: false });
+  const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [auditStats, setAuditStats] = useState<any>(null);
+  const [auditFilter, setAuditFilter] = useState('');
   const [scheduleForm, setScheduleForm] = useState({
     id: '', name: '', enabled: true, frequency: 'weekly' as 'daily' | 'weekly' | 'monthly',
     dayOfWeek: 1, dayOfMonth: 1, hour: 8, minute: 0, format: 'csv' as 'csv' | 'json',
@@ -647,6 +650,49 @@ export function UsageAnalyticsView() {
       setGateEvaluating(false);
     }
   }, [gateEvalRepo, branchFilter, fetchGateHistory]);
+
+  // ── Audit Trail ───────────────────────────────────────────────────────────
+  const fetchAuditLog = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set('limit', '100');
+      if (auditFilter) params.set('entity', auditFilter);
+      const resp = await fetch(apiUrl(`/audit/log?${params}`), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setAuditLog(data.entries || []);
+      }
+    } catch { /* silent */ }
+  }, [auditFilter]);
+
+  const fetchAuditStats = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/audit/stats'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setAuditStats(data.stats);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchAuditStats(); }, [fetchAuditStats]);
+  useEffect(() => { fetchAuditLog(); }, [fetchAuditLog]);
+
+  const exportAuditLog = useCallback(async (format: 'csv' | 'json') => {
+    try {
+      const resp = await fetch(apiUrl(`/audit/export?format=${format}`), { headers: authHeaders() });
+      if (resp.ok) {
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success(`Audit log exported as ${format.toUpperCase()}`);
+      }
+    } catch { toast.error('Failed to export audit log'); }
+  }, []);
 
   const exportLedger = useCallback(async (format: 'csv' | 'json') => {
     try {
@@ -1975,6 +2021,113 @@ export function UsageAnalyticsView() {
           </div>
         </div>
       )}
+
+      {/* Audit Trail Panel */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ScrollText className="h-4 w-4" /> Audit Trail & Change Ledger
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Immutable record of all administrative changes across ticket statuses, webhook configs, report schedules, and deployment gate policies.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Stats Summary */}
+          {auditStats && (
+            <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Total Events</div>
+                <div className="text-lg font-bold">{auditStats.total}</div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">By Action</div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {Object.entries(auditStats.byAction || {}).map(([action, count]: any) => (
+                    <Badge key={action} variant="outline" className="text-[10px]">{action}: {count}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">By Entity</div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {Object.entries(auditStats.byEntity || {}).map(([entity, count]: any) => (
+                    <Badge key={entity} variant="secondary" className="text-[10px]">{entity}: {count}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="p-2 rounded border bg-muted/20">
+                <div className="text-muted-foreground">Top Actors</div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(auditStats.recentActors || []).slice(0, 3).map((a: any) => (
+                    <Badge key={a.actorId} variant="outline" className="text-[10px]">{a.actorEmail}: {a.count}</Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Filter + Export Controls */}
+          <div className="flex items-center gap-2">
+            <select
+              value={auditFilter}
+              onChange={(e) => setAuditFilter(e.target.value)}
+              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+            >
+              <option value="">All Entities</option>
+              <option value="ticket_status">Ticket Status</option>
+              <option value="webhook_config">Webhook Config</option>
+              <option value="report_schedule">Report Schedule</option>
+              <option value="deployment_gate_policy">Gate Policy</option>
+            </select>
+            <Button variant="outline" size="sm" onClick={() => fetchAuditLog()}>
+              <RefreshCw className="h-3 w-3" /> Refresh
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => exportAuditLog('csv')}>
+              <Download className="h-3 w-3" /> CSV
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => exportAuditLog('json')}>
+              <FileJson className="h-3 w-3" /> JSON
+            </Button>
+          </div>
+
+          {/* Timeline */}
+          {auditLog.length > 0 ? (
+            <div className="max-h-96 overflow-y-auto space-y-1">
+              {auditLog.map((entry, i) => (
+                <div key={entry.id || i} className="flex items-start gap-3 p-2 rounded hover:bg-muted/30 border-l-2"
+                  style={{ borderColor: entry.action === 'DELETE' ? '#ef4444' : entry.action === 'CREATE' ? '#22c55e' : entry.action === 'RUN' ? '#3b82f6' : '#a855f7' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Badge variant="outline" className="text-[10px] shrink-0">{entry.action}</Badge>
+                      <span className="font-medium truncate">{entry.entity}</span>
+                      <span className="text-muted-foreground truncate">{entry.entityId}</span>
+                    </div>
+                    {entry.changes?.length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {entry.changes.slice(0, 3).map((c: any, j: number) => (
+                          <div key={j} className="text-[10px] text-muted-foreground">
+                            <strong>{c.field}</strong>: {JSON.stringify(c.oldValue)?.slice(0, 40)} → {JSON.stringify(c.newValue)?.slice(0, 40)}
+                          </div>
+                        ))}
+                        {entry.changes.length > 3 && (
+                          <div className="text-[10px] text-muted-foreground italic">+{entry.changes.length - 3} more changes</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[10px] text-muted-foreground">{entry.actorEmail}</div>
+                    <div className="text-[10px] text-muted-foreground">{new Date(entry.timestamp).toLocaleString()}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-sm text-muted-foreground">No audit entries found</div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

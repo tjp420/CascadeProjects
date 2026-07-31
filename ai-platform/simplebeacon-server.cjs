@@ -1253,6 +1253,15 @@ async function startServer() {
     logger.error('[Routes] Deployment gate not loaded:', err?.message || err);
   }
 
+  // Audit trail — administrative change ledger
+  try {
+    const auditRoutes = require('./server/routes/audit-routes.cjs');
+    app.use('/api/audit', auditRoutes);
+    logger.info('[Routes] Audit trail loaded at /api/audit');
+  } catch (err) {
+    logger.error('[Routes] Audit trail not loaded:', err?.message || err);
+  }
+
   // Whitelabel partner branding — custom logos, colors, domains
   try {
     const whitelabelRoutes = require('./server/routes/whitelabel-routes.cjs');

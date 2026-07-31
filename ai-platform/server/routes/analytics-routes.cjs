@@ -44,6 +44,7 @@ const ticketStatusStore = require('../lib/ticket-status-store.cjs');
 const webhookConfigStore = require('../lib/webhook-config-store.cjs');
 const reportScheduleStore = require('../lib/report-schedule-store.cjs');
 const reportScheduler = require('../lib/report-scheduler.cjs');
+const auditLogger = require('../lib/audit-logger.cjs');
 const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
 
 reportScheduler.setAnalyticsStore(analyticsStore);
@@ -556,6 +557,7 @@ router.post('/violations/mark-ticketed', (req, res) => {
 
     const orgId = getOrgId(req);
     const entry = ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget, orgId);
+    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'CREATE', entity: 'ticket_status', entityId: `${scanId}::${category}`, newValue: entry, metadata: { route: req.originalUrl } });
     res.json({ success: true, ticket: entry });
   } catch (err) {
     logger.error('[Analytics] Mark ticketed failed:', err.message);
@@ -571,7 +573,9 @@ router.post('/violations/unmark-ticketed', (req, res) => {
     if (!category) return sendError(res, 400, 'category is required');
 
     const orgId = getOrgId(req);
+    const oldValue = ticketStatusStore.getTicketStatus(scanId, category, orgId);
     const result = ticketStatusStore.unmarkTicketed(scanId, category, orgId);
+    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'DELETE', entity: 'ticket_status', entityId: `${scanId}::${category}`, oldValue, metadata: { route: req.originalUrl } });
     res.json({ success: true, ...result });
   } catch (err) {
     logger.error('[Analytics] Unmark ticketed failed:', err.message);
@@ -594,6 +598,7 @@ router.post('/violations/bulk-mark-ticketed', (req, res) => {
       if (!v.scanId || !v.category) { failed++; continue; }
       try {
         const entry = ticketStatusStore.markTicketed(v.scanId, v.category, ticketRef, ticketTarget || 'jira', orgId);
+        auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'CREATE', entity: 'ticket_status', entityId: `${v.scanId}::${v.category}`, newValue: entry, metadata: { route: req.originalUrl, bulk: true, ticketRef } });
         results.push(entry);
         succeeded++;
       } catch {
@@ -620,7 +625,9 @@ router.post('/violations/bulk-unmark-ticketed', (req, res) => {
     for (const v of violations) {
       if (!v.scanId || !v.category) { failed++; continue; }
       try {
+        const oldVal = ticketStatusStore.getTicketStatus(v.scanId, v.category, orgId);
         ticketStatusStore.unmarkTicketed(v.scanId, v.category, orgId);
+        auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'DELETE', entity: 'ticket_status', entityId: `${v.scanId}::${v.category}`, oldValue: oldVal, metadata: { route: req.originalUrl, bulk: true } });
         succeeded++;
       } catch {
         failed++;
@@ -1138,7 +1145,9 @@ router.post('/webhook/configs', (req, res) => {
     if (!apiUrl) return sendError(res, 400, 'apiUrl is required');
 
     const orgId = getOrgId(req);
+    const oldConfig = webhookConfigStore.getConfig(target, orgId);
     const config = webhookConfigStore.setConfig(target, { apiUrl, authToken, projectKey, teamId, repoOwner, repoName }, orgId);
+    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: oldConfig ? 'UPDATE' : 'CREATE', entity: 'webhook_config', entityId: target, oldValue: oldConfig, newValue: { ...config, authToken: '••••••••' }, metadata: { route: req.originalUrl } });
     res.json({ success: true, config: { ...config, authToken: '••••••••' } });
   } catch (err) {
     logger.error('[Analytics] Save webhook config failed:', err.message);
@@ -1151,7 +1160,9 @@ router.delete('/webhook/configs/:target', (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { target } = req.params;
+    const oldConfig = webhookConfigStore.getConfig(target, orgId);
     webhookConfigStore.deleteConfig(target, orgId);
+    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'DELETE', entity: 'webhook_config', entityId: target, oldValue: oldConfig, metadata: { route: req.originalUrl } });
     res.json({ success: true, deleted: target });
   } catch (err) {
     logger.error('[Analytics] Delete webhook config failed:', err.message);
@@ -1180,7 +1191,9 @@ router.post('/report/schedules', (req, res) => {
     const validFreq = ['daily', 'weekly', 'monthly'];
     if (frequency && !validFreq.includes(frequency)) return sendError(res, 400, 'frequency must be daily, weekly, or monthly');
     const orgId = getOrgId(req);
+    const oldSchedule = reportScheduleStore.getSchedule(id, orgId);
     const schedule = reportScheduleStore.setSchedule(id, { name, enabled, frequency, dayOfWeek, dayOfMonth, hour, minute, format, recipients, filters }, orgId);
+    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: oldSchedule ? 'UPDATE' : 'CREATE', entity: 'report_schedule', entityId: id, oldValue: oldSchedule, newValue: schedule, metadata: { route: req.originalUrl } });
     res.json({ success: true, schedule });
   } catch (err) {
     logger.error('[Analytics] Save report schedule failed:', err.message);
@@ -1193,7 +1206,9 @@ router.delete('/report/schedules/:id', (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
+    const oldSchedule = reportScheduleStore.getSchedule(id, orgId);
     reportScheduleStore.deleteSchedule(id, orgId);
+    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'DELETE', entity: 'report_schedule', entityId: id, oldValue: oldSchedule, metadata: { route: req.originalUrl } });
     res.json({ success: true, deleted: id });
   } catch (err) {
     logger.error('[Analytics] Delete report schedule failed:', err.message);
@@ -1209,6 +1224,7 @@ router.post('/report/schedules/:id/run', async (req, res) => {
     const schedule = reportScheduleStore.getSchedule(id, orgId);
     if (!schedule) return sendError(res, 404, 'schedule_not_found');
     const result = await reportScheduler.runSchedule(schedule, orgId);
+    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'RUN', entity: 'report_schedule', entityId: id, newValue: { success: result.success, error: result.error || null }, metadata: { route: req.originalUrl } });
     if (result.success) {
       res.json({ success: true, schedule: reportScheduleStore.getSchedule(id, orgId), result: result });
     } else {

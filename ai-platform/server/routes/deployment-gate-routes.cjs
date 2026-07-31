@@ -5,6 +5,8 @@ const crypto = require('crypto');
 const { authenticate, optionalAuthenticate } = require('../middleware/auth.cjs');
 const deploymentGateStore = require('../lib/deployment-gate-store.cjs');
 const ticketStatusStore = require('../lib/ticket-status-store.cjs');
+const auditLogger = require('../lib/audit-logger.cjs');
+const { sendError } = require('../lib/response-helpers.cjs');
 
 // Lazy-load analytics store to avoid circular deps
 let analyticsStoreRef = null;
@@ -242,7 +244,7 @@ router.get('/evaluate', (req, res) => {
     const { repository, branch, commitSha, triggeredBy } = req.query;
 
     if (!repository) {
-      return res.status(400).json({ error: 'repository is required', message: 'Specify the repository to evaluate' });
+      return sendError(res, 400, 'repository is required', { message: 'Specify the repository to evaluate' });
     }
 
     // Load org policy, then apply any query-param overrides
@@ -276,7 +278,7 @@ router.get('/evaluate', (req, res) => {
     const status = result.pass ? 200 : 403;
     res.status(status).json(response);
   } catch (err) {
-    res.status(500).json({ error: 'gate_evaluation_failed', message: err.message });
+    sendError(res, 500, 'gate_evaluation_failed', { message: err.message });
   }
 });
 
@@ -287,7 +289,7 @@ router.get('/policy', (req, res) => {
     const policy = deploymentGateStore.getPolicy(orgId);
     res.json({ success: true, policy });
   } catch (err) {
-    res.status(500).json({ error: 'policy_fetch_failed', message: err.message });
+    sendError(res, 500, 'policy_fetch_failed', { message: err.message });
   }
 });
 
@@ -296,13 +298,15 @@ router.post('/policy', (req, res) => {
   try {
     const orgId = getOrgId(req);
     const { minPostureScore, maxCritical, maxHigh, maxMedium, maxLow, blockOnGateFail, blockOnSlaBreached, blockOnUnticketedCritical } = req.body || {};
+    const oldPolicy = deploymentGateStore.getPolicy(orgId);
     const policy = deploymentGateStore.setPolicy(orgId, {
       minPostureScore, maxCritical, maxHigh, maxMedium, maxLow,
       blockOnGateFail, blockOnSlaBreached, blockOnUnticketedCritical,
     });
+    auditLogger.log({ orgId, actorId: req.user?.id, actorEmail: req.user?.email, action: 'UPDATE', entity: 'deployment_gate_policy', entityId: orgId, oldValue: oldPolicy, newValue: policy, metadata: { route: req.originalUrl } });
     res.json({ success: true, policy });
   } catch (err) {
-    res.status(500).json({ error: 'policy_save_failed', message: err.message });
+    sendError(res, 500, 'policy_save_failed', { message: err.message });
   }
 });
 
@@ -315,7 +319,7 @@ router.get('/history', (req, res) => {
     const history = deploymentGateStore.getHistory(orgId, limit);
     res.json({ success: true, history, count: history.length });
   } catch (err) {
-    res.status(500).json({ error: 'history_fetch_failed', message: err.message });
+    sendError(res, 500, 'history_fetch_failed', { message: err.message });
   }
 });
 
