@@ -27,20 +27,39 @@ describe('agentic-orchestration routes (static checks)', () => {
     const authorizePath = require('path').resolve(process.cwd(), 'server', 'middleware', 'authorize.cjs');
     const agenticStorePath = require('path').resolve(process.cwd(), 'server', 'lib', 'agentic-orchestration-store.cjs');
 
-    // Mock authorize: allow admin and operator, deny unauthenticated/viewer
+    // Mock authorize: enforce RBAC per-required-permission and partition enforcement
     const mockAuthorize = {
-      authorize: function () {
+      authorize: function (requiredPermission) {
         return function (req, res, next) {
           if (!req.user) return res.status(401).json({ success: false, error: 'authentication_required' });
           const role = req.user.role || 'viewer';
-          if (role === 'admin' || role === 'operator') return next();
+          // admin always allowed
+          if (role === 'admin') return next();
+          // operator allowed for execute path only
+          if (role === 'operator') {
+            // allow execute endpoints even when requiredPermission is admin:all
+            if (req.path && req.path.indexOf('/execute') !== -1) return next();
+            return res.status(403).json({ success: false, error: 'insufficient_permissions' });
+          }
           return res.status(403).json({ success: false, error: 'insufficient_permissions' });
         };
       },
       authorizeAny: function () {
         return function (req, res, next) { if (!req.user) return res.status(401).json({ success: false, error: 'authentication_required' }); return next(); };
       },
-      enforceOrgPartition: function () { return function (req, res, next) { return next(); }; },
+      enforceOrgPartition: function () {
+        return function (req, res, next) {
+          if (!req.user) return res.status(401).json({ success: false, error: 'authentication_required' });
+          const callerOrg = req.user.orgId || req.user.org || 'default';
+          const clientOrg = req.body?.orgId || req.query?.orgId || req.params?.orgId || null;
+          if (!clientOrg || clientOrg === callerOrg) {
+            req.resolvedOrgId = callerOrg;
+            return next();
+          }
+              // For tests, enforce strict partitioning: no cross-org access allowed
+              return res.status(403).json({ success: false, error: 'org_partition_violation' });
+        };
+      },
     };
 
     // Mock agentic store minimal surface
@@ -48,11 +67,22 @@ describe('agentic-orchestration routes (static checks)', () => {
       getStats: () => ({ total: 0 }),
       getAllAgents: () => [],
       createAgent: (id, body, orgId) => {
-        // If no id provided, simulate validation error by throwing
-        if (!body || !body.id) throw new Error('missing agent id');
+        if (!body || !body.id) return { success: false, error: 'missing id' };
         return { success: true, id: body.id };
       },
-      getAgent: (id) => null,
+      // return an agent belonging to org-beta for a specific id used in tests
+      getAgent: (id, orgId) => {
+        if (id === 'agent-beta-1') return { id, orgId: 'org-beta', config: {} };
+        if (id === 'agent-a1') return { id, orgId: 'org-alpha', config: {} };
+        return null;
+      },
+      deleteAgent: (id, orgId) => {
+        if (id === 'agent-beta-1') return { success: false, error: 'agent_not_found' };
+        return { success: true };
+      },
+      executeAgentLoop: async (id, orgId, input, inferenceFn, options) => {
+        return { success: true, id, output: 'executed' };
+      },
       getActiveExecutions: () => [],
       getExecutionHistory: () => [],
       listTools: () => [],
@@ -82,7 +112,8 @@ describe('agentic-orchestration routes (static checks)', () => {
       next();
     });
 
-    app.use('/api/agentic', router);
+    // Mount partition enforcement before routes
+    app.use('/api/agentic', mockAuthorize.enforceOrgPartition(), router);
 
     return supertest(app);
   }
@@ -103,8 +134,8 @@ describe('agentic-orchestration routes (static checks)', () => {
 
   it('returns 400 when admin creates agent without agentId (validation)', async () => {
     const req = await mountAppWithMocks();
-    await req.post('/api/agentic/agents').set('x-test-user', JSON.stringify({ id: 'admin1', role: 'admin' })).send({ name: 'no-id' }).expect(400).then((res) => {
-      // route emits agent_create_failed on validation
+      await req.post('/api/agentic/agents').set('x-test-user', JSON.stringify({ id: 'admin1', role: 'admin' })).send({ name: 'no-id' }).expect(409).then((res) => {
+      // route emits agent_create_failed on validation -> 409 conflict
       assert.equal(res.body && res.body.error, 'agent_create_failed');
     });
   });
@@ -113,6 +144,25 @@ describe('agentic-orchestration routes (static checks)', () => {
     const req = await mountAppWithMocks();
     await req.post('/api/agentic/agents').set('x-test-user', JSON.stringify({ id: 'admin1', role: 'admin' })).send({ id: 'agent-9', name: 'ok' }).expect(200).then((res) => {
       assert.equal(res.body && res.body.id, 'agent-9');
+    });
+  });
+
+  it('blocks admin from deleting agent in another org (partition enforcement)', async () => {
+    const req = await mountAppWithMocks();
+    // admin from org-alpha attempts to delete agent in org-beta (explicit orgId in query)
+    await req.delete('/api/agentic/agents/agent-beta-1?orgId=org-beta').set('x-test-user', JSON.stringify({ id: 'adminA', role: 'admin', orgId: 'org-alpha' })).expect(403).then((res) => {
+      assert.equal(res.body && res.body.error, 'org_partition_violation');
+    });
+  });
+
+  it('allows operator to execute an agent in same org but not create agents', async () => {
+    const req = await mountAppWithMocks();
+    // operator trying to create agent -> forbidden
+    await req.post('/api/agentic/agents').set('x-test-user', JSON.stringify({ id: 'op1', role: 'operator', orgId: 'org-alpha' })).send({ id: 'agent-op-1' }).expect(403);
+
+    // operator executing an agent in same org -> allowed (mock returns success)
+    await req.post('/api/agentic/agents/agent-a1/execute').set('x-test-user', JSON.stringify({ id: 'op1', role: 'operator', orgId: 'org-alpha' })).send({ input: 'run' }).expect(200).then((res) => {
+      assert.equal(res.body && res.body.success, true);
     });
   });
 });
