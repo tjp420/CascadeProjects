@@ -57,6 +57,7 @@ export default [
       'github-cache/**',
       'web/simplebeacon-dashboard/js/vendor/**',
       'web/simplebeacon-dashboard/js-es2018/vendor/**',
+      'web/simplebeacon-dashboard/js-es2018/**',
       'web/dashboard/js/vendor/**',
       'web/dashboard/js-es2018/vendor/**',
       'web/simplebeacon-dashboard/assets/**',
