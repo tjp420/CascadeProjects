@@ -55,7 +55,7 @@ export function IntegrationsView() {
   const [events, setEvents] = useState<EventTypes>({});
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({
+  const [createForm, setCreateForm] = useState<Record<string, string>>({
     type: 'slack',
     orgId: '',
     name: '',
