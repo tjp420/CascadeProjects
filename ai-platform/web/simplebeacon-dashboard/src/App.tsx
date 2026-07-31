@@ -39,6 +39,7 @@ const EnterpriseView = lazy(() => import('./views/EnterpriseView').then((m) => (
 const OutreachAnalyticsView = lazy(() => import('./views/OutreachAnalyticsView').then((m) => ({ default: m.OutreachAnalyticsView })));
 const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then((m) => ({ default: m.TeamMetricsView })));
 const AnalyticsDashboardView = lazy(() => import('./views/AnalyticsDashboardView').then((m) => ({ default: m.AnalyticsDashboardView })));
+const SecurityAdminView = lazy(() => import('./views/SecurityAdminView').then((m) => ({ default: m.SecurityAdminView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
 const AUTH_REQUIRED_VIEWS = new Set(['organization']);
@@ -136,6 +137,7 @@ const viewMap: Record<string, ComponentType> = {
   'team-metrics': TeamMetricsView,
   'outreach-analytics': OutreachAnalyticsView,
   'analytics-dashboard': AnalyticsDashboardView,
+  'security-admin': SecurityAdminView,
 };
 
 // Route-level permission requirements — mirrors the sidebar permission declarations.
@@ -152,6 +154,7 @@ const VIEW_PERMISSIONS: Record<string, string> = {
   remediation: 'read:all',
   platform: 'read:analytics',
   'analytics-dashboard': 'read:analytics',
+  'security-admin': 'admin:all',
   'team-metrics': 'read:analytics',
   'outreach-analytics': 'read:analytics',
   organization: 'admin:all',

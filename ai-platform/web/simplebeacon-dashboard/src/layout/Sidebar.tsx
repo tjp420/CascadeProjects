@@ -27,6 +27,7 @@ import {
   Server,
   Mail,
   Activity,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePrefetch } from '@/hooks/usePrefetch';
@@ -68,6 +69,7 @@ const navGroups: NavGroup[] = [
     items: [
       { view: 'audit', label: 'Audit Report', icon: ClipboardCheck, permission: 'read:audit' },
       { view: 'security', label: 'Security', icon: Lock, permission: 'read:all' },
+      { view: 'security-admin', label: 'Security Ops', icon: ShieldCheck, permission: 'admin:all' },
       { view: 'quality', label: 'Quality', icon: Award, permission: 'read:all' },
       { view: 'trust', label: 'Trust', icon: BadgeCheck, permission: 'read:all' },
     ],
