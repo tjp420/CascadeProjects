@@ -53,6 +53,7 @@ import {
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
+import { SecurityMonitorSettings } from '@/components/SecurityMonitorSettings';
 
 type GlobalStats = {
   totalOrgs: number;
@@ -4072,6 +4073,8 @@ export function UsageAnalyticsView() {
           </div>
         </div>
       )}
+
+      <SecurityMonitorSettings />
     </div>
   );
 }

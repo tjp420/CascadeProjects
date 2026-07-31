@@ -4,13 +4,43 @@ const auditLogger = require('./audit-logger.cjs');
 const guardrailIncidentStore = require('./guardrail-incident-store.cjs');
 const { processEvent } = require('./alert-dispatcher.cjs');
 const logger = require('./app-logger.cjs');
+const settingsStore = require('./security-monitor-settings-store.cjs');
 
-const POLL_INTERVAL_MS = 60 * 1000;
-const GUARDRAIL_SPIKE_THRESHOLD = 10;
-const GUARDRAIL_SPIKE_WINDOW_MS = 5 * 60 * 1000;
-const ALERT_COOLDOWN_MS = 15 * 60 * 1000;
-// Auto-heal broken chains when detected. Can be disabled via env var.
-const AUTO_HEAL_ENABLED = process.env.AUDIT_CHAIN_AUTO_HEAL !== 'false';
+// Default constants — now overridable via settings store
+const DEFAULT_POLL_INTERVAL_MS = 60 * 1000;
+const DEFAULT_GUARDRAIL_SPIKE_THRESHOLD = 10;
+const DEFAULT_GUARDRAIL_SPIKE_WINDOW_MS = 5 * 60 * 1000;
+const DEFAULT_ALERT_COOLDOWN_MS = 15 * 60 * 1000;
+
+function getSettings() {
+  return settingsStore.getSettings();
+}
+
+function getPollIntervalMs() {
+  return getSettings().pollIntervalMs || DEFAULT_POLL_INTERVAL_MS;
+}
+
+function getGuardrailSpikeThreshold() {
+  return getSettings().guardrailSpikeThreshold || DEFAULT_GUARDRAIL_SPIKE_THRESHOLD;
+}
+
+function getAlertCooldownMs() {
+  return getSettings().alertCooldownMs || DEFAULT_ALERT_COOLDOWN_MS;
+}
+
+function isAutoHealEnabled() {
+  const settings = getSettings();
+  if (settings.autoHealEnabled !== undefined) return settings.autoHealEnabled;
+  return process.env.AUDIT_CHAIN_AUTO_HEAL !== 'false';
+}
+
+function isChainCheckEnabled() {
+  return getSettings().chainIntegrityCheckEnabled !== false;
+}
+
+function isGuardrailCheckEnabled() {
+  return getSettings().guardrailAnomalyCheckEnabled !== false;
+}
 
 const lastAlertedAt = new Map();
 const lastGuardrailCounts = new Map();
@@ -43,7 +73,7 @@ function getKnownOrgIds() {
 function shouldAlert(key) {
   const last = lastAlertedAt.get(key);
   if (!last) return true;
-  return Date.now() - last > ALERT_COOLDOWN_MS;
+  return Date.now() - last > getAlertCooldownMs();
 }
 
 function markAlerted(key) {
@@ -58,8 +88,9 @@ async function runChecks() {
 
   for (const orgId of orgIds) {
     // Capture chain verification result for status reporting
-    const chainResult = auditLogger.verifyChain(orgId);
-    chainResults.push({ orgId, ...chainResult });
+    if (isChainCheckEnabled()) {
+      const chainResult = auditLogger.verifyChain(orgId);
+      chainResults.push({ orgId, ...chainResult });
 
     if (!chainResult.valid) {
       const alertKey = `audit_chain_broken:${orgId}`;
@@ -82,7 +113,7 @@ async function runChecks() {
       }
 
       // Auto-heal: quarantine broken entries and re-seal the chain
-      if (AUTO_HEAL_ENABLED) {
+      if (isAutoHealEnabled()) {
         try {
           const healResult = auditLogger.healChain(orgId);
           if (healResult.healed) {
@@ -101,8 +132,10 @@ async function runChecks() {
         }
       }
     }
+    } // end chainIntegrityCheckEnabled
 
     // Guardrail anomaly check
+    if (isGuardrailCheckEnabled()) {
     try {
       const stats = guardrailIncidentStore.getStats(orgId);
       const currentBlocked = stats.blockedCount || 0;
@@ -111,7 +144,7 @@ async function runChecks() {
 
       guardrailResults.push({ orgId, currentBlocked, previousBlocked: lastBlocked, delta });
 
-      if (delta >= GUARDRAIL_SPIKE_THRESHOLD) {
+      if (delta >= getGuardrailSpikeThreshold()) {
         const alertKey = `guardrail_anomaly_spike:${orgId}`;
         if (shouldAlert(alertKey)) {
           logger.warn(
@@ -137,6 +170,7 @@ async function runChecks() {
     } catch (err) {
       logger.warn(`[SecurityMonitor] Guardrail check failed for ${orgId}:`, err.message);
     }
+    } // end guardrailAnomalyCheckEnabled
   }
 
   lastRunAt = new Date().toISOString();
@@ -160,15 +194,21 @@ async function runOnce() {
  * @returns {object}
  */
 function getStatus() {
+  const settings = getSettings();
   return {
     running: intervalId !== null,
-    pollIntervalMs: POLL_INTERVAL_MS,
-    autoHealEnabled: AUTO_HEAL_ENABLED,
+    pollIntervalMs: getPollIntervalMs(),
+    autoHealEnabled: isAutoHealEnabled(),
+    guardrailSpikeThreshold: getGuardrailSpikeThreshold(),
+    alertCooldownMs: getAlertCooldownMs(),
+    chainIntegrityCheckEnabled: isChainCheckEnabled(),
+    guardrailAnomalyCheckEnabled: isGuardrailCheckEnabled(),
     lastRunAt,
     lastRunDurationMs,
     runCount,
     orgsTracked: lastResults ? lastResults.orgsChecked : 0,
     lastResults,
+    settingsUpdatedAt: settings.updatedAt,
   };
 }
 
@@ -176,9 +216,10 @@ let intervalId = null;
 
 function start() {
   if (intervalId) return;
-  logger.info('[SecurityMonitor] Starting security threat monitor');
+  const pollMs = getPollIntervalMs();
+  logger.info(`[SecurityMonitor] Starting security threat monitor (poll: ${pollMs}ms)`);
   setTimeout(runChecks, 10 * 1000);
-  intervalId = setInterval(runChecks, POLL_INTERVAL_MS);
+  intervalId = setInterval(runChecks, pollMs);
 }
 
 function stop() {
@@ -189,4 +230,13 @@ function stop() {
   }
 }
 
-module.exports = { start, stop, runChecks, runOnce, getStatus };
+/**
+ * Restart the monitor with updated settings (live-reload poll interval).
+ */ function restart() {
+  if (intervalId) {
+    stop();
+    start();
+  }
+}
+
+module.exports = { start, stop, restart, runChecks, runOnce, getStatus };

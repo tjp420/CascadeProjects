@@ -1509,6 +1509,15 @@ async function startServer() {
     logger.error('[Routes] Ledger index not loaded:', err?.message || err);
   }
 
+  // Security monitor settings — anomaly thresholds, cooldown profiles
+  try {
+    const secMonitorRoutes = require('./server/routes/security-monitor-settings-routes.cjs');
+    app.use('/api/security-monitor', secMonitorRoutes);
+    logger.info('[Routes] Security monitor settings loaded at /api/security-monitor');
+  } catch (err) {
+    logger.error('[Routes] Security monitor settings not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');
