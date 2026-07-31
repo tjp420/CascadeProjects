@@ -21,19 +21,35 @@ function writeStore(store) {
   fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
 }
 
-function getAllSchedules() {
-  const store = readStore();
-  return store.schedules;
+function makeScheduleKey(orgId, id) {
+  return orgId ? `${orgId}::${id}` : id;
 }
 
-function getSchedule(id) {
+function getAllSchedules(orgId) {
   const store = readStore();
-  return store.schedules[id] || null;
+  if (!orgId) return store.schedules;
+  const scoped = {};
+  for (const [key, val] of Object.entries(store.schedules)) {
+    if (val.orgId === orgId) {
+      const idKey = val.id || key;
+      scoped[idKey] = val;
+    }
+  }
+  return scoped;
 }
 
-function setSchedule(id, config) {
+function getSchedule(id, orgId) {
   const store = readStore();
-  store.schedules[id] = {
+  const key = makeScheduleKey(orgId, id);
+  return store.schedules[key] || null;
+}
+
+function setSchedule(id, config, orgId) {
+  const store = readStore();
+  const key = makeScheduleKey(orgId, id);
+  const existing = store.schedules[key];
+  store.schedules[key] = {
+    orgId: orgId || 'default',
     id,
     name: config.name || id,
     enabled: config.enabled !== false,
@@ -45,29 +61,31 @@ function setSchedule(id, config) {
     format: config.format || 'csv',
     recipients: Array.isArray(config.recipients) ? config.recipients : [],
     filters: config.filters || {},
-    lastRunAt: store.schedules[id]?.lastRunAt || null,
-    lastRunStatus: store.schedules[id]?.lastRunStatus || null,
-    lastRunError: store.schedules[id]?.lastRunError || null,
-    createdAt: store.schedules[id]?.createdAt || new Date().toISOString(),
+    lastRunAt: existing?.lastRunAt || null,
+    lastRunStatus: existing?.lastRunStatus || null,
+    lastRunError: existing?.lastRunError || null,
+    createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
   writeStore(store);
-  return store.schedules[id];
+  return store.schedules[key];
 }
 
-function updateScheduleRunResult(id, status, error) {
+function updateScheduleRunResult(id, status, error, orgId) {
   const store = readStore();
-  if (store.schedules[id]) {
-    store.schedules[id].lastRunAt = new Date().toISOString();
-    store.schedules[id].lastRunStatus = status;
-    store.schedules[id].lastRunError = error || null;
+  const key = makeScheduleKey(orgId, id);
+  if (store.schedules[key]) {
+    store.schedules[key].lastRunAt = new Date().toISOString();
+    store.schedules[key].lastRunStatus = status;
+    store.schedules[key].lastRunError = error || null;
     writeStore(store);
   }
 }
 
-function deleteSchedule(id) {
+function deleteSchedule(id, orgId) {
   const store = readStore();
-  delete store.schedules[id];
+  const key = makeScheduleKey(orgId, id);
+  delete store.schedules[key];
   writeStore(store);
 }
 

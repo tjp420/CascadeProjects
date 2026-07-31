@@ -25,10 +25,17 @@ function makeKey(scanId, category) {
   return `${scanId}::${category}`;
 }
 
-function markTicketed(scanId, category, ticketRef, ticketTarget) {
+function makeOrgKey(orgId, scanId, category) {
+  return `${orgId}::${scanId}::${category}`;
+}
+
+// ── Org-scoped operations (multi-tenant) ────────────────────────────
+
+function markTicketed(scanId, category, ticketRef, ticketTarget, orgId) {
   const store = readStore();
-  const key = makeKey(scanId, category);
+  const key = orgId ? makeOrgKey(orgId, scanId, category) : makeKey(scanId, category);
   store.tickets[key] = {
+    orgId: orgId || 'default',
     scanId,
     category,
     ticketRef,
@@ -40,28 +47,43 @@ function markTicketed(scanId, category, ticketRef, ticketTarget) {
   return store.tickets[key];
 }
 
-function unmarkTicketed(scanId, category) {
+function unmarkTicketed(scanId, category, orgId) {
   const store = readStore();
-  const key = makeKey(scanId, category);
+  const key = orgId ? makeOrgKey(orgId, scanId, category) : makeKey(scanId, category);
   delete store.tickets[key];
   writeStore(store);
   return { scanId, category, status: 'unticketed' };
 }
 
-function getTicketStatus(scanId, category) {
+function getTicketStatus(scanId, category, orgId) {
   const store = readStore();
-  const key = makeKey(scanId, category);
+  const key = orgId ? makeOrgKey(orgId, scanId, category) : makeKey(scanId, category);
   return store.tickets[key] || null;
 }
 
-function getAllTicketStatuses() {
+function getAllTicketStatuses(orgId) {
   const store = readStore();
-  return store.tickets;
+  if (!orgId) return store.tickets;
+  const scoped = {};
+  for (const [key, val] of Object.entries(store.tickets)) {
+    if (val.orgId === orgId) scoped[key] = val;
+  }
+  return scoped;
 }
 
-function getTicketedKeys() {
+function getTicketedKeys(orgId) {
   const store = readStore();
-  return new Set(Object.keys(store.tickets));
+  if (!orgId) return new Set(Object.keys(store.tickets));
+  const keys = new Set();
+  for (const [key, val] of Object.entries(store.tickets)) {
+    if (val.orgId === orgId) keys.add(key);
+  }
+  return keys;
+}
+
+// Backward-compatible key builder for org-scoped lookups in route handlers
+function buildTicketKey(orgId, scanId, category) {
+  return orgId ? makeOrgKey(orgId, scanId, category) : makeKey(scanId, category);
 }
 
 module.exports = {
@@ -70,4 +92,5 @@ module.exports = {
   getTicketStatus,
   getAllTicketStatuses,
   getTicketedKeys,
+  buildTicketKey,
 };

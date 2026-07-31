@@ -70,25 +70,34 @@ function writeStore(store) {
   fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
 }
 
-function getConfig(target) {
+function makeConfigKey(orgId, target) {
+  return orgId ? `${orgId}::${target}` : target;
+}
+
+function getConfig(target, orgId) {
   const store = readStore();
-  const config = store.configs[target];
+  const key = makeConfigKey(orgId, target);
+  const config = store.configs[key];
   if (!config) return null;
   return { ...config, authToken: decryptToken(config.authToken) };
 }
 
-function getAllConfigs() {
+function getAllConfigs(orgId) {
   const store = readStore();
   const configs = {};
   for (const [key, val] of Object.entries(store.configs)) {
-    configs[key] = { ...val, authToken: decryptToken(val.authToken) };
+    if (orgId && val.orgId !== orgId) continue;
+    const targetKey = val.target || key;
+    configs[targetKey] = { ...val, authToken: decryptToken(val.authToken) };
   }
   return configs;
 }
 
-function setConfig(target, config) {
+function setConfig(target, config, orgId) {
   const store = readStore();
-  store.configs[target] = {
+  const key = makeConfigKey(orgId, target);
+  store.configs[key] = {
+    orgId: orgId || 'default',
     target,
     apiUrl: config.apiUrl || '',
     authToken: encryptToken(config.authToken || ''),
@@ -99,12 +108,13 @@ function setConfig(target, config) {
     updatedAt: new Date().toISOString(),
   };
   writeStore(store);
-  return { ...store.configs[target], authToken: config.authToken || '' };
+  return { ...store.configs[key], authToken: config.authToken || '' };
 }
 
-function deleteConfig(target) {
+function deleteConfig(target, orgId) {
   const store = readStore();
-  delete store.configs[target];
+  const key = makeConfigKey(orgId, target);
+  delete store.configs[key];
   writeStore(store);
 }
 

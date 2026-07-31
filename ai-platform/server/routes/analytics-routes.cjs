@@ -37,6 +37,7 @@
 
 const express = require('express');
 const logger = require('../lib/app-logger.cjs');
+const { authenticate } = require('../middleware/auth.cjs');
 const analyticsStore = require('../lib/usage-analytics-store.cjs');
 const ticketStatusStore = require('../lib/ticket-status-store.cjs');
 const webhookConfigStore = require('../lib/webhook-config-store.cjs');
@@ -47,6 +48,14 @@ reportScheduler.setAnalyticsStore(analyticsStore);
 reportScheduler.startScheduler();
 
 const router = express.Router();
+
+// Apply authentication to all analytics endpoints
+router.use(authenticate);
+
+// Helper: extract orgId from authenticated session
+function getOrgId(req) {
+  return req.user?.id || req.user?.email || 'default';
+}
 
 const REMEDIATION_GUIDANCE = {
   'EU AI Act — Prohibited Practices': {
@@ -351,8 +360,9 @@ const SLA_THRESHOLDS = {
 //                 slaBreached (true|false)
 router.get('/violations', (req, res) => {
   try {
+    const orgId = getOrgId(req);
     const filters = {
-      orgId: req.query.orgId,
+      orgId,
       repository: req.query.repository,
       branch: req.query.branch,
       startDate: req.query.startDate,
@@ -366,15 +376,15 @@ router.get('/violations', (req, res) => {
     const now = Date.now();
 
     const result = analyticsStore.getScans(filters);
-    const ticketedKeys = ticketStatusStore.getTicketedKeys();
-    const allStatuses = ticketStatusStore.getAllTicketStatuses();
+    const ticketedKeys = ticketStatusStore.getTicketedKeys(orgId);
+    const allStatuses = ticketStatusStore.getAllTicketStatuses(orgId);
 
     const violations = [];
     for (const scan of result.scans) {
       const cats = scan.categoryCounts || {};
       for (const [category, count] of Object.entries(cats)) {
         if (count <= 0) continue;
-        const ticketKey = `${scan.scanId}::${category}`;
+        const ticketKey = ticketStatusStore.buildTicketKey(orgId, scan.scanId, category);
         const isTicketed = ticketedKeys.has(ticketKey);
         const ticketEntry = allStatuses[ticketKey];
 
@@ -450,8 +460,9 @@ router.post('/violations/ticket-payload', (req, res) => {
     if (!scanId) return res.status(400).json({ error: 'scanId is required' });
     if (!category) return res.status(400).json({ error: 'category is required' });
 
+    const orgId = getOrgId(req);
     const ticketTarget = (target || 'jira').toLowerCase();
-    const result = analyticsStore.getScans({ limit: 100000, offset: 0 });
+    const result = analyticsStore.getScans({ orgId, limit: 100000, offset: 0 });
     const scan = result.scans.find(s => s.scanId === scanId);
     if (!scan) return res.status(404).json({ error: 'scan_not_found', message: 'Scan not found' });
 
@@ -539,7 +550,8 @@ router.post('/violations/mark-ticketed', (req, res) => {
     if (!category) return res.status(400).json({ error: 'category is required' });
     if (!ticketRef) return res.status(400).json({ error: 'ticketRef is required' });
 
-    const entry = ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget);
+    const orgId = getOrgId(req);
+    const entry = ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget, orgId);
     res.json({ success: true, ticket: entry });
   } catch (err) {
     logger.error('[Analytics] Mark ticketed failed:', err.message);
@@ -554,7 +566,8 @@ router.post('/violations/unmark-ticketed', (req, res) => {
     if (!scanId) return res.status(400).json({ error: 'scanId is required' });
     if (!category) return res.status(400).json({ error: 'category is required' });
 
-    const result = ticketStatusStore.unmarkTicketed(scanId, category);
+    const orgId = getOrgId(req);
+    const result = ticketStatusStore.unmarkTicketed(scanId, category, orgId);
     res.json({ success: true, ...result });
   } catch (err) {
     logger.error('[Analytics] Unmark ticketed failed:', err.message);
@@ -569,13 +582,14 @@ router.post('/violations/bulk-mark-ticketed', (req, res) => {
     if (!Array.isArray(violations) || violations.length === 0) return res.status(400).json({ error: 'violations array is required' });
     if (!ticketRef) return res.status(400).json({ error: 'ticketRef is required' });
 
+    const orgId = getOrgId(req);
     const results = [];
     let succeeded = 0;
     let failed = 0;
     for (const v of violations) {
       if (!v.scanId || !v.category) { failed++; continue; }
       try {
-        const entry = ticketStatusStore.markTicketed(v.scanId, v.category, ticketRef, ticketTarget || 'jira');
+        const entry = ticketStatusStore.markTicketed(v.scanId, v.category, ticketRef, ticketTarget || 'jira', orgId);
         results.push(entry);
         succeeded++;
       } catch {
@@ -596,12 +610,13 @@ router.post('/violations/bulk-unmark-ticketed', (req, res) => {
     const { violations } = req.body || {};
     if (!Array.isArray(violations) || violations.length === 0) return res.status(400).json({ error: 'violations array is required' });
 
+    const orgId = getOrgId(req);
     let succeeded = 0;
     let failed = 0;
     for (const v of violations) {
       if (!v.scanId || !v.category) { failed++; continue; }
       try {
-        ticketStatusStore.unmarkTicketed(v.scanId, v.category);
+        ticketStatusStore.unmarkTicketed(v.scanId, v.category, orgId);
         succeeded++;
       } catch {
         failed++;
@@ -618,7 +633,8 @@ router.post('/violations/bulk-unmark-ticketed', (req, res) => {
 // GET /api/analytics/violations/ticket-statuses — get all ticketed violation statuses
 router.get('/violations/ticket-statuses', (req, res) => {
   try {
-    const statuses = ticketStatusStore.getAllTicketStatuses();
+    const orgId = getOrgId(req);
+    const statuses = ticketStatusStore.getAllTicketStatuses(orgId);
     res.json({ success: true, statuses });
   } catch (err) {
     logger.error('[Analytics] Ticket statuses failed:', err.message);
@@ -629,8 +645,9 @@ router.get('/violations/ticket-statuses', (req, res) => {
 // GET /api/analytics/violations/summary — remediation coverage summary with per-category breakdown
 router.get('/violations/summary', (req, res) => {
   try {
+    const orgId = getOrgId(req);
     const filters = {
-      orgId: req.query.orgId,
+      orgId,
       repository: req.query.repository,
       branch: req.query.branch,
       startDate: req.query.startDate,
@@ -639,7 +656,7 @@ router.get('/violations/summary', (req, res) => {
       offset: 0,
     };
     const result = analyticsStore.getScans(filters);
-    const ticketedKeys = ticketStatusStore.getTicketedKeys();
+    const ticketedKeys = ticketStatusStore.getTicketedKeys(orgId);
 
     let totalViolations = 0;
     let ticketedViolations = 0;
@@ -651,7 +668,7 @@ router.get('/violations/summary', (req, res) => {
       const cats = scan.categoryCounts || {};
       for (const [category, count] of Object.entries(cats)) {
         if (count <= 0) continue;
-        const ticketKey = `${scan.scanId}::${category}`;
+        const ticketKey = ticketStatusStore.buildTicketKey(orgId, scan.scanId, category);
         const isTicketed = ticketedKeys.has(ticketKey);
         totalViolations++;
         if (isTicketed) ticketedViolations++;
@@ -705,9 +722,10 @@ router.get('/violations/summary', (req, res) => {
 // GET /api/analytics/violations/export — download filtered violations as CSV or JSON compliance ledger
 router.get('/violations/export', (req, res) => {
   try {
+    const orgId = getOrgId(req);
     const format = (req.query.format || 'csv').toLowerCase();
     const filters = {
-      orgId: req.query.orgId,
+      orgId,
       repository: req.query.repository,
       branch: req.query.branch,
       startDate: req.query.startDate,
@@ -720,8 +738,8 @@ router.get('/violations/export', (req, res) => {
     const slaBreachedFilter = (req.query.slaBreached || '').toLowerCase() === 'true';
 
     const result = analyticsStore.getScans(filters);
-    const ticketedKeys = ticketStatusStore.getTicketedKeys();
-    const allStatuses = ticketStatusStore.getAllTicketStatuses();
+    const ticketedKeys = ticketStatusStore.getTicketedKeys(orgId);
+    const allStatuses = ticketStatusStore.getAllTicketStatuses(orgId);
     const now = Date.now();
 
     const violations = [];
@@ -729,7 +747,7 @@ router.get('/violations/export', (req, res) => {
       const cats = scan.categoryCounts || {};
       for (const [category, count] of Object.entries(cats)) {
         if (count <= 0) continue;
-        const ticketKey = `${scan.scanId}::${category}`;
+        const ticketKey = ticketStatusStore.buildTicketKey(orgId, scan.scanId, category);
         const isTicketed = ticketedKeys.has(ticketKey);
         const ticketEntry = allStatuses[ticketKey];
 
@@ -831,14 +849,15 @@ router.post('/violations/dispatch-ticket', async (req, res) => {
     if (!scanId) return res.status(400).json({ error: 'scanId is required' });
     if (!category) return res.status(400).json({ error: 'category is required' });
 
+    const orgId = getOrgId(req);
     const ticketTarget = (target || 'jira').toLowerCase();
-    const config = webhookConfigStore.getConfig(ticketTarget);
+    const config = webhookConfigStore.getConfig(ticketTarget, orgId);
     if (!config || !config.apiUrl) {
       return res.status(400).json({ error: 'webhook_not_configured', message: `No webhook configuration found for ${ticketTarget}. Configure it first.` });
     }
 
     // Generate the ticket payload (reuse the same logic as ticket-payload endpoint)
-    const result = analyticsStore.getScans({ limit: 100000, offset: 0 });
+    const result = analyticsStore.getScans({ orgId, limit: 100000, offset: 0 });
     const scan = result.scans.find(s => s.scanId === scanId);
     if (!scan) return res.status(404).json({ error: 'scan_not_found', message: 'Scan not found' });
 
@@ -938,7 +957,7 @@ router.post('/violations/dispatch-ticket', async (req, res) => {
 
     // Auto-mark as ticketed
     if (ticketRef) {
-      ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget);
+      ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget, orgId);
     }
 
     res.json({
@@ -958,8 +977,9 @@ router.post('/violations/bulk-dispatch-ticket', async (req, res) => {
   try {
     const { violations, target } = req.body || {};
     if (!Array.isArray(violations) || violations.length === 0) return res.status(400).json({ error: 'violations array is required' });
+    const orgId = getOrgId(req);
     const ticketTarget = (target || 'jira').toLowerCase();
-    const config = webhookConfigStore.getConfig(ticketTarget);
+    const config = webhookConfigStore.getConfig(ticketTarget, orgId);
     if (!config || !config.apiUrl) {
       return res.status(400).json({ error: 'webhook_not_configured', message: `No webhook configuration found for ${ticketTarget}.` });
     }
@@ -973,7 +993,7 @@ router.post('/violations/bulk-dispatch-ticket', async (req, res) => {
 
     async function dispatchOne(scanId, category) {
       // Generate payload
-      const result = analyticsStore.getScans({ limit: 100000, offset: 0 });
+      const result = analyticsStore.getScans({ orgId, limit: 100000, offset: 0 });
       const scan = result.scans.find(s => s.scanId === scanId);
       if (!scan) return { scanId, category, success: false, error: 'scan_not_found' };
       const count = (scan.categoryCounts || {})[category] || 0;
@@ -1037,7 +1057,7 @@ router.post('/violations/bulk-dispatch-ticket', async (req, res) => {
           else if (ticketTarget === 'linear' && respData.data?.id) ticketRef = respData.data.url || respData.data.id;
           else if (ticketTarget === 'github' && respData.html_url) ticketRef = respData.html_url;
           else if (respData.id) ticketRef = respData.id;
-          if (ticketRef) ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget);
+          if (ticketRef) ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget, orgId);
           return { scanId, category, success: true, ticketRef };
         } catch (fetchErr) {
           if (attempt < MAX_RETRIES) {
@@ -1091,7 +1111,8 @@ router.post('/violations/bulk-dispatch-ticket', async (req, res) => {
 // GET /api/analytics/webhook/configs — get all webhook configurations
 router.get('/webhook/configs', (req, res) => {
   try {
-    const configs = webhookConfigStore.getAllConfigs();
+    const orgId = getOrgId(req);
+    const configs = webhookConfigStore.getAllConfigs(orgId);
     // Mask auth tokens in response
     const masked = {};
     for (const [key, val] of Object.entries(configs)) {
@@ -1111,7 +1132,8 @@ router.post('/webhook/configs', (req, res) => {
     if (!target) return res.status(400).json({ error: 'target is required' });
     if (!apiUrl) return res.status(400).json({ error: 'apiUrl is required' });
 
-    const config = webhookConfigStore.setConfig(target, { apiUrl, authToken, projectKey, teamId, repoOwner, repoName });
+    const orgId = getOrgId(req);
+    const config = webhookConfigStore.setConfig(target, { apiUrl, authToken, projectKey, teamId, repoOwner, repoName }, orgId);
     res.json({ success: true, config: { ...config, authToken: '••••••••' } });
   } catch (err) {
     logger.error('[Analytics] Save webhook config failed:', err.message);
@@ -1122,8 +1144,9 @@ router.post('/webhook/configs', (req, res) => {
 // DELETE /api/analytics/webhook/configs/:target — delete a webhook configuration
 router.delete('/webhook/configs/:target', (req, res) => {
   try {
+    const orgId = getOrgId(req);
     const { target } = req.params;
-    webhookConfigStore.deleteConfig(target);
+    webhookConfigStore.deleteConfig(target, orgId);
     res.json({ success: true, deleted: target });
   } catch (err) {
     logger.error('[Analytics] Delete webhook config failed:', err.message);
@@ -1134,7 +1157,8 @@ router.delete('/webhook/configs/:target', (req, res) => {
 // GET /api/analytics/report/schedules — get all report schedules
 router.get('/report/schedules', (req, res) => {
   try {
-    const schedules = reportScheduleStore.getAllSchedules();
+    const orgId = getOrgId(req);
+    const schedules = reportScheduleStore.getAllSchedules(orgId);
     res.json({ success: true, schedules });
   } catch (err) {
     logger.error('[Analytics] Get report schedules failed:', err.message);
@@ -1150,7 +1174,8 @@ router.post('/report/schedules', (req, res) => {
     if (!Array.isArray(recipients) || recipients.length === 0) return res.status(400).json({ error: 'recipients array is required' });
     const validFreq = ['daily', 'weekly', 'monthly'];
     if (frequency && !validFreq.includes(frequency)) return res.status(400).json({ error: 'frequency must be daily, weekly, or monthly' });
-    const schedule = reportScheduleStore.setSchedule(id, { name, enabled, frequency, dayOfWeek, dayOfMonth, hour, minute, format, recipients, filters });
+    const orgId = getOrgId(req);
+    const schedule = reportScheduleStore.setSchedule(id, { name, enabled, frequency, dayOfWeek, dayOfMonth, hour, minute, format, recipients, filters }, orgId);
     res.json({ success: true, schedule });
   } catch (err) {
     logger.error('[Analytics] Save report schedule failed:', err.message);
@@ -1161,8 +1186,9 @@ router.post('/report/schedules', (req, res) => {
 // DELETE /api/analytics/report/schedules/:id — delete a report schedule
 router.delete('/report/schedules/:id', (req, res) => {
   try {
+    const orgId = getOrgId(req);
     const { id } = req.params;
-    reportScheduleStore.deleteSchedule(id);
+    reportScheduleStore.deleteSchedule(id, orgId);
     res.json({ success: true, deleted: id });
   } catch (err) {
     logger.error('[Analytics] Delete report schedule failed:', err.message);
@@ -1173,14 +1199,15 @@ router.delete('/report/schedules/:id', (req, res) => {
 // POST /api/analytics/report/schedules/:id/run — manually trigger a report schedule
 router.post('/report/schedules/:id/run', async (req, res) => {
   try {
+    const orgId = getOrgId(req);
     const { id } = req.params;
-    const schedule = reportScheduleStore.getSchedule(id);
+    const schedule = reportScheduleStore.getSchedule(id, orgId);
     if (!schedule) return res.status(404).json({ error: 'schedule_not_found' });
-    const result = await reportScheduler.runSchedule(schedule);
+    const result = await reportScheduler.runSchedule(schedule, orgId);
     if (result.success) {
-      res.json({ success: true, schedule: reportScheduleStore.getSchedule(id), result: result });
+      res.json({ success: true, schedule: reportScheduleStore.getSchedule(id, orgId), result: result });
     } else {
-      res.status(500).json({ success: false, error: 'run_failed', message: result.error, schedule: reportScheduleStore.getSchedule(id) });
+      res.status(500).json({ success: false, error: 'run_failed', message: result.error, schedule: reportScheduleStore.getSchedule(id, orgId) });
     }
   } catch (err) {
     logger.error('[Analytics] Manual report run failed:', err.message);
@@ -1191,7 +1218,9 @@ router.post('/report/schedules/:id/run', async (req, res) => {
 // POST /api/analytics/record — record a scan (called by CLI/CI)
 router.post('/record', (req, res) => {
   try {
-    const { orgId, summary, projectPath, categoryCounts, languageBreakdown, scanDurationMs, gateStatus, repository, branch, commitSha, triggeredBy } = req.body || {};
+    const sessionOrgId = getOrgId(req);
+    const { orgId: bodyOrgId, summary, projectPath, categoryCounts, languageBreakdown, scanDurationMs, gateStatus, repository, branch, commitSha, triggeredBy } = req.body || {};
+    const orgId = bodyOrgId || sessionOrgId;
 
     if (!orgId) return res.status(400).json({ error: 'orgId is required' });
     if (!summary || typeof summary !== 'object') return res.status(400).json({ error: 'summary object is required' });

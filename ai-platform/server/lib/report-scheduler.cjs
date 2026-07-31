@@ -53,11 +53,11 @@ function escapeCsv(val) {
   return s;
 }
 
-async function generateReport(schedule) {
+async function generateReport(schedule, orgId) {
   if (!analyticsStoreRef) throw new Error('Analytics store not initialized');
 
   const filters = schedule.filters || {};
-  const result = analyticsStoreRef.getScans({ limit: 100000, offset: 0 });
+  const result = analyticsStoreRef.getScans({ orgId, limit: 100000, offset: 0 });
   let scans = result.scans || [];
 
   if (filters.repository) scans = scans.filter(s => s.repository === filters.repository);
@@ -79,7 +79,7 @@ async function generateReport(schedule) {
 
   const SLA_THRESHOLDS = { critical: 2, high: 7, medium: 30, low: 60 };
   const ticketStatusStore = require('./ticket-status-store.cjs');
-  const ticketStatuses = ticketStatusStore.getAllTicketStatuses();
+  const ticketStatuses = ticketStatusStore.getAllTicketStatuses(orgId);
 
   const violations = [];
   for (const scan of scans) {
@@ -87,7 +87,7 @@ async function generateReport(schedule) {
     for (const [category, count] of Object.entries(cc)) {
       if (count === 0) continue;
       const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
-      const status = ticketStatuses[`${scan.scanId}::${category}`];
+      const status = ticketStatuses[ticketStatusStore.buildTicketKey(orgId, scan.scanId, category)];
       const ticketed = !!status;
       const ticketRef = status?.ticketRef || '';
       const ticketTarget = status?.ticketTarget || '';
@@ -132,11 +132,11 @@ async function generateReport(schedule) {
   return { filePath, filename, format, totalViolations: violations.length };
 }
 
-async function runSchedule(schedule) {
+async function runSchedule(schedule, orgId) {
   const id = schedule.id;
   try {
     logger.info(`[ReportScheduler] Running schedule "${schedule.name}" (${id})`);
-    const report = await generateReport(schedule);
+    const report = await generateReport(schedule, orgId);
     const subject = `[Simplebeacon] Compliance Report — ${schedule.name} — ${new Date().toISOString().slice(0, 10)}`;
     const body = [
       `Compliance Report: ${schedule.name}`,
@@ -155,12 +155,12 @@ async function runSchedule(schedule) {
       attachmentPath: report.filePath,
       attachmentName: report.filename,
     });
-    reportScheduleStore.updateScheduleRunResult(id, emailResult.success ? 'success' : 'partial', emailResult.error);
+    reportScheduleStore.updateScheduleRunResult(id, emailResult.success ? 'success' : 'partial', emailResult.error, orgId);
     logger.info(`[ReportScheduler] Schedule "${schedule.name}" completed: ${emailResult.method}`);
     return { success: true, report, emailResult };
   } catch (err) {
     logger.error(`[ReportScheduler] Schedule "${schedule.name}" failed:`, err.message);
-    reportScheduleStore.updateScheduleRunResult(id, 'failed', err.message);
+    reportScheduleStore.updateScheduleRunResult(id, 'failed', err.message, orgId);
     return { success: false, error: err.message };
   }
 }
@@ -170,7 +170,7 @@ async function checkAndRun() {
     const schedules = reportScheduleStore.getAllSchedules();
     for (const [id, schedule] of Object.entries(schedules)) {
       if (shouldRunNow(schedule)) {
-        await runSchedule(schedule);
+        await runSchedule(schedule, schedule.orgId);
       }
     }
   } catch (err) {
