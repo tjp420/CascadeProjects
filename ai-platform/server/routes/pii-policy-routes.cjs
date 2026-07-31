@@ -644,4 +644,168 @@ router.post('/compliance-bundle/verify', authorize('admin:all'), (req, res) => {
   }
 });
 
+// GET /api/pii/orgs — list all known organization IDs that have PII policies (admin only)
+router.get('/orgs', authorize('admin:all'), (req, res) => {
+  try {
+    const orgIds = piiPolicyStore.getAllOrgIds();
+    const currentOrg = getOrgId(req);
+    // Annotate each org with its policy count for UI convenience
+    const orgs = orgIds.map((orgId) => ({
+      orgId,
+      policyCount: piiPolicyStore.getPolicies(orgId).length,
+      isCurrent: orgId === currentOrg,
+    }));
+    // Ensure current org is always present even if it has no policies yet
+    if (!orgIds.includes(currentOrg)) {
+      orgs.unshift({ orgId: currentOrg, policyCount: 0, isCurrent: true });
+    }
+    res.json({ success: true, orgs, currentOrg });
+  } catch (err) {
+    logger.warn('[PII] orgs_list_failed:', err.message);
+    sendError(res, 500, 'pii_orgs_list_failed', { message: err.message });
+  }
+});
+
+// POST /api/pii/sync-policies — sync (clone) PII policies from source org to target orgs (admin only)
+//
+// Body:
+//   sourceOrgId:  string  (defaults to caller's org)
+//   targetOrgIds: string[]  (explicit list — required unless allKnown=true)
+//   allKnown:     boolean   (if true, sync to every org returned by getAllOrgIds except source)
+//   mode:         'merge' | 'replace'  (default 'merge')
+//   filter: {
+//     compliance: string[]  (only sync policies tagged with one of these frameworks)
+//     severity:   string[]  (only sync policies with one of these severities)
+//     isDefault:  boolean   (only sync policies where isDefault === true)
+//   }
+//   dryRun:       boolean   (if true, returns a preview without writing)
+router.post('/sync-policies', authorize('admin:all'), (req, res) => {
+  try {
+    const currentOrg = getOrgId(req);
+    const sourceOrgId = req.body.sourceOrgId || currentOrg;
+    const mode = req.body.mode === 'replace' ? 'replace' : 'merge';
+    const filter = req.body.filter || {};
+    const dryRun = Boolean(req.body.dryRun);
+
+    // Resolve target org list
+    let targetOrgIds;
+    if (req.body.allKnown) {
+      const allOrgs = piiPolicyStore.getAllOrgIds();
+      targetOrgIds = allOrgs.filter((o) => o !== sourceOrgId);
+      if (targetOrgIds.length === 0) {
+        return sendError(res, 400, 'no_target_orgs', {
+          message: 'No other organizations with PII policies found to sync to.',
+        });
+      }
+    } else if (Array.isArray(req.body.targetOrgIds) && req.body.targetOrgIds.length > 0) {
+      targetOrgIds = req.body.targetOrgIds;
+    } else {
+      return sendError(res, 400, 'missing_targets', {
+        message: 'Provide targetOrgIds array or set allKnown=true.',
+      });
+    }
+
+    // Reject any target equal to source (the store also guards, but we surface it clearly)
+    const sameAsSource = targetOrgIds.filter((t) => t === sourceOrgId);
+    if (sameAsSource.length > 0) {
+      return sendError(res, 400, 'target_includes_source', {
+        message: `targetOrgIds must not include the source org (${sourceOrgId}).`,
+      });
+    }
+
+    if (dryRun) {
+      // Preview: compute counts without writing
+      const sourcePolicies = piiPolicyStore.getPolicies(sourceOrgId);
+      let filtered = sourcePolicies;
+      if (Array.isArray(filter.compliance) && filter.compliance.length > 0) {
+        filtered = filtered.filter(
+          (p) => Array.isArray(p.compliance) && p.compliance.some((c) => filter.compliance.includes(c))
+        );
+      }
+      if (Array.isArray(filter.severity) && filter.severity.length > 0) {
+        filtered = filtered.filter((p) => filter.severity.includes(p.severity));
+      }
+      if (typeof filter.isDefault === 'boolean') {
+        filtered = filtered.filter((p) => Boolean(p.isDefault) === filter.isDefault);
+      }
+
+      const targetsPreview = targetOrgIds.map((orgId) => {
+        const existing = piiPolicyStore.getPolicies(orgId);
+        const existingKeys = new Set(existing.map((p) => `${p.name}::${p.pattern}`));
+        let toClone = filtered.length;
+        let toSkip = 0;
+        let toRemove = 0;
+        if (mode === 'merge') {
+          toSkip = filtered.filter((p) => existingKeys.has(`${p.name}::${p.pattern}`)).length;
+          toClone = filtered.length - toSkip;
+        } else {
+          toRemove = existing.length;
+        }
+        return {
+          orgId,
+          mode,
+          sourcePolicyCount: sourcePolicies.length,
+          filteredPolicyCount: filtered.length,
+          existingPolicyCount: existing.length,
+          toClone,
+          toSkip,
+          toRemove,
+        };
+      });
+
+      logger.info(
+        `[PII] Sync dry-run: source=${sourceOrgId}, targets=${targetOrgIds.length}, mode=${mode}, filtered=${filtered.length}`
+      );
+      return res.json({
+        success: true,
+        dryRun: true,
+        sourceOrg: sourceOrgId,
+        mode,
+        filter,
+        sourcePolicyCount: sourcePolicies.length,
+        filteredPolicyCount: filtered.length,
+        targets: targetsPreview,
+      });
+    }
+
+    const result = piiPolicyStore.syncPoliciesToOrgs(sourceOrgId, targetOrgIds, {
+      mode,
+      compliance: filter.compliance,
+      severity: filter.severity,
+      isDefault: filter.isDefault,
+    });
+
+    // Audit log the sync operation
+    try {
+      auditLogger.log({
+        orgId: currentOrg,
+        actorId: req.user?.id || 'system',
+        actorEmail: req.user?.email || 'system',
+        action: 'pii_policy_sync',
+        entity: 'pii_policy',
+        entityId: sourceOrgId,
+        metadata: {
+          sourceOrg: sourceOrgId,
+          targetCount: targetOrgIds.length,
+          mode,
+          filter,
+          totalCloned: result.totalCloned,
+          totalSkipped: result.totalSkipped,
+          totalRemoved: result.totalRemoved,
+        },
+      });
+    } catch (logErr) {
+      logger.warn('[PII] Failed to audit-log policy sync:', logErr.message);
+    }
+
+    logger.info(
+      `[PII] Policy sync complete: source=${sourceOrgId}, targets=${targetOrgIds.length}, cloned=${result.totalCloned}, skipped=${result.totalSkipped}, removed=${result.totalRemoved}, mode=${mode}`
+    );
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[PII] sync_policies_failed:', err.message);
+    sendError(res, 500, 'pii_sync_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

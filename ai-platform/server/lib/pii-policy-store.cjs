@@ -403,6 +403,161 @@ function seedDefaults(orgId) {
   return seeded;
 }
 
+/**
+ * Discover all organization IDs that currently have at least one PII policy.
+ * @returns {string[]}
+ */
+function getAllOrgIds() {
+  const store = readStore();
+  const orgIds = new Set();
+  for (const p of store.policies) {
+    if (p.orgId) orgIds.add(p.orgId);
+  }
+  return [...orgIds];
+}
+
+/**
+ * Sync (clone) PII policies from a source org to one or more target orgs.
+ *
+ * Modes:
+ *   - 'merge'  (default): Add source policies to target orgs; skip duplicates
+ *     with identical name+pattern. Existing target policies are preserved.
+ *   - 'replace': Remove all existing policies from target orgs, then clone
+ *     all source policies into them. Use with caution.
+ *
+ * Filters (optional):
+ *   - compliance: string[] — only sync policies tagged with one of these frameworks
+ *   - severity:   string[] — only sync policies with one of these severities
+ *   - isDefault:  boolean  — only sync policies where isDefault === true
+ *
+ * @param {string} sourceOrgId
+ * @param {string[]} targetOrgIds
+ * @param {object} options — { mode, compliance, severity, isDefault }
+ * @returns {{ sourceOrg: string, targets: Array<{ orgId: string, success: boolean, cloned: number, skipped: number, removed: number, error?: string }>, totalCloned: number, totalSkipped: number, totalRemoved: number }}
+ */
+function syncPoliciesToOrgs(sourceOrgId, targetOrgIds, options = {}) {
+  const mode = options.mode === 'replace' ? 'replace' : 'merge';
+  const complianceFilter = Array.isArray(options.compliance) ? options.compliance : null;
+  const severityFilter = Array.isArray(options.severity) ? options.severity : null;
+  const isDefaultFilter = typeof options.isDefault === 'boolean' ? options.isDefault : null;
+
+  if (!sourceOrgId) throw new Error('sourceOrgId is required');
+  if (!Array.isArray(targetOrgIds) || targetOrgIds.length === 0) {
+    throw new Error('targetOrgIds must be a non-empty array');
+  }
+
+  // Load source policies and apply filters
+  let sourcePolicies = getPolicies(sourceOrgId);
+  if (complianceFilter) {
+    sourcePolicies = sourcePolicies.filter(
+      (p) => Array.isArray(p.compliance) && p.compliance.some((c) => complianceFilter.includes(c))
+    );
+  }
+  if (severityFilter) {
+    sourcePolicies = sourcePolicies.filter((p) => severityFilter.includes(p.severity));
+  }
+  if (isDefaultFilter !== null) {
+    sourcePolicies = sourcePolicies.filter((p) => Boolean(p.isDefault) === isDefaultFilter);
+  }
+
+  const results = [];
+  let totalCloned = 0;
+  let totalSkipped = 0;
+  let totalRemoved = 0;
+
+  for (const targetOrgId of targetOrgIds) {
+    if (targetOrgId === sourceOrgId) {
+      results.push({
+        orgId: targetOrgId,
+        success: false,
+        cloned: 0,
+        skipped: 0,
+        removed: 0,
+        error: 'target_org_same_as_source',
+      });
+      continue;
+    }
+
+    try {
+      const store = readStore();
+      let removed = 0;
+
+      if (mode === 'replace') {
+        // Remove all existing policies for this target org
+        const before = store.policies.length;
+        store.policies = store.policies.filter((p) => p.orgId !== targetOrgId);
+        removed = before - store.policies.length;
+      }
+
+      // For merge mode, build a set of existing name+pattern keys to detect duplicates
+      const existingKeys = new Set(
+        store.policies
+          .filter((p) => p.orgId === targetOrgId)
+          .map((p) => `${p.name}::${p.pattern}`)
+      );
+
+      let cloned = 0;
+      let skipped = 0;
+      const now = new Date().toISOString();
+
+      for (const src of sourcePolicies) {
+        const key = `${src.name}::${src.pattern}`;
+        if (mode === 'merge' && existingKeys.has(key)) {
+          skipped++;
+          continue;
+        }
+        const newPolicy = {
+          id: generateId(),
+          orgId: targetOrgId,
+          name: src.name,
+          description: src.description,
+          pattern: src.pattern,
+          flags: src.flags,
+          replacement: src.replacement,
+          severity: src.severity,
+          enabled: src.enabled,
+          compliance: Array.isArray(src.compliance) ? [...src.compliance] : [],
+          isDefault: Boolean(src.isDefault),
+          createdAt: now,
+          updatedAt: now,
+        };
+        store.policies.push(newPolicy);
+        existingKeys.add(key);
+        cloned++;
+      }
+
+      writeStore(store);
+      totalCloned += cloned;
+      totalSkipped += skipped;
+      totalRemoved += removed;
+      results.push({
+        orgId: targetOrgId,
+        success: true,
+        cloned,
+        skipped,
+        removed,
+      });
+    } catch (err) {
+      results.push({
+        orgId: targetOrgId,
+        success: false,
+        cloned: 0,
+        skipped: 0,
+        removed: 0,
+        error: err.message,
+      });
+    }
+  }
+
+  return {
+    sourceOrg: sourceOrgId,
+    targets: results,
+    totalCloned,
+    totalSkipped,
+    totalRemoved,
+  };
+}
+
 module.exports = {
   getPolicies,
   getPolicy,
@@ -414,6 +569,8 @@ module.exports = {
   getStats,
   validateRegex,
   seedDefaults,
+  getAllOrgIds,
+  syncPoliciesToOrgs,
   COMPLIANCE_FRAMEWORKS,
   PII_POLICY_PATH,
 };

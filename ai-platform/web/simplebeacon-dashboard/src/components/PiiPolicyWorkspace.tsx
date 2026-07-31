@@ -31,6 +31,9 @@ import {
   Upload,
   ShieldCheck,
   ShieldAlert,
+  RefreshCw,
+  Building2,
+  ArrowRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiUrl, authHeaders } from '@/config';
@@ -165,6 +168,20 @@ export function PiiPolicyWorkspace() {
   const [verification, setVerification] = useState<VerificationResult | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Multi-tenant sync state
+  const [syncOrgs, setSyncOrgs] = useState<Array<{ orgId: string; policyCount: number; isCurrent: boolean }>>([]);
+  const [syncSourceOrg, setSyncSourceOrg] = useState<string>('');
+  const [syncSelectedTargets, setSyncSelectedTargets] = useState<Set<string>>(new Set());
+  const [syncMode, setSyncMode] = useState<'merge' | 'replace'>('merge');
+  const [syncFilterDefaults, setSyncFilterDefaults] = useState(false);
+  const [syncFilterCompliance, setSyncFilterCompliance] = useState<Set<string>>(new Set());
+  const [syncFilterSeverity, setSyncFilterSeverity] = useState<Set<string>>(new Set());
+  const [syncPreview, setSyncPreview] = useState<any>(null);
+  const [syncResult, setSyncResult] = useState<any>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncConfirm, setSyncConfirm] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const fetchPolicies = useCallback(async () => {
     setLoading(true);
@@ -318,6 +335,138 @@ export function PiiPolicyWorkspace() {
     }
   };
 
+  // ── Multi-tenant sync handlers ──
+  const fetchSyncOrgs = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/pii/orgs'), { headers: authHeaders() });
+      const data = await resp.json();
+      if (resp.ok && data.success && data.orgs) {
+        setSyncOrgs(data.orgs);
+        if (!syncSourceOrg && data.currentOrg) {
+          setSyncSourceOrg(data.currentOrg);
+        }
+      }
+    } catch {
+      // silent — UI will show empty state
+    }
+  }, [syncSourceOrg]);
+
+  const handleSyncPreview = async () => {
+    setSyncing(true);
+    setSyncPreview(null);
+    setSyncResult(null);
+    setSyncError(null);
+    try {
+      const body: any = {
+        sourceOrgId: syncSourceOrg,
+        mode: syncMode,
+        dryRun: true,
+        filter: {
+          isDefault: syncFilterDefaults || undefined,
+          compliance: syncFilterCompliance.size > 0 ? [...syncFilterCompliance] : undefined,
+          severity: syncFilterSeverity.size > 0 ? [...syncFilterSeverity] : undefined,
+        },
+      };
+      if (syncSelectedTargets.size > 0) {
+        body.targetOrgIds = [...syncSelectedTargets];
+      } else {
+        body.allKnown = true;
+      }
+      const resp = await fetch(apiUrl('/pii/sync-policies'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        setSyncError(data.message || data.error || 'Preview failed');
+        toast.error('Sync preview failed');
+        return;
+      }
+      setSyncPreview(data);
+      toast.success(`Sync preview ready — ${data.targets?.length || 0} target orgs`, {
+        description: `${data.filteredPolicyCount} policies match filter (of ${data.sourcePolicyCount} in source)`,
+      });
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : 'Unknown error');
+      toast.error('Failed to generate sync preview');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleSyncExecute = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    setSyncError(null);
+    try {
+      const body: any = {
+        sourceOrgId: syncSourceOrg,
+        mode: syncMode,
+        filter: {
+          isDefault: syncFilterDefaults || undefined,
+          compliance: syncFilterCompliance.size > 0 ? [...syncFilterCompliance] : undefined,
+          severity: syncFilterSeverity.size > 0 ? [...syncFilterSeverity] : undefined,
+        },
+      };
+      if (syncSelectedTargets.size > 0) {
+        body.targetOrgIds = [...syncSelectedTargets];
+      } else {
+        body.allKnown = true;
+      }
+      const resp = await fetch(apiUrl('/pii/sync-policies'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        setSyncError(data.message || data.error || 'Sync failed');
+        toast.error('Policy sync failed');
+        return;
+      }
+      setSyncResult(data);
+      setSyncConfirm(false);
+      toast.success(`Policy sync complete — ${data.totalCloned} policies cloned`, {
+        description: `${data.totalSkipped} skipped · ${data.totalRemoved} removed (${syncMode} mode)`,
+      });
+      // Refresh org list since policy counts changed
+      fetchSyncOrgs();
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : 'Unknown error');
+      toast.error('Failed to execute policy sync');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const toggleTargetOrg = (orgId: string) => {
+    setSyncSelectedTargets((prev) => {
+      const next = new Set(prev);
+      if (next.has(orgId)) next.delete(orgId);
+      else next.add(orgId);
+      return next;
+    });
+  };
+
+  const toggleFilterCompliance = (fw: string) => {
+    setSyncFilterCompliance((prev) => {
+      const next = new Set(prev);
+      if (next.has(fw)) next.delete(fw);
+      else next.add(fw);
+      return next;
+    });
+  };
+
+  const toggleFilterSeverity = (sev: string) => {
+    setSyncFilterSeverity((prev) => {
+      const next = new Set(prev);
+      if (next.has(sev)) next.delete(sev);
+      else next.add(sev);
+      return next;
+    });
+  };
+
   // ── Scrubber handlers ──
   const fetchScrubStatus = useCallback(async () => {
     try {
@@ -402,7 +551,8 @@ export function PiiPolicyWorkspace() {
     fetchStats();
     fetchFrameworks();
     fetchScrubStatus();
-  }, [fetchPolicies, fetchStats, fetchFrameworks, fetchScrubStatus]);
+    fetchSyncOrgs();
+  }, [fetchPolicies, fetchStats, fetchFrameworks, fetchScrubStatus, fetchSyncOrgs]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -1134,6 +1284,319 @@ export function PiiPolicyWorkspace() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* ── Multi-Tenant Policy Syncer Card ── */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" />
+                    Multi-Tenant Policy Syncer
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Push PII redaction policies from a source org to one or more target orgs. Supports merge and replace modes with optional compliance/severity filters.
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchSyncOrgs} disabled={syncing}>
+                  <RefreshCw className="h-4 w-4 mr-1.5" />
+                  Refresh Orgs
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {/* Warning banner */}
+              <div className="flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-700">Cross-tenant operation — use with caution</p>
+                  <p className="text-foreground-muted mt-0.5">
+                    Replace mode <strong>deletes all existing policies</strong> in target orgs before cloning.
+                    Merge mode skips duplicates (matched by name + pattern). Always run a preview first.
+                  </p>
+                </div>
+              </div>
+
+              {/* Source org selector */}
+              <div className="space-y-1.5">
+                <Label>Source Organization (clone from)</Label>
+                <select
+                  value={syncSourceOrg}
+                  onChange={(e) => setSyncSourceOrg(e.target.value)}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {syncOrgs.length === 0 && <option value="">No orgs discovered</option>}
+                  {syncOrgs.map((o) => (
+                    <option key={o.orgId} value={o.orgId}>
+                      {o.orgId} ({o.policyCount} policies){o.isCurrent ? ' — current' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Target orgs */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Target Organizations</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSyncSelectedTargets(new Set(syncOrgs.filter((o) => o.orgId !== syncSourceOrg).map((o) => o.orgId)))}
+                      disabled={syncing}
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSyncSelectedTargets(new Set())}
+                      disabled={syncing}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-foreground-muted">
+                  {syncSelectedTargets.size === 0
+                    ? 'No targets selected — sync will target ALL known orgs (excluding source) when executed.'
+                    : `${syncSelectedTargets.size} org(s) selected.`}
+                </p>
+                <div className="max-h-40 overflow-y-auto rounded-md border border-input p-2 space-y-1">
+                  {syncOrgs.filter((o) => o.orgId !== syncSourceOrg).length === 0 && (
+                    <p className="text-xs text-foreground-muted p-2">No other orgs available.</p>
+                  )}
+                  {syncOrgs
+                    .filter((o) => o.orgId !== syncSourceOrg)
+                    .map((o) => (
+                      <label
+                        key={o.orgId}
+                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={syncSelectedTargets.has(o.orgId)}
+                          onChange={() => toggleTargetOrg(o.orgId)}
+                          disabled={syncing}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                        <span className="font-mono">{o.orgId}</span>
+                        <span className="text-foreground-muted text-xs">({o.policyCount} policies)</span>
+                      </label>
+                    ))}
+                </div>
+              </div>
+
+              {/* Sync mode */}
+              <div className="space-y-2">
+                <Label>Sync Mode</Label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      name="sync-mode"
+                      value="merge"
+                      checked={syncMode === 'merge'}
+                      onChange={() => setSyncMode('merge')}
+                      disabled={syncing}
+                      className="h-4 w-4"
+                    />
+                    <span>Merge <span className="text-foreground-muted">(add new, skip duplicates)</span></span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      name="sync-mode"
+                      value="replace"
+                      checked={syncMode === 'replace'}
+                      onChange={() => setSyncMode('replace')}
+                      disabled={syncing}
+                      className="h-4 w-4"
+                    />
+                    <span className="text-destructive">Replace <span className="text-foreground-muted">(wipe target, then clone)</span></span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="space-y-2">
+                <Label>Filters (optional — limit which policies are synced)</Label>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={syncFilterDefaults}
+                    onChange={(e) => setSyncFilterDefaults(e.target.checked)}
+                    disabled={syncing}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <span>Only default policies <span className="text-foreground-muted">(isDefault = true)</span></span>
+                </label>
+
+                {frameworks.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-foreground-muted">Compliance frameworks:</p>
+                    <div className="flex flex-wrap gap-3">
+                      {frameworks.map((fw) => (
+                        <label key={fw} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={syncFilterCompliance.has(fw)}
+                            onChange={() => toggleFilterCompliance(fw)}
+                            disabled={syncing}
+                            className="h-3.5 w-3.5 rounded border-input"
+                          />
+                          <span className="font-mono">{fw}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <p className="text-xs text-foreground-muted">Severity:</p>
+                  <div className="flex gap-4">
+                    {['high', 'medium', 'low'].map((sev) => (
+                      <label key={sev} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={syncFilterSeverity.has(sev)}
+                          onChange={() => toggleFilterSeverity(sev)}
+                          disabled={syncing}
+                          className="h-3.5 w-3.5 rounded border-input"
+                        />
+                        <span>{sev}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" onClick={handleSyncPreview} disabled={syncing || !syncSourceOrg}>
+                  {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Eye className="h-4 w-4 mr-1.5" />}
+                  Preview Sync
+                </Button>
+                {syncConfirm ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-destructive font-medium">
+                      Confirm {syncMode === 'replace' ? 'REPLACE' : 'MERGE'} sync?
+                    </span>
+                    <Button
+                      variant="destructive"
+                      onClick={handleSyncExecute}
+                      disabled={syncing || !syncSourceOrg}
+                    >
+                      {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <PlayCircle className="h-4 w-4 mr-1.5" />}
+                      Yes, Execute
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setSyncConfirm(false)} disabled={syncing}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant={syncMode === 'replace' ? 'destructive' : 'default'}
+                    onClick={() => setSyncConfirm(true)}
+                    disabled={syncing || !syncSourceOrg || (!syncPreview && !syncResult)}
+                  >
+                    <ArrowRight className="h-4 w-4 mr-1.5" />
+                    Execute Sync
+                  </Button>
+                )}
+              </div>
+
+              {/* Error display */}
+              {syncError && (
+                <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{syncError}</span>
+                </div>
+              )}
+
+              {/* Preview results */}
+              {syncPreview && (
+                <div className="space-y-3 rounded-md border border-blue-500/30 bg-blue-500/5 p-4">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-blue-500" />
+                    <p className="text-sm font-medium text-blue-700">Sync Preview (dry run)</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="rounded-md bg-background p-2">
+                      <p className="text-lg font-bold">{syncPreview.sourcePolicyCount}</p>
+                      <p className="text-xs text-foreground-muted">Source policies</p>
+                    </div>
+                    <div className="rounded-md bg-background p-2">
+                      <p className="text-lg font-bold text-blue-600">{syncPreview.filteredPolicyCount}</p>
+                      <p className="text-xs text-foreground-muted">After filter</p>
+                    </div>
+                    <div className="rounded-md bg-background p-2">
+                      <p className="text-lg font-bold">{syncPreview.targets?.length || 0}</p>
+                      <p className="text-xs text-foreground-muted">Target orgs</p>
+                    </div>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto space-y-1.5">
+                    {syncPreview.targets?.map((t: any) => (
+                      <div key={t.orgId} className="flex items-center justify-between rounded bg-background/50 px-3 py-1.5 text-sm">
+                        <span className="font-mono">{t.orgId}</span>
+                        <div className="flex gap-3 text-xs">
+                          <span className="text-emerald-600">+{t.toClone} clone</span>
+                          {t.toSkip > 0 && <span className="text-amber-600">~{t.toSkip} skip</span>}
+                          {t.toRemove > 0 && <span className="text-destructive">-{t.toRemove} remove</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Execution results */}
+              {syncResult && (
+                <div className="space-y-3 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <p className="text-sm font-medium text-emerald-700">Sync Complete</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="rounded-md bg-background p-2">
+                      <p className="text-lg font-bold text-emerald-600">{syncResult.totalCloned}</p>
+                      <p className="text-xs text-foreground-muted">Cloned</p>
+                    </div>
+                    <div className="rounded-md bg-background p-2">
+                      <p className="text-lg font-bold text-amber-600">{syncResult.totalSkipped}</p>
+                      <p className="text-xs text-foreground-muted">Skipped</p>
+                    </div>
+                    <div className="rounded-md bg-background p-2">
+                      <p className="text-lg font-bold text-destructive">{syncResult.totalRemoved}</p>
+                      <p className="text-xs text-foreground-muted">Removed</p>
+                    </div>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto space-y-1.5">
+                    {syncResult.targets?.map((t: any) => (
+                      <div key={t.orgId} className="flex items-center justify-between rounded bg-background/50 px-3 py-1.5 text-sm">
+                        <span className="font-mono">{t.orgId}</span>
+                        <div className="flex items-center gap-3 text-xs">
+                          {t.success ? (
+                            <>
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                              <span className="text-emerald-600">+{t.cloned} cloned</span>
+                              {t.skipped > 0 && <span className="text-amber-600">~{t.skipped} skip</span>}
+                              {t.removed > 0 && <span className="text-destructive">-{t.removed} removed</span>}
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-3.5 w-3.5 text-destructive" />
+                              <span className="text-destructive">{t.error || 'failed'}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
