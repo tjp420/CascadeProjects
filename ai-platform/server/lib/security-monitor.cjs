@@ -9,6 +9,8 @@ const POLL_INTERVAL_MS = 60 * 1000;
 const GUARDRAIL_SPIKE_THRESHOLD = 10;
 const GUARDRAIL_SPIKE_WINDOW_MS = 5 * 60 * 1000;
 const ALERT_COOLDOWN_MS = 15 * 60 * 1000;
+// Auto-heal broken chains when detected. Can be disabled via env var.
+const AUTO_HEAL_ENABLED = process.env.AUDIT_CHAIN_AUTO_HEAL !== 'false';
 
 const lastAlertedAt = new Map();
 const lastGuardrailCounts = new Map();
@@ -78,6 +80,26 @@ async function runChecks() {
         });
         markAlerted(alertKey);
       }
+
+      // Auto-heal: quarantine broken entries and re-seal the chain
+      if (AUTO_HEAL_ENABLED) {
+        try {
+          const healResult = auditLogger.healChain(orgId);
+          if (healResult.healed) {
+            logger.info(
+              `[SecurityMonitor] Auto-healed chain for org ${orgId}: ${healResult.quarantined} quarantined, seal=${healResult.sealEntryId}`
+            );
+            // Update the chain result to reflect healed state
+            chainResults[chainResults.length - 1].healed = true;
+            chainResults[chainResults.length - 1].healResult = healResult;
+          }
+        } catch (healErr) {
+          logger.warn(
+            `[SecurityMonitor] Auto-heal failed for org ${orgId}:`,
+            healErr.message
+          );
+        }
+      }
     }
 
     // Guardrail anomaly check
@@ -141,6 +163,7 @@ function getStatus() {
   return {
     running: intervalId !== null,
     pollIntervalMs: POLL_INTERVAL_MS,
+    autoHealEnabled: AUTO_HEAL_ENABLED,
     lastRunAt,
     lastRunDurationMs,
     runCount,

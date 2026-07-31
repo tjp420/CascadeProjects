@@ -505,4 +505,34 @@ router.post('/security/verify', async (req, res) => {
   }
 });
 
+// ── POST /api/audit/chain/heal ──────────────────────────────────────────────
+//   Heal a broken audit chain for an org. Quarantines tampered entries to
+//   a forensic file and re-seals the chain with a cryptographic seal entry.
+//   Body: { orgId?: string } — defaults to the caller's orgId
+router.post('/chain/heal', async (req, res) => {
+  try {
+    const orgId = req.body?.orgId || getOrgId(req);
+    const result = auditLogger.healChain(orgId);
+
+    // Dispatch alert event for the healing action
+    processEvent(orgId, 'audit_chain_healed', {
+      severity: result.healed ? 'high' : 'low',
+      message: result.healed
+        ? `Audit chain healed: ${result.quarantined} entries quarantined, chain re-sealed`
+        : `Audit chain heal requested but chain was already valid`,
+      data: {
+        orgId,
+        ...result,
+      },
+    }).catch((err) => {
+      logger.warn('[Audit] chain_heal alert trigger failed:', err.message);
+    });
+
+    res.json({ success: true, orgId, result });
+  } catch (err) {
+    logger.warn('[Audit] chain_heal_failed:', err.message);
+    sendError(res, 500, 'chain_heal_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

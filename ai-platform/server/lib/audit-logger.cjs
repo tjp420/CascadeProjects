@@ -480,6 +480,163 @@ function verifyChain(orgId) {
   return { valid: true, totalEntries: entries.length, verifiedEntries: verified, brokenAt: null, brokenEntryId: null, reason: null };
 }
 
+/**
+ * Heal a broken audit chain for an org.
+ *
+ * Strategy:
+ * 1. Verify the chain to locate the break point.
+ * 2. If valid, return immediately — no healing needed.
+ * 3. Quarantine broken entries — move them to a quarantine store with
+ *    their original hashes preserved for forensic analysis.
+ * 4. Re-seal the remaining chain — recompute previousHash and hash for
+ *    all entries after the break point, starting from the last valid hash.
+ * 5. Insert a healing seal entry that marks the chain as reconstructed.
+ * 6. Update chainHeads to point to the new head.
+ *
+ * @param {string} orgId
+ * @returns {{ healed: boolean, quarantined: number, resealed: number, sealEntryId: string|null, brokenEntryId: string|null, reason: string|null }}
+ */
+function healChain(orgId) {
+  const scopedOrgId = orgId || 'default';
+  const verification = verifyChain(scopedOrgId);
+
+  // If the chain is valid, nothing to heal
+  if (verification.valid) {
+    return {
+      healed: false,
+      quarantined: 0,
+      resealed: 0,
+      sealEntryId: null,
+      brokenEntryId: null,
+      reason: null,
+    };
+  }
+
+  const store = readStore();
+  const entries = Object.values(store.entries)
+    .filter((e) => e.orgId === scopedOrgId)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  if (entries.length === 0) {
+    return {
+      healed: false,
+      quarantined: 0,
+      resealed: 0,
+      sealEntryId: null,
+      brokenEntryId: null,
+      reason: 'no entries found for org',
+    };
+  }
+
+  // Walk the chain to find the last valid entry index
+  let lastValidIndex = -1;
+  let previousHash = entries[0].previousHash || GENESIS_HASH;
+
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    if (entry.previousHash !== previousHash) {
+      // Break detected at this entry — everything from here is suspect
+      break;
+    }
+    const computed = computeEntryHash(entry, previousHash);
+    if (computed !== entry.hash) {
+      // Hash mismatch — this entry is tampered
+      break;
+    }
+    lastValidIndex = i;
+    previousHash = entry.hash;
+  }
+
+  // Entries from lastValidIndex+1 onward are the broken segment
+  const brokenSegment = entries.slice(lastValidIndex + 1);
+  const validSegment = entries.slice(0, lastValidIndex + 1);
+
+  // Quarantine the broken entries — preserve originals for forensics
+  const quarantineDir = path.join(process.cwd(), '.simplebeacon', 'quarantine');
+  if (!fs.existsSync(quarantineDir)) fs.mkdirSync(quarantineDir, { recursive: true });
+  const quarantinePath = path.join(
+    quarantineDir,
+    `audit-quarantine-${scopedOrgId}-${Date.now()}.json`
+  );
+  const quarantineRecord = {
+    orgId: scopedOrgId,
+    quarantinedAt: new Date().toISOString(),
+    reason: verification.reason,
+    brokenEntryId: verification.brokenEntryId,
+    brokenAt: verification.brokenAt,
+    entries: brokenSegment.map((e) => ({
+      ...e,
+      _originalHash: e.hash,
+      _originalPreviousHash: e.previousHash,
+    })),
+  };
+  fs.writeFileSync(quarantinePath, JSON.stringify(quarantineRecord, null, 2));
+
+  // Remove broken entries from the main store
+  for (const entry of brokenSegment) {
+    const key = makeKey(scopedOrgId, entry.id);
+    delete store.entries[key];
+  }
+
+  // Re-seal: insert a healing seal entry that links from the last valid hash
+  const sealId = `seal-${crypto.randomBytes(6).toString('hex')}`;
+  const sealEntry = {
+    id: sealId,
+    orgId: scopedOrgId,
+    timestamp: new Date().toISOString(),
+    actorId: 'system:chain-healer',
+    actorEmail: 'system',
+    action: 'CHAIN_HEALED',
+    entity: 'audit_chain',
+    entityId: scopedOrgId,
+    changes: [
+      {
+        field: 'chainIntegrity',
+        oldValue: 'broken',
+        newValue: 'healed',
+      },
+      {
+        field: 'quarantinedEntries',
+        oldValue: null,
+        newValue: brokenSegment.length,
+      },
+      {
+        field: 'quarantineFile',
+        oldValue: null,
+        newValue: path.basename(quarantinePath),
+      },
+    ],
+    metadata: {
+      healedAt: new Date().toISOString(),
+      brokenEntryId: verification.brokenEntryId,
+      brokenAt: verification.brokenAt,
+      reason: verification.reason,
+      quarantineFile: path.basename(quarantinePath),
+    },
+  };
+
+  // Compute the seal entry's hash, linking from the last valid hash
+  const sealPreviousHash = lastValidIndex >= 0 ? validSegment[lastValidIndex].hash : GENESIS_HASH;
+  sealEntry.previousHash = sealPreviousHash;
+  sealEntry.hash = computeEntryHash(sealEntry, sealPreviousHash);
+
+  const sealKey = makeKey(scopedOrgId, sealId);
+  store.entries[sealKey] = sealEntry;
+  store.chainHeads[scopedOrgId] = sealEntry.hash;
+
+  writeStore(store);
+
+  return {
+    healed: true,
+    quarantined: brokenSegment.length,
+    resealed: 1, // The seal entry
+    sealEntryId: sealId,
+    brokenEntryId: verification.brokenEntryId,
+    reason: verification.reason,
+    quarantineFile: path.basename(quarantinePath),
+  };
+}
+
 module.exports = {
   log,
   query,
@@ -489,4 +646,5 @@ module.exports = {
   enforceRetentionPolicy,
   generateComplianceReport,
   verifyChain,
+  healChain,
 };
