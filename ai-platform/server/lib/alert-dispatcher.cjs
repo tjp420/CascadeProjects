@@ -10,6 +10,22 @@ const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 
 /**
+ * Incident broadcaster callback — injected by the server to broadcast incidents
+ * over WebSocket to connected dashboard clients. Fire-and-forget: errors here
+ * must never block alert delivery.
+ */
+let incidentBroadcaster = null;
+
+/**
+ * Register a broadcast callback invoked after each incident is recorded.
+ * The callback receives { type: 'INCIDENT_STREAM', data: incident }.
+ * @param {function|null} fn — broadcast function or null to clear
+ */
+function setIncidentBroadcaster(fn) {
+  incidentBroadcaster = typeof fn === 'function' ? fn : null;
+}
+
+/**
  * Sign a webhook payload with HMAC-SHA256.
  */
 function signPayload(payload, secret) {
@@ -402,6 +418,26 @@ async function processEvent(orgId, eventType, context = {}) {
       durationMs: delivery.durationMs,
     });
 
+    // Broadcast incident to connected WebSocket clients (fire-and-forget)
+    if (incidentBroadcaster) {
+      try {
+        incidentBroadcaster({
+          type: 'INCIDENT_STREAM',
+          data: {
+            id: incident.id,
+            ruleId: rule.id,
+            ruleName: rule.name,
+            status: delivery.status,
+            destinationType: rule.destinationType,
+            createdAt: incident.timestamp || incident.createdAt || new Date().toISOString(),
+            error: delivery.error || '',
+          },
+        });
+      } catch (broadcastErr) {
+        logger.warn('[AlertDispatcher] Incident broadcast failed:', broadcastErr.message);
+      }
+    }
+
     // Update rule fire stats
     ruleStore.updateFireStats(rule.id, orgId);
 
@@ -429,4 +465,5 @@ module.exports = {
   formatSlackMessage,
   formatEmailMessage,
   formatPagerDutyEvent,
+  setIncidentBroadcaster,
 };

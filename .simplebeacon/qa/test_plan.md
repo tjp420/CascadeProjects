@@ -1,46 +1,32 @@
-# Test Plan: PagerDuty Destination Implementation
+# Test Plan: Real-Time Incident Streaming + audit_delete Trigger + UI Fields
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Implement PagerDuty Events API v2 destination for alert delivery.
+**Feature:** WebSocket incident streaming, audit_delete event trigger, destination-specific UI fields.
 
 ## Context
 
-The alert dispatcher supports webhook, Slack, and email destinations. PagerDuty is the last remaining destination type. The PagerDuty Events API v2 accepts POST requests to `https://events.pagerduty.com/v2/enqueue` with a specific payload format.
+The alert dispatcher supports all 4 destination types (webhook, Slack, email, PagerDuty). Three remaining gaps:
+1. Incidents are persisted but not broadcast to connected dashboard clients in real-time.
+2. The `audit_delete` event type is defined but never triggered (no delete endpoint exists).
+3. The dashboard rule builder has all 4 destination types in the dropdown but only a generic `webhookUrl` field — no destination-specific config fields.
 
-## PagerDuty Events API v2 Schema
+## Architecture Decisions
 
-**Endpoint:** `POST https://events.pagerduty.com/v2/enqueue`
+**WebSocket broadcasting:** The WebSocket server lives inside `simplebeacon-server.cjs` as `setupWebSocketServer(server)`. To avoid circular dependencies, we use a **callback injection pattern**: `alert-dispatcher.cjs` exposes a `setIncidentBroadcaster(fn)` function. The server registers a callback that broadcasts to all `wss.clients`. No new files needed.
 
-**Required fields:**
-- `routing_key` — 32-char integration key (from `rule.destination.routingKey` or `rule.webhookUrl`)
-- `event_action` — `trigger` (for new alerts)
-- `payload.summary` — brief text summary
-- `payload.source` — affected system location
-- `payload.severity` — `critical`, `error`, `warning`, or `info`
+**audit_delete trigger:** No `trigger-engine.cjs` exists. We add a DELETE endpoint to `audit-routes.cjs` that calls `processEvent()` with the `audit_delete` event type — following the same pattern used for `guardrail_blocked` in `prompt-firewall.cjs` and `eval_failure` in `model-eval-routes.cjs`.
 
-**Optional fields:**
-- `dedup_key` — for correlating triggers and resolves (max 255 chars)
-- `payload.timestamp` — ISO 8601
-- `payload.custom_details` — additional details object
-- `payload.component` — component of source machine
-- `payload.group` — logical grouping
+**UI fields:** The React dashboard (`UsageAnalyticsView.tsx`) already has the destination type dropdown. We add conditional fields that appear based on the selected destination type.
 
-**Severity mapping:** SimpleBeacon → PagerDuty
-- `critical` → `critical`
-- `high` → `error`
-- `medium` → `warning`
-- `low` → `info`
-- `info` → `info`
+## Files to Change (4 files)
 
-## Change
-
-**Single file:** `server/lib/alert-dispatcher.cjs`
-
-1. Add `PAGERDUTY_SEVERITY_MAP` constant for severity mapping.
-2. Add `formatPagerDutyEvent(payload, rule)` function that builds the Events v2 payload.
-3. Add `deliverPagerDutyAlert(rule, payload)` function that POSTs to the PagerDuty API.
-4. Modify `deliverAlert()` to delegate to `deliverPagerDutyAlert()` when `destinationType === 'pagerduty'`.
+| File | Change |
+|------|--------|
+| `server/lib/alert-dispatcher.cjs` | Add `setIncidentBroadcaster()` callback setter. Call broadcaster after `recordIncident()` in `processEvent()`. Export setter. |
+| `simplebeacon-server.cjs` | After `setupWebSocketServer()` returns `wss`, import `setIncidentBroadcaster` and register a callback that broadcasts `INCIDENT_STREAM` to all connected WS clients. |
+| `server/routes/audit-routes.cjs` | Add `DELETE /log/:entryId` endpoint that deletes an audit entry and triggers `processEvent()` with `audit_delete` event type. |
+| `web/simplebeacon-dashboard/src/views/UsageAnalyticsView.tsx` | Add conditional fields: webhook secret (webhook), routing key (pagerduty), email recipient (email). Update form state to include `destination` object. |
 
 ## Objective Check-Items
 
@@ -49,24 +35,29 @@ The alert dispatcher supports webhook, Slack, and email destinations. PagerDuty 
 | # | Item | Expected |
 |---|------|----------|
 | L1.1 | `node -c` on alert-dispatcher.cjs | exit 0 |
-| L1.2 | `npx simplebeacon scan --gate` | PASS (exit 0) |
-| L1.3 | WebSocket integration test | 16/16 pass |
+| L1.2 | `node -c` on audit-routes.cjs | exit 0 |
+| L1.3 | `npx simplebeacon scan --gate` | PASS (exit 0) |
+| L1.4 | WebSocket integration test | 16/16 pass |
+| L1.5 | Dashboard TypeScript compile | PASS (no new type errors) |
 
 ### Level 2 — Behavioral
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | Create PagerDuty rule + trigger → dispatcher attempts delivery | Incident recorded |
-| L2.2 | PagerDuty payload has correct schema | routing_key, event_action, payload with summary/source/severity |
-| L2.3 | Severity mapping correct | critical→critical, high→error, medium→warning, info→info |
-| L2.4 | Webhook destination still works (no regression) | Raw JSON body preserved |
-| L2.5 | Slack destination still works (no regression) | Slack-formatted body preserved |
-| L2.6 | Email destination still works (no regression) | Email queued via email-service |
+| L2.1 | Trigger alert → WebSocket client receives INCIDENT_STREAM within 500ms | Message received with correct structure |
+| L2.2 | INCIDENT_STREAM payload has required fields | id, ruleId, ruleName, status, destinationType, createdAt |
+| L2.3 | No WebSocket clients connected → no crash, incident still persisted | Incident recorded, no error |
+| L2.4 | DELETE /api/audit/log/:entryId → audit_delete event triggered | Incident recorded for audit_delete rule |
+| L2.5 | Webhook rule with secret → secret included in destination object | destination.secret populated |
+| L2.6 | PagerDuty rule with routingKey → routingKey included in destination object | destination.routingKey populated |
+| L2.7 | Email rule with email recipient → email included in destination object | destination.email populated |
+| L2.8 | Webhook/Slack/email/PagerDuty delivery still works (no regression) | All destinations still function |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
-| L3.1 | Single file changed | Only alert-dispatcher.cjs |
-| L3.2 | No new dependencies | Uses built-in fetch |
-| L3.3 | Webhook/Slack/email destinations unchanged | No regression in existing paths |
+| L3.1 | No circular dependencies introduced | alert-dispatcher.cjs does not import simplebeacon-server.cjs |
+| L3.2 | No new files created | Only existing files modified |
+| L3.3 | No regression in existing alert delivery | All 4 destination types still work |
+| L3.4 | WebSocket broadcast is fire-and-forget (does not block delivery) | Delivery latency unchanged |

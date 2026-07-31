@@ -168,9 +168,26 @@ function getStats(orgId) {
   };
 }
 
+/**
+ * Delete an audit log entry by ID.
+ * @param {string} orgId — Tenant organization ID
+ * @param {string} entryId — The audit entry ID to delete
+ * @returns {object|null} The deleted entry, or null if not found
+ */
+function deleteEntry(orgId, entryId) {
+  const store = readStore();
+  const key = makeKey(orgId, entryId);
+  const entry = store.entries[key];
+  if (!entry) return null;
+  delete store.entries[key];
+  writeStore(store);
+  return entry;
+}
+
 module.exports = {
   log,
   query,
   getStats,
   computeDiff,
+  deleteEntry,
 };

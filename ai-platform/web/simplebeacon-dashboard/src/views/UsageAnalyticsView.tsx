@@ -289,6 +289,9 @@ export function UsageAnalyticsView() {
     eventType: 'critical_finding',
     destinationType: 'webhook',
     webhookUrl: '',
+    webhookSecret: '',
+    routingKey: '',
+    emailRecipient: '',
     enabled: true,
     cooldownMinutes: 0,
     severityFilter: 'all',
@@ -1082,10 +1085,36 @@ export function UsageAnalyticsView() {
 
   const saveAlertRule = useCallback(async () => {
     try {
+      // Build destination object from destination-specific fields
+      const destination: Record<string, string> = {};
+      if (alertRuleForm.destinationType === 'webhook' && alertRuleForm.webhookSecret) {
+        destination.secret = alertRuleForm.webhookSecret;
+      }
+      if (alertRuleForm.destinationType === 'pagerduty' && alertRuleForm.routingKey) {
+        destination.routingKey = alertRuleForm.routingKey;
+      }
+      if (alertRuleForm.destinationType === 'email' && alertRuleForm.emailRecipient) {
+        destination.email = alertRuleForm.emailRecipient;
+      }
+
+      const payload: Record<string, unknown> = {
+        id: alertRuleForm.id,
+        name: alertRuleForm.name,
+        eventType: alertRuleForm.eventType,
+        destinationType: alertRuleForm.destinationType,
+        webhookUrl: alertRuleForm.webhookUrl,
+        enabled: alertRuleForm.enabled,
+        cooldownMinutes: alertRuleForm.cooldownMinutes,
+        severityFilter: alertRuleForm.severityFilter,
+      };
+      if (Object.keys(destination).length > 0) {
+        payload.destination = destination;
+      }
+
       const resp = await fetch(apiUrl('/alerts/rules'), {
         method: 'POST',
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(alertRuleForm),
+        body: JSON.stringify(payload),
       });
       const data = await resp.json();
       if (resp.ok) {
@@ -1098,6 +1127,9 @@ export function UsageAnalyticsView() {
           eventType: 'critical_finding',
           destinationType: 'webhook',
           webhookUrl: '',
+          webhookSecret: '',
+          routingKey: '',
+          emailRecipient: '',
           enabled: true,
           cooldownMinutes: 0,
           severityFilter: 'all',
@@ -3782,16 +3814,68 @@ export function UsageAnalyticsView() {
                 </select>
               </div>
               <div>
-                <label className="text-muted-foreground">Webhook URL</label>
+                <label className="text-muted-foreground">
+                  {alertRuleForm.destinationType === 'email' ? 'Webhook URL (optional)' : 'Webhook URL'}
+                </label>
                 <input
                   value={alertRuleForm.webhookUrl}
                   onChange={(e) =>
                     setAlertRuleForm({ ...alertRuleForm, webhookUrl: e.target.value })
                   }
-                  placeholder="https://hooks.slack.com/services/..."
+                  placeholder={
+                    alertRuleForm.destinationType === 'slack'
+                      ? 'https://hooks.slack.com/services/...'
+                      : alertRuleForm.destinationType === 'pagerduty'
+                        ? '(optional — routing key used instead)'
+                        : alertRuleForm.destinationType === 'email'
+                          ? '(optional — email recipient used instead)'
+                          : 'https://example.com/webhook'
+                  }
                   className="w-full h-8 rounded-md border border-input bg-transparent px-2"
                 />
               </div>
+              {alertRuleForm.destinationType === 'webhook' && (
+                <div>
+                  <label className="text-muted-foreground">Webhook Secret (for HMAC signing)</label>
+                  <input
+                    type="password"
+                    value={alertRuleForm.webhookSecret}
+                    onChange={(e) =>
+                      setAlertRuleForm({ ...alertRuleForm, webhookSecret: e.target.value })
+                    }
+                    placeholder="Secret key for X-SimpleBeacon-Signature"
+                    className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                  />
+                </div>
+              )}
+              {alertRuleForm.destinationType === 'pagerduty' && (
+                <div>
+                  <label className="text-muted-foreground">PagerDuty Routing Key (32-char Integration Key)</label>
+                  <input
+                    value={alertRuleForm.routingKey}
+                    onChange={(e) =>
+                      setAlertRuleForm({ ...alertRuleForm, routingKey: e.target.value })
+                    }
+                    placeholder="e.g. abc123def456..."
+                    maxLength={32}
+                    className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                  />
+                </div>
+              )}
+              {alertRuleForm.destinationType === 'email' && (
+                <div>
+                  <label className="text-muted-foreground">Email Recipient</label>
+                  <input
+                    type="email"
+                    value={alertRuleForm.emailRecipient}
+                    onChange={(e) =>
+                      setAlertRuleForm({ ...alertRuleForm, emailRecipient: e.target.value })
+                    }
+                    placeholder="alerts@example.com"
+                    className="w-full h-8 rounded-md border border-input bg-transparent px-2"
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-muted-foreground">Cooldown (min)</label>
@@ -3842,7 +3926,13 @@ export function UsageAnalyticsView() {
               <Button
                 size="sm"
                 onClick={saveAlertRule}
-                disabled={!alertRuleForm.id || !alertRuleForm.name || !alertRuleForm.webhookUrl}
+                disabled={
+                  !alertRuleForm.id ||
+                  !alertRuleForm.name ||
+                  (alertRuleForm.destinationType !== 'email' && !alertRuleForm.webhookUrl) ||
+                  (alertRuleForm.destinationType === 'pagerduty' && !alertRuleForm.routingKey) ||
+                  (alertRuleForm.destinationType === 'email' && !alertRuleForm.emailRecipient)
+                }
               >
                 Save Rule
               </Button>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,9 @@ import {
   Copy,
 } from 'lucide-react';
 import { IntegrationsView } from './IntegrationsView';
-import { UsageAnalyticsView } from './UsageAnalyticsView';
+const UsageAnalyticsView = lazy(() =>
+  import('./UsageAnalyticsView').then((m) => ({ default: m.UsageAnalyticsView }))
+);
 import { WhitelabelAdminView } from './WhitelabelAdminView';
 import { apiUrl, authHeaders, getApiBase } from '@/config';
 import { navigate } from '@/router/HashRouter';
@@ -2294,7 +2296,9 @@ export function AdminView() {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
-          <UsageAnalyticsView />
+          <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-muted-foreground">Loading analytics...</div>}>
+            <UsageAnalyticsView />
+          </Suspense>
         </TabsContent>
 
         {/* Whitelabel Tab */}

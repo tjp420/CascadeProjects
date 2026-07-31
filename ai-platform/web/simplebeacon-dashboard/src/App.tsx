@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import type { ComponentType } from 'react';
 import { getCurrentRoute, navigate } from './router/HashRouter';
 import { AppShell } from './layout/AppShell';
 import { ToastProvider } from './components/ToastProvider';
@@ -7,41 +8,35 @@ import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { isTokenExpired } from './config';
 
-// P1 views
+// P1 views — Dashboard is always needed, keep eager
 import { DashboardView } from './views/DashboardView';
-import { AnalyzeView } from './views/AnalyzeView';
-import { ResultsView } from './views/ResultsView';
-
-// P2 views
-import { SettingsView } from './views/SettingsView';
-import { AuditView } from './views/AuditView';
-import { SecurityView } from './views/SecurityView';
-import { QualityView } from './views/QualityView';
-import { ChatbotView } from './views/ChatbotView';
-
-// P3 views
-import { TrustView } from './views/TrustView';
-import { RemediationView } from './views/RemediationView';
-import { ProfileView } from './views/ProfileView';
-import { PlatformView } from './views/PlatformView';
-import { ToolsView } from './views/ToolsView';
-import { RepoHealthView } from './views/RepoHealthView';
 import { SignInView } from './views/SignInView';
-import { AdminView } from './views/AdminView';
-import { UploadView } from './views/UploadView';
-import { HelpView } from './views/HelpView';
-import { AssessmentView } from './views/AssessmentView';
-import { AboutView } from './views/AboutView';
-import { GettingStartedView } from './views/GettingStartedView';
-import { ComplianceView } from './views/ComplianceView';
-import { OrganizationView } from './views/OrganizationView';
-import { EnterpriseView } from './views/EnterpriseView';
-import { OutreachAnalyticsView } from './views/OutreachAnalyticsView';
 
 // Lazy-loaded views — code-split to keep initial bundle small
-const TeamMetricsView = lazy(() =>
-  import('./views/TeamMetricsView').then((m) => ({ default: m.TeamMetricsView }))
-);
+const AnalyzeView = lazy(() => import('./views/AnalyzeView').then((m) => ({ default: m.AnalyzeView })));
+const ResultsView = lazy(() => import('./views/ResultsView').then((m) => ({ default: m.ResultsView })));
+const SettingsView = lazy(() => import('./views/SettingsView').then((m) => ({ default: m.SettingsView })));
+const AuditView = lazy(() => import('./views/AuditView').then((m) => ({ default: m.AuditView })));
+const SecurityView = lazy(() => import('./views/SecurityView').then((m) => ({ default: m.SecurityView })));
+const QualityView = lazy(() => import('./views/QualityView').then((m) => ({ default: m.QualityView })));
+const ChatbotView = lazy(() => import('./views/ChatbotView').then((m) => ({ default: m.ChatbotView })));
+const TrustView = lazy(() => import('./views/TrustView').then((m) => ({ default: m.TrustView })));
+const RemediationView = lazy(() => import('./views/RemediationView').then((m) => ({ default: m.RemediationView })));
+const ProfileView = lazy(() => import('./views/ProfileView').then((m) => ({ default: m.ProfileView })));
+const PlatformView = lazy(() => import('./views/PlatformView').then((m) => ({ default: m.PlatformView })));
+const ToolsView = lazy(() => import('./views/ToolsView').then((m) => ({ default: m.ToolsView })));
+const RepoHealthView = lazy(() => import('./views/RepoHealthView').then((m) => ({ default: m.RepoHealthView })));
+const AdminView = lazy(() => import('./views/AdminView').then((m) => ({ default: m.AdminView })));
+const UploadView = lazy(() => import('./views/UploadView').then((m) => ({ default: m.UploadView })));
+const HelpView = lazy(() => import('./views/HelpView').then((m) => ({ default: m.HelpView })));
+const AssessmentView = lazy(() => import('./views/AssessmentView').then((m) => ({ default: m.AssessmentView })));
+const AboutView = lazy(() => import('./views/AboutView').then((m) => ({ default: m.AboutView })));
+const GettingStartedView = lazy(() => import('./views/GettingStartedView').then((m) => ({ default: m.GettingStartedView })));
+const ComplianceView = lazy(() => import('./views/ComplianceView').then((m) => ({ default: m.ComplianceView })));
+const OrganizationView = lazy(() => import('./views/OrganizationView').then((m) => ({ default: m.OrganizationView })));
+const EnterpriseView = lazy(() => import('./views/EnterpriseView').then((m) => ({ default: m.EnterpriseView })));
+const OutreachAnalyticsView = lazy(() => import('./views/OutreachAnalyticsView').then((m) => ({ default: m.OutreachAnalyticsView })));
+const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then((m) => ({ default: m.TeamMetricsView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
 const AUTH_REQUIRED_VIEWS = new Set(['organization']);
@@ -107,7 +102,7 @@ const VIEW_TITLES: Record<string, string> = {
   'outreach-analytics': 'Outreach Analytics',
 };
 
-const viewMap: Record<string, React.ComponentType> = {
+const viewMap: Record<string, ComponentType> = {
   dashboard: DashboardView,
   analyze: AnalyzeView,
   results: ResultsView,
