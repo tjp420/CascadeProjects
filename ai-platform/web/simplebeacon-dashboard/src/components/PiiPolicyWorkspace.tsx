@@ -84,6 +84,11 @@ export function PiiPolicyWorkspace() {
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [testing, setTesting] = useState(false);
 
+  // Compliance stats state
+  const [stats, setStats] = useState<PiiStats | null>(null);
+  const [frameworks, setFrameworks] = useState<string[]>([]);
+  const [seeding, setSeeding] = useState(false);
+
   const fetchPolicies = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -102,9 +107,65 @@ export function PiiPolicyWorkspace() {
     }
   }, []);
 
+  const fetchStats = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/pii/stats'), { headers: authHeaders() });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        setStats({
+          totalPolicies: data.totalPolicies || 0,
+          enabledPolicies: data.enabledPolicies || 0,
+          bySeverity: data.bySeverity || {},
+          byCompliance: data.byCompliance || {},
+          defaultCount: data.defaultCount || 0,
+        });
+      }
+    } catch {
+      // Stats are non-critical
+    }
+  }, []);
+
+  const fetchFrameworks = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/pii/frameworks'), { headers: authHeaders() });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        setFrameworks(data.frameworks || []);
+      }
+    } catch {
+      // Frameworks list is non-critical
+    }
+  }, []);
+
+  const handleSeed = async () => {
+    setSeeding(true);
+    try {
+      const resp = await fetch(apiUrl('/pii/seed'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        toast.error('Failed to seed default patterns');
+        return;
+      }
+      toast.success(`Seeded ${data.seeded} default PII patterns`, {
+        description: 'Common PII types (email, SSN, credit card, phone, IP, API keys) are now active',
+      });
+      fetchPolicies();
+      fetchStats();
+    } catch {
+      toast.error('Failed to seed default patterns');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   useEffect(() => {
     fetchPolicies();
-  }, [fetchPolicies]);
+    fetchStats();
+    fetchFrameworks();
+  }, [fetchPolicies, fetchStats, fetchFrameworks]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -240,6 +301,20 @@ export function PiiPolicyWorkspace() {
 
   return (
     <div className="space-y-4">
+      <Tabs defaultValue="policies">
+        <TabsList>
+          <TabsTrigger value="policies" className="flex items-center gap-1.5">
+            <Shield className="h-3.5 w-3.5" />
+            Policies
+          </TabsTrigger>
+          <TabsTrigger value="governance" className="flex items-center gap-1.5">
+            <FileCheck className="h-3.5 w-3.5" />
+            Governance & Compliance
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ── Policies Tab ── */}
+        <TabsContent value="policies">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
