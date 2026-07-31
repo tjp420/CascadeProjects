@@ -1,0 +1,289 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Security Whitepaper</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  body{font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:#f6f7f9;color:#111;padding:28px}
+  .container{max-width:900px;margin:0 auto;background:#fff;padding:28px;border-radius:8px;box-shadow:0 6px 18px rgba(12,15,20,0.06)}
+  pre{background:#0b1220;color:#e6edf3;padding:12px;border-radius:6px;overflow:auto}
+  code{background:#eef2f6;padding:2px 4px;border-radius:4px}
+  h1,h2,h3{color:#0b1220}
+  a{color:#0b66ff}
+  </style></head><body><div class="container"><h1>Security Whitepaper</h1><h1>SIMPLEBEACON.AI — Technical Whitepaper</h1>
+<p></p>
+<p>Zero-Telemetry Local App Scanning &amp; Data Sovereignty</p>
+<p></p>
+<p>Version: draft</p>
+<p>Date: 2026-07-30</p>
+<p></p>
+<p>---</p>
+<p></p>
+<p>Table of contents</p>
+<p></p>
+<p>1. Executive Privacy Guarantee &amp; The Cloud Harvest Problem</p>
+<p>2. Local Execution Engine Sandbox &amp; Node Architecture</p>
+<p>3. Verifiable Network Isolation (The Forensic Proof)</p>
+<p>4. Signed Forensic Audits &amp; Regulatory Safe Harbors</p>
+<p>5. CISO Network Verification Guide (Operational checks)</p>
+<p>6. Corporate Compliance Sign-off Addendum</p>
+<p>7. Implementation Notes &amp; Developer Checklist</p>
+<p></p>
+<p>---</p>
+<p></p>
+<h2>1. Executive Privacy Guarantee &amp; The Cloud Harvest Problem</h2>
+<p></p>
+<p>Problem definition</p>
+<p></p>
+<p>Conventional cloud-hosted code scanners and AI-assisted code review tools commonly ingest, persist, and centralize developer inputs and entire code artifacts. Those inputs are often used to train or improve models, or are otherwise retained in vendor systems. For high-value corporate IP and regulated data, this creates unacceptable leakage risk and can violate data residency, confidentiality, or contractual obligations.</p>
+<p></p>
+<p>SimpleBeacon stance: Zero-Telemetry Guarantee</p>
+<p></p>
+<ul>
+<li>No telemetry by default: SimpleBeacon does not phone home, upload source, create persistent server-side telemetry, or send rule matches to third-party services.</li>
+<li>Local-first processing: All analysis, rule evaluation, and artifact generation occurs on the local host or within explicitly provisioned local runtime containers under the customer's control.</li>
+<li>Explicit opt-in only: Any feature that transmits data externally is opt-in, audited, and disabled by default; enterprise customers may restrict or remove opt-in paths entirely.</li>
+</ul>
+<p></p>
+<p>Risk mitigation assurances</p>
+<p></p>
+<ul>
+<li>Data residency: No code, diffs, or findings are transmitted to any cloud services by default.</li>
+<li>Deterministic local artifacts: All reports and certificates are generated locally and can be archived on customer storage systems.</li>
+<li>Auditable controls: The product ships with forensic hashes and reproducible report generation steps that allow independent verification.</li>
+</ul>
+<p></p>
+<h2>2. Local Execution Engine Sandbox &amp; Node Architecture</h2>
+<p></p>
+<p>Overview</p>
+<p></p>
+<p>SimpleBeacon is intentionally engineered to run entirely on the customer's infrastructure (developer laptop, CI runner, or air-gapped appliance). The architecture separates short-lived analysis workers (Node/V8 processes) from optional UI renderers (local HTTP server or embedded WebView) and enforces strict boundaries for filesystem, network, and in-memory state.</p>
+<p></p>
+<p>High-level components</p>
+<p></p>
+<ul>
+<li>CLI orchestration: <code>npx simplebeacon</code> or an installed binary — spawns one or more ephemeral worker processes to perform parser/analysis workloads and collates deterministic outputs into <code>./.simplebeacon/report.json</code> and final PDF certificates.</li>
+<li>Analyzer engines: Static, package-bundled rule sets implemented as JS/TS modules (AST matchers, regex signatures, structural heuristics). Rules are loaded from the local package and are not fetched at runtime unless the operator explicitly runs an update command.</li>
+<li>Local UI: A lightweight local HTTP server bound to loopback (or an embedded VS Code WebView) serves static UI assets from disk. The UI reads analysis results from local artifact files only.</li>
+<li>Persistence: Intermediate state uses ephemeral tempfiles; final artifacts are written atomically to the <code>.simplebeacon</code> directory.</li>
+</ul>
+<p></p>
+<p>V8 / Node process sandboxing and isolation</p>
+<p></p>
+<ul>
+<li>Unprivileged worker processes: The core analysis runs inside dedicated Node (V8) worker processes that are spawned with the invoking user’s identity. No elevated privileges are required or requested by default.</li>
+<li>Controlled syscalls and read-only parsing policy: Analyzer workers are implemented to restrict write-access during parsing phases — the common pattern is "read-only parse" -&gt; "analyze in-memory" -&gt; "write final artifact". Intermediate files are written only to explicitly configured temp folders and are removed on process exit.</li>
+<li>Worker lifetime and restart policy: Each analysis run creates new worker processes; long-lived daemons are opt-in. Worker lifetimes are short and deterministic to avoid leaking in-memory state across runs.</li>
+<li>Optional OS-level sandboxing: Operators may run SimpleBeacon inside OS-level sandboxing tools (containers, firejail, Windows AppContainer) for an additional isolation layer; the application design does not require these but is compatible with them.</li>
+</ul>
+<p></p>
+<p>Volatile in-memory cache matrix &amp; State Containment Rule</p>
+<p></p>
+<ul>
+<li><code>createXStore()</code> factory model: All modules that previously exposed module-scoped mutable singletons now provide factory constructors (for example <code>createEventStore(options)</code>). The expected usage pattern is to create per-run instances and discard them at the end of the run so no state persists between invocations.</li>
+<li>Ephemeral caches only: In-memory caches (rule match caches, parsed-AST caches, temporary indexers) live only in worker process memory and are not persisted unless explicitly saved by an opt-in persistence API. By default caches are volatile and eligible for GC when the process exits.</li>
+<li>Deterministic cleanup: Stores implement a <code>close()</code>/<code>dispose()</code> API that clears internal maps and releases file handles; test suites and the CLI call these lifecycle hooks at the end of each run.</li>
+<li>Proof-of-zero-history: The combination of per-run worker processes, factory-instantiated stores, and explicit disposal means that after a run completes and worker processes exit, there are no in-memory artifacts retained on disk or in process-resident heaps accessible to subsequent runs.</li>
+</ul>
+<p></p>
+<p>Localhost network binding boundaries</p>
+<p></p>
+<ul>
+<li>Loopback-only UI binding: The default local dashboard server binds explicitly to <code>127.0.0.1</code> and <code>::1</code> (configurable) and never listens on <code>0.0.0.0</code> or external interfaces unless the operator explicitly overrides the binding configuration.</li>
+<li>Explicit opt-in for remote APIs: Any feature that would contact external services (rule update checks, telemetry, remote model inference) is disabled by default and gated behind an <code>--enable-remote</code>/<code>--telemetry</code> flag which documents the data flow and adds an explicit consent confirmation in the UI.</li>
+<li>Hardened HTTP headers and CORS: The local server sets restrictive CORS, Content-Security-Policy, and <code>X-Frame-Options</code> headers to eliminate inadvertent remote-content inclusion when running in a browser or WebView.</li>
+</ul>
+<p></p>
+<p>Controlled file I/O and atomic writes</p>
+<p></p>
+<ul>
+<li>Write-then-rename commit: Final artifacts (for example <code>report.json</code>) are written to a temporary file in the same filesystem namespace then atomically renamed into place. This ensures either the previous artifact or the new artifact is present, never a partially-written file.</li>
+<li>EPERM-aware Windows fallback: On Windows where <code>rename</code> can fail with <code>EPERM</code> under antivirus contention, the implementation falls back to a synchronous copy-and-replace strategy that preserves atomicity guarantees from the operator’s point of view.</li>
+</ul>
+<p></p>
+<p>Developer hygiene rules (enforced via <code>CONTRIBUTING.md</code>)</p>
+<p></p>
+<ul>
+<li>No module-level mutable caches for per-run data; prefer factory constructors and explicit lifecycle methods.</li>
+<li>Persisted caches require explicit opt-in and must be located under <code>./.simplebeacon/cache</code> with TTL and <code>clear()</code> semantics.</li>
+<li>Tests must instantiate isolated factories for stores and call lifecycle <code>dispose()</code> methods; CI runs validate the absence of process-global singletons for per-run state.</li>
+</ul>
+<p></p>
+<p>Operational recommendations</p>
+<p></p>
+<ul>
+<li>Run CLI in <code>--offline</code> mode for forensically auditable runs.</li>
+<li>Use OS-level sandboxing for sensitive environments; enable mounting of repository directories read-only where possible.</li>
+<li>Periodically run the included <code>self-audit</code> command that verifies loopback binding and absence of outbound connections (see Section 5).</li>
+</ul>
+<p></p>
+<h2>3. Verifiable Network Isolation (The Forensic Proof)</h2>
+<p></p>
+<p>Air-gapped execution</p>
+<p></p>
+<ul>
+<li>Full offline mode: SimpleBeacon provides a <code>--offline</code>/<code>--airgap</code> mode that disables any attempt to retrieve remote rule updates, remote model checks, or online lookups.</li>
+<li>Dependency validation without network: For supply-chain checks, SimpleBeacon inspects local lockfiles (e.g., <code>package-lock.json</code>, <code>yarn.lock</code>) and package metadata present in the repository copy. No network registry queries are performed in <code>--offline</code> mode.</li>
+</ul>
+<p></p>
+<p>Local rule manifests</p>
+<p></p>
+<ul>
+<li>All signature rule sets (OWASP LLM Top 10, EU AI Act profiles, etc.) are compiled into static JSON/TS arrays at publish time and bundled with the package.</li>
+<li>Rule update model: Updates are published as package versions; enterprises may pull updates to an internal artifact repository (no outbound call required during scan).</li>
+</ul>
+<p></p>
+<p>Forensic proofing primitives</p>
+<p></p>
+<ul>
+<li>Execution trace log: Each run emits a time-stamped trace of analyzer steps and rule matches into an append-only local audit log.</li>
+<li>Snapshot hashing: Before analysis, SimpleBeacon optionally hashes the repository snapshot (configurable path subset) using SHA-256; the hash is included in the report and embedded into the PDF certificate.</li>
+<li>Reproducibility: The same CLI invocation on the same input produces the same report hash and artifact set (given identical package version of analyzers).</li>
+</ul>
+<p></p>
+<p>Supply chain sovereignty</p>
+<p></p>
+<ul>
+<li>Verified artifacts: The engine performs integrity checks against locally stored package checksums for any bundled analyzer components.</li>
+<li>No remote registry contact: Unless the operator explicitly runs a <code>fetch</code> or <code>update</code> command, the scanner will not contact npm or other registries.</li>
+</ul>
+<p></p>
+<h2>4. Signed Forensic Audits &amp; Regulatory Safe Harbors</h2>
+<p></p>
+<p>Cryptographic ledger integrity</p>
+<p></p>
+<ul>
+<li>Report structure: <code>report.json</code> contains canonical leaves including <code>report.summary</code>, <code>report.findings</code>, and <code>report.remediation</code> with <code>{ total, applied, failed, results }</code>.</li>
+<li>Snapshot hash: A SHA-256 digest is computed over a deterministic canonical serialization of the repository snapshot and the <code>report.json</code> audit log.</li>
+<li>Certificate signing: Optionally, enterprise customers can sign generated PDFs and JSON snapshots using their local HSM/PKI keys (the CLI supports a <code>--sign-with=path/to/key</code> option that attaches an RFC 7515 JWS signature to the artifact).</li>
+</ul>
+<p></p>
+<p>Regulatory mapping &amp; safe harbors</p>
+<p></p>
+<ul>
+<li>EU AI Act mapping: Reports include structured metadata tying rule matches to EU AI Act clauses. Executive summaries highlight severity and recommended remediation steps for governance review.</li>
+<li>Audit-ready exports: The compiled PDF certificate includes: snapshot hash, rule manifest version, CLI package version, analysis timestamp, and a human-readable ledger of findings suitable for legal review.</li>
+</ul>
+<p></p>
+<h2>5. CISO Network Verification Guide (Operational checks)</h2>
+<p></p>
+<p>We included an operational guide that CISO/NetSec teams can execute to independently verify that SimpleBeacon performs no outbound network calls during a scan.</p>
+<p></p>
+<p>Recommended steps (Windows)</p>
+<p></p>
+<p>1. Prepare: open an elevated PowerShell session and a second terminal for the scan.</p>
+<p>2. Capture baseline sockets:</p>
+<p></p>
+<pre><code>
+Get-NetTCPConnection | Sort-Object State, RemoteAddress | Out-File baseline-sockets.txt
+</code></pre>
+<p></p>
+<p>3. Start a packet capture (Wireshark) on the host's primary interface. Save capture file to <code>scan-cap.pcap</code>.</p>
+<p></p>
+<p>4. Run SimpleBeacon in offline mode:</p>
+<p></p>
+<pre><code>
+Set-Location C:\path\to\repo
+npx simplebeacon --offline --output ./.simplebeacon/report.json
+</code></pre>
+<p></p>
+<p>5. Stop capture and verify:</p>
+<p></p>
+<ul>
+<li>Inspect <code>scan-cap.pcap</code> for any outbound IPs other than loopback or local private ranges. Filter example in Wireshark: <code>!(ip.addr == 127.0.0.1 || ip.addr == ::1)</code> and look for any packets.</li>
+<li>Cross-check socket snapshot diffs:</li>
+</ul>
+<p></p>
+<pre><code>
+Get-NetTCPConnection | Sort-Object State, RemoteAddress | Out-File after-sockets.txt
+Compare-Object (Get-Content baseline-sockets.txt) (Get-Content after-sockets.txt)
+</code></pre>
+<p></p>
+<p>No differences aside from ephemeral OS housekeeping indicate no new outbound connections.</p>
+<p></p>
+<p>Recommended steps (Linux/macOS)</p>
+<p></p>
+<p>1. Baseline sockets:</p>
+<p></p>
+<pre><code>
+ss -tuna &gt; baseline-sockets.txt
+</code></pre>
+<p></p>
+<p>2. Start <code>tcpdump</code> capture:</p>
+<p></p>
+<pre><code>
+sudo tcpdump -w scan-cap.pcap not port 22
+</code></pre>
+<p></p>
+<p>3. Run the scan in offline mode:</p>
+<p></p>
+<pre><code>
+cd /path/to/repo
+npx simplebeacon --offline --output ./.simplebeacon/report.json
+</code></pre>
+<p></p>
+<p>4. Stop tcpdump and analyze with Wireshark; also diff socket lists:</p>
+<p></p>
+<pre><code>
+ss -tuna &gt; after-sockets.txt
+diff -u baseline-sockets.txt after-sockets.txt
+</code></pre>
+<p></p>
+<p>Interpretation guidance</p>
+<p></p>
+<ul>
+<li>Legitimate loopback traffic and ephemeral OS services are expected; flag any remote IP outside private/corp ranges.</li>
+<li>If any outbound traffic is observed, collect process details (on Windows: <code>Get-Process -Id <pid></code>; on Linux: <code>ps -p <pid> -o pid,cmd</code>) and contact vendor support. By design normal SimpleBeacon runs should not yield outbound artifacts.</li>
+</ul>
+<p></p>
+<p>Automation &amp; reproducible proofs</p>
+<p></p>
+<ul>
+<li>The enterprise may run an automated CI job that runs the above commands in an isolated runner and produces an attestation file (<code>network-attestation.json</code>) that records <code>baseline</code>, <code>after</code>, and <code>pcap</code> hashes.</li>
+</ul>
+<p></p>
+<h2>6. Corporate Compliance Sign-off Addendum</h2>
+<p></p>
+<p>(Template for internal procurement/legal sign-off)</p>
+<p></p>
+<p>Company: ______________________</p>
+<p>Reviewer: ______________________</p>
+<p>Date: ______________________</p>
+<p></p>
+<p>Artifact under review:</p>
+<ul>
+<li><code>report.json</code> path: ____________________</li>
+<li>PDF certificate path: ____________________</li>
+<li>Snapshot SHA-256: ____________________</li>
+<li>SimpleBeacon package version: ____________________</li>
+</ul>
+<p></p>
+<p>Declaration</p>
+<p></p>
+<p>I, the undersigned, confirm that I have verified the provided SimpleBeacon artifacts and attest that:</p>
+<p></p>
+<ul>
+<li>The artifact was generated in an offline environment under our control.</li>
+<li>The included snapshot hash matches the repository snapshot we supplied.</li>
+<li>No outbound network traffic was observed during the scan as per provided network captures.</li>
+</ul>
+<p></p>
+<p>Signature: ____________________</p>
+<p>Title: ____________________</p>
+<p>Date: ____________________</p>
+<p></p>
+<h2>7. Implementation Notes &amp; Developer Checklist</h2>
+<p></p>
+<p>For engineering teams looking to operationalize this whitepaper and ship the required controls, the checklist below collects the minimal actionable items.</p>
+<p></p>
+<ul>
+<li>[ ] Add <code>--offline</code> flag and <code>--sign-with</code> support if not present.</li>
+<li>[ ] Ensure <code>report.remediation</code> canonical leaf is present and included in PDF generator.</li>
+<li>[ ] Replace module-level mutable singletons with <code>createXStore()</code> factories for per-run isolation.</li>
+<li>[ ] Implement atomic write paths with rename-based commit and EPERM sync fallback on Windows.</li>
+<li>[ ] Ship static rule manifests with package releases; add package-level <code>rules.version</code> to <code>report.json</code>.</li>
+<li>[ ] Document and ship the CISO Network Verification Guide as part of enterprise docs.</li>
+<li>[ ] Add a CI job that runs the network-attestation automation in an isolated runner and stores results.</li>
+</ul>
+<p></p>
+<p>---</p>
+<p></p>
+<p>End of draft.</p>
+<p></p>
+<p>Please tell me which section you want expanded first (for example: "Section 2: Sandbox spec and runtime internals" or "Section 3: Forensic proof and snapshot signing"), and whether you'd like the compliance addendum pre-filled with your company metadata template fields (I can auto-populate if you provide the fields).</p>
+<p></p></div></body></html>
