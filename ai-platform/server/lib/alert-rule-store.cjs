@@ -3,15 +3,40 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { encrypt, decrypt, isEncrypted, encryptObject, decryptObject } = require('./crypto-utils.cjs');
 
 const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'alert-rules.json');
 const MAX_RULES_PER_ORG = 100;
+
+const SENSITIVE_TOP_LEVEL = ['webhookUrl'];
+const SENSITIVE_DEST_FIELDS = ['url', 'secret', 'routingKey', 'email', 'to', 'webhookUrl'];
 
 function readStore() {
   try {
     if (!fs.existsSync(STORE_PATH)) return { rules: {} };
     const raw = fs.readFileSync(STORE_PATH, 'utf8');
-    return JSON.parse(raw);
+    const store = JSON.parse(raw);
+    // Migrate: encrypt any plaintext sensitive fields in existing rules
+    let migrated = false;
+    for (const key of Object.keys(store.rules || {})) {
+      const rule = store.rules[key];
+      for (const field of SENSITIVE_TOP_LEVEL) {
+        if (rule[field] && !isEncrypted(rule[field])) {
+          rule[field] = encrypt(rule[field]);
+          migrated = true;
+        }
+      }
+      if (rule.destination && typeof rule.destination === 'object') {
+        for (const field of SENSITIVE_DEST_FIELDS) {
+          if (rule.destination[field] && !isEncrypted(rule.destination[field])) {
+            rule.destination[field] = encrypt(rule.destination[field]);
+            migrated = true;
+          }
+        }
+      }
+    }
+    if (migrated) writeStore(store);
+    return store;
   } catch {
     return { rules: {} };
   }
@@ -40,20 +65,52 @@ const EVENT_TYPES = [
 
 const DESTINATION_TYPES = ['webhook', 'slack', 'email', 'pagerduty'];
 
+function decryptRule(rule) {
+  if (!rule) return null;
+  let result = { ...rule };
+  for (const field of SENSITIVE_TOP_LEVEL) {
+    if (result[field] && isEncrypted(result[field])) {
+      result[field] = decrypt(result[field]);
+    }
+  }
+  if (result.destination && typeof result.destination === 'object') {
+    result.destination = { ...result.destination };
+    for (const field of SENSITIVE_DEST_FIELDS) {
+      if (result.destination[field] && isEncrypted(result.destination[field])) {
+        result.destination[field] = decrypt(result.destination[field]);
+      }
+    }
+  }
+  return result;
+}
+
 function getRule(ruleId, orgId) {
   const store = readStore();
-  return store.rules[makeKey(orgId, ruleId)] || null;
+  return decryptRule(store.rules[makeKey(orgId, ruleId)] || null);
 }
 
 function getAllRules(orgId) {
   const store = readStore();
-  return Object.values(store.rules).filter((r) => r.orgId === orgId);
+  return Object.values(store.rules)
+    .filter((r) => r.orgId === orgId)
+    .map(decryptRule);
 }
 
 function setRule(ruleId, rule, orgId) {
   const store = readStore();
   const key = makeKey(orgId, ruleId);
   const existing = store.rules[key];
+  // Encrypt sensitive fields at rest
+  const webhookUrl = rule.webhookUrl ? encrypt(rule.webhookUrl) : '';
+  let destination = {};
+  if (rule.destination && typeof rule.destination === 'object') {
+    destination = { ...rule.destination };
+    for (const field of SENSITIVE_DEST_FIELDS) {
+      if (destination[field] && !isEncrypted(destination[field])) {
+        destination[field] = encrypt(destination[field]);
+      }
+    }
+  }
   store.rules[key] = {
     id: ruleId,
     orgId,
@@ -61,8 +118,8 @@ function setRule(ruleId, rule, orgId) {
     enabled: rule.enabled !== false,
     eventType: rule.eventType || 'critical_finding',
     destinationType: rule.destinationType || 'webhook',
-    webhookUrl: rule.webhookUrl || '',
-    destination: rule.destination || {},
+    webhookUrl,
+    destination,
     threshold: rule.threshold || 1,
     cooldownMinutes: rule.cooldownMinutes || 0,
     severityFilter: rule.severityFilter || 'all',
@@ -81,7 +138,7 @@ function setRule(ruleId, rule, orgId) {
     }
   }
   writeStore(store);
-  return store.rules[key];
+  return decryptRule(store.rules[key]);
 }
 
 function deleteRule(ruleId, orgId) {
@@ -106,21 +163,23 @@ function updateFireStats(ruleId, orgId) {
  */
 function findMatchingRules(orgId, eventType, context) {
   const store = readStore();
-  const rules = Object.values(store.rules).filter((r) => {
-    if (r.orgId !== orgId) return false;
-    if (!r.enabled) return false;
-    if (r.eventType !== eventType) return false;
-    // Severity filter
-    if (r.severityFilter && r.severityFilter !== 'all') {
-      if (context?.severity && context.severity !== r.severityFilter) return false;
-    }
-    // Cooldown check
-    if (r.cooldownMinutes > 0 && r.lastFiredAt) {
-      const elapsed = (Date.now() - new Date(r.lastFiredAt).getTime()) / 60000;
-      if (elapsed < r.cooldownMinutes) return false;
-    }
-    return true;
-  });
+  const rules = Object.values(store.rules)
+    .filter((r) => {
+      if (r.orgId !== orgId) return false;
+      if (!r.enabled) return false;
+      if (r.eventType !== eventType) return false;
+      // Severity filter
+      if (r.severityFilter && r.severityFilter !== 'all') {
+        if (context?.severity && context.severity !== r.severityFilter) return false;
+      }
+      // Cooldown check
+      if (r.cooldownMinutes > 0 && r.lastFiredAt) {
+        const elapsed = (Date.now() - new Date(r.lastFiredAt).getTime()) / 60000;
+        if (elapsed < r.cooldownMinutes) return false;
+      }
+      return true;
+    })
+    .map(decryptRule);
   return rules;
 }
 
