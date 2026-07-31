@@ -71,11 +71,7 @@ function createEventStore(options = {}) {
         await fs.promises.rename(tmpPath, STORE);
       } catch (err) {
         // On failure (Windows EPERM etc.) fall back to sync write
-        try {
           fs.writeFileSync(STORE, payload + '\n', 'utf8');
-        } catch (syncErr) {
-          throw syncErr;
-        }
         try { await fs.promises.unlink(tmpPath).catch(() => {}); } catch (_) {}
       }
     }

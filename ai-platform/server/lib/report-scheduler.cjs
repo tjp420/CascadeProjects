@@ -81,7 +81,7 @@ async function generateReport(schedule, orgId) {
   const ticketStatusStore = require('./ticket-status-store.cjs');
   const ticketStatuses = ticketStatusStore.getAllTicketStatuses(orgId);
 
-  const violations = [];
+  let violations = [];
   for (const scan of scans) {
     const cc = scan.categoryCounts || {};
     for (const [category, count] of Object.entries(cc)) {
