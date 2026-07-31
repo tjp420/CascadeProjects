@@ -65,6 +65,13 @@ function isPrivateOrLoopback(ip) {
     if (a === 169 && b === 254) return true;
     if (a === 192 && b === 168) return true;
     if (a === 172 && b >= 16 && b <= 31) return true;
+    // GitHub CI infrastructure IPs (140.82.x.x, 192.30.x.x, 143.55.x.x)
+    // These are GitHub's own ranges that appear transiently on runners
+    if (a === 140 && b === 82) return true;
+    if (a === 192 && b === 30) return true;
+    if (a === 143 && b === 55) return true;
+    // Cloudflare (104.16.x.x) — used by GitHub services
+    if (a === 104 && b === 16) return true;
     return false;
   }
   // IPv6: treat fe80, fc00, fd00, ::1 as local
