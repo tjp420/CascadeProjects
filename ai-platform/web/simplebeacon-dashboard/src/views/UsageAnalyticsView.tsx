@@ -11,7 +11,7 @@ import {
 import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
-  ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket,
+  ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket, Link2, X,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -75,6 +75,15 @@ type ViolationRow = {
   remediation: RemediationGuidance;
 };
 
+type TicketStatus = {
+  scanId: string;
+  category: string;
+  ticketRef: string;
+  ticketTarget: string;
+  status: string;
+  markedAt: string;
+};
+
 const SEVERITY_COLORS = {
   critical: '#FF0000',
   high: '#FF6600',
@@ -106,6 +115,9 @@ export function UsageAnalyticsView() {
   const [ticketPayload, setTicketPayload] = useState<Record<string, unknown> | null>(null);
   const [ticketRowKey, setTicketRowKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [ticketStatuses, setTicketStatuses] = useState<Record<string, TicketStatus>>({});
+  const [ticketRefInput, setTicketRefInput] = useState<string>('');
+  const [markingRow, setMarkingRow] = useState<string | null>(null);
   const violationsPageSize = 10;
 
   const fetchFilters = useCallback(async () => {
@@ -170,6 +182,59 @@ export function UsageAnalyticsView() {
   }, [repoFilter, branchFilter]);
 
   useEffect(() => { fetchViolations(violationsPage); }, [fetchViolations, violationsPage]);
+
+  const fetchTicketStatuses = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/analytics/violations/ticket-statuses'), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        const map: Record<string, TicketStatus> = {};
+        for (const [key, val] of Object.entries(data.statuses || {})) {
+          map[key] = val as TicketStatus;
+        }
+        setTicketStatuses(map);
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
+  useEffect(() => { fetchTicketStatuses(); }, [fetchTicketStatuses]);
+
+  const markTicketed = useCallback(async (scanId: string, category: string, ticketRef: string, target: string) => {
+    const rowKey = `${scanId}-${category}`;
+    setMarkingRow(rowKey);
+    try {
+      const resp = await fetch(apiUrl('/analytics/violations/mark-ticketed'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scanId, category, ticketRef, ticketTarget: target }),
+      });
+      if (!resp.ok) throw new Error('mark_failed');
+      await fetchTicketStatuses();
+      setTicketRefInput('');
+      toast.success('Violation marked as ticketed');
+    } catch {
+      toast.error('Failed to mark as ticketed');
+    } finally {
+      setMarkingRow(null);
+    }
+  }, [fetchTicketStatuses]);
+
+  const unmarkTicketed = useCallback(async (scanId: string, category: string) => {
+    try {
+      const resp = await fetch(apiUrl('/analytics/violations/unmark-ticketed'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scanId, category }),
+      });
+      if (!resp.ok) throw new Error('unmark_failed');
+      await fetchTicketStatuses();
+      toast.success('Ticket status removed');
+    } catch {
+      toast.error('Failed to remove ticket status');
+    }
+  }, [fetchTicketStatuses]);
 
   const generateTicket = useCallback(async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
     const rowKey = `${scanId}-${category}`;
@@ -556,8 +621,11 @@ export function UsageAnalyticsView() {
                   : v.remediation.priority === 'high' ? 'bg-orange-500'
                   : v.remediation.priority === 'medium' ? 'bg-yellow-500'
                   : 'bg-blue-500';
+                const ticketKey = `${v.scanId}::${v.category}`;
+                const ticketStatus = ticketStatuses[ticketKey];
+                const isTicketed = !!ticketStatus;
                 return (
-                  <div key={rowKey} className="rounded-md">
+                  <div key={rowKey} className={`rounded-md ${isTicketed ? 'bg-green-500/5 border border-green-500/20' : ''}`}>
                     <div
                       className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-3 items-center py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer text-sm"
                       onClick={() => setExpandedRow(isExpanded ? null : rowKey)}
@@ -568,9 +636,21 @@ export function UsageAnalyticsView() {
                           : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                       </span>
                       <div className="min-w-0">
-                        <div className="font-medium truncate">{v.category}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium truncate">{v.category}</span>
+                          {isTicketed && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                              <Ticket className="h-3 w-3" /> Ticketed
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           {v.repository} · {v.branch} · {new Date(v.timestamp).toLocaleDateString()}
+                          {isTicketed && ticketStatus?.ticketRef && (
+                            <span className="ml-2 text-green-600 dark:text-green-400">
+                              · <a href={ticketStatus.ticketRef} target="_blank" rel="noopener noreferrer" className="underline">{ticketStatus.ticketRef}</a>
+                            </span>
+                          )}
                         </div>
                       </div>
                       <span className="text-right font-medium tabular-nums">{v.count}</span>
@@ -603,7 +683,7 @@ export function UsageAnalyticsView() {
                           <span>Gate: {v.gateStatus}</span>
                         </div>
                         {/* Ticket Integration */}
-                        <div className="flex items-center gap-2 pt-2 border-t">
+                        <div className="flex items-center gap-2 pt-2 border-t flex-wrap">
                           <Ticket className="h-4 w-4 text-muted-foreground" />
                           <select
                             className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs"
@@ -636,6 +716,38 @@ export function UsageAnalyticsView() {
                             {JSON.stringify(ticketPayload, null, 2)}
                           </pre>
                         )}
+                        {/* Mark as Ticketed */}
+                        <div className="flex items-center gap-2 pt-2 border-t flex-wrap">
+                          {isTicketed ? (
+                            <>
+                              <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30">
+                                <Ticket className="h-3 w-3 mr-1" /> {ticketStatus.ticketTarget} · {ticketStatus.markedAt?.slice(0, 10)}
+                              </Badge>
+                              <Button variant="outline" size="sm" onClick={() => unmarkTicketed(v.scanId, v.category)}>
+                                <X className="h-3 w-3" /> Remove Ticket Status
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Link2 className="h-4 w-4 text-muted-foreground" />
+                              <input
+                                type="text"
+                                placeholder="Paste ticket URL or ID..."
+                                value={ticketRefInput}
+                                onChange={(e) => setTicketRefInput(e.target.value)}
+                                className="flex h-8 w-64 rounded-md border border-input bg-transparent px-2 py-1 text-xs"
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={!ticketRefInput.trim() || markingRow === rowKey}
+                                onClick={() => markTicketed(v.scanId, v.category, ticketRefInput.trim(), ticketTarget)}
+                              >
+                                {markingRow === rowKey ? 'Marking...' : 'Mark as Ticketed'}
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>

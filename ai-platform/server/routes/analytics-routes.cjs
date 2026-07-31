@@ -13,6 +13,10 @@
  *   GET  /api/analytics/repositories       — Top repositories by scan count
  *   GET  /api/analytics/export             — Download analytics as CSV or JSON
  *   GET  /api/analytics/violations         — Paginated violation rows with remediation guidance
+ *   POST /api/analytics/violations/ticket-payload  — Generate pre-filled ticket payload
+ *   POST /api/analytics/violations/mark-ticketed   — Mark a violation as ticketed
+ *   POST /api/analytics/violations/unmark-ticketed — Remove ticket status from a violation
+ *   GET  /api/analytics/violations/ticket-statuses — Get all ticketed violation statuses
  *   POST /api/analytics/record             — Record a scan (internal/CI)
  *
  * @module analytics-routes
@@ -21,6 +25,7 @@
 const express = require('express');
 const logger = require('../lib/app-logger.cjs');
 const analyticsStore = require('../lib/usage-analytics-store.cjs');
+const ticketStatusStore = require('../lib/ticket-status-store.cjs');
 
 const router = express.Router();
 
@@ -461,6 +466,48 @@ router.post('/violations/ticket-payload', (req, res) => {
   } catch (err) {
     logger.error('[Analytics] Ticket payload failed:', err.message);
     res.status(500).json({ error: 'ticket_payload_failed', message: err.message });
+  }
+});
+
+// POST /api/analytics/violations/mark-ticketed — mark a violation as ticketed
+router.post('/violations/mark-ticketed', (req, res) => {
+  try {
+    const { scanId, category, ticketRef, ticketTarget } = req.body || {};
+    if (!scanId) return res.status(400).json({ error: 'scanId is required' });
+    if (!category) return res.status(400).json({ error: 'category is required' });
+    if (!ticketRef) return res.status(400).json({ error: 'ticketRef is required' });
+
+    const entry = ticketStatusStore.markTicketed(scanId, category, ticketRef, ticketTarget);
+    res.json({ success: true, ticket: entry });
+  } catch (err) {
+    logger.error('[Analytics] Mark ticketed failed:', err.message);
+    res.status(500).json({ error: 'mark_ticketed_failed', message: err.message });
+  }
+});
+
+// POST /api/analytics/violations/unmark-ticketed — remove ticket status from a violation
+router.post('/violations/unmark-ticketed', (req, res) => {
+  try {
+    const { scanId, category } = req.body || {};
+    if (!scanId) return res.status(400).json({ error: 'scanId is required' });
+    if (!category) return res.status(400).json({ error: 'category is required' });
+
+    const result = ticketStatusStore.unmarkTicketed(scanId, category);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.error('[Analytics] Unmark ticketed failed:', err.message);
+    res.status(500).json({ error: 'unmark_ticketed_failed', message: err.message });
+  }
+});
+
+// GET /api/analytics/violations/ticket-statuses — get all ticketed violation statuses
+router.get('/violations/ticket-statuses', (req, res) => {
+  try {
+    const statuses = ticketStatusStore.getAllTicketStatuses();
+    res.json({ success: true, statuses });
+  } catch (err) {
+    logger.error('[Analytics] Ticket statuses failed:', err.message);
+    res.status(500).json({ error: 'ticket_statuses_failed', message: err.message });
   }
 });
 
