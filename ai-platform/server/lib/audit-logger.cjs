@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { getPolicy, getArchivePath } = require('./audit-policy-store.cjs');
 const logStreamAnalyzer = require('./log-stream-analyzer.cjs');
 const analyticsCacheManager = require('./analytics-cache-manager.cjs');
+const ledgerIndexEngine = require('./ledger-index-engine.cjs');
 
 // Register bootstrap function so the cache manager can hydrate from the audit log
 analyticsCacheManager.setBootstrapFunction(async (orgId, entryCallback) => {
