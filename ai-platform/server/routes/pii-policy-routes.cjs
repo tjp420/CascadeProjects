@@ -26,7 +26,7 @@ try {
   securityMonitor = null;
 }
 const { authenticate } = require('../middleware/auth.cjs');
-const { authorize } = require('../middleware/authorize.cjs');
+const { authorize, enforceOrgPartition, getPartitionStats } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../lib/app-logger.cjs');
 

@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
-const { authorize } = require('../middleware/authorize.cjs');
+const { authorize, enforceOrgPartition, getPartitionStats } = require('../middleware/authorize.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const auditPolicyStore = require('../lib/audit-policy-store.cjs');
 const logStreamAnalyzer = require('../lib/log-stream-analyzer.cjs');

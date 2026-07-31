@@ -742,8 +742,9 @@ function setupChatbotAPI(app) {
       const inferenceDuration = Date.now() - inferenceStart;
 
       // Record performance metrics
+      let responseText = '';
       try {
-        let responseText = response.text || response.content || '';
+        responseText = response.text || response.content || '';
         const tokenCount = response.usage?.total_tokens || response.usage?.output_tokens ||
           Math.ceil(responseText.length / 4);
         perfStore.recordRequest({
