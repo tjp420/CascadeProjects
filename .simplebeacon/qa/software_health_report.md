@@ -1,10 +1,10 @@
-# Software Health Report: Realtime Issues Filter/Sort
+# Software Health Report: Inline Row Expansion for Realtime Issues
 
 **Date:** 2026-07-31
 **Branch:** main
 **Validator:** Devin (acting as Validator)
-**Feature:** Add severity filter buttons and sort controls to the live
-analysis stream panel in AnalyzeView.
+**Feature:** Make issue rows in the live analysis stream panel clickable
+to expand/collapse and show the raw JSON chunk payload inline.
 
 ## Gate Status
 
@@ -26,13 +26,13 @@ analysis stream panel in AnalyzeView.
 
 | # | Item | Result | Evidence |
 |---|------|--------|----------|
-| L2.1 | Severity filter buttons render: All, Critical, High, Medium, Low | PASS | `sevButton()` generates 5 buttons with counts |
-| L2.2 | Clicking a severity filter shows only matching issues | PASS | `filter.severity !== 'all'` filters by `i.severity.toLowerCase()` |
-| L2.3 | "All" filter shows all issues | PASS | `filter.severity === 'all'` returns unfiltered |
-| L2.4 | Sort toggle: chunk order vs severity | PASS | `sortButton()` + `severityWeight` map for sort |
-| L2.5 | Filter state persists across re-renders | PASS | `this._realtimeFilter` stored on view instance, read at top of render |
-| L2.6 | Filtered count shown | PASS | `${filtered.length} shown · ${hiddenCount} filtered out` |
-| L2.7 | Empty state when filter matches zero | PASS | `No issues match the active filter.` message |
+| L2.1 | Issue rows have cursor:pointer and click handler | PASS | `style="cursor:pointer"` + `.rt-issue-row` click listener |
+| L2.2 | Clicking a row expands a detail row beneath it | PASS | `_realtimeExpanded.add(rowId)` → detail `<tr>` rendered |
+| L2.3 | Clicking again collapses the detail row | PASS | `_realtimeExpanded.delete(rowId)` → detail `<tr>` removed |
+| L2.4 | Detail row shows full issue JSON + chunk metadata | PASS | JSON includes type, severity, category, message, chunkId, method, confidence, processingTime, recommendations |
+| L2.5 | Multiple rows can be expanded simultaneously | PASS | Set allows multiple row IDs |
+| L2.6 | Expanded state survives re-render if chunk still present | PASS | Row ID is `rt-row-{chunkIdx}-{issueIdx}` — stable across re-renders |
+| L2.7 | Filter/sort buttons still work with expanded rows | PASS | Filter/sort handlers are separate from row click handlers |
 
 ## Level 3 — Self-review / drift
 
@@ -40,10 +40,10 @@ analysis stream panel in AnalyzeView.
 |---|------|--------|----------|
 | L3.1 | No new files created | PASS | Only AnalyzeView.js edited (Broom strategy) |
 | L3.2 | No new dependencies | PASS | package.json unchanged |
-| L3.3 | Filter pattern matches codebase-cat-filter convention | PASS | `btn-ghost`/`btn-primary` toggle, `data-sev` attribute |
-| L3.4 | Filter state stored on view instance | PASS | `this._realtimeFilter = { severity, sort }` |
-| L3.5 | Re-render preserves filter state | PASS | Filter read at top of `_renderRealtimeStreamResults`, not reset on new chunk |
-| L3.6 | Filter reset on toggle off | PASS | `this._realtimeFilter = { severity: 'all', sort: 'chunk' }` in stop handler |
+| L3.3 | JSON in detail row is escaped (no XSS) | PASS | `escapeHtml(JSON.stringify(...))` on all output |
+| L3.4 | Expanded row ID is deterministic | PASS | `rt-row-${chunkIdx}-${issueIdx}` — stable across re-renders |
+| L3.5 | Click handler does not interfere with filter buttons | PASS | Row handler scoped to `.rt-issue-row`, filter to `.rt-sev-filter` |
+| L3.6 | Expanded state cleared on toggle off | PASS | `this._realtimeExpanded = new Set()` in stop handler |
 
 ## Defects
 
@@ -53,14 +53,14 @@ None.
 
 | File | Change |
 |------|--------|
-| `AnalyzeView.js` | Rewrote `_renderRealtimeStreamResults()` with severity filter buttons, sort toggle, filtered count, empty state, and button click handlers. Added filter reset on toggle off. |
+| `AnalyzeView.js` | Added stable row IDs, `_realtimeExpanded` Set, expandable detail rows with JSON payload, click handlers, expanded state reset on toggle off |
 
 ## Enhancements (future)
 
-1. **Category filter**: Add category pills like the codebase health section
-2. **Search box**: Text search across issue messages
-3. **Export filtered results**: Download visible issues as CSV/JSON
-4. **Severity sort stability**: Secondary sort by chunk ID when severity is equal
+1. **Copy JSON button**: Add a "Copy" button in the detail row to copy JSON to clipboard
+2. **Expand all / collapse all**: Bulk toggle for all rows
+3. **Stale expansion cleanup**: Remove expanded row IDs when chunks are evicted (capped at 50)
+4. **Syntax highlighting**: Highlight the JSON in the detail row for readability
 
 ## Validator Sign-off
 

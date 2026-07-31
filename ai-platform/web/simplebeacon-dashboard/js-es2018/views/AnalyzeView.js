@@ -4856,11 +4856,17 @@ export class AnalyzeView {
             ? (chunks.reduce((sum, c) => sum + (c.result?.confidence || 0), 0) / chunks.length * 100).toFixed(0)
             : '—';
         const totalTime = chunks.reduce((sum, c) => sum + (c.result?.processingTime || 0), 0);
-        // Build flat issue list with chunk reference
-        const allIssues = chunks.flatMap((c) => {
+        // Build flat issue list with chunk reference and stable row ID
+        const allIssues = chunks.flatMap((c, chunkIdx) => {
             const issues = c.result?.issues || [];
-            return issues.map((issue) => ({ ...issue, _chunkId: c.chunkId || '—' }));
+            return issues.map((issue, issueIdx) => ({
+                ...issue,
+                _chunkId: c.chunkId || '—',
+                _rowId: `rt-row-${chunkIdx}-${issueIdx}`,
+                _chunkResult: c.result
+            }));
         });
+        if (!this._realtimeExpanded) this._realtimeExpanded = new Set();
         // Apply severity filter
         const filtered = filter.severity === 'all'
             ? allIssues
@@ -4884,13 +4890,35 @@ export class AnalyzeView {
             const isActive = filter.sort === sort;
             return `<button type="button" class="btn ${isActive ? 'btn-primary' : 'btn-ghost'} btn-sm rt-sort-toggle" data-sort="${sort}" style="border-radius:999px;margin:2px;">${label}</button>`;
         };
-        const issueRows = sorted.map((issue) => `
-              <tr>
+        const issueRows = sorted.map((issue) => {
+            const isExpanded = this._realtimeExpanded.has(issue._rowId);
+            const detailJson = escapeHtml(JSON.stringify({
+                type: issue.type || null,
+                severity: issue.severity || null,
+                category: issue.category || issue.rule || null,
+                message: issue.message || issue.description || null,
+                chunkId: issue._chunkId,
+                chunkMetadata: {
+                    method: issue._chunkResult?.method || null,
+                    confidence: issue._chunkResult?.confidence ?? null,
+                    processingTime: issue._chunkResult?.processingTime ?? null,
+                    recommendations: issue._chunkResult?.recommendations || []
+                }
+            }, null, 2));
+            return `
+              <tr class="rt-issue-row" data-row-id="${escapeHtml(issue._rowId)}" style="cursor:pointer;${isExpanded ? 'background:var(--bg-hover, rgba(0,0,0,0.03));' : ''}">
                 <td><span class="gate-badge ${issue.severity === 'critical' || issue.severity === 'high' ? 'warn' : 'pass'}">${escapeHtml(issue.severity || '—')}</span></td>
                 <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(issue.category || issue.rule || '—')}</td>
                 <td><code style="font-size:var(--font-size-xs);">${escapeHtml(issue.message || issue.description || '—')}</code></td>
-                <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(issue._chunkId)}</td>
-              </tr>`).join('');
+                <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(issue._chunkId)} ${isExpanded ? '▲' : '▼'}</td>
+              </tr>
+              ${isExpanded ? `
+              <tr class="rt-detail-row" data-row-id="${escapeHtml(issue._rowId)}">
+                <td colspan="4" style="padding:var(--space-3);background:var(--bg-alt, #f9fafb);border-top:1px solid var(--border);">
+                  <pre style="margin:0;font-size:var(--font-size-xs);white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto;">${detailJson}</pre>
+                </td>
+              </tr>` : ''}`;
+        }).join('');
         const hiddenCount = totalIssues - filtered.length;
         container.innerHTML = `
           <div class="card" style="padding:var(--space-4);margin-top:var(--space-4);border:1px solid var(--border);border-radius:8px;">
@@ -4948,6 +4976,18 @@ export class AnalyzeView {
         container.querySelectorAll('.rt-sort-toggle').forEach((btn) => {
             btn.addEventListener('click', () => {
                 this._realtimeFilter = { ...this._realtimeFilter, sort: btn.dataset.sort };
+                this._renderRealtimeStreamResults();
+            });
+        });
+        // Wire issue row click handlers for expand/collapse
+        container.querySelectorAll('.rt-issue-row').forEach((row) => {
+            row.addEventListener('click', () => {
+                const rowId = row.dataset.rowId;
+                if (this._realtimeExpanded.has(rowId)) {
+                    this._realtimeExpanded.delete(rowId);
+                } else {
+                    this._realtimeExpanded.add(rowId);
+                }
                 this._renderRealtimeStreamResults();
             });
         });
@@ -5552,6 +5592,7 @@ export class AnalyzeView {
                 realtimeAnalysisService.stop();
                 this._realtimeChunks = [];
                 this._realtimeFilter = { severity: 'all', sort: 'chunk' };
+                this._realtimeExpanded = new Set();
                 this._renderRealtimeStreamResults();
                 showToast('Real-time monitoring disabled', 'info');
             }
