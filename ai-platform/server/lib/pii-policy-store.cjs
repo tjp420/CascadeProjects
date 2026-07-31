@@ -1024,6 +1024,105 @@ function createStreamScrubber(orgId, options = {}) {
   };
 }
 
+// ── Stream Verification Helper ──────────────────────────────────────────────
+//
+// verifyFullText() reassembles all process() + flush() output from a stream
+// scrubber and compares it against redactText() on the original full text.
+// This catches:
+//   - Dropped chunks (e.g. SGLang "only logs last chunk" bug)
+//   - Corrupted chunks (encoding issues, truncation)
+//   - Redaction mismatches (stream mode missing PII that batch mode catches)
+//
+// Usage:
+//   const scrubber = createStreamScrubber('org-id');
+//   const chunks = ['Contact alice@', 'example.com now'];
+//   const result = verifyFullText(scrubber, chunks, 'org-id');
+//   // result.match === true if stream output === redactText(fullText)
+//   // result.streamText — reassembled stream output
+//   // result.batchText — redactText() output
+//   // result.diffs — array of { position, streamChar, batchChar }
+
+/**
+ * Verify that stream-mode scrubbing produces the same output as batch-mode
+ * redactText() on the full text. Reassembles all process() + flush() output
+ * from the scrubber and compares against redactText() on the concatenated
+ * input chunks.
+ *
+ * @param {object} scrubber — A stream scrubber instance (from createStreamScrubber)
+ * @param {array<string|object>} chunks — Array of chunks to process (strings or { text, type })
+ * @param {string} orgId — Organization ID for batch redaction comparison
+ * @param {object} [options] — Options for batch redaction comparison
+ * @param {boolean} [options.skipCodeBlocks] — Match skipCodeBlocks setting of scrubber
+ * @returns {{ match: boolean, streamText: string, batchText: string, diffs: array, streamMatches: number, batchMatches: number }}
+ */
+function verifyFullText(scrubber, chunks, orgId, options = {}) {
+  // Process all chunks through the stream scrubber
+  const streamOutputs = [];
+  for (const chunk of chunks) {
+    const out = scrubber.process(chunk);
+    streamOutputs.push(out);
+  }
+  const flushOut = scrubber.flush();
+  streamOutputs.push(flushOut);
+
+  // Reassemble stream output — extract text from both string and object outputs
+  let streamText = '';
+  let streamRedactedCount = 0;
+  for (const out of streamOutputs) {
+    if (typeof out === 'string') {
+      streamText += out;
+    } else if (out && typeof out === 'object') {
+      streamText += out.text || '';
+    }
+  }
+
+  // Reassemble the original full text from chunks
+  let fullText = '';
+  for (const chunk of chunks) {
+    if (typeof chunk === 'string') {
+      fullText += chunk;
+    } else if (chunk && typeof chunk === 'object') {
+      fullText += chunk.text || '';
+    }
+  }
+
+  // Run batch redactText() on the full text for comparison
+  const batchResult = redactText(fullText, orgId, options);
+  const batchText = batchResult.text;
+
+  // Count redactions in stream output (count [REDACTED-*] tokens)
+  const redactedTokenRegex = /\[REDACTED-[^\]]+\]/g;
+  const streamMatches = (streamText.match(redactedTokenRegex) || []).length;
+  const batchMatches = (batchText.match(redactedTokenRegex) || []).length;
+
+  // Find character-level differences
+  const diffs = [];
+  const maxLen = Math.max(streamText.length, batchText.length);
+  for (let i = 0; i < maxLen; i++) {
+    const streamChar = streamText[i];
+    const batchChar = batchText[i];
+    if (streamChar !== batchChar) {
+      diffs.push({
+        position: i,
+        streamChar: streamChar === undefined ? '<EOF>' : streamChar,
+        batchChar: batchChar === undefined ? '<EOF>' : batchChar,
+      });
+      // Limit diffs to first 50 to avoid huge output on total mismatch
+      if (diffs.length >= 50) break;
+    }
+  }
+
+  return {
+    match: streamText === batchText,
+    streamText,
+    batchText,
+    diffs,
+    streamMatches,
+    batchMatches,
+    fullText,
+  };
+}
+
 // ── Scrubber Lifecycle Manager ──────────────────────────────────────────────
 //
 // Manages stream scrubber instances per org+session. Prevents scrubber leaks
@@ -1232,6 +1331,7 @@ module.exports = {
   syncPoliciesToOrgs,
   createStreamScrubber,
   createScrubberRegistry,
+  verifyFullText,
   _splitCodeSegments,
   COMPLIANCE_FRAMEWORKS,
   PII_POLICY_PATH,
