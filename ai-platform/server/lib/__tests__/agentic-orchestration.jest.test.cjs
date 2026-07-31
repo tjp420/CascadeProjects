@@ -65,6 +65,11 @@ jest.mock('../../../server/services/cloud-inference-service.cjs', () => ({
   }
 }));
 
+// Mock audit logger so we can assert calls on quota/rate-limit
+jest.mock('../../../server/lib/audit-logger.cjs', () => ({
+  logEvent: jest.fn(),
+}));
+
 function buildApp() {
   // Ensure a fresh router module (clears in-memory rate windows between tests)
   const routerPath = require.resolve('../../../server/routes/agentic-orchestration-routes.cjs');
@@ -140,5 +145,8 @@ describe('agentic-orchestration routes (Jest mirror)', () => {
       if (res.status === 429) { saw429 = true; break; }
     }
     expect(saw429).toBe(true);
+    // Assert audit logger called
+    const audit = require('../../../server/lib/audit-logger.cjs');
+    expect(audit.logEvent).toHaveBeenCalled();
   });
 });

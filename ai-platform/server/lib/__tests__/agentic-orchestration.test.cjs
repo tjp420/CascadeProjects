@@ -95,6 +95,13 @@ describe('agentic-orchestration routes (static checks)', () => {
     delete require.cache[agenticStorePath];
     require.cache[agenticStorePath] = { id: agenticStorePath, filename: agenticStorePath, loaded: true, exports: mockStore };
 
+    // Mock audit logger and expose to tests via global
+    const auditPath = require('path').resolve(process.cwd(), 'server', 'lib', 'audit-logger.cjs');
+    const mockAudit = { events: [], logEvent: function (type, data) { this.events.push({ type, data }); } };
+    delete require.cache[auditPath];
+    require.cache[auditPath] = { id: auditPath, filename: auditPath, loaded: true, exports: mockAudit };
+    global.__auditMock = mockAudit;
+
     // Ensure router loads our mocks
     const routerPath = require('path').resolve(process.cwd(), 'server', 'routes', 'agentic-orchestration-routes.cjs');
     delete require.cache[routerPath];
@@ -176,5 +183,8 @@ describe('agentic-orchestration routes (static checks)', () => {
       if (r.status === 429) { got429 = true; break; }
     }
     assert.ok(got429, 'Expected at least one 429 rate_limited response within 5 attempts');
+    // Verify audit event recorded
+    const audit = global.__auditMock;
+    assert.ok(audit && audit.events && audit.events.some(e => e.type === 'AGENTIC_RATE_LIMIT_TRIPPED' || e.type === 'AGENTIC_QUOTA_EXHAUSTED'), 'Expected audit event for rate limit or quota');
   });
 });

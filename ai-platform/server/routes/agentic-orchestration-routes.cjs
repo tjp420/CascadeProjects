@@ -27,6 +27,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const logger = require('../lib/app-logger.cjs');
+const auditLogger = require('../lib/audit-logger.cjs');
 const agenticStore = require('../lib/agentic-orchestration-store.cjs');
 const { authorize, enforceOrgPartition } = require('../middleware/authorize.cjs');
 const { sendError, sendSuccess } = require('../lib/response-helpers.cjs');
@@ -166,6 +167,7 @@ router.post('/agents/:id/execute', authorize('admin:all'), asyncHandler(async fu
   var options = req.body.options || {};
   // Enforce active-execution quota per org
   if (isOverActiveQuota(orgId)) {
+    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_QUOTA_EXHAUSTED', { orgId, agentId: req.params.id, user: req.user && req.user.id }); } catch (e) {}
     return sendError(res, 429, 'rate_limited', { message: 'max_active_executions_reached' });
   }
 
@@ -174,6 +176,7 @@ router.post('/agents/:id/execute', authorize('admin:all'), asyncHandler(async fu
   if (!rl.allowed) {
     const retrySecs = Math.ceil((rl.retryAfterMs || 0) / 1000);
     res.setHeader('Retry-After', String(retrySecs));
+    try { auditLogger.logEvent && auditLogger.logEvent('AGENTIC_RATE_LIMIT_TRIPPED', { orgId, agentId: req.params.id, user: req.user && req.user.id, retryAfter: retrySecs }); } catch (e) {}
     return sendError(res, 429, 'rate_limited', { message: 'rate_limit_exceeded', retryAfter: retrySecs });
   }
 
