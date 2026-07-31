@@ -132,7 +132,7 @@ function setupPrIntegrationAPI(app, _options = {}) {
   // List recent reports for a repository
   router.get('/pr-reports/:repository', authenticate, (req, res) => {
     const { repository } = req.params;
-    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
     const reports = [];
     for (const [key, value] of prReportStore) {
       if (key.startsWith(repository + ':')) {

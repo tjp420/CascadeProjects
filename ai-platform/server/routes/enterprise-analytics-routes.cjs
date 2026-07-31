@@ -18,7 +18,7 @@ const router = express.Router();
 router.get('/', (req, res) => {
   try {
     const orgId = req.query.orgId || null;
-    const days = parseInt(String(req.query.days || '90'), 10) || 90;
+    const days = Math.min(Math.max(parseInt(String(req.query.days || '90'), 10) || 90, 1), 365);
     const repository = req.query.repository || null;
     const branch = req.query.branch || null;
 
@@ -31,7 +31,7 @@ router.get('/', (req, res) => {
 
     const trend = analyticsStore.getTrendData({ ...filterOpts, granularity: 'day' });
     const heatmap = analyticsStore.getViolationHeatmap(filterOpts);
-    const repositories = analyticsStore.getTopRepositories(orgId, parseInt(String(req.query.limit || '10'), 10));
+    const repositories = analyticsStore.getTopRepositories(orgId, Math.min(Math.max(parseInt(String(req.query.limit || '10'), 10) || 10, 1), 100));
 
     res.json({ success: true, stats, trend, heatmap, repositories });
   } catch (err) {

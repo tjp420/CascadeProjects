@@ -1,41 +1,56 @@
-# Test Plan: Final Phase 2 Cleanup — flow/negate + basenamePath
+# Test Plan: Backend Phase 1 — Patch File Cleanup + Query Parameter Bounds Checking
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Remove dead duplicate `flow`/`negate` from `async.js` and
-consolidate `basenamePath` (3 defs) into its canonical source.
+**Feature:** Delete 12 unreferenced `.patch-fix` files from server/ and
+add bounds checking to query parameters to prevent DoS via large limit values.
 
 ## Context
 
-Two remaining safe-to-consolidate items:
+The backend audit found 23 issues across 45+ route files. Phase 1
+addresses the safest high-impact wins:
 
-1. **flow/negate** — duplicated in `utils-lib/async.js` (lines 655, 663)
-   and `utils-lib/function.js` (lines 51, 59). Both are **never called**
-   anywhere in the codebase (dead code). `utils.js` re-exports from
-   `AsyncUtils` — should be `FunctionUtils`.
-   - **Action:** Remove from `async.js`, fix `utils.js` re-export source.
+1. **Patch file cleanup**: 12 `.patch-fix` files in server/ are tracked
+   in git but never referenced (grep confirmed 0 require/import matches).
+   Same pattern as the frontend Phase 1 cleanup.
 
-2. **basenamePath** — 3 definitions with near-identical logic:
-   - `lib/analyzePathSuggestions.js` (line 17) — canonical, not exported
-   - `views/AnalyzeView.js` (line 1268) — local copy, identical
-   - `views/AnalyzePathSection.js` (line 6) — local copy, returns `''` instead of `projectPath` as fallback
-   - **Action:** Export from `analyzePathSuggestions.js`, import in both consumers.
+2. **Query parameter bounds checking**: 9 occurrences of
+   `parseInt(req.query.limit, 10) || N` with no max value. A malicious
+   client can request `?limit=999999999` to cause memory exhaustion.
+   Fix: wrap each in `Math.min(Math.max(..., 1), MAX_LIMIT)`.
 
-3. **isPlausibleProjectPath** — **SKIP** (not in this commit)
-   - `lib/pageRepoScan.js` and `views/AnalyzeView.js` have functionally
-     different implementations (different rejection patterns, one uses
-     `stripArtifactSuffixes`). Merging requires careful logic
-     reconciliation — deferred to a future commit.
+3. **Deferred items** (not in this commit):
+   - Auth route consolidation (4 files with duplicate endpoints) —
+     requires careful client migration
+   - Route parameter validation (7 occurrences) — needs per-route
+     format analysis
+   - Response format standardization — large refactor across 50+ files
+   - Try/catch blocks — needs per-route analysis
 
 ## Files to Change
 
-| File | Change |
+### Deletions (12 files)
+| File | Reason |
 |------|--------|
-| `utils-lib/async.js` | Remove `flow` and `negate` exports (dead code) |
-| `utils.js` | Fix `flow`/`negate` re-export source: AsyncUtils → FunctionUtils |
-| `lib/analyzePathSuggestions.js` | Export `basenamePath` |
-| `views/AnalyzeView.js` | Remove local `basenamePath`, import from analyzePathSuggestions |
-| `views/AnalyzePathSection.js` | Remove local `basenamePath`, import from analyzePathSuggestions |
+| `server/ai-proxy-gateway.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/dlp-dashboard.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/lib/ai-analyst.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/lib/compliance-rules.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/lib/enhanced-ai-orchestrator.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/lib/recoverable-io.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/lib/user-ai-keys-store.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/routes/flexible-analyze-api.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/services/cloud-inference-service.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/services/enhanced-model-manager.cjs.patch-fix` | Unreferenced patch artifact |
+| `server/test-gateway.js.patch-fix` | Unreferenced patch artifact |
+| `server/utils/data-processor.cjs.patch-fix` | Unreferenced patch artifact |
+
+### Edits (bounds checking)
+| File | Lines | Change |
+|------|-------|--------|
+| `server/routes/analytics-routes.cjs` | 177-178, 230, 242, 351-352 | Add Math.min/max bounds |
+| `server/routes/enterprise-analytics-routes.cjs` | 21, 34 | Add Math.min/max bounds |
+| `server/routes/admin-api.cjs` | 435, 445 | Add Math.min/max bounds |
 
 ## Objective Check-Items
 
@@ -43,23 +58,25 @@ Two remaining safe-to-consolidate items:
 
 | # | Item | Expected |
 |---|------|----------|
-| L1.1 | `node -c` on all 5 edited files | exit 0 |
-| L1.2 | `npx simplebeacon scan --gate` | PASS (exit 0) |
-| L1.3 | WebSocket integration test still passes | 16/16 pass |
+| L1.1 | `npx simplebeacon scan --gate` | PASS (exit 0) |
+| L1.2 | WebSocket integration test still passes | 16/16 pass |
+| L1.3 | No imports reference deleted patch files | grep returns 0 matches |
+| L1.4 | `node -c` on all edited route files | exit 0 |
 
 ### Level 2 — Behavioral
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | `flow`/`negate` still available via utils.js | Re-exported from FunctionUtils |
-| L2.2 | `basenamePath` works identically in all consumers | Same output for same input |
-| L2.3 | No duplicate `basenamePath` definitions remain | grep finds 0 local defs |
+| L2.1 | `?limit=999999` returns max 1000 items | Bounds enforced |
+| L2.2 | `?limit=0` returns at least 1 item | Lower bound enforced |
+| L2.3 | `?limit=50` (default) returns 50 items | Default unchanged |
+| L2.4 | `?days=999999` returns max 365 days | Days bounded |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
-| L3.1 | No new files created | Only edits to existing files |
-| L3.2 | No new dependencies | Uses existing import chain |
-| L3.3 | isPlausibleProjectPath left untouched | Documented as deferred |
-| L3.4 | basenamePath fallback behavior unified | All use `|| projectPath` (canonical) |
+| L3.1 | No new files created | Only deletions + inline edits |
+| L3.2 | No new dependencies | Uses Math.min/max (built-in) |
+| L3.3 | Bounds are reasonable for each endpoint | 1000 for lists, 365 for days |
+| L3.4 | Auth route consolidation deferred | Documented in health report |
