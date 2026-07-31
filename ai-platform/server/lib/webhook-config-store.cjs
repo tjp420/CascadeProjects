@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const cryptoUtils = require('./crypto-utils.cjs');
 
 const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'webhook-configs.json');
 const KEY_PATH = path.join(process.cwd(), '.simplebeacon', '.webhook-key');
@@ -54,6 +55,14 @@ function decryptToken(stored) {
   }
 }
 
+function decryptWithFallback(stored, orgId) {
+  if (!stored) return '';
+  if (cryptoUtils.isOrgEncrypted(stored)) {
+    return cryptoUtils.decryptForOrg(stored, orgId) || '';
+  }
+  return decryptToken(stored);
+}
+
 function readStore() {
   try {
     if (!fs.existsSync(STORE_PATH)) return { configs: {} };
@@ -79,7 +88,7 @@ function getConfig(target, orgId) {
   const key = makeConfigKey(orgId, target);
   const config = store.configs[key];
   if (!config) return null;
-  return { ...config, authToken: decryptToken(config.authToken) };
+  return { ...config, authToken: decryptWithFallback(config.authToken, config.orgId) };
 }
 
 function getAllConfigs(orgId) {
@@ -88,7 +97,7 @@ function getAllConfigs(orgId) {
   for (const [key, val] of Object.entries(store.configs)) {
     if (orgId && val.orgId !== orgId) continue;
     const targetKey = val.target || key;
-    configs[targetKey] = { ...val, authToken: decryptToken(val.authToken) };
+    configs[targetKey] = { ...val, authToken: decryptWithFallback(val.authToken, val.orgId) };
   }
   return configs;
 }
@@ -96,11 +105,12 @@ function getAllConfigs(orgId) {
 function setConfig(target, config, orgId) {
   const store = readStore();
   const key = makeConfigKey(orgId, target);
+  const effectiveOrgId = orgId || 'default';
   store.configs[key] = {
-    orgId: orgId || 'default',
+    orgId: effectiveOrgId,
     target,
     apiUrl: config.apiUrl || '',
-    authToken: encryptToken(config.authToken || ''),
+    authToken: cryptoUtils.encryptForOrg(config.authToken || '', effectiveOrgId),
     projectKey: config.projectKey || '',
     teamId: config.teamId || '',
     repoOwner: config.repoOwner || '',
