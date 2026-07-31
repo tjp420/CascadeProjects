@@ -92,6 +92,7 @@ const fixOrchestratorRouter = require('./routes/fix-orchestrator-api.cjs');
 const ssoRoutes = require('./routes/sso-routes.cjs');
 const ssoConfigRoutes = require('./routes/sso-config-routes.cjs');
 const tokenBudgetRoutes = require('./routes/token-budget-allocation-routes.cjs');
+const workspaceConfigRoutes = require('./routes/workspace-config-routes.cjs');
 const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
 const auditLogRouter = require('./routes/audit.cjs');
 const authRoutes = require('./routes/auth-routes.cjs');
@@ -1243,6 +1244,9 @@ app.use('/api', require('./routes/ai-context-routes.cjs'));
 
 // Token budget allocation routes — per-org fiscal guardrails
 app.use('/api/token-budget', tokenBudgetRoutes);
+
+// Workspace configuration routes — admin telemetry for sandbox + budget controls
+app.use('/api/workspace', workspaceConfigRoutes);
 
 // Static file serving for saved scan data exports
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));

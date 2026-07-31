@@ -37,12 +37,13 @@ import { ComplianceView } from './views/ComplianceView';
 import { OrganizationView } from './views/OrganizationView';
 import { EnterpriseView } from './views/EnterpriseView';
 import { OutreachAnalyticsView } from './views/OutreachAnalyticsView';
+import { WorkspaceConfigView } from './views/WorkspaceConfigView';
 
 // Lazy-loaded views — code-split to keep initial bundle small
 const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
-const AUTH_REQUIRED_VIEWS = new Set(['organization']);
+const AUTH_REQUIRED_VIEWS = new Set(['organization', 'workspace']);
 const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
 
 function isHostedDashboard(): boolean {
@@ -94,6 +95,7 @@ const VIEW_TITLES: Record<string, string> = {
   enterprise: 'Enterprise',
   'team-metrics': 'Team Metrics',
   'outreach-analytics': 'Outreach Analytics',
+  workspace: 'Workspace',
 };
 
 const viewMap: Record<string, React.ComponentType> = {
@@ -126,6 +128,7 @@ const viewMap: Record<string, React.ComponentType> = {
   enterprise: EnterpriseView,
   'team-metrics': TeamMetricsView,
   'outreach-analytics': OutreachAnalyticsView,
+  workspace: WorkspaceConfigView,
 };
 
 export default function App() {

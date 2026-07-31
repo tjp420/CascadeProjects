@@ -26,6 +26,7 @@ import {
   Building2,
   Server,
   Mail,
+  Briefcase,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -78,6 +79,7 @@ const navGroups: NavGroup[] = [
       { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Mail },
       { view: 'organization', label: 'Organization', icon: Building2 },
       { view: 'enterprise', label: 'Enterprise', icon: Server },
+      { view: 'workspace', label: 'Workspace', icon: Briefcase },
       { view: 'profile', label: 'Profile', icon: User },
       { view: 'admin', label: 'Admin', icon: Users },
     ],
@@ -200,7 +202,7 @@ function NavGroupSection({ group, currentView, onNavigate, isAdmin, isAuthentica
         {group.items
           .filter(item => {
             // Hide admin-only items from non-admin users
-            if (!isAdmin && item.view === 'admin') return false;
+            if (!isAdmin && (item.view === 'admin' || item.view === 'workspace')) return false;
             // Hide auth-required items from signed-out users
             if (!isAuthenticated && AUTH_REQUIRED_VIEWS.has(item.view)) return false;
             return true;

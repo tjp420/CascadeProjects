@@ -19,6 +19,7 @@ on:
       - 'ai-platform/server/lib/security-monitor-settings-store.cjs'
       - 'ai-platform/server/lib/rbac-store.cjs'
       - 'ai-platform/server/lib/crypto-utils.cjs'
+      - 'ai-platform/server/routes/agentic-orchestration-routes.cjs'
       - 'ai-platform/server/lib/__tests__/org-partition-enforcement.test.cjs'
       - 'ai-platform/server/lib/__tests__/violation-retention-policy.test.cjs'
       - 'ai-platform/server/lib/__tests__/alert-rule-store-purge.test.cjs'
@@ -34,6 +35,7 @@ on:
       - 'ai-platform/server/lib/__tests__/pii-scrubber-registry.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-stream-verify.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-stream-preflight.test.cjs'
+      - 'ai-platform/server/lib/__tests__/canonical-request-serializer.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   push:
     branches: [main]
@@ -46,6 +48,7 @@ on:
       - 'ai-platform/server/lib/security-monitor-settings-store.cjs'
       - 'ai-platform/server/lib/rbac-store.cjs'
       - 'ai-platform/server/lib/crypto-utils.cjs'
+      - 'ai-platform/server/routes/agentic-orchestration-routes.cjs'
       - 'ai-platform/server/lib/__tests__/org-partition-enforcement.test.cjs'
       - 'ai-platform/server/lib/__tests__/violation-retention-policy.test.cjs'
       - 'ai-platform/server/lib/__tests__/alert-rule-store-purge.test.cjs'
@@ -61,6 +64,7 @@ on:
       - 'ai-platform/server/lib/__tests__/pii-scrubber-registry.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-stream-verify.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-stream-preflight.test.cjs'
+      - 'ai-platform/server/lib/__tests__/canonical-request-serializer.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   workflow_dispatch:
 
@@ -97,7 +101,7 @@ jobs:
             --verbose \
             --ci \
             --bail=1 \
-            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker|pii-context-aware|pii-scrubber-registry|pii-stream-verify|pii-stream-preflight)\.test\.cjs" \
+            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker|pii-context-aware|pii-scrubber-registry|pii-stream-verify|pii-stream-preflight|canonical-request-serializer)\.test\.cjs" \
             --coverage \
             --coverageReporters=text-summary \
             --coverageReporters=lcov \
@@ -106,6 +110,8 @@ jobs:
             --collectCoverageFrom='server/lib/audit-logger.cjs' \
             --collectCoverageFrom='server/lib/pii-policy-store.cjs' \
             --collectCoverageFrom='server/lib/security-monitor-settings-store.cjs' \
+            --collectCoverageFrom='server/lib/crypto-utils.cjs' \
+            --collectCoverageFrom='server/routes/agentic-orchestration-routes.cjs' \
             2>&1 | tee /tmp/jest-output.txt
 
           # Extract pass/fail summary
@@ -133,6 +139,8 @@ jobs:
           echo "- \`server/lib/audit-logger.cjs\` — Audit log integrity hash chain + PII scrubbing integration" >> $GITHUB_STEP_SUMMARY
           echo "- \`server/lib/pii-policy-store.cjs\` — Multi-tenant policy sync + regulatory PII simulation + stream scrubbing" >> $GITHUB_STEP_SUMMARY
           echo "- \`server/lib/security-monitor-settings-store.cjs\` — Partition config + retention settings" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/lib/crypto-utils.cjs\` — Canonical request serializer + replay detection" >> $GITHUB_STEP_SUMMARY
+          echo "- \`server/routes/agentic-orchestration-routes.cjs\` — Replay detection middleware + audit fingerprinting" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload coverage report
         if: always()
