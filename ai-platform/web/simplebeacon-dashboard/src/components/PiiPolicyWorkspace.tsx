@@ -22,6 +22,10 @@ import {
   BarChart3,
   FileCheck,
   Layers,
+  Eraser,
+  History,
+  PlayCircle,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiUrl, authHeaders } from '@/config';
@@ -58,6 +62,41 @@ interface TestResult {
   error?: string;
 }
 
+interface ScrubPreview {
+  scanned: number;
+  wouldScrub: number;
+  entries: Array<{
+    entryId: string;
+    timestamp: string;
+    action: string;
+    entity: string;
+    matchCount: number;
+    patterns: string[];
+    preview: string;
+    redactedPreview: string;
+  }>;
+  patterns: Array<{ name: string; count: number }>;
+}
+
+interface ScrubResult {
+  scrubbed: number;
+  scanned: number;
+  skipped: number;
+  sealEntryId: string | null;
+  backupFile: string | null;
+}
+
+interface ScrubStatus {
+  orgId: string;
+  ranAt: string;
+  scanned: number;
+  scrubbed: number;
+  skipped: number;
+  sealEntryId: string | null;
+  backupFile: string | null;
+  patterns?: Record<string, number>;
+}
+
 const SEVERITIES = ['high', 'medium', 'low'];
 
 const emptyForm = {
@@ -88,6 +127,14 @@ export function PiiPolicyWorkspace() {
   const [stats, setStats] = useState<PiiStats | null>(null);
   const [frameworks, setFrameworks] = useState<string[]>([]);
   const [seeding, setSeeding] = useState(false);
+
+  // Scrubber state
+  const [scrubPreview, setScrubPreview] = useState<ScrubPreview | null>(null);
+  const [scrubResult, setScrubResult] = useState<ScrubResult | null>(null);
+  const [scrubStatus, setScrubStatus] = useState<ScrubStatus | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [scrubbing, setScrubbing] = useState(false);
+  const [confirmScrub, setConfirmScrub] = useState(false);
 
   const fetchPolicies = useCallback(async () => {
     setLoading(true);
@@ -161,11 +208,91 @@ export function PiiPolicyWorkspace() {
     }
   };
 
+  // ── Scrubber handlers ──
+  const fetchScrubStatus = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/pii/scrub/status'), { headers: authHeaders() });
+      const data = await resp.json();
+      if (resp.ok && data.success && data.status) {
+        setScrubStatus(data.status);
+      }
+    } catch {
+      // Status is non-critical
+    }
+  }, []);
+
+  const handlePreviewScrub = async () => {
+    setPreviewing(true);
+    setScrubPreview(null);
+    try {
+      const resp = await fetch(apiUrl('/pii/scrub/preview'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        toast.error('Failed to generate scrub preview');
+        return;
+      }
+      setScrubPreview({
+        scanned: data.scanned || 0,
+        wouldScrub: data.wouldScrub || 0,
+        entries: data.entries || [],
+        patterns: data.patterns || [],
+      });
+      if (data.wouldScrub > 0) {
+        toast.info(`Found ${data.wouldScrub} entries with PII`, {
+          description: `${data.scanned} entries scanned, ${data.wouldScrub} would be scrubbed`,
+        });
+      } else {
+        toast.success('No PII found in historical entries', {
+          description: `${data.scanned} entries scanned — all clean`,
+        });
+      }
+    } catch {
+      toast.error('Failed to generate scrub preview');
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
+  const handleRunScrub = async () => {
+    setScrubbing(true);
+    setConfirmScrub(false);
+    try {
+      const resp = await fetch(apiUrl('/pii/scrub/run'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        toast.error('Failed to execute PII scrub');
+        return;
+      }
+      setScrubResult({
+        scrubbed: data.scrubbed || 0,
+        scanned: data.scanned || 0,
+        skipped: data.skipped || 0,
+        sealEntryId: data.sealEntryId || null,
+        backupFile: data.backupFile || null,
+      });
+      toast.success(`Scrubbed ${data.scrubbed} entries`, {
+        description: `${data.scanned} scanned, ${data.scrubbed} scrubbed, seal: ${data.sealEntryId?.slice(0, 16)}...`,
+      });
+      fetchScrubStatus();
+    } catch {
+      toast.error('Failed to execute PII scrub');
+    } finally {
+      setScrubbing(false);
+    }
+  };
+
   useEffect(() => {
     fetchPolicies();
     fetchStats();
     fetchFrameworks();
-  }, [fetchPolicies, fetchStats, fetchFrameworks]);
+    fetchScrubStatus();
+  }, [fetchPolicies, fetchStats, fetchFrameworks, fetchScrubStatus]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -310,6 +437,10 @@ export function PiiPolicyWorkspace() {
           <TabsTrigger value="governance" className="flex items-center gap-1.5">
             <FileCheck className="h-3.5 w-3.5" />
             Governance & Compliance
+          </TabsTrigger>
+          <TabsTrigger value="scrubber" className="flex items-center gap-1.5">
+            <Eraser className="h-3.5 w-3.5" />
+            Retention Scrubber
           </TabsTrigger>
         </TabsList>
 
@@ -753,6 +884,295 @@ export function PiiPolicyWorkspace() {
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Retention Scrubber Tab ── */}
+        <TabsContent value="scrubber">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Eraser className="h-5 w-5 text-primary" />
+                    PII Retention Scrubber
+                  </CardTitle>
+                  <CardDescription>
+                    Retroactively scrub PII from historical audit log entries written before policies were activated
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Warning banner */}
+              <div className="flex items-start gap-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-4">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-amber-600">Irreversible Operation</p>
+                  <p className="text-xs text-foreground-muted">
+                    Running a scrub will modify historical audit log entries, recompute the entire hash chain,
+                    and append a PII_SCRUBBED seal entry. Original entries are backed up to
+                    <code className="mx-1 rounded bg-muted px-1 py-0.5 text-xs">.simplebeacon/pii-scrub-backups/</code>
+                    for forensic trail. Use dry-run preview first.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviewScrub}
+                  disabled={previewing}
+                >
+                  {previewing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  Dry-Run Preview
+                </Button>
+                {scrubPreview && scrubPreview.wouldScrub > 0 && !confirmScrub && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setConfirmScrub(true)}
+                    disabled={scrubbing}
+                  >
+                    <Eraser className="h-4 w-4" />
+                    Execute Scrub ({scrubPreview.wouldScrub} entries)
+                  </Button>
+                )}
+                {confirmScrub && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-destructive">Confirm?</span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRunScrub}
+                      disabled={scrubbing}
+                    >
+                      {scrubbing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <PlayCircle className="h-4 w-4" />
+                      )}
+                      Yes, Scrub Now
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setConfirmScrub(false)}
+                      disabled={scrubbing}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Dry-run preview results */}
+              {scrubPreview && (
+                <div className="space-y-4">
+                  <Separator />
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                      <Search className="h-4 w-4" />
+                      Dry-Run Preview Results
+                    </h3>
+
+                    {/* Preview KPIs */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="rounded-lg border p-4">
+                        <div className="text-xs text-foreground-muted mb-1">Entries Scanned</div>
+                        <div className="text-2xl font-bold">{scrubPreview.scanned}</div>
+                      </div>
+                      <div className={`rounded-lg border p-4 ${scrubPreview.wouldScrub > 0 ? 'border-amber-500/30 bg-amber-500/5' : ''}`}>
+                        <div className="text-xs text-foreground-muted mb-1">Would Scrub</div>
+                        <div className={`text-2xl font-bold ${scrubPreview.wouldScrub > 0 ? 'text-amber-600' : ''}`}>
+                          {scrubPreview.wouldScrub}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <div className="text-xs text-foreground-muted mb-1">Patterns Triggered</div>
+                        <div className="text-2xl font-bold">{scrubPreview.patterns.length}</div>
+                      </div>
+                    </div>
+
+                    {/* Pattern breakdown */}
+                    {scrubPreview.patterns.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-medium text-foreground-muted">Pattern Match Counts</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {scrubPreview.patterns.map((p) => (
+                            <Badge key={p.name} variant="secondary" className="gap-1">
+                              {p.name}
+                              <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-xs font-bold">
+                                {p.count}
+                              </span>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Entry details */}
+                    {scrubPreview.entries.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-medium text-foreground-muted">
+                          Entries with PII ({scrubPreview.entries.length})
+                        </h4>
+                        <div className="max-h-64 overflow-y-auto space-y-2">
+                          {scrubPreview.entries.slice(0, 20).map((entry) => (
+                            <div
+                              key={entry.entryId}
+                              className="rounded-md border border-border bg-muted/20 p-3 space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-mono text-foreground-muted">
+                                    {entry.entryId.slice(0, 20)}...
+                                  </span>
+                                  <Badge variant="outline" className="text-xs">{entry.action}</Badge>
+                                  <Badge variant="secondary" className="text-xs">{entry.matchCount} matches</Badge>
+                                </div>
+                                <span className="text-xs text-foreground-muted">
+                                  {new Date(entry.timestamp).toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <span className="text-foreground-muted">Before: </span>
+                                  <code className="text-foreground">{entry.preview}</code>
+                                </div>
+                                <div>
+                                  <span className="text-foreground-muted">After: </span>
+                                  <code className="text-emerald-600">{entry.redactedPreview}</code>
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                {entry.patterns.map((p) => (
+                                  <Badge key={p} variant="secondary" className="text-xs px-1.5 py-0">
+                                    {p}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                          {scrubPreview.entries.length > 20 && (
+                            <p className="text-xs text-foreground-muted text-center py-1">
+                              ... and {scrubPreview.entries.length - 20} more entries
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Scrub execution result */}
+              {scrubResult && (
+                <div className="space-y-4">
+                  <Separator />
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      Scrub Execution Result
+                    </h3>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="rounded-lg border p-4">
+                        <div className="text-xs text-foreground-muted mb-1">Scanned</div>
+                        <div className="text-2xl font-bold">{scrubResult.scanned}</div>
+                      </div>
+                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+                        <div className="text-xs text-foreground-muted mb-1">Scrubbed</div>
+                        <div className="text-2xl font-bold text-emerald-600">{scrubResult.scrubbed}</div>
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <div className="text-xs text-foreground-muted mb-1">Skipped</div>
+                        <div className="text-2xl font-bold">{scrubResult.skipped}</div>
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <div className="text-xs text-foreground-muted mb-1">Seal Entry</div>
+                        <div className="text-xs font-mono font-bold truncate">
+                          {scrubResult.sealEntryId ? scrubResult.sealEntryId.slice(0, 20) + '...' : 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+                    {scrubResult.backupFile && (
+                      <div className="flex items-center gap-2 text-xs text-foreground-muted">
+                        <History className="h-3.5 w-3.5" />
+                        Backup saved: <code className="rounded bg-muted px-1.5 py-0.5">{scrubResult.backupFile}</code>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Last scrub status */}
+              {scrubStatus && (
+                <div className="space-y-4">
+                  <Separator />
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                      <History className="h-4 w-4" />
+                      Last Scrub Operation
+                    </h3>
+                    <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-foreground-muted">Organization</span>
+                        <span className="text-sm font-medium">{scrubStatus.orgId}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-foreground-muted">Ran At</span>
+                        <span className="text-sm">{new Date(scrubStatus.ranAt).toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-foreground-muted">Scanned / Scrubbed / Skipped</span>
+                        <span className="text-sm font-mono">
+                          {scrubStatus.scanned} / {scrubStatus.scrubbed} / {scrubStatus.skipped}
+                        </span>
+                      </div>
+                      {scrubStatus.sealEntryId && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-foreground-muted">Seal Entry</span>
+                          <code className="text-xs font-mono">{scrubStatus.sealEntryId.slice(0, 24)}...</code>
+                        </div>
+                      )}
+                      {scrubStatus.backupFile && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-foreground-muted">Backup File</span>
+                          <code className="text-xs font-mono">{scrubStatus.backupFile}</code>
+                        </div>
+                      )}
+                      {scrubStatus.patterns && Object.keys(scrubStatus.patterns).length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-xs text-foreground-muted">Patterns Applied</span>
+                          <div className="flex flex-wrap gap-1">
+                            {Object.entries(scrubStatus.patterns).map(([name, count]) => (
+                              <Badge key={name} variant="secondary" className="text-xs">
+                                {name}: {count}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!scrubPreview && !scrubResult && !scrubStatus && (
+                <div className="text-center py-8 text-foreground-muted">
+                  <Eraser className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">Click "Dry-Run Preview" to scan historical audit entries for PII.</p>
+                  <p className="text-xs mt-1">No scrub has been run yet.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
