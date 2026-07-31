@@ -37,6 +37,7 @@ const OrganizationView = lazy(() => import('./views/OrganizationView').then((m) 
 const EnterpriseView = lazy(() => import('./views/EnterpriseView').then((m) => ({ default: m.EnterpriseView })));
 const OutreachAnalyticsView = lazy(() => import('./views/OutreachAnalyticsView').then((m) => ({ default: m.OutreachAnalyticsView })));
 const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then((m) => ({ default: m.TeamMetricsView })));
+const AnalyticsDashboardView = lazy(() => import('./views/AnalyticsDashboardView').then((m) => ({ default: m.AnalyticsDashboardView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
 const AUTH_REQUIRED_VIEWS = new Set(['organization']);
@@ -100,6 +101,7 @@ const VIEW_TITLES: Record<string, string> = {
   enterprise: 'Enterprise',
   'team-metrics': 'Team Metrics',
   'outreach-analytics': 'Outreach Analytics',
+  'analytics-dashboard': 'Audit Analytics',
 };
 
 const viewMap: Record<string, ComponentType> = {
@@ -132,6 +134,7 @@ const viewMap: Record<string, ComponentType> = {
   enterprise: EnterpriseView,
   'team-metrics': TeamMetricsView,
   'outreach-analytics': OutreachAnalyticsView,
+  'analytics-dashboard': AnalyticsDashboardView,
 };
 
 export default function App() {

@@ -19,6 +19,44 @@ function readEnv(name) {
 const LEVEL_RANK = { error: 0, warn: 1, info: 2, debug: 3 };
 
 /**
+ * Log subscribers — callbacks invoked on every log call.
+ * Fire-and-forget: subscriber errors are silently caught.
+ */
+const logSubscribers = [];
+
+/**
+ * Subscribe to log events. Returns an unsubscribe function.
+ * @param {function} callback — receives { level, message, timestamp }
+ * @returns {function} unsubscribe
+ */
+function onLog(callback) {
+  if (typeof callback !== 'function') return () => {};
+  logSubscribers.push(callback);
+  return () => {
+    const idx = logSubscribers.indexOf(callback);
+    if (idx >= 0) logSubscribers.splice(idx, 1);
+  };
+}
+
+/**
+ * Notify all subscribers of a log event.
+ * @param {string} level
+ * @param {Array} args
+ */
+function notifySubscribers(level, args) {
+  if (logSubscribers.length === 0) return;
+  const message = args.map(a => typeof a === 'string' ? a : (a instanceof Error ? a.message : JSON.stringify(a))).join(' ');
+  const entry = { level, message, timestamp: new Date().toISOString() };
+  for (const sub of logSubscribers) {
+    try {
+      sub(entry);
+    } catch {
+      // subscriber errors never block logging
+    }
+  }
+}
+
+/**
  * Resolve level.
  * @returns {any}
  */
@@ -49,13 +87,15 @@ function shouldLog(level) {
 function write(level, fn, args) {
   if (!shouldLog(level)) return;
   fn(...args);
+  notifySubscribers(level, args);
 }
 
 const logger = {
-  error: (...args) => console.error(...args),
+  error: (...args) => { console.error(...args); notifySubscribers('error', args); },
   warn: (...args) => write('warn', console.warn, args),
   info: (...args) => write('info', console.info, args),
   debug: (...args) => write('debug', console.log, args),
+  onLog,
 };
 
 if (typeof module !== 'undefined' && module.exports) {

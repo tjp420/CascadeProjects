@@ -21,7 +21,7 @@ const constants = require('../config/constants.cjs');
 function t(str) {
   return str;
 }
-const { generateWithProvider } = require('../services/cloud-inference-service.cjs');
+const cloudInf = require('../services/cloud-inference-service.cjs');
 const { DEFAULT_OLLAMA_URL, ollamaListModels } = require('../services/ollama-client.cjs');
 const { verifyToken } = require('../lib/auth/token-service.cjs');
 const { logSecurityEvent, logUserAction } = require('../middleware/audit.cjs');
@@ -614,7 +614,7 @@ function setupChatbotAPI(app) {
 
       // Generate response using the selected provider
       const inferenceStart = Date.now();
-      let response = await generateWithProvider(provider, messages, {
+      let response = await cloudInf.generateWithProvider(provider, messages, {
         userCredentials,
         timeoutMs: constants.TIMEOUT_1M,
         ollamaModel:
@@ -650,7 +650,7 @@ function setupChatbotAPI(app) {
           },
         ];
         try {
-          const retryResponse = await generateWithProvider(provider, retryMessages, {
+          const retryResponse = await cloudInf.generateWithProvider(provider, retryMessages, {
             userCredentials,
             timeoutMs: constants.TIMEOUT_1M,
             ollamaModel:
@@ -710,7 +710,7 @@ function setupChatbotAPI(app) {
                 currentModel,
               });
               try {
-                const fallbackResponse = await generateWithProvider(provider, retryMessages, {
+                const fallbackResponse = await cloudInf.generateWithProvider(provider, retryMessages, {
                   userCredentials,
                   timeoutMs: constants.TIMEOUT_1M,
                   ollamaModel: fallbackModel,

@@ -26,6 +26,7 @@ import {
   Building2,
   Server,
   Mail,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePrefetch } from '@/hooks/usePrefetch';
@@ -75,6 +76,7 @@ const navGroups: NavGroup[] = [
       { view: 'assessments', label: 'Assessments', icon: FileText },
       { view: 'remediation', label: 'Remediation', icon: Map },
       { view: 'platform', label: 'Platform', icon: BarChart3 },
+      { view: 'analytics-dashboard', label: 'Audit Analytics', icon: Activity },
       { view: 'team-metrics', label: 'Team Metrics', icon: TrendingUp },
       { view: 'outreach-analytics', label: 'Outreach Analytics', icon: Mail },
       { view: 'organization', label: 'Organization', icon: Building2 },
