@@ -95,8 +95,8 @@ const DEFAULT_SEED_PATTERNS = [
   {
     name: 'API Key (Bearer Token)',
     description: 'Bearer token patterns in Authorization headers',
-    pattern: '(?i)bearer\\s+[a-zA-Z0-9._-]+',
-    flags: 'g',
+    pattern: 'bearer\\s+[a-zA-Z0-9._-]+',
+    flags: 'gi',
     replacement: '[REDACTED-TOKEN]',
     severity: 'high',
     compliance: ['SOX', 'PCI-DSS'],

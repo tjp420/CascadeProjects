@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Tests for pii-policy-store.cjs — syncPoliciesToOrgs()
+ * Tests for pii-policy-store.cjs ΓÇö syncPoliciesToOrgs()
  * Tests multi-tenant policy synchronization with merge/replace modes and filters.
  */
 
@@ -107,7 +107,7 @@ describe('pii-policy-store syncPoliciesToOrgs', () => {
     seedSourcePolicies('org-a', 2);
     // First sync
     storeModule.syncPoliciesToOrgs('org-a', ['org-b']);
-    // Second sync — should skip all
+    // Second sync ΓÇö should skip all
     const result = storeModule.syncPoliciesToOrgs('org-a', ['org-b']);
 
     assert.strictEqual(result.totalCloned, 0);
@@ -194,7 +194,7 @@ describe('pii-policy-store syncPoliciesToOrgs', () => {
     const result = storeModule.syncPoliciesToOrgs('org-a', ['org-b', 'org-c', 'org-d']);
 
     assert.strictEqual(result.targets.length, 3);
-    assert.strictEqual(result.totalCloned, 6); // 2 policies × 3 orgs
+    assert.strictEqual(result.totalCloned, 6); // 2 policies ├ù 3 orgs
     assert.ok(result.targets.every((t) => t.success && t.cloned === 2));
   });
 
