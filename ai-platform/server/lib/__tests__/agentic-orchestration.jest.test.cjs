@@ -58,6 +58,22 @@ jest.mock('../../../server/lib/agentic-orchestration-store.cjs', () => ({
   listTools: () => [],
 }));
 
+// Mock the async redis-rate-limiter implementation used by the router
+jest.mock('../../../server/lib/redis-rate-limiter.cjs', () => {
+  const WINDOW_MS = 60 * 1000;
+  const LIMIT = 3;
+  const inMem = {};
+  return {
+    checkAndRecordRateLimit: jest.fn(async (orgId) => {
+      const now = Date.now();
+      inMem[orgId] = (inMem[orgId] || []).filter(t => t >= now - WINDOW_MS);
+      if (inMem[orgId].length >= LIMIT) return { allowed: false, retryAfterMs: (inMem[orgId][0] + WINDOW_MS) - now };
+      inMem[orgId].push(now);
+      return { allowed: true };
+    })
+  };
+});
+
 // Mock the cloud inference service used by the route's lazy loader
 jest.mock('../../../server/services/cloud-inference-service.cjs', () => ({
   generateWithProvider: async (provider, prompt, opts) => {

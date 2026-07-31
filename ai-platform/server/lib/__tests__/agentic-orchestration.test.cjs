@@ -102,6 +102,23 @@ describe('agentic-orchestration routes (static checks)', () => {
     require.cache[auditPath] = { id: auditPath, filename: auditPath, loaded: true, exports: mockAudit };
     global.__auditMock = mockAudit;
 
+    // Mock redis-rate-limiter to match new async interface used by the router
+    const limiterPath = require('path').resolve(process.cwd(), 'server', 'lib', 'redis-rate-limiter.cjs');
+    const WINDOW_MS = 60 * 1000;
+    const LIMIT = 3;
+    const inMem = {};
+    const mockLimiter = {
+      checkAndRecordRateLimit: async function (orgId) {
+        const now = Date.now();
+        inMem[orgId] = (inMem[orgId] || []).filter(t => t >= now - WINDOW_MS);
+        if (inMem[orgId].length >= LIMIT) return { allowed: false, retryAfterMs: (inMem[orgId][0] + WINDOW_MS) - now };
+        inMem[orgId].push(now);
+        return { allowed: true };
+      }
+    };
+    delete require.cache[limiterPath];
+    require.cache[limiterPath] = { id: limiterPath, filename: limiterPath, loaded: true, exports: mockLimiter };
+
     // Ensure router loads our mocks
     const routerPath = require('path').resolve(process.cwd(), 'server', 'routes', 'agentic-orchestration-routes.cjs');
     delete require.cache[routerPath];
