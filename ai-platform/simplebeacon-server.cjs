@@ -690,6 +690,15 @@ app.get(/^\/dashboard\/?$/, async (req, res) => {
   return sendSimplebeaconDashboard(res);
 });
 
+// Service Worker — served with Service-Worker-Allowed header so it can control /dashboard/ scope
+app.get('/dashboard/sw.js', (req, res) => {
+  const swPath = path.join(webRoot, 'simplebeacon-dashboard', 'sw.js');
+  res.set('Content-Type', 'application/javascript; charset=utf-8');
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.set('Service-Worker-Allowed', '/dashboard/');
+  res.sendFile(swPath);
+});
+
 // SPA sub-routes (e.g. /dashboard/analyze) — let the client router handle the path
 app.get('/dashboard/*', async (req, res) => {
   if (internalDashboard && !isVaultAuthenticated(req)) {
@@ -1933,6 +1942,63 @@ async function startServer() {
     logger.info('[WebSocket] Incident broadcaster wired to WebSocket clients');
   } catch (err) {
     logger.warn('[WebSocket] Failed to wire incident broadcaster:', safeErrorMessage(err));
+  }
+
+  // Wire log streaming + burst detection + metrics broadcasting via WebSocket
+  try {
+    const {
+      setBurstCallback,
+      setMetricsCallback,
+      startMetricsBroadcaster,
+      recordLogEvent,
+    } = require('./server/lib/log-stream-metrics.cjs');
+
+    // Broadcast helper — sends to all connected WS clients
+    function wsBroadcast(message) {
+      if (!wss || wss.clients.size === 0) return;
+      const payload = JSON.stringify(message);
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          try {
+            client.send(payload);
+          } catch {
+            // socket may have closed
+          }
+        }
+      });
+    }
+
+    // Wire log subscriber → broadcast LOG_STREAM + feed burst detector
+    logger.onLog((entry) => {
+      wsBroadcast({ type: 'LOG_STREAM', data: entry });
+      recordLogEvent(entry);
+    });
+
+    // Wire burst callback → broadcast BURST_DETECTED
+    setBurstCallback((burst) => {
+      wsBroadcast(burst);
+    });
+
+    // Wire metrics callback → broadcast METRICS_UPDATE
+    setMetricsCallback((metrics) => {
+      wsBroadcast(metrics);
+    });
+
+    // Start periodic metrics broadcasting (every 5 seconds)
+    startMetricsBroadcaster(5000);
+
+    logger.info('[WebSocket] Log stream + burst detection + metrics broadcaster wired');
+  } catch (err) {
+    logger.warn('[WebSocket] Failed to wire log stream metrics:', safeErrorMessage(err));
+  }
+
+  // Mount request timing middleware for performance metrics
+  try {
+    const { requestTiming } = require('./server/middleware/request-timing.cjs');
+    app.use(requestTiming);
+    logger.info('[Middleware] Request timing middleware mounted');
+  } catch (err) {
+    logger.warn('[Middleware] Failed to mount request timing:', safeErrorMessage(err));
   }
 
   server.on('error', (err) => {

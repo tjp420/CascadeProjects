@@ -40,4 +40,25 @@ if (rootEl) {
       </ErrorBoundary>
     </React.StrictMode>
   );
+
+  // Register service worker for offline caching of split chunks and assets
+  if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/dashboard/sw.js', { scope: '/dashboard/' })
+        .then((reg) => {
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  newWorker.postMessage('SKIP_WAITING');
+                }
+              });
+            }
+          });
+        })
+        .catch(() => {});
+    });
+  }
 }
