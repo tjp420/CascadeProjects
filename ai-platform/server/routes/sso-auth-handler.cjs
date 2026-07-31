@@ -21,6 +21,7 @@ const logger = require('../lib/app-logger.cjs');
 const ssoConfigStore = require('../lib/sso-config-store.cjs');
 const { generateToken } = require('../lib/auth/token-service.cjs');
 const auditStore = require('../lib/enterprise-audit-store.cjs');
+const ssoHardening = require('../lib/sso-production-hardening.cjs');
 
 // ── Open redirect prevention ────────────────────────────────────────────────
 
@@ -319,18 +320,34 @@ async function oidcCallback(req, res) {
 
     const tokens = tokenResponse.data;
 
-    // Validate ID token if present
+    // Validate ID token if present (production: verify signature via JWKS)
     let idTokenPayload = null;
     if (tokens.id_token) {
-      idTokenPayload = validateIdToken(tokens.id_token, config, stateData.nonce);
+      idTokenPayload = await ssoHardening.validateIdTokenProduction(
+        tokens.id_token, config, discovery, stateData.nonce,
+        config.oidc._decryptedSecret || ''
+      );
     }
 
-    // Fetch userinfo
+    // Fetch userinfo — use Microsoft Graph for Azure AD, standard OIDC userinfo otherwise
     let userInfo = {};
-    if (tokens.access_token && discovery.userinfo_endpoint) {
-      const userInfoResponse = await httpsGet(discovery.userinfo_endpoint, tokens.access_token);
-      if (userInfoResponse.status === 200) {
-        userInfo = userInfoResponse.data;
+    if (tokens.access_token) {
+      if (config.providerType === 'azure_ad' || (config.oidc && config.oidc.tenantId)) {
+        // Azure AD: use Microsoft Graph API for richer user info
+        try {
+          userInfo = await ssoHardening.fetchMicrosoftGraphUser(tokens.access_token);
+        } catch (graphErr) {
+          logger.warn('[SSO] Microsoft Graph userinfo failed, falling back to OIDC userinfo:', graphErr.message);
+          if (discovery.userinfo_endpoint) {
+            const userInfoResponse = await httpsGet(discovery.userinfo_endpoint, tokens.access_token);
+            if (userInfoResponse.status === 200) userInfo = userInfoResponse.data;
+          }
+        }
+      } else if (discovery.userinfo_endpoint) {
+        const userInfoResponse = await httpsGet(discovery.userinfo_endpoint, tokens.access_token);
+        if (userInfoResponse.status === 200) {
+          userInfo = userInfoResponse.data;
+        }
       }
     }
 
@@ -508,6 +525,22 @@ function parseSamlAssertion(xml, config) {
     throw new Error('Invalid SAML response: missing Response element');
   }
 
+  // Production: validate XML digital signature if IdP certificate is configured
+  if (config.saml && config.saml._decryptedCert) {
+    const sigResult = ssoHardening.validateSamlSignature(xml, config.saml._decryptedCert);
+    if (!sigResult.valid) {
+      logger.warn('[SSO] SAML signature validation failed:', sigResult.reason);
+      // In production, reject unsigned/unverified assertions
+      if (config.saml.signatureRequired !== false) {
+        throw new Error(`SAML signature validation failed: ${sigResult.reason}`);
+      }
+    } else {
+      logger.info('[SSO] SAML signature verified successfully');
+    }
+  } else if (config.saml && config.saml.signatureRequired !== false) {
+    throw new Error('SAML signature required but no IdP certificate configured');
+  }
+
   // Check for status success
   if (xml.includes('<samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:')) {
     const statusMatch = xml.match(/StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:([^"]+)"/);
@@ -639,6 +672,11 @@ router.get('/saml/metadata', samlMetadata);
 // Domain resolution (for login page auto-detection)
 router.get('/resolve', resolveSsoByDomain);
 
+// Provider presets (for UI-guided SSO configuration)
+router.get('/presets', (req, res) => {
+  res.json({ success: true, presets: ssoHardening.PROVIDER_PRESETS });
+});
+
 module.exports = router;
 module.exports.initiateOidcLogin = initiateOidcLogin;
 module.exports.oidcCallback = oidcCallback;
@@ -650,3 +688,4 @@ module.exports.fetchOidcDiscovery = fetchOidcDiscovery;
 module.exports.validateIdToken = validateIdToken;
 module.exports.parseSamlAssertion = parseSamlAssertion;
 module.exports.provisionSsoUser = provisionSsoUser;
+module.exports.ssoHardening = ssoHardening;

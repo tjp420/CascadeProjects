@@ -1473,6 +1473,36 @@ export function AdminView() {
                     <CardDescription>{editingProviderId ? 'Update existing SAML 2.0 or OIDC provider settings' : 'Configure SAML 2.0 or OIDC for an enterprise organization'}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Provider Presets */}
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-xs text-muted-foreground self-center mr-1">Quick-fill:</span>
+                      <Button size="sm" variant="outline" onClick={() => setSsoForm({ ...ssoForm, method: 'oidc', providerType: 'okta', oidcIssuer: '', displayName: ssoForm.displayName || 'Okta SSO' })}>
+                        Okta
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setSsoForm({ ...ssoForm, method: 'oidc', providerType: 'azure_ad', oidcIssuer: '', displayName: ssoForm.displayName || 'Azure AD SSO' })}>
+                        Azure AD
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setSsoForm({ ...ssoForm, method: 'oidc', providerType: 'google', oidcIssuer: 'https://accounts.google.com', displayName: ssoForm.displayName || 'Google Workspace SSO' })}>
+                        Google
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setSsoForm({ ...ssoForm, method: 'saml', providerType: 'custom', displayName: ssoForm.displayName || 'SAML SSO' })}>
+                        SAML 2.0
+                      </Button>
+                    </div>
+                    {(ssoForm.providerType === 'azure_ad') && (
+                      <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+                        Azure AD: Enter your Tenant ID in the Issuer URL field as
+                        <code className="mx-1 text-xs">https://login.microsoftonline.com/{'{tenantId}'}/v2.0</code>
+                        User info will be fetched from Microsoft Graph API automatically.
+                      </p>
+                    )}
+                    {(ssoForm.providerType === 'okta') && (
+                      <p className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+                        Okta: Enter your Okta domain as
+                        <code className="mx-1 text-xs">https://your-org.okta.com</code>
+                        Ensure the app has Authorization Code grant type with PKCE enabled.
+                      </p>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-sm font-medium">Organization</label>
