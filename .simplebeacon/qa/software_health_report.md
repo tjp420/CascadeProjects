@@ -1,10 +1,10 @@
-# Software Health Report: Inline Row Expansion for Realtime Issues
+# Software Health Report: Export to CSV/JSON from Realtime Stream Panel
 
 **Date:** 2026-07-31
 **Branch:** main
 **Validator:** Devin (acting as Validator)
-**Feature:** Make issue rows in the live analysis stream panel clickable
-to expand/collapse and show the raw JSON chunk payload inline.
+**Feature:** Add "Export CSV" and "Export JSON" buttons to the live
+analysis stream panel.
 
 ## Gate Status
 
@@ -26,24 +26,24 @@ to expand/collapse and show the raw JSON chunk payload inline.
 
 | # | Item | Result | Evidence |
 |---|------|--------|----------|
-| L2.1 | Issue rows have cursor:pointer and click handler | PASS | `style="cursor:pointer"` + `.rt-issue-row` click listener |
-| L2.2 | Clicking a row expands a detail row beneath it | PASS | `_realtimeExpanded.add(rowId)` → detail `<tr>` rendered |
-| L2.3 | Clicking again collapses the detail row | PASS | `_realtimeExpanded.delete(rowId)` → detail `<tr>` removed |
-| L2.4 | Detail row shows full issue JSON + chunk metadata | PASS | JSON includes type, severity, category, message, chunkId, method, confidence, processingTime, recommendations |
-| L2.5 | Multiple rows can be expanded simultaneously | PASS | Set allows multiple row IDs |
-| L2.6 | Expanded state survives re-render if chunk still present | PASS | Row ID is `rt-row-{chunkIdx}-{issueIdx}` — stable across re-renders |
-| L2.7 | Filter/sort buttons still work with expanded rows | PASS | Filter/sort handlers are separate from row click handlers |
+| L2.1 | Two export buttons render when issues exist | PASS | "Export CSV" + "Export JSON" in filter row |
+| L2.2 | Export buttons hidden when no issues | PASS | Buttons inside `totalIssues > 0` conditional block |
+| L2.3 | Export respects active filter | PASS | Uses `sorted` array (already filtered) |
+| L2.4 | CSV export produces valid CSV with headers | PASS | `downloadCsv(exportData, filename, ['severity','category','message','chunkId'])` |
+| L2.5 | JSON export produces valid JSON with metadata | PASS | Includes type, severity, category, message, chunkId, chunkMetadata |
+| L2.6 | Export buttons do not interfere with other handlers | PASS | Separate `.rt-export-csv` / `.rt-export-json` selectors |
+| L2.7 | Filename includes timestamp | PASS | `realtime-issues-${ts}.csv` where ts = ISO date stripped of separators |
 
 ## Level 3 — Self-review / drift
 
 | # | Item | Result | Evidence |
 |---|------|--------|----------|
 | L3.1 | No new files created | PASS | Only AnalyzeView.js edited (Broom strategy) |
-| L3.2 | No new dependencies | PASS | package.json unchanged |
-| L3.3 | JSON in detail row is escaped (no XSS) | PASS | `escapeHtml(JSON.stringify(...))` on all output |
-| L3.4 | Expanded row ID is deterministic | PASS | `rt-row-${chunkIdx}-${issueIdx}` — stable across re-renders |
-| L3.5 | Click handler does not interfere with filter buttons | PASS | Row handler scoped to `.rt-issue-row`, filter to `.rt-sev-filter` |
-| L3.6 | Expanded state cleared on toggle off | PASS | `this._realtimeExpanded = new Set()` in stop handler |
+| L3.2 | No new dependencies | PASS | Uses existing downloadCsv/downloadJson from utils.js |
+| L3.3 | Export uses existing utility functions | PASS | `downloadCsv` and `downloadJson` already imported |
+| L3.4 | CSV values are properly escaped | PASS | Handled by downloadCsv utility (quotes commas/quotes/newlines) |
+| L3.5 | No internal fields leaked in CSV export | PASS | Only severity, category, message, chunkId in exportData |
+| L3.6 | No internal fields leaked in JSON export | PASS | Mapped to clean object without _rowId, _chunkResult, _chunkId keys |
 
 ## Defects
 
@@ -53,14 +53,14 @@ None.
 
 | File | Change |
 |------|--------|
-| `AnalyzeView.js` | Added stable row IDs, `_realtimeExpanded` Set, expandable detail rows with JSON payload, click handlers, expanded state reset on toggle off |
+| `AnalyzeView.js` | Added export buttons in filter row, CSV/JSON export handlers using existing download utilities, timestamp-based filenames |
 
 ## Enhancements (future)
 
-1. **Copy JSON button**: Add a "Copy" button in the detail row to copy JSON to clipboard
-2. **Expand all / collapse all**: Bulk toggle for all rows
-3. **Stale expansion cleanup**: Remove expanded row IDs when chunks are evicted (capped at 50)
-4. **Syntax highlighting**: Highlight the JSON in the detail row for readability
+1. **Export all chunks**: Option to export full chunk data including raw content
+2. **Export filtered vs all**: Toggle to export filtered or all issues
+3. **Clipboard copy**: "Copy JSON" button for quick sharing without download
+4. **Export with recommendations**: Include chunk recommendations in CSV
 
 ## Validator Sign-off
 
@@ -69,4 +69,5 @@ None.
 - [x] All Level 3 checks pass
 - [x] No defects found
 - [x] Broom strategy followed (1 file edited, 0 new files)
+- [x] Reuses existing download utilities (no new code patterns)
 - [x] Ready for commit

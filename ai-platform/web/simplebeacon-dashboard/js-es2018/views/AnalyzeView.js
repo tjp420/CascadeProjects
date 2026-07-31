@@ -4950,7 +4950,13 @@ export class AnalyzeView {
                   ${sortButton('severity', 'Severity')}
                 </div>
               </div>
-              <p class="text-muted" style="font-size:var(--font-size-xs);margin-bottom:var(--space-2);">${filtered.length} shown${hiddenCount > 0 ? ` · ${hiddenCount} filtered out` : ''}</p>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-bottom:var(--space-2);flex-wrap:wrap;">
+                <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">${filtered.length} shown${hiddenCount > 0 ? ` · ${hiddenCount} filtered out` : ''}</p>
+                <div style="display:flex;gap:var(--space-1);">
+                  <button type="button" class="btn btn-ghost btn-sm rt-export-csv" style="font-size:var(--font-size-xs);">Export CSV</button>
+                  <button type="button" class="btn btn-ghost btn-sm rt-export-json" style="font-size:var(--font-size-xs);">Export JSON</button>
+                </div>
+              </div>
               ${filtered.length > 0 ? `
               <div style="overflow-x:auto;">
                 <table style="width:100%;font-size:var(--font-size-sm);border-collapse:collapse;">
@@ -4991,6 +4997,49 @@ export class AnalyzeView {
                 this._renderRealtimeStreamResults();
             });
         });
+        // Wire export buttons
+        const exportCsvBtn = container.querySelector('.rt-export-csv');
+        const exportJsonBtn = container.querySelector('.rt-export-json');
+        const exportData = sorted.map((issue) => ({
+            severity: issue.severity || '',
+            category: issue.category || issue.rule || '',
+            message: issue.message || issue.description || '',
+            chunkId: issue._chunkId || ''
+        }));
+        const ts = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+        if (exportCsvBtn) {
+            exportCsvBtn.addEventListener('click', () => {
+                try {
+                    downloadCsv(exportData, `realtime-issues-${ts}.csv`, ['severity', 'category', 'message', 'chunkId']);
+                    showToast(`Exported ${exportData.length} issues to CSV`, 'success');
+                } catch (err) {
+                    showToast('CSV export failed: ' + err.message, 'error');
+                }
+            });
+        }
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener('click', () => {
+                try {
+                    const jsonData = sorted.map((issue) => ({
+                        type: issue.type || null,
+                        severity: issue.severity || null,
+                        category: issue.category || issue.rule || null,
+                        message: issue.message || issue.description || null,
+                        chunkId: issue._chunkId || null,
+                        chunkMetadata: {
+                            method: issue._chunkResult?.method || null,
+                            confidence: issue._chunkResult?.confidence ?? null,
+                            processingTime: issue._chunkResult?.processingTime ?? null,
+                            recommendations: issue._chunkResult?.recommendations || []
+                        }
+                    }));
+                    downloadJson(jsonData, `realtime-issues-${ts}.json`);
+                    showToast(`Exported ${jsonData.length} issues to JSON`, 'success');
+                } catch (err) {
+                    showToast('JSON export failed: ' + err.message, 'error');
+                }
+            });
+        }
     }
     updateAgentStatusUI(root, text = '', available = false) {
         var _a;

@@ -1,23 +1,24 @@
-# Test Plan: Inline Row Expansion for Realtime Issues Table
+# Test Plan: Export to CSV/JSON from Realtime Stream Panel
 
 **Date:** 2026-07-31
 **Branch:** main
-**Feature:** Make issue rows in the live analysis stream panel clickable
-to expand/collapse and show the raw JSON chunk payload inline.
+**Feature:** Add "Export CSV" and "Export JSON" buttons to the live
+analysis stream panel so developers can download the currently filtered
+issues list.
 
 ## Context
 
-The `_renderRealtimeStreamResults()` method renders a flat issues table.
-Users need to click a row to see the full issue details (type, severity,
-message, category) and the chunk's metadata (confidence, processing time,
-recommendations, method). This follows the expandable-row pattern where
-clicking a `<tr>` toggles a hidden detail row beneath it.
+The `_renderRealtimeStreamResults()` method already builds a `sorted`
+array of filtered issues. The dashboard has existing utilities
+`downloadCsv(rows, filename, headers)` and `downloadJson(data, filename)`
+imported in AnalyzeView.js. We just need to wire export buttons that
+call these utilities with the filtered data.
 
 ## Files to Change
 
 | File | Change |
 |------|--------|
-| `js-es2018/views/AnalyzeView.js` | Add expandable detail rows + click handlers |
+| `js-es2018/views/AnalyzeView.js` | Add export buttons + handlers using existing download utilities |
 
 ## Objective Check-Items
 
@@ -33,20 +34,20 @@ clicking a `<tr>` toggles a hidden detail row beneath it.
 
 | # | Item | Expected |
 |---|------|----------|
-| L2.1 | Issue rows have cursor:pointer and click handler | Rows are clickable |
-| L2.2 | Clicking a row expands a detail row beneath it | Detail row appears with JSON |
-| L2.3 | Clicking again collapses the detail row | Detail row removed |
-| L2.4 | Detail row shows full issue JSON + chunk metadata | All fields visible |
-| L2.5 | Only one row expanded at a time (or multiple — pick one) | Documented behavior |
-| L2.6 | Expanded state survives re-render if chunk still present | Row stays expanded |
-| L2.7 | Filter/sort buttons still work with expanded rows | No interference |
+| L2.1 | Two export buttons render: "Export CSV" and "Export JSON" | Buttons visible when issues exist |
+| L2.2 | Export buttons hidden when no issues | Not rendered for empty state |
+| L2.3 | Export respects active filter | Only filtered issues exported, not all |
+| L2.4 | CSV export produces valid CSV with headers | severity,category,message,chunkId columns |
+| L2.5 | JSON export produces valid JSON with issue + chunk metadata | Pretty-printed, all fields |
+| L2.6 | Export buttons do not interfere with filter/sort/expand | Separate event handlers |
+| L2.7 | Filename includes timestamp | e.g. realtime-issues-20260731.csv |
 
 ### Level 3 — Self-review / drift
 
 | # | Item | Expected |
 |---|------|----------|
 | L3.1 | No new files created (Broom strategy) | Only AnalyzeView.js edited |
-| L3.2 | No new dependencies | package.json unchanged |
-| L3.3 | JSON in detail row is escaped (no XSS) | escapeHtml on all values |
-| L3.4 | Expanded row ID is deterministic (chunkId + issue index) | Stable across re-renders |
-| L3.5 | Click handler does not interfere with filter buttons | Event delegation scoped to tbody |
+| L3.2 | No new dependencies | Uses existing downloadCsv/downloadJson |
+| L3.3 | Export uses existing utility functions | downloadCsv, downloadJson from utils.js |
+| L3.4 | CSV values are properly escaped | Handled by downloadCsv utility |
+| L3.5 | No internal fields (_rowId, _chunkResult) leaked in export | Stripped from export data |
