@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
-const { authorize, enforceOrgPartition, getPartitionStats, getPartitionViolations } = require('../middleware/authorize.cjs');
+const { authorize, enforceOrgPartition, getPartitionStats, getPartitionViolations, clearViolations } = require('../middleware/authorize.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../lib/app-logger.cjs').child('audit-routes');
@@ -126,6 +126,10 @@ router.get('/partition-config', authorize('admin:all'), (req, res) => {
         orgPartitionEnforcementEnabled: settings.orgPartitionEnforcementEnabled !== false,
         orgPartitionAlertOnViolation: settings.orgPartitionAlertOnViolation !== false,
         orgPartitionViolationAlertThreshold: settings.orgPartitionViolationAlertThreshold || 5,
+        orgPartitionViolationTtlMs: settings.orgPartitionViolationTtlMs || 24 * 60 * 60 * 1000,
+        orgPartitionViolationMaxLog: settings.orgPartitionViolationMaxLog || 1000,
+        orgPartitionViolationCleanupIntervalMs: settings.orgPartitionViolationCleanupIntervalMs || 5 * 60 * 1000,
+        orgPartitionViolationMemoryGuardMb: settings.orgPartitionViolationMemoryGuardMb || 50,
       },
       updatedAt: settings.updatedAt,
     });
@@ -217,6 +221,123 @@ router.get('/partition-violations/export', authorize('admin:all'), (req, res) =>
   } catch (err) {
     logger.warn('[Audit] partition_violations_export_failed:', err.message);
     sendError(res, 500, 'partition_violations_export_failed', { message: err.message });
+  }
+});
+
+// ── POST /api/audit/partition-violations/clear ──────────────────────────────
+//   Admin-only: clears all violations from the in-memory buffer.
+router.post('/partition-violations/clear', authorize('admin:all'), (req, res) => {
+  try {
+    const cleared = clearViolations();
+    logger.info(`[Audit] Partition violations cleared by ${req.user?.email || 'admin'} (${cleared} removed)`);
+
+    try {
+      auditLogger.log({
+        orgId: getOrgId(req),
+        actorId: req.user?.id || 'unknown',
+        actorEmail: req.user?.email || 'unknown',
+        action: 'partition_violations_clear',
+        entity: 'partition_violations',
+        entityId: 'all',
+        metadata: { clearedCount: cleared },
+      });
+    } catch (logErr) {
+      logger.warn('[Audit] Failed to audit-log partition violations clear:', logErr.message);
+    }
+
+    res.json({
+      success: true,
+      clearedCount: cleared,
+      remainingViolations: 0,
+    });
+  } catch (err) {
+    logger.warn('[Audit] partition_violations_clear_failed:', err.message);
+    sendError(res, 500, 'partition_violations_clear_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/partition-retention/config ───────────────────────────────
+//   Admin-only: returns the current violation retention policy configuration.
+router.get('/partition-retention/config', authorize('admin:all'), (req, res) => {
+  try {
+    const settingsStore = require('../lib/security-monitor-settings-store.cjs');
+    const settings = settingsStore.getSettings();
+    const stats = getPartitionStats();
+    res.json({
+      success: true,
+      config: {
+        orgPartitionViolationTtlMs: settings.orgPartitionViolationTtlMs || 24 * 60 * 60 * 1000,
+        orgPartitionViolationMaxLog: settings.orgPartitionViolationMaxLog || 1000,
+        orgPartitionViolationCleanupIntervalMs: settings.orgPartitionViolationCleanupIntervalMs || 5 * 60 * 1000,
+        orgPartitionViolationMemoryGuardMb: settings.orgPartitionViolationMemoryGuardMb || 50,
+      },
+      runtime: {
+        estimatedMemoryMb: stats.estimatedMemoryMb,
+        lastCleanupRun: stats.lastCleanupRun,
+        totalViolations: stats.totalViolations,
+      },
+      updatedAt: settings.updatedAt,
+    });
+  } catch (err) {
+    logger.warn('[Audit] partition_retention_config_get_failed:', err.message);
+    sendError(res, 500, 'partition_retention_config_get_failed', { message: err.message });
+  }
+});
+
+// ── PUT /api/audit/partition-retention/config ───────────────────────────────
+//   Admin-only: updates the violation retention policy configuration.
+router.put('/partition-retention/config', authorize('admin:all'), (req, res) => {
+  try {
+    const settingsStore = require('../lib/security-monitor-settings-store.cjs');
+    const updates = {};
+
+    if (req.body.orgPartitionViolationTtlMs !== undefined) {
+      updates.orgPartitionViolationTtlMs = parseInt(req.body.orgPartitionViolationTtlMs, 10);
+    }
+    if (req.body.orgPartitionViolationMaxLog !== undefined) {
+      updates.orgPartitionViolationMaxLog = parseInt(req.body.orgPartitionViolationMaxLog, 10);
+    }
+    if (req.body.orgPartitionViolationCleanupIntervalMs !== undefined) {
+      updates.orgPartitionViolationCleanupIntervalMs = parseInt(req.body.orgPartitionViolationCleanupIntervalMs, 10);
+    }
+    if (req.body.orgPartitionViolationMemoryGuardMb !== undefined) {
+      updates.orgPartitionViolationMemoryGuardMb = parseInt(req.body.orgPartitionViolationMemoryGuardMb, 10);
+    }
+
+    const result = settingsStore.updateSettings(updates);
+    if (!result.success) {
+      return sendError(res, 400, 'partition_retention_config_update_failed', { message: result.error });
+    }
+
+    logger.info(`[Audit] Partition retention config updated by ${req.user?.email || 'admin'}`);
+
+    try {
+      auditLogger.log({
+        orgId: getOrgId(req),
+        actorId: req.user?.id || 'unknown',
+        actorEmail: req.user?.email || 'unknown',
+        action: 'partition_retention_config_update',
+        entity: 'security_settings',
+        entityId: 'partition_retention',
+        metadata: updates,
+      });
+    } catch (logErr) {
+      logger.warn('[Audit] Failed to audit-log partition retention config update:', logErr.message);
+    }
+
+    res.json({
+      success: true,
+      config: {
+        orgPartitionViolationTtlMs: result.settings.orgPartitionViolationTtlMs,
+        orgPartitionViolationMaxLog: result.settings.orgPartitionViolationMaxLog,
+        orgPartitionViolationCleanupIntervalMs: result.settings.orgPartitionViolationCleanupIntervalMs,
+        orgPartitionViolationMemoryGuardMb: result.settings.orgPartitionViolationMemoryGuardMb,
+      },
+      updatedAt: result.settings.updatedAt,
+    });
+  } catch (err) {
+    logger.warn('[Audit] partition_retention_config_update_failed:', err.message);
+    sendError(res, 500, 'partition_retention_config_update_failed', { message: err.message });
   }
 });
 

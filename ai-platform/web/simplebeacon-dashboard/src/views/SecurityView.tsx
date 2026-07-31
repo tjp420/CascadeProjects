@@ -9,6 +9,7 @@ import { IdentityFederationDashboard } from '@/components/IdentityFederationDash
 import { SemanticCacheDashboard } from '@/components/SemanticCacheDashboard';
 import { WebhookSigningDashboard } from '@/components/WebhookSigningDashboard';
 import { AgenticOrchestrationDashboard } from '@/components/AgenticOrchestrationDashboard';
+import { ToolSchemaValidationDashboard } from '@/components/ToolSchemaValidationDashboard';
 
 type ScanResultData = {
   projectPath?: string;
@@ -388,6 +389,7 @@ export function SecurityView() {
       <SemanticCacheDashboard />
       <WebhookSigningDashboard />
       <AgenticOrchestrationDashboard />
+      <ToolSchemaValidationDashboard />
     </div>
   );
 }

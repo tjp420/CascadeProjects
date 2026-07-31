@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('./app-logger.cjs');
+const schemaValidator = require('./tool-schema-validation-store.cjs');
 
 const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'agentic-orchestration.json');
 const MAX_AGENTS = 100;
@@ -417,13 +418,42 @@ function completeStep(execId, stepIndex, result) {
 function addToolCall(execId, stepIndex, toolName, args) {
   const exec = activeExecutions.get(execId);
   if (!exec || !exec.steps[stepIndex]) return;
-  exec.steps[stepIndex].toolCalls.push({ tool: toolName, args, timestamp: Date.now() });
+  // Validate tool request against registered schema
+  var reqValidation = schemaValidator.validateRequest(toolName, args, exec.orgId);
+  exec.steps[stepIndex].toolCalls.push({
+    tool: toolName, args, timestamp: Date.now(),
+    schemaValid: reqValidation.valid,
+    schemaErrors: reqValidation.errors || [],
+    schemaSkipped: reqValidation.skipped || false,
+  });
 }
 
 function addToolResult(execId, stepIndex, toolName, result) {
   const exec = activeExecutions.get(execId);
   if (!exec || !exec.steps[stepIndex]) return;
-  exec.steps[stepIndex].toolResults.push({ tool: toolName, result, timestamp: Date.now() });
+  // Validate tool response against registered schema
+  var resValidation = schemaValidator.validateResponse(toolName, result, exec.orgId);
+  exec.steps[stepIndex].toolResults.push({
+    tool: toolName, result, timestamp: Date.now(),
+    schemaValid: resValidation.valid,
+    schemaErrors: resValidation.errors || [],
+    schemaSkipped: resValidation.skipped || false,
+  });
+  // In strict mode, mark step as blocked if response schema validation fails
+  if (!resValidation.valid && !resValidation.skipped) {
+    var schema = schemaValidator.getSchema(toolName, exec.orgId);
+    var globalConfig = schemaValidator.getConfig();
+    if ((schema && schema.strictMode) || globalConfig.strictMode) {
+      exec.steps[stepIndex].state = STEP_STATES.BLOCKED;
+      exec.guardrailViolations.push({
+        step: stepIndex,
+        violations: ['tool_schema_validation_failed'],
+        severity: 'high',
+        tool: toolName,
+        errors: resValidation.errors,
+      });
+    }
+  }
 }
 
 function finalizeExecution(execId) {

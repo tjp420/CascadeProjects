@@ -1262,6 +1262,15 @@ async function startServer() {
     logger.error('[Routes] Agentic orchestration not loaded:', err?.message || err);
   }
 
+  // Tool schema validation — JSON schema enforcement for agent tool outputs
+  try {
+    const toolSchemaRoutes = require('./server/routes/tool-schema-validation-routes.cjs');
+    app.use('/api/tool-schemas', toolSchemaRoutes);
+    logger.info('[Routes] Tool schema validation loaded at /api/tool-schemas');
+  } catch (err) {
+    logger.error('[Routes] Tool schema validation not loaded:', err?.message || err);
+  }
+
   // Usage analytics — scan metrics, trends, posture scores
   try {
     const analyticsRoutes = require('./server/routes/analytics-routes.cjs');
