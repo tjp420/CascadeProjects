@@ -20,7 +20,14 @@ function withEnv(env) {
 }
 
 function reloadSiem() {
-  delete require.cache[SIEM_PATH];
+  // Clean up previous module instance (clear interval timer)
+  const cached = require.cache[SIEM_PATH];
+  if (cached && cached.exports && typeof cached.exports.close === 'function') {
+    cached.exports.close();
+  }
+  // Use Jest's module reset instead of delete require.cache which
+  // doesn't always work in Jest's module environment
+  jest.resetModules();
   return require(SIEM_PATH);
 }
 
@@ -61,12 +68,16 @@ describe('siem-exporter (unit)', () => {
   });
 
   it('re-enqueues on network failure and bounds queue to 1000', async () => {
-    const restore = withEnv({ SIEM_BATCH_SIZE: '10', SIEM_ENDPOINT: 'https://siem.test/ingest' });
+    const restore = withEnv({ SIEM_BATCH_SIZE: '10', SIEM_ENDPOINT: 'https://siem.test/ingest', SIEM_RETRY_BASE_MS: '1', SIEM_RETRY_MAX_ATTEMPTS: '3' });
     try {
       // fetch always throws to simulate outage
       global.fetch = async () => { throw new Error('network down'); };
 
       const se = reloadSiem();
+      se._debug.resetQueue();
+
+      // Verify BATCH_SIZE was correctly loaded from env
+      assert.equal(se._debug.getBatchSize(), 10, 'BATCH_SIZE should be 10');
 
       // populate queue beyond 1000 to exercise the trim behavior
       const preQ = se._debug.getQueue();
@@ -77,10 +88,21 @@ describe('siem-exporter (unit)', () => {
       // call flush which will attempt to send then on failure re-enqueue and trim
       await se.flush();
 
-      // read queue via accessor after flush (module may reassign internal array)
+      // Wait for retries to run (total attempts should reach retry limit + initial)
+      const expectedMinAttempts = parseInt(process.env.SIEM_RETRY_MAX_ATTEMPTS, 10) || 3;
+      const timeoutAt = Date.now() + 1000;
+      while (Date.now() < timeoutAt) {
+        const attempts = se._debug.getTotalSendAttempts();
+        if (attempts >= expectedMinAttempts) break;
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, 20));
+      }
+
       const postQ = se._debug.getQueue();
-      // queue should be trimmed to at most 1000
+      // queue should be trimmed to at most 1000 after retries exhausted
       assert.ok(postQ.length <= 1000, `queue trimmed to <=1000, actual=${postQ.length}`);
+      // confirm that at least one retry attempt occurred
+      assert.ok(se._debug.getTotalSendAttempts() >= 1, `expected send attempts >= 1, actual=${se._debug.getTotalSendAttempts()}`);
     } finally {
       delete global.fetch;
       restore();
