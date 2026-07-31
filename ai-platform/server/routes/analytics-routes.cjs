@@ -376,6 +376,94 @@ router.get('/violations', (req, res) => {
   }
 });
 
+// POST /api/analytics/violations/ticket-payload — generate a pre-filled ticket payload
+router.post('/violations/ticket-payload', (req, res) => {
+  try {
+    const { scanId, category, target } = req.body || {};
+    if (!scanId) return res.status(400).json({ error: 'scanId is required' });
+    if (!category) return res.status(400).json({ error: 'category is required' });
+
+    const ticketTarget = (target || 'jira').toLowerCase();
+    const result = analyticsStore.getScans({ limit: 100000, offset: 0 });
+    const scan = result.scans.find(s => s.scanId === scanId);
+    if (!scan) return res.status(404).json({ error: 'scan_not_found', message: 'Scan not found' });
+
+    const count = (scan.categoryCounts || {})[category] || 0;
+    if (count === 0) return res.status(404).json({ error: 'category_not_found', message: 'Category not found in this scan' });
+
+    const guidance = REMEDIATION_GUIDANCE[category] || REMEDIATION_GUIDANCE._default;
+    const priorityMap = { critical: 'P0', high: 'P1', medium: 'P2', low: 'P3' };
+    const priorityLabel = priorityMap[guidance.priority] || 'P2';
+
+    const title = `[${priorityLabel}] ${category} — ${count} finding${count > 1 ? 's' : ''} in ${scan.repository}/${scan.branch}`;
+    const descriptionLines = [
+      `h2. Violation Summary`,
+      ``,
+      `*Category:* ${category}`,
+      `*Findings:* ${count}`,
+      `*Repository:* ${scan.repository}`,
+      `*Branch:* ${scan.branch}`,
+      `*Commit:* ${scan.commitSha}`,
+      `*Scan ID:* ${scan.scanId}`,
+      `*Scan Date:* ${scan.timestamp}`,
+      `*Triggered By:* ${scan.triggeredBy}`,
+      `*Gate Status:* ${scan.gateStatus}`,
+      `*Posture Score:* ${scan.postureScore}/100`,
+      ``,
+      `h2. Remediation Strategy: ${guidance.strategy}`,
+      ``,
+      `${guidance.description}`,
+      ``,
+      `h2. Remediation Steps`,
+      ``,
+      ...guidance.steps.map((step, i) => `#${i + 1}. ${step}`),
+    ];
+
+    const markdownDescription = descriptionLines.join('\n').replace(/h2\.\s/g, '## ').replace(/\*/g, '**');
+
+    const jiraPayload = {
+      fields: {
+        project: { key: 'SEC' },
+        summary: title,
+        description: descriptionLines.join('\n'),
+        issuetype: { name: guidance.priority === 'critical' || guidance.priority === 'high' ? 'Bug' : 'Task' },
+        priority: { name: guidance.priority === 'critical' ? 'Highest' : guidance.priority === 'high' ? 'High' : guidance.priority === 'medium' ? 'Medium' : 'Low' },
+        labels: ['simplebeacon', 'compliance', guidance.strategy, `priority-${guidance.priority}`],
+        assignee: null,
+      },
+    };
+
+    const linearPayload = {
+      title,
+      description: markdownDescription,
+      priority: guidance.priority === 'critical' ? 1 : guidance.priority === 'high' ? 2 : guidance.priority === 'medium' ? 3 : 4,
+      labels: ['simplebeacon', 'compliance', guidance.strategy],
+      metadata: { scanId: scan.scanId, category, repository: scan.repository, branch: scan.branch },
+    };
+
+    const githubPayload = {
+      title,
+      body: markdownDescription,
+      labels: ['compliance', guidance.priority, guidance.strategy, 'simplebeacon'],
+      assignees: [],
+    };
+
+    const payloads = { jira: jiraPayload, linear: linearPayload, github: githubPayload };
+
+    res.json({
+      success: true,
+      scanId,
+      category,
+      target: ticketTarget,
+      payload: payloads[ticketTarget] || payloads.jira,
+      allPayloads: payloads,
+    });
+  } catch (err) {
+    logger.error('[Analytics] Ticket payload failed:', err.message);
+    res.status(500).json({ error: 'ticket_payload_failed', message: err.message });
+  }
+});
+
 // POST /api/analytics/record — record a scan (called by CLI/CI)
 router.post('/record', (req, res) => {
   try {

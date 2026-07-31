@@ -11,7 +11,7 @@ import {
 import {
   RefreshCw, TrendingUp, TrendingDown, FileCode, AlertTriangle,
   Shield, Activity, Building2, Gauge, Calendar, Download, FileJson,
-  ChevronDown, ChevronRight, Wrench,
+  ChevronDown, ChevronRight, Wrench, Copy, Check, Ticket,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -101,6 +101,11 @@ export function UsageAnalyticsView() {
   const [violationsTotal, setViolationsTotal] = useState(0);
   const [violationsPage, setViolationsPage] = useState(0);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [ticketTarget, setTicketTarget] = useState<'jira' | 'linear' | 'github'>('jira');
+  const [ticketLoading, setTicketLoading] = useState<string | null>(null);
+  const [ticketPayload, setTicketPayload] = useState<Record<string, unknown> | null>(null);
+  const [ticketRowKey, setTicketRowKey] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const violationsPageSize = 10;
 
   const fetchFilters = useCallback(async () => {
@@ -165,6 +170,36 @@ export function UsageAnalyticsView() {
   }, [repoFilter, branchFilter]);
 
   useEffect(() => { fetchViolations(violationsPage); }, [fetchViolations, violationsPage]);
+
+  const generateTicket = useCallback(async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
+    const rowKey = `${scanId}-${category}`;
+    setTicketLoading(rowKey);
+    setTicketPayload(null);
+    setTicketRowKey(rowKey);
+    try {
+      const resp = await fetch(apiUrl('/analytics/violations/ticket-payload'), {
+        method: 'POST',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scanId, category, target }),
+      });
+      if (!resp.ok) throw new Error('ticket_failed');
+      const data = await resp.json();
+      setTicketPayload(data.payload);
+      toast.success(`${target.charAt(0).toUpperCase() + target.slice(1)} ticket payload generated`);
+    } catch {
+      toast.error('Failed to generate ticket payload');
+    } finally {
+      setTicketLoading(null);
+    }
+  }, []);
+
+  const copyTicketPayload = useCallback(() => {
+    if (!ticketPayload) return;
+    navigator.clipboard.writeText(JSON.stringify(ticketPayload, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success('Ticket payload copied to clipboard');
+  }, [ticketPayload]);
 
   const handleExport = useCallback(async (format: 'csv' | 'json') => {
     try {
@@ -567,6 +602,40 @@ export function UsageAnalyticsView() {
                           <span>Trigger: {v.triggeredBy}</span>
                           <span>Gate: {v.gateStatus}</span>
                         </div>
+                        {/* Ticket Integration */}
+                        <div className="flex items-center gap-2 pt-2 border-t">
+                          <Ticket className="h-4 w-4 text-muted-foreground" />
+                          <select
+                            className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-xs"
+                            value={ticketTarget}
+                            onChange={(e) => { setTicketTarget(e.target.value as any); setTicketPayload(null); }}
+                          >
+                            <option value="jira">Jira</option>
+                            <option value="linear">Linear</option>
+                            <option value="github">GitHub Issue</option>
+                          </select>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={ticketLoading === rowKey}
+                            onClick={() => generateTicket(v.scanId, v.category, ticketTarget)}
+                          >
+                            {ticketLoading === rowKey ? 'Generating...' : 'Generate Ticket'}
+                          </Button>
+                          {ticketPayload && ticketRowKey === rowKey && (
+                            <>
+                              <Button variant="outline" size="sm" onClick={copyTicketPayload}>
+                                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                                {copied ? 'Copied!' : 'Copy JSON'}
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                        {ticketPayload && ticketRowKey === rowKey && (
+                          <pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto max-h-48 border">
+                            {JSON.stringify(ticketPayload, null, 2)}
+                          </pre>
+                        )}
                       </div>
                     )}
                   </div>
