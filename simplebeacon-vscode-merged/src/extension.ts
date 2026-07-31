@@ -60,6 +60,7 @@ import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { getAccountTracker } from './accountTracker';
 import { PAID_TIERS, resolveTier } from './tierConstants';
 import { countLocalDirectoryInventory } from './routes/scanReport';
+import { ComplianceSidebarProvider } from './panels/ComplianceSidebar';
 
 /** Decode the payload section of a JWT (3-part dot-separated token). */
 function decodeJwtPayload(token: string): Record<string, any> | null {
@@ -264,6 +265,8 @@ let _extensionContext: vscode.ExtensionContext | undefined;
 export let provider: SimpleBeaconProvider;
 /** Global diagnostics manager instance. */
 export let diagnosticsManager: DiagnosticsManager;
+/** Global compliance sidebar provider instance. */
+export let complianceSidebarProviderRef: ComplianceSidebarProvider | undefined;
 /** Global dashboard panel instance. */
 export let dashboardPanel: DashboardPanel;
 /** Active browser preview panel created by openPreviewPanel. */
@@ -665,6 +668,45 @@ export function activate(context: vscode.ExtensionContext) {
     }, 1000);
   }));
 
+  // Debounced auto-scan on save
+  let scanOnSaveDebounce: NodeJS.Timeout | null = null;
+  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((doc: vscode.TextDocument) => {
+    const config = vscode.workspace.getConfiguration('simplebeacon');
+    if (!config.get<boolean>('autoScanOnSave', true)) {
+      return;
+    }
+    if (doc.uri.scheme !== 'file') return;
+    const ext = path.extname(doc.fileName).toLowerCase();
+    const supportedExts = ['.js', '.ts', '.jsx', '.tsx', '.py', '.java', '.go', '.rb', '.php', '.cjs', '.mjs', '.vue', '.svelte'];
+    if (!supportedExts.includes(ext)) return;
+
+    if (scanOnSaveDebounce) {
+      clearTimeout(scanOnSaveDebounce);
+    }
+    const debounceMs = config.get<number>('scanOnSaveDebounce', 2000);
+    scanOnSaveDebounce = setTimeout(() => {
+      scanOnSaveDebounce = null;
+      outputChannel.appendLine(`[AUTO-SCAN] Triggering scan after save: ${path.basename(doc.fileName)}`);
+      void runScan(context, undefined, { mode: 'fast' });
+    }, debounceMs);
+  }));
+
+  // Register simplebeacon.runScan command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('simplebeacon.runScan', async () => {
+      outputChannel.appendLine('[SimpleBeacon] Run Scan command invoked');
+      await runScan(context, undefined, { mode: 'fast' });
+    }),
+  );
+
+  // Register simplebeacon.remediate command
+  context.subscriptions.push(
+    vscode.commands.registerCommand('simplebeacon.remediate', async (targetFile?: string) => {
+      outputChannel.appendLine('[SimpleBeacon] Run Remediation command invoked');
+      await fixEngine.executeFixWorkflow(false, typeof targetFile === 'string' ? targetFile : undefined);
+    }),
+  );
+
   // Register the Slop Cop quick-fix provider for line-level ignore comments
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
@@ -879,6 +921,11 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(ModernSidebarProvider.viewType, modernSidebarProvider));
   context.subscriptions.push(vscode.window.registerWebviewViewProvider('simplebeacon-modern-explorer', modernSidebarProvider));
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(CodeMapTreeProvider.viewType, codeMapTreeProvider));
+
+  // Register the Compliance Sidebar (Risk Heatmap + Remediation Ledger)
+  const complianceSidebarProvider = new ComplianceSidebarProvider(context.extensionUri);
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider(ComplianceSidebarProvider.viewType, complianceSidebarProvider));
+  complianceSidebarProviderRef = complianceSidebarProvider;
 
   // Auto-open the welcome dashboard panel on launch if the user has not disabled it.
   if (getSbConfig().get<boolean>('showWelcomeOnLoad', true)) {
@@ -3933,7 +3980,8 @@ async function runScan(context: vscode.ExtensionContext, projectPath?: string, o
           pushAllPanesToDashboard(currentReport);
           dashboardPanel?.updateReport(currentReport as Record<string, unknown>);
           Dashboard40.updateIfOpen(currentReport as any);
-          modernSidebarProvider.updateStatus('completed', 'Scan complete — local agent');
+          const _scanIssues = (report.rawIssues || report.detectedIssues || report.findings || []) as any[];
+          complianceSidebarProviderRef?.updateScanResults(_scanIssues, (report as any).remediation);
           vscode.commands.executeCommand('setContext', 'simplebeacon.hasResults', true);
           updateStatusBar(currentReport);
           safeUpdateUIsRef?.(currentReport, 'Local agent scan complete');

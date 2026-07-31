@@ -70,7 +70,9 @@
     "onCommand:simplebeacon.installLocalAgent",
     "onCommand:simplebeacon.startLocalAgent",
     "onCommand:simplebeacon.dryRunFix",
-    "onCommand:simplebeacon.applyFixes"
+    "onCommand:simplebeacon.applyFixes",
+    "onCommand:simplebeacon.runScan",
+    "onCommand:simplebeacon.remediate"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -286,6 +288,18 @@
         "icon": "$(folder-opened)"
       },
       {
+        "command": "simplebeacon.runScan",
+        "title": "Run Scan",
+        "category": "SimpleBeacon",
+        "icon": "$(search)"
+      },
+      {
+        "command": "simplebeacon.remediate",
+        "title": "Run Remediation",
+        "category": "SimpleBeacon",
+        "icon": "$(wrench)"
+      },
+      {
         "command": "simplebeacon.uploadReport",
         "title": "Upload & Validate Report",
         "category": "SimpleBeacon",
@@ -443,6 +457,13 @@
           "icon": "$(explorer)",
           "contextualTitle": "Code Map Explorer",
           "when": "false"
+        },
+        {
+          "type": "webview",
+          "id": "simplebeacon-compliance-sidebar",
+          "name": "Compliance Heatmap",
+          "icon": "$(grid)",
+          "contextualTitle": "Compliance"
         }
       ],
       "explorer": [
@@ -922,6 +943,24 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically run a fix dry-run preview in the Output panel on document save (supported source files only). No files are modified."
+        },
+        "simplebeacon.autoScanOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically run a fast local scan when a document is saved. Uses a debounce delay to avoid excessive scans."
+        },
+        "simplebeacon.scanOnSaveDebounce": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 500,
+          "maximum": 10000,
+          "description": "Debounce delay in milliseconds before triggering a scan after document save. Lower values = faster feedback but more CPU usage."
+        },
+        "simplebeacon.diagnosticsSeverity": {
+          "type": "string",
+          "default": "all",
+          "enum": ["all", "critical", "high", "medium", "low", "info"],
+          "description": "Minimum severity level for inline editor diagnostics (squiggles). 'all' shows every finding from critical down to low-severity AI slop patterns."
         }
       }
     }

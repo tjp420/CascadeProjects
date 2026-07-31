@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -125,6 +127,22 @@ export function RemediationView() {
       setLoading(false);
     }
   }, [apiBase]);
+
+  const [rescanning, setRescanning] = useState(false);
+
+  const triggerRescan = async () => {
+    setRescanning(true);
+    try {
+      const projectPath = localStorage.getItem('sb_current_project') || '.';
+      await axios.post(apiUrl('/scan/trigger'), { patternId: undefined, projectPath }, { headers: authHeaders() });
+      toast.success('Local re-scan triggered successfully. Compliance matrix updating...');
+      await fetchData();
+    } catch (err: any) {
+      toast.error('Re-scan failed: ' + (err?.message || 'unknown error'));
+    } finally {
+      setRescanning(false);
+    }
+  };
 
   // simplebeacon-ignore: framework-practices
   useEffect(() => { void fetchData(); }, [fetchData]);
@@ -275,8 +293,8 @@ export function RemediationView() {
                 {summary.notes && <p className="text-xs text-foreground-muted">{summary.notes}</p>}
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => fetchData()}>
-              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+            <Button size="sm" variant="outline" onClick={() => triggerRescan()} disabled={rescanning}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${rescanning ? 'animate-spin' : ''}`} /> {rescanning ? 'Rescanning…' : 'Refresh'}
             </Button>
           </CardContent>
         </Card>
