@@ -63,6 +63,7 @@ jest.mock('../../../server/lib/redis-rate-limiter.cjs', () => {
   const WINDOW_MS = 60 * 1000;
   const LIMIT = 3;
   const inMem = {};
+  const activeCounts = {};
   return {
     checkAndRecordRateLimit: jest.fn(async (orgId) => {
       const now = Date.now();
@@ -70,7 +71,16 @@ jest.mock('../../../server/lib/redis-rate-limiter.cjs', () => {
       if (inMem[orgId].length >= LIMIT) return { allowed: false, retryAfterMs: (inMem[orgId][0] + WINDOW_MS) - now };
       inMem[orgId].push(now);
       return { allowed: true };
-    })
+    }),
+    incrementActiveExecutions: jest.fn(async (orgId) => {
+      activeCounts[orgId] = (activeCounts[orgId] || 0) + 1;
+      return activeCounts[orgId];
+    }),
+    decrementActiveExecutions: jest.fn(async (orgId) => {
+      activeCounts[orgId] = Math.max(0, (activeCounts[orgId] || 0) - 1);
+      return activeCounts[orgId];
+    }),
+    getActiveCount: jest.fn(async (orgId) => activeCounts[orgId] || 0),
   };
 });
 
@@ -79,6 +89,23 @@ jest.mock('../../../server/services/cloud-inference-service.cjs', () => ({
   generateWithProvider: async (provider, prompt, opts) => {
     return { text: `mocked:${prompt}`, usage: { total_tokens: 5 } };
   }
+}));
+
+// Disable replay detection in Jest tests to focus on rate-limiter behavior
+jest.mock('../../../server/lib/crypto-utils.cjs', () => ({
+  canonicalizeRequest: (body) => {
+    const canonical = (function canonicalize(value) {
+      if (value === null || typeof value !== 'object') return value;
+      if (Array.isArray(value)) return value.map(canonicalize);
+      const keys = Object.keys(value).sort();
+      const out = {};
+      for (const k of keys) out[k] = canonicalize(value[k]);
+      return out;
+    })(body || {});
+    const fingerprint = 'sha256:' + require('crypto').createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+    return { fingerprint, canonical };
+  },
+  createReplayDetector: () => ({ checkAndMark: () => ({ isReplay: false, firstSeen: null }), getStats: () => ({}) }),
 }));
 
 // Mock audit logger so we can assert calls on quota/rate-limit

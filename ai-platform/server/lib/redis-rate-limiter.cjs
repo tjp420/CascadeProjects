@@ -23,6 +23,8 @@ try {
 }
 
 const inMemoryWindows = new Map();
+const inMemoryActiveCounts = new Map();
+const ACTIVE_COUNT_TTL_SECONDS = parseInt(process.env.AGENTIC_ACTIVE_COUNT_TTL_S, 10) || 300;
 
 async function checkAndRecordRateLimit(orgId) {
   const now = Date.now();
@@ -73,8 +75,64 @@ async function checkAndRecordRateLimit(orgId) {
   return { allowed: true };
 }
 
+// Active execution counters (cluster-safe when Redis is available)
+async function incrementActiveExecutions(orgId) {
+  if (usingRedis && redisClient) {
+    const key = `agentic:active:${orgId}`;
+    try {
+      const cnt = await redisClient.incr(key);
+      if (Number(cnt) === 1) {
+        await redisClient.expire(key, ACTIVE_COUNT_TTL_SECONDS);
+      }
+      return Number(cnt);
+    } catch (e) {
+      usingRedis = false;
+    }
+  }
+  // fallback in-memory
+  const now = Date.now();
+  const cur = (inMemoryActiveCounts.get(orgId) || 0) + 1;
+  inMemoryActiveCounts.set(orgId, cur);
+  return cur;
+}
+
+async function decrementActiveExecutions(orgId) {
+  if (usingRedis && redisClient) {
+    const key = `agentic:active:${orgId}`;
+    try {
+      const cnt = await redisClient.decr(key);
+      if (cnt <= 0) {
+        await redisClient.del(key);
+        return 0;
+      }
+      return Number(cnt);
+    } catch (e) {
+      usingRedis = false;
+    }
+  }
+  const cur = Math.max(0, (inMemoryActiveCounts.get(orgId) || 0) - 1);
+  inMemoryActiveCounts.set(orgId, cur);
+  return cur;
+}
+
+async function getActiveCount(orgId) {
+  if (usingRedis && redisClient) {
+    const key = `agentic:active:${orgId}`;
+    try {
+      const v = await redisClient.get(key);
+      return v ? Number(v) : 0;
+    } catch (e) {
+      usingRedis = false;
+    }
+  }
+  return inMemoryActiveCounts.get(orgId) || 0;
+}
+
 module.exports = {
   checkAndRecordRateLimit,
+  incrementActiveExecutions,
+  decrementActiveExecutions,
+  getActiveCount,
   _debug: {
     usingRedis: () => usingRedis,
     inMemoryWindows,

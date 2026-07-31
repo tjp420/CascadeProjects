@@ -107,6 +107,7 @@ describe('agentic-orchestration routes (static checks)', () => {
     const WINDOW_MS = 60 * 1000;
     const LIMIT = 3;
     const inMem = {};
+    const activeCounts = {};
     const mockLimiter = {
       checkAndRecordRateLimit: async function (orgId) {
         const now = Date.now();
@@ -114,10 +115,47 @@ describe('agentic-orchestration routes (static checks)', () => {
         if (inMem[orgId].length >= LIMIT) return { allowed: false, retryAfterMs: (inMem[orgId][0] + WINDOW_MS) - now };
         inMem[orgId].push(now);
         return { allowed: true };
+      },
+      incrementActiveExecutions: async function (orgId) {
+        activeCounts[orgId] = (activeCounts[orgId] || 0) + 1;
+        return activeCounts[orgId];
+      },
+      decrementActiveExecutions: async function (orgId) {
+        activeCounts[orgId] = Math.max(0, (activeCounts[orgId] || 0) - 1);
+        return activeCounts[orgId];
+      },
+      getActiveCount: async function (orgId) {
+        return activeCounts[orgId] || 0;
       }
     };
     delete require.cache[limiterPath];
     require.cache[limiterPath] = { id: limiterPath, filename: limiterPath, loaded: true, exports: mockLimiter };
+
+    // Mock crypto-utils to disable replay detection during unit tests
+    const cryptoUtilsPath = require('path').resolve(process.cwd(), 'server', 'lib', 'crypto-utils.cjs');
+    const mockCryptoUtils = {
+      canonicalizeRequest: function (body) {
+        // simple canonicalization for tests
+        const canonical = (function canonicalize(value) {
+          if (value === null || typeof value !== 'object') return value;
+          if (Array.isArray(value)) return value.map(canonicalize);
+          const keys = Object.keys(value).sort();
+          const out = {};
+          for (const k of keys) out[k] = canonicalize(value[k]);
+          return out;
+        })(body || {});
+        const fingerprint = 'sha256:' + require('crypto').createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+        return { fingerprint, canonical };
+      },
+      createReplayDetector: function () {
+        return {
+          checkAndMark: function () { return { isReplay: false, firstSeen: null }; },
+          getStats: function () { return {}; }
+        };
+      }
+    };
+    delete require.cache[cryptoUtilsPath];
+    require.cache[cryptoUtilsPath] = { id: cryptoUtilsPath, filename: cryptoUtilsPath, loaded: true, exports: mockCryptoUtils };
 
     // Ensure router loads our mocks
     const routerPath = require('path').resolve(process.cwd(), 'server', 'routes', 'agentic-orchestration-routes.cjs');
