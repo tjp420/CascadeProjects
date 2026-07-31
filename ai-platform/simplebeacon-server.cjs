@@ -2001,6 +2001,14 @@ async function startServer() {
     logger.warn('[Middleware] Failed to mount request timing:', safeErrorMessage(err));
   }
 
+  // Start security threat monitor — polls audit chain integrity and guardrail anomalies
+  try {
+    const securityMonitor = require('./server/lib/security-monitor.cjs');
+    securityMonitor.start();
+  } catch (err) {
+    logger.warn('[SecurityMonitor] Failed to start:', safeErrorMessage(err));
+  }
+
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       logger.error(`❌ Port ${PORT} is already in use. Run: npm run dashboard:kill-ports`);

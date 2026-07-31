@@ -61,6 +61,8 @@ const EVENT_TYPES = [
   'guardrail_blocked',
   'audit_delete',
   'eval_failure',
+  'audit_chain_broken',
+  'guardrail_anomaly_spike',
 ];
 
 const DESTINATION_TYPES = ['webhook', 'slack', 'email', 'pagerduty'];
