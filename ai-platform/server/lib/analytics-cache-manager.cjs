@@ -30,8 +30,17 @@ const bootstrapped = new Set();
 // Bootstrap function — set by the caller to avoid circular deps
 let bootstrapFn = null;
 
+// Analytics broadcaster callback — injected by the server to push
+// ANALYTICS_UPDATE frames over WebSocket to connected dashboard clients.
+let analyticsBroadcaster = null;
+
 // Last prune timestamp
 let lastPruneAt = 0;
+
+// Broadcast throttle — avoid flooding WebSocket on every single event.
+// We broadcast at most once per BROADCAST_THROTTLE_MS per org.
+const BROADCAST_THROTTLE_MS = 5000; // 5 seconds
+const lastBroadcastAt = new Map(); // orgId -> timestamp
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
@@ -44,6 +53,43 @@ let lastPruneAt = 0;
  */
 function setBootstrapFunction(fn) {
   bootstrapFn = typeof fn === 'function' ? fn : null;
+}
+
+/**
+ * Register a broadcast callback invoked when analytics metrics are updated.
+ * The callback receives { type: 'ANALYTICS_UPDATE', orgId, summary }.
+ * Throttled to at most once per BROADCAST_THROTTLE_MS per org.
+ *
+ * @param {function|null} fn — broadcast function or null to clear
+ */
+function setAnalyticsBroadcaster(fn) {
+  analyticsBroadcaster = typeof fn === 'function' ? fn : null;
+}
+
+/**
+ * Broadcast analytics update to connected WebSocket clients.
+ * Throttled per org to avoid flooding.
+ * @param {string} orgId
+ */
+function maybeBroadcastAnalytics(orgId) {
+  if (!analyticsBroadcaster) return;
+
+  const now = Date.now();
+  const lastSent = lastBroadcastAt.get(orgId) || 0;
+  if (now - lastSent < BROADCAST_THROTTLE_MS) return;
+
+  lastBroadcastAt.set(orgId, now);
+
+  try {
+    const summary = buildSummary(orgId, DEFAULT_WINDOW_HOURS);
+    analyticsBroadcaster({
+      type: 'ANALYTICS_UPDATE',
+      orgId,
+      summary,
+    });
+  } catch {
+    // Broadcast errors must never block cache operations
+  }
 }
 
 /**
