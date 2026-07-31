@@ -97,6 +97,15 @@ function updateSettings(updates) {
   if (updated.webhookKeyGraceWindowMs !== undefined && updated.webhookKeyGraceWindowMs < 60000) {
     return { success: false, error: 'webhookKeyGraceWindowMs must be at least 60000 (1 minute)' };
   }
+  if (
+    updated.orgPartitionViolationAlertThreshold !== undefined &&
+    updated.orgPartitionViolationAlertThreshold < 1
+  ) {
+    return {
+      success: false,
+      error: 'orgPartitionViolationAlertThreshold must be at least 1',
+    };
+  }
 
   // Validate severity levels
   if (updated.anomalySeverityLevels !== undefined) {

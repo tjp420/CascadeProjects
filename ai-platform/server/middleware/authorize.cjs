@@ -14,6 +14,27 @@
 
 const rbacStore = require('../lib/rbac-store.cjs');
 
+// Lazy-load settings store to avoid circular dependency at module init
+function getSettings() {
+  try {
+    return require('../lib/security-monitor-settings-store.cjs').getSettings();
+  } catch {
+    return {};
+  }
+}
+
+function isPartitionEnforcementEnabled() {
+  return getSettings().orgPartitionEnforcementEnabled !== false;
+}
+
+function shouldAlertOnViolation() {
+  return getSettings().orgPartitionAlertOnViolation !== false;
+}
+
+function getViolationAlertThreshold() {
+  return getSettings().orgPartitionViolationAlertThreshold || 5;
+}
+
 function getOrgId(req) {
   return req.user?.id || req.user?.email || 'default';
 }
@@ -22,11 +43,37 @@ function getOrgId(req) {
 
 let _partitionViolations = [];
 const MAX_VIOLATION_LOG = 100;
+let _violationAlertCooldown = new Map();
+const VIOLATION_ALERT_COOLDOWN_MS = 15 * 60 * 1000;
 
 function recordViolation(violation) {
   _partitionViolations.unshift({ ...violation, at: new Date().toISOString() });
   if (_partitionViolations.length > MAX_VIOLATION_LOG) {
     _partitionViolations = _partitionViolations.slice(0, MAX_VIOLATION_LOG);
+  }
+
+  if (!shouldAlertOnViolation()) return;
+
+  const threshold = getViolationAlertThreshold();
+  const callerOrgId = violation.callerOrgId;
+  const recentOrgViolations = _partitionViolations.filter(
+    (v) => v.callerOrgId === callerOrgId
+  ).length;
+
+  if (recentOrgViolations >= threshold) {
+    const lastAlert = _violationAlertCooldown.get(callerOrgId);
+    const now = Date.now();
+    if (lastAlert && now - lastAlert < VIOLATION_ALERT_COOLDOWN_MS) return;
+    _violationAlertCooldown.set(callerOrgId, now);
+
+    try {
+      const { processEvent } = require('../lib/alert-dispatcher.cjs');
+      processEvent(callerOrgId, 'org_partition_violation_spike', {
+        severity: 'high',
+        message: `Org partition violation spike: ${recentOrgViolations} cross-org access attempts blocked`,
+        data: { orgId: callerOrgId, violationCount: recentOrgViolations, threshold, recentViolation: violation },
+      }).catch(() => {});
+    } catch {}
   }
 }
 
@@ -35,10 +82,14 @@ function getPartitionViolations() {
 }
 
 function getPartitionStats() {
+  const settings = getSettings();
   return {
     totalViolations: _partitionViolations.length,
     recentViolations: _partitionViolations.slice(0, 10),
-    enforcementEnabled: true,
+    enforcementEnabled: isPartitionEnforcementEnabled(),
+    alertOnViolation: shouldAlertOnViolation(),
+    violationAlertThreshold: getViolationAlertThreshold(),
+    settingsUpdatedAt: settings.updatedAt,
   };
 }
 
@@ -85,6 +136,14 @@ function enforceOrgPartition() {
 
     if (clientOrgId === callerOrgId) {
       req.resolvedOrgId = callerOrgId;
+      return next();
+    }
+
+    // If enforcement is disabled, allow through but still track
+    if (!isPartitionEnforcementEnabled()) {
+      req.resolvedOrgId = clientOrgId;
+      req.crossOrgAccess = true;
+      req.partitionEnforcementBypassed = true;
       return next();
     }
 

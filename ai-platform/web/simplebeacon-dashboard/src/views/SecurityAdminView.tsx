@@ -20,6 +20,7 @@ import {
   Layers,
   Ban,
   Globe,
+  Download,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { toast } from 'sonner';
@@ -114,11 +115,78 @@ export function SecurityAdminView() {
     }
   }, []);
 
+  const fetchPartitionConfig = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/audit/partition-config'), {
+        headers: authHeaders(),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.success) {
+          setPartitionConfig(data.config);
+        }
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
+  const updatePartitionConfig = useCallback(async (updates: Record<string, any>) => {
+    setSavingConfig(true);
+    try {
+      const resp = await fetch(apiUrl('/audit/partition-config'), {
+        method: 'PUT',
+        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const data = await resp.json();
+      if (resp.ok && data.success) {
+        setPartitionConfig(data.config);
+        toast.success('Partition config updated');
+        fetchPartitionStatus();
+      } else {
+        toast.error(data.message || data.error || 'Failed to update partition config');
+      }
+    } catch {
+      toast.error('Failed to update partition config');
+    } finally {
+      setSavingConfig(false);
+    }
+  }, [fetchPartitionStatus]);
+
+  const handleExportViolations = useCallback(async (format: 'json' | 'csv') => {
+    setExportingViolations(true);
+    try {
+      const resp = await fetch(apiUrl(`/audit/partition-violations/export?format=${format}`), {
+        headers: authHeaders(),
+      });
+      if (resp.ok) {
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `partition-violations-${Date.now()}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success(`Violations exported as ${format.toUpperCase()}`);
+      } else {
+        toast.error('Failed to export violations');
+      }
+    } catch {
+      toast.error('Failed to export violations');
+    } finally {
+      setExportingViolations(false);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     fetchStatus();
     fetchPartitionStatus();
-  }, [fetchStatus, fetchPartitionStatus]);
+    fetchPartitionConfig();
+  }, [fetchStatus, fetchPartitionStatus, fetchPartitionConfig]);
 
   // Auto-refresh polling
   useEffect(() => {
@@ -542,6 +610,141 @@ export function SecurityAdminView() {
                 <p className="text-xs text-foreground-muted mt-1">Protected Routes</p>
               </div>
             </div>
+
+            {/* ── Partition Config Panel ── */}
+            {partitionConfig && (
+              <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-3">
+                <p className="text-sm font-medium flex items-center gap-1.5">
+                  <Wrench className="h-4 w-4 text-primary" />
+                  Enforcement Configuration
+                </p>
+
+                {/* Enforcement toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Partition Enforcement</p>
+                    <p className="text-xs text-foreground-muted">
+                      Block cross-org access attempts from non-admin users
+                    </p>
+                  </div>
+                  <button
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      partitionConfig.orgPartitionEnforcementEnabled
+                        ? 'bg-emerald-500'
+                        : 'bg-muted'
+                    }`}
+                    disabled={savingConfig}
+                    onClick={() =>
+                      updatePartitionConfig({
+                        orgPartitionEnforcementEnabled: !partitionConfig.orgPartitionEnforcementEnabled,
+                      })
+                    }
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        partitionConfig.orgPartitionEnforcementEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Alert on violation toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Alert on Violation</p>
+                    <p className="text-xs text-foreground-muted">
+                      Fire alert when violations cross threshold
+                    </p>
+                  </div>
+                  <button
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      partitionConfig.orgPartitionAlertOnViolation
+                        ? 'bg-emerald-500'
+                        : 'bg-muted'
+                    }`}
+                    disabled={savingConfig}
+                    onClick={() =>
+                      updatePartitionConfig({
+                        orgPartitionAlertOnViolation: !partitionConfig.orgPartitionAlertOnViolation,
+                      })
+                    }
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        partitionConfig.orgPartitionAlertOnViolation ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Violation alert threshold */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Violation Alert Threshold</p>
+                    <p className="text-xs text-foreground-muted">
+                      Number of violations before alert fires
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={partitionConfig.orgPartitionViolationAlertThreshold}
+                      className="w-16 rounded-md border bg-transparent px-2 py-1 text-sm text-center"
+                      disabled={savingConfig}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (val >= 1) {
+                          setPartitionConfig({
+                            ...partitionConfig,
+                            orgPartitionViolationAlertThreshold: val,
+                          });
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={savingConfig}
+                      onClick={() =>
+                        updatePartitionConfig({
+                          orgPartitionViolationAlertThreshold: partitionConfig.orgPartitionViolationAlertThreshold,
+                        })
+                      }
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Export buttons */}
+                <div className="flex items-center gap-2 pt-1 border-t">
+                  <p className="text-xs text-foreground-muted mr-auto">Export violation log:</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={exportingViolations || (partitionStatus?.totalViolations ?? 0) === 0}
+                    onClick={() => handleExportViolations('json')}
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    JSON
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={exportingViolations || (partitionStatus?.totalViolations ?? 0) === 0}
+                    onClick={() => handleExportViolations('csv')}
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    CSV
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Recent violations */}
             {partitionStatus.recentViolations && partitionStatus.recentViolations.length > 0 ? (
