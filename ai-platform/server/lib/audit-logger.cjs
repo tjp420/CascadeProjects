@@ -18,7 +18,8 @@ analyticsCacheManager.setBootstrapFunction(async (orgId, entryCallback) => {
   }
 });
 
-const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'audit-log.json');
+const STORE_PATH =
+  process.env.AUDIT_STORE_PATH || path.join(process.cwd(), '.simplebeacon', 'audit-log.json');
 const MAX_ENTRIES_PER_ORG = 1000;
 const GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 

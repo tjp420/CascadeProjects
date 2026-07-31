@@ -5,22 +5,17 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 
-// Isolate audit log and PII policy store in temp dirs
-const tmpDir = path.join(os.tmpdir(), `pii-scrub-test-${Date.now()}`);
+// Isolate audit log and PII policy store in a unique temp dir per test run
+const tmpDir = path.join(
+  os.tmpdir(),
+  `pii-scrub-test-${Date.now()}-${process.pid}-${crypto.randomUUID()}`
+);
 const piiPolicyPath = path.join(tmpDir, '.simplebeacon', 'pii-policies.json');
 
-process.env.PII_POLICY_PATH = piiPolicyPath;
-
-// Ensure dirs exist BEFORE chdir (graceful-fs validates directory existence)
-fs.mkdirSync(path.join(tmpDir, '.simplebeacon'), { recursive: true });
-
-// We need to set the audit log path before requiring audit-logger
-// audit-logger uses a hardcoded STORE_PATH, so we override cwd
+// We'll set PII_POLICY_PATH and require modules after switching CWD in beforeAll
+let piiPolicyStore;
+let auditLogger;
 const originalCwd = process.cwd();
-process.chdir(tmpDir);
-
-const piiPolicyStore = require('../pii-policy-store.cjs');
-const auditLogger = require('../audit-logger.cjs');
 
 /**
  * Write a raw entry directly to the audit log store file, bypassing log().
@@ -68,6 +63,20 @@ function writeRawEntry(orgId, id, metadata, timestamp, previousHash) {
 
 describe('pii-scrubber (audit-logger PII scrub functions)', () => {
   beforeAll(() => {
+    // Ensure dirs exist before we chdir
+    fs.mkdirSync(path.join(tmpDir, '.simplebeacon'), { recursive: true });
+    process.env.PII_POLICY_PATH = piiPolicyPath;
+    // Force audit-logger to use a store file inside this unique tmpDir
+    process.env.AUDIT_STORE_PATH = path.join(tmpDir, '.simplebeacon', 'audit-log.json');
+
+    // Temporarily switch CWD while other modules initialize if needed
+    process.chdir(tmpDir);
+
+    // Require stores after environment is configured so they initialize against tmpDir
+    piiPolicyStore = require('../pii-policy-store.cjs');
+    auditLogger = require('../audit-logger.cjs');
+
+    // Now proceed with policy creation
     // Create PII policies for test orgs
     piiPolicyStore.createPolicy({
       orgId: 'scrub-test-org',
@@ -92,7 +101,10 @@ describe('pii-scrubber (audit-logger PII scrub functions)', () => {
   });
 
   afterAll(() => {
-    process.chdir(originalCwd);
+    // Restore original CWD and clean up temporary test data
+    try {
+      process.chdir(originalCwd);
+    } catch {}
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     } catch {}
