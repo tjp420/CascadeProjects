@@ -6,6 +6,15 @@ const crypto = require('crypto');
 
 const { getPolicy, getArchivePath } = require('./audit-policy-store.cjs');
 const logStreamAnalyzer = require('./log-stream-analyzer.cjs');
+const analyticsCacheManager = require('./analytics-cache-manager.cjs');
+
+// Register bootstrap function so the cache manager can hydrate from the audit log
+analyticsCacheManager.setBootstrapFunction(async (orgId, entryCallback) => {
+  const result = query({ orgId, limit: 10000, offset: 0 });
+  for (const entry of result.entries) {
+    entryCallback(entry);
+  }
+});
 
 const STORE_PATH = path.join(process.cwd(), '.simplebeacon', 'audit-log.json');
 const MAX_ENTRIES_PER_ORG = 1000;
@@ -133,11 +142,17 @@ function log(params) {
 
   writeStore(store);
 
-  // Non-blocking stream analysis ingestion
+  // Non-blocking stream analysis ingestion + analytics cache update
   setImmediate(() => {
     try {
       logStreamAnalyzer.ingestStreamEvent({
         orgId,
+        action: entry.action,
+        actorId: entry.actorId,
+        entity: entry.entity,
+        timestamp: entry.timestamp,
+      });
+      analyticsCacheManager.trackCachedMetric(orgId, {
         action: entry.action,
         actorId: entry.actorId,
         entity: entry.entity,

@@ -5,6 +5,7 @@ const { authenticate } = require('../middleware/auth.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const auditPolicyStore = require('../lib/audit-policy-store.cjs');
 const logStreamAnalyzer = require('../lib/log-stream-analyzer.cjs');
+const analyticsCacheManager = require('../lib/analytics-cache-manager.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../../src/lib/app-logger.cjs');
 const { processEvent } = require('../lib/alert-dispatcher.cjs');
@@ -305,6 +306,33 @@ router.get('/verify', (req, res) => {
   } catch (err) {
     logger.warn('[Audit] audit_verify_failed:', err.message);
     sendError(res, 500, 'audit_verify_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/analytics/dashboard ──────────────────────────────────────
+//   Get optimized dashboard analytics summary (24h rolling window by default)
+//   Query params: windowHours (default 24, max 168)
+router.get('/analytics/dashboard', async (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const windowHours = Math.min(Math.max(parseInt(req.query.windowHours, 10) || 24, 1), 168);
+    const summary = await analyticsCacheManager.getDashboardSummary(orgId, { windowHours });
+    res.json({ success: true, summary });
+  } catch (err) {
+    logger.warn('[Audit] audit_analytics_dashboard_failed:', err.message);
+    sendError(res, 500, 'audit_analytics_dashboard_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/analytics/cache/stats ────────────────────────────────────
+//   Get analytics cache manager stats (for monitoring)
+router.get('/analytics/cache/stats', (req, res) => {
+  try {
+    const stats = analyticsCacheManager.getCacheStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    logger.warn('[Audit] audit_analytics_cache_stats_failed:', err.message);
+    sendError(res, 500, 'audit_analytics_cache_stats_failed', { message: err.message });
   }
 });
 
