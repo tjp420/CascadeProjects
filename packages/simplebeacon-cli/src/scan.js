@@ -23,6 +23,7 @@ const { scanSourceFictionPatterns } = require('./rules/fiction-kpi-patterns');
 const { scanLlmSlopPatterns } = require('./rules/llm-slop-patterns');
 const { scanAgencyHandoffPatterns } = require('./rules/agency-handoff-patterns');
 const { scanEuAiActPatterns } = require('./rules/eu-ai-act-patterns');
+const { scanOwaspLlmPatterns } = require('./rules/owasp-llm-patterns');
 const { scanTokenBleedPatterns } = require('./rules/token-bleed-patterns');
 const { scanArchitectureDriftPatterns } = require('./rules/architecture-drift-patterns');
 const { scanSecurityPatterns } = require('./rules/security-pattern-scanner');
@@ -1584,6 +1585,12 @@ async function scanMockDataDirectories(baseDir, extraPaths = [], options = {}) {
             productionPaths: opts.productionPaths || config.productionPaths,
             ignoreGlobs: opts.ignoreGlobs || config.ignore,
             severity: opts.severity || 'medium'
+        })),
+        scannerEntry('owasp-llm-patterns', 'owaspLlmScan', scanOwaspLlmPatterns, (opts) => ({
+            sourcePaths: opts.sourcePaths || config.sourceCodeScanPaths,
+            productionPaths: opts.productionPaths || config.productionPaths,
+            ignoreGlobs: opts.ignoreGlobs || config.ignore,
+            severity: opts.severity || 'high'
         })),
         {
             key: 'jest-baseline', varName: 'jestBaseline',
