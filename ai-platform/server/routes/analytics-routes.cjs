@@ -38,6 +38,7 @@
 const express = require('express');
 const logger = require('../lib/app-logger.cjs');
 const { authenticate } = require('../middleware/auth.cjs');
+const { validateParam, VALIDATION_PATTERNS } = require('../middleware/validate-params.cjs');
 const analyticsStore = require('../lib/usage-analytics-store.cjs');
 const ticketStatusStore = require('../lib/ticket-status-store.cjs');
 const webhookConfigStore = require('../lib/webhook-config-store.cjs');
@@ -174,7 +175,7 @@ router.get('/stats', (req, res) => {
 });
 
 // GET /api/analytics/org/:orgId — per-org summary
-router.get('/org/:orgId', (req, res) => {
+router.get('/org/:orgId', validateParam('orgId', VALIDATION_PATTERNS.orgId), (req, res) => {
   try {
     const summary = analyticsStore.getOrgSummary(req.params.orgId);
     if (!summary) return res.status(404).json({ error: 'org_not_found', message: 'No scans recorded for this organization' });
@@ -355,12 +356,13 @@ const SLA_THRESHOLDS = {
 };
 
 // GET /api/analytics/violations — paginated violation rows with remediation guidance
-//   Query params: orgId, repository, branch, startDate, endDate, limit, offset,
+//   Query params: orgId, repository, branch, category, startDate, endDate, limit, offset,
 //                 ticketStatus (all|ticketed|unticketed), ticketTarget (jira|linear|github),
 //                 slaBreached (true|false)
 router.get('/violations', (req, res) => {
   try {
     const orgId = getOrgId(req);
+    const categoryFilter = req.query.category || '';
     const filters = {
       orgId,
       repository: req.query.repository,
@@ -384,6 +386,7 @@ router.get('/violations', (req, res) => {
       const cats = scan.categoryCounts || {};
       for (const [category, count] of Object.entries(cats)) {
         if (count <= 0) continue;
+        if (categoryFilter && category !== categoryFilter) continue;
         const ticketKey = ticketStatusStore.buildTicketKey(orgId, scan.scanId, category);
         const isTicketed = ticketedKeys.has(ticketKey);
         const ticketEntry = allStatuses[ticketKey];
@@ -724,6 +727,7 @@ router.get('/violations/export', (req, res) => {
   try {
     const orgId = getOrgId(req);
     const format = (req.query.format || 'csv').toLowerCase();
+    const categoryFilter = req.query.category || '';
     const filters = {
       orgId,
       repository: req.query.repository,
@@ -747,6 +751,7 @@ router.get('/violations/export', (req, res) => {
       const cats = scan.categoryCounts || {};
       for (const [category, count] of Object.entries(cats)) {
         if (count <= 0) continue;
+        if (categoryFilter && category !== categoryFilter) continue;
         const ticketKey = ticketStatusStore.buildTicketKey(orgId, scan.scanId, category);
         const isTicketed = ticketedKeys.has(ticketKey);
         const ticketEntry = allStatuses[ticketKey];

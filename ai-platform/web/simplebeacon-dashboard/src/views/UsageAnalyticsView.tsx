@@ -181,6 +181,7 @@ export function UsageAnalyticsView() {
   const [bulkTicketRef, setBulkTicketRef] = useState<string>('');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [slaBreachedFilter, setSlaBreachedFilter] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [webhookConfigs, setWebhookConfigs] = useState<Record<string, WebhookConfig>>({});
   const [showWebhookConfig, setShowWebhookConfig] = useState(false);
   const [webhookForm, setWebhookForm] = useState({ target: 'jira', apiUrl: '', authToken: '', projectKey: '', teamId: '', repoOwner: '', repoName: '' });
@@ -245,6 +246,7 @@ export function UsageAnalyticsView() {
       params.set('offset', String(page * violationsPageSize));
       if (repoFilter) params.set('repository', repoFilter);
       if (branchFilter) params.set('branch', branchFilter);
+      if (categoryFilter) params.set('category', categoryFilter);
       if (ticketStatusFilter !== 'all') params.set('ticketStatus', ticketStatusFilter);
       if (ticketTargetFilter) params.set('ticketTarget', ticketTargetFilter);
       if (slaBreachedFilter) params.set('slaBreached', 'true');
@@ -257,7 +259,7 @@ export function UsageAnalyticsView() {
     } catch {
       // silent — violations table is supplementary
     }
-  }, [repoFilter, branchFilter, ticketStatusFilter, ticketTargetFilter, slaBreachedFilter]);
+  }, [repoFilter, branchFilter, categoryFilter, ticketStatusFilter, ticketTargetFilter, slaBreachedFilter]);
 
   useEffect(() => { fetchViolations(violationsPage); }, [fetchViolations, violationsPage]);
 
@@ -574,6 +576,7 @@ export function UsageAnalyticsView() {
       params.set('format', format);
       if (repoFilter) params.set('repository', repoFilter);
       if (branchFilter) params.set('branch', branchFilter);
+      if (categoryFilter) params.set('category', categoryFilter);
       if (ticketStatusFilter !== 'all') params.set('ticketStatus', ticketStatusFilter);
       if (ticketTargetFilter) params.set('ticketTarget', ticketTargetFilter);
       if (slaBreachedFilter) params.set('slaBreached', 'true');
@@ -592,7 +595,7 @@ export function UsageAnalyticsView() {
     } catch {
       toast.error('Failed to export compliance ledger');
     }
-  }, [repoFilter, branchFilter, ticketStatusFilter, ticketTargetFilter, slaBreachedFilter]);
+  }, [repoFilter, branchFilter, categoryFilter, ticketStatusFilter, ticketTargetFilter, slaBreachedFilter]);
 
   const generateTicket = useCallback(async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
     const rowKey = `${scanId}-${category}`;
@@ -1013,10 +1016,32 @@ export function UsageAnalyticsView() {
               {/* Per-category breakdown */}
               {violationSummary.categories.length > 0 && (
                 <div className="space-y-1.5 pt-2 border-t">
-                  <span className="text-xs font-medium text-muted-foreground">Per-Category Coverage</span>
-                  {violationSummary.categories.slice(0, 8).map((cat) => (
-                    <div key={cat.category} className="flex items-center gap-2 text-xs">
-                      <span className="w-48 truncate text-muted-foreground" title={cat.category}>{cat.category}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">Per-Category Coverage</span>
+                    {categoryFilter && (
+                      <button
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        onClick={() => { setCategoryFilter(''); setViolationsPage(0); }}
+                      >
+                        Clear category filter ({categoryFilter}) ×
+                      </button>
+                    )}
+                    {!categoryFilter && (
+                      <span className="text-xs text-muted-foreground italic">Click a category to filter the table below</span>
+                    )}
+                  </div>
+                  {violationSummary.categories.slice(0, 8).map((cat) => {
+                    const isActive = categoryFilter === cat.category;
+                    return (
+                    <div
+                      key={cat.category}
+                      className={`flex items-center gap-2 text-xs cursor-pointer rounded px-1 py-0.5 transition-colors ${isActive ? 'bg-blue-500/10 ring-1 ring-blue-500/30' : 'hover:bg-muted/50'}`}
+                      onClick={() => {
+                        setCategoryFilter(isActive ? '' : cat.category);
+                        setViolationsPage(0);
+                      }}
+                    >
+                      <span className={`w-48 truncate ${isActive ? 'font-medium text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} title={cat.category}>{cat.category}</span>
                       <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden flex">
                         <div className="bg-green-500 h-full" style={{ width: `${cat.coverage}%` }} />
                       </div>
@@ -1029,7 +1054,8 @@ export function UsageAnalyticsView() {
                         </span>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                   {violationSummary.categories.length > 8 && (
                     <span className="text-xs text-muted-foreground italic">+{violationSummary.categories.length - 8} more categories...</span>
                   )}
