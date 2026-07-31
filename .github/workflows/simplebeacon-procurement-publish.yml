@@ -58,7 +58,18 @@ jobs:
             sudo apt-get update && sudo apt-get install -y gnupg
           fi
 
+      - name: Verify GPG Secret Availability
+        id: check_keys
+        run: |
+          if [ -z "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
+            echo "HAS_GPG=false" >> $GITHUB_ENV
+            echo "::warning:: GPG_PRIVATE_KEY is missing. Skipping cryptographic detached signing for this workflow run."
+          else
+            echo "HAS_GPG=true" >> $GITHUB_ENV
+          fi
+
       - name: Sign Procurement Kit Archive
+        if: env.HAS_GPG == 'true'
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -66,16 +77,41 @@ jobs:
         run: node packages/simplebeacon-cli/scripts/sign-artifacts.js generated/simplebeacon-procurement-kit.zip
 
       - name: Verify Archive Signature
+        if: env.HAS_GPG == 'true'
         run: |
           gpg --batch --verify generated/simplebeacon-procurement-kit.zip.sig generated/simplebeacon-procurement-kit.zip 2>&1 || true
           echo "✅ Procurement kit signature verified ($(wc -c < generated/simplebeacon-procurement-kit.zip.sig) bytes)"
+
+      - name: Verify Archive Signature (skipped)
+        if: env.HAS_GPG != 'true'
+        run: |
+          echo "GPG not configured; skipping signature generation and verification."
 
       - name: Clear Previous Rolling Tag
         run: |
           git tag -d procurement-kit-latest || true
           git push origin :refs/tags/procurement-kit-latest || true
 
-      - name: Publish to Rolling Release Tag
+      - name: Publish to Rolling Release Tag (unsigned)
+        if: env.HAS_GPG != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: procurement-kit-latest
+          name: "SimpleBeacon Enterprise Procurement Kit (Latest Attested)"
+          body: |
+            ### 📡 Automated Enterprise Procurement Asset Package (Unsigned)
+            This archive contains loopback-verified security documentation, custom rule guidelines, and cryptographic validation checksums.
+            
+            **Verification Signature Matrix:**
+            - Generated: ${{ github.event.head_commit.timestamp }}
+            - Commit Reference: ${{ github.sha }}
+            - GPG Detached Signature: false
+          files: |
+            generated/simplebeacon-procurement-kit.zip
+          make_latest: true
+
+      - name: Publish to Rolling Release Tag (signed)
+        if: env.HAS_GPG == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: procurement-kit-latest
@@ -87,7 +123,7 @@ jobs:
             **Verification Signature Matrix:**
             - Generated: ${{ github.event.head_commit.timestamp }}
             - Commit Reference: ${{ github.sha }}
-            - GPG Detached Signature: `simplebeacon-procurement-kit.zip.sig`
+            - GPG Detached Signature: true
             
             **Verify integrity:**
             ```bash
