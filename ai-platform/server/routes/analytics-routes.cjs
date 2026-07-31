@@ -17,6 +17,7 @@
  *   POST /api/analytics/violations/mark-ticketed   — Mark a violation as ticketed
  *   POST /api/analytics/violations/unmark-ticketed — Remove ticket status from a violation
  *   GET  /api/analytics/violations/ticket-statuses — Get all ticketed violation statuses
+ *   GET  /api/analytics/violations/summary       — Remediation coverage summary with per-category breakdown
  *   POST /api/analytics/record             — Record a scan (internal/CI)
  *
  * @module analytics-routes
@@ -529,6 +530,71 @@ router.get('/violations/ticket-statuses', (req, res) => {
   } catch (err) {
     logger.error('[Analytics] Ticket statuses failed:', err.message);
     res.status(500).json({ error: 'ticket_statuses_failed', message: err.message });
+  }
+});
+
+// GET /api/analytics/violations/summary — remediation coverage summary with per-category breakdown
+router.get('/violations/summary', (req, res) => {
+  try {
+    const filters = {
+      orgId: req.query.orgId,
+      repository: req.query.repository,
+      branch: req.query.branch,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+      limit: 100000,
+      offset: 0,
+    };
+    const result = analyticsStore.getScans(filters);
+    const ticketedKeys = ticketStatusStore.getTicketedKeys();
+
+    let totalViolations = 0;
+    let ticketedViolations = 0;
+    const categoryMap = {};
+
+    for (const scan of result.scans) {
+      const cats = scan.categoryCounts || {};
+      for (const [category, count] of Object.entries(cats)) {
+        if (count <= 0) continue;
+        const ticketKey = `${scan.scanId}::${category}`;
+        const isTicketed = ticketedKeys.has(ticketKey);
+        totalViolations++;
+        if (isTicketed) ticketedViolations++;
+
+        if (!categoryMap[category]) {
+          categoryMap[category] = { category, total: 0, ticketed: 0, unticketed: 0 };
+        }
+        categoryMap[category].total++;
+        if (isTicketed) {
+          categoryMap[category].ticketed++;
+        } else {
+          categoryMap[category].unticketed++;
+        }
+      }
+    }
+
+    const categories = Object.values(categoryMap)
+      .sort((a, b) => b.total - a.total)
+      .map(c => ({
+        ...c,
+        coverage: c.total > 0 ? Math.round((c.ticketed / c.total) * 100) : 0,
+      }));
+
+    const coverage = totalViolations > 0 ? Math.round((ticketedViolations / totalViolations) * 100) : 0;
+
+    res.json({
+      success: true,
+      summary: {
+        totalViolations,
+        ticketedViolations,
+        unticketedViolations: totalViolations - ticketedViolations,
+        coverage,
+        categories,
+      },
+    });
+  } catch (err) {
+    logger.error('[Analytics] Violations summary failed:', err.message);
+    res.status(500).json({ error: 'violations_summary_failed', message: err.message });
   }
 });
 

@@ -88,6 +88,22 @@ type TicketStatus = {
   markedAt: string;
 };
 
+type CategorySummary = {
+  category: string;
+  total: number;
+  ticketed: number;
+  unticketed: number;
+  coverage: number;
+};
+
+type ViolationSummary = {
+  totalViolations: number;
+  ticketedViolations: number;
+  unticketedViolations: number;
+  coverage: number;
+  categories: CategorySummary[];
+};
+
 const SEVERITY_COLORS = {
   critical: '#FF0000',
   high: '#FF6600',
@@ -124,6 +140,7 @@ export function UsageAnalyticsView() {
   const [markingRow, setMarkingRow] = useState<string | null>(null);
   const [ticketStatusFilter, setTicketStatusFilter] = useState<'all' | 'ticketed' | 'unticketed'>('all');
   const [ticketTargetFilter, setTicketTargetFilter] = useState<string>('');
+  const [violationSummary, setViolationSummary] = useState<ViolationSummary | null>(null);
   const violationsPageSize = 10;
 
   const fetchFilters = useCallback(async () => {
@@ -209,6 +226,23 @@ export function UsageAnalyticsView() {
 
   useEffect(() => { fetchTicketStatuses(); }, [fetchTicketStatuses]);
 
+  const fetchViolationSummary = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (repoFilter) params.set('repository', repoFilter);
+      if (branchFilter) params.set('branch', branchFilter);
+      const resp = await fetch(apiUrl(`/analytics/violations/summary?${params}`), { headers: authHeaders() });
+      if (resp.ok) {
+        const data = await resp.json();
+        setViolationSummary(data.summary || null);
+      }
+    } catch {
+      // silent
+    }
+  }, [repoFilter, branchFilter]);
+
+  useEffect(() => { fetchViolationSummary(); }, [fetchViolationSummary]);
+
   const markTicketed = useCallback(async (scanId: string, category: string, ticketRef: string, target: string) => {
     const rowKey = `${scanId}-${category}`;
     setMarkingRow(rowKey);
@@ -220,6 +254,7 @@ export function UsageAnalyticsView() {
       });
       if (!resp.ok) throw new Error('mark_failed');
       await fetchTicketStatuses();
+      await fetchViolationSummary();
       setTicketRefInput('');
       toast.success('Violation marked as ticketed');
     } catch {
@@ -227,7 +262,7 @@ export function UsageAnalyticsView() {
     } finally {
       setMarkingRow(null);
     }
-  }, [fetchTicketStatuses]);
+  }, [fetchTicketStatuses, fetchViolationSummary]);
 
   const unmarkTicketed = useCallback(async (scanId: string, category: string) => {
     try {
@@ -238,11 +273,12 @@ export function UsageAnalyticsView() {
       });
       if (!resp.ok) throw new Error('unmark_failed');
       await fetchTicketStatuses();
+      await fetchViolationSummary();
       toast.success('Ticket status removed');
     } catch {
       toast.error('Failed to remove ticket status');
     }
-  }, [fetchTicketStatuses]);
+  }, [fetchTicketStatuses, fetchViolationSummary]);
 
   const generateTicket = useCallback(async (scanId: string, category: string, target: 'jira' | 'linear' | 'github') => {
     const rowKey = `${scanId}-${category}`;
@@ -612,6 +648,56 @@ export function UsageAnalyticsView() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Remediation Summary Panel */}
+          {violationSummary && violationSummary.totalViolations > 0 && (
+            <div className="mb-4 p-4 rounded-lg border bg-muted/20 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Remediation Coverage</span>
+                <span className={`text-2xl font-bold ${violationSummary.coverage >= 75 ? 'text-green-600' : violationSummary.coverage >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {violationSummary.coverage}%
+                </span>
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                  <span className="text-muted-foreground">Ticketed: <span className="font-medium text-foreground">{violationSummary.ticketedViolations}</span></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-orange-400" />
+                  <span className="text-muted-foreground">Unticketed: <span className="font-medium text-foreground">{violationSummary.unticketedViolations}</span></span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-blue-400" />
+                  <span className="text-muted-foreground">Total: <span className="font-medium text-foreground">{violationSummary.totalViolations}</span></span>
+                </div>
+              </div>
+              {/* Overall progress bar */}
+              <div className="h-2 rounded-full bg-muted overflow-hidden flex">
+                <div className="bg-green-500 h-full" style={{ width: `${violationSummary.coverage}%` }} />
+                <div className="bg-orange-400 h-full flex-1" />
+              </div>
+              {/* Per-category breakdown */}
+              {violationSummary.categories.length > 0 && (
+                <div className="space-y-1.5 pt-2 border-t">
+                  <span className="text-xs font-medium text-muted-foreground">Per-Category Coverage</span>
+                  {violationSummary.categories.slice(0, 8).map((cat) => (
+                    <div key={cat.category} className="flex items-center gap-2 text-xs">
+                      <span className="w-48 truncate text-muted-foreground" title={cat.category}>{cat.category}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden flex">
+                        <div className="bg-green-500 h-full" style={{ width: `${cat.coverage}%` }} />
+                      </div>
+                      <span className="w-20 text-right tabular-nums text-muted-foreground">
+                        {cat.ticketed}/{cat.total} ({cat.coverage}%)
+                      </span>
+                    </div>
+                  ))}
+                  {violationSummary.categories.length > 8 && (
+                    <span className="text-xs text-muted-foreground italic">+{violationSummary.categories.length - 8} more categories...</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {/* Ticket Status Filters */}
           <div className="flex items-center gap-3 pb-3 mb-2 border-b">
             <div className="flex items-center gap-2">
