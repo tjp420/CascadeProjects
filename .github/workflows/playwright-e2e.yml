@@ -1,0 +1,71 @@
+name: Playwright E2E UI Smoke Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ai-platform/web/simplebeacon-dashboard/**'
+      - '.github/workflows/playwright-e2e.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ai-platform/web/simplebeacon-dashboard/**'
+
+jobs:
+  run-e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Initialize Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: ai-platform/web/simplebeacon-dashboard/package-lock.json
+
+      - name: Install Dashboard Dependencies
+        run: npm ci
+        working-directory: ai-platform/web/simplebeacon-dashboard
+
+      - name: Install Playwright Test Runner
+        run: npm install -D @playwright/test start-server-and-test
+        working-directory: ai-platform/web/simplebeacon-dashboard
+
+      - name: Cache Playwright Browser Binaries
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('ai-platform/web/simplebeacon-dashboard/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Headless Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium --with-deps
+        working-directory: ai-platform/web/simplebeacon-dashboard
+
+      - name: Install Playwright System Dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+        working-directory: ai-platform/web/simplebeacon-dashboard
+
+      - name: Run E2E Test Suite
+        run: npx start-server-and-test "npm run dev" http://localhost:5173 "npx playwright test e2e/smoke.spec.ts --reporter=html"
+        working-directory: ai-platform/web/simplebeacon-dashboard
+        env:
+          NODE_ENV: test
+          TOKEN_ACCOUNT_SIGNING_KEY: ${{ secrets.TOKEN_ACCOUNT_SIGNING_KEY || 'test-signing-key-placeholder-32-chars-long!' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'test-jwt-secret-placeholder-value-32-chars!' }}
+
+      - name: Archive Playwright Test Traces on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-report
+          path: ai-platform/web/simplebeacon-dashboard/playwright-report/
+          retention-days: 30
