@@ -93,6 +93,7 @@ const ssoRoutes = require('./routes/sso-routes.cjs');
 const ssoConfigRoutes = require('./routes/sso-config-routes.cjs');
 const tokenBudgetRoutes = require('./routes/token-budget-allocation-routes.cjs');
 const workspaceConfigRoutes = require('./routes/workspace-config-routes.cjs');
+const fineTuningTelemetryRoutes = require('./routes/fine-tuning-telemetry-routes.cjs');
 const { setupWorkspaceRoutes, requirePermission, setWorkspaceRlsContext } = require('./lib/rbac.cjs');
 const auditLogRouter = require('./routes/audit.cjs');
 const authRoutes = require('./routes/auth-routes.cjs');
@@ -1247,6 +1248,9 @@ app.use('/api/token-budget', tokenBudgetRoutes);
 
 // Workspace configuration routes — admin telemetry for sandbox + budget controls
 app.use('/api/workspace', workspaceConfigRoutes);
+
+// Fine-tuning telemetry routes — conversation dataset collection and export
+app.use('/api/telemetry', fineTuningTelemetryRoutes);
 
 // Static file serving for saved scan data exports
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));

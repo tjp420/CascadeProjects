@@ -443,3 +443,6 @@ router.post('/canonical-fingerprint', authorize('admin:all'), function (req, res
 });
 
 module.exports = router;
+// Export replay detector for cross-route telemetry aggregation
+module.exports.replayDetector = replayDetector;
+module.exports.canonicalizeRequest = canonicalizeRequest;

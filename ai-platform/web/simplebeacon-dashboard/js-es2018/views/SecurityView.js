@@ -1,6 +1,7 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
 import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
+import { fetchSecurityTelemetry, buildTelemetrySummary } from '../services/telemetryService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 
 const SEVERITY_COLORS = {
@@ -43,6 +44,9 @@ export class SecurityView {
         this.loading = true;
         this.error = null;
         this.compliance = null;
+        this.telemetry = null;
+        this.telemetryLoading = false;
+        this.telemetryError = null;
         this._container = null;
     }
     getReport() {
@@ -95,6 +99,108 @@ export class SecurityView {
         </div>
       </div>
     `;
+    }
+    renderTelemetrySection() {
+        if (!this.app.isCurrentUserAdmin || !this.app.isCurrentUserAdmin()) return '';
+        if (this.telemetryLoading) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);;">Security Telemetry</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <span class="loading-spinner" style="width:24px;height:24px;margin:0 auto var(--space-3);"></span>
+            <p class="text-muted" style="font-size:var(--font-size-sm);">Loading telemetry…</p>
+          </div>
+        </div>`;
+        }
+        if (this.telemetryError && !this.telemetry) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);;">Security Telemetry</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <p style="color:var(--danger);font-size:var(--font-size-sm);margin-bottom:var(--space-3);">${escapeHtml(this.telemetryError)}</p>
+            <button class="btn btn-secondary btn-sm" id="telemetry-retry" type="button">Retry</button>
+          </div>
+        </div>`;
+        }
+        if (!this.telemetry) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);;">Security Telemetry</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <p class="text-muted" style="font-size:var(--font-size-sm);margin-bottom:var(--space-3);">Real-time security metrics from scrubber registry, replay detector, and audit chain.</p>
+            <button class="btn btn-primary btn-sm" id="telemetry-load" type="button">Load telemetry</button>
+          </div>
+        </div>`;
+        }
+        const s = this.telemetry;
+        const chainStatus = s.audit.chainValid ? '✅ Valid' : '⚠️ Broken';
+        const chainColor = s.audit.chainValid ? 'var(--success)' : 'var(--danger)';
+        return `
+      <div class="section-block">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0;">Security Telemetry</h2>
+          <button class="btn btn-ghost btn-sm" id="telemetry-refresh" type="button">⟳ Refresh</button>
+        </div>
+
+        <!-- Telemetry stat cards -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4);margin-bottom:var(--space-6);">
+          ${statCard('🧹', 'Active Scrubbers', `${s.scrubber.activeScrubbers}/${s.scrubber.maxScrubbers}`, 'rgba(99,102,241,0.12)')}
+          ${statCard('🔄', 'Replays Blocked', formatNumber(s.replay.totalReplays), 'rgba(239,68,68,0.12)')}
+          ${statCard('🔗', 'Audit Chain', chainStatus, s.audit.chainValid ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)')}
+          ${statCard('🛡️', 'PII Policies', `${s.pii.enabledPolicies}/${s.pii.totalPolicies}`, 'rgba(168,85,247,0.12)')}
+        </div>
+
+        <!-- Scrubber details -->
+        <div class="card" style="padding:var(--space-5) var(--space-6);margin-bottom:var(--space-4);">
+          <div style="font-size:var(--font-size-sm);font-weight:700;margin-bottom:var(--space-3);">Stream Scrubber Registry</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--space-3);">
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Utilization</span><div style="font-weight:700;">${s.scrubber.utilization}%</div></div>
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Total Created</span><div style="font-weight:700;">${formatNumber(s.scrubber.totalCreated)}</div></div>
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Evicted (LRU)</span><div style="font-weight:700;">${formatNumber(s.scrubber.totalEvicted)}</div></div>
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Expired (TTL)</span><div style="font-weight:700;">${formatNumber(s.scrubber.totalExpired)}</div></div>
+          </div>
+        </div>
+
+        <!-- Replay detector details -->
+        <div class="card" style="padding:var(--space-5) var(--space-6);margin-bottom:var(--space-4);">
+          <div style="font-size:var(--font-size-sm);font-weight:700;margin-bottom:var(--space-3);">Replay Detection</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--space-3);">
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Total Checked</span><div style="font-weight:700;">${formatNumber(s.replay.totalChecked)}</div></div>
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Replay Rate</span><div style="font-weight:700;">${s.replay.replayRate}%</div></div>
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Active Orgs</span><div style="font-weight:700;">${formatNumber(s.replay.orgCount)}</div></div>
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Tracked Fingerprints</span><div style="font-weight:700;">${formatNumber(s.replay.totalFingerprints)}</div></div>
+          </div>
+        </div>
+
+        <!-- Audit chain details -->
+        <div class="card" style="padding:var(--space-5) var(--space-6);margin-bottom:var(--space-4);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+            <div style="font-size:var(--font-size-sm);font-weight:700;">Audit Log Integrity</div>
+            <span style="font-size:var(--font-size-xs);font-weight:600;color:${chainColor};">${chainStatus}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--space-3);">
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Total Entries</span><div style="font-weight:700;">${formatNumber(s.audit.totalEntries)}</div></div>
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Verified</span><div style="font-weight:700;">${formatNumber(s.audit.verifiedEntries)}</div></div>
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Broken Links</span><div style="font-weight:700;color:${s.audit.brokenLinks > 0 ? 'var(--danger)' : 'inherit'};">${formatNumber(s.audit.brokenLinks)}</div></div>
+            <div><span class="text-muted" style="font-size:var(--font-size-xs);">Quarantined</span><div style="font-weight:700;color:${s.audit.quarantinedCount > 0 ? 'var(--warning)' : 'inherit'};">${formatNumber(s.audit.quarantinedCount)}</div></div>
+          </div>
+        </div>
+      </div>`;
+    }
+    async loadTelemetry() {
+        if (this.telemetryLoading) return;
+        this.telemetryLoading = true;
+        this.telemetryError = null;
+        try {
+            const { authService } = await import('../services/authService.js?v=20260722bridgefix1');
+            const raw = await fetchSecurityTelemetry(authService.getAuthHeaders());
+            this.telemetry = buildTelemetrySummary(raw);
+        } catch (err) {
+            this.telemetryError = err.message;
+        } finally {
+            this.telemetryLoading = false;
+        }
+        if (this._container) this.app.render(this._container);
     }
     render() {
         var _a, _b, _c, _d, _e, _f;
@@ -222,9 +328,18 @@ export class SecurityView {
         </div>
         ${this.renderFindingsTable(findings)}
       </div>
+
+      ${this.renderTelemetrySection()}
     `;
         (_d = el.querySelector('#security-run-scan')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.runScan(this._container));
         (_e = el.querySelector('#security-export-json')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.exportResults());
+        // Telemetry button listeners
+        const _tlLoad = el.querySelector('#telemetry-load');
+        const _tlRefresh = el.querySelector('#telemetry-refresh');
+        const _tlRetry = el.querySelector('#telemetry-retry');
+        if (_tlLoad) _tlLoad.addEventListener('click', () => this.loadTelemetry());
+        if (_tlRefresh) _tlRefresh.addEventListener('click', () => this.loadTelemetry());
+        if (_tlRetry) _tlRetry.addEventListener('click', () => this.loadTelemetry());
         (_f = el.querySelector('#security-send-ai-btn')) === null || _f === void 0 ? void 0 : _f.addEventListener('click', async () => {
             var _a, _b;
             const report = this.getReport();

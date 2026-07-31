@@ -1,16 +1,16 @@
-# Test Plan: Multi-Tenant Workspace Configuration UI
+# Test Plan: Cross-Model Fine-Tuning Telemetry Collector
 
-> Dashboard view that gives administrators visibility into the multi-tenant cryptographic sandbox and live control over token budget parameters.
+> A backend service that extracts, labels, filters, and formats high-quality multi-turn conversation logs from the session audit store into clean datasets for training localized small language models.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Multi-Tenant Workspace Configuration UI — admin panels for sandbox summary and token budget live tuning |
+| Feature / change | Cross-Model Fine-Tuning Telemetry Collector |
 | Author (Builder) | Devin |
 | Date | 2026-08-01 |
 | Branch | feat/agentic-orchestration |
-| Packages touched | ai-platform (dashboard + backend) |
+| Packages touched | ai-platform |
 
 ## Scope
 
@@ -18,30 +18,29 @@
 
 | File | Purpose |
 |------|---------|
-| `ai-platform/web/simplebeacon-dashboard/js-es2018/views/WorkspaceConfigView.js` | New dashboard view for the workspace page |
-| `ai-platform/web/simplebeacon-dashboard/js-es2018/components/WorkspaceBudgetPanel.js` | Budget cards, limit/interval editor, and threshold list |
-| `ai-platform/web/simplebeacon-dashboard/js-es2018/components/WorkspaceSandboxPanel.js` | Read-only sandbox summary (per-org config counts and prefixes) |
-| `ai-platform/web/simplebeacon-dashboard/js-es2018/services/workspaceConfigService.js` | `fetch` wrappers for new and existing API endpoints |
-| `ai-platform/web/simplebeacon-dashboard/js-es2018/router.js` | Register `/workspace` route |
-| `ai-platform/web/simplebeacon-dashboard/js-es2018/main.js` | Add view to the view registry |
-| `ai-platform/web/simplebeacon-dashboard/index.html` | Optional nav/sidebar link (if navigation is centralized in HTML) |
-| `ai-platform/server/routes/workspace-config-routes.cjs` | New read-only API for sandbox store summaries and budget batch updates |
-| `ai-platform/server/index.cjs` | Mount `/api/workspace` router |
-| `ai-platform/server/lib/__tests__/workspace-config-routes.test.cjs` | Backend tests for sandbox summary and budget update endpoints |
+| `ai-platform/server/lib/fine-tuning-telemetry-store.cjs` | Core collector: reads audit logs, filters conversations, scores quality, formats records |
+| `ai-platform/server/lib/fine-tuning-formatter.cjs` | Output formatters for `jsonl`, `alpaca`, and `chatml` training schemas |
+| `ai-platform/server/lib/fine-tuning-telemetry-routes.cjs` | REST endpoints for collection and export |
+| `ai-platform/server/lib/__tests__/fine-tuning-telemetry.test.cjs` | Jest tests for collection, filtering, scoring, and format export |
+| `ai-platform/server/index.cjs` | Mount `/api/telemetry` router |
 
 ### APIs / routes
 
-- `GET /api/workspace/sandbox-summary?orgId=<orgId>` — counts of SSO, integration, and webhook configs per org; no secret values
-- `GET /api/workspace/budgets?orgId=<orgId>` — list of token-budget entries for an org
-- `PUT /api/workspace/budgets/:scope` — update `limitUSD`, `alertIntervals`, `softCapPercent`, `hardStopPercent`, `webhookAlertsEnabled`, `autoResetEnabled`
-- `POST /api/workspace/budgets/:scope/reset` — reset budget period and spend
+- `GET /api/telemetry/collect?orgId=<orgId>&minTurns=<int>&minRating=<int>&startDate=<ISO>&endDate=<ISO>` — return candidate conversations with quality score
+- `POST /api/telemetry/export` — body `{ orgId, format: 'jsonl' | 'alpaca' | 'chatml', filters }`, returns a downloadable dataset artifact
+- `POST /api/telemetry/label` — body `{ auditEntryId, label: 'include' | 'exclude' | 'needs_review' }` — human-in-the-loop rating
+- `GET /api/telemetry/datasets?orgId=<orgId>` — list generated datasets for the org
 
-### UI / IDE surfaces
+### Data sources
 
-- [x] Sidebar webview / dashboard nav
-- [x] Main dashboard iframe / address bar
-- [ ] Welcome / main window panel
-- [ ] Simple Browser / external browser
+- Primary: `ai-platform/server/lib/enterprise-audit-store.cjs` (or the configured audit log store) `ai-inference-audit-logger.cjs` events with `operation` of `chat`, `inference`, or `analysis`.
+- Expected fields: `orgId`, `userId`, `operation`, `timestamp`, `input` (prompt), `output` (response), `model`, `metadata.rating`, `metadata.turns`.
+
+### Output schemas
+
+- `jsonl` (default): `{ messages: [{ role, content }] }` per line
+- `alpaca`: `{ instruction, input, output }` per line
+- `chatml`: OpenAI ChatML JSONL with `role` / `content`
 
 ---
 
@@ -49,12 +48,10 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on changed JS/CJS | `node -c ai-platform/server/routes/workspace-config-routes.cjs` and `node -c ai-platform/server/index.cjs` | [ ] |
-| L1-02 | Dashboard build compile (if a build step exists) | `cd ai-platform/web/simplebeacon-dashboard && npm run build` if present, else `npm test` | [ ] |
-| L1-03 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
-| L1-04 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-05 | No secrets in diff | Manual review: no UI logging of tokens, no raw secret values sent | [ ] |
-| L1-06 | npm audit (if deps changed) | `npm audit` | [ ] |
+| L1-01 | Syntax on new `.cjs` files | `node -c ai-platform/server/lib/fine-tuning-telemetry-store.cjs`, `node -c ai-platform/server/lib/fine-tuning-formatter.cjs`, `node -c ai-platform/server/lib/fine-tuning-telemetry-routes.cjs`, `node -c ai-platform/server/index.cjs` | [ ] |
+| L1-02 | ai-platform tests | `cd ai-platform && npm test` | [ ] |
+| L1-03 | SimpleBeacon full gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
+| L1-04 | npm audit (no package.json changes expected) | `npm audit` in touched package roots | [ ] |
 
 ---
 
@@ -62,25 +59,25 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Open workspace view | Navigate to `#/workspace` in dashboard | View loads with budget and sandbox panels | [ ] |
-| L2-02 | Token budget card | Select an org with a budget | Card shows `limitUSD`, `spentUSD`, `percentUsed`, `periodEnd` | [ ] |
-| L2-03 | Live budget edit | Change `limitUSD` and `alertIntervals`, click Save | PUT to backend; next fetch reflects new values | [ ] |
-| L2-04 | Soft/hard threshold display | Cross a soft-cap threshold | Panel highlights the crossed threshold and shows last alert timestamp | [ ] |
-| L2-05 | Sandbox summary | Load the sandbox panel | Lists per-org counts of SSO, integration, and webhook configs; no `authToken` or `clientSecret` visible | [ ] |
-| L2-06 | Manual reset | Click Reset on a budget scope | Budget spend, tokens, and alerts clear; period advances | [ ] |
+| L2-01 | Collect multi-turn conversations | `GET /api/telemetry/collect?orgId=demo&minTurns=2` | Returns array of conversations with `score` and `turns` ≥ 2 | [ ] |
+| L2-02 | Filter by rating threshold | `GET ...&minRating=3` | Only conversations with `qualityScore >= 3` returned | [ ] |
+| L2-03 | Export to JSONL | `POST /api/telemetry/export` with `format: 'jsonl'` | Response is JSONL with `messages` array, no raw PII, one object per line | [ ] |
+| L2-04 | Export to Alpaca | `POST ...format: 'alpaca'` | Each line has `instruction`, `input`, `output` | [ ] |
+| L2-05 | Human labeling | `POST /api/telemetry/label` an entry as `exclude` | Re-running collect does not include the excluded entry | [ ] |
+| L2-06 | List datasets | `GET /api/telemetry/datasets?orgId=demo` | Returns filenames, row counts, formats, and timestamps | [ ] |
 
 ---
 
-## Level 3 — Edge cases & regression
+## Level 3 — Edge cases & security
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Non-admin user attempts edit | Save button disabled or backend returns 403 | [ ] |
-| L3-02 | Missing orgId | Service uses `default` and does not crash | [ ] |
-| L3-03 | Invalid `alertIntervals` input | UI sanitizes to numbers; backend rejects out-of-range values | [ ] |
-| L3-04 | Large budget list | Pagination or scrollable grid, no UI lock-up | [ ] |
-| L3-05 | Existing dashboard routes unaffected | All other views still load and route correctly | [ ] |
-| L3-06 | No new dependencies | Uses existing `fetch` helpers and Vanilla JS | [ ] |
+| L3-01 | Audit log missing turns/rating | Score falls back to heuristic (length + question count) | [ ] |
+| L3-02 | Empty result set | Returns empty array / 200, not 500 | [ ] |
+| L3-03 | PII / secrets in prompts | Output redacts values matching token-bleed or credential patterns | [ ] |
+| L3-04 | Unauthorized org access | Returns 403 or only data for the caller's own `orgId` | [ ] |
+| L3-05 | Large exports | Streamed / chunked response, no in-memory buffering of entire dataset | [ ] |
+| L3-06 | Idempotent re-export | Same filters produce identical SHA-256 fingerprint of dataset | [ ] |
 
 ---
 
@@ -88,10 +85,10 @@
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No plaintext secrets rendered in the DOM or sent to the dashboard | [ ] |
-| S-02 | Budget mutations require `admin:all` on the backend | [ ] |
-| S-03 | Sandbox summary endpoint returns only counts and metadata, never decryption keys | [ ] |
-| S-04 | API responses include `success/error` without leaking internal paths | [ ] |
+| S-01 | No secret values or PII written to exported training files | [ ] |
+| S-02 | Telemetry endpoints require authenticated admin or `telemetry:read` permission | [ ] |
+| S-03 | File-based exports land in a scoped, org-prefixed output directory | [ ] |
+| S-04 | Labels cannot overwrite another org's data | [ ] |
 
 ---
 

@@ -21,6 +21,21 @@ const scrubberRegistry = piiPolicyStore.createScrubberRegistry({
 // stream-mode scrubbing output doesn't match batch-mode redactText().
 const verifyStreamMiddleware = piiPolicyStore.createVerifyStreamMiddleware();
 
+// Lazy-load agentic-orchestration-routes to access the replay detector
+// for telemetry aggregation. Lazy to avoid loading the full router at
+// module init time (and potential circular dependency issues).
+let _agenticRoutes = null;
+function getAgenticRoutes() {
+  if (!_agenticRoutes) {
+    try {
+      _agenticRoutes = require('./agentic-orchestration-routes.cjs');
+    } catch (e) {
+      logger.warn('[Audit] Could not load agentic-orchestration-routes for telemetry:', e.message);
+    }
+  }
+  return _agenticRoutes;
+}
+
 function getOrgId(req) {
   return req.user?.id || req.user?.email || 'default';
 }
@@ -472,6 +487,68 @@ router.post('/verify-stream', authenticate, verifyStreamMiddleware, (req, res) =
     streamLength: result.streamText.length,
     batchLength: result.batchText.length,
   });
+});
+
+// ── GET /api/audit/telemetry ────────────────────────────────────────────────
+//   Admin-only: aggregates security telemetry from all subsystems:
+//     - Scrubber registry (active scrubbers, eviction/expiry stats)
+//     - Replay detector (total checked, replays, org count)
+//     - Audit log integrity (chain status, quarantine count)
+//     - PII policy stats (enabled policies, by severity)
+router.get('/telemetry', authorize('admin:all'), (req, res) => {
+  try {
+    // Run TTL cleanup on scrubber registry before reporting
+    scrubberRegistry.cleanup();
+
+    // Scrubber registry stats
+    const scrubberStats = scrubberRegistry.getStats();
+
+    // Replay detector stats (from agentic-orchestration-routes)
+    let replayStats = null;
+    const agenticRoutes = getAgenticRoutes();
+    if (agenticRoutes && agenticRoutes.replayDetector) {
+      replayStats = agenticRoutes.replayDetector.getStats();
+    }
+
+    // Audit log integrity stats
+    let auditStats = null;
+    try {
+      const orgId = getOrgId(req);
+      const chainVerification = auditLogger.verifyChain(orgId);
+      const quarantine = auditLogger.getQuarantine ? auditLogger.getQuarantine(orgId) : [];
+      auditStats = {
+        chainValid: chainVerification.valid,
+        totalEntries: chainVerification.totalEntries,
+        verifiedEntries: chainVerification.verifiedEntries || 0,
+        brokenLinks: (chainVerification.brokenLinks || []).length,
+        tamperedEntries: (chainVerification.tamperedEntries || []).length,
+        quarantinedCount: Array.isArray(quarantine) ? quarantine.length : 0,
+      };
+    } catch (e) {
+      auditStats = { error: e.message };
+    }
+
+    // PII policy stats
+    let piiStats = null;
+    try {
+      const orgId = getOrgId(req);
+      piiStats = piiPolicyStore.getStats(orgId);
+    } catch (e) {
+      piiStats = { error: e.message };
+    }
+
+    res.json({
+      success: true,
+      timestamp: Date.now(),
+      scrubber: scrubberStats,
+      replay: replayStats,
+      audit: auditStats,
+      pii: piiStats,
+    });
+  } catch (err) {
+    logger.warn('[Audit] telemetry_failed:', err.message);
+    sendError(res, 500, 'telemetry_failed', { message: err.message });
+  }
 });
 
 module.exports = router;
