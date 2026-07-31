@@ -286,3 +286,35 @@ node bin/simplebeacon.js scan --path ../.. --gate
 ## License
 
 MIT
+
+## Enterprise Package Verification
+
+This repository includes a pre-built procurement kit ZIP produced by the bundler (`generated/simplebeacon-procurement-kit.zip`). The kit contains customer-facing HTML, the `verify-isolation.json` attestation, and a `checksums.sha256` manifest so auditors can cryptographically verify package integrity.
+
+Quick verification (Linux / macOS):
+
+```bash
+# unzip into a temporary folder then verify every file listed in checksums.sha256
+unzip generated/simplebeacon-procurement-kit.zip -d kit
+sha256sum -c kit/checksums.sha256
+```
+
+Quick verification (Windows PowerShell):
+
+```powershell
+# unzip then run a small PowerShell verifier against the checksums manifest
+Expand-Archive -Path .\generated\simplebeacon-procurement-kit.zip -DestinationPath kit
+$expected = Get-Content .\kit\checksums.sha256
+foreach ($line in $expected) {
+  $parts = -split $line
+  $hash = $parts[0].ToLower()
+  $file = $parts[1]
+  $actual = (Get-FileHash -Algorithm SHA256 -Path (Join-Path $PWD 'kit' $file)).Hash.ToLower()
+  if ($actual -ne $hash) { Write-Error "Checksum mismatch: $file"; exit 1 }
+}
+Write-Host "All checksums match"
+```
+
+Optional: if you publish a detached GPG signature for the ZIP (`simplebeacon-procurement-kit.zip.asc`), verify with `gpg --verify simplebeacon-procurement-kit.zip.asc simplebeacon-procurement-kit.zip`.
+
+If you'd like, I can add this snippet to `CONTRIBUTING.md` or post the ZIP as a release asset on PR #77 so auditors can download it directly from GitHub.
