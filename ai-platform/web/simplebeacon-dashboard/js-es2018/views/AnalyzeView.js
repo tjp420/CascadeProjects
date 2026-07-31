@@ -32,7 +32,7 @@ function getHostedAnalyzeContext() {
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, isHostedServerDefaultPath, isHostedBrowserScanPath, shouldClearHostedServerDefaultPath, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, resolveReportIssues, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260726sevfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260716cachefix1';
-import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
+import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths, basenamePath } from '../lib/analyzePathSuggestions.js?v=20260731audit3';
 import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { runEuAiActSprint } from '../services/operatorService.js?v=20260716cachefix1';
@@ -1259,17 +1259,6 @@ function loadAnalyzePrefs() {
 function saveAnalyzePrefs(prefs) {
     const existing = loadAnalyzePrefs();
     localStorage.setItem(ANALYZE_PREFS_KEY, JSON.stringify({ ...existing, ...prefs }));
-}
-/**
- * Basename path.
- * @param {string} projectPath
- * @returns {any}
- */
-function basenamePath(projectPath) {
-    if (!projectPath)
-        return '';
-    const parts = projectPath.replace(/\\/g, '/').split('/').filter(Boolean);
-    return parts[parts.length - 1] || projectPath;
 }
 /**
  * Format elapsed.

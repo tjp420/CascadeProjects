@@ -130,8 +130,8 @@ export const memoizeAsync = AsyncUtils.memoizeAsync;
 export const withTimeout = AsyncUtils.withTimeout;
 export const tryFn = AsyncUtils.tryFn;
 export const seq = AsyncUtils.seq;
-export const flow = AsyncUtils.flow;
-export const negate = AsyncUtils.negate;
+export const flow = FunctionUtils.flow;
+export const negate = FunctionUtils.negate;
 export const retry = AsyncUtils.retry;
 // ── Array helpers ────────────────────────────────────────────────
 export const unique = ArrayUtils.unique;
