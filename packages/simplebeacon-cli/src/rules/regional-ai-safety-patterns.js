@@ -14,6 +14,15 @@
  *   8. ISO/IEC 42001 (AI Management System)
  *   9. Singapore Model AI Governance Framework
  *  10. Brazil AI Bill (PL 2338/2023)
+ *  11. EU AI Act — Prohibited Practices & High-Risk Classification
+ *  12. Texas Responsible AI Governance Act (HB 4045)
+ *  13. Illinois AI Video Interview Act (HB 2557)
+ *  14. Japan METI AI Guidelines for Business
+ *  15. Australia AI Ethics Framework
+ *  16. South Korea AI Basic Act
+ *  17. China Generative AI Interim Measures
+ *  18. India Digital Personal Data Protection Act (DPDP)
+ *  19. OECD AI Principles
  *
  * Static pattern scan only — not legal advice or formal conformity assessment.
  */
@@ -180,6 +189,126 @@ const RULE_CATALOG = [
         description: 'AI system affecting individual rights without documented rights impact assessment or contestation mechanism',
         fixTemplate: 'Conduct a rights impact assessment identifying affected individuals and potential rights violations. Implement a contestation mechanism allowing affected persons to challenge AI decisions. Provide a right to explanation and human intervention.'
     },
+
+    // 11. EU AI Act — Prohibited Practices (Article 5)
+    {
+        id: 'EU-AIA-001',
+        framework: 'EU AI Act',
+        category: 'prohibited-practice',
+        type: 'EU AI Act — Prohibited AI Practice Detected',
+        regex: /\b(?:social\s+scoring|real[-_\s]?time\s+(?:biometric|facial)\s+(?:identification|id|categoriz)|subliminal\s+manipulation|exploit\s+vulnerab|predictive\s+policing|emotion\s+recognition\s+in\s+workplace)\b/gi,
+        severity: 'critical',
+        description: 'AI system exhibits patterns matching EU AI Act Article 5 prohibited practices (social scoring, real-time biometric identification, subliminal manipulation)',
+        fixTemplate: 'Immediately halt deployment of the identified AI practice. EU AI Act Article 5 prohibits social scoring, real-time remote biometric identification in public spaces, subliminal manipulation, and exploitation of vulnerabilities. Document the removal and conduct a conformity assessment for remaining systems.'
+    },
+
+    // 12. EU AI Act — High-Risk Classification (Article 6 + Annex III)
+    {
+        id: 'EU-AIA-002',
+        framework: 'EU AI Act',
+        category: 'high-risk-classification',
+        type: 'EU AI Act — High-Risk System Without Conformity Assessment',
+        regex: /\b(?:essential\s+(?:public|private)\s+service|law\s+enforcement|migration\s+control|asylum\s+(?:processing|screening)|biometric\s+categorization|education\s+(?:admission|evaluation)|credit\s+scoring|insurance\s+(?:pricing|risk\s+assess))\b[^]*(?:ai|ml|model|algorithm|automated)/gi,
+        severity: 'high',
+        description: 'AI system in an EU AI Act Annex III high-risk domain without documented conformity assessment or CE marking',
+        fixTemplate: 'Conduct a conformity assessment per EU AI Act Article 6 and Annex III. Implement risk management, data governance, technical documentation, human oversight, and accuracy/robustness requirements. Affix CE marking and register in the EU database before deployment.'
+    },
+
+    // 13. Texas Responsible AI Governance Act (HB 4045)
+    {
+        id: 'TX-HB4045-001',
+        framework: 'Texas HB 4045',
+        category: 'ai-impact-assessment',
+        type: 'Texas AI Governance — Missing Impact Assessment',
+        regex: /\b(?:automated\s+decision\s+system|ai\s+impact\s+(?:assessment|statement)|algorithmic\s+fairness|biases?\s+(?:audit|review|detect)|texa?s\s+ai\s+governance)\b/gi,
+        severity: 'medium',
+        description: 'Automated decision system deployed without Texas HB 4045 impact assessment documenting algorithmic fairness and bias review',
+        fixTemplate: 'Conduct an AI impact assessment per Texas HB 4045 requirements. Document system purpose, data sources, algorithmic fairness evaluation, bias detection results, and mitigation measures. File the assessment with the Texas Department of Information Resources.'
+    },
+
+    // 14. Illinois AI Video Interview Act (HB 2557)
+    {
+        id: 'IL-AIVIA-001',
+        framework: 'Illinois HB 2557',
+        category: 'video-interview-ai',
+        type: 'Illinois AI Video Interview Act — Missing Consent or Disclosure',
+        regex: /\b(?:video\s+interview|ai[-_\s]?video\s+(?:analysis|screen|eval)|facial\s+(?:expression|emotion)\s+analysis|automated\s+interview\s+(?:scor|rank|evaluat))\b/gi,
+        severity: 'high',
+        description: 'AI-powered video interview analysis detected without documented consent, disclosure, or human review as required by Illinois HB 2557',
+        fixTemplate: 'Obtain explicit consent from candidates before AI video analysis. Provide advance disclosure that AI will analyze the interview. Share assessment results upon request. Ensure human review of AI-generated evaluations. Retain records for 30 days per Illinois HB 2557.'
+    },
+
+    // 15. Japan METI AI Guidelines for Business
+    {
+        id: 'JP-METI-001',
+        framework: 'Japan METI AI Guidelines',
+        category: 'ai-business-governance',
+        type: 'Japan METI — Missing AI Business Governance',
+        regex: /\b(?:human[-_\s]?centric|ai\s+principles|safety\s+(?:principle|standard)|fairness|accountability|transparency|privacy\s+protection|japanese\s+ai\s+(?:guideline|governance))\b(?![^]*\b(?:documented|polic|framework|implement)\b)/gi,
+        severity: 'medium',
+        description: 'AI system deployed without Japan METI AI Guidelines for Business governance documentation covering human-centric principles, safety, and accountability',
+        fixTemplate: 'Align AI governance with Japan METI AI Guidelines for Business. Document human-centric principles, safety measures, fairness, accountability, transparency, and privacy protection. Establish an AI governance committee and conduct regular impact assessments.'
+    },
+
+    // 16. Australia AI Ethics Framework
+    {
+        id: 'AU-AIEF-001',
+        framework: 'Australia AI Ethics Framework',
+        category: 'ai-ethics',
+        type: 'Australia AI Ethics — Missing Ethics Impact Assessment',
+        regex: /\b(?:ai\s+ethics|ethical\s+(?:impact|principle|assessment)|fairness|discrimination\s+(?:detect|prevent|monitor)|inclusive\s+(?:design|access)|australian\s+ai\s+ethics)\b/gi,
+        severity: 'medium',
+        description: 'AI system without Australia AI Ethics Framework impact assessment covering fairness, discrimination prevention, and inclusive design',
+        fixTemplate: 'Conduct an AI Ethics Impact Assessment per the Australia AI Ethics Framework. Evaluate the system against all 8 ethical principles: human/social wellbeing, human-centred values, fairness, privacy protection, reliability/safety, transparency, contestability, and accountability.'
+    },
+
+    // 17. South Korea AI Basic Act
+    {
+        id: 'KR-AIBA-001',
+        framework: 'South Korea AI Basic Act',
+        category: 'ai-transparency-kr',
+        type: 'Korea AI Basic Act — Missing Transparency or Impact Assessment',
+        regex: /\b(?:high[-_\s]?impact\s+ai|ai\s+transparency|korean\s+ai\s+(?:act|law|regulation)|ai\s+committee|personal\s+information\s+protection|k[-_\s]?personal\s+data)\b/gi,
+        severity: 'high',
+        description: 'High-impact AI system without South Korea AI Basic Act transparency notice, impact assessment, or personal information protection measures',
+        fixTemplate: 'Comply with South Korea AI Basic Act requirements: submit an AI impact assessment for high-impact systems, provide transparency notices to users, implement personal information protection measures, and report to the AI Committee. Designate an AI compliance officer.'
+    },
+
+    // 18. China Generative AI Interim Measures
+    {
+        id: 'CN-GENAI-001',
+        framework: 'China GenAI Measures',
+        category: 'generative-ai-cn',
+        type: 'China GenAI — Missing Content Labeling or Security Assessment',
+        regex: /\b(?:generative\s+ai|gen[-_\s]?ai|text\s+generation|image\s+generation|synthetic\s+(?:media|content|data)|deepfake|chinese\s+ai\s+(?:regulation|measure|law))\b/gi,
+        severity: 'high',
+        description: 'Generative AI system without China Interim Measures for Generative AI content labeling, security assessment, or training data documentation',
+        fixTemplate: 'Comply with China Generative AI Interim Measures: conduct a security assessment before public release, label AI-generated content, document training data sources and legality, implement content filtering for prohibited content, and register with the Cyberspace Administration of China (CAC).'
+    },
+
+    // 19. India Digital Personal Data Protection Act (DPDP)
+    {
+        id: 'IN-DPDP-001',
+        framework: 'India DPDP Act',
+        category: 'data-protection-in',
+        type: 'India DPDP — Missing Data Protection Impact Assessment',
+        regex: /\b(?:personal\s+data|data\s+fiduciary|data\s+principal|consent\s+management|data\s+protection\s+(?:impact|assessment)|indian\s+(?:data|dpdp))\b/gi,
+        severity: 'medium',
+        description: 'AI system processing personal data without India DPDP Act consent management, data fiduciary obligations, or data protection impact assessment',
+        fixTemplate: 'Implement India DPDP Act compliance: obtain explicit consent from data principals, register as a data fiduciary if processing significant volumes, conduct a Data Protection Impact Assessment, implement breach notification procedures, and appoint a Data Protection Officer.'
+    },
+
+    // 20. OECD AI Principles
+    {
+        id: 'OECD-AIP-001',
+        framework: 'OECD AI Principles',
+        category: 'oecd-principles',
+        type: 'OECD AI Principles — Missing Well-being or Accountability Documentation',
+        regex: /\b(?:human\s+well[-_\s]?being|sustainable|inclusive\s+growth|ai\s+(?:principle|value|standard)|oecd\s+ai|trustworthy\s+ai|responsible\s+ai)\b/gi,
+        severity: 'low',
+        description: 'AI system deployed without OECD AI Principles alignment documentation covering human well-being, sustainability, and trustworthy AI',
+        fixTemplate: 'Document alignment with OECD AI Principles: invest in AI research for inclusive growth and well-being, foster human-centred AI values, ensure transparency and explainability, implement robustness and safety measures, and establish accountability mechanisms. Reference the OECD AI Policy Observatory.'
+    },
 ];
 
 // ── Documentation Markers ───────────────────────────────────────────────────
@@ -195,6 +324,16 @@ const DOCUMENTATION_MARKERS = [
     { id: 'iso-42001-aims', pattern: /iso\s*\/?\s*iec\s*42001|ai\s+management\s+system|aims/i, label: 'ISO/IEC 42001 AIMS' },
     { id: 'sg-maigf-governance', pattern: /singapore\s+ai\s+governance|maigf|model\s+ai\s+governance/i, label: 'Singapore MAIGF Governance' },
     { id: 'br-pl2338-rights', pattern: /pl\s*2338|brazil\s+ai\s+bill|rights\s+impact\s+assessment/i, label: 'Brazil AI Bill Rights Assessment' },
+    { id: 'eu-aia-prohibited', pattern: /eu\s+ai\s+act|article\s+5|prohibited\s+practice|social\s+scoring\s+ban/i, label: 'EU AI Act Prohibited Practices' },
+    { id: 'eu-aia-high-risk', pattern: /annex\s+iii|conformity\s+assessment|ce\s+marking|high[-_\s]?risk\s+classification/i, label: 'EU AI Act High-Risk Classification' },
+    { id: 'tx-hb4045-impact', pattern: /texas\s+ai\s+governance|hb\s*4045|algorithmic\s+fairness\s+assessment/i, label: 'Texas HB 4045 Impact Assessment' },
+    { id: 'il-aivia-consent', pattern: /illinois\s+ai\s+video|hb\s*2557|video\s+interview\s+consent/i, label: 'Illinois AI Video Interview Consent' },
+    { id: 'jp-meti-governance', pattern: /japan\s+ai\s+guideline|meti\s+ai|human[-_\s]?centric\s+ai/i, label: 'Japan METI AI Governance' },
+    { id: 'au-aief-ethics', pattern: /australia\s+ai\s+ethics|ai\s+ethics\s+impact|inclusive\s+design\s+ai/i, label: 'Australia AI Ethics Assessment' },
+    { id: 'kr-aiba-transparency', pattern: /korea\s+ai\s+basic\s+act|ai\s+committee|korean\s+ai\s+transparency/i, label: 'Korea AI Basic Act Transparency' },
+    { id: 'cn-genai-measures', pattern: /china\s+generative\s+ai|cac\s+registration|synthetic\s+content\s+labeling/i, label: 'China GenAI Interim Measures' },
+    { id: 'in-dpdp-assessment', pattern: /india\s+dpdp|data\s+fiduciary|data\s+protection\s+impact\s+assessment/i, label: 'India DPDP Data Protection' },
+    { id: 'oecd-aip-principles', pattern: /oecd\s+ai\s+principles|trustworthy\s+ai|oecd\s+ai\s+policy\s+observatory/i, label: 'OECD AI Principles' },
 ];
 
 const DOCUMENTATION_FILE_NAMES = [
@@ -208,6 +347,16 @@ const DOCUMENTATION_FILE_NAMES = [
     'iso-42001-aims.md',
     'singapore-maigf-governance.md',
     'brazil-ai-bill-rights-assessment.md',
+    'eu-aia-prohibited-practices.md',
+    'eu-aia-high-risk-classification.md',
+    'texas-hb4045-impact-assessment.md',
+    'illinois-aivia-consent-disclosure.md',
+    'japan-meti-ai-governance.md',
+    'australia-ai-ethics-assessment.md',
+    'korea-aiba-transparency.md',
+    'china-genai-interim-measures.md',
+    'india-dpdp-data-protection.md',
+    'oecd-ai-principles.md',
 ];
 
 // ── Scan Helpers ────────────────────────────────────────────────────────────
@@ -374,6 +523,15 @@ async function scanRegionalAiSafetyPatterns(baseDir, options = {}) {
             'ISO/IEC 42001',
             'Singapore MAIGF',
             'Brazil PL 2338/2023',
+            'EU AI Act',
+            'Texas HB 4045',
+            'Illinois HB 2557',
+            'Japan METI AI Guidelines',
+            'Australia AI Ethics Framework',
+            'South Korea AI Basic Act',
+            'China GenAI Measures',
+            'India DPDP Act',
+            'OECD AI Principles',
         ],
         frameworksDetected: Object.keys(frameworkHits),
         frameworkHits,
