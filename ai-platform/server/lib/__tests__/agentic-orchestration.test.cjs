@@ -102,9 +102,9 @@ describe('agentic-orchestration routes (static checks)', () => {
     require.cache[auditPath] = { id: auditPath, filename: auditPath, loaded: true, exports: mockAudit };
     global.__auditMock = mockAudit;
 
-    // Mock siem-exporter to avoid network calls during tests
+    // Mock siem-exporter to avoid network calls during tests and provide metrics
     const siemPath = require('path').resolve(process.cwd(), 'server', 'lib', 'siem-exporter.cjs');
-    const mockSiem = { events: [], enqueue: function (e) { this.events.push(e); }, flush: async function () {} };
+    const mockSiem = { events: [], enqueue: function (e) { this.events.push(e); }, flush: async function () {}, _debug: { getMetrics: () => ({ siem_delivery_retries_total: 0, siem_delivery_dropped_total: 0 }) } };
     delete require.cache[siemPath];
     require.cache[siemPath] = { id: siemPath, filename: siemPath, loaded: true, exports: mockSiem };
 
@@ -251,5 +251,22 @@ describe('agentic-orchestration routes (static checks)', () => {
     assert.ok(ev.data && typeof ev.data.payloadHash === 'string' && ev.data.payloadHash.length === 64, 'Expected sha256 payloadHash');
     assert.ok('sourceIp' in ev.data, 'Expected sourceIp in audit data');
     assert.ok(ev.data.headers && ('x-test-user' in ev.data.headers), 'Expected x-test-user header in audit headers');
+  });
+
+  it('exposes Prometheus metrics at GET /api/agentic/metrics (admin only)', async () => {
+    const req = await mountAppWithMocks();
+    // admin should be allowed to fetch metrics
+    const r = await req.get('/api/agentic/metrics').set('x-test-user', JSON.stringify({ id: 'admin1', role: 'admin' })).expect(200);
+    const ct = r.headers['content-type'] || '';
+    assert.ok(ct.indexOf('text/plain') !== -1, `expected text/plain content type, got=${ct}`);
+    assert.ok(ct.indexOf('version=0.0.4') !== -1, `expected version=0.0.4 in content type, got=${ct}`);
+    const body = r.text || '';
+    // Expect HELP/TYPE lines and metric names
+    assert.match(body, /# HELP siem_delivery_retries_total/);
+    assert.match(body, /# TYPE siem_delivery_retries_total counter/);
+    assert.match(body, /siem_delivery_retries_total \d+/);
+    assert.match(body, /# HELP siem_delivery_dropped_total/);
+    assert.match(body, /# TYPE siem_delivery_dropped_total counter/);
+    assert.match(body, /siem_delivery_dropped_total \d+/);
   });
 });

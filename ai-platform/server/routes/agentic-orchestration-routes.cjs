@@ -432,17 +432,27 @@ router.get('/replay-stats', authorize('admin:all'), function (req, res) {
   }
 });
 
-// GET /metrics — debug-only: expose SIEM exporter in-memory metrics
+// GET /metrics — debug-only: expose SIEM exporter in Prometheus exposition format
 router.get('/metrics', authorize('admin:all'), function (req, res) {
   try {
     let metrics = {};
     if (siemExporter && siemExporter._debug && typeof siemExporter._debug.getMetrics === 'function') {
       metrics = siemExporter._debug.getMetrics();
     }
-    // return as line-delimited JSON for easy parsing
-    const lines = Object.keys(metrics).map((k) => JSON.stringify({ metric: k, value: metrics[k] })).join('\n');
-    res.setHeader('Content-Type', 'application/json-seq');
-    res.send(lines);
+    // Build Prometheus exposition format
+    const lines = [];
+    const meta = {
+      siem_delivery_retries_total: 'Total count of SIEM log delivery retry attempts.',
+      siem_delivery_dropped_total: 'Total number of SIEM events dropped due to queue trimming.',
+    };
+    for (const metricName of Object.keys(metrics)) {
+      const help = meta[metricName] || '';
+      lines.push(`# HELP ${metricName} ${help}`);
+      lines.push(`# TYPE ${metricName} counter`);
+      lines.push(`${metricName} ${Number(metrics[metricName] || 0)}`);
+    }
+    res.setHeader('Content-Type', 'text/plain; version=0.0.4');
+    res.send(lines.join('\n') + '\n');
   } catch (err) {
     sendError(res, 500, 'metrics_failed', { message: err.message });
   }
