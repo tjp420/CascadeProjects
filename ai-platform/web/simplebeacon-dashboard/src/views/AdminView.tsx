@@ -10,6 +10,7 @@ import {
   Building2, Server, Clock, DollarSign, Key, TrendingUp, ChevronRight, Download,
   Lock, Plus, Trash2, Zap, Globe, UserPlus, X, Copy,
 } from 'lucide-react';
+import { IntegrationsView } from './IntegrationsView';
 import { apiUrl, authHeaders, getApiBase } from '@/config';
 import { navigate } from '@/router/HashRouter';
 import { toast } from 'sonner';
@@ -651,6 +652,7 @@ export function AdminView() {
           <TabsTrigger value="tenants">Enterprise Tenants</TabsTrigger>
           <TabsTrigger value="audit">Audit Log</TabsTrigger>
           <TabsTrigger value="sso">SSO</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
         </TabsList>
 
         {/* Users Tab */}
@@ -1686,6 +1688,11 @@ export function AdminView() {
               </Card>
             </>
           )}
+        </TabsContent>
+
+        {/* Integrations Tab */}
+        <TabsContent value="integrations" className="space-y-4">
+          <IntegrationsView />
         </TabsContent>
       </Tabs>
     </div>

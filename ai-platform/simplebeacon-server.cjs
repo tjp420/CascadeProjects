@@ -1217,6 +1217,15 @@ async function startServer() {
     logger.error('[Routes] SSO config routes not loaded:', err?.message || err);
   }
 
+  // Integration marketplace — Slack, Teams, Jira, GitHub PR
+  try {
+    const integrationRoutes = require('./server/routes/integration-routes.cjs');
+    app.use('/api/integrations', integrationRoutes);
+    logger.info('[Routes] Integration marketplace loaded at /api/integrations');
+  } catch (err) {
+    logger.error('[Routes] Integration marketplace not loaded:', err?.message || err);
+  }
+
   // Newsletter subscription — public, no auth required (pricing page email signup)
   try {
     const subscriptionRoutes = require('../coming-soon/routes/subscriptions.cjs');
