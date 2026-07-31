@@ -16,10 +16,13 @@ import {
   ShieldAlert,
   Loader2,
   Link2,
+  FileText,
+  Table,
 } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { apiUrl, authHeaders } from '@/config';
 import { PermissionGate } from '@/components/PermissionGate';
+import { toast } from 'sonner';
 
 interface ScanResultData {
   totalFiles: number;
@@ -48,6 +51,50 @@ export function AuditView() {
   const [chainResult, setChainResult] = useState<ChainVerifyResult | null>(CHAIN_VERIFY_INITIAL);
   const [chainLoading, setChainLoading] = useState(false);
   const [chainError, setChainError] = useState<string | null>(null);
+
+  const exportComplianceCsv = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/audit/export/compliance-csv'), {
+        headers: authHeaders(),
+      });
+      if (!resp.ok) {
+        toast.error('Failed to export compliance CSV');
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `compliance-matrix-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Compliance CSV exported');
+    } catch {
+      toast.error('Failed to export compliance CSV');
+    }
+  }, []);
+
+  const exportCompliancePdf = useCallback(async () => {
+    try {
+      const resp = await fetch(apiUrl('/audit/export/compliance-pdf'), {
+        headers: authHeaders(),
+      });
+      if (!resp.ok) {
+        toast.error('Failed to export compliance PDF');
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `compliance-report-${Date.now()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Compliance PDF exported');
+    } catch {
+      toast.error('Failed to export compliance PDF');
+    }
+  }, []);
 
   const verifyChain = useCallback(async () => {
     setChainLoading(true);
@@ -237,6 +284,14 @@ export function AuditView() {
             <Button variant="outline" size="sm" onClick={exportJson}>
               <Download className="h-4 w-4" /> Export JSON
             </Button>
+            <PermissionGate permission="export:audit" fallback={null}>
+              <Button variant="outline" size="sm" onClick={exportComplianceCsv}>
+                <Table className="h-4 w-4" /> Compliance CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportCompliancePdf}>
+                <FileText className="h-4 w-4" /> Compliance PDF
+              </Button>
+            </PermissionGate>
             <Button variant="outline" size="sm" onClick={() => navigate('results')}>
               <FileCode className="h-4 w-4" /> View Full Results
             </Button>
