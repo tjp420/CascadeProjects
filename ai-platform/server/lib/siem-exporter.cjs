@@ -5,6 +5,7 @@
 
 const { setInterval } = require('timers');
 const fetch = global.fetch || require('node-fetch');
+const logger = require('./app-logger.cjs');
 
 const SIEM_ENDPOINT = process.env.SIEM_ENDPOINT || null;
 const SIEM_API_KEY = process.env.SIEM_API_KEY || null;
@@ -66,6 +67,7 @@ async function sendBatch(batch, attempt = 0) {
     if (attempt < RETRY_MAX_ATTEMPTS) {
       const delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * Math.pow(2, attempt));
       try {
+        logger.warn('[SIEM Exporter] sendBatch failed, scheduling retry', { attempt, delay, error: e && e.message });
         setTimeout(() => {
           sendBatch(batch, attempt + 1).catch(() => {});
         }, delay);
@@ -75,8 +77,11 @@ async function sendBatch(batch, attempt = 0) {
     } else {
       // Retries exhausted: re-enqueue to head with trim
       try {
+        logger.error('[SIEM Exporter] sendBatch retries exhausted, re-enqueueing batch (trim to 1000)', { attempts: attempt + 1, error: e && e.message });
         queue = batch.concat(queue).slice(0, 1000);
-      } catch {}
+      } catch (err) {
+        logger.error('[SIEM Exporter] failed to re-enqueue batch after retries exhausted', { error: err && err.message });
+      }
     }
     return false;
   }
