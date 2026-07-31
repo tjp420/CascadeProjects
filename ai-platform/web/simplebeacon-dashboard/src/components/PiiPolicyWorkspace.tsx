@@ -572,6 +572,191 @@ export function PiiPolicyWorkspace() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* ── Governance & Compliance Tab ── */}
+        <TabsContent value="governance">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileCheck className="h-5 w-5 text-primary" />
+                    Governance & Compliance
+                  </CardTitle>
+                  <CardDescription>
+                    Regulatory framework coverage and default pattern management
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSeed}
+                  disabled={seeding}
+                >
+                  {seeding ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  Seed Defaults
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Stats KPI Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-foreground-muted">Total Policies</span>
+                    <Layers className="h-4 w-4 text-foreground-muted" />
+                  </div>
+                  <div className="text-2xl font-bold">{stats?.totalPolicies ?? 0}</div>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-foreground-muted">Active</span>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <div className="text-2xl font-bold">{stats?.enabledPolicies ?? 0}</div>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-foreground-muted">Default Patterns</span>
+                    <Sparkles className="h-4 w-4 text-foreground-muted" />
+                  </div>
+                  <div className="text-2xl font-bold">{stats?.defaultCount ?? 0}</div>
+                </div>
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-foreground-muted">Frameworks Covered</span>
+                    <BarChart3 className="h-4 w-4 text-foreground-muted" />
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {stats?.byCompliance ? Object.keys(stats.byCompliance).length : 0}
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Compliance Framework Breakdown */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <FileCheck className="h-4 w-4" />
+                  Compliance Framework Coverage
+                </h3>
+                {frameworks.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {frameworks.map((fw) => {
+                      const count = stats?.byCompliance?.[fw] ?? 0;
+                      const isActive = count > 0;
+                      return (
+                        <div
+                          key={fw}
+                          className={`rounded-lg border p-4 ${
+                            isActive ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-border'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-sm">{fw}</span>
+                            <Badge
+                              variant={isActive ? 'default' : 'secondary'}
+                              className={isActive ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' : ''}
+                            >
+                              {count} {count === 1 ? 'pattern' : 'patterns'}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-foreground-muted">
+                            {isActive
+                              ? `${count} redaction ${count === 1 ? 'rule' : 'rules'} mapped to ${fw}`
+                              : 'No patterns mapped to this framework'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-foreground-muted py-4 text-center">
+                    Loading compliance frameworks...
+                  </p>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Severity Breakdown */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">Severity Distribution</h3>
+                <div className="flex gap-3">
+                  {['high', 'medium', 'low'].map((sev) => {
+                    const count = stats?.bySeverity?.[sev] ?? 0;
+                    const color =
+                      sev === 'high'
+                        ? 'bg-red-500/10 text-red-600 border-red-500/30'
+                        : sev === 'medium'
+                          ? 'bg-amber-500/10 text-amber-600 border-amber-500/30'
+                          : 'bg-blue-500/10 text-blue-600 border-blue-500/30';
+                    return (
+                      <div
+                        key={sev}
+                        className={`flex-1 rounded-lg border p-3 text-center ${color}`}
+                      >
+                        <div className="text-xl font-bold capitalize">{sev}</div>
+                        <div className="text-2xl font-bold">{count}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Default Pattern Info */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Default Seed Patterns
+                </h3>
+                <p className="text-xs text-foreground-muted">
+                  Click "Seed Defaults" to populate 6 industry-standard PII patterns (email, SSN,
+                  credit card, phone, IPv4, API keys) mapped to GDPR, HIPAA, PCI-DSS, CCPA, and SOX
+                  frameworks. Seeding only applies when no policies exist yet.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {policies
+                    .filter((p) => p.isDefault)
+                    .map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between rounded-md border border-border bg-muted/20 p-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{p.name}</div>
+                          <div className="flex gap-1 mt-0.5">
+                            {(p.compliance || []).map((c) => (
+                              <Badge key={c} variant="outline" className="text-xs px-1.5 py-0">
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <Badge variant={p.enabled ? 'success' : 'secondary'} className="text-xs ml-2">
+                          {p.enabled ? 'Active' : 'Off'}
+                        </Badge>
+                      </div>
+                    ))}
+                  {policies.filter((p) => p.isDefault).length === 0 && (
+                    <p className="text-xs text-foreground-muted col-span-2 py-2 text-center">
+                      No default patterns seeded yet. Click "Seed Defaults" above to get started.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
