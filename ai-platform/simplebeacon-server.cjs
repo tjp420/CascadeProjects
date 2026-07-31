@@ -1554,6 +1554,15 @@ async function startServer() {
     logger.error('[Routes] Rate-limit quota not loaded:', err?.message || err);
   }
 
+  // Content moderation — toxicity scoring, sentiment analysis, flagged content tracking
+  try {
+    const moderationRoutes = require('./server/routes/content-moderation-routes.cjs');
+    app.use('/api/content-moderation', moderationRoutes);
+    logger.info('[Routes] Content moderation loaded at /api/content-moderation');
+  } catch (err) {
+    logger.error('[Routes] Content moderation not loaded:', err?.message || err);
+  }
+
   // Compliance report generator — EU AI Act, SOC2, OWASP assessments
   try {
     const complianceRoutes = require('./server/routes/compliance-routes.cjs');
