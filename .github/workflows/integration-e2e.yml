@@ -1,0 +1,49 @@
+name: Integration E2E
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    types: [labeled, opened, reopened, synchronize]
+
+jobs:
+  integration-e2e:
+    name: Full-stack Playwright integration
+    runs-on: ubuntu-latest
+    # Only run on manual dispatch or when PR is labeled 'integration'
+    if: github.event_name == 'workflow_dispatch' || contains(join(github.event.pull_request.labels.*.name, ','), 'integration')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local backend (port 58000)
+        run: |
+          # Start the server in background using PORT=58000
+          PORT=58000 npm start &
+          echo $! > .server.pid
+
+      - name: Wait for backend readiness
+        run: |
+          npx wait-on http://127.0.0.1:58000 -t 300000
+
+      - name: Run Playwright full-suite (integration)
+        working-directory: ai-platform/web/simplebeacon-dashboard
+        env:
+          SB_API_BASE: 'http://127.0.0.1:58000'
+          CI: 'true'
+        run: |
+          npx playwright install --with-deps
+          npx playwright test --project=chromium --reporter=github
+
+      - name: Tear down backend
+        if: always()
+        run: |
+          if [ -f .server.pid ]; then kill $(cat .server.pid) || true; rm -f .server.pid; fi
