@@ -1199,6 +1199,15 @@ async function startServer() {
   // Auth routes are always registered, even if phase 2 bootstrap partially failed
   app.use('/api/auth', authRoutes);
 
+  // License token routes — validation (CLI/CI), registration, sandbox
+  try {
+    const licenseRoutes = require('./server/routes/license-routes.cjs');
+    app.use('/api', licenseRoutes);
+    logger.info('[Routes] License token routes loaded at /api/auth/token-status, /api/license/validate, /api/auth/register-token, /api/tokens/sandbox');
+  } catch (err) {
+    logger.error('[Routes] License token routes not loaded:', err?.message || err);
+  }
+
   // SSO auth handler — OIDC + SAML 2.0 protocol flows
   try {
     const ssoAuthHandler = require('./server/routes/sso-auth-handler.cjs');
@@ -1269,6 +1278,15 @@ async function startServer() {
     logger.info('[Routes] Model evaluation loaded at /api/model-eval');
   } catch (err) {
     logger.error('[Routes] Model evaluation not loaded:', err?.message || err);
+  }
+
+  // AI Guardrails — prompt firewall & incident tracking
+  try {
+    const guardrailRoutes = require('./server/routes/guardrail-routes.cjs');
+    app.use('/api/guardrails', guardrailRoutes);
+    logger.info('[Routes] AI guardrails loaded at /api/guardrails');
+  } catch (err) {
+    logger.error('[Routes] AI guardrails not loaded:', err?.message || err);
   }
 
   // Whitelabel partner branding — custom logos, colors, domains

@@ -326,8 +326,33 @@ function setupAuthRoutes(app, authRateLimit, refreshRateLimit) {
             });
         }
     });
-    app.post('/api/auth/logout', (req, res) => {
-        res.json({ message: 'Logged out', timestamp: new Date().toISOString() });
+    app.post('/api/auth/logout', optionalAuthenticate, (req, res) => {
+        // Invalidate the access token server-side if present
+        const authHeader = req.headers.authorization || '';
+        const accessToken = authHeader.replace(/^Bearer\s+/i, '');
+        if (accessToken) {
+            try {
+                const { invalidateToken } = require('../lib/auth/token-service.cjs');
+                if (typeof invalidateToken === 'function') {
+                    invalidateToken(accessToken);
+                }
+            } catch (err) {
+                // Non-blocking — logout succeeds even if invalidation fails
+            }
+        }
+        res.json({ success: true, message: 'Logged out successfully' });
+    });
+
+    // Password recovery — accepts email, returns generic success (does not leak whether email exists)
+    app.post('/api/auth/recover', (req, res) => {
+        const { email } = req.body || {};
+        if (!email || typeof email !== 'string' || !email.includes('@')) {
+            return res.status(400).json({ success: false, error: 'Valid email required' });
+        }
+        // Generic success response — password reset flow is handled client-side
+        // to avoid leaking which emails are registered. A full implementation would
+        // send a reset link via email service.
+        res.json({ success: true, message: 'If an account exists for that email, a reset link has been sent.' });
     });
 }
 

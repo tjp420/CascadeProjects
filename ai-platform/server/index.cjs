@@ -838,8 +838,11 @@ app.use('/api', require('./routes/meta-routes.cjs'));
 // Mock data API routes
 setupMockDataAPI(app, { baseDir: path.join(__dirname, '..') });
 
-// Authentication routes (login, register, refresh, token status, sandbox)
+// Authentication routes (login, register, refresh, me, logout)
 app.use('/api', require('./routes/auth-inline-routes.cjs'));
+
+// License token routes (validation, registration, sandbox) — extracted from auth-inline-routes
+app.use('/api', require('./routes/license-routes.cjs'));
 
 // Token authentication routes (TAS-1.0 flat capability mesh)
 app.use('/auth', tokenAuthRoutes);

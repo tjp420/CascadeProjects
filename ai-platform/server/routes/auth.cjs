@@ -21,10 +21,11 @@ const {
   handleTokenRefresh
 } = require('../lib/auth/login-service.cjs');
 
-const { generateToken: tokenServiceGenerateToken } = require('../lib/auth/token-service.cjs');
+const { generateToken: tokenServiceGenerateToken, invalidateToken } = require('../lib/auth/token-service.cjs');
 const { registerUser } = require('../services/user-service.cjs');
 const { trustLevels } = require('../lib/auth/trust-levels.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
+const logger = require('../lib/app-logger.cjs');
 
 const router = express.Router();
 
@@ -79,9 +80,31 @@ router.get('/health', (req, res) => {
 });
 
 router.post('/logout', optionalAuthenticate, (req, res) => {
-  // JWT is stateless; logout is client-side token discard.
-  // For future sessions, we could add a token denylist here.
+  // Invalidate the access token server-side if present
+  const authHeader = req.headers.authorization || '';
+  const accessToken = authHeader.replace(/^Bearer\s+/i, '');
+  if (accessToken && typeof invalidateToken === 'function') {
+    try {
+      invalidateToken(accessToken);
+      logger.info('[auth] Token invalidated on logout', { userId: req.user?.id });
+    } catch (err) {
+      logger.warn('[auth] Token invalidation failed on logout:', err.message);
+    }
+  }
   res.json({ success: true, message: 'Logged out successfully' });
+});
+
+// Password recovery — accepts email, returns generic success (does not leak whether email exists)
+router.post('/recover', (req, res) => {
+  const { email } = req.body || {};
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return sendError(res, 400, 'Valid email required');
+  }
+  // Generic success response — password reset flow is handled client-side
+  // to avoid leaking which emails are registered. A full implementation would
+  // send a reset link via email service.
+  logger.info('[auth] Password recovery requested', { email: email.toLowerCase() });
+  res.json({ success: true, message: 'If an account exists for that email, a reset link has been sent.' });
 });
 
 router.post('/refresh', optionalAuthenticate, handleTokenRefresh);

@@ -1,5 +1,10 @@
 /**
- * Auth Routes — Token Rotation & Blocklist
+ * Auth Routes — Token Rotation & Blocklist (DEPRECATED)
+ *
+ * DEPRECATED: No frontend callers found. The canonical auth routes are in
+ * auth.cjs (mounted at /api/auth in simplebeacon-server.cjs). This file is
+ * retained for backward compatibility with index.cjs deployments that use
+ * the /api/v2/auth/* mount path. Do not add new endpoints here.
  *
  * POST /api/v2/auth/refresh  — rotate refresh token pair
  * POST /api/v2/auth/logout   — blacklist access token, revoke refresh token
