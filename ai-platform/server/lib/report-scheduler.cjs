@@ -142,10 +142,10 @@ async function generateReport(schedule, orgId) {
     'eval-usage': {
       strategy: 'Eval Removal',
       priority: 'high',
-      description: 'Replace eval() with safer alternatives.',
+      description: 'Replace dynamic code execution with safer alternatives.',
       steps: [
-        'Identify all eval() calls',
-        'Replace with Function() or JSON.parse',
+        'Identify all dynamic code execution calls',
+        'Replace with JSON.parse or fixed function references',
         'Add CSP unsafe-eval restriction',
       ],
     },
