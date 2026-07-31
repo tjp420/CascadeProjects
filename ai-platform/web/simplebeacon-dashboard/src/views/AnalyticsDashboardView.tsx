@@ -32,6 +32,9 @@ import {
   Clock,
   Wifi,
   WifiOff,
+  Download,
+  FileText,
+  FileJson,
 } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 import { useAnalyticsSocket } from '@/hooks/useAnalyticsSocket';
@@ -142,6 +145,28 @@ export function AnalyticsDashboardView() {
     fetchSummary(windowHours);
   };
 
+  const handleExport = useCallback(async (format: 'csv' | 'json') => {
+    try {
+      const resp = await fetch(
+        apiUrl(`/audit/analytics/export?format=${format}&windowHours=${windowHours}`),
+        { headers: authHeaders() }
+      );
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.download = `audit-analytics-${dateStr}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported as ${format.toUpperCase()}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      toast.error('Export failed', { description: msg });
+    }
+  }, [windowHours]);
+
   if (loading && !summary) {
     return (
       <div className="mx-auto max-w-7xl p-6 space-y-6">
@@ -244,6 +269,25 @@ export function AnalyticsDashboardView() {
             <Button onClick={handleRefresh} variant="outline" size="sm" disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
               Refresh
+            </Button>
+            {/* Export buttons */}
+            <Button
+              onClick={() => handleExport('csv')}
+              variant="outline"
+              size="sm"
+              title="Export as CSV"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              CSV
+            </Button>
+            <Button
+              onClick={() => handleExport('json')}
+              variant="outline"
+              size="sm"
+              title="Export as JSON"
+            >
+              <FileJson className="h-4 w-4 mr-1" />
+              JSON
             </Button>
           </div>
         </div>

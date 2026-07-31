@@ -2,10 +2,12 @@
 
 const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
+const { authorize } = require('../middleware/authorize.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const auditPolicyStore = require('../lib/audit-policy-store.cjs');
 const logStreamAnalyzer = require('../lib/log-stream-analyzer.cjs');
 const analyticsCacheManager = require('../lib/analytics-cache-manager.cjs');
+const complianceExport = require('../lib/compliance-export.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../../src/lib/app-logger.cjs');
 const { processEvent } = require('../lib/alert-dispatcher.cjs');
@@ -128,6 +130,50 @@ router.get('/export', (req, res) => {
   } catch (err) {
     logger.warn('[Audit] audit_export_failed failed:', err.message);
     sendError(res, 500, 'audit_export_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/export/compliance-csv ────────────────────────────────────
+//   Export a deterministic CSV compliance matrix with HMAC-SHA256 signature
+router.get('/export/compliance-csv', authorize('export:audit'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const csv = complianceExport.generateComplianceCsv(orgId, {
+      startDate: req.query.startDate || '',
+      endDate: req.query.endDate || '',
+    });
+    const dateStr = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="compliance-matrix-${orgId}-${dateStr}.csv"`
+    );
+    res.send(csv);
+  } catch (err) {
+    logger.warn('[Audit] compliance_csv_export_failed:', err.message);
+    sendError(res, 500, 'compliance_csv_export_failed', { message: err.message });
+  }
+});
+
+// ── GET /api/audit/export/compliance-pdf ────────────────────────────────────
+//   Export a signed PDF compliance report with HMAC-SHA256 signature metadata
+router.get('/export/compliance-pdf', authorize('export:audit'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const pdfBuffer = complianceExport.generateCompliancePdf(orgId, {
+      startDate: req.query.startDate || '',
+      endDate: req.query.endDate || '',
+    });
+    const dateStr = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="compliance-report-${orgId}-${dateStr}.pdf"`
+    );
+    res.send(pdfBuffer);
+  } catch (err) {
+    logger.warn('[Audit] compliance_pdf_export_failed:', err.message);
+    sendError(res, 500, 'compliance_pdf_export_failed', { message: err.message });
   }
 });
 
@@ -335,5 +381,99 @@ router.get('/analytics/cache/stats', (req, res) => {
     sendError(res, 500, 'audit_analytics_cache_stats_failed', { message: err.message });
   }
 });
+
+// ── GET /api/audit/analytics/export ─────────────────────────────────────────
+//   Export analytics dashboard summary as CSV or JSON
+//   Query params: format (csv|json, default csv), windowHours (1-168, default 24)
+router.get('/analytics/export', async (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const format = (req.query.format || 'csv').toLowerCase();
+    const windowHours = Math.min(Math.max(parseInt(req.query.windowHours, 10) || 24, 1), 168);
+    const summary = await analyticsCacheManager.getDashboardSummary(orgId, { windowHours });
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="audit-analytics-${dateStr}.json"`
+      );
+      res.send(JSON.stringify(summary, null, 2));
+      return;
+    }
+
+    // CSV format — flat tabular export of hourly volume + top-K distributions
+    const rows = [];
+
+    // Section 1: Summary metrics
+    rows.push('# Audit Analytics Summary');
+    rows.push(`# Generated: ${summary.generatedAt}`);
+    rows.push(`# Window: ${summary.windowHours}h (from ${summary.windowStart})`);
+    rows.push(`# Org: ${summary.orgId}`);
+    rows.push('');
+    rows.push('Metric,Value');
+    rows.push(`Total Events,${summary.summary.totalVolume}`);
+    rows.push(`Unique Actors,${summary.summary.uniqueActors}`);
+    rows.push(`Unique Entities,${summary.summary.uniqueEntities}`);
+    rows.push(`Risk Actions,${summary.summary.totalRiskActions}`);
+    rows.push(`Risk Density,${summary.summary.riskDensity}`);
+    rows.push('');
+
+    // Section 2: Hourly volume
+    rows.push('# Hourly Volume Timeline');
+    rows.push('Hour,Volume,Risk Count');
+    for (const h of summary.hourlyVolume) {
+      rows.push(`${h.hour},${h.volume},${h.riskCount}`);
+    }
+    rows.push('');
+
+    // Section 3: Top actors
+    rows.push('# Top 10 Actors');
+    rows.push('Rank,Actor,Event Count');
+    summary.topActors.forEach((a, i) => {
+      rows.push(`${i + 1},${csvEscape(a.key)},${a.count}`);
+    });
+    rows.push('');
+
+    // Section 4: Top entities
+    rows.push('# Top 10 Entities');
+    rows.push('Rank,Entity,Event Count');
+    summary.topEntities.forEach((e, i) => {
+      rows.push(`${i + 1},${csvEscape(e.key)},${e.count}`);
+    });
+    rows.push('');
+
+    // Section 5: Action distribution
+    rows.push('# Action Distribution');
+    rows.push('Action,Count');
+    for (const a of summary.topActions) {
+      rows.push(`${csvEscape(a.key)},${a.count}`);
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="audit-analytics-${dateStr}.csv"`
+    );
+    res.send(rows.join('\n'));
+  } catch (err) {
+    logger.warn('[Audit] audit_analytics_export_failed:', err.message);
+    sendError(res, 500, 'audit_analytics_export_failed', { message: err.message });
+  }
+});
+
+/**
+ * Escape a value for CSV — wrap in quotes if it contains commas, quotes, or newlines.
+ * @param {string} value
+ * @returns {string}
+ */
+function csvEscape(value) {
+  const v = String(value || '');
+  if (v.includes(',') || v.includes('"') || v.includes('\n')) {
+    return `"${v.replace(/"/g, '""')}"`;
+  }
+  return v;
+}
 
 module.exports = router;
