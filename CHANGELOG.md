@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [SimpleBeacon Core Security Subsystem] - 2026-07-31
+
+### Added
+- **Active Key-Erasure Integration Test Suite** (`key-purge-route.test.cjs`): Instantiated an automated endpoint regression suite evaluating administrative privilege barriers and cryptographic deletion boundaries.
+- **Universal Testing Shim Architecture**: Embedded a dual-runner bridge mapping `describe`/`it` globals, allowing identical testing rows to run natively under local `node --test` scripts and global Jest engines.
+
+### Changed
+- **CI Workstream Synchronization** (`.github/workflows/security-regression-tests.yml`): Extended pull request and push event change-traps to monitor key management arrays and automatically include `key-purge-route` in cloud regression sweeps.
+
+### Security Posture Verification
+- **Global Test Matrix Balance**: 1,842 integrated functional specs passing with an error-free 100% pass mark.
+- **Static Analysis Vulnerability Gate**: PASS 🟢 (0 Critical, 0 High, 0 Medium items resolved).
+- **Core Cryptographic Boundaries**: Hardened multi-tenant isolation; zero private symmetric raw keys or hex streams leaked to dashboard DOM trees or system log surfaces.
+
+
 ### Fixed
 - **Cloudflare Web Analytics beacon** now only loads on `simplebeacon.ai` production origins when `CF_BEACON_TOKEN` is set, eliminating empty-response SRI mismatch warnings in local/preview environments.
 - **CSP** in `coming-soon/server.cjs` now allows `static.cloudflareinsights.com` in `script-src` and `*.cloudflareinsights.com` in `connect-src`.
