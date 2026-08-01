@@ -377,6 +377,35 @@ class BaseHsmAdapter {
     return adapter.decapsulate(payload);
   }
 
+
+  /**
+   * Create a zero-knowledge identity verifier.
+   * @param {string} tenantId
+   * @param {object} [options]
+   * @returns {ZkIdentityVerifier}
+   */
+  createZkpVerifier(tenantId, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    this._policyEngine?.validate(tenantId, 'zkp', options);
+    const { ZkIdentityVerifier } = require('./zk-identity-verifier.cjs');
+    return new ZkIdentityVerifier({ logger: this.logger, ...options });
+  }
+
+  /**
+   * Create an ephemeral hardware token splitter.
+   * @param {string} tenantId
+   * @param {Buffer} attestationRoot
+   * @param {object} [options]
+   * @returns {EphemeralHardwareTokenSplitter}
+   */
+  createHardwareTokenSplitter(tenantId, attestationRoot, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    this._policyEngine?.validate(tenantId, 'zkp', { tokenExpiryMs: options.tokenExpiryMs });
+    const { EphemeralHardwareTokenSplitter } = require('./ephemeral-hardware-token-splitter.cjs');
+    return new EphemeralHardwareTokenSplitter(attestationRoot, { logger: this.logger, ...options });
+  }
   // ── High-level keyring export / import ─────────────────────────────
 
   /**

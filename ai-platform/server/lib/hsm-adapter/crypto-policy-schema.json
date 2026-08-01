@@ -44,6 +44,11 @@
       "maxKemLevel": 1024,
       "hybridMode": true,
       "allowedCurves": ["P-256", "P-384", "P-521"]
+    },
+    "zkp": {
+      "tokenExpiryMs": 300000,
+      "maxProofs": 100,
+      "allowedPrimes": []
     }
   },
   "tenants": {}

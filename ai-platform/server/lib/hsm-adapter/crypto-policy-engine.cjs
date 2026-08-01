@@ -87,6 +87,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.pqc,
       ...(tenantPolicy.pqc || {}),
     },
+    zkp: {
+      ...DEFAULT_POLICY.zkp,
+      ...(tenantPolicy.zkp || {}),
+    },
     ...tenantPolicy,
   };
 }
@@ -245,6 +249,19 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateZkp(tenantPolicy, config) {
+    const policy = tenantPolicy.zkp || DEFAULT_POLICY.zkp;
+    if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.tokenExpiryMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `tokenExpiryMs ${config.tokenExpiryMs} exceeds policy ${policy.tokenExpiryMs}`);
+    }
+    if (typeof config.maxProofs === 'number' && config.maxProofs > policy.maxProofs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `maxProofs ${config.maxProofs} exceeds policy ${policy.maxProofs}`);
+    }
+    if (typeof config.primeHex === 'string' && policy.allowedPrimes.length > 0 && !policy.allowedPrimes.includes(config.primeHex)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'prime is not in allowedPrimes list');
+    }
+  }
+
   _validateHomomorphic(tenantPolicy, config) {
     const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
     if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
@@ -342,6 +359,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqc') {
       this._validatePqc(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'zkp') {
+      this._validateZkp(tenantPolicy, config);
       return true;
     }
 
