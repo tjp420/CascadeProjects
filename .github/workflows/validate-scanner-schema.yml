@@ -1,0 +1,36 @@
+name: Validate Scanner Output Schema
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate-schema:
+    name: Validate Scanner Output Schema
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate scanner output
+        run: |
+          # Run scanner and emit output into the ai-platform folder
+          node packages/simplebeacon-cli/bin/simplebeacon.js scan --path coming-soon --format json --full > ai-platform/scan-output.json
+
+      - name: Inject metadata and build schema wrapper
+        run: |
+          node ai-platform/scripts/inject-scan-metadata.cjs
+
+      - name: Validate Scanner Output Schema (wrapped)
+        run: |
+          npx ajv-cli validate -s schemas/synthetic-todo-metrics.json -d ai-platform/scan-output.schema.json --strict=false
