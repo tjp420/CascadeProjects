@@ -105,9 +105,7 @@ jobs:
       - name: Run AES-KW vector suite (RFC 3394 + RFC 5649)
         working-directory: ai-platform
         run: |
-          node -e "const p=require('./jest.config.cjs');console.log('rootDir:',p.rootDir||'(default)');console.log('setupFilesAfterEnv:',JSON.stringify(p.setupFilesAfterEnv));"
-          node -e "const fs=require('fs');console.log('tests/setup.js exists:',fs.existsSync('tests/setup.js'));console.log('realpath:',fs.realpathSync('tests/setup.js'));"
-          node node_modules/jest/bin/jest.js --config jest.config.cjs --verbose aes-kw-vectors aes-kw.test
+          node node_modules/jest/bin/jest.js --config jest.config.cjs --rootDir="$(pwd)" --verbose aes-kw-vectors aes-kw.test
 
       - name: Run HSM adapter unit tests
         working-directory: ai-platform

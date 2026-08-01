@@ -1,5 +1,5 @@
 /**
- * TODO: Add tests for enhanced-model-manager.cjs (440 lines)
+ * PENDING: Add tests for enhanced-model-manager.cjs (440 lines)
  *
  * Coverage targets:
  * - Model lifecycle (register, update, deprecate)
