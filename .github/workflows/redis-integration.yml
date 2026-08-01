@@ -1,0 +1,47 @@
+name: Redis Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_redis:
+        description: 'Run Redis integration tests'
+        required: false
+        default: 'false'
+
+jobs:
+  redis-integration:
+    if: ${{ github.event.inputs.run_redis == 'true' || env.RUN_REDIS_INTEGRATION == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      RUN_REDIS_INTEGRATION: ${{ env.RUN_REDIS_INTEGRATION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start Redis (docker-compose)
+        run: docker compose -f ai-platform/docker-compose.redis.yml up -d
+
+      - name: Wait for Redis
+        run: |
+          for i in {1..30}; do
+            if docker exec simplebeacon-redis-test redis-cli ping | grep -q PONG; then
+              echo ready; exit 0
+            fi
+            sleep 1
+          done
+          echo 'Redis did not become ready'; exit 1
+
+      - name: Run Redis integration test
+        run: npm --prefix ai-platform run test:redis
+
+      - name: Teardown Redis
+        if: always()
+        run: docker compose -f ai-platform/docker-compose.redis.yml down

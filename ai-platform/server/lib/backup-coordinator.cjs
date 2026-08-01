@@ -37,6 +37,7 @@ class BackupCoordinator {
     this.retentionDays = opts.retentionDays || DEFAULT_RETENTION_DAYS;
     this.immutable = !!opts.immutable;
     this.storage = opts.storage || createMemoryStorage();
+    this.onEvent = typeof opts.onEvent === 'function' ? opts.onEvent : null;
     this.events = [];
   }
 
@@ -140,6 +141,7 @@ class BackupCoordinator {
 
     const archiveBuffer = Buffer.concat([header, ciphertext, tag]);
     await this.storage.write(archiveId, archiveBuffer);
+    if (this.onEvent) this.onEvent('BACKUP_CREATED', { archiveId, timestamp });
 
     return { archiveId, checksum, tag: tag.toString('hex'), timestamp };
   }
@@ -263,6 +265,7 @@ class BackupCoordinator {
   async prune(beforeTimestamp) {
     if (this.immutable) {
       this.events.push({ type: 'BACKUP_IMMUTABLE', at: Date.now() });
+      if (this.onEvent) this.onEvent('BACKUP_IMMUTABLE', { beforeTimestamp });
       return [];
     }
 
@@ -274,6 +277,7 @@ class BackupCoordinator {
         await this.storage.delete(archive.archiveId);
         removed.push(archive.archiveId);
         this.events.push({ type: 'BACKUP_PRUNED', archiveId: archive.archiveId, at: Date.now() });
+        if (this.onEvent) this.onEvent('BACKUP_PRUNED', { archiveId: archive.archiveId });
       }
     }
 
@@ -306,8 +310,14 @@ function createMemoryStorage() {
   };
 }
 
+function deriveArchiveKey(kek, archiveId) {
+  return BackupCoordinator.deriveArchiveKey(kek, archiveId);
+}
+
 module.exports = {
   BackupCoordinator,
   createMemoryStorage,
+  deriveArchiveKey,
+  KEK_LENGTH,
   BACKUP_VERSION,
 };
