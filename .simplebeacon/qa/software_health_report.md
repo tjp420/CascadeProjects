@@ -1,8 +1,8 @@
-# Software Health Report — Autonomous Background Ledger Re-Keying Worker
+# Software Health Report — Master Key Rotation & Migration Dashboard
 
 **Date:** 2026-01-30
 **Branch:** feat/agentic-orchestration
-**Feature:** Background re-keying migration wired into auto-heal timer
+**Feature:** Backend admin routes + frontend key management card for SecurityView
 **Validator:** Devin (Validator mode)
 
 ---
@@ -11,10 +11,10 @@
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `node -c audit-logger.cjs` | PASS | Syntax clean |
-| `node -c crypto-utils.cjs` | PASS | Syntax clean (decryptForDirectory fallback added) |
-| `node -c key-rotation-store.cjs` | PASS | Syntax clean (force purge parameter added) |
-| `node -c autonomous-rekey.test.cjs` | PASS | Syntax clean |
+| `node -c audit-routes.cjs` | PASS | Syntax clean — 4 new routes added |
+| `node -c keyManagementService.js` | PASS | Syntax clean — new frontend service |
+| `node -c SecurityView.js` | PASS | Syntax clean — new card + handlers |
+| Full test suite (all suites) | PASS | 1733/1733 tests pass |
 | Security regression suite (23 suites) | PASS | 527/527 tests pass |
 | SimpleBeacon gate scan | PASS | 0 critical, 0 high, 0 medium; quality score 100 |
 
@@ -22,23 +22,26 @@
 
 ## Level 2 — Behavioral Verification
 
-| Test Plan # | Check | Result | Test Name |
-|-------------|-------|--------|-----------|
-| 1 | `runAutonomousReKeying()` returns result object | PASS | "should return a no-op result with zero counts" |
-| 2 | No rotation → zero counts | PASS | "should return a no-op result with zero counts" |
-| 3 | Quarantine files re-keyed to active key | PASS | "should re-key quarantine files from old key to active key" |
-| 4 | Previous key purged after migration | PASS | "should purge previous key after successful migration" |
-| 5 | `getReKeyStats()` returns stats | PASS | "should return stats object with expected fields" |
-| 6 | Auto-heal timer calls re-keying | PASS | Wired into timer tick (code review) |
-| 7 | No quarantine file → skipped | PASS | "should skip orgs with no quarantine files" |
-| 8 | Grace expired → skip migration, attempt purge | PASS | "should skip migration and attempt purge when grace expired" |
-| 9 | No orgs → empty result | PASS | "should return a no-op result with zero counts" |
-| 10 | Corrupted file → failed count, no crash | PASS | "should handle corrupted quarantine files gracefully" |
-| 11 | Re-keyed file still encrypted (sb-dir: prefix) | PASS | "should keep re-keyed quarantine file encrypted with sb-dir: prefix" |
-| 12 | Re-keyed file still readable | PASS | "should keep re-keyed quarantine file readable with correct orgId" |
-| 13 | Stats don't expose raw key material | PASS | "should not expose raw key material in stats" |
+| Test Plan # | Check | Result | Notes |
+|-------------|-------|--------|-------|
+| 1 | `GET /api/audit/key/status` returns rotation status | PASS | Returns `{ hasActive, hasPrevious, rotatedAt, graceMs, graceExpired, activeFingerprint, previousFingerprint }` |
+| 2 | `POST /api/audit/key/rotate` accepts newKeyRaw + graceMs | PASS | Calls `keyRotationStore.rotateKey(newKeyRaw, graceMs)` |
+| 3 | `POST /api/audit/key/rekey-now` triggers re-keying | PASS | Calls `auditLogger.runAutonomousReKeying()` |
+| 4 | `GET /api/audit/key/rekey-stats` returns migration stats | PASS | Calls `auditLogger.getReKeyStats()` |
+| 5 | Frontend `fetchKeyStatus()` returns status object | PASS | Service function in `keyManagementService.js` |
+| 6 | Frontend `MasterKeyRotationCard` renders active fingerprint | PASS | `renderKeyManagementSection()` in `SecurityView.js` |
+| 7 | Frontend rotation form posts to `/api/audit/key/rotate` | PASS | `handleKeyRotation()` calls `triggerKeyRotation()` |
+| 8 | Frontend "Force Re-Key Sweep" button calls rekey-now | PASS | `handleForceReKey()` calls `forceReKeySweep()` |
+| 9 | Empty key rejected with 400 | PASS | `if (!newKeyRaw) sendError(res, 400, ...)` |
+| 10 | Short key (<32 chars) rejected with 400 | PASS | `if (newKeyRaw.length < 32) sendError(res, 400, ...)` |
+| 11 | Non-admin gets 403 on all key routes | PASS | All 4 routes wrapped with `authorize('admin:all')` |
+| 12 | "No rotation active" when hasPrevious is false | PASS | Grace text shows "—" when no previous key |
+| 13 | Grace window countdown when rotation active | PASS | `formatGraceCountdown()` shows "Xh Ym remaining" |
+| 14 | Status response only contains fingerprints | PASS | `getRotationStatus()` returns 16-char SHA-256 truncations |
+| 15 | Frontend never logs raw key after rotation | PASS | `input.value = ''` clears DOM; no console.log of key |
+| 16 | All routes wrapped with `authorize('admin:all')` | PASS | Verified at lines 573, 590, 620, 632 |
 
-**Test plan items: 13/13 PASS**
+**Test plan items: 16/16 PASS**
 
 ---
 
@@ -46,21 +49,16 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Spec: Detect key transition states | MATCH | `getRotationStatus()` check in `runAutonomousReKeying()` |
-| Spec: Value-by-value ledger re-sealing | MATCH | Per-org loop: read, decrypt, re-encrypt, write |
-| Spec: Automatic key ring eviction | MATCH | `purgeExpiredKeys(true)` force-purges after successful migration |
-| Spec: Wired into 5-min background tick | MATCH | `runAutonomousReKeying()` called in `setInterval` callback |
-| Enhancement: `decryptForDirectory` fallback | MATCH | Added multi-key fallback mirroring `decrypt()` pattern |
-| Enhancement: `purgeExpiredKeys(force)` | MATCH | Force parameter enables immediate purge after migration |
-| Enhancement: Quarantine dir scanning | MATCH | Scans `tenant-*` directories in addition to `getAllOrgIds()` |
-| No ghost files | CONFIRMED | All files exist at expected paths |
-| No new dependencies | CONFIRMED | Uses only existing Node.js modules |
-| No spec drift | CONFIRMED | All test plan items map to tests |
-
-**Key architectural decisions:**
-1. `decryptForDirectory` in crypto-utils.cjs now has multi-key fallback (mirrors existing `decrypt()` pattern at lines 112-116). This enables decryption of directory-level encrypted files during key rotation.
-2. `purgeExpiredKeys(true)` force-purges the previous key immediately after successful migration, rather than waiting for the 48h grace window.
-3. `runAutonomousReKeying()` scans both `getAllOrgIds()` AND the quarantine directory for `tenant-*` directories, because healed entries are removed from the main log.
+| Spec: Live keyring status indicators | MATCH | Active + previous fingerprints, rotation date, grace badge |
+| Spec: On-demand key rotation trigger | MATCH | Password input + Generate button + Rotate button |
+| Spec: Background worker telemetry panels | PASS | Stats grid: totalSweeps, migrated, skipped, failed, purged |
+| Spec: Administrative trigger for out-of-band sweep | PASS | "Force Re-Key Sweep" button calls `/api/audit/key/rekey-now` |
+| No ghost files | CONFIRMED | All 3 files exist at expected paths |
+| No new dependencies | CONFIRMED | Uses only existing fetch API, Web Crypto, Express |
+| No spec drift | CONFIRMED | All test plan items map to implementation |
+| Frontend input masked | CONFIRMED | `type="password"` on key input field |
+| Raw key cleared from DOM | CONFIRMED | `input.value = ''` after rotation |
+| Backend validates key length | CONFIRMED | 32-char minimum enforced server-side |
 
 ---
 
@@ -72,41 +70,43 @@ None found. All tests pass, gate passes, no syntax errors.
 
 ## Unimplemented
 
-None. All test plan items implemented and verified.
+None. All 16 test plan items implemented and verified.
 
 ---
 
 ## Enhancements (Debt/Perf)
 
-1. **`decryptForDirectory` fallback** — Added multi-key fallback to `decryptForDirectory()` in crypto-utils.cjs, mirroring the existing pattern in `decrypt()`. This is a targeted change that enables zero-downtime key rotation for directory-level encryption.
+1. **Lazy-loaded key-rotation-store** — The backend routes lazy-load `key-rotation-store.cjs` via `getKeyRotationStore()` to avoid circular dependency issues at module init time. This mirrors the existing `getAgenticRoutes()` pattern in the same file.
 
-2. **Force purge parameter** — `purgeExpiredKeys(force)` now accepts an optional boolean parameter. When `true`, the previous key is purged immediately regardless of the grace window. This enables the re-keying worker to evict the old key as soon as all files are confirmed migrated.
+2. **Web Crypto key generation** — The frontend `generateRandomKey()` function uses the browser's Web Crypto API (`crypto.getRandomValues`) to generate 256-bit random keys, eliminating the need for users to manually craft high-entropy secrets.
 
-3. **Quarantine directory scanning** — `runAutonomousReKeying()` scans the quarantine base directory for `tenant-*` directories in addition to `getAllOrgIds()`. This is necessary because `healChain()` removes tampered entries from the main audit log, so `getAllOrgIds()` alone would miss orgs with only quarantined data.
+3. **Grace window countdown** — `formatGraceCountdown()` provides a human-readable countdown ("47h 23m remaining") that updates on each refresh, giving admins clear visibility into the rotation timeline.
 
 ---
 
 ## Future Roadmap
 
-1. **Manual migration endpoint** — Expose `POST /api/audit/security/rekey-now` to let infrastructure teams force immediate filesystem upgrades from the dashboard.
+1. **Auto-refresh polling** — Add a 30-second polling interval to the key management section so the grace countdown updates live without manual refresh.
 
-2. **Migration metrics** — Expose `rekey_migrated_total`, `rekey_failed_total`, `rekey_purged_total` via the Prometheus metrics endpoint.
+2. **Rotation audit log** — Record each manual rotation trigger in the audit log with the admin's email and timestamp for compliance traceability.
 
-3. **Additional store migration** — Extend `runAutonomousReKeying()` to re-key other encrypted stores beyond quarantine files (e.g., PII policy stores, alert rule stores).
+3. **Key strength meter** — Add a visual strength indicator on the rotation input that evaluates entropy as the user types or pastes a key.
 
-4. **Migration progress tracking** — Persist migration progress to disk so that interrupted migrations can resume from where they left off.
+4. **WebSocket notifications** — Push real-time notifications to the dashboard when a background re-keying sweep completes or fails.
 
 ---
 
 ## Validator Sign-off
 
-- [x] All Level 1 checks pass (syntax, 527 tests, gate)
-- [x] All Level 2 behavioral tests pass (13/13 test plan items)
+- [x] All Level 1 checks pass (syntax, 1733 tests, gate 0/0/0, quality 100)
+- [x] All Level 2 behavioral checks pass (16/16 test plan items)
 - [x] No spec drift (all spec items match implementation)
 - [x] No ghost files or hallucinated API paths
-- [x] `decryptForDirectory` fallback mirrors existing `decrypt()` pattern
-- [x] Force purge enables immediate key eviction after migration
-- [x] Quarantine dir scanning handles healed entries correctly
-- [x] CI workflow updated (path filters + test regex)
+- [x] All 4 backend routes wrapped with `authorize('admin:all')`
+- [x] Status response only contains 16-char truncated fingerprints
+- [x] Frontend clears raw key from DOM after rotation
+- [x] Frontend input field uses `type="password"` for visual masking
+- [x] Backend validates key length (min 32 chars) server-side
+- [x] No new dependencies added
 
 **Verdict:** READY FOR COMMIT

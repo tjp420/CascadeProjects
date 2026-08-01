@@ -2,6 +2,7 @@
 import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber, renderEmptyState } from '../utils.js';
 import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
 import { fetchSecurityTelemetry, buildTelemetrySummary } from '../services/telemetryService.js';
+import { fetchKeyStatus, triggerKeyRotation, forceReKeySweep, fetchReKeyStats, generateRandomKey, formatGraceCountdown } from '../services/keyManagementService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 
 const SEVERITY_COLORS = {
@@ -47,6 +48,12 @@ export class SecurityView {
         this.telemetry = null;
         this.telemetryLoading = false;
         this.telemetryError = null;
+        this.keyStatus = null;
+        this.keyStatusLoading = false;
+        this.keyStatusError = null;
+        this.reKeyStats = null;
+        this.rotating = false;
+        this.rekeying = false;
         this._container = null;
     }
     getReport() {
@@ -202,6 +209,182 @@ export class SecurityView {
         }
         if (this._container) this.app.render(this._container);
     }
+    renderKeyManagementSection() {
+        if (!this.app.isCurrentUserAdmin || !this.app.isCurrentUserAdmin()) return '';
+        if (this.keyStatusLoading) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Master Key Rotation & Migration</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <span class="loading-spinner" style="width:24px;height:24px;margin:0 auto var(--space-3);"></span>
+            <p class="text-muted" style="font-size:var(--font-size-sm);">Loading key status…</p>
+          </div>
+        </div>`;
+        }
+        if (this.keyStatusError && !this.keyStatus) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Master Key Rotation & Migration</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <p style="color:var(--danger);font-size:var(--font-size-sm);margin-bottom:var(--space-3);">${escapeHtml(this.keyStatusError)}</p>
+            <button class="btn btn-secondary btn-sm" id="key-status-retry" type="button">Retry</button>
+          </div>
+        </div>`;
+        }
+        const s = this.keyStatus ? this.keyStatus.status : null;
+        const reKey = this.reKeyStats ? this.reKeyStats.stats : null;
+        const hasPrevious = s && s.hasPrevious;
+        const graceText = hasPrevious ? formatGraceCountdown(s.rotatedAt, s.graceMs) : '—';
+        const graceColor = hasPrevious && s.graceExpired ? 'var(--danger)' : (hasPrevious ? 'var(--warning)' : 'var(--text-muted)');
+        const activeFp = s && s.activeFingerprint ? s.activeFingerprint : '—';
+        const prevFp = s && s.previousFingerprint ? s.previousFingerprint : '—';
+        const rotatedDate = s && s.rotatedAt ? new Date(s.rotatedAt).toLocaleString() : '—';
+        return `
+      <div class="section-block">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0;">Master Key Rotation & Migration</h2>
+          <button class="btn btn-ghost btn-sm" id="key-status-refresh" type="button">↻ Refresh</button>
+        </div>
+
+        <!-- Keyring status cards -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4);margin-bottom:var(--space-6);">
+          <div class="card" style="padding:var(--space-5);">
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:var(--space-1);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Active Key Fingerprint</div>
+            <div style="font-family:monospace;font-size:var(--font-size-sm);font-weight:700;color:var(--success);">${escapeHtml(activeFp)}</div>
+          </div>
+          <div class="card" style="padding:var(--space-5);">
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:var(--space-1);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Previous Key Fingerprint</div>
+            <div style="font-family:monospace;font-size:var(--font-size-sm);font-weight:700;color:${hasPrevious ? 'var(--warning)' : 'var(--text-muted)'};">${escapeHtml(prevFp)}</div>
+          </div>
+          <div class="card" style="padding:var(--space-5);">
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:var(--space-1);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Grace Window</div>
+            <div style="font-size:var(--font-size-sm);font-weight:700;color:${graceColor};">${escapeHtml(graceText)}</div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-1);">Rotated: ${escapeHtml(rotatedDate)}</div>
+          </div>
+        </div>
+
+        <!-- Rotation form -->
+        <div class="card" style="padding:var(--space-5) var(--space-6);margin-bottom:var(--space-6);">
+          <div style="font-size:var(--font-size-sm);font-weight:700;margin-bottom:var(--space-3);">Trigger New Key Rotation</div>
+          <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:1;min-width:280px;">
+              <label style="font-size:var(--font-size-xs);color:var(--text-muted);display:block;margin-bottom:var(--space-1);">New Master Key (min 32 characters)</label>
+              <input type="password" id="key-rotation-input" placeholder="Paste 32+ char secret or generate…" style="width:100%;padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);border:1px solid var(--border);background:var(--surface);color:var(--text-primary);font-size:var(--font-size-sm);font-family:monospace;" autocomplete="off" />
+            </div>
+            <button class="btn btn-secondary btn-sm" id="key-generate-btn" type="button">🎲 Generate</button>
+            <button class="btn btn-primary btn-sm" id="key-rotate-btn" type="button" ${this.rotating ? 'disabled' : ''}>
+              ${this.rotating ? '⟳ Rotating…' : '▶ Rotate Key'}
+            </button>
+          </div>
+          <p style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-3);">⚠️ Rotation starts a grace window. Historical data is re-keyed automatically by the background worker.</p>
+        </div>
+
+        <!-- Re-keying migration stats -->
+        <div class="card" style="padding:var(--space-5) var(--space-6);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+            <div style="font-size:var(--font-size-sm);font-weight:700;">Background Re-Keying Migration</div>
+            <button class="btn btn-primary btn-sm" id="rekey-now-btn" type="button" ${this.rekeying ? 'disabled' : ''}>
+              ${this.rekeying ? '⟳ Sweeping…' : '⚡ Force Re-Key Sweep'}
+            </button>
+          </div>
+          ${reKey ? `
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--space-3);">
+              <div style="text-align:center;padding:var(--space-3);background:var(--surface-hover);border-radius:var(--radius-md);">
+                <div style="font-size:var(--font-size-xl);font-weight:700;">${formatNumber(reKey.totalSweeps || 0)}</div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Total Sweeps</div>
+              </div>
+              <div style="text-align:center;padding:var(--space-3);background:var(--surface-hover);border-radius:var(--radius-md);">
+                <div style="font-size:var(--font-size-xl);font-weight:700;color:var(--success);">${formatNumber(reKey.totalMigrated || 0)}</div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Migrated</div>
+              </div>
+              <div style="text-align:center;padding:var(--space-3);background:var(--surface-hover);border-radius:var(--radius-md);">
+                <div style="font-size:var(--font-size-xl);font-weight:700;color:var(--text-muted);">${formatNumber(reKey.totalSkipped || 0)}</div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Skipped</div>
+              </div>
+              <div style="text-align:center;padding:var(--space-3);background:var(--surface-hover);border-radius:var(--radius-md);">
+                <div style="font-size:var(--font-size-xl);font-weight:700;color:var(--danger);">${formatNumber(reKey.totalFailed || 0)}</div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Failed</div>
+              </div>
+              <div style="text-align:center;padding:var(--space-3);background:var(--surface-hover);border-radius:var(--radius-md);">
+                <div style="font-size:var(--font-size-xl);font-weight:700;color:var(--warning);">${formatNumber(reKey.totalPurged || 0)}</div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Keys Purged</div>
+              </div>
+            </div>
+          ` : `
+            <p style="font-size:var(--font-size-sm);color:var(--text-muted);text-align:center;padding:var(--space-4);">No migration stats available yet. Click "Force Re-Key Sweep" to run a manual migration.</p>
+          `}
+        </div>
+      </div>`;
+    }
+    async loadKeyStatus() {
+        this.keyStatusLoading = true;
+        this.keyStatusError = null;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            this.keyStatus = await fetchKeyStatus(authHeaders);
+            // Also load re-key stats
+            try {
+                this.reKeyStats = await fetchReKeyStats(authHeaders);
+            } catch (_a) {
+                this.reKeyStats = null;
+            }
+        } catch (err) {
+            this.keyStatusError = err.message;
+        } finally {
+            this.keyStatusLoading = false;
+        }
+        if (this._container) this.app.render(this._container);
+    }
+    async handleKeyRotation() {
+        const input = document.getElementById('key-rotation-input');
+        if (!input || !input.value) {
+            showToast('Enter a new master key (min 32 characters)', 'error');
+            return;
+        }
+        if (input.value.length < 32) {
+            showToast('Key must be at least 32 characters', 'error');
+            return;
+        }
+        this.rotating = true;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            await triggerKeyRotation(input.value, undefined, authHeaders);
+            // Clear the input immediately — don't leave the raw key in the DOM
+            input.value = '';
+            showToast('Master key rotation initialized successfully', 'success');
+            await this.loadKeyStatus();
+        } catch (err) {
+            showToast('Key rotation failed: ' + err.message, 'error');
+        } finally {
+            this.rotating = false;
+            if (this._container) this.app.render(this._container);
+        }
+    }
+    async handleForceReKey() {
+        this.rekeying = true;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            const result = await forceReKeySweep(authHeaders);
+            const r = result.result || {};
+            showToast(`Re-key sweep complete: ${r.migrated || 0} migrated, ${r.failed || 0} failed`, r.failed > 0 ? 'error' : 'success');
+            await this.loadKeyStatus();
+        } catch (err) {
+            showToast('Re-key sweep failed: ' + err.message, 'error');
+        } finally {
+            this.rekeying = false;
+            if (this._container) this.app.render(this._container);
+        }
+    }
+    handleGenerateKey() {
+        const input = document.getElementById('key-rotation-input');
+        if (input) {
+            input.value = generateRandomKey();
+            showToast('Random 256-bit key generated', 'info');
+        }
+    }
     render() {
         var _a, _b, _c, _d, _e, _f;
         const el = document.createElement('div');
@@ -330,6 +513,8 @@ export class SecurityView {
       </div>
 
       ${this.renderTelemetrySection()}
+
+      ${this.renderKeyManagementSection()}
     `;
         (_d = el.querySelector('#security-run-scan')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.runScan(this._container));
         (_e = el.querySelector('#security-export-json')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.exportResults());
@@ -386,6 +571,17 @@ export class SecurityView {
                 showToast('Failed to send: ' + err.message, 'error');
             }
         });
+        // Key management button listeners
+        const _kmRefresh = el.querySelector('#key-status-refresh');
+        const _kmRetry = el.querySelector('#key-status-retry');
+        const _kmRotate = el.querySelector('#key-rotate-btn');
+        const _kmGenerate = el.querySelector('#key-generate-btn');
+        const _kmRekeyNow = el.querySelector('#rekey-now-btn');
+        if (_kmRefresh) _kmRefresh.addEventListener('click', () => this.loadKeyStatus());
+        if (_kmRetry) _kmRetry.addEventListener('click', () => this.loadKeyStatus());
+        if (_kmRotate) _kmRotate.addEventListener('click', () => this.handleKeyRotation());
+        if (_kmGenerate) _kmGenerate.addEventListener('click', () => this.handleGenerateKey());
+        if (_kmRekeyNow) _kmRekeyNow.addEventListener('click', () => this.handleForceReKey());
         return el;
     }
     exportResults() {
@@ -462,9 +658,15 @@ export class SecurityView {
             this.loading = false;
             this.paint(container);
             void this.loadCompliance();
+            if (this.app.isCurrentUserAdmin && this.app.isCurrentUserAdmin()) {
+                void this.loadKeyStatus();
+            }
             return;
         }
         void this.loadReport(container);
         void this.loadCompliance();
+        if (this.app.isCurrentUserAdmin && this.app.isCurrentUserAdmin()) {
+            void this.loadKeyStatus();
+        }
     }
 }

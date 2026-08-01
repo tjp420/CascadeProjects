@@ -551,4 +551,92 @@ router.get('/telemetry', authorize('admin:all'), (req, res) => {
   }
 });
 
+// ── Key Rotation Management Routes ──────────────────────────────────────────
+//   All routes require admin:all authorization.
+//   These endpoints expose the key-rotation-store and autonomous re-keying
+//   worker for administrative dashboard control.
+
+// Lazy-load key-rotation-store to avoid circular dependency issues
+let _keyRotationStore = null;
+function getKeyRotationStore() {
+  if (!_keyRotationStore) {
+    try {
+      _keyRotationStore = require('../lib/key-rotation-store.cjs');
+    } catch (e) {
+      logger.warn('[Audit] Could not load key-rotation-store:', e.message);
+    }
+  }
+  return _keyRotationStore;
+}
+
+// GET /api/audit/key/status — Live keyring status with truncated fingerprints
+router.get('/key/status', authorize('admin:all'), (req, res) => {
+  try {
+    const store = getKeyRotationStore();
+    if (!store) {
+      sendError(res, 503, 'key_rotation_unavailable', { message: 'Key rotation store not loaded' });
+      return;
+    }
+    const status = store.getRotationStatus();
+    res.json({ success: true, status });
+  } catch (err) {
+    logger.warn('[Audit] key_status_failed:', err.message);
+    sendError(res, 500, 'key_status_failed', { message: err.message });
+  }
+});
+
+// POST /api/audit/key/rotate — Trigger a master key rotation
+//   Body: { newKeyRaw: string, graceMs?: number }
+router.post('/key/rotate', authorize('admin:all'), (req, res) => {
+  try {
+    const store = getKeyRotationStore();
+    if (!store) {
+      sendError(res, 503, 'key_rotation_unavailable', { message: 'Key rotation store not loaded' });
+      return;
+    }
+    const { newKeyRaw, graceMs } = req.body || {};
+    if (!newKeyRaw) {
+      sendError(res, 400, 'invalid_key', { message: 'newKeyRaw is required' });
+      return;
+    }
+    if (typeof newKeyRaw === 'string' && newKeyRaw.length < 32) {
+      sendError(res, 400, 'invalid_key', { message: 'newKeyRaw must be at least 32 characters' });
+      return;
+    }
+    if (Buffer.isBuffer(newKeyRaw) && newKeyRaw.length < 32) {
+      sendError(res, 400, 'invalid_key', { message: 'newKeyRaw must be at least 32 bytes' });
+      return;
+    }
+    store.rotateKey(newKeyRaw, graceMs);
+    logger.info('[Audit] key_rotation_triggered by user:', getActor(req).actorEmail);
+    res.json({ success: true, message: 'Global master key rotation initialized successfully.' });
+  } catch (err) {
+    logger.warn('[Audit] key_rotate_failed:', err.message);
+    sendError(res, 500, 'key_rotate_failed', { message: err.message });
+  }
+});
+
+// POST /api/audit/key/rekey-now — Force an out-of-band re-keying sweep
+router.post('/key/rekey-now', authorize('admin:all'), (req, res) => {
+  try {
+    const result = auditLogger.runAutonomousReKeying();
+    logger.info('[Audit] manual_rekey_triggered by user:', getActor(req).actorEmail, 'result:', JSON.stringify(result));
+    res.json({ success: true, result });
+  } catch (err) {
+    logger.warn('[Audit] rekey_now_failed:', err.message);
+    sendError(res, 500, 'rekey_now_failed', { message: err.message });
+  }
+});
+
+// GET /api/audit/key/rekey-stats — Background re-keying migration statistics
+router.get('/key/rekey-stats', authorize('admin:all'), (req, res) => {
+  try {
+    const stats = auditLogger.getReKeyStats();
+    res.json({ success: true, stats });
+  } catch (err) {
+    logger.warn('[Audit] rekey_stats_failed:', err.message);
+    sendError(res, 500, 'rekey_stats_failed', { message: err.message });
+  }
+});
+
 module.exports = router;
