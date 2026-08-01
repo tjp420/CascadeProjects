@@ -33,6 +33,11 @@
       "maxSkipped": 1000,
       "sessionExpiryMs": 86400000,
       "allowDhRatchet": true
+    },
+    "homomorphic": {
+      "maxModulusBits": 2048,
+      "tokenExpiryMs": 300000,
+      "allowBlinding": true
     }
   },
   "tenants": {}
