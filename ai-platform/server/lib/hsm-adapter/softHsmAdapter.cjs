@@ -12,6 +12,7 @@
  */
 
 const crypto = require('crypto');
+const aesKw = require('../aes-kw.cjs');
 let pkcs11js;
 try {
   pkcs11js = require('pkcs11js');
@@ -84,6 +85,12 @@ class SoftHsmAdapter {
     this.initialize();
     const kekLabel = label || `kek-${crypto.randomBytes(6).toString('hex')}`;
     const mech = { mechanism: pkcs11js.CKM_AES_KEY_GEN };
+    // CKA_EXTRACTABLE=true and CKA_SENSITIVE=false allow the KEK value to be
+    // read via C_GetAttributeValue for software AES-KW. SoftHSM2 does not
+    // support CKM_AES_KEY_WRAP with C_Encrypt, and C_WrapKey fails with
+    // CKR_KEY_UNEXTRACTABLE on keys created via C_CreateObject. SoftHSM2 is a
+    // software HSM, so extracting the KEK into process memory is acceptable
+    // for testing. Real HSMs would use C_WrapKey with properly extractable keys.
     const template = [
       { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_SECRET_KEY },
       { type: pkcs11js.CKA_KEY_TYPE, value: pkcs11js.CKK_AES },
@@ -93,11 +100,21 @@ class SoftHsmAdapter {
       { type: pkcs11js.CKA_WRAP, value: true },
       { type: pkcs11js.CKA_UNWRAP, value: true },
       { type: pkcs11js.CKA_TOKEN, value: true },
-      { type: pkcs11js.CKA_LABEL, value: kekLabel }
+      { type: pkcs11js.CKA_LABEL, value: kekLabel },
+      { type: pkcs11js.CKA_SENSITIVE, value: false },
+      { type: pkcs11js.CKA_EXTRACTABLE, value: true }
     ];
     const handle = this.pkcs11.C_GenerateKey(this.session, mech, template);
     if (!handle) throw new HsmAdapterError('KEK_GEN_FAILED', 'Failed to generate KEK on token');
     return kekLabel;
+  }
+
+  _extractKekValue(kekHandle) {
+    const attrs = this.pkcs11.C_GetAttributeValue(this.session, kekHandle, [{ type: pkcs11js.CKA_VALUE }]);
+    if (!attrs || !attrs[0] || !attrs[0].value) {
+      throw new HsmAdapterError('KEK_EXTRACT_FAILED', 'Could not extract KEK value from token');
+    }
+    return Buffer.from(attrs[0].value);
   }
 
   listKEKs() {
@@ -121,20 +138,16 @@ class SoftHsmAdapter {
     const kekHandle = this._findKeyHandleByLabel(kekLabel);
     if (!kekHandle) throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekLabel} not found`);
 
-    // Use C_Encrypt with CKM_AES_KEY_WRAP instead of C_WrapKey.
-    // C_WrapKey requires the key being wrapped to be CKA_EXTRACTABLE=true,
-    // but SoftHSM2 may override this attribute on C_CreateObject, causing
-    // CKR_KEY_UNEXTRACTABLE. C_Encrypt uses the KEK to encrypt the raw CEK
-    // bytes, producing the same RFC 3394 output without extractability
-    // requirements.
+    // SoftHSM2 does not support CKM_AES_KEY_WRAP with C_Encrypt, and C_WrapKey
+    // fails with CKR_KEY_UNEXTRACTABLE on keys created via C_CreateObject.
+    // Extract the KEK value and use software AES-KW (RFC 3394) instead.
+    // SoftHSM2 is a software HSM, so this is acceptable for testing.
     try {
-      const mechanism = { mechanism: pkcs11js.CKM_AES_KEY_WRAP };
-      this.pkcs11.C_EncryptInit(this.session, mechanism, kekHandle);
-      // AES-KW adds an 8-byte IV, so output = input + 8 bytes.
-      const outBuf = Buffer.alloc(cekBuffer.length + 8);
-      const wrapped = this.pkcs11.C_Encrypt(this.session, cekBuffer, outBuf);
+      const kekValue = this._extractKekValue(kekHandle);
+      const wrapped = aesKw.wrap(kekValue, cekBuffer);
       return wrapped;
     } catch (err) {
+      if (err instanceof HsmAdapterError) throw err;
       throw new HsmAdapterError('WRAP_FAILED', err.message || String(err));
     } finally {
       if (Buffer.isBuffer(cekBuffer)) cekBuffer.fill(0);
@@ -145,21 +158,27 @@ class SoftHsmAdapter {
     this.initialize();
     const kekHandle = this._findKeyHandleByLabel(kekLabel);
     if (!kekHandle) throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekLabel} not found`);
-    const mechanism = { mechanism: pkcs11js.CKM_AES_KEY_WRAP };
-    // For production posture, create the unwrapped CEK as non-extractable and return the in-token handle.
-    const template = [
-      { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_SECRET_KEY },
-      { type: pkcs11js.CKA_KEY_TYPE, value: pkcs11js.CKK_AES },
-      { type: pkcs11js.CKA_TOKEN, value: false },
-      { type: pkcs11js.CKA_EXTRACTABLE, value: false },
-      { type: pkcs11js.CKA_SENSITIVE, value: true },
-      { type: pkcs11js.CKA_DECRYPT, value: true }
-    ];
+
+    // Use software AES-KW to unwrap, then create a non-extractable key object
+    // in the token with the unwrapped CEK value. Return the in-token handle
+    // so the secret material never needs to leave the token after creation.
     try {
-      const newKeyHandle = this.pkcs11.C_UnwrapKey(this.session, mechanism, kekHandle, wrappedCekBuffer, template);
-      if (!newKeyHandle) throw new HsmAdapterError('UNWRAP_FAILED', 'C_UnwrapKey returned no handle');
-      return newKeyHandle; // Return the in-token key handle; secret material never leaves HSM
+      const kekValue = this._extractKekValue(kekHandle);
+      const cekValue = aesKw.unwrap(kekValue, wrappedCekBuffer);
+      const template = [
+        { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_SECRET_KEY },
+        { type: pkcs11js.CKA_KEY_TYPE, value: pkcs11js.CKK_AES },
+        { type: pkcs11js.CKA_VALUE, value: cekValue },
+        { type: pkcs11js.CKA_TOKEN, value: false },
+        { type: pkcs11js.CKA_EXTRACTABLE, value: false },
+        { type: pkcs11js.CKA_SENSITIVE, value: true },
+        { type: pkcs11js.CKA_DECRYPT, value: true }
+      ];
+      const newKeyHandle = this.pkcs11.C_CreateObject(this.session, template);
+      if (!newKeyHandle) throw new HsmAdapterError('UNWRAP_FAILED', 'C_CreateObject returned no handle');
+      return newKeyHandle;
     } catch (err) {
+      if (err instanceof HsmAdapterError) throw err;
       throw new HsmAdapterError('UNWRAP_FAILED', err.message || String(err));
     }
   }
