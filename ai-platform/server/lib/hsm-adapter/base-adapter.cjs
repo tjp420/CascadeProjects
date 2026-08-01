@@ -196,6 +196,27 @@ class BaseHsmAdapter {
     }
   }
 
+  /**
+   * Rotates a keyring envelope from an old Master KEK to a new Master KEK.
+   * @param {Buffer} envelope - The current T10K binary envelope.
+   * @param {Buffer} oldKek - The current Key Encryption Key.
+   * @param {Buffer} newKek - The new Key Encryption Key.
+   * @returns {Promise<Buffer>} The new T10K binary envelope.
+   */
+  async rotateKeyring(envelope, oldKek, newKek) {
+    this._ensureInitialized();
+    try {
+      // 1. Ingest, strip headers, and decrypt the inner payload using the old KEK
+      const decryptedKeyring = deserialize(envelope, oldKek);
+
+      // 2. Re-encrypt the plaintext keyring data under the new KEK domain
+      return serialize(decryptedKeyring, newKek);
+    } catch (error) {
+      const code = error instanceof KeyringValidationError ? error.code : 'ROTATION_FAILED';
+      throw new HsmAdapterError(code, `HSM Key rotation failure: ${error.message}`);
+    }
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {
