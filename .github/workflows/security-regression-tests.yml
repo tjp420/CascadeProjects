@@ -48,6 +48,7 @@ on:
       - 'ai-platform/server/lib/__tests__/audit-logger-auto-purge.test.cjs'
       - 'ai-platform/server/lib/__tests__/audit-lifecycle-worker.test.cjs'
       - 'ai-platform/server/lib/__tests__/compliance-report.test.cjs'
+      - 'ai-platform/server/lib/__tests__/audit-compliance-report.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   push:
     branches: [main]
@@ -89,6 +90,7 @@ on:
       - 'ai-platform/server/lib/__tests__/audit-logger-auto-purge.test.cjs'
       - 'ai-platform/server/lib/__tests__/audit-lifecycle-worker.test.cjs'
       - 'ai-platform/server/lib/__tests__/compliance-report.test.cjs'
+      - 'ai-platform/server/lib/__tests__/audit-compliance-report.test.cjs'
       - '.github/workflows/security-regression-tests.yml'
   workflow_dispatch:
 
@@ -125,7 +127,7 @@ jobs:
             --verbose \
             --ci \
             --bail=1 \
-            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker|pii-context-aware|pii-scrubber-registry|pii-stream-verify|pii-stream-preflight|canonical-request-serializer|security-telemetry|directory-sandbox-crypto|encrypted-quarantine|hsm-vault|key-rotation-store|autonomous-rekey|key-interdiction|audit-policy-store|audit-logger-retention|audit-logger-auto-purge|audit-lifecycle-worker|compliance-report)\.test\.cjs" \
+            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker|pii-context-aware|pii-scrubber-registry|pii-stream-verify|pii-stream-preflight|canonical-request-serializer|security-telemetry|directory-sandbox-crypto|encrypted-quarantine|hsm-vault|key-rotation-store|autonomous-rekey|key-interdiction|audit-policy-store|audit-logger-retention|audit-logger-auto-purge|audit-lifecycle-worker|compliance-report|audit-compliance-report)\.test\.cjs" \
             --coverage \
             --coverageReporters=text-summary \
             --coverageReporters=lcov \
