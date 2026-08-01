@@ -170,24 +170,54 @@ class SoftHsmAdapter {
     this.initialize();
     if (!ceKeyHandle) throw new HsmAdapterError('INVALID_KEY_HANDLE', 'CE key handle required for in-token decryption');
     try {
-      // Build GCM parameters. pkcs11js accepts a plain object with fields matching CK_GCM_PARAMS
-      const gcmParams = {
-        pIv: iv,
-        ulIvLen: iv.length,
-        pAAD: aad || Buffer.alloc(0),
-        ulAADLen: aad ? aad.length : 0,
-        ulTagBits: tag.length * 8
-      };
-      const mechanism = {
-        mechanism: pkcs11js.CKM_AES_GCM,
-        parameter: gcmParams
-      };
+      // Try multiple CKM_AES_GCM parameter encodings to handle token-specific
+      // variations. Some PKCS#11 stacks accept a CK_GCM_PARAMS-shaped object
+      // (pIv/ulIvLen/pAAD/ulAADLen/ulTagBits), others accept a simpler
+      // { iv, aad, tagBits } shape. Try each until one succeeds.
+      const variants = [
+        { pIv: iv, ulIvLen: iv.length, pAAD: aad || Buffer.alloc(0), ulAADLen: aad ? aad.length : 0, ulTagBits: tag.length * 8 },
+        { iv: iv, aad: aad || Buffer.alloc(0), tagBits: tag.length * 8 },
+        { pIv: iv, ulIvLen: iv.length, pAAD: null, ulAADLen: 0, ulTagBits: tag.length * 8 }
+      ];
 
-      this.pkcs11.C_DecryptInit(this.session, mechanism, ceKeyHandle);
-      // PKCS#11 C_Decrypt expects ciphertext+tag as a single buffer for many implementations
+      let lastErr = null;
+      let usedVariant = null;
+      for (const v of variants) {
+        const mech = { mechanism: pkcs11js.CKM_AES_GCM, parameter: v };
+        try {
+          // Attempt to initialize decrypt with this mechanism encoding
+          this.pkcs11.C_DecryptInit(this.session, mech, ceKeyHandle);
+          usedVariant = v;
+          break;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      if (!usedVariant) {
+        throw lastErr || new Error('CKM_AES_GCM init failed for all known parameter encodings');
+      }
+
+      // Many PKCS#11 implementations expect ciphertext||tag as a single buffer
       const fullCipher = Buffer.concat([ciphertext, tag]);
-      const plain = this.pkcs11.C_Decrypt(this.session, fullCipher, Buffer.alloc(fullCipher.length));
-      return plain;
+
+      // Try both C_Decrypt invocation styles: with a preallocated output buffer
+      // or with a single-arg call returning the result.
+      try {
+        // Preferred: call and return Buffer result
+        const plain = this.pkcs11.C_Decrypt(this.session, fullCipher);
+        console.debug('HSM decrypt succeeded using CKM_AES_GCM variant:', usedVariant);
+        return plain;
+      } catch (err) {
+        // Some bindings expect an output buffer argument; try that form.
+        try {
+          const outBuf = Buffer.alloc(fullCipher.length);
+          const plain = this.pkcs11.C_Decrypt(this.session, fullCipher, outBuf);
+          console.debug('HSM decrypt succeeded (outBuf) using CKM_AES_GCM variant:', usedVariant);
+          return plain;
+        } catch (err2) {
+          throw err2;
+        }
+      }
     } catch (err) {
       throw new HsmAdapterError('HSM_DECRYPT_FAILED', err.message || String(err));
     }
