@@ -16,6 +16,7 @@
 // jest.mock('../../lib/db-client', () => ({ migrate: jest.fn(), query: jest.fn() }));
 
 describe('Phase 2 Integration (scaffold)', () => {
+	let db;
 	beforeAll(async () => {
 		// Initialize a lightweight mocked DB to avoid real connections
 		db = await global.testUtils.createTestDb();

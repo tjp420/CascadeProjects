@@ -226,14 +226,10 @@ class SoftHsmAdapter {
         return plain;
       } catch (err) {
         // Some bindings expect an output buffer argument; try that form.
-        try {
-          const outBuf = Buffer.alloc(fullCipher.length);
-          const plain = this.pkcs11.C_Decrypt(this.session, fullCipher, outBuf);
-          console.debug('HSM decrypt succeeded (outBuf) using CKM_AES_GCM variant:', usedVariant);
-          return plain;
-        } catch (err2) {
-          throw err2;
-        }
+        const outBuf = Buffer.alloc(fullCipher.length);
+        const plain = this.pkcs11.C_Decrypt(this.session, fullCipher, outBuf);
+        console.debug('HSM decrypt succeeded (outBuf) using CKM_AES_GCM variant:', usedVariant);
+        return plain;
       }
     } catch (err) {
       throw new HsmAdapterError('HSM_DECRYPT_FAILED', err.message || String(err));
