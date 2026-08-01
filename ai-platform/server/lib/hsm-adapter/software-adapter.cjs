@@ -1,10 +1,11 @@
 'use strict';
 
 /**
- * Track 10: Software HSM adapter.
+ * Track 10 / 13: Software HSM adapter.
  *
  * A concrete adapter that uses the in-process `aes-kw.cjs` implementation
- * (RFC 3394 AES-KW) for wrap/unwrap operations. KEKs are stored in memory.
+ * (RFC 3394 AES-KW) for wrap/unwrap operations. KEKs are stored in memory
+ * and namespaced by `tenantId`.
  *
  * This adapter serves two purposes:
  *   1. Fallback when no PKCS#11/HSM hardware is available.
@@ -34,39 +35,38 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
     if (![128, 192, 256].includes(this.kekBits)) {
       throw new HsmAdapterError('INVALID_KEK_BITS', `kekBits must be 128, 192, or 256; got ${this.kekBits}`);
     }
-    this._keks = new Map(); // kekId -> { kek: Buffer, meta, createdAt }
+    this._keks = new Map(); // kekId -> { kek, tenantId, meta, createdAt }
   }
 
   async _initialize() {
     // No-op: software adapter needs no external connection
   }
 
-  async _createKEK(meta = {}) {
+  _getKek(tenantId, kekId) {
+    const info = this._keks.get(kekId);
+    if (!info) {
+      throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${kekId}`);
+    }
+    if (info.tenantId !== tenantId) {
+      throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', `KEK ${kekId} does not belong to tenant ${tenantId}`);
+    }
+    return info;
+  }
+
+  async _createKEK(tenantId, meta = {}) {
     const kek = crypto.randomBytes(this.kekBits / 8);
     const kekId = crypto.randomBytes(8).toString('hex');
-    this._keks.set(kekId, { kek, meta, createdAt: Date.now() });
+    this._keks.set(kekId, { kek, tenantId, meta, createdAt: Date.now() });
     return kekId;
   }
 
-  async _wrap(kekId, plaintext) {
-    if (!Buffer.isBuffer(plaintext)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'plaintext must be a Buffer');
-    }
-    const info = this._keks.get(kekId);
-    if (!info) {
-      throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${kekId}`);
-    }
+  async _wrap(tenantId, kekId, plaintext) {
+    const info = this._getKek(tenantId, kekId);
     return aesKwWrap(info.kek, plaintext);
   }
 
-  async _unwrap(kekId, wrapped) {
-    if (!Buffer.isBuffer(wrapped)) {
-      throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
-    }
-    const info = this._keks.get(kekId);
-    if (!info) {
-      throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${kekId}`);
-    }
+  async _unwrap(tenantId, kekId, wrapped) {
+    const info = this._getKek(tenantId, kekId);
     try {
       return aesKwUnwrap(info.kek, wrapped);
     } catch (err) {
@@ -75,38 +75,35 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
     }
   }
 
-  async _rotateKEK(oldKekId) {
-    if (!this._keks.has(oldKekId)) {
-      throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${oldKekId}`);
-    }
-    const oldInfo = this._keks.get(oldKekId);
-    const newKekId = await this._createKEK({ rotatedFrom: oldKekId, ...oldInfo.meta });
+  async _rotateKEK(tenantId, oldKekId) {
+    const info = this._getKek(tenantId, oldKekId);
+    const newKekId = await this._createKEK(tenantId, { rotatedFrom: oldKekId, ...info.meta });
     return newKekId;
   }
 
-  async _listKEKs() {
-    return Array.from(this._keks.entries()).map(([kekId, info]) => ({
-      kekId,
-      meta: info.meta,
-      createdAt: info.createdAt,
-    }));
+  async _listKEKs(tenantId) {
+    return Array.from(this._keks.entries())
+      .filter(([, info]) => info.tenantId === tenantId)
+      .map(([kekId, info]) => ({
+        kekId,
+        meta: info.meta,
+        createdAt: info.createdAt,
+      }));
   }
 
-  async _getKEK(kekId) {
-    const info = this._keks.get(kekId);
-    if (!info) {
-      throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${kekId}`);
-    }
+  async _getKEK(tenantId, kekId) {
+    const info = this._getKek(tenantId, kekId);
     return info.kek;
   }
 
   /**
    * Generate a test KEK for CI/integration testing.
+   * @param {string} tenantId
    * @param {object} [spec] - optional spec (currently ignored)
    * @returns {Promise<string>} kekId
    */
-  async generateTestKEK(spec = {}) {
-    return this._createKEK({ test: true, ...spec });
+  async generateTestKEK(tenantId, spec = {}) {
+    return this._createKEK(tenantId, { test: true, ...spec });
   }
 }
 

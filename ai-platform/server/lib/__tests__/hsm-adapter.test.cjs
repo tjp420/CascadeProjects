@@ -92,7 +92,7 @@ describe('SoftwareHsmAdapter', () => {
 
     test('rejects operations before initialize', async () => {
       const uninit = new SoftwareHsmAdapter();
-      await expectRejectErrorCode(() => uninit.createKEK(), 'NOT_INITIALIZED');
+      await expectRejectErrorCode(() => uninit.createKEK('t1'), 'NOT_INITIALIZED');
     });
 
     test('rejects invalid kekBits', () => {
@@ -105,14 +105,14 @@ describe('SoftwareHsmAdapter', () => {
 
   describe('KEK lifecycle', () => {
     test('createKEK returns a hex string kekId', async () => {
-      const kekId = await adapter.createKEK();
+      const kekId = await adapter.createKEK('t1');
       expect(typeof kekId).toBe('string');
       expect(kekId).toMatch(/^[0-9a-f]+$/);
     });
 
     test('createKEK stores metadata', async () => {
-      const kekId = await adapter.createKEK({ purpose: 'test' });
-      const list = await adapter.listKEKs();
+      const kekId = await adapter.createKEK('t1', { purpose: 'test' });
+      const list = await adapter.listKEKs('t1');
       const entry = list.find((k) => k.kekId === kekId);
       expect(entry).toBeDefined();
       expect(entry.meta.purpose).toBe('test');
@@ -120,17 +120,17 @@ describe('SoftwareHsmAdapter', () => {
     });
 
     test('listKEKs returns all created KEKs', async () => {
-      await adapter.createKEK();
-      await adapter.createKEK();
-      const list = await adapter.listKEKs();
+      await adapter.createKEK('t1');
+      await adapter.createKEK('t1');
+      const list = await adapter.listKEKs('t1');
       expect(list).toHaveLength(2);
     });
 
     test('rotateKEK creates a new KEK and preserves old one', async () => {
-      const oldId = await adapter.createKEK();
-      const newId = await adapter.rotateKEK(oldId);
+      const oldId = await adapter.createKEK('t1');
+      const newId = await adapter.rotateKEK('t1', oldId);
       expect(newId).not.toBe(oldId);
-      const list = await adapter.listKEKs();
+      const list = await adapter.listKEKs('t1');
       expect(list).toHaveLength(2);
       const newEntry = list.find((k) => k.kekId === newId);
       expect(newEntry.meta.rotatedFrom).toBe(oldId);
@@ -141,8 +141,8 @@ describe('SoftwareHsmAdapter', () => {
     });
 
     test('generateTestKEK creates a KEK with test flag', async () => {
-      const kekId = await adapter.generateTestKEK();
-      const list = await adapter.listKEKs();
+      const kekId = await adapter.generateTestKEK('t1');
+      const list = await adapter.listKEKs('t1');
       const entry = list.find((k) => k.kekId === kekId);
       expect(entry.meta.test).toBe(true);
     });
@@ -152,32 +152,32 @@ describe('SoftwareHsmAdapter', () => {
 
   describe('low-level wrap/unwrap', () => {
     test('wrap/unwrap round-trip recovers plaintext', async () => {
-      const kekId = await adapter.createKEK();
+      const kekId = await adapter.createKEK('t1');
       const plaintext = crypto.randomBytes(32);
-      const wrapped = await adapter.wrap(kekId, plaintext);
-      const unwrapped = await adapter.unwrap(kekId, wrapped);
+      const wrapped = await adapter.wrap('t1', kekId, plaintext);
+      const unwrapped = await adapter.unwrap('t1', kekId, wrapped);
       expect(unwrapped.equals(plaintext)).toBe(true);
     });
 
     test('wrap rejects non-Buffer plaintext', async () => {
-      const kekId = await adapter.createKEK();
-      await expectRejectErrorCode(() => adapter.wrap(kekId, 'not-a-buffer'), 'INVALID_INPUT');
+      const kekId = await adapter.createKEK('t1');
+      await expectRejectErrorCode(() => adapter.wrap('t1', kekId, 'not-a-buffer'), 'INVALID_INPUT');
     });
 
     test('wrap rejects unknown KEK', async () => {
-      await expectRejectErrorCode(() => adapter.wrap('nonexistent', Buffer.alloc(32)), 'UNKNOWN_KEK');
+      await expectRejectErrorCode(() => adapter.wrap('t1', 'nonexistent', Buffer.alloc(32)), 'UNKNOWN_KEK');
     });
 
     test('unwrap rejects unknown KEK', async () => {
-      await expectRejectErrorCode(() => adapter.unwrap('nonexistent', Buffer.alloc(40)), 'UNKNOWN_KEK');
+      await expectRejectErrorCode(() => adapter.unwrap('t1', 'nonexistent', Buffer.alloc(40)), 'UNKNOWN_KEK');
     });
 
     test('unwrap corrupted ciphertext fails with UNWRAP_FAILED', async () => {
-      const kekId = await adapter.createKEK();
+      const kekId = await adapter.createKEK('t1');
       const plaintext = crypto.randomBytes(32);
-      const wrapped = await adapter.wrap(kekId, plaintext);
+      const wrapped = await adapter.wrap('t1', kekId, plaintext);
       wrapped[wrapped.length - 1] ^= 0xFF; // corrupt last byte
-      await expectRejectErrorCode(() => adapter.unwrap(kekId, wrapped), 'UNWRAP_FAILED');
+      await expectRejectErrorCode(() => adapter.unwrap('t1', kekId, wrapped), 'UNWRAP_FAILED');
     });
   });
 
@@ -261,10 +261,10 @@ describe('SoftwareHsmAdapter', () => {
       test(`${kekBits}-bit KEK wrap/unwrap round-trip`, async () => {
         const a = new SoftwareHsmAdapter({ kekBits });
         await a.initialize();
-        const kekId = await a.createKEK();
+        const kekId = await a.createKEK('t1');
         const plaintext = crypto.randomBytes(32);
-        const wrapped = await a.wrap(kekId, plaintext);
-        const unwrapped = await a.unwrap(kekId, wrapped);
+        const wrapped = await a.wrap('t1', kekId, plaintext);
+        const unwrapped = await a.unwrap('t1', kekId, wrapped);
         expect(unwrapped.equals(plaintext)).toBe(true);
       });
     });
