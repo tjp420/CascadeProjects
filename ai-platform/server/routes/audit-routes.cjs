@@ -57,12 +57,16 @@ function getActor(req) {
 // All audit endpoints require authentication
 router.use(authenticate);
 
-// Apply token-bucket defense to admin audit routes, excluding the high-volume /log endpoint
-function adminThrottleUnlessLog(req, res, next) {
-  if (req.path === '/log') return next();
+// Apply token-bucket defense to admin audit routes only.
+// Non-admin routes (log, stats, export, partition-status, verify-stream) are
+// excluded — they are available to all authenticated users and should not be
+// throttled by the admin defense layer.
+const NON_ADMIN_AUDIT_PATHS = new Set(['/log', '/stats', '/export', '/partition-status', '/verify-stream']);
+function adminThrottleIfAdminRoute(req, res, next) {
+  if (NON_ADMIN_AUDIT_PATHS.has(req.path)) return next();
   adminThrottle(req, res, next);
 }
-router.use(adminThrottleUnlessLog);
+router.use(adminThrottleIfAdminRoute);
 
 // ── GET /api/audit/log ──────────────────────────────────────────────────────
 //   Query params: action, entity, actorId, startDate, endDate, limit, offset
