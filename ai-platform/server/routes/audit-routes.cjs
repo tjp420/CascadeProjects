@@ -763,7 +763,16 @@ router.get('/retention/stats', authorize('admin:all'), (req, res) => {
   try {
     const orgId = getOrgId(req);
     const stats = auditLogger.getRetentionStats(orgId);
-    res.json({ success: true, orgId, ...stats });
+    // Attach autonomous lifecycle purge stats (global worker telemetry)
+    let autoPurgeStats = null;
+    try {
+      if (typeof auditLogger.getLifecyclePurgeStats === 'function') {
+        autoPurgeStats = auditLogger.getLifecyclePurgeStats();
+      }
+    } catch (e) {
+      logger.warn('[Audit] failed to fetch lifecycle purge stats:', e.message);
+    }
+    res.json({ success: true, orgId, ...stats, autoPurgeStats });
   } catch (err) {
     logger.warn('[Audit] retention_stats_failed:', err.message);
     sendError(res, 500, 'retention_stats_failed', { message: err.message });

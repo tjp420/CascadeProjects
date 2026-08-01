@@ -125,8 +125,8 @@ describe('Autonomous Lifecycle Purge', () => {
   });
 
   describe('runAutonomousLifecyclePurge()', () => {
-    it('should return zero results for empty store', () => {
-      const result = auditLogger.runAutonomousLifecyclePurge();
+    it('should return zero results for empty store', async () => {
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       assert.strictEqual(result.totalPurged, 0);
       assert.strictEqual(result.totalArchived, 0);
       assert.strictEqual(result.orgsProcessed, 0);
@@ -134,7 +134,7 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.deepStrictEqual(result.errors, []);
     });
 
-    it('should iterate all orgs from getAllOrgIds()', () => {
+    it('should iterate all orgs from getAllOrgIds()', async () => {
       const now = new Date();
       const oldDate = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'org-a', [oldDate.toISOString()]);
@@ -143,13 +143,13 @@ describe('Autonomous Lifecycle Purge', () => {
       writePolicyDirectly(tmpPolicyPath, 'org-b', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       assert.strictEqual(result.orgsProcessed, 2);
       assert.strictEqual(result.orgsPurged, 2);
       assert.strictEqual(result.totalPurged, 2);
     });
 
-    it('should call purgeOldEntries and evict expired entries', () => {
+    it('should call purgeOldEntries and evict expired entries', async () => {
       const now = new Date();
       const oldDate = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [
@@ -159,7 +159,7 @@ describe('Autonomous Lifecycle Purge', () => {
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       assert.strictEqual(result.totalPurged, 1);
       assert.strictEqual(result.orgsPurged, 1);
 
@@ -175,14 +175,14 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.strictEqual(testEntries.length, 1);
     });
 
-    it('should write audit_retention_auto_purge log entry when purged > 0', () => {
+    it('should write audit_retention_auto_purge log entry when purged > 0', async () => {
       const now = new Date();
       const oldDate = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [oldDate.toISOString()]);
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      auditLogger.runAutonomousLifecyclePurge();
+      await auditLogger.runAutonomousLifecyclePurge();
 
       // Check that an auto-purge audit entry was written
       const store = JSON.parse(fs.readFileSync(tmpLogPath, 'utf8'));
@@ -193,13 +193,13 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.strictEqual(autoPurgeEntries[0].orgId, 'test-org');
     });
 
-    it('should NOT write audit_retention_auto_purge when purged === 0', () => {
+    it('should NOT write audit_retention_auto_purge when purged === 0', async () => {
       const now = new Date();
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [now.toISOString()]);
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       assert.strictEqual(result.totalPurged, 0);
 
       const store = JSON.parse(fs.readFileSync(tmpLogPath, 'utf8'));
@@ -209,13 +209,13 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.strictEqual(autoPurgeEntries.length, 0);
     });
 
-    it('should use system actor for auto-purge log entry', () => {
+    it('should use system actor for auto-purge log entry', async () => {
       const oldDate = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [oldDate.toISOString()]);
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      auditLogger.runAutonomousLifecyclePurge();
+      await auditLogger.runAutonomousLifecyclePurge();
 
       const store = JSON.parse(fs.readFileSync(tmpLogPath, 'utf8'));
       const autoPurgeEntry = Object.values(store.entries).find(
@@ -226,13 +226,13 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.strictEqual(autoPurgeEntry.actorEmail, 'system@internal');
     });
 
-    it('should include metadata with purged, remaining, archived, policy in log entry', () => {
+    it('should include metadata with purged, remaining, archived, policy in log entry', async () => {
       const oldDate = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [oldDate.toISOString()]);
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      auditLogger.runAutonomousLifecyclePurge();
+      await auditLogger.runAutonomousLifecyclePurge();
 
       const store = JSON.parse(fs.readFileSync(tmpLogPath, 'utf8'));
       const autoPurgeEntry = Object.values(store.entries).find(
@@ -249,13 +249,13 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.strictEqual(autoPurgeEntry.metadata.policy.archive, false);
     });
 
-    it('should return summary with totalPurged, totalArchived, orgsProcessed, orgsPurged, errors', () => {
+    it('should return summary with totalPurged, totalArchived, orgsProcessed, orgsPurged, errors', async () => {
       const oldDate = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [oldDate.toISOString()]);
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       assert.strictEqual(typeof result.totalPurged, 'number');
       assert.strictEqual(typeof result.totalArchived, 'number');
       assert.strictEqual(typeof result.orgsProcessed, 'number');
@@ -263,7 +263,7 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.ok(Array.isArray(result.errors));
     });
 
-    it('should isolate per-org errors (one failure does not block others)', () => {
+    it('should isolate per-org errors (one failure does not block others)', async () => {
       const now = new Date();
       const oldDate = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'good-org', [oldDate.toISOString()]);
@@ -279,14 +279,14 @@ describe('Autonomous Lifecycle Purge', () => {
       }
       auditPolicyStore._resetCache();
 
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       // good-org should still be processed even if bad-org errors
       assert.ok(result.orgsProcessed >= 1);
       // The good org should have been purged
       assert.ok(result.totalPurged >= 0); // bad-org might not error, just not purge
     });
 
-    it('should record errors in errors array with orgId and message', () => {
+    it('should record errors in errors array with orgId and message', async () => {
       // Create an org with entries that have null timestamps, which will
       // cause a TypeError in the sort() call inside purgeOldEntries().
       // Need 2+ entries to trigger the sort comparator.
@@ -313,13 +313,13 @@ describe('Autonomous Lifecycle Purge', () => {
       writePolicyDirectly(tmpPolicyPath, 'corrupt-org', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       assert.ok(result.errors.length > 0);
       assert.ok(result.errors[0].orgId);
       assert.ok(result.errors[0].error);
     });
 
-    it('should respect safety floor (maxEntries most recent preserved)', () => {
+    it('should respect safety floor (maxEntries most recent preserved)', async () => {
       const now = new Date();
       const oldDates = [];
       for (let i = 0; i < 5; i++) {
@@ -336,7 +336,7 @@ describe('Autonomous Lifecycle Purge', () => {
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 3, archive: false });
       auditPolicyStore._resetCache();
 
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       // 5 old entries should be purged, 3 recent preserved
       assert.strictEqual(result.totalPurged, 5);
       // 3 recent TEST entries preserved + 1 auto-purge log entry = 4 total
@@ -350,7 +350,7 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.strictEqual(testEntries.length, 3);
     });
 
-    it('should maintain hash chain validity after auto-purge', () => {
+    it('should maintain hash chain validity after auto-purge', async () => {
       const now = new Date();
       const oldDate = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [
@@ -360,14 +360,14 @@ describe('Autonomous Lifecycle Purge', () => {
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      auditLogger.runAutonomousLifecyclePurge();
+      await auditLogger.runAutonomousLifecyclePurge();
 
       // verifyChain should pass after purge
       const verification = auditLogger.verifyChain('test-org');
       assert.strictEqual(verification.valid, true);
     });
 
-    it('should not cross org boundaries', () => {
+    it('should not cross org boundaries', async () => {
       const now = new Date();
       const oldDate = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000);
       // org-a has an old entry, org-b has only a recent entry
@@ -377,7 +377,7 @@ describe('Autonomous Lifecycle Purge', () => {
       writePolicyDirectly(tmpPolicyPath, 'org-b', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       assert.strictEqual(result.totalPurged, 1); // Only org-a's entry
 
       // org-b should still have its entry
@@ -385,7 +385,7 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.strictEqual(statsB.total, 1);
     });
 
-    it('should handle org with empty entries gracefully', () => {
+    it('should handle org with empty entries gracefully', async () => {
       // Create an org with entries, then purge all — second sweep should skip
       const oldDate = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [oldDate.toISOString()]);
@@ -393,17 +393,17 @@ describe('Autonomous Lifecycle Purge', () => {
       auditPolicyStore._resetCache();
 
       // First sweep purges the entry
-      const result1 = auditLogger.runAutonomousLifecyclePurge();
+      const result1 = await auditLogger.runAutonomousLifecyclePurge();
       assert.strictEqual(result1.totalPurged, 1);
 
       // Second sweep: the auto-purge log entry from the first sweep is now
       // in the store under 'test-org', so orgsProcessed = 1 but nothing to purge
-      const result2 = auditLogger.runAutonomousLifecyclePurge();
+      const result2 = await auditLogger.runAutonomousLifecyclePurge();
       assert.strictEqual(result2.totalPurged, 0);
       assert.strictEqual(result2.orgsPurged, 0); // Nothing purged
     });
 
-    it('should track stats in getLifecyclePurgeStats()', () => {
+    it('should track stats in getLifecyclePurgeStats()', async () => {
       const oldDate = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [oldDate.toISOString()]);
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: false });
@@ -413,7 +413,7 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.strictEqual(initialStats.totalSweeps, 0);
       assert.strictEqual(initialStats.totalPurged, 0);
 
-      auditLogger.runAutonomousLifecyclePurge();
+      await auditLogger.runAutonomousLifecyclePurge();
 
       const stats = auditLogger.getLifecyclePurgeStats();
       assert.strictEqual(stats.totalSweeps, 1);
@@ -423,23 +423,23 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.strictEqual(stats.lastResult.totalPurged, 1);
     });
 
-    it('should guard against concurrent sweeps', () => {
+    it('should guard against concurrent sweeps', async () => {
       // The function should return empty result if already running.
       // Since the function is synchronous, we can't truly test concurrency,
       // but we can verify the guard flag logic by checking it returns
       // the expected shape.
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       assert.ok(typeof result.totalPurged === 'number');
       assert.ok(Array.isArray(result.errors));
     });
 
-    it('should record archive count when archive policy is true', () => {
+    it('should record archive count when archive policy is true', async () => {
       const oldDate = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [oldDate.toISOString()]);
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: true });
       auditPolicyStore._resetCache();
 
-      const result = auditLogger.runAutonomousLifecyclePurge();
+      const result = await auditLogger.runAutonomousLifecyclePurge();
       assert.strictEqual(result.totalPurged, 1);
       assert.strictEqual(result.totalArchived, 1);
 
@@ -448,13 +448,13 @@ describe('Autonomous Lifecycle Purge', () => {
       assert.ok(fs.existsSync(archivePath));
     });
 
-    it('should write auto-purge log entry with entity and entityId set correctly', () => {
+    it('should write auto-purge log entry with entity and entityId set correctly', async () => {
       const oldDate = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
       writeChainedEntries(auditLogger, tmpLogPath, 'test-org', [oldDate.toISOString()]);
       writePolicyDirectly(tmpPolicyPath, 'test-org', { retentionDays: 30, maxEntries: 100, archive: false });
       auditPolicyStore._resetCache();
 
-      auditLogger.runAutonomousLifecyclePurge();
+      await auditLogger.runAutonomousLifecyclePurge();
 
       const store = JSON.parse(fs.readFileSync(tmpLogPath, 'utf8'));
       const autoPurgeEntry = Object.values(store.entries).find(

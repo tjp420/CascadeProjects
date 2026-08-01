@@ -1,8 +1,8 @@
-# Test Plan — Automated Purge Schedule (Autonomous ILM)
+# Test Plan — Auto-Purge Metrics in Stats API & Dashboard
 
 **Date:** 2026-07-31
 **Branch:** feat/agentic-orchestration
-**Feature:** Wire purgeOldEntries() into the 5-minute auto-heal background worker
+**Feature:** Expose _lifecyclePurgeStats via GET /retention/stats and surface in frontend
 
 ---
 
@@ -12,33 +12,27 @@
 
 | # | Check | Level | File |
 |---|-------|-------|------|
-| 1 | `runAutonomousLifecyclePurge()` iterates all orgs from getAllOrgIds() | L1 | `audit-logger.cjs` |
-| 2 | For each org, calls `purgeOldEntries(orgId)` with the org's active policy | L1 | `audit-logger.cjs` |
-| 3 | When `purged > 0`, writes an audit log entry with action `audit_retention_auto_purge` | L1 | `audit-logger.cjs` |
-| 4 | Auto-purge log entry includes metadata: purged, remaining, archived, policy snapshot | L1 | `audit-logger.cjs` |
-| 5 | Auto-purge log entry uses system actor (`actorId: 'system'`, `actorEmail: 'system@internal'`) | L1 | `audit-logger.cjs` |
-| 6 | `runAutonomousLifecyclePurge()` is called from the auto-heal timer tick | L1 | `audit-logger.cjs` |
-| 7 | Timer tick order: healAllOrgs → runAutonomousReKeying → runAutonomousLifecyclePurge | L1 | `audit-logger.cjs` |
-| 8 | Returns summary `{ totalPurged, totalArchived, orgsProcessed, orgsPurged, errors }` | L1 | `audit-logger.cjs` |
-| 9 | `getLifecyclePurgeStats()` returns _lifecyclePurgeStats snapshot | L1 | `audit-logger.cjs` |
+| 1 | GET /retention/stats response includes `autoPurgeStats` object | L1 | `audit-routes.cjs` |
+| 2 | `autoPurgeStats` contains totalSweeps, totalPurged, totalArchived, lastResult, lastRun | L1 | `audit-routes.cjs` |
+| 3 | Frontend retention card renders "Background Worker Activity" section | L2 | `SecurityView.js` |
+| 4 | Worker activity section shows totalSweeps, totalPurged, totalArchived | L2 | `SecurityView.js` |
+| 5 | Worker activity section shows lastRun timestamp (human-readable) | L2 | `SecurityView.js` |
+| 6 | Stats refresh button also refreshes auto-purge metrics | L2 | `SecurityView.js` |
 
 ### Edge Cases
 
 | # | Check | Level | File |
 |---|-------|-------|------|
-| 10 | Org with 0 purgeable entries: no audit log entry written, continues to next org | L2 | test |
-| 11 | Org with empty store: skipped, no error thrown | L2 | test |
-| 12 | Error in one org's purge does not block other orgs (per-org try/catch) | L2 | test |
-| 13 | Error in one org recorded in errors array with orgId + message | L2 | test |
-| 14 | Safety floor respected: maxEntries most recent entries preserved even if older than cutoff | L2 | test |
-| 15 | Hash chain valid after auto-purge (verifyChain passes) | L2 | test |
+| 7 | Worker activity section shows "Never" when lastRun is null | L2 | `SecurityView.js` |
+| 8 | Worker activity section shows "0" counts when no sweeps have run | L2 | `SecurityView.js` |
+| 9 | Existing stats fields (total, purgeableCount, oldest, newest) still present | L1 | `audit-routes.cjs` |
 
 ### Security
 
 | # | Check | Level | File |
 |---|-------|-------|------|
-| 16 | Auto-purge log entry is itself subject to PII scrubbing (scrubAuditEntry) | L2 | test |
-| 17 | Auto-purge does not cross org boundaries (per-org isolation) | L2 | test |
+| 10 | Endpoint still wrapped with authorize('admin:all') | L1 | `audit-routes.cjs` |
+| 11 | Auto-purge stats fields escaped with escapeHtml() in frontend | L2 | `SecurityView.js` |
 
 ---
 
@@ -46,30 +40,26 @@
 
 | File | Action |
 |------|--------|
-| `ai-platform/server/lib/audit-logger.cjs` | UPDATE — add `runAutonomousLifecyclePurge()`, `getLifecyclePurgeStats()`, wire into timer, add `_lifecyclePurgeStats` state |
-| `ai-platform/server/lib/__tests__/audit-logger-auto-purge.test.cjs` | NEW — 17 tests covering all check-items |
+| `ai-platform/server/routes/audit-routes.cjs` | UPDATE — add autoPurgeStats to stats response |
+| `ai-platform/web/simplebeacon-dashboard/js-es2018/views/SecurityView.js` | UPDATE — add Background Worker Activity section |
 
 ## Design Decisions
 
-1. **Sequential, not Promise.all()** — Matches existing `healAllOrgs()` pattern (line 937: sequential `for...of` with per-org try/catch). Parallel purges would contend on the single store file lock and spike disk I/O for no benefit on a single-machine deployment.
+1. **No new endpoint** — Extend the existing GET /retention/stats rather than adding a new endpoint. The auto-purge stats are global (not per-org), but they're only relevant in the context of retention management, so co-locating them is natural.
 
-2. **Timer tick order** — healAllOrgs → runAutonomousReKeying → runAutonomousLifecyclePurge. Purge runs LAST so that any chain healing or re-keying completes first. This ensures the chain is intact before we evict entries and re-link.
+2. **Flat merge** — `res.json({ success, orgId, ...stats, autoPurgeStats })` — the autoPurgeStats is a nested object to avoid key collisions with the per-org stats.
 
-3. **Audit log entry for auto-purge** — Uses `log()` directly with `actorId: 'system'`, `actorEmail: 'system@internal'`, `action: 'audit_retention_auto_purge'`, `entity: 'audit_log'`, `entityId: orgId`. Metadata includes `{ purged, remaining, archived, policy: { retentionDays, maxEntries, archive }, autoPurge: true }`.
+3. **Frontend placement** — Add a compact "Background Worker Activity" card BELOW the stats grid and ABOVE the policy form. This gives admins visibility into the autonomous worker's activity at a glance.
 
-4. **Only log when purged > 0** — Avoids audit log spam every 5 minutes when there's nothing to purge. The absence of an `audit_retention_auto_purge` entry means no purge was needed.
+4. **No new service function** — The existing `fetchRetentionStats()` already returns the full response body. The autoPurgeStats will be included automatically.
 
-5. **Stats tracking** — `_lifecyclePurgeStats` mirrors `_healStats` and `_reKeyStats` patterns: `{ totalSweeps, totalPurged, totalArchived, lastResult, lastRun }`.
-
-6. **No new module** — Broom strategy. All changes inline in `audit-logger.cjs`. The `auditPolicyStore` is already required at the top of the file.
-
-7. **Guard flag** — `_lifecyclePurgeRunning` prevents concurrent purge sweeps, mirroring `_healRunning`.
+5. **Human-readable lastRun** — Format as locale string, or "Never" if null.
 
 ## Commands
 
 ```powershell
-node -c ai-platform/server/lib/audit-logger.cjs
-node -c ai-platform/server/lib/__tests__/audit-logger-auto-purge.test.cjs
+node -c ai-platform/server/routes/audit-routes.cjs
+node -c ai-platform/web/simplebeacon-dashboard/js-es2018/views/SecurityView.js
 cd ai-platform && npx jest --config jest.config.cjs --ci
 npx simplebeacon scan --full --gate --format json
 ```

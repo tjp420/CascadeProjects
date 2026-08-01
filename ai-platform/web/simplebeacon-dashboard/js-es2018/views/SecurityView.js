@@ -640,6 +640,8 @@ export class SecurityView {
         const purgeable = stats.purgeableCount || 0;
         const oldest = stats.oldestTimestamp ? new Date(stats.oldestTimestamp).toLocaleString() : '—';
         const newest = stats.newestTimestamp ? new Date(stats.newestTimestamp).toLocaleString() : '—';
+        const autoPurge = stats.autoPurgeStats || { runs: 0, purged: 0, archived: 0, failed: 0, lastRun: null };
+        const formattedLastRun = autoPurge.lastRun ? new Date(autoPurge.lastRun).toLocaleString() : 'Never';
         const archiveChecked = policy.archive ? 'checked' : '';
         return `
       <div class="section-block">
@@ -664,6 +666,28 @@ export class SecurityView {
             <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Newest Entry</div>
             <div style="font-size:var(--font-size-xs);font-weight:600;margin-top:var(--space-1);color:var(--text-muted);">${escapeHtml(newest)}</div>
           </div>
+        </div>
+        <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4);border-left:3px solid var(--primary);">
+          <div style="font-size:var(--font-size-xs);font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:var(--space-3);">Background Worker Activity</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);">
+            <div>
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Total Sweeps</div>
+              <div style="font-size:var(--font-size-base);font-weight:700;margin-top:var(--space-1);">${escapeHtml(String(autoPurge.runs || 0))}</div>
+            </div>
+            <div>
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Auto-Purged</div>
+              <div style="font-size:var(--font-size-base);font-weight:700;margin-top:var(--space-1);color:var(--success, #22c55e);">${escapeHtml(String(autoPurge.purged || 0))}</div>
+            </div>
+            <div>
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Auto-Archived</div>
+              <div style="font-size:var(--font-size-base);font-weight:700;margin-top:var(--space-1);color:var(--primary);">${escapeHtml(String(autoPurge.archived || 0))}</div>
+            </div>
+            <div>
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Last Sweep</div>
+              <div style="font-size:var(--font-size-xs);font-weight:600;margin-top:var(--space-1);color:var(--text-muted);${autoPurge.failed > 0 ? 'border-bottom:2px solid var(--danger);' : ''}">${escapeHtml(formattedLastRun)}</div>
+            </div>
+          </div>
+          ${autoPurge.failed > 0 ? `<div style="font-size:var(--font-size-xs);color:var(--danger);margin-top:var(--space-2);">⚠ ${escapeHtml(String(autoPurge.failed))} error(s) in last sweep</div>` : ''}
         </div>
         <div class="card" style="padding:var(--space-5);margin-bottom:var(--space-4);">
           <div style="font-size:var(--font-size-sm);font-weight:700;margin-bottom:var(--space-3);">Retention Policy</div>

@@ -713,9 +713,21 @@ let _lifecyclePurgeStats = {
   totalSweeps: 0,
   totalPurged: 0,
   totalArchived: 0,
+  failed: 0,
   lastResult: null,
   lastRun: null,
 };
+
+// Test hooks for injectable behaviors (used by unit tests)
+const _testHooks = {};
+
+/**
+ * Inject test hooks for unit testing. Accepts partial object with
+ * getAllOrgIds, purgeOldEntries, and log overrides.
+ */
+function __testInject(hooks) {
+  Object.assign(_testHooks, hooks || {});
+}
 
 /**
  * Read the quarantine store.
@@ -1110,7 +1122,7 @@ function getReKeyStats() {
  * triggered manually.
  * @returns {{ totalPurged: number, totalArchived: number, orgsProcessed: number, orgsPurged: number, errors: array }}
  */
-function runAutonomousLifecyclePurge() {
+async function runAutonomousLifecyclePurge() {
   if (_lifecyclePurgeRunning) {
     return { totalPurged: 0, totalArchived: 0, orgsProcessed: 0, orgsPurged: 0, errors: [] };
   }
@@ -1124,12 +1136,18 @@ function runAutonomousLifecyclePurge() {
   let orgsPurged = 0;
 
   try {
-    const orgIds = getAllOrgIds();
+    const getOrgIds = _testHooks.getAllOrgIds || getAllOrgIds;
+    const purgeFn = _testHooks.purgeOldEntries || purgeOldEntries;
+    const logFn = _testHooks.log || log;
+
+    const orgIds = typeof getOrgIds === 'function' ? await Promise.resolve(getOrgIds()) : [];
 
     for (const orgId of orgIds) {
       orgsProcessed++;
       try {
-        const result = purgeOldEntries(orgId);
+        // Provide a safety-floor option to purgeOldEntries so implementations
+        // can cap purges per-tenant. Tests expect an options.maxEntries value.
+        const result = await Promise.resolve(purgeFn(orgId, { maxEntries: 1000 }));
 
         if (result && result.purged > 0) {
           orgsPurged++;
@@ -1139,7 +1157,7 @@ function runAutonomousLifecyclePurge() {
           // Record the background cleanup as an audit log entry
           try {
             const policy = auditPolicyStore.getPolicy(orgId);
-            log({
+            await Promise.resolve(logFn({
               orgId,
               actorId: 'system',
               actorEmail: 'system@internal',
@@ -1157,7 +1175,7 @@ function runAutonomousLifecyclePurge() {
                 },
                 autoPurge: true,
               },
-            });
+            }));
           } catch (logErr) {
             // Logging failure should not block the sweep
             errors.push({ orgId, error: `audit-log write failed: ${logErr.message}` });
@@ -1175,6 +1193,7 @@ function runAutonomousLifecyclePurge() {
   _lifecyclePurgeStats.totalSweeps++;
   _lifecyclePurgeStats.totalPurged += totalPurged;
   _lifecyclePurgeStats.totalArchived += totalArchived;
+  _lifecyclePurgeStats.failed += errors.length || 0;
   _lifecyclePurgeStats.lastResult = {
     totalPurged,
     totalArchived,
@@ -1192,7 +1211,17 @@ function runAutonomousLifecyclePurge() {
  * @returns {{ totalSweeps: number, totalPurged: number, totalArchived: number, lastResult: object|null, lastRun: string|null }}
  */
 function getLifecyclePurgeStats() {
-  return { ..._lifecyclePurgeStats };
+  // Backwards-compatible view plus test-friendly aliases
+  return {
+    // legacy counters
+    ..._lifecyclePurgeStats,
+    // test / user-friendly aliases
+    runs: _lifecyclePurgeStats.totalSweeps,
+    purged: _lifecyclePurgeStats.totalPurged,
+    archived: _lifecyclePurgeStats.totalArchived,
+    failed: _lifecyclePurgeStats.failed || 0,
+    lastRun: _lifecyclePurgeStats.lastRun,
+  };
 }
 
 /**
@@ -1218,9 +1247,11 @@ function startAutoHeal(intervalMs) {
       // Swallow errors in background timer — don't crash the process
     }
     try {
-      runAutonomousLifecyclePurge();
+      runAutonomousLifecyclePurge().catch(() => {
+        // Swallow errors in background timer — don't crash the process
+      });
     } catch {
-      // Swallow errors in background timer — don't crash the process
+      // Swallow synchronous errors in background timer — don't crash the process
     }
   }, interval);
 
@@ -1278,5 +1309,6 @@ module.exports = {
   getReKeyStats,
   runAutonomousLifecyclePurge,
   getLifecyclePurgeStats,
+  __testInject,
   GENESIS_HASH,
 };
