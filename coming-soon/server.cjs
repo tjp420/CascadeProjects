@@ -1376,7 +1376,7 @@ app.get('/pricing.html', (req, res) => {
 app.get('/admin.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
-app.use('/simplebeacon-dashboard', express.static(path.join(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'), { index: 'index.html', dotfiles: 'deny', redirect: false }));
+app.use('/simplebeacon-dashboard', express.static(path.join(__dirname, '..', 'ai-platform', 'web', 'simplebeacon-dashboard'), { index: 'index.html', dotfiles: 'deny' }));
 
 
 // Stub path-health endpoint (used by dashboard pathHealthService)
@@ -1425,7 +1425,7 @@ app.get('/coming-soon/*', (req, res) => {
 });
 
 // Serve dashboard static assets directly from public/dashboard
-app.use('/dashboard', express.static(path.join(__dirname, 'public', 'dashboard'), { index: false, dotfiles: 'deny', redirect: false }));
+app.use('/dashboard', express.static(path.join(__dirname, 'public', 'dashboard'), { index: false, dotfiles: 'deny' }));
 
 // Dashboard SPA fallback: serve public/dashboard/index.html for all /dashboard/* routes
 // so client-side routing works when refreshing or loading a deep dashboard URL.

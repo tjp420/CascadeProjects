@@ -1354,7 +1354,7 @@ function generateComplianceReport(callerOrgId, frameworks) {
     try {
       const piiStore = require('./pii-policy-store.cjs');
       const piiPolicies = piiStore.getPolicies(orgId);
-      profile.piiPolicyCount = Array.isArray(piiPolicies) ? piiPolicies.length : 0;
+      profile.piiPolicyCount = Array.isArray(piPolicies) ? piiPolicies.length : 0;
     } catch {
       profile.piiPolicyCount = 0;
     }

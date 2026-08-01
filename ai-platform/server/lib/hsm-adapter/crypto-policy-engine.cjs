@@ -44,6 +44,17 @@ const DEFAULT_POLICY = {
     tokenExpiryMs: 300000,
     allowBlinding: true,
   },
+  pqc: {
+    minKemLevel: 512,
+    maxKemLevel: 1024,
+    hybridMode: true,
+    allowedCurves: ['P-256', 'P-384', 'P-521'],
+  },
+  time: {
+    maxDriftMs: 60000,
+    minQuorum: 3,
+    requireEpochChain: true,
+  },
 };
 
 function _isObject(value) {
@@ -76,6 +87,18 @@ function _mergeWithDefault(tenantPolicy) {
     homomorphic: {
       ...DEFAULT_POLICY.homomorphic,
       ...(tenantPolicy.homomorphic || {}),
+    },
+    pqc: {
+      ...DEFAULT_POLICY.pqc,
+      ...(tenantPolicy.pqc || {}),
+    },
+    zkp: {
+      ...DEFAULT_POLICY.zkp,
+      ...(tenantPolicy.zkp || {}),
+    },
+    time: {
+      ...DEFAULT_POLICY.time,
+      ...(tenantPolicy.time || {}),
     },
     ...tenantPolicy,
   };
@@ -218,6 +241,46 @@ class CryptoPolicyEngine {
     throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `Algorithm ${algorithm} is not recognized by policy`);
   }
 
+  _validatePqc(tenantPolicy, config) {
+    const policy = tenantPolicy.pqc || DEFAULT_POLICY.pqc;
+    const kemLevel = config.kemLevel;
+    if (typeof kemLevel === 'number') {
+      if (kemLevel < policy.minKemLevel || kemLevel > policy.maxKemLevel) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `kemLevel ${kemLevel} is outside allowed [${policy.minKemLevel}, ${policy.maxKemLevel}]`);
+      }
+      const validLevels = [512, 768, 1024];
+      if (!validLevels.includes(kemLevel)) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `kemLevel ${kemLevel} is not a supported PQC level`);
+      }
+    }
+    if (config.hybridMode === true && !policy.hybridMode) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'hybrid PQC mode is not allowed by policy');
+    }
+  }
+
+  _validateZkp(tenantPolicy, config) {
+    const policy = tenantPolicy.zkp || DEFAULT_POLICY.zkp;
+    if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.tokenExpiryMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `tokenExpiryMs ${config.tokenExpiryMs} exceeds policy ${policy.tokenExpiryMs}`);
+    }
+    if (typeof config.maxProofs === 'number' && config.maxProofs > policy.maxProofs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `maxProofs ${config.maxProofs} exceeds policy ${policy.maxProofs}`);
+    }
+    if (typeof config.primeHex === 'string' && policy.allowedPrimes.length > 0 && !policy.allowedPrimes.includes(config.primeHex)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'prime is not in allowedPrimes list');
+    }
+  }
+
+  _validateTime(tenantPolicy, config) {
+    const policy = tenantPolicy.time || DEFAULT_POLICY.time;
+    if (typeof config.maxDriftMs === 'number' && config.maxDriftMs > policy.maxDriftMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `maxDriftMs ${config.maxDriftMs} exceeds policy ${policy.maxDriftMs}`);
+    }
+    if (typeof config.minQuorum === 'number' && config.minQuorum < policy.minQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `minQuorum ${config.minQuorum} below policy ${policy.minQuorum}`);
+    }
+  }
+
   _validateHomomorphic(tenantPolicy, config) {
     const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
     if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
@@ -310,6 +373,21 @@ class CryptoPolicyEngine {
 
     if (operation === 'homomorphic') {
       this._validateHomomorphic(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqc') {
+      this._validatePqc(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'zkp') {
+      this._validateZkp(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'time') {
+      this._validateTime(tenantPolicy, config);
       return true;
     }
 
