@@ -1384,6 +1384,15 @@ export function AnalyzeView() {
         const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
         return rel && rel.includes('/');
       });
+      // Guard: if only 1-2 files without webkitRelativePath, the folder wasn't
+      // traversed (browser DOMException on readEntries). Scanning 1 file from
+      // a folder drop produces a false-positive gate PASS. Match the /audit
+      // page behavior: refuse to scan and prompt for Select Folder.
+      if (!hasRelativePath && dtFiles.length <= 2) {
+        toast.warning('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', { duration: 10000 });
+        setScanState('idle');
+        return;
+      }
       for (const f of dtFiles) {
         const virtualFile = f as VirtualFile;
         const rel = hasRelativePath
