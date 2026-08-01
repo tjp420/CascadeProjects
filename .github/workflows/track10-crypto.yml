@@ -15,7 +15,8 @@ jobs:
         run: |
           set -e
           git init
-          git remote add origin https://github.com/tjp420/CascadeProjects.git
+          AUTH_REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/tjp420/CascadeProjects.git"
+          git remote add origin "$AUTH_REPO_URL"
           # Fetch refs needed for PR merge or push SHA
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "Fetching PR merge ref"
