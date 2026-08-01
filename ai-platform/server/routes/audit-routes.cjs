@@ -913,4 +913,71 @@ router.get('/compliance/report', authorize('admin:all'), (req, res) => {
   }
 });
 
+// ── PII Policy Sync Routes ───────────────────────────────────────────────────
+router.get('/pii/frameworks', authorize('admin:all'), (req, res) => {
+  try { res.json({ success: true, frameworks: piiPolicyStore.COMPLIANCE_FRAMEWORKS }); }
+  catch (err) { logger.warn('[Audit] pii_frameworks_failed:', err.message); sendError(res, 500, 'pii_frameworks_failed', { message: err.message }); }
+});
+router.get('/pii/orgs', authorize('admin:all'), (req, res) => {
+  try {
+    const orgIds = piiPolicyStore.getAllOrgIds();
+    const orgDetails = orgIds.map((orgId) => {
+      const stats = piiPolicyStore.getStats(orgId);
+      return { orgId, totalPolicies: stats.totalPolicies || 0, enabledPolicies: stats.enabledPolicies || 0, disabledPolicies: (stats.totalPolicies||0)-(stats.enabledPolicies||0), bySeverity: stats.bySeverity||{}, byCompliance: stats.byCompliance||{} };
+    });
+    res.json({ success: true, orgs: orgDetails, total: orgDetails.length });
+  } catch (err) { logger.warn('[Audit] pii_orgs_list_failed:', err.message); sendError(res, 500, 'pii_orgs_list_failed', { message: err.message }); }
+});
+router.get('/pii/policies/:orgId', authorize('admin:all'), (req, res) => {
+  try {
+    const { orgId } = req.params;
+    if (!orgId) return sendError(res, 400, 'invalid_org_id', { message: 'orgId is required' });
+    const policies = piiPolicyStore.getPolicies(orgId);
+    res.json({ success: true, orgId, policies, total: policies.length });
+  } catch (err) { logger.warn('[Audit] pii_policies_get_failed:', err.message); sendError(res, 500, 'pii_policies_get_failed', { message: err.message }); }
+});
+router.post('/pii/sync-preview', authorize('admin:all'), (req, res) => {
+  try {
+    const { sourceOrgId, targetOrgIds, mode, compliance, severity, isDefault } = req.body || {};
+    if (!sourceOrgId) return sendError(res, 400, 'invalid_request', { message: 'sourceOrgId is required' });
+    let sourcePolicies = piiPolicyStore.getPolicies(sourceOrgId);
+    const cf = Array.isArray(compliance) ? compliance : null;
+    const sf = Array.isArray(severity) ? severity : null;
+    const df = typeof isDefault === 'boolean' ? isDefault : null;
+    if (cf) sourcePolicies = sourcePolicies.filter((p) => Array.isArray(p.compliance) && p.compliance.some((c) => cf.includes(c)));
+    if (sf) sourcePolicies = sourcePolicies.filter((p) => sf.includes(p.severity));
+    if (df !== null) sourcePolicies = sourcePolicies.filter((p) => Boolean(p.isDefault) === df);
+    const allOrgs = piiPolicyStore.getAllOrgIds();
+    const targets = Array.isArray(targetOrgIds) && targetOrgIds.length > 0 ? targetOrgIds.filter((o) => o !== sourceOrgId) : allOrgs.filter((o) => o !== sourceOrgId);
+    const syncMode = mode === 'replace' ? 'replace' : 'merge';
+    const previews = targets.map((tid) => {
+      const tp = piiPolicyStore.getPolicies(tid);
+      const ek = new Set(tp.map((p) => p.name + '::' + p.pattern));
+      let wc = 0, ws = 0, wr = 0;
+      if (syncMode === 'replace') wr = tp.length;
+      for (const src of sourcePolicies) { const k = src.name + '::' + src.pattern; if (syncMode === 'merge' && ek.has(k)) ws++; else wc++; }
+      return { orgId: tid, mode: syncMode, sourcePolicyCount: sourcePolicies.length, targetPolicyCount: tp.length, wouldClone: wc, wouldSkip: ws, wouldRemove: wr };
+    });
+    res.json({ success: true, sourceOrgId, sourcePolicyCount: sourcePolicies.length, mode: syncMode, targetCount: targets.length, previews });
+  } catch (err) { logger.warn('[Audit] pii_sync_preview_failed:', err.message); sendError(res, 500, 'pii_sync_preview_failed', { message: err.message }); }
+});
+router.post('/pii/sync', authorize('admin:all'), (req, res) => {
+  try {
+    const { sourceOrgId, targetOrgIds, mode, compliance, severity, isDefault } = req.body || {};
+    if (!sourceOrgId) return sendError(res, 400, 'invalid_request', { message: 'sourceOrgId is required' });
+    const allOrgs = piiPolicyStore.getAllOrgIds();
+    const targets = Array.isArray(targetOrgIds) && targetOrgIds.length > 0 ? targetOrgIds.filter((o) => o !== sourceOrgId) : allOrgs.filter((o) => o !== sourceOrgId);
+    if (targets.length === 0) return sendError(res, 400, 'no_targets', { message: 'No target orgs available to sync to' });
+    const options = {};
+    if (mode) options.mode = mode;
+    if (Array.isArray(compliance)) options.compliance = compliance;
+    if (Array.isArray(severity)) options.severity = severity;
+    if (typeof isDefault === 'boolean') options.isDefault = isDefault;
+    const result = piiPolicyStore.syncPoliciesToOrgs(sourceOrgId, targets, options);
+    try { auditLogger.log({ orgId: getOrgId(req), actorId: req.user?.id || 'unknown', actorEmail: req.user?.email || 'unknown', action: 'pii_policy_sync', entity: 'pii_policies', entityId: sourceOrgId, metadata: { sourceOrgId, targetCount: targets.length, mode: options.mode || 'merge', totalCloned: result.totalCloned, totalSkipped: result.totalSkipped, totalRemoved: result.totalRemoved } }); } catch (logErr) { logger.warn('[Audit] Failed to audit-log PII policy sync:', logErr.message); }
+    logger.info('[Audit] pii_policy_sync source:', sourceOrgId, 'targets:', targets.length, 'cloned:', result.totalCloned);
+    res.json({ success: true, ...result });
+  } catch (err) { logger.warn('[Audit] pii_sync_failed:', err.message); sendError(res, 500, 'pii_sync_failed', { message: err.message }); }
+});
+
 module.exports = router;

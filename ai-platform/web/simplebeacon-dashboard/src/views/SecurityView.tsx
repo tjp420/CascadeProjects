@@ -12,6 +12,7 @@ import { AgenticOrchestrationDashboard } from '@/components/AgenticOrchestration
 import { ToolSchemaValidationDashboard } from '@/components/ToolSchemaValidationDashboard';
 import { StreamInterdictionDashboard } from '@/components/StreamInterdictionDashboard';
 import { QuarantineLogBrowser } from '@/components/QuarantineLogBrowser';
+import { PolicySyncer } from '@/components/PolicySyncer';
 
 type ScanResultData = {
   projectPath?: string;
@@ -394,6 +395,7 @@ export function SecurityView() {
       <ToolSchemaValidationDashboard />
       <StreamInterdictionDashboard />
       <QuarantineLogBrowser />
+      <PolicySyncer />
     </div>
   );
 }
