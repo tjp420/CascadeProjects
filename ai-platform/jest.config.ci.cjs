@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 /**
- * CI-only Jest config (placeholder for diagnostics).
+ * CI-only Jest config that removes setupFilesAfterEnv from the config
+ * to avoid Jest 30's broken config validation. The setup file is
+ * passed via the --setupFilesAfterEnv CLI flag instead, which bypasses
+ * the validation that uses unrs-resolver (which has a bug on Linux
+ * where it can't resolve absolute paths).
  *
- * Currently identical to the base config. The CI workflow uses this
- * config to allow CI-specific overrides without affecting local dev.
+ * See: https://github.com/jestjs/jest/issues/15923
  *
  * @license MIT
  */
@@ -11,5 +14,6 @@
 const base = require('./jest.config.cjs');
 
 module.exports = {
-  ...base
+  ...base,
+  setupFilesAfterEnv: []
 };

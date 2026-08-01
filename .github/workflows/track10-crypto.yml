@@ -119,21 +119,21 @@ jobs:
 
       - name: Run AES-KW vector suite (RFC 3394 + RFC 5649)
         working-directory: ai-platform
-        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --verbose aes-kw-vectors aes-kw.test
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose aes-kw-vectors aes-kw.test
 
       - name: Run HSM adapter unit tests
         working-directory: ai-platform
-        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --verbose hsm-adapter.test
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose hsm-adapter.test
 
       - name: Run keyring serializer tests
         working-directory: ai-platform
-        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --verbose keyring-serializer
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose keyring-serializer
 
       - name: Run SoftHSM integration tests (real PKCS#11 token)
         working-directory: ai-platform
         env:
           SOFTHSM2_LIB: ${{ env.SOFTHSM2_LIB }}
-        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --verbose hsm-integration
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose hsm-integration
 
       - name: Upload test artifacts
         if: always()
