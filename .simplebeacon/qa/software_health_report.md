@@ -1,6 +1,6 @@
 # software_health_report.md
 
-> Validator output after executing the Track 13 multi-tenant key isolation test plan and adversarial gates on `feature/track13-groundwork`.
+> Validator output after executing the Track 14 dynamic cryptographic policy test plan and adversarial gates on `feature/track14-groundwork`.
 > This is a Builder self-check; an independent Validator sign-off is still recommended.
 
 ## Metadata
@@ -9,15 +9,15 @@
 |-------|-------|
 | Validator | Devin (Builder self-check; independent Validator sign-off still recommended) |
 | Date | 2026-08-01 |
-| Branch | `feature/track13-groundwork` |
-| test_plan version | `ai-platform/docs/specs/track13-multi-tenant-test-plan.md` (commit `b3ae1383`) |
-| Pull request | #109 targeting `feature/track10-aes-kw` |
+| Branch | `feature/track14-groundwork` |
+| test_plan version | `ai-platform/docs/specs/track14-policy-engine-test-plan.md` (commit `f9262053`) |
+| Pull request | #111 targeting `feature/track10-aes-kw` |
 
 ## Executive summary
 
 - **Gate:** PASS — quality score: 0 / 100 — blocking: 0 critical / 0 high / 0 medium
 - **Level 1:** All required commands executed and passed
-- **Level 2:** Behavioral checks for wrap/unwrap, DEK derivation, and cross-tenant isolation passed
+- **Level 2:** Behavioral checks for policy validation, hot-reload, and adapter integration passed
 - **Level 3:** Spec scope matches implementation; only approved files modified
 - **Ship recommendation:** GO — pending independent Validator sign-off
 
@@ -47,9 +47,9 @@ No spec gaps identified.
 
 | ID | Area | Suggestion | Effort |
 |----|------|------------|--------|
-| E-01 | observability | Add optional `tenantId` audit field to HSM adapter logging and error `extra` payloads for production traceability. | S |
-| E-02 | persistence | The current `tenantId` is only an in-memory scoping string. If a persistent `HsmAdapter` is introduced, `tenantId` should be part of the persisted key metadata and indexed. | M |
-| E-03 | tenant validation | Consider a configurable `tenantId` format validator (e.g., UUID, slug, or URL-safe regex) to reject non-normalized identifiers. | S |
+| E-01 | observability | Log policy decisions with `tenantId`, `operation`, and `policyVersion` for auditability. | S |
+| E-02 | persistence | Persist tenant policies to a durable store (KV/D1) and load on adapter start. | M |
+| E-03 | metrics | Add counters for `POLICY_VIOLATION_BLOCKED` and `POLICY_DEPRECATED_WARNING` events. | S |
 
 ---
 
@@ -57,9 +57,9 @@ No spec gaps identified.
 
 | ID | Feature | Rationale |
 |----|---------|-----------|
-| R-01 | Hardware-backed multi-tenant HSM | Move tenant-scoped keys into a real PKCS#11/HSM with per-tenant token or label isolation. |
-| R-02 | Per-tenant key usage quotas | Enforce limits on `createKEK`/`wrap`/`unwrap` operations per `tenantId`. |
-| R-03 | DEK-mode envelope in adapters | Integrate `multi-tenant-kek-derivation.cjs` directly into `BaseHsmAdapter` so callers can opt for one-time DEKs. |
+| R-01 | Background policy-driven rotation | Automatically queue `rotateKEK` for keys flagged by `POLICY_DEPRECATED_WARNING`. |
+| R-02 | Policy audit log | Append-only record of policy changes and reloads for compliance. |
+| R-03 | Web dashboard | Allow operators to view and edit tenant policies via the SimpleBeacon dashboard. |
 
 ---
 
@@ -68,31 +68,30 @@ No spec gaps identified.
 ### Syntax checks
 
 ```bash
+node -c ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs
 node -c ai-platform/server/lib/hsm-adapter/base-adapter.cjs
 node -c ai-platform/server/lib/hsm-adapter/software-adapter.cjs
 node -c ai-platform/server/lib/hsm-adapter/asymmetric-adapter.cjs
-node -c ai-platform/server/lib/hsm-adapter/multi-tenant-kek-derivation.cjs
-node -c ai-platform/server/lib/hsm-adapter/__tests__/multi-tenant-key-isolation.test.cjs
-node -c ai-platform/server/lib/hsm-adapter/__tests__/asymmetric-adapter.test.cjs
-node -c ai-platform/server/lib/__tests__/hsm-adapter.test.cjs
+node -c ai-platform/server/lib/hsm-adapter/__tests__/crypto-policy-engine.test.cjs
 ```
 
-All seven files pass syntax validation.
+All five files pass syntax validation.
 
-### Targeted Track 13 tests
+### Targeted Track 14 tests
 
 ```bash
-cd ai-platform && npx jest --config jest.config.cjs hsm-adapter asymmetric-adapter multi-tenant-key-isolation attestation
+cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine hsm-adapter asymmetric-adapter multi-tenant-key-isolation attestation
 ```
 
 ```text
-PASS server/lib/hsm-adapter/__tests__/multi-tenant-key-isolation.test.cjs
+PASS server/lib/hsm-adapter/__tests__/crypto-policy-engine.test.cjs
 PASS server/lib/__tests__/hsm-adapter.test.cjs
 PASS server/lib/hsm-adapter/__tests__/asymmetric-adapter.test.cjs
+PASS server/lib/hsm-adapter/__tests__/multi-tenant-key-isolation.test.cjs
 PASS server/lib/hsm-adapter/__tests__/attestation.test.cjs
 
-Test Suites: 4 passed, 4 total
-Tests:       62 passed, 62 total
+Test Suites: 5 passed, 5 total
+Tests:       78 passed, 78 total
 ```
 
 ### Full platform test suite
@@ -102,9 +101,9 @@ cd ai-platform && npm test
 ```
 
 ```text
-Test Suites: 1 skipped, 212 passed, 212 of 213 total
-Tests:       2 skipped, 2194 passed, 2196 total
-Time:        20.979 s
+Test Suites: 1 skipped, 213 passed, 213 of 214 total
+Tests:       2 skipped, 2210 passed, 2212 total
+Time:        20.867 s
 ```
 
 ### SimpleBeacon pre-commit gate
@@ -131,6 +130,7 @@ npx simplebeacon scan --gate
 | #107 | `feature/track11-groundwork` | `feat(track11): Asymmetric wrapping pairs for HSM adapter` | OPEN | MERGEABLE |
 | #108 | `feature/track12-groundwork` | `feat(track12): Attestation, HKDF context binding, and asymmetric hardware mocking` | OPEN | MERGEABLE |
 | #109 | `feature/track13-groundwork` | `feat(track13): Multi-tenant key isolation and per-transaction DEK derivation` | OPEN | MERGEABLE |
+| #111 | `feature/track14-groundwork` | `feat(track14): Dynamic cryptographic policy engine with hot-reload` | OPEN | MERGEABLE |
 
 ---
 
