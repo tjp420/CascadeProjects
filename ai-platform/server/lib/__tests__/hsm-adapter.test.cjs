@@ -199,12 +199,20 @@ describe('SoftwareHsmAdapter', () => {
     test('rejects export with invalid master KEK length', async () => {
       const keyring = makeValidKeyring();
       const invalidKek = Buffer.alloc(17); // 136 bits
-      await expect(adapter.exportKeyring(keyring, invalidKek)).rejects.toThrow(/HSM Export pipeline failure/);
+      await expect(adapter.exportKeyring(keyring, invalidKek)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'INVALID_KEK_LENGTH',
+        message: expect.stringMatching(/HSM Export pipeline failure/),
+      });
     });
 
     test('rejects non-Buffer binary envelope', async () => {
       const masterKek = crypto.randomBytes(32);
-      await expect(adapter.importKeyring('not-a-buffer', masterKek)).rejects.toThrow(/HSM Import pipeline failure/);
+      await expect(adapter.importKeyring('not-a-buffer', masterKek)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'INVALID_ENVELOPE_BUFFER',
+        message: expect.stringMatching(/HSM Import pipeline failure/),
+      });
     });
 
     test('rejects import with the wrong master KEK', async () => {
@@ -212,7 +220,11 @@ describe('SoftwareHsmAdapter', () => {
       const masterKek = crypto.randomBytes(32);
       const wrongKek = crypto.randomBytes(32);
       const blob = await adapter.exportKeyring(keyring, masterKek);
-      await expect(adapter.importKeyring(blob, wrongKek)).rejects.toThrow(/HSM Import pipeline failure/);
+      await expect(adapter.importKeyring(blob, wrongKek)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'ENVELOPE_INTEGRITY',
+        message: expect.stringMatching(/HSM Import pipeline failure/),
+      });
     });
 
     test('rejects corrupted T10K ciphertext', async () => {
@@ -221,7 +233,11 @@ describe('SoftwareHsmAdapter', () => {
       const blob = await adapter.exportKeyring(keyring, masterKek);
       const tampered = Buffer.from(blob);
       tampered[tampered.length - 1] ^= 0xFF;
-      await expect(adapter.importKeyring(tampered, masterKek)).rejects.toThrow(/HSM Import pipeline failure/);
+      await expect(adapter.importKeyring(tampered, masterKek)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'ENVELOPE_INTEGRITY',
+        message: expect.stringMatching(/HSM Import pipeline failure/),
+      });
     });
 
     test('rejects T10K envelope with wrong magic', async () => {
@@ -230,7 +246,11 @@ describe('SoftwareHsmAdapter', () => {
       const blob = await adapter.exportKeyring(keyring, masterKek);
       const tampered = Buffer.from(blob);
       tampered[0] = 0x00; // corrupt magic
-      await expect(adapter.importKeyring(tampered, masterKek)).rejects.toThrow(/HSM Import pipeline failure/);
+      await expect(adapter.importKeyring(tampered, masterKek)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'INVALID_MAGIC',
+        message: expect.stringMatching(/HSM Import pipeline failure/),
+      });
     });
   });
 

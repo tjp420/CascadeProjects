@@ -14,7 +14,11 @@
  * @module hsm-adapter/base-adapter
  */
 
-const { serialize, deserialize } = require('../keyring-serializer.cjs');
+const {
+  serialize,
+  deserialize,
+  KeyringValidationError,
+} = require('../keyring-serializer.cjs');
 
 const WRAPPED_BLOB_VERSION = 1;
 
@@ -170,7 +174,8 @@ class BaseHsmAdapter {
       // Direct pass-through to the unified binary pipeline
       return serialize(keyringData, masterKek);
     } catch (error) {
-      throw new Error(`HSM Export pipeline failure: ${error.message}`);
+      const code = error instanceof KeyringValidationError ? error.code : 'EXPORT_FAILED';
+      throw new HsmAdapterError(code, `HSM Export pipeline failure: ${error.message}`);
     }
   }
 
@@ -186,7 +191,8 @@ class BaseHsmAdapter {
       // Integrity check is handled implicitly inside unwrapPad
       return deserialize(binaryEnvelope, masterKek);
     } catch (error) {
-      throw new Error(`HSM Import pipeline failure: ${error.message}`);
+      const code = error instanceof KeyringValidationError ? error.code : 'IMPORT_FAILED';
+      throw new HsmAdapterError(code, `HSM Import pipeline failure: ${error.message}`);
     }
   }
 

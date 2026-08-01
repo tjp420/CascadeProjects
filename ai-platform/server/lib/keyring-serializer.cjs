@@ -11,9 +11,10 @@ const SCHEMA_VERSION = 1;
 const MAX_BYTE_SIZE = 10 * 1024 * 1024; // 10 MB strict ceiling
 
 class KeyringValidationError extends Error {
-  constructor(message) {
+  constructor(message, code) {
     super(message);
     this.name = 'KeyringValidationError';
+    this.code = code || 'INTERNAL_ERROR';
   }
 }
 
@@ -25,13 +26,13 @@ class KeyringValidationError extends Error {
  */
 function serialize(keyringData, kek) {
   if (!keyringData || typeof keyringData !== 'object') {
-    throw new KeyringValidationError('Invalid dataset payload provided for serialization.');
+    throw new KeyringValidationError('Invalid dataset payload provided for serialization.', 'INVALID_PAYLOAD');
   }
   if (!Buffer.isBuffer(kek)) {
-    throw new KeyringValidationError('KEK must be a Buffer.');
+    throw new KeyringValidationError('KEK must be a Buffer.', 'INVALID_KEK');
   }
   if (![16, 24, 32].includes(kek.length)) {
-    throw new KeyringValidationError('Invalid KEK length. Must be 128, 192, or 256 bits.');
+    throw new KeyringValidationError('Invalid KEK length. Must be 128, 192, or 256 bits.', 'INVALID_KEK_LENGTH');
   }
 
   try {
@@ -52,7 +53,8 @@ function serialize(keyringData, kek) {
 
     if (totalPayload.length > MAX_BYTE_SIZE) {
       throw new KeyringValidationError(
-        `Serialized payload exceeds strict structural safety limits (${MAX_BYTE_SIZE} bytes).`
+        `Serialized payload exceeds strict structural safety limits (${MAX_BYTE_SIZE} bytes).`,
+        'ENVELOPE_TOO_LARGE'
       );
     }
 
@@ -71,28 +73,29 @@ function serialize(keyringData, kek) {
  */
 function deserialize(buffer, kek) {
   if (!Buffer.isBuffer(buffer)) {
-    throw new KeyringValidationError('Target dataset for parsing must evaluate as a valid structural Buffer object.');
+    throw new KeyringValidationError('Target dataset for parsing must evaluate as a valid structural Buffer object.', 'INVALID_ENVELOPE_BUFFER');
   }
   if (!Buffer.isBuffer(kek)) {
-    throw new KeyringValidationError('KEK must be a Buffer.');
+    throw new KeyringValidationError('KEK must be a Buffer.', 'INVALID_KEK');
   }
   if (![16, 24, 32].includes(kek.length)) {
-    throw new KeyringValidationError('Invalid KEK length. Must be 128, 192, or 256 bits.');
+    throw new KeyringValidationError('Invalid KEK length. Must be 128, 192, or 256 bits.', 'INVALID_KEK_LENGTH');
   }
   if (buffer.length < 12) {
-    throw new KeyringValidationError('Malformed input stream: Header chunk length is under threshold limits.');
+    throw new KeyringValidationError('Malformed input stream: Header chunk length is under threshold limits.', 'HEADER_TOO_SMALL');
   }
 
   // 1. Verify Magic footprint markers
   if (!buffer.subarray(0, 4).equals(MAGIC)) {
-    throw new KeyringValidationError('Malformed dataset envelope: Unrecognized signature magic marker flags.');
+    throw new KeyringValidationError('Malformed dataset envelope: Unrecognized signature magic marker flags.', 'INVALID_MAGIC');
   }
 
   // 2. Parse structural metadata layers
   const version = buffer.readUInt16BE(4);
   if (version !== SCHEMA_VERSION) {
     throw new KeyringValidationError(
-      `Unsupported envelope version registry parsed: Target runtime requires v${SCHEMA_VERSION}.`
+      `Unsupported envelope version registry parsed: Target runtime requires v${SCHEMA_VERSION}.`,
+      'UNSUPPORTED_VERSION'
     );
   }
 
@@ -101,7 +104,8 @@ function deserialize(buffer, kek) {
 
   if (buffer.length !== expectedTotalSize) {
     throw new KeyringValidationError(
-      `Envelope body size alignment mismatch error condition detected. Expected: ${expectedTotalSize}, Got: ${buffer.length}`
+      `Envelope body size alignment mismatch error condition detected. Expected: ${expectedTotalSize}, Got: ${buffer.length}`,
+      'ENVELOPE_SIZE_MISMATCH'
     );
   }
 
@@ -114,7 +118,8 @@ function deserialize(buffer, kek) {
     return JSON.parse(decryptedPayload.toString('utf8'));
   } catch (error) {
     throw new KeyringValidationError(
-      `Cryptographic envelope unpacking failed structural integrity verification passes: ${error.message}`
+      `Cryptographic envelope unpacking failed structural integrity verification passes: ${error.message}`,
+      'ENVELOPE_INTEGRITY'
     );
   }
 }
