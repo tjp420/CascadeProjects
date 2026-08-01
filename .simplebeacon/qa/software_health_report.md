@@ -1,52 +1,51 @@
-# Software Health Report — Track 5: Advanced Defense Automation
+# software_health_report.md
+
+> Validator output after executing the Track 10 Level 1 gates and adversarial checks on `feature/track10-aes-kw`.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Validator | Devin (Validator-only mode) |
-| Date | 2026-07-31 |
-| Branch | main |
-| Commit under review | 1587a647 |
-| test_plan version | .simplebeacon/qa/test_plan.md (Track 5) |
+| Validator | Devin (Builder self-check; independent Validator sign-off still recommended) |
+| Date | 2026-08-01 |
+| Branch | `feature/track10-aes-kw` |
+| test_plan version | Implementation specifications from PR #104 branch (commit `80dfa5dc`) |
 
 ## Executive summary
 
-- **Gate:** PASS — quality score: 0/100 — blocking: 0 critical / 0 high / 0 medium
-- **Level 1:** 4/4 passed (syntax, full gate scan, `npm test`, `npm audit`)
-- **Level 2:** 5/5 passed
-- **Level 3:** 6/6 passed
-- **Ship recommendation:** GO
+- **Gate:** PASS — quality score: 0 / 100 — blocking: 0 critical / 0 high / 7 medium / 1 low
+- **Level 1:** All required commands executed and passed
+- **Level 2:** Cross-module lifecycle validation passed
+- **Level 3:** Spec scope matches implementation; no unplanned modules introduced
+- **Ship recommendation:** GO — pending an independent Validator sign-off
 
 ---
 
-## 1. Defects
+## 1. Defects (fix immediately)
 
-None. All validator-identified defects were resolved by the Builder and re-verified:
+No defects found during the adversarial pass.
 
-| ID | test_plan ref | Description | Resolution |
-|----|---------------|-------------|------------|
-| D-01 | L3-01 | `/api/audit/log` and other non-admin audit routes were throttled. | Non-admin paths now excluded in `audit-routes.cjs`. |
-| D-02 | S-04 | `adminThrottle` ran before `authorize('admin:all')` in `hsm-vault-routes.cjs`. | Auth wrapper now executes before the token bucket. |
-| D-03 | L2-05, L3-02 | Redis fallback did not inherit the last known token count and never retried Redis. | `_consumeFromRedis` now snapshots and seeds in-memory state on Redis failure. ioredis `'ready'` event auto-restores `usingRedis` on reconnect. `_probeRedisHealth()` exported for manual health checks. |
+| ID | test_plan ref | Description | Severity | Owner |
+|----|---------------|-------------|----------|-------|
+| — | — | — | — | — |
 
 ---
 
-## 2. Unimplemented
+## 2. Unimplemented (spec gaps)
 
 | ID | test_plan ref | Missing capability | Notes |
 |----|---------------|-------------------|-------|
-| U-01 | Scope files | `ai-platform/server/middleware/admin-throttle.cjs` not created. | Middleware is exported from `lib/admin-throttle.cjs` and wired directly; functionally equivalent. |
-| U-02 | Scope files | `ai-platform/docs/ARCHITECTURE.md` Track 5 ledger update. | **Resolved** — Track 5 section and compliance cross-reference entries added to ARCHITECTURE.md. |
+| U-01 | roadmap (post-Track 10 core) | Master KEK rotation protocol | Identified by the project lead as the next priority after architecture docs. `BaseHsmAdapter` has `rotateKEK` for the low-level KEK store, but no re-wrap flow exists for T10K blobs. |
 
 ---
 
-## 3. Enhancements
+## 3. Enhancements (debt / perf / UX)
 
-| ID | Area | Suggestion | Effort | Status |
-|----|------|------------|--------|--------|
-| E-01 | Resilience | Add a periodic Redis health check or reconnect to re-enable the Redis backend after recovery. | M | **Done** — ioredis `'ready'` event hook + `_probeRedisHealth()` |
-| E-02 | Testing | Add integration tests with `supertest` against `audit-routes` and `hsm-vault-routes` for the full 429 path. | M | **Done** — `audit-throttle-routes.test.cjs` (8 tests) + `hsm-vault-throttle.test.cjs` (8 tests) |
+| ID | Area | Suggestion | Effort |
+|----|------|------------|--------|
+| E-01 | performance | The AES-KW Vector 6 256/256 wrap path is ~83–85 µs/op. This is acceptable for keyring boot, but should be baselined before HSM production rollouts. | S |
+| E-02 | observability | `exportKeyring` / `importKeyring` currently throw generic `Error`. Consider mapping serializer failures back to `HsmAdapterError` codes for callers that rely on `error.code`. | S |
+| E-03 | documentation | T10K binary envelope spec and release notes are not yet written; planned as next phase. | M |
 
 ---
 
@@ -54,82 +53,111 @@ None. All validator-identified defects were resolved by the Builder and re-verif
 
 | ID | Feature | Rationale |
 |----|---------|-----------|
-| R-01 | Centralized throttling dashboard | Expose current per-IP and per-subnet token counts for operations. |
-| R-02 | Adaptive leak rates | Adjust leak rate based on time of day or threat signals. |
-| R-03 | Distributed token-bucket Lua optimization | Move per-request IP/subnet hashing out of the hot path. |
-| R-04 | AST pattern for middleware ordering enforcement | Add a `javascript-ast-patterns` engine rule that asserts throttle middleware always executes downstream of authentication/authorization in Express routers. Prevents regressions of D-01 and D-02 at the scanner level. |
+| R-01 | Master KEK rotation protocol | Re-wrap existing T10K blobs from an old `masterKek` to a new one without exposing plaintext at rest. |
+| R-02 | T10K architecture/release documentation | Cement the byte layout, error codes, and NIST/RFC references before additional consumers adopt the format. |
+| R-03 | HSM-backed `exportKeyring` oracle | Allow `exportKeyring` to accept a `kekId` and let the HSM fetch the actual KEK, rather than passing the plaintext KEK buffer into the adapter. |
 
 ---
 
 ## Command log (summary)
 
+### Syntax checks
+
 ```
-# Syntax validation
-node -c ai-platform/server/lib/admin-throttle.cjs              # PASS
-node -c ai-platform/server/lib/__tests__/admin-throttle.test.cjs # PASS
-node -c ai-platform/server/lib/__tests__/audit-throttle-routes.test.cjs # PASS
-node -c ai-platform/server/lib/__tests__/hsm-vault-throttle.test.cjs # PASS
-node -c ai-platform/server/routes/audit-routes.cjs             # PASS
-node -c ai-platform/server/routes/hsm-vault-routes.cjs         # PASS
+node -c ai-platform/server/lib/aes-kw.cjs
+node -c ai-platform/server/lib/keyring-serializer.cjs
+node -c ai-platform/server/lib/hsm-adapter/base-adapter.cjs
+node -c ai-platform/server/lib/hsm-adapter/software-adapter.cjs
+node -c ai-platform/scripts/validate-keyring-lifecycle.cjs
+node -c ai-platform/bench/aes-kw-bench.cjs
+node -c ai-platform/server/lib/__tests__/aes-kw.test.cjs
+node -c ai-platform/server/lib/__tests__/keyring-serializer.test.cjs
+node -c ai-platform/server/lib/__tests__/hsm-adapter.test.cjs
+```
 
-# Full security gate scan
-node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate
-# Gate: PASS, 0 critical / 0 high / 0 medium / 5 low, quality 0/100
+All 9 changed files pass syntax validation.
 
-# Full ai-platform test suite
+### Full platform test suite
+
+```bash
 cd ai-platform && npm test
-# Test Suites: 197 passed, 197 total
-# Tests:       1977 passed, 1977 total
-# Failing suites: none
-
-# Targeted Track 5 tests
-npx jest --config jest.config.cjs admin-throttle        # 9/9 PASS (incl. 2 D-03 recovery tests)
-npx jest --config jest.config.cjs audit-throttle-routes # 8/8 PASS
-npx jest --config jest.config.cjs hsm-vault-throttle    # 8/8 PASS
-npx jest --config jest.config.cjs cluster-keyring-sync  # 29/29 PASS
-
-# Dependency audit
-npm audit (root)        # 0 vulnerabilities
-npm audit (ai-platform) # 0 vulnerabilities
 ```
 
----
+```
+Test Suites: 1 skipped, 210 passed, 210 of 211 total
+Tests:       2 skipped, 2201 passed, 2203 total
+Time:        21.165 s
+```
 
-## Level 2 — Behavioral Verification
+### SimpleBeacon full-coverage gate scan
 
-| test_plan ref | Check | Result | Notes |
-|---------------|-------|--------|-------|
-| L2-01 | Repeated `423` responses trigger throttle | PASS | `admin-throttle.cjs` drains IP and subnet on `res.statusCode === 423`. |
-| L2-02 | Request volume spike (`>20`/s) triggers `429` | PASS | Token bucket with capacity 20 and 25% reserve blocks bursts. |
-| L2-03 | `isolation_violation` / `hsm_timeout` trigger throttle | PASS | Middleware listens for `403` and `503`; route error handlers produce those codes. |
-| L2-04 | Steady 5 req/s allowed | PASS | Refill at 5 tokens/second; targeted test passes. |
-| L2-05 | Redis failure fallback inherits count | PASS | Last known distributed state is seeded into the in-memory fallback. |
+```bash
+npx simplebeacon scan --full --gate --format json --output .simplebeacon\report-track10.json
+```
 
----
+- `gatePass: true`
+- `qualityScore: 0 / 100` (repository baseline)
+- `critical: 0`
+- `high: 0`
+- `medium: 7`
+- `low: 1`
 
-## Level 3 — Spec Drift & Edge Cases
+### Dependency audit
 
-| Item | Status | Notes |
-|------|--------|-------|
-| No ghost files | CONFIRMED | All referenced files exist. |
-| No new dependencies | CONFIRMED | Uses the existing `ioredis`/`redis` pattern; no package additions. |
-| Spec: `lib/admin-throttle.cjs` token bucket | MATCH | Implemented and exported. |
-| Spec: per-IP and per-subnet buckets | MATCH | /24 and /64 implemented; tests pass. |
-| Spec: 25% reserve fallback | MATCH | Implemented and tested. |
-| Spec: auth before throttle (S-04) | MATCH | `hsm-vault-routes` auth now runs before throttle. |
-| Spec: non-admin routes not throttled (L3-01) | MATCH | Non-admin audit paths are excluded. |
-| Spec: Redis recovery (L3-02) | MATCH | Last known state inherited on fallback; ioredis `'ready'` event auto-restores `usingRedis`; `_probeRedisHealth()` exported. |
-| Spec: architecture ledger update | MATCH | Track 5 section and compliance entries added to `ARCHITECTURE.md`. |
+```bash
+cd ai-platform && npm audit
+```
+
+```
+found 0 vulnerabilities
+```
+
+### Cross-module lifecycle validation
+
+```bash
+node ai-platform/scripts/validate-keyring-lifecycle.cjs
+```
+
+```
+=== Track 10 Keyring Lifecycle Validation ===
+[1] Verifying AES-KW RFC 3394 vectors...        ✓ 6 AES-KW vectors pass
+[2] Verifying AES-KWP RFC 5649 vectors...       ✓ 2 AES-KWP vectors pass
+[3] Verifying keyring-serializer round-trip...  ✓ Round-trip with 128-bit KEK
+                                                ✓ Round-trip with 192-bit KEK
+                                                ✓ Round-trip with 256-bit KEK
+[4] Verifying tamper and wrong-KEK failure modes...
+                                                ✓ Wrong KEK rejected
+                                                ✓ Tampered magic rejected
+                                                ✓ Tampered ciphertext rejected
+=== All lifecycle checks passed ===
+```
+
+### Performance benchmark
+
+```bash
+node ai-platform/bench/aes-kw-bench.cjs
+```
+
+| Case | µs/op | ops/sec |
+|------|-------|---------|
+| KW Vector 1 128/128 Wrap | 43.398 | 23,042 |
+| KW Vector 1 128/128 Unwrap | 43.555 | 22,959 |
+| KW Vector 4 192/192 Wrap | 64.029 | 15,618 |
+| KW Vector 6 256/256 Wrap | 83.267 | 12,010 |
+| KWP Vector 1 20-octet / 192 KEK Wrap | 65.477 | 15,272 |
+| KWP Vector 2 7-octet / 192 KEK Wrap | 3.919 | 255,150 |
+| Random 256/256 Wrap | 82.427 | 12,132 |
+| Random KWP 37-byte Wrap | 107.395 | 9,311 |
+
+No explicit SLA thresholds are defined in the current test plan. These numbers provide the baseline for future SLA definitions.
 
 ---
 
 ## Validator sign-off
 
 - [x] All Level 1 checks executed
-- [x] All documented defects resolved by Builder
-- [x] Re-verified after Builder fixes
-- [x] Full gate scan reviewed
-- [x] `npm test` 191/191 suites, 1954/1954 tests pass
-- [x] `npm audit` 0 vulnerabilities
+- [x] Failures documented in Defects (none found)
+- [x] No feature code written during the review except test fixes
+- [ ] Independent Validator review and final sign-off (recommended)
 
-**Verdict:** GO — Track 5 is secure, production-ready, and the `ai-platform` test suite is fully green.
+- Validator: Devin (Builder self-check)  Date: 2026-08-01
