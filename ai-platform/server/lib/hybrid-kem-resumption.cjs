@@ -245,20 +245,6 @@ async function validateTicketWithRedis(ticket, stekById, redis) {
   return validateTicket(ticket, stekById, bloom);
 }
 
-/**
- * Helper to validate a ticket using a redis client instance.
- * Creates a Redis-backed nonce set and delegates to `validateTicket`.
- * @param {Buffer} ticket
- * @param {Map|string|function} stekById
- * @param {object} redis Redis client compatible with `sadd`, `sismember`, `pexpire`
- * @returns {Promise<object>} result of validateTicket
- */
-async function validateTicketWithRedis(ticket, stekById, redis) {
-  if (!redis) throw new Error('redis client required for validateTicketWithRedis');
-  const bloom = createRedisBloomFilter(redis);
-  return validateTicket(ticket, stekById, bloom);
-}
-
 module.exports = {
   deriveResumptionPsk,
   generateStek,

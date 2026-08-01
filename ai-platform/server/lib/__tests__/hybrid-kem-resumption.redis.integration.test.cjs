@@ -7,11 +7,15 @@ const {
   validateTicketWithRedis,
 } = require('../hybrid-kem-resumption.cjs');
 
-const DOCKER_COMPOSE_FILE = `${__dirname.replace(/\\/g, '/')}/../../../../docker-compose.redis.yml`;
+const DOCKER_COMPOSE_FILE = `${__dirname.replace(/\\/g, '/')}/../../../docker-compose.redis.yml`;
 
 function dockerAvailable() {
   try {
     execSync('docker --version', { stdio: 'ignore' });
+    // Also verify the daemon is reachable so the test can be skipped
+    // cleanly in environments where the Docker binary is present but
+    // the engine is not running.
+    execSync('docker info', { stdio: 'ignore' });
     return true;
   } catch (e) {
     return false;
