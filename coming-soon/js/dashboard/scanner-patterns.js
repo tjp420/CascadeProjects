@@ -1478,7 +1478,13 @@ const ANALYZER_SCHEMA = {
     noHelmet:         { category: 'security',      exclusionProfile: 'sourceCodeOnly' },
     modelFallback:    { category: 'aiIndicators',  exclusionProfile: 'sourceCodeOnly' },
     promptInjectionSurface:{ category: 'security', exclusionProfile: 'sourceCodeOnly' },
-    mixedIndentation: { category: 'maintainability', exclusionProfile: 'sourceCodeOnly' }
+    mixedIndentation: { category: 'maintainability', exclusionProfile: 'sourceCodeOnly' },
+    governance: { category: 'governance', exclusionProfile: 'sourceCodeOnly' },
+    committedEnvFile: { category: 'configDrift', exclusionProfile: 'noArtifacts' },
+    secretInComment: { category: 'credentials', exclusionProfile: 'sourceCodeOnly' },
+    weakCryptography: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    redosRisk: { category: 'security', exclusionProfile: 'sourceCodeOnly' },
+    cicdSecretExposure: { category: 'credentials', exclusionProfile: 'noArtifacts' }
 };
 
 /**
