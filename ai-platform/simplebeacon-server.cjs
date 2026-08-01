@@ -532,9 +532,26 @@ async function redirectPublicToLanding(req, res) {
   if (landingAtRoot) {
     return res.redirect(302, '/');
   }
-  if (internalDashboard && !isVaultAuthenticated(req)) {
-    return res.redirect(302, '/');
+
+  // Allow users who are JWT-authenticated to access the dashboard even when
+  // the vault cookie is not present (useful for regular sign-in sessions).
+  try {
+    await new Promise((resolve) => optionalAuthenticate(req, res, resolve));
+  } catch (e) {
+    // ignore optional auth failures; req.user will be unset
   }
+
+  if (internalDashboard && !isVaultAuthenticated(req)) {
+    // If a regular authenticated user exists, show the dashboard.
+    if (req.user) return sendSimplebeaconDashboard(res);
+    // If the request is for the sign-in UI, render the dashboard SPA so the
+    // client can present the sign-in view instead of performing a redirect.
+    if (req.path === '/signin' || req.path.startsWith('/signin/')) return sendSimplebeaconDashboard(res);
+    // Otherwise redirect to sign-in (preserves returnTo for client-side flow)
+    const returnTo = encodeURIComponent(req.originalUrl || '/app');
+    return res.redirect(302, '/signin?returnTo=' + returnTo);
+  }
+
   return sendSimplebeaconDashboard(res);
 }
 
@@ -965,16 +982,26 @@ app.use((req, res, next) => {
   });
 });
 
-function requireVaultAuth(req, res, next) {
+app.use(async (req, res, next) => {
+  // Allow the sign-in UI to be publicly reachable so unauthenticated users
+  // can complete the login flow. Skip vault gating for `/signin`.
+  if (!isProtectedDashboardPath(req.path)) return next();
+  if (req.path === '/signin' || req.path.startsWith('/signin/')) return next();
+
+  // Attempt optional JWT auth so regular signed-in users can access /app
+  try {
+    await new Promise((resolve) => optionalAuthenticate(req, res, resolve));
+  } catch (e) {
+    // ignore optional auth failures; req.user will be unset
+  }
+
   if (process.env.NODE_ENV === 'development') return next();
   if (!internalDashboard) return next();
-  if (isVaultAuthenticated(req)) return next();
-  return res.redirect(302, '/');
-}
+  if (isVaultAuthenticated(req) || req.user) return next();
 
-app.use((req, res, next) => {
-  if (!isProtectedDashboardPath(req.path)) return next();
-  requireVaultAuth(req, res, next);
+  // If neither vault nor JWT auth present, redirect to signin preserving returnTo
+  const returnTo = encodeURIComponent(req.originalUrl || req.path);
+  return res.redirect(302, '/signin?returnTo=' + returnTo);
 });
 
 // Serve dashboard assets from root when internal dashboard is active

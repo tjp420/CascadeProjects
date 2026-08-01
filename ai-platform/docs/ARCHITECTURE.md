@@ -133,3 +133,17 @@ Key configuration files:
 | Fail-Closed HSM Timeout Framework | CC7.1 (Vulnerability & Threat Management) | SI-16 (Memory Protection / Failure State) |
 | Quorum Cluster Agreement Logic | CC5.2 (Change Management Control) | CM-3 (Configuration Change Control) |
 | Line-by-Line GZIP Forensic Stream | CC2.1 (System Monitoring & Operations) | AU-6 (Audit Record Review and Analysis) |
+| Admin Endpoint IP/Subnet Throttling | CC6.6 (Boundary Protection) | AC-2, SC-7 (Access Control / Boundary Protection) |
+| Auth-Before-Throttle Middleware Ordering | CC6.1 (Logical Access) | AC-3 (Access Enforcement) |
+| Redis-Backed Distributed Token Bucket | CC7.2 (System Monitoring) | SI-4 (System Monitoring) |
+| In-Memory Fallback with Inherited Count | CC7.4 (Resilience) | CP-10 (System Recovery) |
+| Auto-Recovery on Redis Reconnect | CC7.4 (Resilience) | CP-10 (System Recovery) |
+
+## 4. Advanced Defense Automation — IP/Subnet Throttling (Track 5)
+
+* Mechanism: Implements a token-bucket rate limiter (`lib/admin-throttle.cjs`) with per-IP and per-subnet (/24 IPv4, /64 IPv6) buckets. Default capacity is 20 tokens with a leak rate of 5 tokens/second, configurable via `ADMIN_THROTTLE_CAPACITY` and `ADMIN_THROTTLE_LEAK_RATE` environment variables.
+* Distributed State: Token buckets are stored in Redis for cluster-wide consistency. A Lua script performs atomic check-and-decrement operations to prevent race conditions under concurrent admin requests.
+* Fail-Closed Fallback: On Redis failure, the throttle falls back to in-memory state, inheriting the last known token count from a pre-failure snapshot. If no prior state is available, it starts from a 25% reserve (not a full bucket) to avoid opening the floodgates during a cold start.
+* Auto-Recovery: The `usingRedis` flag is temporarily disabled on Redis errors and automatically restored when the ioredis client emits a `'ready'` event on reconnection. A `_probeRedisHealth()` function is also exported for manual health checks.
+* Middleware Ordering: In `hsm-vault-routes.cjs`, `authorize('admin:all')` runs before `adminThrottle` via the `authBeforeThrottle` wrapper, ensuring unauthenticated requests are rejected with 403 before consuming throttle tokens. In `audit-routes.cjs`, non-admin routes (`/log`, `/stats`, `/export`, `/partition-status`, `/verify-stream`) are excluded from throttling via `NON_ADMIN_AUDIT_PATHS`.
+* Penalty System: The middleware monitors response status codes and drains the token bucket on `423 Locked`, `403 Forbidden` (isolation violation), and `503 Service Unavailable` (HSM timeout) responses, providing automatic defense against brute-force admin operations.

@@ -6,6 +6,7 @@ const tls = require('tls');
 const fs = require('fs');
 const logger = require('./app-logger.cjs');
 const keyRotationStore = require('./key-rotation-store.cjs');
+const hybridKem = require('./hybrid-kem-handshake.cjs');
 
 const NODE_ID = process.env.NODE_ID || require('os').hostname() || 'node';
 const CLUSTER_KEYRING_PORT = parseInt(process.env.CLUSTER_KEYRING_PORT, 10) || 7000;
@@ -44,6 +45,8 @@ const EVENT_TYPES = {
   GRACE_WINDOW_SYNCED: 'grace_window_synced',
   HSM_TIMEOUT: 'hsm_timeout',
   ISOLATION_VIOLATION: 'isolation_violation',
+  QUANTUM_DEGRADE: 'quantum_downgrade',
+  QUANTUM_DEGRADE_REJECTED: 'quantum_downgrade_rejected',
 };
 
 const _events = [];
@@ -344,7 +347,17 @@ function _connectToPeer(host, port) {
   if (_sockets.has(key)) return;
 
   const isTls = !!(process.env.CLUSTER_CERT && process.env.CLUSTER_KEY);
-  const onConnect = (socket) => {
+  const onConnect = async (socket) => {
+    if (process.env.CLUSTER_QUANTUM_HYBRID === '1') {
+      try {
+        await hybridKem.createClientHandshaker(socket, { timeoutMs: 15000 });
+      } catch (err) {
+        _log('warn', 'Hybrid KEM handshake failed on client', { peer: key, error: err.message });
+        _recordEvent(EVENT_TYPES.QUANTUM_DEGRADE_REJECTED, NODE_ID, { peer: key, error: err.message });
+        socket.destroy();
+        return;
+      }
+    }
     _sockets.set(key, socket);
     _sendMessage(socket, { type: 'ANNOUNCE', nodeId: NODE_ID, epoch: _state.epoch });
     _updateLocalKeyringState();
@@ -403,7 +416,17 @@ function _connectToPeer(host, port) {
 function _startServer() {
   if (_server) return;
   const isTls = !!(process.env.CLUSTER_CERT && process.env.CLUSTER_KEY);
-  const onConnection = (socket) => {
+  const onConnection = async (socket) => {
+    if (process.env.CLUSTER_QUANTUM_HYBRID === '1') {
+      try {
+        await hybridKem.createServerHandshaker(socket, { timeoutMs: 15000 });
+      } catch (err) {
+        _log('warn', 'Hybrid KEM handshake failed on server', { error: err.message });
+        _recordEvent(EVENT_TYPES.QUANTUM_DEGRADE_REJECTED, NODE_ID, { error: err.message });
+        socket.destroy();
+        return;
+      }
+    }
     _readFrames(socket, _handleMessage);
     socket.on('error', (err) => _log('warn', 'Server socket error', { error: err.message }));
     socket.on('close', () => _log('debug', 'Server socket closed'));

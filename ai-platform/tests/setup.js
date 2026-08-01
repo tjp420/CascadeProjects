@@ -121,13 +121,77 @@ global.testUtils = {
   
   // Helper to create test database connection
   createTestDb: async () => {
-    // This would be implemented when database is available
-    return null;
+    // Lightweight test DB using the jest-mocked 'pg' Pool from above.
+    // Returns a Pool-like object with a mocked `query` method that resolves
+    // to `{ rows: [] }` by default. Tests can override `pool.query` behavior
+    // via `pool.query.mockResolvedValue({ rows: [...] })` when needed.
+    try {
+      const { Pool } = require('pg');
+      const pool = new Pool();
+
+      // Ensure `query` exists and is a jest.fn
+      if (!pool.query || typeof pool.query !== 'function') {
+        pool.query = jest.fn().mockResolvedValue({ rows: [] });
+      }
+
+      // Add query logging: capture SQL and params for debugging
+      const origQuery = pool.query;
+      pool.__queries = [];
+      pool.query = jest.fn((text, params) => {
+        try {
+          pool.__queries.push({ text, params });
+        } catch (e) {
+          // ignore logging errors
+        }
+        if (process.env.TEST_DB_QUERY_LOG === '1') {
+          // Print to console to aid debugging in CI logs when enabled
+          // eslint-disable-next-line no-console
+          console.log('[TEST-DB-QUERY]', text, params);
+        }
+        return origQuery(text, params);
+      });
+
+      // Convenience helper to set a predictable result
+      pool.__setQueryResult = (rows) => {
+        pool.query.mockResolvedValue({ rows });
+      };
+
+      // Track global handle for cleanup
+      global.__testDbPool = pool;
+      return pool;
+    } catch (e) {
+      // If pg is not available for any reason, return a minimal stub
+      const pool = { query: jest.fn().mockResolvedValue({ rows: [] }), end: jest.fn().mockResolvedValue(true) };
+      pool.__queries = [];
+      const origQueryStub = pool.query;
+      pool.query = jest.fn((text, params) => {
+        pool.__queries.push({ text, params });
+        if (process.env.TEST_DB_QUERY_LOG === '1') {
+          // eslint-disable-next-line no-console
+          console.log('[TEST-DB-QUERY]', text, params);
+        }
+        return origQueryStub(text, params);
+      });
+      global.__testDbPool = pool;
+      return pool;
+    }
   },
-  
+
   // Helper to clean up test data
   cleanupTestData: async () => {
-    // This would be implemented to clean up test data
+    // Close and remove any tracked test DB pool
+    if (global.__testDbPool) {
+      try {
+        if (typeof global.__testDbPool.end === 'function') await global.__testDbPool.end();
+      } catch (e) {
+        // ignore cleanup errors
+      }
+      try { delete global.__testDbPool; } catch (e) {}
+    }
+
+    // Reset jest mocks and spies to avoid cross-test leakage
+    try { jest.clearAllMocks(); } catch (e) {}
+
     return Promise.resolve();
   }
 };

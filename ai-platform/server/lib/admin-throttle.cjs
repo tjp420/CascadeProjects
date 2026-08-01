@@ -13,11 +13,31 @@ const KEY_TTL_MS = 24 * 60 * 60 * 1000;
 
 let redisClient = null;
 let usingRedis = false;
+let _redisReady = false;
 try {
   const IORedis = require('ioredis');
   const url = process.env.REDIS_URL || process.env.REDIS || 'redis://127.0.0.1:6379';
   redisClient = new IORedis(url);
   usingRedis = true;
+  // Hook into ioredis native events for automatic recovery.
+  // ioredis auto-reconnects by default; when the connection is restored
+  // it emits 'ready', which re-enables the Redis backend so that the
+  // throttle exits the in-memory fallback mode.
+  redisClient.on('ready', () => {
+    if (!usingRedis) {
+      logger.info('Redis connection restored; re-enabling distributed throttle');
+    }
+    usingRedis = true;
+    _redisReady = true;
+  });
+  redisClient.on('error', (err) => {
+    // Don't log on every error — ioredis retries internally and this
+    // would flood logs during an extended outage. Just mark the flag.
+    _redisReady = false;
+  });
+  redisClient.on('close', () => {
+    _redisReady = false;
+  });
 } catch (e) {
   usingRedis = false;
 }
@@ -141,8 +161,11 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
     const res = await redisClient.eval(script, 1, bucketKey, CAPACITY, LEAK_RATE, now, consume, reserveTokens);
     return { allowed: Number(res[0]) === 1, tokens: Number(res[1]) };
   } catch (e) {
+    // Temporarily disable Redis — the 'ready' event handler will
+    // re-enable usingRedis when ioredis reconnects. This avoids a
+    // permanent downgrade to in-memory from a single transient blip.
     usingRedis = false;
-    logger.warn('Redis token bucket failed; falling back to in-memory', { error: e.message });
+    logger.warn('Redis token bucket failed; falling back to in-memory (will auto-recover on reconnect)', { error: e.message });
     if (lastKnown && lastKnown[0] !== null && lastKnown[1] !== null) {
       inMemoryBuckets.set(bucketKey, {
         tokens: Number(lastKnown[0]),
@@ -170,7 +193,9 @@ async function _drainFromRedis(bucketKey) {
     await redisClient.hmset(bucketKey, 'tokens', 0, 'lastUpdate', now);
     await redisClient.pexpire(bucketKey, KEY_TTL_MS);
   } catch (e) {
+    // Temporary disable — 'ready' event will re-enable on reconnect.
     usingRedis = false;
+    logger.warn('Redis drain failed; falling back to in-memory (will auto-recover on reconnect)', { error: e.message });
     _drainFromMemory(bucketKey);
   }
 }
@@ -241,6 +266,29 @@ function middleware(req, res, next) {
     .catch(next);
 }
 
+/**
+ * Probe Redis health and re-enable the distributed backend if reachable.
+ * Called automatically by the ioredis 'ready' event, but also exposed
+ * for manual invocation (e.g., in tests or by an ops health-check script).
+ * @returns {Promise<boolean>} true if Redis is now healthy and usingRedis was restored
+ */
+async function _probeRedisHealth() {
+  if (!redisClient) return false;
+  try {
+    await redisClient.ping();
+    if (!usingRedis) {
+      logger.info('Redis health probe succeeded; re-enabling distributed throttle');
+    }
+    usingRedis = true;
+    _redisReady = true;
+    return true;
+  } catch (e) {
+    usingRedis = false;
+    _redisReady = false;
+    return false;
+  }
+}
+
 module.exports = {
   CAPACITY,
   LEAK_RATE,
@@ -252,4 +300,6 @@ module.exports = {
   recordPenalty,
   checkAdminRequest,
   middleware,
+  _probeRedisHealth,
+  _isRedisEnabled: () => usingRedis,
 };
