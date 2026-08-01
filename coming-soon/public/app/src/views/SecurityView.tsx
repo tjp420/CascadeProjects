@@ -4,6 +4,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Shield, ShieldAlert, ShieldCheck, RefreshCw, AlertCircle, Bug, Lock, FileWarning, Database, KeyRound } from 'lucide-react';
 import { getApiBase, apiUrl, authHeaders } from '@/config';
+import { ProviderFailoverDashboard } from '@/components/ProviderFailoverDashboard';
+import { IdentityFederationDashboard } from '@/components/IdentityFederationDashboard';
+import { SemanticCacheDashboard } from '@/components/SemanticCacheDashboard';
+import { WebhookSigningDashboard } from '@/components/WebhookSigningDashboard';
+import { AgenticOrchestrationDashboard } from '@/components/AgenticOrchestrationDashboard';
+import { ToolSchemaValidationDashboard } from '@/components/ToolSchemaValidationDashboard';
+import { StreamInterdictionDashboard } from '@/components/StreamInterdictionDashboard';
+import { QuarantineLogBrowser } from '@/components/QuarantineLogBrowser';
+import { PolicySyncer } from '@/components/PolicySyncer';
+import { PolicySyncHistory } from '@/components/PolicySyncHistory';
 
 type ScanResultData = {
   projectPath?: string;
@@ -377,6 +387,17 @@ export function SecurityView() {
           </CardContent>
         </Card>
       )}
+
+      <ProviderFailoverDashboard />
+      <IdentityFederationDashboard />
+      <SemanticCacheDashboard />
+      <WebhookSigningDashboard />
+      <AgenticOrchestrationDashboard />
+      <ToolSchemaValidationDashboard />
+      <StreamInterdictionDashboard />
+      <QuarantineLogBrowser />
+      <PolicySyncer />
+      <PolicySyncHistory />
     </div>
   );
 }

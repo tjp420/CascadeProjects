@@ -96,4 +96,89 @@
 
 ## Approval
 
-- [ ] User approved via question selections or "implement the plan"
+- [x] User approved Track 5 plan
+
+---
+
+# test_plan.md — Track 6: Quantum-Resistant KEM Hybrid Handshake
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| Feature / change | Track 6: Quantum-Resistant KEM Hybrid Handshake for cluster sync |
+| Author (Builder) | Devin |
+| Date | 2026-07-31 |
+| Branch | main |
+| Packages touched | ai-platform |
+
+## Scope
+
+### Files in scope
+
+- `ai-platform/server/lib/vendor/mlkem.cjs` (new — pure-JS ML-KEM-768 primitive)
+- `ai-platform/server/lib/hybrid-kem-handshake.cjs` (new — hybrid handshake state machine + HKDF combiner)
+- `ai-platform/server/lib/cluster-keyring-sync.cjs` (inject hybrid wrapping before keyring replication)
+- `ai-platform/server/lib/__tests__/hybrid-kem-handshake.test.cjs` (new)
+
+### APIs / routes
+
+- Cluster sync TLS transport between nodes
+- `POST /api/cluster/keyring/...` replication endpoints (protected by hybrid-secured sockets)
+
+## Design decisions
+
+- **Cryptographic primitive:** ML-KEM-768 (NIST FIPS 203).
+- **Fallback:** Pure-JS/Uint8Array implementation via `mlkem` package, vendored through `vendor/mlkem.cjs` until native Node crypto support stabilizes.
+- **Secret combination:** `PRK = HKDF-Extract(salt="simplebeacon:hybrid:v1", IKM = ECDH_Secret || ML-KEM_Secret)`, then `SessionKeyRing = HKDF-Expand(PRK, info="session:keyring", length=32)`.
+- **Downgrade protection:** Fail-closed by default. Legacy nodes that omit `EK_pq` are rejected and emit `quantum_downgrade_rejected`. `QUANTUM_DEGRADE_ALLOWED=1` permits classic-only with a `quantum_downgrade` audit event.
+
+---
+
+## Level 1 — Deterministic (Validator MUST run all)
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
+| L1-02 | Hybrid KEM unit tests pass | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem-handshake` | [ ] |
+| L1-03 | Existing cluster keyring tests still pass | `cd ai-platform && npx jest --config jest.config.cjs cluster-keyring-sync` | [ ] |
+| L1-04 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate` | [ ] |
+| L1-05 | No secrets in diff | `git diff --cached` | [ ] |
+
+---
+
+## Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | ML-KEM-768 fallback executes on Node 22+ without quantum flags | Run `hybrid-kem-handshake` tests on a clean Node 22 environment | `keygen`, `encapsulate`, and `decapsulate` complete with deterministic 32-byte shared secret | [ ] |
+| L2-02 | HKDF-SHA256 combiner outputs uniform 32-byte keyrings | Derive `SessionKeyRing` from random ECDH and ML-KEM secrets | Output is exactly 32 bytes and uniform across repeated runs | [ ] |
+| L2-03 | Full handshake simulation over a mock TLS stream | Create client/server sockets, exchange length-prefixed JSON `EK_pq` and `C_pq`, derive shared keyring | Both sides derive identical keyring and handshake completes without hang | [ ] |
+| L2-04 | Corrupted `C_pq` drops the connection | Inject malformed/corrupt ciphertext into server-side decapsulation | `decapsulate` rejects with error; peer connection is dropped | [ ] |
+
+---
+
+## Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | Strict fail-closed on legacy node omission | Client omits `EK_pq` | Server terminates connection and records `quantum_downgrade_rejected` | [ ] |
+| L3-02 | Permissive override allows classic-only | Set `QUANTUM_DEGRADE_ALLOWED=1`; client omits `EK_pq` | Connection stabilizes with classic-only profile and logs `quantum_downgrade` | [ ] |
+| L3-03 | Hybrid handshake does not break existing cluster sync with flag disabled | Run `cluster-keyring-sync` tests without `CLUSTER_QUANTUM_HYBRID=1` | All existing tests pass | [ ] |
+
+---
+
+## Security
+
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | Both classic and post-quantum shared secrets contribute to the final keyring (hybrid security) | [ ] |
+| S-02 | Fail-closed by default — no silent downgrade to classic-only | [ ] |
+| S-03 | Corrupted KEM material does not leak shared secret or crash the process | [ ] |
+| S-04 | Audit timeline records `quantum_downgrade` and `quantum_downgrade_rejected` events | [ ] |
+
+---
+
+## Approval
+
+- [x] User approved Track 6 plan

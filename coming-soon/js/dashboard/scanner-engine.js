@@ -242,18 +242,22 @@ function buildSuggestedFixes(collections) {
             let suggestedPatch = '';
             let replacement = '';
             if (type === 'Debug Artifact') {
-                replacement = '// REMOVED: debug artifact';
-                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},0 @@\n-${snippet}`;
+                // Safer default: comment out the debug line and preserve original as a comment
+                const commented = `// REMOVED DEBUG (auto): ${snippet.replace(/\n/g, ' ')}`;
+                replacement = commented;
+                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${commented}`;
             } else if (type === 'Credential Pattern') {
                 replacement = 'const API_KEY = process.env.API_KEY;';
                 suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
             } else if (type === 'i18n Issue') {
-                const wrapped = snippet.replace(/['"]([^'"]+)['"]/g, "t('$1')");
+                // Wrap string literals with the i18n function `t()` by default
+                const wrapped = snippet.replace(/['"]([^'\"]+)['"]/g, "t('$1')");
                 replacement = wrapped;
                 suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
             } else if (type === 'AI Residue' || type === 'Error Swallowing' || type === 'Stub Implementation') {
-                replacement = '// TODO: replace stub with real implementation';
-                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;
+                // Replace AI-generated stubs with an explicit TODO and a visible failure
+                replacement = `// TODO: replace stub with real implementation\nthrow new Error('Not implemented: replace stub with real implementation');`;
+                suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},2 @@\n-${snippet}\n+// TODO: replace stub with real implementation\n+throw new Error('Not implemented: replace stub with real implementation');`;
             } else if (type === 'License/Governance Marker') {
                 replacement = '// REVIEW: verify license compatibility with distribution model';
                 suggestedPatch = `--- a/${file}\n+++ b/${file}\n@@ -${line},1 +${line},1 @@\n-${snippet}\n+${replacement}`;

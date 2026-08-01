@@ -1,14 +1,7 @@
 import { escapeHtml, formatPathLabel, formatNumber } from '../utils.js';
 import { severityLabel, redactMatch } from '../utils/snippetDiagnostic.js?v=20260716cachefix1';
-import { loadRecentPaths } from '../lib/analyzePathSuggestions.js';
+import { loadRecentPaths, basenamePath } from '../lib/analyzePathSuggestions.js?v=20260731audit3';
 import { sourceChipTitle } from '../lib/analyzePathSources.js';
-
-function basenamePath(projectPath) {
-    if (!projectPath)
-        return '';
-    const parts = projectPath.replace(/\\/g, '/').split('/').filter(Boolean);
-    return parts[parts.length - 1] || '';
-}
 
 export function renderSourceChips(sources, currentPath, containerId, options = {}) {
     if (!sources?.length) {

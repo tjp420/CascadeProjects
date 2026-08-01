@@ -1,4 +1,4 @@
-import { Menu, Sun, Moon, LogOut, User as UserIcon, ChevronDown, Map, DollarSign, Download, FileText, HelpCircle, Mail, Building2 } from 'lucide-react';
+import { Menu, Sun, Moon, LogOut, User as UserIcon, ChevronDown, Map, DollarSign, Download, FileText, HelpCircle, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTheme } from '@/hooks/useTheme';
 import { navigate } from '@/router/HashRouter';
-import { useOrganizations } from '@/hooks/useOrganizations';
 
 interface HeaderProps {
   isAuthenticated: boolean;
@@ -20,7 +19,6 @@ interface HeaderProps {
 
 export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
-  const { organizations, activeOrg, switchOrg } = useOrganizations();
 
   const moreLinks = [
     { href: '/roadmap', label: 'Roadmap', icon: Map },
@@ -73,38 +71,6 @@ export function Header({ isAuthenticated, isFreeTier, onMenuClick }: HeaderProps
           <span className="hidden rounded-full bg-warning-subtle px-2.5 py-0.5 text-xs font-medium text-warning sm:inline-block">
             Free Tier
           </span>
-        )}
-
-        {isAuthenticated && organizations.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="hidden md:inline-flex gap-1.5 max-w-[160px]">
-                <Building2 className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{activeOrg?.name || 'Select Org'}</span>
-                <ChevronDown className="h-3 w-3 shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[200px]">
-              <DropdownMenuLabel>Organizations</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {organizations.map((org) => (
-                <DropdownMenuItem
-                  key={org.id}
-                  onClick={() => switchOrg(org)}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <span className="truncate">{org.name}</span>
-                  {org.id === activeOrg?.id && (
-                    <span className="text-xs text-primary">✓</span>
-                  )}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('organization')}>
-                <Building2 className="h-4 w-4" /> Manage Organizations
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         )}
 
         <Button variant="ghost" size="icon" onClick={toggleTheme} title="Toggle theme">

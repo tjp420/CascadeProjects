@@ -587,3 +587,41 @@ The best fix is the one that uses the existing patterns, the existing imports, a
 
 Re-attestation workflow metadata saved to:
 `ai-platform/.simplebeacon/re-attestation-export-2026-06-12.json`
+
+---
+
+## Cluster Keyring Sync — Actual Architecture (verified 2026-07-31)
+
+Source of truth: `ai-platform/server/lib/cluster-keyring-sync.cjs` + `__tests__/cluster-keyring-sync.test.cjs` (29 tests). This section exists to prevent future agents from building on a description that was previously circulated but did **not** match the code. Two claims in particular were false and must not be reintroduced:
+
+### FALSE claim 1 — "mutual TLS (mTLS)"
+The transport is **opportunistic TLS, not mTLS**. Both server (`_startServer`) and client (`_connectToPeer`) use `requestCert:false` / `rejectUnauthorized:false`; no client cert is requested or verified and the server cert is not verified either. When `CLUSTER_CERT`/`CLUSTER_KEY` are unset the transport falls back to **plaintext TCP** (a startup warning is logged). `KEY_COMMIT` frames carry **raw key hex** (`activeHex`/`previousHex`) over this channel.
+
+**Threat model (decided 2026-07-31):** trusted private network only. The cluster port (`CLUSTER_KEYRING_PORT`, default 7000) MUST be reachable only on a trusted/isolated network. Enabling real mTLS (`requestCert:true` + CA chain + non-raw key distribution) is a separate feature and must be designed as a whole — do not flip the flags piecemeal.
+
+### FALSE claim 2 — "Two-Phase Propagation: staging → quorum ACK → commit"
+Rotation is **single-phase**. `proposeRotate()`:
+1. Commits locally via `keyRotationStore.rotateKey()`.
+2. Advances the idempotency watermark `_lastAppliedRotatedAt`.
+3. Broadcasts `KEY_COMMIT` once to all peers.
+4. Records a single `key_commit` event.
+
+Followers apply via `_applyRemoteKeyCommit()` and reply `KEY_COMMIT_ACK`, but the leader **does not collect ACKs and does not gate on a quorum**. There is no staging phase, no rollback, no second commit command. A true two-phase staging flow with quorum-ACK gate is a **follow-up feature**, not the current implementation — file it explicitly rather than silently editing docs to claim it exists.
+
+### What IS implemented
+- **Raft-like leader election with majority quorum** (`_electLeader`): `majority = floor(total/2)+1`; lost quorum → stepdown + `split_brain_detected` event. Lowest sorted reachable node ID wins.
+- **TCP/TLS gossip**: framed JSON messages (4-byte length header, 1 MB cap), `ANNOUNCE`/`ANNOUNCE_ACK`/`HEARTBEAT`/`KEY_COMMIT`/`KEY_COMMIT_ACK`/`PING`/`PONG`.
+- **Idempotency + ordering guard** (`_applyRemoteKeyCommit`, added 2026-07-31): a `KEY_COMMIT` with `rotatedAt <= _lastAppliedRotatedAt` is rejected as `duplicate_commit` (equal) or `stale_commit` (older) and a `key_reject` event is recorded; the keyring is not regressed. Missing/invalid `rotatedAt` → `missing_or_invalid_rotatedAt`. The watermark resets with `_resetEvents()` and advances on the leader path in `proposeRotate()`.
+- **Sync.com-style event timeline**: `eventId` (`evt-<hex>-<hex>`), ISO timestamp, `eventType`, `node`, `details`; filterable by type/node/date range; paginated; `getEventStats()` aggregates by type and node. `KEY_REJECT` is a recorded event type. Events never contain raw key material (S-01/S-04 enforced + tested).
+- **Admin-only routes** in `audit-routes.cjs`: `GET /api/audit/cluster/keyring` (status), `POST /api/audit/cluster/keyring/rotate` (leader-only, 423 `not_leader` otherwise), `GET /api/audit/cluster/events` (timeline). Non-leader rotate returns HTTP 423.
+
+### Defects fixed 2026-07-31
+- **D1:** `GET /cluster/events` was registered twice in `audit-routes.cjs`; the second handler was unreachable dead code. Consolidated into one handler with strict limit/offset clamping (`limit` clamped to 1..500, `offset` floored at 0).
+- **D3:** `_lastAppliedRotatedAt` was declared and never used (dead code); `keyRotationStore.applyKeyringCommit` did no ordering check, so a stale `KEY_COMMIT` could regress the keyring. Implemented the guard in `_applyRemoteKeyCommit` + 5 new tests.
+- **D2:** Added trusted-network TLS documentation block above `_startServer` and a plaintext-TCP startup warning.
+- **D4:** This section.
+
+### Out of scope (file as follow-ups, do not silently implement)
+- True two-phase staging with quorum-ACK gate and staging timeout rollback.
+- Real mTLS + CA chain + per-node encrypted key wrapping (only if deployment crosses untrusted networks).
+- Edge-case simulation (quorum splits, simultaneous leader drops) — meaningful only after two-phase staging exists.

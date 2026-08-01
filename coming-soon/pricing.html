@@ -1335,7 +1335,7 @@
     (function() {
       var signoutBtn = document.getElementById('nav-signout-btn');
       var signinBtn = document.getElementById('nav-signin-btn');
-      var TOKEN_KEYS = ['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token','sb_token'];
+      var TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token','sb-token','sb_token'];
       function getCookie(name) {
         var m = document.cookie.match('(?:^|; )' + name.replace(/[-\/\^$*+?.()|[\]{}]/g, '\\$&') + '=([^;]*)');
         return m ? decodeURIComponent(m[1]) : '';
@@ -1343,10 +1343,30 @@
       function clearCookie(name) {
         document.cookie = name + '=;path=/;max-age=0;SameSite=Lax';
       }
+      function decodeJwtPayload(token) {
+        if (!token || typeof token !== 'string') return null;
+        var parts = token.split('.');
+        if (parts.length !== 3) return null;
+        try {
+          var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          var pad = '='.repeat((4 - b64.length % 4) % 4);
+          return JSON.parse(atob(b64 + pad));
+        } catch(_) { return null; }
+      }
+      function isJwtExpired(t) {
+        var p = decodeJwtPayload(t);
+        return !!(p && p.exp && p.exp * 1000 < Date.now());
+      }
       function hasAnyToken() {
         return TOKEN_KEYS.some(function(k) {
           var v = localStorage.getItem(k) || getCookie(k);
-          return v && v.length > 10;
+          if (!v || v.length <= 10) return false;
+          if (isJwtExpired(v)) {
+            try { localStorage.removeItem(k); } catch(_){}
+            clearCookie(k);
+            return false;
+          }
+          return true;
         });
       }
       function updateAuthNav() {
@@ -1484,7 +1504,7 @@
       if (webauthnBtn) webauthnBtn.addEventListener('click', handleWebAuthn);
 updateAuthNav();
       window.addEventListener('storage', function(e) {
-        if (TOKEN_KEYS.indexOf(e.key) !== -1) updateAuthNav();
+        if (e.key === null || (TOKEN_KEYS.indexOf(e.key) !== -1 && !e.newValue)) updateAuthNav();
       });
     })();
   </script>

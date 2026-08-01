@@ -28,7 +28,7 @@ None. All validator-identified defects were resolved by the Builder and re-verif
 |----|---------------|-------------|------------|
 | D-01 | L3-01 | `/api/audit/log` and other non-admin audit routes were throttled. | Non-admin paths now excluded in `audit-routes.cjs`. |
 | D-02 | S-04 | `adminThrottle` ran before `authorize('admin:all')` in `hsm-vault-routes.cjs`. | Auth wrapper now executes before the token bucket. |
-| D-03 | L2-05, L3-02 | Redis fallback did not inherit the last known token count. | `_consumeFromRedis` now snapshots and seeds in-memory state on Redis failure. |
+| D-03 | L2-05, L3-02 | Redis fallback did not inherit the last known token count and never retried Redis. | `_consumeFromRedis` now snapshots and seeds in-memory state on Redis failure. ioredis `'ready'` event auto-restores `usingRedis` on reconnect. `_probeRedisHealth()` exported for manual health checks. |
 
 ---
 
@@ -37,16 +37,16 @@ None. All validator-identified defects were resolved by the Builder and re-verif
 | ID | test_plan ref | Missing capability | Notes |
 |----|---------------|-------------------|-------|
 | U-01 | Scope files | `ai-platform/server/middleware/admin-throttle.cjs` not created. | Middleware is exported from `lib/admin-throttle.cjs` and wired directly; functionally equivalent. |
-| U-02 | Scope files | `ai-platform/docs/ARCHITECTURE.md` Track 5 ledger update not added. | Listed in plan but not implemented. |
+| U-02 | Scope files | `ai-platform/docs/ARCHITECTURE.md` Track 5 ledger update. | **Resolved** — Track 5 section and compliance cross-reference entries added to ARCHITECTURE.md. |
 
 ---
 
 ## 3. Enhancements
 
-| ID | Area | Suggestion | Effort |
-|----|------|------------|--------|
-| E-01 | Resilience | Add a periodic Redis health check or reconnect to re-enable the Redis backend after recovery. | M |
-| E-02 | Testing | Add integration tests with `supertest` against `audit-routes` and `hsm-vault-routes` for the full 429 path. | M |
+| ID | Area | Suggestion | Effort | Status |
+|----|------|------------|--------|--------|
+| E-01 | Resilience | Add a periodic Redis health check or reconnect to re-enable the Redis backend after recovery. | M | **Done** — ioredis `'ready'` event hook + `_probeRedisHealth()` |
+| E-02 | Testing | Add integration tests with `supertest` against `audit-routes` and `hsm-vault-routes` for the full 429 path. | M | **Done** — `audit-throttle-routes.test.cjs` (8 tests) + `hsm-vault-throttle.test.cjs` (8 tests) |
 
 ---
 
@@ -57,6 +57,7 @@ None. All validator-identified defects were resolved by the Builder and re-verif
 | R-01 | Centralized throttling dashboard | Expose current per-IP and per-subnet token counts for operations. |
 | R-02 | Adaptive leak rates | Adjust leak rate based on time of day or threat signals. |
 | R-03 | Distributed token-bucket Lua optimization | Move per-request IP/subnet hashing out of the hot path. |
+| R-04 | AST pattern for middleware ordering enforcement | Add a `javascript-ast-patterns` engine rule that asserts throttle middleware always executes downstream of authentication/authorization in Express routers. Prevents regressions of D-01 and D-02 at the scanner level. |
 
 ---
 
@@ -66,6 +67,8 @@ None. All validator-identified defects were resolved by the Builder and re-verif
 # Syntax validation
 node -c ai-platform/server/lib/admin-throttle.cjs              # PASS
 node -c ai-platform/server/lib/__tests__/admin-throttle.test.cjs # PASS
+node -c ai-platform/server/lib/__tests__/audit-throttle-routes.test.cjs # PASS
+node -c ai-platform/server/lib/__tests__/hsm-vault-throttle.test.cjs # PASS
 node -c ai-platform/server/routes/audit-routes.cjs             # PASS
 node -c ai-platform/server/routes/hsm-vault-routes.cjs         # PASS
 
@@ -75,12 +78,14 @@ node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate
 
 # Full ai-platform test suite
 cd ai-platform && npm test
-# Test Suites: 191 passed, 191 total
-# Tests:       1954 passed, 1954 total
+# Test Suites: 197 passed, 197 total
+# Tests:       1977 passed, 1977 total
 # Failing suites: none
 
 # Targeted Track 5 tests
-npx jest --config jest.config.cjs admin-throttle        # 7/7 PASS
+npx jest --config jest.config.cjs admin-throttle        # 9/9 PASS (incl. 2 D-03 recovery tests)
+npx jest --config jest.config.cjs audit-throttle-routes # 8/8 PASS
+npx jest --config jest.config.cjs hsm-vault-throttle    # 8/8 PASS
 npx jest --config jest.config.cjs cluster-keyring-sync  # 29/29 PASS
 
 # Dependency audit
@@ -113,8 +118,8 @@ npm audit (ai-platform) # 0 vulnerabilities
 | Spec: 25% reserve fallback | MATCH | Implemented and tested. |
 | Spec: auth before throttle (S-04) | MATCH | `hsm-vault-routes` auth now runs before throttle. |
 | Spec: non-admin routes not throttled (L3-01) | MATCH | Non-admin audit paths are excluded. |
-| Spec: Redis recovery (L3-02) | MATCH | Last known state inherited on fallback. |
-| Spec: architecture ledger update | MISSING | Not implemented. See U-02. |
+| Spec: Redis recovery (L3-02) | MATCH | Last known state inherited on fallback; ioredis `'ready'` event auto-restores `usingRedis`; `_probeRedisHealth()` exported. |
+| Spec: architecture ledger update | MATCH | Track 5 section and compliance entries added to `ARCHITECTURE.md`. |
 
 ---
 

@@ -1,13 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { LogIn, UserPlus, KeyRound } from 'lucide-react';
+import { LogIn, UserPlus, KeyRound, Building2, Fingerprint } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { toast } from 'sonner';
 import { apiUrl, waitForApiBase } from '@/config';
+
+type SsoProvider = {
+  found: boolean;
+  providerId?: string;
+  method?: 'oidc' | 'saml';
+  displayName?: string;
+  orgId?: string;
+};
 
 type Mode = 'signin' | 'register' | 'license';
 
@@ -17,6 +25,64 @@ export function SignInView() {
   const [password, setPassword] = useState('');
   const [licenseKey, setLicenseKey] = useState('');
   const [loading, setLoading] = useState(false);
+  const [ssoProvider, setSsoProvider] = useState<SsoProvider | null>(null);
+  const [ssoChecking, setSsoChecking] = useState(false);
+
+  // Handle SSO callback — token in URL params after redirect from IdP
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ssoToken = params.get('sso_token');
+    const ssoError = params.get('sso_error');
+    if (ssoToken) {
+      localStorage.setItem('sb_token', ssoToken);
+      const ssoProviderId = params.get('sso_provider') || '';
+      localStorage.setItem('sb_sso_provider', ssoProviderId);
+      try { window.dispatchEvent(new Event('sb:login')); } catch { /* ignore */ }
+      toast.success('SSO authentication successful');
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+      navigate('dashboard');
+    } else if (ssoError) {
+      const errorMsg = params.get('sso_message') || ssoError;
+      toast.error(`SSO login failed: ${errorMsg}`);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  // Debounced SSO domain detection
+  const checkSsoDomain = useCallback(async (emailValue: string) => {
+    if (!emailValue || !emailValue.includes('@')) {
+      setSsoProvider(null);
+      return;
+    }
+    setSsoChecking(true);
+    try {
+      await waitForApiBase();
+      const resp = await fetch(apiUrl(`/sso/resolve?email=${encodeURIComponent(emailValue)}`));
+      if (resp.ok) {
+        const data = await resp.json();
+        setSsoProvider(data.found ? data : null);
+      } else {
+        setSsoProvider(null);
+      }
+    } catch {
+      setSsoProvider(null);
+    } finally {
+      setSsoChecking(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => checkSsoDomain(email), 400);
+    return () => clearTimeout(timer);
+  }, [email, checkSsoDomain]);
+
+  const handleSsoLogin = () => {
+    if (!ssoProvider?.providerId) return;
+    const method = ssoProvider.method || 'oidc';
+    const loginPath = method === 'saml' ? '/sso/saml/login' : '/sso/oidc/login';
+    window.location.href = apiUrl(`${loginPath}?providerId=${encodeURIComponent(ssoProvider.providerId)}`);
+  };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,6 +249,24 @@ export function SignInView() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
+              {ssoProvider && ssoProvider.found && (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    <span>{ssoProvider.displayName || 'Enterprise SSO'} detected</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Your organization uses {ssoProvider.method?.toUpperCase() || 'SSO'} for authentication.
+                  </p>
+                  <Button type="button" variant="outline" className="w-full" onClick={handleSsoLogin}>
+                    <Fingerprint className="h-4 w-4" />
+                    Continue with {ssoProvider.displayName || 'Enterprise SSO'}
+                  </Button>
+                </div>
+              )}
+              {ssoChecking && email.includes('@') && (
+                <p className="text-xs text-muted-foreground animate-pulse">Checking for enterprise SSO...</p>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input

@@ -343,52 +343,36 @@
     </div>
   </div>
 
-  <!-- High-Value ROI Executive Dashboard Metrics -->
-  <div class="roi-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 40px;">
-
-    <!-- Card 1: Developer Hours Saved -->
-    <div class="metric-card" style="background: #111; padding: 24px; border-radius: 8px; border: 1px solid #222;">
-      <span style="color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">Velocity ROI</span>
-      <h3 style="font-size: 36px; margin: 8px 0; color: #00ff88;">14.5 hrs</h3>
-      <p style="margin: 0; color: #aaa; font-size: 14px; line-height: 1.4;">
-        <strong>Developer Time Saved.</strong> Based on 58 automated remediations executed locally by <code>simplebeacon fix</code>, eliminating manual pipeline context-switching.
+  <div class="overview-grid">
+    <div class="score-card">
+      <div class="score-num" id="scoreNum">--</div>
+      <div class="score-label">Beacon Score</div>
+    </div>
+    <div class="summary-box">
+      <h2>Executive Summary</h2>
+      <p id="execSummary">Analyzing repository structure…</p>
+      <p class="meta">
+        <strong>Scan Date:</strong> <span id="scanDate"></span> |
+        <strong>Target Assets:</strong> <span id="fileCount">0 files</span> |
+        <strong>Quality Gate:</strong> <span id="gateStatus">—</span>
       </p>
     </div>
-
-    <!-- Card 2: Pipeline Friction Reduction -->
-    <div class="metric-card" style="background: #111; padding: 24px; border-radius: 8px; border: 1px solid #222;">
-      <span style="color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">Pipeline Efficiency</span>
-      <h3 style="font-size: 36px; margin: 8px 0; color: #00bfff;">82%</h3>
-      <p style="margin: 0; color: #aaa; font-size: 14px; line-height: 1.4;">
-        <strong>Review Friction Reduction.</strong> AI-generated syntax debris, prompt fragments, and slop were safely isolated and neutralized pre-commit.
-      </p>
-    </div>
-
-    <!-- Card 3: Regulatory Risk Reduction -->
-    <div class="metric-card" style="background: #111; padding: 24px; border-radius: 8px; border: 1px solid #ff4500;">
-      <span style="color: #ff4500; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">Risk Compliance</span>
-      <h3 style="font-size: 36px; margin: 8px 0; color: #ff4500;">$124,000</h3>
-      <p style="margin: 0; color: #aaa; font-size: 14px; line-height: 1.4;">
-        <strong>EU AI Act Risk Reduction.</strong> Estimated legal and audit exposure mitigated by identifying 3 high-severity data governance vulnerabilities before release.
-      </p>
-    </div>
-
   </div>
 
-  <div class="section-title">Compliance & Liability Metrics</div>
+  <div class="section-title">Compliance &amp; Risk Ledger</div>
   <table class="risk-table">
     <thead>
       <tr>
-        <th>Metric</th>
-        <th>Finding</th>
-        <th>Business Impact</th>
+        <th>Audit Category</th>
+        <th>Evaluation Parameter</th>
+        <th>Risk Exposure</th>
       </tr>
     </thead>
     <tbody id="riskTableBody"></tbody>
   </table>
 
   <div class="page-break"></div>
-  <div class="section-title">Remediation Roadmap & Findings</div>
+  <div class="section-title">Actionable Heuristic Deviations</div>
   <div id="auditLogContainer"></div>
 
   <div class="disclaimer">
@@ -519,7 +503,6 @@
   function setAttestationHash(data) {
     var payload = canonicalPayload(data);
     var hashEl = document.getElementById('reportHash');
-    if (!hashEl) return Promise.resolve();
     if (window.crypto && window.crypto.subtle && window.TextEncoder) {
       var bytes = new TextEncoder().encode(payload);
       return window.crypto.subtle.digest('SHA-256', bytes).then(function (buf) {
@@ -536,24 +519,14 @@
   }
 
   function generateReport(data) {
-    function setText(id, value) {
-      var el = document.getElementById(id);
-      if (el) el.textContent = value;
-      return el;
-    }
-
-    setText('scoreNum', String(data.score));
-    setText('scanDate', data.timestamp);
-    setText('fileCount', data.totalFilesScanned + ' files');
-    setText('gateStatus', data.gatePass ? 'PASS' : 'FAIL');
+    document.getElementById('scoreNum').textContent = String(data.score);
+    document.getElementById('scanDate').textContent = data.timestamp;
+    document.getElementById('fileCount').textContent = data.totalFilesScanned + ' files';
+    document.getElementById('gateStatus').textContent = data.gatePass ? 'PASS' : 'FAIL';
 
     var stamp = document.getElementById('stampStatus');
     var stampBox = document.getElementById('cryptoStamp');
     var highCount = countHigh(data.findings);
-
-    if (!stamp || !stampBox) {
-      return;
-    }
 
     if (data.gatePass && data.score >= 90 && highCount === 0) {
       stamp.textContent = 'VERIFIED CLEAN';
@@ -570,68 +543,52 @@
     }
 
     var execSummary = document.getElementById('execSummary');
-    if (execSummary) {
-      if (data.score >= 90 && highCount === 0) {
-        execSummary.textContent =
-          'This codebase shows strong structural hygiene with ' + data.findings.length +
-          ' isolated variances suitable for sprint remediation. Human-verified logic dominates production paths, ' +
-          'mitigating immediate credential and regulatory exposure. Suitable for client delivery after noted fixes.';
-      } else {
-        execSummary.textContent =
-          'Architectural anomalies detected in ' + (data.projectLabel || 'the target repository') + '. ' +
-          'AI scaffolding markers, unverified imports, or incomplete blocks may break integration parameters. ' +
-          'Remediate items in the audit log before compliance sign-off.';
-      }
+    if (data.score >= 90 && highCount === 0) {
+      execSummary.textContent =
+        'This codebase shows strong structural hygiene with ' + data.findings.length +
+        ' isolated variances suitable for sprint remediation. Human-verified logic dominates production paths, ' +
+        'mitigating immediate credential and regulatory exposure. Suitable for client delivery after noted fixes.';
+    } else {
+      execSummary.textContent =
+        'Architectural anomalies detected in ' + (data.projectLabel || 'the target repository') + '. ' +
+        'AI scaffolding markers, unverified imports, or incomplete blocks may break integration parameters. ' +
+        'Remediate items in the audit log before compliance sign-off.';
     }
 
     var findingsJson = JSON.stringify(data.findings || []);
     var categories = [
       {
-        name: 'Developer Productivity Impact',
-        desc: 'Engineering hours saved by preventing audit delays and automating remediation triage',
-        passCond: true,
-        value: '14.5 hrs',
-        impact: 'HIGH VALUE'
+        name: 'EU AI Act Alignment',
+        desc: 'Transparency, documentation integrity, and high-risk system markers',
+        passCond: data.score > 85 && !/eu-ai-act|transparency/i.test(findingsJson)
       },
       {
-        name: 'Audit Friction Reduction',
-        desc: 'Percentage reduction in compliance review cycles and evidence collection burden',
-        passCond: true,
-        value: '82% Saved',
-        impact: 'HIGH VALUE'
+        name: 'Structural Hygiene',
+        desc: 'Detection of AI debris, TODO scaffolding, and layout anomalies',
+        passCond: highCount === 0
       },
       {
-        name: 'EU AI Act Compliance Status',
-        desc: 'Annex III & Article 50 alignment for algorithmic transparency and risk disclosure',
-        passCond: data.score > 85 && !/eu-ai-act|transparency/i.test(findingsJson),
-        value: 'Compliant',
-        impact: 'REGULATORY'
+        name: 'Dependency Sanity',
+        desc: 'Exclusion of hallucinated packages and unknown import paths',
+        passCond: !/hallucinated|pseudo_|Module does not exist/i.test(findingsJson)
       },
       {
-        name: 'Regulatory Risk Mitigation',
-        desc: 'Calculated reduction in compliance violation fines and audit findings exposure',
-        passCond: highCount === 0,
-        value: '91% Mitigated',
-        impact: 'COMPLIANCE'
+        name: 'Credential & Token Safety',
+        desc: 'Hardcoded secrets, API keys, and production leak patterns',
+        passCond: !/credential|api[_-]?key|password\s*=/i.test(findingsJson)
       }
     ];
 
-    var riskTableBody = document.getElementById('riskTableBody');
-    if (riskTableBody) {
-      riskTableBody.innerHTML = categories.map(function (cat) {
+    document.getElementById('riskTableBody').innerHTML = categories.map(function (cat) {
       return '<tr>' +
         '<td><strong>' + escapeHtml(cat.name) + '</strong></td>' +
-        '<td>' + (cat.value ? '<strong>' + escapeHtml(cat.value) + '</strong> — ' : '') + escapeHtml(cat.desc) + '</td>' +
+        '<td>' + escapeHtml(cat.desc) + '</td>' +
         '<td><span class="badge ' + (cat.passCond ? 'pass' : 'fail') + '">' +
-        (cat.passCond ? escapeHtml(cat.impact || 'VERIFIED') : 'REQUIRES ACTION') + '</span></td>' +
+        (cat.passCond ? 'LOW RISK' : 'ACTION REQ.') + '</span></td>' +
         '</tr>';
-      }).join('');
-    }
+    }).join('');
 
     var logContainer = document.getElementById('auditLogContainer');
-    if (!logContainer) {
-      return;
-    }
     if (!data.findings || data.findings.length === 0) {
       logContainer.innerHTML = '<p style="color: var(--success);">No anomalies found. Perfect alignment profile reached.</p>';
       return;

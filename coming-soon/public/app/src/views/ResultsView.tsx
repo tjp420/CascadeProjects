@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ClipboardList, Download, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info, Search, ChevronRight, FileText } from 'lucide-react';
+import { ClipboardList, Download, FileCode, AlertTriangle, Shield, CheckCircle2, Play, Info, Search, ChevronRight, FileText, Globe } from 'lucide-react';
 import { navigate } from '@/router/HashRouter';
 import { useAuth } from '@/hooks/useAuth';
 import { ResultsReferralBanner } from '@/components/ResultsReferralBanner';
@@ -13,6 +13,41 @@ import { PostScanCliNudge } from '@/components/PostScanCliNudge';
 import { PostScanShareBanner } from '@/components/PostScanShareBanner';
 import { resolveScanLetterGrade } from '@/lib/gradeFromScore';
 import { resolveReportIssues } from '@services/analyzeService.js';
+
+// ── Regulatory Framework Catalog (22 international frameworks) ──────────────
+const REGULATORY_FRAMEWORKS = [
+  'California SB 1047',
+  'NIST AI RMF 1.0',
+  'Colorado SB 24-205',
+  'Utah SB 149',
+  'NYC Local Law 144',
+  'Canada AIDA',
+  'UK AI Safety Framework',
+  'ISO/IEC 42001',
+  'Singapore Model AI Governance',
+  'Brazil PL 2338/2023',
+  'EU AI Act',
+  'Texas HB 4045',
+  'Illinois HB 2557',
+  'Japan METI AI Guidelines',
+  'Australia AI Ethics Framework',
+  'South Korea AI Basic Act',
+  'China GenAI Measures',
+  'India DPDP Act',
+  'OECD AI Principles',
+] as const;
+
+/** Extract framework from an issue's metadata or type string. */
+function getIssueFramework(issue: any): string | null {
+  const fw = issue?.metadata?.framework || issue?.framework;
+  if (fw && typeof fw === 'string') return fw;
+  // Fallback: match framework name in the issue type/description
+  const text = `${issue?.type || ''} ${issue?.description || ''}`;
+  for (const f of REGULATORY_FRAMEWORKS) {
+    if (text.includes(f)) return f;
+  }
+  return null;
+}
 
 interface ScanResultData {
   totalFiles: number;
@@ -73,6 +108,7 @@ export function ResultsView() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
   const [selectedCell, setSelectedCell] = useState<{ impact: string; likelihood: string } | null>(null);
+  const [selectedFramework, setSelectedFramework] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResultData | null>(null);
   const [fullReport, setFullReport] = useState<any>(null);
   const [scanTime, setScanTime] = useState<string | null>(null);
@@ -154,6 +190,9 @@ export function ResultsView() {
         return impact === selectedCell.impact && likelihood === selectedCell.likelihood;
       });
     }
+    if (selectedFramework) {
+      issues = issues.filter(i => getIssueFramework(i) === selectedFramework);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       issues = issues.filter(i =>
@@ -164,7 +203,24 @@ export function ResultsView() {
     }
     issues = issues.filter(i => !String(i.filePath || '').includes('node_modules'));
     return issues;
-  }, [allIssues, filter, searchQuery, selectedCell]);
+  }, [allIssues, filter, searchQuery, selectedCell, selectedFramework]);
+
+  // Count issues per regulatory framework (for chip badges)
+  const frameworkCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    allIssues.forEach(i => {
+      const fw = getIssueFramework(i);
+      if (fw) counts[fw] = (counts[fw] || 0) + (Number(i.count) || 1);
+    });
+    return counts;
+  }, [allIssues]);
+
+  // Frameworks that have at least one matching issue, sorted by count desc
+  const activeFrameworks = useMemo(() => {
+    return REGULATORY_FRAMEWORKS
+      .filter(fw => frameworkCounts[fw] > 0)
+      .sort((a, b) => (frameworkCounts[b] || 0) - (frameworkCounts[a] || 0));
+  }, [frameworkCounts]);
 
   const issueCategories = useMemo(() => {
     const catMap: Record<string, number> = {};
@@ -321,6 +377,55 @@ export function ResultsView() {
               Clear heatmap filter
             </Button>
           )}
+
+          {/* Regulatory Framework Filter */}
+          {activeFrameworks.length > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2 mb-2">
+                <Globe className="h-4 w-4 text-foreground-muted" />
+                <span className="text-sm font-medium">Regulatory Frameworks</span>
+                <span className="text-xs text-foreground-muted">
+                  · {activeFrameworks.length} of {REGULATORY_FRAMEWORKS.length} frameworks with findings
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {activeFrameworks.map(fw => {
+                  const count = frameworkCounts[fw] || 0;
+                  const isSelected = selectedFramework === fw;
+                  return (
+                    <button
+                      key={fw}
+                      type="button"
+                      onClick={() => setSelectedFramework(isSelected ? null : fw)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring ${
+                        isSelected
+                          ? 'bg-primary/15 text-primary border-primary/40 ring-1 ring-primary/30'
+                          : 'bg-muted/50 text-foreground-muted border-border hover:bg-muted'
+                      }`}
+                      title={`${fw}: ${count} issue${count === 1 ? '' : 's'}`}
+                    >
+                      {fw}
+                      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                        isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-foreground-muted'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+                {selectedFramework && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-1 h-7 px-2 text-xs"
+                    onClick={() => setSelectedFramework(null)}
+                  >
+                    Clear framework filter
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -343,6 +448,7 @@ export function ResultsView() {
                   {findingsDetailLimited && ' · detailed list limited — export JSON or use CLI for full paths'}
                   {filter !== 'all' && ` · filtered by ${filter}`}
                   {selectedCell && ` · heatmap: ${selectedCell.impact}/${selectedCell.likelihood}`}
+                  {selectedFramework && ` · framework: ${selectedFramework}`}
                   {searchQuery && ` · matching "${searchQuery}"`}
                 </CardDescription>
               </CardHeader>
@@ -422,12 +528,15 @@ export function ResultsView() {
                               <th className="px-3 py-2 font-medium text-foreground-muted">Severity</th>
                               <th className="px-3 py-2 font-medium text-foreground-muted">Type</th>
                               <th className="px-3 py-2 font-medium text-foreground-muted">Description</th>
+                              <th className="px-3 py-2 font-medium text-foreground-muted">Framework</th>
                               <th className="px-3 py-2 font-medium text-foreground-muted">File</th>
                               <th className="px-3 py-2 font-medium text-foreground-muted text-right">Count</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {filteredIssues.slice(0, 500).map((issue, idx) => (
+                            {filteredIssues.slice(0, 500).map((issue, idx) => {
+                              const fw = getIssueFramework(issue);
+                              return (
                               <tr
                                 key={issue.id || idx}
                                 onClick={() => setSelectedIssue(issue)}
@@ -448,6 +557,14 @@ export function ResultsView() {
                                 </td>
                                 <td className="px-3 py-2 text-foreground-muted whitespace-nowrap">{issue.type || '—'}</td>
                                 <td className="px-3 py-2 text-foreground-muted max-w-md truncate">{issue.description || '—'}</td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  {fw ? (
+                                    <span className="inline-flex items-center gap-1 text-xs text-foreground-muted">
+                                      <Globe className="h-3 w-3" />
+                                      {fw}
+                                    </span>
+                                  ) : '—'}
+                                </td>
                                 <td className="px-3 py-2 text-foreground-muted whitespace-nowrap max-w-[200px] truncate">
                                   {issue.filePath ? (
                                     <span className="font-mono text-xs">{issue.filePath.split('/').pop()}</span>
@@ -455,7 +572,8 @@ export function ResultsView() {
                                 </td>
                                 <td className="px-3 py-2 text-right text-foreground-muted">{issue.count || 1}</td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -488,6 +606,18 @@ export function ResultsView() {
                       <span className="text-sm font-medium">{selectedIssue.type || 'Issue'}</span>
                     </div>
                     <p className="text-sm text-foreground-muted">{selectedIssue.description || ''}</p>
+                    {getIssueFramework(selectedIssue) && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-foreground-muted">Regulatory Framework</p>
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4 text-foreground-muted" />
+                          <span className="text-sm font-medium">{getIssueFramework(selectedIssue)}</span>
+                          {selectedIssue.metadata?.category && (
+                            <Badge variant="outline" className="text-xs">{selectedIssue.metadata.category}</Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     {selectedIssue.filePath && (
                       <div className="space-y-1">
                         <p className="text-xs text-foreground-muted">File</p>

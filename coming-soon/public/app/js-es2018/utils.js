@@ -85,7 +85,7 @@ import * as PollingUtils from './utils-lib/polling.js';
 // ── String helpers ───────────────────────────────────────────────
 export const escapeHtml = StringUtils.escapeHtml;
 export const escapeRegExp = StringUtils.escapeRegExp;
-export const normalizeSlashes = StringUtils.normalizeSlashes;
+export const normalizeSlashes = PathUtils.normalizeSlashes;
 export const truncate = StringUtils.truncate;
 export const capitalize = StringUtils.capitalize;
 export const hash = StringUtils.hash;
@@ -98,6 +98,7 @@ export const stripHtml = StringUtils.stripHtml;
 export const pluralize = StringUtils.pluralize;
 // ── Path helpers ─────────────────────────────────────────────────
 export const resolveDashboardProjectPath = PathUtils.resolveDashboardProjectPath;
+export const isAbsoluteLocalPath = PathUtils.isAbsoluteLocalPath;
 // ── Number helpers ─────────────────────────────────────────────
 export const formatNumber = NumberUtils.formatNumber;
 export const formatPercent = NumberUtils.formatPercent;
@@ -129,8 +130,8 @@ export const memoizeAsync = AsyncUtils.memoizeAsync;
 export const withTimeout = AsyncUtils.withTimeout;
 export const tryFn = AsyncUtils.tryFn;
 export const seq = AsyncUtils.seq;
-export const flow = AsyncUtils.flow;
-export const negate = AsyncUtils.negate;
+export const flow = FunctionUtils.flow;
+export const negate = FunctionUtils.negate;
 export const retry = AsyncUtils.retry;
 // ── Array helpers ────────────────────────────────────────────────
 export const unique = ArrayUtils.unique;
@@ -173,6 +174,7 @@ export const at = ObjectUtils.at;
 export const unset = ObjectUtils.unset;
 export const defaultsDeep = ObjectUtils.defaultsDeep;
 // ── URL helpers ──────────────────────────────────────────────────
+export const isRemoteDashboardHost = UrlUtils.isRemoteDashboardHost;
 export const apiBaseUrl = UrlUtils.apiBaseUrl;
 export const apiUrl = UrlUtils.apiUrl;
 export const fetchWithTimeout = UrlUtils.fetchWithTimeout;

@@ -2,10 +2,9 @@
 window.SIMPLEBEACON_SITE = window.SIMPLEBEACON_SITE || {
   env: 'production',
   githubUrl: 'https://github.com/tjp420/simplebeacon',
-  // The VSIX and local-agent zip are not served from /downloads because Cloudflare Pages rejects static assets over 25 MiB.
-  // Attach both to the latest GitHub release, or replace with R2 public URLs.
+  // The VSIX is no longer served from /downloads because Cloudflare Pages rejects static assets over 25 MiB.
+  // Attach the VSIX to the latest GitHub release as `simplebeacon.vsix`, or replace this with an R2 public URL.
   vsixDownloadUrl: 'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon.vsix',
-  localAgentDownloadUrl: 'https://github.com/tjp420/simplebeacon/releases/latest/download/simplebeacon-local-agent-portable.zip',
   // Intentional demo content URLs — these are sample pages for the marketing site,
   // not mock/fixture data embedded in production application code. simplebeacon-ignore
   sampleReportUrl: 'sample-report.html', // simplebeacon:production-leak-intent: demo-content - sample URL for marketing site, not production fixture

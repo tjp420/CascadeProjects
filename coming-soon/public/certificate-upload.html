@@ -578,7 +578,7 @@
         (function initAuthNav() {
             const signoutBtn = document.getElementById('nav-signout-btn');
             const signinBtn = document.getElementById('nav-signin-btn');
-            const TOKEN_KEYS = ['cascadeAuthToken', 'cascadeAuthUser', 'access_token', 'token', 'authToken', 'simplebeacon_token', 'sb-token', 'sb_token'];
+            const TOKEN_KEYS = ['cascadeAuthToken', 'access_token', 'token', 'authToken', 'simplebeacon_token', 'sb-token', 'sb_token'];
             function getCookie(name) {
                 const m = document.cookie.match('(?:^|; )' + name + '=([^;]*)');
                 return m ? decodeURIComponent(m[1]) : '';
@@ -586,10 +586,30 @@
             function clearCookie(name) {
                 document.cookie = name + '=;path=/;max-age=0;SameSite=Lax';
             }
+            function decodeJwtPayload(token) {
+                if (!token || typeof token !== 'string') return null;
+                const parts = token.split('.');
+                if (parts.length !== 3) return null;
+                try {
+                    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                    const pad = '='.repeat((4 - b64.length % 4) % 4);
+                    return JSON.parse(atob(b64 + pad));
+                } catch(_) { return null; }
+            }
+            function isJwtExpired(t) {
+                const p = decodeJwtPayload(t);
+                return !!(p && p.exp && p.exp * 1000 < Date.now());
+            }
             function hasAnyToken() {
                 return TOKEN_KEYS.some(function(k) {
                     const val = localStorage.getItem(k) || getCookie(k);
-                    return val && val.length > 10;
+                    if (!val || val.length <= 10) return false;
+                    if (isJwtExpired(val)) {
+                        try { localStorage.removeItem(k); } catch(_){}
+                        clearCookie(k);
+                        return false;
+                    }
+                    return true;
                 });
             }
             function updateAuthNav() {
@@ -619,6 +639,9 @@
                 });
             }
             updateAuthNav();
+            window.addEventListener('storage', function(e) {
+                if (e.key === null || (TOKEN_KEYS.indexOf(e.key) !== -1 && !e.newValue)) updateAuthNav();
+            });
             setInterval(updateAuthNav, 2000);
         })();
     </script>

@@ -1,4 +1,5 @@
 // simplebeacon-ignore i18n
+import { escapeHtml } from '../utils.js?v=20260731audit1';
 /**
  * Show download credentials modal.
  * @param {Object} options
@@ -99,13 +100,4 @@ export function showDownloadCredentialsModal({ title = 'Edit Report Credentials'
         }
     });
     (_a = overlay.querySelector('#dc-project-name')) === null || _a === void 0 ? void 0 : _a.focus();
-}
-function escapeHtml(str) {
-    if (!str)
-        return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 }

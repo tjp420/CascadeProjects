@@ -4,6 +4,7 @@ import { buildComplianceAuditExportBundle, complianceAuditExportFilename } from 
 import { npmAuditSummary } from '../utils-lib/audit-helpers.js?v=20260721audit1';
 import { getVsCodeApi, renderSkeletonCard, renderSkeletonChips } from '../utils-lib/dom.js?v=20260725phase3';
 import { isSimplebeaconReport, normalizeSimplebeaconReport, normalizeImportedReport, readFileAsJson } from '../services/analyzeService.js?v=20260726sevfix1';
+import { authService } from '../services/authService.js?v=20260716cachefix1';
 const LAYER_LABELS = {
     credentials: 'Credential patterns',
     fictionKpis: 'Fiction & KPI drift',

@@ -2,7 +2,7 @@
 import { authService } from '../services/authService.js?v=20260722bridgefix1';
 import { billingService } from '../services/billingService.js';
 import { authenticateWithSecurityKey, isWebAuthnSupported } from '../services/webauthnService.js?v=20260716cachefix1';
-import { showToast, setHtml } from '../utils.js?v=20260720adminfix1';
+import { showToast, setHtml, escapeHtml } from '../utils.js?v=20260720adminfix1';
 /**
  * Decode email from token.
  * @param {string} token
@@ -582,18 +582,4 @@ export class SignInView {
         }
     }
     destroy() { }
-}
-/**
- * Escape html.
- * @param {string} str
- * @returns {any}
- */
-function escapeHtml(str) {
-    if (!str)
-        return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 }

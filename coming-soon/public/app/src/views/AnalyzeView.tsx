@@ -28,7 +28,7 @@ import { toast } from 'sonner';
 import { getApiBase, apiUrl, authHeaders, isTokenExpired, clearAuthAndRedirect } from '@/config';
 import { checkLocalNetworkAccess, isLoopbackHost } from '@/utils/checkLocalNetwork';
 import { runLocalScan } from '@services/localScanService.js';
-import { captureDropEntries, collectFilesFromDrop } from '@/services/dropFolderTraversal';
+import { captureDropEntries, collectFilesFromDrop, type VirtualFile } from '@/services/dropFolderTraversal';
 import { useExtensionBridge } from '@/hooks/useExtensionBridge';
 import { discoverAndApplyExtensionBridge } from '@services/localAgentService.js';
 import { navigate } from '@/router/HashRouter';
@@ -1306,6 +1306,7 @@ export function AnalyzeView() {
 
     const capturedEntries = captureDropEntries(e.dataTransfer.items);
     const dtFiles = Array.from(e.dataTransfer.files);
+    const firstItem = e.dataTransfer.items?.[0] as DataTransferItem & { getAsFileSystemHandle?: () => Promise<FileSystemHandle> };
 
     if (dtFiles.length > 0 && (dtFiles[0] as any).path) {
       const filePath = String((dtFiles[0] as any).path).replace(/\\/g, '/');
@@ -1323,17 +1324,34 @@ export function AnalyzeView() {
 
     if (capturedEntries.length > 0) {
       try {
-        const { files, rootName, traverseErrors } = await collectFilesFromDrop(e.dataTransfer, capturedEntries);
+        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries);
         if (files.length > 0) {
           if (traverseErrors > 0) {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
           }
           toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
-          await runBrowserLocalScan({
-            files,
-            projectPath: rootName,
-            logLabel: `Browser local scan via drag-and-drop (${files.length.toLocaleString()} files)`,
-          });
+          try {
+            await runBrowserLocalScan({
+              files,
+              projectPath: rootName,
+              logLabel: `Browser local scan via drag-and-drop (${files.length.toLocaleString()} files)`,
+            });
+          } catch (scanErr: any) {
+            appendLog(`[SimpleBeacon] Browser local scan failed: ${scanErr?.name || ''} ${scanErr?.message || scanErr}`);
+            console.error('[SimpleBeacon] runBrowserLocalScan error:', scanErr);
+            try {
+              // Extra defensive logging for DOMException-like failures
+              console.error('Error details:', {
+                name: scanErr?.name,
+                message: scanErr?.message,
+                code: scanErr?.code,
+                stack: scanErr?.stack,
+              });
+            } catch (logErr) {
+              console.warn('[SimpleBeacon] Failed to stringify scan error details', logErr);
+            }
+            throw scanErr;
+          }
           return;
         }
       } catch (traverseErr: any) {
@@ -1342,7 +1360,6 @@ export function AnalyzeView() {
       }
     }
 
-    const firstItem = e.dataTransfer.items?.[0] as DataTransferItem & { getAsFileSystemHandle?: () => Promise<FileSystemHandle> };
     if (firstItem && typeof firstItem.getAsFileSystemHandle === 'function') {
       try {
         const handle = await firstItem.getAsFileSystemHandle();
@@ -1362,20 +1379,37 @@ export function AnalyzeView() {
     }
 
     if (dtFiles.length > 0) {
-      try {
-        const { files, rootName } = await collectFilesFromDrop(e.dataTransfer, []);
-        if (files.length > 0) {
-          toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
-          await runBrowserLocalScan({
-            files,
-            projectPath: rootName,
-            logLabel: `Browser local scan via flat drop (${files.length.toLocaleString()} files)`,
+      const flatFiles: VirtualFile[] = [];
+      const hasRelativePath = dtFiles.some((f) => {
+        const rel = (f as File & { webkitRelativePath?: string }).webkitRelativePath;
+        return rel && rel.includes('/');
+      });
+      for (const f of dtFiles) {
+        const virtualFile = f as VirtualFile;
+        const rel = hasRelativePath
+          ? (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name
+          : f.name;
+        try {
+          Object.defineProperty(virtualFile, 'webkitRelativePath', {
+            value: rel,
+            configurable: true,
           });
-          return;
+        } catch {
+          /* ignore */
         }
-      } catch (flatErr: any) {
-        appendLog(`[SimpleBeacon] Flat drop fallback failed: ${flatErr?.message || flatErr}`);
+        virtualFile._virtualPath = (rel || f.name).replace(/\\/g, '/');
+        flatFiles.push(virtualFile);
       }
+      const firstRel = flatFiles[0]?._virtualPath || flatFiles[0]?.name || 'dropped-files';
+      const rootName = String(firstRel).split('/')[0] || 'dropped-files';
+      toast.info(`Scanning dropped folder "${rootName}" (${flatFiles.length.toLocaleString()} files)...`);
+      await runBrowserLocalScan({
+        files: flatFiles,
+        projectPath: rootName,
+        logLabel: `Browser local scan via flat drop (${flatFiles.length.toLocaleString()} files)`,
+      });
+      return;
+    }
 
       const first = dtFiles[0];
       const dirName = (first as any).webkitRelativePath?.split('/')[0] || first.name;
@@ -1390,10 +1424,6 @@ export function AnalyzeView() {
       setPath(dirName);
       setRequiresManualTrigger(true);
       setScanState('idle');
-      toast.warning(`Dropped "${dirName}" but could not read folder contents. Click Select Folder below, or use Browse Folder.`);
-      return;
-    }
-
     toast.error('Could not read dropped folder. Click Select Folder below or install the VS Code extension.');
     setRequiresManualTrigger(true);
     setScanState('idle');

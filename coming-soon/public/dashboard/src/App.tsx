@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { getCurrentRoute, navigate } from './router/HashRouter';
 import { AppShell } from './layout/AppShell';
 import { ToastProvider } from './components/ToastProvider';
+import { BrandProvider } from './contexts/BrandContext';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { isTokenExpired } from './config';
@@ -34,9 +35,16 @@ import { AboutView } from './views/AboutView';
 import { GettingStartedView } from './views/GettingStartedView';
 import { ComplianceView } from './views/ComplianceView';
 import { OrganizationView } from './views/OrganizationView';
+import { EnterpriseView } from './views/EnterpriseView';
+import { OutreachAnalyticsView } from './views/OutreachAnalyticsView';
+import { WorkspaceConfigView } from './views/WorkspaceConfigView';
+import { FineTuningCurationView } from './views/FineTuningCurationView';
+
+// Lazy-loaded views — code-split to keep initial bundle small
+const TeamMetricsView = lazy(() => import('./views/TeamMetricsView').then(m => ({ default: m.TeamMetricsView })));
 
 const PUBLIC_VIEWS = new Set(['signin', 'register', 'about', 'getting-started']);
-const AUTH_REQUIRED_VIEWS = new Set(['organization']);
+const AUTH_REQUIRED_VIEWS = new Set(['organization', 'workspace']);
 const WRITE_HEAVY_VIEWS = new Set(['dashboard', 'analyze', 'upload', 'settings', 'admin', 'chatbot']);
 
 function isHostedDashboard(): boolean {
@@ -85,6 +93,11 @@ const VIEW_TITLES: Record<string, string> = {
   'getting-started': 'Getting Started',
   compliance: 'Compliance',
   organization: 'Organization',
+  enterprise: 'Enterprise',
+  'team-metrics': 'Team Metrics',
+  'outreach-analytics': 'Outreach Analytics',
+  workspace: 'Workspace',
+  'fine-tuning': 'Fine-Tuning Curation',
 };
 
 const viewMap: Record<string, React.ComponentType> = {
@@ -114,6 +127,11 @@ const viewMap: Record<string, React.ComponentType> = {
   'getting-started': GettingStartedView,
   compliance: ComplianceView,
   organization: OrganizationView,
+  enterprise: EnterpriseView,
+  'team-metrics': TeamMetricsView,
+  'outreach-analytics': OutreachAnalyticsView,
+  workspace: WorkspaceConfigView,
+  'fine-tuning': FineTuningCurationView,
 };
 
 export default function App() {
@@ -123,6 +141,14 @@ export default function App() {
 
   // simplebeacon-ignore: framework-practices — standard React useEffect hook
   useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      if (params.get('sb_force_signin') === '1') {
+        navigate('signin');
+        setRoute(getCurrentRoute());
+        return;
+      }
+    } catch (_) {}
     const onHashChange = () => setRoute(getCurrentRoute());
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
@@ -158,16 +184,20 @@ export default function App() {
   const isPublic = PUBLIC_VIEWS.has(route.view);
 
   return (
-    <ToastProvider>
-      <AppShell
-        currentView={route.view}
-        onNavigate={handleNavigate}
-        isAuthenticated={isAuthenticated}
-        isFreeTier={isFreeTier}
-        user={user}
-      >
-        <CurrentView />
-      </AppShell>
-    </ToastProvider>
+    <BrandProvider>
+      <ToastProvider>
+        <AppShell
+          currentView={route.view}
+          onNavigate={handleNavigate}
+          isAuthenticated={isAuthenticated}
+          isFreeTier={isFreeTier}
+          user={user}
+        >
+          <Suspense fallback={<div className="flex items-center justify-center p-20 text-sm text-foreground-muted">Loading...</div>}>
+            <CurrentView />
+          </Suspense>
+        </AppShell>
+      </ToastProvider>
+    </BrandProvider>
   );
 }

@@ -144,15 +144,15 @@ jobs:
             --collectCoverageFrom='server/routes/agentic-orchestration-routes.cjs' \
             2>&1 | tee /tmp/jest-output.txt
 
-        - name: Run SIEM Telemetry and Agentic Route Tests
-          working-directory: ai-platform
-          run: |
-            node --test server/lib/__tests__/siem-exporter.test.cjs
-            node --test server/lib/__tests__/agentic-orchestration.test.cjs
+      - name: Run SIEM Telemetry and Agentic Route Tests
+        working-directory: ai-platform
+        run: |
+          node --test server/lib/__tests__/siem-exporter.test.cjs
+          node --test server/lib/__tests__/agentic-orchestration.test.cjs
 
           # Extract pass/fail summary
-          SUITES=$(grep -oP 'Test Suites:\s+\K\d+ passed' /tmp/jest-output.txt | head -1 || echo "0")
-          TESTS=$(grep -oP 'Tests:\s+\K\d+ passed' /tmp/jest-output.txt | head -1 || echo "0")
+          SUITES=$(grep -oP 'Test Suites:\s+\\K\\d+ passed' /tmp/jest-output.txt | head -1 || echo "0")
+          TESTS=$(grep -oP 'Tests:\s+\\K\\d+ passed' /tmp/jest-output.txt | head -1 || echo "0")
           echo "suites_passed=$SUITES" >> $GITHUB_OUTPUT
           echo "tests_passed=$TESTS" >> $GITHUB_OUTPUT
 

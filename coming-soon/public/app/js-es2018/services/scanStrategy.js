@@ -7,6 +7,7 @@
 import { isLocalPath, hasExtensionBridgeConfigured } from './localAgentService.js?v=20260722scanfix2';
 import { shouldProbeAgent4000, probeAgent4000, shouldProbeLocalAgent, probeAgent, shouldUseAgent, isIntegratedLocalDashboard } from './localAgentService.js?v=20260722scanfix2';
 import { isRemoteRepoUrl } from '../lib/analyzePathSources.js';
+import { isRemoteDashboardHost } from '../utils.js?v=20260731audit2';
 
 /**
  * Determine the scan strategy for a given path.
@@ -105,10 +106,6 @@ export async function resolveScanStrategy(rawPath, ctx = {}) {
 
     // 8. Empty path → prompt
     return { strategy: 'prompt-folder', path: typedPath, reason: 'No path provided' };
-}
-
-function isRemoteDashboardHost() {
-    return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 }
 
 /**

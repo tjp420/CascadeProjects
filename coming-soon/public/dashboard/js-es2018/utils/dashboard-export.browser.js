@@ -834,3 +834,196 @@ export function dashboardExportFilename(ext = 'json') {
         return `dashboard-metrics-${stamp}.csv`;
     return `dashboard-export-${stamp}.json`;
 }
+/**
+ * Build vulnerability trend csv.
+ * Aggregates severity counts over scan history into a single CSV with per-scan rows.
+ * @param {any} report - Current scan report (for latest row + project label)
+ * @param {Array} history - Array of scan history entries
+ * @returns {string|null}
+ */
+export function buildVulnerabilityTrendCsv(report, history = []) {
+    const rows = [];
+    const header = ['date', 'project', 'gatePass', 'qualityScore', 'issueCount', 'blockingCount', 'warningCount', 'critical', 'high', 'medium', 'low', 'totalFilesScanned'];
+    rows.push(header.join(','));
+    const projectLabel = projectLabelFromPath(report === null || report === void 0 ? void 0 : report.projectRoot);
+    // Add history entries (oldest first)
+    for (const entry of history) {
+        const sev = entry.severityCounts || {};
+        rows.push([
+            entry.date || '',
+            projectLabel,
+            entry.gatePass != null ? entry.gatePass : '',
+            entry.qualityScore != null ? entry.qualityScore : '',
+            entry.issueCount != null ? entry.issueCount : '',
+            entry.blockingCount != null ? entry.blockingCount : '',
+            entry.warningCount != null ? entry.warningCount : '',
+            sev.critical || 0,
+            sev.high || 0,
+            sev.medium || 0,
+            sev.low || 0,
+            entry.totalFilesScanned != null ? entry.totalFilesScanned : ''
+        ].map(csvEscape).join(','));
+    }
+    // Add current report as latest row if not already in history
+    const lastHistoryDate = history.length ? history[history.length - 1].date : null;
+    const reportDate = (report === null || report === void 0 ? void 0 : report.generatedAt) || new Date().toISOString();
+    if (!lastHistoryDate || reportDate > lastHistoryDate) {
+        const sev = (report === null || report === void 0 ? void 0 : report.severityCounts) || {};
+        const gate = (report === null || report === void 0 ? void 0 : report.gate) || {};
+        rows.push([
+            reportDate,
+            projectLabel,
+            gate.pass != null ? gate.pass : '',
+            (report === null || report === void 0 ? void 0 : report.qualityScore) != null ? report.qualityScore : '',
+            (report === null || report === void 0 ? void 0 : report.issueCount) != null ? report.issueCount : '',
+            gate.blockingCount != null ? gate.blockingCount : '',
+            gate.warningCount != null ? gate.warningCount : '',
+            sev.critical || 0,
+            sev.high || 0,
+            sev.medium || 0,
+            sev.low || 0,
+            (report === null || report === void 0 ? void 0 : report.totalFiles) || (report === null || report === void 0 ? void 0 : report.repositoryFilesTotal) || ''
+        ].map(csvEscape).join(','));
+    }
+    return rows.join('\n');
+}
+/**
+ * Build bulk issues csv.
+ * Merges issues from multiple scan reports into one CSV with a project column.
+ * @param {Array} reports - Array of { project, report } objects
+ * @returns {string|null}
+ */
+export function buildBulkIssuesCsv(reports = []) {
+    if (!reports.length)
+        return null;
+    const header = ['project', 'severity', 'type', 'description', 'file', 'line', 'count'];
+    const rows = [header.join(',')];
+    for (const { project, report } of reports) {
+        const label = project || projectLabelFromPath(report === null || report === void 0 ? void 0 : report.projectRoot);
+        const issues = (report === null || report === void 0 ? void 0 : report.rawIssues) || (report === null || report === void 0 ? void 0 : report.detectedIssues) || [];
+        for (const issue of issues) {
+            rows.push([
+                label,
+                issue.severity || '',
+                issue.type || '',
+                issue.description || '',
+                issue.filePath || issue.file || '',
+                issue.line || '',
+                issue.count || 1
+            ].map(csvEscape).join(','));
+        }
+    }
+    return rows.join('\n');
+}
+/**
+ * Build audit printable html.
+ * Generates a self-contained printable HTML document for browser Print → Save as PDF.
+ * @param {any} report - Scan report
+ * @param {Array} history - Scan history entries
+ * @returns {string}
+ */
+export function buildAuditPrintableHtml(report, history = []) {
+    const projectLabel = projectLabelFromPath(report === null || report === void 0 ? void 0 : report.projectRoot);
+    const generatedAt = (report === null || report === void 0 ? void 0 : report.generatedAt) || new Date().toISOString();
+    const gate = (report === null || report === void 0 ? void 0 : report.gate) || {};
+    const sev = (report === null || report === void 0 ? void 0 : report.severityCounts) || {};
+    const issues = (report === null || report === void 0 ? void 0 : report.rawIssues) || (report === null || report === void 0 ? void 0 : report.detectedIssues) || [];
+    const qualityScore = (report === null || report === void 0 ? void 0 : report.qualityScore) != null ? report.qualityScore : 'N/A';
+    const gatePass = gate.pass === true ? 'PASS' : (gate.blockingCount > 0 ? 'FAIL' : 'REVIEW');
+    const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    // Build issue rows
+    const issueRows = issues.slice(0, 200).map((issue) => `
+      <tr>
+        <td class="${escapeHtml(issue.severity)}">${escapeHtml(issue.severity)}</td>
+        <td>${escapeHtml(issue.type)}</td>
+        <td>${escapeHtml(issue.description)}</td>
+        <td>${escapeHtml(issue.filePath || issue.file || '—')}</td>
+        <td>${escapeHtml(issue.line || '—')}</td>
+        <td>${escapeHtml(issue.count || 1)}</td>
+      </tr>`).join('');
+    // Build trend rows
+    const trendRows = history.map((entry) => {
+        const s = entry.severityCounts || {};
+        return `
+      <tr>
+        <td>${escapeHtml(entry.date || '')}</td>
+        <td>${escapeHtml(entry.gatePass === true ? 'PASS' : 'FAIL')}</td>
+        <td>${escapeHtml(entry.qualityScore != null ? entry.qualityScore : '—')}</td>
+        <td>${escapeHtml(entry.issueCount != null ? entry.issueCount : '—')}</td>
+        <td>${escapeHtml(s.critical || 0)}</td>
+        <td>${escapeHtml(s.high || 0)}</td>
+        <td>${escapeHtml(s.medium || 0)}</td>
+        <td>${escapeHtml(s.low || 0)}</td>
+      </tr>`;
+    }).join('');
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SimpleBeacon Compliance Audit Report — ${escapeHtml(projectLabel)}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; padding: 40px; line-height: 1.5; }
+  .header { border-bottom: 2px solid #6366f1; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .header h1 { font-size: 1.5rem; color: #1a1a1a; }
+  .header .meta { font-size: 0.8rem; color: #666; text-align: right; }
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .summary-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; }
+  .summary-card .label { font-size: 0.7rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em; }
+  .summary-card .value { font-size: 1.5rem; font-weight: 700; margin-top: 4px; }
+  .gate-pass { color: #16a34a; }
+  .gate-fail { color: #dc2626; }
+  .gate-review { color: #d97706; }
+  h2 { font-size: 1.1rem; margin: 24px 0 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th { background: #f9fafb; text-align: left; padding: 8px; border-bottom: 2px solid #e5e7eb; font-weight: 600; }
+  td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; }
+  .critical { background: #fef2f2; color: #dc2626; font-weight: 600; }
+  .high { background: #fff7ed; color: #ea580c; font-weight: 600; }
+  .medium { background: #fefce8; color: #ca8a04; }
+  .low { color: #6b7280; }
+  .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 0.7rem; color: #999; }
+  @media print { body { padding: 20px; } .summary-grid { grid-template-columns: repeat(4, 1fr); } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>SimpleBeacon Compliance Audit Report</h1>
+    <div class="meta">
+      <div><strong>Project:</strong> ${escapeHtml(projectLabel)}</div>
+      <div><strong>Generated:</strong> ${escapeHtml(generatedAt)}</div>
+      <div><strong>Gate:</strong> <span class="gate-${gatePass.toLowerCase()}">${gatePass}</span></div>
+    </div>
+  </div>
+  <div class="summary-grid">
+    <div class="summary-card"><div class="label">Quality Score</div><div class="value">${escapeHtml(qualityScore)}</div></div>
+    <div class="summary-card"><div class="label">Total Issues</div><div class="value">${escapeHtml(report === null || report === void 0 ? void 0 : report.issueCount)}</div></div>
+    <div class="summary-card"><div class="label">Blocking</div><div class="value gate-fail">${escapeHtml(gate.blockingCount || 0)}</div></div>
+    <div class="summary-card"><div class="label">Files Scanned</div><div class="value">${escapeHtml((report === null || report === void 0 ? void 0 : report.totalFiles) || (report === null || report === void 0 ? void 0 : report.repositoryFilesTotal) || '—')}</div></div>
+  </div>
+  <div class="summary-grid">
+    <div class="summary-card"><div class="label">Critical</div><div class="value" style="color:#dc2626">${escapeHtml(sev.critical || 0)}</div></div>
+    <div class="summary-card"><div class="label">High</div><div class="value" style="color:#ea580c">${escapeHtml(sev.high || 0)}</div></div>
+    <div class="summary-card"><div class="label">Medium</div><div class="value" style="color:#ca8a04">${escapeHtml(sev.medium || 0)}</div></div>
+    <div class="summary-card"><div class="label">Low</div><div class="value" style="color:#6b7280">${escapeHtml(sev.low || 0)}</div></div>
+  </div>
+  <h2>Detected Issues (${issues.length}${issues.length > 200 ? ' — showing first 200' : ''})</h2>
+  <table>
+    <thead><tr><th>Severity</th><th>Type</th><th>Description</th><th>File</th><th>Line</th><th>Count</th></tr></thead>
+    <tbody>${issueRows || '<tr><td colspan="6" style="text-align:center;color:#999;padding:16px;">No issues detected</td></tr>'}</tbody>
+  </table>
+  ${trendRows ? `
+  <h2>Vulnerability Trend (${history.length} scans)</h2>
+  <table>
+    <thead><tr><th>Date</th><th>Gate</th><th>Score</th><th>Issues</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th></tr></thead>
+    <tbody>${trendRows}</tbody>
+  </table>` : ''}
+  <div class="footer">
+    <p>Generated by SimpleBeacon — Compliance Audit Report</p>
+    <p>This report is auto-generated from scan data. For compliance attestation, verify with your SimpleBeacon gate configuration.</p>
+  </div>
+  <script>window.onload = function() { setTimeout(function() { window.print(); }, 300); };</script>
+</body>
+</html>`;
+}

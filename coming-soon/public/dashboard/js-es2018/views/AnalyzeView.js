@@ -1,5 +1,5 @@
 // simplebeacon-ignore: Security findings are false positives — scanner definitions, test fixtures, dashboard code, and build scripts
-import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState } from '../utils.js';
+import { escapeHtml, showToast, downloadJson, downloadBlob, downloadText, redactPathForDisplay, formatPathLabel, formatPathInputValue, formatAiSummarySkipMessage, isRedactedPathDisplay, formatNumber, formatPercent, renderEmptyState, isRemoteDashboardHost, isAbsoluteLocalPath } from '../utils.js?v=20260731audit2';
 import { canUseDirectoryPicker, isLikelyWebkitDirectoryFileCap, browserFolderCapMessage, filePickerBlockedMessage, isFilePickerBlockedError, isEmbeddedDashboardFrame, getVsCodeApi } from '../utils-lib/dom.js?v=20260726embedfix1';
 import { evaluateFunnelMetrics, getFunnelCopy, shouldShowEnterpriseFunnel, buildFunnelAuthOptions } from '../utils/funnelTrigger.js?v=20260716cachefix1';
 import { LocalScanService } from '../services/localScanService.js?v=20260725dropfix3';
@@ -7,6 +7,7 @@ import { fingerprintDirectory, formatFingerprint } from '../services/fingerprint
 import { probeAgent, scanViaAgent, shouldUseAgent, isLocalPath, formatAgentStatus, getAgentDownloadUrl, detectPlatform, getPlatformLabel, getInstallInstructions, getAgentFallbackMessage, probeAgent4000, scanViaAgent4000, renderAgentCertificate, hasExtensionBridgeConfigured, pickFolderViaExtensionBridge as requestExtensionFolderPick, findFolderViaBridge, shouldProbeLocalAgent, shouldProbeAgent4000, isIntegratedLocalDashboard, canUseParentBridgeFetch } from '../services/localAgentService.js?v=20260726dropfix4';
 import { runSandboxedDirectoryScan, scanDroppedItems, isDroppedFolder, captureDroppedEntry, captureDroppedDirectoryHandle } from '../services/browserSandboxScanService.js?v=20260726dropfix3';
 import { resolveScanStrategy } from '../services/scanStrategy.js?v=20260726browserdrop2';
+import { realtimeAnalysisService } from '../services/realtimeAnalysisService.js?v=20260731rt1';
 
 const DROP_SKIP_DIRS = new Set([
     'node_modules', '.git', 'dist', 'build', '.simplebeacon',
@@ -14,16 +15,9 @@ const DROP_SKIP_DIRS = new Set([
     '.husky', '.windsurf', '.wrangler', 'bower_components'
 ]);
 
-function isRemoteDashboardHost() {
-    return typeof window !== 'undefined' && !/^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
-}
 function isBrowserPrivateScanSource(report) {
     const src = report?.scanSource;
     return src === 'browser-local' || src === 'browser-sandbox';
-}
-function isAbsoluteLocalPath(path) {
-    const raw = String(path || '').trim();
-    return /^[a-zA-Z]:[\\/]|^\\|^\//.test(raw) && !/^https?:\/\//i.test(raw);
 }
 /** Scan context for hosted (Pages / simplebeacon.ai) vs localhost dashboard. */
 function getHostedAnalyzeContext() {
@@ -38,7 +32,7 @@ function getHostedAnalyzeContext() {
 import { analyzePath, scanPath, summarizeReport, fetchAnalyzeProviders, fetchRepositoryInventory, fetchCodebaseAnalysis, enrichScanReport, fetchZscriptModReport, shouldFetchZscriptReport, isLegacyScanReport, isHostedServerDefaultPath, isHostedBrowserScanPath, shouldClearHostedServerDefaultPath, buildMonorepoScopeNote, buildPathInventoryProvenance, renderInventoryProvenanceHtml, refreshPathInventory, liveInventoryForPath, renderScanScopePanel, isSimplebeaconReport, normalizeSimplebeaconReport, resolveReportIssues, aiProviderSupportsSummary, getScanFileMetrics, resolveAutoAnalysisMode, buildScanConclusion, buildConsolidationConclusion, buildFictionDigestPayload, sanitizeFictionDigestExport, resolveCompleteScanTargetPath, normalizeProjectPath, filterIssuesByKind, preparePlatformResultsReport, convertSandboxReportToSimplebeacon, fetchCompleteAuditReport, fetchAnalyzeExportBundleZip, fetchEuAiActAuditReport, openAuditReportPrintWindow, previewAuditExportTier, auditExportButtonLabel, fetchDataCleanupScan, ensureDashboardApiReady, assertCompleteScanComplianceFresh, assertCompleteScanFileReductionFresh, fetchUnderstandSnippet, isCodebaseReport, fetchComplianceChecklist, fetchProjectNpmAudit, prepareGithubRepo, fetchAnalyzeTestSources, isAnalyzeProviderConfigured, uploadDirectoryAndAnalyze } from '../services/analyzeService.js?v=20260726sevfix1';
 import { isRemoteRepoUrl, sourceChipTitle } from '../lib/analyzePathSources.js';
 import { reportMatchesPagePath, pathsLooselyMatch, resolvePageProjectPath, getPathInputDisplayValue } from '../lib/pageRepoScan.js?v=20260716cachefix1';
-import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths } from '../lib/analyzePathSuggestions.js';
+import { collectPathSuggestions, refreshPathSuggestionsDatalist, pathInputListAttr, renderPathSuggestionsDatalistElement, saveRecentPath, removeRecentPath, loadRecentPaths, basenamePath } from '../lib/analyzePathSuggestions.js?v=20260731audit3';
 import { validateProjectPathAllowlist, ensureAllowedAnalysisRoots } from '../lib/analyzePathAllowlist.js';
 import { isBenchmarkCachePath } from '../utils/complete-scan-artifact-profile.browser.js';
 import { runEuAiActSprint } from '../services/operatorService.js?v=20260716cachefix1';
@@ -1267,17 +1261,6 @@ function saveAnalyzePrefs(prefs) {
     localStorage.setItem(ANALYZE_PREFS_KEY, JSON.stringify({ ...existing, ...prefs }));
 }
 /**
- * Basename path.
- * @param {string} projectPath
- * @returns {any}
- */
-function basenamePath(projectPath) {
-    if (!projectPath)
-        return '';
-    const parts = projectPath.replace(/\\/g, '/').split('/').filter(Boolean);
-    return parts[parts.length - 1] || projectPath;
-}
-/**
  * Format elapsed.
  * @param {Array} ms
  * @returns {any}
@@ -1593,6 +1576,7 @@ export class AnalyzeView {
         ${this.busy ? this.renderProgress() : ''}
 
         <div id="analyze-file-results-section" class="analyze-file-results-section"></div>
+        <div id="realtime-stream-results"></div>
         <div id="analyze-results">${this.renderResults()}</div>
 
       <!-- Directory browser modal -->
@@ -2870,7 +2854,7 @@ export class AnalyzeView {
                 </select>
               </div>
               <div class="analyze-realtime-monitor-wrap">
-                <label class="text-muted" style="font-size: var(--font-size-xs);">Real-time monitoring</label>
+                <label class="text-muted" style="font-size: var(--font-size-xs); display:flex; align-items:center; gap:0.4rem;">Real-time monitoring <span id="realtime-ws-status" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--text-muted);opacity:0.4;" title="WebSocket: disconnected"></span></label>
                 <label style="display:flex;align-items:center;gap:0.5rem;font-size:var(--font-size-xs);color:var(--text-muted);cursor:pointer;margin-top:0.25rem;">
                   <input type="checkbox" id="analyze-realtime-monitor" aria-label="Enable real-time file monitoring" ${this.realtimeMonitorEnabled ? 'checked' : ''}>
                   <span>Watch filesystem changes and auto-rescan</span>
@@ -4817,6 +4801,228 @@ export class AnalyzeView {
             return;
         pathInput.value = fullPath ? formatPathInputValue(fullPath) : '';
     }
+    _updateRealtimeStatusIndicator(state) {
+        const dot = this._root?.querySelector('#realtime-ws-status');
+        if (!dot)
+            return;
+        const colors = {
+            connected: 'var(--success-color, #22c55e)',
+            connecting: 'var(--warning-color, #f59e0b)',
+            reconnecting: 'var(--warning-color, #f59e0b)',
+            error: 'var(--danger-color, #ef4444)',
+            disconnected: 'var(--text-muted, #6b7280)'
+        };
+        const labels = {
+            connected: 'WebSocket: connected',
+            connecting: 'WebSocket: connecting…',
+            reconnecting: 'WebSocket: reconnecting…',
+            error: 'WebSocket: error',
+            disconnected: 'WebSocket: disconnected'
+        };
+        dot.style.background = colors[state] || colors.disconnected;
+        dot.style.opacity = state === 'disconnected' ? '0.4' : '1';
+        dot.title = labels[state] || labels.disconnected;
+    }
+    _renderRealtimeStreamResults() {
+        const container = this._root?.querySelector('#realtime-stream-results');
+        if (!container) return;
+        const chunks = this._realtimeChunks || [];
+        if (chunks.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        if (!this._realtimeFilter) this._realtimeFilter = { severity: 'all', sort: 'chunk' };
+        const filter = this._realtimeFilter;
+        const totalIssues = chunks.reduce((sum, c) => sum + (c.result?.issues?.length || 0), 0);
+        const avgConfidence = chunks.length > 0
+            ? (chunks.reduce((sum, c) => sum + (c.result?.confidence || 0), 0) / chunks.length * 100).toFixed(0)
+            : '—';
+        const totalTime = chunks.reduce((sum, c) => sum + (c.result?.processingTime || 0), 0);
+        // Build flat issue list with chunk reference and stable row ID
+        const allIssues = chunks.flatMap((c, chunkIdx) => {
+            const issues = c.result?.issues || [];
+            return issues.map((issue, issueIdx) => ({
+                ...issue,
+                _chunkId: c.chunkId || '—',
+                _rowId: `rt-row-${chunkIdx}-${issueIdx}`,
+                _chunkResult: c.result
+            }));
+        });
+        if (!this._realtimeExpanded) this._realtimeExpanded = new Set();
+        // Apply severity filter
+        const filtered = filter.severity === 'all'
+            ? allIssues
+            : allIssues.filter((i) => (i.severity || '').toLowerCase() === filter.severity);
+        // Apply sort
+        const severityWeight = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
+        const sorted = filter.sort === 'severity'
+            ? [...filtered].sort((a, b) => (severityWeight[a.severity] ?? 99) - (severityWeight[b.severity] ?? 99))
+            : filtered; // 'chunk' = insertion order (default)
+        const sevCounts = {
+            critical: allIssues.filter((i) => (i.severity || '').toLowerCase() === 'critical').length,
+            high: allIssues.filter((i) => (i.severity || '').toLowerCase() === 'high').length,
+            medium: allIssues.filter((i) => (i.severity || '').toLowerCase() === 'medium').length,
+            low: allIssues.filter((i) => (i.severity || '').toLowerCase() === 'low').length
+        };
+        const sevButton = (sev, label, count) => {
+            const isActive = filter.severity === sev;
+            return `<button type="button" class="btn ${isActive ? 'btn-primary' : 'btn-ghost'} btn-sm rt-sev-filter" data-sev="${sev}" style="border-radius:999px;margin:2px;">${label} <span class="gate-badge ${sev === 'critical' || sev === 'high' ? 'warn' : 'pass'}" style="margin-left:4px;font-size:0.7rem;padding:1px 6px;">${count}</span></button>`;
+        };
+        const sortButton = (sort, label) => {
+            const isActive = filter.sort === sort;
+            return `<button type="button" class="btn ${isActive ? 'btn-primary' : 'btn-ghost'} btn-sm rt-sort-toggle" data-sort="${sort}" style="border-radius:999px;margin:2px;">${label}</button>`;
+        };
+        const issueRows = sorted.map((issue) => {
+            const isExpanded = this._realtimeExpanded.has(issue._rowId);
+            const detailJson = escapeHtml(JSON.stringify({
+                type: issue.type || null,
+                severity: issue.severity || null,
+                category: issue.category || issue.rule || null,
+                message: issue.message || issue.description || null,
+                chunkId: issue._chunkId,
+                chunkMetadata: {
+                    method: issue._chunkResult?.method || null,
+                    confidence: issue._chunkResult?.confidence ?? null,
+                    processingTime: issue._chunkResult?.processingTime ?? null,
+                    recommendations: issue._chunkResult?.recommendations || []
+                }
+            }, null, 2));
+            return `
+              <tr class="rt-issue-row" data-row-id="${escapeHtml(issue._rowId)}" style="cursor:pointer;${isExpanded ? 'background:var(--bg-hover, rgba(0,0,0,0.03));' : ''}">
+                <td><span class="gate-badge ${issue.severity === 'critical' || issue.severity === 'high' ? 'warn' : 'pass'}">${escapeHtml(issue.severity || '—')}</span></td>
+                <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(issue.category || issue.rule || '—')}</td>
+                <td><code style="font-size:var(--font-size-xs);">${escapeHtml(issue.message || issue.description || '—')}</code></td>
+                <td class="text-muted" style="font-size:var(--font-size-xs);">${escapeHtml(issue._chunkId)} ${isExpanded ? '▲' : '▼'}</td>
+              </tr>
+              ${isExpanded ? `
+              <tr class="rt-detail-row" data-row-id="${escapeHtml(issue._rowId)}">
+                <td colspan="4" style="padding:var(--space-3);background:var(--bg-alt, #f9fafb);border-top:1px solid var(--border);">
+                  <pre style="margin:0;font-size:var(--font-size-xs);white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto;">${detailJson}</pre>
+                </td>
+              </tr>` : ''}`;
+        }).join('');
+        const hiddenCount = totalIssues - filtered.length;
+        container.innerHTML = `
+          <div class="card" style="padding:var(--space-4);margin-top:var(--space-4);border:1px solid var(--border);border-radius:8px;">
+            <div class="section-heading" style="margin-bottom:var(--space-3);">
+              <h2 style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-lg);">
+                <span style="font-size:1.25rem;">⚡</span> Live Analysis Stream
+                <span class="gate-badge pass" style="margin-left:0.5rem;font-size:0.7rem;">${chunks.length} chunks</span>
+              </h2>
+            </div>
+            <div class="metrics-row mb-4">
+              <div class="metric-chip"><strong>${chunks.length}</strong> chunks</div>
+              <div class="metric-chip"><strong>${totalIssues}</strong> issues</div>
+              <div class="metric-chip"><strong>${avgConfidence}%</strong> avg confidence</div>
+              <div class="metric-chip"><strong>${totalTime}ms</strong> total time</div>
+            </div>
+            ${totalIssues > 0 ? `
+              <div style="margin-bottom:var(--space-3);">
+                <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-2);">
+                  <span class="text-muted" style="font-size:var(--font-size-xs);font-weight:600;">Filter:</span>
+                  ${sevButton('all', 'All', totalIssues)}
+                  ${sevButton('critical', 'Critical', sevCounts.critical)}
+                  ${sevButton('high', 'High', sevCounts.high)}
+                  ${sevButton('medium', 'Medium', sevCounts.medium)}
+                  ${sevButton('low', 'Low', sevCounts.low)}
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                  <span class="text-muted" style="font-size:var(--font-size-xs);font-weight:600;">Sort:</span>
+                  ${sortButton('chunk', 'Chunk order')}
+                  ${sortButton('severity', 'Severity')}
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-bottom:var(--space-2);flex-wrap:wrap;">
+                <p class="text-muted" style="font-size:var(--font-size-xs);margin:0;">${filtered.length} shown${hiddenCount > 0 ? ` · ${hiddenCount} filtered out` : ''}</p>
+                <div style="display:flex;gap:var(--space-1);">
+                  <button type="button" class="btn btn-ghost btn-sm rt-export-csv" style="font-size:var(--font-size-xs);">Export CSV</button>
+                  <button type="button" class="btn btn-ghost btn-sm rt-export-json" style="font-size:var(--font-size-xs);">Export JSON</button>
+                </div>
+              </div>
+              ${filtered.length > 0 ? `
+              <div style="overflow-x:auto;">
+                <table style="width:100%;font-size:var(--font-size-sm);border-collapse:collapse;">
+                  <thead>
+                    <tr style="text-align:left;border-bottom:1px solid var(--border);">
+                      <th style="padding:0.5rem;">Severity</th>
+                      <th style="padding:0.5rem;">Category</th>
+                      <th style="padding:0.5rem;">Message</th>
+                      <th style="padding:0.5rem;">Chunk</th>
+                    </tr>
+                  </thead>
+                  <tbody>${issueRows}</tbody>
+                </table>
+              </div>` : '<p class="text-muted" style="font-size:var(--font-size-sm);">No issues match the active filter.</p>'}` : '<p class="text-muted" style="font-size:var(--font-size-sm);">No issues detected in streamed chunks.</p>'}
+          </div>`;
+        // Wire filter/sort button handlers
+        container.querySelectorAll('.rt-sev-filter').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                this._realtimeFilter = { ...this._realtimeFilter, severity: btn.dataset.sev };
+                this._renderRealtimeStreamResults();
+            });
+        });
+        container.querySelectorAll('.rt-sort-toggle').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                this._realtimeFilter = { ...this._realtimeFilter, sort: btn.dataset.sort };
+                this._renderRealtimeStreamResults();
+            });
+        });
+        // Wire issue row click handlers for expand/collapse
+        container.querySelectorAll('.rt-issue-row').forEach((row) => {
+            row.addEventListener('click', () => {
+                const rowId = row.dataset.rowId;
+                if (this._realtimeExpanded.has(rowId)) {
+                    this._realtimeExpanded.delete(rowId);
+                } else {
+                    this._realtimeExpanded.add(rowId);
+                }
+                this._renderRealtimeStreamResults();
+            });
+        });
+        // Wire export buttons
+        const exportCsvBtn = container.querySelector('.rt-export-csv');
+        const exportJsonBtn = container.querySelector('.rt-export-json');
+        const exportData = sorted.map((issue) => ({
+            severity: issue.severity || '',
+            category: issue.category || issue.rule || '',
+            message: issue.message || issue.description || '',
+            chunkId: issue._chunkId || ''
+        }));
+        const ts = new Date().toISOString().replace(/[:.]/g, '').slice(0, 15);
+        if (exportCsvBtn) {
+            exportCsvBtn.addEventListener('click', () => {
+                try {
+                    downloadCsv(exportData, `realtime-issues-${ts}.csv`, ['severity', 'category', 'message', 'chunkId']);
+                    showToast(`Exported ${exportData.length} issues to CSV`, 'success');
+                } catch (err) {
+                    showToast('CSV export failed: ' + err.message, 'error');
+                }
+            });
+        }
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener('click', () => {
+                try {
+                    const jsonData = sorted.map((issue) => ({
+                        type: issue.type || null,
+                        severity: issue.severity || null,
+                        category: issue.category || issue.rule || null,
+                        message: issue.message || issue.description || null,
+                        chunkId: issue._chunkId || null,
+                        chunkMetadata: {
+                            method: issue._chunkResult?.method || null,
+                            confidence: issue._chunkResult?.confidence ?? null,
+                            processingTime: issue._chunkResult?.processingTime ?? null,
+                            recommendations: issue._chunkResult?.recommendations || []
+                        }
+                    }));
+                    downloadJson(jsonData, `realtime-issues-${ts}.json`);
+                    showToast(`Exported ${jsonData.length} issues to JSON`, 'success');
+                } catch (err) {
+                    showToast('JSON export failed: ' + err.message, 'error');
+                }
+            });
+        }
+    }
     updateAgentStatusUI(root, text = '', available = false) {
         var _a;
         const wrap = root === null || root === void 0 ? void 0 : root.querySelector('#agent-status-wrap');
@@ -5400,12 +5606,41 @@ export class AnalyzeView {
             }
         });
         // Real-time monitoring toggle
-        (_m = el.querySelector('#analyze-realtime-monitor')) === null || _m === void 0 ? void 0 : _m.addEventListener('change', (event) => {
+        (_m = el.querySelector('#analyze-realtime-monitor')) === null || _m === void 0 ? void 0 : _m.addEventListener('change', async (event) => {
             this.realtimeMonitorEnabled = Boolean(event.target.checked);
             if (typeof localStorage !== 'undefined') {
                 localStorage.setItem('simplebeacon_realtime_monitor', this.realtimeMonitorEnabled ? '1' : '0');
             }
-            showToast(this.realtimeMonitorEnabled ? 'Real-time monitoring enabled' : 'Real-time monitoring disabled', 'info');
+            if (this.realtimeMonitorEnabled) {
+                this._realtimeChunks = [];
+                try {
+                    await realtimeAnalysisService.start({ profile: 'balanced', analysisType: 'general' });
+                    showToast('Real-time monitoring enabled — WebSocket connected', 'success');
+                } catch (err) {
+                    showToast('Real-time monitoring enabled (WebSocket unavailable — will retry)', 'info');
+                }
+            } else {
+                realtimeAnalysisService.stop();
+                this._realtimeChunks = [];
+                this._realtimeFilter = { severity: 'all', sort: 'chunk' };
+                this._realtimeExpanded = new Set();
+                this._renderRealtimeStreamResults();
+                showToast('Real-time monitoring disabled', 'info');
+            }
+        });
+        // Update realtime status indicator when connection state changes
+        this._realtimeStateUnsub = realtimeAnalysisService.on('state', (data) => {
+            this._updateRealtimeStatusIndicator(data.state);
+        });
+        // Render streaming analysis results as they arrive
+        this._realtimeResultUnsub = realtimeAnalysisService.on('analysis_result', (data) => {
+            if (!this._realtimeChunks) this._realtimeChunks = [];
+            this._realtimeChunks.push({ chunkId: data.chunkId, result: data.result, timestamp: data.timestamp });
+            // Keep last 50 chunks to avoid unbounded memory growth
+            if (this._realtimeChunks.length > 50) {
+                this._realtimeChunks = this._realtimeChunks.slice(-50);
+            }
+            this._renderRealtimeStreamResults();
         });
         (_o = el.querySelector('#browse-dir-btn')) === null || _o === void 0 ? void 0 : _o.addEventListener('click', async () => {
             const agentAvailable = !!(this.agentStatus && this.agentStatus.available);

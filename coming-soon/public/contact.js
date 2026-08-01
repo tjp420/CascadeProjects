@@ -126,15 +126,7 @@
       });
   });
 
-  // === AI Session Handoff Report Generator (dev-only; hidden on production contact page) ===
-  var handoffRoot = document.getElementById('handoff');
-  if (handoffRoot) {
-    var devHandoff = /localhost|127\.0\.0\.1/.test(window.location.hostname) || window.location.search.indexOf('dev=1') !== -1;
-    if (devHandoff) handoffRoot.hidden = false;
-  }
-  if (!handoffRoot || handoffRoot.hidden) {
-    // Skip handoff wiring on production
-  } else {
+  // === AI Session Handoff Report Generator ===
   var generateHandoffBtn = document.getElementById('generateHandoffBtn');
   var copyHandoffBtn = document.getElementById('copyHandoffBtn');
   var copyMarkdownBtn = document.getElementById('copyMarkdownBtn');
@@ -362,6 +354,5 @@
         generateHandoffReport();
       }
     });
-  }
   }
 })();

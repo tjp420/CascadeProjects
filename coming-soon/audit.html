@@ -1008,7 +1008,7 @@
         (function() {
             const signoutBtn = document.getElementById('nav-signout-btn');
             const signinBtn = document.getElementById('nav-signin-btn');
-            const TOKEN_KEYS = ['cascadeAuthToken','cascadeAuthUser','access_token','token','authToken','simplebeacon_token','sb-token','sb_token'];
+            const TOKEN_KEYS = ['cascadeAuthToken','access_token','token','authToken','simplebeacon_token','sb-token','sb_token'];
             const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
             function setCookie(name, value) {
                 document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + COOKIE_MAX_AGE + ';SameSite=Lax';
@@ -1039,10 +1039,20 @@
                 const freeTiers = ['community','starter','instant','free','developer','sandbox'];
                 return !freeTiers.includes(tier);
             }
+            function isJwtExpired(t) {
+                const p = decodeJwtPayload(t);
+                return !!(p && p.exp && p.exp * 1000 < Date.now());
+            }
             function hasAnyToken() {
                 return TOKEN_KEYS.some(k => {
                     const val = localStorage.getItem(k) || getCookie(k);
-                    return val && val.length > 10;
+                    if (!val || val.length <= 10) return false;
+                    if (isJwtExpired(val)) {
+                        try { localStorage.removeItem(k); } catch(_){}
+                        clearCookie(k);
+                        return false;
+                    }
+                    return true;
                 });
             }
             function updateAuthNav() {
@@ -1348,7 +1358,7 @@
 
             updateAuthNav();
             window.addEventListener('storage', function(e) {
-                if (TOKEN_KEYS.includes(e.key)) updateAuthNav();
+                if (e.key === null || (TOKEN_KEYS.includes(e.key) && !e.newValue)) updateAuthNav();
             });
 
             // ── Token Gate + Auth Modal — non-coercive ──────────────────────

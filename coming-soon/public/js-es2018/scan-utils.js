@@ -2,7 +2,7 @@
  * Scan Engine Utilities — pure functions extracted from upload.html
  * No DOM dependencies. Safe to test in Node.js.
  */
-const MAX_DISCOVERED_FILES = 100000;
+const MAX_DISCOVERED_FILES = 999999999; // Effectively unlimited — scan all files
 // Pre-upload folder size analyzer thresholds
 const FOLDER_SIZE_WARN_CHROME_CAP = 1200;
 const FOLDER_SIZE_WARN_LARGE = 50000;

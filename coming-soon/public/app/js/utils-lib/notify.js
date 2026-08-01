@@ -86,6 +86,38 @@ function _isLocalhost() {
   return /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname);
 }
 
+function _isHostedHttps() {
+  if (typeof window === 'undefined' || !window.location) return false;
+  if (_isLocalhost()) return false;
+  return window.location.protocol === 'https:';
+}
+
+function _redactPayload(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(_redactPayload);
+  const out = {};
+  for (const key of Object.keys(obj)) {
+    const lower = key.toLowerCase();
+    if (lower === 'token' || lower === 'password' || lower === 'apikey' || lower === 'api_key' || lower === 'secret') {
+      out[key] = '[REDACTED]';
+    } else {
+      out[key] = _redactPayload(obj[key]);
+    }
+  }
+  return out;
+}
+
+function _postNotifyBeacon(url, entry) {
+  try {
+    const payload = _redactPayload(entry.payload || {});
+    const beaconUrl = String(url).replace(/\/api\/notify\/?$/, '/api/notify/beacon')
+      + '?type=' + encodeURIComponent(entry.type)
+      + '&payload=' + encodeURIComponent(JSON.stringify(payload));
+    const img = new Image();
+    img.src = beaconUrl;
+  } catch (_) { /* ignore */ }
+}
+
 function _notifyUrlFromBase(notifyBase) {
   const base = String(notifyBase || '').replace(/\/+$/, '');
   if (!base) return null;
