@@ -68,12 +68,18 @@ function _recordEvent(eventType, node, details) {
 
 function queryEvents(filters) {
   filters = filters || {};
+  const startTs = filters.startDate ? new Date(filters.startDate).getTime() : null;
+  const endTs = filters.endDate ? new Date(filters.endDate).getTime() : null;
   let events = [..._events];
   if (filters.eventType) events = events.filter((e) => e.eventType === filters.eventType);
   if (filters.node) events = events.filter((e) => e.node === filters.node);
-  if (filters.startDate) events = events.filter((e) => e.timestamp >= filters.startDate);
-  if (filters.endDate) events = events.filter((e) => e.timestamp <= filters.endDate);
-  events.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  if (startTs !== null) {
+    events = events.filter((e) => new Date(e.timestamp).getTime() > startTs);
+  }
+  if (endTs !== null) {
+    events = events.filter((e) => new Date(e.timestamp).getTime() < endTs);
+  }
+  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   const total = events.length;
   const limit = Math.min(filters.limit || 100, 500);
   const offset = Math.max(filters.offset || 0, 0);
@@ -454,6 +460,13 @@ function proposeRotate(newKeyRaw, graceMs) {
     graceMs: graceMs || null,
   });
 
+  _recordEvent(EVENT_TYPES.KEY_COMMIT, _state.nodeId, {
+    activeFingerprint: _state.activeFingerprint,
+    previousFingerprint: _state.previousFingerprint,
+    rotatedAt: _state.rotatedAt,
+    graceMs: graceMs || null,
+    epoch: _state.epoch,
+  });
   _log('info', 'Proposed cluster key rotation', { activeFingerprint: _state.activeFingerprint });
   return getStatus();
 }
@@ -464,4 +477,10 @@ module.exports = {
   isLeader,
   getStatus,
   proposeRotate,
+  queryEvents,
+  getEventStats,
+  EVENT_TYPES,
+  // Test helpers
+  _resetEvents,
+  _recordEvent,
 };

@@ -925,6 +925,48 @@ router.post('/cluster/keyring/rotate', authorize('admin:all'), (req, res) => {
   }
 });
 
+// GET /api/audit/cluster/events — Cluster event timeline (admin only)
+router.get('/cluster/events', authorize('admin:all'), (req, res) => {
+  try {
+    const { eventType, node, startDate, endDate, limit, offset } = req.query || {};
+    const parsedLimit = parseInt(limit, 10);
+    const parsedOffset = parseInt(offset, 10);
+    const events = clusterSync.queryEvents({
+      eventType,
+      node,
+      startDate,
+      endDate,
+      limit: Number.isNaN(parsedLimit) ? undefined : parsedLimit,
+      offset: Number.isNaN(parsedOffset) ? undefined : parsedOffset,
+    });
+    const stats = clusterSync.getEventStats();
+    res.json({ success: true, ...events, stats });
+  } catch (err) {
+    logger.warn('[Audit] cluster_events_failed:', err.message);
+    sendError(res, 500, 'cluster_events_failed', { message: err.message });
+  }
+});
+
+// GET /api/audit/cluster/events — Sync.com-style event timeline query
+//   Query params: eventType, node, startDate, endDate, limit, offset
+router.get('/cluster/events', authorize('admin:all'), (req, res) => {
+  try {
+    const result = clusterSync.queryEvents({
+      eventType: req.query.eventType || '',
+      node: req.query.node || '',
+      startDate: req.query.startDate || '',
+      endDate: req.query.endDate || '',
+      limit: Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500),
+      offset: Math.max(parseInt(req.query.offset, 10) || 0, 0),
+    });
+    const stats = clusterSync.getEventStats();
+    res.json({ success: true, ...result, stats });
+  } catch (err) {
+    logger.warn('[Audit] cluster_events_query_failed:', err.message);
+    sendError(res, 500, 'cluster_events_query_failed', { message: err.message });
+  }
+});
+
 // GET /api/audit/archive/search — Search cold archive (admin only)
 router.get('/archive/search', authorize('admin:all'), async (req, res) => {
   try {
