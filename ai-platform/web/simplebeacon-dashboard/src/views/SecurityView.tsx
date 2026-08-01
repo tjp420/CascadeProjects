@@ -13,6 +13,7 @@ import { ToolSchemaValidationDashboard } from '@/components/ToolSchemaValidation
 import { StreamInterdictionDashboard } from '@/components/StreamInterdictionDashboard';
 import { QuarantineLogBrowser } from '@/components/QuarantineLogBrowser';
 import { PolicySyncer } from '@/components/PolicySyncer';
+import { PolicySyncHistory } from '@/components/PolicySyncHistory';
 
 type ScanResultData = {
   projectPath?: string;
@@ -396,6 +397,7 @@ export function SecurityView() {
       <StreamInterdictionDashboard />
       <QuarantineLogBrowser />
       <PolicySyncer />
+      <PolicySyncHistory />
     </div>
   );
 }

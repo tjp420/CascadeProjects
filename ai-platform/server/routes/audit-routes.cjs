@@ -980,4 +980,113 @@ router.post('/pii/sync', authorize('admin:all'), (req, res) => {
   } catch (err) { logger.warn('[Audit] pii_sync_failed:', err.message); sendError(res, 500, 'pii_sync_failed', { message: err.message }); }
 });
 
+
+// GET /api/audit/pii/sync-history — Aggregated sync history for dashboard charting
+//   Query params: limit (default 50, max 200), days (default 30, max 365)
+router.get('/pii/sync-history', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+    const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    // Query all pii_policy_sync entries within the time window
+    const result = auditLogger.query({
+      orgId,
+      action: 'pii_policy_sync',
+      startDate,
+      limit: 500,
+      offset: 0,
+    });
+
+    const entries = result.entries || [];
+
+    // Build aggregated data for charts
+    // 1. Timeline data — group by day
+    const byDay = {};
+    // 2. By mode — merge vs replace counts
+    let mergeCount = 0;
+    let replaceCount = 0;
+    // 3. Totals
+    let totalCloned = 0;
+    let totalSkipped = 0;
+    let totalRemoved = 0;
+    // 4. By actor
+    const byActor = {};
+    // 5. By source org
+    const bySourceOrg = {};
+
+    for (const entry of entries) {
+      const meta = entry.metadata || {};
+      const day = entry.timestamp.slice(0, 10); // YYYY-MM-DD
+
+      // Timeline
+      if (!byDay[day]) {
+        byDay[day] = { date: day, syncs: 0, cloned: 0, skipped: 0, removed: 0 };
+      }
+      byDay[day].syncs++;
+      byDay[day].cloned += meta.totalCloned || 0;
+      byDay[day].skipped += meta.totalSkipped || 0;
+      byDay[day].removed += meta.totalRemoved || 0;
+
+      // Mode
+      if (meta.mode === 'replace') replaceCount++;
+      else mergeCount++;
+
+      // Totals
+      totalCloned += meta.totalCloned || 0;
+      totalSkipped += meta.totalSkipped || 0;
+      totalRemoved += meta.totalRemoved || 0;
+
+      // By actor
+      const actor = entry.actorEmail || entry.actorId || 'unknown';
+      if (!byActor[actor]) byActor[actor] = { actor, syncs: 0, cloned: 0 };
+      byActor[actor].syncs++;
+      byActor[actor].cloned += meta.totalCloned || 0;
+
+      // By source org
+      const srcOrg = meta.sourceOrgId || 'unknown';
+      if (!bySourceOrg[srcOrg]) bySourceOrg[srcOrg] = { sourceOrg: srcOrg, syncs: 0, cloned: 0 };
+      bySourceOrg[srcOrg].syncs++;
+      bySourceOrg[srcOrg].cloned += meta.totalCloned || 0;
+    }
+
+    // Convert to sorted arrays
+    const timeline = Object.values(byDay).sort((a, b) => a.date.localeCompare(b.date));
+    const actors = Object.values(byActor).sort((a, b) => b.syncs - a.syncs).slice(0, 10);
+    const sourceOrgs = Object.values(bySourceOrg).sort((a, b) => b.syncs - a.syncs).slice(0, 10);
+
+    // Recent sync events (most recent first, limited)
+    const recent = entries.slice(0, limit).map((e) => ({
+      id: e.id,
+      timestamp: e.timestamp,
+      actorEmail: e.actorEmail,
+      sourceOrgId: e.metadata?.sourceOrgId || 'unknown',
+      targetCount: e.metadata?.targetCount || 0,
+      mode: e.metadata?.mode || 'merge',
+      totalCloned: e.metadata?.totalCloned || 0,
+      totalSkipped: e.metadata?.totalSkipped || 0,
+      totalRemoved: e.metadata?.totalRemoved || 0,
+    }));
+
+    res.json({
+      success: true,
+      totalSyncs: entries.length,
+      totalCloned,
+      totalSkipped,
+      totalRemoved,
+      mergeCount,
+      replaceCount,
+      timeline,
+      actors,
+      sourceOrgs,
+      recent,
+      days,
+    });
+  } catch (err) {
+    logger.warn('[Audit] pii_sync_history_failed:', err.message);
+    sendError(res, 500, 'pii_sync_history_failed', { message: err.message });
+  }
+});
+
 module.exports = router;
