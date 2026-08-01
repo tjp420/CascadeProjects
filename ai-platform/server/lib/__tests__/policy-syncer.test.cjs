@@ -80,4 +80,32 @@ describe('Multi-Tenant Compliance Policy Syncer Engine Suite', () => {
     assert.strictEqual(jsonBody.error, 'compliance_policy_violation');
     assert.strictEqual(jsonBody.ruleId, 'rule_deny_unencrypted');
   });
+
+  it('returns permissive fallback when on-disk policy is malformed', async () => {
+    // create malformed JSON on disk to simulate a corrupt central sync file
+    const orgId = `${mockOrgId}-malformed`;
+    if (!fs.existsSync(POLICY_STORE_DIR)) fs.mkdirSync(POLICY_STORE_DIR, { recursive: true });
+    const targetFile = path.join(POLICY_STORE_DIR, `policy-${orgId}.json`);
+    fs.writeFileSync(targetFile, '{ this is : not valid json ', 'utf-8');
+
+    const result = await reconcilePolicy(orgId);
+    // should return permissive fallback pattern for the org
+    assert.ok(result.policyId.startsWith(`pol_default_${orgId}`));
+    // cache should not have thrown and fallback is returned
+    const active = getActivePolicy(orgId);
+    assert.strictEqual(active.policyId, result.policyId);
+  });
+
+  it('passes through (calls next) when an org has no rules', async () => {
+    const orgId = `${mockOrgId}-no-rules`;
+    // ensure no policy exists for this org and cache cleared
+    clearCache();
+
+    const guard = enforceCompliancePolicy();
+    let called = false;
+    const req = { resolvedOrgId: orgId, headers: {}, user: { id: 'u1', orgId } };
+    const res = {};
+    await guard(req, res, () => { called = true; });
+    assert.strictEqual(called, true);
+  });
 });
