@@ -121,7 +121,9 @@ class SoftHsmAdapter {
     const kekHandle = this._findKeyHandleByLabel(kekLabel);
     if (!kekHandle) throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekLabel} not found`);
 
-    // Create a temporary session key object for the CEK
+    // Create a temporary session key object for the CEK.
+    // CKA_EXTRACTABLE must be true and CKA_SENSITIVE false so that
+    // C_WrapKey can read the key material to wrap it with the KEK.
     const tempTemplate = [
       { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_SECRET_KEY },
       { type: pkcs11js.CKA_KEY_TYPE, value: pkcs11js.CKK_AES },
@@ -130,7 +132,9 @@ class SoftHsmAdapter {
       { type: pkcs11js.CKA_DECRYPT, value: false },
       { type: pkcs11js.CKA_WRAP, value: false },
       { type: pkcs11js.CKA_UNWRAP, value: false },
-      { type: pkcs11js.CKA_TOKEN, value: false }
+      { type: pkcs11js.CKA_TOKEN, value: false },
+      { type: pkcs11js.CKA_SENSITIVE, value: false },
+      { type: pkcs11js.CKA_EXTRACTABLE, value: true }
     ];
     const cekHandle = this.pkcs11.C_CreateObject(this.session, tempTemplate);
     try {
