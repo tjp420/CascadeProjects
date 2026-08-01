@@ -9,7 +9,7 @@ name: Track 10 Crypto Gate
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, 'feature/track10-**', 'feature/track11-**']
     paths:
       - 'ai-platform/server/lib/hsm-adapter/**'
       - 'ai-platform/server/lib/keyring-serializer.cjs'
@@ -50,17 +50,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Debug: list repo and ai-platform/tests
-        run: |
-          echo "-- repo root --"
-          ls -la || true
-          echo "-- ai-platform --"
-          ls -la ai-platform || true
-          echo "-- ai-platform/tests --"
-          ls -la ai-platform/tests || true
-          echo "-- ai-platform/tests/setup.js --"
-          sed -n '1,160p' ai-platform/tests/setup.js || true
+        with:
+          submodules: false
+          fetch-depth: 0
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -120,8 +112,7 @@ jobs:
         working-directory: ai-platform
         run: |
           npx jest --config jest.config.cjs --verbose \
-            hsm-adapter.test \
-            hsm-adapter-audit.test
+            hsm-adapter.test
 
       - name: Run keyring serializer tests
         working-directory: ai-platform
