@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.cjs",
     "dev": "node server.cjs",
-    "test": "node --test test/*.test.cjs",
+    "test": "node --test test/analyzer-coverage.test.cjs test/db.test.cjs test/scan-utils.test.cjs test/token-chain.test.cjs test/token-upgrade-validate.test.cjs",
+    "test:integration": "node --test test/payment-workflow.test.cjs test/payment-workflow-v2.test.cjs",
     "build": "tsc && tsc -p tsconfig.dashboard.json && node build-public.js",
     "lint": "node -c server.cjs",
     "format": "npx prettier --write .",
