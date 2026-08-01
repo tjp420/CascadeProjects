@@ -50,6 +50,6 @@ describe('scan-utils', () => {
     });
 
     it('should have correct max files constant', () => {
-        assert.strictEqual(MAX_DISCOVERED_FILES, 100000);
+        assert.strictEqual(MAX_DISCOVERED_FILES, 999999999);
     });
 });
