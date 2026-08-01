@@ -103,6 +103,15 @@ function _consumeFromMemory(bucketKey, consume, reserve) {
 async function _consumeFromRedis(bucketKey, consume, reserve) {
   const now = _nowMs();
   const reserveTokens = (CAPACITY * reserve) / 100;
+  // Attempt to snapshot the last known distributed state before the atomic eval.
+  // If the eval fails, we seed the in-memory fallback with this state so that
+  // transient Redis drops do not immediately wipe an active bucket.
+  let lastKnown = null;
+  try {
+    lastKnown = await redisClient.hmget(bucketKey, 'tokens', 'lastUpdate');
+  } catch (e) {
+    // Could not reach Redis; ignore and let the eval attempt fail below.
+  }
   const script = `
     local key = KEYS[1]
     local capacity = tonumber(ARGV[1])
@@ -134,6 +143,12 @@ async function _consumeFromRedis(bucketKey, consume, reserve) {
   } catch (e) {
     usingRedis = false;
     logger.warn('Redis token bucket failed; falling back to in-memory', { error: e.message });
+    if (lastKnown && lastKnown[0] !== null && lastKnown[1] !== null) {
+      inMemoryBuckets.set(bucketKey, {
+        tokens: Number(lastKnown[0]),
+        lastUpdate: Number(lastKnown[1]),
+      });
+    }
     return _consumeFromMemory(bucketKey, consume, reserve);
   }
 }

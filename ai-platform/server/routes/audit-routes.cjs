@@ -57,8 +57,12 @@ function getActor(req) {
 // All audit endpoints require authentication
 router.use(authenticate);
 
-// Apply token-bucket defense to all audit routes
-router.use(adminThrottle);
+// Apply token-bucket defense to admin audit routes, excluding the high-volume /log endpoint
+function adminThrottleUnlessLog(req, res, next) {
+  if (req.path === '/log') return next();
+  adminThrottle(req, res, next);
+}
+router.use(adminThrottleUnlessLog);
 
 // ── GET /api/audit/log ──────────────────────────────────────────────────────
 //   Query params: action, entity, actorId, startDate, endDate, limit, offset

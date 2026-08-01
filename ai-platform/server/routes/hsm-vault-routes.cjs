@@ -17,8 +17,14 @@ const { middleware: adminThrottle } = require('../lib/admin-throttle.cjs');
 
 const router = express.Router();
 
-// Apply token-bucket defense to all admin HSM vault routes
-router.use(adminThrottle);
+// Apply token-bucket defense to all admin HSM vault routes, after auth
+function authBeforeThrottle(req, res, next) {
+  authorize('admin:all')(req, res, (err) => {
+    if (err) return next(err);
+    adminThrottle(req, res, next);
+  });
+}
+router.use(authBeforeThrottle);
 
 function resolveOrgId(req) {
   return req.orgId || req.query.orgId || req.body.orgId || 'default';
