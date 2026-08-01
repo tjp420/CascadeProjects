@@ -707,6 +707,16 @@ let _reKeyStats = {
   lastResult: null,
 };
 
+// Autonomous lifecycle purge stats
+let _lifecyclePurgeRunning = false;
+let _lifecyclePurgeStats = {
+  totalSweeps: 0,
+  totalPurged: 0,
+  totalArchived: 0,
+  lastResult: null,
+  lastRun: null,
+};
+
 /**
  * Read the quarantine store.
  * @returns {{ entries: object[], metadata: object }}
@@ -1088,6 +1098,104 @@ function getReKeyStats() {
 }
 
 /**
+ * Run an autonomous lifecycle purge sweep across all orgs. For each
+ * discovered org, invokes purgeOldEntries(orgId) which enforces the
+ * org's retention policy (retentionDays, maxEntries safety floor,
+ * archive flag). When entries are purged, an audit log entry with
+ * action 'audit_retention_auto_purge' is recorded so the background
+ * cleanup is itself auditable.
+ *
+ * This is called automatically during each auto-heal timer tick
+ * (after healAllOrgs and runAutonomousReKeying) and can also be
+ * triggered manually.
+ * @returns {{ totalPurged: number, totalArchived: number, orgsProcessed: number, orgsPurged: number, errors: array }}
+ */
+function runAutonomousLifecyclePurge() {
+  if (_lifecyclePurgeRunning) {
+    return { totalPurged: 0, totalArchived: 0, orgsProcessed: 0, orgsPurged: 0, errors: [] };
+  }
+  _lifecyclePurgeRunning = true;
+  _lifecyclePurgeStats.lastRun = new Date().toISOString();
+
+  const errors = [];
+  let totalPurged = 0;
+  let totalArchived = 0;
+  let orgsProcessed = 0;
+  let orgsPurged = 0;
+
+  try {
+    const orgIds = getAllOrgIds();
+
+    for (const orgId of orgIds) {
+      orgsProcessed++;
+      try {
+        const result = purgeOldEntries(orgId);
+
+        if (result && result.purged > 0) {
+          orgsPurged++;
+          totalPurged += result.purged;
+          totalArchived += result.archived || 0;
+
+          // Record the background cleanup as an audit log entry
+          try {
+            const policy = auditPolicyStore.getPolicy(orgId);
+            log({
+              orgId,
+              actorId: 'system',
+              actorEmail: 'system@internal',
+              action: 'audit_retention_auto_purge',
+              entity: 'audit_log',
+              entityId: orgId,
+              metadata: {
+                purged: result.purged,
+                remaining: result.remaining,
+                archived: result.archived || 0,
+                policy: {
+                  retentionDays: policy.retentionDays,
+                  maxEntries: policy.maxEntries,
+                  archive: policy.archive,
+                },
+                autoPurge: true,
+              },
+            });
+          } catch (logErr) {
+            // Logging failure should not block the sweep
+            errors.push({ orgId, error: `audit-log write failed: ${logErr.message}` });
+          }
+        }
+      } catch (err) {
+        // Continue purging other orgs even if one fails
+        errors.push({ orgId, error: err.message });
+      }
+    }
+  } finally {
+    _lifecyclePurgeRunning = false;
+  }
+
+  _lifecyclePurgeStats.totalSweeps++;
+  _lifecyclePurgeStats.totalPurged += totalPurged;
+  _lifecyclePurgeStats.totalArchived += totalArchived;
+  _lifecyclePurgeStats.lastResult = {
+    totalPurged,
+    totalArchived,
+    orgsProcessed,
+    orgsPurged,
+    errors,
+    timestamp: new Date().toISOString(),
+  };
+
+  return { totalPurged, totalArchived, orgsProcessed, orgsPurged, errors };
+}
+
+/**
+ * Get autonomous lifecycle purge stats.
+ * @returns {{ totalSweeps: number, totalPurged: number, totalArchived: number, lastResult: object|null, lastRun: string|null }}
+ */
+function getLifecyclePurgeStats() {
+  return { ..._lifecyclePurgeStats };
+}
+
+/**
  * Start the background auto-healing timer.
  * @param {number} [intervalMs] — Override interval (default: AUDIT_HEAL_INTERVAL_MS or 5min)
  * @returns {boolean} True if timer was started
@@ -1106,6 +1214,11 @@ function startAutoHeal(intervalMs) {
     }
     try {
       runAutonomousReKeying();
+    } catch {
+      // Swallow errors in background timer — don't crash the process
+    }
+    try {
+      runAutonomousLifecyclePurge();
     } catch {
       // Swallow errors in background timer — don't crash the process
     }
@@ -1163,5 +1276,7 @@ module.exports = {
   writeTenantQuarantineStore,
   runAutonomousReKeying,
   getReKeyStats,
+  runAutonomousLifecyclePurge,
+  getLifecyclePurgeStats,
   GENESIS_HASH,
 };
