@@ -24,6 +24,8 @@ const crypto = require('crypto');
 const { BaseHsmAdapter, HsmAdapterError } = require('./base-adapter.cjs');
 const { createCredential } = require('./azure-credential-provider.cjs');
 const { AuditInterceptor } = require('./azure-audit-interceptor.cjs');
+const { CircuitBreaker, STATES: CIRCUIT_STATES } = require('./circuit-breaker.cjs');
+const metrics = require('./hsm-metrics.cjs');
 
 const DEFAULT_KEK_BITS = 256;
 const AES_KW_ALGORITHM = 'A256KW'; // JWA name for RFC 3394 AES-KW with 256-bit key
@@ -137,6 +139,31 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
     this._keyClient = null;
     this._cryptoClients = new Map(); // kekId -> CryptographyClient
     this._auditInterceptor = null;
+
+    // Stage 3: Circuit breaker for resilience against Azure outages
+    this._circuitBreaker = new CircuitBreaker({
+      threshold: options.circuitBreakerThreshold || 5,
+      cooldownMs: options.circuitBreakerCooldownMs || 30000,
+      name: this.providerName,
+      onTransition: (newState, prevState, info) => {
+        const eventMap = {
+          [CIRCUIT_STATES.OPEN]: 'CIRCUIT_OPENED',
+          [CIRCUIT_STATES.CLOSED]: 'CIRCUIT_CLOSED',
+          [CIRCUIT_STATES.HALF_OPEN]: 'CIRCUIT_HALF_OPEN',
+        };
+        this._audit(eventMap[newState] || 'CIRCUIT_TRANSITION', {
+          prevState, newState, ...info,
+        });
+        const counterMap = {
+          [CIRCUIT_STATES.OPEN]: 'hsm_circuit_opened_total',
+          [CIRCUIT_STATES.CLOSED]: 'hsm_circuit_closed_total',
+          [CIRCUIT_STATES.HALF_OPEN]: 'hsm_circuit_half_open_total',
+        };
+        if (counterMap[newState]) {
+          metrics.incrementCounter(counterMap[newState]);
+        }
+      },
+    });
   }
 
   /**
@@ -229,11 +256,17 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    * @protected
    */
   async _createKEK(tenantId, meta = {}) {
+    if (this._circuitBreaker.isBlocked()) {
+      throw new HsmAdapterError('CIRCUIT_OPEN', 'HSM circuit breaker is open — createKEK rejected');
+    }
     const kekId = crypto.randomBytes(6).toString('hex');
     const keyName = this._buildKeyName(tenantId, kekId);
     const keySize = this.kekBits;
+    const start = Date.now();
 
     try {
+      metrics.incrementCounter('hsm_create_kek_total');
+
       const result = await this._auditInterceptor.wrapCall(
         'CREATE_KEK',
         'createKey',
@@ -253,9 +286,14 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
         throw new HsmAdapterError('KEK_GEN_FAILED', 'Azure createKey returned no result');
       }
 
+      this._circuitBreaker.recordSuccess();
+      metrics.observeHistogram('hsm_create_kek_duration_ms', Date.now() - start);
       return kekId;
     } catch (err) {
-      throw _mapAzureError(err, 'KEK_GEN_FAILED', `createKEK(${tenantId}, ${kekId})`);
+      const mapped = _mapAzureError(err, 'KEK_GEN_FAILED', `createKEK(${tenantId}, ${kekId})`);
+      this._circuitBreaker.recordFailure(err);
+      metrics.incrementCounter('hsm_create_kek_failures_total');
+      throw mapped;
     }
   }
 
@@ -268,10 +306,16 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    * @protected
    */
   async _wrap(tenantId, kekId, plaintext) {
+    if (this._circuitBreaker.isBlocked()) {
+      throw new HsmAdapterError('CIRCUIT_OPEN', 'HSM circuit breaker is open — wrap rejected');
+    }
     const client = await this._getCryptoClient(tenantId, kekId);
     const algorithm = this._getAlgorithm();
+    const start = Date.now();
 
     try {
+      metrics.incrementCounter('hsm_wrap_total');
+
       const result = await this._auditInterceptor.wrapCall(
         'WRAP',
         'encrypt',
@@ -282,9 +326,14 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
         throw new HsmAdapterError('WRAP_FAILED', 'Azure encrypt returned no result');
       }
 
+      this._circuitBreaker.recordSuccess();
+      metrics.observeHistogram('hsm_wrap_duration_ms', Date.now() - start);
       return Buffer.from(result.result);
     } catch (err) {
-      throw _mapAzureError(err, 'WRAP_FAILED', `wrap(${tenantId}, ${kekId})`);
+      const mapped = _mapAzureError(err, 'WRAP_FAILED', `wrap(${tenantId}, ${kekId})`);
+      this._circuitBreaker.recordFailure(err);
+      metrics.incrementCounter('hsm_wrap_failures_total');
+      throw mapped;
     }
   }
 
@@ -297,10 +346,16 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    * @protected
    */
   async _unwrap(tenantId, kekId, wrapped) {
+    if (this._circuitBreaker.isBlocked()) {
+      throw new HsmAdapterError('CIRCUIT_OPEN', 'HSM circuit breaker is open — unwrap rejected');
+    }
     const client = await this._getCryptoClient(tenantId, kekId);
     const algorithm = this._getAlgorithm();
+    const start = Date.now();
 
     try {
+      metrics.incrementCounter('hsm_unwrap_total');
+
       const result = await this._auditInterceptor.wrapCall(
         'UNWRAP',
         'decrypt',
@@ -311,9 +366,14 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
         throw new HsmAdapterError('UNWRAP_FAILED', 'Azure decrypt returned no result');
       }
 
+      this._circuitBreaker.recordSuccess();
+      metrics.observeHistogram('hsm_unwrap_duration_ms', Date.now() - start);
       return Buffer.from(result.result);
     } catch (err) {
-      throw _mapAzureError(err, 'UNWRAP_FAILED', `unwrap(${tenantId}, ${kekId})`);
+      const mapped = _mapAzureError(err, 'UNWRAP_FAILED', `unwrap(${tenantId}, ${kekId})`);
+      this._circuitBreaker.recordFailure(err);
+      metrics.incrementCounter('hsm_unwrap_failures_total');
+      throw mapped;
     }
   }
 
@@ -325,6 +385,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    * @protected
    */
   async _rotateKEK(tenantId, oldKekId) {
+    metrics.incrementCounter('hsm_rotate_kek_total');
     // Create a new KEK
     const newKekId = await this._createKEK(tenantId, { rotatedFrom: oldKekId });
 
@@ -407,6 +468,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
       // Clear cached crypto client
       this._cryptoClients.delete(`${tenantId}:${kekId}`);
 
+      metrics.incrementCounter('hsm_zeroize_total');
       return { keyName, deleted: true, purged: true };
     } catch (err) {
       throw _mapAzureError(err, 'ZEROIZE_FAILED', `zeroize(${tenantId}, ${kekId})`);
