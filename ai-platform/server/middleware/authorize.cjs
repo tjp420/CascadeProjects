@@ -206,6 +206,17 @@ function recordViolation(violation) {
     if (lastAlert && now - lastAlert < VIOLATION_ALERT_COOLDOWN_MS) return;
     _violationAlertCooldown.set(callerOrgId, now);
 
+    // Auto-interdict the caller's API key if auto-trigger is enabled
+    if (isAutoInterdictionEnabled()) {
+      const keyToBlock = violation.userId || callerOrgId;
+      interdictKey(
+        keyToBlock,
+        `auto:org_partition_violation_spike (${recentOrgViolations} violations, threshold ${threshold})`,
+        getInterdictionTtlMs(),
+        'auto'
+      );
+    }
+
     try {
       const { processEvent } = require('../lib/alert-dispatcher.cjs');
       processEvent(callerOrgId, 'org_partition_violation_spike', {
@@ -396,6 +407,206 @@ function authorizeAny(...permissions) {
   };
 }
 
+// ── Key Interdiction Engine ─────────────────────────────────────────────────
+//
+// In-memory API key block list with TTL-based eviction. When a key is
+// interdicted (either manually by an admin or automatically by the violation
+// threshold trigger), subsequent requests carrying that key are rejected with
+// HTTP 423 Locked before reaching downstream handlers.
+//
+// Configuration (via security-monitor-settings-store):
+//   interdictionDefaultTtlMs — default lockout duration (default: 15 min)
+//   interdictionMaxKeys — max entries in block list (default: 10,000)
+//   interdictionAutoTriggerEnabled — auto-block on violation threshold (default: true)
+
+const MAX_INTERDICTED_KEYS = 10000;
+const DEFAULT_INTERDICTION_TTL_MS = 15 * 60 * 1000;
+
+let _interdictedKeys = new Map();
+let _interdictionStats = {
+  totalBlocked: 0,
+  totalReleased: 0,
+  totalAutoTriggered: 0,
+  totalRequestsRejected: 0,
+  lastAutoTrigger: null,
+};
+
+function getInterdictionTtlMs() {
+  const settings = getSettings();
+  const ttl = settings.interdictionDefaultTtlMs;
+  return typeof ttl === 'number' && ttl >= 1000 ? ttl : DEFAULT_INTERDICTION_TTL_MS;
+}
+
+function getInterdictionMaxKeys() {
+  const settings = getSettings();
+  const max = settings.interdictionMaxKeys;
+  return typeof max === 'number' && max >= 100 ? max : MAX_INTERDICTED_KEYS;
+}
+
+function isAutoInterdictionEnabled() {
+  const settings = getSettings();
+  return settings.interdictionAutoTriggerEnabled !== false;
+}
+
+/**
+ * Extract the API key from a request. Checks x-api-key header, query param,
+ * and falls back to the authenticated user's ID for token-based auth.
+ * @param {object} req — Express request
+ * @returns {string|null}
+ */
+function extractApiKey(req) {
+  return req.headers['x-api-key'] || req.query.apiKey || req.user?.id || null;
+}
+
+/**
+ * Interdict (block) an API key for a specified duration.
+ * @param {string} apiKey — The key to block
+ * @param {string} reason — Why the key is being blocked
+ * @param {number} [ttlMs] — Lockout duration (defaults to configured TTL)
+ * @param {string} [source] — 'manual' or 'auto'
+ * @returns {{ blocked: boolean, expiresAt: number }}
+ */
+function interdictKey(apiKey, reason, ttlMs, source = 'manual') {
+  if (!apiKey) return { blocked: false, expiresAt: 0 };
+  const ttl = ttlMs || getInterdictionTtlMs();
+  const expiresAt = Date.now() + ttl;
+
+  // Enforce memory cap — evict oldest entry if at limit
+  const maxKeys = getInterdictionMaxKeys();
+  if (_interdictedKeys.size >= maxKeys && !_interdictedKeys.has(apiKey)) {
+    const oldestKey = _interdictedKeys.keys().next().value;
+    if (oldestKey) _interdictedKeys.delete(oldestKey);
+  }
+
+  _interdictedKeys.set(apiKey, {
+    reason: reason || 'unspecified',
+    blockedAt: Date.now(),
+    expiresAt,
+    source,
+  });
+
+  _interdictionStats.totalBlocked++;
+  if (source === 'auto') {
+    _interdictionStats.totalAutoTriggered++;
+    _interdictionStats.lastAutoTrigger = new Date().toISOString();
+  }
+
+  return { blocked: true, expiresAt };
+}
+
+/**
+ * Release (unblock) an interdicted API key immediately.
+ * @param {string} apiKey — The key to release
+ * @returns {{ released: boolean, wasBlocked: boolean }}
+ */
+function releaseKey(apiKey) {
+  if (!apiKey) return { released: false, wasBlocked: false };
+  const wasBlocked = _interdictedKeys.has(apiKey);
+  if (wasBlocked) {
+    _interdictedKeys.delete(apiKey);
+    _interdictionStats.totalReleased++;
+  }
+  return { released: true, wasBlocked };
+}
+
+/**
+ * Check if a key is currently interdicted. Evicts expired entries lazily.
+ * @param {string} apiKey
+ * @returns {{ interdicted: boolean, reason: string|null, expiresAt: number|null }}
+ */
+function checkInterdiction(apiKey) {
+  if (!apiKey) return { interdicted: false, reason: null, expiresAt: null };
+  const block = _interdictedKeys.get(apiKey);
+  if (!block) return { interdicted: false, reason: null, expiresAt: null };
+
+  // Lazy TTL eviction
+  if (Date.now() >= block.expiresAt) {
+    _interdictedKeys.delete(apiKey);
+    _interdictionStats.totalReleased++;
+    return { interdicted: false, reason: null, expiresAt: null };
+  }
+
+  return { interdicted: true, reason: block.reason, expiresAt: block.expiresAt };
+}
+
+/**
+ * Get a list of all currently interdicted keys with metadata.
+ * Evicts expired entries during the scan.
+ * @returns {{ keys: array, total: number, stats: object }}
+ */
+function getInterdictedKeys() {
+  const now = Date.now();
+  const keys = [];
+  for (const [apiKey, block] of _interdictedKeys) {
+    // Lazy eviction during scan
+    if (now >= block.expiresAt) {
+      _interdictedKeys.delete(apiKey);
+      continue;
+    }
+    keys.push({
+      apiKey: apiKey.length > 8 ? apiKey.slice(0, 4) + '…' + apiKey.slice(-4) : apiKey,
+      reason: block.reason,
+      blockedAt: new Date(block.blockedAt).toISOString(),
+      expiresAt: new Date(block.expiresAt).toISOString(),
+      source: block.source,
+    });
+  }
+  return {
+    keys,
+    total: keys.length,
+    stats: { ..._interdictionStats },
+  };
+}
+
+/**
+ * Clear all interdicted keys (for tests / admin reset).
+ * @returns {number} Number of keys cleared
+ */
+function clearInterdictedKeys() {
+  const count = _interdictedKeys.size;
+  _interdictedKeys.clear();
+  return count;
+}
+
+/**
+ * Reset interdiction stats (for tests).
+ */
+function _resetInterdictionStats() {
+  _interdictionStats = {
+    totalBlocked: 0,
+    totalReleased: 0,
+    totalAutoTriggered: 0,
+    totalRequestsRejected: 0,
+    lastAutoTrigger: null,
+  };
+}
+
+/**
+ * Express middleware that enforces key interdiction. Must be mounted BEFORE
+ * route handlers. Checks the request's API key against the block list and
+ * returns HTTP 423 Locked if the key is currently interdicted.
+ * @returns {function} Express middleware
+ */
+function enforceKeyInterdiction() {
+  return function keyInterdictionMiddleware(req, res, next) {
+    const apiKey = extractApiKey(req);
+    if (!apiKey) return next();
+
+    const status = checkInterdiction(apiKey);
+    if (status.interdicted) {
+      _interdictionStats.totalRequestsRejected++;
+      return res.status(423).json({
+        success: false,
+        error: 'token_interdicted',
+        message: 'This access key has been temporarily locked due to real-time security interdiction.',
+        expiresAt: new Date(status.expiresAt).toISOString(),
+      });
+    }
+
+    next();
+  };
+}
+
 module.exports = {
   authorize,
   authorizeAny,
@@ -410,4 +621,14 @@ module.exports = {
   startCleanupTimer,
   stopCleanupTimer,
   estimateViolationMemoryMb,
+  recordViolation,
+  // Key interdiction engine
+  enforceKeyInterdiction,
+  interdictKey,
+  releaseKey,
+  checkInterdiction,
+  getInterdictedKeys,
+  clearInterdictedKeys,
+  extractApiKey,
+  _resetInterdictionStats,
 };

@@ -1,8 +1,8 @@
-# Software Health Report — Forensic Log Viewer & Quarantine Evidence Inspector
+# Software Health Report — Real-Time Log Stream Interdiction Engine
 
 **Date:** 2026-01-30
 **Branch:** feat/agentic-orchestration
-**Feature:** Backend row-level verification + frontend quarantine inspector drawer
+**Feature:** In-memory API key block list + auto-interdiction on violation threshold
 **Validator:** Devin (Validator mode)
 
 ---
@@ -11,11 +11,10 @@
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `node -c audit-logger.cjs` | PASS | Syntax clean — verifyQuarantineEntry() added |
-| `node -c audit-routes.cjs` | PASS | Syntax clean — POST /quarantine/verify-entry added |
-| `node -c quarantineService.js` | PASS | Syntax clean — new frontend service |
-| `node -c SecurityView.js` | PASS | Syntax clean — QuarantineInspector section added |
-| Full test suite (all suites) | PASS | 1733/1733 tests pass |
+| `node -c authorize.cjs` | PASS | Syntax clean — interdiction store + middleware added |
+| `node -c audit-routes.cjs` | PASS | Syntax clean — 3 admin routes added |
+| `node -c key-interdiction.test.cjs` | PASS | Syntax clean — 23 tests |
+| Full test suite (all suites) | PASS | 1756/1756 tests pass (23 new) |
 | SimpleBeacon gate scan | PASS | 0 critical, 0 high, 0 medium; quality score 100 |
 
 ---
@@ -24,21 +23,21 @@
 
 | Test Plan # | Check | Result | Notes |
 |-------------|-------|--------|-------|
-| 1 | `POST /api/audit/quarantine/verify-entry` recomputes hash | PASS | Calls `auditLogger.verifyQuarantineEntry(orgId, entryId)` |
-| 2 | Result includes hashMatches, expectedHash, actualHash, quarantineReason | PASS | All fields returned in response |
-| 3 | Frontend `fetchQuarantineEntries()` calls GET /api/audit/quarantine | PASS | quarantineService.js line 10 |
-| 4 | Frontend `verifyQuarantineEntry()` calls POST /verify-entry | PASS | quarantineService.js line 35 |
-| 5 | QuarantineInspector renders entries table | PASS | id, org, action, timestamp, reason columns |
-| 6 | Expandable detail drawer shows full entry payload | PASS | `<pre>` with `escapeHtml(JSON.stringify(entry, null, 2))` |
-| 7 | Each row has Verify button | PASS | `handleVerifyEntry(entryId)` wired |
-| 8 | Verify result shows green/red inline | PASS | ✅ Hash Match / ❌ Hash Mismatch |
-| 9 | Empty quarantine renders empty state | PASS | "No quarantined entries" card |
-| 10 | `?allOrgs=true` checkbox shows cross-tenant entries | PASS | `quarantineAllOrgs` state + checkbox |
-| 11 | Verify endpoint returns 404 if entry not found | PASS | `sendError(res, 404, 'entry_not_found', ...)` |
-| 12 | Decryption error metadata surfaced in UI | PASS | Warning banner when `metadata.decryptionError === true` |
-| 13 | All quarantine routes wrapped with authorize('admin:all') | PASS | Lines 428, 448 |
-| 14 | Quarantine entries never expose raw encryption keys | PASS | Only entry data returned, no key material |
-| 15 | Frontend escapes all entry payload fields with escapeHtml() | PASS | All fields + raw JSON in `<pre>` escaped |
+| 1 | `enforceKeyInterdiction()` returns 423 for interdicted keys | PASS | Test: "should return 423 Locked for interdicted keys" |
+| 2 | `enforceKeyInterdiction()` calls next() for non-interdicted | PASS | Test: "should call next() for non-interdicted keys" |
+| 3 | `interdictKey()` adds key with expiry | PASS | Test: "should add a key to the block list with expiry" |
+| 4 | `releaseKey()` removes key immediately | PASS | Test: "should remove a key from the block list immediately" |
+| 5 | `getInterdictedKeys()` returns list with metadata | PASS | Test: "should return list of blocked keys with metadata" |
+| 6 | `recordViolation()` auto-interdicts after threshold | PASS | Test: "should auto-interdict after threshold is crossed" |
+| 7 | `GET /interdiction/status` returns block list (admin-only) | PASS | Route at line 670, wrapped with authorize('admin:all') |
+| 8 | `POST /interdiction/release` releases key (admin-only) | PASS | Route at line 700, wrapped with authorize('admin:all') |
+| 9 | `POST /interdiction/block` manually blocks key (admin-only) | PASS | Route at line 682, wrapped with authorize('admin:all') |
+| 10 | Expired interdiction auto-evicts on access | PASS | Test: "should auto-evict expired entries on access" |
+| 11 | Request with no API key passes through | PASS | Test: "should call next() when no API key is present" |
+| 12 | Memory cap prevents unbounded growth | PASS | Test: "should evict oldest entry when cap is reached" |
+| 13 | Releasing non-existent key returns wasBlocked: false | PASS | Test: "should return wasBlocked: false for non-existent key" |
+| 14 | All interdiction routes wrapped with authorize('admin:all') | PASS | Verified at lines 670, 682, 700 |
+| 15 | 423 response does not leak internal metadata | PASS | Test: "should not leak internal block list metadata" |
 
 **Test plan items: 15/15 PASS**
 
@@ -48,15 +47,18 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Spec: Row-level hash verification | MATCH | `verifyQuarantineEntry()` recomputes SHA-256 via `computeEntryHash()` |
-| Spec: Expandable drawer with raw JSON | MATCH | `<pre>` block with `escapeHtml(JSON.stringify(entry, null, 2))` |
-| Spec: Front-end verification utility | MATCH | Verify button per row, inline result display |
-| Spec: Multi-tenant support | MATCH | `?allOrgs=true` checkbox for cross-tenant admin view |
-| No ghost files | CONFIRMED | All 4 files exist at expected paths |
-| No new dependencies | CONFIRMED | Uses only existing fetch API, escapeHtml, CSS.escape |
+| Spec: In-memory token bucket block list | MATCH | `Map<string, { reason, blockedAt, expiresAt, source }>` |
+| Spec: enforceKeyInterdiction() middleware | MATCH | Returns 423 Locked, checks x-api-key/query/user.id |
+| Spec: Automated session revocation on threshold | MATCH | Auto-interdiction in recordViolation() at threshold (default 5) |
+| Spec: HTTP 423 Locked response code | MATCH | Standard HTTP 423 with expiresAt timestamp |
+| Spec: Time-locked temporary rejections | MATCH | Default 15-minute TTL, configurable via settings |
+| Spec: No external dependencies | MATCH | Pure in-memory Map, no Redis/Kafka |
+| Spec: Lazy TTL eviction | MATCH | Expired entries evicted on checkInterdiction() and getInterdictedKeys() |
+| No ghost files | CONFIRMED | All 3 files exist at expected paths |
+| No new dependencies | CONFIRMED | Uses only existing Node.js Map and Express patterns |
 | No spec drift | CONFIRMED | All test plan items map to implementation |
-| Decryption error handling | CONFIRMED | Warning banner shown when quarantine file can't be decrypted |
-| CSS.escape for dynamic IDs | CONFIRMED | Used `CSS.escape(entry.id)` for safe selector queries |
+| API key masking in status response | CONFIRMED | Keys truncated to first 4 + … + last 4 chars |
+| Auto-interdiction reason includes violation count | CONFIRMED | "auto:org_partition_violation_spike (N violations, threshold M)" |
 
 ---
 
@@ -74,38 +76,40 @@ None. All 15 test plan items implemented and verified.
 
 ## Enhancements (Debt/Perf)
 
-1. **Decryption status reporting** — `verifyQuarantineEntry()` returns a `decryptionStatus` field that indicates whether the quarantine file was successfully decrypted. This gives admins forensic visibility into key rotation state.
+1. **Lazy TTL eviction** — No background timer for the interdiction store. Expired entries are evicted on access via `checkInterdiction()` and during scans via `getInterdictedKeys()`. This avoids timer leaks in test environments and reduces idle CPU usage.
 
-2. **Auto-expand on verify** — When an admin clicks "Verify" on a row, the detail drawer auto-expands to show the verification result (expected vs actual hash) alongside the raw entry payload.
+2. **API key masking** — `getInterdictedKeys()` masks API keys in the response (first 4 + … + last 4 characters) to prevent shoulder-surfing when admins view the block list.
 
-3. **CSS.escape for dynamic selectors** — Used `CSS.escape(entry.id)` when querying DOM elements by entry ID, preventing selector injection issues if entry IDs contain special characters.
+3. **Configurable thresholds** — All interdiction parameters (TTL, max keys, auto-trigger) are configurable via `security-monitor-settings-store.cjs`, allowing live updates without server restart.
+
+4. **Memory cap with FIFO eviction** — When the block list reaches 10,000 entries (configurable), the oldest entry is evicted. This prevents unbounded memory growth under sustained attack.
 
 ---
 
 ## Future Roadmap
 
-1. **Bulk verify all** — Add a "Verify All" button that iterates through all quarantined entries and shows a summary of matches/mismatches.
+1. **Frontend interdiction dashboard** — Add an interdiction management card to SecurityView.js showing the block list, auto-trigger history, and manual block/release controls.
 
-2. **Export quarantine evidence** — Add a "Export Evidence" button that downloads the quarantine store as a signed JSON bundle for compliance audits.
+2. **Sliding window anomaly detection** — Extend the auto-trigger to use a sliding time window (e.g., 5 violations in 60 seconds) rather than cumulative count, for more precise burst detection.
 
-3. **Filter/search** — Add search and filter controls (by org, action, reason, date range) to the quarantine table for large evidence sets.
+3. **Interdiction audit logging** — Record each auto-interdiction event in the audit log for compliance traceability.
 
-4. **Pagination** — For orgs with many quarantined entries, add pagination to avoid rendering hundreds of rows at once.
+4. **Graduated response** — Instead of a single 15-minute lockout, implement escalating TTLs for repeat offenders (e.g., 15min → 1hr → 24hr).
 
 ---
 
 ## Validator Sign-off
 
-- [x] All Level 1 checks pass (syntax, 1733 tests, gate 0/0/0, quality 100)
+- [x] All Level 1 checks pass (syntax, 1756 tests, gate 0/0/0, quality 100)
 - [x] All Level 2 behavioral checks pass (15/15 test plan items)
 - [x] No spec drift (all spec items match implementation)
 - [x] No ghost files or hallucinated API paths
-- [x] Both quarantine routes wrapped with `authorize('admin:all')`
-- [x] Verify endpoint returns 404 for missing entries
-- [x] All entry payload fields escaped with `escapeHtml()`
-- [x] Raw JSON in `<pre>` block escaped to prevent XSS
-- [x] Decryption error metadata surfaced as warning banner
-- [x] CSS.escape used for dynamic element selectors
-- [x] No new dependencies added
+- [x] All 3 interdiction routes wrapped with `authorize('admin:all')`
+- [x] 423 response only includes error, message, expiresAt — no internal metadata
+- [x] API keys masked in getInterdictedKeys() response
+- [x] Lazy TTL eviction — no background timer needed
+- [x] Memory cap at 10,000 entries with FIFO eviction
+- [x] Auto-interdiction triggers at violation threshold (default: 5)
+- [x] No new dependencies added (pure in-memory Map)
 
 **Verdict:** READY FOR COMMIT

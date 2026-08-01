@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
-const { authorize, enforceOrgPartition, getPartitionStats, getPartitionViolations, clearViolations } = require('../middleware/authorize.cjs');
+const { authorize, enforceOrgPartition, getPartitionStats, getPartitionViolations, clearViolations, interdictKey, releaseKey, getInterdictedKeys } = require('../middleware/authorize.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const piiPolicyStore = require('../lib/pii-policy-store.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
@@ -660,6 +660,56 @@ router.get('/key/rekey-stats', authorize('admin:all'), (req, res) => {
   } catch (err) {
     logger.warn('[Audit] rekey_stats_failed:', err.message);
     sendError(res, 500, 'rekey_stats_failed', { message: err.message });
+  }
+});
+
+// ── Key Interdiction Management Routes ──────────────────────────────────────
+//   Admin-only routes for managing the real-time API key block list.
+
+// GET /api/audit/interdiction/status — List interdicted keys and stats
+router.get('/interdiction/status', authorize('admin:all'), (req, res) => {
+  try {
+    const result = getInterdictedKeys();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[Audit] interdiction_status_failed:', err.message);
+    sendError(res, 500, 'interdiction_status_failed', { message: err.message });
+  }
+});
+
+// POST /api/audit/interdiction/block — Manually block an API key
+//   Body: { apiKey: string, reason?: string, ttlMs?: number }
+router.post('/interdiction/block', authorize('admin:all'), (req, res) => {
+  try {
+    const { apiKey, reason, ttlMs } = req.body || {};
+    if (!apiKey) {
+      sendError(res, 400, 'missing_api_key', { message: 'apiKey is required' });
+      return;
+    }
+    const result = interdictKey(apiKey, reason || 'manual_admin_block', ttlMs, 'manual');
+    logger.info('[Audit] manual_interdiction by user:', getActor(req).actorEmail, 'key:', apiKey.slice(0, 4) + '…');
+    res.json({ success: true, ...result, expiresAt: new Date(result.expiresAt).toISOString() });
+  } catch (err) {
+    logger.warn('[Audit] interdiction_block_failed:', err.message);
+    sendError(res, 500, 'interdiction_block_failed', { message: err.message });
+  }
+});
+
+// POST /api/audit/interdiction/release — Release an interdicted API key
+//   Body: { apiKey: string }
+router.post('/interdiction/release', authorize('admin:all'), (req, res) => {
+  try {
+    const { apiKey } = req.body || {};
+    if (!apiKey) {
+      sendError(res, 400, 'missing_api_key', { message: 'apiKey is required' });
+      return;
+    }
+    const result = releaseKey(apiKey);
+    logger.info('[Audit] interdiction_released by user:', getActor(req).actorEmail, 'wasBlocked:', result.wasBlocked);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[Audit] interdiction_release_failed:', err.message);
+    sendError(res, 500, 'interdiction_release_failed', { message: err.message });
   }
 });
 
