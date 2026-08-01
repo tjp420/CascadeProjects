@@ -245,13 +245,12 @@ async function validateTicketWithRedis(ticket, stekById, redis) {
   return validateTicket(ticket, stekById, bloom);
 }
 
-
-
 module.exports = {
   deriveResumptionPsk,
   generateStek,
   createTicket,
   validateTicket,
+  validateTicketWithRedis,
   createInMemoryBloomFilter,
   createRedisBloomFilter,
   TTL_DEFAULT_MS,
@@ -259,5 +258,3 @@ module.exports = {
   PSK_LENGTH,
 };
 
-// Export helper that integrates redis-backed nonce set
-module.exports.validateTicketWithRedis = validateTicketWithRedis;
