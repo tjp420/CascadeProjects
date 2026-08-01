@@ -28,6 +28,11 @@
     "threshold": {
       "minThreshold": 2,
       "maxTotal": 7
+    },
+    "ratchet": {
+      "maxSkipped": 1000,
+      "sessionExpiryMs": 86400000,
+      "allowDhRatchet": true
     }
   },
   "tenants": {}

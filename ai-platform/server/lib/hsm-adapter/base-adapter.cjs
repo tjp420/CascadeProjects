@@ -291,6 +291,18 @@ class BaseHsmAdapter {
     return secret;
   }
 
+  /**
+   * Create a cryptographic ratchet for the tenant.
+   * @param {Buffer} rootKey - 32-byte shared root key
+   * @param {object} [options]
+   * @returns {CryptographicRatchet}
+   */
+  createRatchet(rootKey, options = {}) {
+    this._ensureInitialized();
+    const { CryptographicRatchet } = require('./cryptographic-ratchet.cjs');
+    return new CryptographicRatchet(rootKey, { logger: this.logger, ...options });
+  }
+
   // ── High-level keyring export / import ─────────────────────────────
 
   /**

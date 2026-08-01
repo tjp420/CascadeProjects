@@ -34,6 +34,11 @@ const DEFAULT_POLICY = {
     minThreshold: 2,
     maxTotal: 7,
   },
+  ratchet: {
+    maxSkipped: 1000,
+    sessionExpiryMs: 86400000,
+    allowDhRatchet: true,
+  },
 };
 
 function _isObject(value) {
@@ -58,6 +63,10 @@ function _mergeWithDefault(tenantPolicy) {
     threshold: {
       ...DEFAULT_POLICY.threshold,
       ...(tenantPolicy.threshold || {}),
+    },
+    ratchet: {
+      ...DEFAULT_POLICY.ratchet,
+      ...(tenantPolicy.ratchet || {}),
     },
     ...tenantPolicy,
   };
@@ -200,6 +209,19 @@ class CryptoPolicyEngine {
     throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `Algorithm ${algorithm} is not recognized by policy`);
   }
 
+  _validateRatchet(tenantPolicy, config) {
+    const policy = tenantPolicy.ratchet || DEFAULT_POLICY.ratchet;
+    if (typeof config.maxSkipped === 'number' && config.maxSkipped > policy.maxSkipped) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `maxSkipped ${config.maxSkipped} exceeds policy ${policy.maxSkipped}`);
+    }
+    if (typeof config.sessionExpiryMs === 'number' && config.sessionExpiryMs > policy.sessionExpiryMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `sessionExpiryMs ${config.sessionExpiryMs} exceeds policy ${policy.sessionExpiryMs}`);
+    }
+    if (typeof config.allowDhRatchet === 'boolean' && config.allowDhRatchet && !policy.allowDhRatchet) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'DH ratchet is not allowed by policy');
+    }
+  }
+
   _validateThreshold(tenantPolicy, threshold, total) {
     const policy = tenantPolicy.threshold || DEFAULT_POLICY.threshold;
     if (typeof threshold !== 'number' || typeof total !== 'number') {
@@ -256,6 +278,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'threshold') {
       this._validateThreshold(tenantPolicy, config.threshold, config.total);
+      return true;
+    }
+
+    if (operation === 'ratchet') {
+      this._validateRatchet(tenantPolicy, config);
       return true;
     }
 

@@ -135,7 +135,11 @@ class SoftHsmAdapter {
     const cekHandle = this.pkcs11.C_CreateObject(this.session, tempTemplate);
     try {
       const mechanism = { mechanism: pkcs11js.CKM_AES_KEY_WRAP };
-      const wrapped = this.pkcs11.C_WrapKey(this.session, mechanism, kekHandle, cekHandle);
+      // pkcs11js C_WrapKey requires a pre-allocated output buffer (5th arg).
+      // AES-KW adds an 8-byte IV, so a 32-byte CEK yields 40 bytes.
+      // Allocate generously; pkcs11js returns a sliced buffer.
+      const outBuf = Buffer.alloc(cekBuffer.length + 32);
+      const wrapped = this.pkcs11.C_WrapKey(this.session, mechanism, kekHandle, cekHandle, outBuf);
       return wrapped;
     } finally {
       try { this.pkcs11.C_DestroyObject(this.session, cekHandle); } catch (e) {}
