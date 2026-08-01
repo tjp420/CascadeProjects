@@ -267,3 +267,88 @@
 ## Approval
 
 - [x] User approved Track 7 plan
+
+---
+
+# test_plan.md — Track 8: Ephemeral Session Perfect Forward Secrecy (PFS)
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| Feature / change | Track 8: Mid-stream re-keying and PFS for hybrid KEM handshake |
+| Author (Builder) | Devin |
+| Date | 2026-08-01 |
+| Branch | main |
+| Packages touched | ai-platform |
+
+## Scope
+
+### Files in scope
+
+- `ai-platform/server/lib/hybrid-kem-handshake.cjs` (enhance)
+- `ai-platform/server/lib/__tests__/hybrid-kem-pfs.test.cjs` (new)
+- `ai-platform/server/lib/__tests__/hybrid-kem-mitm.test.cjs` (regression)
+
+### APIs / interfaces
+
+- `createClientHandshaker` / `createServerHandshaker` — initial handshake with key-confirmation MAC
+- `deriveRekeyRoot(prevRoot, newECDHSecret, newMLKEMSecret)` — HKDF ratchet helper
+- `HybridSession` — state machine and re-key primitives
+
+## Design decisions
+
+- **Rotation Trigger:** Time-based interval (`REKEY_INTERVAL_SEC`, default 3600s) with optional in-band `REKEY_FORCE` administrative signal.
+- **Pipeline:** In-band `REKEY_INIT` / `REKEY_RESP` / `REKEY_ACK` control frames over the existing length-prefixed JSON stream. A brief `REKEYING` suspension state queues outbound data frames and buffers/drops inbound data frames until the new key is confirmed.
+- **Ratchet:** `newRoot = HKDF-Extract(salt="simplebeacon:pfs:v1", IKM = prevRoot || newECDHSecret || newMLKEMSecret)`, then `SessionKeyRing = HKDF-Expand(newRoot, info="pfs:root", L=32)`.
+- **Transcript MAC:** Each handshake and re-key exchange finishes with a key-confirmation MAC (HMAC-SHA256 over the JSON transcript) to detect tampering.
+
+---
+
+## Level 1 — Deterministic (Validator MUST run all)
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
+| L1-02 | Existing MitM tests still pass | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem-mitm` | [ ] |
+| L1-03 | New PFS unit tests pass | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem-pfs` | [ ] |
+| L1-04 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate` | [ ] |
+| L1-05 | No secrets in diff | `git diff --cached` | [ ] |
+
+---
+
+## Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | Initial handshake with key-confirmation MAC | Run `hybrid-kem-mitm` tests | Any bit-flip or substitution causes client to reject with MAC mismatch | [ ] |
+| L2-02 | Re-key HKDF ratchet | Call `deriveRekeyRoot(prevRoot, ecdh, mlkem)` | Output is 32 bytes and deterministic; different inputs produce different outputs | [ ] |
+| L2-03 | PFS re-key handshake | Initiate `REKEY_INIT`/`REKEY_RESP`/`REKEY_ACK` over mock sockets | Both sides derive the same new `sessionKey` and update `state` to `ACTIVE` | [ ] |
+| L2-04 | Suspension state | Begin re-key and attempt a data write during `REKEYING` | Outbound data is queued, not sent | [ ] |
+| L2-05 | MAC mismatch in `REKEY_ACK` | Tamper with `REKEY_RESP` before it reaches the initiator | Initiator rejects and tears down the connection | [ ] |
+
+---
+
+## Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | Replay of a recorded `REKEY_INIT` | Re-inject a recorded `REKEY_INIT` frame into an active session | Session rejects with MAC or state error | [ ] |
+| L3-02 | Forward Secrecy: leaked single ephemeral | Reveal one `ecdhSecret` or `mlkemSecret` | Prior `prevRoot` cannot be recovered from the leaked secret and transcript | [ ] |
+| L3-03 | Break-in recovery from a compromised root | Compromise `prevRoot`, then perform a clean re-key with fresh secrets | New `newRoot` and `sessionKey` are independent of the compromised `prevRoot` | [ ] |
+
+---
+
+## Security
+
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | A MITM cannot force the same session key by replaying old re-key frames | [ ] |
+| S-02 | Compromise of a past session root does not compromise future roots | [ ] |
+| S-03 | Re-keying produces an independent, 32-byte ratcheted key | [ ] |
+
+---
+
+## Approval
+
+- [x] User approved Track 8 plan

@@ -70,7 +70,7 @@ describe('hybrid-kem-mitm', () => {
     await runValidHandshake();
   });
 
-  test('L2-01: public key bit-flip in ek_pq causes key mismatch', async () => {
+  test('L2-01: public key bit-flip in ek_pq causes key mismatch or rejection', async () => {
     const { clientSocket, serverSocket } = createMitmPair({
       clientToServer: (d) => {
         const msg = parseFrame(d);
@@ -87,10 +87,11 @@ describe('hybrid-kem-mitm', () => {
     const client = createClientHandshaker(clientSocket, { timeoutMs: DEFAULT_TIMEOUT });
     const server = createServerHandshaker(serverSocket, { timeoutMs: DEFAULT_TIMEOUT });
 
-    const [clientResult, serverResult] = await Promise.all([client, server]);
-    expect(clientResult.sessionKey.length).toBe(32);
-    expect(serverResult.sessionKey.length).toBe(32);
-    expect(clientResult.sessionKey.equals(serverResult.sessionKey)).toBe(false);
+    // The bit-flip causes ML-KEM encapsulation against a wrong key, so the
+    // client decapsulates a different secret. The key-confirmation MAC
+    // detects this and the client rejects. The server still succeeds.
+    await expect(client).rejects.toThrow(/MAC mismatch|replay|MITM/);
+    await server.catch(() => {});
   });
 
   test('L2-02: ciphertext truncation causes client handshake to fail', async () => {
@@ -113,7 +114,7 @@ describe('hybrid-kem-mitm', () => {
     await server.catch(() => {});
   });
 
-  test('L2-03: ciphertext substitution causes key mismatch', async () => {
+  test('L2-03: ciphertext substitution causes key mismatch or rejection', async () => {
     const { publicKey: evilPublicKey } = await keygen();
     const { cipherText: evilCipherText } = await encapsulate(evilPublicKey);
 
@@ -131,10 +132,11 @@ describe('hybrid-kem-mitm', () => {
     const client = createClientHandshaker(clientSocket, { timeoutMs: DEFAULT_TIMEOUT });
     const server = createServerHandshaker(serverSocket, { timeoutMs: DEFAULT_TIMEOUT });
 
-    const [clientResult, serverResult] = await Promise.all([client, server]);
-    expect(clientResult.sessionKey.length).toBe(32);
-    expect(serverResult.sessionKey.length).toBe(32);
-    expect(clientResult.sessionKey.equals(serverResult.sessionKey)).toBe(false);
+    // The substituted ciphertext was encapsulated against a different key,
+    // so the client decapsulates a different secret. The MAC check detects
+    // this and the client rejects.
+    await expect(client).rejects.toThrow(/MAC mismatch|replay|MITM/);
+    await server.catch(() => {});
   });
 
   test('L2-04: length-prefix fuzzing causes handshake to reject cleanly', async () => {
@@ -179,10 +181,11 @@ describe('hybrid-kem-mitm', () => {
     const client = createClientHandshaker(clientSocket, { timeoutMs: DEFAULT_TIMEOUT });
     const server = createServerHandshaker(serverSocket, { timeoutMs: DEFAULT_TIMEOUT });
 
-    const [clientResult, serverResult] = await Promise.all([client, server]);
-    expect(clientResult.sessionKey.length).toBe(32);
-    expect(serverResult.sessionKey.length).toBe(32);
-    expect(clientResult.sessionKey.equals(serverResult.sessionKey)).toBe(false);
+    // The replayed serverResponse contains a MAC computed with the original
+    // session key. The new client derives a different key (different ML-KEM
+    // keypair), so the MAC check fails and the client rejects.
+    await expect(client).rejects.toThrow(/MAC mismatch|replay|MITM/);
+    await server.catch(() => {});
   });
 
   test('L2-06: forced downgrade strip is rejected and logged', async () => {
@@ -213,7 +216,7 @@ describe('hybrid-kem-mitm', () => {
     expect(result.events[0].eventType).toBe(EVENT_TYPES.QUANTUM_DEGRADE_REJECTED);
   });
 
-  test('L2-07: classic key mismatch (ek_classic flip) produces different keys', async () => {
+  test('L2-07: classic key mismatch (ek_classic flip) produces different keys or rejection', async () => {
     const { clientSocket, serverSocket } = createMitmPair({
       clientToServer: (d) => {
         const msg = parseFrame(d);
@@ -230,9 +233,10 @@ describe('hybrid-kem-mitm', () => {
     const client = createClientHandshaker(clientSocket, { timeoutMs: DEFAULT_TIMEOUT });
     const server = createServerHandshaker(serverSocket, { timeoutMs: DEFAULT_TIMEOUT });
 
-    const [clientResult, serverResult] = await Promise.all([client, server]);
-    expect(clientResult.sessionKey.length).toBe(32);
-    expect(serverResult.sessionKey.length).toBe(32);
-    expect(clientResult.sessionKey.equals(serverResult.sessionKey)).toBe(false);
+    // The flipped ek_classic causes the server to compute a different ECDH
+    // secret. The MAC check detects the resulting key mismatch and the
+    // client rejects.
+    await expect(client).rejects.toThrow(/MAC mismatch|replay|MITM/);
+    await server.catch(() => {});
   });
 });

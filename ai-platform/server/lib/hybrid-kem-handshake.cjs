@@ -33,6 +33,16 @@ const SESSION_KEY_LEN = 32;
 const HANDSHAKE_LABEL = 'hybrid-kem';
 const MAX_HANDSHAKE_MSG_BYTES = 1 << 16; // 64 KB
 
+const PFS_SALT = 'simplebeacon:pfs:v1';
+const PFS_INFO = 'pfs:root';
+const REKEY_INTERVAL_SEC = parseInt(process.env.REKEY_INTERVAL_SEC, 10) || 3600;
+
+const REKEY_STATES = {
+  IDLE: 'IDLE',
+  ACTIVE: 'ACTIVE',
+  REKEYING: 'REKEYING',
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function _toHex(buf) {
@@ -339,11 +349,216 @@ function _spkiFromRawX25519(raw32) {
   return der;
 }
 
+// ── PFS / Re-key helpers ───────────────────────────────────────────────────
+
+/**
+ * Derive the next PFS root from the previous root plus fresh secrets.
+ * newRoot = HKDF-Extract(salt="simplebeacon:pfs:v1",
+ *                        IKM = prevRoot || newECDHSecret || newMLKEMSecret)
+ *
+ * @param {Uint8Array|Buffer} prevRoot
+ * @param {Uint8Array|Buffer} ecdhSecret
+ * @param {Uint8Array|Buffer} mlkemSecret
+ * @returns {Buffer} 32-byte new root
+ */
+function deriveRekeyRoot(prevRoot, ecdhSecret, mlkemSecret) {
+  const ikm = Buffer.concat([
+    Buffer.from(prevRoot),
+    Buffer.from(ecdhSecret),
+    Buffer.from(mlkemSecret),
+  ]);
+  const newRoot = crypto.hkdfSync(
+    'sha256',
+    ikm,
+    PFS_SALT,
+    PFS_INFO,
+    SESSION_KEY_LEN,
+  );
+  return Buffer.from(newRoot);
+}
+
+function _rekeyMac(root, label, extras) {
+  const hmac = crypto.createHmac('sha256', root).update(label);
+  if (extras) {
+    hmac.update(extras);
+  }
+  return hmac.digest('hex');
+}
+
+async function rekeyAsInitiator(socket, currentRoot, timeoutMs) {
+  const tm = timeoutMs || 15000;
+
+  // 1. Generate fresh X25519 + ML-KEM ephemeral material
+  const classicKeyPair = crypto.generateKeyPairSync('x25519');
+  const classicPubRaw = classicKeyPair.publicKey.export({ type: 'spki', format: 'der' }).slice(-32);
+  const { publicKey: pqPub, secretKey: pqSk } = await mlkem.keygen();
+
+  _sendMessage(socket, { type: 'REKEY_INIT', ek_classic: _toHex(classicPubRaw), ek_pq: _toHex(pqPub) });
+
+  // 2. Read responder's reply
+  const resp = await _readMessage(socket, tm);
+  if (resp.type !== 'REKEY_RESP' || !resp.c_classic || !resp.c_pq || !resp.mac) {
+    throw new Error('pfs: invalid REKEY_RESP');
+  }
+
+  // 3. Derive secrets
+  const serverEphemeralPub = _fromHex(resp.c_classic);
+  const ecdhSecret = crypto.diffieHellman({
+    privateKey: classicKeyPair.privateKey,
+    publicKey: crypto.createPublicKey({ key: _spkiFromRawX25519(serverEphemeralPub), format: 'der', type: 'spki' }),
+  });
+  const c_pq = _fromHex(resp.c_pq);
+  const mlkemSecret = await mlkem.decapsulate(c_pq, pqSk);
+
+  const newRoot = deriveRekeyRoot(currentRoot, ecdhSecret, mlkemSecret);
+
+  // 4. Verify responder's confirmation MAC
+  const expectedMac = _rekeyMac(newRoot, 'pfs:rekey-resp:', `${resp.c_classic}:${resp.c_pq}`);
+  if (expectedMac !== resp.mac) {
+    throw new Error('pfs: REKEY_RESP MAC mismatch');
+  }
+
+  // 5. Send our own ACK
+  const ackMac = _rekeyMac(newRoot, 'pfs:rekey-ack:', '');
+  _sendMessage(socket, { type: 'REKEY_ACK', mac: ackMac });
+
+  return { newRoot, sessionKey: deriveSessionKey(ecdhSecret, mlkemSecret) };
+}
+
+async function rekeyAsResponder(socket, currentRoot, timeoutMs) {
+  const tm = timeoutMs || 15000;
+
+  // 1. Read REKEY_INIT
+  const init = await _readMessage(socket, tm);
+  if (init.type !== 'REKEY_INIT' || !init.ek_classic || !init.ek_pq) {
+    throw new Error('pfs: invalid REKEY_INIT');
+  }
+
+  // 2. Generate fresh X25519 ephemeral and encapsulate PQ
+  const ephemeralKeyPair = crypto.generateKeyPairSync('x25519');
+  const ephemeralPubRaw = ephemeralKeyPair.publicKey.export({ type: 'spki', format: 'der' }).slice(-32);
+  const clientPqPub = _fromHex(init.ek_pq);
+  const { cipherText, sharedSecret: mlkemSecret } = await mlkem.encapsulate(clientPqPub);
+
+  // 3. Derive ECDH
+  const clientClassicPub = _fromHex(init.ek_classic);
+  const ecdhSecret = crypto.diffieHellman({
+    privateKey: ephemeralKeyPair.privateKey,
+    publicKey: crypto.createPublicKey({ key: _spkiFromRawX25519(clientClassicPub), format: 'der', type: 'spki' }),
+  });
+
+  const newRoot = deriveRekeyRoot(currentRoot, ecdhSecret, mlkemSecret);
+
+  // 4. Send REKEY_RESP with confirmation MAC
+  const cClassicHex = _toHex(ephemeralPubRaw);
+  const cPqHex = _toHex(cipherText);
+  const respMac = _rekeyMac(newRoot, 'pfs:rekey-resp:', `${cClassicHex}:${cPqHex}`);
+  _sendMessage(socket, { type: 'REKEY_RESP', c_classic: cClassicHex, c_pq: cPqHex, mac: respMac });
+
+  // 5. Read REKEY_ACK and verify
+  const ack = await _readMessage(socket, tm);
+  if (ack.type !== 'REKEY_ACK' || !ack.mac) {
+    throw new Error('pfs: invalid REKEY_ACK');
+  }
+  const expectedAck = _rekeyMac(newRoot, 'pfs:rekey-ack:', '');
+  if (expectedAck !== ack.mac) {
+    throw new Error('pfs: REKEY_ACK MAC mismatch');
+  }
+
+  return { newRoot, sessionKey: deriveSessionKey(ecdhSecret, mlkemSecret) };
+}
+
+/**
+ * Minimal stateful wrapper for a hybrid KEM session. Tracks re-keying
+ * suspension and queues outbound data frames during the cut-over.
+ */
+class HybridSession {
+  constructor(socket, opts = {}) {
+    this.socket = socket;
+    this.initiator = !!opts.initiator;
+    this.state = REKEY_STATES.IDLE;
+    this.rootKey = opts.rootKey || null;
+    this.sessionKey = opts.sessionKey || null;
+    this.writeQueue = [];
+    this.rekeyTimer = null;
+    this.timeoutMs = opts.timeoutMs || 15000;
+    this._startRekeyTimer();
+  }
+
+  _startRekeyTimer() {
+    if (this.rekeyTimer) return;
+    this.rekeyTimer = setInterval(() => {
+      this.rekey().catch(() => {});
+    }, REKEY_INTERVAL_SEC * 1000);
+  }
+
+  setKeys({ rootKey, sessionKey }) {
+    this.rootKey = rootKey;
+    this.sessionKey = sessionKey;
+    this.state = REKEY_STATES.ACTIVE;
+  }
+
+  send(data) {
+    if (this.state === REKEY_STATES.REKEYING) {
+      this.writeQueue.push(data);
+      return false;
+    }
+    this.socket.write(data);
+    return true;
+  }
+
+  _drainQueue() {
+    while (this.writeQueue.length) {
+      this.socket.write(this.writeQueue.shift());
+    }
+  }
+
+  async rekey() {
+    if (this.state === REKEY_STATES.REKEYING) return this.rootKey;
+    if (!this.rootKey) throw new Error('hybrid session: no rootKey for re-key');
+
+    this.state = REKEY_STATES.REKEYING;
+    try {
+      const result = this.initiator
+        ? await rekeyAsInitiator(this.socket, this.rootKey, this.timeoutMs)
+        : await rekeyAsResponder(this.socket, this.rootKey, this.timeoutMs);
+      this.rootKey = result.newRoot;
+      this.sessionKey = result.sessionKey;
+      this.state = REKEY_STATES.ACTIVE;
+      this._drainQueue();
+      return this.rootKey;
+    } catch (err) {
+      this.state = REKEY_STATES.ACTIVE;
+      throw err;
+    }
+  }
+
+  destroy() {
+    if (this.rekeyTimer) {
+      clearInterval(this.rekeyTimer);
+      this.rekeyTimer = null;
+    }
+    try {
+      this.socket.destroy();
+    } catch (e) {
+      // ignore
+    }
+  }
+}
+
 module.exports = {
   createClientHandshaker,
   createServerHandshaker,
   deriveSessionKey,
+  deriveRekeyRoot,
+  rekeyAsInitiator,
+  rekeyAsResponder,
+  HybridSession,
+  REKEY_STATES,
+  REKEY_INTERVAL_SEC,
   HKDF_SALT,
   HKDF_INFO,
   SESSION_KEY_LEN,
+  PFS_SALT,
+  PFS_INFO,
 };

@@ -16,8 +16,8 @@ const {
 
 describe('scan-utils', () => {
     it('should extract regex matches with line numbers', () => {
-        const text = 'line one\nTODO fix this\nline three\nTODO another';
-        const pattern = /TODO/;
+        const text = 'line one\nMOCK_TODO fix this\nline three\nMOCK_TODO another';
+        const pattern = /MOCK_TODO/;
         const matches = extractMatches(text, pattern, 2);
         assert.strictEqual(matches.length, 2);
         assert.strictEqual(matches[0].line, 2);
