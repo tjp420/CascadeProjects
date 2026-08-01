@@ -1330,11 +1330,28 @@ export function AnalyzeView() {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
           }
           toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
-          await runBrowserLocalScan({
-            files,
-            projectPath: rootName,
-            logLabel: `Browser local scan via drag-and-drop (${files.length.toLocaleString()} files)`,
-          });
+          try {
+            await runBrowserLocalScan({
+              files,
+              projectPath: rootName,
+              logLabel: `Browser local scan via drag-and-drop (${files.length.toLocaleString()} files)`,
+            });
+          } catch (scanErr: any) {
+            appendLog(`[SimpleBeacon] Browser local scan failed: ${scanErr?.name || ''} ${scanErr?.message || scanErr}`);
+            console.error('[SimpleBeacon] runBrowserLocalScan error:', scanErr);
+            try {
+              // Extra defensive logging for DOMException-like failures
+              console.error('Error details:', {
+                name: scanErr?.name,
+                message: scanErr?.message,
+                code: scanErr?.code,
+                stack: scanErr?.stack,
+              });
+            } catch (logErr) {
+              console.warn('[SimpleBeacon] Failed to stringify scan error details', logErr);
+            }
+            throw scanErr;
+          }
           return;
         }
       } catch (traverseErr: any) {

@@ -583,6 +583,7 @@ export async function runLocalScan(options = {}) {
         options.onProgress(0, workerFiles.length, { currentFile: 'Initializing scanner worker...' });
     }
     let worker;
+    let blobUrlForWorker = null;
     try {
         const workerUrlStr = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
         console.warn('[localScan] Creating module worker from:', workerUrlStr);
@@ -597,11 +598,54 @@ export async function runLocalScan(options = {}) {
                 workerUrlForCreation = cleanUrl;
             }
         } catch (_e) { /* ignore URL parse errors */ }
-        worker = new Worker(workerUrlForCreation, { type: 'module' });
+
+        try {
+            // Try normal worker construction first
+            worker = new Worker(workerUrlForCreation, { type: 'module' });
+        } catch (ctorErr) {
+            // If construction fails (CORS, Firefox module query issues, or other), attempt a fetch+blob fallback
+            try {
+                console.warn('[localScan] Worker construction failed, attempting fetch+blob fallback:', ctorErr?.message || ctorErr);
+                const resp = await fetch(String(workerUrlForCreation));
+                if (!resp.ok) throw new Error(`Fetch failed with status ${resp.status}`);
+                const scriptText = await resp.text();
+                const blob = new Blob([scriptText], { type: 'application/javascript' });
+                blobUrlForWorker = URL.createObjectURL(blob);
+                console.warn('[localScan] Created blob URL for worker; will keep alive until worker confirms start');
+                worker = new Worker(blobUrlForWorker, { type: 'module' });
+            } catch (fbErr) {
+                console.error('[localScan] fetch+blob fallback failed:', fbErr);
+                throw ctorErr; // rethrow original constructor error to surface the root cause
+            }
+        }
     } catch (workerCtorErr) {
         const workerUrlStr = String(WORKER_URL && WORKER_URL.href ? WORKER_URL.href : WORKER_URL);
         console.error('[localScan] new Worker() constructor threw:', workerCtorErr);
         throw new Error(`Failed to create module worker from ${workerUrlStr}: ${workerCtorErr?.message || workerCtorErr}. Your browser may not support module workers. Try Chrome/Edge, or run the scan via the CLI.`);
+    }
+
+    // If we created a blob URL for the worker script, keep it alive until the worker posts its first message or errors.
+    if (blobUrlForWorker) {
+        const cleanupBlobUrl = () => {
+            try {
+                URL.revokeObjectURL(blobUrlForWorker);
+                console.warn('[localScan] Revoked blob URL used for worker');
+            }
+            catch (e) {
+                console.warn('[localScan] Failed to revoke worker blob URL:', e);
+            }
+        };
+        const onFirst = () => {
+            cleanupBlobUrl();
+            worker.removeEventListener('message', onFirst);
+            worker.removeEventListener('error', onFirst);
+        };
+        worker.addEventListener('message', onFirst, { once: true });
+        worker.addEventListener('error', onFirst, { once: true });
+        // As a safety, revoke after an extended timeout if the worker never responds
+        setTimeout(() => {
+            try { cleanupBlobUrl(); } catch (_) { }
+        }, 60_000);
     }
     if (options.signal) {
         options.signal.addEventListener('abort', () => worker.terminate(), { once: true });
