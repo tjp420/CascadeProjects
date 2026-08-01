@@ -100,6 +100,17 @@ jobs:
           npm install --no-save pkcs11js
           node -e "require('pkcs11js'); console.log('pkcs11js loaded successfully')"
 
+      - name: 'Debug: verify test setup file exists'
+        working-directory: ai-platform
+        run: |
+          echo "PWD: $(pwd)"
+          echo "rootDir contents:"
+          ls -la tests/ || echo "tests/ directory NOT FOUND"
+          echo "tests/setup.js:"
+          head -5 tests/setup.js || echo "tests/setup.js NOT FOUND"
+          echo "jest.config.cjs setupFilesAfterEnv:"
+          grep -A2 setupFilesAfterEnv jest.config.cjs || true
+
       - name: Run AES-KW vector suite (RFC 3394 + RFC 5649)
         working-directory: ai-platform
         run: |
