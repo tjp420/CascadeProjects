@@ -1,62 +1,104 @@
 'use strict';
 
 /**
- * Track 11: AsymmetricHsmAdapter scaffolding tests.
+ * Track 11: AsymmetricHsmAdapter functional tests.
  */
+const crypto = require('crypto');
 const { AsymmetricHsmAdapter } = require('../asymmetric-adapter.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
 describe('AsymmetricHsmAdapter', () => {
-  test('can be instantiated', () => {
-    const adapter = new AsymmetricHsmAdapter();
-    expect(adapter.providerName).toBe('asymmetric');
-    expect(adapter.algorithm).toBe('rsa-oaep');
-    expect(adapter.keySize).toBe(2048);
-  });
+  describe('RSA-OAEP', () => {
+    let adapter;
 
-  test('accepts algorithm and keySize options', () => {
-    const adapter = new AsymmetricHsmAdapter({ algorithm: 'ecdh', keySize: 256 });
-    expect(adapter.algorithm).toBe('ecdh');
-    expect(adapter.keySize).toBe(256);
-  });
+    beforeEach(async () => {
+      adapter = new AsymmetricHsmAdapter({ algorithm: 'rsa-oaep', keySize: 2048 });
+      await adapter.initialize();
+    });
 
-  test('initializes successfully', async () => {
-    const adapter = new AsymmetricHsmAdapter();
-    await adapter.initialize();
-    expect(adapter._initialized).toBe(true);
-  });
+    test('creates a KEK and exports the public key as SPKI', async () => {
+      const kekId = await adapter.createKEK();
+      const spki = await adapter.exportPublicKey(kekId);
+      expect(Buffer.isBuffer(spki)).toBe(true);
+      expect(spki.length).toBeGreaterThan(0);
+    });
 
-  test('listKEKs returns empty before key generation', async () => {
-    const adapter = new AsymmetricHsmAdapter();
-    await adapter.initialize();
-    const list = await adapter.listKEKs();
-    expect(list).toEqual([]);
-  });
+    test('wrap/unwrap round-trips a small plaintext', async () => {
+      const kekId = await adapter.createKEK();
+      const plaintext = crypto.randomBytes(32);
+      const wrapped = await adapter.wrap(kekId, plaintext);
+      const unwrapped = await adapter.unwrap(kekId, wrapped);
+      expect(unwrapped.equals(plaintext)).toBe(true);
+    });
 
-  test('createKEK rejects with NOT_IMPLEMENTED', async () => {
-    const adapter = new AsymmetricHsmAdapter();
-    await adapter.initialize();
-    await expect(adapter.createKEK()).rejects.toMatchObject({
-      name: 'HsmAdapterError',
-      code: 'NOT_IMPLEMENTED',
+    test('rejects plaintext larger than OAEP padding limit', async () => {
+      const kekId = await adapter.createKEK();
+      const tooLarge = crypto.randomBytes(256); // exceeds 190-byte 2048-bit OAEP max
+      await expect(adapter.wrap(kekId, tooLarge)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'INVALID_INPUT',
+      });
+    });
+
+    test('rotateKEK creates a new key and preserves the old one', async () => {
+      const oldId = await adapter.createKEK();
+      const newId = await adapter.rotateKEK(oldId);
+      expect(newId).not.toBe(oldId);
+      const list = await adapter.listKEKs();
+      expect(list).toHaveLength(2);
     });
   });
 
-  test('wrap rejects with NOT_IMPLEMENTED', async () => {
-    const adapter = new AsymmetricHsmAdapter();
-    await adapter.initialize();
-    await expect(adapter.wrap('kek-1', Buffer.alloc(32))).rejects.toMatchObject({
-      name: 'HsmAdapterError',
-      code: 'NOT_IMPLEMENTED',
+  describe('ECDH', () => {
+    let adapter;
+
+    beforeEach(async () => {
+      adapter = new AsymmetricHsmAdapter({ algorithm: 'ecdh', keySize: 256 });
+      await adapter.initialize();
+    });
+
+    test('creates a KEK and exports the public key as SPKI', async () => {
+      const kekId = await adapter.createKEK();
+      const spki = await adapter.exportPublicKey(kekId);
+      expect(Buffer.isBuffer(spki)).toBe(true);
+      expect(spki.length).toBeGreaterThan(0);
+    });
+
+    test('wrap/unwrap round-trips a plaintext', async () => {
+      const kekId = await adapter.createKEK();
+      const plaintext = crypto.randomBytes(100);
+      const wrapped = await adapter.wrap(kekId, plaintext);
+      const unwrapped = await adapter.unwrap(kekId, wrapped);
+      expect(unwrapped.equals(plaintext)).toBe(true);
+    });
+
+    test('rejects corrupted wrapped payload', async () => {
+      const kekId = await adapter.createKEK();
+      const wrapped = await adapter.wrap(kekId, crypto.randomBytes(32));
+      wrapped[wrapped.length - 1] ^= 0xFF;
+      await expect(adapter.unwrap(kekId, wrapped)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'UNWRAP_FAILED',
+      });
     });
   });
 
-  test('exportPublicKey rejects with NOT_IMPLEMENTED', async () => {
-    const adapter = new AsymmetricHsmAdapter();
-    await adapter.initialize();
-    await expect(adapter.exportPublicKey('kek-1')).rejects.toMatchObject({
-      name: 'HsmAdapterError',
-      code: 'NOT_IMPLEMENTED',
+  describe('validation', () => {
+    test('rejects unsupported algorithm', () => {
+      expect(() => new AsymmetricHsmAdapter({ algorithm: 'rsa-pkcs1' })).toThrow(HsmAdapterError);
+    });
+
+    test('rejects invalid key size', () => {
+      expect(() => new AsymmetricHsmAdapter({ algorithm: 'rsa-oaep', keySize: 1024 })).toThrow(HsmAdapterError);
+    });
+
+    test('rejects unknown KEK', async () => {
+      const adapter = new AsymmetricHsmAdapter();
+      await adapter.initialize();
+      await expect(adapter.wrap('missing', Buffer.alloc(16))).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'UNKNOWN_KEK',
+      });
     });
   });
 });
