@@ -36,6 +36,7 @@ on:
       - 'ai-platform/server/lib/__tests__/pii-stream-verify.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-stream-preflight.test.cjs'
       - 'ai-platform/server/lib/__tests__/canonical-request-serializer.test.cjs'
+      - 'ai-platform/server/lib/__tests__/policy-syncer.test.cjs'
       - 'ai-platform/server/lib/__tests__/security-telemetry.test.cjs'
       - 'ai-platform/server/lib/__tests__/directory-sandbox-crypto.test.cjs'
       - 'ai-platform/server/lib/__tests__/encrypted-quarantine.test.cjs'
@@ -78,6 +79,7 @@ on:
       - 'ai-platform/server/lib/__tests__/pii-stream-verify.test.cjs'
       - 'ai-platform/server/lib/__tests__/pii-stream-preflight.test.cjs'
       - 'ai-platform/server/lib/__tests__/canonical-request-serializer.test.cjs'
+      - 'ai-platform/server/lib/__tests__/policy-syncer.test.cjs'
       - 'ai-platform/server/lib/__tests__/security-telemetry.test.cjs'
       - 'ai-platform/server/lib/__tests__/directory-sandbox-crypto.test.cjs'
       - 'ai-platform/server/lib/__tests__/encrypted-quarantine.test.cjs'
@@ -127,7 +129,7 @@ jobs:
             --verbose \
             --ci \
             --bail=1 \
-            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker|pii-context-aware|pii-scrubber-registry|pii-stream-verify|pii-stream-preflight|canonical-request-serializer|security-telemetry|directory-sandbox-crypto|encrypted-quarantine|hsm-vault|key-rotation-store|autonomous-rekey|key-interdiction|audit-policy-store|audit-logger-retention|audit-logger-auto-purge|audit-lifecycle-worker|compliance-report|audit-compliance-report)\.test\.cjs" \
+            --testPathPatterns="server/lib/__tests__/(org-partition-enforcement|violation-retention-policy|alert-rule-store-purge|pii-policy-sync|pii-regulatory-simulation|partition-e2e-integration|audit-integrity-chain|pii-stream-scrubbing|pii-stream-block-aware|audit-log-scrubbing|audit-healing-worker|pii-context-aware|pii-scrubber-registry|pii-stream-verify|pii-stream-preflight|canonical-request-serializer|policy-syncer|security-telemetry|directory-sandbox-crypto|encrypted-quarantine|hsm-vault|key-rotation-store|autonomous-rekey|key-interdiction|audit-policy-store|audit-logger-retention|audit-logger-auto-purge|audit-lifecycle-worker|compliance-report|audit-compliance-report)\.test\.cjs" \
             --coverage \
             --coverageReporters=text-summary \
             --coverageReporters=lcov \
