@@ -17,26 +17,11 @@ let _redisReady = false;
 try {
   const IORedis = require('ioredis');
   const url = process.env.REDIS_URL || process.env.REDIS || 'redis://127.0.0.1:6379';
-  redisClient = new IORedis(url);
-  usingRedis = true;
-  // Hook into ioredis native events for automatic recovery.
-  // ioredis auto-reconnects by default; when the connection is restored
-  // it emits 'ready', which re-enables the Redis backend so that the
-  // throttle exits the in-memory fallback mode.
-  redisClient.on('ready', () => {
-    if (!usingRedis) {
-      logger.info('Redis connection restored; re-enabling distributed throttle');
-    }
-    usingRedis = true;
-    _redisReady = true;
-  });
-  redisClient.on('error', (err) => {
-    // Don't log on every error — ioredis retries internally and this
-    // would flood logs during an extended outage. Just mark the flag.
-    _redisReady = false;
-  });
-  redisClient.on('close', () => {
-    _redisReady = false;
+  redisClient = new IORedis(url, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 3,
+    enableOfflineQueue: false,
+    connectTimeout: 2000,
   });
   // Define a named Lua command to avoid runtime dynamic-eval usage flagged by scanners.
   try {
@@ -71,6 +56,35 @@ try {
     // best-effort: if defineCommand fails (older ioredis), we'll fall back to legacy EVAL usage at call-site
     logger.warn('Could not define named Redis command tokenBucketConsume; falling back to legacy EVAL usage', { error: err.message });
   }
+  // Attempt the initial connection without blocking server startup.
+  redisClient.connect().then(() => {
+    usingRedis = true;
+    _redisReady = true;
+    logger.info('Redis throttle backend connected');
+  }).catch((err) => {
+    usingRedis = false;
+    _redisReady = false;
+    logger.info('Redis not available; admin-throttle running in in-memory mode', { error: err.message });
+  });
+  // Hook into ioredis native events for automatic recovery.
+  // ioredis auto-reconnects by default; when the connection is restored
+  // it emits 'ready', which re-enables the Redis backend so that the
+  // throttle exits the in-memory fallback mode.
+  redisClient.on('ready', () => {
+    if (!usingRedis) {
+      logger.info('Redis connection restored; re-enabling distributed throttle');
+    }
+    usingRedis = true;
+    _redisReady = true;
+  });
+  redisClient.on('error', (err) => {
+    // Don't log on every error — ioredis retries internally and this
+    // would flood logs during an extended outage. Just mark the flag.
+    _redisReady = false;
+  });
+  redisClient.on('close', () => {
+    _redisReady = false;
+  });
 } catch (e) {
   usingRedis = false;
 }

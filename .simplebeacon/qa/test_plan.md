@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Track 5: Advanced Defense Automation — IP/Subnet Throttling for Cluster Admin Endpoints |
+| Feature / change | Track 5: Advanced Defense Automation ΓÇö IP/Subnet Throttling for Cluster Admin Endpoints |
 | Author (Builder) | Devin |
 | Date | 2026-07-31 |
 | Branch | main |
@@ -14,8 +14,8 @@
 
 ### Files in scope
 
-- `ai-platform/server/lib/admin-throttle.cjs` (new — token-bucket + Redis backend)
-- `ai-platform/server/middleware/admin-throttle.cjs` (new — Express middleware)
+- `ai-platform/server/lib/admin-throttle.cjs` (new ΓÇö token-bucket + Redis backend)
+- `ai-platform/server/middleware/admin-throttle.cjs` (new ΓÇö Express middleware)
 - `ai-platform/server/lib/cluster-keyring-sync.cjs` (emit/advertise 423 / isolation / hsm_timeout events)
 - `ai-platform/server/lib/hsm-vault.cjs` (emit throttling-relevant events)
 - `ai-platform/server/routes/audit-routes.cjs` and `ai-platform/server/routes/hsm-vault-routes.cjs` (attach throttle)
@@ -46,7 +46,7 @@
 
 ---
 
-## Level 1 — Deterministic (Validator MUST run all)
+## Level 1 ΓÇö Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
@@ -58,7 +58,7 @@
 
 ---
 
-## Level 2 — Behavioral
+## Level 2 ΓÇö Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
@@ -70,7 +70,7 @@
 
 ---
 
-## Level 3 — Edge cases & regression
+## Level 3 ΓÇö Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
@@ -100,7 +100,7 @@
 
 ---
 
-# test_plan.md — Track 6: Quantum-Resistant KEM Hybrid Handshake
+# test_plan.md ΓÇö Track 6: Quantum-Resistant KEM Hybrid Handshake
 
 ## Metadata
 
@@ -116,8 +116,8 @@
 
 ### Files in scope
 
-- `ai-platform/server/lib/vendor/mlkem.cjs` (new — pure-JS ML-KEM-768 primitive)
-- `ai-platform/server/lib/hybrid-kem-handshake.cjs` (new — hybrid handshake state machine + HKDF combiner)
+- `ai-platform/server/lib/vendor/mlkem.cjs` (new ΓÇö pure-JS ML-KEM-768 primitive)
+- `ai-platform/server/lib/hybrid-kem-handshake.cjs` (new ΓÇö hybrid handshake state machine + HKDF combiner)
 - `ai-platform/server/lib/cluster-keyring-sync.cjs` (inject hybrid wrapping before keyring replication)
 - `ai-platform/server/lib/__tests__/hybrid-kem-handshake.test.cjs` (new)
 
@@ -135,7 +135,7 @@
 
 ---
 
-## Level 1 — Deterministic (Validator MUST run all)
+## Level 1 ΓÇö Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
@@ -147,7 +147,7 @@
 
 ---
 
-## Level 2 — Behavioral
+## Level 2 ΓÇö Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
@@ -158,7 +158,7 @@
 
 ---
 
-## Level 3 — Edge cases & regression
+## Level 3 ΓÇö Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
@@ -173,7 +173,7 @@
 | ID | Requirement | Pass |
 |----|-------------|------|
 | S-01 | Both classic and post-quantum shared secrets contribute to the final keyring (hybrid security) | [ ] |
-| S-02 | Fail-closed by default — no silent downgrade to classic-only | [ ] |
+| S-02 | Fail-closed by default ΓÇö no silent downgrade to classic-only | [ ] |
 | S-03 | Corrupted KEM material does not leak shared secret or crash the process | [ ] |
 | S-04 | Audit timeline records `quantum_downgrade` and `quantum_downgrade_rejected` events | [ ] |
 
@@ -185,7 +185,7 @@
 
 ---
 
-# test_plan.md — Track 7: Automated MitM Penetration Testing
+# test_plan.md ΓÇö Track 7: Automated MitM Penetration Testing
 
 ## Metadata
 
@@ -218,7 +218,7 @@
 
 ---
 
-## Level 1 — Deterministic (Validator MUST run all)
+## Level 1 ΓÇö Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
@@ -231,7 +231,7 @@
 
 ---
 
-## Level 2 — Behavioral
+## Level 2 ΓÇö Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
@@ -245,7 +245,7 @@
 
 ---
 
-## Level 3 — Edge cases & regression
+## Level 3 ΓÇö Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
@@ -270,7 +270,7 @@
 
 ---
 
-# test_plan.md — Track 8: Ephemeral Session Perfect Forward Secrecy (PFS)
+# test_plan.md ΓÇö Track 8: Ephemeral Session Perfect Forward Secrecy (PFS)
 
 ## Metadata
 
@@ -292,9 +292,9 @@
 
 ### APIs / interfaces
 
-- `createClientHandshaker` / `createServerHandshaker` — initial handshake with key-confirmation MAC
-- `deriveRekeyRoot(prevRoot, newECDHSecret, newMLKEMSecret)` — HKDF ratchet helper
-- `HybridSession` — state machine and re-key primitives
+- `createClientHandshaker` / `createServerHandshaker` ΓÇö initial handshake with key-confirmation MAC
+- `deriveRekeyRoot(prevRoot, newECDHSecret, newMLKEMSecret)` ΓÇö HKDF ratchet helper
+- `HybridSession` ΓÇö state machine and re-key primitives
 
 ## Design decisions
 
@@ -305,7 +305,7 @@
 
 ---
 
-## Level 1 — Deterministic (Validator MUST run all)
+## Level 1 ΓÇö Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
@@ -317,7 +317,7 @@
 
 ---
 
-## Level 2 — Behavioral
+## Level 2 ΓÇö Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
@@ -329,7 +329,7 @@
 
 ---
 
-## Level 3 — Edge cases & regression
+## Level 3 ΓÇö Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
@@ -355,7 +355,7 @@
 
 ---
 
-# test_plan.md — Milestone 4: Production Rollout & Canary Verification
+# test_plan.md ΓÇö Milestone 4: Production Rollout & Canary Verification
 
 ## Metadata
 
@@ -379,9 +379,9 @@
 
 ### APIs / interfaces
 
-- `shouldEnableHybrid(nodeId, config)` — deterministic canary allocation
-- `checkRollback(metrics, thresholds)` — circuit-breaker decision
-- `resolveDeprecationState(rolloutStartTime, deprecationWindowDays)` — `QUANTUM_DEGRADE_ALLOWED` logic
+- `shouldEnableHybrid(nodeId, config)` ΓÇö deterministic canary allocation
+- `checkRollback(metrics, thresholds)` ΓÇö circuit-breaker decision
+- `resolveDeprecationState(rolloutStartTime, deprecationWindowDays)` ΓÇö `QUANTUM_DEGRADE_ALLOWED` logic
 
 ## Design decisions
 
@@ -391,7 +391,7 @@
 
 ---
 
-## Level 1 — Deterministic (Validator MUST run all)
+## Level 1 ΓÇö Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
@@ -404,7 +404,7 @@
 
 ---
 
-## Level 2 — Behavioral
+## Level 2 ΓÇö Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
@@ -417,7 +417,7 @@
 
 ---
 
-## Level 3 — Edge cases & regression
+## Level 3 ΓÇö Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
@@ -443,7 +443,7 @@
 
 ---
 
-# test_plan.md — Milestone 5: Secure Session Resumption (Track 9)
+# test_plan.md ΓÇö Milestone 5: Secure Session Resumption (Track 9)
 
 ## Metadata
 
@@ -466,9 +466,9 @@
 
 ### APIs / interfaces
 
-- `createTicket({ sessionId, nodeId, prevRoot }, stek, stekId, ttlMs)` — AES-GCM ticket envelope
-- `validateTicket(ticketBuffer, stek, stekId, redis, ttlMs)` — decrypt + replay check
-- `deriveResumptionPsk(prevRoot, nodeId, sessionId)` — HKDF-SHA256 PSK
+- `createTicket({ sessionId, nodeId, prevRoot }, stek, stekId, ttlMs)` ΓÇö AES-GCM ticket envelope
+- `validateTicket(ticketBuffer, stek, stekId, redis, ttlMs)` ΓÇö decrypt + replay check
+- `deriveResumptionPsk(prevRoot, nodeId, sessionId)` ΓÇö HKDF-SHA256 PSK
 - `markTicketNonce(redis, nonce, ttlMs)` / `isTicketNonceUsed(redis, nonce)`
 
 ## Design decisions
@@ -480,7 +480,7 @@
 
 ---
 
-## Level 1 — Deterministic (Validator MUST run all)
+## Level 1 ΓÇö Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
@@ -492,7 +492,7 @@
 
 ---
 
-## Level 2 — Behavioral
+## Level 2 ΓÇö Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
@@ -504,13 +504,116 @@
 
 ---
 
-## Level 3 — Edge cases & regression
+## Level 3 ΓÇö Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
 | L3-01 | 0-RTT resumption bypasses ML-KEM/ECDH | `validateTicket` returns `psk` | No `rekeyAsInitiator`/`rekeyAsResponder` called | [ ] |
 | L3-02 | Redis disconnection fails closed | Mock Redis unavailable | All tickets rejected, full handshake required | [ ] |
 | L3-03 | STEK rotation window | Validate ticket with old and new STEK | Old STEK accepted within a bounded rotation window | [ ] |
+
+---
+
+## Track 10 — Hardware Cryptographic Key Wrap (AES-KW)
+
+### Purpose
+
+- Introduce NIST SP 800-38F compliant AES Key Wrap (AES-KW / AES-KWP) to wrap serialized session keyrings inside an HSM boundary or equivalent KMS/HSM provider.
+- Establish deterministic and behavioral quality gates before implementation begins.
+
+### Scope
+
+- `ai-platform/server/lib/keyring-serializer.cjs` (new adapter) — serialize keyrings for wrap/unwrap.
+- HSM integration adapter (abstract interface) for Hot/Cold key-encrypting-keys (KEKs).
+- CI gating: unit tests, crypto self-tests, FIPS-compatible algorithm selection, integration smoke with HSM simulator (SoftHSM or vendor test harness).
+
+---
+
+### Level 1 — Deterministic (Validator MUST run all before any code commits)
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| T10-L1 | AES-KW algorithm selection | Verify chosen algorithm string(s): `AES-KW-128`, `AES-KW-256`, optionally `AES-KWP-xxx` for padding | [ ] |
+| T10-L2 | Static analysis for crypto libs | `npm run lint` + dependency audit: ensure no use of custom home-grown wrap code | [ ] |
+| T10-L3 | Deterministic serializer tests | `node -e "require('./ai-platform/server/lib/__tests__/keyring-serializer.test.cjs')"` — round-trip serialize/deserialize matches canonical fixture | [ ] |
+| T10-L4 | Unit test: wrap/unwrap with known vector | `npx jest ai-platform/server/lib/__tests__/aes-kw-vectors.test.cjs` — matches RFC/annex vectors | [ ] |
+| T10-L5 | No sensitive test artifacts committed | Verify test fixtures do not include plaintext KEKs or production key material (manual / script) | [ ] |
+
+---
+
+### Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| T10-B1 | HSM adapter interface | Implement adapter that supports `wrap(plaintext, kekId)` and `unwrap(wrapped, kekId)`; run unit mocks | Adapter conforms to interface; errors typed; Promises resolve/reject cleanly | [ ] |
+| T10-B2 | SoftHSM integration smoke | Run SoftHSM-based integration test container (CI job) to exercise wrap/unwrap using a test KEK | Wrap/unwrap round-trip succeeds; wrapped blob headers include algorithm + kekId metadata | [ ] |
+| T10-B3 | Key-versioning semantics | Wrap with KEK v1 then unwrap after KEK rollover to v2 (simulate via adapter) | Unwrap succeeds when KEK history allowed; old wrapped blobs preserved by metadata | [ ] |
+| T10-B4 | Replay / tamper detection | Corrupt wrapped blob bytes and call `unwrap` | Unwrap fails with deterministic error code; no secret leakage in logs | [ ] |
+
+---
+
+### Level 3 — Edge cases & compliance
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| T10-E1 | NIST SP 800-38F vector conformance | Run full vector suite (AES-KW/AES-KWP) and compare outputs | All vectors pass | [ ] |
+| T10-E2 | FIPS mode compatibility | When running in FIPS-enabled Node or with FIPS crypto provider, wrap/unwrap use only FIPS-approved primitives | Pass or documented exception with mitigation | [ ] |
+| T10-E3 | Performance / latency baseline | Measure wrap/unwrap p95 and p99 for typical keyring sizes (1KB, 4KB, 16KB) | Baseline defined; CI regression alerts if >2x | [ ] |
+| T10-E4 | Audit trail and telemetry | `audit/crypto-events` records wrap/unwrap events with non-secret metadata (kekId, algorithm, size) | Audit events emitted and scrub secrets | [ ] |
+
+---
+
+### CI / Release gates
+
+- `ci/track10-crypto` job runs in pipeline: unit tests, vector-suite, SoftHSM integration (container), crypto self-tests.
+- PRs touching track10 files must include `crypto-review:pending` label; merge blocked until `crypto-review:approved` and `ci/track10-crypto` passes.
+
+---
+
+### Dependency Modernization Epic (companion to Track 10)
+
+| Field | Value |
+|-------|-------|
+| Feature | Express 4→5, redis/ioredis clients, ESLint refresh |
+| Branch | `feature/dependency-modernization-epic` |
+| Packages | `ai-platform`, `packages/simplebeacon-cli`, root monorepo |
+
+#### Target dependency updates
+
+- `express` 4.x → 5.x (`ai-platform` server and route layers)
+- `redis` client 4.x → latest 4.x or 5.x stable (non-breaking with current `redis.createClient` usage)
+- `ioredis` client — audit and align to latest stable
+- `eslint` / `@eslint/js` / `globals` — refresh to latest stable and update flat-config files
+- `package-lock.json` refresh across all touched workspaces
+
+#### Level 1 — Deterministic
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` for every modified `.cjs` in `ai-platform/server` | [ ] |
+| L1-02 | ai-platform unit tests pass | `cd ai-platform && npm test` | [ ] |
+| L1-03 | Root monorepo tests pass | `npm test --workspaces --if-present` | [ ] |
+| L1-04 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate --format json` | [ ] |
+| L1-05 | No secrets in diff | `git diff --cached` | [ ] |
+| L1-06 | Dependency audit clean | `npm audit` in root, `ai-platform`, and `packages/simplebeacon-cli` | [ ] |
+
+#### Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | Express 5 server boots | `npm run dev` or `node simplebeacon-server.cjs` starts without `app` or `router` errors | Server listens and responds to `/api/health` | [ ] |
+| L2-02 | Admin throttle still consumes Redis correctly | Run `npx jest admin-throttle` | Token-bucket named Lua command and `send_command` fallback pass | [ ] |
+| L2-03 | Redis rate limiter still works | Run `npx jest redis-rate-limiter` or exercise `redis-rate-limiter.cjs` manually | `agenticRateLimit` named command or `EVAL` fallback returns correct allow/retry | [ ] |
+| L2-04 | ESLint reports no new errors | `npm run lint` in `ai-platform` | Same or fewer errors than baseline; no new high-severity lint rules broken | [ ] |
+
+#### Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | Express 5 query getter does not break existing route handlers | Request a route that reads `req.query` | No `req.query` mutation errors; values still strings | [ ] |
+| L3-02 | Redis client reconnection after transient failure | Stop and restart the Redis container during a test run | Client reconnects and resumes without unhandled promise rejections | [ ] |
+| L3-03 | ioredis major upgrade does not lose `defineCommand` | Verify `admin-throttle.cjs` and `redis-rate-limiter.cjs` define `tokenBucketConsume` / `agenticRateLimit` | Commands are defined and executed without `ERR_UNKNOWN_COMMAND` | [ ] |
+| L3-04 | Smoke route suite after dependency bump | `npm run smoke:test` | Core routes return expected status codes | [ ] |
 
 ---
 
@@ -531,7 +634,7 @@
 
 ---
 
-# test_plan.md — Milestone 6: Production Backup Rules
+# test_plan.md ΓÇö Milestone 6: Production Backup Rules
 
 ## Metadata
 
@@ -583,7 +686,7 @@
 - `prune()` respects `immutable` flag and emits an audit event for every deletion attempt.
 - Restoration validation continuously runs `dryRun` before applying state to detect split-brain or tampering.
 
-## Level 1 — Deterministic (Validator MUST run all)
+## Level 1 ΓÇö Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
@@ -593,7 +696,7 @@
 | L1-04 | Full test suite | `cd ai-platform && npm test` | [ ] |
 | L1-05 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate` | [ ] |
 
-## Level 2 — Behavioral
+## Level 2 ΓÇö Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
@@ -604,7 +707,7 @@
 | L2-05 | Immutability prevents deletion | `immutable=true`, call `prune()` | Returns empty, emits `BACKUP_IMMUTABLE` | [ ] |
 | L2-06 | Missing bundle fields rejected | Call `backup()` without `keyringMaterial` | Throws `INVALID_BUNDLE` | [ ] |
 
-## Level 3 — Edge cases & regression
+## Level 3 ΓÇö Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
@@ -627,13 +730,13 @@
 
 ---
 
-# test_plan.md — Milestone 7: Core Systems Integration (Track 11)
+# test_plan.md ΓÇö Milestone 7: Core Systems Integration (Track 11)
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Track 11: integrate Tracks 6–10 primitives into the cluster sync runtime, telemetry, audit persistence, and key maintenance loops |
+| Feature / change | Track 11: integrate Tracks 6ΓÇô10 primitives into the cluster sync runtime, telemetry, audit persistence, and key maintenance loops |
 | Author (Builder) | Devin |
 | Date | 2026-08-01 |
 | Branch | main |
@@ -657,7 +760,7 @@
 - Active Key Maintenance: an internal cron/interval (default 24 h for STEK, 90 d for KEK) triggers `generateStek()` and archives the previous STEK for a bounded rotation window; KEK rotation is an administrative event.
 - Audit-Log Persistence Coupling: `queryEvents` memory index is mirrored to a durable `audit_logs` table with an indexed `event_type` + `created_at` composite key; queries are bounded by time windows and row limits.
 
-## Level 1 — Deterministic (Validator MUST run all)
+## Level 1 ΓÇö Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
@@ -668,7 +771,7 @@
 | L1-05 | Full test suite | `cd ai-platform && npm test` | [ ] |
 | L1-06 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate` | [ ] |
 
-## Level 2 — Behavioral
+## Level 2 ΓÇö Behavioral
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
@@ -679,7 +782,7 @@
 | L2-05 | STEK cron rotates keys within a 24-hour window | Advance mocked time past `STEK_ROTATION_INTERVAL_MS` | New STEK is generated and the old one is kept for a bounded window | [ ] |
 | L2-06 | Audit queries are bounded by time window and row limit | Query events with no bounds | Query is capped at `AUDIT_QUERY_MAX_ROWS` and requires a time window | [ ] |
 
-## Level 3 — Edge cases & regression
+## Level 3 ΓÇö Edge cases & regression
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
