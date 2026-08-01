@@ -4,9 +4,9 @@
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Multi-Tenant HSM Virtualization & Tokenization |
+| Feature / change | Track 5: Advanced Defense Automation — IP/Subnet Throttling for Cluster Admin Endpoints |
 | Author (Builder) | Devin |
-| Date | 2026-08-01 |
+| Date | 2026-07-31 |
 | Branch | main |
 | Packages touched | ai-platform |
 
@@ -14,16 +14,21 @@
 
 ### Files in scope
 
-- `ai-platform/server/lib/key-rotation-store.cjs` (extend with tenant derivation)
-- `ai-platform/server/lib/hsm-vault.cjs` or `hsm-providers.cjs` (use tenant key if HSM enabled)
-- `ai-platform/server/lib/cluster-keyring-sync.cjs` (record isolation events)
-- `ai-platform/server/lib/__tests__/tenant-hsm-isolation.test.cjs` (new)
-- `.github/workflows/security-regression-tests.yml` (add test to pattern if needed)
+- `ai-platform/server/lib/admin-throttle.cjs` (new — token-bucket + Redis backend)
+- `ai-platform/server/middleware/admin-throttle.cjs` (new — Express middleware)
+- `ai-platform/server/lib/cluster-keyring-sync.cjs` (emit/advertise 423 / isolation / hsm_timeout events)
+- `ai-platform/server/lib/hsm-vault.cjs` (emit throttling-relevant events)
+- `ai-platform/server/routes/audit-routes.cjs` and `ai-platform/server/routes/hsm-vault-routes.cjs` (attach throttle)
+- `ai-platform/server/lib/__tests__/admin-throttle.test.cjs` (new)
+- `ai-platform/docs/ARCHITECTURE.md` (Track 5 ledger update)
 
 ### APIs / routes
 
-- No new public route required; isolation is an internal API change.
-- Optional: `GET /api/audit/hsm/tenant/:orgId/fingerprint` for admin visibility (future).
+- `PUT /api/audit/partition-config`
+- `POST /api/audit/rotate`
+- `POST /api/vault/rotate`
+- `POST /api/vault/failover`
+- Any other `admin:all` cluster/HSM routes identified during implementation
 
 ### UI / IDE surfaces
 
@@ -34,13 +39,20 @@
 
 ---
 
+## Design decisions
+
+- **Token bucket defaults:** Capacity 20 tokens, leak rate 5 tokens/second. This allows a short burst of admin clicks/retries then caps at a safe 5 req/s. Configurable via `ADMIN_THROTTLE_CAPACITY` and `ADMIN_THROTTLE_LEAK_RATE`.
+- **Redis fallback on connection failure:** Inherit the current token count; do not reset to a full bucket. If Redis is unavailable, the in-memory fallback takes over with the last known count. If the count cannot be determined (cold start without Redis), it starts from a reduced safety reserve (25% of capacity) to avoid opening the floodgates. This keeps the throttle fail-closed.
+
+---
+
 ## Level 1 — Deterministic (Validator MUST run all)
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
 | L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
-| L1-02 | New tenant HSM tests pass | `cd ai-platform && npx jest --config jest.config.cjs tenant-hsm` | [ ] |
-| L1-03 | Existing key-rotation and HSM tests pass | `cd ai-platform && npx jest --config jest.config.cjs key-rotation && npx jest --config jest.config.cjs hsm-vault` | [ ] |
+| L1-02 | Admin throttle tests pass | `cd ai-platform && npx jest --config jest.config.cjs admin-throttle` | [ ] |
+| L1-03 | Existing cluster / HSM tests still pass | `cd ai-platform && npx jest --config jest.config.cjs cluster-keyring-sync && npx jest --config jest.config.cjs hsm-vault` | [ ] |
 | L1-04 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate --format json` | [ ] |
 | L1-05 | No secrets in diff | `git diff --cached` | [ ] |
 
@@ -50,11 +62,11 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Same master key, different orgIds produce different tenant keys | Call `deriveTenantKey(orgA)` and `deriveTenantKey(orgB)` | Outputs are different 32-byte hex values | [ ] |
-| L2-02 | Tenant key is deterministic and stable | Call `deriveTenantKey(orgA)` twice | Same output both times | [ ] |
-| L2-03 | HSM timeout fails closed | Simulate `HSM_TIMEOUT=1` env / stub | Any tokenization throws `hsm_timeout` | [ ] |
-| L2-04 | Tenant isolation violation recorded | Attempt to access key for orgB as orgA | `clusterSync._recordEvent('isolation_violation', ...)` is called | [ ] |
-| L2-05 | Cluster timeline captures HSM timeout | Trigger HSM timeout | Event `hsm_timeout` in `queryEvents` | [ ] |
+| L2-01 | Repeated `423 Locked` rejections from one IP trigger a throttle | Simulate 10 `423` responses from a single IP in one second | IP is added to the throttle list; subsequent admin requests from that IP return `429` with code `admin_throttled` | [ ] |
+| L2-02 | Request volume spike triggers a throttle | Simulate more than 20 admin requests per second from one IP | `429` returned and a `throttle_triggered` event recorded | [ ] |
+| L2-03 | Repeated `isolation_violation` / `hsm_timeout` events trigger a throttle | Simulate 10 such events from one IP | Admin requests from that IP return `429` with code `admin_throttled` | [ ] |
+| L2-04 | Token bucket allows steady traffic under limit | Send 5 req/s from a new IP | All requests succeed (return their normal status, not `429`) | [ ] |
+| L2-05 | Redis failure falls back to in-memory with inherited count | Run a bucket with Redis; cut Redis; request again | In-memory fallback uses the last known token count, not a full bucket | [ ] |
 
 ---
 
@@ -62,11 +74,12 @@
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | orgId is empty string | Throws `missing_org_id` | [ ] |
-| L3-02 | orgId contains special characters | Normalized before HKDF, still produces stable key | [ ] |
-| L3-03 | HSM unavailable, no fallback | No in-memory key generated; operation fails | [ ] |
-| L3-03 | Rotation preserves tenant isolation | After master rotation, tenant keys change and remain isolated | [ ] |
-| L3-05 | Existing key-rotation tests unaffected | `key-rotation-store` defaults keep working | [ ] |
+| L3-01 | Throttled IP still has access to non-admin routes | Request a public or non-admin route from a throttled IP | Request succeeds | [ ] |
+| L3-02 | Throttle recovers when Redis returns | Restart Redis after a failure | Token bucket syncs and resumes accurate limits | [ ] |
+| L3-03 | Subnet throttling works for IPv4 /24 | Spikes from multiple IPs in the same /24 | Whole /24 is throttled | [ ] |
+| L3-04 | IPv6 /64 throttling is stable | Spikes from multiple hosts in the same /64 | Whole /64 is throttled consistently | [ ] |
+| L3-05 | Default capacity and leak rate are applied | Do not set `ADMIN_THROTTLE_CAPACITY` or `ADMIN_THROTTLE_LEAK_RATE` | Bucket uses capacity 20, leak 5 tokens/second | [ ] |
+| L3-06 | Redis failure does not grant a full bucket | Kill Redis on a near-empty bucket | Fallback starts from inherited count (or 25% reserve if unknown), not full capacity | [ ] |
 
 ---
 
@@ -74,13 +87,13 @@
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | Tenant keys never stored raw; only derived on demand | [ ] |
-| S-02 | No orgA can derive/validate orgB's key | [ ] |
-| S-03 | HSM timeout does not fall back to local random key | [ ] |
-| S-04 | Cluster events for violations do not include raw key material | [ ] |
+| S-01 | Throttle decisions never leak internal state (e.g., exact token counts) | [ ] |
+| S-02 | Redis failure does not reset the bucket to full (fail-closed) | [ ] |
+| S-03 | Throttle events do not persist raw client IPs (use hash/subnet prefix only) | [ ] |
+| S-04 | Admin endpoints still require authentication before the throttle is evaluated | [ ] |
 
 ---
 
 ## Approval
 
-- [x] User approved via question selections
+- [ ] User approved via question selections or "implement the plan"

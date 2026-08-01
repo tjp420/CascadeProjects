@@ -13,8 +13,12 @@ const express = require('express');
 const hsm = require('../lib/hsm-vault.cjs');
 const { authorize } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
+const { middleware: adminThrottle } = require('../lib/admin-throttle.cjs');
 
 const router = express.Router();
+
+// Apply token-bucket defense to all admin HSM vault routes
+router.use(adminThrottle);
 
 function resolveOrgId(req) {
   return req.orgId || req.query.orgId || req.body.orgId || 'default';

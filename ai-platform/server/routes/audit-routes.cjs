@@ -10,6 +10,7 @@ const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../lib/app-logger.cjs').child('audit-routes');
 const clusterSync = require('../lib/cluster-keyring-sync.cjs');
 const coldArchiveSearch = require('../lib/cold-archive-search.cjs');
+const { middleware: adminThrottle } = require('../lib/admin-throttle.cjs');
 
 const router = express.Router();
 
@@ -55,6 +56,9 @@ function getActor(req) {
 
 // All audit endpoints require authentication
 router.use(authenticate);
+
+// Apply token-bucket defense to all audit routes
+router.use(adminThrottle);
 
 // ── GET /api/audit/log ──────────────────────────────────────────────────────
 //   Query params: action, entity, actorId, startDate, endDate, limit, offset

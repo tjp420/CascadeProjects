@@ -1,0 +1,240 @@
+'use strict';
+
+const crypto = require('crypto');
+const logger = require('./app-logger.cjs').child('admin-throttle');
+
+const CAPACITY = parseInt(process.env.ADMIN_THROTTLE_CAPACITY, 10) || 20;
+const LEAK_RATE = parseInt(process.env.ADMIN_THROTTLE_LEAK_RATE, 10) || 5; // tokens per second
+const RESERVE_PCT = parseInt(process.env.ADMIN_THROTTLE_RESERVE_PCT, 10) || 25;
+const IPV4_MASK = parseInt(process.env.ADMIN_THROTTLE_IPV4_MASK, 10) || 24;
+const IPV6_MASK = parseInt(process.env.ADMIN_THROTTLE_IPV6_MASK, 10) || 64;
+const KEY_PREFIX = 'sb:admin-throttle';
+const KEY_TTL_MS = 24 * 60 * 60 * 1000;
+
+let redisClient = null;
+let usingRedis = false;
+try {
+  const IORedis = require('ioredis');
+  const url = process.env.REDIS_URL || process.env.REDIS || 'redis://127.0.0.1:6379';
+  redisClient = new IORedis(url);
+  usingRedis = true;
+} catch (e) {
+  usingRedis = false;
+}
+
+const inMemoryBuckets = new Map();
+
+function _nowMs() {
+  return Date.now();
+}
+
+function _hash(input) {
+  return crypto.createHash('sha256').update(String(input)).digest('hex').slice(0, 32);
+}
+
+function _isLoopback(ip) {
+  if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return true;
+  if (ip.startsWith('::ffff:127.')) return true;
+  if (ip.startsWith('::ffff:127.0.0.1')) return true;
+  return false;
+}
+
+function _stripV4Mapped(ip) {
+  if (ip.startsWith('::ffff:')) return ip.slice(7);
+  return ip;
+}
+
+function getClientIp(req) {
+  return req.ip || req.socket?.remoteAddress || req.connection?.remoteAddress || 'unknown';
+}
+
+function getSubnet(ip) {
+  const clean = _stripV4Mapped(ip);
+  if (clean.includes('.')) {
+    const parts = clean.split('.').map(Number).map((n) => (Number.isNaN(n) ? 0 : n));
+    const mask = Math.min(Math.max(IPV4_MASK, 0), 32);
+    const octets = Math.floor(mask / 8);
+    const bits = mask % 8;
+    const net = parts.slice(0, octets);
+    if (bits > 0 && parts[octets] !== undefined) {
+      const shift = 8 - bits;
+      const byte = (parts[octets] >> shift) << shift;
+      net.push(byte);
+    }
+    while (net.length < 4) net.push(0);
+    return `${net.slice(0, Math.ceil(mask / 8)).join('.')}/${mask}`;
+  }
+  if (clean.includes(':')) {
+    let parts = clean.split(':').filter(Boolean);
+    if (parts.length < 8) {
+      // Cannot reliably subnet compressed IPv6; return as-is
+      return `${clean}/${IPV6_MASK}`;
+    }
+    const hextets = Math.floor(IPV6_MASK / 16);
+    const prefix = parts.slice(0, hextets).join(':');
+    if (IPV6_MASK % 16 !== 0 && parts[hextets] !== undefined) {
+      const bits = IPV6_MASK % 16;
+      const val = parseInt(parts[hextets], 16);
+      const shifted = (val >> (16 - bits)) << (16 - bits);
+      return `${prefix}:${shifted.toString(16)}/${IPV6_MASK}`;
+    }
+    return `${prefix}/${IPV6_MASK}`;
+  }
+  return `${clean}/${IPV4_MASK}`;
+}
+
+function _consumeFromMemory(bucketKey, consume, reserve) {
+  const now = _nowMs();
+  const reserveTokens = (CAPACITY * reserve) / 100;
+  let state = inMemoryBuckets.get(bucketKey);
+  if (!state) {
+    state = { tokens: reserveTokens, lastUpdate: now };
+  }
+  const elapsed = now - state.lastUpdate;
+  const newTokens = Math.min(CAPACITY, state.tokens + (elapsed * LEAK_RATE / 1000));
+  if (newTokens < consume) {
+    inMemoryBuckets.set(bucketKey, { tokens: newTokens, lastUpdate: now });
+    return { allowed: false, tokens: newTokens };
+  }
+  inMemoryBuckets.set(bucketKey, { tokens: newTokens - consume, lastUpdate: now });
+  return { allowed: true, tokens: newTokens - consume };
+}
+
+async function _consumeFromRedis(bucketKey, consume, reserve) {
+  const now = _nowMs();
+  const reserveTokens = (CAPACITY * reserve) / 100;
+  const script = `
+    local key = KEYS[1]
+    local capacity = tonumber(ARGV[1])
+    local leak = tonumber(ARGV[2])
+    local now = tonumber(ARGV[3])
+    local consume = tonumber(ARGV[4])
+    local reserve = tonumber(ARGV[5])
+    local state = redis.call('HMGET', key, 'tokens', 'lastUpdate')
+    local tokens = tonumber(state[1])
+    local last = tonumber(state[2])
+    if not tokens or not last then
+      tokens = reserve
+      last = now
+    end
+    local elapsed = now - last
+    local newTokens = math.min(capacity, tokens + (elapsed * leak / 1000))
+    local allowed = 0
+    if newTokens >= consume then
+      newTokens = newTokens - consume
+      allowed = 1
+    end
+    redis.call('HMSET', key, 'tokens', newTokens, 'lastUpdate', now)
+    redis.call('PEXPIRE', key, ${KEY_TTL_MS})
+    return {allowed, newTokens}
+  `;
+  try {
+    const res = await redisClient.eval(script, 1, bucketKey, CAPACITY, LEAK_RATE, now, consume, reserveTokens);
+    return { allowed: Number(res[0]) === 1, tokens: Number(res[1]) };
+  } catch (e) {
+    usingRedis = false;
+    logger.warn('Redis token bucket failed; falling back to in-memory', { error: e.message });
+    return _consumeFromMemory(bucketKey, consume, reserve);
+  }
+}
+
+async function _consume(bucketKey, consume, reserve) {
+  if (usingRedis && redisClient) {
+    return _consumeFromRedis(bucketKey, consume, reserve);
+  }
+  return _consumeFromMemory(bucketKey, consume, reserve);
+}
+
+function _drainFromMemory(bucketKey) {
+  inMemoryBuckets.set(bucketKey, { tokens: 0, lastUpdate: _nowMs() });
+}
+
+async function _drainFromRedis(bucketKey) {
+  const now = _nowMs();
+  try {
+    await redisClient.hmset(bucketKey, 'tokens', 0, 'lastUpdate', now);
+    await redisClient.pexpire(bucketKey, KEY_TTL_MS);
+  } catch (e) {
+    usingRedis = false;
+    _drainFromMemory(bucketKey);
+  }
+}
+
+async function _drain(bucketKey) {
+  if (usingRedis && redisClient) {
+    return _drainFromRedis(bucketKey);
+  }
+  return _drainFromMemory(bucketKey);
+}
+
+async function consume(ip, consumeAmount = 1) {
+  const key = `${KEY_PREFIX}:ip:${_hash(ip)}`;
+  return _consume(key, consumeAmount, RESERVE_PCT);
+}
+
+async function consumeSubnet(subnet, consumeAmount = 1) {
+  const key = `${KEY_PREFIX}:net:${_hash(subnet)}`;
+  return _consume(key, consumeAmount, RESERVE_PCT);
+}
+
+async function recordPenalty(ip, type) {
+  const subnet = getSubnet(ip);
+  const ipKey = `${KEY_PREFIX}:ip:${_hash(ip)}`;
+  const netKey = `${KEY_PREFIX}:net:${_hash(subnet)}`;
+  await _drain(ipKey);
+  await _drain(netKey);
+  logger.warn('Admin throttle penalty recorded', { ipHash: _hash(ip), subnetHash: _hash(subnet), type });
+}
+
+async function checkAdminRequest(ip) {
+  const subnet = getSubnet(ip);
+  const [ipResult, subnetResult] = await Promise.all([
+    consume(ip, 1),
+    consumeSubnet(subnet, 1),
+  ]);
+  return {
+    allowed: ipResult.allowed && subnetResult.allowed,
+    ipResult,
+    subnetResult,
+    subnet,
+  };
+}
+
+function middleware(req, res, next) {
+  const ip = getClientIp(req);
+  if (ip === 'unknown' || (process.env.NODE_ENV !== 'production' && _isLoopback(ip))) {
+    return next();
+  }
+  checkAdminRequest(ip)
+    .then((result) => {
+      if (!result.allowed) {
+        return res.status(429).json({
+          success: false,
+          error: 'admin_throttled',
+          code: 'admin_throttled',
+          retryAfter: Math.ceil(1000 / LEAK_RATE),
+        });
+      }
+      res.on('finish', () => {
+        const status = res.statusCode;
+        if (status === 423) recordPenalty(ip, 'locked');
+        else if (status === 403) recordPenalty(ip, 'isolation_violation');
+        else if (status === 503) recordPenalty(ip, 'hsm_timeout');
+      });
+      next();
+    })
+    .catch(next);
+}
+
+module.exports = {
+  CAPACITY,
+  LEAK_RATE,
+  RESERVE_PCT,
+  getClientIp,
+  getSubnet,
+  consume,
+  consumeSubnet,
+  recordPenalty,
+  checkAdminRequest,
+  middleware,
+};
