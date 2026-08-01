@@ -10,6 +10,7 @@ import { SemanticCacheDashboard } from '@/components/SemanticCacheDashboard';
 import { WebhookSigningDashboard } from '@/components/WebhookSigningDashboard';
 import { AgenticOrchestrationDashboard } from '@/components/AgenticOrchestrationDashboard';
 import { ToolSchemaValidationDashboard } from '@/components/ToolSchemaValidationDashboard';
+import { StreamInterdictionDashboard } from '@/components/StreamInterdictionDashboard';
 
 type ScanResultData = {
   projectPath?: string;
@@ -390,6 +391,7 @@ export function SecurityView() {
       <WebhookSigningDashboard />
       <AgenticOrchestrationDashboard />
       <ToolSchemaValidationDashboard />
+      <StreamInterdictionDashboard />
     </div>
   );
 }
