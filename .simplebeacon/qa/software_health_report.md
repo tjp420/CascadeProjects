@@ -1,6 +1,6 @@
 # software_health_report.md
 
-> Validator output after executing the Track 14 dynamic cryptographic policy test plan and adversarial gates on `feature/track14-groundwork`.
+> Validator output after executing the Track 15 volatile memory purging and key zeroization test plan and adversarial gates on `feature/track15-groundwork`.
 > This is a Builder self-check; an independent Validator sign-off is still recommended.
 
 ## Metadata
@@ -9,15 +9,15 @@
 |-------|-------|
 | Validator | Devin (Builder self-check; independent Validator sign-off still recommended) |
 | Date | 2026-08-01 |
-| Branch | `feature/track14-groundwork` |
-| test_plan version | `ai-platform/docs/specs/track14-policy-engine-test-plan.md` (commit `f9262053`) |
-| Pull request | #111 targeting `feature/track10-aes-kw` |
+| Branch | `feature/track15-groundwork` |
+| test_plan version | `ai-platform/docs/specs/track15-zeroization-test-plan.md` (commit `4193bd15`) |
+| Pull request | #112 targeting `feature/track10-aes-kw` |
 
 ## Executive summary
 
 - **Gate:** PASS — quality score: 0 / 100 — blocking: 0 critical / 0 high / 0 medium
 - **Level 1:** All required commands executed and passed
-- **Level 2:** Behavioral checks for policy validation, hot-reload, and adapter integration passed
+- **Level 2:** Behavioral checks for buffer zeroization, inactivity eviction, and audit logging passed
 - **Level 3:** Spec scope matches implementation; only approved files modified
 - **Ship recommendation:** GO — pending independent Validator sign-off
 
@@ -47,9 +47,9 @@ No spec gaps identified.
 
 | ID | Area | Suggestion | Effort |
 |----|------|------------|--------|
-| E-01 | observability | Log policy decisions with `tenantId`, `operation`, and `policyVersion` for auditability. | S |
-| E-02 | persistence | Persist tenant policies to a durable store (KV/D1) and load on adapter start. | M |
-| E-03 | metrics | Add counters for `POLICY_VIOLATION_BLOCKED` and `POLICY_DEPRECATED_WARNING` events. | S |
+| E-01 | persistent audit | Persist `KEY_ZEROIZED` / `KEY_EVICTED` events to the audit-integrity chain or durable log. | M |
+| E-02 | key material wiping | For `KeyObject`, investigate Node/OpenSSL APIs for secure key material deletion (currently limited to reference dropping). | M |
+| E-03 | metrics | Add counters for `zeroize` and `evict` operations per tenant. | S |
 
 ---
 
@@ -57,9 +57,9 @@ No spec gaps identified.
 
 | ID | Feature | Rationale |
 |----|---------|-----------|
-| R-01 | Background policy-driven rotation | Automatically queue `rotateKEK` for keys flagged by `POLICY_DEPRECATED_WARNING`. |
-| R-02 | Policy audit log | Append-only record of policy changes and reloads for compliance. |
-| R-03 | Web dashboard | Allow operators to view and edit tenant policies via the SimpleBeacon dashboard. |
+| R-01 | Emergency kill switch | `evictAll` endpoint to purge all in-memory keys on security incident. |
+| R-02 | Policy-audit log | Record every `CryptoPolicyEngine` `reload()` for compliance. |
+| R-03 | File-backed policy | Load `crypto-policy-schema.json` from disk at adapter start. |
 
 ---
 
@@ -68,30 +68,35 @@ No spec gaps identified.
 ### Syntax checks
 
 ```bash
-node -c ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs
+node -c ai-platform/server/lib/hsm-adapter/secure-zeroize.cjs
+node -c ai-platform/server/lib/hsm-adapter/volatile-eviction-engine.cjs
 node -c ai-platform/server/lib/hsm-adapter/base-adapter.cjs
 node -c ai-platform/server/lib/hsm-adapter/software-adapter.cjs
 node -c ai-platform/server/lib/hsm-adapter/asymmetric-adapter.cjs
-node -c ai-platform/server/lib/hsm-adapter/__tests__/crypto-policy-engine.test.cjs
+node -c ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs
+node -c ai-platform/server/lib/hsm-adapter/__tests__/secure-zeroize.test.cjs
+node -c ai-platform/server/lib/hsm-adapter/__tests__/volatile-eviction.test.cjs
 ```
 
-All five files pass syntax validation.
+All eight files pass syntax validation.
 
-### Targeted Track 14 tests
+### Targeted Track 15 tests
 
 ```bash
-cd ai-platform && npx jest --config jest.config.cjs crypto-policy-engine hsm-adapter asymmetric-adapter multi-tenant-key-isolation attestation
+cd ai-platform && npx jest --config jest.config.cjs secure-zeroize volatile-eviction hsm-adapter asymmetric-adapter multi-tenant-key-isolation crypto-policy-engine attestation
 ```
 
 ```text
-PASS server/lib/hsm-adapter/__tests__/crypto-policy-engine.test.cjs
+PASS server/lib/hsm-adapter/__tests__/secure-zeroize.test.cjs
+PASS server/lib/hsm-adapter/__tests__/volatile-eviction.test.cjs
 PASS server/lib/__tests__/hsm-adapter.test.cjs
 PASS server/lib/hsm-adapter/__tests__/asymmetric-adapter.test.cjs
 PASS server/lib/hsm-adapter/__tests__/multi-tenant-key-isolation.test.cjs
+PASS server/lib/hsm-adapter/__tests__/crypto-policy-engine.test.cjs
 PASS server/lib/hsm-adapter/__tests__/attestation.test.cjs
 
-Test Suites: 5 passed, 5 total
-Tests:       78 passed, 78 total
+Test Suites: 7 passed, 7 total
+Tests:       94 passed, 94 total
 ```
 
 ### Full platform test suite
@@ -101,10 +106,12 @@ cd ai-platform && npm test
 ```
 
 ```text
-Test Suites: 1 skipped, 213 passed, 213 of 214 total
-Tests:       2 skipped, 2210 passed, 2212 total
-Time:        20.867 s
+Test Suites: 1 skipped, 215 passed, 215 of 216 total
+Tests:       2 skipped, 2226 passed, 2228 total
+Time:        20.891 s
 ```
+
+A prior run showed a flaky failure in `server/lib/__tests__/track11-integration.test.cjs` that passes in isolation; the re-run above was green.
 
 ### SimpleBeacon pre-commit gate
 
@@ -131,6 +138,7 @@ npx simplebeacon scan --gate
 | #108 | `feature/track12-groundwork` | `feat(track12): Attestation, HKDF context binding, and asymmetric hardware mocking` | OPEN | MERGEABLE |
 | #109 | `feature/track13-groundwork` | `feat(track13): Multi-tenant key isolation and per-transaction DEK derivation` | OPEN | MERGEABLE |
 | #111 | `feature/track14-groundwork` | `feat(track14): Dynamic cryptographic policy engine with hot-reload` | OPEN | MERGEABLE |
+| #112 | `feature/track15-groundwork` | `feat(track15): Volatile memory purging and key zeroization` | OPEN | MERGEABLE |
 
 ---
 
