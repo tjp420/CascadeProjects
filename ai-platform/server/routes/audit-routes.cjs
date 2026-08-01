@@ -441,6 +441,30 @@ router.get('/quarantine', authorize('admin:all'), (req, res) => {
   }
 });
 
+// ── POST /api/audit/quarantine/verify-entry ─────────────────────────────────
+//   Admin-only: verifies the cryptographic integrity of a single quarantined entry.
+//   Body: { entryId: string, orgId?: string }
+//   If orgId is omitted, uses the caller's org.
+router.post('/quarantine/verify-entry', authorize('admin:all'), (req, res) => {
+  try {
+    const { entryId } = req.body || {};
+    if (!entryId) {
+      sendError(res, 400, 'missing_entry_id', { message: 'entryId is required' });
+      return;
+    }
+    const orgId = req.body.orgId || getOrgId(req);
+    const result = auditLogger.verifyQuarantineEntry(orgId, entryId);
+    if (!result.found) {
+      sendError(res, 404, 'entry_not_found', { message: `Quarantine entry ${entryId} not found for org ${orgId}` });
+      return;
+    }
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[Audit] quarantine_verify_failed:', err.message);
+    sendError(res, 500, 'quarantine_verify_failed', { message: err.message });
+  }
+});
+
 // ── GET /api/audit/heal-stats ───────────────────────────────────────────────
 //   Admin-only: returns auto-healing worker stats.
 router.get('/heal-stats', authorize('admin:all'), (req, res) => {

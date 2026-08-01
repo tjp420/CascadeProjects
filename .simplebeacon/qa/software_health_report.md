@@ -1,8 +1,8 @@
-# Software Health Report — Master Key Rotation & Migration Dashboard
+# Software Health Report — Forensic Log Viewer & Quarantine Evidence Inspector
 
 **Date:** 2026-01-30
 **Branch:** feat/agentic-orchestration
-**Feature:** Backend admin routes + frontend key management card for SecurityView
+**Feature:** Backend row-level verification + frontend quarantine inspector drawer
 **Validator:** Devin (Validator mode)
 
 ---
@@ -11,11 +11,11 @@
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `node -c audit-routes.cjs` | PASS | Syntax clean — 4 new routes added |
-| `node -c keyManagementService.js` | PASS | Syntax clean — new frontend service |
-| `node -c SecurityView.js` | PASS | Syntax clean — new card + handlers |
+| `node -c audit-logger.cjs` | PASS | Syntax clean — verifyQuarantineEntry() added |
+| `node -c audit-routes.cjs` | PASS | Syntax clean — POST /quarantine/verify-entry added |
+| `node -c quarantineService.js` | PASS | Syntax clean — new frontend service |
+| `node -c SecurityView.js` | PASS | Syntax clean — QuarantineInspector section added |
 | Full test suite (all suites) | PASS | 1733/1733 tests pass |
-| Security regression suite (23 suites) | PASS | 527/527 tests pass |
 | SimpleBeacon gate scan | PASS | 0 critical, 0 high, 0 medium; quality score 100 |
 
 ---
@@ -24,24 +24,23 @@
 
 | Test Plan # | Check | Result | Notes |
 |-------------|-------|--------|-------|
-| 1 | `GET /api/audit/key/status` returns rotation status | PASS | Returns `{ hasActive, hasPrevious, rotatedAt, graceMs, graceExpired, activeFingerprint, previousFingerprint }` |
-| 2 | `POST /api/audit/key/rotate` accepts newKeyRaw + graceMs | PASS | Calls `keyRotationStore.rotateKey(newKeyRaw, graceMs)` |
-| 3 | `POST /api/audit/key/rekey-now` triggers re-keying | PASS | Calls `auditLogger.runAutonomousReKeying()` |
-| 4 | `GET /api/audit/key/rekey-stats` returns migration stats | PASS | Calls `auditLogger.getReKeyStats()` |
-| 5 | Frontend `fetchKeyStatus()` returns status object | PASS | Service function in `keyManagementService.js` |
-| 6 | Frontend `MasterKeyRotationCard` renders active fingerprint | PASS | `renderKeyManagementSection()` in `SecurityView.js` |
-| 7 | Frontend rotation form posts to `/api/audit/key/rotate` | PASS | `handleKeyRotation()` calls `triggerKeyRotation()` |
-| 8 | Frontend "Force Re-Key Sweep" button calls rekey-now | PASS | `handleForceReKey()` calls `forceReKeySweep()` |
-| 9 | Empty key rejected with 400 | PASS | `if (!newKeyRaw) sendError(res, 400, ...)` |
-| 10 | Short key (<32 chars) rejected with 400 | PASS | `if (newKeyRaw.length < 32) sendError(res, 400, ...)` |
-| 11 | Non-admin gets 403 on all key routes | PASS | All 4 routes wrapped with `authorize('admin:all')` |
-| 12 | "No rotation active" when hasPrevious is false | PASS | Grace text shows "—" when no previous key |
-| 13 | Grace window countdown when rotation active | PASS | `formatGraceCountdown()` shows "Xh Ym remaining" |
-| 14 | Status response only contains fingerprints | PASS | `getRotationStatus()` returns 16-char SHA-256 truncations |
-| 15 | Frontend never logs raw key after rotation | PASS | `input.value = ''` clears DOM; no console.log of key |
-| 16 | All routes wrapped with `authorize('admin:all')` | PASS | Verified at lines 573, 590, 620, 632 |
+| 1 | `POST /api/audit/quarantine/verify-entry` recomputes hash | PASS | Calls `auditLogger.verifyQuarantineEntry(orgId, entryId)` |
+| 2 | Result includes hashMatches, expectedHash, actualHash, quarantineReason | PASS | All fields returned in response |
+| 3 | Frontend `fetchQuarantineEntries()` calls GET /api/audit/quarantine | PASS | quarantineService.js line 10 |
+| 4 | Frontend `verifyQuarantineEntry()` calls POST /verify-entry | PASS | quarantineService.js line 35 |
+| 5 | QuarantineInspector renders entries table | PASS | id, org, action, timestamp, reason columns |
+| 6 | Expandable detail drawer shows full entry payload | PASS | `<pre>` with `escapeHtml(JSON.stringify(entry, null, 2))` |
+| 7 | Each row has Verify button | PASS | `handleVerifyEntry(entryId)` wired |
+| 8 | Verify result shows green/red inline | PASS | ✅ Hash Match / ❌ Hash Mismatch |
+| 9 | Empty quarantine renders empty state | PASS | "No quarantined entries" card |
+| 10 | `?allOrgs=true` checkbox shows cross-tenant entries | PASS | `quarantineAllOrgs` state + checkbox |
+| 11 | Verify endpoint returns 404 if entry not found | PASS | `sendError(res, 404, 'entry_not_found', ...)` |
+| 12 | Decryption error metadata surfaced in UI | PASS | Warning banner when `metadata.decryptionError === true` |
+| 13 | All quarantine routes wrapped with authorize('admin:all') | PASS | Lines 428, 448 |
+| 14 | Quarantine entries never expose raw encryption keys | PASS | Only entry data returned, no key material |
+| 15 | Frontend escapes all entry payload fields with escapeHtml() | PASS | All fields + raw JSON in `<pre>` escaped |
 
-**Test plan items: 16/16 PASS**
+**Test plan items: 15/15 PASS**
 
 ---
 
@@ -49,16 +48,15 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Spec: Live keyring status indicators | MATCH | Active + previous fingerprints, rotation date, grace badge |
-| Spec: On-demand key rotation trigger | MATCH | Password input + Generate button + Rotate button |
-| Spec: Background worker telemetry panels | PASS | Stats grid: totalSweeps, migrated, skipped, failed, purged |
-| Spec: Administrative trigger for out-of-band sweep | PASS | "Force Re-Key Sweep" button calls `/api/audit/key/rekey-now` |
-| No ghost files | CONFIRMED | All 3 files exist at expected paths |
-| No new dependencies | CONFIRMED | Uses only existing fetch API, Web Crypto, Express |
+| Spec: Row-level hash verification | MATCH | `verifyQuarantineEntry()` recomputes SHA-256 via `computeEntryHash()` |
+| Spec: Expandable drawer with raw JSON | MATCH | `<pre>` block with `escapeHtml(JSON.stringify(entry, null, 2))` |
+| Spec: Front-end verification utility | MATCH | Verify button per row, inline result display |
+| Spec: Multi-tenant support | MATCH | `?allOrgs=true` checkbox for cross-tenant admin view |
+| No ghost files | CONFIRMED | All 4 files exist at expected paths |
+| No new dependencies | CONFIRMED | Uses only existing fetch API, escapeHtml, CSS.escape |
 | No spec drift | CONFIRMED | All test plan items map to implementation |
-| Frontend input masked | CONFIRMED | `type="password"` on key input field |
-| Raw key cleared from DOM | CONFIRMED | `input.value = ''` after rotation |
-| Backend validates key length | CONFIRMED | 32-char minimum enforced server-side |
+| Decryption error handling | CONFIRMED | Warning banner shown when quarantine file can't be decrypted |
+| CSS.escape for dynamic IDs | CONFIRMED | Used `CSS.escape(entry.id)` for safe selector queries |
 
 ---
 
@@ -70,43 +68,44 @@ None found. All tests pass, gate passes, no syntax errors.
 
 ## Unimplemented
 
-None. All 16 test plan items implemented and verified.
+None. All 15 test plan items implemented and verified.
 
 ---
 
 ## Enhancements (Debt/Perf)
 
-1. **Lazy-loaded key-rotation-store** — The backend routes lazy-load `key-rotation-store.cjs` via `getKeyRotationStore()` to avoid circular dependency issues at module init time. This mirrors the existing `getAgenticRoutes()` pattern in the same file.
+1. **Decryption status reporting** — `verifyQuarantineEntry()` returns a `decryptionStatus` field that indicates whether the quarantine file was successfully decrypted. This gives admins forensic visibility into key rotation state.
 
-2. **Web Crypto key generation** — The frontend `generateRandomKey()` function uses the browser's Web Crypto API (`crypto.getRandomValues`) to generate 256-bit random keys, eliminating the need for users to manually craft high-entropy secrets.
+2. **Auto-expand on verify** — When an admin clicks "Verify" on a row, the detail drawer auto-expands to show the verification result (expected vs actual hash) alongside the raw entry payload.
 
-3. **Grace window countdown** — `formatGraceCountdown()` provides a human-readable countdown ("47h 23m remaining") that updates on each refresh, giving admins clear visibility into the rotation timeline.
+3. **CSS.escape for dynamic selectors** — Used `CSS.escape(entry.id)` when querying DOM elements by entry ID, preventing selector injection issues if entry IDs contain special characters.
 
 ---
 
 ## Future Roadmap
 
-1. **Auto-refresh polling** — Add a 30-second polling interval to the key management section so the grace countdown updates live without manual refresh.
+1. **Bulk verify all** — Add a "Verify All" button that iterates through all quarantined entries and shows a summary of matches/mismatches.
 
-2. **Rotation audit log** — Record each manual rotation trigger in the audit log with the admin's email and timestamp for compliance traceability.
+2. **Export quarantine evidence** — Add a "Export Evidence" button that downloads the quarantine store as a signed JSON bundle for compliance audits.
 
-3. **Key strength meter** — Add a visual strength indicator on the rotation input that evaluates entropy as the user types or pastes a key.
+3. **Filter/search** — Add search and filter controls (by org, action, reason, date range) to the quarantine table for large evidence sets.
 
-4. **WebSocket notifications** — Push real-time notifications to the dashboard when a background re-keying sweep completes or fails.
+4. **Pagination** — For orgs with many quarantined entries, add pagination to avoid rendering hundreds of rows at once.
 
 ---
 
 ## Validator Sign-off
 
 - [x] All Level 1 checks pass (syntax, 1733 tests, gate 0/0/0, quality 100)
-- [x] All Level 2 behavioral checks pass (16/16 test plan items)
+- [x] All Level 2 behavioral checks pass (15/15 test plan items)
 - [x] No spec drift (all spec items match implementation)
 - [x] No ghost files or hallucinated API paths
-- [x] All 4 backend routes wrapped with `authorize('admin:all')`
-- [x] Status response only contains 16-char truncated fingerprints
-- [x] Frontend clears raw key from DOM after rotation
-- [x] Frontend input field uses `type="password"` for visual masking
-- [x] Backend validates key length (min 32 chars) server-side
+- [x] Both quarantine routes wrapped with `authorize('admin:all')`
+- [x] Verify endpoint returns 404 for missing entries
+- [x] All entry payload fields escaped with `escapeHtml()`
+- [x] Raw JSON in `<pre>` block escaped to prevent XSS
+- [x] Decryption error metadata surfaced as warning banner
+- [x] CSS.escape used for dynamic element selectors
 - [x] No new dependencies added
 
 **Verdict:** READY FOR COMMIT

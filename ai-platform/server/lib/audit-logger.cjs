@@ -710,6 +710,57 @@ function getQuarantine(orgId) {
 }
 
 /**
+ * Verify the cryptographic integrity of a single quarantined entry.
+ * Recomputes the entry's hash and compares it to the stored hash.
+ * Also checks whether the entry can be decrypted with any key in the
+ * current keyring (active + previous via getDecryptionKeys()).
+ *
+ * @param {string} orgId — Tenant org ID
+ * @param {string} entryId — Entry ID to verify
+ * @returns {{ found: boolean, hashMatches: boolean, expectedHash: string, actualHash: string, quarantineReason: string|null, entry: object|null, decryptionStatus: string }}
+ */
+function verifyQuarantineEntry(orgId, entryId) {
+  const orgIdNormalized = orgId || 'default';
+  const store = readTenantQuarantineStore(orgIdNormalized);
+  const entry = store.entries.find((e) => e.id === entryId);
+
+  if (!entry) {
+    return {
+      found: false,
+      hashMatches: false,
+      expectedHash: '',
+      actualHash: '',
+      quarantineReason: null,
+      entry: null,
+      decryptionStatus: 'entry_not_found',
+    };
+  }
+
+  // Recompute hash using the same canonical payload as computeEntryHash
+  const entryWithoutHash = { ...entry };
+  delete entryWithoutHash.hash;
+  const recomputed = computeEntryHash(entryWithoutHash, entry.prevHash);
+
+  // Check if the quarantine file itself can be decrypted
+  // (readTenantQuarantineStore already attempted decryption; if it failed,
+  // the metadata will have decryptionError: true)
+  let decryptionStatus = 'decrypted';
+  if (store.metadata && store.metadata.decryptionError) {
+    decryptionStatus = 'decryption_failed';
+  }
+
+  return {
+    found: true,
+    hashMatches: entry.hash === recomputed,
+    expectedHash: recomputed,
+    actualHash: entry.hash,
+    quarantineReason: entry.quarantineReason || null,
+    entry,
+    decryptionStatus,
+  };
+}
+
+/**
  * Run healing for all orgs that have audit log entries.
  * @returns {array} Array of heal results per org
  */
@@ -938,6 +989,7 @@ module.exports = {
   healChain,
   healAllOrgs,
   getQuarantine,
+  verifyQuarantineEntry,
   startAutoHeal,
   stopAutoHeal,
   getHealStats,

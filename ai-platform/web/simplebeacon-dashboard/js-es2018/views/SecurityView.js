@@ -3,6 +3,7 @@ import { escapeHtml, showToast, downloadJson, redactPathForDisplay, formatNumber
 import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPayload, fetchComplianceHeadline } from '../services/securityService.js';
 import { fetchSecurityTelemetry, buildTelemetrySummary } from '../services/telemetryService.js';
 import { fetchKeyStatus, triggerKeyRotation, forceReKeySweep, fetchReKeyStats, generateRandomKey, formatGraceCountdown } from '../services/keyManagementService.js';
+import { fetchQuarantineEntries, verifyQuarantineEntry } from '../services/quarantineService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 
 const SEVERITY_COLORS = {
@@ -54,6 +55,13 @@ export class SecurityView {
         this.reKeyStats = null;
         this.rotating = false;
         this.rekeying = false;
+        this.quarantine = null;
+        this.quarantineLoading = false;
+        this.quarantineError = null;
+        this.quarantineAllOrgs = false;
+        this.quarantineExpanded = new Set();
+        this.quarantineVerifyResults = {};
+        this.quarantineVerifying = new Set();
         this._container = null;
     }
     getReport() {
@@ -385,6 +393,170 @@ export class SecurityView {
             showToast('Random 256-bit key generated', 'info');
         }
     }
+    renderQuarantineInspector() {
+        if (!this.app.isCurrentUserAdmin || !this.app.isCurrentUserAdmin()) return '';
+        if (this.quarantineLoading) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Quarantine Evidence Inspector</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <span class="loading-spinner" style="width:24px;height:24px;margin:0 auto var(--space-3);"></span>
+            <p class="text-muted" style="font-size:var(--font-size-sm);">Loading quarantine entries…</p>
+          </div>
+        </div>`;
+        }
+        if (this.quarantineError && !this.quarantine) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Quarantine Evidence Inspector</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <p style="color:var(--danger);font-size:var(--font-size-sm);margin-bottom:var(--space-3);">${escapeHtml(this.quarantineError)}</p>
+            <button class="btn btn-secondary btn-sm" id="quarantine-retry" type="button">Retry</button>
+          </div>
+        </div>`;
+        }
+        const entries = this.quarantine ? (this.quarantine.entries || []) : [];
+        const metadata = this.quarantine ? (this.quarantine.metadata || {}) : {};
+        const total = this.quarantine ? (this.quarantine.totalEntries || 0) : 0;
+        const decryptionError = metadata.decryptionError === true;
+        const allOrgsChecked = this.quarantineAllOrgs ? 'checked' : '';
+        return `
+      <div class="section-block">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0;">Quarantine Evidence Inspector</h2>
+          <div style="display:flex;align-items:center;gap:var(--space-3);">
+            <label style="font-size:var(--font-size-xs);color:var(--text-muted);display:flex;align-items:center;gap:var(--space-2);cursor:pointer;">
+              <input type="checkbox" id="quarantine-all-orgs" ${allOrgsChecked} style="cursor:pointer;" />
+              All orgs
+            </label>
+            <button class="btn btn-ghost btn-sm" id="quarantine-refresh" type="button">↻ Refresh</button>
+          </div>
+        </div>
+        ${decryptionError ? `
+          <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4);border-left:3px solid var(--danger);background:var(--danger-bg);">
+            <span style="font-size:var(--font-size-sm);color:var(--danger);">⚠️ Quarantine file could not be decrypted with the current keyring. This may indicate a key rotation is in progress or the data was encrypted with a retired key.</span>
+          </div>
+        ` : ''}
+        ${entries.length === 0 ? `
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <div style="font-size:2rem;margin-bottom:var(--space-2);">📋</div>
+            <p style="font-size:var(--font-size-sm);color:var(--text-muted);">No quarantined entries${this.quarantineAllOrgs ? ' across all orgs' : ''}.</p>
+            <p style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-2);">Tampered or broken-chain audit entries will appear here after auto-healing runs.</p>
+          </div>
+        ` : `
+          <div class="card" style="padding:0;overflow:hidden;border-radius:var(--radius-lg);">
+            <div class="table-scroll-wrapper">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th scope="col" style="width:40px"></th>
+                  <th scope="col" style="width:180px">Entry ID</th>
+                  <th scope="col" style="width:120px">Org</th>
+                  <th scope="col" style="width:130px">Action</th>
+                  <th scope="col" style="width:160px">Timestamp</th>
+                  <th scope="col" style="width:140px">Reason</th>
+                  <th scope="col" style="width:120px">Verify</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${entries.map((entry) => this._renderQuarantineRow(entry)).join('')}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        `}
+      </div>`;
+    }
+    _renderQuarantineRow(entry) {
+        const id = escapeHtml(entry.id || '—');
+        const orgId = escapeHtml(entry.orgId || '—');
+        const action = escapeHtml(entry.action || '—');
+        const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '—';
+        const reason = entry.quarantineReason || '—';
+        const reasonLabel = reason === 'content_tampered' ? 'Tampered' : reason === 'broken_link' ? 'Broken Link' : escapeHtml(reason);
+        const isExpanded = this.quarantineExpanded.has(entry.id);
+        const verifyResult = this.quarantineVerifyResults[entry.id];
+        const isVerifying = this.quarantineVerifying.has(entry.id);
+        const rowColor = verifyResult ? (verifyResult.hashMatches ? 'var(--success-bg)' : 'var(--danger-bg)') : '';
+        let verifyCell = '';
+        if (isVerifying) {
+            verifyCell = '<span class="loading-spinner" style="width:14px;height:14px;"></span>';
+        } else if (verifyResult) {
+            verifyCell = verifyResult.hashMatches
+                ? '<span style="color:var(--success);font-size:var(--font-size-sm);font-weight:600;">✅ Hash Match</span>'
+                : '<span style="color:var(--danger);font-size:var(--font-size-sm);font-weight:600;">❌ Hash Mismatch</span>';
+        } else {
+            verifyCell = `<button class="btn btn-secondary btn-sm" id="quarantine-verify-${escapeHtml(entry.id)}" type="button" style="font-size:var(--font-size-xs);">Verify</button>`;
+        }
+        const detailJson = JSON.stringify(entry, null, 2);
+        return `
+          <tr style="background:${rowColor};" id="quarantine-row-${id}">
+            <td style="text-align:center;cursor:pointer;" id="quarantine-toggle-${escapeHtml(entry.id)}">${isExpanded ? '▼' : '▶'}</td>
+            <td><code style="font-size:var(--font-size-xs);color:var(--text-secondary);">${id}</code></td>
+            <td><span style="font-size:var(--font-size-xs);font-weight:600;color:var(--text-secondary);">${orgId}</span></td>
+            <td><span style="font-size:var(--font-size-xs);font-weight:600;">${action}</span></td>
+            <td style="font-size:var(--font-size-xs);color:var(--text-muted);">${escapeHtml(timestamp)}</td>
+            <td><span style="font-size:var(--font-size-xs);color:${reason === 'content_tampered' ? 'var(--danger)' : 'var(--warning)'};font-weight:600;">${reasonLabel}</span></td>
+            <td>${verifyCell}</td>
+          </tr>
+          ${isExpanded ? `
+            <tr>
+              <td colspan="7" style="padding:0;border-top:none;">
+                <div style="padding:var(--space-4) var(--space-5);background:var(--surface-hover);">
+                  <div style="font-size:var(--font-size-xs);font-weight:700;color:var(--text-muted);margin-bottom:var(--space-2);text-transform:uppercase;letter-spacing:0.05em;">Raw Entry Payload</div>
+                  <pre style="margin:0;padding:var(--space-3);background:var(--surface);border-radius:var(--radius-md);font-size:var(--font-size-xs);overflow-x:auto;white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto;">${escapeHtml(detailJson)}</pre>
+                  ${verifyResult ? `
+                    <div style="margin-top:var(--space-3);padding:var(--space-3);background:${verifyResult.hashMatches ? 'var(--success-bg)' : 'var(--danger-bg)'};border-radius:var(--radius-md);font-size:var(--font-size-xs);">
+                      <div style="font-weight:700;color:${verifyResult.hashMatches ? 'var(--success)' : 'var(--danger)'};margin-bottom:var(--space-1);">Cryptographic Verification Result</div>
+                      <div style="color:var(--text-muted);">Expected: <code style="color:var(--text-primary);">${escapeHtml(verifyResult.expectedHash)}</code></div>
+                      <div style="color:var(--text-muted);">Actual: <code style="color:var(--text-primary);">${escapeHtml(verifyResult.actualHash)}</code></div>
+                      <div style="color:var(--text-muted);margin-top:var(--space-1);">Decryption: ${escapeHtml(verifyResult.decryptionStatus || '—')}</div>
+                    </div>
+                  ` : ''}
+                </div>
+              </td>
+            </tr>
+          ` : ''}`;
+    }
+    async loadQuarantine() {
+        this.quarantineLoading = true;
+        this.quarantineError = null;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            this.quarantine = await fetchQuarantineEntries(this.quarantineAllOrgs, authHeaders);
+        } catch (err) {
+            this.quarantineError = err.message;
+        } finally {
+            this.quarantineLoading = false;
+        }
+        if (this._container) this.app.render(this._container);
+    }
+    toggleQuarantineEntry(entryId) {
+        if (this.quarantineExpanded.has(entryId)) {
+            this.quarantineExpanded.delete(entryId);
+        } else {
+            this.quarantineExpanded.add(entryId);
+        }
+        if (this._container) this.app.render(this._container);
+    }
+    async handleVerifyEntry(entryId) {
+        this.quarantineVerifying.add(entryId);
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            const result = await verifyQuarantineEntry(entryId, undefined, authHeaders);
+            this.quarantineVerifyResults[entryId] = result;
+            // Auto-expand the row to show the verification details
+            this.quarantineExpanded.add(entryId);
+            showToast(result.hashMatches ? 'Entry hash verified — match' : 'Entry hash mismatch detected', result.hashMatches ? 'success' : 'error');
+        } catch (err) {
+            showToast('Verification failed: ' + err.message, 'error');
+        } finally {
+            this.quarantineVerifying.delete(entryId);
+            if (this._container) this.app.render(this._container);
+        }
+    }
     render() {
         var _a, _b, _c, _d, _e, _f;
         const el = document.createElement('div');
@@ -515,6 +687,8 @@ export class SecurityView {
       ${this.renderTelemetrySection()}
 
       ${this.renderKeyManagementSection()}
+
+      ${this.renderQuarantineInspector()}
     `;
         (_d = el.querySelector('#security-run-scan')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.runScan(this._container));
         (_e = el.querySelector('#security-export-json')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.exportResults());
@@ -582,6 +756,25 @@ export class SecurityView {
         if (_kmRotate) _kmRotate.addEventListener('click', () => this.handleKeyRotation());
         if (_kmGenerate) _kmGenerate.addEventListener('click', () => this.handleGenerateKey());
         if (_kmRekeyNow) _kmRekeyNow.addEventListener('click', () => this.handleForceReKey());
+        // Quarantine inspector button listeners
+        const _qRefresh = el.querySelector('#quarantine-refresh');
+        const _qRetry = el.querySelector('#quarantine-retry');
+        const _qAllOrgs = el.querySelector('#quarantine-all-orgs');
+        if (_qRefresh) _qRefresh.addEventListener('click', () => this.loadQuarantine());
+        if (_qRetry) _qRetry.addEventListener('click', () => this.loadQuarantine());
+        if (_qAllOrgs) _qAllOrgs.addEventListener('change', (e) => {
+            this.quarantineAllOrgs = e.target.checked;
+            this.loadQuarantine();
+        });
+        // Wire up per-entry toggle and verify buttons
+        if (this.quarantine && this.quarantine.entries) {
+            for (const entry of this.quarantine.entries) {
+                const toggleBtn = el.querySelector(`#quarantine-toggle-${CSS.escape(entry.id)}`);
+                if (toggleBtn) toggleBtn.addEventListener('click', () => this.toggleQuarantineEntry(entry.id));
+                const verifyBtn = el.querySelector(`#quarantine-verify-${CSS.escape(entry.id)}`);
+                if (verifyBtn) verifyBtn.addEventListener('click', () => this.handleVerifyEntry(entry.id));
+            }
+        }
         return el;
     }
     exportResults() {
@@ -660,6 +853,7 @@ export class SecurityView {
             void this.loadCompliance();
             if (this.app.isCurrentUserAdmin && this.app.isCurrentUserAdmin()) {
                 void this.loadKeyStatus();
+                void this.loadQuarantine();
             }
             return;
         }
@@ -667,6 +861,7 @@ export class SecurityView {
         void this.loadCompliance();
         if (this.app.isCurrentUserAdmin && this.app.isCurrentUserAdmin()) {
             void this.loadKeyStatus();
+            void this.loadQuarantine();
         }
     }
 }
