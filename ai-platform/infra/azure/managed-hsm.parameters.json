@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "hsmName": {
+      "value": "cascade-hsm-prod"
+    },
+    "location": {
+      "value": "eastus2"
+    },
+    "partitionCount": {
+      "value": 2
+    },
+    "softDeleteRetentionDays": {
+      "value": 7
+    },
+    "purgeProtectionEnabled": {
+      "value": true
+    },
+    "appPrincipalId": {
+      "value": "<USER_ASSIGNED_MANAGED_IDENTITY_PRINCIPAL_ID>"
+    },
+    "tenantId": {
+      "value": "<AZURE_TENANT_ID>"
+    }
+  }
+}
