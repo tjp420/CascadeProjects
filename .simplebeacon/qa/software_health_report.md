@@ -1,8 +1,8 @@
-# Software Health Report — Auto-Purge Metrics in Stats API & Dashboard
+# Software Health Report — Compliance Report Exporter
 
 **Date:** 2026-07-31
 **Branch:** feat/agentic-orchestration
-**Feature:** Expose _lifecyclePurgeStats via GET /retention/stats and surface in frontend
+**Feature:** SOC 2 / GDPR / ISO 27001 compliance report generator
 **Validator:** Devin (Validator mode)
 
 ---
@@ -11,13 +11,11 @@
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `node -c audit-logger.cjs` | PASS | Syntax clean — async + test hooks + aliases (user-modified) |
-| `node -c audit-routes.cjs` | PASS | Syntax clean — autoPurgeStats added to stats response (user-modified) |
-| `node -c SecurityView.js` | PASS | Syntax clean — Background Worker Activity section added |
-| `node -c audit-logger-auto-purge.test.cjs` | PASS | Syntax clean — 18 tests updated to async |
-| `node -c audit-lifecycle-worker.test.cjs` | PASS | Syntax clean — 4 tests (user-created, fixed shim compatibility) |
-| Full test suite (all suites) | PASS | 1801/1801 tests pass (4 new from lifecycle-worker suite) |
-| SimpleBeacon gate scan | PASS | 0 critical, 0 high, 0 medium; quality score 100; gatePass: true |
+| `node -c audit-logger.cjs` | PASS | Syntax clean — generateComplianceReport + complianceReportToCsv added |
+| `node -c audit-routes.cjs` | PASS | Syntax clean — GET /compliance/report route added |
+| `node -c compliance-report.test.cjs` | PASS | Syntax clean — 21 tests |
+| Full test suite (all suites) | PASS | 1822/1822 tests pass (21 new) |
+| SimpleBeacon gate scan | PASS | gatePass: true, 0 critical, 0 high, 0 medium |
 
 ---
 
@@ -25,19 +23,27 @@
 
 | Test Plan # | Check | Result | Notes |
 |-------------|-------|--------|-------|
-| 1 | GET /retention/stats response includes `autoPurgeStats` object | PASS | audit-routes.cjs line 767-774 |
-| 2 | `autoPurgeStats` contains totalSweeps, totalPurged, totalArchived, lastResult, lastRun | PASS | Plus user-friendly aliases: runs, purged, archived, failed, lastRun |
-| 3 | Frontend retention card renders "Background Worker Activity" section | PASS | SecurityView.js line 668-689 |
-| 4 | Worker activity section shows totalSweeps, totalPurged, totalArchived | PASS | 4-column grid: Total Sweeps, Auto-Purged, Auto-Archived, Last Sweep |
-| 5 | Worker activity section shows lastRun timestamp (human-readable) | PASS | toLocaleString() or "Never" when null |
-| 6 | Stats refresh button also refreshes auto-purge metrics | PASS | loadRetention() fetches stats which now includes autoPurgeStats |
-| 7 | Worker activity section shows "Never" when lastRun is null | PASS | formattedLastRun = autoPurge.lastRun ? ... : 'Never' |
-| 8 | Worker activity section shows "0" counts when no sweeps have run | PASS | String(autoPurge.runs \|\| 0) |
-| 9 | Existing stats fields (total, purgeableCount, oldest, newest) still present | PASS | Unchanged — autoPurgeStats is additive |
-| 10 | Endpoint still wrapped with authorize('admin:all') | PASS | Line 762 |
-| 11 | Auto-purge stats fields escaped with escapeHtml() in frontend | PASS | All 4 fields use escapeHtml(String(...)) |
+| 1 | `generateComplianceReport()` returns reportId, generatedAt, frameworks | PASS | Test: "should return report with reportId, generatedAt, frameworks" |
+| 2 | Per-org chainIntegrity with valid, totalEntries, verifiedEntries | PASS | Test: "should include per-org chainIntegrity" |
+| 3 | Per-org retentionPolicy with retentionDays, maxEntries, archive | PASS | Test: "should include per-org retentionPolicy" |
+| 4 | Per-org retentionStats with total, purgeableCount | PASS | Test: "should include per-org retentionStats" |
+| 5 | Global autoPurgeStats with totalSweeps, totalPurged, totalArchived | PASS | Test: "should include global autoPurgeStats" |
+| 6 | Global healStats with totalRuns, totalQuarantined, totalRelinked | PASS | Test: "should include global healStats" |
+| 7 | Global piiScrubbing with enabled flag | PASS | Test: "should include global piiScrubbing" |
+| 8 | Global keyRotation (or error if unavailable) | PASS | Test: "should include global keyRotation" |
+| 9 | frameworks array with SOC 2, GDPR, ISO 27001 | PASS | Test: "should include frameworks array" |
+| 10 | GET /compliance/report returns JSON | PASS | Route at line 809, authorize('admin:all') |
+| 11 | GET /compliance/report?format=csv returns CSV | PASS | Content-Type: text/csv, Content-Disposition: attachment |
+| 12 | Empty store returns valid structure | PASS | Test: "should handle empty store" |
+| 13 | Missing key-rotation-store handled gracefully | PASS | Test: "should handle missing key-rotation-store" |
+| 14 | Missing pii-policy-store handled gracefully | PASS | Test: "should handle missing pii-policy-store" |
+| 15 | CSV includes header row and one row per org | PASS | Test: "should include one row per org in Section 2" |
+| 16 | reportId unique per generation | PASS | Test: "should include reportId that is unique" |
+| 17 | Route wrapped with authorize('admin:all') | PASS | Verified at line 809 |
+| 18 | Report generation audit-logged | PASS | Test: "should audit-log the report generation" |
+| 19 | No raw PII in report | PASS | Test: "should not include raw PII" |
 
-**Test plan items: 11/11 PASS**
+**Test plan items: 19/19 PASS**
 
 ---
 
@@ -45,14 +51,28 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Spec: Extend existing GET /retention/stats (no new endpoint) | MATCH | autoPurgeStats nested in response |
-| Spec: Frontend "Background Worker Activity" card | MATCH | Between stats grid and policy form |
-| Spec: No new service function | MATCH | fetchRetentionStats() already returns full body |
-| Spec: Human-readable lastRun | MATCH | toLocaleString() or "Never" |
-| Spec: escapeHtml on all dynamic fields | MATCH | 4 escapeHtml calls in worker section |
+| Spec: Single function in audit-logger.cjs (Broom) | MATCH | No new module |
+| Spec: JSON + CSV formats | MATCH | ?format=csv for CSV download |
+| Spec: Three frameworks in one report | MATCH | SOC 2, GDPR, ISO 27001 |
+| Spec: reportId (unique per generation) | MATCH | rep_ + 16 hex chars |
+| Spec: No PII in report | MATCH | Uses scrubbed data + aggregate counts |
+| Spec: Audit-logged generation | MATCH | action: compliance_report_generated |
+| Spec: Defensive loading (try/catch) | MATCH | key-rotation-store + pii-policy-store |
+| Spec: Caller org first | MATCH | Test: "should place caller org first" |
 | No ghost files | CONFIRMED | All files exist at expected paths |
 | No new dependencies | CONFIRMED | Uses only existing modules |
 | No spec drift | CONFIRMED | All test plan items map to implementation |
+
+### Corrections to user's pseudocode
+
+- `verifyChain()` is sync (not async) — no `await` needed
+- `auditPolicyStore.getPolicy()` is sync
+- `piiPolicyStore.getPolicies()` is sync
+- `log()` is sync (not async)
+- `keyRotation` fields: `hasActive`, `hasPrevious`, `activeFingerprint` (not `activeKeyFingerprint`, `hasPreviousKey`)
+- Route path: `/compliance/report` (router already mounted at `/api/audit`)
+- `getOrgId(req)` not `req.resolvedOrgId`
+- CSV typo fixed: "Metric Metric Value" → "Metric Value"
 
 ---
 
@@ -60,63 +80,59 @@
 
 None found. All tests pass, gate passes, no syntax errors.
 
-### Fixes During Validation
-
-1. **Async test suite** — User made `runAutonomousLifecyclePurge()` async, which broke the 18 existing tests that didn't `await` the result. Fixed by adding `async` to all `it()` callbacks and `await` to all `runAutonomousLifecyclePurge()` calls.
-
-2. **Timer tick promise handling** — The `setInterval` callback used `try/catch` which doesn't catch rejected promises from async functions. Fixed by adding `.catch()` to the async call.
-
-3. **audit-lifecycle-worker.test.cjs shim compatibility** — User-created test file used `test()` from `node:test` directly, which the Jest shim doesn't support. Fixed by converting to `describe/it` pattern matching the codebase convention. Also removed `t.skip()` / `t.comment()` (Node test runner features) in favor of early returns.
-
 ---
 
 ## Unimplemented
 
-None. All 11 test plan items implemented and verified.
+None. All 19 test plan items implemented and verified.
 
 ---
 
 ## Enhancements (Debt/Perf)
 
-1. **User-friendly aliases** — `getLifecyclePurgeStats()` now returns both legacy names (`totalSweeps`, `totalPurged`, `totalArchived`) and user-friendly aliases (`runs`, `purged`, `archived`, `failed`, `lastRun`). This allows the frontend to use short, readable keys while maintaining backward compatibility.
+1. **Single function aggregation** — `generateComplianceReport()` calls existing functions (verifyChain, getAllOrgIds, getRetentionStats, getLifecyclePurgeStats, getHealStats, auditPolicyStore.getPolicy, keyRotationStore.getRotationStatus, piiPolicyStore.getPolicies) to build the report. No data duplication.
 
-2. **Failed counter** — Added `failed` field to `_lifecyclePurgeStats` that tracks cumulative errors across sweeps. Frontend shows a warning indicator when `failed > 0`.
+2. **CSV with two sections** — Section 1: Global Platform Security Controls (PII scrubbing, key rotation, auto-purge, heal stats). Section 2: Multi-Tenant Cryptographic Attestation Matrix (per-org chain status, verified blocks, retention, PII rules).
 
-3. **Test hooks** — Added `__testInject()` function that allows tests to mock `getAllOrgIds`, `purgeOldEntries`, and `log` without touching the filesystem. This enables the user-created `audit-lifecycle-worker.test.cjs` to test orchestration logic in isolation.
+3. **Caller org first** — The admin's org is always evaluated first in the report, ensuring their own compliance status is immediately visible.
 
-4. **Async refactor** — `runAutonomousLifecyclePurge()` is now async, using `Promise.resolve()` to support both sync and async injected functions. This future-proofs the worker for async storage backends.
+4. **Defensive loading** — key-rotation-store and pii-policy-store are loaded with try/catch. Missing modules produce graceful fallback objects, not crashes.
 
-5. **Error border indicator** — The "Last Sweep" field in the frontend shows a red bottom border when `failed > 0`, giving admins immediate visual feedback of worker issues.
+5. **Audit-logged generation** — Each report generation is recorded with action `compliance_report_generated`, entityId = reportId, and metadata with frameworks + org count. This creates a tamper-evident trail of compliance report requests.
+
+6. **No PII in report** — The report uses aggregate counts and scrubbed metadata from the audit log. No raw entry data is exposed. Verified by test.
 
 ---
 
 ## Future Roadmap
 
-1. **Auto-purge history log** — Show a chronological list of recent auto-purge events (timestamp, org, count) in the dashboard.
+1. **Frontend compliance dashboard** — Add a "Generate Compliance Report" button to SecurityView.js that calls the API and downloads the CSV.
 
-2. **Worker health alerts** — Send a notification when the auto-purge worker encounters repeated failures.
+2. **PDF export** — Add a PDF format option with formatted headers, tables, and signature blocks for formal auditor submission.
 
-3. **Configurable purge interval** — Allow separate interval for lifecycle purge vs. heal/re-key.
+3. **Scheduled report generation** — Auto-generate monthly compliance reports and email them to designated compliance officers.
 
-4. **Compliance report exporter** — Generate SOC 2 / GDPR / ISO 27001 reports from audit log + retention metadata.
+4. **Report diffing** — Compare two compliance reports to track changes in chain integrity, retention policies, or key rotation status over time.
 
-5. **Archive search API** — Search archived entries for compliance investigations.
+5. **Framework-specific sections** — Add SOC 2-specific (CC6.1, CC7.2), GDPR-specific (Art. 30, Art. 33), and ISO 27001-specific (A.12.4) control mappings.
+
+6. **Archive search API** — Search archived entries for compliance investigations (complements this report).
 
 ---
 
 ## Validator Sign-off
 
-- [x] All Level 1 checks pass (syntax, 1801 tests, gate 0/0/0, quality 100, gatePass: true)
-- [x] All Level 2 behavioral checks pass (11/11 test plan items)
+- [x] All Level 1 checks pass (syntax, 1822 tests, gatePass: true, 0/0/0)
+- [x] All Level 2 behavioral checks pass (19/19 test plan items)
 - [x] No spec drift (all spec items match implementation)
 - [x] No ghost files or hallucinated API paths
-- [x] Endpoint still wrapped with authorize('admin:all')
-- [x] All dynamic fields escaped with escapeHtml()
-- [x] Existing stats fields unchanged (autoPurgeStats is additive)
-- [x] Frontend shows "Never" when lastRun is null
-- [x] Frontend shows "0" counts when no sweeps have run
-- [x] Async test suite fixed (18 tests + 4 new = 22 total in auto-purge suites)
-- [x] Timer tick handles async promise rejection
+- [x] Route wrapped with authorize('admin:all')
+- [x] Report generation audit-logged
+- [x] No raw PII in report (verified by test)
+- [x] Defensive loading for key-rotation-store and pii-policy-store
+- [x] CSV format includes section headers and per-org rows
+- [x] reportId unique per generation
 - [x] No new dependencies added
+- [x] No new modules (Broom strategy — all inline in audit-logger.cjs)
 
 **Verdict:** READY FOR COMMIT
