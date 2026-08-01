@@ -4,6 +4,7 @@
 .simplebeacon/**
 .github/**
 node_modules/**
+**/node_modules/**
 dist/**
 build/**
 coverage/**
@@ -64,6 +65,18 @@ dashboard-web/js/utils.d.ts
 **/__tests__/**
 **/*.test.*
 **/*.spec.*
+
+# Dashboard-web: exclude source, tests, build artifacts, and dev config
+dashboard-web/src/**
+dashboard-web/e2e/**
+dashboard-web/pages-publish/**
+dashboard-web/test-results/**
+dashboard-web/.vscode-test/**
+dashboard-web/playwright.config.ts
+dashboard-web/vite.config.ts
+dashboard-web/tsconfig.tsbuildinfo
+dashboard-web/package-lock.json
+dashboard-web/package.json
 
 # Root-level dev scripts, hidden files, and leftovers
 .*

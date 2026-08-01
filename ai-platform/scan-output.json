@@ -1,0 +1,1037 @@
+{
+  "type": "simplebeacon-report",
+  "reportVersion": 2,
+  "scan_summary": {
+    "status": "FAILED",
+    "block_merge": true,
+    "total_risks_found": 1,
+    "high_severity_count": 1,
+    "medium_severity_count": 1,
+    "low_severity_count": 2,
+    "estimated_incident_cost_saved": "$20,000",
+    "scan_id": "sb_scan_5330641f17cf",
+    "timestamp": "2026-08-01T06:09:01.272Z",
+    "tier": "developer",
+    "scans_remaining": 9487,
+    "pipeline_scan": false,
+    "critical_severity_count": 0,
+    "sandbox": {
+      "active": false,
+      "upgradeUrl": "https://simplebeacon.ai/pricing"
+    }
+  },
+  "generatedAt": "2026-08-01T06:09:01.272Z",
+  "generatedBy": "Simplebeacon",
+  "projectRoot": "C:\\Users\\user\\CascadeProjects\\coming-soon",
+  "configPath": "C:\\Users\\user\\CascadeProjects\\coming-soon\\.simplebeacon\\config.json",
+  "scanPaths": [
+    "C:\\Users\\user\\CascadeProjects\\coming-soon"
+  ],
+  "repositoryInventory": {
+    "projectRoot": "C:\\Users\\user\\CascadeProjects\\coming-soon",
+    "totalFiles": 1210,
+    "totalFolders": 145,
+    "profile": "all"
+  },
+  "mockSampleFiles": 7,
+  "totalFiles": 50,
+  "totalLines": 537242,
+  "ruleScopedFilesAnalyzed": 50,
+  "repositoryFilesTotal": 1210,
+  "repositoryFoldersTotal": 145,
+  "filesAnalyzed": 50,
+  "totalSizeBytes": 53847800,
+  "totalSizeLabel": "51.4 MB",
+  "issueCount": 1,
+  "invalidJson": 0,
+  "emptyFiles": 0,
+  "schemaChecked": 0,
+  "schemaPassed": 0,
+  "pageSampleSchemaChecked": 0,
+  "pageSampleSchemaPassed": 0,
+  "duplicateGroups": 0,
+  "roadmapSchemaChecked": 0,
+  "roadmapSchemaPassed": 0,
+  "consistencyChecked": 10,
+  "consistencyPassed": 10,
+  "fictionJsonFilesScanned": 10,
+  "fictionSampleFilesScanned": 0,
+  "fictionScope": "repository-json",
+  "credentialScanned": 151,
+  "credentialFindings": 2,
+  "productionLeakScanned": 30,
+  "productionLeakFindings": 0,
+  "productionLeakSuppressedIntent": 0,
+  "sourceCodeFilesScanned": 0,
+  "sourceFictionPatternHits": 0,
+  "llmSlopFilesScanned": 47,
+  "llmSlopPatternHits": 0,
+  "euAiActScanned": 0,
+  "euAiActFindings": 0,
+  "euAiActSummary": null,
+  "securityPatternFilesScanned": 30,
+  "securityPatternFindings": 0,
+  "hardcodedUrlFilesScanned": 0,
+  "hardcodedUrlFindings": 0,
+  "weakCryptoFilesScanned": 0,
+  "weakCryptoFindings": 0,
+  "secretInCommentsFilesScanned": 0,
+  "secretInCommentsFindings": 0,
+  "syncIoFilesScanned": 0,
+  "syncIoFindings": 0,
+  "envInGitFilesScanned": 0,
+  "envInGitFindings": 0,
+  "redosFilesScanned": 0,
+  "redosFindings": 0,
+  "piiLoggingFilesScanned": 0,
+  "piiLoggingFindings": 0,
+  "deadCodeFilesScanned": 0,
+  "deadCodeFindings": 0,
+  "memoryLeakFilesScanned": 0,
+  "memoryLeakFindings": 0,
+  "typeSafetyFilesScanned": 0,
+  "typeSafetyFindings": 0,
+  "hallucinatedImportFilesScanned": 0,
+  "hallucinatedImportFindings": 0,
+  "astStructuralFilesScanned": 0,
+  "astStructuralFindings": 0,
+  "astAvailable": false,
+  "dependencyGraphFilesScanned": 0,
+  "dependencyGraphFindings": 0,
+  "jestBaselineChecked": false,
+  "jestBaselinePassed": true,
+  "jestSummary": null,
+  "severityCounts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 2
+  },
+  "mockDataCategories": [
+    {
+      "category": "Other Files",
+      "fileCount": 1101,
+      "totalSize": "50.5 MB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Other Files discovered during filesystem scan"
+    },
+    {
+      "category": "Text Files",
+      "fileCount": 17,
+      "totalSize": "84.7 KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Text Files discovered during filesystem scan"
+    },
+    {
+      "category": "Documentation Files",
+      "fileCount": 36,
+      "totalSize": "210.7 KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Documentation Files discovered during filesystem scan"
+    },
+    {
+      "category": "JSON Files",
+      "fileCount": 47,
+      "totalSize": "535.2 KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "JSON Files discovered during filesystem scan"
+    },
+    {
+      "category": "CSV Files",
+      "fileCount": 5,
+      "totalSize": "25.0 KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "CSV Files discovered during filesystem scan"
+    },
+    {
+      "category": "Config Files",
+      "fileCount": 1,
+      "totalSize": "309 B",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Config Files discovered during filesystem scan"
+    },
+    {
+      "category": "Database Files",
+      "fileCount": 1,
+      "totalSize": "4.0 KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "Database Files discovered during filesystem scan"
+    },
+    {
+      "category": "XML Files",
+      "fileCount": 2,
+      "totalSize": "4.7 KB",
+      "qualityScore": 100,
+      "issues": 0,
+      "confidence": null,
+      "description": "XML Files discovered during filesystem scan"
+    }
+  ],
+  "compliance": {
+    "licenseCount": 1,
+    "securityCount": 1,
+    "summary": "1 license file, 1 security/governance file detected.",
+    "remediation": "Verify license compatibility with your distribution model.",
+    "governanceScore": 2,
+    "complianceHealth": "fair",
+    "recommendations": []
+  },
+  "detectedIssues": [
+    {
+      "severity": "high",
+      "severityBand": "high",
+      "type": "Credential Pattern",
+      "count": 1,
+      "description": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs:31 possible stripe key",
+      "pattern": "stripe-key",
+      "line": 31,
+      "recommendation": null,
+      "affectedFiles": [
+        "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+      ],
+      "filePaths": [
+        "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+      ],
+      "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+    },
+    {
+      "severity": "medium",
+      "severityBand": "medium",
+      "type": "Credential Pattern",
+      "count": 1,
+      "description": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs:31 possible generic api key",
+      "pattern": "generic-api-key",
+      "line": 31,
+      "recommendation": null,
+      "affectedFiles": [
+        "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+      ],
+      "filePaths": [
+        "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+      ],
+      "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "framework-practices",
+      "count": 1,
+      "description": "public/app/assets/TeamMetricsView.js:1 framework-practices pattern detected",
+      "pattern": null,
+      "line": 1,
+      "recommendation": null,
+      "affectedFiles": [
+        "public/app/assets/TeamMetricsView.js"
+      ],
+      "filePaths": [
+        "public/app/assets/TeamMetricsView.js"
+      ],
+      "file": "public/app/assets/TeamMetricsView.js"
+    },
+    {
+      "severity": "low",
+      "severityBand": "low",
+      "type": "framework-practices",
+      "count": 1,
+      "description": "public/dashboard/assets/TeamMetricsView.js:1 framework-practices pattern detected",
+      "pattern": null,
+      "line": 1,
+      "recommendation": null,
+      "affectedFiles": [
+        "public/dashboard/assets/TeamMetricsView.js"
+      ],
+      "filePaths": [
+        "public/dashboard/assets/TeamMetricsView.js"
+      ],
+      "file": "public/dashboard/assets/TeamMetricsView.js"
+    }
+  ],
+  "rawIssues": [
+    {
+      "id": "stripe-key-__audit-free-test.cjs-1390",
+      "type": "Credential Pattern",
+      "severity": "high",
+      "severityBand": "high",
+      "filePath": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+      "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+      "line": 31,
+      "description": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs:31 possible stripe key",
+      "count": 1,
+      "affectedFiles": [
+        "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+      ],
+      "filePaths": [
+        "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+      ],
+      "metadata": {
+        "patternId": "stripe-key",
+        "offset": 1390,
+        "findingPayload": {
+          "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+          "line": 31,
+          "pattern": "stripe-key",
+          "recommendation": "Immediately remove and rotate this credential; store only via environment/secret manager bindings"
+        }
+      }
+    },
+    {
+      "id": "generic-api-key-__audit-free-test.cjs-1380",
+      "type": "Credential Pattern",
+      "severity": "medium",
+      "severityBand": "medium",
+      "filePath": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+      "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+      "line": 31,
+      "description": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs:31 possible generic api key",
+      "count": 1,
+      "affectedFiles": [
+        "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+      ],
+      "filePaths": [
+        "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+      ],
+      "metadata": {
+        "patternId": "generic-api-key",
+        "offset": 1380,
+        "findingPayload": {
+          "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+          "line": 31,
+          "pattern": "generic-api-key",
+          "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret"
+        }
+      }
+    },
+    {
+      "id": "framework-practices-public/app/assets/TeamMetricsView.js-useEffect(()=>",
+      "type": "framework-practices",
+      "severity": "low",
+      "severityBand": "low",
+      "filePath": "public/app/assets/TeamMetricsView.js",
+      "file": "public/app/assets/TeamMetricsView.js",
+      "line": 1,
+      "description": "public/app/assets/TeamMetricsView.js:1 framework-practices pattern detected",
+      "count": 1,
+      "affectedFiles": [
+        "public/app/assets/TeamMetricsView.js"
+      ],
+      "filePaths": [
+        "public/app/assets/TeamMetricsView.js"
+      ],
+      "metadata": {
+        "ruleId": "framework-practices",
+        "match": "useEffect(()=>"
+      }
+    },
+    {
+      "id": "framework-practices-public/dashboard/assets/TeamMetricsView.js-useEffect(()=>",
+      "type": "framework-practices",
+      "severity": "low",
+      "severityBand": "low",
+      "filePath": "public/dashboard/assets/TeamMetricsView.js",
+      "file": "public/dashboard/assets/TeamMetricsView.js",
+      "line": 1,
+      "description": "public/dashboard/assets/TeamMetricsView.js:1 framework-practices pattern detected",
+      "count": 1,
+      "affectedFiles": [
+        "public/dashboard/assets/TeamMetricsView.js"
+      ],
+      "filePaths": [
+        "public/dashboard/assets/TeamMetricsView.js"
+      ],
+      "metadata": {
+        "ruleId": "framework-practices",
+        "match": "useEffect(()=>"
+      }
+    }
+  ],
+  "benchmarkCacheIssues": [],
+  "sampleFiles": [
+    "$null",
+    ".env",
+    ".env.example",
+    ".gitignore",
+    ".npmignore",
+    ".netlifyignore",
+    ".prettierrc",
+    ".server-pid.txt",
+    ".simplebeaconignore",
+    "admin.html",
+    "AI-SYSTEM.md",
+    "analyze-report.cjs",
+    "analyze-directory.js",
+    "ap-out.txt",
+    "API_CONTRACT_AUDIT.md",
+    "app-links.js",
+    "audit.html",
+    "AUTOPILOT_ROADMAP.md",
+    "build-public.js",
+    "build-hash.json",
+    "CERTIFICATE-REMEDIATION-PLAN.md",
+    "build.log",
+    "certificate-upload.html",
+    "CHANGELOG.md",
+    "clean-repo.ps1",
+    "check-sidebar.js",
+    "clean-repo.sh",
+    "cloud-scan.html",
+    "CLOUDFLARE-DEPLOYMENT-PLAN.md",
+    "cloud-teams.html",
+    "coming-soon-server.log",
+    "coming-soon.log",
+    "CODE_OF_CONDUCT.md",
+    "community.html",
+    "conformity-declaration.md",
+    "contact.js",
+    "contact.html",
+    "CONTRIBUTING.md",
+    "cross-reference-report.md",
+    "cs-out.txt",
+    "cs-log.txt",
+    "cs.txt",
+    "dashboard-preview.html",
+    "deploy-cloudflare.ps1",
+    "DEPLOY-README.md",
+    "Dockerfile",
+    "deploy.log",
+    "email-template-preview.html",
+    "email-template-redesign.html",
+    "email-template-universal.html"
+  ],
+  "scanScope": {
+    "profile": "eu-ai-act",
+    "scannerVersion": "1.0.0",
+    "rulesEnabled": [
+      "credentials",
+      "json-schema",
+      "sample-consistency",
+      "production-leak",
+      "llm-slop-patterns",
+      "security-patterns"
+    ],
+    "gatePolicy": {
+      "failOn": [
+        "high"
+      ],
+      "warnOn": [
+        "medium",
+        "low"
+      ]
+    },
+    "diffOnly": false,
+    "diffFileCount": 0,
+    "mockSampleFilesInScanPaths": 1210,
+    "pageSpecCatalogSize": 50,
+    "pageSpecsValidated": 0,
+    "pageSpecsFromScanPaths": 0,
+    "pageSpecsFromAliasPaths": 0,
+    "productionDirsScanned": 30,
+    "productionPaths": [
+      "lib/",
+      "services/",
+      "js/",
+      "src/",
+      "server/",
+      "ai-platform/",
+      "simplebeacon-vscode-merged/",
+      "simplebeacon-vscode/",
+      "packages/"
+    ],
+    "sourceCodeScanPaths": [],
+    "sourceCodeFilesScanned": 0,
+    "sourceFictionPatternHits": 0,
+    "llmSlopFilesScanned": 47,
+    "llmSlopPatternHits": 0,
+    "euAiActFilesScanned": 0,
+    "euAiActPatternHits": 0,
+    "euAiActHighRiskIndicators": 0,
+    "jestExecutedDuringScan": false,
+    "consistencyAnchorCount": 0,
+    "fictionScope": "repository-json",
+    "fictionJsonFilesScanned": 10,
+    "fictionSampleFilesScanned": 0,
+    "ruleScopedFilesAnalyzed": 1210,
+    "repositoryFilesTotal": 1210,
+    "repositoryFoldersTotal": 145,
+    "benchmarkCacheIssuesExcluded": 0,
+    "excludedPathsNote": null,
+    "limitations": [
+      "Repository inventory: 1,210 files — gate rules checked 1210 (mock paths, credentials, server/ leaks).",
+      "Pattern matching on JSON samples and server/ production paths — not LLM semantic review.",
+      "Fiction/KPI rules scan repository JSON (10) plus source code (0 files in configured paths).",
+      "Jest was not executed during this scan — use npm test or simplebeacon:full for live test verification."
+    ],
+    "fullDirectoryScan": true,
+    "resultsViewScope": "platform-only",
+    "reportHealth": "platform-scoped",
+    "rescanRecommended": false,
+    "inventoryMetricsStale": false
+  },
+  "gate": {
+    "pass": false,
+    "failOn": [
+      "high"
+    ],
+    "warnOn": [
+      "medium",
+      "low"
+    ],
+    "blockingCount": 1,
+    "warningCount": 3,
+    "blockingIssues": [
+      {
+        "id": "stripe-key-__audit-free-test.cjs-1390",
+        "type": "Credential Pattern",
+        "severity": "high",
+        "severityBand": "high",
+        "filePath": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+        "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+        "line": 31,
+        "description": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs:31 possible stripe key",
+        "count": 1,
+        "affectedFiles": [
+          "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+        ],
+        "filePaths": [
+          "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+        ],
+        "metadata": {
+          "patternId": "stripe-key",
+          "offset": 1390,
+          "findingPayload": {
+            "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+            "line": 31,
+            "pattern": "stripe-key",
+            "recommendation": "Immediately remove and rotate this credential; store only via environment/secret manager bindings"
+          }
+        }
+      }
+    ],
+    "warningIssues": [
+      {
+        "id": "generic-api-key-__audit-free-test.cjs-1380",
+        "type": "Credential Pattern",
+        "severity": "medium",
+        "severityBand": "medium",
+        "filePath": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+        "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+        "line": 31,
+        "description": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs:31 possible generic api key",
+        "count": 1,
+        "affectedFiles": [
+          "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+        ],
+        "filePaths": [
+          "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+        ],
+        "metadata": {
+          "patternId": "generic-api-key",
+          "offset": 1380,
+          "findingPayload": {
+            "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+            "line": 31,
+            "pattern": "generic-api-key",
+            "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret"
+          }
+        }
+      },
+      {
+        "id": "framework-practices-public/app/assets/TeamMetricsView.js-useEffect(()=>",
+        "type": "framework-practices",
+        "severity": "low",
+        "severityBand": "low",
+        "filePath": "public/app/assets/TeamMetricsView.js",
+        "file": "public/app/assets/TeamMetricsView.js",
+        "line": 1,
+        "description": "public/app/assets/TeamMetricsView.js:1 framework-practices pattern detected",
+        "count": 1,
+        "affectedFiles": [
+          "public/app/assets/TeamMetricsView.js"
+        ],
+        "filePaths": [
+          "public/app/assets/TeamMetricsView.js"
+        ],
+        "metadata": {
+          "ruleId": "framework-practices",
+          "match": "useEffect(()=>"
+        }
+      },
+      {
+        "id": "framework-practices-public/dashboard/assets/TeamMetricsView.js-useEffect(()=>",
+        "type": "framework-practices",
+        "severity": "low",
+        "severityBand": "low",
+        "filePath": "public/dashboard/assets/TeamMetricsView.js",
+        "file": "public/dashboard/assets/TeamMetricsView.js",
+        "line": 1,
+        "description": "public/dashboard/assets/TeamMetricsView.js:1 framework-practices pattern detected",
+        "count": 1,
+        "affectedFiles": [
+          "public/dashboard/assets/TeamMetricsView.js"
+        ],
+        "filePaths": [
+          "public/dashboard/assets/TeamMetricsView.js"
+        ],
+        "metadata": {
+          "ruleId": "framework-practices",
+          "match": "useEffect(()=>"
+        }
+      }
+    ],
+    "allIssues": [
+      {
+        "id": "generic-api-key-__audit-free-test.cjs-1380",
+        "type": "Credential Pattern",
+        "severity": "medium",
+        "severityBand": "medium",
+        "filePath": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+        "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+        "line": 31,
+        "description": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs:31 possible generic api key",
+        "count": 1,
+        "affectedFiles": [
+          "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+        ],
+        "filePaths": [
+          "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+        ],
+        "metadata": {
+          "patternId": "generic-api-key",
+          "offset": 1380,
+          "findingPayload": {
+            "file": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs",
+            "line": 31,
+            "pattern": "generic-api-key",
+            "recommendation": "Replace hardcoded token/value with environment-backed configuration and verify this is not a real secret"
+          }
+        }
+      },
+      {
+        "id": "framework-practices-public/app/assets/TeamMetricsView.js-useEffect(()=>",
+        "type": "framework-practices",
+        "severity": "low",
+        "severityBand": "low",
+        "filePath": "public/app/assets/TeamMetricsView.js",
+        "file": "public/app/assets/TeamMetricsView.js",
+        "line": 1,
+        "description": "public/app/assets/TeamMetricsView.js:1 framework-practices pattern detected",
+        "count": 1,
+        "affectedFiles": [
+          "public/app/assets/TeamMetricsView.js"
+        ],
+        "filePaths": [
+          "public/app/assets/TeamMetricsView.js"
+        ],
+        "metadata": {
+          "ruleId": "framework-practices",
+          "match": "useEffect(()=>"
+        }
+      },
+      {
+        "id": "framework-practices-public/dashboard/assets/TeamMetricsView.js-useEffect(()=>",
+        "type": "framework-practices",
+        "severity": "low",
+        "severityBand": "low",
+        "filePath": "public/dashboard/assets/TeamMetricsView.js",
+        "file": "public/dashboard/assets/TeamMetricsView.js",
+        "line": 1,
+        "description": "public/dashboard/assets/TeamMetricsView.js:1 framework-practices pattern detected",
+        "count": 1,
+        "affectedFiles": [
+          "public/dashboard/assets/TeamMetricsView.js"
+        ],
+        "filePaths": [
+          "public/dashboard/assets/TeamMetricsView.js"
+        ],
+        "metadata": {
+          "ruleId": "framework-practices",
+          "match": "useEffect(()=>"
+        }
+      }
+    ],
+    "status": "BLOCKED",
+    "severityColor": "#EF4444",
+    "summary": "Gate blocked — 1 blocking issue detected. Review before release.",
+    "blockingFindings": [
+      {
+        "severity": "high",
+        "type": "Credential Pattern",
+        "count": 1,
+        "filePath": "C:\\Users\\user\\CascadeProjects\\coming-soon\\__audit-free-test.cjs"
+      }
+    ],
+    "remediation": []
+  },
+  "scanErrors": [],
+  "ruleTimings": [
+    {
+      "rule": "comprehensive",
+      "elapsedMs": 893
+    },
+    {
+      "rule": "credentials",
+      "elapsedMs": 244
+    },
+    {
+      "rule": "consistency",
+      "elapsedMs": 152
+    },
+    {
+      "rule": "llm-slop-patterns",
+      "elapsedMs": 120
+    },
+    {
+      "rule": "production-leak",
+      "elapsedMs": 78
+    },
+    {
+      "rule": "security-patterns",
+      "elapsedMs": 37
+    }
+  ],
+  "slowestRule": {
+    "rule": "comprehensive",
+    "elapsedMs": 893
+  },
+  "totalScanTimeMs": 1524,
+  "totalScanDurationMs": 1286,
+  "tierLimitation": "Free tier limited to 50 files. Upgrade to Pro for unlimited scans.",
+  "qualityScoreHidden": true,
+  "tier": "developer",
+  "sandbox": {
+    "active": false,
+    "upgradeUrl": "https://simplebeacon.ai/pricing"
+  },
+  "consolidation": {
+    "monorepoMarkers": 0,
+    "duplicateGroups": 0,
+    "summary": "No duplicate files detected.",
+    "remediation": null
+  },
+  "codebase": {
+    "totalFiles": 50,
+    "totalLines": 537242,
+    "averageLinesPerFile": 10745,
+    "summary": "50 files analyzed, 537,242 lines of code."
+  },
+  "dataQuality": {
+    "emptyJsonCount": 0,
+    "invalidJsonCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No data quality issues.",
+    "remediation": null
+  },
+  "cleanup": {
+    "debugArtifactCount": 0,
+    "severity": "low",
+    "severityColor": "#34D399",
+    "summary": "No cleanup issues.",
+    "remediation": null
+  },
+  "fileReduction": {
+    "duplicateGroups": 0,
+    "summary": "No file reduction opportunities.",
+    "remediation": null
+  },
+  "npmAudit": {
+    "packageJsonCount": 0,
+    "dependencyCount": 0,
+    "summary": "No package.json files found."
+  },
+  "roadmap": {
+    "todoCount": 0,
+    "summary": "No roadmap markers found."
+  },
+  "mockData": {
+    "fileCount": 7,
+    "summary": "7 mock/fixture files detected."
+  },
+  "euAiAct": {
+    "aiSystemIndicators": 0,
+    "highRiskIndicators": 0,
+    "transparencyGaps": 0,
+    "documentationArtifacts": 0,
+    "documentationFound": [],
+    "controls": [],
+    "deadlineNote": "Review EU AI Act requirements.",
+    "summary": "No EU AI Act indicators found."
+  },
+  "dependencyAudit": {
+    "vulnerabilityCount": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "affectedPackages": [],
+    "outdatedPackages": [],
+    "summary": "No dependency vulnerabilities found."
+  },
+  "buildReadiness": {
+    "readinessScore": 100,
+    "readinessStatus": "READY",
+    "checklist": [
+      {
+        "name": "package.json",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "README",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CHANGELOG",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Tests",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "CI/CD",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": "Docker",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Linting/Formatting",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "TypeScript Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": "Build Tool Config",
+        "found": true,
+        "critical": false
+      },
+      {
+        "name": ".env.example",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".gitignore",
+        "found": true,
+        "critical": true
+      },
+      {
+        "name": ".npmignore",
+        "found": true,
+        "critical": false
+      }
+    ],
+    "missingCritical": [],
+    "missingRecommended": [],
+    "totalChecks": 12,
+    "passedChecks": 12,
+    "summary": "READY — 12 of 12 checklist items present.",
+    "recommendations": [
+      "Project is fully ready for production. All checklist items present."
+    ],
+    "remediation": "No remediation needed."
+  },
+  "remediationPhases": [
+    {
+      "id": "integrity",
+      "title": "Phase 1: Data Integrity",
+      "severity": "medium",
+      "effort": "2–4 days",
+      "description": "Data integrity verified — no structural issues detected.",
+      "tasks": [
+        {
+          "description": "Rotate 2 exposed credentials",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add .env to .gitignore",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Validate all JSON",
+          "type": "verify",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Re-run scan",
+          "type": "verify",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "consistency",
+      "title": "Phase 2: Consistency & Deduplication",
+      "severity": "medium",
+      "effort": "3–5 days",
+      "description": "Consistency verified — no duplicates or naming drift.",
+      "tasks": [
+        {
+          "description": "Standardize naming conventions",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Document canonical file locations",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "compliance",
+      "title": "Phase 3: Governance & Compliance",
+      "severity": "medium",
+      "effort": "2–3 days",
+      "description": "1 license file, 1 security file. Governance score: 2.",
+      "tasks": [
+        {
+          "description": "Audit 1 open-source license file",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review 1 security/governance file",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Verify license compatibility with distribution model",
+          "type": "verify",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Add LICENSE and SECURITY.md if missing",
+          "type": "fix",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Document governance policies",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "euaiact",
+      "title": "Phase 4: EU AI Act Compliance",
+      "severity": "medium",
+      "effort": "5–10 days",
+      "description": "Regulatory readiness: 0 AI indicators, 0 high-risk, 0 transparency gaps, 0 artifacts.",
+      "tasks": [
+        {
+          "description": "Generate documentation artifacts",
+          "type": "doc",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Review AI system classification (Art. 6)",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        },
+        {
+          "description": "Schedule legal review",
+          "type": "review",
+          "done": true,
+          "isStructured": true
+        }
+      ],
+      "progress": 100,
+      "status": "completed"
+    },
+    {
+      "id": "optimization",
+      "title": "Phase 5: Quality Optimization",
+      "severity": "high",
+      "effort": "Ongoing",
+      "description": "Drive quality score from null/100 toward 95+.",
+      "tasks": [
+        {
+          "description": "Refactor low-quality modules (quality score < 85)",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Add test coverage for uncovered modules",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Install pre-commit hooks for automated scanning",
+          "type": "fix",
+          "done": false,
+          "isStructured": true
+        },
+        {
+          "description": "Schedule monthly quality gate reviews",
+          "type": "review",
+          "done": false,
+          "isStructured": true
+        }
+      ],
+      "progress": 0,
+      "status": "in-progress"
+    }
+  ],
+  "summary": {
+    "gatePass": false,
+    "qualityScore": 0,
+    "totalFiles": 50,
+    "totalLines": 537242
+  },
+  "sanitized": true,
+  "sanitizedAt": "2026-08-01T06:09:01.288Z",
+  "scanId": "sb_scan_5330641f17cf",
+  "project": "CascadeProjects/coming-soon",
+  "timestamp": "2026-08-01T06:09:01.272Z",
+  "syntheticTodoCount": 0,
+  "syntheticTodoMarkers": 0,
+  "syntheticTodoFiles": []
+}

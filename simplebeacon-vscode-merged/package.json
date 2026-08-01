@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/simplebeacon/simplebeacon-vscode.git"
   },
-  "version": "3.0.490",
+  "version": "3.0.491",
   "publisher": "simplebeacon",
   "engines": {
     "vscode": "^1.84.0",
@@ -959,7 +959,14 @@
         "simplebeacon.diagnosticsSeverity": {
           "type": "string",
           "default": "all",
-          "enum": ["all", "critical", "high", "medium", "low", "info"],
+          "enum": [
+            "all",
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "info"
+          ],
           "description": "Minimum severity level for inline editor diagnostics (squiggles). 'all' shows every finding from critical down to low-severity AI slop patterns."
         }
       }
