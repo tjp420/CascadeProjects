@@ -54,6 +54,13 @@
       "maxDriftMs": 60000,
       "minQuorum": 3,
       "requireEpochChain": true
+    },
+    "escrow": {
+      "requireDualConsent": true,
+      "minAuthorizationQuorum": 2,
+      "maxEscrowLifetimeMs": 86400000,
+      "declassificationTokenExpiryMs": 300000,
+      "allowedEscrowAlgorithms": ["aes-kw", "rsa-oaep"]
     }
   },
   "tenants": {}
