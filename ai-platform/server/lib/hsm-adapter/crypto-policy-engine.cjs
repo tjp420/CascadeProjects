@@ -14,7 +14,7 @@ const fs = require('fs');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 
 const DEFAULT_POLICY = {
-  version: '1.0.0',
+  version: '1.1.0',
   default: true,
   minimumKekBits: 128,
   keyExpirationDays: 0,
@@ -25,6 +25,11 @@ const DEFAULT_POLICY = {
     ecdh: { curves: ['P-256', 'P-384', 'P-521'] },
   },
   deprecatedAlgorithms: [],
+  eviction: {
+    inactivityEvictionSeconds: 0,
+    zeroizeStrategy: 'random',
+    auditOnEvict: true,
+  },
 };
 
 function _isObject(value) {
@@ -42,6 +47,10 @@ function _mergeWithDefault(tenantPolicy) {
       ecdh: { ...DEFAULT_POLICY.allowedAlgorithms.ecdh, ...(tenantPolicy.allowedAlgorithms && tenantPolicy.allowedAlgorithms.ecdh) },
     },
     deprecatedAlgorithms: tenantPolicy.deprecatedAlgorithms || DEFAULT_POLICY.deprecatedAlgorithms,
+    eviction: {
+      ...DEFAULT_POLICY.eviction,
+      ...(tenantPolicy.eviction || {}),
+    },
     ...tenantPolicy,
   };
 }
@@ -110,6 +119,15 @@ class CryptoPolicyEngine {
 
   _getTenantPolicy(tenantId) {
     return this._policy.tenants[tenantId] || this._policy.default;
+  }
+
+  /**
+   * Public accessor for the resolved tenant policy.
+   * @param {string} tenantId
+   * @returns {object}
+   */
+  getPolicy(tenantId) {
+    return this._getTenantPolicy(tenantId);
   }
 
   _validateBits(tenantPolicy, kekBits, label = 'kekBits') {

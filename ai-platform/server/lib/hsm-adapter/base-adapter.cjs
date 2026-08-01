@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Track 10 / 13: Abstract HSM adapter base class.
+ * Track 10 / 13 / 15: Abstract HSM adapter base class.
  *
  * Defines the pluggable interface for HSM/KMS providers. Concrete adapters
  * (SoftwareHsmAdapter, SoftHSM, vendor) extend this class and implement
@@ -9,6 +9,10 @@
  *
  * Track 13: All key operations are scoped by an explicit `tenantId`. Cross-
  * tenant or missing-tenant access throws `UNAUTHORIZED_KEY_ACCESS`.
+ *
+ * Track 15: Adapters support optional volatile key eviction and explicit
+ * secure zeroization, including audit logging of `KEY_ZEROIZED` and
+ * `KEY_EVICTED` events.
  *
  * The high-level exportKeyring/importKeyring methods use the consolidated
  * keyring-serializer.cjs pipeline with AES-KWP protection. Integrity is
@@ -40,8 +44,8 @@ class HsmAdapterError extends Error {
  * Abstract base class for HSM adapters.
  *
  * Concrete subclasses MUST implement: _initialize, _createKEK, _wrap, _unwrap,
- * _rotateKEK, _listKEKs. The high-level exportKeyring/importKeyring methods are
- * provided here and should not be overridden.
+ * _rotateKEK, _listKEKs, _zeroize. The high-level exportKeyring/importKeyring
+ * methods are provided here and should not be overridden.
  */
 class BaseHsmAdapter {
   /**
@@ -49,6 +53,7 @@ class BaseHsmAdapter {
    * @param {string} options.providerName - human-readable provider name
    * @param {object} [options.logger] - logger with info/warn/error methods
    * @param {CryptoPolicyEngine} [options.policyEngine] - optional policy enforcement engine
+   * @param {VolatileEvictionEngine} [options.volatileEvictionEngine] - optional eviction engine
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -57,6 +62,7 @@ class BaseHsmAdapter {
     this.providerName = options.providerName || 'base';
     this.logger = options.logger || null;
     this._policyEngine = options.policyEngine || null;
+    this._evictionEngine = options.volatileEvictionEngine || null;
     this._initialized = false;
   }
 
@@ -114,7 +120,15 @@ class BaseHsmAdapter {
   async createKEK(tenantId, meta = {}) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
-    return this._createKEK(tenantId, meta);
+    const kekId = await this._createKEK(tenantId, meta);
+    this._evictionEngine?.register(tenantId, kekId, async (id, reason) => {
+      try {
+        await this.zeroize(tenantId, id, reason);
+      } catch (err) {
+        this._log('warn', 'eviction zeroize failed', { error: err.message });
+      }
+    });
+    return kekId;
   }
 
   async _createKEK(_tenantId, _meta) {
@@ -134,6 +148,7 @@ class BaseHsmAdapter {
     if (!Buffer.isBuffer(plaintext)) {
       throw new HsmAdapterError('INVALID_INPUT', 'plaintext must be a Buffer');
     }
+    this._evictionEngine?.touch(tenantId, kekId);
     return this._wrap(tenantId, kekId, plaintext);
   }
 
@@ -154,6 +169,7 @@ class BaseHsmAdapter {
     if (!Buffer.isBuffer(wrapped)) {
       throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
     }
+    this._evictionEngine?.touch(tenantId, kekId);
     return this._unwrap(tenantId, kekId, wrapped);
   }
 
@@ -170,7 +186,16 @@ class BaseHsmAdapter {
   async rotateKEK(tenantId, oldKekId) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
-    return this._rotateKEK(tenantId, oldKekId);
+    this._evictionEngine?.touch(tenantId, oldKekId);
+    const newKekId = await this._rotateKEK(tenantId, oldKekId);
+    this._evictionEngine?.register(tenantId, newKekId, async (id, reason) => {
+      try {
+        await this.zeroize(tenantId, id, reason);
+      } catch (err) {
+        this._log('warn', 'eviction zeroize failed', { error: err.message });
+      }
+    });
+    return newKekId;
   }
 
   async _rotateKEK(_tenantId, _oldKekId) {
@@ -190,6 +215,39 @@ class BaseHsmAdapter {
 
   async _listKEKs(_tenantId) {
     throw new HsmAdapterError('NOT_IMPLEMENTED', `${this.providerName}._listKEKs() not implemented`);
+  }
+
+  // ── Zeroization & eviction ─────────────────────────────────────────
+
+  /**
+   * Securely zeroize and remove a key from the adapter.
+   * @param {string} tenantId
+   * @param {string} kekId
+   * @param {string} [reason='explicit']
+   * @returns {Promise<boolean>}
+   */
+  async zeroize(tenantId, kekId, reason = 'explicit') {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    const info = await this._zeroize(tenantId, kekId);
+    this._evictionEngine?.unregister(tenantId, kekId);
+    this._audit('KEY_ZEROIZED', { tenantId, kekId, reason, ...info });
+    return true;
+  }
+
+  async _zeroize(_tenantId, _kekId) {
+    throw new HsmAdapterError('NOT_IMPLEMENTED', `${this.providerName}._zeroize() not implemented`);
+  }
+
+  /**
+   * Manually trigger eviction of all idle keys.
+   * @param {string} [reason='explicit']
+   * @returns {Promise<void>}
+   */
+  async evictInactive(reason = 'explicit') {
+    this._ensureInitialized();
+    await this._evictionEngine?.evictAll(reason);
+    this._audit('KEY_EVICTED', { reason });
   }
 
   // ── High-level keyring export / import ─────────────────────────────
@@ -233,6 +291,11 @@ class BaseHsmAdapter {
   _log(level, message, extra = {}) {
     if (!this.logger || !this.logger[level]) return;
     this.logger[level](message, { sub: 'hsm-adapter', provider: this.providerName, ...extra });
+  }
+
+  _audit(event, extra = {}) {
+    if (!this.logger || !this.logger.info) return;
+    this.logger.info(event, { sub: 'hsm-adapter', provider: this.providerName, ...extra });
   }
 }
 

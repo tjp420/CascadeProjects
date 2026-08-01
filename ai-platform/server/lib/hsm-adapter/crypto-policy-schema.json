@@ -1,6 +1,6 @@
 {
   "$schema": "https://schemas.simplebeacon.ai/crypto-policy/v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "default": {
     "minimumKekBits": 128,
     "keyExpirationDays": 0,
@@ -19,7 +19,12 @@
         "curves": ["P-256", "P-384", "P-521"]
       }
     },
-    "deprecatedAlgorithms": []
+    "deprecatedAlgorithms": [],
+    "eviction": {
+      "inactivityEvictionSeconds": 0,
+      "zeroizeStrategy": "random",
+      "auditOnEvict": true
+    }
   },
   "tenants": {}
 }

@@ -1,11 +1,14 @@
 'use strict';
 
 /**
- * Track 10 / 13: Software HSM adapter.
+ * Track 10 / 13 / 15: Software HSM adapter.
  *
  * A concrete adapter that uses the in-process `aes-kw.cjs` implementation
  * (RFC 3394 AES-KW) for wrap/unwrap operations. KEKs are stored in memory
  * and namespaced by `tenantId`.
+ *
+ * Track 15: Supports volatile key eviction and explicit secure zeroization
+ * of raw KEK buffers.
  *
  * This adapter serves two purposes:
  *   1. Fallback when no PKCS#11/HSM hardware is available.
@@ -20,6 +23,8 @@
 const crypto = require('crypto');
 const { BaseHsmAdapter, HsmAdapterError } = require('./base-adapter.cjs');
 const { wrap: aesKwWrap, unwrap: aesKwUnwrap } = require('../aes-kw.cjs');
+const { secureZeroize } = require('./secure-zeroize.cjs');
+const { VolatileEvictionEngine } = require('./volatile-eviction-engine.cjs');
 
 const DEFAULT_KEK_BITS = 256; // 256-bit KEK for production-grade wrapping
 
@@ -28,6 +33,7 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
    * @param {object} [options]
    * @param {number} [options.kekBits=256] - KEK size in bits (128, 192, 256)
    * @param {object} [options.logger]
+   * @param {number} [options.evictionIntervalMs] - inactivity scan interval
    */
   constructor(options = {}) {
     super({ providerName: 'software', ...options });
@@ -36,6 +42,11 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
       throw new HsmAdapterError('INVALID_KEK_BITS', `kekBits must be 128, 192, or 256; got ${this.kekBits}`);
     }
     this._keks = new Map(); // kekId -> { kek, tenantId, meta, createdAt }
+    if (this._policyEngine && !this._evictionEngine) {
+      this._evictionEngine = new VolatileEvictionEngine(this._policyEngine, {
+        intervalMs: options.evictionIntervalMs,
+      });
+    }
   }
 
   async _initialize() {
@@ -51,6 +62,12 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
       throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', `KEK ${kekId} does not belong to tenant ${tenantId}`);
     }
     return info;
+  }
+
+  _zeroizeStrategy(tenantId) {
+    if (!this._policyEngine) return 'random';
+    const policy = this._policyEngine.getPolicy(tenantId);
+    return policy && policy.eviction ? policy.eviction.zeroizeStrategy : 'random';
   }
 
   _validatePolicy(tenantId, operation, info) {
@@ -97,6 +114,14 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
     this._validatePolicy(tenantId, 'rotateKEK', info);
     const newKekId = await this._createKEK(tenantId, { rotatedFrom: oldKekId, ...info.meta });
     return newKekId;
+  }
+
+  async _zeroize(tenantId, kekId) {
+    const info = this._getKek(tenantId, kekId);
+    const strategy = this._zeroizeStrategy(tenantId);
+    secureZeroize(info.kek, { strategy });
+    this._keks.delete(kekId);
+    return { algorithm: 'aes-kw', kekBits: info.kek.length * 8, strategy };
   }
 
   async _listKEKs(tenantId) {

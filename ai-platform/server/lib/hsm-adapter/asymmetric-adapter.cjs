@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Track 11 / 12 / 13: Asymmetric HSM adapter.
+ * Track 11 / 12 / 13 / 15: Asymmetric HSM adapter.
  *
  * Extends BaseHsmAdapter to support RSA-OAEP and ECDH (P-256/P-384) key
  * wrapping. Private keys are kept as Node crypto KeyObjects; public keys
@@ -15,12 +15,17 @@
  * is concatenated into the HKDF context for ECDH wraps so derived keys
  * are unique per tenant and context.
  *
+ * Track 15: Supports volatile key eviction and explicit secure zeroization
+ * of native KeyObject references.
+ *
  * @module hsm-adapter/asymmetric-adapter
  */
 
 const crypto = require('crypto');
 const { BaseHsmAdapter, HsmAdapterError } = require('./base-adapter.cjs');
 const { Attestation } = require('./attestation.cjs');
+const { secureZeroizeKeyObject } = require('./secure-zeroize.cjs');
+const { VolatileEvictionEngine } = require('./volatile-eviction-engine.cjs');
 
 const SUPPORTED_ALGORITHMS = new Set(['rsa-oaep', 'ecdh']);
 const RSA_KEY_SIZES = new Set([2048, 4096]);
@@ -71,6 +76,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
    * @param {string} [options.algorithm='rsa-oaep'] - 'rsa-oaep' or 'ecdh'
    * @param {number} [options.keySize=2048] - RSA modulus or ECDH curve size
    * @param {Attestation} [options.attestation] - optional attestation engine
+   * @param {number} [options.evictionIntervalMs] - inactivity scan interval
    */
   constructor(options = {}) {
     super({ providerName: 'asymmetric', ...options });
@@ -79,6 +85,11 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     _validateAlgorithmAndSize(this.algorithm, this.keySize);
     this._attestation = options.attestation || null;
     this._keks = new Map(); // kekId -> { publicKey, privateKey, algorithm, keySize, tenantId, meta, createdAt }
+    if (this._policyEngine && !this._evictionEngine) {
+      this._evictionEngine = new VolatileEvictionEngine(this._policyEngine, {
+        intervalMs: options.evictionIntervalMs,
+      });
+    }
   }
 
   async _initialize() {
@@ -236,6 +247,14 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     this._validatePolicy(tenantId, 'rotateKEK', info);
     const newKekId = await this._createKEK(tenantId, { rotatedFrom: oldKekId, ...info.meta });
     return newKekId;
+  }
+
+  async _zeroize(tenantId, kekId) {
+    const info = this._getKek(tenantId, kekId);
+    secureZeroizeKeyObject(info.privateKey);
+    secureZeroizeKeyObject(info.publicKey);
+    this._keks.delete(kekId);
+    return { algorithm: info.algorithm, keySize: info.keySize };
   }
 
   async _listKEKs(tenantId) {
