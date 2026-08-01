@@ -232,7 +232,7 @@ class SoftHsmAdapter {
           console.debug('HSM decrypt succeeded (outBuf) using CKM_AES_GCM variant:', usedVariant);
           return plain;
         } catch (err2) {
-          throw err2;
+          throw new HsmAdapterError('HSM_DECRYPT_FAILED', err2.message || String(err2));
         }
       }
     } catch (err) {
