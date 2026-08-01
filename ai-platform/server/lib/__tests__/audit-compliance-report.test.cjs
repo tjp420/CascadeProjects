@@ -1,17 +1,22 @@
-const { describe, it, beforeEach } = require('node:test');
+'use strict';
+
+/**
+ * Tests for Compliance Report Exporter (user-authored variant).
+ *
+ * Validates generateComplianceReport() and complianceReportToCsv()
+ * produce correctly structured output with caller-org-first ordering
+ * and deterministic CSV section markers.
+ */
+
+const { describe, it } = require('node:test');
 const assert = require('node:assert').strict;
 const auditLogger = require('../audit-logger.cjs');
 
 describe('Audit Compliance Report Exporter Suite', () => {
   const mockOrgId = 'org-compliance-attestation';
 
-  it('should generate a valid hierarchical compliance report payload', async (t) => {
-    if (typeof auditLogger.generateComplianceReport !== 'function') {
-      t.skip('generateComplianceReport not implemented yet');
-      return;
-    }
-
-    const report = await auditLogger.generateComplianceReport(mockOrgId, ['SOC 2', 'GDPR']);
+  it('should generate a valid hierarchical compliance report payload', () => {
+    const report = auditLogger.generateComplianceReport(mockOrgId, ['SOC 2', 'GDPR']);
 
     assert.strictEqual(typeof report.reportId, 'string');
     assert.ok(report.reportId.startsWith('rep_'));
@@ -21,13 +26,8 @@ describe('Audit Compliance Report Exporter Suite', () => {
     assert.ok(Array.isArray(report.orgs));
   });
 
-  it('should isolate cross-tenant profiles while keeping caller context first', async (t) => {
-    if (typeof auditLogger.generateComplianceReport !== 'function') {
-      t.skip('generateComplianceReport not implemented yet');
-      return;
-    }
-
-    const report = await auditLogger.generateComplianceReport(mockOrgId);
+  it('should isolate cross-tenant profiles while keeping caller context first', () => {
+    const report = auditLogger.generateComplianceReport(mockOrgId);
 
     assert.ok(report.orgs.length >= 1);
     assert.strictEqual(report.orgs[0].orgId, mockOrgId, 'Primary index must match caller org context');
@@ -35,13 +35,8 @@ describe('Audit Compliance Report Exporter Suite', () => {
     assert.ok('retentionPolicy' in report.orgs[0]);
   });
 
-  it('should compile flat multi-sectional CSV envelopes deterministically', async (t) => {
-    if (typeof auditLogger.generateComplianceReport !== 'function' || typeof auditLogger.complianceReportToCsv !== 'function') {
-      t.skip('generateComplianceReport or complianceReportToCsv not implemented yet');
-      return;
-    }
-
-    const report = await auditLogger.generateComplianceReport(mockOrgId);
+  it('should compile flat multi-sectional CSV envelopes deterministically', () => {
+    const report = auditLogger.generateComplianceReport(mockOrgId);
     const csv = auditLogger.complianceReportToCsv(report);
 
     assert.strictEqual(typeof csv, 'string');

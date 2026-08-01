@@ -1,8 +1,8 @@
-# Test Plan — Compliance Report Exporter
+# Test Plan — Compliance Dashboard UI Integration
 
 **Date:** 2026-07-31
 **Branch:** feat/agentic-orchestration
-**Feature:** SOC 2 / GDPR / ISO 27001 compliance report generator
+**Feature:** Compliance Reports section in SecurityView.js with CSV download
 
 ---
 
@@ -12,35 +12,31 @@
 
 | # | Check | Level | File |
 |---|-------|-------|------|
-| 1 | `generateComplianceReport()` returns report object with `generatedAt`, `frameworks`, `orgs` | L1 | `audit-logger.cjs` |
-| 2 | Report includes per-org `chainIntegrity` with `valid`, `totalEntries`, `quarantined` | L1 | `audit-logger.cjs` |
-| 3 | Report includes per-org `retentionPolicy` with `retentionDays`, `maxEntries`, `archive` | L1 | `audit-logger.cjs` |
-| 4 | Report includes per-org `retentionStats` with `total`, `purgeableCount`, `oldest`, `newest` | L1 | `audit-logger.cjs` |
-| 5 | Report includes global `autoPurgeStats` with `totalSweeps`, `totalPurged`, `totalArchived` | L1 | `audit-logger.cjs` |
-| 6 | Report includes global `healStats` with `totalRuns`, `totalQuarantined`, `totalRelinked` | L1 | `audit-logger.cjs` |
-| 7 | Report includes `piiScrubbing` with `enabled`, `policyCount` per org | L1 | `audit-logger.cjs` |
-| 8 | Report includes `keyRotation` with `hasPrevious`, `activeKeyId`, `graceWindowEnds` | L1 | `audit-logger.cjs` |
-| 9 | Report includes `frameworks` array: `['SOC 2', 'GDPR', 'ISO 27001']` | L1 | `audit-logger.cjs` |
-| 10 | GET /api/audit/compliance/report returns report as JSON | L1 | `audit-routes.cjs` |
-| 11 | GET /api/audit/compliance/report?format=csv returns CSV download | L1 | `audit-routes.cjs` |
+| 1 | `fetchComplianceReport()` calls GET /api/audit/compliance/report | L1 | `complianceService.js` |
+| 2 | `downloadComplianceCsv()` triggers CSV download via blob | L1 | `complianceService.js` |
+| 3 | Section renders "Compliance Reports" card at bottom of admin panels | L2 | `SecurityView.js` |
+| 4 | Card shows framework checkboxes: SOC 2, GDPR, ISO 27001 | L2 | `SecurityView.js` |
+| 5 | "Generate Report (JSON)" button fetches and displays report summary | L2 | `SecurityView.js` |
+| 6 | "Download CSV" button triggers file download | L2 | `SecurityView.js` |
+| 7 | Report summary shows: reportId, generatedAt, org count, chain integrity status | L2 | `SecurityView.js` |
+| 8 | Per-org summary table: orgId, chain valid, total entries, retention days | L2 | `SecurityView.js` |
 
 ### Edge Cases
 
 | # | Check | Level | File |
 |---|-------|-------|------|
-| 12 | Report for empty store (no orgs) returns empty orgs array, valid structure | L2 | test |
-| 13 | Report handles missing key-rotation-store gracefully (no crash) | L2 | test |
-| 14 | Report handles missing pii-policy-store gracefully (no crash) | L2 | test |
-| 15 | CSV format includes header row and one row per org | L2 | test |
-| 16 | Report includes `reportId` (unique per generation) | L2 | test |
+| 9 | Loading spinner shown during report generation | L2 | `SecurityView.js` |
+| 10 | Error state with retry button on fetch failure | L2 | `SecurityView.js` |
+| 11 | Empty report (no orgs) shows "No organizations found" | L2 | `SecurityView.js` |
+| 12 | Generate button disabled while loading | L2 | `SecurityView.js` |
 
 ### Security
 
 | # | Check | Level | File |
 |---|-------|-------|------|
-| 17 | GET /api/audit/compliance/report wrapped with authorize('admin:all') | L1 | `audit-routes.cjs` |
-| 18 | Report generation audit-logged with action 'compliance_report_generated' | L1 | `audit-routes.cjs` |
-| 19 | Report does not include raw PII (uses scrubbed data from audit log) | L2 | test |
+| 13 | Section only renders for admin users (isCurrentUserAdmin check) | L2 | `SecurityView.js` |
+| 14 | All dynamic fields escaped with escapeHtml() | L2 | `SecurityView.js` |
+| 15 | No raw PII displayed in report summary | L2 | `SecurityView.js` |
 
 ---
 
@@ -48,57 +44,30 @@
 
 | File | Action |
 |------|--------|
-| `ai-platform/server/lib/audit-logger.cjs` | UPDATE — add `generateComplianceReport()` |
-| `ai-platform/server/routes/audit-routes.cjs` | UPDATE — add GET /api/audit/compliance/report route |
-| `ai-platform/server/lib/__tests__/compliance-report.test.cjs` | NEW — 19 tests |
+| `ai-platform/web/simplebeacon-dashboard/js-es2018/services/complianceService.js` | NEW — frontend service |
+| `ai-platform/web/simplebeacon-dashboard/js-es2018/views/SecurityView.js` | UPDATE — add Compliance Reports section |
 
 ## Design Decisions
 
-1. **Single function in audit-logger.cjs** — Broom strategy. `generateComplianceReport()` aggregates data from existing functions (verifyChain, getAllOrgIds, getRetentionStats, getLifecyclePurgeStats, getHealStats, auditPolicyStore, keyRotationStore, piiPolicyStore). No new module.
+1. **Placement**: Bottom of admin panels (after retention card). Compliance is the lowest-urgency admin function — it's a periodic export, not a daily operation.
 
-2. **JSON + CSV formats** — JSON for API consumption, CSV for auditor export. CSV is a flat per-org summary with key compliance indicators.
+2. **Two actions**: "Generate Report (JSON)" for in-browser preview, "Download CSV" for auditor export. Both call the same backend endpoint with different format parameters.
 
-3. **Three frameworks in one report** — SOC 2, GDPR, and ISO 27001 share most evidence requirements (audit logging, access controls, retention, encryption). A single report with framework tags is more useful than three separate reports with 90% overlap.
+3. **Framework checkboxes**: SOC 2, GDPR, ISO 27001 — all checked by default. Admins can deselect frameworks they don't need. (Note: backend currently ignores per-framework selection and always returns all three, but the UI prepares for future framework-specific reports.)
 
-4. **reportId** — UUID-style unique ID per report generation, for traceability.
+4. **Report summary display**: After generating, show a summary card with reportId, timestamp, org count, and a per-org table with chain status and entry counts. Full JSON is kept in memory for potential future expansion.
 
-5. **No PII in report** — The report uses metadata from the audit log (which is already PII-scrubbed) and aggregate counts. No raw entry data is exposed.
+5. **CSV download via blob**: The service fetches CSV text from the backend and creates a Blob for download. This avoids navigating away from the dashboard.
 
-6. **Audit-logged** — Generating a compliance report is itself an auditable action, recorded with action 'compliance_report_generated'.
+6. **No background polling**: Reports are generated on-demand. No need to poll.
 
-7. **Defensive loading** — key-rotation-store and pii-policy-store are loaded lazily with try/catch, matching the existing pattern in audit-logger.cjs. Missing modules don't crash the report.
-
-## Report Structure (JSON)
-
-```json
-{
-  "reportId": "cr-abc123",
-  "generatedAt": "2026-07-31T22:00:00.000Z",
-  "frameworks": ["SOC 2", "GDPR", "ISO 27001"],
-  "global": {
-    "autoPurgeStats": { "totalSweeps": 12, "totalPurged": 47, ... },
-    "healStats": { "totalRuns": 144, "totalQuarantined": 3, ... },
-    "keyRotation": { "hasPrevious": false, "activeKeyId": "...", ... },
-    "piiScrubbing": { "enabled": true }
-  },
-  "orgs": [
-    {
-      "orgId": "acme",
-      "chainIntegrity": { "valid": true, "totalEntries": 1247, "quarantined": 0 },
-      "retentionPolicy": { "retentionDays": 90, "maxEntries": 10000, "archive": false },
-      "retentionStats": { "total": 1247, "purgeableCount": 42, "oldestTimestamp": "...", "newestTimestamp": "..." },
-      "piiPolicyCount": 5
-    }
-  ]
-}
-```
+7. **Service pattern**: Matches existing retentionService.js pattern (apiBase from authService.js, authHeaders parameter, credentials: 'include').
 
 ## Commands
 
 ```powershell
-node -c ai-platform/server/lib/audit-logger.cjs
-node -c ai-platform/server/routes/audit-routes.cjs
-node -c ai-platform/server/lib/__tests__/compliance-report.test.cjs
+node -c ai-platform/web/simplebeacon-dashboard/js-es2018/services/complianceService.js
+node -c ai-platform/web/simplebeacon-dashboard/js-es2018/views/SecurityView.js
 cd ai-platform && npx jest --config jest.config.cjs --ci
 npx simplebeacon scan --full --gate --format json
 ```
