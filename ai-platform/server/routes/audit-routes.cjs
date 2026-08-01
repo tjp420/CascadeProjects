@@ -8,8 +8,12 @@ const auditPolicyStore = require('../lib/audit-policy-store.cjs');
 const piiPolicyStore = require('../lib/pii-policy-store.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../lib/app-logger.cjs').child('audit-routes');
+const clusterSync = require('../lib/cluster-keyring-sync.cjs');
 
 const router = express.Router();
+
+// Initialize cluster keyring sync if CLUSTER_NODES is configured.
+process.nextTick(() => { try { clusterSync.init(); } catch (err) { logger.warn('[Audit] cluster-keyring-sync init failed:', err.message); } });
 
 // Shared scrubber registry for stream-mode PII scrubbing lifecycle management.
 // Created once at module load; accessible via /api/audit/scrubber-stats.
@@ -889,6 +893,34 @@ router.post('/retention/purge', authorize('admin:all'), (req, res) => {
   } catch (err) {
     logger.warn('[Audit] retention_purge_failed:', err.message);
     sendError(res, 500, 'retention_purge_failed', { message: err.message });
+  }
+});
+
+// GET /api/audit/cluster/keyring — Cluster keyring status (admin only)
+router.get('/cluster/keyring', authorize('admin:all'), (req, res) => {
+  try {
+    res.json({ success: true, status: clusterSync.getStatus() });
+  } catch (err) {
+    logger.warn('[Audit] cluster_keyring_status_failed:', err.message);
+    sendError(res, 500, 'cluster_keyring_status_failed', { message: err.message });
+  }
+});
+
+// POST /api/audit/cluster/keyring/rotate — Coordinate cluster-wide rotation (leader only)
+router.post('/cluster/keyring/rotate', authorize('admin:all'), (req, res) => {
+  try {
+    const { newKeyRaw, graceMs } = req.body || {};
+    if (!newKeyRaw) {
+      return sendError(res, 400, 'missing_new_key', { message: 'newKeyRaw is required' });
+    }
+    const status = clusterSync.proposeRotate(newKeyRaw, graceMs);
+    res.json({ success: true, status });
+  } catch (err) {
+    if (err.statusCode === 423) {
+      return sendError(res, 423, 'not_leader', { message: err.message });
+    }
+    logger.warn('[Audit] cluster_keyring_rotate_failed:', err.message);
+    sendError(res, 500, 'cluster_keyring_rotate_failed', { message: err.message });
   }
 });
 

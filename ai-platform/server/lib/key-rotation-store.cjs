@@ -106,6 +106,8 @@ function rotateKey(newKeyRaw, graceMs) {
   }
 
   persistState();
+
+  return getKeyRingHex();
 }
 
 /**
@@ -243,6 +245,35 @@ function persistState() {
 }
 
 /**
+ * Get the raw key hex values for cluster synchronization.
+ * @returns {{ activeHex: string|null, previousHex: string|null }}
+ */
+function getKeyRingHex() {
+  return {
+    activeHex: _keyRing.active ? _keyRing.active.toString('hex') : null,
+    previousHex: _keyRing.previous ? _keyRing.previous.toString('hex') : null,
+  };
+}
+
+/**
+ * Apply a committed keyring state from the cluster leader.
+ * @param {string} activeHex — 32-byte (64 hex char) active key
+ * @param {string|null} previousHex — 32-byte (64 hex char) previous key or null
+ * @param {number} rotatedAt — Date.now() of the leader's rotation
+ * @param {number|null} graceMs — Optional grace override
+ */
+function applyKeyringCommit(activeHex, previousHex, rotatedAt, graceMs) {
+  if (!activeHex || typeof activeHex !== 'string' || activeHex.length !== 64) {
+    throw new TypeError('applyKeyringCommit requires a 64-character active key hex');
+  }
+  _keyRing.active = Buffer.from(activeHex, 'hex');
+  _keyRing.previous = previousHex ? Buffer.from(previousHex, 'hex') : null;
+  _keyRing.rotatedAt = rotatedAt;
+  _keyRing._graceOverride = (graceMs && Number.isFinite(graceMs)) ? graceMs : null;
+  persistState();
+}
+
+/**
  * Reset the key ring to a clean state (for testing).
  * @param {Buffer} [activeKey] — Optional key to set as active
  */
@@ -262,6 +293,8 @@ module.exports = {
   rotateKey,
   purgeExpiredKeys,
   getRotationStatus,
+  getKeyRingHex,
+  applyKeyringCommit,
   reKeyValue,
   reKeyStore,
   _reset,
