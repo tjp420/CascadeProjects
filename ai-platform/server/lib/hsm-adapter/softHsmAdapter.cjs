@@ -147,23 +147,49 @@ class SoftHsmAdapter {
     this.initialize();
     const kekHandle = this._findKeyHandleByLabel(kekLabel);
     if (!kekHandle) throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekLabel} not found`);
-
     const mechanism = { mechanism: pkcs11js.CKM_AES_KEY_WRAP };
+    // For production posture, create the unwrapped CEK as non-extractable and return the in-token handle.
     const template = [
       { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_SECRET_KEY },
       { type: pkcs11js.CKA_KEY_TYPE, value: pkcs11js.CKK_AES },
       { type: pkcs11js.CKA_TOKEN, value: false },
-      { type: pkcs11js.CKA_EXTRACTABLE, value: true },
-      { type: pkcs11js.CKA_SENSITIVE, value: false }
+      { type: pkcs11js.CKA_EXTRACTABLE, value: false },
+      { type: pkcs11js.CKA_SENSITIVE, value: true },
+      { type: pkcs11js.CKA_DECRYPT, value: true }
     ];
     try {
       const newKeyHandle = this.pkcs11.C_UnwrapKey(this.session, mechanism, kekHandle, wrappedCekBuffer, template);
-      // Attempt to extract value if token allows
-      const attrs = this.pkcs11.C_GetAttributeValue(this.session, newKeyHandle, [{ type: pkcs11js.CKA_VALUE }]);
-      if (attrs && attrs[0] && attrs[0].value) return attrs[0].value;
-      throw new HsmAdapterError('UNWRAP_NO_VALUE', 'Unwrap succeeded but CEK value is not extractable');
+      if (!newKeyHandle) throw new HsmAdapterError('UNWRAP_FAILED', 'C_UnwrapKey returned no handle');
+      return newKeyHandle; // Return the in-token key handle; secret material never leaves HSM
     } catch (err) {
       throw new HsmAdapterError('UNWRAP_FAILED', err.message || String(err));
+    }
+  }
+
+  decryptPayload(ciphertext, iv, tag, aad, ceKeyHandle) {
+    this.initialize();
+    if (!ceKeyHandle) throw new HsmAdapterError('INVALID_KEY_HANDLE', 'CE key handle required for in-token decryption');
+    try {
+      // Build GCM parameters. pkcs11js accepts a plain object with fields matching CK_GCM_PARAMS
+      const gcmParams = {
+        pIv: iv,
+        ulIvLen: iv.length,
+        pAAD: aad || Buffer.alloc(0),
+        ulAADLen: aad ? aad.length : 0,
+        ulTagBits: tag.length * 8
+      };
+      const mechanism = {
+        mechanism: pkcs11js.CKM_AES_GCM,
+        parameter: gcmParams
+      };
+
+      this.pkcs11.C_DecryptInit(this.session, mechanism, ceKeyHandle);
+      // PKCS#11 C_Decrypt expects ciphertext+tag as a single buffer for many implementations
+      const fullCipher = Buffer.concat([ciphertext, tag]);
+      const plain = this.pkcs11.C_Decrypt(this.session, fullCipher, Buffer.alloc(fullCipher.length));
+      return plain;
+    } catch (err) {
+      throw new HsmAdapterError('HSM_DECRYPT_FAILED', err.message || String(err));
     }
   }
 
