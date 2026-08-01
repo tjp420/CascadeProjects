@@ -11,11 +11,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          submodules: false
+      - name: Manual repository checkout (avoid submodule handling)
+        run: |
+          set -e
+          git init
+          git remote add origin https://github.com/tjp420/CascadeProjects.git
+          # Fetch refs needed for PR merge or push SHA
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Fetching PR merge ref"
+            git fetch --no-tags --prune --depth=1 origin +refs/pull/${{ github.event.pull_request.number }}/merge:refs/remotes/pull/${{ github.event.pull_request.number }}/merge
+            git checkout refs/remotes/pull/${{ github.event.pull_request.number }}/merge
+          else
+            echo "Fetching push SHA"
+            git fetch --no-tags --prune --depth=1 origin ${{ github.sha }}
+            git checkout -f ${{ github.sha }}
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
