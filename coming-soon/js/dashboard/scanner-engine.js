@@ -681,6 +681,138 @@ const CATEGORY_COLLECTORS = {
         ctx.maintainabilityHits++;
         ctx.maintainabilityFindings.push({ file: path, type: reg.name, matches: enriched });
         trackIndividualCollector(path, reg, enriched, ctx);
+    },
+    unusedDeps: (path, reg, matches, ctx) => {
+        const enriched = enrichMatches(matches, reg, path, 'javascript');
+        ctx.unusedDepHits++;
+        ctx.unusedDepFindings.push({ file: path, type: reg.name, matches: enriched });
+    }
+};
+
+/**
+ * Custom handler registry for MODULE_CARDS IDs that do not map directly
+ * to a PATTERN_REGISTRY entry. Each handler collects findings for its module.
+ */
+const CUSTOM_HANDLER_REGISTRY = {
+    'gate': {
+        category: 'credentials',
+        collect: function (collector, ctx) { if (collector) ctx.credentialFindings = (ctx.credentialFindings || []).concat(collector); }
+    },
+    'consolidation': {
+        category: 'governance',
+        collect: function (collector, ctx) { if (collector) ctx.consolidation = collector; }
+    },
+    'mock-data': {
+        category: 'aiResidue',
+        collect: function (collector, ctx) { if (collector) ctx.mockDataCategories = collector; }
+    },
+    'roadmap': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.roadmap = collector; }
+    },
+    'codebase': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.codebase = collector; }
+    },
+    'file-reduction': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.fileReduction = collector; }
+    },
+    'data-quality': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.dataQuality = collector; }
+    },
+    'cleanup': {
+        category: 'debug',
+        collect: function (collector, ctx) { if (collector) ctx.cleanup = collector; }
+    },
+    'npm-audit': {
+        category: 'unusedDeps',
+        collect: function (collector, ctx) { if (collector) ctx.npmAudit = collector; }
+    },
+    'compliance': {
+        category: 'governance',
+        collect: function (collector, ctx) { if (collector) ctx.compliance = collector; }
+    },
+    'eu-ai-act': {
+        category: 'aiIndicators',
+        collect: function (collector, ctx) { if (collector) ctx.euAiActSummary = collector; }
+    },
+    'dependency-vulns': {
+        category: 'unusedDeps',
+        collect: function (collector, ctx) { if (collector) ctx.dependencyAudit = collector; }
+    },
+    'build-readiness': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.buildReadiness = collector; }
+    },
+    'junk-files': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.junkFiles = collector; }
+    },
+    'ai-residue': {
+        category: 'aiResidue',
+        collect: function (collector, ctx) { if (collector) ctx.aiResidueFindings = (ctx.aiResidueFindings || []).concat(collector); }
+    },
+    'performance': {
+        category: 'performance',
+        collect: function (collector, ctx) { if (collector) ctx.performanceFindings = (ctx.performanceFindings || []).concat(collector); }
+    },
+    'type-safety': {
+        category: 'typeSafety',
+        collect: function (collector, ctx) { if (collector) ctx.typeSafetyFindings = (ctx.typeSafetyFindings || []).concat(collector); }
+    },
+    'documentation': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.documentationFindings = (ctx.documentationFindings || []).concat(collector); }
+    },
+    'test-coverage': {
+        category: 'testCoverage',
+        collect: function (collector, ctx) { if (collector) ctx.testCoverageFindings = (ctx.testCoverageFindings || []).concat(collector); }
+    },
+    'accessibility': {
+        category: 'accessibility',
+        collect: function (collector, ctx) { if (collector) ctx.accessibilityFindings = (ctx.accessibilityFindings || []).concat(collector); }
+    },
+    'i18n': {
+        category: 'i18n',
+        collect: function (collector, ctx) { if (collector) ctx.i18nFindings = (ctx.i18nFindings || []).concat(collector); }
+    },
+    'database-patterns': {
+        category: 'databasePatterns',
+        collect: function (collector, ctx) { if (collector) ctx.databasePatternsFindings = (ctx.databasePatternsFindings || []).concat(collector); }
+    },
+    'framework-practices': {
+        category: 'frameworkPractices',
+        collect: function (collector, ctx) { if (collector) ctx.frameworkPracticesFindings = (ctx.frameworkPracticesFindings || []).concat(collector); }
+    },
+    'workspace-health': {
+        category: 'workspaceHealth',
+        collect: function (collector, ctx) { if (collector) ctx.workspaceHealthFindings = (ctx.workspaceHealthFindings || []).concat(collector); }
+    },
+    'unused-deps': {
+        category: 'unusedDeps',
+        collect: function (collector, ctx) { if (collector) ctx.unusedDepsFindings = (ctx.unusedDepsFindings || []).concat(collector); }
+    },
+    'api-contract': {
+        category: 'apiContract',
+        collect: function (collector, ctx) { if (collector) ctx.apiContractFindings = (ctx.apiContractFindings || []).concat(collector); }
+    },
+    'complexity': {
+        category: 'complexity',
+        collect: function (collector, ctx) { if (collector) ctx.complexityFindings = (ctx.complexityFindings || []).concat(collector); }
+    },
+    'fix-preview': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.fixPreview = collector; }
+    },
+    'file-naming': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.fileNamingFindings = (ctx.fileNamingFindings || []).concat(collector); }
+    },
+    'removable-files': {
+        category: 'maintainability',
+        collect: function (collector, ctx) { if (collector) ctx.removableFilesFindings = (ctx.removableFilesFindings || []).concat(collector); }
     }
 };
 
@@ -3555,5 +3687,6 @@ async function processLocalCLIScan(files) {
 if (typeof window !== 'undefined') {
     window.extractMatches = extractMatches;
     window.processLocalCLIScan = processLocalCLIScan;
+    window.CUSTOM_HANDLER_REGISTRY = CUSTOM_HANDLER_REGISTRY;
 }
 
