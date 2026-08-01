@@ -11,6 +11,7 @@ import { WebhookSigningDashboard } from '@/components/WebhookSigningDashboard';
 import { AgenticOrchestrationDashboard } from '@/components/AgenticOrchestrationDashboard';
 import { ToolSchemaValidationDashboard } from '@/components/ToolSchemaValidationDashboard';
 import { StreamInterdictionDashboard } from '@/components/StreamInterdictionDashboard';
+import { QuarantineLogBrowser } from '@/components/QuarantineLogBrowser';
 
 type ScanResultData = {
   projectPath?: string;
@@ -392,6 +393,7 @@ export function SecurityView() {
       <AgenticOrchestrationDashboard />
       <ToolSchemaValidationDashboard />
       <StreamInterdictionDashboard />
+      <QuarantineLogBrowser />
     </div>
   );
 }
