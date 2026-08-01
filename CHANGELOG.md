@@ -70,7 +70,7 @@ All notable changes to this project will be documented in this file.
 - Governance marker detection (license headers, copyright notices)
 - Mock data / fixture file detection
 - Duplicate file detection via content hashing
-- TODO/FIXME roadmap marker detection
+ - Duplicate file detection via content hashing
 - File reduction analysis (unused asset candidates)
 - npm audit summary (package.json + dependency count)
 - EU AI Act readiness indicators
