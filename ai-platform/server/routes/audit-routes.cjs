@@ -9,6 +9,7 @@ const piiPolicyStore = require('../lib/pii-policy-store.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../lib/app-logger.cjs').child('audit-routes');
 const clusterSync = require('../lib/cluster-keyring-sync.cjs');
+const coldArchiveSearch = require('../lib/cold-archive-search.cjs');
 
 const router = express.Router();
 
@@ -921,6 +922,21 @@ router.post('/cluster/keyring/rotate', authorize('admin:all'), (req, res) => {
     }
     logger.warn('[Audit] cluster_keyring_rotate_failed:', err.message);
     sendError(res, 500, 'cluster_keyring_rotate_failed', { message: err.message });
+  }
+});
+
+// GET /api/audit/archive/search — Search cold archive (admin only)
+router.get('/archive/search', authorize('admin:all'), async (req, res) => {
+  try {
+    const { startDate, endDate, action, orgId, limit, offset } = req.query || {};
+    const result = await coldArchiveSearch.search({ startDate, endDate, action, orgId, limit, offset });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    if (err.statusCode === 400) {
+      return sendError(res, 400, err.message, { message: err.message });
+    }
+    logger.warn('[Audit] archive_search_failed:', err.message);
+    sendError(res, 500, 'archive_search_failed', { message: err.message });
   }
 });
 
