@@ -1,27 +1,20 @@
 'use strict';
 
 const crypto = require('crypto');
-
-const _HSM_ROOT_KEY = process.env.HSM_MOCK_ROOT_KEY
-  ? Buffer.from(process.env.HSM_MOCK_ROOT_KEY, 'hex')
-  : crypto.randomBytes(32);
+const providers = require('./hsm-providers.cjs');
 
 const DEFAULT_KEY_ID = 'sb-master-key';
 const DEFAULT_REGION = 'us-east-1';
 const SANDBOX_PREFIX = 'enc:sb:';
 const _hsmVersions = [];
 
-function deriveKey(orgId, context) {
+async function deriveOrgKeyViaHsm(orgId, options = {}) {
   if (!orgId || typeof orgId !== 'string') {
     throw new TypeError('HSM key derivation requires a valid organization identifier string');
   }
-  return crypto.createHmac('sha256', _HSM_ROOT_KEY)
-    .update(`${orgId}::${context || 'default'}`)
-    .digest();
-}
-
-function deriveOrgKeyViaHsm(orgId) {
-  return deriveKey(orgId, 'org-key');
+  const provider = providers.createProvider(options);
+  recordHsmVersion(provider.keyId, provider.region);
+  return provider.derive(orgId);
 }
 
 function recordHsmVersion(keyId, region) {
@@ -39,22 +32,10 @@ function _resetHsmVersions() {
   _hsmVersions.length = 0;
 }
 
-function hsmHandshake(provider, keyId, region) {
-  const id = keyId || process.env.HSM_KEY_ID || DEFAULT_KEY_ID;
-  const r = region || process.env.HSM_REGION || DEFAULT_REGION;
-  const p = provider || process.env.HSM_PROVIDER || 'mockhsm';
-  const handle = `${p}:${id}@${r}`;
-  const fingerprint = crypto.createHash('sha256').update(`${handle}:${_HSM_ROOT_KEY.toString('hex').slice(0, 16)}`).digest('hex');
-  recordHsmVersion(id, r);
-  return {
-    provider: p,
-    keyId: id,
-    region: r,
-    handle,
-    fingerprint,
-    handshakeAt: new Date().toISOString(),
-    healthy: true,
-  };
+async function hsmHandshake(provider, keyId, region) {
+  const p = providers.createProvider({ provider, keyId, region });
+  recordHsmVersion(p.keyId, p.region);
+  return p.handshake();
 }
 
 async function deriveWithFailover(orgId) {
@@ -62,7 +43,7 @@ async function deriveWithFailover(orgId) {
   const errors = [];
   for (const region of regions) {
     try {
-      return deriveOrgKeyViaHsm(orgId);
+      return await deriveOrgKeyViaHsm(orgId, { region });
     } catch (err) {
       errors.push(`${region}: ${err.message}`);
     }
@@ -70,22 +51,14 @@ async function deriveWithFailover(orgId) {
   throw new Error(`HSM unavailable in all regions: ${errors.join('; ')}`);
 }
 
-function hsmRotate(newKeyId, newRegion) {
+async function hsmRotate(newKeyId, newRegion) {
   const keyId = newKeyId || process.env.HSM_KEY_ID || DEFAULT_KEY_ID;
   const region = newRegion || process.env.HSM_REGION || DEFAULT_REGION;
   recordHsmVersion(keyId, region);
-  const p = process.env.HSM_PROVIDER || 'mockhsm';
-  const handle = `${p}:${keyId}@${region}`;
-  const fingerprint = crypto.createHash('sha256').update(`${handle}:${_HSM_ROOT_KEY.toString('hex').slice(0, 16)}`).digest('hex');
+  const p = providers.createProvider({ keyId, region });
   return {
     success: true,
-    provider: p,
-    keyId,
-    region,
-    handle,
-    fingerprint,
-    handshakeAt: new Date().toISOString(),
-    healthy: true,
+    ...p.handshake(),
     previousVersions: getHsmVersions().slice(1),
   };
 }
@@ -99,24 +72,31 @@ function parseSandboxPayload(stored) {
   return parts;
 }
 
-function decryptWithHsm(orgId, stored) {
+async function decryptWithHsm(orgId, stored, options = {}) {
   const parts = parseSandboxPayload(stored);
   if (!parts) return '';
-  const key = deriveOrgKeyViaHsm(orgId);
-  try {
-    const iv = Buffer.from(parts[0], 'hex');
-    const tag = Buffer.from(parts[1], 'hex');
-    const encrypted = Buffer.from(parts[2], 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-    decipher.setAuthTag(tag);
-    return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
-  } catch {
-    return '';
+
+  const versions = [null, ...getHsmVersions().slice(1)];
+  for (const version of versions) {
+    try {
+      const opts = version
+        ? { ...options, keyId: version.keyId, region: version.region }
+        : options;
+      const key = await deriveOrgKeyViaHsm(orgId, opts);
+      const iv = Buffer.from(parts[0], 'hex');
+      const tag = Buffer.from(parts[1], 'hex');
+      const encrypted = Buffer.from(parts[2], 'hex');
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAuthTag(tag);
+      return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
+    } catch {
+      // try older version
+    }
   }
+  return '';
 }
 
 module.exports = {
-  deriveKey,
   deriveOrgKeyViaHsm,
   deriveWithFailover,
   hsmHandshake,
