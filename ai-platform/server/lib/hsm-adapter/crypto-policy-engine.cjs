@@ -39,6 +39,11 @@ const DEFAULT_POLICY = {
     sessionExpiryMs: 86400000,
     allowDhRatchet: true,
   },
+  homomorphic: {
+    maxModulusBits: 2048,
+    tokenExpiryMs: 300000,
+    allowBlinding: true,
+  },
 };
 
 function _isObject(value) {
@@ -67,6 +72,10 @@ function _mergeWithDefault(tenantPolicy) {
     ratchet: {
       ...DEFAULT_POLICY.ratchet,
       ...(tenantPolicy.ratchet || {}),
+    },
+    homomorphic: {
+      ...DEFAULT_POLICY.homomorphic,
+      ...(tenantPolicy.homomorphic || {}),
     },
     ...tenantPolicy,
   };
@@ -209,6 +218,19 @@ class CryptoPolicyEngine {
     throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `Algorithm ${algorithm} is not recognized by policy`);
   }
 
+  _validateHomomorphic(tenantPolicy, config) {
+    const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
+    if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `maxModulusBits ${config.maxModulusBits} exceeds policy ${policy.maxModulusBits}`);
+    }
+    if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.tokenExpiryMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `tokenExpiryMs ${config.tokenExpiryMs} exceeds policy ${policy.tokenExpiryMs}`);
+    }
+    if (typeof config.allowBlinding === 'boolean' && config.allowBlinding && !policy.allowBlinding) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'blinding is not allowed by policy');
+    }
+  }
+
   _validateRatchet(tenantPolicy, config) {
     const policy = tenantPolicy.ratchet || DEFAULT_POLICY.ratchet;
     if (typeof config.maxSkipped === 'number' && config.maxSkipped > policy.maxSkipped) {
@@ -283,6 +305,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'ratchet') {
       this._validateRatchet(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'homomorphic') {
+      this._validateHomomorphic(tenantPolicy, config);
       return true;
     }
 

@@ -303,6 +303,28 @@ class BaseHsmAdapter {
     return new CryptographicRatchet(rootKey, { logger: this.logger, ...options });
   }
 
+  /**
+   * Create a homomorphic masker.
+   * @param {object} [options]
+   * @returns {HomomorphicMasker}
+   */
+  createHomomorphicMasker(options = {}) {
+    this._ensureInitialized();
+    const { HomomorphicMasker } = require('./homomorphic-masker.cjs');
+    return new HomomorphicMasker({ logger: this.logger, ...options });
+  }
+
+  /**
+   * Create an encrypted search token generator.
+   * @param {object} [options]
+   * @returns {EncryptedSearchToken}
+   */
+  createSearchTokenizer(options = {}) {
+    this._ensureInitialized();
+    const { EncryptedSearchToken } = require('./encrypted-search-token.cjs');
+    return new EncryptedSearchToken({ logger: this.logger, ...options });
+  }
+
   // ── High-level keyring export / import ─────────────────────────────
 
   /**
