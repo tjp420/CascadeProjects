@@ -144,6 +144,14 @@ Key configuration files:
 | PFS Re-key HKDF Ratchet | CC6.7 (Transmission Protection) | SC-12, SC-13 (Cryptographic Key Establishment) |
 | Outbound Queue Suspension during Re-key | CC7.4 (Resilience) | CP-10 (System Recovery) |
 | MitM Penetration Test Suite | CC7.1 (Vulnerability Management) | CA-8 (Penetration Testing) |
+| 0-RTT Session Resumption (AES-256-GCM Tickets) | CC6.7 (Transmission Protection) | SC-23 (Session Authenticity) |
+| Resumption PSK Rooted in Hybrid KEM Root | CC6.7 (Transmission Protection) | SC-12, SC-13 (Cryptographic Key Establishment) |
+| Anti-Replay Nonce Set (Redis/In-Memory) | CC6.1 (Logical Access) | IA-2 (Identification & Authentication) |
+| Fail-Closed Resumption on Infrastructure Error | CC7.4 (Resilience) | CP-10 (System Recovery) |
+| Encrypted Backup Archives (AES-256-GCM) | CC6.7 (Transmission Protection) | CP-9 (Information System Backup) |
+| Per-Archive Key Derivation (HKDF-SHA256) | CC6.1 (Logical Access) | SC-12, SC-13 (Cryptographic Key Establishment) |
+| Backup Immutability Guard | CC5.2 (Change Management) | CM-3, CP-9 (Configuration Change Control / Backup) |
+| Resumption State Isolation in Backups | CC6.3 (Logical Segregation) | SC-28 (Protection of Information at Rest) |
 
 ## 4. Advanced Defense Automation — IP/Subnet Throttling (Track 5)
 
@@ -178,3 +186,26 @@ Key configuration files:
 * Suspension State: During `REKEYING`, outbound data frames are queued in `writeQueue` and flushed after the new key is confirmed. Inbound data frames are buffered until the re-key completes. This prevents data transmission under an unconfirmed key.
 * Forward Secrecy: Compromise of a past session root does not compromise future roots, because each ratchet step mixes in fresh ECDH and ML-KEM secrets that are not derivable from the compromised root. Break-in recovery is guaranteed once a single clean re-key completes with fresh ephemerals.
 * Bounded Queue: The `writeQueue` is bounded by `MAX_QUEUE_BYTES` (default 16 MB). If the queue exceeds this limit during an extended re-key, a `QueueFullError` is thrown and the session is torn down to prevent unbounded memory growth.
+
+## 8. Post-Quantum 0-RTT Session Resumption (Track 9)
+
+* Mechanism: Enables zero-round-trip-time session resumption after a prior successful hybrid KEM handshake. A resumption ticket is issued by the server upon handshake completion and presented by the client on subsequent connections to skip the full ECDH+ML-KEM exchange and derive a session key from a pre-shared key (PSK).
+* Cryptographic Lineage: The PSK is derived from the prior hybrid KEM root key via `HKDF-SHA256(salt=prevRoot, IKM="resumption:psk", info=nodeId || sessionId)`, producing a 32-byte PSK. Because `prevRoot` is the output of the hybrid ECDH+ML-KEM-768 combiner (Track 6) or the PFS ratchet (Track 8), the PSK inherits quantum-resistant lineage — an attacker who cannot break ML-KEM-768 cannot derive the PSK from intercepted traffic.
+* Ticket Envelope: Tickets are AES-256-GCM envelopes encrypted by a Session Ticket Encryption Key (STEK). The plaintext contains `sessionId`, `nodeId`, `issuedAt`, `ttlMs`, and the base64-encoded PSK. The envelope format is: `version(1) || stekId(16) || nonce(12) || ciphertextLen(4) || ciphertext || tag(16)`. Default TTL is 10 minutes (600,000 ms).
+* STEK Management: STEKs are 32-byte AES keys with 16-byte identifiers, generated via `generateStek()`. The server maintains a `stekById` map (or lookup function) supporting rotation — multiple STEKs can be active simultaneously during a rotation window, allowing tickets issued under an old STEK to be validated until their TTL expires.
+* Anti-Replay Architecture: A dual-layer nonce set prevents ticket replay. `createInMemoryBloomFilter()` provides a `Set`-backed implementation for single-node deployments and testing. `createRedisBloomFilter(redis)` uses Redis `SADD`/`SISMEMBER` with a TTL-matched `PEXPIRE` for distributed cluster-wide replay detection. On the first presentation of a ticket, its nonce is added to the set; on subsequent presentations, the nonce is found and the ticket is rejected as `REPLAY`.
+* Fail-Closed Gating: If the anti-replay infrastructure (Redis or bloom filter) throws an error during `validateTicket`, the evaluator fails closed — the ticket is rejected with `BLOOM_FILTER_ERROR` and the client must perform a full hybrid KEM handshake. This prevents an attacker from disabling replay protection to reuse a captured ticket. The `tryResumption` server-side hook catches all exceptions and sends `RESUME_REJECT` with the failure reason.
+* Protocol: The client sends `{ type: "RESUMPTION", ticket: <base64> }` as the first frame. On success, the server responds with `{ type: "RESUMED", session_id }` and both sides use the PSK as the session key. On failure, the server sends `{ type: "RESUME_REJECT", reason }` and the client falls back to a full handshake.
+* Integration: `issueTicket({ sessionKey, nodeId, sessionId }, stek, stekId)` is called after a successful `createServerHandshaker` or `rekeyAsResponder` to issue a ticket for the next connection. `tryResumption(socket, stekById, bloomFilter, timeoutMs)` is called on inbound sockets to attempt 0-RTT before falling back to `createServerHandshaker`.
+
+## 9. Production Backup and Restore Coordinator (Track 10)
+
+* Mechanism: Encrypted, versioned, authenticated backups of cluster keyring material, audit logs, and resumption context. All archives are protected by AES-256-GCM envelope encryption with a per-archive key derived from a 32-byte KEK via HKDF-SHA256.
+* Key Derivation: `archiveKey = HKDF-SHA256(kek, salt="backup:archive:v1", info=archiveId, L=32)`. Each archive gets a unique data-encryption key, so compromise of one archive's ciphertext does not reveal the KEK or other archives' keys.
+* Archive Format: `version(1) || nonce(12) || ciphertextLen(4) || ciphertext || tag(16)`. The plaintext contains metadata (`archiveId`, `timestamp`, `schemaVersion`, `checksum`) and the serialized bundle (`keyringMaterial`, `auditLog`, `resumptionTickets`, `issuedAt`).
+* Bundle Validation: `backup()` rejects bundles missing `keyringMaterial` (must be a Buffer), `auditLog`, or `issuedAt` with `INVALID_BUNDLE`.
+* Resumption State Isolation: Resumption tickets in backups contain only `sessionId`, `nodeId`, `issuedAt`, and `prevRootHash` — never the live PSK or Bloom filter state. This prevents post-restore replay vectors.
+* Restore: `restore(archiveId, { dryRun, asOf })` verifies the AES-GCM auth tag, SHA-256 checksum, and schema version before returning the decrypted bundle. `dryRun` validates without side effects. `asOf` selects the latest archive at or before a timestamp.
+* Immutability: When `immutable === true`, `prune()` returns empty and emits a `BACKUP_IMMUTABLE` event, preventing accidental or malicious deletion of backups.
+* Retention: Default retention is 30 days (configurable via `retentionDays`). `prune(beforeTimestamp)` removes archives older than the cutoff and emits `BACKUP_PRUNED` events for each deletion.
+* Pluggable Storage: The coordinator accepts a `storage` adapter with `write`, `read`, `list`, and `delete` methods. An in-memory adapter is provided for tests; production deployments can inject S3, local disk, or any backend.
