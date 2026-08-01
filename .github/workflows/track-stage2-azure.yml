@@ -1,0 +1,161 @@
+name: Stage 2 Azure Key Vault Live Integration
+
+# Stage 2: Live integration tests against a real Azure Key Vault Managed HSM.
+#
+# Uses GitHub Actions OIDC federated authentication (no long-lived secrets)
+# via the azure/login action. The Azure app registration must have:
+#   - Federated identity credential for this repo + environment
+#   - "Managed HSM Crypto User" role on the target HSM pool
+#
+# Required GitHub secrets:
+#   AZURE_CLIENT_ID       - App registration client ID
+#   AZURE_TENANT_ID       - Azure AD tenant ID
+#   AZURE_SUBSCRIPTION_ID - Azure subscription ID
+#   AZURE_MANAGED_HSM_URL - Managed HSM URL (e.g. https://cascade-hsm.managedhsm.azure.net)
+#
+# Required GitHub variables:
+#   AZURE_HSM_TEST_TENANT_ID - Tenant ID for test KEK isolation (e.g. "ci-test-tenant")
+#
+# Prerequisites:
+#   - Managed HSM deployed via infra/azure/managed-hsm.bicep
+#   - HSM security domain activated
+#   - Federated identity credential configured in Azure AD
+#   - RBAC role assignment: "Managed HSM Crypto User" on the HSM for the app
+
+on:
+  push:
+    branches: ['feature/track18-**', 'feature/stage2-**']
+    paths:
+      - 'ai-platform/server/lib/hsm-adapter/azureKeyVaultHsmAdapter.cjs'
+      - 'ai-platform/server/lib/hsm-adapter/azure-credential-provider.cjs'
+      - 'ai-platform/server/lib/hsm-adapter/azure-audit-interceptor.cjs'
+      - 'ai-platform/server/lib/hsm-adapter/__tests__/azure-hsm-adapter.test.cjs'
+      - 'ai-platform/server/lib/hsm-adapter/__tests__/azure-hsm-live.test.cjs'
+      - 'ai-platform/infra/azure/**'
+      - '.github/workflows/track-stage2-azure.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'ai-platform/server/lib/hsm-adapter/azureKeyVaultHsmAdapter.cjs'
+      - 'ai-platform/server/lib/hsm-adapter/azure-credential-provider.cjs'
+      - 'ai-platform/server/lib/hsm-adapter/azure-audit-interceptor.cjs'
+      - 'ai-platform/server/lib/hsm-adapter/__tests__/azure-hsm-adapter.test.cjs'
+      - 'ai-platform/server/lib/hsm-adapter/__tests__/azure-hsm-live.test.cjs'
+      - 'ai-platform/infra/azure/**'
+      - '.github/workflows/track-stage2-azure.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: stage2-azure-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stage2-azure-live:
+    name: Azure Managed HSM Live Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: stage2-azure
+
+    permissions:
+      id-token: write
+      contents: read
+      checks: write
+
+    env:
+      AZURE_MANAGED_HSM_URL: ${{ secrets.AZURE_MANAGED_HSM_URL }}
+      AZURE_HSM_TEST_TENANT_ID: ${{ vars.AZURE_HSM_TEST_TENANT_ID || 'ci-test-tenant' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Azure login (OIDC federated)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify HSM connectivity
+        run: |
+          echo "Verifying Managed HSM at $AZURE_MANAGED_HSM_URL"
+          HSM_NAME="$(echo $AZURE_MANAGED_HSM_URL | sed 's|https://||;s|.managedhsm.azure.net/||')"
+          az keyvault key list --hsm-name "$HSM_NAME" --query '[].name' -o table 2>&1 || {
+            echo "WARNING: Cannot list keys — RBAC may not be configured yet."
+          }
+
+      - name: Install monorepo dependencies
+        run: npm ci
+
+      - name: Install unrs-resolver native binding (CI-only)
+        working-directory: ai-platform
+        run: |
+          npm install --no-save @unrs/resolver-binding-linux-x64-gnu 2>/dev/null || true
+          node -e "require('unrs-resolver'); console.log('unrs-resolver OK')" 2>&1 || echo "unrs-resolver not available"
+
+      - name: Run mocked unit tests (always run first)
+        working-directory: ai-platform
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose azure-hsm-adapter
+
+      - name: Run live Azure HSM integration tests
+        working-directory: ai-platform
+        env:
+          AZURE_MANAGED_HSM_URL: ${{ secrets.AZURE_MANAGED_HSM_URL }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_HSM_TEST_TENANT_ID: ${{ env.AZURE_HSM_TEST_TENANT_ID }}
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose --testTimeout=30000 azure-hsm-live
+
+      - name: Cleanup test KEKs
+        if: always()
+        working-directory: ai-platform
+        env:
+          AZURE_MANAGED_HSM_URL: ${{ secrets.AZURE_MANAGED_HSM_URL }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_HSM_TEST_TENANT_ID: ${{ env.AZURE_HSM_TEST_TENANT_ID }}
+        run: |
+          echo "Cleaning up test KEKs for tenant: $AZURE_HSM_TEST_TENANT_ID"
+          node -e "
+            const { AzureKeyVaultHsmAdapter } = require('./server/lib/hsm-adapter/azureKeyVaultHsmAdapter.cjs');
+            (async () => {
+              try {
+                const adapter = new AzureKeyVaultHsmAdapter({
+                  vaultUrl: process.env.AZURE_MANAGED_HSM_URL,
+                  logger: { info: () => {}, warn: () => {}, error: () => {} },
+                });
+                await adapter.initialize();
+                const keys = await adapter.listKEKs(process.env.AZURE_HSM_TEST_TENANT_ID);
+                for (const key of keys) {
+                  try { await adapter.zeroize(process.env.AZURE_HSM_TEST_TENANT_ID, key.kekId); console.log('Deleted:', key.kekId); }
+                  catch (e) { console.log('Failed to delete:', key.kekId, e.message); }
+                }
+                console.log('Cleanup complete');
+              } catch (e) { console.error('Cleanup failed:', e.message); }
+            })();
+          " 2>&1 || echo "Cleanup step encountered errors (non-fatal)"
+
+      - name: Azure logout
+        if: always()
+        run: az logout || true
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage2-azure-results
+          path: |
+            ai-platform/coverage/
+            ai-platform/test-results/
+          retention-days: 7
