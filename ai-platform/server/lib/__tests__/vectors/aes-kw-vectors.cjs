@@ -1,0 +1,61 @@
+'use strict';
+
+/**
+ * RFC 3394 / NIST SP 800-38F AES Key Wrap (AES-KW) test vectors.
+ *
+ * All values are hex strings. Consumers should convert to Buffers with
+ * `Buffer.from(vector.kek, 'hex')` etc. before using with a crypto adapter.
+ */
+
+const AES_KW_VECTORS = [
+  // 128-bit KEK wrapping a 128-bit key
+  {
+    name: 'KW-AES-128/128',
+    kek: '000102030405060708090A0B0C0D0E0F',
+    plaintext: '00112233445566778899AABBCCDDEEFF',
+    ciphertext: '1FA68B0A8112B447AEF34BD8FB5A7B829D3E862371D2CFE5',
+    comment: 'RFC 3394 §2.3.1 128-bit KEK wrapping a 128-bit key',
+  },
+  // 192-bit KEK wrapping a 128-bit key
+  {
+    name: 'KW-AES-192/128',
+    kek: '000102030405060708090A0B0C0D0E0F1011121314151617',
+    plaintext: '00112233445566778899AABBCCDDEEFF',
+    ciphertext: '031D33264E15D33268F24EC260743EDCE1BFB8E0DA0E97E9',
+    comment: 'RFC 3394 §2.3.2 192-bit KEK wrapping a 128-bit key',
+  },
+  // 192-bit KEK wrapping a 192-bit key
+  {
+    name: 'KW-AES-192/192',
+    kek: '000102030405060708090A0B0C0D0E0F1011121314151617',
+    plaintext: '00112233445566778899AABBCCDDEEFF0001020304050607',
+    ciphertext: '031D33264E15D33268F24EC260743EDCE1BFB8E0DA0E97E98D9B67702C9B8FE1',
+    comment: 'RFC 3394 192-bit KEK wrapping a 192-bit key',
+  },
+  // 256-bit KEK wrapping a 128-bit key
+  {
+    name: 'KW-AES-256/128',
+    kek: '000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F',
+    plaintext: '00112233445566778899AABBCCDDEEFF',
+    ciphertext: '28C9F404C4B810F4CBCCB35CFB87F8263F5786E2D80ED326CBC7F0E71A99F43BFB988B9B7A02DD21',
+    comment: 'RFC 3394 §2.3.3 256-bit KEK wrapping a 128-bit key',
+  },
+  // 256-bit KEK wrapping a 192-bit key
+  {
+    name: 'KW-AES-256/192',
+    kek: '000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F',
+    plaintext: '00112233445566778899AABBCCDDEEFF0001020304050607',
+    ciphertext: '6901086C4F046660B5C70D2AFA3C6EC7BF1AA22ABD96F1F6CA94B40D416C6C7DF6',
+    comment: 'RFC 3394 256-bit KEK wrapping a 192-bit key',
+  },
+  // 256-bit KEK wrapping a 256-bit key
+  {
+    name: 'KW-AES-256/256',
+    kek: '000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F',
+    plaintext: '00112233445566778899AABBCCDDEEFF000102030405060708090A0B0C0D0E0F',
+    ciphertext: '5D87AB6F149423F38D1FA26CC9368A6D72B1C7388C8C4A89B3F52B0DE2540E6E70B99A0E6B81D4A3',
+    comment: 'RFC 3394 256-bit KEK wrapping a 256-bit key',
+  },
+];
+
+module.exports = { AES_KW_VECTORS };
