@@ -4,6 +4,7 @@ const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
 const { authorize, enforceOrgPartition, getPartitionStats, getPartitionViolations, clearViolations, interdictKey, releaseKey, getInterdictedKeys } = require('../middleware/authorize.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
+const auditPolicyStore = require('../lib/audit-policy-store.cjs');
 const piiPolicyStore = require('../lib/pii-policy-store.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
 const logger = require('../lib/app-logger.cjs').child('audit-routes');
@@ -710,6 +711,88 @@ router.post('/interdiction/release', authorize('admin:all'), (req, res) => {
   } catch (err) {
     logger.warn('[Audit] interdiction_release_failed:', err.message);
     sendError(res, 500, 'interdiction_release_failed', { message: err.message });
+  }
+});
+
+// ── Audit Retention Policy Routes ───────────────────────────────────────────
+//   Admin-only routes for configuring and triggering audit log retention.
+
+// GET /api/audit/retention/config — Get retention policy for caller's org
+router.get('/retention/config', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const policy = auditPolicyStore.getPolicy(orgId);
+    res.json({ success: true, orgId, policy });
+  } catch (err) {
+    logger.warn('[Audit] retention_config_get_failed:', err.message);
+    sendError(res, 500, 'retention_config_get_failed', { message: err.message });
+  }
+});
+
+// PUT /api/audit/retention/config — Update retention policy for caller's org
+router.put('/retention/config', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const result = auditPolicyStore.setPolicy(orgId, req.body || {});
+    if (!result.success) {
+      return sendError(res, 400, 'retention_config_update_failed', { message: result.error });
+    }
+    logger.info(`[Audit] Retention policy updated by ${req.user?.email || 'admin'} for org ${orgId}`);
+    try {
+      auditLogger.log({
+        orgId,
+        actorId: req.user?.id || 'unknown',
+        actorEmail: req.user?.email || 'unknown',
+        action: 'retention_policy_update',
+        entity: 'audit_settings',
+        entityId: 'retention',
+        metadata: result.policy,
+      });
+    } catch (logErr) {
+      logger.warn('[Audit] Failed to audit-log retention policy update:', logErr.message);
+    }
+    res.json({ success: true, orgId, policy: result.policy });
+  } catch (err) {
+    logger.warn('[Audit] retention_config_update_failed:', err.message);
+    sendError(res, 500, 'retention_config_update_failed', { message: err.message });
+  }
+});
+
+// GET /api/audit/retention/stats — Get retention stats for caller's org
+router.get('/retention/stats', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const stats = auditLogger.getRetentionStats(orgId);
+    res.json({ success: true, orgId, ...stats });
+  } catch (err) {
+    logger.warn('[Audit] retention_stats_failed:', err.message);
+    sendError(res, 500, 'retention_stats_failed', { message: err.message });
+  }
+});
+
+// POST /api/audit/retention/purge — Trigger purge of old entries
+router.post('/retention/purge', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const result = auditLogger.purgeOldEntries(orgId);
+    logger.info(`[Audit] Retention purge triggered by ${req.user?.email || 'admin'} for org ${orgId}: ${result.purged} purged, ${result.remaining} remaining`);
+    try {
+      auditLogger.log({
+        orgId,
+        actorId: req.user?.id || 'unknown',
+        actorEmail: req.user?.email || 'unknown',
+        action: 'retention_purge',
+        entity: 'audit_log',
+        entityId: 'purge',
+        metadata: result,
+      });
+    } catch (logErr) {
+      logger.warn('[Audit] Failed to audit-log retention purge:', logErr.message);
+    }
+    res.json({ success: true, orgId, ...result });
+  } catch (err) {
+    logger.warn('[Audit] retention_purge_failed:', err.message);
+    sendError(res, 500, 'retention_purge_failed', { message: err.message });
   }
 });
 

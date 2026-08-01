@@ -420,6 +420,168 @@ function verifyChain(orgId) {
   };
 }
 
+// ── Retention / Purge Engine ────────────────────────────────────────────────
+//
+// Per-org retention policies allow administrators to control how long audit
+// entries are kept. The purgeOldEntries() function removes entries older than
+// the configured retention period, while always preserving at least maxEntries
+// most recent entries. After purge, the remaining entries are re-linked with
+// new hashes to maintain chain integrity.
+//
+// Policy configuration is stored in audit-policy-store.cjs.
+
+const auditPolicyStore = require('./audit-policy-store.cjs');
+
+/**
+ * Get retention statistics for a specific org.
+ * @param {string} orgId
+ * @returns {{ total: number, oldestTimestamp: string|null, newestTimestamp: string|null, purgeableCount: number, policy: object }}
+ */
+function getRetentionStats(orgId) {
+  const orgIdNormalized = orgId || 'default';
+  const policy = auditPolicyStore.getPolicy(orgIdNormalized);
+  const store = readStore();
+  const orgEntries = Object.values(store.entries)
+    .filter((e) => e.orgId === orgIdNormalized)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  if (orgEntries.length === 0) {
+    return {
+      total: 0,
+      oldestTimestamp: null,
+      newestTimestamp: null,
+      purgeableCount: 0,
+      policy,
+    };
+  }
+
+  const cutoff = Date.now() - policy.retentionDays * 24 * 60 * 60 * 1000;
+  const cutoffIso = new Date(cutoff).toISOString();
+
+  // Count entries that would be purged: older than retention cutoff AND
+  // NOT within the most recent `maxEntries` entries (safety floor).
+  // The safety floor only applies when total entries exceed maxEntries.
+  const safetyFloorStart = orgEntries.length > policy.maxEntries
+    ? orgEntries.length - policy.maxEntries
+    : orgEntries.length;
+  let purgeableCount = 0;
+  for (let i = 0; i < orgEntries.length; i++) {
+    if (orgEntries[i].timestamp < cutoffIso && i < safetyFloorStart) {
+      purgeableCount++;
+    }
+  }
+
+  return {
+    total: orgEntries.length,
+    oldestTimestamp: orgEntries[0].timestamp,
+    newestTimestamp: orgEntries[orgEntries.length - 1].timestamp,
+    purgeableCount,
+    policy,
+  };
+}
+
+/**
+ * Purge old audit entries for a specific org based on the retention policy.
+ * Removes entries older than retentionDays, while always preserving at least
+ * maxEntries most recent entries. Re-links the hash chain after removal.
+ *
+ * @param {string} orgId
+ * @returns {{ purged: number, remaining: number, archived: number }}
+ */
+function purgeOldEntries(orgId) {
+  const orgIdNormalized = orgId || 'default';
+  const policy = auditPolicyStore.getPolicy(orgIdNormalized);
+  const store = readStore();
+
+  // Get all entries for this org, sorted oldest → newest
+  const orgEntryPairs = Object.entries(store.entries)
+    .filter(([, e]) => e.orgId === orgIdNormalized)
+    .sort(([, a], [, b]) => a.timestamp.localeCompare(b.timestamp));
+
+  if (orgEntryPairs.length === 0) {
+    return { purged: 0, remaining: 0, archived: 0 };
+  }
+
+  const cutoff = Date.now() - policy.retentionDays * 24 * 60 * 60 * 1000;
+  const cutoffIso = new Date(cutoff).toISOString();
+
+  // Determine which entries to purge:
+  // - Older than retention cutoff
+  // - NOT within the most recent `maxEntries` entries (safety floor)
+  // The safety floor only applies when total entries exceed maxEntries;
+  // otherwise, all entries are eligible for age-based purge.
+  const safetyFloorStart = orgEntryPairs.length > policy.maxEntries
+    ? orgEntryPairs.length - policy.maxEntries
+    : orgEntryPairs.length; // no entry is in the safety floor if total <= maxEntries
+  const keysToPurge = [];
+  const entriesToArchive = [];
+
+  for (let i = 0; i < orgEntryPairs.length; i++) {
+    const [key, entry] = orgEntryPairs[i];
+    const isOldEnough = entry.timestamp < cutoffIso;
+    const isWithinSafetyFloor = i >= safetyFloorStart;
+    if (isOldEnough && !isWithinSafetyFloor) {
+      keysToPurge.push(key);
+      if (policy.archive) {
+        entriesToArchive.push({ ...entry, archivedAt: new Date().toISOString() });
+      }
+    }
+  }
+
+  if (keysToPurge.length === 0) {
+    return { purged: 0, remaining: orgEntryPairs.length, archived: 0 };
+  }
+
+  // Archive entries if archiving is enabled
+  let archived = 0;
+  if (policy.archive && entriesToArchive.length > 0) {
+    try {
+      const archivePath = path.join(path.dirname(STORE_PATH), `audit-archive-${orgIdNormalized}.json`);
+      let archiveStore = { entries: [] };
+      if (fs.existsSync(archivePath)) {
+        archiveStore = JSON.parse(fs.readFileSync(archivePath, 'utf8'));
+        if (!archiveStore.entries) archiveStore.entries = [];
+      }
+      archiveStore.entries.push(...entriesToArchive);
+      archiveStore.lastUpdated = new Date().toISOString();
+      fs.writeFileSync(archivePath, JSON.stringify(archiveStore, null, 2));
+      archived = entriesToArchive.length;
+    } catch {
+      // Archive failure is non-fatal — proceed with deletion
+    }
+  }
+
+  // Remove purged entries from the store
+  for (const key of keysToPurge) {
+    delete store.entries[key];
+  }
+
+  // Re-link remaining entries with new hashes (same pattern as healChain)
+  const remainingPairs = Object.entries(store.entries)
+    .filter(([, e]) => e.orgId === orgIdNormalized)
+    .sort(([, a], [, b]) => a.timestamp.localeCompare(b.timestamp));
+
+  let prevHash = GENESIS_HASH;
+  let relinked = 0;
+
+  for (const [key, entry] of remainingPairs) {
+    entry.prevHash = prevHash;
+    const entryWithoutHash = { ...entry };
+    delete entryWithoutHash.hash;
+    entry.hash = computeEntryHash(entryWithoutHash, prevHash);
+    prevHash = entry.hash;
+    relinked++;
+  }
+
+  writeStore(store);
+
+  return {
+    purged: keysToPurge.length,
+    remaining: remainingPairs.length,
+    archived,
+  };
+}
+
 // ── Auto-Healing Worker ─────────────────────────────────────────────────────
 //
 // The auto-healing worker periodically runs verifyChain() for all orgs and
@@ -984,6 +1146,8 @@ module.exports = {
   getStats,
   computeDiff,
   verifyChain,
+  getRetentionStats,
+  purgeOldEntries,
   computeEntryHash,
   scrubAuditEntry,
   healChain,
