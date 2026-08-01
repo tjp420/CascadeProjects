@@ -26,6 +26,7 @@ const { BaseHsmAdapter, HsmAdapterError } = require('./base-adapter.cjs');
 const { Attestation } = require('./attestation.cjs');
 const { secureZeroizeKeyObject } = require('./secure-zeroize.cjs');
 const { VolatileEvictionEngine } = require('./volatile-eviction-engine.cjs');
+const { ProvenanceTracker } = require('./provenance-tracker.cjs');
 
 const SUPPORTED_ALGORITHMS = new Set(['rsa-oaep', 'ecdh']);
 const RSA_KEY_SIZES = new Set([2048, 4096]);
@@ -77,6 +78,8 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
    * @param {number} [options.keySize=2048] - RSA modulus or ECDH curve size
    * @param {Attestation} [options.attestation] - optional attestation engine
    * @param {number} [options.evictionIntervalMs] - inactivity scan interval
+   * @param {string} [options.buildHash] - software build hash for provenance
+   * @param {string} [options.hardwareRootToken] - root token for provenance
    */
   constructor(options = {}) {
     super({ providerName: 'asymmetric', ...options });
@@ -88,6 +91,12 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     if (this._policyEngine && !this._evictionEngine) {
       this._evictionEngine = new VolatileEvictionEngine(this._policyEngine, {
         intervalMs: options.evictionIntervalMs,
+      });
+    }
+    if (!this._provenanceTracker) {
+      this._provenanceTracker = new ProvenanceTracker({
+        buildHash: options.buildHash,
+        hardwareRootToken: options.hardwareRootToken,
       });
     }
   }
@@ -116,6 +125,16 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     });
   }
 
+  _validateProvenance(tenantId, kekId, info) {
+    if (!this._provenanceTracker) return;
+    this._provenanceTracker.validate(kekId, {
+      tenantId,
+      algorithm: info.algorithm,
+      keySize: info.keySize,
+      createdAt: info.createdAt,
+    });
+  }
+
   async _createKEK(tenantId, meta = {}) {
     if (this._policyEngine) {
       this._policyEngine.validate(tenantId, 'createKEK', {
@@ -125,6 +144,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     }
     const { publicKey, privateKey } = await _generateKeyPair(this.algorithm, this.keySize);
     const kekId = crypto.randomBytes(16).toString('hex');
+    const createdAt = Date.now();
     this._keks.set(kekId, {
       publicKey,
       privateKey,
@@ -132,7 +152,12 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
       keySize: this.keySize,
       tenantId,
       meta,
-      createdAt: Date.now(),
+      createdAt,
+    });
+    this._provenanceTracker.register(tenantId, kekId, {
+      algorithm: this.algorithm,
+      keySize: this.keySize,
+      createdAt,
     });
     return kekId;
   }
@@ -144,6 +169,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
 
     const info = this._getKek(tenantId, kekId);
     this._validatePolicy(tenantId, 'wrap', info);
+    this._validateProvenance(tenantId, kekId, info);
 
     if (info.algorithm === 'rsa-oaep') {
       const maxPlaintextLength = info.keySize / 8 - 2 * 32 - 2; // SHA-256 OAEP
@@ -186,6 +212,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
 
     const info = this._getKek(tenantId, kekId);
     this._validatePolicy(tenantId, 'unwrap', info);
+    this._validateProvenance(tenantId, kekId, info);
 
     if (info.algorithm === 'rsa-oaep') {
       try {
@@ -245,6 +272,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
   async _rotateKEK(tenantId, oldKekId) {
     const info = this._getKek(tenantId, oldKekId);
     this._validatePolicy(tenantId, 'rotateKEK', info);
+    this._validateProvenance(tenantId, oldKekId, info);
     const newKekId = await this._createKEK(tenantId, { rotatedFrom: oldKekId, ...info.meta });
     return newKekId;
   }

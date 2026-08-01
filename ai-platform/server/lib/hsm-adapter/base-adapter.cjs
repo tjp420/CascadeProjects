@@ -54,6 +54,7 @@ class BaseHsmAdapter {
    * @param {object} [options.logger] - logger with info/warn/error methods
    * @param {CryptoPolicyEngine} [options.policyEngine] - optional policy enforcement engine
    * @param {VolatileEvictionEngine} [options.volatileEvictionEngine] - optional eviction engine
+   * @param {ProvenanceTracker} [options.provenanceTracker] - optional provenance ledger
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -63,6 +64,7 @@ class BaseHsmAdapter {
     this.logger = options.logger || null;
     this._policyEngine = options.policyEngine || null;
     this._evictionEngine = options.volatileEvictionEngine || null;
+    this._provenanceTracker = options.provenanceTracker || null;
     this._initialized = false;
   }
 
