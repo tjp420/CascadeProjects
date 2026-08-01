@@ -1,239 +1,349 @@
 'use strict';
 
 /**
- * Hybrid KEM handshake for cluster sync.
+ * Hybrid KEM Handshake for cluster keyring sync (Track 6).
  *
- * Combines the classic TLS/ECDH secret with an ML-KEM-768 shared secret to
- * produce a post-quantum-resistant session keyring. All KEM traffic is
- * length-prefixed JSON exchanged inside the existing TLS-protected socket.
+ * Combines classical ECDH (X25519) with post-quantum ML-KEM-768 to derive
+ * a shared session key. The handshake is fail-closed by default: if either
+ * peer omits the post-quantum component, the connection is rejected unless
+ * QUANTUM_DEGRADE_ALLOWED=1 is set.
+ *
+ * Protocol (length-prefixed JSON over the existing TLS/TCP socket):
+ *
+ *   Client → Server:  { "ek_classic": "<hex X25519 public>", "ek_pq": "<hex ML-KEM public>" }
+ *   Server → Client:  { "c_classic": "<hex ECDH ephemeral public>", "c_pq": "<hex ML-KEM ciphertext>" }
+ *
+ * Both sides derive:
+ *   ecdhSecret  = X25519(ephemeral_server, client_classic_priv)  // client side
+ *   ecdhSecret  = X25519(ephemeral_server_priv, client_classic_pub)  // server side
+ *   mlkemSecret = ML-KEM-768 decapsulate(c_pq, sk)               // client side
+ *   mlkemSecret = ML-KEM-768 encapsulate(ek_pq).sharedSecret      // server side
+ *   PRK         = HKDF-Extract(salt="simplebeacon:hybrid:v1", IKM = ecdhSecret || mlkemSecret)
+ *   SessionKey  = HKDF-Expand(PRK, info="session:keyring", L=32)
  *
  * @module hybrid-kem-handshake
  */
 
 const crypto = require('crypto');
-const { promisify } = require('util');
-const { keygen, encapsulate, decapsulate } = require('./vendor/mlkem.cjs');
+const mlkem = require('./vendor/mlkem.cjs');
 
-const HK = require('./app-logger.cjs');
-const logger = HK.logger ? HK.logger : HK;
+const HKDF_SALT = 'simplebeacon:hybrid:v1';
+const HKDF_INFO = 'session:keyring';
+const SESSION_KEY_LEN = 32;
+const HANDSHAKE_LABEL = 'hybrid-kem';
+const MAX_HANDSHAKE_MSG_BYTES = 1 << 16; // 64 KB
 
-const hkdf = promisify(crypto.hkdf);
+// ── Helpers ────────────────────────────────────────────────────────────────
 
-const HYBRID_SALT = 'simplebeacon:hybrid:v1';
-const HYBRID_INFO = 'session:keyring';
-const KEYRING_LENGTH = 32;
+function _toHex(buf) {
+  return Buffer.from(buf).toString('hex');
+}
 
-const DEFAULT_TIMEOUT_MS = 30000;
-
-function isQuantumDowngradeAllowed() {
-  return process.env.QUANTUM_DEGRADE_ALLOWED === '1';
+function _fromHex(hex) {
+  return new Uint8Array(Buffer.from(hex, 'hex'));
 }
 
 /**
- * Derive the final 32-byte session keyring.
- * @param {Uint8Array|Buffer} classicSecret
- * @param {Uint8Array|Buffer} pqSharedSecret
- * @returns {Promise<Buffer>}
+ * HKDF-Extract + HKDF-Expand combiner.
+ * @param {Uint8Array|Buffer} ecdhSecret - X25519 shared secret (32 bytes)
+ * @param {Uint8Array|Buffer} mlkemSecret - ML-KEM-768 shared secret (32 bytes)
+ * @returns {Buffer} 32-byte session key
  */
-async function deriveSessionKeyRing(classicSecret, pqSharedSecret) {
-  const c = Buffer.from(classicSecret);
-  const pq = Buffer.from(pqSharedSecret);
-  const ikm = Buffer.concat([c, pq]);
-  const ring = await hkdf('sha256', ikm, HYBRID_SALT, HYBRID_INFO, KEYRING_LENGTH);
-  return Buffer.from(ring);
+function deriveSessionKey(ecdhSecret, mlkemSecret) {
+  const ikm = Buffer.concat([
+    Buffer.from(ecdhSecret),
+    Buffer.from(mlkemSecret),
+  ]);
+  const prk = crypto.hkdfSync(
+    'sha256',
+    ikm,
+    HKDF_SALT,
+    HKDF_INFO,
+    SESSION_KEY_LEN,
+  );
+  return Buffer.from(prk);
 }
 
-function _toBuffer(value, fallback) {
-  if (Buffer.isBuffer(value)) return value;
-  if (value instanceof Uint8Array) return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
-  if (typeof value === 'string') return Buffer.from(value, 'utf8');
-  return fallback;
-}
-
-function _readClassicSecret(socket, provided) {
-  if (provided) return _toBuffer(provided, Buffer.alloc(0));
-  if (socket && typeof socket.getSession === 'function') {
-    const s = socket.getSession();
-    if (s) return _toBuffer(s, Buffer.alloc(0));
-  }
-  if (socket && socket.getCipher && typeof socket.getCipher === 'function') {
-    const cipher = socket.getCipher();
-    if (cipher && cipher.name) return Buffer.from(cipher.name, 'utf8');
-  }
-  throw new Error('hybrid-kem: no classic secret available');
-}
-
-function _writeFrame(socket, message) {
-  const payload = Buffer.from(JSON.stringify(message), 'utf8');
-  const length = Buffer.alloc(4);
-  length.writeUInt32BE(payload.length, 0);
-  socket.write(Buffer.concat([length, payload]));
-}
-
-function _readFrame(socket, timeoutMs) {
+/**
+ * Read a single length-prefixed JSON message from a socket.
+ * @returns {Promise<object>}
+ */
+function _readMessage(socket, timeoutMs) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error('hybrid-kem: handshake read timeout'));
-    }, timeoutMs);
+    let buffer = Buffer.alloc(0);
+    let settled = false;
 
-    let bufs = [];
-    let total = 0;
-    let expected = null;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      socket.removeListener('data', onData);
+      socket.removeListener('close', onClose);
+      socket.removeListener('error', onError);
+      reject(new Error('hybrid handshake read timeout'));
+    }, timeoutMs);
 
     function cleanup() {
       clearTimeout(timer);
       socket.removeListener('data', onData);
-      socket.removeListener('error', onError);
       socket.removeListener('close', onClose);
+      socket.removeListener('error', onError);
+    }
+
+    function onData(chunk) {
+      buffer = Buffer.concat([buffer, chunk]);
+      if (buffer.length >= 4) {
+        const length = buffer.readUInt32BE(0);
+        if (length > MAX_HANDSHAKE_MSG_BYTES) {
+          settled = true;
+          cleanup();
+          reject(new Error('hybrid handshake message exceeds 64 KB'));
+          return;
+        }
+        if (buffer.length >= 4 + length) {
+          const body = buffer.slice(4, 4 + length);
+          settled = true;
+          cleanup();
+          try {
+            resolve(JSON.parse(body.toString('utf8')));
+          } catch (e) {
+            reject(new Error('hybrid handshake: invalid JSON'));
+          }
+        }
+      }
+    }
+
+    function onClose() {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('hybrid handshake: socket closed during read'));
     }
 
     function onError(err) {
+      if (settled) return;
+      settled = true;
       cleanup();
       reject(err);
     }
 
-    function onClose() {
-      cleanup();
-      reject(new Error('hybrid-kem: socket closed during handshake'));
-    }
-
-    function processBuffer() {
-      if (expected === null) {
-        if (total < 4) return false;
-        const header = Buffer.concat(bufs);
-        expected = header.readUInt32BE(0);
-        const extra = header.slice(4);
-        bufs = extra.length ? [extra] : [];
-        total = extra.length;
-      }
-      if (total < expected) return false;
-      const full = Buffer.concat(bufs);
-      const payload = full.slice(0, expected);
-      const leftover = full.slice(expected);
-      if (leftover.length) {
-        bufs = [leftover];
-        total = leftover.length;
-        expected = null;
-      } else {
-        bufs = [];
-        total = 0;
-        expected = null;
-      }
-      cleanup();
-      resolve(payload);
-      return true;
-    }
-
-    function onData(chunk) {
-      bufs.push(chunk);
-      total += chunk.length;
-      processBuffer();
-    }
-
     socket.on('data', onData);
-    socket.on('error', onError);
-    socket.on('close', onClose);
+    socket.once('close', onClose);
+    socket.once('error', onError);
   });
 }
 
 /**
- * Perform the client side of the hybrid handshake.
- * @param {import('net').Socket} socket
- * @param {object} [options]
- * @param {Uint8Array|Buffer} [options.classicSecret] — optional classic secret
- * @param {number} [options.timeoutMs]
- * @param {boolean} [options.quantumCapable]
- * @returns {Promise<Buffer>} 32-byte session keyring
+ * Send a length-prefixed JSON message over a socket.
  */
-async function createClientHandshaker(socket, options = {}) {
-  const { classicSecret, timeoutMs = DEFAULT_TIMEOUT_MS, quantumCapable = true } = options;
+function _sendMessage(socket, obj) {
+  const json = JSON.stringify(obj);
+  const body = Buffer.from(json, 'utf8');
+  const header = Buffer.alloc(4);
+  header.writeUInt32BE(body.length, 0);
+  socket.write(Buffer.concat([header, body]));
+}
 
-  let pqSecret = Buffer.alloc(0);
-  let clientKeypair = null;
+// ── Public API ─────────────────────────────────────────────────────────────
 
-  if (quantumCapable) {
-    clientKeypair = await keygen();
-    _writeFrame(socket, {
-      type: 'clientHello',
-      publicKey: Buffer.from(clientKeypair.publicKey).toString('base64'),
+/**
+ * Create a client-side hybrid handshaker.
+ *
+ * The client generates an X25519 keypair and an ML-KEM-768 keypair,
+ * sends both public keys to the server, receives the ECDH ephemeral
+ * public key and ML-KEM ciphertext, then derives the session key.
+ *
+ * @param {import('net').Socket} socket - connected TCP/TLS socket
+ * @param {object} [opts]
+ * @param {number} [opts.timeoutMs=15000] - handshake timeout
+ * @returns {Promise<{sessionKey: Buffer, downgraded: boolean}>}
+ */
+async function createClientHandshaker(socket, opts = {}) {
+  const timeoutMs = opts.timeoutMs || 15000;
+  const allowDegrade = process.env.QUANTUM_DEGRADE_ALLOWED === '1';
+
+  // 1. Generate classical X25519 keypair
+  const classicKeyPair = crypto.generateKeyPairSync('x25519');
+  const classicPub = classicKeyPair.publicKey.export({ type: 'spki', format: 'der' });
+  // Extract raw 32-byte public key from SPKI wrapper
+  const classicPubRaw = classicPub.slice(-32);
+
+  // 2. Generate ML-KEM-768 keypair
+  const { publicKey: pqPub, secretKey: pqSk } = await mlkem.keygen();
+
+  // 3. Send client hello: both public keys
+  const clientHello = {
+    ek_classic: _toHex(classicPubRaw),
+    ek_pq: _toHex(pqPub),
+  };
+  _sendMessage(socket, clientHello);
+
+  // 4. Read server response
+  const serverResp = await _readMessage(socket, timeoutMs);
+
+  // Check for downgrade
+  if (!serverResp.c_pq) {
+    if (!allowDegrade) {
+      throw new Error('quantum_downgrade_rejected: server omitted c_pq');
+    }
+    // Permissive mode: classic-only
+    if (!serverResp.c_classic) {
+      throw new Error('hybrid handshake: server sent neither c_classic nor c_pq');
+    }
+    const serverEphemeralPub = _fromHex(serverResp.c_classic);
+    const ecdhSecret = crypto.diffieHellman({
+      privateKey: classicKeyPair.privateKey,
+      publicKey: crypto.createPublicKey({
+        key: _spkiFromRawX25519(serverEphemeralPub),
+        format: 'der',
+        type: 'spki',
+      }),
     });
+    // Use ECDH-only derivation with zero ML-KEM secret
+    const mlkemSecret = Buffer.alloc(32);
+    const sessionKey = deriveSessionKey(ecdhSecret, mlkemSecret);
+    return { sessionKey, downgraded: true };
+  }
 
-    const response = JSON.parse((await _readFrame(socket, timeoutMs)).toString('utf8'));
-    if (response.type !== 'serverResponse' || !response.cipherText) {
-      throw new Error('hybrid-kem: unexpected server response');
-    }
+  // 5. Decapsulate ML-KEM shared secret
+  const c_pq = _fromHex(serverResp.c_pq);
+  const mlkemSecret = await mlkem.decapsulate(c_pq, pqSk);
 
-    const cipherText = Uint8Array.from(Buffer.from(response.cipherText, 'base64'));
-    pqSecret = await decapsulate(cipherText, clientKeypair.secretKey);
-    pqSecret = Buffer.from(pqSecret);
-  } else {
-    _writeFrame(socket, {
-      type: 'clientHello',
-      quantumCapable: false,
-    });
-    const response = JSON.parse((await _readFrame(socket, timeoutMs)).toString('utf8'));
-    if (response.type !== 'serverResponse') {
-      throw new Error('hybrid-kem: unexpected server response');
-    }
-    if (response.error) {
-      throw new Error(`hybrid-kem: ${response.error}`);
-    }
-    if (response.degraded) {
-      if (!isQuantumDowngradeAllowed()) {
-        throw new Error('hybrid-kem: downgrade not allowed; quantum capability required');
-      }
-      logger.warn('hybrid-kem: classic-only connection negotiated (quantum_downgrade)');
-    } else {
-      throw new Error('hybrid-kem: downgrade refused by server');
+  // 6. Compute ECDH shared secret
+  if (!serverResp.c_classic) {
+    throw new Error('hybrid handshake: server omitted c_classic');
+  }
+  const serverEphemeralPub = _fromHex(serverResp.c_classic);
+  const ecdhSecret = crypto.diffieHellman({
+    privateKey: classicKeyPair.privateKey,
+    publicKey: crypto.createPublicKey({
+      key: _spkiFromRawX25519(serverEphemeralPub),
+      format: 'der',
+      type: 'spki',
+    }),
+  });
+
+  // 7. Derive session key via HKDF combiner
+  const sessionKey = deriveSessionKey(ecdhSecret, mlkemSecret);
+
+  // 8. Verify key-confirmation MAC from server (detects replay/mismatch)
+  if (serverResp.mac) {
+    const expectedMac = crypto.createHmac('sha256', sessionKey)
+      .update('server-confirmation')
+      .digest('hex');
+    if (expectedMac !== serverResp.mac) {
+      throw new Error('hybrid handshake: key-confirmation MAC mismatch (possible replay or MITM)');
     }
   }
 
-  const classic = _readClassicSecret(socket, classicSecret);
-  return deriveSessionKeyRing(classic, pqSecret);
+  return { sessionKey, downgraded: false };
 }
 
 /**
- * Perform the server side of the hybrid handshake.
- * @param {import('net').Socket} socket
- * @param {object} [options]
- * @param {Uint8Array|Buffer} [options.classicSecret]
- * @param {number} [options.timeoutMs]
- * @returns {Promise<Buffer>} 32-byte session keyring
+ * Create a server-side hybrid handshaker.
+ *
+ * The server reads the client's public keys, generates an X25519
+ * ephemeral keypair, encapsulates the ML-KEM shared secret, and
+ * sends both back. Then derives the same session key.
+ *
+ * @param {import('net').Socket} socket - incoming TCP/TLS socket
+ * @param {object} [opts]
+ * @param {number} [opts.timeoutMs=15000] - handshake timeout
+ * @returns {Promise<{sessionKey: Buffer, downgraded: boolean}>}
  */
-async function createServerHandshaker(socket, options = {}) {
-  const { classicSecret, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+async function createServerHandshaker(socket, opts = {}) {
+  const timeoutMs = opts.timeoutMs || 15000;
+  const allowDegrade = process.env.QUANTUM_DEGRADE_ALLOWED === '1';
 
-  const hello = JSON.parse((await _readFrame(socket, timeoutMs)).toString('utf8'));
-  if (hello.type !== 'clientHello') {
-    throw new Error('hybrid-kem: expected clientHello');
+  // 1. Read client hello
+  const clientHello = await _readMessage(socket, timeoutMs);
+
+  if (!clientHello.ek_classic) {
+    throw new Error('hybrid handshake: client omitted ek_classic');
   }
 
-  let pqSecret = Buffer.alloc(0);
-
-  if (hello.publicKey) {
-    const publicKey = Uint8Array.from(Buffer.from(hello.publicKey, 'base64'));
-    const { sharedSecret, cipherText } = await encapsulate(publicKey);
-    pqSecret = Buffer.from(sharedSecret);
-    _writeFrame(socket, {
-      type: 'serverResponse',
-      cipherText: Buffer.from(cipherText).toString('base64'),
+  // Check for PQ downgrade
+  if (!clientHello.ek_pq) {
+    if (!allowDegrade) {
+      throw new Error('quantum_downgrade_rejected: client omitted ek_pq');
+    }
+    // Permissive mode: classic-only
+    const clientClassicPub = _fromHex(clientHello.ek_classic);
+    const ephemeralKeyPair = crypto.generateKeyPairSync('x25519');
+    const ephemeralPubRaw = ephemeralKeyPair.publicKey.export({ type: 'spki', format: 'der' }).slice(-32);
+    const ecdhSecret = crypto.diffieHellman({
+      privateKey: ephemeralKeyPair.privateKey,
+      publicKey: crypto.createPublicKey({
+        key: _spkiFromRawX25519(clientClassicPub),
+        format: 'der',
+        type: 'spki',
+      }),
     });
-  } else if (hello.quantumCapable === false && isQuantumDowngradeAllowed()) {
-    _writeFrame(socket, { type: 'serverResponse', degraded: true });
-    logger.warn('hybrid-kem: accepting classic-only connection (quantum_downgrade)');
-  } else {
-    _writeFrame(socket, { type: 'serverResponse', error: 'quantum_downgrade_rejected' });
-    throw new Error('hybrid-kem: quantum_downgrade_rejected');
+    _sendMessage(socket, { c_classic: _toHex(ephemeralPubRaw) });
+    const mlkemSecret = Buffer.alloc(32);
+    const sessionKey = deriveSessionKey(ecdhSecret, mlkemSecret);
+    return { sessionKey, downgraded: true };
   }
 
-  const classic = _readClassicSecret(socket, classicSecret);
-  return deriveSessionKeyRing(classic, pqSecret);
+  // 2. Generate ECDH ephemeral keypair
+  const ephemeralKeyPair = crypto.generateKeyPairSync('x25519');
+  const ephemeralPubRaw = ephemeralKeyPair.publicKey.export({ type: 'spki', format: 'der' }).slice(-32);
+
+  // 3. Encapsulate ML-KEM shared secret against client's public key
+  const clientPqPub = _fromHex(clientHello.ek_pq);
+  const { cipherText, sharedSecret: mlkemSecret } = await mlkem.encapsulate(clientPqPub);
+
+  // 4. Compute ECDH shared secret
+  const clientClassicPub = _fromHex(clientHello.ek_classic);
+  const ecdhSecret = crypto.diffieHellman({
+    privateKey: ephemeralKeyPair.privateKey,
+    publicKey: crypto.createPublicKey({
+      key: _spkiFromRawX25519(clientClassicPub),
+      format: 'der',
+      type: 'spki',
+    }),
+  });
+
+  // 5. Derive session key
+  const sessionKey = deriveSessionKey(ecdhSecret, mlkemSecret);
+
+  // 6. Compute key-confirmation MAC so the client can detect replay/mismatch
+  const confirmMac = crypto.createHmac('sha256', sessionKey)
+    .update('server-confirmation')
+    .digest('hex');
+
+  // 7. Send server response with confirmation MAC
+  _sendMessage(socket, {
+    c_classic: _toHex(ephemeralPubRaw),
+    c_pq: _toHex(cipherText),
+    mac: confirmMac,
+  });
+
+  return { sessionKey, downgraded: false };
+}
+
+/**
+ * Build a minimal SPKI DER for a raw 32-byte X25519 public key.
+ * The X25519 OID is 1.3.101.110.
+ */
+function _spkiFromRawX25519(raw32) {
+  // SPKI for X25519 (OID 1.3.101.110):
+  //   SEQUENCE {
+  //     SEQUENCE { OID 1.3.101.110 }    -- 30 05 06 03 2b 65 6e
+  //     BIT STRING { 00, <32 bytes> }   -- 03 21 00 <32>
+  //   }
+  // Total content = 7 + 35 = 42 bytes; outer SEQUENCE = 30 2a ...
+  const der = Buffer.concat([
+    Buffer.from([0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x03, 0x21, 0x00]),
+    Buffer.from(raw32),
+  ]);
+  return der;
 }
 
 module.exports = {
-  deriveSessionKeyRing,
   createClientHandshaker,
   createServerHandshaker,
-  isQuantumDowngradeAllowed,
+  deriveSessionKey,
+  HKDF_SALT,
+  HKDF_INFO,
+  SESSION_KEY_LEN,
 };

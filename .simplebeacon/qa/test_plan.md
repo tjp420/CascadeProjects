@@ -182,3 +182,88 @@
 ## Approval
 
 - [x] User approved Track 6 plan
+
+---
+
+# test_plan.md — Track 7: Automated MitM Penetration Testing
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| Feature / change | Track 7: Automated MitM penetration testing for the hybrid KEM handshake |
+| Author (Builder) | Devin |
+| Date | 2026-07-31 |
+| Branch | main |
+| Packages touched | ai-platform |
+
+## Scope
+
+### Files in scope
+
+- `ai-platform/server/lib/__tests__/hybrid-kem-mitm.test.cjs` (new)
+- `ai-platform/server/lib/hybrid-kem-handshake.cjs` (read-only target of tests)
+- `ai-platform/server/lib/cluster-keyring-sync.cjs` (audit event verification)
+
+### APIs / routes
+
+- `hybrid-kem-handshake.cjs` `createClientHandshaker` / `createServerHandshaker`
+- `cluster-keyring-sync.cjs` `_recordEvent` / `queryEvents` / `EVENT_TYPES`
+
+## Design decisions
+
+- **Interception harness:** A mocked `EventEmitter` socket pair with a byte-level man-in-the-middle shim. The shim supports `clientToServer` and `serverToClient` mutation callbacks.
+- **Fault vectors:** Public key bit-flip, ciphertext truncation, ciphertext substitution/replay, length-prefix fuzzing, full-handshake replay, forced downgrade strip, and classic-secret desync.
+- **Audit verification:** Rejected/failed attacks record `quantum_downgrade_rejected` via `cluster-keyring-sync._recordEvent`; successful downgrade under `QUANTUM_DEGRADE_ALLOWED` records `quantum_downgrade`.
+
+---
+
+## Level 1 — Deterministic (Validator MUST run all)
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
+| L1-02 | MitM penetration tests pass | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem-mitm` | [ ] |
+| L1-03 | Existing hybrid KEM tests still pass | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem-handshake` | [ ] |
+| L1-04 | Existing cluster keyring tests still pass | `cd ai-platform && npx jest --config jest.config.cjs cluster-keyring-sync` | [ ] |
+| L1-05 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate` | [ ] |
+| L1-06 | No secrets in diff | `git diff --cached` | [ ] |
+
+---
+
+## Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | Public key bit-flip | MITM flips one byte of `clientHello.publicKey` before the server receives it | Server and client derive different `SessionKeyRing`s, or handshake rejects | [ ] |
+| L2-02 | Ciphertext truncation | MITM truncates `serverResponse.cipherText` before the client receives it | Client decapsulation rejects and the handshake fails | [ ] |
+| L2-03 | Ciphertext substitution | MITM replaces `serverResponse.cipherText` with a valid ciphertext from a different keypair | Client and server derive different `SessionKeyRing`s | [ ] |
+| L2-04 | Length-prefix fuzzing | MITM sends a 4-byte length of zero, a huge value, or a non-JSON payload | The receiving side rejects cleanly and closes the socket without hanging | [ ] |
+| L2-05 | Full-handshake replay | MITM records a valid `clientHello`+`serverResponse` and replays the `serverResponse` to a new client | New client rejects or derives a different `SessionKeyRing` | [ ] |
+| L2-06 | Forced downgrade strip | MITM strips `publicKey` from `clientHello` and sets `quantumCapable: false` | Server rejects and `quantum_downgrade_rejected` is recorded | [ ] |
+| L2-07 | Classic-secret desync | Client and server are given different `classicSecret` values | Both sides derive different 32-byte `SessionKeyRing`s | [ ] |
+
+---
+
+## Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | Replay does not allow key reuse | A recorded `serverResponse` with the original `C_pq` cannot be used to derive the same `SessionKeyRing` on a new client | Handshake rejects or keyring mismatch | [ ] |
+| L3-02 | Downgrade is not silently accepted | Even when MITM strips KEM material, `QUANTUM_DEGRADE_ALLOWED=0` means the connection fails | `quantum_downgrade_rejected` logged | [ ] |
+
+---
+
+## Security
+
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | MITM cannot force a shared keyring without controlling both KEM and classic secrets | [ ] |
+| S-02 | Corrupted or replayed frames terminate the handshake and do not leak shared material | [ ] |
+| S-03 | All attack rejections are visible in the `cluster-keyring-sync` audit timeline | [ ] |
+
+---
+
+## Approval
+
+- [x] User approved Track 7 plan
