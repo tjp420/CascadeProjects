@@ -53,7 +53,22 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
     return info;
   }
 
+  _validatePolicy(tenantId, operation, info) {
+    if (!this._policyEngine) return;
+    this._policyEngine.validate(tenantId, operation, {
+      algorithm: 'aes-kw',
+      kekBits: info.kek.length * 8,
+      createdAt: info.createdAt,
+    });
+  }
+
   async _createKEK(tenantId, meta = {}) {
+    if (this._policyEngine) {
+      this._policyEngine.validate(tenantId, 'createKEK', {
+        algorithm: 'aes-kw',
+        kekBits: this.kekBits,
+      });
+    }
     const kek = crypto.randomBytes(this.kekBits / 8);
     const kekId = crypto.randomBytes(8).toString('hex');
     this._keks.set(kekId, { kek, tenantId, meta, createdAt: Date.now() });
@@ -62,11 +77,13 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
 
   async _wrap(tenantId, kekId, plaintext) {
     const info = this._getKek(tenantId, kekId);
+    this._validatePolicy(tenantId, 'wrap', info);
     return aesKwWrap(info.kek, plaintext);
   }
 
   async _unwrap(tenantId, kekId, wrapped) {
     const info = this._getKek(tenantId, kekId);
+    this._validatePolicy(tenantId, 'unwrap', info);
     try {
       return aesKwUnwrap(info.kek, wrapped);
     } catch (err) {
@@ -77,6 +94,7 @@ class SoftwareHsmAdapter extends BaseHsmAdapter {
 
   async _rotateKEK(tenantId, oldKekId) {
     const info = this._getKek(tenantId, oldKekId);
+    this._validatePolicy(tenantId, 'rotateKEK', info);
     const newKekId = await this._createKEK(tenantId, { rotatedFrom: oldKekId, ...info.meta });
     return newKekId;
   }

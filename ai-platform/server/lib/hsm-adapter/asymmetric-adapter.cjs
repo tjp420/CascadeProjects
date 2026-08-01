@@ -96,7 +96,22 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     return info;
   }
 
+  _validatePolicy(tenantId, operation, info) {
+    if (!this._policyEngine) return;
+    this._policyEngine.validate(tenantId, operation, {
+      algorithm: info.algorithm,
+      keySize: info.keySize,
+      createdAt: info.createdAt,
+    });
+  }
+
   async _createKEK(tenantId, meta = {}) {
+    if (this._policyEngine) {
+      this._policyEngine.validate(tenantId, 'createKEK', {
+        algorithm: this.algorithm,
+        keySize: this.keySize,
+      });
+    }
     const { publicKey, privateKey } = await _generateKeyPair(this.algorithm, this.keySize);
     const kekId = crypto.randomBytes(16).toString('hex');
     this._keks.set(kekId, {
@@ -117,6 +132,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     }
 
     const info = this._getKek(tenantId, kekId);
+    this._validatePolicy(tenantId, 'wrap', info);
 
     if (info.algorithm === 'rsa-oaep') {
       const maxPlaintextLength = info.keySize / 8 - 2 * 32 - 2; // SHA-256 OAEP
@@ -158,6 +174,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     }
 
     const info = this._getKek(tenantId, kekId);
+    this._validatePolicy(tenantId, 'unwrap', info);
 
     if (info.algorithm === 'rsa-oaep') {
       try {
@@ -216,6 +233,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
 
   async _rotateKEK(tenantId, oldKekId) {
     const info = this._getKek(tenantId, oldKekId);
+    this._validatePolicy(tenantId, 'rotateKEK', info);
     const newKekId = await this._createKEK(tenantId, { rotatedFrom: oldKekId, ...info.meta });
     return newKekId;
   }

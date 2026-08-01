@@ -48,6 +48,7 @@ class BaseHsmAdapter {
    * @param {object} options
    * @param {string} options.providerName - human-readable provider name
    * @param {object} [options.logger] - logger with info/warn/error methods
+   * @param {CryptoPolicyEngine} [options.policyEngine] - optional policy enforcement engine
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -55,6 +56,7 @@ class BaseHsmAdapter {
     }
     this.providerName = options.providerName || 'base';
     this.logger = options.logger || null;
+    this._policyEngine = options.policyEngine || null;
     this._initialized = false;
   }
 
