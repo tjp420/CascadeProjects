@@ -5,6 +5,7 @@ import { fetchSecurityTelemetry, buildTelemetrySummary } from '../services/telem
 import { fetchKeyStatus, triggerKeyRotation, forceReKeySweep, fetchReKeyStats, generateRandomKey, formatGraceCountdown } from '../services/keyManagementService.js';
 import { fetchQuarantineEntries, verifyQuarantineEntry } from '../services/quarantineService.js';
 import { fetchInterdictions, blockKey, releaseKey } from '../services/interdictionService.js';
+import { fetchRetentionConfig, updateRetentionConfig, fetchRetentionStats, triggerRetentionPurge } from '../services/retentionService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 
 const SEVERITY_COLORS = {
@@ -68,6 +69,13 @@ export class SecurityView {
         this.interdictionError = null;
         this.interdictionBlocking = false;
         this._interdictionPollTimer = null;
+        this.retentionConfig = null;
+        this.retentionStats = null;
+        this.retentionLoading = false;
+        this.retentionError = null;
+        this.retentionSaving = false;
+        this.retentionPurging = false;
+        this.retentionConfirmPurge = false;
         this._container = null;
     }
     getReport() {
@@ -604,6 +612,188 @@ export class SecurityView {
             showToast('Release failed: ' + err.message, 'error');
         }
     }
+    renderRetentionSection() {
+        if (!this.app.isCurrentUserAdmin || !this.app.isCurrentUserAdmin()) return '';
+        if (this.retentionLoading && !this.retentionStats) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Audit Retention & Lifecycle</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <span class="loading-spinner" style="width:24px;height:24px;margin:0 auto var(--space-3);"></span>
+            <p class="text-muted" style="font-size:var(--font-size-sm);">Loading retention stats…</p>
+          </div>
+        </div>`;
+        }
+        if (this.retentionError && !this.retentionStats) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Audit Retention & Lifecycle</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <p style="color:var(--danger);font-size:var(--font-size-sm);margin-bottom:var(--space-3);">${escapeHtml(this.retentionError)}</p>
+            <button class="btn btn-secondary btn-sm" id="retention-retry" type="button">Retry</button>
+          </div>
+        </div>`;
+        }
+        const stats = this.retentionStats || {};
+        const policy = stats.policy || this.retentionConfig || { retentionDays: 90, maxEntries: 10000, archive: false };
+        const total = stats.total || 0;
+        const purgeable = stats.purgeableCount || 0;
+        const oldest = stats.oldestTimestamp ? new Date(stats.oldestTimestamp).toLocaleString() : '—';
+        const newest = stats.newestTimestamp ? new Date(stats.newestTimestamp).toLocaleString() : '—';
+        const archiveChecked = policy.archive ? 'checked' : '';
+        return `
+      <div class="section-block">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0;">Audit Retention & Lifecycle</h2>
+          <button class="btn btn-ghost btn-sm" id="retention-refresh" type="button">↻ Refresh</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);margin-bottom:var(--space-4);">
+          <div class="card" style="padding:var(--space-3) var(--space-4);">
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Total Entries</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;margin-top:var(--space-1);">${total}</div>
+          </div>
+          <div class="card" style="padding:var(--space-3) var(--space-4);">
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Purgeable</div>
+            <div style="font-size:var(--font-size-xl);font-weight:700;color:${purgeable > 0 ? 'var(--warning)' : 'var(--text-primary)'};margin-top:var(--space-1);">${purgeable}</div>
+          </div>
+          <div class="card" style="padding:var(--space-3) var(--space-4);">
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Oldest Entry</div>
+            <div style="font-size:var(--font-size-xs);font-weight:600;margin-top:var(--space-1);color:var(--text-muted);">${escapeHtml(oldest)}</div>
+          </div>
+          <div class="card" style="padding:var(--space-3) var(--space-4);">
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Newest Entry</div>
+            <div style="font-size:var(--font-size-xs);font-weight:600;margin-top:var(--space-1);color:var(--text-muted);">${escapeHtml(newest)}</div>
+          </div>
+        </div>
+        <div class="card" style="padding:var(--space-5);margin-bottom:var(--space-4);">
+          <div style="font-size:var(--font-size-sm);font-weight:700;margin-bottom:var(--space-3);">Retention Policy</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:var(--space-3);align-items:end;">
+            <div>
+              <label style="font-size:var(--font-size-xs);color:var(--text-muted);display:block;margin-bottom:var(--space-1);">Retention Days (≥ 1)</label>
+              <input type="number" id="retention-days" value="${policy.retentionDays || 90}" min="1" max="3650" style="width:100%;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-md);font-size:var(--font-size-sm);" />
+            </div>
+            <div>
+              <label style="font-size:var(--font-size-xs);color:var(--text-muted);display:block;margin-bottom:var(--space-1);">Max Entries (≥ 100)</label>
+              <input type="number" id="retention-max-entries" value="${policy.maxEntries || 10000}" min="100" max="1000000" style="width:100%;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-md);font-size:var(--font-size-sm);" />
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-1);">
+              <label style="font-size:var(--font-size-xs);color:var(--text-muted);">Archive</label>
+              <label style="display:flex;align-items:center;cursor:pointer;">
+                <input type="checkbox" id="retention-archive" ${archiveChecked} style="width:18px;height:18px;cursor:pointer;" />
+              </label>
+            </div>
+            <button class="btn btn-primary" id="retention-save" type="button" ${this.retentionSaving ? 'disabled' : ''} style="height:38px;">
+              ${this.retentionSaving ? '<span class="loading-spinner" style="width:14px;height:14px;"></span>' : 'Save Policy'}
+            </button>
+          </div>
+        </div>
+        <div class="card" style="padding:var(--space-5);border-left:3px solid var(--warning);">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:var(--font-size-sm);font-weight:700;color:var(--warning);">⚠ Manual Purge</div>
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-1);">Removes ${purgeable} entries older than ${policy.retentionDays || 90} days and re-links the hash chain. This action cannot be undone.</div>
+            </div>
+            <button class="btn btn-secondary" id="retention-purge-btn" type="button" ${this.retentionPurging || purgeable === 0 ? 'disabled' : ''} style="border-color:var(--warning);color:var(--warning);">
+              ${this.retentionPurging ? '<span class="loading-spinner" style="width:14px;height:14px;"></span>' : 'Execute Purge'}
+            </button>
+          </div>
+        </div>
+        ${this.retentionConfirmPurge ? `
+          <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;" id="retention-purge-modal">
+            <div class="card" style="padding:var(--space-6);max-width:480px;border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);">
+              <div style="font-size:var(--font-size-base);font-weight:700;margin-bottom:var(--space-3);color:var(--danger);">⚠ Confirm Purge</div>
+              <p style="font-size:var(--font-size-sm);color:var(--text-secondary);margin-bottom:var(--space-4);">
+                You are about to permanently remove <strong>${purgeable}</strong> audit entries older than <strong>${policy.retentionDays || 90} days</strong>.
+                The remaining hash chain will be re-linked. ${policy.archive ? 'Purged entries will be archived.' : 'This action cannot be undone.'}
+              </p>
+              <div style="display:flex;gap:var(--space-3);justify-content:flex-end;">
+                <button class="btn btn-ghost" id="retention-purge-cancel" type="button">Cancel</button>
+                <button class="btn btn-primary" id="retention-purge-confirm" type="button" ${this.retentionPurging ? 'disabled' : ''} style="background:var(--danger);">
+                  ${this.retentionPurging ? '<span class="loading-spinner" style="width:14px;height:14px;"></span>' : 'Confirm Purge'}
+                </button>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+      </div>`;
+    }
+    async loadRetention() {
+        this.retentionLoading = true;
+        this.retentionError = null;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            const [configResp, statsResp] = await Promise.all([
+                fetchRetentionConfig(authHeaders),
+                fetchRetentionStats(authHeaders),
+            ]);
+            this.retentionConfig = configResp.policy;
+            this.retentionStats = statsResp;
+        } catch (err) {
+            this.retentionError = err.message;
+        } finally {
+            this.retentionLoading = false;
+        }
+        if (this._container) this.app.render(this._container);
+    }
+    async handleSavePolicy() {
+        const daysInput = document.getElementById('retention-days');
+        const maxInput = document.getElementById('retention-max-entries');
+        const archiveInput = document.getElementById('retention-archive');
+        if (!daysInput || !maxInput) return;
+        const retentionDays = parseInt(daysInput.value, 10);
+        const maxEntries = parseInt(maxInput.value, 10);
+        const archive = archiveInput ? archiveInput.checked : false;
+        if (isNaN(retentionDays) || retentionDays < 1) {
+            showToast('Retention days must be at least 1', 'error');
+            return;
+        }
+        if (isNaN(maxEntries) || maxEntries < 100) {
+            showToast('Max entries must be at least 100', 'error');
+            return;
+        }
+        this.retentionSaving = true;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            await updateRetentionConfig({ retentionDays, maxEntries, archive }, authHeaders);
+            showToast('Retention policy updated', 'success');
+            await this.loadRetention();
+        } catch (err) {
+            showToast('Policy update failed: ' + err.message, 'error');
+        } finally {
+            this.retentionSaving = false;
+            if (this._container) this.app.render(this._container);
+        }
+    }
+    showPurgeConfirmation() {
+        this.retentionConfirmPurge = true;
+        if (this._container) this.app.render(this._container);
+    }
+    cancelPurge() {
+        this.retentionConfirmPurge = false;
+        if (this._container) this.app.render(this._container);
+    }
+    async handlePurge() {
+        this.retentionPurging = true;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            const result = await triggerRetentionPurge(authHeaders);
+            if (result.purged === 0) {
+                showToast('Nothing to purge — no entries older than retention period', 'info');
+            } else {
+                showToast(`Purged ${result.purged} entries (${result.archived} archived, ${result.remaining} remaining)`, 'success');
+            }
+            this.retentionConfirmPurge = false;
+            await this.loadRetention();
+        } catch (err) {
+            showToast('Purge failed: ' + err.message, 'error');
+        } finally {
+            this.retentionPurging = false;
+            if (this._container) this.app.render(this._container);
+        }
+    }
     renderQuarantineInspector() {
         if (!this.app.isCurrentUserAdmin || !this.app.isCurrentUserAdmin()) return '';
         if (this.quarantineLoading) {
@@ -902,6 +1092,8 @@ export class SecurityView {
       ${this.renderKeyManagementSection()}
 
       ${this.renderQuarantineInspector()}
+
+      ${this.renderRetentionSection()}
     `;
         (_d = el.querySelector('#security-run-scan')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.runScan(this._container));
         (_e = el.querySelector('#security-export-json')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.exportResults());
@@ -983,6 +1175,19 @@ export class SecurityView {
                 if (releaseBtn) releaseBtn.addEventListener('click', () => this.handleReleaseKey(entry.apiKey));
             }
         }
+        // Retention section button listeners
+        const _rRefresh = el.querySelector('#retention-refresh');
+        const _rRetry = el.querySelector('#retention-retry');
+        const _rSave = el.querySelector('#retention-save');
+        const _rPurgeBtn = el.querySelector('#retention-purge-btn');
+        const _rPurgeCancel = el.querySelector('#retention-purge-cancel');
+        const _rPurgeConfirm = el.querySelector('#retention-purge-confirm');
+        if (_rRefresh) _rRefresh.addEventListener('click', () => this.loadRetention());
+        if (_rRetry) _rRetry.addEventListener('click', () => this.loadRetention());
+        if (_rSave) _rSave.addEventListener('click', () => this.handleSavePolicy());
+        if (_rPurgeBtn) _rPurgeBtn.addEventListener('click', () => this.showPurgeConfirmation());
+        if (_rPurgeCancel) _rPurgeCancel.addEventListener('click', () => this.cancelPurge());
+        if (_rPurgeConfirm) _rPurgeConfirm.addEventListener('click', () => this.handlePurge());
         // Quarantine inspector button listeners
         const _qRefresh = el.querySelector('#quarantine-refresh');
         const _qRetry = el.querySelector('#quarantine-retry');
@@ -1083,6 +1288,7 @@ export class SecurityView {
                 void this.loadQuarantine();
                 void this.loadInterdiction();
                 this.startInterdictionPolling();
+                void this.loadRetention();
             }
             return;
         }
@@ -1093,6 +1299,7 @@ export class SecurityView {
             void this.loadQuarantine();
             void this.loadInterdiction();
             this.startInterdictionPolling();
+            void this.loadRetention();
         }
     }
 }
