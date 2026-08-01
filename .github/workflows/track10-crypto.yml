@@ -91,24 +91,7 @@ jobs:
       - name: Install monorepo dependencies
         run: npm ci
 
-      - name: Install unrs-resolver native bindings (Jest 30 requirement)
-        working-directory: ai-platform
-        run: |
-          # Jest 30 uses unrs-resolver which requires platform-specific native
-          # binaries as optional dependencies. If these are missing, Jest fails
-          # with "Module not found" errors for setupFilesAfterEnv, transform, etc.
-          # See: https://github.com/jestjs/jest/issues/15923
-          echo "Checking for native binding files..."
-          find node_modules/@unrs -name "*.node" -o -name "*.so" 2>/dev/null || echo "No @unrs native files found"
-          ls -la node_modules/@unrs/resolver-binding-linux-x64-gnu/ 2>/dev/null || echo "linux-x64-gnu binding dir NOT FOUND"
-          # Try to install the correct platform binding
-          npm install @unrs/resolver-binding-linux-x64-gnu --no-save 2>/dev/null || true
-          echo "After install:"
-          find node_modules/@unrs -name "*.node" -o -name "*.so" 2>/dev/null || echo "Still no @unrs native files found"
-          # Verify the native binding works
-          node -e "const r=require('unrs-resolver');const res=new r.ResolverFactory({extensions:['.js','.cjs','.json']});const result=res.sync('$(pwd)','./tests/setup.js');console.log('Resolve test:',JSON.stringify(result))" 2>&1 || echo "unrs-resolver sync failed"
-
-      - name: Install pkcs11js (native, CI-only)
+      - name: Install pkcs11js and unrs-resolver native bindings (CI-only)
         working-directory: ai-platform
         run: |
           # pkcs11js is an optional native dependency not in package.json.
@@ -116,6 +99,19 @@ jobs:
           # local development environments without PKCS#11.
           npm install --no-save pkcs11js
           node -e "require('pkcs11js'); console.log('pkcs11js loaded successfully')"
+
+          # Jest 30 uses unrs-resolver which requires platform-specific native
+          # binaries as optional dependencies. If these are missing, Jest fails
+          # with "Module not found" errors for setupFilesAfterEnv, transform, etc.
+          # See: https://github.com/jestjs/jest/issues/15923
+          #
+          # IMPORTANT: This MUST be installed AFTER pkcs11js because
+          # `npm install --no-save pkcs11js` can remove other --no-save packages
+          # from node_modules. Installing the unrs binding last ensures it
+          # survives into the Jest run.
+          npm install --no-save @unrs/resolver-binding-linux-x64-gnu 2>/dev/null || true
+          # Verify the native binding works
+          node -e "const r=require('unrs-resolver');const res=new r.ResolverFactory({extensions:['.js','.cjs','.json']});const result=res.sync('$(pwd)','./tests/setup.js');console.log('unrs-resolver OK, resolved:',JSON.stringify(result))" 2>&1 || echo "unrs-resolver sync failed"
 
       - name: Run AES-KW vector suite (RFC 3394 + RFC 5649)
         working-directory: ai-platform
