@@ -1,0 +1,16 @@
+{
+  "canary_parameters": {
+    "salt": "simplebeacon:canary:v1",
+    "default_enabled": false,
+    "stages": [0, 5, 25, 50, 100],
+    "stage_duration_min": 30,
+    "deprecation_window_days": 14
+  },
+  "rollback_thresholds": {
+    "connection_drop_rate_spike_pct": 5.0,
+    "handshake_failure_rate_pct": 10.0,
+    "downgrade_rejected_rate_pct": 5.0,
+    "heartbeat_timeout_multiplier": 2.0,
+    "single_node_failure_max_pct": 50.0
+  }
+}

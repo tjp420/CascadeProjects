@@ -352,3 +352,91 @@
 ## Approval
 
 - [x] User approved Track 8 plan
+
+---
+
+# test_plan.md — Milestone 4: Production Rollout & Canary Verification
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| Feature / change | Milestone 4: Promote `CLUSTER_QUANTUM_HYBRID` to default via canary rollout |
+| Author (Builder) | Devin |
+| Date | 2026-08-01 |
+| Branch | main |
+| Packages touched | ai-platform |
+
+## Scope
+
+### Files in scope
+
+- `ai-platform/server/config/quantum-hybrid-canary.json` (new)
+- `ai-platform/server/lib/quantum-hybrid-rollout.cjs` (new)
+- `ai-platform/server/lib/__tests__/quantum-hybrid-rollout.test.cjs` (new)
+- `ai-platform/server/lib/cluster-keyring-sync.cjs` (read-only consumer)
+- `.simplebeacon/qa/test_plan.md` (this section)
+
+### APIs / interfaces
+
+- `shouldEnableHybrid(nodeId, config)` — deterministic canary allocation
+- `checkRollback(metrics, thresholds)` — circuit-breaker decision
+- `resolveDeprecationState(rolloutStartTime, deprecationWindowDays)` — `QUANTUM_DEGRADE_ALLOWED` logic
+
+## Design decisions
+
+- **Canary Selection:** Deterministic `MurmurHash3(NODE_ID + salt) % 100` percentage allocation, plus an explicit allowlist override.
+- **Dual-Boot:** `QUANTUM_DEGRADE_ALLOWED=1` during the 14-day deprecation window; after that, `QUANTUM_DEGRADE_ALLOWED=0` for the canary stage.
+- **Rollback:** Automated rollback resets `CLUSTER_QUANTUM_HYBRID_PERCENT` to `0` and emits `quantum_hybrid_rollback` when any threshold is breached.
+
+---
+
+## Level 1 — Deterministic (Validator MUST run all)
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
+| L1-02 | Rollout unit tests pass | `cd ai-platform && npx jest --config jest.config.cjs quantum-hybrid-rollout` | [ ] |
+| L1-03 | Existing hybrid KEM suites still pass | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem-pfs hybrid-kem-mitm hybrid-kem-handshake` | [ ] |
+| L1-04 | Existing cluster keyring tests still pass | `cd ai-platform && npx jest --config jest.config.cjs cluster-keyring-sync` | [ ] |
+| L1-05 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate` | [ ] |
+| L1-06 | No secrets in diff | `git diff --cached` | [ ] |
+
+---
+
+## Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | Hash allocation determinism | Call `shouldEnableHybrid` with same `NODE_ID` twice | Same boolean result across calls | [ ] |
+| L2-02 | Allowlist override | Set `CLUSTER_QUANTUM_HYBRID_NODE_LIST` to include a node | Node is enrolled regardless of percent | [ ] |
+| L2-03 | JSON config parsing | Load `quantum-hybrid-canary.json` | All fields parse and defaults are sane | [ ] |
+| L2-04 | Connection drop spike rollback | Feed `metrics` with 6% drop spike | `checkRollback` returns `shouldRollback: true` | [ ] |
+| L2-05 | Handshake failure rollback | Feed 12% handshake failure rate | `checkRollback` resets allocation to 0 | [ ] |
+| L2-06 | Rollback audit event | Trigger rollback | `quantum_hybrid_rollback` event is recorded | [ ] |
+
+---
+
+## Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | Deprecation window is active | `resolveDeprecationState` before `rolloutStartTime + 14 days` | Returns `QUANTUM_DEGRADE_ALLOWED=1` | [ ] |
+| L3-02 | Deprecation window expired | `resolveDeprecationState` after `rolloutStartTime + 14 days` | Returns `QUANTUM_DEGRADE_ALLOWED=0` | [ ] |
+| L3-03 | Zero percent disables canary | `CLUSTER_QUANTUM_HYBRID_PERCENT=0` with no allowlist | `shouldEnableHybrid` returns `false` | [ ] |
+
+---
+
+## Security
+
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | A canary node cannot coerce the cluster into a non-hybrid path after deprecation expires | [ ] |
+| S-02 | Rollback cannot be triggered by a single noisy node unless it exceeds the 50% per-node threshold | [ ] |
+| S-03 | Allocation hashing is deterministic and not gameable by choosing `NODE_ID` | [ ] |
+
+---
+
+## Approval
+
+- [x] User approved Milestone 4 plan
