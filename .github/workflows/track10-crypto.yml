@@ -99,6 +99,8 @@ jobs:
           # local development environments without PKCS#11.
           npm install --no-save pkcs11js
           node -e "require('pkcs11js'); console.log('pkcs11js loaded successfully')"
+          # Verify tests/setup.js still exists after npm install
+          test -f tests/setup.js && echo "tests/setup.js EXISTS" || echo "tests/setup.js MISSING"
 
       - name: Run AES-KW vector suite (RFC 3394 + RFC 5649)
         working-directory: ai-platform
