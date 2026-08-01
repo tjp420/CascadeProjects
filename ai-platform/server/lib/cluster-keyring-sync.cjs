@@ -54,13 +54,38 @@ const EVENT_TYPES = {
   STEK_ROTATED: 'STEK_ROTATED',
   AUDIT_PERSISTENCE_FAILURE: 'AUDIT_PERSISTENCE_FAILURE',
   RESUMPTION_TICKET_ISSUED: 'RESUMPTION_TICKET_ISSUED',
+  TELEMETRY_SATURATION: 'TELEMETRY_SATURATION',
+  AUDIT_QUERY_THROTTLED: 'AUDIT_QUERY_THROTTLED',
 };
 
 const _events = [];
+const _eventsById = new Map();
+const _indexByType = {};
+const _indexByNode = {};
 const MAX_EVENTS = 1000;
 
 function _generateEventId() {
   return 'evt-' + crypto.randomBytes(4).toString('hex') + '-' + crypto.randomBytes(2).toString('hex');
+}
+
+function _updateIndexes(event) {
+  _eventsById.set(event.eventId, event);
+  (_indexByType[event.eventType] || (_indexByType[event.eventType] = [])).push(event.eventId);
+  (_indexByNode[event.node] || (_indexByNode[event.node] = [])).push(event.eventId);
+}
+
+function _removeFromIndexes(event) {
+  _eventsById.delete(event.eventId);
+  const typeArr = _indexByType[event.eventType];
+  if (typeArr) {
+    const i = typeArr.indexOf(event.eventId);
+    if (i !== -1) typeArr.splice(i, 1);
+  }
+  const nodeArr = _indexByNode[event.node];
+  if (nodeArr) {
+    const i = nodeArr.indexOf(event.eventId);
+    if (i !== -1) nodeArr.splice(i, 1);
+  }
 }
 
 function _recordEvent(eventType, node, details) {
@@ -72,8 +97,14 @@ function _recordEvent(eventType, node, details) {
     details: details || {},
   };
   _events.push(event);
+  _updateIndexes(event);
   if (_events.length > MAX_EVENTS) {
-    _events.splice(0, _events.length - MAX_EVENTS);
+    const drop = _events.length - MAX_EVENTS;
+    const dropped = _events.splice(0, drop);
+    for (const e of dropped) _removeFromIndexes(e);
+    if (eventType !== EVENT_TYPES.TELEMETRY_SATURATION && drop > 0) {
+      _recordEvent(EVENT_TYPES.TELEMETRY_SATURATION, NODE_ID, { dropped: drop, max: MAX_EVENTS });
+    }
   }
   return event;
 }
@@ -100,16 +131,31 @@ function queryEvents(filters) {
   // L3-02 / S-03: unbounded queries are automatically bounded to the last 24h
   // to prevent memory exhaustion. The caller can still request broader windows
   // by providing startDate/endDate, or narrow by eventType.
-  const hasBound = startTs !== null || endTs !== null || !!filters.eventType;
-  if (!hasBound) {
+  const hasExplicitBound = startTs !== null || endTs !== null || !!filters.eventType;
+  if (!hasExplicitBound) {
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     startTs = oneDayAgo;
     endTs = null; // up to now
   }
 
-  let events = [..._events];
-  if (filters.eventType) events = events.filter((e) => e.eventType === filters.eventType);
-  if (filters.node) events = events.filter((e) => e.node === filters.node);
+  // Use secondary indexes to avoid full linear scans.
+  let candidateIds;
+  if (filters.eventType && filters.node) {
+    const typeIds = _indexByType[filters.eventType] || [];
+    const nodeIds = _indexByNode[filters.node] || [];
+    const nodeSet = new Set(nodeIds);
+    candidateIds = typeIds.filter((id) => nodeSet.has(id));
+  } else if (filters.eventType) {
+    candidateIds = _indexByType[filters.eventType] || [];
+  } else if (filters.node) {
+    candidateIds = _indexByNode[filters.node] || [];
+  } else {
+    // Fallback: the events array is ordered chronologically ascending, which is
+    // already sufficient for short time windows and small MAX_EVENTS values.
+    candidateIds = _events.map((e) => e.eventId);
+  }
+
+  let events = candidateIds.map((id) => _eventsById.get(id)).filter(Boolean);
   if (startTs !== null) {
     events = events.filter((e) => new Date(e.timestamp).getTime() > startTs);
   }
@@ -120,7 +166,14 @@ function queryEvents(filters) {
   const total = events.length;
   const limit = Math.min(filters.limit || AUDIT_QUERY_MAX_ROWS, AUDIT_QUERY_MAX_ROWS);
   const offset = Math.max(filters.offset || 0, 0);
-  return { events: events.slice(offset, offset + limit), total, limit, offset };
+  // Throttle only when the system cap (AUDIT_QUERY_MAX_ROWS) forced a cut, not
+  // when the caller explicitly paginated with a smaller limit.
+  const requestedLimit = filters.limit;
+  const throttled = total > limit && (requestedLimit === undefined || requestedLimit >= AUDIT_QUERY_MAX_ROWS);
+  if (throttled) {
+    _recordEvent(EVENT_TYPES.AUDIT_QUERY_THROTTLED, NODE_ID, { requestedLimit: limit, matched: total, bounded: !hasExplicitBound });
+  }
+  return { events: events.slice(offset, offset + limit), total, limit, offset, throttled };
 }
 
 function getEventStats() {
@@ -135,6 +188,9 @@ function getEventStats() {
 
 function _resetEvents() {
   _events.length = 0;
+  _eventsById.clear();
+  for (const k of Object.keys(_indexByType)) delete _indexByType[k];
+  for (const k of Object.keys(_indexByNode)) delete _indexByNode[k];
   // Keep the idempotency watermark in sync with keyring/event resets so a
   // fresh keyring (e.g. via keyRotationStore._reset in tests or operator
   // re-keying) can accept a new commit without being rejected as "stale".

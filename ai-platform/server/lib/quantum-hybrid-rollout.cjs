@@ -10,6 +10,15 @@
  * @module quantum-hybrid-rollout
  */
 
+
+// Best-effort: try to record into the cluster-wide timeline (if available)
+let _clusterSync = null;
+try {
+  _clusterSync = require('./cluster-keyring-sync.cjs');
+} catch (e) {
+  _clusterSync = null;
+}
+
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -160,7 +169,34 @@ function checkRollback(metrics, config) {
 
   const shouldRollback = reasons.length > 0;
   if (shouldRollback) {
-    _recordTelemetry({ reasons });
+    const details = { reasons, metricsSnapshot: metrics, triggeredAt: Date.now() };
+    try {
+      if (_clusterSync && typeof _clusterSync.recordTelemetry === 'function') {
+        const evtType = (_clusterSync.EVENT_TYPES && _clusterSync.EVENT_TYPES.QUANTUM_ROLLBACK) || ROLLOUT_EVENT;
+        _clusterSync.recordTelemetry(evtType, null, details);
+      }
+      // Determine severity for hybrid enforcement
+      let hard = false;
+      // Severe if metrics exceed 2x configured thresholds
+      if ((metrics.connectionDropRatePct || 0) - (metrics.baselineConnectionDropRatePct || 0) > ((th.connection_drop_rate_spike_pct || 5.0) * 2)) {
+        hard = true;
+      }
+      if ((metrics.handshakeFailureRatePct || 0) > ((th.handshake_failure_rate_pct || 10.0) * 2)) {
+        hard = true;
+      }
+      const perNode2 = metrics.perNodeHandshakeFailurePct || {};
+      for (const [node, rate] of Object.entries(perNode2)) {
+        if (rate > ((th.single_node_failure_max_pct || 50.0) * 2)) {
+          hard = true; break;
+        }
+      }
+
+      if (_clusterSync && typeof _clusterSync.tripCanaryCircuit === 'function') {
+        _clusterSync.tripCanaryCircuit(hard);
+      }
+    } catch (e) {
+      // swallow telemetry errors — rollback decision must not fail
+    }
   }
   return { shouldRollback, reasons };
 }
