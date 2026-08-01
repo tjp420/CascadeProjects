@@ -59,7 +59,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: ai-platform/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install system dependencies (SoftHSM2 + build tools)
         run: |
