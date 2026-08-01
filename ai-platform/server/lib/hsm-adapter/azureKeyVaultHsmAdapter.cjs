@@ -137,7 +137,13 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
     this.retryOptions = options.retryOptions || { maxRetries: 3, retryDelayInMs: 800 };
     this._credential = null;
     this._keyClient = null;
-    this._cryptoClients = new Map(); // kekId -> CryptographyClient
+    // LRU-bounded cache: CryptographyClient instances keyed by "tenantId:kekId".
+    // Prevents unbounded memory growth in multi-tenant scenarios with many KEKs.
+    this._cryptoClients = new Map();
+    this._cryptoClientMaxSize = options.cryptoClientMaxSize || 256;
+    this._cryptoClientCacheHits = 0;
+    this._cryptoClientCacheMisses = 0;
+    this._cryptoClientEvictions = 0;
     this._auditInterceptor = null;
 
     // Stage 3: Circuit breaker for resilience against Azure outages
@@ -199,16 +205,55 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
    */
   async _getCryptoClient(tenantId, kekId) {
     const cacheKey = `${tenantId}:${kekId}`;
+
+    // Cache hit: move to end of Map (most-recently-used) for LRU eviction
     if (this._cryptoClients.has(cacheKey)) {
-      return this._cryptoClients.get(cacheKey);
+      const client = this._cryptoClients.get(cacheKey);
+      // Delete and re-insert to mark as most-recently-used
+      this._cryptoClients.delete(cacheKey);
+      this._cryptoClients.set(cacheKey, client);
+      this._cryptoClientCacheHits++;
+      return client;
     }
+
+    // Cache miss: evict oldest entry if at capacity
+    if (this._cryptoClients.size >= this._cryptoClientMaxSize) {
+      const oldestKey = this._cryptoClients.keys().next().value;
+      this._cryptoClients.delete(oldestKey);
+      this._cryptoClientEvictions++;
+    }
+
     const keyName = this._buildKeyName(tenantId, kekId);
     const keyUrl = `${this.vaultUrl}/keys/${keyName}`;
     const client = new _CryptographyClient(keyUrl, this._credential, {
       retryOptions: this.retryOptions,
     });
     this._cryptoClients.set(cacheKey, client);
+    this._cryptoClientCacheMisses++;
     return client;
+  }
+
+  /**
+   * Get cache statistics for observability.
+   * @returns {object} {size, maxSize, hits, misses, evictions, hitRate}
+   */
+  getCryptoClientCacheStats() {
+    const total = this._cryptoClientCacheHits + this._cryptoClientCacheMisses;
+    return {
+      size: this._cryptoClients.size,
+      maxSize: this._cryptoClientMaxSize,
+      hits: this._cryptoClientCacheHits,
+      misses: this._cryptoClientCacheMisses,
+      evictions: this._cryptoClientEvictions,
+      hitRate: total === 0 ? 0 : this._cryptoClientCacheHits / total,
+    };
+  }
+
+  /**
+   * Clear the crypto client cache. Useful for testing or forced reconnection.
+   */
+  clearCryptoClientCache() {
+    this._cryptoClients.clear();
   }
 
   // ── Required BaseHsmAdapter hooks ──────────────────────────────
