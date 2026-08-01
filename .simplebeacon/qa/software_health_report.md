@@ -44,8 +44,8 @@ No defects found during the adversarial pass.
 | ID | Area | Suggestion | Effort |
 |----|------|------------|--------|
 | E-01 | performance | The AES-KW Vector 6 256/256 wrap path is ~83–85 µs/op. This is acceptable for keyring boot, but should be baselined before HSM production rollouts. | S |
-| E-02 | observability | `exportKeyring` / `importKeyring` currently throw generic `Error`. Consider mapping serializer failures back to `HsmAdapterError` codes for callers that rely on `error.code`. | S |
-| E-03 | documentation | T10K binary envelope spec and release notes are not yet written; planned as next phase. | M |
+| E-02 | observability | ~~`exportKeyring` / `importKeyring` currently throw generic `Error`. Consider mapping serializer failures back to `HsmAdapterError` codes for callers that rely on `error.code`.~~ **Resolved in commit `64f92f8f`**. | S |
+| E-03 | documentation | ~~T10K binary envelope spec and release notes are not yet written; planned as next phase.~~ **Resolved in commit `068df6d2`** (`ai-platform/docs/specs/t10k-envelope-spec.md`). | M |
 
 ---
 
