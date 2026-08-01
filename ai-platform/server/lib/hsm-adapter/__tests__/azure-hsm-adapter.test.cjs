@@ -432,4 +432,130 @@ describe('AzureKeyVaultHsmAdapter', () => {
       expect(keysB.some((k) => k.kekId === kekA)).toBe(false);
     });
   });
+
+  describe('error mapping (_mapAzureError)', () => {
+    /**
+     * Create an adapter whose mock CryptographyClient throws the given error
+     * on encrypt(). This exercises the real _wrap -> _mapAzureError path.
+     */
+    function createAdapterWithFailingEncrypt(azureErr) {
+      const adapter = createAdapter();
+      adapter._initialize = async function () {
+        this._credential = new MockCredential();
+        this._keyClient = new MockKeyClient(this.vaultUrl);
+        this._auditInterceptor = new (require('../azure-audit-interceptor.cjs').AuditInterceptor)(
+          this.logger,
+          this.providerName
+        );
+      };
+      adapter._getCryptoClient = async function (tenantId, kekId) {
+        const client = {
+          encrypt: async () => { throw azureErr; },
+          decrypt: async () => { throw azureErr; },
+        };
+        return client;
+      };
+      return adapter;
+    }
+
+    test('maps 429 to RATE_LIMITED', async () => {
+      const err = new Error('Too many requests');
+      err.statusCode = 429;
+      err.code = 'TooManyRequests';
+      const adapter = createAdapterWithFailingEncrypt(err);
+      await adapter.initialize();
+      await expect(adapter.wrap('t1', 'k1', Buffer.alloc(32))).rejects.toMatchObject({
+        code: 'RATE_LIMITED',
+      });
+    });
+
+    test('maps REQUEST_SEND_ERROR to CONNECTION_FAILURE', async () => {
+      const err = new Error('Failed to send request');
+      err.code = 'REQUEST_SEND_ERROR';
+      const adapter = createAdapterWithFailingEncrypt(err);
+      await adapter.initialize();
+      await expect(adapter.wrap('t1', 'k1', Buffer.alloc(32))).rejects.toMatchObject({
+        code: 'CONNECTION_FAILURE',
+      });
+    });
+
+    test('maps PARSE_ERROR to CONNECTION_FAILURE', async () => {
+      const err = new Error('Malformed response');
+      err.code = 'PARSE_ERROR';
+      err.statusCode = 200;
+      const adapter = createAdapterWithFailingEncrypt(err);
+      await adapter.initialize();
+      await expect(adapter.unwrap('t1', 'k1', Buffer.alloc(40))).rejects.toMatchObject({
+        code: 'CONNECTION_FAILURE',
+      });
+    });
+
+    test('maps 503 to CONNECTION_FAILURE', async () => {
+      const err = new Error('Service unavailable');
+      err.statusCode = 503;
+      const adapter = createAdapterWithFailingEncrypt(err);
+      await adapter.initialize();
+      await expect(adapter.wrap('t1', 'k1', Buffer.alloc(32))).rejects.toMatchObject({
+        code: 'CONNECTION_FAILURE',
+      });
+    });
+
+    test('maps 409 to KEK_EXISTS on createKEK', async () => {
+      const adapter = createAdapter();
+      adapter._initialize = async function () {
+        this._credential = new MockCredential();
+        this._keyClient = {
+          createKey: async () => {
+            const err = new Error('Conflict');
+            err.statusCode = 409;
+            err.details = { code: 'Conflict', message: 'Key already exists' };
+            throw err;
+          },
+          listPropertiesOfKeys: async function* () {},
+        };
+        this._auditInterceptor = new (require('../azure-audit-interceptor.cjs').AuditInterceptor)(
+          this.logger,
+          this.providerName
+        );
+      };
+      await adapter.initialize();
+      await expect(adapter.createKEK('t1')).rejects.toMatchObject({
+        code: 'KEK_EXISTS',
+      });
+    });
+
+    test('includes Azure service code from details in message', async () => {
+      const err = new Error('Resource not found');
+      err.statusCode = 404;
+      err.details = { code: 'KeyNotFound', message: 'The key was not found' };
+      const adapter = createAdapterWithFailingEncrypt(err);
+      await adapter.initialize();
+      try {
+        await adapter.wrap('t1', 'k1', Buffer.alloc(32));
+        fail('should have thrown');
+      } catch (caught) {
+        expect(caught.code).toBe('KEK_NOT_FOUND');
+        expect(caught.message).toContain('KeyNotFound');
+      }
+    });
+
+    test('maps ECONNREFUSED to CONNECTION_FAILURE', async () => {
+      const err = new Error('connect ECONNREFUSED');
+      err.code = 'ECONNREFUSED';
+      const adapter = createAdapterWithFailingEncrypt(err);
+      await adapter.initialize();
+      await expect(adapter.wrap('t1', 'k1', Buffer.alloc(32))).rejects.toMatchObject({
+        code: 'CONNECTION_FAILURE',
+      });
+    });
+
+    test('falls through to fallback code for unknown errors', async () => {
+      const err = new Error('Something weird happened');
+      const adapter = createAdapterWithFailingEncrypt(err);
+      await adapter.initialize();
+      await expect(adapter.wrap('t1', 'k1', Buffer.alloc(32))).rejects.toMatchObject({
+        code: 'WRAP_FAILED',
+      });
+    });
+  });
 });

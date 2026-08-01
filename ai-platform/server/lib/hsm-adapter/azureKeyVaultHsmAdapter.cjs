@@ -40,6 +40,61 @@ async function loadAzureSDKs() {
 }
 
 /**
+ * Map an Azure SDK RestError to the appropriate HsmAdapterError code.
+ *
+ * Azure SDK throws RestError with:
+ *   - statusCode: HTTP status (401, 403, 404, 409, 429, 5xx)
+ *   - code: 'REQUEST_SEND_ERROR' (network failure) | 'PARSE_ERROR' | undefined
+ *   - details.code: Azure service code ('KeyNotFound', 'Forbidden', 'Conflict', ...)
+ *
+ * @param {Error} err - caught error from Azure SDK
+ * @param {string} fallbackCode - HsmAdapterError code if no specific mapping
+ * @param {string} contextMsg - human-readable context for the error message
+ * @returns {HsmAdapterError} mapped error
+ * @private
+ */
+function _mapAzureError(err, fallbackCode, contextMsg) {
+  if (err instanceof HsmAdapterError) return err;
+
+  const statusCode = err.statusCode;
+  const sdkCode = err.code;
+  const azureCode = err.details && err.details.code;
+  const msg = err.message || String(err);
+
+  // Network-level failures (DNS, connection refused, timeout)
+  if (sdkCode === 'REQUEST_SEND_ERROR' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED') {
+    return new HsmAdapterError('CONNECTION_FAILURE', `${contextMsg}: network error (${sdkCode || err.code}): ${msg}`);
+  }
+
+  // Malformed response from server
+  if (sdkCode === 'PARSE_ERROR') {
+    return new HsmAdapterError('CONNECTION_FAILURE', `${contextMsg}: response parse error: ${msg}`);
+  }
+
+  // HTTP status code mapping
+  if (statusCode === 401) {
+    return new HsmAdapterError('AUTH_FAILURE', `${contextMsg}: Azure credential chain exhausted (401): ${msg}`);
+  }
+  if (statusCode === 403) {
+    return new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', `${contextMsg}: missing RBAC role assignment (403): ${msg}`);
+  }
+  if (statusCode === 404) {
+    return new HsmAdapterError('KEK_NOT_FOUND', `${contextMsg}: key not found (404${azureCode ? `, ${azureCode}` : ''}): ${msg}`);
+  }
+  if (statusCode === 409) {
+    return new HsmAdapterError('KEK_EXISTS', `${contextMsg}: key already exists (409${azureCode ? `, ${azureCode}` : ''}): ${msg}`);
+  }
+  if (statusCode === 429) {
+    return new HsmAdapterError('RATE_LIMITED', `${contextMsg}: Azure throttled request (429): ${msg}`);
+  }
+  if (statusCode >= 500) {
+    return new HsmAdapterError('CONNECTION_FAILURE', `${contextMsg}: Azure server error (${statusCode}): ${msg}`);
+  }
+
+  return new HsmAdapterError(fallbackCode, `${contextMsg}: ${azureCode ? `[${azureCode}] ` : ''}${msg}`);
+}
+
+/**
  * Azure Key Vault Managed HSM adapter.
  *
  * @extends BaseHsmAdapter
@@ -152,25 +207,17 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
         // Consume first item to trigger the API call; empty vault is OK
         await iter.next();
       } catch (err) {
-        if (err.statusCode === 401 || err.code === 'Unauthorized') {
-          throw new HsmAdapterError('AUTH_FAILURE', err.message || 'Azure credential chain exhausted');
+        // 401, 403, network errors, and 5xx are fatal during init
+        const mapped = _mapAzureError(err, 'INIT_FAILURE', `HSM init health check at ${this.vaultUrl}`);
+        if (mapped.code === 'AUTH_FAILURE' || mapped.code === 'UNAUTHORIZED_KEY_ACCESS' ||
+            mapped.code === 'CONNECTION_FAILURE' || mapped.code === 'RATE_LIMITED') {
+          throw mapped;
         }
-        if (err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT' || err.statusCode >= 500) {
-          throw new HsmAdapterError('CONNECTION_FAILURE', `Cannot reach Managed HSM at ${this.vaultUrl}: ${err.message}`);
-        }
-        // 403 or other errors may still mean the vault is reachable but RBAC is misconfigured
-        if (err.statusCode === 403) {
-          throw new HsmAdapterError(
-            'UNAUTHORIZED_KEY_ACCESS',
-            'Missing RBAC role assignment on Managed HSM pool'
-          );
-        }
-        // Other errors: log but don't fail (vault may be empty)
+        // Other errors (e.g. empty vault, 404 on list): log but don't fail
         this._log('warn', 'HSM health check returned non-fatal error', { error: err.message });
       }
     } catch (err) {
-      if (err instanceof HsmAdapterError) throw err;
-      throw new HsmAdapterError('INIT_FAILURE', err.message || String(err));
+      throw _mapAzureError(err, 'INIT_FAILURE', 'HSM init');
     }
   }
 
@@ -208,11 +255,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
 
       return kekId;
     } catch (err) {
-      if (err instanceof HsmAdapterError) throw err;
-      if (err.statusCode === 409) {
-        throw new HsmAdapterError('KEK_EXISTS', `Key ${keyName} already exists`);
-      }
-      throw new HsmAdapterError('KEK_GEN_FAILED', err.message || String(err));
+      throw _mapAzureError(err, 'KEK_GEN_FAILED', `createKEK(${tenantId}, ${kekId})`);
     }
   }
 
@@ -241,11 +284,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
 
       return Buffer.from(result.result);
     } catch (err) {
-      if (err instanceof HsmAdapterError) throw err;
-      if (err.statusCode === 404) {
-        throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekId} not found in vault`);
-      }
-      throw new HsmAdapterError('WRAP_FAILED', err.message || String(err));
+      throw _mapAzureError(err, 'WRAP_FAILED', `wrap(${tenantId}, ${kekId})`);
     }
   }
 
@@ -274,11 +313,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
 
       return Buffer.from(result.result);
     } catch (err) {
-      if (err instanceof HsmAdapterError) throw err;
-      if (err.statusCode === 404) {
-        throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekId} not found in vault`);
-      }
-      throw new HsmAdapterError('UNWRAP_FAILED', err.message || String(err));
+      throw _mapAzureError(err, 'UNWRAP_FAILED', `unwrap(${tenantId}, ${kekId})`);
     }
   }
 
@@ -341,7 +376,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
         }
       }
     } catch (err) {
-      throw new HsmAdapterError('LIST_FAILED', err.message || String(err));
+      throw _mapAzureError(err, 'LIST_FAILED', `listKEKs(${tenantId})`);
     }
 
     return results;
@@ -374,10 +409,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
 
       return { keyName, deleted: true, purged: true };
     } catch (err) {
-      if (err.statusCode === 404) {
-        throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekId} not found in vault`);
-      }
-      throw new HsmAdapterError('ZEROIZE_FAILED', err.message || String(err));
+      throw _mapAzureError(err, 'ZEROIZE_FAILED', `zeroize(${tenantId}, ${kekId})`);
     }
   }
 }
