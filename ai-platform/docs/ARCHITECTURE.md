@@ -152,6 +152,10 @@ Key configuration files:
 | Per-Archive Key Derivation (HKDF-SHA256) | CC6.1 (Logical Access) | SC-12, SC-13 (Cryptographic Key Establishment) |
 | Backup Immutability Guard | CC5.2 (Change Management) | CM-3, CP-9 (Configuration Change Control / Backup) |
 | Resumption State Isolation in Backups | CC6.3 (Logical Segregation) | SC-28 (Protection of Information at Rest) |
+| Unified Telemetry Pipeline | CC7.2 (Monitoring) | AU-2, AU-6 (Event Logging / Review) |
+| STEK Rotation Audit Trail | CC7.3 (Evaluation) | AU-12 (Audit Record Generation) |
+| STEK State Exposure (No Raw Bytes) | CC6.1 (Logical Access) | AC-3, SI-12 (Access Enforcement / Information Handling) |
+| Rollback Watchdog Audit Trail | CC7.4 (Resilience) | CP-10, SI-4 (System Recovery / Intrusion Monitoring) |
 
 ## 4. Advanced Defense Automation — IP/Subnet Throttling (Track 5)
 
@@ -209,3 +213,13 @@ Key configuration files:
 * Immutability: When `immutable === true`, `prune()` returns empty and emits a `BACKUP_IMMUTABLE` event, preventing accidental or malicious deletion of backups.
 * Retention: Default retention is 30 days (configurable via `retentionDays`). `prune(beforeTimestamp)` removes archives older than the cutoff and emits `BACKUP_PRUNED` events for each deletion.
 * Pluggable Storage: The coordinator accepts a `storage` adapter with `write`, `read`, `list`, and `delete` methods. An in-memory adapter is provided for tests; production deployments can inject S3, local disk, or any backend.
+
+## 10. Cross-System Integration (Track 11)
+
+* Mechanism: Unified telemetry pipeline that routes subsystem lifecycle events from the STEK rotator, resumption ticket validator, quantum-hybrid rollout watchdog, and backup coordinator into a single queryable timeline via `cluster-keyring-sync.recordTelemetry()`.
+* Telemetry Piping: Each subsystem accepts an `onEvent` callback (or `setTelemetryRecorder` for rollout) that invokes `recordTelemetry(eventType, nodeId, details)`. Events are stored in an in-memory ring buffer capped at 1,000 entries per `queryEvents()` call, with a default 24-hour search window to prevent unbounded queries.
+* STEK Rotation Lifecycle: `rotateStek()` generates a new 32-byte STEK with a 16-byte `stekId`, retires the previous STEK into a validation window, and emits a `STEK_ROTATED` event. Retired STEKs remain queryable via `getStekForValidation(stekId)` for the rotation window duration, allowing outstanding resumption tickets to validate against the prior key material.
+* Resumption Ticket Validation: `validateTicket(ticket, stekById, bloomFilter)` resolves the ticket's `stekId` through the `getStekForValidation` map, supporting both the active and retired STEK windows. This ensures 0-RTT resumption works across rotation boundaries without forcing clients to re-handshake.
+* Rollback Watchdog: `checkRollback(metrics)` evaluates connection drop rates and other SLO signals against baseline thresholds. When `shouldRollback === true`, a `quantum_hybrid_rollback` event is recorded with the triggering reasons array, providing an audit trail for post-rollback analysis.
+* Backup Lifecycle Events: The `BackupCoordinator` constructor accepts an `onEvent(type, details)` callback that emits `BACKUP_CREATED` and `BACKUP_PRUNED` events into the central timeline, correlating backup operations with keyring rotation and rollout events.
+* STEK State Exposure: `getStekState()` returns only metadata (`activeStekId` as a hex string, `retiredCount`) — never the raw STEK bytes — preventing administrative tooling from leaking key material through observability surfaces.
