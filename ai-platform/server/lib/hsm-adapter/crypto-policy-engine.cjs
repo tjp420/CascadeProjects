@@ -44,6 +44,12 @@ const DEFAULT_POLICY = {
     tokenExpiryMs: 300000,
     allowBlinding: true,
   },
+  pqc: {
+    minKemLevel: 512,
+    maxKemLevel: 1024,
+    hybridMode: true,
+    allowedCurves: ['P-256', 'P-384', 'P-521'],
+  },
 };
 
 function _isObject(value) {
@@ -76,6 +82,10 @@ function _mergeWithDefault(tenantPolicy) {
     homomorphic: {
       ...DEFAULT_POLICY.homomorphic,
       ...(tenantPolicy.homomorphic || {}),
+    },
+    pqc: {
+      ...DEFAULT_POLICY.pqc,
+      ...(tenantPolicy.pqc || {}),
     },
     ...tenantPolicy,
   };
@@ -218,6 +228,23 @@ class CryptoPolicyEngine {
     throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `Algorithm ${algorithm} is not recognized by policy`);
   }
 
+  _validatePqc(tenantPolicy, config) {
+    const policy = tenantPolicy.pqc || DEFAULT_POLICY.pqc;
+    const kemLevel = config.kemLevel;
+    if (typeof kemLevel === 'number') {
+      if (kemLevel < policy.minKemLevel || kemLevel > policy.maxKemLevel) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `kemLevel ${kemLevel} is outside allowed [${policy.minKemLevel}, ${policy.maxKemLevel}]`);
+      }
+      const validLevels = [512, 768, 1024];
+      if (!validLevels.includes(kemLevel)) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `kemLevel ${kemLevel} is not a supported PQC level`);
+      }
+    }
+    if (config.hybridMode === true && !policy.hybridMode) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'hybrid PQC mode is not allowed by policy');
+    }
+  }
+
   _validateHomomorphic(tenantPolicy, config) {
     const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
     if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
@@ -310,6 +337,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'homomorphic') {
       this._validateHomomorphic(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqc') {
+      this._validatePqc(tenantPolicy, config);
       return true;
     }
 

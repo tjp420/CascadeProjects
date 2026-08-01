@@ -325,6 +325,58 @@ class BaseHsmAdapter {
     return new EncryptedSearchToken({ logger: this.logger, ...options });
   }
 
+  /**
+   * Generate a PQC hybrid recipient keypair.
+   * @param {string} tenantId
+   * @param {object} [options]
+   * @returns {object}
+   */
+  createPqcHybridKeypair(tenantId, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    const { PqcHybridAdapter } = require('./pqc-hybrid-adapter.cjs');
+    const adapter = new PqcHybridAdapter(tenantId, { logger: this.logger, ...options });
+    return adapter.generateRecipientKeypair();
+  }
+
+  /**
+   * Perform a PQC hybrid encapsulation.
+   * @param {string} tenantId
+   * @param {object} recipient
+   * @param {object} [options]
+   * @returns {object}
+   */
+  hybridEncapsulate(tenantId, recipient, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    const { PqcHybridAdapter } = require('./pqc-hybrid-adapter.cjs');
+    const adapter = new PqcHybridAdapter(tenantId, {
+      logger: this.logger,
+      policyEngine: this._policyEngine,
+      ...options,
+    });
+    return adapter.encapsulate(recipient);
+  }
+
+  /**
+   * Perform a PQC hybrid decapsulation.
+   * @param {string} tenantId
+   * @param {object} payload
+   * @param {object} [options]
+   * @returns {Buffer}
+   */
+  hybridDecapsulate(tenantId, payload, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    const { PqcHybridAdapter } = require('./pqc-hybrid-adapter.cjs');
+    const adapter = new PqcHybridAdapter(tenantId, {
+      logger: this.logger,
+      policyEngine: this._policyEngine,
+      recipient: options.recipient,
+    });
+    return adapter.decapsulate(payload);
+  }
+
   // ── High-level keyring export / import ─────────────────────────────
 
   /**
