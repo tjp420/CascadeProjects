@@ -463,9 +463,22 @@ function decryptForDirectory(stored, orgId, directory) {
     }
   };
 
+  // Try the current derived directory key first
   const key = deriveDirectoryKey(orgId, directory);
   const result = tryDecrypt(key);
-  return result !== null ? result : '';
+  if (result !== null) return result;
+
+  // Fall back to derived directory keys from retired master keys
+  // (supports zero-downtime key rotation for directory-level encryption)
+  const salt = Buffer.from(`sb:dir:${orgId}:${directory}`, 'utf8');
+  for (const oldMasterKey of getDecryptionKeys()) {
+    const oldDerivedKey = crypto.createHmac('sha256', oldMasterKey).update(salt).digest();
+    if (oldDerivedKey.equals(key)) continue;
+    const legacyResult = tryDecrypt(oldDerivedKey);
+    if (legacyResult !== null) return legacyResult;
+  }
+
+  return '';
 }
 
 module.exports = {

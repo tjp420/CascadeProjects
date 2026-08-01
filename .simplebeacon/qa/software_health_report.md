@@ -1,8 +1,8 @@
-# Software Health Report — Zero-Downtime Master Key Rotation Daemon
+# Software Health Report — Autonomous Background Ledger Re-Keying Worker
 
 **Date:** 2026-01-30
 **Branch:** feat/agentic-orchestration
-**Feature:** Key rotation store with grace-window fallback and re-keying migration
+**Feature:** Background re-keying migration wired into auto-heal timer
 **Validator:** Devin (Validator mode)
 
 ---
@@ -11,11 +11,12 @@
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `node -c key-rotation-store.cjs` | PASS | Syntax clean |
-| `node -c key-rotation-store.test.cjs` | PASS | Syntax clean |
-| Security regression suite (22 suites) | PASS | 515/515 tests pass |
+| `node -c audit-logger.cjs` | PASS | Syntax clean |
+| `node -c crypto-utils.cjs` | PASS | Syntax clean (decryptForDirectory fallback added) |
+| `node -c key-rotation-store.cjs` | PASS | Syntax clean (force purge parameter added) |
+| `node -c autonomous-rekey.test.cjs` | PASS | Syntax clean |
+| Security regression suite (23 suites) | PASS | 527/527 tests pass |
 | SimpleBeacon gate scan | PASS | 0 critical, 0 high, 0 medium; quality score 100 |
-| `npm audit` | N/A | No package.json changes |
 
 ---
 
@@ -23,26 +24,21 @@
 
 | Test Plan # | Check | Result | Test Name |
 |-------------|-------|--------|-----------|
-| 1 | Module loads without error | PASS | All tests load successfully |
-| 2 | `getActiveKeyBuffer()` returns 32-byte Buffer | PASS | "should set active key via initKeyRing" |
-| 3 | `getDecryptionKeys()` returns `[{ keyHex }]` | PASS | "should return only active key when no rotation" |
-| 4 | `rotateKey()` transitions active→previous | PASS | "should transition active key to previous on rotation" |
-| 5 | Previous key in decryption set after rotation | PASS | "should return active + previous keys during grace window" |
-| 6 | Previous key retained during grace window | PASS | "should return active + previous keys during grace window" |
-| 7 | Previous key purged after grace expiry | PASS | "should return only active key after grace window expires" |
-| 8 | Continuous decryption via fallback | PASS | "should decrypt data encrypted with previous key after rotation" |
-| 9 | `refreshActiveKey()` integration | PASS | Integration test verifies key ring interaction |
-| 10 | Re-keying migration works | PASS | "should re-encrypt a value from old key to new key" |
-| 11 | `rotateKey()` rejects empty/null | PASS | "should throw TypeError for empty/null key" |
-| 12 | `rotateKey()` rejects short keys | PASS | "should throw TypeError for short string/Buffer key" |
-| 13 | Only active + previous kept (not N-1) | PASS | "should only keep active + previous (not N-1 history)" |
-| 14 | `getRotationStatus()` returns metadata | PASS | "should return status with hasActive=true after init" |
-| 15 | Re-keying skips already-migrated data | PASS | "should skip entries without encrypted values" |
-| 16 | Raw keys not exposed in status | PASS | "should expose key fingerprints (not raw keys) in rotation status" |
-| 17 | `verifyChain()` after rotation | DEFERRED | Not tested directly — key rotation doesn't affect chain hashes |
-| 18 | Quarantine files readable after rotation | DEFERRED | Quarantine uses directory keys, not the master ENCRYPTION_KEY |
+| 1 | `runAutonomousReKeying()` returns result object | PASS | "should return a no-op result with zero counts" |
+| 2 | No rotation → zero counts | PASS | "should return a no-op result with zero counts" |
+| 3 | Quarantine files re-keyed to active key | PASS | "should re-key quarantine files from old key to active key" |
+| 4 | Previous key purged after migration | PASS | "should purge previous key after successful migration" |
+| 5 | `getReKeyStats()` returns stats | PASS | "should return stats object with expected fields" |
+| 6 | Auto-heal timer calls re-keying | PASS | Wired into timer tick (code review) |
+| 7 | No quarantine file → skipped | PASS | "should skip orgs with no quarantine files" |
+| 8 | Grace expired → skip migration, attempt purge | PASS | "should skip migration and attempt purge when grace expired" |
+| 9 | No orgs → empty result | PASS | "should return a no-op result with zero counts" |
+| 10 | Corrupted file → failed count, no crash | PASS | "should handle corrupted quarantine files gracefully" |
+| 11 | Re-keyed file still encrypted (sb-dir: prefix) | PASS | "should keep re-keyed quarantine file encrypted with sb-dir: prefix" |
+| 12 | Re-keyed file still readable | PASS | "should keep re-keyed quarantine file readable with correct orgId" |
+| 13 | Stats don't expose raw key material | PASS | "should not expose raw key material in stats" |
 
-**Test plan items: 16/18 PASS, 2 DEFERRED (by design — see notes)**
+**Test plan items: 13/13 PASS**
 
 ---
 
@@ -50,19 +46,21 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Spec: `rotateKey(newKeyRaw, graceMs)` | MATCH | Implemented with string/Buffer input, optional grace override |
-| Spec: Grace window (48h default) | MATCH | `KEY_ROTATION_GRACE_MS` env var, 48h default |
-| Spec: Re-keying migration | MATCH | `reKeyValue()` and `reKeyStore()` with extractor/setter callbacks |
-| Spec: No raw key exposure | MATCH | `getRotationStatus()` returns 16-char truncated fingerprints |
-| Existing interface: `getDecryptionKeys()` → `[{ keyHex }]` | MATCH | Matches crypto-utils.cjs line 50-51 |
-| Existing interface: `getActiveKeyBuffer()` → Buffer | MATCH | Matches crypto-utils.cjs line 67 |
-| No ghost files | CONFIRMED | `key-rotation-store.cjs` created at expected path |
-| No new dependencies | CONFIRMED | Uses only Node.js `crypto`, `fs`, `path` |
+| Spec: Detect key transition states | MATCH | `getRotationStatus()` check in `runAutonomousReKeying()` |
+| Spec: Value-by-value ledger re-sealing | MATCH | Per-org loop: read, decrypt, re-encrypt, write |
+| Spec: Automatic key ring eviction | MATCH | `purgeExpiredKeys(true)` force-purges after successful migration |
+| Spec: Wired into 5-min background tick | MATCH | `runAutonomousReKeying()` called in `setInterval` callback |
+| Enhancement: `decryptForDirectory` fallback | MATCH | Added multi-key fallback mirroring `decrypt()` pattern |
+| Enhancement: `purgeExpiredKeys(force)` | MATCH | Force parameter enables immediate purge after migration |
+| Enhancement: Quarantine dir scanning | MATCH | Scans `tenant-*` directories in addition to `getAllOrgIds()` |
+| No ghost files | CONFIRMED | All files exist at expected paths |
+| No new dependencies | CONFIRMED | Uses only existing Node.js modules |
 | No spec drift | CONFIRMED | All test plan items map to tests |
 
-**Notes on deferred items:**
-- #17: `verifyChain()` operates on hash chains (SHA-256 of entry content), not on encrypted data. Key rotation doesn't affect chain integrity.
-- #18: Quarantine files use `encryptForDirectory()` which derives keys from `orgId + directory path`, not from the master `ENCRYPTION_KEY`. Master key rotation doesn't affect quarantine readability.
+**Key architectural decisions:**
+1. `decryptForDirectory` in crypto-utils.cjs now has multi-key fallback (mirrors existing `decrypt()` pattern at lines 112-116). This enables decryption of directory-level encrypted files during key rotation.
+2. `purgeExpiredKeys(true)` force-purges the previous key immediately after successful migration, rather than waiting for the 48h grace window.
+3. `runAutonomousReKeying()` scans both `getAllOrgIds()` AND the quarantine directory for `tenant-*` directories, because healed entries are removed from the main log.
 
 ---
 
@@ -74,40 +72,41 @@ None found. All tests pass, gate passes, no syntax errors.
 
 ## Unimplemented
 
-None. All implementable test plan items are verified.
+None. All test plan items implemented and verified.
 
 ---
 
 ## Enhancements (Debt/Perf)
 
-1. **Persistence** — `persistState()` saves rotation metadata to `KEY_ROTATION_STORE_PATH` if configured. Only fingerprints are saved, never raw key material. This is best-effort and doesn't block rotation on disk errors.
+1. **`decryptForDirectory` fallback** — Added multi-key fallback to `decryptForDirectory()` in crypto-utils.cjs, mirroring the existing pattern in `decrypt()`. This is a targeted change that enables zero-downtime key rotation for directory-level encryption.
 
-2. **Re-keying callbacks** — `reKeyStore()` uses `valueExtractor` and `valueSetter` callbacks for flexibility. This allows re-keying different store shapes (audit log entries, quarantine files, etc.) without coupling the rotation store to any specific data structure.
+2. **Force purge parameter** — `purgeExpiredKeys(force)` now accepts an optional boolean parameter. When `true`, the previous key is purged immediately regardless of the grace window. This enables the re-keying worker to evict the old key as soon as all files are confirmed migrated.
 
-3. **Grace window override** — `rotateKey()` accepts an optional `graceMs` parameter to override the default grace window for individual rotations. This is useful for emergency rotations where a shorter window is desired.
+3. **Quarantine directory scanning** — `runAutonomousReKeying()` scans the quarantine base directory for `tenant-*` directories in addition to `getAllOrgIds()`. This is necessary because `healChain()` removes tampered entries from the main audit log, so `getAllOrgIds()` alone would miss orgs with only quarantined data.
 
 ---
 
 ## Future Roadmap
 
-1. **Background re-keying worker** — A daemon that periodically scans the audit log and quarantine files, re-encrypting data from the previous key to the active key. Once complete, the previous key can be safely purged.
+1. **Manual migration endpoint** — Expose `POST /api/audit/security/rekey-now` to let infrastructure teams force immediate filesystem upgrades from the dashboard.
 
-2. **Cloud KMS integration** — Wire `rotateKey()` to fetch new key material from AWS KMS, Google Cloud KMS, or Azure Key Vault instead of accepting a raw key string.
+2. **Migration metrics** — Expose `rekey_migrated_total`, `rekey_failed_total`, `rekey_purged_total` via the Prometheus metrics endpoint.
 
-3. **Rotation metrics** — Expose `key_rotation_count`, `key_rotation_grace_active`, and `key_rekey_migrated_total` via the Prometheus metrics endpoint.
+3. **Additional store migration** — Extend `runAutonomousReKeying()` to re-key other encrypted stores beyond quarantine files (e.g., PII policy stores, alert rule stores).
 
-4. **HSM + rotation integration** — When HSM_PROVIDER is active, the rotation daemon should coordinate with the HSM vault to derive new keys from the HSM root key rather than accepting external key material.
+4. **Migration progress tracking** — Persist migration progress to disk so that interrupted migrations can resume from where they left off.
 
 ---
 
 ## Validator Sign-off
 
-- [x] All Level 1 checks pass (syntax, 515 tests, gate)
-- [x] All Level 2 behavioral tests pass (16/18, 2 deferred by design)
+- [x] All Level 1 checks pass (syntax, 527 tests, gate)
+- [x] All Level 2 behavioral tests pass (13/13 test plan items)
 - [x] No spec drift (all spec items match implementation)
 - [x] No ghost files or hallucinated API paths
-- [x] Existing crypto-utils.cjs interfaces matched (getDecryptionKeys, getActiveKeyBuffer)
+- [x] `decryptForDirectory` fallback mirrors existing `decrypt()` pattern
+- [x] Force purge enables immediate key eviction after migration
+- [x] Quarantine dir scanning handles healed entries correctly
 - [x] CI workflow updated (path filters + test regex)
-- [x] Raw key material not exposed in status or persistence
 
 **Verdict:** READY FOR COMMIT

@@ -110,20 +110,21 @@ function rotateKey(newKeyRaw, graceMs) {
 
 /**
  * Check if the grace window has expired and the previous key should be dropped.
+ * @param {boolean} [force] — If true, purge regardless of grace window
  * @returns {boolean} true if previous key was purged
  */
-function purgeExpiredKeys() {
+function purgeExpiredKeys(force) {
   if (!_keyRing.previous || !_keyRing.rotatedAt) return false;
-  const grace = _keyRing._graceOverride || GRACE_MS;
-  const elapsed = Date.now() - _keyRing.rotatedAt;
-  if (elapsed >= grace) {
-    _keyRing.previous = null;
-    _keyRing.rotatedAt = null;
-    _keyRing._graceOverride = null;
-    persistState();
-    return true;
+  if (!force) {
+    const grace = _keyRing._graceOverride || GRACE_MS;
+    const elapsed = Date.now() - _keyRing.rotatedAt;
+    if (elapsed < grace) return false;
   }
-  return false;
+  _keyRing.previous = null;
+  _keyRing.rotatedAt = null;
+  _keyRing._graceOverride = null;
+  persistState();
+  return true;
 }
 
 /**

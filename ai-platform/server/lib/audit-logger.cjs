@@ -535,6 +535,16 @@ let _healStats = {
   lastResult: null,
 };
 
+// Re-keying migration stats
+let _reKeyStats = {
+  totalSweeps: 0,
+  totalMigrated: 0,
+  totalSkipped: 0,
+  totalFailed: 0,
+  totalPurged: 0,
+  lastResult: null,
+};
+
 /**
  * Read the quarantine store.
  * @returns {{ entries: object[], metadata: object }}
@@ -729,6 +739,142 @@ function healAllOrgs() {
 }
 
 /**
+ * Run an autonomous re-keying migration sweep. Checks if a key rotation is
+ * active and, if so, re-encrypts per-tenant quarantine files from the
+ * previous key to the active key. After successful migration, purges the
+ * previous key from the key ring.
+ *
+ * This is called automatically during each auto-heal timer tick and can
+ * also be triggered manually.
+ * @returns {{ migrated: number, skipped: number, failed: number, purged: boolean, rotationActive: boolean }}
+ */
+function runAutonomousReKeying() {
+  let rotationStatus = null;
+  try {
+    const keyRotationStore = require('./key-rotation-store.cjs');
+    rotationStatus = keyRotationStore.getRotationStatus();
+  } catch {
+    // key-rotation-store not available — nothing to do
+    return { migrated: 0, skipped: 0, failed: 0, purged: false, rotationActive: false };
+  }
+
+  // No previous key means no rotation in progress
+  if (!rotationStatus || !rotationStatus.hasPrevious) {
+    _reKeyStats.totalSweeps++;
+    _reKeyStats.lastResult = { migrated: 0, skipped: 0, failed: 0, purged: false, rotationActive: false, timestamp: new Date().toISOString() };
+    return { migrated: 0, skipped: 0, failed: 0, purged: false, rotationActive: false };
+  }
+
+  // If grace window has already expired, just purge and exit
+  if (rotationStatus.graceExpired) {
+    try {
+      const purged = keyRotationStore.purgeExpiredKeys();
+      _reKeyStats.totalSweeps++;
+      _reKeyStats.totalPurged += purged ? 1 : 0;
+      _reKeyStats.lastResult = { migrated: 0, skipped: 0, failed: 0, purged, rotationActive: false, timestamp: new Date().toISOString() };
+      return { migrated: 0, skipped: 0, failed: 0, purged, rotationActive: false };
+    } catch {
+      return { migrated: 0, skipped: 0, failed: 0, purged: false, rotationActive: false };
+    }
+  }
+
+  // Rotation is active — migrate quarantine files
+  const { encryptForDirectory, decryptForDirectory } = getCryptoUtils();
+  const keyRotationStore = require('./key-rotation-store.cjs');
+
+  let migrated = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  try {
+    // Build org list from both the audit log entries AND the quarantine directory.
+    // After healChain(), tampered entries are removed from the main log and moved
+    // to quarantine, so getAllOrgIds() alone would miss orgs with only quarantined data.
+    const orgIds = new Set(getAllOrgIds());
+    try {
+      const quarantineBase = path.dirname(path.dirname(getTenantQuarantinePath('__probe__')));
+      if (fs.existsSync(quarantineBase)) {
+        for (const entry of fs.readdirSync(quarantineBase)) {
+          if (entry.startsWith('tenant-')) {
+            orgIds.add(entry.slice('tenant-'.length));
+          }
+        }
+      }
+    } catch {
+      // Quarantine dir scan failure is non-fatal
+    }
+
+    for (const orgId of orgIds) {
+      try {
+        const tenantPath = getTenantQuarantinePath(orgId);
+        if (!fs.existsSync(tenantPath)) {
+          skipped++;
+          continue;
+        }
+
+        // Read the encrypted quarantine file
+        const raw = fs.readFileSync(tenantPath, 'utf8');
+        if (!raw) {
+          skipped++;
+          continue;
+        }
+
+        // Decrypt with fallback (tries active key first, then previous)
+        const decrypted = decryptForDirectory(raw, orgId, path.dirname(tenantPath));
+        if (!decrypted) {
+          // Cannot decrypt — file may be corrupted or key is outside grace
+          failed++;
+          continue;
+        }
+
+        // Re-encrypt with the active key
+        const reEncrypted = encryptForDirectory(decrypted, orgId, path.dirname(tenantPath));
+        if (!reEncrypted) {
+          failed++;
+          continue;
+        }
+
+        // Write back to disk
+        fs.writeFileSync(tenantPath, reEncrypted, 'utf8');
+        migrated++;
+      } catch {
+        // Per-org failure — continue to next org
+        failed++;
+      }
+    }
+  } catch {
+    // Overall migration failure — return what we have
+  }
+
+  // After successful migration, purge the previous key
+  let purged = false;
+  if (migrated > 0 && failed === 0) {
+    try {
+      purged = keyRotationStore.purgeExpiredKeys(true);
+    } catch {
+      // Purge failure is non-fatal — grace window will eventually expire
+    }
+  }
+
+  _reKeyStats.totalSweeps++;
+  _reKeyStats.totalMigrated += migrated;
+  _reKeyStats.totalSkipped += skipped;
+  _reKeyStats.totalFailed += failed;
+  _reKeyStats.totalPurged += purged ? 1 : 0;
+  _reKeyStats.lastResult = { migrated, skipped, failed, purged, rotationActive: true, timestamp: new Date().toISOString() };
+
+  return { migrated, skipped, failed, purged, rotationActive: true };
+}
+
+/**
+ * Get re-keying migration stats.
+ * @returns {{ totalSweeps: number, totalMigrated: number, totalSkipped: number, totalFailed: number, totalPurged: number, lastResult: object|null }}
+ */
+function getReKeyStats() {
+  return { ..._reKeyStats };
+}
+
+/**
  * Start the background auto-healing timer.
  * @param {number} [intervalMs] — Override interval (default: AUDIT_HEAL_INTERVAL_MS or 5min)
  * @returns {boolean} True if timer was started
@@ -742,6 +888,11 @@ function startAutoHeal(intervalMs) {
   _healTimer = setInterval(() => {
     try {
       healAllOrgs();
+    } catch {
+      // Swallow errors in background timer — don't crash the process
+    }
+    try {
+      runAutonomousReKeying();
     } catch {
       // Swallow errors in background timer — don't crash the process
     }
@@ -794,5 +945,7 @@ module.exports = {
   getTenantQuarantinePath,
   readTenantQuarantineStore,
   writeTenantQuarantineStore,
+  runAutonomousReKeying,
+  getReKeyStats,
   GENESIS_HASH,
 };
