@@ -1,58 +1,107 @@
 'use strict';
 
-// HSM Vault Provider (Software-Simulated Mock)
-//
-// Provides key derivation inside an isolated memory structure, simulating
-// a Hardware Security Module boundary. The internal root key never leaves
-// this module context — only derived per-tenant keys are returned.
-//
-// This mock is activated when process.env.HSM_PROVIDER is set. If the
-// module fails to load or throws during derivation, crypto-utils.cjs
-// catches the error and falls back to local HMAC key derivation.
-//
-// Configuration:
-//   HSM_PROVIDER — set to 'mock' (or any truthy value) to activate
-//   HSM_MOCK_ROOT_KEY — optional hex string to seed the simulated HSM
-//     root key (default: random 32 bytes generated at module load time)
-
 const crypto = require('crypto');
+const providers = require('./hsm-providers.cjs');
 
-// Simulated HSM root key — locked down at module scope, never exported.
-// In production, this would be inside tamper-resistant hardware.
-const _HSM_ROOT_KEY = process.env.HSM_MOCK_ROOT_KEY
-  ? Buffer.from(process.env.HSM_MOCK_ROOT_KEY, 'hex')
-  : crypto.randomBytes(32);
+const DEFAULT_KEY_ID = 'sb-master-key';
+const DEFAULT_REGION = 'us-east-1';
+const SANDBOX_PREFIX = 'enc:sb:';
+const _hsmVersions = [];
 
-/**
- * Generic key derivation from the simulated HSM boundary.
- * Computes an HMAC-SHA256 signature using the internal HSM root key
- * over the orgId and context string.
- * @param {string} orgId — Tenant organization ID
- * @param {string} [context] — Optional context string (default: 'default')
- * @returns {Buffer} 32-byte derived key
- * @throws {TypeError} if orgId is not a non-empty string
- */
-function deriveKey(orgId, context) {
+async function deriveOrgKeyViaHsm(orgId, options = {}) {
   if (!orgId || typeof orgId !== 'string') {
     throw new TypeError('HSM key derivation requires a valid organization identifier string');
   }
-  return crypto.createHmac('sha256', _HSM_ROOT_KEY)
-    .update(`${orgId}::${context || 'default'}`)
-    .digest();
+  const provider = providers.createProvider(options);
+  recordHsmVersion(provider.keyId, provider.region);
+  return provider.derive(orgId);
 }
 
-/**
- * Org-level key derivation via HSM — matches the hook signature expected
- * by crypto-utils.cjs deriveOrgKey().
- * @param {string} orgId — Tenant organization ID
- * @returns {Buffer} 32-byte derived key
- * @throws {TypeError} if orgId is not a non-empty string
- */
-function deriveOrgKeyViaHsm(orgId) {
-  return deriveKey(orgId, 'org-key');
+function recordHsmVersion(keyId, region) {
+  const handle = `${keyId}@${region}`;
+  if (_hsmVersions.length > 0 && _hsmVersions[0].handle === handle) return;
+  _hsmVersions.unshift({ keyId, region, handle, recordedAt: Date.now() });
+  while (_hsmVersions.length > 8) _hsmVersions.pop();
+}
+
+function getHsmVersions() {
+  return _hsmVersions.map((v) => ({ ...v }));
+}
+
+function _resetHsmVersions() {
+  _hsmVersions.length = 0;
+}
+
+async function hsmHandshake(provider, keyId, region) {
+  const p = providers.createProvider({ provider, keyId, region });
+  recordHsmVersion(p.keyId, p.region);
+  return p.handshake();
+}
+
+async function deriveWithFailover(orgId) {
+  const regions = [process.env.HSM_REGION || DEFAULT_REGION, ...(process.env.HSM_FAILOVER_REGIONS || '').split(',').map((s) => s.trim()).filter(Boolean)];
+  const errors = [];
+  for (const region of regions) {
+    try {
+      return await deriveOrgKeyViaHsm(orgId, { region });
+    } catch (err) {
+      errors.push(`${region}: ${err.message}`);
+    }
+  }
+  throw new Error(`HSM unavailable in all regions: ${errors.join('; ')}`);
+}
+
+async function hsmRotate(newKeyId, newRegion) {
+  const keyId = newKeyId || process.env.HSM_KEY_ID || DEFAULT_KEY_ID;
+  const region = newRegion || process.env.HSM_REGION || DEFAULT_REGION;
+  recordHsmVersion(keyId, region);
+  const p = providers.createProvider({ keyId, region });
+  return {
+    success: true,
+    ...p.handshake(),
+    previousVersions: getHsmVersions().slice(1),
+  };
+}
+
+function parseSandboxPayload(stored) {
+  if (!stored || typeof stored !== 'string') return null;
+  if (!stored.startsWith(SANDBOX_PREFIX)) return null;
+  const payload = stored.slice(SANDBOX_PREFIX.length);
+  const parts = payload.split(':');
+  if (parts.length !== 3) return null;
+  return parts;
+}
+
+async function decryptWithHsm(orgId, stored, options = {}) {
+  const parts = parseSandboxPayload(stored);
+  if (!parts) return '';
+
+  const versions = [null, ...getHsmVersions().slice(1)];
+  for (const version of versions) {
+    try {
+      const opts = version
+        ? { ...options, keyId: version.keyId, region: version.region }
+        : options;
+      const key = await deriveOrgKeyViaHsm(orgId, opts);
+      const iv = Buffer.from(parts[0], 'hex');
+      const tag = Buffer.from(parts[1], 'hex');
+      const encrypted = Buffer.from(parts[2], 'hex');
+      const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+      decipher.setAuthTag(tag);
+      return decipher.update(encrypted, null, 'utf8') + decipher.final('utf8');
+    } catch {
+      // try older version
+    }
+  }
+  return '';
 }
 
 module.exports = {
-  deriveKey,
   deriveOrgKeyViaHsm,
+  deriveWithFailover,
+  hsmHandshake,
+  hsmRotate,
+  getHsmVersions,
+  _resetHsmVersions,
+  decryptWithHsm,
 };
