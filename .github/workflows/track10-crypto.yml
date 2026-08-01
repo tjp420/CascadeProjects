@@ -1,41 +1,148 @@
-name: Track 10 Crypto Validation
+name: Track 10 Crypto Gate
+
+# Track 10: HSM-bound AES Key Wrap (AES-KW / AES-KWP) integration pipeline.
+# Runs RFC 3394 / RFC 5649 vector suites and SoftHSM integration tests against
+# a real PKCS#11 token provisioned in a CI container.
+#
+# This job is a required merge gate for PRs touching Track 10 crypto files.
+# Spec: .simplebeacon/track-10-hsm-key-wrap.md (CI and gating section)
 
 on:
   push:
-    branches: [ feature/track10-aes-kw ]
+    branches: [main, develop]
+    paths:
+      - 'ai-platform/server/lib/hsm-adapter/**'
+      - 'ai-platform/server/lib/keyring-serializer.cjs'
+      - 'ai-platform/server/lib/aes-kw.cjs'
+      - 'ai-platform/server/lib/__tests__/aes-kw-vectors*'
+      - 'ai-platform/server/lib/__tests__/hsm-adapter*.test.cjs'
+      - 'ai-platform/server/lib/__tests__/hsm-integration.test.cjs'
+      - 'ai-platform/server/lib/__tests__/vectors/**'
+      - '.github/workflows/track10-crypto.yml'
   pull_request:
-    branches: [ main, master ]
+    branches: [main, develop]
+    paths:
+      - 'ai-platform/server/lib/hsm-adapter/**'
+      - 'ai-platform/server/lib/keyring-serializer.cjs'
+      - 'ai-platform/server/lib/aes-kw.cjs'
+      - 'ai-platform/server/lib/__tests__/aes-kw-vectors*'
+      - 'ai-platform/server/lib/__tests__/hsm-adapter*.test.cjs'
+      - 'ai-platform/server/lib/__tests__/hsm-integration.test.cjs'
+      - 'ai-platform/server/lib/__tests__/vectors/**'
+      - '.github/workflows/track10-crypto.yml'
+  workflow_dispatch: {}
 
 jobs:
-  crypto-harness:
+  track10-crypto:
+    name: Track 10 Vector Suite + SoftHSM Integration
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # SoftHSM token configuration — must match hsm-integration.test.cjs
+      SOFTHSM2_LIB: /usr/lib/softhsm/libsofthsm2.so
+      SOFTHSM2_CONF: /tmp/softhsm2/softhsm2.conf
+      SOFTHSM2_TOKENS: /tmp/softhsm2/tokens
+      TRACK10_TOKEN_LABEL: Track10-Token
+      TRACK10_TOKEN_PIN: '1234'
+      TRACK10_TOKEN_SO_PIN: '5678'
 
     steps:
-      - name: Manual repository checkout (avoid submodule handling)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Debug: list repo and ai-platform/tests
         run: |
-          set -e
-          git init
-          AUTH_REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/tjp420/CascadeProjects.git"
-          git remote add origin "$AUTH_REPO_URL"
-          # Fetch refs needed for PR merge or push SHA
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "Fetching PR merge ref"
-            git fetch --no-tags --prune --depth=1 origin +refs/pull/${{ github.event.pull_request.number }}/merge:refs/remotes/pull/${{ github.event.pull_request.number }}/merge
-            git checkout refs/remotes/pull/${{ github.event.pull_request.number }}/merge
-          else
-            echo "Fetching push SHA"
-            git fetch --no-tags --prune --depth=1 origin ${{ github.sha }}
-            git checkout -f ${{ github.sha }}
-          fi
+          echo "-- repo root --"
+          ls -la || true
+          echo "-- ai-platform --"
+          ls -la ai-platform || true
+          echo "-- ai-platform/tests --"
+          ls -la ai-platform/tests || true
+          echo "-- ai-platform/tests/setup.js --"
+          sed -n '1,160p' ai-platform/tests/setup.js || true
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ai-platform/package-lock.json
 
-      - name: Run SoftHSM Test Harness
+      - name: Install system dependencies (SoftHSM2 + build tools)
         run: |
-          docker compose -f docker-compose.crypto-test.yml up --build --abort-on-container-exit
+          sudo apt-get update
+          sudo apt-get install -y softhsm2 build-essential python3
+          # Verify the PKCS#11 module is at the expected path
+          test -f $SOFTHSM2_LIB || { echo "ERROR: libsofthsm2.so not found at $SOFTHSM2_LIB"; exit 1; }
 
-      - name: Cleanup Containers
+      - name: Configure SoftHSM2 token storage
+        run: |
+          mkdir -p $SOFTHSM2_TOKENS
+          cat > $SOFTHSM2_CONF <<EOF
+          directories.tokendir = $SOFTHSM2_TOKENS
+          objectstore.backend = file
+          log.level = INFO
+          EOF
+          echo "Wrote SoftHSM2 config to $SOFTHSM2_CONF"
+          cat $SOFTHSM2_CONF
+
+      - name: Initialize SoftHSM2 token
+        run: |
+          # Initialize a new token with the Track10 label and PINs
+          softhsm2-util --init-token --slot 0 --label "$TRACK10_TOKEN_LABEL" \
+            --so-pin "$TRACK10_TOKEN_SO_PIN" --pin "$TRACK10_TOKEN_PIN"
+          echo "Initialized token '$TRACK10_TOKEN_LABEL' in slot 0"
+          # Verify the token is visible
+          softhsm2-util --show-slots || true
+
+      - name: Install ai-platform dependencies
+        working-directory: ai-platform
+        run: npm ci
+
+      - name: Install pkcs11js (native, CI-only)
+        working-directory: ai-platform
+        run: |
+          # pkcs11js is an optional native dependency not in package.json.
+          # Install without saving so it doesn't pollute package.json for
+          # local development environments without PKCS#11.
+          npm install --no-save pkcs11js
+          node -e "require('pkcs11js'); console.log('pkcs11js loaded successfully')"
+
+      - name: Run AES-KW vector suite (RFC 3394 + RFC 5649)
+        working-directory: ai-platform
+        run: |
+          npx jest --config jest.config.cjs --verbose \
+            aes-kw-vectors \
+            aes-kw.test
+
+      - name: Run HSM adapter unit tests
+        working-directory: ai-platform
+        run: |
+          npx jest --config jest.config.cjs --verbose \
+            hsm-adapter.test \
+            hsm-adapter-audit.test
+
+      - name: Run keyring serializer tests
+        working-directory: ai-platform
+        run: |
+          npx jest --config jest.config.cjs --verbose \
+            keyring-serializer
+
+      - name: Run SoftHSM integration tests (real PKCS#11 token)
+        working-directory: ai-platform
+        env:
+          SOFTHSM2_LIB: ${{ env.SOFTHSM2_LIB }}
+        run: |
+          npx jest --config jest.config.cjs --verbose \
+            hsm-integration
+
+      - name: Upload test artifacts
         if: always()
-        run: |
-          docker compose -f docker-compose.crypto-test.yml down -v
+        uses: actions/upload-artifact@v4
+        with:
+          name: track10-crypto-results
+          path: |
+            ai-platform/coverage/
+            ai-platform/test-results/
+          retention-days: 7
