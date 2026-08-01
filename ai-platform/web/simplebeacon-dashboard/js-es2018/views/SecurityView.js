@@ -4,6 +4,7 @@ import { extractSecurityFindings, buildSecuritySummary, buildSecurityExportPaylo
 import { fetchSecurityTelemetry, buildTelemetrySummary } from '../services/telemetryService.js';
 import { fetchKeyStatus, triggerKeyRotation, forceReKeySweep, fetchReKeyStats, generateRandomKey, formatGraceCountdown } from '../services/keyManagementService.js';
 import { fetchQuarantineEntries, verifyQuarantineEntry } from '../services/quarantineService.js';
+import { fetchInterdictions, blockKey, releaseKey } from '../services/interdictionService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 
 const SEVERITY_COLORS = {
@@ -62,6 +63,11 @@ export class SecurityView {
         this.quarantineExpanded = new Set();
         this.quarantineVerifyResults = {};
         this.quarantineVerifying = new Set();
+        this.interdiction = null;
+        this.interdictionLoading = false;
+        this.interdictionError = null;
+        this.interdictionBlocking = false;
+        this._interdictionPollTimer = null;
         this._container = null;
     }
     getReport() {
@@ -393,6 +399,211 @@ export class SecurityView {
             showToast('Random 256-bit key generated', 'info');
         }
     }
+    renderInterdictionSection() {
+        if (!this.app.isCurrentUserAdmin || !this.app.isCurrentUserAdmin()) return '';
+        if (this.interdictionLoading && !this.interdiction) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Active Key Interdiction</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <span class="loading-spinner" style="width:24px;height:24px;margin:0 auto var(--space-3);"></span>
+            <p class="text-muted" style="font-size:var(--font-size-sm);">Loading interdiction status…</p>
+          </div>
+        </div>`;
+        }
+        if (this.interdictionError && !this.interdiction) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Active Key Interdiction</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <p style="color:var(--danger);font-size:var(--font-size-sm);margin-bottom:var(--space-3);">${escapeHtml(this.interdictionError)}</p>
+            <button class="btn btn-secondary btn-sm" id="interdiction-retry" type="button">Retry</button>
+          </div>
+        </div>`;
+        }
+        const keys = this.interdiction ? (this.interdiction.keys || []) : [];
+        const stats = this.interdiction ? (this.interdiction.stats || {}) : {};
+        const total = this.interdiction ? (this.interdiction.total || 0) : 0;
+        return `
+      <div class="section-block">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0;">Active Key Interdiction</h2>
+          <div style="display:flex;align-items:center;gap:var(--space-3);">
+            <span style="font-size:var(--font-size-xs);color:var(--text-muted);">Auto-refresh: 30s</span>
+            <button class="btn btn-ghost btn-sm" id="interdiction-refresh" type="button">↻ Refresh</button>
+          </div>
+        </div>
+        ${total > 0 ? `
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);margin-bottom:var(--space-4);">
+            <div class="card" style="padding:var(--space-3) var(--space-4);">
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Active Lockouts</div>
+              <div style="font-size:var(--font-size-xl);font-weight:700;color:var(--danger);margin-top:var(--space-1);">${total}</div>
+            </div>
+            <div class="card" style="padding:var(--space-3) var(--space-4);">
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Total Blocked</div>
+              <div style="font-size:var(--font-size-xl);font-weight:700;margin-top:var(--space-1);">${stats.totalBlocked || 0}</div>
+            </div>
+            <div class="card" style="padding:var(--space-3) var(--space-4);">
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Auto-Triggered</div>
+              <div style="font-size:var(--font-size-xl);font-weight:700;color:var(--warning);margin-top:var(--space-1);">${stats.totalAutoTriggered || 0}</div>
+            </div>
+            <div class="card" style="padding:var(--space-3) var(--space-4);">
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Requests Rejected</div>
+              <div style="font-size:var(--font-size-xl);font-weight:700;margin-top:var(--space-1);">${stats.totalRequestsRejected || 0}</div>
+            </div>
+          </div>
+        ` : ''}
+        ${keys.length === 0 ? `
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <div style="font-size:2rem;margin-bottom:var(--space-2);">🛡️</div>
+            <p style="font-size:var(--font-size-sm);color:var(--text-muted);">No active interdictions.</p>
+            <p style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-2);">API keys that cross violation thresholds will appear here automatically.</p>
+          </div>
+        ` : `
+          <div class="card" style="padding:0;overflow:hidden;border-radius:var(--radius-lg);margin-bottom:var(--space-4);">
+            <div class="table-scroll-wrapper">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th scope="col" style="width:160px">Masked Key</th>
+                  <th scope="col" style="width:100px">Source</th>
+                  <th scope="col">Reason</th>
+                  <th scope="col" style="width:160px">Blocked At</th>
+                  <th scope="col" style="width:160px">Expires At</th>
+                  <th scope="col" style="width:100px">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${keys.map((entry) => this._renderInterdictionRow(entry)).join('')}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        `}
+        <div class="card" style="padding:var(--space-5);">
+          <div style="font-size:var(--font-size-sm);font-weight:700;margin-bottom:var(--space-3);">Manual Key Lockout</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:var(--space-3);align-items:end;">
+            <div>
+              <label style="font-size:var(--font-size-xs);color:var(--text-muted);display:block;margin-bottom:var(--space-1);">API Key *</label>
+              <input type="text" id="interdiction-block-key" placeholder="key-id-or-token" style="width:100%;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-md);font-size:var(--font-size-sm);" />
+            </div>
+            <div>
+              <label style="font-size:var(--font-size-xs);color:var(--text-muted);display:block;margin-bottom:var(--space-1);">Reason</label>
+              <input type="text" id="interdiction-block-reason" placeholder="manual_admin_block" style="width:100%;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-md);font-size:var(--font-size-sm);" />
+            </div>
+            <div>
+              <label style="font-size:var(--font-size-xs);color:var(--text-muted);display:block;margin-bottom:var(--space-1);">Duration (min)</label>
+              <input type="number" id="interdiction-block-duration" value="15" min="1" max="1440" style="width:100%;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-md);font-size:var(--font-size-sm);" />
+            </div>
+            <button class="btn btn-primary" id="interdiction-block-btn" type="button" ${this.interdictionBlocking ? 'disabled' : ''} style="height:38px;">
+              ${this.interdictionBlocking ? '<span class="loading-spinner" style="width:14px;height:14px;"></span>' : 'Block Key'}
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }
+    _renderInterdictionRow(entry) {
+        const maskedKey = escapeHtml(entry.apiKey || '—');
+        const source = entry.source || 'manual';
+        const sourceBadge = source === 'auto'
+            ? '<span style="font-size:var(--font-size-xs);font-weight:600;color:var(--warning);background:var(--warning-bg);padding:2px 8px;border-radius:var(--radius-sm);">AUTO</span>'
+            : '<span style="font-size:var(--font-size-xs);font-weight:600;color:var(--text-muted);background:var(--surface-hover);padding:2px 8px;border-radius:var(--radius-sm);">MANUAL</span>';
+        const reason = escapeHtml(entry.reason || '—');
+        const blockedAt = entry.blockedAt ? new Date(entry.blockedAt).toLocaleString() : '—';
+        const expiresAt = entry.expiresAt ? new Date(entry.expiresAt).toLocaleString() : '—';
+        // Calculate remaining time for countdown badge
+        let countdown = '';
+        if (entry.expiresAt) {
+            const ms = new Date(entry.expiresAt).getTime() - Date.now();
+            if (ms > 0) {
+                const mins = Math.floor(ms / 60000);
+                const secs = Math.floor((ms % 60000) / 1000);
+                countdown = ` (${mins}m ${secs}s)`;
+            } else {
+                countdown = ' (expired)';
+            }
+        }
+        return `
+          <tr>
+            <td><code style="font-size:var(--font-size-xs);color:var(--text-secondary);font-weight:600;">${maskedKey}</code></td>
+            <td>${sourceBadge}</td>
+            <td style="font-size:var(--font-size-xs);color:var(--text-secondary);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(entry.reason || '')}">${reason}</td>
+            <td style="font-size:var(--font-size-xs);color:var(--text-muted);">${escapeHtml(blockedAt)}</td>
+            <td style="font-size:var(--font-size-xs);color:var(--text-muted);">${escapeHtml(expiresAt)}<span style="color:var(--danger);font-weight:600;">${escapeHtml(countdown)}</span></td>
+            <td><button class="btn btn-secondary btn-sm" id="interdiction-release-${escapeHtml(entry.apiKey || '')}" type="button" style="font-size:var(--font-size-xs);">Lift Lock</button></td>
+          </tr>`;
+    }
+    async loadInterdiction() {
+        this.interdictionLoading = true;
+        this.interdictionError = null;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            this.interdiction = await fetchInterdictions(authHeaders);
+        } catch (err) {
+            this.interdictionError = err.message;
+        } finally {
+            this.interdictionLoading = false;
+        }
+        if (this._container) this.app.render(this._container);
+    }
+    startInterdictionPolling() {
+        this.stopInterdictionPolling();
+        this._interdictionPollTimer = setInterval(() => {
+            if (this._container && this.app.isCurrentUserAdmin && this.app.isCurrentUserAdmin()) {
+                this.loadInterdiction();
+            }
+        }, 30000);
+        if (this._interdictionPollTimer.unref) this._interdictionPollTimer.unref();
+    }
+    stopInterdictionPolling() {
+        if (this._interdictionPollTimer) {
+            clearInterval(this._interdictionPollTimer);
+            this._interdictionPollTimer = null;
+        }
+    }
+    async handleBlockKey() {
+        const keyInput = document.getElementById('interdiction-block-key');
+        const reasonInput = document.getElementById('interdiction-block-reason');
+        const durationInput = document.getElementById('interdiction-block-duration');
+        if (!keyInput || !keyInput.value.trim()) {
+            showToast('API key is required', 'error');
+            return;
+        }
+        const apiKey = keyInput.value.trim();
+        const reason = reasonInput ? reasonInput.value.trim() : '';
+        const durationMin = durationInput ? parseInt(durationInput.value, 10) : 15;
+        const ttlMs = (durationMin > 0 ? durationMin : 15) * 60 * 1000;
+        this.interdictionBlocking = true;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            await blockKey(apiKey, reason, ttlMs, authHeaders);
+            showToast(`Key ${apiKey.slice(0, 4)}… blocked for ${durationMin} min`, 'success');
+            keyInput.value = '';
+            if (reasonInput) reasonInput.value = '';
+            await this.loadInterdiction();
+        } catch (err) {
+            showToast('Block failed: ' + err.message, 'error');
+        } finally {
+            this.interdictionBlocking = false;
+            if (this._container) this.app.render(this._container);
+        }
+    }
+    async handleReleaseKey(maskedKey) {
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            const result = await releaseKey(maskedKey, authHeaders);
+            if (result.wasBlocked) {
+                showToast(`Lock lifted for ${maskedKey.slice(0, 4)}…`, 'success');
+            } else {
+                showToast(`Key ${maskedKey.slice(0, 4)}… was not actively blocked`, 'info');
+            }
+            await this.loadInterdiction();
+        } catch (err) {
+            showToast('Release failed: ' + err.message, 'error');
+        }
+    }
     renderQuarantineInspector() {
         if (!this.app.isCurrentUserAdmin || !this.app.isCurrentUserAdmin()) return '';
         if (this.quarantineLoading) {
@@ -686,6 +897,8 @@ export class SecurityView {
 
       ${this.renderTelemetrySection()}
 
+      ${this.renderInterdictionSection()}
+
       ${this.renderKeyManagementSection()}
 
       ${this.renderQuarantineInspector()}
@@ -756,6 +969,20 @@ export class SecurityView {
         if (_kmRotate) _kmRotate.addEventListener('click', () => this.handleKeyRotation());
         if (_kmGenerate) _kmGenerate.addEventListener('click', () => this.handleGenerateKey());
         if (_kmRekeyNow) _kmRekeyNow.addEventListener('click', () => this.handleForceReKey());
+        // Interdiction section button listeners
+        const _iRefresh = el.querySelector('#interdiction-refresh');
+        const _iRetry = el.querySelector('#interdiction-retry');
+        const _iBlockBtn = el.querySelector('#interdiction-block-btn');
+        if (_iRefresh) _iRefresh.addEventListener('click', () => this.loadInterdiction());
+        if (_iRetry) _iRetry.addEventListener('click', () => this.loadInterdiction());
+        if (_iBlockBtn) _iBlockBtn.addEventListener('click', () => this.handleBlockKey());
+        // Wire up per-row release buttons
+        if (this.interdiction && this.interdiction.keys) {
+            for (const entry of this.interdiction.keys) {
+                const releaseBtn = el.querySelector(`#interdiction-release-${CSS.escape(entry.apiKey || '')}`);
+                if (releaseBtn) releaseBtn.addEventListener('click', () => this.handleReleaseKey(entry.apiKey));
+            }
+        }
         // Quarantine inspector button listeners
         const _qRefresh = el.querySelector('#quarantine-refresh');
         const _qRetry = el.querySelector('#quarantine-retry');
@@ -854,6 +1081,8 @@ export class SecurityView {
             if (this.app.isCurrentUserAdmin && this.app.isCurrentUserAdmin()) {
                 void this.loadKeyStatus();
                 void this.loadQuarantine();
+                void this.loadInterdiction();
+                this.startInterdictionPolling();
             }
             return;
         }
@@ -862,6 +1091,8 @@ export class SecurityView {
         if (this.app.isCurrentUserAdmin && this.app.isCurrentUserAdmin()) {
             void this.loadKeyStatus();
             void this.loadQuarantine();
+            void this.loadInterdiction();
+            this.startInterdictionPolling();
         }
     }
 }

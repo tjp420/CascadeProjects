@@ -1,8 +1,8 @@
-# Software Health Report — Real-Time Log Stream Interdiction Engine
+# Software Health Report — Real-Time Interdiction Management Card
 
 **Date:** 2026-01-30
 **Branch:** feat/agentic-orchestration
-**Feature:** In-memory API key block list + auto-interdiction on violation threshold
+**Feature:** Frontend interdiction management card in SecurityView.js
 **Validator:** Devin (Validator mode)
 
 ---
@@ -11,10 +11,9 @@
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `node -c authorize.cjs` | PASS | Syntax clean — interdiction store + middleware added |
-| `node -c audit-routes.cjs` | PASS | Syntax clean — 3 admin routes added |
-| `node -c key-interdiction.test.cjs` | PASS | Syntax clean — 23 tests |
-| Full test suite (all suites) | PASS | 1756/1756 tests pass (23 new) |
+| `node -c interdictionService.js` | PASS | Syntax clean — new frontend service |
+| `node -c SecurityView.js` | PASS | Syntax clean — InterdictionCard section added |
+| Full test suite (all suites) | PASS | 1756/1756 tests pass |
 | SimpleBeacon gate scan | PASS | 0 critical, 0 high, 0 medium; quality score 100 |
 
 ---
@@ -23,23 +22,26 @@
 
 | Test Plan # | Check | Result | Notes |
 |-------------|-------|--------|-------|
-| 1 | `enforceKeyInterdiction()` returns 423 for interdicted keys | PASS | Test: "should return 423 Locked for interdicted keys" |
-| 2 | `enforceKeyInterdiction()` calls next() for non-interdicted | PASS | Test: "should call next() for non-interdicted keys" |
-| 3 | `interdictKey()` adds key with expiry | PASS | Test: "should add a key to the block list with expiry" |
-| 4 | `releaseKey()` removes key immediately | PASS | Test: "should remove a key from the block list immediately" |
-| 5 | `getInterdictedKeys()` returns list with metadata | PASS | Test: "should return list of blocked keys with metadata" |
-| 6 | `recordViolation()` auto-interdicts after threshold | PASS | Test: "should auto-interdict after threshold is crossed" |
-| 7 | `GET /interdiction/status` returns block list (admin-only) | PASS | Route at line 670, wrapped with authorize('admin:all') |
-| 8 | `POST /interdiction/release` releases key (admin-only) | PASS | Route at line 700, wrapped with authorize('admin:all') |
-| 9 | `POST /interdiction/block` manually blocks key (admin-only) | PASS | Route at line 682, wrapped with authorize('admin:all') |
-| 10 | Expired interdiction auto-evicts on access | PASS | Test: "should auto-evict expired entries on access" |
-| 11 | Request with no API key passes through | PASS | Test: "should call next() when no API key is present" |
-| 12 | Memory cap prevents unbounded growth | PASS | Test: "should evict oldest entry when cap is reached" |
-| 13 | Releasing non-existent key returns wasBlocked: false | PASS | Test: "should return wasBlocked: false for non-existent key" |
-| 14 | All interdiction routes wrapped with authorize('admin:all') | PASS | Verified at lines 670, 682, 700 |
-| 15 | 423 response does not leak internal metadata | PASS | Test: "should not leak internal block list metadata" |
+| 1 | `fetchInterdictions()` calls GET /api/audit/interdiction/status | PASS | interdictionService.js line 11 |
+| 2 | `blockKey(apiKey, reason, ttlMs)` calls POST /api/audit/interdiction/block | PASS | interdictionService.js line 38 |
+| 3 | `releaseKey(apiKey)` calls POST /api/audit/interdiction/release | PASS | interdictionService.js line 67 |
+| 4 | `renderInterdictionSection()` renders block list table | PASS | Table with masked keys, source, reason, dates |
+| 5 | Each row shows masked key, reason, blockedAt, expiresAt, source | PASS | All fields rendered with escapeHtml() |
+| 6 | Manual block form has inputs for apiKey, reason, duration | PASS | 3 inputs + Block Key button |
+| 7 | "Lift Lock" button per row calls releaseKey() | PASS | handleReleaseKey(entry.apiKey) wired |
+| 8 | Empty state renders "No active interdictions" | PASS | Shield emoji + helpful context |
+| 9 | Stats summary shows totalBlocked, totalReleased, totalAutoTriggered | PASS | 4-card grid: Active, Total Blocked, Auto-Triggered, Requests Rejected |
+| 10 | Section placed at top of admin panels | PASS | Before renderKeyManagementSection() |
+| 11 | Block form validates required apiKey field | PASS | showToast('API key is required') if empty |
+| 12 | Block form shows toast on success/error | PASS | Success: "Key … blocked for N min" |
+| 13 | Release on non-existent key shows wasBlocked: false | PASS | handleReleaseKey checks result.wasBlocked |
+| 14 | Background polling refreshes every 30s | PASS | startInterdictionPolling() with 30s interval |
+| 15 | Polling interval cleaned up | PASS | stopInterdictionPolling() clears interval; unref() prevents timer leak |
+| 16 | Section only renders for admin users | PASS | isCurrentUserAdmin() check at line 403 |
+| 17 | Masked keys never unmasked in DOM | PASS | Backend masks keys; frontend renders as-is with escapeHtml() |
+| 18 | All entry fields escaped with escapeHtml() | PASS | 6 escapeHtml() calls in _renderInterdictionRow() |
 
-**Test plan items: 15/15 PASS**
+**Test plan items: 18/18 PASS**
 
 ---
 
@@ -47,18 +49,18 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Spec: In-memory token bucket block list | MATCH | `Map<string, { reason, blockedAt, expiresAt, source }>` |
-| Spec: enforceKeyInterdiction() middleware | MATCH | Returns 423 Locked, checks x-api-key/query/user.id |
-| Spec: Automated session revocation on threshold | MATCH | Auto-interdiction in recordViolation() at threshold (default 5) |
-| Spec: HTTP 423 Locked response code | MATCH | Standard HTTP 423 with expiresAt timestamp |
-| Spec: Time-locked temporary rejections | MATCH | Default 15-minute TTL, configurable via settings |
-| Spec: No external dependencies | MATCH | Pure in-memory Map, no Redis/Kafka |
-| Spec: Lazy TTL eviction | MATCH | Expired entries evicted on checkInterdiction() and getInterdictedKeys() |
-| No ghost files | CONFIRMED | All 3 files exist at expected paths |
-| No new dependencies | CONFIRMED | Uses only existing Node.js Map and Express patterns |
+| Spec: Masked token block list grid | MATCH | Table with masked keys from backend |
+| Spec: On-demand manual key lockout form | MATCH | 3 inputs (key, reason, duration in min) + button |
+| Spec: One-click override release actions | MATCH | "Lift Lock" button per row |
+| Spec: Expiration countdown meters | MATCH | Countdown badge showing remaining time (Xm Ys) |
+| Spec: Stats summary | MATCH | 4-card grid with active/total/auto/rejected counts |
+| Spec: Background polling | MATCH | 30s interval with unref() and container check |
+| No ghost files | CONFIRMED | Both files exist at expected paths |
+| No new dependencies | CONFIRMED | Uses only existing fetch API, escapeHtml, CSS.escape |
 | No spec drift | CONFIRMED | All test plan items map to implementation |
-| API key masking in status response | CONFIRMED | Keys truncated to first 4 + … + last 4 chars |
-| Auto-interdiction reason includes violation count | CONFIRMED | "auto:org_partition_violation_spike (N violations, threshold M)" |
+| Service pattern matches existing services | CONFIRMED | Uses apiBase from authService.js, authHeaders param |
+| Duration input in minutes (converted to ms) | CONFIRMED | ttlMs = durationMin * 60 * 1000 |
+| CSS.escape for dynamic selectors | CONFIRMED | Used for release button selectors |
 
 ---
 
@@ -70,46 +72,50 @@ None found. All tests pass, gate passes, no syntax errors.
 
 ## Unimplemented
 
-None. All 15 test plan items implemented and verified.
+None. All 18 test plan items implemented and verified.
 
 ---
 
 ## Enhancements (Debt/Perf)
 
-1. **Lazy TTL eviction** — No background timer for the interdiction store. Expired entries are evicted on access via `checkInterdiction()` and during scans via `getInterdictedKeys()`. This avoids timer leaks in test environments and reduces idle CPU usage.
+1. **30-second background polling** — Refreshes the interdiction status automatically when the section is visible. Uses `unref()` to prevent the timer from keeping the process alive. Checks `this._container` before acting to avoid unnecessary renders.
 
-2. **API key masking** — `getInterdictedKeys()` masks API keys in the response (first 4 + … + last 4 characters) to prevent shoulder-surfing when admins view the block list.
+2. **Countdown badges** — Each row shows a live countdown of remaining lockout time (e.g., "12m 34s"). The countdown is computed at render time and updates on each poll cycle.
 
-3. **Configurable thresholds** — All interdiction parameters (TTL, max keys, auto-trigger) are configurable via `security-monitor-settings-store.cjs`, allowing live updates without server restart.
+3. **4-card stats grid** — Visual summary of active lockouts, total blocked, auto-triggered, and requests rejected. Only shown when there are active lockouts.
 
-4. **Memory cap with FIFO eviction** — When the block list reaches 10,000 entries (configurable), the oldest entry is evicted. This prevents unbounded memory growth under sustained attack.
+4. **Duration in minutes** — The manual block form accepts duration in minutes (not ms) for admin usability. Converted to ms before sending to backend.
+
+5. **Source badges** — Each row shows whether the lockout was AUTO (warning color) or MANUAL (neutral color), giving admins immediate visibility into the lockout origin.
 
 ---
 
 ## Future Roadmap
 
-1. **Frontend interdiction dashboard** — Add an interdiction management card to SecurityView.js showing the block list, auto-trigger history, and manual block/release controls.
+1. **WebSocket push updates** — Replace 30s polling with WebSocket-based push notifications for real-time interdiction events.
 
-2. **Sliding window anomaly detection** — Extend the auto-trigger to use a sliding time window (e.g., 5 violations in 60 seconds) rather than cumulative count, for more precise burst detection.
+2. **Interdiction audit trail** — Record each manual block/release action in the audit log for compliance traceability.
 
-3. **Interdiction audit logging** — Record each auto-interdiction event in the audit log for compliance traceability.
+3. **Bulk release** — Add a "Release All" button for mass lockout clearance during incident recovery.
 
-4. **Graduated response** — Instead of a single 15-minute lockout, implement escalating TTLs for repeat offenders (e.g., 15min → 1hr → 24hr).
+4. **Export interdiction report** — Download the interdiction history as a signed JSON bundle for post-incident analysis.
+
+5. **Graduated response visualization** — Show escalation tier (1st offense, 2nd, 3rd) in the block list to help admins identify repeat offenders.
 
 ---
 
 ## Validator Sign-off
 
 - [x] All Level 1 checks pass (syntax, 1756 tests, gate 0/0/0, quality 100)
-- [x] All Level 2 behavioral checks pass (15/15 test plan items)
+- [x] All Level 2 behavioral checks pass (18/18 test plan items)
 - [x] No spec drift (all spec items match implementation)
 - [x] No ghost files or hallucinated API paths
-- [x] All 3 interdiction routes wrapped with `authorize('admin:all')`
-- [x] 423 response only includes error, message, expiresAt — no internal metadata
-- [x] API keys masked in getInterdictedKeys() response
-- [x] Lazy TTL eviction — no background timer needed
-- [x] Memory cap at 10,000 entries with FIFO eviction
-- [x] Auto-interdiction triggers at violation threshold (default: 5)
-- [x] No new dependencies added (pure in-memory Map)
+- [x] Section only renders for admin users (isCurrentUserAdmin check)
+- [x] All entry fields escaped with escapeHtml()
+- [x] Masked keys from backend never unmasked in DOM
+- [x] Service pattern matches existing keyManagementService/quarantineService
+- [x] Background polling with unref() and container check
+- [x] CSS.escape used for dynamic element selectors
+- [x] No new dependencies added
 
 **Verdict:** READY FOR COMMIT
