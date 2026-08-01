@@ -6,6 +6,8 @@ import { fetchKeyStatus, triggerKeyRotation, forceReKeySweep, fetchReKeyStats, g
 import { fetchQuarantineEntries, verifyQuarantineEntry } from '../services/quarantineService.js';
 import { fetchInterdictions, blockKey, releaseKey } from '../services/interdictionService.js';
 import { fetchRetentionConfig, updateRetentionConfig, fetchRetentionStats, triggerRetentionPurge } from '../services/retentionService.js';
+import { fetchComplianceReport, downloadComplianceCsv } from '../services/complianceService.js';
+import { complianceService } from '../services/complianceService.js';
 import { getVsCodeApi } from '../utils-lib/dom.js?v=20260725phase3';
 
 const SEVERITY_COLORS = {
@@ -72,11 +74,39 @@ export class SecurityView {
         this.retentionConfig = null;
         this.retentionStats = null;
         this.retentionLoading = false;
+        this.complianceDownloadingJson = false;
+        this.complianceDownloadingCsv = false;
         this.retentionError = null;
         this.retentionSaving = false;
         this.retentionPurging = false;
         this.retentionConfirmPurge = false;
+        this.complianceReport = null;
+        this.complianceLoading = false;
+        this.complianceError = null;
         this._container = null;
+    }
+    async handleExportCompliance(format = 'json') {
+      try {
+        const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+        if (format === 'json') this.complianceDownloadingJson = true; else this.complianceDownloadingCsv = true;
+        if (this._container) this.app.render(this._container);
+
+        const res = await complianceService.downloadReport(authHeaders, format);
+
+        // If JSON returned as object, show success with report id if present
+        if (res && typeof res === 'object') {
+          const id = res.reportId || res.report_id || null;
+          showToast(id ? `Compliance report generated: ${id}` : 'Compliance report downloaded', 'success');
+        } else if (res && res.success) {
+          showToast('Compliance CSV downloaded', 'success');
+        }
+      } catch (err) {
+        showToast('Compliance export failed: ' + err.message, 'error');
+      } finally {
+        this.complianceDownloadingJson = false;
+        this.complianceDownloadingCsv = false;
+        if (this._container) this.app.render(this._container);
+      }
     }
     getReport() {
         return this.app.state.report;
@@ -612,6 +642,141 @@ export class SecurityView {
             showToast('Release failed: ' + err.message, 'error');
         }
     }
+    renderComplianceSection() {
+        if (!this.app.isCurrentUserAdmin || !this.app.isCurrentUserAdmin()) return '';
+        const report = this.complianceReport;
+        const error = this.complianceError;
+        if (this.complianceLoading && !report) {
+            return `
+        <div class="section-block">
+          <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Compliance & Governance</h2>
+          <div class="card" style="padding:var(--space-6);text-align:center;">
+            <span class="loading-spinner" style="width:24px;height:24px;margin:0 auto var(--space-3);"></span>
+            <p class="text-muted" style="font-size:var(--font-size-sm);">Generating compliance report…</p>
+          </div>
+        </div>`;
+        }
+        return `
+      <div class="section-block">
+        <h2 style="font-size:var(--font-size-lg);font-weight:700;margin:0 0 var(--space-4);">Compliance & Governance</h2>
+        <div class="card" style="padding:var(--space-5);margin-bottom:var(--space-4);">
+          <div style="font-size:var(--font-size-xs);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:var(--space-3);">Target Regulatory Frameworks</div>
+          <div style="display:flex;gap:var(--space-5);flex-wrap:wrap;font-size:var(--font-size-sm);">
+            <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;">
+              <input type="checkbox" id="fw-soc2" data-fw="SOC 2" checked style="width:16px;height:16px;cursor:pointer;" />
+              SOC 2
+            </label>
+            <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;">
+              <input type="checkbox" id="fw-gdpr" data-fw="GDPR" checked style="width:16px;height:16px;cursor:pointer;" />
+              GDPR
+            </label>
+            <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;">
+              <input type="checkbox" id="fw-iso27001" data-fw="ISO 27001" checked style="width:16px;height:16px;cursor:pointer;" />
+              ISO 27001
+            </label>
+          </div>
+        </div>
+        ${error ? `
+          <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4);border-left:3px solid var(--danger);">
+            <p style="color:var(--danger);font-size:var(--font-size-sm);">${escapeHtml(error)}</p>
+          </div>
+        ` : ''}
+        <div style="display:flex;gap:var(--space-3);margin-bottom:var(--space-4);">
+          <button class="btn btn-primary" id="compliance-gen-btn" type="button" ${this.complianceLoading ? 'disabled' : ''}>
+            ${this.complianceLoading ? '<span class="loading-spinner" style="width:14px;height:14px;"></span>' : 'Generate Report'}
+          </button>
+          <button class="btn btn-secondary" id="compliance-csv-btn" type="button" ${this.complianceLoading ? 'disabled' : ''}>
+            Download CSV
+          </button>
+        </div>
+        ${report ? `
+          <div class="card" style="padding:var(--space-5);">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:var(--space-3);margin-bottom:var(--space-4);">
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Report ID: <span style="color:var(--primary);font-weight:600;font-family:monospace;">${escapeHtml(report.reportId)}</span></div>
+              <div style="font-size:var(--font-size-xs);color:var(--text-muted);">${escapeHtml(new Date(report.generatedAt).toLocaleString())}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);margin-bottom:var(--space-4);">
+              <div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Frameworks</div>
+                <div style="font-size:var(--font-size-sm);font-weight:600;margin-top:var(--space-1);">${escapeHtml(report.frameworks.join(', '))}</div>
+              </div>
+              <div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Key Rotation</div>
+                <div style="font-size:var(--font-size-sm);font-weight:600;margin-top:var(--space-1);color:${report.global?.keyRotation?.hasActive ? 'var(--success, #22c55e)' : 'var(--text-muted)'};">${escapeHtml(report.global?.keyRotation?.hasActive ? 'ACTIVE' : 'NONE')}</div>
+              </div>
+              <div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-muted);">PII Scrubbing</div>
+                <div style="font-size:var(--font-size-sm);font-weight:600;margin-top:var(--space-1);color:var(--primary);">${escapeHtml(report.global?.piiScrubbing?.enabled ? 'ENFORCED' : 'OFF')}</div>
+              </div>
+              <div>
+                <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Orgs Audited</div>
+                <div style="font-size:var(--font-size-sm);font-weight:600;margin-top:var(--space-1);">${escapeHtml(String(report.orgs?.length || 0))}</div>
+              </div>
+            </div>
+            <div style="font-size:var(--font-size-xs);font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:var(--space-2);">Cryptographic Attestation Matrix</div>
+            <table style="width:100%;border-collapse:collapse;font-size:var(--font-size-xs);">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border);text-align:left;">
+                  <th style="padding:var(--space-2) var(--space-3);">Organization</th>
+                  <th style="padding:var(--space-2) var(--space-3);">Chain Status</th>
+                  <th style="padding:var(--space-2) var(--space-3);text-align:right;">Verified Blocks</th>
+                  <th style="padding:var(--space-2) var(--space-3);text-align:right;">Retention Days</th>
+                  <th style="padding:var(--space-2) var(--space-3);text-align:right;">PII Rules</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${(report.orgs || []).map((org) => {
+                  const valid = org.chainIntegrity?.valid;
+                  return `
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:var(--space-2) var(--space-3);font-weight:600;">${escapeHtml(org.orgId)}</td>
+                    <td style="padding:var(--space-2) var(--space-3);">
+                      <span style="font-size:var(--font-size-xs);font-weight:700;padding:2px var(--space-2);border-radius:var(--radius-sm);color:${valid ? 'var(--success, #22c55e)' : 'var(--danger)'};border:1px solid ${valid ? 'var(--success, #22c55e)' : 'var(--danger)'};">${valid ? 'VERIFIED' : 'DEVIATION'}</span>
+                    </td>
+                    <td style="padding:var(--space-2) var(--space-3);text-align:right;font-family:monospace;">${escapeHtml(String(org.chainIntegrity?.verifiedEntries || 0))}</td>
+                    <td style="padding:var(--space-2) var(--space-3);text-align:right;">${escapeHtml(String(org.retentionPolicy?.retentionDays || '—'))}</td>
+                    <td style="padding:var(--space-2) var(--space-3);text-align:right;color:var(--primary);">${escapeHtml(String(org.piiPolicyCount || 0))}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}
+      </div>`;
+    }
+    async handleGenerateComplianceReport() {
+        this.complianceLoading = true;
+        this.complianceError = null;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            const result = await fetchComplianceReport(authHeaders);
+            this.complianceReport = result.report;
+            showToast('Compliance report generated', 'success');
+        } catch (err) {
+            this.complianceError = err.message;
+            showToast('Report generation failed: ' + err.message, 'error');
+        } finally {
+            this.complianceLoading = false;
+            if (this._container) this.app.render(this._container);
+        }
+    }
+    async handleDownloadComplianceCsv() {
+        this.complianceLoading = true;
+        this.complianceError = null;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            await downloadComplianceCsv(authHeaders);
+            showToast('Compliance CSV downloaded', 'success');
+        } catch (err) {
+            this.complianceError = err.message;
+            showToast('CSV download failed: ' + err.message, 'error');
+        } finally {
+            this.complianceLoading = false;
+            if (this._container) this.app.render(this._container);
+        }
+    }
     renderRetentionSection() {
         if (!this.app.isCurrentUserAdmin || !this.app.isCurrentUserAdmin()) return '';
         if (this.retentionLoading && !this.retentionStats) {
@@ -689,6 +854,25 @@ export class SecurityView {
           </div>
           ${autoPurge.failed > 0 ? `<div style="font-size:var(--font-size-xs);color:var(--danger);margin-top:var(--space-2);">⚠ ${escapeHtml(String(autoPurge.failed))} error(s) in last sweep</div>` : ''}
         </div>
+        <!-- Compliance Evidence Panel -->
+        <div class="card" style="padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4);border:1px dashed var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+            <div style="font-size:var(--font-size-sm);font-weight:700;">Compliance Evidence</div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);">Audit-ready bundles for SOC 2 / GDPR / ISO 27001</div>
+          </div>
+          <div style="display:flex;gap:var(--space-3);align-items:center;">
+            <div style="display:flex;gap:var(--space-2);align-items:center;">
+              <span class="badge">SOC 2</span>
+              <span class="badge">GDPR</span>
+              <span class="badge">ISO 27001</span>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:var(--space-2);">
+              <button class="btn btn-secondary btn-sm" id="compliance-export-json" type="button">${this.complianceDownloadingJson ? '<span class="loading-spinner" style="width:14px;height:14px;"></span>' : 'Export JSON Evidence'}</button>
+              <button class="btn btn-primary btn-sm" id="compliance-download-csv" type="button">${this.complianceDownloadingCsv ? '<span class="loading-spinner" style="width:14px;height:14px;"></span>' : 'Download CSV Matrix'}</button>
+            </div>
+          </div>
+        </div>
+
         <div class="card" style="padding:var(--space-5);margin-bottom:var(--space-4);">
           <div style="font-size:var(--font-size-sm);font-weight:700;margin-bottom:var(--space-3);">Retention Policy</div>
           <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:var(--space-3);align-items:end;">
@@ -1118,6 +1302,8 @@ export class SecurityView {
       ${this.renderQuarantineInspector()}
 
       ${this.renderRetentionSection()}
+
+      ${this.renderComplianceSection()}
     `;
         (_d = el.querySelector('#security-run-scan')) === null || _d === void 0 ? void 0 : _d.addEventListener('click', () => this.runScan(this._container));
         (_e = el.querySelector('#security-export-json')) === null || _e === void 0 ? void 0 : _e.addEventListener('click', () => this.exportResults());
@@ -1212,6 +1398,11 @@ export class SecurityView {
         if (_rPurgeBtn) _rPurgeBtn.addEventListener('click', () => this.showPurgeConfirmation());
         if (_rPurgeCancel) _rPurgeCancel.addEventListener('click', () => this.cancelPurge());
         if (_rPurgeConfirm) _rPurgeConfirm.addEventListener('click', () => this.handlePurge());
+        // Compliance evidence export listeners
+        const _cGen = el.querySelector('#compliance-gen-btn');
+        const _cCsv = el.querySelector('#compliance-csv-btn');
+        if (_cGen) _cGen.addEventListener('click', () => this.handleGenerateComplianceReport());
+        if (_cCsv) _cCsv.addEventListener('click', () => this.handleDownloadComplianceCsv());
         // Quarantine inspector button listeners
         const _qRefresh = el.querySelector('#quarantine-refresh');
         const _qRetry = el.querySelector('#quarantine-retry');
