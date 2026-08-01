@@ -87,7 +87,18 @@ function withHsmTimeout(promise, details) {
     }, ms);
     if (t.unref) t.unref();
   });
-  return Promise.race([Promise.resolve(promise), timeout]).finally(() => clearTimeout(t));
+  const guarded = Promise.resolve(promise).catch((err) => {
+    // record HSM operation errors to cluster timeline where available
+    try {
+      if (clusterSync && clusterSync._recordEvent) {
+        clusterSync._recordEvent(clusterSync.EVENT_TYPES && clusterSync.EVENT_TYPES.HSM_OPERATION_ERROR ? clusterSync.EVENT_TYPES.HSM_OPERATION_ERROR : 'hsm_operation_error', null, { ...(details || {}), error: err.message });
+      }
+    } catch (e) {
+      // best-effort
+    }
+    throw err;
+  });
+  return Promise.race([guarded, timeout]).finally(() => clearTimeout(t));
 }
 
 async function hsmHandshake(provider, keyId, region) {
