@@ -2,10 +2,10 @@
 
 /**
  * aes-kw.test.cjs
- * Verification suite for AES-KW wrapper processing standard NIST vectors.
+ * Verification suite for AES-KW / AES-KWP wrapper.
  */
-const { wrap, unwrap } = require('../aes-kw.cjs');
-const { KW_VECTORS } = require('./vectors/aes-kw-vectors.cjs');
+const { wrap, unwrap, wrapPad, unwrapPad } = require('../aes-kw.cjs');
+const { KW_VECTORS, KWP_VECTORS } = require('./vectors/aes-kw-vectors.cjs');
 
 describe('AES-KW (RFC 3394) Compliance Suite', () => {
 
@@ -69,5 +69,28 @@ describe('AES-KW (RFC 3394) Compliance Suite', () => {
       expect(() => unwrap(validKek, Buffer.alloc(16))).toThrow(/at least 24 bytes/);
       expect(() => unwrap(validKek, Buffer.alloc(25))).toThrow(/multiple of 8/);
     });
+  });
+});
+
+describe('AES-KWP (RFC 5649) Padding Compliance Suite', () => {
+  KWP_VECTORS.forEach((vector, index) => {
+    it(`should pass RFC 5649 KWP validation vector ${index + 1} (${vector.name})`, () => {
+      const wrapped = wrapPad(vector.kek, vector.plaintext);
+      expect(wrapped.toString('hex').toUpperCase()).toBe(vector.ciphertext.toString('hex').toUpperCase());
+
+      const unwrapped = unwrapPad(vector.kek, vector.ciphertext);
+      expect(unwrapped.toString('hex').toUpperCase()).toBe(vector.plaintext.toString('hex').toUpperCase());
+    });
+  });
+
+  it('should reject invalid padding values or modified data under KWP', () => {
+    const validKek = Buffer.alloc(16);
+    const payload = Buffer.from('Testing arbitrary string mapping rules');
+    const wrapped = wrapPad(validKek, payload);
+
+    const corrupted = Buffer.from(wrapped);
+    corrupted[corrupted.length - 1] ^= 0xFF; // Modify padding footprint
+
+    expect(() => unwrapPad(validKek, corrupted)).toThrow(/Integrity check failed/);
   });
 });
