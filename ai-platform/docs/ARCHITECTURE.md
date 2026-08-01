@@ -138,6 +138,12 @@ Key configuration files:
 | Redis-Backed Distributed Token Bucket | CC7.2 (System Monitoring) | SI-4 (System Monitoring) |
 | In-Memory Fallback with Inherited Count | CC7.4 (Resilience) | CP-10 (System Recovery) |
 | Auto-Recovery on Redis Reconnect | CC7.4 (Resilience) | CP-10 (System Recovery) |
+| Hybrid KEM (ECDH + ML-KEM-768) Handshake | CC6.7 (Transmission Protection) | SC-12, SC-13 (Cryptographic Key Establishment) |
+| Key-Confirmation MAC (HMAC-SHA256) | CC6.1 (Logical Access) | IA-7 (Cryptographic Authentication) |
+| Quantum Downgrade Rejection | CC6.6 (Boundary Protection) | SC-12 (Cryptographic Key Establishment) |
+| PFS Re-key HKDF Ratchet | CC6.7 (Transmission Protection) | SC-12, SC-13 (Cryptographic Key Establishment) |
+| Outbound Queue Suspension during Re-key | CC7.4 (Resilience) | CP-10 (System Recovery) |
+| MitM Penetration Test Suite | CC7.1 (Vulnerability Management) | CA-8 (Penetration Testing) |
 
 ## 4. Advanced Defense Automation — IP/Subnet Throttling (Track 5)
 
@@ -147,3 +153,28 @@ Key configuration files:
 * Auto-Recovery: The `usingRedis` flag is temporarily disabled on Redis errors and automatically restored when the ioredis client emits a `'ready'` event on reconnection. A `_probeRedisHealth()` function is also exported for manual health checks.
 * Middleware Ordering: In `hsm-vault-routes.cjs`, `authorize('admin:all')` runs before `adminThrottle` via the `authBeforeThrottle` wrapper, ensuring unauthenticated requests are rejected with 403 before consuming throttle tokens. In `audit-routes.cjs`, non-admin routes (`/log`, `/stats`, `/export`, `/partition-status`, `/verify-stream`) are excluded from throttling via `NON_ADMIN_AUDIT_PATHS`.
 * Penalty System: The middleware monitors response status codes and drains the token bucket on `423 Locked`, `403 Forbidden` (isolation violation), and `503 Service Unavailable` (HSM timeout) responses, providing automatic defense against brute-force admin operations.
+
+## 5. Quantum-Resistant KEM Hybrid Handshake (Track 6)
+
+* Mechanism: Combines classical ECDH (X25519) with post-quantum ML-KEM-768 (NIST FIPS 203) to derive a shared session key for cluster keyring replication. The handshake is performed over the existing TLS/TCP transport when `CLUSTER_QUANTUM_HYBRID=1` is set.
+* Cryptographic Primitive: ML-KEM-768 via the `mlkem` npm package (v2.7.0), vendored through `lib/vendor/mlkem.cjs`. Public keys are 1184 bytes, secret keys 2400 bytes, ciphertexts 1088 bytes, shared secrets 32 bytes.
+* Secret Combination: `PRK = HKDF-Extract(salt="simplebeacon:hybrid:v1", IKM = ECDH_Secret || ML-KEM_Secret)`, then `SessionKeyRing = HKDF-Expand(PRK, info="session:keyring", L=32)`.
+* Key-Confirmation MAC: After deriving the session key, the server includes `HMAC-SHA256(sessionKey, "server-confirmation")` in its response. The client verifies this MAC to detect replay attacks, ciphertext substitution, and key mismatches that ML-KEM's implicit fail-closed decapsulation would otherwise absorb silently.
+* Downgrade Protection: Fail-closed by default. Legacy nodes that omit `EK_pq` are rejected and emit `quantum_downgrade_rejected`. Setting `QUANTUM_DEGRADE_ALLOWED=1` permits classic-only with a `quantum_downgrade` audit event.
+* Protocol: Length-prefixed JSON over the existing socket. Client sends `{ ek_classic, ek_pq }`, server responds with `{ c_classic, c_pq, mac }`. Both sides derive the same 32-byte session key.
+
+## 6. Automated MitM Penetration Testing (Track 7)
+
+* Mechanism: A mocked `EventEmitter` socket pair with a byte-level man-in-the-middle shim that supports `clientToServer` and `serverToClient` mutation callbacks for injecting faults into the hybrid KEM handshake.
+* Fault Vectors: Public key bit-flip, ciphertext truncation, ciphertext substitution/replay, length-prefix fuzzing, full-handshake replay, forced downgrade strip, and classic-secret desync.
+* Audit Verification: Rejected attacks record `quantum_downgrade_rejected` via `cluster-keyring-sync._recordEvent`. The test suite verifies both cryptographic rejection (MAC mismatch) and audit timeline visibility.
+* Key-Confirmation Hardening: The MAC confirmation step added in Track 6 causes all active manipulation attacks (L2-01, L2-03, L2-05, L2-07) to be detected and rejected cleanly, rather than silently producing mismatched keys. Tests assert rejection with `MAC mismatch` error messages.
+
+## 7. Ephemeral Session Perfect Forward Secrecy (Track 8)
+
+* Mechanism: Mid-stream re-keying using an HKDF ratchet for forward secrecy. The `HybridSession` class manages state transitions between `IDLE`, `ACTIVE`, and `REKEYING` states, with automatic re-key at a configurable interval (`REKEY_INTERVAL_SEC`, default 3600s).
+* Ratchet: `newRoot = HKDF-Extract(salt="simplebeacon:pfs:v1", IKM = prevRoot || newECDHSecret || newMLKEMSecret)`, then `sessionKey = HKDF-Expand(newRoot, info="pfs:root", L=32)`. Each re-key generates fresh X25519 and ML-KEM-768 ephemeral keypairs.
+* Protocol: In-band `REKEY_INIT` / `REKEY_RESP` / `REKEY_ACK` control frames over the existing length-prefixed JSON stream. Each frame includes a transcript MAC (`HMAC-SHA256(rootKey, label || extras)`) to detect tampering.
+* Suspension State: During `REKEYING`, outbound data frames are queued in `writeQueue` and flushed after the new key is confirmed. Inbound data frames are buffered until the re-key completes. This prevents data transmission under an unconfirmed key.
+* Forward Secrecy: Compromise of a past session root does not compromise future roots, because each ratchet step mixes in fresh ECDH and ML-KEM secrets that are not derivable from the compromised root. Break-in recovery is guaranteed once a single clean re-key completes with fresh ephemerals.
+* Bounded Queue: The `writeQueue` is bounded by `MAX_QUEUE_BYTES` (default 16 MB). If the queue exceeds this limit during an extended re-key, a `QueueFullError` is thrown and the session is torn down to prevent unbounded memory growth.

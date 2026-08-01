@@ -324,3 +324,54 @@ describe('HybridSession lifecycle', () => {
     );
   });
 });
+
+describe('Queue bound: MAX_QUEUE_BYTES overflow protection', () => {
+  it('send() throws QUEUE_FULL when writeQueue exceeds MAX_QUEUE_BYTES', () => {
+    const { clientSocket } = createMockSocketPair();
+    const session = new hk.HybridSession(clientSocket, { initiator: true, timeoutMs: 10000 });
+    session.setKeys({ rootKey: crypto.randomBytes(32), sessionKey: crypto.randomBytes(32) });
+
+    // Force REKEYING state
+    session.state = hk.REKEY_STATES.REKEYING;
+
+    // Override MAX_QUEUE_BYTES to a small value for testing by
+    // directly filling the queue with data that exceeds the default 16MB.
+    // Instead, we'll use a small buffer and set the env var.
+    // Since MAX_QUEUE_BYTES is captured at module load, we test with
+    // the actual default by pushing enough data to exceed 16MB.
+    // That's too much memory for a test, so we'll verify the _queuedBytes
+    // helper works and the error path triggers with a manual override.
+
+    // Verify _queuedBytes starts at 0
+    assert.strictEqual(session._queuedBytes(), 0);
+
+    // Push a small frame — should succeed
+    session.send(Buffer.alloc(1024));
+    assert.strictEqual(session._queuedBytes(), 1024);
+    assert.strictEqual(session.writeQueue.length, 1);
+
+    // Now mock the _queuedBytes to return a value near the limit
+    session._queuedBytes = () => hk.MAX_QUEUE_BYTES - 1;
+
+    // Push one more byte — should still fit
+    session.send(Buffer.alloc(1));
+    assert.strictEqual(session.writeQueue.length, 2);
+
+    // Now push again — should exceed and throw
+    session._queuedBytes = () => hk.MAX_QUEUE_BYTES;
+    assert.throws(
+      () => session.send(Buffer.alloc(1)),
+      /write queue exceeded/,
+      'send should throw when queue exceeds MAX_QUEUE_BYTES'
+    );
+
+    // State should be reset to IDLE after overflow
+    assert.strictEqual(session.state, hk.REKEY_STATES.IDLE, 'state should reset to IDLE after queue overflow');
+  });
+
+  it('MAX_QUEUE_BYTES is exported and is a positive number', () => {
+    assert.ok(typeof hk.MAX_QUEUE_BYTES === 'number');
+    assert.ok(hk.MAX_QUEUE_BYTES > 0, 'MAX_QUEUE_BYTES should be positive');
+    assert.ok(hk.MAX_QUEUE_BYTES >= 1024, 'MAX_QUEUE_BYTES should be at least 1KB');
+  });
+});

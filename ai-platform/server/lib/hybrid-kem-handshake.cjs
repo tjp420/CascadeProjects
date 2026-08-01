@@ -36,6 +36,7 @@ const MAX_HANDSHAKE_MSG_BYTES = 1 << 16; // 64 KB
 const PFS_SALT = 'simplebeacon:pfs:v1';
 const PFS_INFO = 'pfs:root';
 const REKEY_INTERVAL_SEC = parseInt(process.env.REKEY_INTERVAL_SEC, 10) || 3600;
+const MAX_QUEUE_BYTES = parseInt(process.env.HYBRID_MAX_QUEUE_BYTES, 10) || (16 * 1024 * 1024);
 
 const REKEY_STATES = {
   IDLE: 'IDLE',
@@ -500,11 +501,29 @@ class HybridSession {
 
   send(data) {
     if (this.state === REKEY_STATES.REKEYING) {
+      // Enforce a bounded queue to prevent unbounded memory growth
+      // during an extended re-key handshake.
+      const queuedBytes = this._queuedBytes();
+      const dataBytes = Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data);
+      if (queuedBytes + dataBytes > MAX_QUEUE_BYTES) {
+        this.state = REKEY_STATES.IDLE;
+        const err = new Error(`hybrid session: write queue exceeded ${MAX_QUEUE_BYTES} bytes during re-key`);
+        err.code = 'QUEUE_FULL';
+        throw err;
+      }
       this.writeQueue.push(data);
       return false;
     }
     this.socket.write(data);
     return true;
+  }
+
+  _queuedBytes() {
+    let total = 0;
+    for (const item of this.writeQueue) {
+      total += Buffer.isBuffer(item) ? item.length : Buffer.byteLength(item);
+    }
+    return total;
   }
 
   _drainQueue() {
@@ -556,6 +575,7 @@ module.exports = {
   HybridSession,
   REKEY_STATES,
   REKEY_INTERVAL_SEC,
+  MAX_QUEUE_BYTES,
   HKDF_SALT,
   HKDF_INFO,
   SESSION_KEY_LEN,
