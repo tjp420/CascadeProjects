@@ -18,5 +18,5 @@ services:
         cd /workspace/ai-platform &&
         npm ci --ignore-scripts &&
         npm rebuild pkcs11js --build-from-source || true &&
-        npx jest server/lib/__tests__/keyring-serializer.test.cjs --runInBand
+        npx jest server/lib/__tests__/keyring-serializer.test.cjs server/lib/__tests__/hsm-integration.test.cjs --runInBand
       "
