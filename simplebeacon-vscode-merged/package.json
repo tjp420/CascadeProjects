@@ -995,7 +995,7 @@
     "quality:check": "npm run lint && npm run compile && npm run arch:validate && npm run test"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcryptjs": "^3.0.0",
     "@types/glob": "^8.1.0",
     "@types/jest": "^30.0.0",
     "@types/mocha": "^10.0.10",
