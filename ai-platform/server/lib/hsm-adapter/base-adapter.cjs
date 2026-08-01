@@ -65,6 +65,7 @@ class BaseHsmAdapter {
     this._policyEngine = options.policyEngine || null;
     this._evictionEngine = options.volatileEvictionEngine || null;
     this._provenanceTracker = options.provenanceTracker || null;
+    this._timeAnchor = options.timeAnchor || null;
     this._initialized = false;
   }
 
@@ -122,6 +123,7 @@ class BaseHsmAdapter {
   async createKEK(tenantId, meta = {}) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
+    this._checkTemporalGuard();
     const kekId = await this._createKEK(tenantId, meta);
     this._evictionEngine?.register(tenantId, kekId, async (id, reason) => {
       try {
@@ -150,6 +152,7 @@ class BaseHsmAdapter {
     if (!Buffer.isBuffer(plaintext)) {
       throw new HsmAdapterError('INVALID_INPUT', 'plaintext must be a Buffer');
     }
+    this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, kekId);
     return this._wrap(tenantId, kekId, plaintext);
   }
@@ -325,6 +328,87 @@ class BaseHsmAdapter {
     return new EncryptedSearchToken({ logger: this.logger, ...options });
   }
 
+  /**
+   * Generate a PQC hybrid recipient keypair.
+   * @param {string} tenantId
+   * @param {object} [options]
+   * @returns {object}
+   */
+  createPqcHybridKeypair(tenantId, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    const { PqcHybridAdapter } = require('./pqc-hybrid-adapter.cjs');
+    const adapter = new PqcHybridAdapter(tenantId, { logger: this.logger, ...options });
+    return adapter.generateRecipientKeypair();
+  }
+
+  /**
+   * Perform a PQC hybrid encapsulation.
+   * @param {string} tenantId
+   * @param {object} recipient
+   * @param {object} [options]
+   * @returns {object}
+   */
+  hybridEncapsulate(tenantId, recipient, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    const { PqcHybridAdapter } = require('./pqc-hybrid-adapter.cjs');
+    const adapter = new PqcHybridAdapter(tenantId, {
+      logger: this.logger,
+      policyEngine: this._policyEngine,
+      ...options,
+    });
+    return adapter.encapsulate(recipient);
+  }
+
+  /**
+   * Perform a PQC hybrid decapsulation.
+   * @param {string} tenantId
+   * @param {object} payload
+   * @param {object} [options]
+   * @returns {Buffer}
+   */
+  hybridDecapsulate(tenantId, payload, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    const { PqcHybridAdapter } = require('./pqc-hybrid-adapter.cjs');
+    const adapter = new PqcHybridAdapter(tenantId, {
+      logger: this.logger,
+      policyEngine: this._policyEngine,
+      recipient: options.recipient,
+    });
+    return adapter.decapsulate(payload);
+  }
+
+
+  /**
+   * Create a zero-knowledge identity verifier.
+   * @param {string} tenantId
+   * @param {object} [options]
+   * @returns {ZkIdentityVerifier}
+   */
+  createZkpVerifier(tenantId, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    this._policyEngine?.validate(tenantId, 'zkp', options);
+    const { ZkIdentityVerifier } = require('./zk-identity-verifier.cjs');
+    return new ZkIdentityVerifier({ logger: this.logger, ...options });
+  }
+
+  /**
+   * Create an ephemeral hardware token splitter.
+   * @param {string} tenantId
+   * @param {Buffer} attestationRoot
+   * @param {object} [options]
+   * @returns {EphemeralHardwareTokenSplitter}
+   */
+  createHardwareTokenSplitter(tenantId, attestationRoot, options = {}) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    this._policyEngine?.validate(tenantId, 'zkp', { tokenExpiryMs: options.tokenExpiryMs });
+    const { EphemeralHardwareTokenSplitter } = require('./ephemeral-hardware-token-splitter.cjs');
+    return new EphemeralHardwareTokenSplitter(attestationRoot, { logger: this.logger, ...options });
+  }
   // ── High-level keyring export / import ─────────────────────────────
 
   /**
@@ -361,6 +445,48 @@ class BaseHsmAdapter {
     }
   }
 
+
+  _checkTemporalGuard() {
+    if (!this._timeAnchor) return;
+    const consensus = this._timeAnchor.consensusTimestamp();
+    const local = Date.now();
+    const drift = Math.abs(local - consensus);
+    if (drift > this._timeAnchor.maxDriftMs) {
+      this._audit('TEMPORAL_DRIFT_BLOCKED', { drift, maxDriftMs: this._timeAnchor.maxDriftMs, consensus, local });
+      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `local clock drift ${drift}ms exceeds ${this._timeAnchor.maxDriftMs}ms`);
+    }
+  }
+
+  /**
+   * Return the current anchored epoch timestamp.
+   * @returns {number|null}
+   */
+  currentEpoch() {
+    this._ensureInitialized();
+    return this._timeAnchor ? this._timeAnchor.currentEpoch() : null;
+  }
+
+  /**
+   * Verify a local timestamp against the anchored consensus.
+   * @param {string} tenantId
+   * @param {number} localTimestamp
+   * @param {number} [toleranceMs]
+   * @returns {boolean}
+   */
+  verifyTemporalGuard(tenantId, localTimestamp, toleranceMs) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    if (!this._timeAnchor) return true;
+    const consensus = this._timeAnchor.consensusTimestamp();
+    const drift = Math.abs(localTimestamp - consensus);
+    const max = toleranceMs || this._timeAnchor.maxDriftMs;
+    const ok = drift <= max;
+    this._audit('TEMPORAL_DRIFT_BLOCKED', { tenantId, drift, max, consensus, localTimestamp, ok });
+    if (!ok) {
+      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `temporal drift ${drift}ms exceeds ${max}ms`);
+    }
+    return true;
+  }
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {

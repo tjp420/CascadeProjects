@@ -38,6 +38,22 @@
       "maxModulusBits": 2048,
       "tokenExpiryMs": 300000,
       "allowBlinding": true
+    },
+    "pqc": {
+      "minKemLevel": 512,
+      "maxKemLevel": 1024,
+      "hybridMode": true,
+      "allowedCurves": ["P-256", "P-384", "P-521"]
+    },
+    "zkp": {
+      "tokenExpiryMs": 300000,
+      "maxProofs": 100,
+      "allowedPrimes": []
+    },
+    "time": {
+      "maxDriftMs": 60000,
+      "minQuorum": 3,
+      "requireEpochChain": true
     }
   },
   "tenants": {}

@@ -574,7 +574,7 @@ const dashboardStaticDir = path.join(webRoot, 'simplebeacon-dashboard');
 const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
   ? path.join(landingRoot, 'dashboard')
   : null;
-  const dashboardStaticOpts = {
+const dashboardStaticOpts = {
   fallthrough: true,
   dotfiles: 'deny',
   setHeaders: (res, filePath) => {
@@ -807,7 +807,7 @@ if (landingRootExists) {
   // Serve remaining landing assets whenever landing pages are available
   // (not just when landing is at root), so /audit.html and similar pages can load scripts
   if (landingRootExists) {
-    app.use(express.static(landingRoot));
+    app.use('/', express.static(landingRoot, { index: false, dotfiles: 'deny', redirect: false }));
   }
 
   const waitlistRateLimiter = rateLimit({
