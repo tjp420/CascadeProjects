@@ -116,9 +116,10 @@ function setupSimplebeaconBillingWebhook(app) {
     express.raw({ type: 'application/json' }),
     async (req, res) => {
       const stripe = getStripeClient();
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      const webhookSecretPrimary = String(process.env.STRIPE_WEBHOOK_SECRET || '').trim() || null;
+      const webhookSecretSecondary = String(process.env.STRIPE_WEBHOOK_SECRET_NEW || process.env.STRIPE_WEBHOOK_SECRET_2 || '').trim() || null;
 
-      if (!stripe || !webhookSecret) {
+      if (!stripe || (!webhookSecretPrimary && !webhookSecretSecondary)) {
         return res.status(503).json({ error: 'Webhook not configured' });
       }
 
@@ -128,11 +129,22 @@ function setupSimplebeaconBillingWebhook(app) {
         return res.status(413).json({ error: 'Webhook payload too large' });
       }
 
-      let event;
-      try {
-        event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], webhookSecret);
-      } catch (err) {
-        return res.status(400).json({ error: 'Invalid webhook signature', message: err.message });
+      let event = null;
+      const sigHeader = req.headers['stripe-signature'];
+      const rawBody = req.body;
+      const secrets = [webhookSecretPrimary, webhookSecretSecondary].filter(Boolean);
+      let lastErr = null;
+      for (const s of secrets) {
+        try {
+          event = stripe.webhooks.constructEvent(rawBody, sigHeader, s);
+          break;
+        } catch (err) {
+          lastErr = err;
+          // try next secret
+        }
+      }
+      if (!event) {
+        return res.status(400).json({ error: 'Invalid webhook signature', message: lastErr ? lastErr.message : 'no valid webhook secret configured' });
       }
 
       const db = req.app?.locals?.db || null;
