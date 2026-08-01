@@ -64,8 +64,13 @@ function _isObject(value) {
 function _mergeWithDefault(tenantPolicy) {
   // Shallow merge: tenant explicitly provided values win; missing values
   // fall back to the built-in default for a deny-by-default posture.
+  // NOTE: ...tenantPolicy is spread FIRST so the explicit nested-merge
+  // keys below always win. Spreading it last (a prior bug) clobbered the
+  // deep-merged zkp/threshold/ratchet/etc. blocks with whatever the
+  // tenant provided (often {} or undefined), causing defaults to vanish.
   return {
     ...DEFAULT_POLICY,
+    ...tenantPolicy,
     allowedAlgorithms: {
       aes: { ...DEFAULT_POLICY.allowedAlgorithms.aes, ...(tenantPolicy.allowedAlgorithms && tenantPolicy.allowedAlgorithms.aes) },
       rsa: { ...DEFAULT_POLICY.allowedAlgorithms.rsa, ...(tenantPolicy.allowedAlgorithms && tenantPolicy.allowedAlgorithms.rsa) },
@@ -96,7 +101,6 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.zkp,
       ...(tenantPolicy.zkp || {}),
     },
-    ...tenantPolicy,
   };
 }
 
