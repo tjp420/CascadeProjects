@@ -42,6 +42,8 @@ const EVENT_TYPES = {
   NODE_LEAVE: 'node_leave',
   SPLIT_BRAIN_DETECTED: 'split_brain_detected',
   GRACE_WINDOW_SYNCED: 'grace_window_synced',
+  HSM_TIMEOUT: 'hsm_timeout',
+  ISOLATION_VIOLATION: 'isolation_violation',
 };
 
 const _events = [];
@@ -98,9 +100,16 @@ function getEventStats() {
 
 function _resetEvents() {
   _events.length = 0;
+  // Keep the idempotency watermark in sync with keyring/event resets so a
+  // fresh keyring (e.g. via keyRotationStore._reset in tests or operator
+  // re-keying) can accept a new commit without being rejected as "stale".
+  _lastAppliedRotatedAt = 0;
 }
 
-// Track last applied rotation for idempotency (L3-03)
+// Track last applied rotation for idempotency / ordering (L3-03).
+// A KEY_COMMIT whose rotatedAt is <= this watermark is a duplicate or
+// out-of-order (stale) commit and MUST NOT be re-applied — otherwise an
+// older key could regress the keyring after a newer one has been installed.
 let _lastAppliedRotatedAt = 0;
 
 const _state = {
@@ -241,6 +250,64 @@ function _electLeader() {
   }
 }
 
+// Apply a KEY_COMMIT received from the leader, with idempotency + ordering
+// guard (L3-03). A commit whose rotatedAt is <= the last successfully
+// applied watermark is rejected as a duplicate or stale (out-of-order)
+// commit; the keyring is left untouched and a key_reject event is recorded
+// so the audit timeline shows the rejection. Returns true if applied,
+// false if rejected.
+function _applyRemoteKeyCommit(msg) {
+  if (!msg || !msg.activeHex) return false;
+  const rotatedAt = Number(msg.rotatedAt);
+  if (!Number.isFinite(rotatedAt)) {
+    _recordEvent(EVENT_TYPES.KEY_REJECT, msg.from || NODE_ID, {
+      reason: 'missing_or_invalid_rotatedAt',
+      activeFingerprint: msg.activeFingerprint,
+    });
+    _log('warn', 'Rejected KEY_COMMIT with invalid rotatedAt', { from: msg.from });
+    return false;
+  }
+  if (rotatedAt <= _lastAppliedRotatedAt) {
+    _recordEvent(EVENT_TYPES.KEY_REJECT, msg.from || NODE_ID, {
+      reason: rotatedAt === _lastAppliedRotatedAt ? 'duplicate_commit' : 'stale_commit',
+      rotatedAt,
+      lastAppliedRotatedAt: _lastAppliedRotatedAt,
+      activeFingerprint: msg.activeFingerprint,
+    });
+    _log('warn', 'Rejected stale/duplicate KEY_COMMIT', {
+      from: msg.from,
+      rotatedAt,
+      lastAppliedRotatedAt: _lastAppliedRotatedAt,
+    });
+    return false;
+  }
+  try {
+    keyRotationStore.applyKeyringCommit(
+      msg.activeHex,
+      msg.previousHex || null,
+      rotatedAt,
+      msg.graceMs || null,
+    );
+    _lastAppliedRotatedAt = rotatedAt;
+    _updateLocalKeyringState();
+    _recordEvent(EVENT_TYPES.KEY_COMMIT, msg.from || NODE_ID, {
+      activeFingerprint: msg.activeFingerprint,
+      previousFingerprint: msg.previousFingerprint,
+      rotatedAt,
+      graceMs: msg.graceMs || null,
+    });
+    _log('info', 'Applied keyring commit from leader', {
+      leaderId: msg.from,
+      activeFingerprint: msg.activeFingerprint,
+      rotatedAt,
+    });
+    return true;
+  } catch (err) {
+    _log('error', 'Failed to apply keyring commit', { error: err.message });
+    return false;
+  }
+}
+
 function _handleMessage(msg, socket) {
   if (!msg || !msg.type) return;
   const peerKey = _peerKey(socket.remoteAddress, socket.remotePort);
@@ -261,20 +328,7 @@ function _handleMessage(msg, socket) {
     _peerState.set(peerKey, peer);
 
     if (msg.type === 'KEY_COMMIT') {
-      try {
-        if (msg.activeHex) {
-          keyRotationStore.applyKeyringCommit(
-            msg.activeHex,
-            msg.previousHex || null,
-            msg.rotatedAt,
-            msg.graceMs || null,
-          );
-          _updateLocalKeyringState();
-          _log('info', 'Applied keyring commit from leader', { leaderId: msg.from, activeFingerprint: msg.activeFingerprint });
-        }
-      } catch (err) {
-        _log('error', 'Failed to apply keyring commit', { error: err.message });
-      }
+      _applyRemoteKeyCommit(msg);
       _sendMessage(socket, { type: 'KEY_COMMIT_ACK', from: NODE_ID, epoch: _state.epoch });
     }
     return;
@@ -309,6 +363,9 @@ function _connectToPeer(host, port) {
   };
 
   if (isTls) {
+    // rejectUnauthorized:false is intentional under the trusted-network
+    // threat model (see _startServer). Do not flip to true without also
+    // configuring a real CA chain and stopping raw-key-hex broadcast.
     const socket = tls.connect(port, host, {
       cert: fs.readFileSync(process.env.CLUSTER_CERT),
       key: fs.readFileSync(process.env.CLUSTER_KEY),
@@ -322,6 +379,27 @@ function _connectToPeer(host, port) {
   }
 }
 
+// ── Transport security model ────────────────────────────────────────────────
+// The cluster keyring transport is OPPORTUNISTIC TLS, NOT mutual TLS (mTLS):
+//   - Server: requestCert:false, rejectUnauthorized:false  (no client cert
+//     requested or verified)
+//   - Client: rejectUnauthorized:false                      (server cert not
+//     verified)
+//   - When CLUSTER_CERT/CLUSTER_KEY are unset, the transport falls back to
+//     plaintext TCP.
+//
+// This is intentional and relies on the deployment threat model: the cluster
+// port (CLUSTER_KEYRING_PORT, default 7000) MUST be reachable only on a
+// trusted private network (e.g. a private VPC, isolated overlay, or
+// loopback). KEY_COMMIT frames carry raw key material (activeHex/previousHex)
+// over this channel; without network-level isolation any reachable peer can
+// install or observe cluster keys.
+//
+// Do NOT enable mTLS (requestCert:true / rejectUnauthorized:true + a real
+// CA chain) unless the deployment actually crosses untrusted networks — and
+// if it does, also stop broadcasting raw key hex in favor of per-node
+// encrypted key wrapping. Both changes are out of scope for the trusted-
+// network threat model and must be designed together.
 function _startServer() {
   if (_server) return;
   const isTls = !!(process.env.CLUSTER_CERT && process.env.CLUSTER_KEY);
@@ -330,6 +408,11 @@ function _startServer() {
     socket.on('error', (err) => _log('warn', 'Server socket error', { error: err.message }));
     socket.on('close', () => _log('debug', 'Server socket closed'));
   };
+
+  if (!isTls) {
+    _log('warn', 'Cluster keyring transport is PLAINTEXT TCP (no CLUSTER_CERT/CLUSTER_KEY). '
+      + 'Raw key material will be broadcast unencrypted. Only acceptable on a fully isolated/trusted network.');
+  }
 
   if (isTls) {
     _server = tls.createServer({
@@ -446,6 +529,11 @@ function proposeRotate(newKeyRaw, graceMs) {
   const result = keyRotationStore.rotateKey(newKeyRaw, graceMs);
   _updateLocalKeyringState();
   _state.epoch++;
+  // Advance the idempotency watermark so a reflected/duplicate KEY_COMMIT
+  // (e.g. re-broadcast by a lagging peer) is rejected on the leader too.
+  if (Number.isFinite(_state.rotatedAt)) {
+    _lastAppliedRotatedAt = _state.rotatedAt;
+  }
 
   _broadcast({
     type: 'KEY_COMMIT',
@@ -483,4 +571,5 @@ module.exports = {
   // Test helpers
   _resetEvents,
   _recordEvent,
+  _applyRemoteKeyCommit,
 };

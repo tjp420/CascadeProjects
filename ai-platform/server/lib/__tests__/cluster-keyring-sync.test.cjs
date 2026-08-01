@@ -240,19 +240,99 @@ describe('Cluster Keyring Sync — Unit Tests', () => {
     });
   });
 
-  describe('Idempotency (L3-03)', () => {
-    it('duplicate KEY_COMMIT with same rotatedAt is ignored', () => {
-      // Simulate a KEY_COMMIT message being processed twice
-      // The _lastAppliedRotatedAt tracking prevents double-application
-      // We verify via event timeline that only one key_commit event is recorded
-      clusterSync._recordEvent('key_commit', 'node-A', { rotatedAt: 1000, activeFingerprint: 'abc' });
-      clusterSync._recordEvent('key_commit', 'node-A', { rotatedAt: 1000, activeFingerprint: 'abc' });
+  describe('Idempotency & ordering (L3-03)', () => {
+    function makeCommit(rotatedAt, fingerprint) {
+      const key = crypto.randomBytes(32);
+      return {
+        type: 'KEY_COMMIT',
+        from: 'leader-A',
+        activeHex: key.toString('hex'),
+        previousHex: null,
+        activeFingerprint: fingerprint || key.toString('hex').slice(0, 16),
+        previousFingerprint: null,
+        rotatedAt,
+        graceMs: null,
+      };
+    }
 
-      // Both events are recorded in timeline (it's an audit log)
-      // But the key store should only apply once (tracked by _lastAppliedRotatedAt)
-      // This is verified by the route-level test below
-      const events = clusterSync.queryEvents({ eventType: 'key_commit' });
-      assert.ok(events.total >= 2);
+    it('applies a fresh KEY_COMMIT and advances the watermark', () => {
+      const before = keyRotationStore.getRotationStatus();
+      const beforeRotatedAt = before.rotatedAt;
+      const msg = makeCommit(Date.now());
+      const applied = clusterSync._applyRemoteKeyCommit(msg);
+      assert.strictEqual(applied, true);
+      const after = keyRotationStore.getRotationStatus();
+      assert.notStrictEqual(after.rotatedAt, beforeRotatedAt);
+      assert.strictEqual(after.rotatedAt, msg.rotatedAt);
+      const commits = clusterSync.queryEvents({ eventType: 'key_commit' });
+      assert.ok(commits.total >= 1);
+    });
+
+    it('rejects a duplicate KEY_COMMIT with the same rotatedAt (no re-apply)', () => {
+      const msg = makeCommit(20000);
+      assert.strictEqual(clusterSync._applyRemoteKeyCommit(msg), true);
+      const afterFirst = keyRotationStore.getRotationStatus();
+
+      // Re-send the same commit (same rotatedAt, same key)
+      const dupApplied = clusterSync._applyRemoteKeyCommit(msg);
+      assert.strictEqual(dupApplied, false);
+      const afterSecond = keyRotationStore.getRotationStatus();
+
+      // Keyring unchanged
+      assert.strictEqual(afterSecond.rotatedAt, afterFirst.rotatedAt);
+      assert.strictEqual(afterSecond.activeFingerprint, afterFirst.activeFingerprint);
+
+      // A key_reject event with reason duplicate_commit is recorded
+      const rejects = clusterSync.queryEvents({ eventType: 'key_reject' });
+      assert.ok(rejects.total >= 1);
+      const reject = rejects.events[0];
+      assert.strictEqual(reject.details.reason, 'duplicate_commit');
+    });
+
+    it('rejects a stale (out-of-order) KEY_COMMIT with older rotatedAt', () => {
+      const newer = makeCommit(30000);
+      const older = makeCommit(10000);
+      assert.strictEqual(clusterSync._applyRemoteKeyCommit(newer), true);
+      const afterNewer = keyRotationStore.getRotationStatus();
+
+      // An older commit arrives (e.g. from a lagging peer re-broadcasting)
+      assert.strictEqual(clusterSync._applyRemoteKeyCommit(older), false);
+      const afterOlder = keyRotationStore.getRotationStatus();
+
+      // Keyring must NOT regress to the older rotation
+      assert.strictEqual(afterOlder.rotatedAt, afterNewer.rotatedAt);
+      assert.strictEqual(afterOlder.activeFingerprint, afterNewer.activeFingerprint);
+
+      const rejects = clusterSync.queryEvents({ eventType: 'key_reject' });
+      assert.ok(rejects.total >= 1);
+      const reject = rejects.events[0];
+      assert.strictEqual(reject.details.reason, 'stale_commit');
+    });
+
+    it('rejects a KEY_COMMIT with missing/invalid rotatedAt', () => {
+      const msg = makeCommit(undefined);
+      assert.strictEqual(clusterSync._applyRemoteKeyCommit(msg), false);
+      const rejects = clusterSync.queryEvents({ eventType: 'key_reject' });
+      assert.ok(rejects.total >= 1);
+      assert.strictEqual(rejects.events[0].details.reason, 'missing_or_invalid_rotatedAt');
+    });
+
+    it('accepts a newer KEY_COMMIT after a previous one (watermark advances)', () => {
+      const first = makeCommit(40000);
+      const second = makeCommit(50000);
+      assert.strictEqual(clusterSync._applyRemoteKeyCommit(first), true);
+      assert.strictEqual(clusterSync._applyRemoteKeyCommit(second), true);
+      const status = keyRotationStore.getRotationStatus();
+      assert.strictEqual(status.rotatedAt, 50000);
+    });
+
+    it('S-04: key_reject events do not contain raw key material', () => {
+      const msg = makeCommit(60000);
+      clusterSync._applyRemoteKeyCommit(msg); // apply
+      clusterSync._applyRemoteKeyCommit(msg); // reject as duplicate
+      const rejects = clusterSync.queryEvents({ eventType: 'key_reject' });
+      const evStr = JSON.stringify(rejects.events[0]);
+      assert.ok(!evStr.match(/[0-9a-f]{64}/), 'key_reject event contains 64-char hex (possible raw key)');
     });
   });
 });

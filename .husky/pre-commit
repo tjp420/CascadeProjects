@@ -20,5 +20,5 @@ for file in $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|c
   node -c "$file" || { echo "[SimpleBeacon] Syntax error in $file"; exit 1; }
 done
 echo "[SimpleBeacon] Running gate scan..."
-npx simplebeacon scan --gate --fail-on high --config ai-platform/.simplebeacon/config.json
+node packages/simplebeacon-cli/bin/simplebeacon.js scan --gate --fail-on high --config ai-platform/.simplebeacon/config.json
 echo "[SimpleBeacon] Pre-commit passed"

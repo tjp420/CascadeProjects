@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Cold Archive Streaming Search & Forensic Parser |
+| Feature / change | Multi-Tenant HSM Virtualization & Tokenization |
 | Author (Builder) | Devin |
 | Date | 2026-08-01 |
 | Branch | main |
@@ -14,18 +14,20 @@
 
 ### Files in scope
 
-- `ai-platform/server/lib/cold-archive-search.cjs` (new)
-- `ai-platform/server/routes/audit-routes.cjs` (add route)
-- `ai-platform/server/lib/__tests__/cold-archive-search.test.cjs` (new)
+- `ai-platform/server/lib/key-rotation-store.cjs` (extend with tenant derivation)
+- `ai-platform/server/lib/hsm-vault.cjs` or `hsm-providers.cjs` (use tenant key if HSM enabled)
+- `ai-platform/server/lib/cluster-keyring-sync.cjs` (record isolation events)
+- `ai-platform/server/lib/__tests__/tenant-hsm-isolation.test.cjs` (new)
+- `.github/workflows/security-regression-tests.yml` (add test to pattern if needed)
 
 ### APIs / routes
 
-- `GET /api/audit/archive/search` — paginated search over gzipped NDJSON cold archive
-  - Query params: `startDate`, `endDate`, `action`, `orgId`, `limit`, `offset`
+- No new public route required; isolation is an internal API change.
+- Optional: `GET /api/audit/hsm/tenant/:orgId/fingerprint` for admin visibility (future).
 
 ### UI / IDE surfaces
 
-- [x] Main dashboard iframe / address bar
+- [ ] Main dashboard iframe / address bar
 - [ ] Sidebar webview
 - [ ] Welcome / main window panel
 - [ ] Simple Browser / external browser
@@ -36,9 +38,9 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on new `.cjs` | `node -c ai-platform/server/lib/cold-archive-search.cjs` | [ ] |
-| L1-02 | New search tests pass | `cd ai-platform && npx jest --config jest.config.cjs cold-archive-search` | [ ] |
-| L1-03 | Existing key tests still pass | `cd ai-platform && npx jest --config jest.config.cjs key-rotation` | [ ] |
+| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
+| L1-02 | New tenant HSM tests pass | `cd ai-platform && npx jest --config jest.config.cjs tenant-hsm` | [ ] |
+| L1-03 | Existing key-rotation and HSM tests pass | `cd ai-platform && npx jest --config jest.config.cjs key-rotation && npx jest --config jest.config.cjs hsm-vault` | [ ] |
 | L1-04 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate --format json` | [ ] |
 | L1-05 | No secrets in diff | `git diff --cached` | [ ] |
 
@@ -48,11 +50,11 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Search by timestamp range | Request `?startDate=...&endDate=...` | Returns only entries in range | [ ] |
-| L2-02 | Filter by action and orgId | Request `?action=login&orgId=org-a` | Returns matching entries | [ ] |
-| L2-03 | Pagination with limit/offset | Request `?limit=10&offset=20` | Returns up to 10 entries, hasMore flag | [ ] |
-| L2-04 | Large archive memory bounded | Search 50 MB `.json.gz` | Peak memory stable, no full-file load | [ ] |
-| L2-05 | REST endpoint requires admin | `GET /api/audit/archive/search` as non-admin | 403 Forbidden | [ ] |
+| L2-01 | Same master key, different orgIds produce different tenant keys | Call `deriveTenantKey(orgA)` and `deriveTenantKey(orgB)` | Outputs are different 32-byte hex values | [ ] |
+| L2-02 | Tenant key is deterministic and stable | Call `deriveTenantKey(orgA)` twice | Same output both times | [ ] |
+| L2-03 | HSM timeout fails closed | Simulate `HSM_TIMEOUT=1` env / stub | Any tokenization throws `hsm_timeout` | [ ] |
+| L2-04 | Tenant isolation violation recorded | Attempt to access key for orgB as orgA | `clusterSync._recordEvent('isolation_violation', ...)` is called | [ ] |
+| L2-05 | Cluster timeline captures HSM timeout | Trigger HSM timeout | Event `hsm_timeout` in `queryEvents` | [ ] |
 
 ---
 
@@ -60,11 +62,11 @@
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Empty archive directory | Returns empty results, hasMore false | [ ] |
-| L3-02 | Corrupt gzip file | Logs warning, continues to next file | [ ] |
-| L3-03 | Invalid JSON line | Skips line, continues | [ ] |
-| L3-04 | No date filters | Returns all entries paginated | [ ] |
-| L3-05 | Start date after end date | Returns empty with 400 error | [ ] |
+| L3-01 | orgId is empty string | Throws `missing_org_id` | [ ] |
+| L3-02 | orgId contains special characters | Normalized before HKDF, still produces stable key | [ ] |
+| L3-03 | HSM unavailable, no fallback | No in-memory key generated; operation fails | [ ] |
+| L3-03 | Rotation preserves tenant isolation | After master rotation, tenant keys change and remain isolated | [ ] |
+| L3-05 | Existing key-rotation tests unaffected | `key-rotation-store` defaults keep working | [ ] |
 
 ---
 
@@ -72,9 +74,10 @@
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | Path traversal prevented — archive directory cannot escape root | [ ] |
-| S-02 | Only `admin:all` can query cold archive | [ ] |
-| S-03 | No decompressed data persists to disk; streamed through memory | [ ] |
+| S-01 | Tenant keys never stored raw; only derived on demand | [ ] |
+| S-02 | No orgA can derive/validate orgB's key | [ ] |
+| S-03 | HSM timeout does not fall back to local random key | [ ] |
+| S-04 | Cluster events for violations do not include raw key material | [ ] |
 
 ---
 

@@ -48,6 +48,40 @@ function getActiveKeyBuffer() {
   return _keyRing.active;
 }
 
+const TENANT_DERIVATION_INFO = 'simplebeacon-tenant-v1';
+
+function _normalizeOrgId(orgId) {
+  if (typeof orgId !== 'string') return '';
+  return orgId.normalize('NFKC').trim().toLowerCase();
+}
+
+function deriveTenantKey(orgId) {
+  if (!orgId || typeof orgId !== 'string') {
+    const err = new TypeError('Tenant key derivation requires a valid orgId');
+    err.code = 'missing_org_id';
+    throw err;
+  }
+  const normalized = _normalizeOrgId(orgId);
+  if (!normalized) {
+    const err = new TypeError('Tenant key derivation requires a non-empty orgId');
+    err.code = 'missing_org_id';
+    throw err;
+  }
+  const master = getActiveKeyBuffer();
+  if (!master) {
+    const err = new Error('No active master key available for tenant derivation');
+    err.code = 'master_key_unavailable';
+    throw err;
+  }
+  const salt = Buffer.from(`sb:tenant:${normalized}`, 'utf8');
+  const info = Buffer.from(TENANT_DERIVATION_INFO, 'utf8');
+  return Buffer.from(crypto.hkdfSync('sha256', master, salt, info, 32));
+}
+
+function deriveTenantKeyHex(orgId) {
+  return deriveTenantKey(orgId).toString('hex');
+}
+
 /**
  * Get all keys valid for decryption (active + previous if within grace).
  * @returns {Array<{ keyHex: string }>} Array of key version objects
@@ -290,6 +324,8 @@ module.exports = {
   initKeyRing,
   getActiveKeyBuffer,
   getDecryptionKeys,
+  deriveTenantKey,
+  deriveTenantKeyHex,
   rotateKey,
   purgeExpiredKeys,
   getRotationStatus,
