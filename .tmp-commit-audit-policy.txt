@@ -1,0 +1,73 @@
+feat(security): audit policy & retention engine with per-org ILM controls
+
+Add a per-org retention policy store and purge engine to the audit
+ledger, transforming passive unbounded storage into a mature
+Information Lifecycle Management (ILM) system. Administrators can
+now configure retention days, max entries, and archiving per org,
+trigger manual purges, and monitor retention stats — all with hash
+chain integrity preserved.
+
+audit-policy-store.cjs (new):
+- Per-org policy store persisted at AUDIT_POLICY_PATH (default:
+  .simplebeacon/audit-policy-store.json)
+- getPolicy(orgId): Returns { retentionDays, maxEntries, archive }
+  with defaults (90 days, 10000 entries, no archive)
+- setPolicy(orgId, policy): Validates and persists. Rejects
+  retentionDays < 1, maxEntries < 100, non-boolean archive
+- getAllPolicies(): Returns all configured org policies
+- _resetCache(): Test helper for cache invalidation
+
+audit-logger.cjs (updated):
+- getRetentionStats(orgId): Returns total, oldestTimestamp,
+  newestTimestamp, purgeableCount, and policy for an org
+- purgeOldEntries(orgId): Removes entries older than retentionDays,
+  while preserving at least maxEntries most recent entries (safety
+  floor). Re-links hash chain after purge (same pattern as healChain).
+  When archive: true, moves purged entries to audit-archive-{orgId}.json
+  before deletion. Does not cross org boundaries.
+- Safety floor logic: Only applies when total entries > maxEntries;
+  otherwise all entries are eligible for age-based purge
+- Both functions exported in module.exports
+
+audit-routes.cjs (updated):
+- GET /api/audit/retention/config: Returns policy for caller's org
+  (admin-only)
+- PUT /api/audit/retention/config: Updates policy, audit-logged
+  with action 'retention_policy_update' (admin-only)
+- GET /api/audit/retention/stats: Returns retention stats
+  (admin-only)
+- POST /api/audit/retention/purge: Triggers purge, audit-logged
+  with action 'retention_purge' and result metadata (admin-only)
+
+audit-policy-store.test.cjs (new):
+- 12 tests: getPolicy defaults, custom policies, per-org isolation,
+  validation (negative days, <100 maxEntries, non-boolean archive),
+  partial updates, getAllPolicies, persistence, cache reset
+
+audit-logger-retention.test.cjs (new):
+- 11 tests: getRetentionStats (empty, populated, default policy),
+  purgeOldEntries (empty, age-based, safety floor, hash chain
+  re-linking, org boundary isolation, default policy, archiving)
+
+Security:
+- All 4 retention routes wrapped with authorize('admin:all')
+- Purge and policy update actions audit-logged
+- Hash chain integrity verified after purge (verifyChain passes)
+- No cross-org purge (org boundary isolation)
+- Safety floor preserves most recent maxEntries entries
+- No new dependencies (uses only existing fs, path, crypto)
+
+CI workflow: added path filters and test regex for audit-policy-store
+and audit-logger-retention.
+
+QA Framework: Builder/Validator separation followed.
+- Test plan: .simplebeacon/qa/test_plan.md (20 check-items)
+- Health report: .simplebeacon/qa/software_health_report.md
+- 20/20 test plan items PASS
+- Level 1: PASS (syntax, 1779 tests, gate 0/0/0, quality 100)
+- Level 3: No spec drift, no ghost files
+- Verdict: READY FOR COMMIT
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

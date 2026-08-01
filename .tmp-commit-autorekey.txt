@@ -1,0 +1,59 @@
+feat(security): autonomous background re-keying worker for quarantine migration
+
+Wire the key rotation store's re-keying migration engine into the
+auto-heal timer in audit-logger.cjs. During each 5-minute background
+tick, the worker checks if a key rotation is active and, if so,
+re-encrypts per-tenant quarantine files from the previous key to the
+active key. After successful migration, the previous key is
+force-purged from the key ring.
+
+audit-logger.cjs (updated):
+- runAutonomousReKeying(): Checks keyRotationStore.getRotationStatus(),
+  scans quarantine directory for tenant-* dirs, decrypts each file
+  with fallback (tries active key first, then previous), re-encrypts
+  with active key, writes back to disk. Force-purges previous key
+  after successful migration (0 failures).
+- getReKeyStats(): Returns migration statistics (totalSweeps,
+  totalMigrated, totalSkipped, totalFailed, totalPurged, lastResult)
+- Wired into startAutoHeal() timer tick alongside healAllOrgs()
+- Scans both getAllOrgIds() AND quarantine dir for tenant-* dirs
+  (healed entries are removed from main log, so getAllOrgIds alone
+  would miss orgs with only quarantined data)
+
+crypto-utils.cjs (updated):
+- decryptForDirectory() now has multi-key fallback, mirroring the
+  existing pattern in decrypt(). After trying the current derived
+  directory key, it falls back to derived keys from retired master
+  keys (via getDecryptionKeys()). This enables decryption of
+  directory-level encrypted files during key rotation.
+
+key-rotation-store.cjs (updated):
+- purgeExpiredKeys(force): Added optional boolean parameter. When
+  true, purges the previous key immediately regardless of grace
+  window. This enables the re-keying worker to evict the old key
+  as soon as all files are confirmed migrated.
+
+12 new tests (autonomous-rekey.test.cjs) across 5 suites:
+- No rotation active: no-op result, no crash when store unavailable
+- Rotation active: re-key quarantine files, purge after migration,
+  skip orgs with no quarantine, handle corrupted files
+- Grace expired: skip migration, attempt purge
+- Stats: expected fields, increment totalSweeps, no raw key exposure
+- File integrity: encrypted with sb-dir: prefix, readable with
+  correct orgId after re-keying
+
+CI workflow: added path filters and test regex for autonomous-rekey.
+
+QA Framework: Builder/Validator separation followed.
+- Test plan: .simplebeacon/qa/test_plan.md (13 check-items)
+- Health report: .simplebeacon/qa/software_health_report.md
+- 13/13 test plan items PASS
+- Level 1: PASS (syntax, 527 tests, gate 0/0/0, quality 100)
+- Level 3: No spec drift, no ghost files
+- Verdict: READY FOR COMMIT
+
+Total: 23 suites, 527 tests pass. Gate: PASS (quality 100).
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

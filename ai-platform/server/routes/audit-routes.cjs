@@ -805,4 +805,25 @@ router.post('/retention/purge', authorize('admin:all'), (req, res) => {
   }
 });
 
+// GET /api/audit/compliance/report — Generate compliance report (JSON or CSV)
+router.get('/compliance/report', authorize('admin:all'), (req, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const format = req.query.format === 'csv' ? 'csv' : 'json';
+    const report = auditLogger.generateComplianceReport(orgId);
+
+    if (format === 'csv') {
+      const csv = auditLogger.complianceReportToCsv(report);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="compliance_proof_${report.reportId}.csv"`);
+      return res.status(200).send(csv);
+    }
+
+    res.json({ success: true, report });
+  } catch (err) {
+    logger.warn('[Audit] compliance_report_failed:', err.message);
+    sendError(res, 500, 'compliance_report_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

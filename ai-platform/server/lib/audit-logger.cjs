@@ -1284,6 +1284,157 @@ function getHealStats() {
   };
 }
 
+/**
+ * Generate a comprehensive compliance report aggregating cryptographic chain
+ * integrity, retention policies, PII scrubbing status, key rotation status,
+ * and autonomous worker telemetry across all orgs. Designed for SOC 2,
+ * GDPR, and ISO 27001 evidence packs.
+ *
+ * @param {string} callerOrgId — The org ID of the admin requesting the report
+ * @param {string[]} [frameworks] — Target frameworks (default: SOC 2, GDPR, ISO 27001)
+ * @returns {object} Compliance report object
+ */
+function generateComplianceReport(callerOrgId, frameworks) {
+  const targetFrameworks = frameworks || ['SOC 2', 'GDPR', 'ISO 27001'];
+  const generatedAt = new Date().toISOString();
+  const reportId = `rep_${crypto.randomBytes(8).toString('hex')}`;
+
+  // 1. Aggregate global engine statistics
+  const global = {
+    autoPurgeStats: getLifecyclePurgeStats(),
+    healStats: getHealStats(),
+    keyRotation: null,
+    piiScrubbing: { enabled: _scrubEnabled },
+  };
+
+  try {
+    const keyStore = require('./key-rotation-store.cjs');
+    global.keyRotation = keyStore.getRotationStatus();
+  } catch {
+    global.keyRotation = { error: 'Key rotation subsystem unavailable' };
+  }
+
+  // 2. Aggregate per-org compliance profiles
+  const orgs = [];
+  const knownOrgs = getAllOrgIds();
+  const callerOrg = callerOrgId || 'default';
+
+  // Ensure caller's org is always evaluated first
+  const targetOrgs = knownOrgs.includes(callerOrg)
+    ? [callerOrg, ...knownOrgs.filter((id) => id !== callerOrg)]
+    : [callerOrg, ...knownOrgs];
+
+  for (const orgId of targetOrgs) {
+    const profile = {
+      orgId,
+      chainIntegrity: null,
+      retentionPolicy: null,
+      retentionStats: null,
+      piiPolicyCount: 0,
+    };
+
+    try {
+      profile.chainIntegrity = verifyChain(orgId);
+    } catch (err) {
+      profile.chainIntegrity = { valid: false, error: err.message };
+    }
+
+    try {
+      profile.retentionPolicy = auditPolicyStore.getPolicy(orgId);
+    } catch {
+      profile.retentionPolicy = { error: 'Retention policy store unavailable' };
+    }
+
+    try {
+      profile.retentionStats = getRetentionStats(orgId);
+    } catch {
+      profile.retentionStats = { error: 'Failed to compute retention stats' };
+    }
+
+    try {
+      const piiStore = require('./pii-policy-store.cjs');
+      const piiPolicies = piiStore.getPolicies(orgId);
+      profile.piiPolicyCount = Array.isArray(piPolicies) ? piiPolicies.length : 0;
+    } catch {
+      profile.piiPolicyCount = 0;
+    }
+
+    orgs.push(profile);
+  }
+
+  const report = {
+    reportId,
+    generatedAt,
+    frameworks: targetFrameworks,
+    global,
+    orgs,
+  };
+
+  // 3. Log the report generation as an auditable action
+  try {
+    log({
+      orgId: callerOrg,
+      actorId: 'system',
+      actorEmail: 'compliance@simplebeacon.internal',
+      action: 'compliance_report_generated',
+      entity: 'compliance_report',
+      entityId: reportId,
+      metadata: {
+        frameworks: targetFrameworks,
+        organizationsEvaluated: targetOrgs.length,
+      },
+    });
+  } catch {
+    // Logging failure should not block report delivery
+  }
+
+  return report;
+}
+
+/**
+ * Convert a compliance report object into a flat CSV string for auditor export.
+ * @param {object} report — Report from generateComplianceReport()
+ * @returns {string} CSV string
+ */
+function complianceReportToCsv(report) {
+  let csv = `SimpleBeacon Compliance Proof Bundle,Report ID:,${report.reportId},Generated At:,${report.generatedAt}\n`;
+  csv += `Target Governance Frameworks:,${report.frameworks.join(' | ')}\n\n`;
+
+  // Section 1: Global Security Controls
+  csv += `SECTION 1: GLOBAL PLATFORM SECURITY CONTROLS\n`;
+  csv += `Control Parameter,Metric Value,Status/Details\n`;
+  csv += `PII Pre-Redaction Shield Engine,${report.global.piiScrubbing.enabled ? 'ENABLED' : 'DISABLED'},Inline sanitization active\n`;
+  if (report.global.keyRotation && !report.global.keyRotation.error) {
+    csv += `Active Master Key Fingerprint,${report.global.keyRotation.activeFingerprint || 'None'},Symmetric AES-256 key block\n`;
+    csv += `Grace Verification Window Active,${report.global.keyRotation.hasPrevious ? 'YES' : 'NO'},Dual-key decryption fence\n`;
+  }
+  if (report.global.autoPurgeStats) {
+    csv += `Automated ILM Purge Sweeps Run,${report.global.autoPurgeStats.totalSweeps || 0},Autonomous maintenance runs\n`;
+    csv += `Total Records Auto-Evicted,${report.global.autoPurgeStats.totalPurged || 0},Expired database frames\n`;
+  }
+  if (report.global.healStats) {
+    csv += `Chain Healing Total Runs,${report.global.healStats.totalRuns || 0},Background integrity repairs\n`;
+    csv += `Total Quarantined Entries,${report.global.healStats.totalQuarantined || 0},Tamper-evident isolation\n`;
+  }
+  csv += `\n`;
+
+  // Section 2: Multi-Tenant Compliance Attestation Matrix
+  csv += `SECTION 2: MULTI-TENANT CRYPTOGRAPHIC ATTESTATION MATRIX\n`;
+  csv += `Organization ID,Chain Status,Verified Blocks,Quarantined,Retention Days,Max Entries Floor,PII Rules\n`;
+
+  for (const org of report.orgs) {
+    const chainStatus = org.chainIntegrity?.valid ? 'PRISTINE / VERIFIED' : 'DEVIATION DETECTED';
+    const totalVerified = org.chainIntegrity?.verifiedEntries || 0;
+    const quarantinedCount = org.chainIntegrity?.tamperedEntries?.length || 0;
+    const retDays = org.retentionPolicy?.retentionDays || 90;
+    const maxLog = org.retentionPolicy?.maxEntries || 10000;
+
+    csv += `"${org.orgId}",${chainStatus},${totalVerified},${quarantinedCount},${retDays} days,${maxLog} entries,${org.piiPolicyCount} rules\n`;
+  }
+
+  return csv;
+}
+
 module.exports = {
   log,
   query,
@@ -1309,6 +1460,8 @@ module.exports = {
   getReKeyStats,
   runAutonomousLifecyclePurge,
   getLifecyclePurgeStats,
+  generateComplianceReport,
+  complianceReportToCsv,
   __testInject,
   GENESIS_HASH,
 };

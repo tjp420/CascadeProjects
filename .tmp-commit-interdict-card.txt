@@ -1,0 +1,60 @@
+feat(security): real-time interdiction management card in security dashboard
+
+Add an administrative interdiction management card to the SecurityView
+dashboard, completing the security console trifecta (interdiction +
+key rotation + quarantine inspector). The card provides live visibility
+into active API key lockouts, manual block/release controls, and
+real-time stats with 30-second background polling.
+
+interdictionService.js (new):
+- fetchInterdictions(authHeaders): GET /api/audit/interdiction/status
+- blockKey(apiKey, reason, ttlMs, authHeaders): POST
+  /api/audit/interdiction/block
+- releaseKey(apiKey, authHeaders): POST /api/audit/interdiction/release
+- Follows existing service pattern (apiBase from authService.js,
+  authHeaders parameter, credentials: 'include')
+
+SecurityView.js (updated):
+- renderInterdictionSection(): Admin-only section placed at TOP of
+  admin panels (most time-sensitive active defense data). Renders:
+  - 4-card stats grid: Active Lockouts, Total Blocked, Auto-Triggered,
+    Requests Rejected (only shown when active lockouts exist)
+  - Block list table: masked key, source badge (AUTO/MANUAL), reason,
+    blockedAt, expiresAt with live countdown badge (Xm Ys), Lift Lock
+    button per row
+  - Manual block form: API key input (required), reason input, duration
+    input (minutes, default 15), Block Key button
+  - Empty state: shield emoji + "No active interdictions" message
+  - Loading state: spinner + "Loading interdiction status…"
+  - Error state: error message + Retry button
+- _renderInterdictionRow(entry): Renders a single interdiction row with
+  escapeHtml() on all fields, source badge, countdown badge
+- loadInterdiction(): Fetches interdiction status on mount
+- startInterdictionPolling(): 30s setInterval with unref() and
+  container check; only polls when admin and section visible
+- stopInterdictionPolling(): Clears interval (cleanup)
+- handleBlockKey(): Validates required apiKey, converts duration from
+  minutes to ms, calls blockKey(), shows toast, refreshes list
+- handleReleaseKey(maskedKey): Calls releaseKey(), shows toast based
+  on wasBlocked result, refreshes list
+- All event listeners wired in render() method using CSS.escape()
+  for safe dynamic selector queries
+
+Security:
+- Section only renders for admin users (isCurrentUserAdmin check)
+- All entry fields escaped with escapeHtml()
+- Masked keys from backend never unmasked in DOM
+- CSS.escape used for dynamic element selectors
+- No new dependencies (vanilla JS, existing fetch API)
+
+QA Framework: Builder/Validator separation followed.
+- Test plan: .simplebeacon/qa/test_plan.md (18 check-items)
+- Health report: .simplebeacon/qa/software_health_report.md
+- 18/18 test plan items PASS
+- Level 1: PASS (syntax, 1756 tests, gate 0/0/0, quality 100)
+- Level 3: No spec drift, no ghost files
+- Verdict: READY FOR COMMIT
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

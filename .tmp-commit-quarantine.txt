@@ -1,0 +1,66 @@
+feat(security): forensic quarantine evidence inspector with row-level verification
+
+Add a secure administrative drawer in the SecurityView dashboard for
+inspecting quarantined audit log entries and verifying their
+cryptographic integrity on a per-row basis.
+
+audit-logger.cjs (updated):
+- verifyQuarantineEntry(orgId, entryId): Recomputes the SHA-256 hash
+  of a single quarantined entry using computeEntryHash() and compares
+  it to the stored hash. Returns { found, hashMatches, expectedHash,
+  actualHash, quarantineReason, entry, decryptionStatus }. The
+  decryptionStatus field indicates whether the quarantine file was
+  successfully decrypted with the current keyring.
+- Exported in module.exports.
+
+audit-routes.cjs (updated):
+- POST /api/audit/quarantine/verify-entry: Admin-only route that
+  accepts { entryId, orgId? } and calls verifyQuarantineEntry().
+  Returns 400 if entryId is missing, 404 if entry not found, 200
+  with verification result otherwise.
+- Existing GET /api/audit/quarantine route already supports
+  ?allOrgs=true for cross-tenant admin views.
+
+quarantineService.js (new):
+- fetchQuarantineEntries(allOrgs, authHeaders): GET /api/audit/quarantine
+- verifyQuarantineEntry(entryId, orgId, authHeaders): POST
+  /api/audit/quarantine/verify-entry
+
+SecurityView.js (updated):
+- renderQuarantineInspector(): Admin-only section with:
+  - Entries table (id, org, action, timestamp, reason, verify button)
+  - Expandable detail drawer showing raw JSON payload in <pre> block
+  with escapeHtml() escaping
+  - Per-row "Verify" button that triggers hash recomputation
+  - Inline verification result (✅ Hash Match / ❌ Hash Mismatch)
+  with expected vs actual hash display
+  - "All orgs" checkbox for cross-tenant admin view
+  - Decryption error warning banner when quarantine file can't be
+  decrypted with current keyring
+  - Empty state when no quarantined entries exist
+- loadQuarantine(): Fetches entries on mount for admin users
+- toggleQuarantineEntry(entryId): Expand/collapse drawer per row
+- handleVerifyEntry(entryId): Calls verify endpoint, auto-expands
+  drawer to show result, shows toast notification
+- All event listeners wired in render() method using CSS.escape()
+  for safe dynamic selector queries
+
+Security:
+- Both quarantine routes wrapped with authorize('admin:all')
+- Verify endpoint returns 404 for missing entries
+- All entry payload fields escaped with escapeHtml()
+- Raw JSON in <pre> block escaped to prevent XSS
+- No raw encryption key material exposed in responses
+- CSS.escape used for dynamic element selectors
+
+QA Framework: Builder/Validator separation followed.
+- Test plan: .simplebeacon/qa/test_plan.md (15 check-items)
+- Health report: .simplebeacon/qa/software_health_report.md
+- 15/15 test plan items PASS
+- Level 1: PASS (syntax, 1733 tests, gate 0/0/0, quality 100)
+- Level 3: No spec drift, no ghost files
+- Verdict: READY FOR COMMIT
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

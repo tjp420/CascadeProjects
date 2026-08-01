@@ -1,0 +1,52 @@
+feat(security): add software-simulated HSM vault provider for key derivation
+
+Implement hsm-vault.cjs as a software-simulated Hardware Security Module
+that provides isolated key derivation. The module is activated when
+process.env.HSM_PROVIDER is set, with fail-open fallback to local HMAC
+key derivation in crypto-utils.cjs if the HSM is unavailable or throws.
+
+hsm-vault.cjs (new module):
+- deriveKey(orgId, context): Generic HMAC-SHA256 key derivation using
+  an internal simulated HSM root key. Returns 32-byte Buffer.
+- deriveOrgKeyViaHsm(orgId): Hook-compatible function matching the
+  existing call in crypto-utils.cjs deriveOrgKey(). Uses 'org-key'
+  as the context.
+- HSM root key is module-scoped and never exported (cryptographic
+  boundary isolation)
+- HSM_MOCK_ROOT_KEY env var enables deterministic testing by seeding
+  the root key with a known hex value
+- Throws TypeError for invalid orgId (caught by crypto-utils fail-open)
+
+Integration with crypto-utils.cjs:
+- deriveOrgKey() checks HSM_PROVIDER env var, routes through HSM if set
+- If HSM module fails to load or throws, falls back to local HMAC
+- HSM-derived keys differ from local fallback keys (different root seed)
+- HSM-derived keys work for AES-256-GCM encrypt/decrypt round-trip
+
+22 new tests (hsm-vault.test.cjs) across 4 suites:
+- deriveKey: 32-byte Buffer, deterministic, unique per org/context,
+  default context, TypeError validation
+- deriveOrgKeyViaHsm: 32-byte Buffer, deterministic, unique per org,
+  TypeError, consistency with deriveKey
+- Root key isolation: not exported, HSM_MOCK_ROOT_KEY env var,
+  different root keys yield different derived keys
+- Integration with crypto-utils.cjs: HSM routing, key differs from
+  local fallback, fallback when HSM_PROVIDER not set, fallback when
+  HSM module missing, fallback when HSM throws, AES-256-GCM round-trip
+
+CI workflow: added path filters and test regex for hsm-vault.test.cjs.
+
+QA Framework: Builder/Validator separation followed.
+- Test plan: .simplebeacon/qa/test_plan.md (13 check-items)
+- Health report: .simplebeacon/qa/software_health_report.md
+- 13/13 test plan items PASS
+- Level 1: PASS (syntax, 485 tests, gate 0/0/0, quality 100)
+- Level 2: PASS (all behavioral checks)
+- Level 3: No spec drift, no ghost files
+- Verdict: READY FOR COMMIT
+
+Total: 21 suites, 485 tests pass. Gate: PASS (quality 100).
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>
