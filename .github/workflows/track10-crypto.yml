@@ -105,25 +105,23 @@ jobs:
       - name: Run AES-KW vector suite (RFC 3394 + RFC 5649)
         working-directory: ai-platform
         run: |
-          echo "Jest binary: $(which jest || echo 'not found')"
-          echo "Jest version: $(jest --version 2>/dev/null || npx jest --version 2>/dev/null || echo 'unknown')"
-          echo "node_modules/.bin/jest: $(ls -la node_modules/.bin/jest 2>/dev/null || echo 'not found')"
-          echo "root jest: $(ls -la ../node_modules/.bin/jest 2>/dev/null || echo 'not found')"
-          node node_modules/.bin/jest --config jest.config.cjs --verbose aes-kw-vectors aes-kw.test
+          node -e "const p=require('./jest.config.cjs');console.log('rootDir:',p.rootDir||'(default)');console.log('setupFilesAfterEnv:',JSON.stringify(p.setupFilesAfterEnv));"
+          node -e "const fs=require('fs');console.log('tests/setup.js exists:',fs.existsSync('tests/setup.js'));console.log('realpath:',fs.realpathSync('tests/setup.js'));"
+          node node_modules/jest/bin/jest.js --config jest.config.cjs --verbose aes-kw-vectors aes-kw.test
 
       - name: Run HSM adapter unit tests
         working-directory: ai-platform
-        run: npm test -- --verbose hsm-adapter.test
+        run: node node_modules/jest/bin/jest.js --config jest.config.cjs --verbose hsm-adapter.test
 
       - name: Run keyring serializer tests
         working-directory: ai-platform
-        run: npm test -- --verbose keyring-serializer
+        run: node node_modules/jest/bin/jest.js --config jest.config.cjs --verbose keyring-serializer
 
       - name: Run SoftHSM integration tests (real PKCS#11 token)
         working-directory: ai-platform
         env:
           SOFTHSM2_LIB: ${{ env.SOFTHSM2_LIB }}
-        run: npm test -- --verbose hsm-integration
+        run: node node_modules/jest/bin/jest.js --config jest.config.cjs --verbose hsm-integration
 
       - name: Upload test artifacts
         if: always()
