@@ -252,6 +252,45 @@ class BaseHsmAdapter {
     this._audit('KEY_EVICTED', { reason });
   }
 
+  // ── Threshold cryptography ─────────────────────────────────────────
+
+  /**
+   * Split a secret into N shards requiring M for reconstruction.
+   * @param {string} tenantId
+   * @param {Buffer} secret
+   * @param {number} total - N
+   * @param {number} threshold - M
+   * @param {string[]} custodianIds
+   * @returns {Promise<Array<object>>}
+   */
+  async splitKey(tenantId, secret, total, threshold, custodianIds) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    this._policyEngine?.validate(tenantId, 'threshold', { threshold, total });
+    const { ThresholdSecretSplitter } = require('./threshold-secret-splitter.cjs');
+    const splitter = new ThresholdSecretSplitter();
+    const shards = splitter.split(secret, total, threshold, custodianIds);
+    this._audit('KEY_SHARD_GENERATED', { tenantId, total, threshold, custodians: custodianIds });
+    return shards;
+  }
+
+  /**
+   * Reconstruct a secret from at least M shards.
+   * @param {string} tenantId
+   * @param {Array<object>} shards
+   * @param {number} threshold - M
+   * @returns {Promise<Buffer>}
+   */
+  async recoverKey(tenantId, shards, threshold) {
+    this._ensureInitialized();
+    this._ensureTenant(tenantId);
+    const { ThresholdKeyRecoverer } = require('./threshold-key-recoverer.cjs');
+    const recoverer = new ThresholdKeyRecoverer();
+    const secret = recoverer.recover(shards, threshold);
+    this._audit('KEY_RECONSTRUCTION_SUCCESS', { tenantId, threshold, shardCount: shards.length });
+    return secret;
+  }
+
   // ── High-level keyring export / import ─────────────────────────────
 
   /**

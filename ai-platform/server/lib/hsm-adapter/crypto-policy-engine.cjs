@@ -30,6 +30,10 @@ const DEFAULT_POLICY = {
     zeroizeStrategy: 'random',
     auditOnEvict: true,
   },
+  threshold: {
+    minThreshold: 2,
+    maxTotal: 7,
+  },
 };
 
 function _isObject(value) {
@@ -50,6 +54,10 @@ function _mergeWithDefault(tenantPolicy) {
     eviction: {
       ...DEFAULT_POLICY.eviction,
       ...(tenantPolicy.eviction || {}),
+    },
+    threshold: {
+      ...DEFAULT_POLICY.threshold,
+      ...(tenantPolicy.threshold || {}),
     },
     ...tenantPolicy,
   };
@@ -192,6 +200,22 @@ class CryptoPolicyEngine {
     throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `Algorithm ${algorithm} is not recognized by policy`);
   }
 
+  _validateThreshold(tenantPolicy, threshold, total) {
+    const policy = tenantPolicy.threshold || DEFAULT_POLICY.threshold;
+    if (typeof threshold !== 'number' || typeof total !== 'number') {
+      throw new HsmAdapterError('INVALID_THRESHOLD', 'threshold and total must be numbers');
+    }
+    if (threshold < 1 || total < 1 || threshold > total) {
+      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 ≤ threshold ≤ total (${total})`);
+    }
+    if (threshold < policy.minThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `threshold ${threshold} is below policy minimum ${policy.minThreshold}`);
+    }
+    if (total > policy.maxTotal) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `total ${total} exceeds policy maximum ${policy.maxTotal}`);
+    }
+  }
+
   _checkDeprecation(tenantPolicy, algorithm, createdAt) {
     const deprecated = (tenantPolicy.deprecatedAlgorithms || []).find(
       (d) => d.algorithm === algorithm
@@ -218,8 +242,8 @@ class CryptoPolicyEngine {
   /**
    * Validate an operation for a tenant against the active policy.
    * @param {string} tenantId
-   * @param {string} operation - 'createKEK', 'wrap', 'unwrap', 'rotateKEK'
-   * @param {object} config - { algorithm, keySize, kekBits, createdAt }
+   * @param {string} operation - 'createKEK', 'wrap', 'unwrap', 'rotateKEK', 'threshold'
+   * @param {object} config - { algorithm, keySize, kekBits, createdAt, threshold, total }
    * @returns {boolean}
    */
   validate(tenantId, operation, config = {}) {
@@ -229,6 +253,11 @@ class CryptoPolicyEngine {
     }
 
     const tenantPolicy = this._getTenantPolicy(tenantId);
+
+    if (operation === 'threshold') {
+      this._validateThreshold(tenantPolicy, config.threshold, config.total);
+      return true;
+    }
 
     if (typeof config.kekBits === 'number') {
       this._validateBits(tenantPolicy, config.kekBits, 'kekBits');
