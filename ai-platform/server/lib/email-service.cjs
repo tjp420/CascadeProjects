@@ -49,10 +49,17 @@ function getCloudflareConfig() {
 }
 
 function getResendConfig() {
-  const key = process.env.RESEND_API_KEY || process.env.SMTP_PASS || '';
-  if (!key.startsWith('re_')) return null;
+  const primary = String(process.env.RESEND_API_KEY || '').trim();
+  const secondary = String(process.env.RESEND_API_KEY_NEW || process.env.RESEND_API_KEY_2 || '').trim();
+  const keys = [];
+  if (primary) keys.push(primary);
+  if (secondary) keys.push(secondary);
+  // Only accept keys that look like Resend keys (start with re_)
+  const validKeys = keys.filter(k => k && k.startsWith('re_'));
+  if (!validKeys.length) return null;
   const from = process.env.RESEND_FROM || process.env.SMTP_FROM || 'certificates@simplebeacon.ai';
-  return { key, from };
+  // Backwards-compatible: expose `key` for primary, and `keys` for fallback order
+  return { key: primary && primary.startsWith('re_') ? primary : validKeys[0], keys: validKeys, from };
 }
 
 /**
@@ -159,35 +166,52 @@ function sendViaResend({ to, from, subject, text, html, attachments = [] }) {
       }));
     }
     const payload = JSON.stringify(body);
-
-    const req = https.request({
-      hostname: 'api.resend.com',
-      path: '/emails',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${cfg.key}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload)
+    // Try each configured Resend key in order until one succeeds.
+    const keys = Array.isArray(cfg.keys) && cfg.keys.length ? cfg.keys : [cfg.key];
+    let lastErr = null;
+    const tryKey = (index) => {
+      if (index >= keys.length) {
+        return reject(new Error(lastErr ? lastErr.message : 'All Resend keys failed'));
       }
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            const json = JSON.parse(data);
-            resolve({ id: json.id });
-          } catch {
-            resolve({ id: null });
-          }
-        } else {
-          reject(new Error(`Resend API error ${res.statusCode}: ${data}`));
+      const key = keys[index];
+      const req = https.request({
+        hostname: 'api.resend.com',
+        path: '/emails',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
         }
+      }, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            try {
+              const json = JSON.parse(data);
+              return resolve({ id: json.id });
+            } catch {
+              return resolve({ id: null });
+            }
+          }
+          // If auth error, try next key
+          if (res.statusCode === 401 || res.statusCode === 403) {
+            lastErr = new Error(`Resend auth failed ${res.statusCode}: ${data}`);
+            return tryKey(index + 1);
+          }
+          // Other errors are fatal
+          return reject(new Error(`Resend API error ${res.statusCode}: ${data}`));
+        });
       });
-    });
-    req.on('error', reject);
-    req.write(payload);
-    req.end();
+      req.on('error', (err) => {
+        lastErr = err;
+        tryKey(index + 1);
+      });
+      req.write(payload);
+      req.end();
+    };
+    tryKey(0);
   });
 }
 
