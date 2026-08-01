@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schemas.simplebeacon.ai/crypto-policy/v1",
+  "version": "1.2.0",
+  "default": {
+    "minimumKekBits": 128,
+    "keyExpirationDays": 0,
+    "allowEphemeralSecrets": false,
+    "allowedAlgorithms": {
+      "aes": {
+        "kw": true,
+        "kwp": true,
+        "bits": [128, 192, 256]
+      },
+      "rsa": {
+        "oaep": true,
+        "minBits": 2048
+      },
+      "ecdh": {
+        "curves": ["P-256", "P-384", "P-521"]
+      }
+    },
+    "deprecatedAlgorithms": [],
+    "eviction": {
+      "inactivityEvictionSeconds": 0,
+      "zeroizeStrategy": "random",
+      "auditOnEvict": true
+    },
+    "threshold": {
+      "minThreshold": 2,
+      "maxTotal": 7
+    },
+    "ratchet": {
+      "maxSkipped": 1000,
+      "sessionExpiryMs": 86400000,
+      "allowDhRatchet": true
+    },
+    "homomorphic": {
+      "maxModulusBits": 2048,
+      "tokenExpiryMs": 300000,
+      "allowBlinding": true
+    }
+  },
+  "tenants": {}
+}

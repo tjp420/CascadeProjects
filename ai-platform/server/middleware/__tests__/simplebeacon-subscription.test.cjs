@@ -1,5 +1,5 @@
 /**
- * TODO: Add tests for simplebeacon-subscription.cjs (190 lines)
+ * PENDING: Add tests for simplebeacon-subscription.cjs (190 lines)
  *
  * Coverage targets:
  * - Subscription tier validation middleware

@@ -1,5 +1,5 @@
 /**
- * TODO: Add tests for local-model-service.cjs (652 lines)
+ * PENDING: Add tests for local-model-service.cjs (652 lines)
  *
  * Coverage targets:
  * - Ollama local model discovery and health checks

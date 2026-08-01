@@ -574,8 +574,9 @@ const dashboardStaticDir = path.join(webRoot, 'simplebeacon-dashboard');
 const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
   ? path.join(landingRoot, 'dashboard')
   : null;
-const dashboardStaticOpts = {
+  const dashboardStaticOpts = {
   fallthrough: true,
+  dotfiles: 'deny',
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.js')) res.set('Content-Type', 'application/javascript; charset=utf-8');
     if (filePath.endsWith('.css')) res.set('Content-Type', 'text/css; charset=utf-8');
@@ -893,7 +894,7 @@ if (landingRootExists) {
     if (req.path.startsWith('/api/') || req.path.startsWith('/demo') || req.path.startsWith('/app')) {
       return next();
     }
-    express.static(landingRoot, { index: false, redirect: false })(req, res, next);
+    express.static(landingRoot, { index: false, redirect: false, dotfiles: 'deny' })(req, res, next);
   });
 }
 
@@ -906,11 +907,11 @@ app.use((req, res, next) => {
 });
 
 // Serve landing pages from root
-app.use('/', express.static(landingRoot, { index: false }));
+app.use('/', express.static(landingRoot, { index: false, dotfiles: 'deny', redirect: false }));
 
 // Development-only route for scan artifacts (gated in production)
 if (process.env.NODE_ENV !== 'production') {
-  app.use('/data', express.static(path.join(__dirname, 'web', 'data'), { index: false }));
+  app.use('/data', express.static(path.join(__dirname, 'web', 'data'), { index: false, dotfiles: 'deny' }));
 }
 
 // Simplebeacon API + billing routes registered after Phase 2 auth in bootstrapPhase2Routes()

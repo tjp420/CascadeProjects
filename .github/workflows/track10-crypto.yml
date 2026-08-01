@@ -1,0 +1,142 @@
+name: Track 10 Crypto Gate
+
+# Track 10: HSM-bound AES Key Wrap (AES-KW / AES-KWP) integration pipeline.
+# Runs RFC 3394 / RFC 5649 vector suites and SoftHSM integration tests against
+# a real PKCS#11 token provisioned in a CI container.
+#
+# This job is a required merge gate for PRs touching Track 10 crypto files.
+# Spec: .simplebeacon/track-10-hsm-key-wrap.md (CI and gating section)
+
+on:
+  push:
+    branches: [main, develop, 'feature/track10-**', 'feature/track11-**']
+    paths:
+      - 'ai-platform/server/lib/hsm-adapter/**'
+      - 'ai-platform/server/lib/keyring-serializer.cjs'
+      - 'ai-platform/server/lib/aes-kw.cjs'
+      - 'ai-platform/server/lib/__tests__/aes-kw-vectors*'
+      - 'ai-platform/server/lib/__tests__/hsm-adapter*.test.cjs'
+      - 'ai-platform/server/lib/__tests__/hsm-integration.test.cjs'
+      - 'ai-platform/server/lib/__tests__/vectors/**'
+      - '.github/workflows/track10-crypto.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'ai-platform/server/lib/hsm-adapter/**'
+      - 'ai-platform/server/lib/keyring-serializer.cjs'
+      - 'ai-platform/server/lib/aes-kw.cjs'
+      - 'ai-platform/server/lib/__tests__/aes-kw-vectors*'
+      - 'ai-platform/server/lib/__tests__/hsm-adapter*.test.cjs'
+      - 'ai-platform/server/lib/__tests__/hsm-integration.test.cjs'
+      - 'ai-platform/server/lib/__tests__/vectors/**'
+      - '.github/workflows/track10-crypto.yml'
+  workflow_dispatch: {}
+
+jobs:
+  track10-crypto:
+    name: Track 10 Vector Suite + SoftHSM Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # SoftHSM token configuration — must match hsm-integration.test.cjs
+      SOFTHSM2_LIB: /usr/lib/softhsm/libsofthsm2.so
+      SOFTHSM2_CONF: /tmp/softhsm2/softhsm2.conf
+      SOFTHSM2_TOKENS: /tmp/softhsm2/tokens
+      TRACK10_TOKEN_LABEL: Track10-Token
+      TRACK10_TOKEN_PIN: '1234'
+      TRACK10_TOKEN_SO_PIN: '5678'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install system dependencies (SoftHSM2 + build tools)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y softhsm2 build-essential python3
+          # Verify the PKCS#11 module is at the expected path
+          test -f $SOFTHSM2_LIB || { echo "ERROR: libsofthsm2.so not found at $SOFTHSM2_LIB"; exit 1; }
+
+      - name: Configure SoftHSM2 token storage
+        run: |
+          mkdir -p $SOFTHSM2_TOKENS
+          cat > $SOFTHSM2_CONF <<EOF
+          directories.tokendir = $SOFTHSM2_TOKENS
+          objectstore.backend = file
+          log.level = INFO
+          EOF
+          echo "Wrote SoftHSM2 config to $SOFTHSM2_CONF"
+          cat $SOFTHSM2_CONF
+
+      - name: Initialize SoftHSM2 token
+        run: |
+          # Initialize a new token with the Track10 label and PINs
+          softhsm2-util --init-token --slot 0 --label "$TRACK10_TOKEN_LABEL" \
+            --so-pin "$TRACK10_TOKEN_SO_PIN" --pin "$TRACK10_TOKEN_PIN"
+          echo "Initialized token '$TRACK10_TOKEN_LABEL' in slot 0"
+          # Verify the token is visible
+          softhsm2-util --show-slots || true
+
+      - name: Install monorepo dependencies
+        run: npm ci
+
+      - name: Install pkcs11js and unrs-resolver native bindings (CI-only)
+        working-directory: ai-platform
+        run: |
+          # pkcs11js is an optional native dependency not in package.json.
+          # Install without saving so it doesn't pollute package.json for
+          # local development environments without PKCS#11.
+          npm install --no-save pkcs11js
+          node -e "require('pkcs11js'); console.log('pkcs11js loaded successfully')"
+
+          # Jest 30 uses unrs-resolver which requires platform-specific native
+          # binaries as optional dependencies. If these are missing, Jest fails
+          # with "Module not found" errors for setupFilesAfterEnv, transform, etc.
+          # See: https://github.com/jestjs/jest/issues/15923
+          #
+          # IMPORTANT: This MUST be installed AFTER pkcs11js because
+          # `npm install --no-save pkcs11js` can remove other --no-save packages
+          # from node_modules. Installing the unrs binding last ensures it
+          # survives into the Jest run.
+          npm install --no-save @unrs/resolver-binding-linux-x64-gnu 2>/dev/null || true
+          # Verify the native binding works
+          node -e "const r=require('unrs-resolver');const res=new r.ResolverFactory({extensions:['.js','.cjs','.json']});const result=res.sync('$(pwd)','./tests/setup.js');console.log('unrs-resolver OK, resolved:',JSON.stringify(result))" 2>&1 || echo "unrs-resolver sync failed"
+
+      - name: Run AES-KW vector suite (RFC 3394 + RFC 5649)
+        working-directory: ai-platform
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose aes-kw-vectors aes-kw.test
+
+      - name: Run HSM adapter unit tests
+        working-directory: ai-platform
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose hsm-adapter.test
+
+      - name: Run keyring serializer tests
+        working-directory: ai-platform
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose keyring-serializer
+
+      - name: Run SoftHSM integration tests (real PKCS#11 token)
+        working-directory: ai-platform
+        env:
+          SOFTHSM2_LIB: ${{ env.SOFTHSM2_LIB }}
+        run: node node_modules/jest/bin/jest.js --config jest.config.ci.cjs --setupFilesAfterEnv=./tests/setup.js --verbose hsm-integration
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: track10-crypto-results
+          path: |
+            ai-platform/coverage/
+            ai-platform/test-results/
+          retention-days: 7

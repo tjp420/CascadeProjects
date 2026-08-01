@@ -1,52 +1,55 @@
-# Software Health Report — Track 5: Advanced Defense Automation
+# software_health_report.md
+
+> Validator output after executing the Track 15 volatile memory purging and key zeroization test plan and adversarial gates on `feature/track15-groundwork`.
+> This is a Builder self-check; an independent Validator sign-off is still recommended.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Validator | Devin (Validator-only mode) |
-| Date | 2026-07-31 |
-| Branch | main |
-| Commit under review | 1587a647 |
-| test_plan version | .simplebeacon/qa/test_plan.md (Track 5) |
+| Validator | Devin (Builder self-check; independent Validator sign-off still recommended) |
+| Date | 2026-08-01 |
+| Branch | `feature/track15-groundwork` |
+| test_plan version | `ai-platform/docs/specs/track15-zeroization-test-plan.md` (commit `4193bd15`) |
+| Pull request | #112 targeting `feature/track10-aes-kw` |
 
 ## Executive summary
 
-- **Gate:** PASS — quality score: 0/100 — blocking: 0 critical / 0 high / 0 medium
-- **Level 1:** 4/4 passed (syntax, full gate scan, `npm test`, `npm audit`)
-- **Level 2:** 5/5 passed
-- **Level 3:** 6/6 passed
-- **Ship recommendation:** GO
+- **Gate:** PASS — quality score: 0 / 100 — blocking: 0 critical / 0 high / 0 medium
+- **Level 1:** All required commands executed and passed
+- **Level 2:** Behavioral checks for buffer zeroization, inactivity eviction, and audit logging passed
+- **Level 3:** Spec scope matches implementation; only approved files modified
+- **Ship recommendation:** GO — pending independent Validator sign-off
 
 ---
 
-## 1. Defects
+## 1. Defects (fix immediately)
 
-None. All validator-identified defects were resolved by the Builder and re-verified:
+No defects found during the adversarial pass.
 
-| ID | test_plan ref | Description | Resolution |
-|----|---------------|-------------|------------|
-| D-01 | L3-01 | `/api/audit/log` and other non-admin audit routes were throttled. | Non-admin paths now excluded in `audit-routes.cjs`. |
-| D-02 | S-04 | `adminThrottle` ran before `authorize('admin:all')` in `hsm-vault-routes.cjs`. | Auth wrapper now executes before the token bucket. |
-| D-03 | L2-05, L3-02 | Redis fallback did not inherit the last known token count and never retried Redis. | `_consumeFromRedis` now snapshots and seeds in-memory state on Redis failure. ioredis `'ready'` event auto-restores `usingRedis` on reconnect. `_probeRedisHealth()` exported for manual health checks. |
+| ID | test_plan ref | Description | Severity | Owner |
+|----|---------------|-------------|----------|-------|
+| — | — | — | — | — |
 
 ---
 
-## 2. Unimplemented
+## 2. Unimplemented (spec gaps)
+
+No spec gaps identified.
 
 | ID | test_plan ref | Missing capability | Notes |
 |----|---------------|-------------------|-------|
-| U-01 | Scope files | `ai-platform/server/middleware/admin-throttle.cjs` not created. | Middleware is exported from `lib/admin-throttle.cjs` and wired directly; functionally equivalent. |
-| U-02 | Scope files | `ai-platform/docs/ARCHITECTURE.md` Track 5 ledger update. | **Resolved** — Track 5 section and compliance cross-reference entries added to ARCHITECTURE.md. |
+| — | — | — | — |
 
 ---
 
-## 3. Enhancements
+## 3. Enhancements (debt / perf / UX)
 
-| ID | Area | Suggestion | Effort | Status |
-|----|------|------------|--------|--------|
-| E-01 | Resilience | Add a periodic Redis health check or reconnect to re-enable the Redis backend after recovery. | M | **Done** — ioredis `'ready'` event hook + `_probeRedisHealth()` |
-| E-02 | Testing | Add integration tests with `supertest` against `audit-routes` and `hsm-vault-routes` for the full 429 path. | M | **Done** — `audit-throttle-routes.test.cjs` (8 tests) + `hsm-vault-throttle.test.cjs` (8 tests) |
+| ID | Area | Suggestion | Effort |
+|----|------|------------|--------|
+| E-01 | persistent audit | Persist `KEY_ZEROIZED` / `KEY_EVICTED` events to the audit-integrity chain or durable log. | M |
+| E-02 | key material wiping | For `KeyObject`, investigate Node/OpenSSL APIs for secure key material deletion (currently limited to reference dropping). | M |
+| E-03 | metrics | Add counters for `zeroize` and `evict` operations per tenant. | S |
 
 ---
 
@@ -54,82 +57,94 @@ None. All validator-identified defects were resolved by the Builder and re-verif
 
 | ID | Feature | Rationale |
 |----|---------|-----------|
-| R-01 | Centralized throttling dashboard | Expose current per-IP and per-subnet token counts for operations. |
-| R-02 | Adaptive leak rates | Adjust leak rate based on time of day or threat signals. |
-| R-03 | Distributed token-bucket Lua optimization | Move per-request IP/subnet hashing out of the hot path. |
-| R-04 | AST pattern for middleware ordering enforcement | Add a `javascript-ast-patterns` engine rule that asserts throttle middleware always executes downstream of authentication/authorization in Express routers. Prevents regressions of D-01 and D-02 at the scanner level. |
+| R-01 | Emergency kill switch | `evictAll` endpoint to purge all in-memory keys on security incident. |
+| R-02 | Policy-audit log | Record every `CryptoPolicyEngine` `reload()` for compliance. |
+| R-03 | File-backed policy | Load `crypto-policy-schema.json` from disk at adapter start. |
 
 ---
 
 ## Command log (summary)
 
+### Syntax checks
+
+```bash
+node -c ai-platform/server/lib/hsm-adapter/secure-zeroize.cjs
+node -c ai-platform/server/lib/hsm-adapter/volatile-eviction-engine.cjs
+node -c ai-platform/server/lib/hsm-adapter/base-adapter.cjs
+node -c ai-platform/server/lib/hsm-adapter/software-adapter.cjs
+node -c ai-platform/server/lib/hsm-adapter/asymmetric-adapter.cjs
+node -c ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs
+node -c ai-platform/server/lib/hsm-adapter/__tests__/secure-zeroize.test.cjs
+node -c ai-platform/server/lib/hsm-adapter/__tests__/volatile-eviction.test.cjs
 ```
-# Syntax validation
-node -c ai-platform/server/lib/admin-throttle.cjs              # PASS
-node -c ai-platform/server/lib/__tests__/admin-throttle.test.cjs # PASS
-node -c ai-platform/server/lib/__tests__/audit-throttle-routes.test.cjs # PASS
-node -c ai-platform/server/lib/__tests__/hsm-vault-throttle.test.cjs # PASS
-node -c ai-platform/server/routes/audit-routes.cjs             # PASS
-node -c ai-platform/server/routes/hsm-vault-routes.cjs         # PASS
 
-# Full security gate scan
-node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate
-# Gate: PASS, 0 critical / 0 high / 0 medium / 5 low, quality 0/100
+All eight files pass syntax validation.
 
-# Full ai-platform test suite
+### Targeted Track 15 tests
+
+```bash
+cd ai-platform && npx jest --config jest.config.cjs secure-zeroize volatile-eviction hsm-adapter asymmetric-adapter multi-tenant-key-isolation crypto-policy-engine attestation
+```
+
+```text
+PASS server/lib/hsm-adapter/__tests__/secure-zeroize.test.cjs
+PASS server/lib/hsm-adapter/__tests__/volatile-eviction.test.cjs
+PASS server/lib/__tests__/hsm-adapter.test.cjs
+PASS server/lib/hsm-adapter/__tests__/asymmetric-adapter.test.cjs
+PASS server/lib/hsm-adapter/__tests__/multi-tenant-key-isolation.test.cjs
+PASS server/lib/hsm-adapter/__tests__/crypto-policy-engine.test.cjs
+PASS server/lib/hsm-adapter/__tests__/attestation.test.cjs
+
+Test Suites: 7 passed, 7 total
+Tests:       94 passed, 94 total
+```
+
+### Full platform test suite
+
+```bash
 cd ai-platform && npm test
-# Test Suites: 197 passed, 197 total
-# Tests:       1977 passed, 1977 total
-# Failing suites: none
-
-# Targeted Track 5 tests
-npx jest --config jest.config.cjs admin-throttle        # 9/9 PASS (incl. 2 D-03 recovery tests)
-npx jest --config jest.config.cjs audit-throttle-routes # 8/8 PASS
-npx jest --config jest.config.cjs hsm-vault-throttle    # 8/8 PASS
-npx jest --config jest.config.cjs cluster-keyring-sync  # 29/29 PASS
-
-# Dependency audit
-npm audit (root)        # 0 vulnerabilities
-npm audit (ai-platform) # 0 vulnerabilities
 ```
 
+```text
+Test Suites: 1 skipped, 215 passed, 215 of 216 total
+Tests:       2 skipped, 2226 passed, 2228 total
+Time:        20.891 s
+```
+
+A prior run showed a flaky failure in `server/lib/__tests__/track11-integration.test.cjs` that passes in isolation; the re-run above was green.
+
+### SimpleBeacon pre-commit gate
+
+```bash
+npx simplebeacon scan --gate
+```
+
+- `gatePass: true`
+- `qualityScore: 0 / 100`
+- `critical: 0`
+- `high: 0`
+- `medium: 0`
+- `low: 5` (duplicate data only)
+
 ---
 
-## Level 2 — Behavioral Verification
+## Open PR stack
 
-| test_plan ref | Check | Result | Notes |
-|---------------|-------|--------|-------|
-| L2-01 | Repeated `423` responses trigger throttle | PASS | `admin-throttle.cjs` drains IP and subnet on `res.statusCode === 423`. |
-| L2-02 | Request volume spike (`>20`/s) triggers `429` | PASS | Token bucket with capacity 20 and 25% reserve blocks bursts. |
-| L2-03 | `isolation_violation` / `hsm_timeout` trigger throttle | PASS | Middleware listens for `403` and `503`; route error handlers produce those codes. |
-| L2-04 | Steady 5 req/s allowed | PASS | Refill at 5 tokens/second; targeted test passes. |
-| L2-05 | Redis failure fallback inherits count | PASS | Last known distributed state is seeded into the in-memory fallback. |
-
----
-
-## Level 3 — Spec Drift & Edge Cases
-
-| Item | Status | Notes |
-|------|--------|-------|
-| No ghost files | CONFIRMED | All referenced files exist. |
-| No new dependencies | CONFIRMED | Uses the existing `ioredis`/`redis` pattern; no package additions. |
-| Spec: `lib/admin-throttle.cjs` token bucket | MATCH | Implemented and exported. |
-| Spec: per-IP and per-subnet buckets | MATCH | /24 and /64 implemented; tests pass. |
-| Spec: 25% reserve fallback | MATCH | Implemented and tested. |
-| Spec: auth before throttle (S-04) | MATCH | `hsm-vault-routes` auth now runs before throttle. |
-| Spec: non-admin routes not throttled (L3-01) | MATCH | Non-admin audit paths are excluded. |
-| Spec: Redis recovery (L3-02) | MATCH | Last known state inherited on fallback; ioredis `'ready'` event auto-restores `usingRedis`; `_probeRedisHealth()` exported. |
-| Spec: architecture ledger update | MATCH | Track 5 section and compliance entries added to `ARCHITECTURE.md`. |
+| PR | Branch | Title | State | Mergeable |
+|----|--------|-------|-------|-----------|
+| #105 | `feature/track10-hsm-audit` | `feat(hsm-audit): Track 10 HSM adapter audit trail` | OPEN | MERGEABLE |
+| #106 | `feature/track10-kek-rotation` | `feat(kek-rotation): Master KEK rotation for T10K keyrings` | OPEN | MERGEABLE |
+| #107 | `feature/track11-groundwork` | `feat(track11): Asymmetric wrapping pairs for HSM adapter` | OPEN | MERGEABLE |
+| #108 | `feature/track12-groundwork` | `feat(track12): Attestation, HKDF context binding, and asymmetric hardware mocking` | OPEN | MERGEABLE |
+| #109 | `feature/track13-groundwork` | `feat(track13): Multi-tenant key isolation and per-transaction DEK derivation` | OPEN | MERGEABLE |
+| #111 | `feature/track14-groundwork` | `feat(track14): Dynamic cryptographic policy engine with hot-reload` | OPEN | MERGEABLE |
+| #112 | `feature/track15-groundwork` | `feat(track15): Volatile memory purging and key zeroization` | OPEN | MERGEABLE |
 
 ---
 
 ## Validator sign-off
 
 - [x] All Level 1 checks executed
-- [x] All documented defects resolved by Builder
-- [x] Re-verified after Builder fixes
-- [x] Full gate scan reviewed
-- [x] `npm test` 191/191 suites, 1954/1954 tests pass
-- [x] `npm audit` 0 vulnerabilities
-
-**Verdict:** GO — Track 5 is secure, production-ready, and the `ai-platform` test suite is fully green.
+- [x] Failures documented in Defects (none found)
+- [ ] No feature code written except test fixes (Builder wrote feature code; independent Validator review required)
+- Validator: __________  Date: __________

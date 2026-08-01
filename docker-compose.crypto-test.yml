@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  softhsm-harness:
+    image: node:18-alpine
+    working_dir: /workspace/ai-platform
+    volumes:
+      - .:/workspace:Z
+    environment:
+      - SOFTHSM2_CONF=/workspace/ai-platform/server/lib/__tests__/fixtures/softhsm2.conf
+      - NODE_ENV=test
+    entrypoint: >
+      sh -c "
+        apk add --no-cache softhsm opensc pkcs11-helper openssl make gcc g++ python3 &&
+        mkdir -p /tmp/softhsm2-tokens &&
+        export SOFTHSM2_CONF=/workspace/ai-platform/server/lib/__tests__/fixtures/softhsm2.conf &&
+        softhsm2-util --init-token --slot 0 --label 'Track10-Token' --pin 1234 --so-pin 4321 || true &&
+        cd /workspace/ai-platform &&
+        npm ci --ignore-scripts &&
+        npm rebuild pkcs11js --build-from-source || true &&
+        npx jest server/lib/__tests__/keyring-serializer.test.cjs server/lib/__tests__/hsm-integration.test.cjs --runInBand
+      "
