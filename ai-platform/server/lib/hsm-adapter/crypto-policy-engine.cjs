@@ -50,6 +50,11 @@ const DEFAULT_POLICY = {
     hybridMode: true,
     allowedCurves: ['P-256', 'P-384', 'P-521'],
   },
+  zkp: {
+    tokenExpiryMs: 300000,
+    maxProofs: 100,
+    allowedPrimes: [],
+  },
 };
 
 function _isObject(value) {
