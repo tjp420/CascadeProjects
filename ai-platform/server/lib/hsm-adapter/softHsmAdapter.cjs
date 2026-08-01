@@ -121,28 +121,22 @@ class SoftHsmAdapter {
     const kekHandle = this._findKeyHandleByLabel(kekLabel);
     if (!kekHandle) throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekLabel} not found`);
 
-    // Create a temporary session key object for the CEK
-    const tempTemplate = [
-      { type: pkcs11js.CKA_CLASS, value: pkcs11js.CKO_SECRET_KEY },
-      { type: pkcs11js.CKA_KEY_TYPE, value: pkcs11js.CKK_AES },
-      { type: pkcs11js.CKA_VALUE, value: cekBuffer },
-      { type: pkcs11js.CKA_ENCRYPT, value: false },
-      { type: pkcs11js.CKA_DECRYPT, value: false },
-      { type: pkcs11js.CKA_WRAP, value: false },
-      { type: pkcs11js.CKA_UNWRAP, value: false },
-      { type: pkcs11js.CKA_TOKEN, value: false }
-    ];
-    const cekHandle = this.pkcs11.C_CreateObject(this.session, tempTemplate);
+    // Use C_Encrypt with CKM_AES_KEY_WRAP instead of C_WrapKey.
+    // C_WrapKey requires the key being wrapped to be CKA_EXTRACTABLE=true,
+    // but SoftHSM2 may override this attribute on C_CreateObject, causing
+    // CKR_KEY_UNEXTRACTABLE. C_Encrypt uses the KEK to encrypt the raw CEK
+    // bytes, producing the same RFC 3394 output without extractability
+    // requirements.
     try {
       const mechanism = { mechanism: pkcs11js.CKM_AES_KEY_WRAP };
-      // pkcs11js C_WrapKey requires a pre-allocated output buffer (5th arg).
-      // AES-KW adds an 8-byte IV, so a 32-byte CEK yields 40 bytes.
-      // Allocate generously; pkcs11js returns a sliced buffer.
-      const outBuf = Buffer.alloc(cekBuffer.length + 32);
-      const wrapped = this.pkcs11.C_WrapKey(this.session, mechanism, kekHandle, cekHandle, outBuf);
+      this.pkcs11.C_EncryptInit(this.session, mechanism, kekHandle);
+      // AES-KW adds an 8-byte IV, so output = input + 8 bytes.
+      const outBuf = Buffer.alloc(cekBuffer.length + 8);
+      const wrapped = this.pkcs11.C_Encrypt(this.session, cekBuffer, outBuf);
       return wrapped;
+    } catch (err) {
+      throw new HsmAdapterError('WRAP_FAILED', err.message || String(err));
     } finally {
-      try { this.pkcs11.C_DestroyObject(this.session, cekHandle); } catch (e) {}
       if (Buffer.isBuffer(cekBuffer)) cekBuffer.fill(0);
     }
   }
