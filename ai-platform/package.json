@@ -151,8 +151,6 @@
   "author": "Cascade AI Platform Team",
   "license": "MIT",
   "dependencies": {
-    "@azure/identity": "^4.13.1",
-    "@azure/keyvault-keys": "^4.10.2",
     "archiver": "^7.0.1",
     "axios": "^1.19.0",
     "bcryptjs": "^3.0.3",
@@ -163,7 +161,6 @@
     "express-rate-limit": "^8.5.2",
     "helmet": "^7.0.0",
     "http-errors": "^2.0.1",
-    "ioredis": "^6.0.0",
     "joi": "^18.2.1",
     "jsonwebtoken": "^9.0.3",
     "mlkem": "^2.7.0",
@@ -172,13 +169,16 @@
     "pg": "^8.21.0",
     "playwright": "^1.62.1",
     "redis": "^6.2.0",
+    "ioredis": "^6.0.0",
     "simple-git": "^3.20.0",
     "speakeasy": "^2.0.0",
     "stripe": "^22.4.0",
     "tmp": "^0.2.7",
     "unzipper": "^0.12.3",
     "winston": "^3.8.0",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "@azure/identity": "^4.13.1",
+    "@azure/keyvault-keys": "^4.10.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
