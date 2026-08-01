@@ -605,20 +605,27 @@ async function tryResumption(socket, stekById, bloomFilter, timeoutMs = 15000) {
   }
 
   const ticket = Buffer.from(msg.ticket, 'base64');
-  const result = resumption.validateTicket(ticket, stekById, bloomFilter);
 
-  if (!result.valid) {
-    _sendMessage(socket, { type: 'RESUME_REJECT', reason: result.reason });
-    return { resumed: false, reason: result.reason };
+  try {
+    const result = await resumption.validateTicket(ticket, stekById, bloomFilter);
+
+    if (!result.valid) {
+      _sendMessage(socket, { type: 'RESUME_REJECT', reason: result.reason });
+      return { resumed: false, reason: result.reason };
+    }
+
+    _sendMessage(socket, { type: 'RESUMED', session_id: result.sessionId });
+    return {
+      resumed: true,
+      sessionKey: result.psk,
+      sessionId: result.sessionId,
+      nodeId: result.nodeId,
+    };
+  } catch (err) {
+    // Bloom-filter / Redis failure: fail closed and force a full handshake
+    _sendMessage(socket, { type: 'RESUME_REJECT', reason: 'BLOOM_FILTER_ERROR' });
+    return { resumed: false, reason: 'BLOOM_FILTER_ERROR' };
   }
-
-  _sendMessage(socket, { type: 'RESUMED', session_id: result.sessionId });
-  return {
-    resumed: true,
-    sessionKey: result.psk,
-    sessionId: result.sessionId,
-    nodeId: result.nodeId,
-  };
 }
 
 module.exports = {
