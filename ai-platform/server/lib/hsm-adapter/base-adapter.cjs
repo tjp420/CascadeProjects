@@ -19,6 +19,7 @@ const {
   deserialize,
   KeyringValidationError,
 } = require('../keyring-serializer.cjs');
+const { emitAuditEvent, ACTIONS } = require('./audit.cjs');
 
 const WRAPPED_BLOB_VERSION = 1;
 
@@ -45,6 +46,9 @@ class BaseHsmAdapter {
    * @param {object} options
    * @param {string} options.providerName - human-readable provider name
    * @param {object} [options.logger] - logger with info/warn/error methods
+   * @param {string} [options.orgId] - tenant org ID for audit events
+   * @param {string} [options.nodeId] - node identifier for audit events
+   * @param {boolean} [options.auditEnabled=true] - enable audit trail
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -52,6 +56,9 @@ class BaseHsmAdapter {
     }
     this.providerName = options.providerName || 'base';
     this.logger = options.logger || null;
+    this.orgId = options.orgId || 'default';
+    this.nodeId = options.nodeId || null;
+    this.auditEnabled = options.auditEnabled !== false;
     this._initialized = false;
   }
 
@@ -87,6 +94,24 @@ class BaseHsmAdapter {
     }
   }
 
+  /**
+   * Emit an audit event for an HSM operation. Non-secret metadata only.
+   * Audit failures are silently swallowed — they must never break crypto.
+   * @param {string} action - one of the ACTIONS constants
+   * @param {object} [extra] - additional non-secret metadata
+   * @private
+   */
+  _audit(action, extra = {}) {
+    if (!this.auditEnabled) return;
+    emitAuditEvent({
+      action,
+      orgId: this.orgId,
+      nodeId: this.nodeId,
+      provider: this.providerName,
+      ...extra,
+    });
+  }
+
   // ── Low-level KEK lifecycle (subclasses MUST implement) ───────────
 
   /**
@@ -96,7 +121,14 @@ class BaseHsmAdapter {
    */
   async createKEK(meta = {}) {
     this._ensureInitialized();
-    return this._createKEK(meta);
+    try {
+      const kekId = await this._createKEK(meta);
+      this._audit(ACTIONS.KEK_CREATE, { kekId, result: 'success' });
+      return kekId;
+    } catch (err) {
+      this._audit(ACTIONS.KEK_CREATE, { result: 'failure', errorCode: err.code || 'UNKNOWN' });
+      throw err;
+    }
   }
 
   async _createKEK(_meta) {
@@ -111,7 +143,18 @@ class BaseHsmAdapter {
    */
   async wrap(kekId, plaintext) {
     this._ensureInitialized();
-    return this._wrap(kekId, plaintext);
+    try {
+      const result = await this._wrap(kekId, plaintext);
+      this._audit(ACTIONS.WRAP, {
+        kekId,
+        payloadSize: Buffer.isBuffer(plaintext) ? plaintext.length : 0,
+        result: 'success',
+      });
+      return result;
+    } catch (err) {
+      this._audit(ACTIONS.WRAP, { kekId, result: 'failure', errorCode: err.code || 'UNKNOWN' });
+      throw err;
+    }
   }
 
   async _wrap(_kekId, _plaintext) {
@@ -126,7 +169,18 @@ class BaseHsmAdapter {
    */
   async unwrap(kekId, wrapped) {
     this._ensureInitialized();
-    return this._unwrap(kekId, wrapped);
+    try {
+      const result = await this._unwrap(kekId, wrapped);
+      this._audit(ACTIONS.UNWRAP, {
+        kekId,
+        payloadSize: Buffer.isBuffer(wrapped) ? wrapped.length : 0,
+        result: 'success',
+      });
+      return result;
+    } catch (err) {
+      this._audit(ACTIONS.UNWRAP, { kekId, result: 'failure', errorCode: err.code || 'UNKNOWN' });
+      throw err;
+    }
   }
 
   async _unwrap(_kekId, _wrapped) {
@@ -140,7 +194,22 @@ class BaseHsmAdapter {
    */
   async rotateKEK(oldKekId) {
     this._ensureInitialized();
-    return this._rotateKEK(oldKekId);
+    try {
+      const newKekId = await this._rotateKEK(oldKekId);
+      this._audit(ACTIONS.KEK_ROTATE, {
+        kekId: oldKekId,
+        extra: { newKekId },
+        result: 'success',
+      });
+      return newKekId;
+    } catch (err) {
+      this._audit(ACTIONS.KEK_ROTATE, {
+        kekId: oldKekId,
+        result: 'failure',
+        errorCode: err.code || 'UNKNOWN',
+      });
+      throw err;
+    }
   }
 
   async _rotateKEK(_oldKekId) {
@@ -153,7 +222,17 @@ class BaseHsmAdapter {
    */
   async listKEKs() {
     this._ensureInitialized();
-    return this._listKEKs();
+    try {
+      const list = await this._listKEKs();
+      this._audit(ACTIONS.KEK_LIST, {
+        extra: { count: list.length },
+        result: 'success',
+      });
+      return list;
+    } catch (err) {
+      this._audit(ACTIONS.KEK_LIST, { result: 'failure', errorCode: err.code || 'UNKNOWN' });
+      throw err;
+    }
   }
 
   async _listKEKs() {
@@ -171,10 +250,16 @@ class BaseHsmAdapter {
   async exportKeyring(keyringData, masterKek) {
     this._ensureInitialized();
     try {
-      // Direct pass-through to the unified binary pipeline
-      return serialize(keyringData, masterKek);
+      const result = serialize(keyringData, masterKek);
+      this._audit(ACTIONS.EXPORT_KEYRING, {
+        algorithm: keyringData && keyringData.algorithm,
+        payloadSize: Buffer.isBuffer(result) ? result.length : 0,
+        result: 'success',
+      });
+      return result;
     } catch (error) {
       const code = error instanceof KeyringValidationError ? error.code : 'EXPORT_FAILED';
+      this._audit(ACTIONS.EXPORT_KEYRING, { result: 'failure', errorCode: code });
       throw new HsmAdapterError(code, `HSM Export pipeline failure: ${error.message}`);
     }
   }
@@ -188,10 +273,20 @@ class BaseHsmAdapter {
   async importKeyring(binaryEnvelope, masterKek) {
     this._ensureInitialized();
     try {
-      // Integrity check is handled implicitly inside unwrapPad
-      return deserialize(binaryEnvelope, masterKek);
+      const result = deserialize(binaryEnvelope, masterKek);
+      this._audit(ACTIONS.IMPORT_KEYRING, {
+        algorithm: result && result.algorithm,
+        payloadSize: Buffer.isBuffer(binaryEnvelope) ? binaryEnvelope.length : 0,
+        result: 'success',
+      });
+      return result;
     } catch (error) {
       const code = error instanceof KeyringValidationError ? error.code : 'IMPORT_FAILED';
+      this._audit(ACTIONS.IMPORT_KEYRING, {
+        payloadSize: Buffer.isBuffer(binaryEnvelope) ? binaryEnvelope.length : 0,
+        result: 'failure',
+        errorCode: code,
+      });
       throw new HsmAdapterError(code, `HSM Import pipeline failure: ${error.message}`);
     }
   }
