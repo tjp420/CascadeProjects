@@ -1,10 +1,11 @@
 'use strict';
 
 /**
- * Track 11: AsymmetricHsmAdapter functional tests.
+ * Track 11 / 12: AsymmetricHsmAdapter functional tests.
  */
 const crypto = require('crypto');
 const { AsymmetricHsmAdapter } = require('../asymmetric-adapter.cjs');
+const { Attestation } = require('../attestation.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
 describe('AsymmetricHsmAdapter', () => {
@@ -72,6 +73,25 @@ describe('AsymmetricHsmAdapter', () => {
       expect(unwrapped.equals(plaintext)).toBe(true);
     });
 
+    test('wrap/unwrap with matching context round-trips', async () => {
+      const kekId = await adapter.createKEK();
+      const plaintext = crypto.randomBytes(64);
+      const context = 'user-123:epoch-1';
+      const wrapped = await adapter.wrap(kekId, plaintext, context);
+      const unwrapped = await adapter.unwrap(kekId, wrapped, context);
+      expect(unwrapped.equals(plaintext)).toBe(true);
+    });
+
+    test('rejects context mismatch on unwrap', async () => {
+      const kekId = await adapter.createKEK();
+      const plaintext = crypto.randomBytes(64);
+      const wrapped = await adapter.wrap(kekId, plaintext, 'context-a');
+      await expect(adapter.unwrap(kekId, wrapped, 'context-b')).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'UNWRAP_FAILED',
+      });
+    });
+
     test('rejects corrupted wrapped payload', async () => {
       const kekId = await adapter.createKEK();
       const wrapped = await adapter.wrap(kekId, crypto.randomBytes(32));
@@ -79,6 +99,67 @@ describe('AsymmetricHsmAdapter', () => {
       await expect(adapter.unwrap(kekId, wrapped)).rejects.toMatchObject({
         name: 'HsmAdapterError',
         code: 'UNWRAP_FAILED',
+      });
+    });
+  });
+
+  describe('attestation', () => {
+    let attestation;
+    let adapter;
+
+    beforeEach(async () => {
+      attestation = new Attestation();
+      adapter = new AsymmetricHsmAdapter({
+        algorithm: 'ecdh',
+        keySize: 256,
+        attestation,
+      });
+      await adapter.initialize();
+    });
+
+    test('attestPublicKey returns a signed certificate', async () => {
+      const kekId = await adapter.createKEK();
+      const cert = await adapter.attestPublicKey(kekId);
+      expect(cert.subject.CN).toBe(kekId);
+      expect(cert.issuer.CN).toBe('MockHSM-Root');
+      expect(cert.algorithm).toBe('ecdh');
+      expect(Buffer.from(cert.subjectPublicKeyInfo, 'base64').length).toBeGreaterThan(0);
+    });
+
+    test('verifyAttestation passes for a valid certificate', async () => {
+      const kekId = await adapter.createKEK();
+      const cert = await adapter.attestPublicKey(kekId);
+      const result = await adapter.verifyAttestation(kekId, cert);
+      expect(result).toBe(true);
+    });
+
+    test('verifyAttestation fails for expired certificate', async () => {
+      const kekId = await adapter.createKEK();
+      const cert = await adapter.attestPublicKey(kekId);
+      cert.notAfter = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      await expect(adapter.verifyAttestation(kekId, cert)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'ATTESTATION_INVALID',
+      });
+    });
+
+    test('verifyAttestation fails for certificate with mismatched public key', async () => {
+      const kekId = await adapter.createKEK();
+      const otherKekId = await adapter.createKEK();
+      const cert = await adapter.attestPublicKey(otherKekId);
+      await expect(adapter.verifyAttestation(kekId, cert)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'ATTESTATION_MISMATCH',
+      });
+    });
+
+    test('attestPublicKey requires an attestation engine', async () => {
+      const noAttestation = new AsymmetricHsmAdapter({ algorithm: 'ecdh', keySize: 256 });
+      await noAttestation.initialize();
+      const kekId = await noAttestation.createKEK();
+      await expect(noAttestation.attestPublicKey(kekId)).rejects.toMatchObject({
+        name: 'HsmAdapterError',
+        code: 'ATTESTATION_NOT_CONFIGURED',
       });
     });
   });

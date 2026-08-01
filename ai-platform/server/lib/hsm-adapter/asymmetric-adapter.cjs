@@ -7,15 +7,21 @@
  * wrapping. Private keys are kept as Node crypto KeyObjects; public keys
  * are exported via SPKI. Wrap/unwrap use standard Node.js crypto.
  *
+ * Track 12: ECDH ECIES now binds an application-specific context string
+ * into the HKDF key derivation, and the adapter can issue/verify mock
+ * HSM attestation certificates when an `Attestation` engine is supplied.
+ *
  * @module hsm-adapter/asymmetric-adapter
  */
 
 const crypto = require('crypto');
 const { BaseHsmAdapter, HsmAdapterError } = require('./base-adapter.cjs');
+const { Attestation } = require('./attestation.cjs');
 
 const SUPPORTED_ALGORITHMS = new Set(['rsa-oaep', 'ecdh']);
 const RSA_KEY_SIZES = new Set([2048, 4096]);
 const ECDH_KEY_SIZES = new Set([256, 384, 521]);
+const DEFAULT_HKDF_CONTEXT = 'AsymmetricHsmAdapter:default';
 
 function _validateAlgorithmAndSize(algorithm, keySize) {
   if (!SUPPORTED_ALGORITHMS.has(algorithm)) {
@@ -47,9 +53,10 @@ function _generateKeyPair(algorithm, keySize) {
   });
 }
 
-function _deriveAesKey(sharedSecret, iv) {
-  // Bind the KDF to the IV (nonce) so a re-used secret cannot be replayed.
-  return crypto.hkdfSync('sha256', sharedSecret, iv, 'AsymmetricHsmAdapter:ecdh-wrap', 32);
+function _deriveAesKey(sharedSecret, iv, context) {
+  // Bind the KDF to the IV (nonce) and the caller-supplied context so a
+  // re-used secret cannot be replayed across different contexts.
+  return crypto.hkdfSync('sha256', sharedSecret, iv, context, 32);
 }
 
 class AsymmetricHsmAdapter extends BaseHsmAdapter {
@@ -57,12 +64,14 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
    * @param {object} [options]
    * @param {string} [options.algorithm='rsa-oaep'] - 'rsa-oaep' or 'ecdh'
    * @param {number} [options.keySize=2048] - RSA modulus or ECDH curve size
+   * @param {Attestation} [options.attestation] - optional attestation engine
    */
   constructor(options = {}) {
     super({ providerName: 'asymmetric', ...options });
     this.algorithm = options.algorithm || 'rsa-oaep';
     this.keySize = options.keySize || 2048;
     _validateAlgorithmAndSize(this.algorithm, this.keySize);
+    this._attestation = options.attestation || null;
     this._keks = new Map();
   }
 
@@ -84,7 +93,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     return kekId;
   }
 
-  async _wrap(kekId, plaintext) {
+  async _wrap(kekId, plaintext, context = DEFAULT_HKDF_CONTEXT) {
     if (!Buffer.isBuffer(plaintext)) {
       throw new HsmAdapterError('INVALID_INPUT', 'plaintext must be a Buffer');
     }
@@ -116,7 +125,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
       publicKey: info.publicKey,
     });
     const iv = crypto.randomBytes(12);
-    const key = _deriveAesKey(sharedSecret, iv);
+    const key = _deriveAesKey(sharedSecret, iv, context);
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
     const tag = cipher.getAuthTag();
@@ -128,7 +137,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
     return Buffer.concat([header, ephemeralSpki, iv, tag, ciphertext]);
   }
 
-  async _unwrap(kekId, wrapped) {
+  async _unwrap(kekId, wrapped, context = DEFAULT_HKDF_CONTEXT) {
     if (!Buffer.isBuffer(wrapped)) {
       throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
     }
@@ -183,7 +192,7 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
       privateKey: info.privateKey,
       publicKey: ephemeralPublic,
     });
-    const key = _deriveAesKey(sharedSecret, iv);
+    const key = _deriveAesKey(sharedSecret, iv, context);
     try {
       const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
       decipher.setAuthTag(tag);
@@ -213,6 +222,32 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
   }
 
   /**
+   * Wrap a plaintext buffer using the named KEK. ECDH supports an optional
+   * context string that is bound into the HKDF derivation.
+   * @param {string} kekId
+   * @param {Buffer} plaintext
+   * @param {string} [context='AsymmetricHsmAdapter:default']
+   * @returns {Promise<Buffer>}
+   */
+  async wrap(kekId, plaintext, context = DEFAULT_HKDF_CONTEXT) {
+    this._ensureInitialized();
+    return this._wrap(kekId, plaintext, context);
+  }
+
+  /**
+   * Unwrap a wrapped buffer using the named KEK. For ECDH, the same context
+   * supplied to `wrap` must be provided.
+   * @param {string} kekId
+   * @param {Buffer} wrapped
+   * @param {string} [context='AsymmetricHsmAdapter:default']
+   * @returns {Promise<Buffer>}
+   */
+  async unwrap(kekId, wrapped, context = DEFAULT_HKDF_CONTEXT) {
+    this._ensureInitialized();
+    return this._unwrap(kekId, wrapped, context);
+  }
+
+  /**
    * Export the public key for a given key pair as SPKI DER.
    * @param {string} kekId
    * @returns {Promise<Buffer>}
@@ -224,6 +259,60 @@ class AsymmetricHsmAdapter extends BaseHsmAdapter {
       throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${kekId}`);
     }
     return info.publicKey.export({ type: 'spki', format: 'der' });
+  }
+
+  /**
+   * Issue a mock HSM attestation certificate for a public key.
+   * @param {string} kekId
+   * @returns {Promise<object>}
+   */
+  async attestPublicKey(kekId) {
+    this._ensureInitialized();
+    if (!this._attestation) {
+      throw new HsmAdapterError('ATTESTATION_NOT_CONFIGURED', 'No attestation engine configured');
+    }
+    const info = this._keks.get(kekId);
+    if (!info) {
+      throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${kekId}`);
+    }
+    const spki = info.publicKey.export({ type: 'spki', format: 'der' });
+    return this._attestation.signPublicKey(spki, kekId, {
+      algorithm: info.algorithm,
+      keySize: info.keySize,
+    });
+  }
+
+  /**
+   * Verify that a certificate is a valid attestation for the named KEK.
+   * @param {string} kekId
+   * @param {object} certificate
+   * @returns {Promise<boolean>}
+   */
+  async verifyAttestation(kekId, certificate) {
+    this._ensureInitialized();
+    if (!this._attestation) {
+      throw new HsmAdapterError('ATTESTATION_NOT_CONFIGURED', 'No attestation engine configured');
+    }
+    const info = this._keks.get(kekId);
+    if (!info) {
+      throw new HsmAdapterError('UNKNOWN_KEK', `KEK not found: ${kekId}`);
+    }
+
+    const expectedSpki = info.publicKey.export({ type: 'spki', format: 'der' }).toString('base64');
+    if (certificate.subjectPublicKeyInfo !== expectedSpki) {
+      throw new HsmAdapterError('ATTESTATION_MISMATCH', 'Certificate public key does not match kekId');
+    }
+
+    const now = new Date();
+    if (now < new Date(certificate.notBefore) || now > new Date(certificate.notAfter)) {
+      throw new HsmAdapterError('ATTESTATION_INVALID', 'Certificate outside validity window');
+    }
+
+    if (!this._attestation.verifyCertificate(certificate)) {
+      throw new HsmAdapterError('ATTESTATION_INVALID', 'Certificate signature verification failed');
+    }
+
+    return true;
   }
 }
 
