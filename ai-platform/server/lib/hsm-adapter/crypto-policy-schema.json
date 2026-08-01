@@ -49,6 +49,11 @@
       "tokenExpiryMs": 300000,
       "maxProofs": 100,
       "allowedPrimes": []
+    },
+    "time": {
+      "maxDriftMs": 60000,
+      "minQuorum": 3,
+      "requireEpochChain": true
     }
   },
   "tenants": {}

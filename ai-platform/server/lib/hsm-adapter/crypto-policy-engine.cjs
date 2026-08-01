@@ -50,6 +50,11 @@ const DEFAULT_POLICY = {
     hybridMode: true,
     allowedCurves: ['P-256', 'P-384', 'P-521'],
   },
+  time: {
+    maxDriftMs: 60000,
+    minQuorum: 3,
+    requireEpochChain: true,
+  },
 };
 
 function _isObject(value) {
@@ -90,6 +95,10 @@ function _mergeWithDefault(tenantPolicy) {
     zkp: {
       ...DEFAULT_POLICY.zkp,
       ...(tenantPolicy.zkp || {}),
+    },
+    time: {
+      ...DEFAULT_POLICY.time,
+      ...(tenantPolicy.time || {}),
     },
     ...tenantPolicy,
   };
@@ -262,6 +271,16 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateTime(tenantPolicy, config) {
+    const policy = tenantPolicy.time || DEFAULT_POLICY.time;
+    if (typeof config.maxDriftMs === 'number' && config.maxDriftMs > policy.maxDriftMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `maxDriftMs ${config.maxDriftMs} exceeds policy ${policy.maxDriftMs}`);
+    }
+    if (typeof config.minQuorum === 'number' && config.minQuorum < policy.minQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `minQuorum ${config.minQuorum} below policy ${policy.minQuorum}`);
+    }
+  }
+
   _validateHomomorphic(tenantPolicy, config) {
     const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
     if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
@@ -364,6 +383,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'zkp') {
       this._validateZkp(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'time') {
+      this._validateTime(tenantPolicy, config);
       return true;
     }
 
