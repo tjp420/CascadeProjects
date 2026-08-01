@@ -26,6 +26,7 @@
 
 const crypto = require('crypto');
 const mlkem = require('./vendor/mlkem.cjs');
+const resumption = require('./hybrid-kem-resumption.cjs');
 
 const HKDF_SALT = 'simplebeacon:hybrid:v1';
 const HKDF_INFO = 'session:keyring';
@@ -565,6 +566,61 @@ class HybridSession {
   }
 }
 
+// ── Resumption helpers (Track 9) ───────────────────────────────────────────
+
+/**
+ * Issue a resumption ticket after a successful full hybrid handshake.
+ *
+ * @param {object} params
+ * @param {Buffer} params.sessionKey - session/root key from the handshake
+ * @param {string} params.nodeId
+ * @param {string} [params.sessionId] - defaults to crypto.randomUUID()
+ * @param {Buffer} stek - 32-byte AES key
+ * @param {Buffer} stekId - 16-byte STEK identifier
+ * @returns {{ ticket: Buffer, nonce: Buffer, psk: Buffer }}
+ */
+function issueTicket({ sessionKey, nodeId, sessionId }, stek, stekId) {
+  const sid = sessionId || crypto.randomUUID();
+  return resumption.createTicket({ sessionId: sid, nodeId, prevRoot: sessionKey }, stek, stekId);
+}
+
+/**
+ * Attempt a 0-RTT resumption on an inbound socket.
+ *
+ * Reads the first frame; if it is a RESUMPTION frame, validates the ticket.
+ * On success, sends RESUMED and returns the PSK-derived session key.
+ * On failure, sends RESUME_REJECT and returns resumed: false.
+ *
+ * @param {import('net').Socket} socket
+ * @param {Map<string, Buffer> | function(Buffer): Buffer} stekById
+ * @param {{ has: (Buffer) => boolean|Promise<boolean>, add: (Buffer, number) => void|Promise<void> }} bloomFilter
+ * @param {number} [timeoutMs]
+ * @returns {Promise<{resumed: boolean, sessionKey?: Buffer, sessionId?: string, nodeId?: string, reason?: string}>}
+ */
+async function tryResumption(socket, stekById, bloomFilter, timeoutMs = 15000) {
+  const msg = await _readMessage(socket, timeoutMs);
+
+  if (msg.type !== 'RESUMPTION' || typeof msg.ticket !== 'string') {
+    return { resumed: false, reason: 'NOT_RESUMPTION' };
+  }
+
+  const ticket = Buffer.from(msg.ticket, 'base64');
+  const result = resumption.validateTicket(ticket, stekById, bloomFilter);
+
+  if (!result.valid) {
+    _sendMessage(socket, { type: 'RESUME_REJECT', reason: result.reason });
+    return { resumed: false, reason: result.reason };
+  }
+
+  _sendMessage(socket, { type: 'RESUMED', session_id: result.sessionId });
+  return {
+    resumed: true,
+    sessionKey: result.psk,
+    sessionId: result.sessionId,
+    nodeId: result.nodeId,
+  };
+}
+
 module.exports = {
   createClientHandshaker,
   createServerHandshaker,
@@ -572,6 +628,8 @@ module.exports = {
   deriveRekeyRoot,
   rekeyAsInitiator,
   rekeyAsResponder,
+  issueTicket,
+  tryResumption,
   HybridSession,
   REKEY_STATES,
   REKEY_INTERVAL_SEC,

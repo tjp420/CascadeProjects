@@ -440,3 +440,91 @@
 ## Approval
 
 - [x] User approved Milestone 4 plan
+
+---
+
+# test_plan.md — Milestone 5: Secure Session Resumption (Track 9)
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| Feature / change | Track 9: post-quantum 0-RTT session resumption tickets |
+| Author (Builder) | Devin |
+| Date | 2026-08-01 |
+| Branch | main |
+| Packages touched | ai-platform |
+
+## Scope
+
+### Files in scope
+
+- `ai-platform/server/lib/hybrid-kem-resumption.cjs` (new)
+- `ai-platform/server/lib/hybrid-kem-handshake.cjs` (resumption hook + ticket issue)
+- `ai-platform/server/lib/__tests__/hybrid-kem-resumption.test.cjs` (new)
+- `.simplebeacon/qa/test_plan.md` (this section)
+
+### APIs / interfaces
+
+- `createTicket({ sessionId, nodeId, prevRoot }, stek, stekId, ttlMs)` — AES-GCM ticket envelope
+- `validateTicket(ticketBuffer, stek, stekId, redis, ttlMs)` — decrypt + replay check
+- `deriveResumptionPsk(prevRoot, nodeId, sessionId)` — HKDF-SHA256 PSK
+- `markTicketNonce(redis, nonce, ttlMs)` / `isTicketNonceUsed(redis, nonce)`
+
+## Design decisions
+
+- Tickets are AES-256-GCM envelopes encrypted by an STEK; plaintext contains `sessionId`, `nodeId`, `issuedAt`, and a PSK derived from the previous hybrid root.
+- PSK = `HKDF-SHA256(prevRoot, 'resumption:psk', nodeId || sessionId)`.
+- Anti-replay uses a Redis-backed bloom-filter-like probabilistic set tracking ticket nonces; on Redis failure the evaluator fails closed to full handshake.
+- Ticket lifetime default is 10 minutes (600,000 ms).
+
+---
+
+## Level 1 — Deterministic (Validator MUST run all)
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on changed `.cjs` files | `node -c <file>` | [ ] |
+| L1-02 | Resumption unit tests pass | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem-resumption` | [ ] |
+| L1-03 | Existing hybrid KEM suites still pass | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem-pfs hybrid-kem-mitm hybrid-kem-handshake` | [ ] |
+| L1-04 | Full ai-platform test suite passes | `cd ai-platform && npm test` | [ ] |
+| L1-05 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate` | [ ] |
+
+---
+
+## Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | STEK encrypt/decrypt round-trip | `createTicket` then `validateTicket` | Payload recovered, PSK length 32 bytes | [ ] |
+| L2-02 | PSK derivation uses prevRoot | Derive with same `prevRoot` vs. different | Same inputs produce same PSK; different inputs differ | [ ] |
+| L2-03 | Expired ticket rejected | Create ticket, wait until TTL + 1, validate | Throws / returns `EXPIRED` and falls back to full handshake | [ ] |
+| L2-04 | Replay blocked by Redis bloom filter | Submit same ticket twice | First accepted, second rejected as `REPLAY` | [ ] |
+| L2-05 | Corrupted envelope rejected | Flip a byte in the ciphertext/tag | MAC failure and socket cleanup | [ ] |
+
+---
+
+## Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | 0-RTT resumption bypasses ML-KEM/ECDH | `validateTicket` returns `psk` | No `rekeyAsInitiator`/`rekeyAsResponder` called | [ ] |
+| L3-02 | Redis disconnection fails closed | Mock Redis unavailable | All tickets rejected, full handshake required | [ ] |
+| L3-03 | STEK rotation window | Validate ticket with old and new STEK | Old STEK accepted within a bounded rotation window | [ ] |
+
+---
+
+## Security
+
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | A valid ticket cannot be replayed more than once | [ ] |
+| S-02 | A ticket cannot be used after its TTL | [ ] |
+| S-03 | Ticket encryption is authenticated (AES-GCM) | [ ] |
+| S-04 | PSK is quantum-resistant because it is rooted in the hybrid ML-KEM+ECDH root | [ ] |
+
+---
+
+## Approval
+
+- [x] User approved Milestone 5 plan
