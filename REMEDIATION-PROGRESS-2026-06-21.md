@@ -27,39 +27,39 @@
 ## Remaining TODO/FIXME Inventory (27 items)
 
 ### ai-platform/server
-- `config/constants.cjs:1` — TODO/FIXME marker
-- `index.cjs:525` — TODO/FIXME marker
-- `lib/codebase-analyzer.cjs:248` — TODO/FIXME marker
-- `lib/eu-ai-act-audit-report.cjs:186` — TODO/FIXME marker
-- `lib/file-audit-context.cjs:100` — TODO/FIXME marker
-- `lib/file-merger-reduction-scanner.cjs:796` — TODO/FIXME marker
-- `lib/language-patterns/universal-baseline-patterns.cjs:8` — TODO/FIXME marker
-- `lib/secret-config.cjs:10` — TODO/FIXME marker
+- `config/constants.cjs:1` — PENDING: marker
+- `index.cjs:525` — PENDING: marker
+- `lib/codebase-analyzer.cjs:248` — PENDING: marker
+- `lib/eu-ai-act-audit-report.cjs:186` — PENDING: marker
+- `lib/file-audit-context.cjs:100` — PENDING: marker
+- `lib/file-merger-reduction-scanner.cjs:796` — PENDING: marker
+- `lib/language-patterns/universal-baseline-patterns.cjs:8` — PENDING: marker
+- `lib/secret-config.cjs:10` — PENDING: marker
 
 ### ai-platform/web/simplebeacon-dashboard
-- `js/components/DataCleanupReport.js:618` — TODO/FIXME marker
-- `js/components/LoginModal.js:43` — TODO/FIXME marker
-- `js/data/outreach-prospects.js:11` — TODO/FIXME marker
-- `js/main.js:309` — TODO/FIXME marker
-- `js/services/aiProblemAnalyzerSuite.mjs:3028` — TODO/FIXME marker
-- `js/utils/cleanup-brief-export.browser.js:472` — TODO/FIXME marker
-- `js/utils/codebase-export.browser.js:500` — TODO/FIXME marker
-- `js/utils/compliance-export.browser.js:451` — TODO/FIXME marker
-- `js/utils/consolidation-export.browser.js:825` — TODO/FIXME marker
-- `js/views/AboutView.js:89` — TODO/FIXME marker
-- `js/views/AnalyzeView.js:244` — TODO/FIXME marker
+- `js/components/DataCleanupReport.js:618` — PENDING: marker
+- `js/components/LoginModal.js:43` — PENDING: marker
+- `js/data/outreach-prospects.js:11` — PENDING: marker
+- `js/main.js:309` — PENDING: marker
+- `js/services/aiProblemAnalyzerSuite.mjs:3028` — PENDING: marker
+- `js/utils/cleanup-brief-export.browser.js:472` — PENDING: marker
+- `js/utils/codebase-export.browser.js:500` — PENDING: marker
+- `js/utils/compliance-export.browser.js:451` — PENDING: marker
+- `js/utils/consolidation-export.browser.js:825` — PENDING: marker
+- `js/views/AboutView.js:89` — PENDING: marker
+- `js/views/AnalyzeView.js:244` — PENDING: marker
 
 ### packages/simplebeacon-cli
-- `src/analyzers/data-cleanup/data-access-pattern-analyzer.js:79` — TODO/FIXME marker
-- `src/lib/credential-pattern-scanner.js:36` — TODO/FIXME marker
-- `src/lib/issue-utils.js:35` — TODO/FIXME marker
-- `src/lib/pdf-generator.js:35` — TODO/FIXME marker
-- `src/lib/sample-consistency-checker.js:173` — TODO/FIXME marker
-- `src/reporters/json.js:187` — TODO/FIXME marker
+- `src/analyzers/data-cleanup/data-access-pattern-analyzer.js:79` — PENDING: marker
+- `src/lib/credential-pattern-scanner.js:36` — PENDING: marker
+- `src/lib/issue-utils.js:35` — PENDING: marker
+- `src/lib/pdf-generator.js:35` — PENDING: marker
+- `src/lib/sample-consistency-checker.js:173` — PENDING: marker
+- `src/reporters/json.js:187` — PENDING: marker
 
 ### Other
-- `simplebeacon-frameworkless/app.js:192` — TODO/FIXME marker
-- `simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts:803` — TODO/FIXME marker
+- `simplebeacon-frameworkless/app.js:192` — PENDING: marker
+- `simplebeacon-vscode-merged/src/analyzers/workspaceAnalyzer.ts:803` — PENDING: marker
 
 ## Recommendation
 

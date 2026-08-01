@@ -33,7 +33,7 @@
     "medium": 0,
     "low": 771
   },
-  "gate": {
+    "gate": {
     "pass": false,
     "blockingCount": 137,
     "warningCount": 771,
