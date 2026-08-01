@@ -528,3 +528,99 @@
 ## Approval
 
 - [x] User approved Milestone 5 plan
+
+---
+
+# test_plan.md — Milestone 6: Production Backup Rules
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| Feature / change | Track 10: production backup and restore coordinator for cluster keyring, audit, and resumption state |
+| Author (Builder) | Devin |
+| Date | 2026-08-01 |
+| Branch | main |
+| Packages touched | ai-platform |
+
+## Scope
+
+### Files in scope
+
+- `ai-platform/server/lib/backup-coordinator.cjs` (new)
+- `ai-platform/server/lib/__tests__/backup-coordinator.test.cjs` (new)
+- `.simplebeacon/qa/test_plan.md` (this section)
+
+### Functional requirements for `backup-coordinator.cjs`
+
+| ID | Function | Contract | Behavior |
+|----|----------|----------|----------|
+| BC-01 | `coordinator = new BackupCoordinator({ kek, retentionDays, immutable, storage })` | Constructor accepts a Key-Encrypting Key (KEK) Buffer, retention window, immutability flag, and pluggable storage adapter. | Initializes internal state and validates KEK length (32 bytes). |
+| BC-02 | `coordinator.backup(stateBundle)` | Accepts `{ keyringMaterial, auditLog, resumptionTickets, issuedAt }`. | Returns `{ archiveId, checksum, tag, timestamp }` after AES-256-GCM envelope encryption and write to `storage`. |
+| BC-03 | `stateBundle` validation | `backup()` rejects bundles missing `keyringMaterial` or `auditLog`. | Throws `INVALID_BUNDLE` for missing / non-Buffer critical fields. |
+| BC-04 | `deriveArchiveKey(kek, archiveId, salt)` | HKDF-SHA256 derivation: `archiveKey = HKDF-SHA256(kek, salt="backup:archive:v1", info=archiveId, L=32)`. | Deterministic per `archiveId` and KEK. |
+| BC-05 | `coordinator.restore(archiveId, { dryRun, asOf })` | Optional `dryRun` validates without applying; `asOf` selects the latest archive at or before a timestamp. | Returns verified bundle or throws `RESTORE_FAILED` / `BACKUP_NOT_FOUND`. |
+| BC-06 | `verifyArchive(archiveBuffer, archiveId)` | Checks AES-GCM auth tag, SHA-256 checksum, and JSON schema version. | Returns `true` / `false` and a `reason` string. |
+| BC-07 | `coordinator.prune(beforeTimestamp)` | Removes backups older than the retention window unless `immutable` is enabled. | Returns list of removed `archiveId`s; does not delete immutable archives. |
+| BC-08 | `immutability guard` | When `immutable === true`, `prune()` returns empty and writes a `BACKUP_IMMUTABLE` event. | Prevents accidental or malicious deletion. |
+| BC-09 | `listArchives()` | Returns metadata for all stored archives: `{ archiveId, timestamp, size, checksum }`. | No plaintext keyring material is returned. |
+
+## Backup targets & state isolation
+
+- **Cluster Keyring Material**: encrypted `rootKey` and epoch metadata; only the active generation is backed up to avoid rollback confusion.
+- **Audit State / Sync Timeline**: monotonic `eventId` sequence stored as JSONL; the backup stores the last-committed `eventId`.
+- **Resumption Context**: serialized `sessionId`, `issuedAt`, `nodeId`, and `prevRoot` hash (not live PSK or Bloom filter state) to prevent post-restore replay vectors.
+
+## Cryptographic hardening
+
+- Envelope encryption: AES-256-GCM with a 96-bit nonce and 16-byte tag.
+- KEK is never stored in the archive; each archive gets a unique data-encryption key derived from the KEK and `archiveId`.
+- Archives include a SHA-256 content checksum in the plaintext metadata before encryption.
+
+## Retention & lifecycle
+
+- Default retention: 30 days (configurable via `retentionDays`).
+- `prune()` respects `immutable` flag and emits an audit event for every deletion attempt.
+- Restoration validation continuously runs `dryRun` before applying state to detect split-brain or tampering.
+
+## Level 1 — Deterministic (Validator MUST run all)
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on new `.cjs` files | `node -c <file>` | [ ] |
+| L1-02 | Backup coordinator unit tests | `cd ai-platform && npx jest --config jest.config.cjs backup-coordinator` | [ ] |
+| L1-03 | Existing KEM/resumption suites still green | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem` | [ ] |
+| L1-04 | Full test suite | `cd ai-platform && npm test` | [ ] |
+| L1-05 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate` | [ ] |
+
+## Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | Full backup and restore round-trip | `backup()` then `restore(archiveId)` | Decrypted bundle equals original | [ ] |
+| L2-02 | Dry-run restore does not mutate | `restore(id, { dryRun: true })` | Returns bundle, storage unchanged | [ ] |
+| L2-03 | Corrupted archive fails verification | Flip a byte in the archive buffer, call `verifyArchive` | Returns `false` with `reason` | [ ] |
+| L2-04 | Prune removes only old archives | Create 3 backups, set retention to 1 day, prune | Only archives older than 1 day removed | [ ] |
+| L2-05 | Immutability prevents deletion | `immutable=true`, call `prune()` | Returns empty, emits `BACKUP_IMMUTABLE` | [ ] |
+| L2-06 | Missing bundle fields rejected | Call `backup()` without `keyringMaterial` | Throws `INVALID_BUNDLE` | [ ] |
+
+## Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | `restore` with `asOf` picks the nearest earlier archive | Create backups at t0 and t1, restore asOf=t0+1 | Returns t0 archive | [ ] |
+| L3-02 | KEK length validation rejects short keys | Construct with 16-byte KEK | Throws `INVALID_KEK` | [ ] |
+| L3-03 | Resumption state excludes live PSK/Bloom filter | Inspect encrypted bundle for `bloomFilter` keys | Not present; only hashed context stored | [ ] |
+
+## Security
+
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | Archives are encrypted at rest and authenticated | [ ] |
+| S-02 | KEK is not persisted in backup objects | [ ] |
+| S-03 | Pruning cannot delete immutable archives | [ ] |
+| S-04 | Restored resumption state cannot be replayed | [ ] |
+
+## Approval
+
+- [x] User approved Milestone 6 plan
