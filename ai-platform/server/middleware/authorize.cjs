@@ -192,6 +192,12 @@ function recordViolation(violation) {
   // Enforce cap after adding
   enforceViolationCap();
 
+  // Feed the stream interdiction engine for unified multi-axis tracking
+  const streamKey = violation.userId || violation.callerOrgId;
+  if (streamKey) {
+    recordStreamFailure(streamKey, 'org_partition', `${violation.method} ${violation.path}`);
+  }
+
   if (!shouldAlertOnViolation()) return;
 
   const threshold = getViolationAlertThreshold();
@@ -422,6 +428,244 @@ function authorizeAny(...permissions) {
 const MAX_INTERDICTED_KEYS = 10000;
 const DEFAULT_INTERDICTION_TTL_MS = 15 * 60 * 1000;
 
+// ── Stream Interdiction Engine ──────────────────────────────────────────────
+//
+// Multi-axis sliding-window failure tracker. Records security failures by
+// type (chain_verification, pii_violation, guardrail_refusal, auth_failure,
+// org_partition, rate_limit, bundle_verification) per API key within a
+// rolling window. When any failure type exceeds its configured threshold
+// within the window, the key is automatically interdicted.
+//
+// Configuration (via security-monitor-settings-store):
+//   streamInterdictionEnabled — master switch (default: true)
+//   streamInterdictionWindowMs — sliding window duration (default: 5 min)
+//   streamInterdictionTtlMs — lockout duration for stream-triggered blocks (default: 30 min)
+//   streamInterdictionMaxFailures — max failure records in memory (default: 10,000)
+//   streamInterdictionThresholds — per-type threshold object
+
+const STREAM_FAILURE_TYPES = [
+  'chain_verification',
+  'pii_violation',
+  'guardrail_refusal',
+  'auth_failure',
+  'org_partition',
+  'rate_limit',
+  'bundle_verification',
+];
+
+let _streamFailures = []; // array of { apiKey, type, detail, at }
+let _streamInterdictionStats = {
+  totalFailuresRecorded: 0,
+  totalAutoInterdicts: 0,
+  lastAutoInterdict: null,
+  byType: {}, // { chain_verification: 0, ... }
+};
+
+// Initialize byType counters
+STREAM_FAILURE_TYPES.forEach((t) => {
+  _streamInterdictionStats.byType[t] = 0;
+});
+
+function isStreamInterdictionEnabled() {
+  const settings = getSettings();
+  return settings.streamInterdictionEnabled !== false;
+}
+
+function getStreamWindowMs() {
+  const settings = getSettings();
+  const w = settings.streamInterdictionWindowMs;
+  return typeof w === 'number' && w >= 10000 ? w : 5 * 60 * 1000;
+}
+
+function getStreamTtlMs() {
+  const settings = getSettings();
+  const t = settings.streamInterdictionTtlMs;
+  return typeof t === 'number' && t >= 1000 ? t : 30 * 60 * 1000;
+}
+
+function getStreamMaxFailures() {
+  const settings = getSettings();
+  const m = settings.streamInterdictionMaxFailures;
+  return typeof m === 'number' && m >= 100 ? m : 10000;
+}
+
+function getStreamThresholds() {
+  const settings = getSettings();
+  return settings.streamInterdictionThresholds || {
+    chain_verification: 3,
+    pii_violation: 5,
+    guardrail_refusal: 5,
+    auth_failure: 10,
+    org_partition: 5,
+    rate_limit: 10,
+    bundle_verification: 3,
+  };
+}
+
+function getStreamThreshold(failureType) {
+  const thresholds = getStreamThresholds();
+  return thresholds[failureType] || Infinity;
+}
+
+/**
+ * Purge stream failures older than the sliding window.
+ * @returns {number} Number of entries purged
+ */
+function purgeExpiredStreamFailures() {
+  const windowMs = getStreamWindowMs();
+  const cutoff = Date.now() - windowMs;
+  const before = _streamFailures.length;
+  _streamFailures = _streamFailures.filter((f) => f.at > cutoff);
+  return before - _streamFailures.length;
+}
+
+/**
+ * Enforce memory cap on stream failures.
+ */
+function enforceStreamFailureCap() {
+  const max = getStreamMaxFailures();
+  if (_streamFailures.length > max) {
+    _streamFailures = _streamFailures.slice(-max);
+  }
+}
+
+/**
+ * Count failures of a given type for a key within the current window.
+ * @param {string} apiKey
+ * @param {string} failureType
+ * @returns {number}
+ */
+function countStreamFailures(apiKey, failureType) {
+  const windowMs = getStreamWindowMs();
+  const cutoff = Date.now() - windowMs;
+  return _streamFailures.filter(
+    (f) => f.apiKey === apiKey && f.type === failureType && f.at > cutoff
+  ).length;
+}
+
+/**
+ * Record a stream failure and auto-interdict if threshold is exceeded.
+ *
+ * This is the main ingress hook — call from audit-logger, pii-policy-store,
+ * guardrail checks, auth middleware, etc. when a security failure occurs.
+ *
+ * @param {string} apiKey — The API key or user ID that triggered the failure
+ * @param {string} failureType — One of STREAM_FAILURE_TYPES
+ * @param {string} [detail] — Optional human-readable detail
+ * @returns {{ recorded: boolean, count: number, interdicted: boolean, threshold: number }}
+ */
+function recordStreamFailure(apiKey, failureType, detail) {
+  if (!apiKey || !failureType) return { recorded: false, count: 0, interdicted: false, threshold: 0 };
+  if (!STREAM_FAILURE_TYPES.includes(failureType)) {
+    return { recorded: false, count: 0, interdicted: false, threshold: 0 };
+  }
+  if (!isStreamInterdictionEnabled()) return { recorded: false, count: 0, interdicted: false, threshold: 0 };
+
+  // Purge expired entries lazily
+  purgeExpiredStreamFailures();
+
+  // Record the failure
+  _streamFailures.push({
+    apiKey,
+    type: failureType,
+    detail: detail || null,
+    at: Date.now(),
+  });
+
+  _streamInterdictionStats.totalFailuresRecorded++;
+  _streamInterdictionStats.byType[failureType] = (_streamInterdictionStats.byType[failureType] || 0) + 1;
+
+  // Enforce cap after adding
+  enforceStreamFailureCap();
+
+  // Check threshold
+  const count = countStreamFailures(apiKey, failureType);
+  const threshold = getStreamThreshold(failureType);
+
+  if (count >= threshold) {
+    // Auto-interdict the key
+    const ttl = getStreamTtlMs();
+    interdictKey(
+      apiKey,
+      `auto:stream_interdiction (${failureType} ${count}/${threshold} in window)`,
+      ttl,
+      'auto'
+    );
+    _streamInterdictionStats.totalAutoInterdicts++;
+    _streamInterdictionStats.lastAutoInterdict = new Date().toISOString();
+    return { recorded: true, count, interdicted: true, threshold };
+  }
+
+  return { recorded: true, count, interdicted: false, threshold };
+}
+
+/**
+ * Get stream interdiction stats and current failure counts.
+ * @returns {{ stats: object, recentFailures: array, byKey: object }}
+ */
+function getStreamFailureStats() {
+  purgeExpiredStreamFailures();
+
+  const windowMs = getStreamWindowMs();
+  const cutoff = Date.now() - windowMs;
+
+  // Aggregate by key+type
+  const byKey = {};
+  for (const f of _streamFailures) {
+    if (f.at <= cutoff) continue;
+    if (!byKey[f.apiKey]) byKey[f.apiKey] = {};
+    byKey[f.apiKey][f.type] = (byKey[f.apiKey][f.type] || 0) + 1;
+  }
+
+  // Recent failures (last 20)
+  const recentFailures = _streamFailures
+    .filter((f) => f.at > cutoff)
+    .slice(-20)
+    .reverse()
+    .map((f) => ({
+      apiKey: f.apiKey.length > 8 ? f.apiKey.slice(0, 4) + '\u2026' + f.apiKey.slice(-4) : f.apiKey,
+      type: f.type,
+      detail: f.detail,
+      at: new Date(f.at).toISOString(),
+    }));
+
+  return {
+    enabled: isStreamInterdictionEnabled(),
+    windowMs: getStreamWindowMs(),
+    ttlMs: getStreamTtlMs(),
+    thresholds: getStreamThresholds(),
+    totalFailuresInWindow: _streamFailures.filter((f) => f.at > cutoff).length,
+    stats: { ..._streamInterdictionStats, byType: { ..._streamInterdictionStats.byType } },
+    recentFailures,
+    byKey,
+  };
+}
+
+/**
+ * Clear all stream failures (for tests / admin reset).
+ * @returns {number} Number of failures cleared
+ */
+function clearStreamFailures() {
+  const count = _streamFailures.length;
+  _streamFailures = [];
+  return count;
+}
+
+/**
+ * Reset stream interdiction stats (for tests).
+ */
+function _resetStreamInterdictionStats() {
+  _streamInterdictionStats = {
+    totalFailuresRecorded: 0,
+    totalAutoInterdicts: 0,
+    lastAutoInterdict: null,
+    byType: {},
+  };
+  STREAM_FAILURE_TYPES.forEach((t) => {
+    _streamInterdictionStats.byType[t] = 0;
+  });
+}
+
 let _interdictedKeys = new Map();
 let _interdictionStats = {
   totalBlocked: 0,
@@ -631,4 +875,10 @@ module.exports = {
   clearInterdictedKeys,
   extractApiKey,
   _resetInterdictionStats,
+  // Stream interdiction engine
+  recordStreamFailure,
+  getStreamFailureStats,
+  clearStreamFailures,
+  _resetStreamInterdictionStats,
+  STREAM_FAILURE_TYPES,
 };

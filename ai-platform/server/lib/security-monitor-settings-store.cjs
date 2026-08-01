@@ -38,6 +38,22 @@ const DEFAULT_SETTINGS = {
   orgPartitionViolationMaxLog: 1000,
   orgPartitionViolationCleanupIntervalMs: 5 * 60 * 1000, // 5 minutes
   orgPartitionViolationMemoryGuardMb: 50, // refuse to store new violations above this
+  // ── Stream Interdiction Engine ──
+  // Multi-axis sliding-window failure tracker that auto-interdicts API keys
+  // when failure rates exceed per-type thresholds within the rolling window.
+  streamInterdictionEnabled: true,
+  streamInterdictionWindowMs: 5 * 60 * 1000, // 5 minute sliding window
+  streamInterdictionTtlMs: 30 * 60 * 1000, // 30 minute lockout for stream-triggered
+  streamInterdictionMaxFailures: 10000, // max failure records in memory
+  streamInterdictionThresholds: {
+    chain_verification: 3, // chain integrity failures in window
+    pii_violation: 5, // unredacted PII detected in window
+    guardrail_refusal: 5, // agent guardrail refusals in window
+    auth_failure: 10, // authentication failures in window
+    org_partition: 5, // cross-org access violations in window
+    rate_limit: 10, // rate limit breaches in window
+    bundle_verification: 3, // compliance bundle verification failures in window
+  },
   updatedAt: null,
 };
 
@@ -143,6 +159,36 @@ function updateSettings(updates) {
       success: false,
       error: 'orgPartitionViolationMemoryGuardMb must be at least 1',
     };
+  }
+
+  // ── Stream Interdiction validation ──
+  if (updated.streamInterdictionWindowMs !== undefined && updated.streamInterdictionWindowMs < 10000) {
+    return {
+      success: false,
+      error: 'streamInterdictionWindowMs must be at least 10000 (10 seconds)',
+    };
+  }
+  if (updated.streamInterdictionTtlMs !== undefined && updated.streamInterdictionTtlMs < 1000) {
+    return {
+      success: false,
+      error: 'streamInterdictionTtlMs must be at least 1000 (1 second)',
+    };
+  }
+  if (updated.streamInterdictionMaxFailures !== undefined && updated.streamInterdictionMaxFailures < 100) {
+    return {
+      success: false,
+      error: 'streamInterdictionMaxFailures must be at least 100',
+    };
+  }
+  if (updated.streamInterdictionThresholds !== undefined) {
+    if (typeof updated.streamInterdictionThresholds !== 'object' || Array.isArray(updated.streamInterdictionThresholds)) {
+      return { success: false, error: 'streamInterdictionThresholds must be an object' };
+    }
+    for (const [type, threshold] of Object.entries(updated.streamInterdictionThresholds)) {
+      if (typeof threshold !== 'number' || threshold < 1) {
+        return { success: false, error: `streamInterdictionThresholds.${type} must be a number >= 1` };
+      }
+    }
   }
 
   // Validate severity levels

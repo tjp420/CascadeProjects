@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { authenticate } = require('../middleware/auth.cjs');
-const { authorize, enforceOrgPartition, getPartitionStats, getPartitionViolations, clearViolations, interdictKey, releaseKey, getInterdictedKeys } = require('../middleware/authorize.cjs');
+const { authorize, enforceOrgPartition, getPartitionStats, getPartitionViolations, clearViolations, interdictKey, releaseKey, getInterdictedKeys, recordStreamFailure, getStreamFailureStats, clearStreamFailures } = require('../middleware/authorize.cjs');
 const auditLogger = require('../lib/audit-logger.cjs');
 const auditPolicyStore = require('../lib/audit-policy-store.cjs');
 const piiPolicyStore = require('../lib/pii-policy-store.cjs');
@@ -377,6 +377,14 @@ router.get('/verify-integrity', authorize('admin:all'), (req, res) => {
   try {
     const orgId = getOrgId(req);
     const result = auditLogger.verifyChain(orgId);
+
+    // Record stream failure if chain is invalid — feeds the real-time
+    // interdiction engine to auto-block keys with repeated chain violations
+    if (!result.valid) {
+      const apiKey = req.headers['x-api-key'] || req.user?.id || orgId;
+      recordStreamFailure(apiKey, 'chain_verification', `brokenLinks=${result.brokenLinks.length}, tampered=${result.tamperedEntries.length}`);
+    }
+
     res.json({
       success: true,
       ...result,
@@ -711,6 +719,53 @@ router.post('/interdiction/release', authorize('admin:all'), (req, res) => {
   } catch (err) {
     logger.warn('[Audit] interdiction_release_failed:', err.message);
     sendError(res, 500, 'interdiction_release_failed', { message: err.message });
+  }
+});
+
+// ── Stream Interdiction Routes ──────────────────────────────────────────────
+//   Multi-axis sliding-window failure tracker with auto-interdiction.
+
+// GET /api/audit/interdiction/stream/status — Stream failure stats and config
+router.get('/interdiction/stream/status', authorize('admin:all'), (req, res) => {
+  try {
+    const result = getStreamFailureStats();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[Audit] stream_interdiction_status_failed:', err.message);
+    sendError(res, 500, 'stream_interdiction_status_failed', { message: err.message });
+  }
+});
+
+// POST /api/audit/interdiction/stream/clear — Clear all stream failures
+router.post('/interdiction/stream/clear', authorize('admin:all'), (req, res) => {
+  try {
+    const cleared = clearStreamFailures();
+    logger.info('[Audit] stream_failures_cleared by user:', getActor(req).actorEmail, 'count:', cleared);
+    res.json({ success: true, cleared });
+  } catch (err) {
+    logger.warn('[Audit] stream_interdiction_clear_failed:', err.message);
+    sendError(res, 500, 'stream_interdiction_clear_failed', { message: err.message });
+  }
+});
+
+// POST /api/audit/interdiction/stream/record — Manually record a stream failure
+//   Body: { apiKey: string, failureType: string, detail?: string }
+router.post('/interdiction/stream/record', authorize('admin:all'), (req, res) => {
+  try {
+    const { apiKey, failureType, detail } = req.body || {};
+    if (!apiKey) {
+      sendError(res, 400, 'missing_api_key', { message: 'apiKey is required' });
+      return;
+    }
+    if (!failureType) {
+      sendError(res, 400, 'missing_failure_type', { message: 'failureType is required' });
+      return;
+    }
+    const result = recordStreamFailure(apiKey, failureType, detail);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    logger.warn('[Audit] stream_interdiction_record_failed:', err.message);
+    sendError(res, 500, 'stream_interdiction_record_failed', { message: err.message });
   }
 });
 
