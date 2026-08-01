@@ -624,3 +624,93 @@
 ## Approval
 
 - [x] User approved Milestone 6 plan
+
+---
+
+# test_plan.md — Milestone 7: Core Systems Integration (Track 11)
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| Feature / change | Track 11: integrate Tracks 6–10 primitives into the cluster sync runtime, telemetry, audit persistence, and key maintenance loops |
+| Author (Builder) | Devin |
+| Date | 2026-08-01 |
+| Branch | main |
+| Packages touched | ai-platform |
+
+## Scope
+
+### Files in scope
+
+- `ai-platform/server/lib/cluster-keyring-sync.cjs` (integration of handshake/resumption)
+- `ai-platform/server/lib/quantum-hybrid-rollout.cjs` (telemetry events, if extended)
+- `ai-platform/server/lib/backup-coordinator.cjs` (lifecycle events)
+- `ai-platform/server/lib/key-rotation-store.cjs` (STEK/KEK cron)
+- `ai-platform/server/lib/audit-logger.cjs` or `cluster-keyring-sync.cjs` (audit persistence)
+- `.simplebeacon/qa/test_plan.md` (this section)
+
+### Design decisions
+
+- Transport Coupling: `cluster-keyring-sync.cjs` will call `hybrid-kem-handshake.cjs` (full handshake or `tryResumption`) before accepting a cluster peer connection; successful handshakes trigger `issueTicket` for subsequent 0-RTT reconnects.
+- Telemetry Aggregation: all `quantum_downgrade_rejected`, `quantum_hybrid_rollback`, `BACKUP_PRUNED`, `BACKUP_IMMUTABLE`, and `STEK_ROTATED` events are emitted to the unified `queryEvents` timeline.
+- Active Key Maintenance: an internal cron/interval (default 24 h for STEK, 90 d for KEK) triggers `generateStek()` and archives the previous STEK for a bounded rotation window; KEK rotation is an administrative event.
+- Audit-Log Persistence Coupling: `queryEvents` memory index is mirrored to a durable `audit_logs` table with an indexed `event_type` + `created_at` composite key; queries are bounded by time windows and row limits.
+
+## Level 1 — Deterministic (Validator MUST run all)
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on new/changed `.cjs` files | `node -c <file>` | [ ] |
+| L1-02 | Integration unit tests pass | `cd ai-platform && npx jest --config jest.config.cjs cluster-keyring-sync` | [ ] |
+| L1-03 | KEM/resumption suites still pass | `cd ai-platform && npx jest --config jest.config.cjs hybrid-kem` | [ ] |
+| L1-04 | Backup coordinator tests still pass | `cd ai-platform && npx jest --config jest.config.cjs backup-coordinator` | [ ] |
+| L1-05 | Full test suite | `cd ai-platform && npm test` | [ ] |
+| L1-06 | SimpleBeacon full gate | `node packages/simplebeacon-cli/bin/simplebeacon.js scan --full --gate` | [ ] |
+
+## Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | Cluster sync uses hybrid handshake on new connections | Mock peer connects to sync daemon | `createServerHandshaker` or `tryResumption` is invoked before keyring exchange | [ ] |
+| L2-02 | Resumption ticket issued after successful full handshake | Complete full handshake | `issueTicket` returns a ticket; the client can reconnect via `RESUMPTION` frame | [ ] |
+| L2-03 | Rollout event appears in audit timeline | Trigger `checkRollback` threshold | `quantum_hybrid_rollback` is recorded in `queryEvents` and persisted | [ ] |
+| L2-04 | Backup lifecycle event appears in audit timeline | Run `prune()` on immutable coordinator | `BACKUP_IMMUTABLE` is recorded in `queryEvents` and persisted | [ ] |
+| L2-05 | STEK cron rotates keys within a 24-hour window | Advance mocked time past `STEK_ROTATION_INTERVAL_MS` | New STEK is generated and the old one is kept for a bounded window | [ ] |
+| L2-06 | Audit queries are bounded by time window and row limit | Query events with no bounds | Query is capped at `AUDIT_QUERY_MAX_ROWS` and requires a time window | [ ] |
+
+## Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | Resumption ticket fails during STEK rotation window | Validate with old STEK within rotation window | Old STEK still decrypts; new STEK is used for new tickets | [ ] |
+| L3-02 | Audit persistence fallback on DB outage | DB write fails | Events remain in memory and a `AUDIT_PERSISTENCE_FAILURE` event is emitted | [ ] |
+| L3-03 | Graceful downgrade to full handshake when resumption is disabled | `CLUSTER_QUANTUM_HYBRID=0` or no STEK | Sync daemon falls back to unprotected cluster sync without crashing | [ ] |
+
+## Security
+
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | A new peer cannot join the cluster without completing the hybrid handshake or a valid resumption ticket | [ ] |
+| S-02 | STEK rotation does not leave old tickets usable beyond the rotation window | [ ] |
+| S-03 | Audit logs cannot be queried without time or event-type bounds | [ ] |
+| S-04 | Backup/rollout telemetry cannot be suppressed or skipped from the audit timeline | [ ] |
+
+## STEK rotation cadence specification
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `STEK_ROTATION_INTERVAL_MS` | `86400000` (24 h) | How often a new STEK is generated for resumption tickets. |
+| `STEK_RETIRED_WINDOW_MS` | `7200000` (2 h) | How long a retired STEK remains valid for decryption. |
+| `KEK_ROTATION_INTERVAL_DAYS` | `90` | How often the backup KEK is rotated (administrative event). |
+
+## Audit-log schema indexing rules
+
+| Table | Primary index | Composite index | Constraints |
+|-------|---------------|-----------------|-------------|
+| `audit_logs` | `id` (UUID, auto) | `(event_type, created_at)` | `NOT NULL` on `event_type`, `created_at`, `node_id` |
+| `queryEvents()` | memory index | key on `eventType` + `timestamp` | Max `AUDIT_QUERY_MAX_ROWS` (default 1000) per query; query must specify `fromTime`/`toTime` or `eventType` |
+
+## Approval
+
+- [x] User approved Milestone 7 plan

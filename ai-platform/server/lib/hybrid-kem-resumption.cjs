@@ -197,18 +197,52 @@ function createInMemoryBloomFilter() {
  * @param {object} redis
  * @returns {{ has: (Buffer) => Promise<boolean>, add: (Buffer, number) => Promise<void> }}
  */
-function createRedisBloomFilter(redis) {
-  return {
-    has: async (nonce) => {
-      const count = await redis.sismember('hybrid:ticket-nonces', nonce.toString('hex'));
-      return count === 1;
-    },
-    add: async (nonce, ttlMs) => {
-      const key = 'hybrid:ticket-nonces';
-      await redis.sadd(key, nonce.toString('hex'));
-      await redis.pexpire(key, ttlMs);
-    },
-  };
+async function createRedisBloomFilter(redis) {
+  const key = 'hybrid:ticket-nonces';
+  // Probe for RedisBloom module using BF.INFO; fallback to set semantics
+  try {
+    // If BF.INFO exists the module is available; use BF.ADD/BF.EXISTS
+    await redis.sendCommand(['BF.INFO', key]);
+    return {
+      type: 'bloom',
+      has: async (nonce) => {
+        const res = await redis.sendCommand(['BF.EXISTS', key, nonce.toString('hex')]);
+        // RedisBloom returns 1/0
+        return res === 1 || res === true;
+      },
+      add: async (nonce, ttlMs) => {
+        await redis.sendCommand(['BF.ADD', key, nonce.toString('hex')]);
+        if (ttlMs) await redis.pExpire(key, ttlMs);
+      },
+    };
+  } catch (err) {
+    // Fallback to plain Redis Set semantics
+    return {
+      type: 'set',
+      has: async (nonce) => {
+        const res = await redis.sIsMember(key, nonce.toString('hex'));
+        return res === 1 || res === true;
+      },
+      add: async (nonce, ttlMs) => {
+        await redis.sAdd(key, nonce.toString('hex'));
+        if (ttlMs) await redis.pExpire(key, ttlMs);
+      },
+    };
+  }
+}
+
+/**
+ * Helper to validate a ticket using a redis client instance.
+ * Creates a Redis-backed nonce set and delegates to `validateTicket`.
+ * @param {Buffer} ticket
+ * @param {Map|string|function} stekById
+ * @param {object} redis Redis client compatible with `sadd`, `sismember`, `pexpire`
+ * @returns {Promise<object>} result of validateTicket
+ */
+async function validateTicketWithRedis(ticket, stekById, redis) {
+  if (!redis) throw new Error('redis client required for validateTicketWithRedis');
+  const bloom = await createRedisBloomFilter(redis);
+  return validateTicket(ticket, stekById, bloom);
 }
 
 module.exports = {
@@ -222,3 +256,6 @@ module.exports = {
   PSK_INFO,
   PSK_LENGTH,
 };
+
+// Export helper that integrates redis-backed nonce set
+module.exports.validateTicketWithRedis = validateTicketWithRedis;

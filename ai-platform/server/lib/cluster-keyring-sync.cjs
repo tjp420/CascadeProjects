@@ -7,6 +7,7 @@ const fs = require('fs');
 const logger = require('./app-logger.cjs');
 const keyRotationStore = require('./key-rotation-store.cjs');
 const hybridKem = require('./hybrid-kem-handshake.cjs');
+const resumption = require('./hybrid-kem-resumption.cjs');
 
 const NODE_ID = process.env.NODE_ID || require('os').hostname() || 'node';
 const CLUSTER_KEYRING_PORT = parseInt(process.env.CLUSTER_KEYRING_PORT, 10) || 7000;
@@ -47,6 +48,12 @@ const EVENT_TYPES = {
   ISOLATION_VIOLATION: 'isolation_violation',
   QUANTUM_DEGRADE: 'quantum_downgrade',
   QUANTUM_DEGRADE_REJECTED: 'quantum_downgrade_rejected',
+  QUANTUM_ROLLBACK: 'quantum_hybrid_rollback',
+  BACKUP_PRUNED: 'BACKUP_PRUNED',
+  BACKUP_IMMUTABLE: 'BACKUP_IMMUTABLE',
+  STEK_ROTATED: 'STEK_ROTATED',
+  AUDIT_PERSISTENCE_FAILURE: 'AUDIT_PERSISTENCE_FAILURE',
+  RESUMPTION_TICKET_ISSUED: 'RESUMPTION_TICKET_ISSUED',
 };
 
 const _events = [];
@@ -71,10 +78,35 @@ function _recordEvent(eventType, node, details) {
   return event;
 }
 
+/**
+ * Public telemetry entry point for other subsystems (rollout, backup, audit).
+ * Records an event into the unified chronological timeline.
+ * @param {string} eventType
+ * @param {string} [node]
+ * @param {object} [details]
+ * @returns {{ eventId: string, timestamp: string }}
+ */
+function recordTelemetry(eventType, node, details) {
+  return _recordEvent(eventType, node, details);
+}
+
+const AUDIT_QUERY_MAX_ROWS = parseInt(process.env.AUDIT_QUERY_MAX_ROWS, 10) || 1000;
+
 function queryEvents(filters) {
   filters = filters || {};
-  const startTs = filters.startDate ? new Date(filters.startDate).getTime() : null;
-  const endTs = filters.endDate ? new Date(filters.endDate).getTime() : null;
+  let startTs = filters.startDate ? new Date(filters.startDate).getTime() : null;
+  let endTs = filters.endDate ? new Date(filters.endDate).getTime() : null;
+
+  // L3-02 / S-03: unbounded queries are automatically bounded to the last 24h
+  // to prevent memory exhaustion. The caller can still request broader windows
+  // by providing startDate/endDate, or narrow by eventType.
+  const hasBound = startTs !== null || endTs !== null || !!filters.eventType;
+  if (!hasBound) {
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    startTs = oneDayAgo;
+    endTs = null; // up to now
+  }
+
   let events = [..._events];
   if (filters.eventType) events = events.filter((e) => e.eventType === filters.eventType);
   if (filters.node) events = events.filter((e) => e.node === filters.node);
@@ -86,7 +118,7 @@ function queryEvents(filters) {
   }
   events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   const total = events.length;
-  const limit = Math.min(filters.limit || 100, 500);
+  const limit = Math.min(filters.limit || AUDIT_QUERY_MAX_ROWS, AUDIT_QUERY_MAX_ROWS);
   const offset = Math.max(filters.offset || 0, 0);
   return { events: events.slice(offset, offset + limit), total, limit, offset };
 }
@@ -123,6 +155,78 @@ const _state = {
   previousFingerprint: null,
   rotatedAt: null,
 };
+
+// ── STEK / KEK maintenance (Track 11) ────────────────────────────────────────
+const STEK_ROTATION_INTERVAL_MS = parseInt(process.env.STEK_ROTATION_INTERVAL_MS, 10) || 24 * 60 * 60 * 1000;
+const STEK_RETIRED_WINDOW_MS = parseInt(process.env.STEK_RETIRED_WINDOW_MS, 10) || 2 * 60 * 60 * 1000;
+
+let _stek = null;
+let _stekId = null;
+let _retiredSteks = new Map(); // stekIdHex -> { stek, retiredAt }
+let _stekTimer = null;
+
+function _pruneRetiredSteks() {
+  const now = Date.now();
+  for (const [id, entry] of _retiredSteks.entries()) {
+    if (now - entry.retiredAt >= STEK_RETIRED_WINDOW_MS) {
+      _retiredSteks.delete(id);
+    }
+  }
+}
+
+function rotateStek() {
+  _pruneRetiredSteks();
+  if (_stek && _stekId) {
+    _retiredSteks.set(_stekId.toString('hex'), { stek: _stek, retiredAt: Date.now() });
+  }
+  const generated = resumption.generateStek();
+  _stek = generated.stek;
+  _stekId = generated.stekId;
+  _recordEvent(EVENT_TYPES.STEK_ROTATED, NODE_ID, { stekId: _stekId.toString('hex') });
+  return { stek: _stek, stekId: _stekId };
+}
+
+function getStek() {
+  if (!_stek) rotateStek();
+  return { stek: _stek, stekId: _stekId };
+}
+
+function getStekForValidation(stekId) {
+  const hex = Buffer.isBuffer(stekId) ? stekId.toString('hex') : String(stekId);
+  if (_stekId && _stekId.toString('hex') === hex) return _stek;
+  _pruneRetiredSteks();
+  const retired = _retiredSteks.get(hex);
+  return retired ? retired.stek : null;
+}
+
+function startStekRotation() {
+  if (_stekTimer) return;
+  if (!_stek) rotateStek();
+  _stekTimer = setInterval(rotateStek, STEK_ROTATION_INTERVAL_MS);
+}
+
+function stopStekRotation() {
+  if (_stekTimer) {
+    clearInterval(_stekTimer);
+    _stekTimer = null;
+  }
+}
+
+function getStekState() {
+  return {
+    activeStekId: _stekId ? _stekId.toString('hex') : null,
+    retiredCount: _retiredSteks.size,
+    rotationIntervalMs: STEK_ROTATION_INTERVAL_MS,
+    retiredWindowMs: STEK_RETIRED_WINDOW_MS,
+  };
+}
+
+function _resetStek() {
+  _stek = null;
+  _stekId = null;
+  _retiredSteks = new Map();
+  stopStekRotation();
+}
 
 function _log(level, message, extra = {}) {
   if (!logger || !logger[level]) return;
@@ -488,6 +592,7 @@ function _startElectionWatch() {
 
 function init() {
   if (_running) return;
+  startStekRotation();
   if (CLUSTER_NODES.length === 0) {
     _log('info', 'Cluster keyring sync disabled; no CLUSTER_NODES set');
     return;
@@ -504,6 +609,7 @@ function init() {
 
 function shutdown() {
   _running = false;
+  stopStekRotation();
   if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
   if (_electionTimer) { clearInterval(_electionTimer); _electionTimer = null; }
   for (const [key, socket] of _sockets.entries()) {
@@ -530,6 +636,7 @@ function getStatus() {
     activeFingerprint: _state.activeFingerprint,
     previousFingerprint: _state.previousFingerprint,
     rotatedAt: _state.rotatedAt,
+    stek: getStekState(),
     members: CLUSTER_NODES.map((n) => {
       const key = _peerKey(n.host, n.port);
       const peer = _peerState.get(key);
@@ -590,7 +697,15 @@ module.exports = {
   proposeRotate,
   queryEvents,
   getEventStats,
+  recordTelemetry,
   EVENT_TYPES,
+  rotateStek,
+  getStek,
+  getStekForValidation,
+  startStekRotation,
+  stopStekRotation,
+  getStekState,
+  _resetStek,
   // Test helpers
   _resetEvents,
   _recordEvent,

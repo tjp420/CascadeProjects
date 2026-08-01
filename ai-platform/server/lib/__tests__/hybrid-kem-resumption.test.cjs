@@ -1,3 +1,78 @@
+const {
+  deriveResumptionPsk,
+  generateStek,
+  createTicket,
+  validateTicket,
+  createInMemoryBloomFilter,
+} = require('../hybrid-kem-resumption.cjs');
+
+describe('hybrid-kem-resumption', () => {
+  test('deriveResumptionPsk is deterministic and returns 32 bytes', () => {
+    const prevRoot = Buffer.alloc(32, 0x42);
+    const p1 = deriveResumptionPsk(prevRoot, 'nodeA', 'sess-1');
+    const p2 = deriveResumptionPsk(prevRoot, 'nodeA', 'sess-1');
+    expect(p1.equals(p2)).toBe(true);
+    expect(p1.length).toBe(32);
+  });
+
+  test('createTicket/validateTicket works and prevents replay', async () => {
+    const prevRoot = Buffer.alloc(32, 0x42);
+    const stekObj = generateStek();
+    const { ticket } = createTicket({ sessionId: 'sess-1', nodeId: 'nodeA', prevRoot }, stekObj.stek, stekObj.stekId, 60000);
+
+    // stekById map
+    const stekById = new Map();
+    stekById.set(stekObj.stekId.toString('hex'), stekObj.stek);
+
+    const bloom = createInMemoryBloomFilter();
+
+    const res1 = await validateTicket(ticket, stekById, bloom);
+    expect(res1.valid).toBe(true);
+    expect(res1.psk).toBeDefined();
+
+    // Replay should be detected on second validation
+    const res2 = await validateTicket(ticket, stekById, bloom);
+    expect(res2.valid).toBe(false);
+    expect(res2.reason).toBe('REPLAY');
+  });
+
+  test('expired ticket is rejected with EXPIRED', async () => {
+    // Build a ticket with an old issuedAt by crafting the ciphertext
+    const prevRoot = Buffer.alloc(32, 0x42);
+    const stekObj = generateStek();
+    const { ticket } = createTicket({ sessionId: 'sess-exp', nodeId: 'nodeX', prevRoot }, stekObj.stek, stekObj.stekId, 24 * 60 * 60 * 1000);
+
+    // Parse header
+    const HEADER_LENGTH = 1 + 16 + 12 + 4;
+    const nonceBuf = ticket.slice(1 + 16, 1 + 16 + 12);
+    const ciphertextLen = ticket.readUInt32BE(1 + 16 + 12);
+    const ciphertext = ticket.slice(HEADER_LENGTH, HEADER_LENGTH + ciphertextLen);
+    const tag = ticket.slice(HEADER_LENGTH + ciphertextLen);
+
+    // Decrypt plaintext
+    const crypto = require('crypto');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', stekObj.stek, nonceBuf);
+    decipher.setAuthTag(tag);
+    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    const payload = JSON.parse(plaintext.toString('utf8'));
+
+    // Set issuedAt to far past and re-encrypt
+    payload.issuedAt = Date.now() - (10 * 24 * 60 * 60 * 1000); // 10 days ago
+    const newPlain = Buffer.from(JSON.stringify(payload), 'utf8');
+    const cipher = crypto.createCipheriv('aes-256-gcm', stekObj.stek, nonceBuf);
+    const newCiphertext = Buffer.concat([cipher.update(newPlain), cipher.final()]);
+    const newTag = cipher.getAuthTag();
+    const newTicket = Buffer.concat([ticket.slice(0, HEADER_LENGTH), newCiphertext, newTag]);
+
+    const stekById = new Map();
+    stekById.set(stekObj.stekId.toString('hex'), stekObj.stek);
+
+    const bloom = createInMemoryBloomFilter();
+    const res = await validateTicket(newTicket, stekById, bloom);
+    expect(res.valid).toBe(false);
+    expect(res.reason).toBe('EXPIRED');
+  });
+});
 'use strict';
 
 const crypto = require('crypto');

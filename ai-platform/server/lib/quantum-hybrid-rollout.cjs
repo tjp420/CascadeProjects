@@ -19,6 +19,26 @@ const DEFAULT_CONFIG_PATH = path.join(__dirname, '..', 'config', 'quantum-hybrid
 const ROLLOUT_EVENT = 'quantum_hybrid_rollback';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+let _telemetryRecorder = null;
+
+/**
+ * Inject a function to pipe rollout events into the unified cluster timeline.
+ * @param {Function} fn - (eventType, node, details) => void
+ */
+function setTelemetryRecorder(fn) {
+  _telemetryRecorder = fn;
+}
+
+function _recordTelemetry(details) {
+  if (typeof _telemetryRecorder === 'function') {
+    try {
+      _telemetryRecorder(ROLLOUT_EVENT, null, details);
+    } catch {
+      // best-effort telemetry; do not block rollback logic
+    }
+  }
+}
+
 /**
  * Load the canary configuration from disk.
  * @param {string} [configPath]
@@ -138,7 +158,11 @@ function checkRollback(metrics, config) {
     }
   }
 
-  return { shouldRollback: reasons.length > 0, reasons };
+  const shouldRollback = reasons.length > 0;
+  if (shouldRollback) {
+    _recordTelemetry({ reasons });
+  }
+  return { shouldRollback, reasons };
 }
 
 /**
@@ -159,5 +183,6 @@ module.exports = {
   shouldEnableHybrid,
   checkRollback,
   resolveDeprecationState,
+  setTelemetryRecorder,
   ROLLOUT_EVENT,
 };
