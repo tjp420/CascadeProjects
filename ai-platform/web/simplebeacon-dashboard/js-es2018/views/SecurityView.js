@@ -58,6 +58,7 @@ export class SecurityView {
         this.keyStatusError = null;
         this.reKeyStats = null;
         this.rotating = false;
+        this.keyPurging = false;
         this.rekeying = false;
         this.quarantine = null;
         this.quarantineLoading = false;
@@ -76,6 +77,7 @@ export class SecurityView {
         this.retentionLoading = false;
         this.complianceDownloadingJson = false;
         this.complianceDownloadingCsv = false;
+        this.showControlMappings = false;
         this.retentionError = null;
         this.retentionSaving = false;
         this.retentionPurging = false;
@@ -327,6 +329,9 @@ export class SecurityView {
             <button class="btn btn-primary btn-sm" id="key-rotate-btn" type="button" ${this.rotating ? 'disabled' : ''}>
               ${this.rotating ? '⟳ Rotating…' : '▶ Rotate Key'}
             </button>
+            <button class="btn btn-ghost btn-sm" id="key-purge-btn" type="button" ${this.keyPurging ? 'disabled' : ''} style="margin-left:8px;">
+              ${this.keyPurging ? '⟳ Purging…' : '🧹 Purge Stale Keys'}
+            </button>
           </div>
           <p style="font-size:var(--font-size-xs);color:var(--text-muted);margin-top:var(--space-3);">⚠️ Rotation starts a grace window. Historical data is re-keyed automatically by the background worker.</p>
         </div>
@@ -427,6 +432,25 @@ export class SecurityView {
             showToast('Re-key sweep failed: ' + err.message, 'error');
         } finally {
             this.rekeying = false;
+            if (this._container) this.app.render(this._container);
+        }
+    }
+
+    async handlePurgeStaleKeys() {
+        this.keyPurging = true;
+        if (this._container) this.app.render(this._container);
+        try {
+            const authHeaders = this.app.authService ? this.app.authService.getAuthHeaders() : {};
+            // purgeStaleKeys is provided by keyManagementService
+            const { purgeStaleKeys } = await import('../services/keyManagementService.js?v=20260722bridgefix1');
+            const res = await purgeStaleKeys(authHeaders);
+            const purged = (res && (res.purged || res.purgedCount || res.deleted)) ? (res.purged || res.purgedCount || res.deleted) : 0;
+            showToast(`Purge complete: ${purged} stale key(s) removed`, purged > 0 ? 'success' : 'info');
+            await this.loadKeyStatus();
+        } catch (err) {
+            showToast('Key purge failed: ' + err.message, 'error');
+        } finally {
+            this.keyPurging = false;
             if (this._container) this.app.render(this._container);
         }
     }
@@ -740,6 +764,7 @@ export class SecurityView {
                 }).join('')}
               </tbody>
             </table>
+            ${this.renderControlMappings ? this.renderControlMappings(report) : ''}
           </div>
         ` : ''}
       </div>`;
@@ -924,6 +949,45 @@ export class SecurityView {
           </div>
         ` : ''}
       </div>`;
+    }
+
+    renderControlMappings(report) {
+        const mappings = (report && report.controlMappings) ? report.controlMappings : [];
+        if (!mappings || !mappings.length) {
+            return `
+              <div style="margin-top:var(--space-4);font-size:var(--font-size-sm);color:var(--text-muted);">No control mappings included in this report.</div>
+            `;
+        }
+        const visible = this.showControlMappings ? 'block' : 'none';
+        const toggleLabel = this.showControlMappings ? 'Hide control mappings' : 'Show control mappings';
+        return `
+          <div style="margin-top:var(--space-4);">
+            <button class="btn btn-ghost btn-sm" id="toggle-mappings-trigger" type="button" style="margin-bottom:var(--space-3);">${toggleLabel}</button>
+            <div id="control-mappings-panel" style="display:${visible};border-top:1px solid var(--border);padding-top:var(--space-3);">
+              <div style="font-size:var(--font-size-xs);font-weight:700;margin-bottom:var(--space-2);">Regulatory Control Mappings</div>
+              <table style="width:100%;border-collapse:collapse;font-size:var(--font-size-xs);">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border);text-align:left;">
+                    <th style="padding:var(--space-2) var(--space-3);">Framework</th>
+                    <th style="padding:var(--space-2) var(--space-3);">Control ID</th>
+                    <th style="padding:var(--space-2) var(--space-3);">Description</th>
+                    <th style="padding:var(--space-2) var(--space-3);">Mapped To</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${mappings.map((m) => `
+                    <tr style="border-bottom:1px solid var(--border);">
+                      <td style="padding:var(--space-2) var(--space-3);font-weight:600;">${escapeHtml(m.framework || '')}</td>
+                      <td style="padding:var(--space-2) var(--space-3);">${escapeHtml(m.controlId || '')}</td>
+                      <td style="padding:var(--space-2) var(--space-3);">${escapeHtml(m.controlDescription || '')}</td>
+                      <td style="padding:var(--space-2) var(--space-3);">${escapeHtml((m.mappedTo || []).join(', '))}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
     }
     async loadRetention() {
         this.retentionLoading = true;
@@ -1366,11 +1430,13 @@ export class SecurityView {
         const _kmRotate = el.querySelector('#key-rotate-btn');
         const _kmGenerate = el.querySelector('#key-generate-btn');
         const _kmRekeyNow = el.querySelector('#rekey-now-btn');
+        const _kmPurge = el.querySelector('#key-purge-btn');
         if (_kmRefresh) _kmRefresh.addEventListener('click', () => this.loadKeyStatus());
         if (_kmRetry) _kmRetry.addEventListener('click', () => this.loadKeyStatus());
         if (_kmRotate) _kmRotate.addEventListener('click', () => this.handleKeyRotation());
         if (_kmGenerate) _kmGenerate.addEventListener('click', () => this.handleGenerateKey());
         if (_kmRekeyNow) _kmRekeyNow.addEventListener('click', () => this.handleForceReKey());
+        if (_kmPurge) _kmPurge.addEventListener('click', () => this.handlePurgeStaleKeys());
         // Interdiction section button listeners
         const _iRefresh = el.querySelector('#interdiction-refresh');
         const _iRetry = el.querySelector('#interdiction-retry');
@@ -1403,6 +1469,12 @@ export class SecurityView {
         const _cCsv = el.querySelector('#compliance-csv-btn');
         if (_cGen) _cGen.addEventListener('click', () => this.handleGenerateComplianceReport());
         if (_cCsv) _cCsv.addEventListener('click', () => this.handleDownloadComplianceCsv());
+        // Control mappings toggle
+        const _toggleMappings = el.querySelector('#toggle-mappings-trigger');
+        if (_toggleMappings) _toggleMappings.addEventListener('click', () => {
+          this.showControlMappings = !this.showControlMappings;
+          if (this._container) this.app.render(this._container);
+        });
         // Quarantine inspector button listeners
         const _qRefresh = el.querySelector('#quarantine-refresh');
         const _qRetry = el.querySelector('#quarantine-retry');

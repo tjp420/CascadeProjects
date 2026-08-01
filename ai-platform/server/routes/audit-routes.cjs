@@ -672,6 +672,38 @@ router.get('/key/rekey-stats', authorize('admin:all'), (req, res) => {
   }
 });
 
+// POST /api/audit/key/purge — Purge stale/retired keys past their grace window
+//   Body: { force?: boolean } — If true, purge regardless of grace window
+router.post('/key/purge', authorize('admin:all'), (req, res) => {
+  try {
+    const store = getKeyRotationStore();
+    if (!store) {
+      sendError(res, 503, 'key_rotation_unavailable', { message: 'Key rotation store not loaded' });
+      return;
+    }
+    const { force } = req.body || {};
+    const statusBefore = store.getRotationStatus();
+    const hadPrevious = statusBefore.hasPrevious;
+    const graceExpired = statusBefore.graceExpired;
+
+    const purged = store.purgeExpiredKeys(force === true);
+    const statusAfter = store.getRotationStatus();
+
+    logger.info('[Audit] key_purge_triggered by user:', getActor(req).actorEmail, 'purged:', purged, 'force:', force === true);
+
+    res.json({
+      success: true,
+      purged: purged ? 1 : 0,
+      hadPrevious,
+      graceExpired,
+      status: statusAfter,
+    });
+  } catch (err) {
+    logger.warn('[Audit] key_purge_failed:', err.message);
+    sendError(res, 500, 'key_purge_failed', { message: err.message });
+  }
+});
+
 // ── Key Interdiction Management Routes ──────────────────────────────────────
 //   Admin-only routes for managing the real-time API key block list.
 
