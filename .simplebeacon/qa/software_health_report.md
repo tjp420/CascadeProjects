@@ -1,15 +1,15 @@
-# Software Health Report — Track 45 Enclave Key Rotation and Cryptographic Heartbeats
+# Software Health Report — Track 46 Zero-Knowledge Inter-Enclave MPC Handshakes
 
 **Date:** 2026-08-02
-**Branch:** `feature/track45-key-rotation-heartbeats`
+**Branch:** `feature/track46-mpc-handshakes`
 
 ## Summary
-Implemented rolling key schedules with epoch-based advancement and cryptographic heartbeat protocol for enclave liveness verification. Created EnclaveKeyRotationEngine class with key epoch management, HMAC-SHA256 challenge-response heartbeats, automatic quarantine on missed heartbeats, key revocation with zeroization, and enclave recovery via forced rotation. Added 13 telemetry counters.
+Implemented zero-knowledge inter-enclave MPC handshake protocol for bridging cryptographic trust barriers during distributed key generation. Created ZkMpcHandshake class with 5-phase protocol (initiate, commit, prove, verify, finalize), Sigma-protocol style ZK proofs, commitment-based blinding, proof verification without revealing secrets, handshake expiration, and abort support. Added 10 telemetry counters.
 
 ## Change Set (5 files)
-- enclave-key-rotation-heartbeat.cjs - New, EnclaveKeyRotationEngine class (506 lines)
-- hsm-metrics.cjs - Added 13 Track 45 counters
-- enclave-key-rotation-heartbeat.test.cjs - New, 40 tests
+- zk-mpc-handshake.cjs - New, ZkMpcHandshake class (485 lines)
+- hsm-metrics.cjs - Added 10 Track 46 counters
+- zk-mpc-handshake.test.cjs - New, 37 tests
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
@@ -17,28 +17,27 @@ Implemented rolling key schedules with epoch-based advancement and cryptographic
 | Check | Result |
 |-------|--------|
 | node -c all modified JS files | PASS |
-| 40 new Track 45 tests | PASS |
-| 115 existing tests (no regression) | PASS |
+| 37 new Track 46 tests | PASS |
+| 146 existing tests (no regression) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
 | Check | Result |
 |------|--------|
-| Enclave registration (4 tests) | PASS |
-| Enclave unregistration (3 tests) | PASS |
-| Heartbeat challenge-response (7 tests) | PASS |
-| Timeout and quarantine (3 tests) | PASS |
-| Key rotation (5 tests) | PASS |
-| Scheduled rotation (3 tests) | PASS |
-| Key revocation (3 tests) | PASS |
-| Enclave recovery (2 tests) | PASS |
-| State queries (4 tests) | PASS |
-| Enclave list (1 test) | PASS |
-| Pending challenges (1 test) | PASS |
+| initiate (7 tests) | PASS |
+| commit (6 tests) | PASS |
+| prove (6 tests) | PASS |
+| verifyProofs (3 tests) | PASS |
+| finalize (3 tests) | PASS |
+| Full flow (1 test) | PASS |
+| Queries (3 tests) | PASS |
+| Active list (1 test) | PASS |
+| Completed list (1 test) | PASS |
+| Expiration (1 test) | PASS |
+| Abort (1 test) | PASS |
 | Stats (1 test) | PASS |
 | Reset (1 test) | PASS |
-| Max epochs (1 test) | PASS |
-| Zeroization (1 test) | PASS |
+| ZK proof utility (2 tests) | PASS |
 
 ## Level 3 - Security
 | Check | Result |
@@ -51,6 +50,6 @@ Implemented rolling key schedules with epoch-based advancement and cryptographic
 None.
 
 ## Unimplemented
-- REST routes for Track 45 key rotation operations (next phase)
-- Dashboard card for Track 45 telemetry
-- Timer-based automatic rotation scheduling (currently checkAndRotate is manual)
+- REST routes for Track 46 handshake operations (next phase)
+- Dashboard card for Track 46 telemetry
+- Integration with Track 44 CrossEnclaveStateSync for automatic handshake triggering

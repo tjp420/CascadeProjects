@@ -1,56 +1,54 @@
-# Test Plan — Track 45 Enclave Key Rotation and Cryptographic Heartbeats
+# Test Plan — Track 46 Zero-Knowledge Inter-Enclave MPC Handshakes
 
-**Branch:** `feature/track45-key-rotation-heartbeats`
+**Branch:** `feature/track46-mpc-handshakes`
 **Date:** 2026-08-02
 **Status:** Active
 
 ## Objective
 
-Implement rolling key schedules across the sharded enclave layout with epoch-based key advancement and cryptographic heartbeat protocol for enclave liveness verification.
+Bridge cryptographic trust barriers during key generation across enclaves using zero-knowledge proofs. Enclaves prove they hold valid key shares without revealing the shares themselves, enabling secure distributed key generation without a trusted dealer.
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| server/lib/hsm-adapter/enclave-key-rotation-heartbeat.cjs | New — EnclaveKeyRotationEngine class (506 lines) |
-| server/lib/hsm-adapter/hsm-metrics.cjs | Added 13 Track 45 counters |
-| server/lib/hsm-adapter/__tests__/enclave-key-rotation-heartbeat.test.cjs | New — 40 tests |
+| server/lib/hsm-adapter/zk-mpc-handshake.cjs | New — ZkMpcHandshake class (485 lines) |
+| server/lib/hsm-adapter/hsm-metrics.cjs | Added 10 Track 46 counters |
+| server/lib/hsm-adapter/__tests__/zk-mpc-handshake.test.cjs | New — 37 tests |
 | .simplebeacon/qa/test_plan.md | Updated |
 | .simplebeacon/qa/software_health_report.md | Updated |
 
-## Architecture
+## Protocol Phases
 
-- **KeyEpochManager**: Tracks key epochs per enclave with rotation intervals
-- **CryptographicHeartbeat**: Challenge-response liveness checks with HMAC-SHA256
-- **KeyQuarantine**: Isolates keys from enclaves that miss heartbeats (3 misses = quarantine)
-- **RotationScheduler**: Automatic epoch advancement based on key age
-- **KeyRevocation**: Permanently revoke quarantined keys with zeroization
-- **EnclaveRecovery**: Recover quarantined enclaves via forced key rotation
+1. **INITIATE**: Coordinator proposes handshake with participant enclave IDs
+2. **COMMIT**: Each participant commits to a random blinding factor (Pedersen-style)
+3. **PROVE**: Each participant generates a ZK proof of knowledge of their share
+4. **VERIFY**: Coordinator verifies all proofs without learning the shares
+5. **FINALIZE**: Combined public key is derived; private shares remain hidden
 
 ## Check Items
 
 ### Level 1 - Deterministic
 - [x] L1.1 node -c all modified JS files - PASS
-- [x] L1.2 40 new Track 45 tests pass
-- [x] L1.3 115 existing tests pass (no regression)
+- [x] L1.2 37 new Track 46 tests pass
+- [x] L1.3 146 existing tests pass (no regression)
 - [x] L1.4 No new dependencies
 
 ### Level 2 - Functional
-- [x] L2.01 registerEnclave (4 tests)
-- [x] L2.02 unregisterEnclave (3 tests)
-- [x] L2.03 heartbeat challenge-response (7 tests)
-- [x] L2.04 heartbeat timeout and quarantine (3 tests)
-- [x] L2.05 rotateKey (5 tests)
-- [x] L2.06 checkAndRotate (3 tests)
-- [x] L2.07 revokeKey (3 tests)
-- [x] L2.08 recoverEnclave (2 tests)
-- [x] L2.09 getKeyState/getHeartbeatState (4 tests)
-- [x] L2.10 getEnclaves (1 test)
-- [x] L2.11 getPendingChallenges (1 test)
+- [x] L2.01 initiate (7 tests)
+- [x] L2.02 commit (6 tests)
+- [x] L2.03 prove (6 tests)
+- [x] L2.04 verifyProofs (3 tests)
+- [x] L2.05 finalize (3 tests)
+- [x] L2.06 full 5-phase handshake flow (1 test)
+- [x] L2.07 getHandshake (3 tests)
+- [x] L2.08 getActiveHandshakes (1 test)
+- [x] L2.09 getCompletedHandshakes (1 test)
+- [x] L2.10 checkExpired (1 test)
+- [x] L2.11 abort (1 test)
 - [x] L2.12 getStats (1 test)
 - [x] L2.13 reset (1 test)
-- [x] L2.14 maxEpochs (1 test)
-- [x] L2.15 zeroization of old key material (1 test)
+- [x] L2.14 generateZkProof utility (2 tests)
 
 ### Level 3 - Security
 - [x] L3.01 No secrets exposed
