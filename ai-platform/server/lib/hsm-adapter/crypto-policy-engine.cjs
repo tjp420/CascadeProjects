@@ -128,6 +128,8 @@ const DEFAULT_POLICY = {
     requireAsymmetricRpcSigning: false,
     allowedClusterPeerKeys: [],
     signatureAlgorithm: 'ed25519',
+    enableReplayProtection: true,
+    replayWindowMs: 5000,
   },
   enclave: {
     allowedEnclaveTypes: ['mock', 'intel-sgx', 'aws-nitro'],
@@ -422,6 +424,15 @@ class CryptoPolicyEngine {
           throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `peer key ${key} is not in the allowed cluster peer keys list`);
         }
       }
+    }
+    if (policy.enableReplayProtection && config.enableReplayProtection === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'replay protection is required and cannot be disabled');
+    }
+    if (typeof config.replayWindowMs === 'number' && config.replayWindowMs > policy.replayWindowMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `replay window ${config.replayWindowMs}ms exceeds policy maximum ${policy.replayWindowMs}ms`);
+    }
+    if (typeof config.replayWindowMs === 'number' && config.replayWindowMs < 100) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `replay window ${config.replayWindowMs}ms is too low (minimum 100ms)`);
     }
   }
 

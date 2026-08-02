@@ -39,11 +39,15 @@ describe('Track 34 Stage 3 Byzantine RPC signing', () => {
       clusterNodes: ['node-a', 'node-b'],
       signingKeyPair: { privateKey, publicKey },
     });
-    const sig = engine.signRpcFrame({ term: 1, candidateId: 'node-a' });
-    expect(typeof sig).toBe('string');
-    expect(sig.length).toBeGreaterThan(0);
-    // Verify it's valid base64
-    expect(() => Buffer.from(sig, 'base64')).not.toThrow();
+    const result = engine.signRpcFrame({ term: 1, candidateId: 'node-a' });
+    expect(typeof result).toBe('object');
+    expect(typeof result.signature).toBe('string');
+    expect(result.signature.length).toBeGreaterThan(0);
+    expect(typeof result.nonce).toBe('number');
+    expect(result.nonce).toBeGreaterThan(0);
+    expect(typeof result.timestamp).toBe('number');
+    // Verify signature is valid base64
+    expect(() => Buffer.from(result.signature, 'base64')).not.toThrow();
   });
 
   test('verifyRpcFrame accepts valid signature', () => {
