@@ -1,0 +1,56 @@
+groups:
+  - name: enclave-worker.rules
+    rules:
+      - alert: EnclaveRotationFailures
+        expr: increase(hsm_enclave_rotations_total{status="failure"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Enclave KEK rotation failures detected"
+          description: "One or more KEK rotation attempts failed in the last 5 minutes. Check HSM connectivity and rotation logs. Runbook: ai-platform/docs/runbooks/ENCLAVE-STATE-COORDINATION.md"
+
+      - alert: EnclaveRotationStuck
+        expr: hsm_enclave_rotation_in_progress == 1
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Enclave rotation in progress for >30m"
+          description: "A rotation run appears to be in progress longer than expected. Verify lock TTL, checkpoint file and progress. Runbook: ai-platform/docs/runbooks/ENCLAVE-STATE-COORDINATION.md"
+
+      - alert: EnclaveDerivationLatencyHigh
+        expr: histogram_quantile(0.99, sum(rate(hsm_enclave_derivation_latency_seconds_bucket[5m])) by (le)) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HSM derivation latency (p99)"
+          description: "HSM wrap/unwrap latency p99 > 0.5s. May indicate HSM throttling or network issues. Investigate HSM service and retry/backoff behavior."
+
+      - alert: EnclaveFlushFailures
+        expr: increase(hsm_enclave_flush_failures_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Enclave replication flush failures"
+          description: "Replication flush operations have reported failures. Check DB connectivity and pending replication queue."
+
+      - alert: EnclaveFlushMissed
+        expr: time() - max(hsm_enclave_flush_success_timestamp_seconds) > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Enclave flush appears stalled"
+          description: "No successful flush recorded within expected window (90s). Check worker process, logs, and whether timers are running."
+
+      - alert: EnclaveScheduleDrift
+        expr: time() - hsm_enclave_last_flush_timestamp_seconds > 60
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Per-instance flush schedule drift detected"
+          description: "This instance's last flush was older than 60s (expected 30s ± jitter). Investigate local load, event loop stalls, or GC pressure."
