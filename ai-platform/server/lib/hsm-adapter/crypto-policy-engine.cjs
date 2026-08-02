@@ -414,6 +414,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderResolutionClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqFractionalCustody: {
+    minCustodianQuorum: 3,
+    maxFractionalBits: 64,
+    maxAssetCustodyCap: 1000000000,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireClaimantAttestation: true,
+    requireCustodianRelayAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderCustodyClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -685,6 +696,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqPredictionMarkets: {
       ...DEFAULT_POLICY.pqPredictionMarkets,
       ...(tenantPolicy.pqPredictionMarkets || {}),
+    },
+    pqFractionalCustody: {
+      ...DEFAULT_POLICY.pqFractionalCustody,
+      ...(tenantPolicy.pqFractionalCustody || {}),
     },
   };
 }
@@ -1647,6 +1662,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqFractionalCustody(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqFractionalCustody, ...(tenantPolicy.pqFractionalCustody || {}) };
+    if (typeof config.custodianQuorum === 'number' && config.custodianQuorum < policy.minCustodianQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `custodian quorum ${config.custodianQuorum} below minimum ${policy.minCustodianQuorum}`);
+    }
+    if (typeof config.fractionalBits === 'number' && config.fractionalBits > policy.maxFractionalBits) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `fractional bits ${config.fractionalBits} exceeds maximum ${policy.maxFractionalBits}`);
+    }
+    if (typeof config.assetCustodyCap === 'number' && config.assetCustodyCap > policy.maxAssetCustodyCap) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `asset custody cap ${config.assetCustodyCap} exceeds maximum ${policy.maxAssetCustodyCap}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireClaimantAttestation && config.claimantAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'claimant attestation is required');
+    }
+    if (policy.requireCustodianRelayAttestation && config.custodianRelayAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'custodian relay attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderCustodyClaims === 'boolean' && policy.banMalformedOrOutOfOrderCustodyClaims && !config.banMalformedOrOutOfOrderCustodyClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order custody claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2131,6 +2177,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqPredictionMarkets') {
       this._validatePqPredictionMarkets(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqFractionalCustody') {
+      this._validatePqFractionalCustody(tenantPolicy, config);
       return true;
     }
 
