@@ -522,6 +522,26 @@ class BaseHsmAdapter {
     this._audit('MFA_TOKEN_AUTHENTICATED', info);
   }
 
+  // ── Track 31 governance telemetry hooks ────────────────────────────
+
+  /**
+   * Emit a governance proposal initiated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitGovernanceProposalInitiated(info = {}) {
+    this._ensureInitialized();
+    this._audit('GOVERNANCE_PROPOSAL_INITIATED', info);
+  }
+
+  /**
+   * Emit a policy consensus committed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPolicyConsensusCommitted(info = {}) {
+    this._ensureInitialized();
+    this._audit('POLICY_CONSENSUS_COMMITTED', info);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {
