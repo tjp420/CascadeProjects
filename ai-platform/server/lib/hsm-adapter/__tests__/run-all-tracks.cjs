@@ -40,6 +40,7 @@ const SUITES = [
   'pqc-asset-bridge',
   'homomorphic-db-lookup',
   'zk-cross-chain-settlement',
+  'pqc-identity-hub',
 ];
 
 function runSuite(pattern) {

@@ -817,6 +817,26 @@ class BaseHsmAdapter {
     this._audit('ZK_SETTLEMENT_FINALIZED', info);
   }
 
+  // ── Track 51 PQC identity hub telemetry hooks ──────────────────────
+
+  /**
+   * Emit a PQC identity hub registered event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPqcIdentityHubRegistered(info = {}) {
+    this._ensureInitialized();
+    this._audit('PQC_IDENTITY_HUB_REGISTERED', info);
+  }
+
+  /**
+   * Emit an identity issuance quorum committed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitIdentityIssuanceQuorumCommitted(info = {}) {
+    this._ensureInitialized();
+    this._audit('IDENTITY_ISSUANCE_QUORUM_COMMITTED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
