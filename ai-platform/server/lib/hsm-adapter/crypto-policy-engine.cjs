@@ -347,6 +347,15 @@ const DEFAULT_POLICY = {
     banExpiredOrDuplicateClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  bftShardSync: {
+    minQuorumNodes: 3,
+    maxCatchUpBatchSize: 64,
+    lagThreshold: 8,
+    byzantineDivergenceThreshold: 100,
+    requireQuorumCommit: true,
+    requireAntiReplay: true,
+    maxShardsPerCluster: 128,
+  },
 };
 
 function _isObject(value) {
@@ -507,6 +516,10 @@ function _mergeWithDefault(tenantPolicy) {
     confidentialSandbox: {
       ...DEFAULT_POLICY.confidentialSandbox,
       ...(tenantPolicy.confidentialSandbox || {}),
+    },
+    bftShardSync: {
+      ...DEFAULT_POLICY.bftShardSync,
+      ...(tenantPolicy.bftShardSync || {}),
     },
     encryptedSearchRouting: {
       ...DEFAULT_POLICY.encryptedSearchRouting,
