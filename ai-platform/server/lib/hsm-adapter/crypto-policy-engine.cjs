@@ -406,6 +406,14 @@ const DEFAULT_POLICY = {
     quarantineOnCriticalDivergence: true,
     maxTrackedKeys: 256,
   },
+  zkProofOfAssets: {
+    minQuorumNodes: 3,
+    maxAssetsPerProof: 256,
+    requireQuorumFinalization: true,
+    requireAntiInflation: true,
+    allowMultiTenantProofs: true,
+    maxTenantsPerProof: 64,
+  },
 };
 
 function _isObject(value) {
@@ -578,6 +586,10 @@ function _mergeWithDefault(tenantPolicy) {
     clusterKeyReconciliation: {
       ...DEFAULT_POLICY.clusterKeyReconciliation,
       ...(tenantPolicy.clusterKeyReconciliation || {}),
+    },
+    zkProofOfAssets: {
+      ...DEFAULT_POLICY.zkProofOfAssets,
+      ...(tenantPolicy.zkProofOfAssets || {}),
     },
     encryptedSearchRouting: {
       ...DEFAULT_POLICY.encryptedSearchRouting,
