@@ -502,6 +502,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderHealthClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqEducationGating: {
+    minAccreditationQuorum: 3,
+    maxTranscriptExpirationSeconds: 31536000,
+    maxAcademicCredentialDepth: 24,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireInstitutionInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderCredentialClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -831,6 +842,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqHealthDataGating: {
       ...DEFAULT_POLICY.pqHealthDataGating,
       ...(tenantPolicy.pqHealthDataGating || {}),
+    },
+    pqEducationGating: {
+      ...DEFAULT_POLICY.pqEducationGating,
+      ...(tenantPolicy.pqEducationGating || {}),
     },
   };
 }
@@ -2041,6 +2056,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqEducationGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqEducationGating, ...(tenantPolicy.pqEducationGating || {}) };
+    if (typeof config.accreditationQuorum === 'number' && config.accreditationQuorum < policy.minAccreditationQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `accreditation quorum ${config.accreditationQuorum} below minimum ${policy.minAccreditationQuorum}`);
+    }
+    if (typeof config.transcriptExpirationSeconds === 'number' && config.transcriptExpirationSeconds > policy.maxTranscriptExpirationSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `transcript expiration seconds ${config.transcriptExpirationSeconds} exceeds maximum ${policy.maxTranscriptExpirationSeconds}`);
+    }
+    if (typeof config.academicCredentialDepth === 'number' && config.academicCredentialDepth > policy.maxAcademicCredentialDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `academic credential depth ${config.academicCredentialDepth} exceeds maximum ${policy.maxAcademicCredentialDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireInstitutionInitializerAttestation && config.institutionInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'institution initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderCredentialClaims === 'boolean' && policy.banMalformedOrOutOfOrderCredentialClaims && !config.banMalformedOrOutOfOrderCredentialClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order credential claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2565,6 +2611,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqHealthDataGating') {
       this._validatePqHealthDataGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqEducationGating') {
+      this._validatePqEducationGating(tenantPolicy, config);
       return true;
     }
 
