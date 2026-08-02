@@ -1,61 +1,50 @@
-# Test Plan — Track 28: Confidential Computing Sandboxing
+# Test Plan — Track 32: BFT Shard Sync
 
-**Branch:** `feature/track28-confidential-sandboxing`
+**Branch:** `feature/track32-bft-shard-sync`
 **Date:** 2026-08-02
 **Status:** Active
 
 ## Objective
 
-Implement a confidential computing sandbox engine that creates isolated execution environments for sensitive cryptographic operations. The sandbox enforces memory isolation, attestation-gated access, and zeroization of sensitive data after execution. This builds on the existing enclave attestation infrastructure (Track 41) and enclave state manager (Track 47).
-
-## Design
-
-- **Sandbox lifecycle**: create → attest → execute → zeroize → destroy
-- **Attestation gating**: Sandboxes require valid attestation before execution (integrates with `EnclaveAttestationClient`)
-- **Memory isolation**: Each sandbox has an isolated memory context with scoped key material
-- **Execution context**: Sensitive operations run inside the sandbox with restricted access to host keys
-- **Zeroization**: All sensitive data is zeroized after sandbox execution completes
-- **Policy enforcement**: Sandbox creation, execution time limits, and allowed operations are policy-gated
+Implement a BFT shard sync engine that restores cross-node share replication accuracy via monotonic `ShardVectorClock` sequence tracking and non-blocking background sliding-window catch-up batch streamers.
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| `server/lib/hsm-adapter/confidential-sandbox-engine.cjs` | **New** — Confidential sandbox engine |
-| `server/lib/hsm-adapter/__tests__/confidential-sandbox.test.cjs` | **New** — Test suite |
-| `server/lib/hsm-adapter/crypto-policy-engine.cjs` | Add `confidentialSandbox` policy block |
-| `server/lib/hsm-adapter/hsm-metrics.cjs` | Add sandbox counters |
+| `server/lib/hsm-adapter/bft-shard-sync-engine.cjs` | **New** — BFT shard sync engine with ShardVectorClock |
+| `server/lib/hsm-adapter/__tests__/bft-shard-sync.test.cjs` | **New** — Test suite (32 tests) |
+| `server/lib/hsm-adapter/crypto-policy-engine.cjs` | Add `bftShardSync` policy block |
+| `server/lib/hsm-adapter/hsm-metrics.cjs` | Add 7 shard sync counters |
 
 ## Check Items
 
 ### Level 1 — Deterministic
 
-- [ ] L1.1 `node -c confidential-sandbox-engine.cjs` — syntax pass
-- [ ] L1.2 `node -c confidential-sandbox.test.cjs` — syntax pass
-- [ ] L1.3 `node -c crypto-policy-engine.cjs` — syntax pass
-- [ ] L1.4 `node -c hsm-metrics.cjs` — syntax pass
-- [ ] L1.5 `npm test` (ai-platform) — all tests pass, no new failures
-- [ ] L1.6 No new dependencies added
-- [ ] L1.7 No secrets/keys committed
+- [x] L1.1 `node -c bft-shard-sync-engine.cjs` — PASS
+- [x] L1.2 `node -c bft-shard-sync.test.cjs` — PASS
+- [x] L1.3 `node -c crypto-policy-engine.cjs` — PASS
+- [x] L1.4 `node -c hsm-metrics.cjs` — PASS
+- [x] L1.5 BFT shard sync test suite (32 tests) — PASS
+- [x] L1.6 Policy engine test suite (16 tests) — PASS (no regression)
+- [x] L1.7 No new dependencies added
 
 ### Level 2 — Functional Operations
 
-- [ ] L2.01 Full happy-path: create sandbox → attest → execute → zeroize → destroy
-- [ ] L2.02 Sandbox creation with valid attestation passes
-- [ ] L2.03 Sandbox creation with invalid attestation rejected
-- [ ] L2.04 Execute operation inside sandbox returns correct result
-- [ ] L2.05 Sandbox memory is zeroized after execution
-- [ ] L2.06 Sandbox lifecycle: cannot execute before attestation
-- [ ] L2.07 Sandbox lifecycle: cannot execute after destruction
-- [ ] L2.08 Policy validation: confidentialSandbox.maxExecutionTimeSeconds enforced
-- [ ] L2.09 Policy validation: confidentialSandbox.allowedOperations enforced
+- [x] L2.01 Full happy-path: create shard → append entries → quorum ack → commit
+- [x] L2.02 ShardVectorClock tracks per-node replication position
+- [x] L2.03 Quorum acknowledgment (t-of-N) gates commit
+- [x] L2.04 Sliding-window catch-up detects lagging nodes
+- [x] L2.05 Catch-up batch streams missing entries to lagging node
+- [x] L2.06 Multiple shards tracked independently
+- [x] L2.07/L2.08 Policy validation: bftShardSync block present, tenant overrides work
 
 ### Level 3 — Security Engineering
 
-- [ ] L3.01 Unattested sandbox cannot execute operations
-- [ ] L3.02 Expired attestation rejected
-- [ ] L3.03 Disallowed operation rejected by policy
-- [ ] L3.04 Memory zeroization verified (sensitive data cleared)
-- [ ] L3.05 No scope creep — only sandbox engine + policy + metrics + tests
-- [ ] L3.06 No ghost files or hallucinated API paths
-- [ ] L3.07 All existing tests still pass (no regression)
+- [x] L3.01 Byzantine node detection: node with divergent state flagged
+- [x] L3.02 Quarantined node excluded from synced state
+- [x] L3.03 Anti-replay: stale sequence number rejected
+- [x] L3.04 Cannot commit without quorum
+- [x] L3.05 No scope creep — only engine + policy + metrics + tests
+- [x] L3.06 No ghost files or hallucinated API paths
+- [x] L3.07 All existing tests still pass (no regression)

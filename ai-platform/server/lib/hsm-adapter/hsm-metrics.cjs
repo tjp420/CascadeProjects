@@ -82,6 +82,14 @@ const counters = {
   hsm_sandbox_execute_failures_total: 0,
   hsm_sandbox_zeroized_total: 0,
   hsm_sandbox_active: 0,
+  // Track 32: BFT Shard Sync counters
+  hsm_shard_append_total: 0,
+  hsm_shard_ack_total: 0,
+  hsm_shard_commit_total: 0,
+  hsm_shard_catchup_batch_total: 0,
+  hsm_shard_byzantine_detected_total: 0,
+  hsm_shard_lagging_nodes: 0,
+  hsm_shard_active: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -156,6 +164,13 @@ const META = {
   hsm_sandbox_execute_failures_total: { help: 'Total sandbox execute operations that failed.', type: 'counter' },
   hsm_sandbox_zeroized_total: { help: 'Total sandbox zeroization operations.', type: 'counter' },
   hsm_sandbox_active: { help: 'Current number of active sandboxes.', type: 'gauge' },
+  hsm_shard_append_total: { help: 'Total shard entries appended.', type: 'counter' },
+  hsm_shard_ack_total: { help: 'Total shard entry acknowledgments received.', type: 'counter' },
+  hsm_shard_commit_total: { help: 'Total shard entries committed via quorum.', type: 'counter' },
+  hsm_shard_catchup_batch_total: { help: 'Total catch-up batches streamed to lagging nodes.', type: 'counter' },
+  hsm_shard_byzantine_detected_total: { help: 'Total nodes flagged as byzantine due to divergence.', type: 'counter' },
+  hsm_shard_lagging_nodes: { help: 'Current number of lagging nodes across all shards.', type: 'gauge' },
+  hsm_shard_active: { help: 'Current number of active shards being tracked.', type: 'gauge' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
