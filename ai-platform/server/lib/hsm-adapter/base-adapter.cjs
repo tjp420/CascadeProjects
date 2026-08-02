@@ -574,6 +574,35 @@ class BaseHsmAdapter {
     this._audit('POLICY_CONSENSUS_COMMITTED', info);
   }
 
+  // ── Track 41 hardware enclave telemetry hooks ─────────────────────
+
+  /**
+   * Emit a hardware enclave bootstrapped event into the audit pipeline.
+   * @param {object} info
+   */
+  emitEnclaveHardwareBootstrapped(info = {}) {
+    this._ensureInitialized();
+    this._audit('ENCLAVE_HARDWARE_BOOTSTRAPPED', info);
+  }
+
+  /**
+   * Emit an attestation challenge verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitAttestationChallengeVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ATTESTATION_CHALLENGE_VERIFIED', info);
+  }
+
+  /**
+   * Emit an enclave key provisioned event into the audit pipeline.
+   * @param {object} info
+   */
+  emitEnclaveKeyProvisioned(info = {}) {
+    this._ensureInitialized();
+    this._audit('ENCLAVE_KEY_PROVISIONED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
