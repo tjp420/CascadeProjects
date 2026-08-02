@@ -98,6 +98,14 @@ const counters = {
   hsm_migration_ack_total: 0,
   hsm_migration_verification_failed_total: 0,
   hsm_migration_active: 0,
+  // Track 35: Cluster Key Reconciliation counters
+  hsm_reconciliation_scans_total: 0,
+  hsm_reconciliation_divergence_detected_total: 0,
+  hsm_reconciliation_promoted_total: 0,
+  hsm_reconciliation_quarantined_total: 0,
+  hsm_reconciliation_rollback_blocked_total: 0,
+  hsm_reconciliation_promotion_votes_total: 0,
+  hsm_reconciliation_divergent_keys: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -186,6 +194,13 @@ const META = {
   hsm_migration_ack_total: { help: 'Total migration acknowledgments received from destination nodes.', type: 'counter' },
   hsm_migration_verification_failed_total: { help: 'Total migrations that failed verification.', type: 'counter' },
   hsm_migration_active: { help: 'Current number of active (in-progress) migrations.', type: 'gauge' },
+  hsm_reconciliation_scans_total: { help: 'Total key reconciliation scans performed.', type: 'counter' },
+  hsm_reconciliation_divergence_detected_total: { help: 'Total key divergences detected across scans.', type: 'counter' },
+  hsm_reconciliation_promoted_total: { help: 'Total key epochs promoted via quorum.', type: 'counter' },
+  hsm_reconciliation_quarantined_total: { help: 'Total keys quarantined due to unrecoverable divergence.', type: 'counter' },
+  hsm_reconciliation_rollback_blocked_total: { help: 'Total key epoch rollback attempts blocked.', type: 'counter' },
+  hsm_reconciliation_promotion_votes_total: { help: 'Total promotion votes cast by healthy nodes.', type: 'counter' },
+  hsm_reconciliation_divergent_keys: { help: 'Current number of keys with unresolved divergence.', type: 'gauge' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
