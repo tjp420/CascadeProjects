@@ -558,6 +558,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderEnergyClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqSupplyChainGating: {
+    minSupplierCheckpointQuorum: 3,
+    maxTransitExpirationSeconds: 7776000,
+    maxComponentLineageDepth: 64,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireFactoryEndpointInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderProvenanceClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -899,6 +910,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqEnergyGating: {
       ...DEFAULT_POLICY.pqEnergyGating,
       ...(tenantPolicy.pqEnergyGating || {}),
+    },
+    pqSupplyChainGating: {
+      ...DEFAULT_POLICY.pqSupplyChainGating,
+      ...(tenantPolicy.pqSupplyChainGating || {}),
     },
   };
 }
@@ -2230,6 +2245,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqSupplyChainGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqSupplyChainGating, ...(tenantPolicy.pqSupplyChainGating || {}) };
+    if (typeof config.supplierCheckpointQuorum === 'number' && config.supplierCheckpointQuorum < policy.minSupplierCheckpointQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `supplier checkpoint quorum ${config.supplierCheckpointQuorum} below minimum ${policy.minSupplierCheckpointQuorum}`);
+    }
+    if (typeof config.transitExpirationSeconds === 'number' && config.transitExpirationSeconds > policy.maxTransitExpirationSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `transit expiration seconds ${config.transitExpirationSeconds} exceeds maximum ${policy.maxTransitExpirationSeconds}`);
+    }
+    if (typeof config.componentLineageDepth === 'number' && config.componentLineageDepth > policy.maxComponentLineageDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `component lineage depth ${config.componentLineageDepth} exceeds maximum ${policy.maxComponentLineageDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireFactoryEndpointInitializerAttestation && config.factoryEndpointInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'factory endpoint initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderProvenanceClaims === 'boolean' && policy.banMalformedOrOutOfOrderProvenanceClaims && !config.banMalformedOrOutOfOrderProvenanceClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order provenance claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2774,6 +2820,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqEnergyGating') {
       this._validatePqEnergyGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqSupplyChainGating') {
+      this._validatePqSupplyChainGating(tenantPolicy, config);
       return true;
     }
 

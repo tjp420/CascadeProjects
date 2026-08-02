@@ -483,6 +483,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderEnergyClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqSupplyChainGating": {
+      "minSupplierCheckpointQuorum": 3,
+      "maxTransitExpirationSeconds": 7776000,
+      "maxComponentLineageDepth": 64,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireFactoryEndpointInitializerAttestation": true,
+      "requireClearingCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderProvenanceClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
