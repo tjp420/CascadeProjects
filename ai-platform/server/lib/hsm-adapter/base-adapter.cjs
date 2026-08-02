@@ -1579,6 +1579,35 @@ class BaseHsmAdapter {
     this._audit('COUNTERPARTY_RISK_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 79 PQ clinical trial verification gating telemetry hooks ──────────────
+
+  /**
+   * Emit a clinical trial gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitClinicalTrialGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('CLINICAL_TRIAL_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK trial claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkTrialClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_TRIAL_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a cohort accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCohortAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('COHORT_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
