@@ -34,6 +34,7 @@ const SUITES = [
   'dynamic-resharding',
   'disaster-recovery',
   'confidential-issuance',
+  'cross-tenant-audit',
 ];
 
 function runSuite(pattern) {

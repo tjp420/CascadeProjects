@@ -663,6 +663,26 @@ class BaseHsmAdapter {
     this._audit('ISSUANCE_PROOF_VALIDATED', info);
   }
 
+  // ── Track 45 cross-tenant audit telemetry hooks ────────────────────
+
+  /**
+   * Emit a cross-tenant access recognized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCrossTenantAccessRecognized(info = {}) {
+    this._ensureInitialized();
+    this._audit('CROSS_TENANT_ACCESS_RECOGNIZED', info);
+  }
+
+  /**
+   * Emit an audit receipt chained event into the audit pipeline.
+   * @param {object} info
+   */
+  emitAuditReceiptChained(info = {}) {
+    this._ensureInitialized();
+    this._audit('AUDIT_RECEIPT_CHAINED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
