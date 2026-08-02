@@ -90,6 +90,16 @@ const DEFAULT_POLICY = {
     graceTokenExpiryMs: 0,
     allowBlinding: false,
   },
+  enclave: {
+    sandboxMode: 'wasm',
+    allowedSandboxModes: ['wasm', 'gvisor', 'bubblewrap'],
+    memoryWipeIntervalMs: 1000,
+    maxSensitiveBufferAgeMs: 5000,
+    requirePageBoundaryTracking: true,
+    pageSizeBytes: 4096,
+    requireAttestationLog: true,
+    attestationTimeoutMs: 5000,
+  },
 };
 
 function _isObject(value) {
@@ -158,6 +168,10 @@ function _mergeWithDefault(tenantPolicy) {
     fips: {
       ...DEFAULT_POLICY.fips,
       ...(tenantPolicy.fips || {}),
+    },
+    enclave: {
+      ...DEFAULT_POLICY.enclave,
+      ...(tenantPolicy.enclave || {}),
     },
   };
 }
@@ -245,6 +259,22 @@ class CryptoPolicyEngine {
         'POLICY_VIOLATION_BLOCKED',
         `${label} ${kekBits} is below the tenant minimum of ${min}`
       );
+    }
+  }
+
+  _validateEnclave(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.enclave, ...(tenantPolicy.enclave || {}) };
+    if (typeof config.sandboxMode === 'string' && !policy.allowedSandboxModes.includes(config.sandboxMode)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `sandbox mode ${config.sandboxMode} is not allowed; permitted: ${policy.allowedSandboxModes.join(', ')}`);
+    }
+    if (typeof config.memoryWipeIntervalMs === 'number' && config.memoryWipeIntervalMs > policy.maxSensitiveBufferAgeMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `memoryWipeIntervalMs ${config.memoryWipeIntervalMs} exceeds maxSensitiveBufferAgeMs ${policy.maxSensitiveBufferAgeMs}`);
+    }
+    if (typeof config.attestationTimeoutMs === 'number' && config.attestationTimeoutMs > 30000) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestationTimeoutMs ${config.attestationTimeoutMs} exceeds hard limit 30000`);
+    }
+    if (policy.requireAttestationLog && !config.attestationLog) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'enclave attestation log is required');
     }
   }
 
@@ -543,6 +573,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'zkp') {
       this._validateZkp(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'enclave') {
+      this._validateEnclave(tenantPolicy, config);
       return true;
     }
 

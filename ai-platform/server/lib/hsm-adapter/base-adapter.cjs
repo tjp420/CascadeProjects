@@ -502,6 +502,26 @@ class BaseHsmAdapter {
     }
   }
 
+  // ── Track 28 enclave sandbox telemetry hooks ───────────────────────
+
+  /**
+   * Emit a sandbox enclave initialization event into the audit pipeline.
+   * @param {object} info
+   */
+  emitSandboxEnclaveInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('SANDBOX_ENCLAVE_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a memory shield purge event into the audit pipeline.
+   * @param {object} info
+   */
+  emitMemoryShieldPurged(info = {}) {
+    this._ensureInitialized();
+    this._audit('MEMORY_SHIELD_PURGED', info);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {
