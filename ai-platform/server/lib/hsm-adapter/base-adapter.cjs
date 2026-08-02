@@ -623,6 +623,26 @@ class BaseHsmAdapter {
     this._audit('EPHEMERAL_SHARE_RATCHETED', info);
   }
 
+  // ── Track 43 disaster recovery telemetry hooks ────────────────────
+
+  /**
+   * Emit a regional failover initiated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitRegionalFailoverInitiated(info = {}) {
+    this._ensureInitialized();
+    this._audit('REGIONAL_FAILOVER_INITIATED', info);
+  }
+
+  /**
+   * Emit a standby cluster provisioned event into the audit pipeline.
+   * @param {object} info
+   */
+  emitStandbyClusterProvisioned(info = {}) {
+    this._ensureInitialized();
+    this._audit('STANDBY_CLUSTER_PROVISIONED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
