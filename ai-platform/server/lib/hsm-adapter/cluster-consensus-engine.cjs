@@ -43,6 +43,9 @@ const CONSENSUS_EVENT = {
   PEER_KEY_ADDED: 'CONSENSUS_PEER_KEY_ADDED',
   PEER_KEY_REVOKED: 'CONSENSUS_PEER_KEY_REVOKED',
   PEER_KEY_ROTATION_BLOCKED: 'CONSENSUS_PEER_KEY_ROTATION_BLOCKED',
+  SNAPSHOT_CREATED: 'CONSENSUS_SNAPSHOT_CREATED',
+  SNAPSHOT_INSTALLED: 'CONSENSUS_SNAPSHOT_INSTALLED',
+  SNAPSHOT_REJECTED: 'CONSENSUS_SNAPSHOT_REJECTED',
 };
 
 class ClusterConsensusEngine {
@@ -63,6 +66,10 @@ class ClusterConsensusEngine {
    * @param {boolean} [options.requireRpcSigning=false] - if true, reject unsigned/tampered inbound RPCs
    * @param {number} [options.replayWindowMs=5000] - max age of RPC frame timestamp before rejection
    * @param {boolean} [options.enableReplayProtection=true] - enable nonce + timestamp anti-replay checks
+   * @param {number} [options.snapshotThreshold=100] - min committed log entries before compaction triggers
+   * @param {Function} [options.captureSnapshotState] - () => object: captures state machine for snapshot
+   * @param {Function} [options.restoreSnapshotState] - (state) => void: restores state machine from snapshot
+   * @param {Function} [options.installSnapshot] - async (targetNodeId, snapshot) => boolean: sends snapshot to follower
    */
   constructor(options = {}) {
     if (!options.nodeId) {
@@ -110,6 +117,15 @@ class ClusterConsensusEngine {
     this._log = []; // [{ term, index, command, committed }]
     this._nextIndex = new Map(); // nodeId -> next log index to send
     this._matchIndex = new Map(); // nodeId -> highest replicated index
+
+    // Phase 6: Snapshot/compaction state
+    this._snapshotThreshold = options.snapshotThreshold || 100;
+    this._captureSnapshotState = options.captureSnapshotState || null;
+    this._restoreSnapshotState = options.restoreSnapshotState || null;
+    this._installSnapshot = options.installSnapshot || null;
+    this._lastSnapshotIndex = 0; // index of last entry in snapshot (0 = no snapshot)
+    this._lastSnapshotTerm = 0;  // term of last entry in snapshot
+    this._snapshotState = null;  // captured state machine data
 
     // Election timer
     this._electionTimer = null;
@@ -164,6 +180,9 @@ class ClusterConsensusEngine {
       logLength: this._log.length,
       quorumNodes: this.minQuorumNodes,
       clusterSize: this.clusterNodes.size,
+      lastSnapshotIndex: this._lastSnapshotIndex,
+      lastSnapshotTerm: this._lastSnapshotTerm,
+      hasSnapshot: this._snapshotState !== null,
     };
   }
 
@@ -290,8 +309,11 @@ class ClusterConsensusEngine {
     }
 
     // Check candidate's log is at least as up-to-date as ours
-    const myLastLogTerm = this._log.length > 0 ? this._log[this._log.length - 1].term : 0;
-    const myLastLogIndex = this._log.length;
+    // Phase 6: Use absolute log index (including snapshot offset)
+    const myLastLogTerm = this._log.length > 0
+      ? this._log[this._log.length - 1].term
+      : this._lastSnapshotTerm;
+    const myLastLogIndex = this._log.length + this._lastSnapshotIndex;
 
     const candidateLastLogTerm = typeof request.lastLogTerm === 'number' ? request.lastLogTerm : 0;
     const candidateLastLogIndex = typeof request.lastLogIndex === 'number' ? request.lastLogIndex : 0;
@@ -340,8 +362,11 @@ class ClusterConsensusEngine {
     this._votesReceived = new Set([this.nodeId]);
     this._leaderId = null;
 
-    const lastLogIndex = this._log.length;
-    const lastLogTerm = this._log.length > 0 ? this._log[this._log.length - 1].term : 0;
+    // Phase 6: Use absolute log index (including snapshot offset)
+    const lastLogIndex = this._log.length + this._lastSnapshotIndex;
+    const lastLogTerm = this._log.length > 0
+      ? this._log[this._log.length - 1].term
+      : this._lastSnapshotTerm;
 
     this._emitAudit(CONSENSUS_EVENT.VOTE_REQUESTED, {
       nodeId: this.nodeId,
@@ -400,7 +425,8 @@ class ClusterConsensusEngine {
       throw new HsmAdapterError('NOT_LEADER', `node ${this.nodeId} is not the leader (state: ${this._state})`);
     }
 
-    const index = this._log.length + 1;
+    // Phase 6: Account for snapshot offset when computing absolute log index
+    const index = this._log.length + this._lastSnapshotIndex + 1;
     const entry = { term: this._currentTerm, index, command, committed: false };
     this._log.push(entry);
 
@@ -568,6 +594,201 @@ class ClusterConsensusEngine {
     return this._peerPublicKeys.has(peerNodeId);
   }
 
+  // ── Phase 6: Log compaction & snapshotting ──────────────────────
+
+  /**
+   * Create a snapshot of the current state machine and truncate the log
+   * up to the current commit index. This compacts the log prefix to
+   * prevent unbounded memory growth.
+   *
+   * After compaction:
+   * - _lastSnapshotIndex = commitIndex
+   * - _lastSnapshotTerm = term of the entry at commitIndex
+   * - _log is truncated to only contain entries after commitIndex
+   * - _snapshotState holds the captured state machine data
+   *
+   * @param {object} [stateOverride] - optional state to snapshot (defaults to captureSnapshotState callback)
+   * @returns {object} { lastSnapshotIndex, lastSnapshotTerm, truncatedEntries, snapshotState }
+   */
+  createSnapshot(stateOverride) {
+    if (this._commitIndex === 0) {
+      throw new HsmAdapterError('INVALID_INPUT', 'cannot snapshot with commitIndex=0');
+    }
+    if (this._commitIndex <= this._lastSnapshotIndex) {
+      throw new HsmAdapterError('INVALID_INPUT',
+        `commitIndex ${this._commitIndex} already covered by snapshot at ${this._lastSnapshotIndex}`);
+    }
+
+    // Capture the state machine
+    const snapshotState = stateOverride !== undefined
+      ? stateOverride
+      : (this._captureSnapshotState ? this._captureSnapshotState() : null);
+
+    // Find the term of the entry at commitIndex
+    const localIdx = this._commitIndex - this._lastSnapshotIndex - 1;
+    const lastEntry = this._log[localIdx];
+    const lastSnapshotTerm = lastEntry ? lastEntry.term : this._lastSnapshotTerm;
+
+    // Truncate the log: remove all entries up to and including commitIndex
+    const truncatedEntries = this._log.splice(0, localIdx + 1);
+
+    this._lastSnapshotIndex = this._commitIndex;
+    this._lastSnapshotTerm = lastSnapshotTerm;
+    this._snapshotState = snapshotState;
+
+    // Adjust lastAppliedIndex to reflect the snapshot
+    if (this._lastAppliedIndex < this._lastSnapshotIndex) {
+      this._lastAppliedIndex = this._lastSnapshotIndex;
+    }
+
+    this._emitAudit(CONSENSUS_EVENT.SNAPSHOT_CREATED, {
+      nodeId: this.nodeId,
+      lastSnapshotIndex: this._lastSnapshotIndex,
+      lastSnapshotTerm: this._lastSnapshotTerm,
+      truncatedEntries: truncatedEntries.length,
+      remainingLogLength: this._log.length,
+    });
+
+    return {
+      lastSnapshotIndex: this._lastSnapshotIndex,
+      lastSnapshotTerm: this._lastSnapshotTerm,
+      truncatedEntries: truncatedEntries.length,
+      snapshotState,
+    };
+  }
+
+  /**
+   * Check if the log has grown past the snapshot threshold and compact if so.
+   * Called automatically after each commit, or can be called manually.
+   * @returns {object|null} snapshot result if compaction occurred, null otherwise
+   */
+  maybeCompact() {
+    if (this._log.length < this._snapshotThreshold) return null;
+    return this.createSnapshot();
+  }
+
+  /**
+   * Install a snapshot received from a leader. This replaces the follower's
+   * entire log and state with the snapshot data.
+   *
+   * @param {object} request
+   * @param {number} request.term - leader's current term
+   * @param {string} request.leaderId - leader's node ID
+   * @param {number} request.lastIncludedIndex - log index of last entry in snapshot
+   * @param {number} request.lastIncludedTerm - term of last entry in snapshot
+   * @param {object} request.state - the state machine data to restore
+   * @param {string} [request.signature] - RPC signature for verification
+   * @returns {object} { success, term, matchIndex }
+   */
+  installSnapshot(request = {}) {
+    if (typeof request.term !== 'number' || !request.leaderId) {
+      throw new HsmAdapterError('INVALID_INPUT', 'installSnapshot requires term and leaderId');
+    }
+    if (!this.clusterNodes.has(request.leaderId)) {
+      throw new HsmAdapterError('UNKNOWN_LEADER', `leader ${request.leaderId} not in cluster`);
+    }
+    if (typeof request.lastIncludedIndex !== 'number' || typeof request.lastIncludedTerm !== 'number') {
+      throw new HsmAdapterError('INVALID_INPUT', 'installSnapshot requires lastIncludedIndex and lastIncludedTerm');
+    }
+
+    // Byzantine hardening: verify RPC signature
+    const payload = this._extractSignablePayload(request);
+    if (!this.verifyRpcFrame(payload, request.leaderId, request.signature)) {
+      this._emitAudit(CONSENSUS_EVENT.SNAPSHOT_REJECTED, {
+        nodeId: this.nodeId,
+        leaderId: request.leaderId,
+        reason: 'signature_invalid',
+      });
+      return { success: false, term: this._currentTerm, matchIndex: this._lastSnapshotIndex, reason: 'signature_invalid' };
+    }
+
+    // Stale term — reject
+    if (request.term < this._currentTerm) {
+      this._emitAudit(CONSENSUS_EVENT.SNAPSHOT_REJECTED, {
+        nodeId: this.nodeId,
+        leaderId: request.leaderId,
+        reason: 'stale_term',
+      });
+      return { success: false, term: this._currentTerm, matchIndex: this._lastSnapshotIndex };
+    }
+
+    // Term advancement
+    if (request.term > this._currentTerm) {
+      this._currentTerm = request.term;
+      this._votedFor = null;
+      this._emitAudit(CONSENSUS_EVENT.TERM_ADVANCED, {
+        nodeId: this.nodeId,
+        newTerm: this._currentTerm,
+        source: 'installSnapshot',
+      });
+    }
+
+    this._state = NODE_STATE.FOLLOWER;
+    this._leaderId = request.leaderId;
+    this._lastHeartbeatReceived = Date.now();
+    this._resetElectionTimer();
+
+    // If the snapshot is older than what we already have, ignore it
+    if (request.lastIncludedIndex <= this._lastSnapshotIndex) {
+      this._emitAudit(CONSENSUS_EVENT.SNAPSHOT_REJECTED, {
+        nodeId: this.nodeId,
+        leaderId: request.leaderId,
+        reason: 'snapshot_older',
+        requested: request.lastIncludedIndex,
+        current: this._lastSnapshotIndex,
+      });
+      return { success: false, term: this._currentTerm, matchIndex: this._lastSnapshotIndex, reason: 'snapshot_older' };
+    }
+
+    // Discard any log entries that conflict with the snapshot
+    // Keep entries that come after lastIncludedIndex if they have the same term
+    const localIdx = request.lastIncludedIndex - this._lastSnapshotIndex - 1;
+    let remainingLog = [];
+    if (localIdx >= 0 && localIdx < this._log.length) {
+      const candidate = this._log[localIdx];
+      if (candidate && candidate.term === request.lastIncludedTerm) {
+        // Keep entries after the snapshot point
+        remainingLog = this._log.slice(localIdx + 1);
+      }
+    }
+
+    // Apply the snapshot
+    this._lastSnapshotIndex = request.lastIncludedIndex;
+    this._lastSnapshotTerm = request.lastIncludedTerm;
+    this._log = remainingLog;
+    this._snapshotState = request.state || null;
+    this._commitIndex = Math.max(this._commitIndex, this._lastSnapshotIndex);
+    this._lastAppliedIndex = Math.max(this._lastAppliedIndex, this._lastSnapshotIndex);
+
+    // Restore state machine if callback provided
+    if (this._restoreSnapshotState && request.state) {
+      this._restoreSnapshotState(request.state);
+    }
+
+    this._emitAudit(CONSENSUS_EVENT.SNAPSHOT_INSTALLED, {
+      nodeId: this.nodeId,
+      leaderId: request.leaderId,
+      lastSnapshotIndex: this._lastSnapshotIndex,
+      lastSnapshotTerm: this._lastSnapshotTerm,
+      remainingLogLength: this._log.length,
+    });
+
+    return { success: true, term: this._currentTerm, matchIndex: this._lastSnapshotIndex };
+  }
+
+  /**
+   * Get the current snapshot data.
+   * @returns {object|null}
+   */
+  getSnapshot() {
+    if (this._lastSnapshotIndex === 0) return null;
+    return {
+      lastIncludedIndex: this._lastSnapshotIndex,
+      lastIncludedTerm: this._lastSnapshotTerm,
+      state: this._snapshotState,
+    };
+  }
+
   /**
    * Append entries received from a leader (Raft AppendEntries RPC).
    * @param {object} request
@@ -613,12 +834,14 @@ class ClusterConsensusEngine {
     this._resetElectionTimer();
 
     // Append new entries
-    let matchIndex = this._log.length;
+    // Phase 6: Account for snapshot offset — local array index = entry.index - _lastSnapshotIndex - 1
+    let matchIndex = this._log.length + this._lastSnapshotIndex;
     if (Array.isArray(request.entries) && request.entries.length > 0) {
       for (const entry of request.entries) {
-        // Overwrite or append
-        if (entry.index <= this._log.length) {
-          this._log[entry.index - 1] = { ...entry, committed: false };
+        const localIdx = entry.index - this._lastSnapshotIndex - 1;
+        if (localIdx < 0) continue; // entry already in snapshot — skip
+        if (localIdx < this._log.length) {
+          this._log[localIdx] = { ...entry, committed: false };
         } else {
           this._log.push({ ...entry, committed: false });
         }
@@ -628,7 +851,7 @@ class ClusterConsensusEngine {
 
     // Advance commit index
     if (typeof request.leaderCommit === 'number' && request.leaderCommit > this._commitIndex) {
-      this._commitIndex = Math.min(request.leaderCommit, this._log.length);
+      this._commitIndex = Math.min(request.leaderCommit, this._log.length + this._lastSnapshotIndex);
       this._applyCommittedEntries();
     }
 
@@ -691,9 +914,10 @@ class ClusterConsensusEngine {
     this._leaderId = this.nodeId;
 
     // Initialize nextIndex/matchIndex for all followers
+    // Phase 6: Use absolute log index (including snapshot offset)
     for (const targetId of this.clusterNodes) {
       if (targetId === this.nodeId) continue;
-      this._nextIndex.set(targetId, this._log.length + 1);
+      this._nextIndex.set(targetId, this._log.length + this._lastSnapshotIndex + 1);
       this._matchIndex.set(targetId, 0);
     }
 
@@ -734,7 +958,9 @@ class ClusterConsensusEngine {
   _applyCommittedEntries() {
     while (this._lastAppliedIndex < this._commitIndex) {
       this._lastAppliedIndex += 1;
-      const entry = this._log[this._lastAppliedIndex - 1];
+      // Phase 6: Account for snapshot offset when indexing into log array
+      const localIdx = this._lastAppliedIndex - this._lastSnapshotIndex - 1;
+      const entry = this._log[localIdx];
       if (entry) {
         entry.committed = true;
         // Phase 5: Apply peer key rotation commands when committed
@@ -966,6 +1192,15 @@ class ClusterConsensusEngine {
           break;
         case CONSENSUS_EVENT.PEER_KEY_ROTATION_BLOCKED:
           metrics.incrementCounter('hsm_consensus_peer_key_rotation_blocked_total');
+          break;
+        case CONSENSUS_EVENT.SNAPSHOT_CREATED:
+          metrics.incrementCounter('hsm_consensus_snapshot_created_total');
+          break;
+        case CONSENSUS_EVENT.SNAPSHOT_INSTALLED:
+          metrics.incrementCounter('hsm_consensus_snapshot_installed_total');
+          break;
+        case CONSENSUS_EVENT.SNAPSHOT_REJECTED:
+          metrics.incrementCounter('hsm_consensus_snapshot_rejected_total');
           break;
       }
     } catch { /* metrics module optional */ }

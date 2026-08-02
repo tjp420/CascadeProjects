@@ -21,7 +21,8 @@ class EphemeralShareRatchet {
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
-    this.seed = Buffer.isBuffer(options.seed) ? options.seed : Buffer.from(String(options.seed || 'ratchet-seed'));
+    const seedSource = options.rootSeed || options.seed || options.seedBuffer;
+    this.seed = Buffer.isBuffer(seedSource) ? seedSource : Buffer.from(String(seedSource || 'ratchet-seed'));
     this.epoch = typeof options.epoch === 'number' ? options.epoch : 0;
     this._audit = options.audit || null;
   }
@@ -63,6 +64,36 @@ class EphemeralShareRatchet {
    */
   getState() {
     return { epoch: this.epoch, seedLength: this.seed.length };
+  }
+
+  /**
+   * Evolves a share token using HKDF-SHA256 derived mask. Matches the earlier evolveShare API.
+   * @param {{nodeIndex:number,value:BigInt|number,sequence:number}} shareToken
+   * @param {string} destinationEpochId
+   */
+  evolveShare(shareToken, destinationEpochId) {
+    if (!shareToken || typeof shareToken.nodeIndex !== 'number') throw new HsmAdapterError('ERR_INVALID_SHARE', 'share must have nodeIndex');
+    if (typeof shareToken.sequence !== 'number') throw new HsmAdapterError('ERR_INVALID_SEQUENCE', 'sequence missing');
+    if (!destinationEpochId) throw new HsmAdapterError('ERR_INVALID_DESTINATION', 'destinationEpochId required');
+
+    const salt = Buffer.from(String(shareToken.nodeIndex));
+    const info = Buffer.from(String(destinationEpochId) + '::' + String(shareToken.sequence));
+    const maskRaw = require('crypto').hkdfSync('sha256', this.seed, salt, info, 32);
+    const maskBuf = Buffer.isBuffer(maskRaw) ? maskRaw : Buffer.from(maskRaw);
+    const maskBig = BigInt('0x' + maskBuf.toString('hex'));
+
+    const valueBig = typeof shareToken.value === 'bigint' ? shareToken.value : BigInt(shareToken.value || 0);
+    const newValue = (valueBig + maskBig);
+
+    // zeroize input best-effort
+    try {
+      if (typeof shareToken.value === 'bigint') shareToken.value = 0n;
+      else if (Buffer.isBuffer(shareToken.value)) shareToken.value.fill(0);
+      else if (typeof shareToken.value === 'number') shareToken.value = 0;
+      else shareToken.value = null;
+    } catch (e) {}
+
+    return { nodeIndex: shareToken.nodeIndex, sequence: shareToken.sequence + 1, value: newValue, ratchet: { derivedAt: Date.now(), epoch: destinationEpochId } };
   }
 }
 

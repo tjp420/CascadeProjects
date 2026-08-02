@@ -49,6 +49,10 @@ const counters = {
   hsm_consensus_peer_key_added_total: 0,
   hsm_consensus_peer_key_revoked_total: 0,
   hsm_consensus_peer_key_rotation_blocked_total: 0,
+  // Track 34 Phase 6: Snapshot/compaction counters
+  hsm_consensus_snapshot_created_total: 0,
+  hsm_consensus_snapshot_installed_total: 0,
+  hsm_consensus_snapshot_rejected_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -95,6 +99,9 @@ const META = {
   hsm_consensus_peer_key_added_total: { help: 'Total peer public keys added via quorum-gated rotation.', type: 'counter' },
   hsm_consensus_peer_key_revoked_total: { help: 'Total peer public keys revoked via quorum-gated rotation.', type: 'counter' },
   hsm_consensus_peer_key_rotation_blocked_total: { help: 'Total peer key rotation attempts blocked (not leader, key not found, etc.).', type: 'counter' },
+  hsm_consensus_snapshot_created_total: { help: 'Total log compaction snapshots created by this node.', type: 'counter' },
+  hsm_consensus_snapshot_installed_total: { help: 'Total snapshots installed from a leader on this node.', type: 'counter' },
+  hsm_consensus_snapshot_rejected_total: { help: 'Total snapshots rejected (stale, invalid signature, etc.).', type: 'counter' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },

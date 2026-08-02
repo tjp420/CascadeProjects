@@ -12,6 +12,18 @@
 
 const { HsmAdapterError } = require('./base-adapter.cjs');
 const { secureZeroize } = require('./secure-zeroize.cjs');
+const { EphemeralShareRatchet } = require('./ephemeral-share-ratchet.cjs');
+
+// optional Prometheus metrics (best-effort)
+let _reshardCounter = null;
+let _reshardLatency = null;
+try {
+  const client = require('prom-client');
+  _reshardCounter = new client.Counter({ name: 'hsm_reshard_ops_total', help: 'Total reshard operations' });
+  _reshardLatency = new client.Histogram({ name: 'hsm_reshard_latency_seconds', help: 'Reshard latency seconds', buckets: [0.001, 0.01, 0.1, 1, 5] });
+} catch (e) {
+  // prom-client not available; skip metrics
+}
 
 class GroupReshardEngine {
   /**
@@ -27,6 +39,9 @@ class GroupReshardEngine {
     this._attestationClient = options.attestationClient || null;
     this._audit = options.audit || null;
     this._prime = _bigPrime();
+    // instantiate ephemeral ratchet used to ratchet target shares on distribution
+    const seed = this.policy.ratchetSeed ? Buffer.from(String(this.policy.ratchetSeed)) : require('crypto').randomBytes(32);
+    this._ratchet = new EphemeralShareRatchet({ rootSeed: seed, policy: { prime: this._prime, maxSequence: this.policy.maxSequence } });
   }
 
   /**
@@ -64,6 +79,31 @@ class GroupReshardEngine {
     }
 
     const newShares = this._interpolateShares(oldThreshold, oldSize, newThreshold, newSize);
+    // ratchet newly generated shares immediately to ensure forward-privacy
+    const epochId = this.policy.ratchetEpochId || `reshard-${Date.now()}`;
+    const start = _reshardLatency ? process.hrtime() : null;
+    for (const s of newShares) {
+      try {
+        const token = { nodeIndex: s.index, value: BigInt(s.value), sequence: 0 };
+        const rat = this._ratchet.evolveShare(token, epochId);
+        s.value = rat.value;
+      } catch (e) {
+        // if ratcheting fails, emit audit and continue with unhashed share
+        if (this._audit) this._audit('RESHARD_RATCHET_FAILED', { err: String(e) });
+      }
+    }
+    if (_reshardCounter) _reshardCounter.inc(newShares.length);
+    if (_reshardLatency && start) {
+      const diff = process.hrtime(start);
+      const sec = diff[0] + diff[1] / 1e9;
+      _reshardLatency.observe(sec);
+    }
+    // purge old in-memory shares to enforce forward-privacy
+    try {
+      this._purgeOldShares();
+    } catch (e) {
+      if (this._audit) this._audit('RESHARD_PURGE_FAILED', { err: String(e) });
+    }
     const result = {
       newThreshold,
       newSize,
@@ -72,6 +112,22 @@ class GroupReshardEngine {
     };
     _zeroizeTransient(newShares);
     return result;
+  }
+
+  _purgeOldShares() {
+    for (const n of this.nodes) {
+      if (!n) continue;
+      if (Buffer.isBuffer(n.share)) {
+        secureZeroize(n.share);
+        n.share = Buffer.alloc(0);
+      } else if (typeof n.share === 'bigint') {
+        n.share = 0n;
+      } else if (typeof n.share === 'number') {
+        n.share = 0;
+      } else {
+        n.share = null;
+      }
+    }
   }
 
   /**
@@ -94,6 +150,55 @@ class GroupReshardEngine {
    */
   contract(threshold, oldSize, newSize) {
     return this.reshard(threshold, oldSize, threshold, newSize, []);
+  }
+
+  /**
+   * Compute a reshard distribution mapping (coefficients) for a planned transition.
+   * Returns an object { epoch, distribution }
+   */
+  async computeReshardDistribution(currentCommittee, targetConfig) {
+    if (!currentCommittee || !targetConfig) throw new Error('ERR_INVALID_ARGS');
+
+    const currentSize = (currentCommittee.nodeIds || Object.keys(currentCommittee.shares || {})).length || 0;
+    const targetSize = (targetConfig.nodeIds || []).length;
+
+    if (targetSize > (this.policy.maxCommitteeSize || Infinity)) {
+      throw new Error('ERR_COMMITTEE_SIZE_EXCEEDED');
+    }
+
+    if (currentSize > 0 && (targetSize / currentSize) > (this.policy.maxCommitteeExpansionFactor || Infinity)) {
+      throw new Error('ERR_EXPANSION_FACTOR_EXCEEDED');
+    }
+
+    const lastRotated = currentCommittee.lastRotationMs || 0;
+    const now = Date.now();
+    if (now - lastRotated < (this.policy.minEpochIntervalMs || 0)) {
+      throw new Error('ERR_MIN_EPOCH_INTERVAL');
+    }
+
+    // Attestation checks for new nodes
+    if (this.policy.requireNewNodeAttestation && this._attestationClient) {
+      for (const nodeId of targetConfig.nodeIds || []) {
+        const isExisting = (currentCommittee.nodeIds || []).includes(nodeId) || ((currentCommittee.shares || {})[nodeId]);
+        if (!isExisting) {
+          const att = (targetConfig.attestations || {})[nodeId];
+          const valid = await this._attestationClient.verify(att).catch(() => false);
+          if (!valid) throw new Error(`ERR_INVALID_NODE_ATTESTATION:${nodeId}`);
+        }
+      }
+    }
+
+    // Build equal-weight coefficients over existing committee for each target
+    const srcIds = currentCommittee.nodeIds || Object.keys(currentCommittee.shares || {});
+    const srcCount = srcIds.length || 1;
+    const distribution = {};
+    for (const tId of (targetConfig.nodeIds || [])) {
+      const coeffs = {};
+      for (const sId of srcIds) coeffs[sId] = 1 / srcCount;
+      distribution[tId] = { coefficients: coeffs };
+    }
+
+    return { epoch: (currentCommittee.epoch || 0) + 1, distribution };
   }
 
   _interpolateShares(oldThreshold, oldSize, newThreshold, newSize) {
