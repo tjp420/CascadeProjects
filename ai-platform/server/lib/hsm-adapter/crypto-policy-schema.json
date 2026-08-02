@@ -73,6 +73,14 @@
       "minMfaSignatures": 2,
       "requirePqcHybridRatchet": true,
       "allowedRatchetSchemes": ["ml-kem-768", "ml-kem-1024"]
+    },
+    "governance": {
+      "minAdminQuorum": 2,
+      "proposalExpiryMs": 86400000,
+      "allowedDerivationCurves": ["P-256", "P-384", "P-521"],
+      "allowedKemPrimitives": ["ml-kem-768", "ml-kem-1024"],
+      "requirePqcBlindingFactor": true,
+      "maxChildDerivationDepth": 10
     }
   },
   "tenants": {}
