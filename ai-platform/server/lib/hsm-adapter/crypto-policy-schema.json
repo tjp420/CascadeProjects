@@ -98,6 +98,15 @@
       "minAttestationTtlSeconds": 300,
       "maxAttestationAgeSeconds": 60,
       "allowedEnclaveCiphers": ["aes-256-gcm"]
+    },
+    "resharding": {
+      "allowedThresholdWindows": [[2, 3], [3, 5], [5, 7]],
+      "maxCommitteeExpansionFactor": 2.0,
+      "maxCommitteeSize": 11,
+      "requireNewNodeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "requireEphemeralRatchet": true,
+      "minEpochIntervalMs": 1000
     }
   },
   "tenants": {}

@@ -41,6 +41,10 @@ const counters = {
   hsm_consensus_rpc_verified_total: 0,
   hsm_consensus_signature_invalid_total: 0,
   hsm_consensus_peer_key_unknown_total: 0,
+  // Track 34 Phase 4: Replay protection counters
+  hsm_consensus_replay_detected_total: 0,
+  hsm_consensus_nonce_stale_total: 0,
+  hsm_consensus_timestamp_expired_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -81,6 +85,9 @@ const META = {
   hsm_consensus_rpc_verified_total: { help: 'Total inbound RPC frames successfully verified.', type: 'counter' },
   hsm_consensus_signature_invalid_total: { help: 'Total inbound RPC frames with invalid signatures.', type: 'counter' },
   hsm_consensus_peer_key_unknown_total: { help: 'Total inbound RPC frames from peers with no registered public key.', type: 'counter' },
+  hsm_consensus_replay_detected_total: { help: 'Total RPC frames rejected as replayed (stale nonce or expired timestamp).', type: 'counter' },
+  hsm_consensus_nonce_stale_total: { help: 'Total RPC frames rejected with stale nonce (non-monotonic).', type: 'counter' },
+  hsm_consensus_timestamp_expired_total: { help: 'Total RPC frames rejected due to expired timestamp.', type: 'counter' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },

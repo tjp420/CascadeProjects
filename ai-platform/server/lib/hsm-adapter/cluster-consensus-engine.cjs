@@ -37,6 +37,9 @@ const CONSENSUS_EVENT = {
   PEER_KEY_UNKNOWN: 'CONSENSUS_PEER_KEY_UNKNOWN',
   RPC_SIGNED: 'CONSENSUS_RPC_SIGNED',
   RPC_VERIFIED: 'CONSENSUS_RPC_VERIFIED',
+  REPLAY_DETECTED: 'CONSENSUS_REPLAY_DETECTED',
+  NONCE_STALE: 'CONSENSUS_NONCE_STALE',
+  TIMESTAMP_EXPIRED: 'CONSENSUS_TIMESTAMP_EXPIRED',
 };
 
 class ClusterConsensusEngine {
@@ -55,6 +58,8 @@ class ClusterConsensusEngine {
    * @param {object} [options.signingKeyPair] - Ed25519 key pair for RPC signing { privateKey: KeyObject, publicKey: KeyObject }
    * @param {Map<string, KeyObject>} [options.peerPublicKeys] - nodeId -> publicKey map for verifying inbound RPCs
    * @param {boolean} [options.requireRpcSigning=false] - if true, reject unsigned/tampered inbound RPCs
+   * @param {number} [options.replayWindowMs=5000] - max age of RPC frame timestamp before rejection
+   * @param {boolean} [options.enableReplayProtection=true] - enable nonce + timestamp anti-replay checks
    */
   constructor(options = {}) {
     if (!options.nodeId) {
@@ -83,6 +88,12 @@ class ClusterConsensusEngine {
     this._signingKeyPair = options.signingKeyPair || null;
     this._peerPublicKeys = options.peerPublicKeys || new Map();
     this._requireRpcSigning = options.requireRpcSigning || false;
+
+    // Phase 4: Replay protection (nonce + timestamp)
+    this._replayWindowMs = options.replayWindowMs || 5000;
+    this._enableReplayProtection = options.enableReplayProtection !== false; // default true
+    this._lastSeenNonce = new Map(); // senderId -> last seen nonce
+    this._localNonce = 0; // monotonic counter for outbound frames
 
     // Raft state
     this._state = NODE_STATE.FOLLOWER;
@@ -619,18 +630,24 @@ class ClusterConsensusEngine {
 
   /**
    * Sign an RPC frame payload with this node's Ed25519 private key.
+   * Automatically injects a monotonic nonce and timestamp for replay protection.
    * @param {object} payload - the RPC payload to sign
-   * @returns {string} base64 signature, or null if no signing key configured
+   * @returns {{ signature: string, nonce: number, timestamp: number }|null}
    */
   signRpcFrame(payload) {
     if (!this._signingKeyPair?.privateKey) return null;
-    const data = Buffer.from(JSON.stringify(payload), 'utf8');
+    const nonce = ++this._localNonce;
+    const timestamp = Date.now();
+    const enrichedPayload = { ...payload, nonce, timestamp };
+    const data = Buffer.from(JSON.stringify(enrichedPayload), 'utf8');
     const sig = crypto.sign(null, data, this._signingKeyPair.privateKey);
     this._emitAudit(CONSENSUS_EVENT.RPC_SIGNED, {
       nodeId: this.nodeId,
       payloadSize: data.length,
+      nonce,
+      timestamp,
     });
-    return sig.toString('base64');
+    return { signature: sig.toString('base64'), nonce, timestamp };
   }
 
   /**
@@ -638,7 +655,7 @@ class ClusterConsensusEngine {
    * @param {object} payload - the RPC payload (without signature)
    * @param {string} senderId - the claimed sender node ID
    * @param {string} signature - base64 signature to verify
-   * @returns {boolean} true if signature is valid
+   * @returns {boolean} true if signature is valid and frame is not a replay
    */
   verifyRpcFrame(payload, senderId, signature) {
     if (!signature) {
@@ -663,6 +680,47 @@ class ClusterConsensusEngine {
       return false;
     }
 
+    // Phase 4: Replay protection — timestamp freshness check
+    if (this._enableReplayProtection && typeof payload.timestamp === 'number') {
+      const now = Date.now();
+      const age = now - payload.timestamp;
+      if (age > this._replayWindowMs) {
+        this._emitAudit(CONSENSUS_EVENT.TIMESTAMP_EXPIRED, {
+          nodeId: this.nodeId,
+          senderId,
+          age,
+          window: this._replayWindowMs,
+          timestamp: payload.timestamp,
+        });
+        return false;
+      }
+      // Reject future timestamps beyond tolerance (clock skew)
+      if (payload.timestamp > now + this._replayWindowMs) {
+        this._emitAudit(CONSENSUS_EVENT.TIMESTAMP_EXPIRED, {
+          nodeId: this.nodeId,
+          senderId,
+          age: -age,
+          reason: 'future_timestamp',
+          window: this._replayWindowMs,
+        });
+        return false;
+      }
+    }
+
+    // Phase 4: Replay protection — nonce monotonicity check
+    if (this._enableReplayProtection && typeof payload.nonce === 'number') {
+      const lastNonce = this._lastSeenNonce.get(senderId) || 0;
+      if (payload.nonce <= lastNonce) {
+        this._emitAudit(CONSENSUS_EVENT.NONCE_STALE, {
+          nodeId: this.nodeId,
+          senderId,
+          nonce: payload.nonce,
+          lastSeen: lastNonce,
+        });
+        return false;
+      }
+    }
+
     const data = Buffer.from(JSON.stringify(payload), 'utf8');
     const sigBuf = Buffer.from(signature, 'base64');
     try {
@@ -673,8 +731,19 @@ class ClusterConsensusEngine {
           senderId,
           reason: 'signature_mismatch',
         });
+        return false;
       }
-      return valid;
+      // Signature valid — record nonce to prevent replay
+      if (this._enableReplayProtection && typeof payload.nonce === 'number') {
+        this._lastSeenNonce.set(senderId, payload.nonce);
+      }
+      this._emitAudit(CONSENSUS_EVENT.RPC_VERIFIED, {
+        nodeId: this.nodeId,
+        senderId,
+        nonce: payload.nonce,
+        timestamp: payload.timestamp,
+      });
+      return true;
     } catch (err) {
       this._emitAudit(CONSENSUS_EVENT.SIGNATURE_INVALID, {
         nodeId: this.nodeId,
@@ -732,6 +801,14 @@ class ClusterConsensusEngine {
           break;
         case CONSENSUS_EVENT.PEER_KEY_UNKNOWN:
           metrics.incrementCounter('hsm_consensus_peer_key_unknown_total');
+          break;
+        case CONSENSUS_EVENT.NONCE_STALE:
+          metrics.incrementCounter('hsm_consensus_nonce_stale_total');
+          metrics.incrementCounter('hsm_consensus_replay_detected_total');
+          break;
+        case CONSENSUS_EVENT.TIMESTAMP_EXPIRED:
+          metrics.incrementCounter('hsm_consensus_timestamp_expired_total');
+          metrics.incrementCounter('hsm_consensus_replay_detected_total');
           break;
       }
     } catch { /* metrics module optional */ }
