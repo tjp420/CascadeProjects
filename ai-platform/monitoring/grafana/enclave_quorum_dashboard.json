@@ -1,0 +1,113 @@
+{
+  "id": null,
+  "uid": "enclave-quorum-001",
+  "title": "Enclave Quorum / WAL Observability",
+  "tags": ["enclave", "hsm", "wal"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "label": "Datasource",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "Prometheus" },
+        "hide": 0
+      },
+      {
+        "name": "cluster",
+        "type": "query",
+        "label": "Cluster",
+        "datasource": "${datasource}",
+        "query": "label_values(enclave_quorum_evaluation_seconds_count, cluster)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "label": "Namespace",
+        "datasource": "${datasource}",
+        "query": "label_values(enclave_quorum_evaluation_seconds_count, namespace)",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "pod",
+        "type": "query",
+        "label": "Pod",
+        "datasource": "${datasource}",
+        "query": "label_values(enclave_quorum_evaluation_seconds_count, pod)",
+        "includeAll": false,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Quorum Verification Latency (quantiles)",
+      "id": 1,
+      "datasource": "${datasource}",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(enclave_quorum_evaluation_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(enclave_quorum_evaluation_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(enclave_quorum_evaluation_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Attestation Replay Rejections (5m increase)",
+      "id": 2,
+      "datasource": "${datasource}",
+      "targets": [
+        {
+          "expr": "increase(enclave_attestation_replay_rejections_total[5m])",
+          "legendFormat": "rejections_5m",
+          "refId": "A"
+        }
+      ],
+      "options": {},
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "type": "graph",
+      "title": "WAL Compaction Runs (rate)",
+      "id": 3,
+      "datasource": "${datasource}",
+      "targets": [
+        {
+          "expr": "rate(hsm_wal_compaction_runs_total[5m])",
+          "legendFormat": "compaction_runs_per_sec",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(hsm_wal_compaction_bytes_saved_total[5m])",
+          "legendFormat": "bytes_saved_5m",
+          "refId": "B"
+        }
+      ],
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 12 }
+    }
+  ],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "refresh": "30s"
+}
