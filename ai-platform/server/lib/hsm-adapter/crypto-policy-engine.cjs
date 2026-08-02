@@ -646,6 +646,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderReplicationClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqTreasuryGating: {
+    minProposalQuorum: 3,
+    maxProposalWindowSeconds: 2592000,
+    maxAllocationDepth: 16,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireGovernanceAuthorityInitializerAttestation: true,
+    requireTreasuryOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderProposalClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1019,6 +1030,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqResearchGating: {
       ...DEFAULT_POLICY.pqResearchGating,
       ...(tenantPolicy.pqResearchGating || {}),
+    },
+    pqTreasuryGating: {
+      ...DEFAULT_POLICY.pqTreasuryGating,
+      ...(tenantPolicy.pqTreasuryGating || {}),
     },
   };
 }
@@ -2598,6 +2613,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqTreasuryGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqTreasuryGating, ...(tenantPolicy.pqTreasuryGating || {}) };
+    if (typeof config.proposalQuorum === 'number' && config.proposalQuorum < policy.minProposalQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `proposal quorum ${config.proposalQuorum} below minimum ${policy.minProposalQuorum}`);
+    }
+    if (typeof config.proposalWindowSeconds === 'number' && config.proposalWindowSeconds > policy.maxProposalWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `proposal window seconds ${config.proposalWindowSeconds} exceeds maximum ${policy.maxProposalWindowSeconds}`);
+    }
+    if (typeof config.allocationDepth === 'number' && config.allocationDepth > policy.maxAllocationDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `allocation depth ${config.allocationDepth} exceeds maximum ${policy.maxAllocationDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireGovernanceAuthorityInitializerAttestation && config.governanceAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'governance authority initializer attestation is required');
+    }
+    if (policy.requireTreasuryOversightCommitteeAttestation && config.treasuryOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'treasury oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderProposalClaims === 'boolean' && policy.banMalformedOrOutOfOrderProposalClaims && !config.banMalformedOrOutOfOrderProposalClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order proposal claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3182,6 +3228,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqResearchGating') {
       this._validatePqResearchGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqTreasuryGating') {
+      this._validatePqTreasuryGating(tenantPolicy, config);
       return true;
     }
 
