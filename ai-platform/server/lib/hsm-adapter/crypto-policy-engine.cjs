@@ -262,6 +262,17 @@ const DEFAULT_POLICY = {
     maxScopesPerToken: 8,
     requireCanonicalPayloadLayout: true,
   },
+  homomorphicKeySharding: {
+    minTargetPlatformQuorum: 3,
+    maxShardDepth: 8,
+    signatureTimeoutSeconds: 300,
+    requireLocalNodeAttestation: true,
+    requireDestinationAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    kemAlgorithm: 'ML-KEM-1024',
+    isolateLowQuorumDestinations: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -402,6 +413,10 @@ function _mergeWithDefault(tenantPolicy) {
     zkTokenAttestation: {
       ...DEFAULT_POLICY.zkTokenAttestation,
       ...(tenantPolicy.zkTokenAttestation || {}),
+    },
+    homomorphicKeySharding: {
+      ...DEFAULT_POLICY.homomorphicKeySharding,
+      ...(tenantPolicy.homomorphicKeySharding || {}),
     },
   };
 }
@@ -951,6 +966,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateHomomorphicKeySharding(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.homomorphicKeySharding, ...(tenantPolicy.homomorphicKeySharding || {}) };
+    if (typeof config.targetPlatformQuorum === 'number' && config.targetPlatformQuorum < policy.minTargetPlatformQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `target platform quorum ${config.targetPlatformQuorum} below minimum ${policy.minTargetPlatformQuorum}`);
+    }
+    if (typeof config.shardDepth === 'number' && config.shardDepth > policy.maxShardDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `shard depth ${config.shardDepth} exceeds maximum ${policy.maxShardDepth}`);
+    }
+    if (typeof config.signatureAgeSeconds === 'number' && config.signatureAgeSeconds > policy.signatureTimeoutSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `signature age ${config.signatureAgeSeconds}s exceeds timeout ${policy.signatureTimeoutSeconds}s`);
+    }
+    if (policy.requireLocalNodeAttestation && config.localNodeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'local node attestation is required');
+    }
+    if (policy.requireDestinationAttestation && config.destinationAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'destination attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.kemAlgorithm === 'string' && config.kemAlgorithm !== policy.kemAlgorithm) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `KEM algorithm ${config.kemAlgorithm} is not allowed; permitted: ${policy.kemAlgorithm}`);
+    }
+    if (typeof config.isolateLowQuorumDestinations === 'boolean' && policy.isolateLowQuorumDestinations && !config.isolateLowQuorumDestinations) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'isolate low quorum destinations must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1365,6 +1411,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'zkTokenAttestation') {
       this._validateZkTokenAttestation(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'homomorphicKeySharding') {
+      this._validateHomomorphicKeySharding(tenantPolicy, config);
       return true;
     }
 
