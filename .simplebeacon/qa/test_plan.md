@@ -1,22 +1,21 @@
-# Test Plan — Track 34 Phase 4: Signature Replay Protection
+# Test Plan — Track 34 Phase 5: Peer Key Rotation
 
-**Branch:** `feature/track34-phase4-replay-protection`
+**Branch:** `feature/track34-phase5-key-rotation`
 **Date:** 2026-08-02
-**Status:** Retroactive (hotfix per QA framework — code already implemented, documenting then re-validating)
+**Status:** Retroactive (hotfix per QA framework)
 
 ## Objective
 
-Inject monotonic nonces and timestamps into Ed25519-signed RPC frames to prevent replay attacks. Inbound frames with expired timestamps or non-monotonic nonces are rejected.
+Enable dynamic peer public key rotation at runtime via quorum-gated consensus transactions, without requiring process restarts or cluster-wide outage.
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| `server/lib/hsm-adapter/cluster-consensus-engine.cjs` | Added nonce/timestamp injection in `signRpcFrame()`, replay validation in `verifyRpcFrame()`, `_lastSeenNonce` Map, `_localNonce` counter, `replayWindowMs`/`enableReplayProtection` options |
-| `server/lib/hsm-adapter/crypto-policy-engine.cjs` | Added `enableReplayProtection`, `replayWindowMs` to consensus policy + `_validateConsensus()` |
-| `server/lib/hsm-adapter/hsm-metrics.cjs` | 3 new counters: `replay_detected_total`, `nonce_stale_total`, `timestamp_expired_total` |
-| `server/lib/hsm-adapter/__tests__/cluster-consensus-replay.test.cjs` | 24 new tests |
-| `server/lib/hsm-adapter/__tests__/cluster-consensus-byzantine.test.cjs` | Updated `signRpcFrame` test for new return type |
+| `server/lib/hsm-adapter/cluster-consensus-engine.cjs` | Added `addPeerKey()`, `revokePeerKey()`, `getRegisteredPeers()`, `hasPeerKey()`, `_applyConsensusCommand()`. Extended `_applyCommittedEntries()` to execute rotation commands. |
+| `server/lib/hsm-adapter/crypto-policy-engine.cjs` | Added `enablePeerKeyRotation`, `maxPeerKeyRotationRateMs` to consensus policy + `_validateConsensus()` |
+| `server/lib/hsm-adapter/hsm-metrics.cjs` | 3 new counters: `peer_key_added_total`, `peer_key_revoked_total`, `peer_key_rotation_blocked_total` |
+| `server/lib/hsm-adapter/__tests__/cluster-consensus-rotation.test.cjs` | 22 new tests |
 
 ## Check Items
 
@@ -25,41 +24,41 @@ Inject monotonic nonces and timestamps into Ed25519-signed RPC frames to prevent
 - [x] **L1.1** `node -c cluster-consensus-engine.cjs` — syntax pass
 - [x] **L1.2** `node -c crypto-policy-engine.cjs` — syntax pass
 - [x] **L1.3** `node -c hsm-metrics.cjs` — syntax pass
-- [x] **L1.4** `node -c cluster-consensus-replay.test.cjs` — syntax pass
-- [x] **L1.5** `npm test` (ai-platform) — 237 suites pass, 2571 tests pass
+- [x] **L1.4** `node -c cluster-consensus-rotation.test.cjs` — syntax pass
+- [x] **L1.5** `npm test` (ai-platform) — 239 suites pass, 2601 tests pass
 - [x] **L1.6** No new dependencies added
-- [x] **L1.7** No secrets/keys committed (test key pairs generated at runtime)
+- [x] **L1.7** No secrets/keys committed
 
 ### Level 2 — Behavioral
 
-- [x] **L2.1** `signRpcFrame()` injects monotonic nonce (incrementing) and timestamp
-- [x] **L2.2** `verifyRpcFrame()` rejects expired timestamp (age > replayWindowMs)
-- [x] **L2.3** `verifyRpcFrame()` rejects future timestamp (beyond tolerance)
-- [x] **L2.4** `verifyRpcFrame()` accepts fresh timestamp within window
-- [x] **L2.5** `verifyRpcFrame()` rejects replayed nonce (same nonce)
-- [x] **L2.6** `verifyRpcFrame()` rejects lower nonce (going backwards)
-- [x] **L2.7** `verifyRpcFrame()` accepts increasing nonce sequence
-- [x] **L2.8** Nonce tracking is per-sender (different senders independent)
-- [x] **L2.9** Replay protection can be disabled via `enableReplayProtection: false`
-- [x] **L2.10** Frames without nonce/timestamp pass (backward compat with Stage 3)
-- [x] **L2.11** `requestVote` rejects replayed frame
-- [x] **L2.12** `appendEntries` rejects replayed frame
-- [x] **L2.13** `TIMESTAMP_EXPIRED` audit event emitted
-- [x] **L2.14** `NONCE_STALE` audit event emitted
+- [x] **L2.1** Leader can add a new peer key via quorum-gated consensus
+- [x] **L2.2** Follower cannot add a peer key (CONSENSUS_NOT_LEADER)
+- [x] **L2.3** addPeerKey rejects invalid inputs (empty nodeId, null publicKey)
+- [x] **L2.4** addPeerKey updates existing key (rotation scenario — old key fails, new key works)
+- [x] **L2.5** Leader can revoke a peer key via quorum-gated consensus
+- [x] **L2.6** Follower cannot revoke a peer key
+- [x] **L2.7** revokePeerKey rejects unknown peer (PEER_KEY_NOT_FOUND)
+- [x] **L2.8** revokePeerKey rejects invalid inputs
+- [x] **L2.9** Revoked peer RPCs are rejected after revocation
+- [x] **L2.10** getRegisteredPeers returns list of registered peer IDs
+- [x] **L2.11** hasPeerKey returns false for unregistered peer
+- [x] **L2.12** _applyConsensusCommand applies addPeerKey from committed log entry
+- [x] **L2.13** _applyConsensusCommand applies revokePeerKey from committed log entry
+- [x] **L2.14** _applyConsensusCommand ignores non-rotation commands
 
 ### Level 3 — Self-review / drift
 
-- [x] **L3.1** No scope creep — only replay protection added
-- [x] **L3.2** No ghost files — all referenced files exist
-- [x] **L3.3** Existing 65 Track 34 tests still pass (no regression)
-- [x] **L3.4** Policy validation covers `enableReplayProtection`, `replayWindowMs` (upper/lower bounds)
-- [x] **L3.5** Prometheus metrics increment correctly for replay/stale/expired events
-- [x] **L3.6** Tenant override for `replayWindowMs` works correctly
+- [x] **L3.1** No scope creep — only peer key rotation added
+- [x] **L3.2** No ghost files
+- [x] **L3.3** Existing 89 Track 34 tests still pass (no regression)
+- [x] **L3.4** Policy validation covers `enablePeerKeyRotation`, `maxPeerKeyRotationRateMs`
+- [x] **L3.5** Prometheus metrics increment correctly for added/revoked/blocked events
+- [x] **L3.6** Audit events: PEER_KEY_ADDED, PEER_KEY_REVOKED, PEER_KEY_ROTATION_BLOCKED
 
 ## Pre-existing Failures (not caused by this change)
 
 | Suite | Cause |
 |-------|-------|
 | `hsm-vault-throttle.test.cjs` | Pre-existing |
-| `hub-smoke.test.js` | Pre-existing server health |
-| `dashboard-auth.test.cjs` | Pre-existing audit init TypeError |
+| `hub-smoke.test.js` | Pre-existing |
+| `dashboard-auth.test.cjs` | Pre-existing |

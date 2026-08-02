@@ -40,6 +40,9 @@ const CONSENSUS_EVENT = {
   REPLAY_DETECTED: 'CONSENSUS_REPLAY_DETECTED',
   NONCE_STALE: 'CONSENSUS_NONCE_STALE',
   TIMESTAMP_EXPIRED: 'CONSENSUS_TIMESTAMP_EXPIRED',
+  PEER_KEY_ADDED: 'CONSENSUS_PEER_KEY_ADDED',
+  PEER_KEY_REVOKED: 'CONSENSUS_PEER_KEY_REVOKED',
+  PEER_KEY_ROTATION_BLOCKED: 'CONSENSUS_PEER_KEY_ROTATION_BLOCKED',
 };
 
 class ClusterConsensusEngine {
@@ -449,6 +452,122 @@ class ClusterConsensusEngine {
     return { index, committed, replicas: successCount };
   }
 
+  // ── Phase 5: Peer key rotation (quorum-gated) ───────────────────
+
+  /**
+   * Add or update a peer's public key in the registry via quorum-gated consensus.
+   * Only the leader can initiate this. The key update is replicated and must
+   * achieve majority commit before being applied to the local registry.
+   * @param {string} peerNodeId - the node ID whose key is being added/updated
+   * @param {KeyObject} publicKey - the Ed25519 public key to register
+   * @returns {Promise<object>} { index, committed, replicas }
+   */
+  async addPeerKey(peerNodeId, publicKey) {
+    if (this._state !== NODE_STATE.LEADER) {
+      this._emitAudit(CONSENSUS_EVENT.PEER_KEY_ROTATION_BLOCKED, {
+        nodeId: this.nodeId,
+        peerNodeId,
+        reason: 'not_leader',
+        state: this._state,
+      });
+      throw new HsmAdapterError('CONSENSUS_NOT_LEADER',
+        `peer key rotation blocked: node ${this.nodeId} is not leader (state: ${this._state})`);
+    }
+    if (!peerNodeId || typeof peerNodeId !== 'string') {
+      throw new HsmAdapterError('INVALID_INPUT', 'peerNodeId must be a non-empty string');
+    }
+    if (!publicKey) {
+      throw new HsmAdapterError('INVALID_INPUT', 'publicKey is required');
+    }
+
+    const result = await this.appendAndReplicate({
+      operation: 'addPeerKey',
+      nodeId: peerNodeId,
+      publicKey,
+    });
+
+    if (result.committed) {
+      // Apply immediately on leader (followers apply via _applyCommittedEntries)
+      this._peerPublicKeys.set(peerNodeId, publicKey);
+      this._emitAudit(CONSENSUS_EVENT.PEER_KEY_ADDED, {
+        nodeId: this.nodeId,
+        peerNodeId,
+        logIndex: result.index,
+        replicas: result.replicas,
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Revoke a peer's public key from the registry via quorum-gated consensus.
+   * Only the leader can initiate this. After revocation, inbound RPC frames
+   * from the revoked node will fail signature verification.
+   * @param {string} peerNodeId - the node ID whose key is being revoked
+   * @returns {Promise<object>} { index, committed, replicas }
+   */
+  async revokePeerKey(peerNodeId) {
+    if (this._state !== NODE_STATE.LEADER) {
+      this._emitAudit(CONSENSUS_EVENT.PEER_KEY_ROTATION_BLOCKED, {
+        nodeId: this.nodeId,
+        peerNodeId,
+        reason: 'not_leader',
+        state: this._state,
+      });
+      throw new HsmAdapterError('CONSENSUS_NOT_LEADER',
+        `peer key revocation blocked: node ${this.nodeId} is not leader (state: ${this._state})`);
+    }
+    if (!peerNodeId || typeof peerNodeId !== 'string') {
+      throw new HsmAdapterError('INVALID_INPUT', 'peerNodeId must be a non-empty string');
+    }
+    if (!this._peerPublicKeys.has(peerNodeId)) {
+      this._emitAudit(CONSENSUS_EVENT.PEER_KEY_ROTATION_BLOCKED, {
+        nodeId: this.nodeId,
+        peerNodeId,
+        reason: 'key_not_found',
+      });
+      throw new HsmAdapterError('PEER_KEY_NOT_FOUND',
+        `peer key for ${peerNodeId} not found in registry`);
+    }
+
+    const result = await this.appendAndReplicate({
+      operation: 'revokePeerKey',
+      nodeId: peerNodeId,
+    });
+
+    if (result.committed) {
+      // Apply immediately on leader
+      this._peerPublicKeys.delete(peerNodeId);
+      this._lastSeenNonce.delete(peerNodeId);
+      this._emitAudit(CONSENSUS_EVENT.PEER_KEY_REVOKED, {
+        nodeId: this.nodeId,
+        peerNodeId,
+        logIndex: result.index,
+        replicas: result.replicas,
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Get the current list of registered peer node IDs.
+   * @returns {string[]}
+   */
+  getRegisteredPeers() {
+    return Array.from(this._peerPublicKeys.keys());
+  }
+
+  /**
+   * Check if a peer's public key is registered.
+   * @param {string} peerNodeId
+   * @returns {boolean}
+   */
+  hasPeerKey(peerNodeId) {
+    return this._peerPublicKeys.has(peerNodeId);
+  }
+
   /**
    * Append entries received from a leader (Raft AppendEntries RPC).
    * @param {object} request
@@ -618,7 +737,36 @@ class ClusterConsensusEngine {
       const entry = this._log[this._lastAppliedIndex - 1];
       if (entry) {
         entry.committed = true;
+        // Phase 5: Apply peer key rotation commands when committed
+        this._applyConsensusCommand(entry);
       }
+    }
+  }
+
+  /**
+   * Apply a committed consensus command to the local state machine.
+   * Supports peer key rotation operations (addPeerKey, revokePeerKey).
+   * @param {object} entry - committed log entry
+   * @private
+   */
+  _applyConsensusCommand(entry) {
+    if (!entry.command || typeof entry.command !== 'object') return;
+    const { operation } = entry.command;
+    if (operation === 'addPeerKey') {
+      this._peerPublicKeys.set(entry.command.nodeId, entry.command.publicKey);
+      this._emitAudit(CONSENSUS_EVENT.PEER_KEY_ADDED, {
+        nodeId: this.nodeId,
+        peerNodeId: entry.command.nodeId,
+        logIndex: entry.index,
+      });
+    } else if (operation === 'revokePeerKey') {
+      this._peerPublicKeys.delete(entry.command.nodeId);
+      this._lastSeenNonce.delete(entry.command.nodeId);
+      this._emitAudit(CONSENSUS_EVENT.PEER_KEY_REVOKED, {
+        nodeId: this.nodeId,
+        peerNodeId: entry.command.nodeId,
+        logIndex: entry.index,
+      });
     }
   }
 
@@ -809,6 +957,15 @@ class ClusterConsensusEngine {
         case CONSENSUS_EVENT.TIMESTAMP_EXPIRED:
           metrics.incrementCounter('hsm_consensus_timestamp_expired_total');
           metrics.incrementCounter('hsm_consensus_replay_detected_total');
+          break;
+        case CONSENSUS_EVENT.PEER_KEY_ADDED:
+          metrics.incrementCounter('hsm_consensus_peer_key_added_total');
+          break;
+        case CONSENSUS_EVENT.PEER_KEY_REVOKED:
+          metrics.incrementCounter('hsm_consensus_peer_key_revoked_total');
+          break;
+        case CONSENSUS_EVENT.PEER_KEY_ROTATION_BLOCKED:
+          metrics.incrementCounter('hsm_consensus_peer_key_rotation_blocked_total');
           break;
       }
     } catch { /* metrics module optional */ }
