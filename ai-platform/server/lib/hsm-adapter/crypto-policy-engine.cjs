@@ -184,6 +184,16 @@ const DEFAULT_POLICY = {
     requireDualLinkedProof: true,
     requireCanonicalReceiptLayout: true,
   },
+  homomorphicComputation: {
+    allowedOperations: ['add', 'scalarMul'],
+    maxRangeBitWidth: 64,
+    requireWorkerAttestation: true,
+    allowedWorkerAuthorities: ['mock-authority'],
+    maxContractVerificationWindowSeconds: 60,
+    requireZkRangeProof: true,
+    minRangeBits: 8,
+    maxRangeBits: 4096,
+  },
 };
 
 function _isObject(value) {
@@ -292,6 +302,10 @@ function _mergeWithDefault(tenantPolicy) {
     crossTenantAudit: {
       ...DEFAULT_POLICY.crossTenantAudit,
       ...(tenantPolicy.crossTenantAudit || {}),
+    },
+    homomorphicComputation: {
+      ...DEFAULT_POLICY.homomorphicComputation,
+      ...(tenantPolicy.homomorphicComputation || {}),
     },
   };
 }
@@ -626,6 +640,28 @@ class CryptoPolicyEngine {
     }
     if (policy.requireCanonicalReceiptLayout && config.canonicalReceiptLayout === false) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical receipt layout is required');
+    }
+  }
+
+  _validateHomomorphicComputation(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.homomorphicComputation, ...(tenantPolicy.homomorphicComputation || {}) };
+    if (typeof config.operation === 'string' && !policy.allowedOperations.includes(config.operation)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `homomorphic operation ${config.operation} is not allowed; permitted: ${policy.allowedOperations.join(', ')}`);
+    }
+    if (typeof config.rangeBitWidth === 'number' && (config.rangeBitWidth < policy.minRangeBits || config.rangeBitWidth > policy.maxRangeBits)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `range bit width ${config.rangeBitWidth} outside allowed [${policy.minRangeBits}, ${policy.maxRangeBits}]`);
+    }
+    if (policy.requireWorkerAttestation && config.workerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'worker attestation is required');
+    }
+    if (typeof config.workerAuthority === 'string' && !policy.allowedWorkerAuthorities.includes(config.workerAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `worker authority ${config.workerAuthority} is not allowed; permitted: ${policy.allowedWorkerAuthorities.join(', ')}`);
+    }
+    if (typeof config.contractVerificationWindowSeconds === 'number' && config.contractVerificationWindowSeconds > policy.maxContractVerificationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `contract verification window ${config.contractVerificationWindowSeconds}s exceeds maximum ${policy.maxContractVerificationWindowSeconds}s`);
+    }
+    if (policy.requireZkRangeProof && config.zkRangeProof === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'zk range proof is required');
     }
   }
 
@@ -1003,6 +1039,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'crossTenantAudit') {
       this._validateCrossTenantAudit(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'homomorphicComputation') {
+      this._validateHomomorphicComputation(tenantPolicy, config);
       return true;
     }
 

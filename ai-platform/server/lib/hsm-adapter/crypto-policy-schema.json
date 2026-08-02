@@ -137,6 +137,16 @@
       "allowedOperations": ["key-escrow", "blind-pir", "identity-lookup"],
       "requireDualLinkedProof": true,
       "requireCanonicalReceiptLayout": true
+    },
+    "homomorphicComputation": {
+      "allowedOperations": ["add", "scalarMul"],
+      "maxRangeBitWidth": 64,
+      "requireWorkerAttestation": true,
+      "allowedWorkerAuthorities": ["mock-authority"],
+      "maxContractVerificationWindowSeconds": 60,
+      "requireZkRangeProof": true,
+      "minRangeBits": 8,
+      "maxRangeBits": 4096
     }
   },
   "tenants": {}

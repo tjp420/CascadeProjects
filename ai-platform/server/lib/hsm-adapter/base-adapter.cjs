@@ -683,6 +683,26 @@ class BaseHsmAdapter {
     this._audit('AUDIT_RECEIPT_CHAINED', info);
   }
 
+  // ── Track 46 homomorphic computation telemetry hooks ───────────────
+
+  /**
+   * Emit a homomorphic contract executed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitHomomorphicContractExecuted(info = {}) {
+    this._ensureInitialized();
+    this._audit('HOMOMORPHIC_CONTRACT_EXECUTED', info);
+  }
+
+  /**
+   * Emit a zk range proof verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkRangeProofVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_RANGE_PROOF_VERIFIED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
