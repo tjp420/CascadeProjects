@@ -147,6 +147,15 @@
       "requireZkRangeProof": true,
       "minRangeBits": 8,
       "maxRangeBits": 4096
+    },
+    "hardwareRootRotation": {
+      "minAdminQuorum": 3,
+      "maxSignatureExpirationSeconds": 60,
+      "requireAdminAttestation": true,
+      "allowedAdminAuthorities": ["mock-authority"],
+      "requirePreviousSeedZeroization": true,
+      "maxRotationEpochIntervalSeconds": 86400,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

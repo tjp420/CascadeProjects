@@ -36,6 +36,7 @@ const SUITES = [
   'confidential-issuance',
   'cross-tenant-audit',
   'homomorphic-computation',
+  'hardware-root-rotation',
 ];
 
 function runSuite(pattern) {

@@ -194,6 +194,15 @@ const DEFAULT_POLICY = {
     minRangeBits: 8,
     maxRangeBits: 4096,
   },
+  hardwareRootRotation: {
+    minAdminQuorum: 3,
+    maxSignatureExpirationSeconds: 60,
+    requireAdminAttestation: true,
+    allowedAdminAuthorities: ['mock-authority'],
+    requirePreviousSeedZeroization: true,
+    maxRotationEpochIntervalSeconds: 86400,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -306,6 +315,10 @@ function _mergeWithDefault(tenantPolicy) {
     homomorphicComputation: {
       ...DEFAULT_POLICY.homomorphicComputation,
       ...(tenantPolicy.homomorphicComputation || {}),
+    },
+    hardwareRootRotation: {
+      ...DEFAULT_POLICY.hardwareRootRotation,
+      ...(tenantPolicy.hardwareRootRotation || {}),
     },
   };
 }
@@ -662,6 +675,31 @@ class CryptoPolicyEngine {
     }
     if (policy.requireZkRangeProof && config.zkRangeProof === false) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'zk range proof is required');
+    }
+  }
+
+  _validateHardwareRootRotation(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.hardwareRootRotation, ...(tenantPolicy.hardwareRootRotation || {}) };
+    if (typeof config.adminQuorum === 'number' && config.adminQuorum < policy.minAdminQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `admin quorum ${config.adminQuorum} below minimum ${policy.minAdminQuorum}`);
+    }
+    if (typeof config.signatureAgeSeconds === 'number' && config.signatureAgeSeconds > policy.maxSignatureExpirationSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `signature age ${config.signatureAgeSeconds}s exceeds maximum ${policy.maxSignatureExpirationSeconds}s`);
+    }
+    if (policy.requireAdminAttestation && config.adminAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'admin attestation is required');
+    }
+    if (typeof config.adminAuthority === 'string' && !policy.allowedAdminAuthorities.includes(config.adminAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `admin authority ${config.adminAuthority} is not allowed; permitted: ${policy.allowedAdminAuthorities.join(', ')}`);
+    }
+    if (policy.requirePreviousSeedZeroization && config.previousSeedZeroized === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'previous seed zeroization is required');
+    }
+    if (typeof config.rotationEpochIntervalSeconds === 'number' && config.rotationEpochIntervalSeconds < policy.maxRotationEpochIntervalSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `rotation epoch interval ${config.rotationEpochIntervalSeconds}s below minimum ${policy.maxRotationEpochIntervalSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
     }
   }
 
@@ -1044,6 +1082,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'homomorphicComputation') {
       this._validateHomomorphicComputation(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'hardwareRootRotation') {
+      this._validateHardwareRootRotation(tenantPolicy, config);
       return true;
     }
 
