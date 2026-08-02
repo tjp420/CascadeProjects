@@ -93,5 +93,28 @@ describe('Track 25 Compliance Gating', () => {
       expect(typeof attestation.latestIntegrity).toBe('string');
       expect(attestation.events.every((e) => typeof e.integrity === 'string')).toBe(true);
     });
+
+    test('enforces retention limit and shifts old events', () => {
+      const agent = new RobustnessTelemetryAgent({ retention: 3 });
+      agent.record('fips', 'POST_PASSED', { seq: 1 });
+      agent.record('fips', 'POST_PASSED', { seq: 2 });
+      agent.record('fips', 'POST_PASSED', { seq: 3 });
+      agent.record('fips', 'POST_PASSED', { seq: 4 });
+      const attestation = agent.getAttestation();
+      expect(attestation.eventCount).toBe(3);
+      // The first event (seq=1) should have been shifted out
+      expect(attestation.events[0].metadata.seq).toBe(2);
+      expect(attestation.events[2].metadata.seq).toBe(4);
+    });
+
+    test('sanitizes Buffer values to length only (no raw bytes)', () => {
+      const agent = new RobustnessTelemetryAgent();
+      const secretKey = Buffer.alloc(32, 0xDE);
+      const event = agent.record('hsm', 'KEY_OPERATION', { keyMaterial: secretKey });
+      // The Buffer should be redacted to { length: 32 } — no raw bytes
+      expect(event.metadata.keyMaterial).toEqual({ length: 32 });
+      expect(JSON.stringify(event.metadata)).not.toContain(secretKey.toString('hex'));
+      expect(JSON.stringify(event.metadata)).not.toContain(secretKey.toString('base64'));
+    });
   });
 });

@@ -81,7 +81,34 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
     this._credential = null;
     this._keyClient = null;
     this._cryptoClients = new Map(); // kekId -> CryptographyClient
+    this._cryptoClientMaxSize = options.cryptoClientMaxSize || 256;
+    this._cryptoClientCacheHits = 0;
+    this._cryptoClientCacheMisses = 0;
+    this._cryptoClientEvictions = 0;
     this._auditInterceptor = null;
+  }
+
+  /**
+   * Return stats for the LRU CryptographyClient cache.
+   * @returns {{size, maxSize, hits, misses, evictions, hitRate}}
+   */
+  getCryptoClientCacheStats() {
+    const total = this._cryptoClientCacheHits + this._cryptoClientCacheMisses;
+    return {
+      size: this._cryptoClients.size,
+      maxSize: this._cryptoClientMaxSize,
+      hits: this._cryptoClientCacheHits,
+      misses: this._cryptoClientCacheMisses,
+      evictions: this._cryptoClientEvictions,
+      hitRate: total === 0 ? 0 : this._cryptoClientCacheHits / total,
+    };
+  }
+
+  /**
+   * Clear the LRU CryptographyClient cache.
+   */
+  clearCryptoClientCache() {
+    this._cryptoClients.clear();
   }
 
   /**
@@ -118,7 +145,18 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
   async _getCryptoClient(tenantId, kekId) {
     const cacheKey = `${tenantId}:${kekId}`;
     if (this._cryptoClients.has(cacheKey)) {
-      return this._cryptoClients.get(cacheKey);
+      const client = this._cryptoClients.get(cacheKey);
+      // Move to most-recently-used (delete + re-set)
+      this._cryptoClients.delete(cacheKey);
+      this._cryptoClients.set(cacheKey, client);
+      this._cryptoClientCacheHits++;
+      return client;
+    }
+    // LRU eviction when cache is full
+    if (this._cryptoClients.size >= this._cryptoClientMaxSize) {
+      const oldestKey = this._cryptoClients.keys().next().value;
+      this._cryptoClients.delete(oldestKey);
+      this._cryptoClientEvictions++;
     }
     const keyName = this._buildKeyName(tenantId, kekId);
     const keyUrl = `${this.vaultUrl}/keys/${keyName}`;
@@ -126,6 +164,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
       retryOptions: this.retryOptions,
     });
     this._cryptoClients.set(cacheKey, client);
+    this._cryptoClientCacheMisses++;
     return client;
   }
 
@@ -242,10 +281,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
       return Buffer.from(result.result);
     } catch (err) {
       if (err instanceof HsmAdapterError) throw err;
-      if (err.statusCode === 404) {
-        throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekId} not found in vault`);
-      }
-      throw new HsmAdapterError('WRAP_FAILED', err.message || String(err));
+      throw this._mapAzureError(err, 'encrypt');
     }
   }
 
@@ -275,10 +311,7 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
       return Buffer.from(result.result);
     } catch (err) {
       if (err instanceof HsmAdapterError) throw err;
-      if (err.statusCode === 404) {
-        throw new HsmAdapterError('KEK_NOT_FOUND', `KEK ${kekId} not found in vault`);
-      }
-      throw new HsmAdapterError('UNWRAP_FAILED', err.message || String(err));
+      throw this._mapAzureError(err, 'decrypt');
     }
   }
 
@@ -379,6 +412,57 @@ class AzureKeyVaultHsmAdapter extends BaseHsmAdapter {
       }
       throw new HsmAdapterError('ZEROIZE_FAILED', err.message || String(err));
     }
+  }
+
+  /**
+   * Map an Azure SDK error to an HsmAdapterError with the appropriate code.
+   * @param {Error} error - Azure SDK error
+   * @param {string} operation - 'encrypt', 'decrypt', 'createKey', etc.
+   * @returns {HsmAdapterError}
+   * @protected
+   */
+  _mapAzureError(error, operation) {
+    const statusCode = error.statusCode || error.status;
+    const azureCode = error.details && error.details.code;
+    const message = azureCode ? `${error.message} (Azure: ${azureCode})` : error.message || String(error);
+
+    if (statusCode === 401) {
+      return new HsmAdapterError('AUTH_FAILURE', message);
+    }
+    if (statusCode === 403) {
+      return new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', message);
+    }
+    if (statusCode === 404) {
+      return new HsmAdapterError('KEK_NOT_FOUND', message);
+    }
+    if (statusCode === 409) {
+      if (operation === 'createKey') {
+        return new HsmAdapterError('KEK_EXISTS', message);
+      }
+      return new HsmAdapterError('CONFLICT', message);
+    }
+    if (statusCode === 429) {
+      return new HsmAdapterError('RATE_LIMITED', message);
+    }
+    if (statusCode === 503) {
+      return new HsmAdapterError('CONNECTION_FAILURE', message);
+    }
+    if (error.code === 'REQUEST_SEND_ERROR' || error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+      return new HsmAdapterError('CONNECTION_FAILURE', message);
+    }
+    if (error.code === 'PARSE_ERROR') {
+      return new HsmAdapterError('CONNECTION_FAILURE', message);
+    }
+    if (error.code === 'DECRYPT_FAILED') {
+      return new HsmAdapterError('UNWRAP_FAILED', message);
+    }
+    if (operation === 'encrypt') {
+      return new HsmAdapterError('WRAP_FAILED', message);
+    }
+    if (operation === 'decrypt') {
+      return new HsmAdapterError('UNWRAP_FAILED', message);
+    }
+    return new HsmAdapterError('UNKNOWN_ERROR', message);
   }
 }
 

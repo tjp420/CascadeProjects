@@ -1,38 +1,42 @@
 'use strict';
 
 /**
- * Stage 2: Azure Key Vault credential provider.
+ * Azure credential provider for the Key Vault HSM adapter.
  *
- * Factory for DefaultAzureCredential chains targeting Managed HSM pools.
- * Supports managed identities, service principals, Azure CLI, and
- * interactive browser fallback for local development.
+ * Lazily loads @azure/identity and returns a DefaultAzureCredential.
+ * In test environments, the `createCredential` export can be patched
+ * to return a mock credential.
  *
  * @module hsm-adapter/azure-credential-provider
  */
 
+let _cachedCredential = null;
+
 /**
- * Create an Azure credential using DefaultAzureCredential.
- *
- * The credential chain tries (in order):
- *   1. ManagedIdentityCredential (production: VM / App Service / Container Apps)
- *   2. EnvironmentCredential (service principal via AZURE_TENANT_ID/CLIENT_ID/CLIENT_SECRET)
- *   3. AzureCliCredential (local development)
- *   4. InteractiveBrowserCredential (last-resort local dev)
- *
- * For Managed HSM, the credential must have the "Managed HSM Crypto User"
- * or "Managed HSM Crypto Officer" role assignment on the target pool.
- *
- * @param {object} [options]
- * @param {string} [options.tenantId] - override for multi-tenant SP auth
- * @param {string} [options.managedIdentityClientId] - user-assigned MI client ID
- * @returns {Promise<object>} Azure credential instance
+ * Create or return a cached Azure credential.
+ * @returns {Promise<object>} Azure TokenCredential
  */
-async function createCredential(options = {}) {
-  const { DefaultAzureCredential } = await import('@azure/identity');
-  return new DefaultAzureCredential({
-    tenantId: options.tenantId,
-    managedIdentityClientId: options.managedIdentityClientId,
-  });
+async function createCredential() {
+  if (_cachedCredential) {
+    return _cachedCredential;
+  }
+  let identity;
+  try {
+    identity = await import('@azure/identity');
+  } catch (e) {
+    throw new Error(
+      `@azure/identity is not installed. Install it with: npm install @azure/identity. Original error: ${e.message}`
+    );
+  }
+  _cachedCredential = new identity.DefaultAzureCredential();
+  return _cachedCredential;
 }
 
-module.exports = { createCredential };
+/**
+ * Reset the cached credential (for testing).
+ */
+function resetCredentialCache() {
+  _cachedCredential = null;
+}
+
+module.exports = { createCredential, resetCredentialCache };
