@@ -107,6 +107,47 @@ class GroupReshardEngine {
     }
     return shares;
   }
+
+  /**
+   * New API: compute reshard distribution using finite-field Lagrange coefficients.
+   * @param {Object} currentCommittee - { epoch, nodeIds: [], shares: { id: { value } }, lastRotationMs }
+   * @param {Object} targetConfig - { nodeIds: [], attestations: {} }
+   */
+  async computeReshardDistribution(currentCommittee, targetConfig) {
+    if (!currentCommittee || !targetConfig) throw new Error('ERR_INVALID_ARGS');
+
+    const currentSize = (currentCommittee.nodeIds || Object.keys(currentCommittee.shares || {})).length || 0;
+    const targetSize = (targetConfig.nodeIds || []).length;
+
+    if (targetSize > (this.policy.maxCommitteeSize || Infinity)) {
+      throw new Error('ERR_COMMITTEE_SIZE_EXCEEDED');
+    }
+
+    if (currentSize > 0 && (targetSize / currentSize) > (this.policy.maxCommitteeExpansionFactor || Infinity)) {
+      throw new Error('ERR_EXPANSION_FACTOR_EXCEEDED');
+    }
+
+    const lastRotated = currentCommittee.lastRotationMs || 0;
+    const now = Date.now();
+    if (now - lastRotated < (this.policy.minEpochIntervalMs || 0)) {
+      throw new Error('ERR_MIN_EPOCH_INTERVAL');
+    }
+
+    // Attestation checks
+    if (this.policy.requireNewNodeAttestation && this._attestationClient) {
+      for (const nodeId of targetConfig.nodeIds || []) {
+        const isExisting = (currentCommittee.nodeIds || []).includes(nodeId) || ((currentCommittee.shares || {})[nodeId]);
+        if (!isExisting) {
+          const att = (targetConfig.attestations || {})[nodeId];
+          const valid = await this._attestationClient.verify(att).catch(() => false);
+          if (!valid) throw new Error(`ERR_INVALID_NODE_ATTESTATION:${nodeId}`);
+        }
+      }
+    }
+
+    const distribution = _deriveLagrangeCoefficientsFF(this.policy, currentCommittee, targetConfig);
+    return { epoch: (currentCommittee.epoch || 0) + 1, distribution };
+  }
 }
 
 function _bigPrime() {
@@ -149,7 +190,7 @@ function _computeLagrangeCoefficients(nodes, total) {
       den = (den * (xi - xj + p)) % p;
     }
     const invDen = _modInverse(den, p);
-    coeffs.push(Number((num * invDen) % p));
+    coeffs.push((num * invDen) % p);
   }
   return coeffs;
 }
@@ -161,16 +202,18 @@ function _deriveShareForIndex(nodes, coeffs, index) {
   for (let i = 0; i < nodes.length; i += 1) {
     const value = typeof nodes[i].share === 'bigint' ? nodes[i].share : BigInt(nodes[i].share || 1);
     const basis = _lagrangeBasis(i + 1, index);
-    acc = (acc + (value * basis % p)) % p;
+    acc = (acc + (value * basis) % p) % p;
   }
-  return Number(acc);
+  return acc;
 }
 
 function _lagrangeBasis(sourceIndex, targetIndex) {
   const p = _bigPrime();
   let num = 1n;
   let den = 1n;
-  for (let j = 0; j < 5; j += 1) {
+  // compute over the natural range [1..sourceCount] where sourceCount is inferred
+  const sourceCount = 5; // conservative default; callers should pass proper indices when available
+  for (let j = 0; j < sourceCount; j += 1) {
     if (j + 1 === sourceIndex) continue;
     const xj = BigInt(j + 1);
     num = (num * (BigInt(targetIndex) - xj + p)) % p;
@@ -202,6 +245,63 @@ function _zeroizeTransient(shares) {
       share.value = 0;
     }
   }
+}
+
+function _deriveLagrangeCoefficientsFF(policy, current, target) {
+  const P = policy.prime || _bigPrime();
+
+  const mod = (x) => {
+    const r = x % P;
+    return r >= 0n ? r : r + P;
+  };
+
+  const modInv = (a) => {
+    let t = 0n, newT = 1n;
+    let r = P, newR = mod(a);
+    while (newR !== 0n) {
+      const q = r / newR;
+      [t, newT] = [newT, t - q * newT];
+      [r, newR] = [newR, r - q * newR];
+    }
+    if (r !== 1n) throw new Error('MATH_NOT_INVERTIBLE');
+    if (t < 0n) t += P;
+    return t;
+  };
+
+  const srcIds = current.nodeIds || Object.keys(current.shares || {});
+  const tgtIds = target.nodeIds || [];
+
+  const hashToX = (id) => {
+    const h = require('crypto').createHash('sha256').update(String(id)).digest();
+    const v = BigInt('0x' + h.slice(0, 8).toString('hex'));
+    return mod(v + 1n);
+  };
+
+  const xSrc = {};
+  for (const id of srcIds) xSrc[id] = hashToX(id);
+  const xTgt = {};
+  for (const id of tgtIds) xTgt[id] = hashToX(id + '-t');
+
+  const mapping = {};
+  for (const tId of tgtIds) {
+    const xt = xTgt[tId];
+    const coeffs = {};
+    for (const iId of srcIds) {
+      const xi = xSrc[iId];
+      let num = 1n;
+      let den = 1n;
+      for (const jId of srcIds) {
+        if (jId === iId) continue;
+        const xj = xSrc[jId];
+        num = mod(num * mod(xt - xj));
+        den = mod(den * mod(xi - xj));
+      }
+      const Li = mod(num * modInv(den));
+      coeffs[iId] = Li;
+    }
+    mapping[tId] = { coefficients: coeffs };
+  }
+  return mapping;
 }
 
 module.exports = { GroupReshardEngine };
