@@ -306,6 +306,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderVotes": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqcHomomorphicIdentityBridge": {
+      "minCrossChainQuorum": 3,
+      "maxHomomorphicMatrixDepth": 32,
+      "maxIdentityProofWindowSeconds": 86400,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireRouterAttestation": true,
+      "requireCommitteeVerifierAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderProofs": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

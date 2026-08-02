@@ -358,6 +358,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderVotes: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqcHomomorphicIdentityBridge: {
+    minCrossChainQuorum: 3,
+    maxHomomorphicMatrixDepth: 32,
+    maxIdentityProofWindowSeconds: 86400,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireRouterAttestation: true,
+    requireCommitteeVerifierAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderProofs: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -547,6 +558,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqcCrossChainGovernance: {
       ...DEFAULT_POLICY.pqcCrossChainGovernance,
       ...(tenantPolicy.pqcCrossChainGovernance || {}),
+    },
+    pqcHomomorphicIdentityBridge: {
+      ...DEFAULT_POLICY.pqcHomomorphicIdentityBridge,
+      ...(tenantPolicy.pqcHomomorphicIdentityBridge || {}),
     },
   };
 }
@@ -1351,6 +1366,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqcHomomorphicIdentityBridge(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqcHomomorphicIdentityBridge, ...(tenantPolicy.pqcHomomorphicIdentityBridge || {}) };
+    if (typeof config.crossChainQuorum === 'number' && config.crossChainQuorum < policy.minCrossChainQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `cross-chain quorum ${config.crossChainQuorum} below minimum ${policy.minCrossChainQuorum}`);
+    }
+    if (typeof config.homomorphicMatrixDepth === 'number' && config.homomorphicMatrixDepth > policy.maxHomomorphicMatrixDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `homomorphic matrix depth ${config.homomorphicMatrixDepth} exceeds maximum ${policy.maxHomomorphicMatrixDepth}`);
+    }
+    if (typeof config.identityProofWindowSeconds === 'number' && config.identityProofWindowSeconds > policy.maxIdentityProofWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `identity proof window ${config.identityProofWindowSeconds}s exceeds maximum ${policy.maxIdentityProofWindowSeconds}s`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireRouterAttestation && config.routerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'router attestation is required');
+    }
+    if (policy.requireCommitteeVerifierAttestation && config.committeeVerifierAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'committee verifier attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderProofs === 'boolean' && policy.banMalformedOrOutOfOrderProofs && !config.banMalformedOrOutOfOrderProofs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order proofs must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1810,6 +1856,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqcCrossChainGovernance') {
       this._validatePqcCrossChainGovernance(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqcHomomorphicIdentityBridge') {
+      this._validatePqcHomomorphicIdentityBridge(tenantPolicy, config);
       return true;
     }
 
