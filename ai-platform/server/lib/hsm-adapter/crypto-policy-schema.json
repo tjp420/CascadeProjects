@@ -27,7 +27,15 @@
     },
     "threshold": {
       "minThreshold": 2,
-      "maxTotal": 7
+      "maxTotal": 7,
+      "dkg": {
+        "minNodes": 3,
+        "maxNodes": 21,
+        "polynomialDegree": 2,
+        "requiredHonest": 2,
+        "commitmentScheme": "feldman",
+        "allowedCurves": ["P-256", "P-384", "P-521"]
+      }
     },
     "ratchet": {
       "maxSkipped": 1000,
@@ -48,7 +56,14 @@
     "zkp": {
       "tokenExpiryMs": 300000,
       "maxProofs": 100,
-      "allowedPrimes": []
+      "allowedPrimes": [],
+      "snark": {
+        "allowedProvingSystems": ["groth16", "plonk", "stark"],
+        "maxConstraintCount": 1000000,
+        "provingKeyHash": "",
+        "requireTrustedSetup": false,
+        "allowedFields": ["bn254", "bls12-381"]
+      }
     },
     "time": {
       "maxDriftMs": 60000,

@@ -140,6 +140,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.time,
       ...(tenantPolicy.time || {}),
     },
+    fips: {
+      ...DEFAULT_POLICY.fips,
+      ...(tenantPolicy.fips || {}),
+    },
     escrow: {
       ...DEFAULT_POLICY.escrow,
       ...(tenantPolicy.escrow || {}),
@@ -154,10 +158,6 @@ function _mergeWithDefault(tenantPolicy) {
         ...DEFAULT_POLICY.privacy.pir,
         ...((tenantPolicy.privacy && tenantPolicy.privacy.pir) || {}),
       },
-    },
-    fips: {
-      ...DEFAULT_POLICY.fips,
-      ...(tenantPolicy.fips || {}),
     },
   };
 }
