@@ -1,32 +1,28 @@
-# Test Plan — Firefox Stale File Drag-and-Drop Fix
+# Test Plan — Drag-and-Drop Telemetry Exposure
 
-**Branch:** `fix/firefox-stale-file-drag-drop`
+**Branch:** `feature/drop-telemetry`
 **Date:** 2026-08-02
 **Status:** Active
 
 ## Objective
 
-Fix `DOMException: An attempt was made to use an object that is not, or is no longer, usable` error during drag-and-drop file traversal in Firefox. The root cause is that `File` objects obtained from `FileSystemEntry.file()` become stale after the drop event yields, causing `worker.postMessage()` to fail during structured clone serialization.
+Expose drag-and-drop pre-read success counters and Firefox fallback bypass metrics to the frontend Analytical Dashboard. Since drag-and-drop scan telemetry is purely client-side (no server involvement), this is a client-side only telemetry dashboard — no backend API endpoint needed.
 
-## Root Cause
+## Architecture
 
-1. `captureDropEntries()` captures `FileSystemEntry` objects synchronously during the drop event
-2. `collectFilesFromDrop()` traverses entries asynchronously, calling `fileEntry.file()` to get `File` objects
-3. In Firefox, `File` objects become stale after the drop event's `DataTransfer` is invalidated
-4. `worker.postMessage()` tries to serialize stale `File` objects via structured clone → DOMException
-
-## Fix Approach
-
-Pre-read file contents immediately in the `fileEntry.file()` callback (while `File` is still valid), then send text to the worker instead of `File` objects when pre-read text is available.
+- **Counters**: Module-level in-memory counters in `dropFolderTraversal.ts` — track pre-read success, pre-read skip (files >2 MB), pre-read failure, drop traversal errors, total files dropped, drop method
+- **Service**: `dropTelemetryService.js` — reads the in-memory counters directly (no fetch needed)
+- **Component**: `DropTelemetryDashboard.js` — renders metric chips with auto-refresh
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| `coming-soon/public/app/src/services/dropFolderTraversal.ts` | Add `preReadContent` option to `collectFilesFromDrop` |
-| `coming-soon/public/app/js-es2018/services/localScanService.js` | Detect Firefox, use pre-read text for drag-and-drop files |
-| `coming-soon/public/app/js-es2018/workers/scan-worker.js` | Handle pre-read text in `resolveFile` and `analyzeWithTextPatterns` |
-| `coming-soon/public/app/assets/scan-worker.js` | Sync with js-es2018 worker fix |
+| `coming-soon/public/app/src/services/dropFolderTraversal.ts` | Add `DropTelemetry` counters object + `getDropTelemetry()` export |
+| `coming-soon/public/dashboard/src/services/dropFolderTraversal.ts` | Same fix (dashboard version) |
+| `coming-soon/public/app/js-es2018/services/dropTelemetryService.js` | **New** — Dashboard service |
+| `coming-soon/public/app/js-es2018/components/DropTelemetryDashboard.js` | **New** — Dashboard component |
+| `coming-soon/public/app/src/services/dropFolderTraversal.test.ts` | **New** — Test suite for counters |
 
 ## Check Items
 
@@ -37,17 +33,17 @@ Pre-read file contents immediately in the `fileEntry.file()` callback (while `Fi
 - [ ] L1.3 No new dependencies added
 - [ ] L1.4 No secrets committed
 
-### Level 2 — Behavioral
+### Level 2 — Functional Operations
 
-- [ ] L2.01 Firefox drag-and-drop of a single file works (pre-read text sent to worker)
-- [ ] L2.02 Firefox drag-and-drop of a folder works (pre-read text for all files)
-- [ ] L2.03 Chrome/Edge drag-and-drop still works (File objects sent as before)
-- [ ] L2.04 File picker still works in all browsers (not affected by change)
-- [ ] L2.05 Worker correctly uses pre-read text when available, falls back to File.text() otherwise
+- [ ] L2.01 `getDropTelemetry()` returns counters object with all expected fields
+- [ ] L2.02 Counters increment correctly during drop traversal
+- [ ] L2.03 `resetDropTelemetry()` resets all counters to zero
+- [ ] L2.04 DropTelemetryService reads counters from dropFolderTraversal module
+- [ ] L2.05 DropTelemetryDashboard renders metric chips
 
 ### Level 3 — Self-review / Drift
 
-- [ ] L3.01 No scope creep — only fix files touched
+- [ ] L3.01 No scope creep — only telemetry files touched
 - [ ] L3.02 No ghost files or hallucinated API paths
-- [ ] L3.03 Pre-read is opt-in (only for Firefox drag-and-drop), doesn't affect Chrome/Edge
-- [ ] L3.04 Error handling for pre-read failures (file too large, binary, etc.)
+- [ ] L3.03 Counters are client-side only (no backend endpoint needed)
+- [ ] L3.04 All existing tests still pass (no regression)
