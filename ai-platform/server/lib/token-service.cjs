@@ -324,7 +324,11 @@ function ms(val) {
 }
 
 // Schedule periodic memory cleanup
-setInterval(cleanupMemoryStores, 600000); // every 10 minutes
+// Avoid creating test-time timers which keep the event loop alive.
+if (process.env.NODE_ENV !== 'test') {
+  const _cleanupTimer = setInterval(cleanupMemoryStores, 600000); // every 10 minutes
+  if (_cleanupTimer && typeof _cleanupTimer.unref === 'function') _cleanupTimer.unref();
+}
 
 module.exports = {
   hashToken,

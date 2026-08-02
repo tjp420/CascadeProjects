@@ -66,6 +66,7 @@ class BaseHsmAdapter {
     this._evictionEngine = options.volatileEvictionEngine || null;
     this._provenanceTracker = options.provenanceTracker || null;
     this._timeAnchor = options.timeAnchor || null;
+    this._escrowBroker = options.escrowBroker || null;
     this._initialized = false;
   }
 
@@ -168,15 +169,19 @@ class BaseHsmAdapter {
    * @param {Buffer} wrapped
    * @returns {Promise<Buffer>} plaintext
    */
-  async unwrap(tenantId, kekId, wrapped) {
+  async unwrap(tenantId, kekId, wrapped, token = null) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     if (!Buffer.isBuffer(wrapped)) {
       throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
     }
     this._checkTemporalGuard();
-    this._evictionEngine?.touch(tenantId, kekId);
-    return this._unwrap(tenantId, kekId, wrapped);
+
+    const escrow = this._escrowBroker ? this._escrowBroker.requireToken(kekId, tenantId, token) : null;
+    const effectiveTenantId = escrow ? escrow.sourceTenantId : tenantId;
+
+    this._evictionEngine?.touch(effectiveTenantId, kekId);
+    return this._unwrap(effectiveTenantId, kekId, wrapped);
   }
 
   async _unwrap(_tenantId, _kekId, _wrapped) {

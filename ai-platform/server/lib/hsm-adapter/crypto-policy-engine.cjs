@@ -68,6 +68,13 @@ const DEFAULT_POLICY = {
     graceTokenExpiryMs: 0,
     allowBlinding: false,
   },
+  escrow: {
+    requireDualConsent: true,
+    minAuthorizationQuorum: 2,
+    maxEscrowLifetimeMs: 86400000,
+    declassificationTokenExpiryMs: 300000,
+    allowedEscrowAlgorithms: ['aes-kw', 'rsa-oaep'],
+  },
 };
 
 function _isObject(value) {
@@ -117,6 +124,10 @@ function _mergeWithDefault(tenantPolicy) {
     time: {
       ...DEFAULT_POLICY.time,
       ...(tenantPolicy.time || {}),
+    },
+    escrow: {
+      ...DEFAULT_POLICY.escrow,
+      ...(tenantPolicy.escrow || {}),
     },
   };
 }
@@ -298,6 +309,28 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateEscrow(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.escrow, ...(tenantPolicy.escrow || {}) };
+    if (config.sourceTenantId === config.destTenantId) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'source and destination tenant must be different');
+    }
+    if (typeof config.consentCount === 'number' && config.consentCount < policy.minAuthorizationQuorum) {
+      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', `only ${config.consentCount} consent signatures, require ${policy.minAuthorizationQuorum}`);
+    }
+    if (policy.requireDualConsent && typeof config.consentCount === 'number' && config.consentCount < 2) {
+      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', 'dual consent is required');
+    }
+    if (typeof config.escrowLifetimeMs === 'number' && config.escrowLifetimeMs > policy.maxEscrowLifetimeMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `escrow lifetime ${config.escrowLifetimeMs}ms exceeds policy ${policy.maxEscrowLifetimeMs}ms`);
+    }
+    if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.declassificationTokenExpiryMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `token expiry ${config.tokenExpiryMs}ms exceeds policy ${policy.declassificationTokenExpiryMs}ms`);
+    }
+    if (typeof config.algorithm === 'string' && policy.allowedEscrowAlgorithms.length > 0 && !policy.allowedEscrowAlgorithms.includes(config.algorithm)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `escrow algorithm ${config.algorithm} is not allowed`);
+    }
+  }
+
   _validateHomomorphic(tenantPolicy, config) {
     const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
     if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
@@ -405,6 +438,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'time') {
       this._validateTime(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'escrow') {
+      this._validateEscrow(tenantPolicy, config);
       return true;
     }
 
