@@ -603,6 +603,26 @@ class BaseHsmAdapter {
     this._audit('ENCLAVE_KEY_PROVISIONED', info);
   }
 
+  // ── Track 42 resharding telemetry hooks ────────────────────────────
+
+  /**
+   * Emit a committee resharding initiated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCommitteeReshardingInitiated(info = {}) {
+    this._ensureInitialized();
+    this._audit('COMMITTEE_RESHARDING_INITIATED', info);
+  }
+
+  /**
+   * Emit an ephemeral share ratcheted event into the audit pipeline.
+   * @param {object} info
+   */
+  emitEphemeralShareRatcheted(info = {}) {
+    this._ensureInitialized();
+    this._audit('EPHEMERAL_SHARE_RATCHETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
