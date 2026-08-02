@@ -215,6 +215,17 @@
       "banExpiredProofNodes": true,
       "maxScopesPerToken": 8,
       "requireCanonicalPayloadLayout": true
+    },
+    "homomorphicKeySharding": {
+      "minTargetPlatformQuorum": 3,
+      "maxShardDepth": 8,
+      "signatureTimeoutSeconds": 300,
+      "requireLocalNodeAttestation": true,
+      "requireDestinationAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "kemAlgorithm": "ML-KEM-1024",
+      "isolateLowQuorumDestinations": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
