@@ -1,52 +1,43 @@
-# Test Plan — Track 39: Threshold Account Recovery
+# Test Plan — Expose Recovery Telemetry
 
-**Branch:** `feature/track39-threshold-account-recovery`
+**Branch:** `feature/expose-recovery-telemetry`
 **Date:** 2026-08-02
 **Status:** Active
 
 ## Objective
 
-Implement a threshold account recovery engine that provides multi-signature social recovery for accounts with guardian-based approval, time-locked execution, and anti-replay protection.
+Expose Track 39's threshold account recovery metrics to the frontend Analytical Dashboard via a JSON API endpoint, dashboard service, and component.
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| `server/lib/hsm-adapter/threshold-account-recovery-engine.cjs` | **New** — Threshold account recovery engine |
-| `server/lib/hsm-adapter/__tests__/threshold-account-recovery.test.cjs` | **New** — Test suite (39 tests) |
-| `server/lib/hsm-adapter/crypto-policy-engine.cjs` | Add `thresholdAccountRecovery` policy block |
-| `server/lib/hsm-adapter/hsm-metrics.cjs` | Add account recovery counters/gauges |
+| `server/routes/hsm-vault-routes.cjs` | Add `GET /api/vault/recovery/status` endpoint |
+| `server/lib/__tests__/hsm-vault-recovery-status-route.test.cjs` | **New** — Test suite (6 tests) |
+| `web/dashboard/js-es2018/services/recoveryTelemetryService.js` | **New** — Dashboard service |
+| `web/dashboard/js-es2018/components/RecoveryTelemetryDashboard.js` | **New** — Dashboard component |
 
 ## Check Items
 
 ### Level 1 — Deterministic
 
-- [x] L1.1 `node -c threshold-account-recovery-engine.cjs` — PASS
-- [x] L1.2 `node -c threshold-account-recovery.test.cjs` — PASS
-- [x] L1.3 `node -c crypto-policy-engine.cjs` — PASS
-- [x] L1.4 `node -c hsm-metrics.cjs` — PASS
-- [x] L1.5 Threshold account recovery test suite (39 tests) — PASS
-- [x] L1.6 Policy engine test suite (16 tests) — PASS (no regression)
-- [x] L1.7 No new dependencies added
+- [x] L1.1 `node -c hsm-vault-routes.cjs` — PASS
+- [x] L1.2 `node -c hsm-vault-recovery-status-route.test.cjs` — PASS
+- [x] L1.3 Recovery status route test suite (6 tests) — PASS
+- [x] L1.4 Existing vault metrics route tests (6 tests) — PASS (no regression)
+- [x] L1.5 No new dependencies added
 
 ### Level 2 — Functional Operations
 
-- [x] L2.01 Full happy-path: designate guardians → request recovery → approve (quorum) → recover → restore
-- [x] L2.02 GuardianRegistry tracks per-account guardians
-- [x] L2.03 BFT quorum approvals gate recovery execution
-- [x] L2.04 Multiple accounts tracked independently
-- [x] L2.05 Recovery state machine enforces valid transitions
-- [x] L2.06 Policy validation: thresholdAccountRecovery block present, tenant overrides work
-- [x] L2.07 Time-lock enforces delay between request and execution
-- [x] L2.08 Guardian management: add/remove with quorum approval
+- [x] L2.01 `GET /api/vault/recovery/status` returns 200 with JSON for admin
+- [x] L2.02 Response includes all 7 recovery counters
+- [x] L2.03 Returns 403 for non-admin users
+- [x] L2.04 RecoveryTelemetryService fetches data from the endpoint
+- [x] L2.05 RecoveryTelemetryDashboard renders metric chips
 
 ### Level 3 — Security Engineering
 
-- [x] L3.01 Anti-replay: duplicate recovery requests rejected
-- [x] L3.02 Cannot recover without quorum approvals
-- [x] L3.03 Cannot approve after recovery is restored
-- [x] L3.04 Rejected recovery is terminal
-- [x] L3.05 Unauthorized guardian approval rejected
-- [x] L3.06 No scope creep — only engine + policy + metrics + tests
-- [x] L3.07 No ghost files or hallucinated API paths
-- [x] L3.08 All existing tests still pass (no regression)
+- [x] L3.01 Endpoint requires `admin:all` authorization
+- [x] L3.02 No secrets exposed in telemetry output
+- [x] L3.03 No scope creep — only route + service + component + tests
+- [x] L3.04 All existing tests still pass (no regression)
