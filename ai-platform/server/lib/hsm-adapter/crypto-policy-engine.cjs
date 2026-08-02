@@ -214,6 +214,16 @@ const DEFAULT_POLICY = {
     requireTimeLockEscrow: true,
     requireCanonicalPayloadLayout: true,
   },
+  homomorphicDbLookup: {
+    maxEncryptedColumnsPerQuery: 8,
+    allowedBlindingTypes: ['pedersen', 'exponential-elgamal'],
+    requireQueryAttestation: true,
+    allowedQueryAuthorities: ['mock-authority'],
+    maxQueryAgeSeconds: 60,
+    requireZkMatchAttestation: true,
+    allowCrossTenantTables: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -334,6 +344,10 @@ function _mergeWithDefault(tenantPolicy) {
     assetBridge: {
       ...DEFAULT_POLICY.assetBridge,
       ...(tenantPolicy.assetBridge || {}),
+    },
+    homomorphicDbLookup: {
+      ...DEFAULT_POLICY.homomorphicDbLookup,
+      ...(tenantPolicy.homomorphicDbLookup || {}),
     },
   };
 }
@@ -749,6 +763,34 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateHomomorphicDbLookup(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.homomorphicDbLookup, ...(tenantPolicy.homomorphicDbLookup || {}) };
+    if (typeof config.encryptedColumns === 'number' && config.encryptedColumns > policy.maxEncryptedColumnsPerQuery) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `encrypted columns ${config.encryptedColumns} exceed maximum ${policy.maxEncryptedColumnsPerQuery}`);
+    }
+    if (typeof config.blindingType === 'string' && !policy.allowedBlindingTypes.includes(config.blindingType)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `blinding type ${config.blindingType} is not allowed; permitted: ${policy.allowedBlindingTypes.join(', ')}`);
+    }
+    if (policy.requireQueryAttestation && config.queryAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'query attestation is required');
+    }
+    if (typeof config.queryAuthority === 'string' && !policy.allowedQueryAuthorities.includes(config.queryAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `query authority ${config.queryAuthority} is not allowed; permitted: ${policy.allowedQueryAuthorities.join(', ')}`);
+    }
+    if (typeof config.queryAgeSeconds === 'number' && config.queryAgeSeconds > policy.maxQueryAgeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `query age ${config.queryAgeSeconds}s exceeds maximum ${policy.maxQueryAgeSeconds}s`);
+    }
+    if (policy.requireZkMatchAttestation && config.zkMatchAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'zk match attestation is required');
+    }
+    if (typeof config.crossTenantTables === 'boolean' && !policy.allowCrossTenantTables && config.crossTenantTables) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'cross-tenant tables are not allowed');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1138,6 +1180,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'assetBridge') {
       this._validateAssetBridge(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'homomorphicDbLookup') {
+      this._validateHomomorphicDbLookup(tenantPolicy, config);
       return true;
     }
 
