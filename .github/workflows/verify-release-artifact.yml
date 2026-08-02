@@ -1,0 +1,35 @@
+name: Verify Release Artifact
+
+on:
+  release:
+    types: [published]
+# Optional: enable scheduled nightly verification by uncommenting the following
+#  schedule:
+#    - cron: '0 2 * * *' # daily at 02:00 UTC
+
+jobs:
+  verify-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Download release asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          ASSET_ID=${{ github.event.release.assets && github.event.release.assets[0] && github.event.release.assets[0].id }}
+          if [ -z "$ASSET_ID" ]; then echo "No asset found on release"; exit 1; fi
+          echo "Downloading asset id=$ASSET_ID"
+          curl -L -H "Accept: application/octet-stream" -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID" -o artifact.tar.gz
+          mkdir -p artifact && tar -xzf artifact.tar.gz -C artifact || unzip -qq artifact.tar.gz -d artifact || true
+
+      - name: Run verification
+        run: |
+          node ai-platform/scripts/verify-release-artifact.cjs artifact
