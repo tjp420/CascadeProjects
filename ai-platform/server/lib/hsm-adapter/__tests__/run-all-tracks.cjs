@@ -60,6 +60,7 @@ const SUITES = [
   'pq-supply-chain-escrow',
   'pq-real-estate-tokenization',
   'pq-carbon-tokenization',
+  'pq-identity-gating',
 ];
 
 function runSuite(pattern) {
