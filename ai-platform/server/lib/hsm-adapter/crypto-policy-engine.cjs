@@ -380,6 +380,17 @@ const DEFAULT_POLICY = {
     banMalformedNonMembershipProofs: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqTimeLockedMatrix: {
+    minTimeDelaySeconds: 3600,
+    minCommitteeQuorum: 3,
+    maxPayloadBytes: 1048576,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireSubmitterAttestation: true,
+    requireVerifierRelayAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banPrematureOrMalformedProofs: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -614,6 +625,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqIdentityRevocation: {
       ...DEFAULT_POLICY.pqIdentityRevocation,
       ...(tenantPolicy.pqIdentityRevocation || {}),
+    },
+    pqTimeLockedMatrix: {
+      ...DEFAULT_POLICY.pqTimeLockedMatrix,
+      ...(tenantPolicy.pqTimeLockedMatrix || {}),
     },
   };
 }
@@ -1480,6 +1495,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqTimeLockedMatrix(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqTimeLockedMatrix, ...(tenantPolicy.pqTimeLockedMatrix || {}) };
+    if (typeof config.timeDelaySeconds === 'number' && config.timeDelaySeconds < policy.minTimeDelaySeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `time delay ${config.timeDelaySeconds}s below minimum ${policy.minTimeDelaySeconds}s`);
+    }
+    if (typeof config.committeeQuorum === 'number' && config.committeeQuorum < policy.minCommitteeQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `committee quorum ${config.committeeQuorum} below minimum ${policy.minCommitteeQuorum}`);
+    }
+    if (typeof config.payloadBytes === 'number' && config.payloadBytes > policy.maxPayloadBytes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `payload bytes ${config.payloadBytes} exceeds maximum ${policy.maxPayloadBytes}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireSubmitterAttestation && config.submitterAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'submitter attestation is required');
+    }
+    if (policy.requireVerifierRelayAttestation && config.verifierRelayAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'verifier relay attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banPrematureOrMalformedProofs === 'boolean' && policy.banPrematureOrMalformedProofs && !config.banPrematureOrMalformedProofs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban premature or malformed proofs must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1949,6 +1995,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqIdentityRevocation') {
       this._validatePqIdentityRevocation(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqTimeLockedMatrix') {
+      this._validatePqTimeLockedMatrix(tenantPolicy, config);
       return true;
     }
 

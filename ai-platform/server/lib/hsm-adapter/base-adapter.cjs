@@ -1055,6 +1055,26 @@ class BaseHsmAdapter {
     this._audit('ZK_REVOCATION_PROOF_AUTHENTICATED', info);
   }
 
+  // ── Track 62 PQ time-locked matrix telemetry hooks ──────────────
+
+  /**
+   * Emit a time-lock matrix initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitTimeLockMatrixInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('TIME_LOCK_MATRIX_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a temporal decryption proof verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitTemporalDecryptionProveVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('TEMPORAL_DECRYPTION_PROVE_VERIFIED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

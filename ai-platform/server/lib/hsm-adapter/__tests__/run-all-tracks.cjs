@@ -51,6 +51,7 @@ const SUITES = [
   'pqc-cross-chain-governance',
   'pqc-homomorphic-identity-bridge',
   'pq-identity-revocation',
+  'pq-time-locked-matrix',
 ];
 
 function runSuite(pattern) {
