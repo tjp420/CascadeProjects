@@ -57,6 +57,7 @@ class BaseHsmAdapter {
    * @param {VolatileEvictionEngine} [options.volatileEvictionEngine] - optional eviction engine
    * @param {ProvenanceTracker} [options.provenanceTracker] - optional provenance ledger
    * @param {EscrowBroker} [options.escrowBroker] - optional cross-tenant key escrow broker
+   * @param {ClusterConsensusEngine} [options.consensusEngine] - optional consensus engine for distributed commit gating
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -69,6 +70,7 @@ class BaseHsmAdapter {
     this._provenanceTracker = options.provenanceTracker || null;
     this._timeAnchor = options.timeAnchor || null;
     this._escrowBroker = options.escrowBroker || null;
+    this._consensusEngine = options.consensusEngine || null;
     this._initialized = false;
   }
 
@@ -130,6 +132,7 @@ class BaseHsmAdapter {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     this._checkTemporalGuard();
+    await this._requireConsensus('createKEK', { tenantId, meta });
     const kekId = await this._createKEK(tenantId, meta);
     this._evictionEngine?.register(tenantId, kekId, async (id, reason) => {
       try {
@@ -204,6 +207,7 @@ class BaseHsmAdapter {
     this._ensureTenant(tenantId);
     this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, oldKekId);
+    await this._requireConsensus('rotateKEK', { tenantId, oldKekId });
     const newKekId = await this._rotateKEK(tenantId, oldKekId);
     this._evictionEngine?.register(tenantId, newKekId, async (id, reason) => {
       try {
@@ -493,6 +497,7 @@ class BaseHsmAdapter {
    */
   async importKeyring(binaryEnvelope, masterKek) {
     this._ensureInitialized();
+    await this._requireConsensus('importKeyring', { envelopeSize: binaryEnvelope?.length || 0 });
     try {
       // Integrity check is handled implicitly inside unwrapPad
       return deserialize(binaryEnvelope, masterKek);
@@ -500,6 +505,33 @@ class BaseHsmAdapter {
       const code = error instanceof KeyringValidationError ? error.code : 'IMPORT_FAILED';
       throw new HsmAdapterError(code, `HSM Import pipeline failure: ${error.message}`);
     }
+  }
+
+  // ── Track 34 consensus-gated commit helper ─────────────────────────
+
+  /**
+   * Require consensus quorum approval before a keyring mutation.
+   * If a consensus engine is bound, replicate the command and require
+   * majority commit. If the node is not leader or quorum is lost,
+   * fail closed with HsmAdapterError.
+   * @param {string} operation - the keyring operation (createKEK, rotateKEK, importKeyring)
+   * @param {object} command - the command payload to replicate
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _requireConsensus(operation, command) {
+    if (!this._consensusEngine) return; // no consensus engine — local mode
+    const state = this._consensusEngine.getState();
+    if (state.state !== 'leader') {
+      throw new HsmAdapterError('CONSENSUS_NOT_LEADER',
+        `keyring ${operation} blocked: node ${this._consensusEngine.nodeId} is not leader (state: ${state.state})`);
+    }
+    const result = await this._consensusEngine.appendAndReplicate({ operation, ...command });
+    if (!result.committed) {
+      throw new HsmAdapterError('CONSENSUS_COMMIT_FAILED',
+        `keyring ${operation} blocked: quorum not reached (${result.replicas} replicas, need ${state.quorumNodes})`);
+    }
+    this._audit('CONSENSUS_GATED_COMMIT', { operation, index: result.index, replicas: result.replicas });
   }
 
   // ── Track 30 identity ratchet telemetry hooks ──────────────────────
