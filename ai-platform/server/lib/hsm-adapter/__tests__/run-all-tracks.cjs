@@ -59,6 +59,7 @@ const SUITES = [
   'pq-insurance-underwriting',
   'pq-supply-chain-escrow',
   'pq-real-estate-tokenization',
+  'pq-carbon-tokenization',
 ];
 
 function runSuite(pattern) {

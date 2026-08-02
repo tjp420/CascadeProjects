@@ -1278,6 +1278,35 @@ class BaseHsmAdapter {
     this._audit('TITLE_DEED_TRANSFER_FINALIZED', info);
   }
 
+  // ── Track 70 PQ carbon credit tokenization telemetry hooks ──────────────
+
+  /**
+   * Emit a carbon pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCarbonPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('CARBON_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK retirement proof verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkRetirementProofVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_RETIREMENT_PROOF_VERIFIED', info);
+  }
+
+  /**
+   * Emit a carbon credit retirement finalized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCarbonCreditRetirementFinalized(info = {}) {
+    this._ensureInitialized();
+    this._audit('CARBON_CREDIT_RETIREMENT_FINALIZED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
