@@ -33,6 +33,14 @@ const DEFAULT_POLICY = {
   threshold: {
     minThreshold: 2,
     maxTotal: 7,
+    dkg: {
+      minNodes: 3,
+      maxNodes: 21,
+      polynomialDegree: 2,
+      requiredHonest: 2,
+      commitmentScheme: 'feldman',
+      allowedCurves: ['P-256', 'P-384', 'P-521'],
+    },
   },
   ratchet: {
     maxSkipped: 1000,
@@ -54,6 +62,13 @@ const DEFAULT_POLICY = {
     tokenExpiryMs: 300000,
     maxProofs: 100,
     allowedPrimes: [],
+    snark: {
+      allowedProvingSystems: ['groth16', 'plonk', 'stark'],
+      maxConstraintCount: 1000000,
+      provingKeyHash: '',
+      requireTrustedSetup: false,
+      allowedFields: ['bn254', 'bls12-381'],
+    },
   },
   time: {
     maxDriftMs: 60000,
@@ -119,6 +134,10 @@ function _mergeWithDefault(tenantPolicy) {
     threshold: {
       ...DEFAULT_POLICY.threshold,
       ...(tenantPolicy.threshold || {}),
+      dkg: {
+        ...DEFAULT_POLICY.threshold.dkg,
+        ...((tenantPolicy.threshold && tenantPolicy.threshold.dkg) || {}),
+      },
     },
     ratchet: {
       ...DEFAULT_POLICY.ratchet,
@@ -135,6 +154,10 @@ function _mergeWithDefault(tenantPolicy) {
     zkp: {
       ...DEFAULT_POLICY.zkp,
       ...(tenantPolicy.zkp || {}),
+      snark: {
+        ...DEFAULT_POLICY.zkp.snark,
+        ...((tenantPolicy.zkp && tenantPolicy.zkp.snark) || {}),
+      },
     },
     time: {
       ...DEFAULT_POLICY.time,
@@ -249,7 +272,7 @@ class CryptoPolicyEngine {
   }
 
   _validateFips(tenantPolicy, config) {
-    const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
+    const policy = { ...DEFAULT_POLICY.fips, ...(tenantPolicy.fips || {}) };
     if (!policy.enabled) return;
 
     if (config.algorithm === 'ecdh') {
@@ -330,6 +353,41 @@ class CryptoPolicyEngine {
     }
     if (typeof config.scheme === 'string' && policy.allowedHomomorphicSchemes.length > 0 && !policy.allowedHomomorphicSchemes.includes(config.scheme)) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pir homomorphic scheme ${config.scheme} is not allowed`);
+    }
+  }
+
+  _validateDkg(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.threshold.dkg, ...(tenantPolicy.threshold && tenantPolicy.threshold.dkg) || {} };
+    if (typeof config.nodeCount === 'number' && (config.nodeCount < policy.minNodes || config.nodeCount > policy.maxNodes)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `DKG node count ${config.nodeCount} outside allowed range ${policy.minNodes}-${policy.maxNodes}`);
+    }
+    if (typeof config.threshold === 'number' && (config.threshold < 1 || config.threshold > config.nodeCount)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'DKG threshold must satisfy 1 <= threshold <= nodeCount');
+    }
+    if (typeof config.polynomialDegree === 'number' && config.polynomialDegree > config.nodeCount - 1) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `DKG polynomial degree ${config.polynomialDegree} exceeds nodeCount - 1`);
+    }
+    if (typeof config.commitmentScheme === 'string' && !policy.allowedCurves.includes(config.curve || 'P-256')) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `DKG curve ${config.curve} is not approved`);
+    }
+  }
+
+  _validateSnark(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.zkp.snark, ...((tenantPolicy.zkp && tenantPolicy.zkp.snark) || {}) };
+    if (typeof config.provingSystem === 'string' && !policy.allowedProvingSystems.includes(config.provingSystem)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `zk-SNARK proving system ${config.provingSystem} is not allowed`);
+    }
+    if (typeof config.constraintCount === 'number' && config.constraintCount > policy.maxConstraintCount) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `zk-SNARK constraint count ${config.constraintCount} exceeds policy maximum ${policy.maxConstraintCount}`);
+    }
+    if (config.provingKeyHash && config.provingKeyHash !== policy.provingKeyHash) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'zk-SNARK proving key hash does not match policy');
+    }
+    if (policy.requireTrustedSetup && !config.trustedSetupAttestation) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'zk-SNARK trusted setup attestation is required');
+    }
+    if (typeof config.field === 'string' && !policy.allowedFields.includes(config.field)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `zk-SNARK field ${config.field} is not allowed`);
     }
   }
 
@@ -533,6 +591,16 @@ class CryptoPolicyEngine {
 
     if (operation === 'homomorphic') {
       this._validateHomomorphic(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'dkg') {
+      this._validateDkg(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'snark') {
+      this._validateSnark(tenantPolicy, config);
       return true;
     }
 

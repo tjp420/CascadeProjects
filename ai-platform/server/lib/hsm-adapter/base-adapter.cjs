@@ -502,6 +502,26 @@ class BaseHsmAdapter {
     }
   }
 
+  // ── Track 26 decentralized telemetry hooks ───────────────────────────
+
+  /**
+   * Emit a DKG round completion event into the audit pipeline.
+   * @param {object} info
+   */
+  emitDkgRoundCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('DKG_ROUND_COMPLETED', info);
+  }
+
+  /**
+   * Emit a zk-SNARK proof generation event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkProofGenerated(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_SUCCINCT_PROOF_GENERATED', info);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {
