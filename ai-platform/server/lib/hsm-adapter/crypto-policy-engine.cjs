@@ -145,6 +145,29 @@ const DEFAULT_POLICY = {
     maxAttestationAgeSeconds: 60,
     allowedEnclaveCiphers: ['aes-256-gcm'],
   },
+  secretSealing: {
+    allowedSealingCiphers: ['aes-256-gcm', 'aes-128-gcm'],
+    minSealingKeyBits: 128,
+    maxSealingKeyAgeMs: 86400000,
+    requireKeyRotation: true,
+    keyRotationIntervalMs: 3600000,
+    maxSealedDataSizeBytes: 1048576,
+    allowUnsealOutsideEnclave: false,
+    attestation: {
+      requireChallengeResponse: true,
+      challengeNonceBytes: 32,
+      maxChallengeAgeMs: 30000,
+      replayProtectionWindow: 300000,
+      minTtlSeconds: 300,
+      maxAgeSeconds: 60,
+    },
+    keyProvisioning: {
+      allowedKeyTypes: ['kek', 'kek-fragment', 'wrap-key', 'signing-key'],
+      maxKeyAgeMs: 604800000,
+      requireAttestationBeforeProvision: true,
+      maxProvisionedKeys: 100,
+    },
+  },
   resharding: {
     allowedThresholdWindows: [[2, 3], [3, 5], [5, 7]],
     maxCommitteeExpansionFactor: 2.0,
@@ -1086,6 +1109,34 @@ class CryptoPolicyEngine {
     }
     if (typeof config.enclaveCipher === 'string' && !policy.allowedEnclaveCiphers.includes(config.enclaveCipher)) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `enclave cipher ${config.enclaveCipher} is not allowed; permitted: ${policy.allowedEnclaveCiphers.join(', ')}`);
+    }
+  }
+
+  _validateSecretSealing(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.secretSealing, ...(tenantPolicy.secretSealing || {}) };
+    if (typeof config.cipher === 'string' && !policy.allowedSealingCiphers.includes(config.cipher)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `sealing cipher ${config.cipher} is not allowed; permitted: ${policy.allowedSealingCiphers.join(', ')}`);
+    }
+    if (typeof config.keyBits === 'number' && config.keyBits < policy.minSealingKeyBits) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `sealing key size ${config.keyBits} is below minimum ${policy.minSealingKeyBits} bits`);
+    }
+    if (typeof config.dataSizeBytes === 'number' && config.dataSizeBytes > policy.maxSealedDataSizeBytes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `sealed data size ${config.dataSizeBytes} exceeds maximum ${policy.maxSealedDataSizeBytes} bytes`);
+    }
+    if (policy.requireKeyRotation && typeof config.keyAgeMs === 'number' && config.keyAgeMs > policy.keyRotationIntervalMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `sealing key age ${config.keyAgeMs}ms exceeds rotation interval ${policy.keyRotationIntervalMs}ms`);
+    }
+    if (policy.requireKeyRotation && config.requireKeyRotation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'key rotation is required for sealing');
+    }
+    if (!policy.allowUnsealOutsideEnclave && config.allowUnsealOutsideEnclave === true) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'unseal outside enclave boundary is not allowed');
+    }
+    if (policy.keyProvisioning.requireAttestationBeforeProvision && config.attestationVerified === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'key provisioning requires attestation to be verified first');
+    }
+    if (typeof config.keyType === 'string' && !policy.keyProvisioning.allowedKeyTypes.includes(config.keyType)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `key type ${config.keyType} is not allowed; permitted: ${policy.keyProvisioning.allowedKeyTypes.join(', ')}`);
     }
   }
 
@@ -2487,6 +2538,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'enclave') {
       this._validateEnclave(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'secretSealing') {
+      this._validateSecretSealing(tenantPolicy, config);
       return true;
     }
 
