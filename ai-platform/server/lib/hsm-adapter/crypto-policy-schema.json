@@ -384,6 +384,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrSubSolvencyClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqInsuranceUnderwriting": {
+      "minReserveRatio": 30,
+      "minClaimQuorum": 3,
+      "maxPoolRiskExposureCap": 1000000000,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireCoverageInitiatorAttestation": true,
+      "requireClearingCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderClaimAssertions": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

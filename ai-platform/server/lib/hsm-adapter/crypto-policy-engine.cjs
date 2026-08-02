@@ -436,6 +436,17 @@ const DEFAULT_POLICY = {
     banMalformedOrSubSolvencyClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqInsuranceUnderwriting: {
+    minReserveRatio: 30,
+    minClaimQuorum: 3,
+    maxPoolRiskExposureCap: 1000000000,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireCoverageInitiatorAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderClaimAssertions: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -728,6 +739,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqLendingPools: {
       ...DEFAULT_POLICY.pqLendingPools,
       ...(tenantPolicy.pqLendingPools || {}),
+    },
+    pqInsuranceUnderwriting: {
+      ...DEFAULT_POLICY.pqInsuranceUnderwriting,
+      ...(tenantPolicy.pqInsuranceUnderwriting || {}),
     },
   };
 }
@@ -1752,6 +1767,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqInsuranceUnderwriting(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqInsuranceUnderwriting, ...(tenantPolicy.pqInsuranceUnderwriting || {}) };
+    if (typeof config.reserveRatio === 'number' && config.reserveRatio < policy.minReserveRatio) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `reserve ratio ${config.reserveRatio}% below minimum ${policy.minReserveRatio}%`);
+    }
+    if (typeof config.claimQuorum === 'number' && config.claimQuorum < policy.minClaimQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `claim quorum ${config.claimQuorum} below minimum ${policy.minClaimQuorum}`);
+    }
+    if (typeof config.poolRiskExposureCap === 'number' && config.poolRiskExposureCap > policy.maxPoolRiskExposureCap) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pool risk exposure cap ${config.poolRiskExposureCap} exceeds maximum ${policy.maxPoolRiskExposureCap}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireCoverageInitiatorAttestation && config.coverageInitiatorAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'coverage initiator attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderClaimAssertions === 'boolean' && policy.banMalformedOrOutOfOrderClaimAssertions && !config.banMalformedOrOutOfOrderClaimAssertions) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order claim assertions must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2246,6 +2292,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqLendingPools') {
       this._validatePqLendingPools(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqInsuranceUnderwriting') {
+      this._validatePqInsuranceUnderwriting(tenantPolicy, config);
       return true;
     }
 
