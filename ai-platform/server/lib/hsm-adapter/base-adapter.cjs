@@ -1724,6 +1724,35 @@ class BaseHsmAdapter {
     this._audit('PEER_REVIEW_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 84 PQ DAO treasury management gating telemetry hooks ──────────────
+
+  /**
+   * Emit a treasury gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitTreasuryGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('TREASURY_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK proposal claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkProposalClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_PROPOSAL_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a voter accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitVoterAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('VOTER_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
