@@ -43,6 +43,7 @@ const SUITES = [
   'pqc-identity-hub',
   'zk-access-token-attestation',
   'homomorphic-key-sharding',
+  'mpc-gated-decryption',
 ];
 
 function runSuite(pattern) {
