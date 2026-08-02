@@ -32,6 +32,7 @@ const SUITES = [
   'distributed-consensus',
   'hardware-enclave',
   'dynamic-resharding',
+  'disaster-recovery',
 ];
 
 function runSuite(pattern) {
