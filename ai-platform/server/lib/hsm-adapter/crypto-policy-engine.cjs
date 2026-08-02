@@ -130,6 +130,8 @@ const DEFAULT_POLICY = {
     signatureAlgorithm: 'ed25519',
     enableReplayProtection: true,
     replayWindowMs: 5000,
+    enablePeerKeyRotation: true,
+    maxPeerKeyRotationRateMs: 1000,
   },
   enclave: {
     allowedEnclaveTypes: ['mock', 'intel-sgx', 'aws-nitro'],
@@ -433,6 +435,12 @@ class CryptoPolicyEngine {
     }
     if (typeof config.replayWindowMs === 'number' && config.replayWindowMs < 100) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `replay window ${config.replayWindowMs}ms is too low (minimum 100ms)`);
+    }
+    if (policy.enablePeerKeyRotation && config.enablePeerKeyRotation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'peer key rotation is required and cannot be disabled');
+    }
+    if (typeof config.maxPeerKeyRotationRateMs === 'number' && config.maxPeerKeyRotationRateMs < policy.maxPeerKeyRotationRateMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `peer key rotation rate ${config.maxPeerKeyRotationRateMs}ms is below policy minimum ${policy.maxPeerKeyRotationRateMs}ms`);
     }
   }
 
