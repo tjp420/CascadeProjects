@@ -29,6 +29,13 @@ const counters = {
   hsm_recovery_synced_total: 0,
   hsm_recovery_failures_total: 0,
   hsm_recovery_catchup_batches_total: 0,
+  // Track 34: Consensus counters
+  hsm_consensus_leader_elections_total: 0,
+  hsm_consensus_leader_elections_won_total: 0,
+  hsm_consensus_quorum_lost_total: 0,
+  hsm_consensus_log_replicated_total: 0,
+  hsm_consensus_log_committed_total: 0,
+  hsm_consensus_heartbeats_sent_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -59,6 +66,12 @@ const META = {
   hsm_recovery_synced_total: { help: 'Total cluster node recovery sessions that reached synced state.', type: 'counter' },
   hsm_recovery_failures_total: { help: 'Total cluster node recovery sessions that failed.', type: 'counter' },
   hsm_recovery_catchup_batches_total: { help: 'Total catch-up batches applied during recovery sync.', type: 'counter' },
+  hsm_consensus_leader_elections_total: { help: 'Total leader election cycles started.', type: 'counter' },
+  hsm_consensus_leader_elections_won_total: { help: 'Total leader elections won by this node.', type: 'counter' },
+  hsm_consensus_quorum_lost_total: { help: 'Total times quorum was lost during consensus operations.', type: 'counter' },
+  hsm_consensus_log_replicated_total: { help: 'Total log entries replicated to followers.', type: 'counter' },
+  hsm_consensus_log_committed_total: { help: 'Total log entries committed via quorum.', type: 'counter' },
+  hsm_consensus_heartbeats_sent_total: { help: 'Total leader heartbeats sent to followers.', type: 'counter' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
