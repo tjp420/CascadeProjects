@@ -49,6 +49,7 @@ const SUITES = [
   'pq-identity-accumulator',
   'pqc-vesting-locks',
   'pqc-cross-chain-governance',
+  'pqc-homomorphic-identity-bridge',
 ];
 
 function runSuite(pattern) {

@@ -1015,6 +1015,26 @@ class BaseHsmAdapter {
     this._audit('CROSS_CHAIN_PROPOSAL_EXECUTED', info);
   }
 
+  // ── Track 60 PQC homomorphic identity bridge telemetry hooks ─────
+
+  /**
+   * Emit a homomorphic identity bridge initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitHomomorphicIdentityBridgeInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('HOMOMORPHIC_IDENTITY_BRIDGE_INITIALIZED', info);
+  }
+
+  /**
+   * Emit an MPC cross-chain consensus finalized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitMpcCrossChainConsensusFinalized(info = {}) {
+    this._ensureInitialized();
+    this._audit('MPC_CROSS_CHAIN_CONSENSUS_FINALIZED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
