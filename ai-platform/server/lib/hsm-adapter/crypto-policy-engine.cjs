@@ -117,6 +117,15 @@ const DEFAULT_POLICY = {
     requireBftCatchUpAck: true,
     allowedCatchUpModes: ['sliding-window', 'checkpoint'],
   },
+  consensus: {
+    minQuorumNodes: 2,
+    heartbeatIntervalMs: 500,
+    electionTimeoutMs: 1500,
+    electionTimeoutWindow: 300,
+    maxLogBatchSize: 32,
+    requireLeaderHeartbeat: true,
+    allowedConsensusModes: ['raft', 'bft'],
+  },
 };
 
 function _isObject(value) {
@@ -201,6 +210,10 @@ function _mergeWithDefault(tenantPolicy) {
     recoverySync: {
       ...DEFAULT_POLICY.recoverySync,
       ...(tenantPolicy.recoverySync || {}),
+    },
+    consensus: {
+      ...DEFAULT_POLICY.consensus,
+      ...(tenantPolicy.consensus || {}),
     },
   };
 }
@@ -345,6 +358,28 @@ class CryptoPolicyEngine {
     }
     if (policy.requireBftCatchUpAck && config.bftAck === false) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'BFT catch-up ack is required');
+    }
+  }
+
+  _validateConsensus(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.consensus, ...(tenantPolicy.consensus || {}) };
+    if (typeof config.minQuorumNodes === 'number' && config.minQuorumNodes < policy.minQuorumNodes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `quorum nodes ${config.minQuorumNodes} below policy minimum ${policy.minQuorumNodes}`);
+    }
+    if (typeof config.heartbeatIntervalMs === 'number' && config.heartbeatIntervalMs < 100) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `heartbeat interval ${config.heartbeatIntervalMs}ms is too low (minimum 100ms)`);
+    }
+    if (typeof config.electionTimeoutMs === 'number' && config.electionTimeoutMs <= config.heartbeatIntervalMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `election timeout ${config.electionTimeoutMs}ms must exceed heartbeat interval ${config.heartbeatIntervalMs}ms`);
+    }
+    if (typeof config.maxLogBatchSize === 'number' && config.maxLogBatchSize > policy.maxLogBatchSize) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `log batch size ${config.maxLogBatchSize} exceeds policy ${policy.maxLogBatchSize}`);
+    }
+    if (typeof config.consensusMode === 'string' && !policy.allowedConsensusModes.includes(config.consensusMode)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `consensus mode ${config.consensusMode} is not allowed; permitted: ${policy.allowedConsensusModes.join(', ')}`);
+    }
+    if (policy.requireLeaderHeartbeat && config.requireLeaderHeartbeat === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'leader heartbeat is required');
     }
   }
 
@@ -692,6 +727,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'recoverySync') {
       this._validateRecoverySync(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'consensus') {
+      this._validateConsensus(tenantPolicy, config);
       return true;
     }
 
