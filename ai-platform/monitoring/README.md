@@ -74,6 +74,44 @@ tls_config:
 - Integrate `prom-client` in the application to emit histograms for `sendBatch` latency and counters for total events enqueued.
 - Add alerting rules for sustained high `siem_delivery_retries_total` or increasing `siem_delivery_dropped_total`.
 
+## New Enclave & WAL Metrics
+
+The following metrics were introduced in the `hsm-adapter` subsystems and should be scraped by Prometheus alongside existing agentic metrics:
+
+- `enclave_quorum_evaluation_seconds` (Histogram): latency of quorum verification operations. Labels: `status` = `success|failure`.
+- `enclave_attestation_replay_rejections_total` (Counter): counts attestation rejections due to replay or timestamp skew. Labels: `reason` = `replay_nonce|timestamp_skew`.
+- `hsm_wal_compaction_runs_total` (Counter): number of WAL compaction runs triggered (background or post-rotation).
+- `hsm_wal_compaction_bytes_saved_total` (Counter): total bytes reclaimed by WAL compaction.
+- `hsm_wal_active_entries_count` (Gauge) *(optional)*: current number of active WAL entries (useful for retention/pressure alerts).
+
+### Example alert rule
+
+Add this to your Alertmanager rules to catch high replay rejection rates:
+
+```yaml
+- alert: EnclaveAttestationReplayRateHigh
+  expr: increase(enclave_attestation_replay_rejections_total[5m]) > 5
+  for: 2m
+  labels:
+    severity: warning
+  annotations:
+    summary: High rate of enclave attestation replay/timestamp rejections
+    description: 'enclave_attestation_replay_rejections_total increased by >5 in the last 5m.'
+```
+
+And a sample compaction-run alert:
+
+```yaml
+- alert: HsmWalCompactionFailedOrTooFrequent
+  expr: increase(hsm_wal_compaction_runs_total[10m]) > 20
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: Excessive WAL compaction runs
+    description: 'WAL compaction ran >20 times in 10m; investigate churn or config.'
+```
+
 ---
 
 Saved from commit: feat/agentic-orchestration
