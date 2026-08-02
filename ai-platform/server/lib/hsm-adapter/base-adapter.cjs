@@ -837,6 +837,26 @@ class BaseHsmAdapter {
     this._audit('IDENTITY_ISSUANCE_QUORUM_COMMITTED', info);
   }
 
+  // ── Track 52 ZK access token attestation telemetry hooks ───────────
+
+  /**
+   * Emit a ZK access token issued event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkAccessTokenIssued(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_ACCESS_TOKEN_ISSUED', info);
+  }
+
+  /**
+   * Emit an attestation contract verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitAttestationContractVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ATTESTATION_CONTRACT_VERIFIED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

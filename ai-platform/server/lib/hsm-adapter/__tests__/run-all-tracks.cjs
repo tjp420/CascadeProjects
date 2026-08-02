@@ -41,6 +41,7 @@ const SUITES = [
   'homomorphic-db-lookup',
   'zk-cross-chain-settlement',
   'pqc-identity-hub',
+  'zk-access-token-attestation',
 ];
 
 function runSuite(pattern) {
