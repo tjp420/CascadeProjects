@@ -1,15 +1,15 @@
-# Software Health Report — Track 53 Zero-Knowledge Range Proofs and Auditable Asset Solvency
+# Software Health Report — Track 54 Multi-Party Threshold Cryptography and Distributed Decryption Circuits
 
 **Date:** 2026-08-02
-**Branch:** `feature/track53-zk-range-proofs`
+**Branch:** `feature/track54-threshold-crypto`
 
 ## Summary
-Implemented zero-knowledge range proofs and auditable asset solvency engine. Created ZkRangeProofSolvency class with Pedersen-style commitments, ZK range proof generation and verification, batch proof processing, solvency audit initiation and completion with liability ratio computation, proof revocation, tamper-evident hash-chained audit log, and comprehensive statistics. Added 9 telemetry counters.
+Implemented multi-party threshold cryptography and distributed decryption circuits engine. Created ThresholdDecryptionCircuit class with t-of-n Shamir secret sharing over a 257-bit prime field using BigInt arithmetic for exact key reconstruction. Supports AES-256-GCM encryption/decryption, distributed decryption circuits with partial share submission and auto-assembly, share verification, key set lifecycle management (create, compromise, rotate, destroy), and comprehensive statistics. Added 9 telemetry counters.
 
 ## Change Set (5 files)
-- zk-range-proof-solvency.cjs - New, ZkRangeProofSolvency class (607 lines)
-- hsm-metrics.cjs - Added 9 Track 53 counters
-- zk-range-proof-solvency.test.cjs - New, 49 tests
+- threshold-decryption-circuit.cjs - New, ThresholdDecryptionCircuit class (694 lines)
+- hsm-metrics.cjs - Added 9 Track 54 counters
+- threshold-decryption-circuit.test.cjs - New, 45 tests
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
@@ -17,28 +17,29 @@ Implemented zero-knowledge range proofs and auditable asset solvency engine. Cre
 | Check | Result |
 |-------|--------|
 | node -c all modified JS files | PASS |
-| 49 new Track 53 tests | PASS |
-| 367 existing tests (no regression) | PASS |
+| 45 new Track 54 tests | PASS |
+| 416 existing tests (no regression) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
 | Check | Result |
 |------|--------|
-| Commit (4 tests) | PASS |
-| Range proof generation (8 tests) | PASS |
-| Range proof verification (8 tests) | PASS |
-| Batch proofs (5 tests) | PASS |
-| Solvency audit initiation (5 tests) | PASS |
-| Solvency audit completion (7 tests) | PASS |
-| Proof revocation (2 tests) | PASS |
-| Proof queries (2 tests) | PASS |
-| Active proofs (1 test) | PASS |
-| Completed audits (1 test) | PASS |
-| Audit log (1 test) | PASS |
-| Audit log integrity (2 tests) | PASS |
+| Key set creation (9 tests) | PASS |
+| Encryption (4 tests) | PASS |
+| Circuit initiation (6 tests) | PASS |
+| Partial decryption submission (6 tests) | PASS |
+| Decryption assembly (3 tests) | PASS |
+| Key set compromise (2 tests) | PASS |
+| Key set rotation (2 tests) | PASS |
+| Key set destruction (2 tests) | PASS |
+| Key set queries (2 tests) | PASS |
+| Key set list (1 test) | PASS |
+| Share queries (2 tests) | PASS |
+| Circuit queries (2 tests) | PASS |
+| Completed circuits (1 test) | PASS |
 | Stats (1 test) | PASS |
 | Reset (1 test) | PASS |
-| Full solvency flow (1 test) | PASS |
+| Full decryption flow (1 test) | PASS |
 
 ## Level 3 - Security
 | Check | Result |
@@ -51,9 +52,9 @@ Implemented zero-knowledge range proofs and auditable asset solvency engine. Cre
 None.
 
 ## Unimplemented
-- REST routes for Track 53 ZK range proof operations (next phase)
-- Dashboard card for Track 53 telemetry
-- Real ZK proof system (Bulletproofs, etc.) — currently simulated with SHA-256 hashes
-- Integration with Track 51 HeMeshTopology for distributed proof verification
-- Integration with Track 50 ConfidentialFederatedLearning for federated solvency audits
-- Integration with existing ZkSolvencyProofProcessor (Track 66) for lending pool solvency
+- REST routes for Track 54 threshold decryption operations (next phase)
+- Dashboard card for Track 54 telemetry
+- Real ZK proof for share verification (currently checks non-empty buffer)
+- Integration with Track 26 DkgSnarkEngine for DKG-based key generation
+- Integration with Track 27 PqcThresholdSignatureEngine for combined sign+decrypt
+- Integration with Track 51 HeMeshTopology for mesh-based share distribution
