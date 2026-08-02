@@ -92,6 +92,10 @@ class GroupReshardEngine {
         if (this._audit) this._audit('RESHARD_RATCHET_FAILED', { err: String(e) });
       }
     }
+    // Drop ratchet reference to release closure captures and allow GC
+    try {
+      this._ratchet = null;
+    } catch (e) {}
     if (_reshardCounter) _reshardCounter.inc(newShares.length);
     if (_reshardLatency && start) {
       const diff = process.hrtime(start);
@@ -244,9 +248,10 @@ function _computeLagrangeCoefficients(nodes, total) {
   const p = _bigPrime();
   const coeffs = [];
   for (let i = 0; i < total; i += 1) {
+    // Use BigInt intermediate accumulators and explicitly overwrite them after use
     let num = 1n;
     let den = 1n;
-    const xi = BigInt(i + 1);
+    let xi = BigInt(i + 1);
     for (let j = 0; j < total; j += 1) {
       if (i === j) continue;
       const xj = BigInt(j + 1);
@@ -254,7 +259,12 @@ function _computeLagrangeCoefficients(nodes, total) {
       den = (den * (xi - xj + p)) % p;
     }
     const invDen = _modInverse(den, p);
-    coeffs.push(Number((num * invDen) % p));
+    const c = (num * invDen) % p;
+    coeffs.push(c);
+    // Overwrite intermediates to reduce heap residency window
+    try {
+      num = 0n; den = 0n; xi = 0n;
+    } catch (e) {}
   }
   return coeffs;
 }
@@ -305,6 +315,8 @@ function _zeroizeTransient(shares) {
       secureZeroize(share.value);
     } else if (typeof share.value === 'number') {
       share.value = 0;
+    } else if (typeof share.value === 'bigint') {
+      share.value = 0n;
     }
   }
 }

@@ -99,6 +99,41 @@ router.get('/metrics', authorize('admin:all'), function (req, res) {
   }
 });
 
+// GET /api/vault/consensus/status — expose consensus engine state and telemetry counters
+router.get('/consensus/status', authorize('admin:all'), function (req, res) {
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+
+    // Extract consensus-specific counters
+    const consensusCounters = {};
+    for (const [key, value] of Object.entries(allMetrics)) {
+      if (key.startsWith('hsm_consensus_') && typeof value === 'number') {
+        consensusCounters[key] = value;
+      }
+    }
+
+    // If a consensus engine instance is registered, include its state
+    let engineState = null;
+    const baseAdapter = require('../lib/hsm-adapter/base-adapter.cjs');
+    if (baseAdapter.getConsensusEngine && typeof baseAdapter.getConsensusEngine === 'function') {
+      const engine = baseAdapter.getConsensusEngine();
+      if (engine && typeof engine.getState === 'function') {
+        engineState = engine.getState();
+      }
+    }
+
+    res.json({
+      success: true,
+      timestamp: Date.now(),
+      engine: engineState,
+      counters: consensusCounters,
+    });
+  } catch (err) {
+    sendError(res, 500, 'consensus_status_failed', { message: err.message });
+  }
+});
+
 // POST /api/vault/rotate
 router.post('/rotate', authorize('admin:all'), runAsync(async (req, res) => {
   const newKeyId = (req.body && req.body.newKeyId) || null;
