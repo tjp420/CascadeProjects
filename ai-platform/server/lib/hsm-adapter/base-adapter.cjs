@@ -917,6 +917,26 @@ class BaseHsmAdapter {
     this._audit('DUPLICATE_BLOCK_RECONCILED', info);
   }
 
+  // ── Track 56 Encrypted search routing telemetry hooks ────────────
+
+  /**
+   * Emit an encrypted search routed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitEncryptedSearchRouted(info = {}) {
+    this._ensureInitialized();
+    this._audit('ENCRYPTED_SEARCH_ROUTED', info);
+  }
+
+  /**
+   * Emit an MPC index match verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitMpcIndexMatchVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('MPC_INDEX_MATCH_VERIFIED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
