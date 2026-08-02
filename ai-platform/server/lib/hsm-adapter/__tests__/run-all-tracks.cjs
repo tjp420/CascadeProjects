@@ -44,6 +44,7 @@ const SUITES = [
   'zk-access-token-attestation',
   'homomorphic-key-sharding',
   'mpc-gated-decryption',
+  'encrypted-deduplication',
 ];
 
 function runSuite(pattern) {

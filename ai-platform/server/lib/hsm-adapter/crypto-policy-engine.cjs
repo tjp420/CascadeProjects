@@ -296,6 +296,16 @@ const DEFAULT_POLICY = {
     requireCircuitSatisfactionProof: true,
     requireCanonicalPayloadLayout: true,
   },
+  encryptedDeduplication: {
+    minChunkBitLength: 256,
+    maxChunkBitLength: 4096,
+    maxCrossTenantChunkAllocations: 16,
+    permittedBlindingGroups: ['P-256', 'P-384', 'P-521'],
+    requireSubmitterAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedChunkPeers: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -448,6 +458,10 @@ function _mergeWithDefault(tenantPolicy) {
     mpcGatedDecryption: {
       ...DEFAULT_POLICY.mpcGatedDecryption,
       ...(tenantPolicy.mpcGatedDecryption || {}),
+    },
+    encryptedDeduplication: {
+      ...DEFAULT_POLICY.encryptedDeduplication,
+      ...(tenantPolicy.encryptedDeduplication || {}),
     },
   };
 }
@@ -1078,6 +1092,34 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateEncryptedDeduplication(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.encryptedDeduplication, ...(tenantPolicy.encryptedDeduplication || {}) };
+    if (typeof config.chunkBitLength === 'number' && config.chunkBitLength < policy.minChunkBitLength) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `chunk bit length ${config.chunkBitLength} below minimum ${policy.minChunkBitLength}`);
+    }
+    if (typeof config.chunkBitLength === 'number' && config.chunkBitLength > policy.maxChunkBitLength) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `chunk bit length ${config.chunkBitLength} exceeds maximum ${policy.maxChunkBitLength}`);
+    }
+    if (typeof config.crossTenantChunkAllocations === 'number' && config.crossTenantChunkAllocations > policy.maxCrossTenantChunkAllocations) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `cross-tenant chunk allocations ${config.crossTenantChunkAllocations} exceeds maximum ${policy.maxCrossTenantChunkAllocations}`);
+    }
+    if (typeof config.blindingGroup === 'string' && !policy.permittedBlindingGroups.includes(config.blindingGroup)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `blinding group ${config.blindingGroup} is not permitted; allowed: ${policy.permittedBlindingGroups.join(', ')}`);
+    }
+    if (policy.requireSubmitterAttestation && config.submitterAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'submitter attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedChunkPeers === 'boolean' && policy.banMalformedChunkPeers && !config.banMalformedChunkPeers) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed chunk peers must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1507,6 +1549,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'mpcGatedDecryption') {
       this._validateMpcGatedDecryption(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'encryptedDeduplication') {
+      this._validateEncryptedDeduplication(tenantPolicy, config);
       return true;
     }
 

@@ -244,6 +244,16 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "requireCircuitSatisfactionProof": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "encryptedDeduplication": {
+      "minChunkBitLength": 256,
+      "maxChunkBitLength": 4096,
+      "maxCrossTenantChunkAllocations": 16,
+      "permittedBlindingGroups": ["P-256", "P-384", "P-521"],
+      "requireSubmitterAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedChunkPeers": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
