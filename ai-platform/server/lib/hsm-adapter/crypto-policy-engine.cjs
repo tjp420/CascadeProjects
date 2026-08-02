@@ -240,6 +240,17 @@ const DEFAULT_POLICY = {
     commitmentGroup: 'P-256',
     requireZkValidation: true,
   },
+  pqcIdentityHub: {
+    minIssuanceQuorum: 3,
+    maxCommitteeSize: 10,
+    kemAlgorithm: 'ML-KEM-1024',
+    requireHostAttestation: true,
+    requireCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxIdentityAgeSeconds: 86400,
+    banUnattestedPeers: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -372,6 +383,10 @@ function _mergeWithDefault(tenantPolicy) {
     dkg: {
       ...DEFAULT_POLICY.dkg,
       ...(tenantPolicy.dkg || {}),
+    },
+    pqcIdentityHub: {
+      ...DEFAULT_POLICY.pqcIdentityHub,
+      ...(tenantPolicy.pqcIdentityHub || {}),
     },
   };
 }
@@ -859,6 +874,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqcIdentityHub(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqcIdentityHub, ...(tenantPolicy.pqcIdentityHub || {}) };
+    if (typeof config.issuanceQuorum === 'number' && config.issuanceQuorum < policy.minIssuanceQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `issuance quorum ${config.issuanceQuorum} below minimum ${policy.minIssuanceQuorum}`);
+    }
+    if (typeof config.committeeSize === 'number' && config.committeeSize > policy.maxCommitteeSize) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `committee size ${config.committeeSize} exceeds maximum ${policy.maxCommitteeSize}`);
+    }
+    if (typeof config.kemAlgorithm === 'string' && config.kemAlgorithm !== policy.kemAlgorithm) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `KEM algorithm ${config.kemAlgorithm} is not allowed; permitted: ${policy.kemAlgorithm}`);
+    }
+    if (policy.requireHostAttestation && config.hostAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'host attestation is required');
+    }
+    if (policy.requireCommitteeAttestation && config.committeeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.identityAgeSeconds === 'number' && config.identityAgeSeconds > policy.maxIdentityAgeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `identity age ${config.identityAgeSeconds}s exceeds maximum ${policy.maxIdentityAgeSeconds}s`);
+    }
+    if (typeof config.banUnattestedPeers === 'boolean' && policy.banUnattestedPeers && !config.banUnattestedPeers) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban unattested peers must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1263,6 +1309,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'dkg') {
       this._validateDkg(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqcIdentityHub') {
+      this._validatePqcIdentityHub(tenantPolicy, config);
       return true;
     }
 
