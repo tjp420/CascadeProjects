@@ -513,6 +513,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderCredentialClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqPatentGating: {
+    minLicensingQuorum: 3,
+    maxPatentExpirationSeconds: 47304000,
+    maxClaimScopeDepth: 32,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requirePatentOfficeInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderPatentClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -846,6 +857,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqEducationGating: {
       ...DEFAULT_POLICY.pqEducationGating,
       ...(tenantPolicy.pqEducationGating || {}),
+    },
+    pqPatentGating: {
+      ...DEFAULT_POLICY.pqPatentGating,
+      ...(tenantPolicy.pqPatentGating || {}),
     },
   };
 }
@@ -2087,6 +2102,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqPatentGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqPatentGating, ...(tenantPolicy.pqPatentGating || {}) };
+    if (typeof config.licensingQuorum === 'number' && config.licensingQuorum < policy.minLicensingQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `licensing quorum ${config.licensingQuorum} below minimum ${policy.minLicensingQuorum}`);
+    }
+    if (typeof config.patentExpirationSeconds === 'number' && config.patentExpirationSeconds > policy.maxPatentExpirationSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `patent expiration seconds ${config.patentExpirationSeconds} exceeds maximum ${policy.maxPatentExpirationSeconds}`);
+    }
+    if (typeof config.claimScopeDepth === 'number' && config.claimScopeDepth > policy.maxClaimScopeDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `claim scope depth ${config.claimScopeDepth} exceeds maximum ${policy.maxClaimScopeDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requirePatentOfficeInitializerAttestation && config.patentOfficeInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'patent office initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderPatentClaims === 'boolean' && policy.banMalformedOrOutOfOrderPatentClaims && !config.banMalformedOrOutOfOrderPatentClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order patent claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2616,6 +2662,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqEducationGating') {
       this._validatePqEducationGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqPatentGating') {
+      this._validatePqPatentGating(tenantPolicy, config);
       return true;
     }
 

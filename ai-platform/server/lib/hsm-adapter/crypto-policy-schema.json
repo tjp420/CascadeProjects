@@ -461,6 +461,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderCredentialClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqPatentGating": {
+      "minLicensingQuorum": 3,
+      "maxPatentExpirationSeconds": 47304000,
+      "maxClaimScopeDepth": 32,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requirePatentOfficeInitializerAttestation": true,
+      "requireClearingCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderPatentClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
