@@ -1,15 +1,15 @@
-# Software Health Report — Track 51 Homomorphic Encryption Over Mesh Topologies
+# Software Health Report — Track 52 Secure Multi-Party Inner Product and Encrypted Search Indexes
 
 **Date:** 2026-08-02
-**Branch:** `feature/track51-he-mesh-topology`
+**Branch:** `feature/track52-encrypted-search-index`
 
 ## Summary
-Implemented homomorphic encryption over mesh topologies engine. Created HeMeshTopology class with mesh graph construction (nodes + edges), Dijkstra shortest-path routing, multi-hop encrypted query planning, HE evaluation at each hop (add, subtract, scalar-mul, multiply, compare), node status tracking, query timeout/expiration, and per-node scheme capability validation. Added 9 telemetry counters.
+Implemented secure multi-party inner product and encrypted search indexes engine. Created SecureInnerProductSearch class with blind index building, multi-party shard distribution, secure inner product computation, ranked search results, index lifecycle management (build, freeze, deprecate, delete), party registration with attestation, and topK result filtering. Added 9 telemetry counters.
 
 ## Change Set (5 files)
-- he-mesh-topology.cjs - New, HeMeshTopology class (602 lines)
-- hsm-metrics.cjs - Added 9 Track 51 counters
-- he-mesh-topology.test.cjs - New, 53 tests
+- secure-inner-product-search.cjs - New, SecureInnerProductSearch class (523 lines)
+- hsm-metrics.cjs - Added 9 Track 52 counters
+- secure-inner-product-search.test.cjs - New, 36 tests
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
@@ -17,26 +17,27 @@ Implemented homomorphic encryption over mesh topologies engine. Created HeMeshTo
 | Check | Result |
 |-------|--------|
 | node -c all modified JS files | PASS |
-| 53 new Track 51 tests | PASS |
-| 278 existing tests (no regression) | PASS |
+| 36 new Track 52 tests | PASS |
+| 331 existing tests (no regression) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
 | Check | Result |
 |------|--------|
-| Node registration (6 tests) | PASS |
-| Node unregistration (3 tests) | PASS |
-| Edge management (6 tests) | PASS |
-| Shortest path routing (7 tests) | PASS |
-| Query planning (9 tests) | PASS |
-| Query execution (9 tests) | PASS |
-| Query queries (3 tests) | PASS |
-| Active/completed queries (2 tests) | PASS |
-| Expiration (1 test) | PASS |
-| Node status (3 tests) | PASS |
-| Stats/nodes/edges (3 tests) | PASS |
+| Party registration (5 tests) | PASS |
+| Party unregistration (2 tests) | PASS |
+| Index building (7 tests) | PASS |
+| Search execution (9 tests) | PASS |
+| Index freeze (2 tests) | PASS |
+| Index deprecate (2 tests) | PASS |
+| Index delete (2 tests) | PASS |
+| Index queries (2 tests) | PASS |
+| Index list (1 test) | PASS |
+| Party list (1 test) | PASS |
+| Completed queries (1 test) | PASS |
+| Stats (1 test) | PASS |
 | Reset (1 test) | PASS |
-| Full flow (1 test) | PASS |
+| Full search flow (1 test) | PASS |
 
 ## Level 3 - Security
 | Check | Result |
@@ -49,8 +50,8 @@ Implemented homomorphic encryption over mesh topologies engine. Created HeMeshTo
 None.
 
 ## Unimplemented
-- REST routes for Track 51 HE mesh operations (next phase)
-- Dashboard card for Track 51 telemetry
-- Integration with Track 50 ConfidentialFederatedLearning for encrypted model evaluation
-- Real HE scheme implementations (currently simulated additive operations)
-- Integration with Track 44 CrossEnclaveStateSync for mesh state synchronization
+- REST routes for Track 52 search operations (next phase)
+- Dashboard card for Track 52 telemetry
+- Real HE-based blinding (currently simulated with zero blinding; secret sharing provides query privacy)
+- Integration with Track 51 HeMeshTopology for mesh-based query routing
+- Integration with Track 50 ConfidentialFederatedLearning for federated index building
