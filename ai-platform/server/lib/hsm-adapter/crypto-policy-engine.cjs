@@ -453,6 +453,15 @@ const DEFAULT_POLICY = {
     allowRelayNodes: true,
     maxPeers: 128,
   },
+  thresholdAccountRecovery: {
+    minGuardians: 3,
+    maxGuardians: 16,
+    defaultTimeLockMs: 86400000,
+    requireQuorumApproval: true,
+    requireAntiReplay: true,
+    allowGuardianManagement: true,
+    maxActiveRecoveries: 100,
+  },
 };
 
 function _isObject(value) {
@@ -637,6 +646,10 @@ function _mergeWithDefault(tenantPolicy) {
     encryptedP2PRouting: {
       ...DEFAULT_POLICY.encryptedP2PRouting,
       ...(tenantPolicy.encryptedP2PRouting || {}),
+    },
+    thresholdAccountRecovery: {
+      ...DEFAULT_POLICY.thresholdAccountRecovery,
+      ...(tenantPolicy.thresholdAccountRecovery || {}),
     },
     encryptedSearchRouting: {
       ...DEFAULT_POLICY.encryptedSearchRouting,
