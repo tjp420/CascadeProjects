@@ -1414,6 +1414,35 @@ class BaseHsmAdapter {
     this._audit('CREDENTIAL_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 74 PQ patent verification gating telemetry hooks ──────────────
+
+  /**
+   * Emit a patent gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPatentGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('PATENT_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK patent claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkPatentClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_PATENT_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a patent license accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPatentLicenseAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('PATENT_LICENSE_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
