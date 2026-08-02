@@ -70,6 +70,7 @@ const SUITES = [
   'pq-financial-derivatives-gating',
   'pq-clinical-trial-verification-gating',
   'pq-vrf-audit-sortition-gating',
+  'pq-cross-border-logistics-gating',
 ];
 
 function runSuite(pattern) {

@@ -538,6 +538,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderSortitionClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqLogisticsGating": {
+      "minCustomsQuorum": 3,
+      "maxTransitWindowSeconds": 7776000,
+      "maxManifestDepth": 32,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireCustomsAuthorityInitializerAttestation": true,
+      "requireTradeCorridorCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderManifestClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
