@@ -55,6 +55,7 @@ const SUITES = [
   'pq-blind-option-pools',
   'pq-prediction-markets',
   'pq-fractional-custody',
+  'pq-lending-pools',
 ];
 
 function runSuite(pattern) {

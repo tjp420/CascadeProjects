@@ -1162,6 +1162,35 @@ class BaseHsmAdapter {
     this._audit('CUSTODY_VAULT_LIQUIDATED', info);
   }
 
+  // ── Track 66 PQ lending pools telemetry hooks ──────────────
+
+  /**
+   * Emit a lending pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitLendingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('LENDING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK solvency proof verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkSolvencyProofVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_SOLVENCY_PROOF_VERIFIED', info);
+  }
+
+  /**
+   * Emit a collateral pool liquidated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCollateralPoolLiquidated(info = {}) {
+    this._ensureInitialized();
+    this._audit('COLLATERAL_POOL_LIQUIDATED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
