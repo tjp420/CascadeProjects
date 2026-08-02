@@ -373,6 +373,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderCustodyClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqLendingPools": {
+      "minLtvRatio": 50,
+      "minLiquidationSignatureQuorum": 3,
+      "maxBorrowValueCap": 1000000000,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireBorrowerAttestation": true,
+      "requireClearingCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrSubSolvencyClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
