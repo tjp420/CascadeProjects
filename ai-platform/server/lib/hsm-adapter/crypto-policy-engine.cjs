@@ -580,6 +580,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderBiometricClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqDerivativeGating: {
+    minClearingHouseQuorum: 3,
+    maxContractExpirationSeconds: 31536000,
+    maxRiskMetricDepth: 32,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireClearingHouseInitializerAttestation: true,
+    requireRiskCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderDerivativeClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -929,6 +940,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqBiometricGating: {
       ...DEFAULT_POLICY.pqBiometricGating,
       ...(tenantPolicy.pqBiometricGating || {}),
+    },
+    pqDerivativeGating: {
+      ...DEFAULT_POLICY.pqDerivativeGating,
+      ...(tenantPolicy.pqDerivativeGating || {}),
     },
   };
 }
@@ -2322,6 +2337,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqDerivativeGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqDerivativeGating, ...(tenantPolicy.pqDerivativeGating || {}) };
+    if (typeof config.clearingHouseQuorum === 'number' && config.clearingHouseQuorum < policy.minClearingHouseQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `clearing house quorum ${config.clearingHouseQuorum} below minimum ${policy.minClearingHouseQuorum}`);
+    }
+    if (typeof config.contractExpirationSeconds === 'number' && config.contractExpirationSeconds > policy.maxContractExpirationSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `contract expiration seconds ${config.contractExpirationSeconds} exceeds maximum ${policy.maxContractExpirationSeconds}`);
+    }
+    if (typeof config.riskMetricDepth === 'number' && config.riskMetricDepth > policy.maxRiskMetricDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `risk metric depth ${config.riskMetricDepth} exceeds maximum ${policy.maxRiskMetricDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireClearingHouseInitializerAttestation && config.clearingHouseInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing house initializer attestation is required');
+    }
+    if (policy.requireRiskCommitteeAttestation && config.riskCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'risk committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderDerivativeClaims === 'boolean' && policy.banMalformedOrOutOfOrderDerivativeClaims && !config.banMalformedOrOutOfOrderDerivativeClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order derivative claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2876,6 +2922,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqBiometricGating') {
       this._validatePqBiometricGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqDerivativeGating') {
+      this._validatePqDerivativeGating(tenantPolicy, config);
       return true;
     }
 

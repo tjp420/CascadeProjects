@@ -505,6 +505,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderBiometricClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqDerivativeGating": {
+      "minClearingHouseQuorum": 3,
+      "maxContractExpirationSeconds": 31536000,
+      "maxRiskMetricDepth": 32,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireClearingHouseInitializerAttestation": true,
+      "requireRiskCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderDerivativeClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
