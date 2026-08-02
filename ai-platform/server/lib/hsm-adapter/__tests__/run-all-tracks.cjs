@@ -33,6 +33,7 @@ const SUITES = [
   'hardware-enclave',
   'dynamic-resharding',
   'disaster-recovery',
+  'confidential-issuance',
 ];
 
 function runSuite(pattern) {
