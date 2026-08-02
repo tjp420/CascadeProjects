@@ -574,7 +574,7 @@ const dashboardStaticDir = path.join(webRoot, 'simplebeacon-dashboard');
 const dashboardFallbackDir = fs.existsSync(path.join(landingRoot, 'dashboard'))
   ? path.join(landingRoot, 'dashboard')
   : null;
-const dashboardStaticOpts = {
+  const dashboardStaticOpts = {
   fallthrough: true,
   dotfiles: 'deny',
   setHeaders: (res, filePath) => {

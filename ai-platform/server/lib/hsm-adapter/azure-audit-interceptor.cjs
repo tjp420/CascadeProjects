@@ -54,6 +54,25 @@ class AuditInterceptor {
       ...extra,
     });
   }
+
+  /**
+   * Wrap an async SDK call with audit logging.
+   * @param {string} event - audit event name (e.g. 'CREATE_KEK', 'WRAP')
+   * @param {string} operation - SDK operation name (e.g. 'createKey', 'encrypt')
+   * @param {Function} fn - async function to execute
+   * @param {object} [extra] - additional metadata to include in audit
+   * @returns {Promise<*>} result of fn
+   */
+  async wrapCall(event, operation, fn, extra = {}) {
+    try {
+      const result = await fn();
+      this.logSuccess(event, operation, extra);
+      return result;
+    } catch (error) {
+      this.logFailure(event, operation, error, extra);
+      throw error;
+    }
+  }
 }
 
 module.exports = { AuditInterceptor };

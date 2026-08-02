@@ -26,6 +26,7 @@ const {
   deserialize,
   KeyringValidationError,
 } = require('../keyring-serializer.cjs');
+const { FipsSelfTestRunner } = require('./fips-self-test-runner.cjs');
 
 const WRAPPED_BLOB_VERSION = 1;
 
@@ -55,6 +56,7 @@ class BaseHsmAdapter {
    * @param {CryptoPolicyEngine} [options.policyEngine] - optional policy enforcement engine
    * @param {VolatileEvictionEngine} [options.volatileEvictionEngine] - optional eviction engine
    * @param {ProvenanceTracker} [options.provenanceTracker] - optional provenance ledger
+   * @param {EscrowBroker} [options.escrowBroker] - optional cross-tenant key escrow broker
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -79,6 +81,9 @@ class BaseHsmAdapter {
    */
   async initialize() {
     if (this._initialized) return;
+    if (this._policyEngine && this._policyEngine.getPolicy('default').fips && this._policyEngine.getPolicy('default').fips.enabled) {
+      FipsSelfTestRunner.executePowerOnSelfTests();
+    }
     await this._initialize();
     this._initialized = true;
     this._log('info', `HSM adapter initialized: ${this.providerName}`);
@@ -497,48 +502,6 @@ class BaseHsmAdapter {
     }
   }
 
-
-  _checkTemporalGuard() {
-    if (!this._timeAnchor) return;
-    const consensus = this._timeAnchor.consensusTimestamp();
-    const local = Date.now();
-    const drift = Math.abs(local - consensus);
-    if (drift > this._timeAnchor.maxDriftMs) {
-      this._audit('TEMPORAL_DRIFT_BLOCKED', { drift, maxDriftMs: this._timeAnchor.maxDriftMs, consensus, local });
-      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `local clock drift ${drift}ms exceeds ${this._timeAnchor.maxDriftMs}ms`);
-    }
-  }
-
-  /**
-   * Return the current anchored epoch timestamp.
-   * @returns {number|null}
-   */
-  currentEpoch() {
-    this._ensureInitialized();
-    return this._timeAnchor ? this._timeAnchor.currentEpoch() : null;
-  }
-
-  /**
-   * Verify a local timestamp against the anchored consensus.
-   * @param {string} tenantId
-   * @param {number} localTimestamp
-   * @param {number} [toleranceMs]
-   * @returns {boolean}
-   */
-  verifyTemporalGuard(tenantId, localTimestamp, toleranceMs) {
-    this._ensureInitialized();
-    this._ensureTenant(tenantId);
-    if (!this._timeAnchor) return true;
-    const consensus = this._timeAnchor.consensusTimestamp();
-    const drift = Math.abs(localTimestamp - consensus);
-    const max = toleranceMs || this._timeAnchor.maxDriftMs;
-    const ok = drift <= max;
-    this._audit('TEMPORAL_DRIFT_BLOCKED', { tenantId, drift, max, consensus, localTimestamp, ok });
-    if (!ok) {
-      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `temporal drift ${drift}ms exceeds ${max}ms`);
-    }
-    return true;
-  }
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {
