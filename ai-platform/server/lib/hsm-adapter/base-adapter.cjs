@@ -1191,6 +1191,35 @@ class BaseHsmAdapter {
     this._audit('COLLATERAL_POOL_LIQUIDATED', info);
   }
 
+  // ── Track 67 PQ insurance underwriting telemetry hooks ──────────────
+
+  /**
+   * Emit an insurance pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitInsurancePoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('INSURANCE_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK claim eligibility verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkClaimEligibilityVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_CLAIM_ELIGIBILITY_VERIFIED', info);
+  }
+
+  /**
+   * Emit an underwriting pool liquidated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitUnderwritingPoolLiquidated(info = {}) {
+    this._ensureInitialized();
+    this._audit('UNDERWRITING_POOL_LIQUIDATED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

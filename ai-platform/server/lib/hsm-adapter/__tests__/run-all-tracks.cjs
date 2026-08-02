@@ -56,6 +56,7 @@ const SUITES = [
   'pq-prediction-markets',
   'pq-fractional-custody',
   'pq-lending-pools',
+  'pq-insurance-underwriting',
 ];
 
 function runSuite(pattern) {
