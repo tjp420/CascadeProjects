@@ -532,7 +532,7 @@ describe('AzureKeyVaultHsmAdapter', () => {
       await adapter.initialize();
       try {
         await adapter.wrap('t1', 'k1', Buffer.alloc(32));
-        fail('should have thrown');
+        throw new Error('should have thrown');
       } catch (caught) {
         expect(caught.code).toBe('KEK_NOT_FOUND');
         expect(caught.message).toContain('KeyNotFound');
