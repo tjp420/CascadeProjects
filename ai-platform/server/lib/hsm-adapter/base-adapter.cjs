@@ -986,6 +986,35 @@ class BaseHsmAdapter {
     this._audit('VESTING_ESCROW_COMPLETED', info);
   }
 
+  // ── Track 59 PQC cross-chain governance telemetry hooks ──────────
+
+  /**
+   * Emit a cross-chain proposal broadcast event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCrossChainProposalBroadcast(info = {}) {
+    this._ensureInitialized();
+    this._audit('CROSS_CHAIN_PROPOSAL_BROADCAST', info);
+  }
+
+  /**
+   * Emit a governance vote recorded event into the audit pipeline.
+   * @param {object} info
+   */
+  emitGovernanceVoteRecorded(info = {}) {
+    this._ensureInitialized();
+    this._audit('GOVERNANCE_VOTE_RECORDED', info);
+  }
+
+  /**
+   * Emit a cross-chain proposal executed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCrossChainProposalExecuted(info = {}) {
+    this._ensureInitialized();
+    this._audit('CROSS_CHAIN_PROPOSAL_EXECUTED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

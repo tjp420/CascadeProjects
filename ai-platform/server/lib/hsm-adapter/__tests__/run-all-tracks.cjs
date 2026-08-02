@@ -48,6 +48,7 @@ const SUITES = [
   'encrypted-search-routing',
   'pq-identity-accumulator',
   'pqc-vesting-locks',
+  'pqc-cross-chain-governance',
 ];
 
 function runSuite(pattern) {
