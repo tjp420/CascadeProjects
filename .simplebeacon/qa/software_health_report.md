@@ -1,39 +1,39 @@
-# Software Health Report — Sparkline Ring-Buffer Refinement
+# Software Health Report — Track 42 Enclave Secret-Sealing and Attestation Policy
 
 **Date:** 2026-08-02
-**Branch:** `feature/sparkline-ring-buffer`
+**Branch:** `feature/track42-enclave-secret-sealing`
 
 ## Summary
-Added client-side ring-buffer accumulation and inline SVG sparkline rendering to all 3 telemetry dashboards. Created sparkline.js utility with createRingBuffer() and renderSparkline() functions. Updated all 3 services to accumulate snapshots in ring buffers (MAX_SAMPLES=60). Updated all 3 dashboard components to render sparklines inside metric chips. No backend changes, no new dependencies.
+Implemented cryptographic enforcement for sealing secrets inside hardware enclaves. Created EnclaveSecretSealingPolicy class with 4 validation areas: sealing policy (cipher, key size, data size, rotation), unseal policy (enclave boundary), attestation policy (challenge-response, replay protection, freshness), and key provisioning policy (key types, attestation, limits). Added secretSealing policy block to crypto-policy-engine.cjs with _validateSecretSealing method. Added 11 telemetry counters.
 
-## Change Set (10 files)
-- sparkline.js - New, ring buffer + SVG sparkline utility
-- replicationTelemetryService.js - Added ring buffer + getReplicationHistory()
-- dropTelemetryService.js - Added ring buffer + getDropHistory()
-- enclaveTelemetryService.js - Added ring buffer + getEnclaveHistory()
-- CoreReplicationTelemetryDashboard.js - Sparkline in each metric chip
-- DropTelemetryDashboard.js - Sparkline in each metric chip
-- EnclaveTelemetryDashboard.js - Sparkline in each metric chip
-- components.css - Added .sparkline CSS
+## Change Set (6 files)
+- enclave-secret-sealing-policy.cjs - New, EnclaveSecretSealingPolicy class (281 lines)
+- crypto-policy-engine.cjs - Added secretSealing policy block + _validateSecretSealing
+- hsm-metrics.cjs - Added 11 Track 42 counters
+- enclave-secret-sealing-policy.test.cjs - New, 39 tests
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
 ## Level 1 - Deterministic
 | Check | Result |
 |-------|--------|
-| node -c all 7 JS files | PASS |
-| 87 existing tests (no regression) | PASS |
+| node -c all modified JS files | PASS |
+| 39 new Track 42 tests | PASS |
+| 79 existing tests (no regression) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
 | Check | Result |
 |------|--------|
-| createRingBuffer() + renderSparkline() | PASS |
-| Ring buffer accumulates on fetch | PASS |
-| Sparkline renders when >= 2 samples | PASS |
-| Graceful degradation < 2 samples | PASS |
-| All 3 dashboards show sparklines | PASS |
-| SVG area fill + line + dot | PASS |
+| validateSeal (6 tests) | PASS |
+| validateUnseal (3 tests) | PASS |
+| generateChallenge (2 tests) | PASS |
+| validateAttestation (6 tests) | PASS |
+| validateKeyProvisioning (6 tests) | PASS |
+| Sealed key tracking (2 tests) | PASS |
+| reset (1 test) | PASS |
+| Policy overrides (3 tests) | PASS |
+| CryptoPolicyEngine integration (8 tests) | PASS |
 
 ## Level 3 - Security
 | Check | Result |
@@ -46,5 +46,5 @@ Added client-side ring-buffer accumulation and inline SVG sparkline rendering to
 None.
 
 ## Unimplemented
-- localStorage persistence for ring buffers (v2 enhancement)
-- Configurable sparkline colors per severity
+- REST routes for Track 42 policy enforcement (next phase)
+- Dashboard card for Track 42 telemetry
