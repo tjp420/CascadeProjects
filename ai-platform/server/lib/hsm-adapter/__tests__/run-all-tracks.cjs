@@ -58,6 +58,7 @@ const SUITES = [
   'pq-lending-pools',
   'pq-insurance-underwriting',
   'pq-supply-chain-escrow',
+  'pq-real-estate-tokenization',
 ];
 
 function runSuite(pattern) {

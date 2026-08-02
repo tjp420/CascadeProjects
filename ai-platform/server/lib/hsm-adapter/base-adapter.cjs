@@ -1249,6 +1249,35 @@ class BaseHsmAdapter {
     this._audit('PROCUREMENT_ESCROW_RELEASED', info);
   }
 
+  // ── Track 69 PQ real estate tokenization telemetry hooks ──────────────
+
+  /**
+   * Emit a real estate pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitRealEstatePoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('REAL_ESTATE_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK encumbrance clearance verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkEncumbranceClearanceVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_ENCUMBRANCE_CLEARANCE_VERIFIED', info);
+  }
+
+  /**
+   * Emit a title deed transfer finalized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitTitleDeedTransferFinalized(info = {}) {
+    this._ensureInitialized();
+    this._audit('TITLE_DEED_TRANSFER_FINALIZED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
