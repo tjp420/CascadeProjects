@@ -1356,6 +1356,35 @@ class BaseHsmAdapter {
     this._audit('SOVEREIGN_IDENTITY_GATING_COMPLETED', info);
   }
 
+  // ── Track 72 PQ health data gating telemetry hooks ──────────────
+
+  /**
+   * Emit a health gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitHealthGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('HEALTH_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK health claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkHealthClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_HEALTH_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a health record gating completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitHealthRecordGatingCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('HEALTH_RECORD_GATING_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

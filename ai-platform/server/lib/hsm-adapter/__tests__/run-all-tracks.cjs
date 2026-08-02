@@ -61,6 +61,7 @@ const SUITES = [
   'pq-real-estate-tokenization',
   'pq-carbon-tokenization',
   'pq-identity-gating',
+  'pq-health-data-gating',
 ];
 
 function runSuite(pattern) {
