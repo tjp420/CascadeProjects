@@ -127,6 +127,9 @@ class ClusterConsensusEngine {
     this._lastSnapshotTerm = 0;  // term of last entry in snapshot
     this._snapshotState = null;  // captured state machine data
 
+    // Phase 7: Implicit outbound signing
+    this._autoSignOutbound = options.autoSignOutbound !== false; // default true
+
     // Election timer
     this._electionTimer = null;
     this._heartbeatTimer = null;
@@ -380,8 +383,16 @@ class ClusterConsensusEngine {
     for (const targetId of this.clusterNodes) {
       if (targetId === this.nodeId) continue;
       if (this._requestVote) {
+        // Phase 7: Auto-sign outbound vote request payload
+        const votePayload = {
+          term: this._currentTerm,
+          candidateId: this.nodeId,
+          lastLogIndex,
+          lastLogTerm,
+        };
+        const signedEnvelope = this._signOutboundFrame(votePayload);
         votePromises.push(
-          this._requestVote(targetId, this._currentTerm, this.nodeId, lastLogIndex)
+          this._requestVote(targetId, signedEnvelope)
             .then(() => ({ targetId, granted: true }))
             .catch(() => ({ targetId, granted: false }))
         );
@@ -436,8 +447,16 @@ class ClusterConsensusEngine {
       if (targetId === this.nodeId) continue;
       let success = false;
       if (this._replicateLog) {
+        // Phase 7: Auto-sign outbound append entries payload
+        const appendPayload = {
+          term: this._currentTerm,
+          leaderId: this.nodeId,
+          entries: [entry],
+          leaderCommit: this._commitIndex,
+        };
+        const signedEnvelope = this._signOutboundFrame(appendPayload);
         try {
-          success = await this._replicateLog(targetId, [entry], this._commitIndex);
+          success = await this._replicateLog(targetId, signedEnvelope);
         } catch {
           success = false;
         }
@@ -872,8 +891,15 @@ class ClusterConsensusEngine {
       if (targetId === this.nodeId) continue;
       let success = false;
       if (this._sendHeartbeat) {
+        // Phase 7: Auto-sign outbound heartbeat payload
+        const heartbeatPayload = {
+          term: this._currentTerm,
+          leaderId: this.nodeId,
+          commitIndex: this._commitIndex,
+        };
+        const signedEnvelope = this._signOutboundFrame(heartbeatPayload);
         try {
-          success = await this._sendHeartbeat(targetId, this._currentTerm, this._commitIndex);
+          success = await this._sendHeartbeat(targetId, signedEnvelope);
         } catch {
           success = false;
         }
@@ -1130,6 +1156,38 @@ class ClusterConsensusEngine {
   }
 
   /**
+   * Phase 7: Sign an outbound RPC payload and return the signed envelope.
+   * If autoSignOutbound is disabled or no signing key is configured, returns
+   * the payload as-is (unsigned).
+   * @param {object} payload - the RPC payload to sign
+   * @returns {object} signed envelope { ...payload, signature, nonce, timestamp }
+   * @private
+   */
+  _signOutboundFrame(payload) {
+    if (!this._autoSignOutbound || !this._signingKeyPair?.privateKey) {
+      return payload;
+    }
+    const result = this.signRpcFrame(payload);
+    if (!result) {
+      this._emitAudit(CONSENSUS_EVENT.OUTBOUND_SIGN_FAILED, {
+        nodeId: this.nodeId,
+        reason: 'sign_returned_null',
+      });
+      return payload;
+    }
+    // Deep-copy the payload to prevent post-signing mutations (e.g. entry.committed)
+    // from invalidating the signature on captured envelopes.
+    const frozen = JSON.parse(JSON.stringify(payload));
+    const envelope = { ...frozen, signature: result.signature, nonce: result.nonce, timestamp: result.timestamp };
+    this._emitAudit(CONSENSUS_EVENT.OUTBOUND_SIGNED, {
+      nodeId: this.nodeId,
+      nonce: result.nonce,
+      timestamp: result.timestamp,
+    });
+    return envelope;
+  }
+
+  /**
    * Extract the signable payload from an RPC request (excluding the signature field).
    * @param {object} request - full RPC request with optional signature
    * @returns {object} payload without signature
@@ -1201,6 +1259,12 @@ class ClusterConsensusEngine {
           break;
         case CONSENSUS_EVENT.SNAPSHOT_REJECTED:
           metrics.incrementCounter('hsm_consensus_snapshot_rejected_total');
+          break;
+        case CONSENSUS_EVENT.OUTBOUND_SIGNED:
+          metrics.incrementCounter('hsm_consensus_outbound_signed_total');
+          break;
+        case CONSENSUS_EVENT.OUTBOUND_SIGN_FAILED:
+          metrics.incrementCounter('hsm_consensus_outbound_sign_failed_total');
           break;
       }
     } catch { /* metrics module optional */ }

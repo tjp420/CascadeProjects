@@ -53,6 +53,9 @@ const counters = {
   hsm_consensus_snapshot_created_total: 0,
   hsm_consensus_snapshot_installed_total: 0,
   hsm_consensus_snapshot_rejected_total: 0,
+  // Track 34 Phase 7: Implicit outbound signing counters
+  hsm_consensus_outbound_signed_total: 0,
+  hsm_consensus_outbound_sign_failed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -102,6 +105,8 @@ const META = {
   hsm_consensus_snapshot_created_total: { help: 'Total log compaction snapshots created by this node.', type: 'counter' },
   hsm_consensus_snapshot_installed_total: { help: 'Total snapshots installed from a leader on this node.', type: 'counter' },
   hsm_consensus_snapshot_rejected_total: { help: 'Total snapshots rejected (stale, invalid signature, etc.).', type: 'counter' },
+  hsm_consensus_outbound_signed_total: { help: 'Total outbound RPC frames auto-signed by the engine.', type: 'counter' },
+  hsm_consensus_outbound_sign_failed_total: { help: 'Total outbound RPC frames that failed auto-signing.', type: 'counter' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
@@ -215,3 +220,5 @@ module.exports = {
   counters,
   histograms,
 };
+
+// TEST APPEND
