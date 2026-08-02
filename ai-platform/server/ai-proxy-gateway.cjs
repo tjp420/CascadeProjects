@@ -267,6 +267,24 @@ class AIProxyGateway {
                 proxyRes.on('error', reject);
             });
 
+            // Enforce an absolute upstream socket/connect/inactivity timeout
+            try {
+                const timeoutMs = Number(this.config.requestTimeout) || 15000;
+                if (typeof proxyReq.setTimeout === 'function') {
+                    proxyReq.setTimeout(timeoutMs, () => {
+                        const err = new Error('ERR_PROXY_GATEWAY_TIMEOUT: Upstream AI partner failed to answer.');
+                        err.code = 'ETIMEDOUT';
+                        try {
+                            proxyReq.destroy(err);
+                        } catch (e) {
+                            // best-effort destroy
+                        }
+                    });
+                }
+            } catch (e) {
+                // ignore
+            }
+
             proxyReq.on('error', (error) => {
                 reject(error);
             });
@@ -313,6 +331,27 @@ class AIProxyGateway {
     }
 
     sendErrorResponse(res, error) {
+        // Map upstream timeout to 504, other network errors to 502, fallback 500
+        const isTimeout = error && (error.code === 'ETIMEDOUT' || /TIMEOUT|timed out|ERR_PROXY_GATEWAY_TIMEOUT/i.test(error.message || ''));
+        const isUpstream = error && (/ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN/i.test(error.code || '') || /socket hang up|reset/i.test(error.message || ''));
+        if (isTimeout) {
+            res.writeHead(504, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                error: 'Gateway timeout',
+                message: error.message
+            }));
+            return;
+        }
+
+        if (isUpstream) {
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                error: 'Bad gateway',
+                message: error.message
+            }));
+            return;
+        }
+
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
             error: 'Gateway error',
