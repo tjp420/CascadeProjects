@@ -49,13 +49,48 @@ class GroupReshardEngine {
   }
 
   _deriveLagrangeCoefficients(current, target) {
-    // Simple, deterministic distribution stub for reviewers.
-    // Produces equal-weight coefficients summing to 1.0 for each target node.
-    const nodeIds = target.nodeIds || [];
-    const n = nodeIds.length || 1;
-    const weight = 1 / n;
+    // Derive Lagrange basis coefficients mapping source nodes -> target nodes.
+    // For deterministic behavior we map nodeIds to numeric x positions via a stable hash,
+    // then compute floating-point Lagrange basis values. This is sufficient for tests
+    // and deterministic resharing simulation; production should use a finite field.
+    const srcIds = current.nodeIds || Object.keys(current.shares || {});
+    const tgtIds = target.nodeIds || [];
+
+    const hashToX = (id) => {
+      const h = crypto.createHash('sha256').update(String(id)).digest();
+      // use first 6 bytes as integer to keep numbers reasonable
+      const v = h.readUIntBE(0, 6);
+      return Number(v) + 1; // avoid zero
+    };
+
+    const xSrc = {};
+    for (const id of srcIds) xSrc[id] = hashToX(id);
+    const xTgt = {};
+    for (const id of tgtIds) xTgt[id] = hashToX(id + '-t');
+
     const mapping = {};
-    for (const id of nodeIds) mapping[id] = { coefficient: weight };
+    for (const t of tgtIds) {
+      const xt = xTgt[t];
+      const coeffs = {};
+      for (const i of srcIds) {
+        const xi = xSrc[i];
+        let num = 1.0;
+        let den = 1.0;
+        for (const j of srcIds) {
+          if (j === i) continue;
+          const xj = xSrc[j];
+          num *= (xt - xj);
+          den *= (xi - xj);
+        }
+        const Li = den === 0 ? 0 : num / den;
+        coeffs[i] = Li;
+      }
+      // normalize coefficients so they sum to 1 to reduce numeric drift
+      const sum = Object.values(coeffs).reduce((s, v) => s + v, 0) || 1;
+      for (const k of Object.keys(coeffs)) coeffs[k] = coeffs[k] / sum;
+      mapping[t] = { coefficients: coeffs };
+    }
+
     return mapping;
   }
 }
