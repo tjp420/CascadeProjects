@@ -1307,6 +1307,35 @@ class BaseHsmAdapter {
     this._audit('CARBON_CREDIT_RETIREMENT_FINALIZED', info);
   }
 
+  // ── Track 71 PQ identity gating telemetry hooks ──────────────
+
+  /**
+   * Emit an identity gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitIdentityGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('IDENTITY_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK attribute claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkAttributeClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_ATTRIBUTE_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a sovereign identity gating completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitSovereignIdentityGatingCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('SOVEREIGN_IDENTITY_GATING_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
