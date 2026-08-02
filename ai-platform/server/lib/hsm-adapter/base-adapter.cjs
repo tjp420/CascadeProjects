@@ -1550,6 +1550,35 @@ class BaseHsmAdapter {
     this._audit('LIVENESS_ATTESTATION_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 78 PQ financial derivatives gating telemetry hooks ──────────────
+
+  /**
+   * Emit a derivative gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitDerivativeGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('DERIVATIVE_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK derivative claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkDerivativeClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_DERIVATIVE_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a counterparty risk accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCounterpartyRiskAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('COUNTERPARTY_RISK_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

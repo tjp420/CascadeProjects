@@ -67,6 +67,7 @@ const SUITES = [
   'pq-energy-certificate-gating',
   'pq-supply-chain-provenance-gating',
   'pq-biometric-verification-gating',
+  'pq-financial-derivatives-gating',
 ];
 
 function runSuite(pattern) {
