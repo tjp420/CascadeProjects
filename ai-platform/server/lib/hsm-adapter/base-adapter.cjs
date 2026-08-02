@@ -1666,6 +1666,35 @@ class BaseHsmAdapter {
     this._audit('CARRIER_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 82 PQ AI model training gating telemetry hooks ──────────────
+
+  /**
+   * Emit a training gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitTrainingGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('TRAINING_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK training claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkTrainingClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_TRAINING_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a model accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitModelAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('MODEL_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
