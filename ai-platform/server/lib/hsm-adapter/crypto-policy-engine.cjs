@@ -425,6 +425,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderCustodyClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqLendingPools: {
+    minLtvRatio: 50,
+    minLiquidationSignatureQuorum: 3,
+    maxBorrowValueCap: 1000000000,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireBorrowerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrSubSolvencyClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -713,6 +724,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqFractionalCustody: {
       ...DEFAULT_POLICY.pqFractionalCustody,
       ...(tenantPolicy.pqFractionalCustody || {}),
+    },
+    pqLendingPools: {
+      ...DEFAULT_POLICY.pqLendingPools,
+      ...(tenantPolicy.pqLendingPools || {}),
     },
   };
 }
@@ -1706,6 +1721,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqLendingPools(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqLendingPools, ...(tenantPolicy.pqLendingPools || {}) };
+    if (typeof config.ltvRatio === 'number' && config.ltvRatio < policy.minLtvRatio) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `LTV ratio ${config.ltvRatio}% below minimum ${policy.minLtvRatio}%`);
+    }
+    if (typeof config.liquidationSignatureQuorum === 'number' && config.liquidationSignatureQuorum < policy.minLiquidationSignatureQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `liquidation signature quorum ${config.liquidationSignatureQuorum} below minimum ${policy.minLiquidationSignatureQuorum}`);
+    }
+    if (typeof config.borrowValueCap === 'number' && config.borrowValueCap > policy.maxBorrowValueCap) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `borrow value cap ${config.borrowValueCap} exceeds maximum ${policy.maxBorrowValueCap}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireBorrowerAttestation && config.borrowerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'borrower attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrSubSolvencyClaims === 'boolean' && policy.banMalformedOrSubSolvencyClaims && !config.banMalformedOrSubSolvencyClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or sub-solvency claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2195,6 +2241,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqFractionalCustody') {
       this._validatePqFractionalCustody(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqLendingPools') {
+      this._validatePqLendingPools(tenantPolicy, config);
       return true;
     }
 
