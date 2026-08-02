@@ -193,6 +193,17 @@
       "maxNodes": 10,
       "commitmentGroup": "P-256",
       "requireZkValidation": true
+    },
+    "pqcIdentityHub": {
+      "minIssuanceQuorum": 3,
+      "maxCommitteeSize": 10,
+      "kemAlgorithm": "ML-KEM-1024",
+      "requireHostAttestation": true,
+      "requireCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "maxIdentityAgeSeconds": 86400,
+      "banUnattestedPeers": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
