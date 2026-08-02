@@ -138,6 +138,15 @@ const DEFAULT_POLICY = {
     maxAttestationAgeSeconds: 60,
     allowedEnclaveCiphers: ['aes-256-gcm'],
   },
+  resharding: {
+    allowedThresholdWindows: [[2, 3], [3, 5], [5, 7]],
+    maxCommitteeExpansionFactor: 2.0,
+    maxCommitteeSize: 11,
+    requireNewNodeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    requireEphemeralRatchet: true,
+    minEpochIntervalMs: 1000,
+  },
 };
 
 function _isObject(value) {
@@ -230,6 +239,10 @@ function _mergeWithDefault(tenantPolicy) {
     enclave: {
       ...DEFAULT_POLICY.enclave,
       ...(tenantPolicy.enclave || {}),
+    },
+    resharding: {
+      ...DEFAULT_POLICY.resharding,
+      ...(tenantPolicy.resharding || {}),
     },
   };
 }
@@ -431,6 +444,34 @@ class CryptoPolicyEngine {
     }
     if (typeof config.enclaveCipher === 'string' && !policy.allowedEnclaveCiphers.includes(config.enclaveCipher)) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `enclave cipher ${config.enclaveCipher} is not allowed; permitted: ${policy.allowedEnclaveCiphers.join(', ')}`);
+    }
+  }
+
+  _validateResharding(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.resharding, ...(tenantPolicy.resharding || {}) };
+    if (config.threshold && config.committeeSize) {
+      const window = policy.allowedThresholdWindows.find(([t, c]) => t === config.threshold && c === config.committeeSize);
+      if (!window) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `threshold window ${config.threshold}-of-${config.committeeSize} is not allowed`);
+      }
+    }
+    if (typeof config.committeeSize === 'number' && config.committeeSize > policy.maxCommitteeSize) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `committee size ${config.committeeSize} exceeds maximum ${policy.maxCommitteeSize}`);
+    }
+    if (typeof config.expansionFactor === 'number' && config.expansionFactor > policy.maxCommitteeExpansionFactor) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `expansion factor ${config.expansionFactor} exceeds maximum ${policy.maxCommitteeExpansionFactor}`);
+    }
+    if (typeof config.epochIntervalMs === 'number' && config.epochIntervalMs < policy.minEpochIntervalMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `epoch interval ${config.epochIntervalMs}ms below minimum ${policy.minEpochIntervalMs}ms`);
+    }
+    if (policy.requireEphemeralRatchet && config.requireEphemeralRatchet === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ephemeral ratchet is required');
+    }
+    if (policy.requireNewNodeAttestation && config.newNodeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'new node attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
     }
   }
 
@@ -788,6 +829,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'enclave') {
       this._validateEnclave(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'resharding') {
+      this._validateResharding(tenantPolicy, config);
       return true;
     }
 
