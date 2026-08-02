@@ -484,7 +484,7 @@ class HybridSession {
     this.writeQueue = [];
     this.rekeyTimer = null;
     this.timeoutMs = opts.timeoutMs || 15000;
-    this._startRekeyTimer();
+    if (process.env.NODE_ENV !== 'test') this._startRekeyTimer();
   }
 
   _startRekeyTimer() {
@@ -492,6 +492,7 @@ class HybridSession {
     this.rekeyTimer = setInterval(() => {
       this.rekey().catch(() => {});
     }, REKEY_INTERVAL_SEC * 1000);
+    if (this.rekeyTimer && typeof this.rekeyTimer.unref === 'function') this.rekeyTimer.unref();
   }
 
   setKeys({ rootKey, sessionKey }) {

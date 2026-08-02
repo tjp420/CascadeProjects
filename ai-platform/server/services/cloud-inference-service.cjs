@@ -748,7 +748,7 @@ async function callProvider(providerId, prompt, options = {}) {
 
         // Record token budget usage for cost tracking
         try {
-            var orgId = options.orgId || 'default';
+            orgId = options.orgId || 'default';
             var inputTokens = (result && result.usage && result.usage.prompt_tokens) || 0;
             var outputTokens = (result && result.usage && result.usage.completion_tokens) || tokenCount || 0;
             tokenBudget.recordUsage(orgId, {
