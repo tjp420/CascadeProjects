@@ -149,6 +149,16 @@ const DEFAULT_POLICY = {
     requireEphemeralRatchet: true,
     minEpochIntervalMs: 1000,
   },
+  disasterRecovery: {
+    maxCrossRegionHeartbeatLatencyMs: 5000,
+    minFailoverQuorumNodes: 3,
+    allowedFailoverModes: ['bft-vote', 'operator-override'],
+    requireStandbyAttestation: true,
+    allowedStandbyAuthorities: ['mock-authority'],
+    maxStateReconstructionAgeSeconds: 60,
+    requireByzantineFaultProofs: true,
+    minSurvivingRegions: 2,
+  },
 };
 
 function _isObject(value) {
@@ -245,6 +255,10 @@ function _mergeWithDefault(tenantPolicy) {
     resharding: {
       ...DEFAULT_POLICY.resharding,
       ...(tenantPolicy.resharding || {}),
+    },
+    disasterRecovery: {
+      ...DEFAULT_POLICY.disasterRecovery,
+      ...(tenantPolicy.disasterRecovery || {}),
     },
   };
 }
@@ -483,6 +497,34 @@ class CryptoPolicyEngine {
     }
     if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+  }
+
+  _validateDisasterRecovery(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.disasterRecovery, ...(tenantPolicy.disasterRecovery || {}) };
+    if (typeof config.crossRegionHeartbeatLatencyMs === 'number' && config.crossRegionHeartbeatLatencyMs > policy.maxCrossRegionHeartbeatLatencyMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `cross-region heartbeat latency ${config.crossRegionHeartbeatLatencyMs}ms exceeds maximum ${policy.maxCrossRegionHeartbeatLatencyMs}ms`);
+    }
+    if (typeof config.failoverQuorumNodes === 'number' && config.failoverQuorumNodes < policy.minFailoverQuorumNodes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `failover quorum ${config.failoverQuorumNodes} below minimum ${policy.minFailoverQuorumNodes}`);
+    }
+    if (typeof config.failoverMode === 'string' && !policy.allowedFailoverModes.includes(config.failoverMode)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `failover mode ${config.failoverMode} is not allowed; permitted: ${policy.allowedFailoverModes.join(', ')}`);
+    }
+    if (policy.requireStandbyAttestation && config.standbyAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'standby attestation is required');
+    }
+    if (typeof config.standbyAuthority === 'string' && !policy.allowedStandbyAuthorities.includes(config.standbyAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `standby authority ${config.standbyAuthority} is not allowed; permitted: ${policy.allowedStandbyAuthorities.join(', ')}`);
+    }
+    if (typeof config.stateReconstructionAgeSeconds === 'number' && config.stateReconstructionAgeSeconds > policy.maxStateReconstructionAgeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `state reconstruction age ${config.stateReconstructionAgeSeconds}s exceeds maximum ${policy.maxStateReconstructionAgeSeconds}s`);
+    }
+    if (typeof config.survivingRegions === 'number' && config.survivingRegions < policy.minSurvivingRegions) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `surviving regions ${config.survivingRegions} below minimum ${policy.minSurvivingRegions}`);
+    }
+    if (policy.requireByzantineFaultProofs && config.byantineFaultProofs === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'byzantine fault proofs are required');
     }
   }
 
@@ -845,6 +887,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'resharding') {
       this._validateResharding(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'disasterRecovery') {
+      this._validateDisasterRecovery(tenantPolicy, config);
       return true;
     }
 

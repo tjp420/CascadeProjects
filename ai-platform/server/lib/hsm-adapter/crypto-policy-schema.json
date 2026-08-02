@@ -107,6 +107,16 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "requireEphemeralRatchet": true,
       "minEpochIntervalMs": 1000
+    },
+    "disasterRecovery": {
+      "maxCrossRegionHeartbeatLatencyMs": 5000,
+      "minFailoverQuorumNodes": 3,
+      "allowedFailoverModes": ["bft-vote", "operator-override"],
+      "requireStandbyAttestation": true,
+      "allowedStandbyAuthorities": ["mock-authority"],
+      "maxStateReconstructionAgeSeconds": 60,
+      "requireByzantineFaultProofs": true,
+      "minSurvivingRegions": 2
     }
   },
   "tenants": {}
