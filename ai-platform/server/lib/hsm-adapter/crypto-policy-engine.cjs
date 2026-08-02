@@ -128,7 +128,7 @@ const DEFAULT_POLICY = {
   },
   enclave: {
     allowedEnclaveTypes: ['mock', 'intel-sgx', 'aws-nitro'],
-    requiredMRENCLAVEHashes: [],
+    requiredMRENCLAVEHashes: ['MOCK_MRENCLAVE_00000000000000000000000000000000'],
     allowedAttestationAuthorities: ['mock-authority'],
     requireRemoteAttestation: true,
     minAttestationTtlSeconds: 300,
