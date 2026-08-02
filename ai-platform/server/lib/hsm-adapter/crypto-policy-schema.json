@@ -128,6 +128,15 @@
       "maxProofAgeSeconds": 60,
       "allowedCommitmentCurves": ["secp256k1", "bn254"],
       "minIssuanceQuorum": 2
+    },
+    "crossTenantAudit": {
+      "requireAttestationForBothEndpoints": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "minSignatureQuorumPerTenant": 2,
+      "maxVerificationWindowSeconds": 60,
+      "allowedOperations": ["key-escrow", "blind-pir", "identity-lookup"],
+      "requireDualLinkedProof": true,
+      "requireCanonicalReceiptLayout": true
     }
   },
   "tenants": {}

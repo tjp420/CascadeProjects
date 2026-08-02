@@ -175,6 +175,15 @@ const DEFAULT_POLICY = {
     allowedCommitmentCurves: ['secp256k1', 'bn254'],
     minIssuanceQuorum: 2,
   },
+  crossTenantAudit: {
+    requireAttestationForBothEndpoints: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    minSignatureQuorumPerTenant: 2,
+    maxVerificationWindowSeconds: 60,
+    allowedOperations: ['key-escrow', 'blind-pir', 'identity-lookup'],
+    requireDualLinkedProof: true,
+    requireCanonicalReceiptLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -279,6 +288,10 @@ function _mergeWithDefault(tenantPolicy) {
     confidentialIssuance: {
       ...DEFAULT_POLICY.confidentialIssuance,
       ...(tenantPolicy.confidentialIssuance || {}),
+    },
+    crossTenantAudit: {
+      ...DEFAULT_POLICY.crossTenantAudit,
+      ...(tenantPolicy.crossTenantAudit || {}),
     },
   };
 }
@@ -588,6 +601,31 @@ class CryptoPolicyEngine {
     }
     if (typeof config.issuanceQuorum === 'number' && config.issuanceQuorum < policy.minIssuanceQuorum) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `issuance quorum ${config.issuanceQuorum} below minimum ${policy.minIssuanceQuorum}`);
+    }
+  }
+
+  _validateCrossTenantAudit(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.crossTenantAudit, ...(tenantPolicy.crossTenantAudit || {}) };
+    if (policy.requireAttestationForBothEndpoints && config.attestationForBothEndpoints === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'attestation is required for both endpoints');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.signatureQuorumPerTenant === 'number' && config.signatureQuorumPerTenant < policy.minSignatureQuorumPerTenant) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `signature quorum ${config.signatureQuorumPerTenant} below minimum ${policy.minSignatureQuorumPerTenant}`);
+    }
+    if (typeof config.verificationWindowSeconds === 'number' && config.verificationWindowSeconds > policy.maxVerificationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `verification window ${config.verificationWindowSeconds}s exceeds maximum ${policy.maxVerificationWindowSeconds}s`);
+    }
+    if (typeof config.operation === 'string' && !policy.allowedOperations.includes(config.operation)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `operation ${config.operation} is not allowed; permitted: ${policy.allowedOperations.join(', ')}`);
+    }
+    if (policy.requireDualLinkedProof && config.dualLinkedProof === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'dual-linked proof is required');
+    }
+    if (policy.requireCanonicalReceiptLayout && config.canonicalReceiptLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical receipt layout is required');
     }
   }
 
@@ -960,6 +998,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'confidentialIssuance') {
       this._validateConfidentialIssuance(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'crossTenantAudit') {
+      this._validateCrossTenantAudit(tenantPolicy, config);
       return true;
     }
 
