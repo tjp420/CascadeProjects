@@ -166,4 +166,38 @@ router.get('/recovery/status', authorize('admin:all'), function (req, res) {
   }
 });
 
+// GET /api/vault/replication/status - expose core replication telemetry (Tracks 34-38)
+router.get('/replication/status', authorize('admin:all'), function (req, res) {
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const groups = {
+      migration: {},
+      reconciliation: {},
+      zkProofOfAssets: {},
+      multipartyReKeying: {},
+      encryptedP2PRouting: {},
+    };
+    const prefixMap = [
+      { prefix: 'hsm_migration_', group: 'migration' },
+      { prefix: 'hsm_reconciliation_', group: 'reconciliation' },
+      { prefix: 'hsm_poa_', group: 'zkProofOfAssets' },
+      { prefix: 'hsm_rekey_', group: 'multipartyReKeying' },
+      { prefix: 'hsm_p2p_', group: 'encryptedP2PRouting' },
+    ];
+    for (const [key, value] of Object.entries(allMetrics)) {
+      if (typeof value !== 'number') continue;
+      for (const { prefix, group } of prefixMap) {
+        if (key.startsWith(prefix)) {
+          groups[group][key] = value;
+          break;
+        }
+      }
+    }
+    res.json({ success: true, timestamp: Date.now(), groups });
+  } catch (err) {
+    sendError(res, 500, 'replication_status_failed', { message: err.message });
+  }
+});
+
 module.exports = router;
