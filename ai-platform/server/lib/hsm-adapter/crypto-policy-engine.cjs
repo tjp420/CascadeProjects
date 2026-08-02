@@ -75,6 +75,21 @@ const DEFAULT_POLICY = {
     declassificationTokenExpiryMs: 300000,
     allowedEscrowAlgorithms: ['aes-kw', 'rsa-oaep'],
   },
+  privacy: {
+    blindSignature: {
+      publicExponent: 65537,
+      allowedPublicExponents: [65537],
+      minModulusBits: 2048,
+      allowedHashFunctions: ['sha256'],
+      requireFullDomainHash: true,
+    },
+    pir: {
+      maxRows: 10000,
+      maxDimensions: 2,
+      maxQuerySizeBytes: 1048576,
+      allowedHomomorphicSchemes: ['paillier', 'bfv'],
+    },
+  },
 };
 
 function _isObject(value) {
@@ -128,6 +143,17 @@ function _mergeWithDefault(tenantPolicy) {
     escrow: {
       ...DEFAULT_POLICY.escrow,
       ...(tenantPolicy.escrow || {}),
+    },
+    privacy: {
+      ...DEFAULT_POLICY.privacy,
+      blindSignature: {
+        ...DEFAULT_POLICY.privacy.blindSignature,
+        ...(tenantPolicy.privacy && tenantPolicy.privacy.blindSignature) || {},
+      },
+      pir: {
+        ...DEFAULT_POLICY.privacy.pir,
+        ...(tenantPolicy.privacy && tenantPolicy.privacy.pir) || {},
+      },
     },
   };
 }
@@ -331,6 +357,35 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateBlind(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.privacy.blindSignature, ...(tenantPolicy.privacy && tenantPolicy.privacy.blindSignature) || {} };
+    if (typeof config.publicExponent === 'number' && policy.allowedPublicExponents.length > 0 && !policy.allowedPublicExponents.includes(config.publicExponent)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `public exponent ${config.publicExponent} is not allowed for blind signatures`);
+    }
+    if (typeof config.modulusBits === 'number' && config.modulusBits < policy.minModulusBits) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `modulus bits ${config.modulusBits} below policy minimum ${policy.minModulusBits}`);
+    }
+    if (typeof config.hashFunction === 'string' && policy.allowedHashFunctions.length > 0 && !policy.allowedHashFunctions.includes(config.hashFunction)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `hash function ${config.hashFunction} is not allowed for blind signatures`);
+    }
+  }
+
+  _validatePir(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.privacy.pir, ...(tenantPolicy.privacy && tenantPolicy.privacy.pir) || {} };
+    if (typeof config.rows === 'number' && config.rows > policy.maxRows) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pir rows ${config.rows} exceed policy ${policy.maxRows}`);
+    }
+    if (typeof config.columns === 'number' && config.columns > policy.maxDimensions) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pir dimensions ${config.columns} exceed policy ${policy.maxDimensions}`);
+    }
+    if (typeof config.querySizeBytes === 'number' && config.querySizeBytes > policy.maxQuerySizeBytes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pir query size ${config.querySizeBytes} bytes exceeds policy ${policy.maxQuerySizeBytes} bytes`);
+    }
+    if (typeof config.scheme === 'string' && policy.allowedHomomorphicSchemes.length > 0 && !policy.allowedHomomorphicSchemes.includes(config.scheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pir homomorphic scheme ${config.scheme} is not allowed`);
+    }
+  }
+
   _validateHomomorphic(tenantPolicy, config) {
     const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
     if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
@@ -363,7 +418,7 @@ class CryptoPolicyEngine {
       throw new HsmAdapterError('INVALID_THRESHOLD', 'threshold and total must be numbers');
     }
     if (threshold < 1 || total < 1 || threshold > total) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 Γëñ threshold Γëñ total (${total})`);
+      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 ╬ô├½├▒ threshold ╬ô├½├▒ total (${total})`);
     }
     if (threshold < policy.minThreshold) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `threshold ${threshold} is below policy minimum ${policy.minThreshold}`);
@@ -443,6 +498,16 @@ class CryptoPolicyEngine {
 
     if (operation === 'escrow') {
       this._validateEscrow(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'blind') {
+      this._validateBlind(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pir') {
+      this._validatePir(tenantPolicy, config);
       return true;
     }
 
