@@ -1,43 +1,41 @@
-# Test Plan — Expose Recovery Telemetry
+# Test Plan — Phase Closeout: Tracks 34-39 + Recovery Telemetry
 
-**Branch:** `feature/expose-recovery-telemetry`
+**Branch:** `feature/phase-closeout-tracks34-39`
 **Date:** 2026-08-02
-**Status:** Active
+**Status:** Final
 
 ## Objective
 
-Expose Track 39's threshold account recovery metrics to the frontend Analytical Dashboard via a JSON API endpoint, dashboard service, and component.
+Freeze the active workspace branch and document the unified social recovery deployment topologies delivered across Tracks 34-39 plus the Recovery Telemetry Exposure task.
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| `server/routes/hsm-vault-routes.cjs` | Add `GET /api/vault/recovery/status` endpoint |
-| `server/lib/__tests__/hsm-vault-recovery-status-route.test.cjs` | **New** — Test suite (6 tests) |
-| `web/dashboard/js-es2018/services/recoveryTelemetryService.js` | **New** — Dashboard service |
-| `web/dashboard/js-es2018/components/RecoveryTelemetryDashboard.js` | **New** — Dashboard component |
+| `.simplebeacon/qa/phase-closeout-tracks34-39.md` | **New** — Comprehensive phase closeout report |
+| `.simplebeacon/qa/software_health_report.md` | Updated with phase summary |
+| `.simplebeacon/qa/test_plan.md` | Updated with closeout checklist |
 
 ## Check Items
 
 ### Level 1 — Deterministic
 
-- [x] L1.1 `node -c hsm-vault-routes.cjs` — PASS
-- [x] L1.2 `node -c hsm-vault-recovery-status-route.test.cjs` — PASS
-- [x] L1.3 Recovery status route test suite (6 tests) — PASS
-- [x] L1.4 Existing vault metrics route tests (6 tests) — PASS (no regression)
-- [x] L1.5 No new dependencies added
+- [x] L1.1 All 7 PRs merged to `main` — Confirmed
+- [x] L1.2 All syntax checks pass — Confirmed
+- [x] L1.3 No new dependencies added — Confirmed
+- [x] L1.4 No secrets committed — Confirmed
 
 ### Level 2 — Functional Operations
 
-- [x] L2.01 `GET /api/vault/recovery/status` returns 200 with JSON for admin
-- [x] L2.02 Response includes all 7 recovery counters
-- [x] L2.03 Returns 403 for non-admin users
-- [x] L2.04 RecoveryTelemetryService fetches data from the endpoint
-- [x] L2.05 RecoveryTelemetryDashboard renders metric chips
+- [x] L2.1 All 7 test suites pass individually (327 total assertions) — Confirmed
+- [x] L2.2 Policy engine test suite passes (no regression) — Confirmed
+- [x] L2.3 Existing vault metrics route tests pass (no regression) — Confirmed
+- [x] L2.4 Recovery telemetry endpoint returns correct counters — Confirmed
 
-### Level 3 — Security Engineering
+### Level 3 — Self-review / Drift
 
-- [x] L3.01 Endpoint requires `admin:all` authorization
-- [x] L3.02 No secrets exposed in telemetry output
-- [x] L3.03 No scope creep — only route + service + component + tests
-- [x] L3.04 All existing tests still pass (no regression)
+- [x] L3.1 No scope creep (except noted Track 38 `retry-with-timeout.cjs`) — Confirmed
+- [x] L3.2 No ghost files or hallucinated API paths — Confirmed
+- [x] L3.3 All state machines have terminal states — Confirmed
+- [x] L3.4 All endpoints require `admin:all` authorization — Confirmed
+- [x] L3.5 Bug fixes documented (3 falsy-zero / missing-field bugs) — Confirmed
