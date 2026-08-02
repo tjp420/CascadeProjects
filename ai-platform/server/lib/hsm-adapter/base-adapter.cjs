@@ -1104,6 +1104,35 @@ class BaseHsmAdapter {
     this._audit('BLIND_OPTION_CONTRACT_EXECUTED', info);
   }
 
+  // ── Track 64 PQ prediction markets telemetry hooks ──────────────
+
+  /**
+   * Emit a prediction market initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPredictionMarketInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('PREDICTION_MARKET_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK resolution vote recorded event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkResolutionVoteRecorded(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_RESOLUTION_VOTE_RECORDED', info);
+  }
+
+  /**
+   * Emit a prediction market finalized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPredictionMarketFinalized(info = {}) {
+    this._ensureInitialized();
+    this._audit('PREDICTION_MARKET_FINALIZED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
