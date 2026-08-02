@@ -35,6 +35,7 @@ const SUITES = [
   'disaster-recovery',
   'confidential-issuance',
   'cross-tenant-audit',
+  'homomorphic-computation',
 ];
 
 function runSuite(pattern) {
