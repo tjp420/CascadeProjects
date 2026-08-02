@@ -569,6 +569,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderProvenanceClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqBiometricGating: {
+    minBiometricAuthorityQuorum: 3,
+    maxTemplateExpirationSeconds: 15552000,
+    maxLivenessMetricDepth: 16,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireBiometricAuthorityInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderBiometricClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -914,6 +925,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqSupplyChainGating: {
       ...DEFAULT_POLICY.pqSupplyChainGating,
       ...(tenantPolicy.pqSupplyChainGating || {}),
+    },
+    pqBiometricGating: {
+      ...DEFAULT_POLICY.pqBiometricGating,
+      ...(tenantPolicy.pqBiometricGating || {}),
     },
   };
 }
@@ -2276,6 +2291,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqBiometricGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqBiometricGating, ...(tenantPolicy.pqBiometricGating || {}) };
+    if (typeof config.biometricAuthorityQuorum === 'number' && config.biometricAuthorityQuorum < policy.minBiometricAuthorityQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `biometric authority quorum ${config.biometricAuthorityQuorum} below minimum ${policy.minBiometricAuthorityQuorum}`);
+    }
+    if (typeof config.templateExpirationSeconds === 'number' && config.templateExpirationSeconds > policy.maxTemplateExpirationSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `template expiration seconds ${config.templateExpirationSeconds} exceeds maximum ${policy.maxTemplateExpirationSeconds}`);
+    }
+    if (typeof config.livenessMetricDepth === 'number' && config.livenessMetricDepth > policy.maxLivenessMetricDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `liveness metric depth ${config.livenessMetricDepth} exceeds maximum ${policy.maxLivenessMetricDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireBiometricAuthorityInitializerAttestation && config.biometricAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'biometric authority initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderBiometricClaims === 'boolean' && policy.banMalformedOrOutOfOrderBiometricClaims && !config.banMalformedOrOutOfOrderBiometricClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order biometric claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2825,6 +2871,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSupplyChainGating') {
       this._validatePqSupplyChainGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqBiometricGating') {
+      this._validatePqBiometricGating(tenantPolicy, config);
       return true;
     }
 
