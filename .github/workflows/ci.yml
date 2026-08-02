@@ -51,6 +51,11 @@ jobs:
           cd simplebeacon-vscode-merged
           npm run compile --if-present
 
+      - name: Execute Master Cryptographic Track Suite
+        run: |
+          cd ai-platform
+          node server/lib/hsm-adapter/__tests__/run-all-tracks.cjs
+
       - name: Stress Test CLI Distribution Package
         run: |
           cd packages/simplebeacon-cli
