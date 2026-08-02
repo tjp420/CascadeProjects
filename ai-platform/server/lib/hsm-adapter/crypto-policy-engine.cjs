@@ -447,6 +447,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderClaimAssertions: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqSupplyChainEscrow: {
+    minOrderMatchingQuorum: 3,
+    maxProcurementDeliveryEpochs: 30,
+    maxEscrowFundingCap: 1000000000,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireProcurementInitiatorAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderDeliveryAssertions: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -743,6 +754,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqInsuranceUnderwriting: {
       ...DEFAULT_POLICY.pqInsuranceUnderwriting,
       ...(tenantPolicy.pqInsuranceUnderwriting || {}),
+    },
+    pqSupplyChainEscrow: {
+      ...DEFAULT_POLICY.pqSupplyChainEscrow,
+      ...(tenantPolicy.pqSupplyChainEscrow || {}),
     },
   };
 }
@@ -1798,6 +1813,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqSupplyChainEscrow(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqSupplyChainEscrow, ...(tenantPolicy.pqSupplyChainEscrow || {}) };
+    if (typeof config.orderMatchingQuorum === 'number' && config.orderMatchingQuorum < policy.minOrderMatchingQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `order matching quorum ${config.orderMatchingQuorum} below minimum ${policy.minOrderMatchingQuorum}`);
+    }
+    if (typeof config.procurementDeliveryEpochs === 'number' && config.procurementDeliveryEpochs > policy.maxProcurementDeliveryEpochs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `procurement delivery epochs ${config.procurementDeliveryEpochs} exceeds maximum ${policy.maxProcurementDeliveryEpochs}`);
+    }
+    if (typeof config.escrowFundingCap === 'number' && config.escrowFundingCap > policy.maxEscrowFundingCap) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `escrow funding cap ${config.escrowFundingCap} exceeds maximum ${policy.maxEscrowFundingCap}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireProcurementInitiatorAttestation && config.procurementInitiatorAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'procurement initiator attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderDeliveryAssertions === 'boolean' && policy.banMalformedOrOutOfOrderDeliveryAssertions && !config.banMalformedOrOutOfOrderDeliveryAssertions) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order delivery assertions must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2297,6 +2343,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqInsuranceUnderwriting') {
       this._validatePqInsuranceUnderwriting(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqSupplyChainEscrow') {
+      this._validatePqSupplyChainEscrow(tenantPolicy, config);
       return true;
     }
 
