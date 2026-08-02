@@ -542,6 +542,26 @@ class BaseHsmAdapter {
     this._audit('POLICY_CONSENSUS_COMMITTED', info);
   }
 
+  // ── Track 33 recovery sync telemetry hooks ─────────────────────────
+
+  /**
+   * Emit a node recovery started event into the audit pipeline.
+   * @param {object} info
+   */
+  emitNodeRecoveryStarted(info = {}) {
+    this._ensureInitialized();
+    this._audit('NODE_RECOVERY_STARTED', info);
+  }
+
+  /**
+   * Emit a node recovery synced event into the audit pipeline.
+   * @param {object} info
+   */
+  emitNodeRecoverySynced(info = {}) {
+    this._ensureInitialized();
+    this._audit('NODE_RECOVERY_SYNCED', info);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {
