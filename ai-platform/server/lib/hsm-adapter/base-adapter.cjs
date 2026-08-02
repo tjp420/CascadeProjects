@@ -413,6 +413,50 @@ class BaseHsmAdapter {
   }
   // ── High-level keyring export / import ─────────────────────────────
 
+  // ── Temporal guard (Track 22) ───────────────────────────────────
+
+  /**
+   * Check that the local clock is within the time anchor's drift window.
+   * No-op when no time anchor is configured.
+   * @private
+   */
+  _checkTemporalGuard() {
+    if (!this._timeAnchor) return;
+    const consensus = this._timeAnchor.consensusTimestamp();
+    const local = Date.now();
+    const drift = Math.abs(local - consensus);
+    if (drift > this._timeAnchor.maxDriftMs) {
+      this._audit('TEMPORAL_DRIFT_BLOCKED', { drift, maxDriftMs: this._timeAnchor.maxDriftMs, consensus, local });
+      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `local clock drift ${drift}ms exceeds ${this._timeAnchor.maxDriftMs}ms`);
+    }
+  }
+
+  /**
+   * Return the current anchored epoch timestamp.
+   * @returns {number|null}
+   */
+  currentEpoch() {
+    return this._timeAnchor ? this._timeAnchor.currentEpoch() : null;
+  }
+
+  /**
+   * Verify that a local timestamp is within the temporal guard's tolerance.
+   * @param {string} tenantId
+   * @param {number} localTimestamp
+   * @param {number} [toleranceMs] - override the anchor's maxDriftMs
+   */
+  verifyTemporalGuard(tenantId, localTimestamp, toleranceMs) {
+    this._ensureTenant(tenantId);
+    if (!this._timeAnchor) return;
+    const consensus = this._timeAnchor.consensusTimestamp();
+    const max = typeof toleranceMs === 'number' ? toleranceMs : this._timeAnchor.maxDriftMs;
+    const drift = Math.abs(localTimestamp - consensus);
+    this._audit('TEMPORAL_DRIFT_BLOCKED', { tenantId, drift, max, consensus, localTimestamp, ok: drift <= max });
+    if (drift > max) {
+      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `temporal drift ${drift}ms exceeds ${max}ms`);
+    }
+  }
+
   /**
    * Dispatches and serializes internal keyrings via a Master KEK context.
    * @param {object} keyringData - keyring object for serialize()

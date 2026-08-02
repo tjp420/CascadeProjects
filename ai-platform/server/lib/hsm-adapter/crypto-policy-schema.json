@@ -54,6 +54,14 @@
       "maxDriftMs": 60000,
       "minQuorum": 3,
       "requireEpochChain": true
+    },
+    "fips": {
+      "enabled": false,
+      "level": 3,
+      "allowedCurves": ["P-256", "P-384"],
+      "allowedKemLevels": [768, 1024],
+      "graceTokenExpiryMs": 0,
+      "allowBlinding": false
     }
   },
   "tenants": {}
