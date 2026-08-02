@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BarChart3, RefreshCw, AlertCircle, Server, Activity, Cpu, HardDrive, Globe, Zap, CheckCircle2, Shield, Lock, KeyRound, Eye, FileCheck } from 'lucide-react';
+import { BarChart3, RefreshCw, AlertCircle, Server, Activity, Cpu, HardDrive, Globe, Zap, CheckCircle2, Shield, Lock, KeyRound, Eye, FileCheck, Network, Boxes, ScanLine } from 'lucide-react';
 import { apiUrl, authHeaders } from '@/config';
 
 type PlatformStatus = {
@@ -24,9 +24,32 @@ type HealthStatus = {
   version?: string;
 };
 
+type ConsensusEngineState = {
+  nodeId?: string;
+  state?: string;
+  term?: number;
+  leaderId?: string | null;
+  commitIndex?: number;
+  lastAppliedIndex?: number;
+  logLength?: number;
+  quorumNodes?: number;
+  clusterSize?: number;
+  lastSnapshotIndex?: number;
+  lastSnapshotTerm?: number;
+  hasSnapshot?: boolean;
+};
+
+type ConsensusStatus = {
+  success?: boolean;
+  timestamp?: number;
+  engine?: ConsensusEngineState | null;
+  counters?: Record<string, number>;
+};
+
 export function PlatformView() {
   const [platformData, setPlatformData] = useState<PlatformStatus | null>(null);
   const [healthData, setHealthData] = useState<HealthStatus | null>(null);
+  const [consensusData, setConsensusData] = useState<ConsensusStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,9 +57,10 @@ export function PlatformView() {
     setLoading(true);
     setError(null);
     try {
-      const [statusResp, healthResp] = await Promise.allSettled([
+      const [statusResp, healthResp, consensusResp] = await Promise.allSettled([
         fetch(apiUrl('/platform/status'), { headers: authHeaders() }),
         fetch(apiUrl('/health'), { headers: authHeaders() }),
+        fetch(apiUrl('/vault/consensus/status'), { headers: authHeaders() }),
       ]);
 
       if (statusResp.status === 'fulfilled' && statusResp.value.ok) {
@@ -44,6 +68,9 @@ export function PlatformView() {
       }
       if (healthResp.status === 'fulfilled' && healthResp.value.ok) {
         setHealthData(await healthResp.value.json());
+      }
+      if (consensusResp.status === 'fulfilled' && consensusResp.value.ok) {
+        setConsensusData(await consensusResp.value.json());
       }
 
       if (statusResp.status === 'rejected' && healthResp.status === 'rejected') {
@@ -258,6 +285,94 @@ export function PlatformView() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Consensus Telemetry */}
+      {consensusData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Network className="h-5 w-5" />
+              Consensus Telemetry
+            </CardTitle>
+            <CardDescription>Distributed Byzantine consensus engine — Track 34 (7 phases)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Engine State */}
+            {consensusData.engine ? (
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="flex flex-col items-center gap-1 rounded-lg border p-3">
+                  <Boxes className="h-5 w-5 text-foreground-muted" />
+                  <span className="text-base font-bold capitalize">{consensusData.engine.state || '—'}</span>
+                  <span className="text-xs text-foreground-muted">Node Role</span>
+                </div>
+                <div className="flex flex-col items-center gap-1 rounded-lg border p-3">
+                  <Server className="h-5 w-5 text-foreground-muted" />
+                  <span className="text-base font-bold">{consensusData.engine.nodeId || '—'}</span>
+                  <span className="text-xs text-foreground-muted">Node ID</span>
+                </div>
+                <div className="flex flex-col items-center gap-1 rounded-lg border p-3">
+                  <Activity className="h-5 w-5 text-foreground-muted" />
+                  <span className="text-base font-bold">Term {consensusData.engine.term ?? '—'}</span>
+                  <span className="text-xs text-foreground-muted">Current Term</span>
+                </div>
+                <div className="flex flex-col items-center gap-1 rounded-lg border p-3">
+                  <CheckCircle2 className="h-5 w-5 text-foreground-muted" />
+                  <span className="text-base font-bold">{consensusData.engine.commitIndex ?? '—'}</span>
+                  <span className="text-xs text-foreground-muted">Commit Index</span>
+                </div>
+                <div className="flex flex-col items-center gap-1 rounded-lg border p-3">
+                  <ScanLine className="h-5 w-5 text-foreground-muted" />
+                  <span className="text-base font-bold">{consensusData.engine.logLength ?? '—'}</span>
+                  <span className="text-xs text-foreground-muted">Log Length</span>
+                </div>
+                <div className="flex flex-col items-center gap-1 rounded-lg border p-3">
+                  <Network className="h-5 w-5 text-foreground-muted" />
+                  <span className="text-base font-bold">{consensusData.engine.clusterSize ?? '—'}</span>
+                  <span className="text-xs text-foreground-muted">Cluster Size</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg border p-3 text-sm text-foreground-muted">
+                <AlertCircle className="h-4 w-4" />
+                No consensus engine instance registered — running in local mode
+              </div>
+            )}
+
+            {/* Leader Info */}
+            {consensusData.engine?.leaderId && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-foreground-muted">Leader</span>
+                <Badge variant="success">{consensusData.engine.leaderId}</Badge>
+              </div>
+            )}
+
+            {/* Snapshot Info */}
+            {consensusData.engine?.hasSnapshot && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-foreground-muted">Last Snapshot</span>
+                <span className="font-medium">Index {consensusData.engine.lastSnapshotIndex} (term {consensusData.engine.lastSnapshotTerm})</span>
+              </div>
+            )}
+
+            {/* Metrics Counters */}
+            {consensusData.counters && Object.keys(consensusData.counters).length > 0 && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Counters</div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {Object.entries(consensusData.counters)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([key, value]) => (
+                      <div key={key} className="flex items-center justify-between text-xs rounded-lg border px-3 py-2">
+                        <span className="text-foreground-muted font-mono">{key.replace(/^hsm_consensus_/, '').replace(/_total$/, '')}</span>
+                        <Badge variant={value > 0 ? 'default' : 'outline'}>{value}</Badge>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

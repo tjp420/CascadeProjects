@@ -1,61 +1,57 @@
-# Test Plan — Track 34 Phase 7: Implicit Outbound Transport Signing
+# Test Plan — Track 34 Phase 8: Consensus Telemetry Dashboard
 
-**Branch:** `feature/track34-phase7-implicit-signing`
+**Branch:** `feature/track34-telemetry-dashboard`
 **Date:** 2026-08-02
 **Status:** Retroactive (hotfix per QA framework)
 
 ## Objective
 
-Eliminate the risk of developers accidentally emitting unsigned RPC frames by auto-binding Ed25519 signatures directly into the outbound transport loops. The engine now intercepts all outbound payloads from `startElection()`, `sendHeartbeats()`, and `appendAndReplicate()`, routing them through `signRpcFrame()` automatically before firing the transport callbacks.
+Expose the rich array of consensus Prometheus metrics (leadership states, anti-replay drops, snapshot compaction events, outbound signing counters) to the frontend Analytical Dashboard, bridging the gap between the back-end distributed engine and real-time operational visibility.
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| `server/lib/hsm-adapter/cluster-consensus-engine.cjs` | Added `_signOutboundFrame()` helper. Updated `startElection`, `sendHeartbeats`, `appendAndReplicate` to auto-sign outbound payloads. New constructor option `autoSignOutbound` (default true). New events `OUTBOUND_SIGNED`, `OUTBOUND_SIGN_FAILED`. Deep-copy payload before signing to prevent post-signing mutations. |
-| `server/lib/hsm-adapter/hsm-metrics.cjs` | 2 new counters: `outbound_signed_total`, `outbound_sign_failed_total` |
-| `server/lib/hsm-adapter/__tests__/cluster-consensus-implicit.test.cjs` | 18 new tests |
+| `server/routes/hsm-vault-routes.cjs` | New `GET /api/vault/consensus/status` endpoint — returns JSON with engine state + all consensus counters |
+| `server/lib/hsm-adapter/base-adapter.cjs` | New `registerConsensusEngine()` / `getConsensusEngine()` module-level registry. Auto-registers when adapter receives a `consensusEngine` option. Exported in `module.exports`. |
+| `web/simplebeacon-dashboard/src/views/PlatformView.tsx` | New Consensus Telemetry card — fetches `/api/vault/consensus/status`, displays engine state (node role, term, commit index, log length, cluster size), leader info, snapshot info, and all counters in a reactive grid |
+| `server/lib/__tests__/hsm-vault-consensus-status.test.cjs` | 12 new tests |
 
 ## Check Items
 
 ### Level 1 — Deterministic (required)
 
-- [x] **L1.1** `node -c cluster-consensus-engine.cjs` — syntax pass
-- [x] **L1.2** `node -c hsm-metrics.cjs` — syntax pass
-- [x] **L1.3** `node -c cluster-consensus-implicit.test.cjs` — syntax pass
-- [x] **L1.4** `npm test` (ai-platform) — 245 suites pass, 2672 tests pass
-- [x] **L1.5** No new dependencies added
-- [x] **L1.6** No secrets/keys committed
+- [x] **L1.1** `node -c hsm-vault-routes.cjs` — syntax pass
+- [x] **L1.2** `node -c base-adapter.cjs` — syntax pass
+- [x] **L1.3** `node -c hsm-vault-consensus-status.test.cjs` — syntax pass
+- [x] **L1.4** `npx tsc --noEmit` (simplebeacon-dashboard) — TypeScript compiles clean
+- [x] **L1.5** `npm test` (ai-platform) — 246 suites pass, 2684 tests pass
+- [x] **L1.6** No new dependencies added
+- [x] **L1.7** No secrets/keys committed
 
 ### Level 2 — Behavioral
 
-- [x] **L2.1** requestVote callback receives signed envelope with signature/nonce/timestamp
-- [x] **L2.2** requestVote callback receives unsigned payload when no signing key configured
-- [x] **L2.3** requestVote callback receives unsigned payload when autoSignOutbound is false
-- [x] **L2.4** OUTBOUND_SIGNED audit event emitted during election
-- [x] **L2.5** sendHeartbeat callback receives signed envelope
-- [x] **L2.6** sendHeartbeat callback receives unsigned payload when no signing key
-- [x] **L2.7** heartbeat envelopes have incrementing nonces
-- [x] **L2.8** replicateLog callback receives signed envelope with entries
-- [x] **L2.9** replicateLog callback receives unsigned payload when autoSignOutbound is false
-- [x] **L2.10** replicateLog signed envelope can be verified by follower
-- [x] **L2.11** Full election cycle with implicit signing — follower verifies leader frames
-- [x] **L2.12** Follower rejects implicitly signed frame from wrong key
-- [x] **L2.13** Outbound signed counter increments during election
-- [x] **L2.14** Outbound signed counter increments during heartbeat
-- [x] **L2.15** Outbound signed counter increments during replication
-- [x] **L2.16** No outbound signed counter when autoSignOutbound is false
-- [x] **L2.17** Callbacks still work when no signing key and autoSignOutbound is true
-- [x] **L2.18** Existing tests with no callbacks still work (no signing key)
+- [x] **L2.1** Returns 200 with JSON consensus state for admin
+- [x] **L2.2** Includes all 21 expected consensus counter names
+- [x] **L2.3** Returns engine state when consensus engine is registered
+- [x] **L2.4** Returns null engine when no engine is registered
+- [x] **L2.5** Returns 403 for non-admin users
+- [x] **L2.6** Returns 403 without user context
+- [x] **L2.7** Counters only include `hsm_consensus_` prefixed keys
+- [x] **L2.8** Handles engine without getState gracefully
+- [x] **L2.9** Timestamp is recent (within 5 seconds)
+- [x] **L2.10** registerConsensusEngine / getConsensusEngine registry works
+- [x] **L2.11** registerConsensusEngine(null) clears the registry
+- [x] **L2.12** Frontend TypeScript compiles with new ConsensusStatus types
 
 ### Level 3 — Self-review / drift
 
-- [x] **L3.1** No scope creep — only implicit signing added
+- [x] **L3.1** No scope creep — only telemetry exposure added
 - [x] **L3.2** No ghost files
-- [x] **L3.3** All 144 existing Track 34 tests still pass (no regression)
-- [x] **L3.4** Deep-copy prevents post-signing mutation invalidation (entry.committed bug)
-- [x] **L3.5** Backward compatible — unsigned mode works when no signing key configured
-- [x] **L3.6** autoSignOutbound=false opt-out works correctly
+- [x] **L3.3** All 162 existing Track 34 tests still pass (no regression)
+- [x] **L3.4** Endpoint follows existing route patterns (authorize, runAsync, sendError)
+- [x] **L3.5** Frontend card follows existing PlatformView patterns (Card, Badge, fetch)
+- [x] **L3.6** Engine registry is module-level, auto-registers in constructor
 
 ## Pre-existing Failures (not caused by this change)
 
