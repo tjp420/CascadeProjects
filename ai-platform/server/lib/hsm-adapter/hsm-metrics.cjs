@@ -106,6 +106,14 @@ const counters = {
   hsm_reconciliation_rollback_blocked_total: 0,
   hsm_reconciliation_promotion_votes_total: 0,
   hsm_reconciliation_divergent_keys: 0,
+  // Track 36: ZK Proof-of-Assets counters
+  hsm_poa_asset_registered_total: 0,
+  hsm_poa_proof_created_total: 0,
+  hsm_poa_proof_verified_total: 0,
+  hsm_poa_proof_invalid_total: 0,
+  hsm_poa_double_count_blocked_total: 0,
+  hsm_poa_quorum_signatures_total: 0,
+  hsm_poa_active_proofs: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -201,6 +209,13 @@ const META = {
   hsm_reconciliation_rollback_blocked_total: { help: 'Total key epoch rollback attempts blocked.', type: 'counter' },
   hsm_reconciliation_promotion_votes_total: { help: 'Total promotion votes cast by healthy nodes.', type: 'counter' },
   hsm_reconciliation_divergent_keys: { help: 'Current number of keys with unresolved divergence.', type: 'gauge' },
+  hsm_poa_asset_registered_total: { help: 'Total assets registered for proof-of-assets.', type: 'counter' },
+  hsm_poa_proof_created_total: { help: 'Total ZK proof-of-assets drafts created.', type: 'counter' },
+  hsm_poa_proof_verified_total: { help: 'Total ZK proof-of-assets successfully verified.', type: 'counter' },
+  hsm_poa_proof_invalid_total: { help: 'Total ZK proof-of-assets marked invalid.', type: 'counter' },
+  hsm_poa_double_count_blocked_total: { help: 'Total asset double-counting attempts blocked.', type: 'counter' },
+  hsm_poa_quorum_signatures_total: { help: 'Total quorum signatures collected on proofs.', type: 'counter' },
+  hsm_poa_active_proofs: { help: 'Current number of active (non-terminal) proofs.', type: 'gauge' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
