@@ -45,6 +45,10 @@ const counters = {
   hsm_consensus_replay_detected_total: 0,
   hsm_consensus_nonce_stale_total: 0,
   hsm_consensus_timestamp_expired_total: 0,
+  // Track 34 Phase 5: Peer key rotation counters
+  hsm_consensus_peer_key_added_total: 0,
+  hsm_consensus_peer_key_revoked_total: 0,
+  hsm_consensus_peer_key_rotation_blocked_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -88,6 +92,9 @@ const META = {
   hsm_consensus_replay_detected_total: { help: 'Total RPC frames rejected as replayed (stale nonce or expired timestamp).', type: 'counter' },
   hsm_consensus_nonce_stale_total: { help: 'Total RPC frames rejected with stale nonce (non-monotonic).', type: 'counter' },
   hsm_consensus_timestamp_expired_total: { help: 'Total RPC frames rejected due to expired timestamp.', type: 'counter' },
+  hsm_consensus_peer_key_added_total: { help: 'Total peer public keys added via quorum-gated rotation.', type: 'counter' },
+  hsm_consensus_peer_key_revoked_total: { help: 'Total peer public keys revoked via quorum-gated rotation.', type: 'counter' },
+  hsm_consensus_peer_key_rotation_blocked_total: { help: 'Total peer key rotation attempts blocked (not leader, key not found, etc.).', type: 'counter' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
