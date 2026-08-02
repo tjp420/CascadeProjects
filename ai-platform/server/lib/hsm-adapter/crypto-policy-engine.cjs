@@ -547,6 +547,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderPatentClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqEnergyGating: {
+    minGridOperatorQuorum: 3,
+    maxCertificateExpirationSeconds: 63072000,
+    maxProductionMetricDepth: 48,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireGridOperatorInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderEnergyClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -884,6 +895,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqPatentGating: {
       ...DEFAULT_POLICY.pqPatentGating,
       ...(tenantPolicy.pqPatentGating || {}),
+    },
+    pqEnergyGating: {
+      ...DEFAULT_POLICY.pqEnergyGating,
+      ...(tenantPolicy.pqEnergyGating || {}),
     },
   };
 }
@@ -2184,6 +2199,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqEnergyGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqEnergyGating, ...(tenantPolicy.pqEnergyGating || {}) };
+    if (typeof config.gridOperatorQuorum === 'number' && config.gridOperatorQuorum < policy.minGridOperatorQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `grid operator quorum ${config.gridOperatorQuorum} below minimum ${policy.minGridOperatorQuorum}`);
+    }
+    if (typeof config.certificateExpirationSeconds === 'number' && config.certificateExpirationSeconds > policy.maxCertificateExpirationSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `certificate expiration seconds ${config.certificateExpirationSeconds} exceeds maximum ${policy.maxCertificateExpirationSeconds}`);
+    }
+    if (typeof config.productionMetricDepth === 'number' && config.productionMetricDepth > policy.maxProductionMetricDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `production metric depth ${config.productionMetricDepth} exceeds maximum ${policy.maxProductionMetricDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireGridOperatorInitializerAttestation && config.gridOperatorInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'grid operator initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderEnergyClaims === 'boolean' && policy.banMalformedOrOutOfOrderEnergyClaims && !config.banMalformedOrOutOfOrderEnergyClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order energy claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2723,6 +2769,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqPatentGating') {
       this._validatePqPatentGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqEnergyGating') {
+      this._validatePqEnergyGating(tenantPolicy, config);
       return true;
     }
 

@@ -64,6 +64,7 @@ const SUITES = [
   'pq-health-data-gating',
   'pq-education-credential-gating',
   'pq-patent-verification-gating',
+  'pq-energy-certificate-gating',
 ];
 
 function runSuite(pattern) {
