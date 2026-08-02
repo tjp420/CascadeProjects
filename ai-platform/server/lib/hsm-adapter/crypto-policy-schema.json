@@ -295,6 +295,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banExpiredOrDuplicateClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqcCrossChainGovernance": {
+      "minPlatformVotingQuorum": 3,
+      "maxConcurrentProposals": 16,
+      "maxProposalExecutionWindowSeconds": 86400,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireProposalBroadcasterAttestation": true,
+      "requireVerifierRelayAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderVotes": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

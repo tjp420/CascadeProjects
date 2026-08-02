@@ -347,6 +347,17 @@ const DEFAULT_POLICY = {
     banExpiredOrDuplicateClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqcCrossChainGovernance: {
+    minPlatformVotingQuorum: 3,
+    maxConcurrentProposals: 16,
+    maxProposalExecutionWindowSeconds: 86400,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireProposalBroadcasterAttestation: true,
+    requireVerifierRelayAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderVotes: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -519,6 +530,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqcVestingLocks: {
       ...DEFAULT_POLICY.pqcVestingLocks,
       ...(tenantPolicy.pqcVestingLocks || {}),
+    },
+    pqcCrossChainGovernance: {
+      ...DEFAULT_POLICY.pqcCrossChainGovernance,
+      ...(tenantPolicy.pqcCrossChainGovernance || {}),
     },
   };
 }
@@ -1292,6 +1307,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqcCrossChainGovernance(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqcCrossChainGovernance, ...(tenantPolicy.pqcCrossChainGovernance || {}) };
+    if (typeof config.platformVotingQuorum === 'number' && config.platformVotingQuorum < policy.minPlatformVotingQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `platform voting quorum ${config.platformVotingQuorum} below minimum ${policy.minPlatformVotingQuorum}`);
+    }
+    if (typeof config.concurrentProposals === 'number' && config.concurrentProposals > policy.maxConcurrentProposals) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `concurrent proposals ${config.concurrentProposals} exceeds maximum ${policy.maxConcurrentProposals}`);
+    }
+    if (typeof config.proposalExecutionWindowSeconds === 'number' && config.proposalExecutionWindowSeconds > policy.maxProposalExecutionWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `proposal execution window ${config.proposalExecutionWindowSeconds}s exceeds maximum ${policy.maxProposalExecutionWindowSeconds}s`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireProposalBroadcasterAttestation && config.proposalBroadcasterAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'proposal broadcaster attestation is required');
+    }
+    if (policy.requireVerifierRelayAttestation && config.verifierRelayAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'verifier relay attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderVotes === 'boolean' && policy.banMalformedOrOutOfOrderVotes && !config.banMalformedOrOutOfOrderVotes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order votes must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1746,6 +1792,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqcVestingLocks') {
       this._validatePqcVestingLocks(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqcCrossChainGovernance') {
+      this._validatePqcCrossChainGovernance(tenantPolicy, config);
       return true;
     }
 
