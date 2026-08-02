@@ -937,6 +937,26 @@ class BaseHsmAdapter {
     this._audit('MPC_INDEX_MATCH_VERIFIED', info);
   }
 
+  // ── Track 57 PQ identity accumulator telemetry hooks ─────────────
+
+  /**
+   * Emit an identity accumulator updated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitIdentityAccumulatorUpdated(info = {}) {
+    this._ensureInitialized();
+    this._audit('IDENTITY_ACCUMULATOR_UPDATED', info);
+  }
+
+  /**
+   * Emit a ZK membership claim validated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkMembershipClaimValidated(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_MEMBERSHIP_CLAIM_VALIDATED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
