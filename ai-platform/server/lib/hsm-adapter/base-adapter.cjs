@@ -56,6 +56,7 @@ class BaseHsmAdapter {
    * @param {CryptoPolicyEngine} [options.policyEngine] - optional policy enforcement engine
    * @param {VolatileEvictionEngine} [options.volatileEvictionEngine] - optional eviction engine
    * @param {ProvenanceTracker} [options.provenanceTracker] - optional provenance ledger
+   * @param {EscrowBroker} [options.escrowBroker] - optional cross-tenant key escrow broker
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -66,6 +67,7 @@ class BaseHsmAdapter {
     this._policyEngine = options.policyEngine || null;
     this._evictionEngine = options.volatileEvictionEngine || null;
     this._provenanceTracker = options.provenanceTracker || null;
+    this._escrowBroker = options.escrowBroker || null;
     this._timeAnchor = options.timeAnchor || null;
     this._initialized = false;
   }
@@ -170,17 +172,22 @@ class BaseHsmAdapter {
    * @param {string} tenantId
    * @param {string} kekId
    * @param {Buffer} wrapped
+   * @param {DeclassificationProof|object} [token] - optional cross-tenant declassification proof
    * @returns {Promise<Buffer>} plaintext
    */
-  async unwrap(tenantId, kekId, wrapped) {
+  async unwrap(tenantId, kekId, wrapped, token = null) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     if (!Buffer.isBuffer(wrapped)) {
       throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
     }
+
+    const escrow = this._escrowBroker ? this._escrowBroker.requireToken(kekId, tenantId, token) : null;
+    const effectiveTenantId = escrow ? escrow.sourceTenantId : tenantId;
+
     this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, kekId);
-    return this._unwrap(tenantId, kekId, wrapped);
+    return this._unwrap(effectiveTenantId, kekId, wrapped);
   }
 
   async _unwrap(_tenantId, _kekId, _wrapped) {
