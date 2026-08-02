@@ -98,6 +98,14 @@ jobs:
         run: |
           npx jest --config=ai-platform/jest.config.cjs --runInBand
 
+      - name: Run integration tests against Prism mock
+        env:
+          CI: true
+          PRISM_BASE: http://localhost:4010
+        run: |
+          echo 'Running integration tests against Prism mock...'
+          npx jest --config=ai-platform/jest.config.cjs ai-platform/tests/integration --runInBand
+
       - name: Collect mock logs
         if: failure()
         run: docker logs prism-mock || true

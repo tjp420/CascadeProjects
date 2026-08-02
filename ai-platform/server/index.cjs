@@ -168,7 +168,7 @@ app.use((req, res, next) => {
 
 // Explicitly handle OPTIONS preflight early so browsers receive the
 // required PNA + CORS headers even when other middleware short-circuits.
-app.options('/*', (req, res) => {
+app.options(/.*/, (req, res) => {
   try {
     const acrpn = req.headers['access-control-request-private-network'];
     if (typeof acrpn !== 'undefined') {
@@ -800,7 +800,7 @@ app.get(['/simplebeacon-dashboard', '/simplebeacon-dashboard/', '/simplebeacon-d
 });
 
 // SPA fallback for dashboard sub-routes (e.g. /simplebeacon-dashboard/analyze)
-app.get('/simplebeacon-dashboard/*', async (req, res) => {
+app.get(/^\/simplebeacon-dashboard\/.*$/, async (req, res) => {
   return sendDashboardWithRuntimeConfig(req, res);
 });
 
@@ -810,7 +810,7 @@ app.get(['/dashboard', '/dashboard/'], async (req, res) => {
 });
 
 // SPA fallback for /dashboard/* sub-routes
-app.get('/dashboard/*', async (req, res) => {
+app.get(/^\/dashboard\/.*$/, async (req, res) => {
   return sendDashboardWithRuntimeConfig(req, res);
 });
 
@@ -1304,7 +1304,7 @@ app.post('/api/_diagnostic/report-upload-test', express.json(), (req, res) => {
 });
 
 // 404 handler with audit logging
-app.use('*', (req, res) => {
+app.use(/.*/, (req, res) => {
   logSecurityEvent('route_not_found', {
     url: req.originalUrl,
     method: req.method
