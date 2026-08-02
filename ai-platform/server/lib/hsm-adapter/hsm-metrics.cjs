@@ -90,6 +90,14 @@ const counters = {
   hsm_shard_byzantine_detected_total: 0,
   hsm_shard_lagging_nodes: 0,
   hsm_shard_active: 0,
+  // Track 34: Cross-Cluster Migration counters
+  hsm_migration_initiated_total: 0,
+  hsm_migration_attested_total: 0,
+  hsm_migration_committed_total: 0,
+  hsm_migration_rolled_back_total: 0,
+  hsm_migration_ack_total: 0,
+  hsm_migration_verification_failed_total: 0,
+  hsm_migration_active: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -171,6 +179,13 @@ const META = {
   hsm_shard_byzantine_detected_total: { help: 'Total nodes flagged as byzantine due to divergence.', type: 'counter' },
   hsm_shard_lagging_nodes: { help: 'Current number of lagging nodes across all shards.', type: 'gauge' },
   hsm_shard_active: { help: 'Current number of active shards being tracked.', type: 'gauge' },
+  hsm_migration_initiated_total: { help: 'Total cross-cluster migrations initiated.', type: 'counter' },
+  hsm_migration_attested_total: { help: 'Total cross-cluster migrations attested.', type: 'counter' },
+  hsm_migration_committed_total: { help: 'Total cross-cluster migrations committed via quorum.', type: 'counter' },
+  hsm_migration_rolled_back_total: { help: 'Total cross-cluster migrations rolled back.', type: 'counter' },
+  hsm_migration_ack_total: { help: 'Total migration acknowledgments received from destination nodes.', type: 'counter' },
+  hsm_migration_verification_failed_total: { help: 'Total migrations that failed verification.', type: 'counter' },
+  hsm_migration_active: { help: 'Current number of active (in-progress) migrations.', type: 'gauge' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },

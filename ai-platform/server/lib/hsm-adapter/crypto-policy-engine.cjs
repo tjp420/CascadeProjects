@@ -356,6 +356,15 @@ const DEFAULT_POLICY = {
     requireAntiReplay: true,
     maxShardsPerCluster: 128,
   },
+  crossClusterMigration: {
+    minQuorumNodes: 3,
+    requireAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    maxConcurrentMigrations: 16,
+    requireQuorumCommit: true,
+    requireRollbackOnFailure: true,
+    maxShardsPerMigration: 32,
+  },
 };
 
 function _isObject(value) {
@@ -520,6 +529,10 @@ function _mergeWithDefault(tenantPolicy) {
     bftShardSync: {
       ...DEFAULT_POLICY.bftShardSync,
       ...(tenantPolicy.bftShardSync || {}),
+    },
+    crossClusterMigration: {
+      ...DEFAULT_POLICY.crossClusterMigration,
+      ...(tenantPolicy.crossClusterMigration || {}),
     },
     encryptedSearchRouting: {
       ...DEFAULT_POLICY.encryptedSearchRouting,
