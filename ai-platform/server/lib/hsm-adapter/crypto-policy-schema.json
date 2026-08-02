@@ -350,6 +350,18 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrSubCollateralProofs": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqPredictionMarkets": {
+      "minReporterQuorum": 3,
+      "maxDisputeResolutionEpochs": 5,
+      "maxContractLifetimeSeconds": 2592000,
+      "maxAssetWeightCap": 1000000,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireMarketInitializerAttestation": true,
+      "requireReporterRelayAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderResolutionClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
