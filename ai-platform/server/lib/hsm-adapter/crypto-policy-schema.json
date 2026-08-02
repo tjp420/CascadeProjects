@@ -395,6 +395,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderClaimAssertions": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqSupplyChainEscrow": {
+      "minOrderMatchingQuorum": 3,
+      "maxProcurementDeliveryEpochs": 30,
+      "maxEscrowFundingCap": 1000000000,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireProcurementInitiatorAttestation": true,
+      "requireClearingCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderDeliveryAssertions": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
