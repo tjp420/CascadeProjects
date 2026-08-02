@@ -1329,6 +1329,18 @@ export function AnalyzeView() {
           if (traverseErrors > 0) {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
           }
+          // Guard: 1-2 files from a folder drop likely means entries went stale
+          // (DOMException when worker reads the File). Show Select Folder prompt
+          // instead of producing a false-positive gate PASS on a stale single file.
+          if (files.length <= 2) {
+            toast.warning('Folder drop exposed only 1 file. Click Select Folder to scan the full directory.', { duration: 10000 });
+            setRequiresManualTrigger(true);
+            setScanState('idle');
+            setProgress(0);
+            setProgressLabel('Click "Select Folder" below to choose a local directory to scan.');
+            appendLog('[SimpleBeacon] Drop traversal returned too few files — showing manual Select Folder button.');
+            return;
+          }
           toast.info(`Scanning dropped folder "${rootName}" (${files.length.toLocaleString()} files)...`);
           try {
             await runBrowserLocalScan({
@@ -1357,6 +1369,12 @@ export function AnalyzeView() {
       } catch (traverseErr: any) {
         appendLog(`[SimpleBeacon] Drop traversal failed: ${traverseErr?.message || traverseErr}`);
         console.warn('[SimpleBeacon] Drop traversal error:', traverseErr);
+        setRequiresManualTrigger(true);
+        setScanState('idle');
+        setProgress(0);
+        setProgressLabel('Click "Select Folder" below to choose a local directory to scan.');
+        toast.warning('Folder drop could not be traversed. Click Select Folder to choose a directory manually.', { duration: 10000 });
+        return;
       }
     }
 
