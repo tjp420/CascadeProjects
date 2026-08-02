@@ -224,6 +224,14 @@ const DEFAULT_POLICY = {
     allowCrossTenantTables: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqcThreshold: {
+    minQuorumThreshold: 2,
+    maxNodes: 10,
+    allowedSigAlgorithms: ['ml-dsa-44', 'ml-dsa-65', 'ml-dsa-87'],
+    requireDkgValidation: true,
+    requirePartialVerification: true,
+    maxSignatureAgeSeconds: 300,
+  },
 };
 
 function _isObject(value) {
@@ -348,6 +356,10 @@ function _mergeWithDefault(tenantPolicy) {
     homomorphicDbLookup: {
       ...DEFAULT_POLICY.homomorphicDbLookup,
       ...(tenantPolicy.homomorphicDbLookup || {}),
+    },
+    pqcThreshold: {
+      ...DEFAULT_POLICY.pqcThreshold,
+      ...(tenantPolicy.pqcThreshold || {}),
     },
   };
 }
