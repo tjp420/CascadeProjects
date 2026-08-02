@@ -226,6 +226,24 @@
       "kemAlgorithm": "ML-KEM-1024",
       "isolateLowQuorumDestinations": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqcThreshold": {
+      "minSignatureThreshold": 3,
+      "maxCommitteeSize": 10,
+      "signatureAlgorithm": "ML-DSA-65",
+      "requireHybridMode": true,
+      "allowedCurves": ["P-256", "P-384", "P-521"],
+      "maxSignatureAgeSeconds": 300,
+      "requireCanonicalPayloadLayout": true
+    },
+    "mpcGatedDecryption": {
+      "minCircuitNodes": 3,
+      "maxMultiplicationGateDepth": 8,
+      "transactionTimeoutSeconds": 300,
+      "requireEnclaveAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "requireCircuitSatisfactionProof": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

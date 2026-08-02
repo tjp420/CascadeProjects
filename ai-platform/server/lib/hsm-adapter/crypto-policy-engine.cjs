@@ -273,6 +273,24 @@ const DEFAULT_POLICY = {
     isolateLowQuorumDestinations: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqcThreshold: {
+    minSignatureThreshold: 3,
+    maxCommitteeSize: 10,
+    signatureAlgorithm: 'ML-DSA-65',
+    requireHybridMode: true,
+    allowedCurves: ['P-256', 'P-384', 'P-521'],
+    maxSignatureAgeSeconds: 300,
+    requireCanonicalPayloadLayout: true,
+  },
+  mpcGatedDecryption: {
+    minCircuitNodes: 3,
+    maxMultiplicationGateDepth: 8,
+    transactionTimeoutSeconds: 300,
+    requireEnclaveAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    requireCircuitSatisfactionProof: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -417,6 +435,14 @@ function _mergeWithDefault(tenantPolicy) {
     homomorphicKeySharding: {
       ...DEFAULT_POLICY.homomorphicKeySharding,
       ...(tenantPolicy.homomorphicKeySharding || {}),
+    },
+    pqcThreshold: {
+      ...DEFAULT_POLICY.pqcThreshold,
+      ...(tenantPolicy.pqcThreshold || {}),
+    },
+    mpcGatedDecryption: {
+      ...DEFAULT_POLICY.mpcGatedDecryption,
+      ...(tenantPolicy.mpcGatedDecryption || {}),
     },
   };
 }
@@ -997,6 +1023,56 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqcThreshold(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqcThreshold, ...(tenantPolicy.pqcThreshold || {}) };
+    if (typeof config.signatureThreshold === 'number' && config.signatureThreshold < policy.minSignatureThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `signature threshold ${config.signatureThreshold} below minimum ${policy.minSignatureThreshold}`);
+    }
+    if (typeof config.committeeSize === 'number' && config.committeeSize > policy.maxCommitteeSize) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `committee size ${config.committeeSize} exceeds maximum ${policy.maxCommitteeSize}`);
+    }
+    if (typeof config.signatureAlgorithm === 'string' && config.signatureAlgorithm !== policy.signatureAlgorithm) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `signature algorithm ${config.signatureAlgorithm} is not allowed; permitted: ${policy.signatureAlgorithm}`);
+    }
+    if (policy.requireHybridMode && config.hybridMode === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'hybrid mode is required');
+    }
+    if (typeof config.curve === 'string' && !policy.allowedCurves.includes(config.curve)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `curve ${config.curve} is not permitted; allowed: ${policy.allowedCurves.join(', ')}`);
+    }
+    if (typeof config.signatureAgeSeconds === 'number' && config.signatureAgeSeconds > policy.maxSignatureAgeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `signature age ${config.signatureAgeSeconds}s exceeds maximum ${policy.maxSignatureAgeSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validateMpcGatedDecryption(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.mpcGatedDecryption, ...(tenantPolicy.mpcGatedDecryption || {}) };
+    if (typeof config.circuitNodes === 'number' && config.circuitNodes < policy.minCircuitNodes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `circuit nodes ${config.circuitNodes} below minimum ${policy.minCircuitNodes}`);
+    }
+    if (typeof config.multiplicationGateDepth === 'number' && config.multiplicationGateDepth > policy.maxMultiplicationGateDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `multiplication gate depth ${config.multiplicationGateDepth} exceeds maximum ${policy.maxMultiplicationGateDepth}`);
+    }
+    if (typeof config.transactionAgeSeconds === 'number' && config.transactionAgeSeconds > policy.transactionTimeoutSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `transaction age ${config.transactionAgeSeconds}s exceeds timeout ${policy.transactionTimeoutSeconds}s`);
+    }
+    if (policy.requireEnclaveAttestation && config.enclaveAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'enclave attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (policy.requireCircuitSatisfactionProof && config.circuitSatisfactionProof === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'circuit satisfaction proof is required');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1416,6 +1492,16 @@ class CryptoPolicyEngine {
 
     if (operation === 'homomorphicKeySharding') {
       this._validateHomomorphicKeySharding(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqcThreshold') {
+      this._validatePqcThreshold(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'mpcGatedDecryption') {
+      this._validateMpcGatedDecryption(tenantPolicy, config);
       return true;
     }
 
