@@ -458,6 +458,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderDeliveryAssertions: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqRealEstateTokenization: {
+    minCoSignerQuorum: 3,
+    maxLegalDisputeSeconds: 2592000,
+    maxAssetValuationCap: 1000000000,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireAssetInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderTitleDeedAssertions: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -758,6 +769,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqSupplyChainEscrow: {
       ...DEFAULT_POLICY.pqSupplyChainEscrow,
       ...(tenantPolicy.pqSupplyChainEscrow || {}),
+    },
+    pqRealEstateTokenization: {
+      ...DEFAULT_POLICY.pqRealEstateTokenization,
+      ...(tenantPolicy.pqRealEstateTokenization || {}),
     },
   };
 }
@@ -1844,6 +1859,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqRealEstateTokenization(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqRealEstateTokenization, ...(tenantPolicy.pqRealEstateTokenization || {}) };
+    if (typeof config.coSignerQuorum === 'number' && config.coSignerQuorum < policy.minCoSignerQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `co-signer quorum ${config.coSignerQuorum} below minimum ${policy.minCoSignerQuorum}`);
+    }
+    if (typeof config.legalDisputeSeconds === 'number' && config.legalDisputeSeconds > policy.maxLegalDisputeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `legal dispute seconds ${config.legalDisputeSeconds} exceeds maximum ${policy.maxLegalDisputeSeconds}`);
+    }
+    if (typeof config.assetValuationCap === 'number' && config.assetValuationCap > policy.maxAssetValuationCap) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `asset valuation cap ${config.assetValuationCap} exceeds maximum ${policy.maxAssetValuationCap}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireAssetInitializerAttestation && config.assetInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'asset initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderTitleDeedAssertions === 'boolean' && policy.banMalformedOrOutOfOrderTitleDeedAssertions && !config.banMalformedOrOutOfOrderTitleDeedAssertions) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order title deed assertions must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2348,6 +2394,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSupplyChainEscrow') {
       this._validatePqSupplyChainEscrow(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqRealEstateTokenization') {
+      this._validatePqRealEstateTokenization(tenantPolicy, config);
       return true;
     }
 
