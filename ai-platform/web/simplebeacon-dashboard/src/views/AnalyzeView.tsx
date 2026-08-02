@@ -966,7 +966,7 @@ export function AnalyzeView() {
             appendLog('[SimpleBeacon] Gesture chain broken — showing manual Select Folder button.');
             return;
           }
-          toast.info('Please select the folder to scan using the file picker (select any file in the folder).');
+          toast.info('Select a folder to scan — your files are processed locally in this browser and never uploaded.');
           try {
             folderInputRef.current.click();
           } catch (clickErr: any) {
@@ -982,7 +982,7 @@ export function AnalyzeView() {
         if (!dirHandlePick) {
           setScanState('error');
           appendLog('[SimpleBeacon] No folder picker available in this context. Cannot scan local path on hosted dashboard.');
-          toast.error('No folder picker available. Use the "Browse Folder" button to select a local directory, or enter a GitHub URL.');
+          toast.error('Folder picker unavailable in this browser. Try entering a GitHub URL instead, or use Chrome/Edge for local folder scanning.');
           return;
         }
         if (dirHandlePick) {
@@ -1954,8 +1954,7 @@ export function AnalyzeView() {
                 <div>
                   <strong>Select Folder</strong>
                   <p className="text-xs text-foreground-muted mt-1">
-                    Your browser blocked the automatic file picker (async gesture chain broken).
-                    Click the button below to choose a local directory to scan.
+                    Your browser requires a manual folder selection. Click the button to choose a directory — your files are scanned locally in this browser and never uploaded.
                   </p>
                 </div>
                 <Button
