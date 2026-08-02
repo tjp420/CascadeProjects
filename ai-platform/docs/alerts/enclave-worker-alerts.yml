@@ -1,3 +1,31 @@
+---
+# Alerts for Enclave Worker / HSM circuit breaker
+# Generated: 2026-08-02
+
+groups:
+  - name: enclave-worker-alerts
+    rules:
+      # Alert on tripped circuit breaker (OPEN state = 1)
+      - alert: HsmCircuitBreakerTripped
+        expr: hsm_circuit_state == 1
+        for: 0m
+        labels:
+          severity: critical
+          tier: hardware-security
+        annotations:
+          summary: "HSM circuit breaker tripped open on {{ $labels.instance }}"
+          description: "Hardware failures breached thresholds. Circuit breaker is OPEN and fast-failing requests to isolate the data tier."
+
+      # Alert on high-frequency error traffic breaching the circuit wrapper bounds
+      - alert: HsmCircuitFailureRateHigh
+        expr: rate(hsm_circuit_failures_total[5m]) > 2
+        for: 1m
+        labels:
+          severity: warning
+          tier: hardware-security
+        annotations:
+          summary: "High volume of intercepted HSM errors on {{ $labels.instance }}"
+          description: "The circuit breaker is intercepting {{ $value }} errors/sec. Hardware component is degrading."
 groups:
   - name: enclave-worker.rules
     rules:
