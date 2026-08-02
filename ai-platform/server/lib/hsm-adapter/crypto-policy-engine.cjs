@@ -274,6 +274,11 @@ const DEFAULT_POLICY = {
     requireCanonicalPayloadLayout: true,
   },
   pqcThreshold: {
+    minQuorumThreshold: 2,
+    maxNodes: 10,
+    allowedSigAlgorithms: ['ml-dsa-44', 'ml-dsa-65', 'ml-dsa-87'],
+    requireDkgValidation: true,
+    requirePartialVerification: true,
     minSignatureThreshold: 3,
     maxCommitteeSize: 10,
     signatureAlgorithm: 'ML-DSA-65',

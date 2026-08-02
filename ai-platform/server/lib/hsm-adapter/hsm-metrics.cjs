@@ -65,6 +65,14 @@ const counters = {
   hsm_dkg_nodes_disqualified_total: 0,
   hsm_dkg_zk_proofs_generated_total: 0,
   hsm_dkg_zk_proofs_invalid_total: 0,
+  // Track 27: PQC Threshold Signatures counters
+  hsm_pqc_threshold_sign_total: 0,
+  hsm_pqc_threshold_sign_failures_total: 0,
+  hsm_pqc_threshold_partial_sign_total: 0,
+  hsm_pqc_threshold_partial_verified_total: 0,
+  hsm_pqc_threshold_partial_rejected_total: 0,
+  hsm_pqc_threshold_verify_total: 0,
+  hsm_pqc_threshold_verify_failures_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -124,6 +132,13 @@ const META = {
   hsm_dkg_nodes_disqualified_total: { help: 'Total DKG nodes disqualified due to verified complaints.', type: 'counter' },
   hsm_dkg_zk_proofs_generated_total: { help: 'Total zk-SNARK validation parameters generated.', type: 'counter' },
   hsm_dkg_zk_proofs_invalid_total: { help: 'Total zk-SNARK validation parameters rejected as invalid or forged.', type: 'counter' },
+  hsm_pqc_threshold_sign_total: { help: 'Total PQC threshold signature aggregation operations.', type: 'counter' },
+  hsm_pqc_threshold_sign_failures_total: { help: 'Total PQC threshold signature aggregations that failed.', type: 'counter' },
+  hsm_pqc_threshold_partial_sign_total: { help: 'Total PQC partial signature generation operations.', type: 'counter' },
+  hsm_pqc_threshold_partial_verified_total: { help: 'Total PQC partial signatures that passed verification.', type: 'counter' },
+  hsm_pqc_threshold_partial_rejected_total: { help: 'Total PQC partial signatures that failed verification.', type: 'counter' },
+  hsm_pqc_threshold_verify_total: { help: 'Total PQC threshold signature verification operations.', type: 'counter' },
+  hsm_pqc_threshold_verify_failures_total: { help: 'Total PQC threshold signature verifications that failed.', type: 'counter' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
