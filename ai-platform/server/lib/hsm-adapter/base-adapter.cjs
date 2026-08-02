@@ -1075,6 +1075,35 @@ class BaseHsmAdapter {
     this._audit('TEMPORAL_DECRYPTION_PROVE_VERIFIED', info);
   }
 
+  // ── Track 63 PQ blind option pools telemetry hooks ──────────────
+
+  /**
+   * Emit a blind option pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitBlindOptionPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('BLIND_OPTION_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK margin adequacy verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkMarginAdequacyVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_MARGIN_ADEQUACY_VERIFIED', info);
+  }
+
+  /**
+   * Emit a blind option contract executed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitBlindOptionContractExecuted(info = {}) {
+    this._ensureInitialized();
+    this._audit('BLIND_OPTION_CONTRACT_EXECUTED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
