@@ -15,7 +15,10 @@ const { middleware: adminThrottle } = require('../lib/admin-throttle.cjs');
 const router = express.Router();
 
 // Initialize cluster keyring sync if CLUSTER_NODES is configured.
-process.nextTick(() => { try { clusterSync.init(); } catch (err) { logger.warn('[Audit] cluster-keyring-sync init failed:', err.message); } });
+// Only initialize when CLUSTER_NODES is provided and skip during tests.
+if (process.env.CLUSTER_NODES && process.env.NODE_ENV !== 'test') {
+  process.nextTick(() => { try { clusterSync.init(); } catch (err) { logger.warn('[Audit] cluster-keyring-sync init failed:', err.message); } });
+}
 
 // Shared scrubber registry for stream-mode PII scrubbing lifecycle management.
 // Created once at module load; accessible via /api/audit/scrubber-stats.

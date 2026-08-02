@@ -15,6 +15,8 @@
 // Example mocks (replace with real imports/helpers from your test utilities):
 // jest.mock('../../lib/db-client', () => ({ migrate: jest.fn(), query: jest.fn() }));
 
+let db;
+
 describe('Phase 2 Integration (scaffold)', () => {
 	beforeAll(async () => {
 		// Initialize a lightweight mocked DB to avoid real connections
