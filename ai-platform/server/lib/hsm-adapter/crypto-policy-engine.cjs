@@ -55,6 +55,19 @@ const DEFAULT_POLICY = {
     maxProofs: 100,
     allowedPrimes: [],
   },
+  time: {
+    maxDriftMs: 60000,
+    minQuorum: 3,
+    requireEpochChain: true,
+  },
+  fips: {
+    enabled: false,
+    level: 3,
+    allowedCurves: ['P-256', 'P-384'],
+    allowedKemLevels: [768, 1024],
+    graceTokenExpiryMs: 0,
+    allowBlinding: false,
+  },
 };
 
 function _isObject(value) {
@@ -100,6 +113,10 @@ function _mergeWithDefault(tenantPolicy) {
     zkp: {
       ...DEFAULT_POLICY.zkp,
       ...(tenantPolicy.zkp || {}),
+    },
+    time: {
+      ...DEFAULT_POLICY.time,
+      ...(tenantPolicy.time || {}),
     },
   };
 }
@@ -271,6 +288,16 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateTime(tenantPolicy, config) {
+    const policy = tenantPolicy.time || DEFAULT_POLICY.time;
+    if (typeof config.maxDriftMs === 'number' && config.maxDriftMs > policy.maxDriftMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `maxDriftMs ${config.maxDriftMs} exceeds policy ${policy.maxDriftMs}`);
+    }
+    if (typeof config.minQuorum === 'number' && config.minQuorum < policy.minQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `minQuorum ${config.minQuorum} below policy ${policy.minQuorum}`);
+    }
+  }
+
   _validateHomomorphic(tenantPolicy, config) {
     const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
     if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
@@ -303,7 +330,7 @@ class CryptoPolicyEngine {
       throw new HsmAdapterError('INVALID_THRESHOLD', 'threshold and total must be numbers');
     }
     if (threshold < 1 || total < 1 || threshold > total) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 ≤ threshold ≤ total (${total})`);
+      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 Γëñ threshold Γëñ total (${total})`);
     }
     if (threshold < policy.minThreshold) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `threshold ${threshold} is below policy minimum ${policy.minThreshold}`);
@@ -373,6 +400,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'zkp') {
       this._validateZkp(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'time') {
+      this._validateTime(tenantPolicy, config);
       return true;
     }
 
