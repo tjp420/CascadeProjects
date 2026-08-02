@@ -52,6 +52,7 @@ const SUITES = [
   'pqc-homomorphic-identity-bridge',
   'pq-identity-revocation',
   'pq-time-locked-matrix',
+  'pq-blind-option-pools',
 ];
 
 function runSuite(pattern) {
