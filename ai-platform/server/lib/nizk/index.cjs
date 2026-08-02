@@ -17,6 +17,14 @@ function generateProof({publicInputs = {}, secretInputs = {}, scheme = 'mock-sch
     engineTimestamp: new Date().toISOString()
   };
 
+  // assign monotonic sequence from the store
+  try{
+    const seq = store.nextSequence();
+    meta.sequence = seq;
+  }catch(e){
+    // defensive: if store sequencing is not available, leave sequence undefined
+  }
+
   // compute provenance checksum deterministically over selected fields
   const provenanceHash = sha256HexFromObject({ policyId: publicInputs.policyId || null, proof_bundle: proof, meta });
 
