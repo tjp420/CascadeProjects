@@ -130,6 +130,14 @@ const counters = {
   hsm_p2p_route_revoked_total: 0,
   hsm_p2p_replay_blocked_total: 0,
   hsm_p2p_active_routes: 0,
+  // Track 39: Threshold Account Recovery counters
+  hsm_recovery_requested_total: 0,
+  hsm_recovery_approved_total: 0,
+  hsm_recovery_executed_total: 0,
+  hsm_recovery_rejected_total: 0,
+  hsm_recovery_replay_blocked_total: 0,
+  hsm_recovery_time_lock_blocked_total: 0,
+  hsm_recovery_active: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -246,6 +254,13 @@ const META = {
   hsm_p2p_route_revoked_total: { help: 'Total P2P routes revoked.', type: 'counter' },
   hsm_p2p_replay_blocked_total: { help: 'Total P2P replay attacks blocked.', type: 'counter' },
   hsm_p2p_active_routes: { help: 'Current number of active P2P routes.', type: 'gauge' },
+  hsm_recovery_requested_total: { help: 'Total account recovery requests initiated.', type: 'counter' },
+  hsm_recovery_approved_total: { help: 'Total guardian approvals submitted.', type: 'counter' },
+  hsm_recovery_executed_total: { help: 'Total account recoveries successfully executed.', type: 'counter' },
+  hsm_recovery_rejected_total: { help: 'Total account recovery requests rejected.', type: 'counter' },
+  hsm_recovery_replay_blocked_total: { help: 'Total replay attacks blocked during recovery.', type: 'counter' },
+  hsm_recovery_time_lock_blocked_total: { help: 'Total recovery attempts blocked by time-lock.', type: 'counter' },
+  hsm_recovery_active: { help: 'Current number of active (in-progress) account recoveries.', type: 'gauge' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
