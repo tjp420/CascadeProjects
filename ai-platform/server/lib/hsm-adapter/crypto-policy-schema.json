@@ -62,6 +62,16 @@
       "allowedKemLevels": [768, 1024],
       "graceTokenExpiryMs": 0,
       "allowBlinding": false
+    },
+    "enclave": {
+      "sandboxMode": "wasm",
+      "allowedSandboxModes": ["wasm", "gvisor", "bubblewrap"],
+      "memoryWipeIntervalMs": 1000,
+      "maxSensitiveBufferAgeMs": 5000,
+      "requirePageBoundaryTracking": true,
+      "pageSizeBytes": 4096,
+      "requireAttestationLog": true,
+      "attestationTimeoutMs": 5000
     }
   },
   "tenants": {}
