@@ -549,6 +549,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderManifestClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqTrainingGating": {
+      "minTrainingOversightQuorum": 3,
+      "maxTrainingWindowSeconds": 63072000,
+      "maxProvenanceDepth": 64,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireTrainingAuthorityInitializerAttestation": true,
+      "requireModelAuditCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderTrainingClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

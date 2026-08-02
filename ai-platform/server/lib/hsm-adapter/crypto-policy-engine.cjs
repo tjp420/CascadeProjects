@@ -624,6 +624,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderManifestClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqTrainingGating: {
+    minTrainingOversightQuorum: 3,
+    maxTrainingWindowSeconds: 63072000,
+    maxProvenanceDepth: 64,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireTrainingAuthorityInitializerAttestation: true,
+    requireModelAuditCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderTrainingClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -989,6 +1000,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqLogisticsGating: {
       ...DEFAULT_POLICY.pqLogisticsGating,
       ...(tenantPolicy.pqLogisticsGating || {}),
+    },
+    pqTrainingGating: {
+      ...DEFAULT_POLICY.pqTrainingGating,
+      ...(tenantPolicy.pqTrainingGating || {}),
     },
   };
 }
@@ -2506,6 +2521,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqTrainingGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqTrainingGating, ...(tenantPolicy.pqTrainingGating || {}) };
+    if (typeof config.trainingOversightQuorum === 'number' && config.trainingOversightQuorum < policy.minTrainingOversightQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `training oversight quorum ${config.trainingOversightQuorum} below minimum ${policy.minTrainingOversightQuorum}`);
+    }
+    if (typeof config.trainingWindowSeconds === 'number' && config.trainingWindowSeconds > policy.maxTrainingWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `training window seconds ${config.trainingWindowSeconds} exceeds maximum ${policy.maxTrainingWindowSeconds}`);
+    }
+    if (typeof config.provenanceDepth === 'number' && config.provenanceDepth > policy.maxProvenanceDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `provenance depth ${config.provenanceDepth} exceeds maximum ${policy.maxProvenanceDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireTrainingAuthorityInitializerAttestation && config.trainingAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'training authority initializer attestation is required');
+    }
+    if (policy.requireModelAuditCommitteeAttestation && config.modelAuditCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'model audit committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderTrainingClaims === 'boolean' && policy.banMalformedOrOutOfOrderTrainingClaims && !config.banMalformedOrOutOfOrderTrainingClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order training claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3080,6 +3126,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqLogisticsGating') {
       this._validatePqLogisticsGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqTrainingGating') {
+      this._validatePqTrainingGating(tenantPolicy, config);
       return true;
     }
 
