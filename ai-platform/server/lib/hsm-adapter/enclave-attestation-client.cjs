@@ -26,6 +26,12 @@ class EnclaveAttestationClient {
     this.maxAttestationAgeSeconds = typeof options.maxAttestationAgeSeconds === 'number' ? options.maxAttestationAgeSeconds : 60;
     this._audit = options.audit || null;
     this._cache = new Map();
+    // Hardening options for handshake/token flows
+    this._timestampSkewMs = typeof options.timestampSkewMs === 'number' ? options.timestampSkewMs : 10000;
+    this._nonceWindowMs = typeof options.nonceWindowMs === 'number' ? options.nonceWindowMs : 60000;
+    this._tokenTtlMs = typeof options.tokenTtlMs === 'number' ? options.tokenTtlMs : 5 * 60 * 1000;
+    this._seenNonces = new Map(); // nonce -> timestamp
+    this._issuedTokens = new Map(); // token -> expiry
   }
 
   /**
@@ -72,6 +78,56 @@ class EnclaveAttestationClient {
    */
   clearCache() {
     this._cache.clear();
+  }
+
+  /**
+   * Verify a handshake payload from a peer enclave and issue a short-lived token.
+   * Expected payload: { peerId, nonce, timestamp }
+   * Throws HsmAdapterError with codes: MISSING_FIELDS, TIMESTAMP_SKEW, REPLAY_NONCE
+   */
+  async verifyHandshake(payload) {
+    if (!payload || typeof payload !== 'object') {
+      throw new HsmAdapterError('MISSING_FIELDS', 'handshake payload missing');
+    }
+    const { peerId, nonce, timestamp } = payload;
+    if (!peerId || !nonce || typeof timestamp !== 'number') {
+      throw new HsmAdapterError('MISSING_FIELDS', 'handshake payload missing required fields');
+    }
+
+    const now = Date.now();
+    if (Math.abs(now - timestamp) > this._timestampSkewMs) {
+      throw new HsmAdapterError('TIMESTAMP_SKEW', 'timestamp outside allowed window');
+    }
+
+    // Replay protection: reject if nonce seen recently
+    const seenAt = this._seenNonces.get(nonce);
+    if (seenAt && (now - seenAt) <= this._nonceWindowMs) {
+      throw new HsmAdapterError('REPLAY_NONCE', 'nonce replay detected');
+    }
+
+    // Record nonce
+    this._seenNonces.set(nonce, now);
+
+    // Issue ephemeral token
+    const token = crypto.randomBytes(16).toString('hex');
+    this._issuedTokens.set(token, now + this._tokenTtlMs);
+
+    return { token };
+  }
+
+  /**
+   * Validate a session token issued by verifyHandshake.
+   * Returns true if token exists and not expired.
+   */
+  validateSessionToken(token) {
+    if (!token) return false;
+    const exp = this._issuedTokens.get(token);
+    if (!exp) return false;
+    if (Date.now() > exp) {
+      this._issuedTokens.delete(token);
+      return false;
+    }
+    return true;
   }
 }
 

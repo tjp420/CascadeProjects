@@ -1,0 +1,11 @@
+{
+  "policyId": "policy-invalid-sigma-00001",
+  "latticeParams": { "scheme": "ModuleLWE", "n": 1024, "q": 16385, "sigma": 10.0 },
+  "thresholdParams": { "nShares": 3, "threshold": 2 },
+  "participants": [
+    { "id": "a", "role": "signer" },
+    { "id": "b", "role": "signer" },
+    { "id": "c", "role": "signer" }
+  ],
+  "immutable": true
+}
