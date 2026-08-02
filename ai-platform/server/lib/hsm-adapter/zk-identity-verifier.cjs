@@ -183,6 +183,13 @@ class ZkIdentityVerifier {
     this._audit('ZERO_KNOWLEDGE_VERIFIED', { result: ok, publicKeyPrefix: publicKey.toString('hex').slice(0, 16) });
     return ok;
   }
+
+  verifyProofOrThrow(publicKey, proof, context = '', challenge = null) {
+    const ok = this.verifyProof(publicKey, proof, context, challenge);
+    if (!ok) {
+      throw new HsmAdapterError('ZKP_VERIFICATION_FAILED', 'Zero-knowledge proof verification failed');
+    }
+  }
 }
 
 module.exports = {
