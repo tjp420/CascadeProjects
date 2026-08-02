@@ -957,6 +957,35 @@ class BaseHsmAdapter {
     this._audit('ZK_MEMBERSHIP_CLAIM_VALIDATED', info);
   }
 
+  // ── Track 58 PQC vesting locks telemetry hooks ───────────────────
+
+  /**
+   * Emit a vesting lock initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitVestingLockInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('VESTING_LOCK_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a vesting epoch release claimed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitVestingEpochReleaseClaimed(info = {}) {
+    this._ensureInitialized();
+    this._audit('VESTING_EPOCH_RELEASE_CLAIMED', info);
+  }
+
+  /**
+   * Emit a vesting escrow completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitVestingEscrowCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('VESTING_ESCROW_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

@@ -47,6 +47,7 @@ const SUITES = [
   'encrypted-deduplication',
   'encrypted-search-routing',
   'pq-identity-accumulator',
+  'pqc-vesting-locks',
 ];
 
 function runSuite(pattern) {
