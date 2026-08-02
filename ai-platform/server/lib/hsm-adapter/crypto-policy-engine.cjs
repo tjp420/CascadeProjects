@@ -234,6 +234,12 @@ const DEFAULT_POLICY = {
     requireEqualityProof: true,
     requireCanonicalPayloadLayout: true,
   },
+  dkg: {
+    minQuorumThreshold: 3,
+    maxNodes: 10,
+    commitmentGroup: 'P-256',
+    requireZkValidation: true,
+  },
 };
 
 function _isObject(value) {
@@ -362,6 +368,10 @@ function _mergeWithDefault(tenantPolicy) {
     zkSettlement: {
       ...DEFAULT_POLICY.zkSettlement,
       ...(tenantPolicy.zkSettlement || {}),
+    },
+    dkg: {
+      ...DEFAULT_POLICY.dkg,
+      ...(tenantPolicy.dkg || {}),
     },
   };
 }
@@ -830,6 +840,25 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateDkg(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.dkg, ...(tenantPolicy.dkg || {}) };
+    if (typeof config.quorumThreshold === 'number' && config.quorumThreshold < policy.minQuorumThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `quorum threshold ${config.quorumThreshold} below minimum ${policy.minQuorumThreshold}`);
+    }
+    if (typeof config.nodes === 'number' && config.nodes > policy.maxNodes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `nodes ${config.nodes} exceed maximum ${policy.maxNodes}`);
+    }
+    if (typeof config.polynomialDegree === 'number' && config.polynomialDegree >= (config.nodes || policy.maxNodes)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `polynomial degree ${config.polynomialDegree} must be less than node count ${config.nodes || policy.maxNodes}`);
+    }
+    if (typeof config.commitmentGroup === 'string' && config.commitmentGroup !== policy.commitmentGroup) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `commitment group ${config.commitmentGroup} is not allowed; permitted: ${policy.commitmentGroup}`);
+    }
+    if (policy.requireZkValidation && config.zkValidation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'zk validation is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1229,6 +1258,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'zkSettlement') {
       this._validateZkSettlement(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'dkg') {
+      this._validateDkg(tenantPolicy, config);
       return true;
     }
 
