@@ -117,6 +117,17 @@
       "maxStateReconstructionAgeSeconds": 60,
       "requireByzantineFaultProofs": true,
       "minSurvivingRegions": 2
+    },
+    "confidentialIssuance": {
+      "minTokenBitLength": 256,
+      "allowedBlindingSchemes": ["pedersen", "hash-to-curve"],
+      "requireMintingAttestation": true,
+      "allowedMintingAuthorities": ["mock-authority"],
+      "requireZkSnarkProof": true,
+      "minProofAgeSeconds": 0,
+      "maxProofAgeSeconds": 60,
+      "allowedCommitmentCurves": ["secp256k1", "bn254"],
+      "minIssuanceQuorum": 2
     }
   },
   "tenants": {}

@@ -643,6 +643,26 @@ class BaseHsmAdapter {
     this._audit('STANDBY_CLUSTER_PROVISIONED', info);
   }
 
+  // ── Track 44 confidential issuance telemetry hooks ─────────────────
+
+  /**
+   * Emit a confidential token minted event into the audit pipeline.
+   * @param {object} info
+   */
+  emitConfidentialTokenMinted(info = {}) {
+    this._ensureInitialized();
+    this._audit('CONFIDENTIAL_TOKEN_MINTED', info);
+  }
+
+  /**
+   * Emit an issuance proof validated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitIssuanceProofValidated(info = {}) {
+    this._ensureInitialized();
+    this._audit('ISSUANCE_PROOF_VALIDATED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
