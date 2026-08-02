@@ -1,62 +1,50 @@
-# Test Plan — Track 34 Phase 8: Consensus Telemetry Dashboard
+# Test Plan — Track 26: DKG & zk-SNARKs (Joint-Feldman VSS)
 
-**Branch:** `feature/track34-telemetry-dashboard`
+**Branch:** `feature/track26-dkg-zk-snarks`
 **Date:** 2026-08-02
-**Status:** Retroactive (hotfix per QA framework)
+**Status:** Active
 
 ## Objective
 
-Expose the rich array of consensus Prometheus metrics (leadership states, anti-replay drops, snapshot compaction events, outbound signing counters) to the frontend Analytical Dashboard, bridging the gap between the back-end distributed engine and real-time operational visibility.
+Implement Joint-Feldman Verifiable Secret Sharing (VSS) with zero-knowledge validation parameters, removing single-operator points of failure during distributed key generation. This is the foundational track that unblocks Tracks 27, 32, 34, 35, and 37.
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| `server/routes/hsm-vault-routes.cjs` | New `GET /api/vault/consensus/status` endpoint — returns JSON with engine state + all consensus counters |
-| `server/lib/hsm-adapter/base-adapter.cjs` | New `registerConsensusEngine()` / `getConsensusEngine()` module-level registry. Auto-registers when adapter receives a `consensusEngine` option. Exported in `module.exports`. |
-| `web/simplebeacon-dashboard/src/views/PlatformView.tsx` | New Consensus Telemetry card — fetches `/api/vault/consensus/status`, displays engine state (node role, term, commit index, log length, cluster size), leader info, snapshot info, and all counters in a reactive grid |
-| `server/lib/__tests__/hsm-vault-consensus-status.test.cjs` | 12 new tests |
+| `server/lib/hsm-adapter/dkg-snark-engine.cjs` | New — Joint-Feldman VSS engine with zk-SNARK validation parameters |
+| `server/lib/hsm-adapter/crypto-policy-engine.cjs` | Add `dkg` policy block to DEFAULT_POLICY + merge function |
+| `server/lib/hsm-adapter/hsm-metrics.cjs` | Add DKG counters and metadata |
+| `server/lib/hsm-adapter/__tests__/dkg-snark.test.cjs` | New — targeted test suite |
 
 ## Check Items
 
 ### Level 1 — Deterministic (required)
 
-- [x] **L1.1** `node -c hsm-vault-routes.cjs` — syntax pass
-- [x] **L1.2** `node -c base-adapter.cjs` — syntax pass
-- [x] **L1.3** `node -c hsm-vault-consensus-status.test.cjs` — syntax pass
-- [x] **L1.4** `npx tsc --noEmit` (simplebeacon-dashboard) — TypeScript compiles clean
-- [x] **L1.5** `npm test` (ai-platform) — 246 suites pass, 2684 tests pass
-- [x] **L1.6** No new dependencies added
-- [x] **L1.7** No secrets/keys committed
+- [ ] **L1.1** `node -c dkg-snark-engine.cjs` — syntax pass
+- [ ] **L1.2** `node -c crypto-policy-engine.cjs` — syntax pass
+- [ ] **L1.3** `node -c hsm-metrics.cjs` — syntax pass
+- [ ] **L1.4** `node -c dkg-snark.test.cjs` — syntax pass
+- [ ] **L1.5** `npm test` (ai-platform) — all tests pass, no new failures
+- [ ] **L1.6** No new dependencies added
+- [ ] **L1.7** No secrets/keys committed
 
-### Level 2 — Behavioral
+### Level 2 — Functional Operations
 
-- [x] **L2.1** Returns 200 with JSON consensus state for admin
-- [x] **L2.2** Includes all 21 expected consensus counter names
-- [x] **L2.3** Returns engine state when consensus engine is registered
-- [x] **L2.4** Returns null engine when no engine is registered
-- [x] **L2.5** Returns 403 for non-admin users
-- [x] **L2.6** Returns 403 without user context
-- [x] **L2.7** Counters only include `hsm_consensus_` prefixed keys
-- [x] **L2.8** Handles engine without getState gracefully
-- [x] **L2.9** Timestamp is recent (within 5 seconds)
-- [x] **L2.10** registerConsensusEngine / getConsensusEngine registry works
-- [x] **L2.11** registerConsensusEngine(null) clears the registry
-- [x] **L2.12** Frontend TypeScript compiles with new ConsensusStatus types
+- [ ] **L2.01** Full happy-path DKG round-trip: N=3, t=2. Nodes generate polynomials, distribute shares, verify commitments, reconstruct unified master public key (Y = prod g^a_{i,0})
+- [ ] **L2.02** Complaint management: A node distributes an invalid private share. Recipient detects failure, registers complaint, rogue node is disqualified
+- [ ] **L2.03** Quorum starvation: Key reconstruction with fewer than t valid shares throws DKG_QUORUM_STARVATION
+- [ ] **L2.04** N=5, t=3 larger quorum round-trip
+- [ ] **L2.05** Share verification: g^{s_{i,k}} == prod_{j=0}^{t-1} (C_{i,j})^{k^j} mod p
+- [ ] **L2.06** Master public key derivation: Y = prod_{i} g^{a_{i,0}} mod p
+- [ ] **L2.07** Lagrange interpolation reconstructs group secret from t shares
+- [ ] **L2.08** Policy validation: dkg.minQuorumThreshold enforced
+- [ ] **L2.09** Policy validation: dkg.maxNodes enforced
 
-### Level 3 — Self-review / drift
+### Level 3 — Security Engineering
 
-- [x] **L3.1** No scope creep — only telemetry exposure added
-- [x] **L3.2** No ghost files
-- [x] **L3.3** All 162 existing Track 34 tests still pass (no regression)
-- [x] **L3.4** Endpoint follows existing route patterns (authorize, runAsync, sendError)
-- [x] **L3.5** Frontend card follows existing PlatformView patterns (Card, Badge, fetch)
-- [x] **L3.6** Engine registry is module-level, auto-registers in constructor
-
-## Pre-existing Failures (not caused by this change)
-
-| Suite | Cause |
-|-------|-------|
-| `hsm-vault-throttle.test.cjs` | Pre-existing |
-| `hub-smoke.test.js` | Pre-existing |
-| `dashboard-auth.test.cjs` | Pre-existing |
+- [ ] **L3.01** Zero-knowledge proof forgery detection: Manipulating zk-SNARK evaluation parameters triggers DKG_ZK_PROOF_INVALID
+- [ ] **L3.02** Memory sanitization: Ephemeral polynomial coefficients (a_{i,j}) are zeroized after share distribution
+- [ ] **L3.03** No scope creep — only DKG engine + policy + metrics + tests
+- [ ] **L3.04** No ghost files or hallucinated API paths
+- [ ] **L3.05** All existing tests still pass (no regression)
