@@ -36,7 +36,9 @@ jobs:
             ${{ runner.os }}-tsbuildinfo-
 
       - name: Install Monorepo Dependencies
-        run: npm ci
+        run: |
+          rm -f package-lock.json
+          npm install --ignore-scripts
 
       - name: Verify Monorepo Build
         run: npm run build

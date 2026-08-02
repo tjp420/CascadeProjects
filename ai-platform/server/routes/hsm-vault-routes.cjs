@@ -87,6 +87,18 @@ router.post('/failover', authorize('admin:all'), runAsync(async (req, res) => {
   });
 }));
 
+// GET /api/vault/metrics — expose HSM adapter metrics in Prometheus exposition format
+router.get('/metrics', authorize('admin:all'), function (req, res) {
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const output = hsmMetrics.renderPrometheus();
+    res.setHeader('Content-Type', 'text/plain; version=0.0.4');
+    res.send(output);
+  } catch (err) {
+    sendError(res, 500, 'hsm_metrics_failed', { message: err.message });
+  }
+});
+
 // POST /api/vault/rotate
 router.post('/rotate', authorize('admin:all'), runAsync(async (req, res) => {
   const newKeyId = (req.body && req.body.newKeyId) || null;

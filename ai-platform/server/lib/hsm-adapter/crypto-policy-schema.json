@@ -55,12 +55,13 @@
       "minQuorum": 3,
       "requireEpochChain": true
     },
-    "escrow": {
-      "requireDualConsent": true,
-      "minAuthorizationQuorum": 2,
-      "maxEscrowLifetimeMs": 86400000,
-      "declassificationTokenExpiryMs": 300000,
-      "allowedEscrowAlgorithms": ["aes-kw", "rsa-oaep"]
+    "fips": {
+      "enabled": false,
+      "level": 3,
+      "allowedCurves": ["P-256", "P-384"],
+      "allowedKemLevels": [768, 1024],
+      "graceTokenExpiryMs": 0,
+      "allowBlinding": false
     }
   },
   "tenants": {}
