@@ -99,6 +99,49 @@ class EnclaveStateManager {
       return { id, purged: false, error: e.message };
     }
   }
+
+  async rotateKek(newWrapFn) {
+    // newWrapFn: async (dataKey: Buffer) => Buffer (newWrappedKey)
+    const files = fs.readdirSync(this._storageDir).filter(f => f.endsWith('.state')).sort();
+    const checkpointPath = path.join(this._storageDir, 'migration-checkpoint.json');
+    let lastProcessed = null;
+    if (fs.existsSync(checkpointPath)) {
+      try { lastProcessed = JSON.parse(fs.readFileSync(checkpointPath,'utf8')).lastProcessed; } catch (e) { lastProcessed = null; }
+    }
+
+    for (const f of files) {
+      if (lastProcessed && f <= lastProcessed) continue;
+      const p = path.join(this._storageDir, f);
+      const raw = fs.readFileSync(p, 'utf8');
+      const payload = JSON.parse(raw);
+      const wrappedKey = Buffer.from(payload.wrappedKey, 'base64');
+
+      // unwrap using current HSM
+      const dataKey = await this._hsm.unwrapKey(wrappedKey);
+
+      // create new wrapped key using provided function
+      const newWrapped = await newWrapFn(dataKey);
+
+      payload.wrappedKey = newWrapped.toString('base64');
+      payload.meta = payload.meta || {};
+      payload.meta.kekRotatedAt = Date.now();
+
+      const tmp = p + `.rot-${process.pid}-${Date.now()}`;
+      fs.writeFileSync(tmp, JSON.stringify(payload), { mode: 0o600 });
+      fs.renameSync(tmp, p);
+
+      // zeroize plaintext dataKey
+      try { dataKey.fill(0); } catch (e) {}
+
+      // update checkpoint so we can resume
+      fs.writeFileSync(checkpointPath, JSON.stringify({ lastProcessed: f }), { mode: 0o600 });
+    }
+
+    // cleanup checkpoint
+    if (fs.existsSync(checkpointPath)) fs.unlinkSync(checkpointPath);
+    return { rotated: true };
+  }
+
 }
 
 module.exports = { EnclaveStateManager };
