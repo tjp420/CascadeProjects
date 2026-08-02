@@ -240,4 +240,44 @@ describe('Track 33 base-adapter recovery telemetry hooks', () => {
     expect(() => adapter.emitNodeRecoveryStarted({ nodeId: 'node-a' })).not.toThrow();
     expect(() => adapter.emitNodeRecoverySynced({ nodeId: 'node-a' })).not.toThrow();
   });
+
+  test('emitNodeRecoveryStarted increments hsm_recovery_started_total metric', async () => {
+    const metrics = require('../hsm-metrics.cjs');
+    metrics.reset();
+    const adapter = new SoftwareHsmAdapter({ logger: { info: jest.fn() } });
+    await adapter.initialize();
+
+    adapter.emitNodeRecoveryStarted({ nodeId: 'node-a' });
+    adapter.emitNodeRecoveryStarted({ nodeId: 'node-b' });
+
+    const m = metrics.getMetrics();
+    expect(m.hsm_recovery_started_total).toBe(2);
+  });
+
+  test('emitNodeRecoverySynced increments hsm_recovery_synced_total and batches counter', async () => {
+    const metrics = require('../hsm-metrics.cjs');
+    metrics.reset();
+    const adapter = new SoftwareHsmAdapter({ logger: { info: jest.fn() } });
+    await adapter.initialize();
+
+    adapter.emitNodeRecoverySynced({ nodeId: 'node-a', batchesApplied: 3 });
+    adapter.emitNodeRecoverySynced({ nodeId: 'node-b', batchesApplied: 2 });
+
+    const m = metrics.getMetrics();
+    expect(m.hsm_recovery_synced_total).toBe(2);
+    expect(m.hsm_recovery_catchup_batches_total).toBe(5);
+  });
+
+  test('emitNodeRecoverySynced without batchesApplied does not increment batch counter', async () => {
+    const metrics = require('../hsm-metrics.cjs');
+    metrics.reset();
+    const adapter = new SoftwareHsmAdapter({ logger: { info: jest.fn() } });
+    await adapter.initialize();
+
+    adapter.emitNodeRecoverySynced({ nodeId: 'node-a' });
+
+    const m = metrics.getMetrics();
+    expect(m.hsm_recovery_synced_total).toBe(1);
+    expect(m.hsm_recovery_catchup_batches_total).toBe(0);
+  });
 });
