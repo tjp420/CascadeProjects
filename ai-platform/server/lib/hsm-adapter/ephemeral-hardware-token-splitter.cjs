@@ -64,7 +64,7 @@ class EphemeralHardwareTokenSplitter {
   /**
    * Issue a new ephemeral token for a tenant.
    * @param {string|Buffer} tenantId
-   * @returns {{value: Buffer, issuedAt: number, expiresAt: number, tenantId: string, counter: number}}
+   * @returns {{value: Buffer, issuedAt: number, expiresAt: number, tenantId: string}}
    */
   issue(tenantId) {
     if (typeof tenantId !== 'string' && !Buffer.isBuffer(tenantId)) {
@@ -76,7 +76,7 @@ class EphemeralHardwareTokenSplitter {
     this._counter++;
     const value = this._derive(tenantId, issuedAt, this._counter);
     this._audit('TOKEN_ISSUED', { tenantId: id, issuedAt, expiresAt });
-    return { value, issuedAt, expiresAt, tenantId: id, counter: this._counter };
+    return { value, issuedAt, expiresAt, tenantId: id };
   }
 
   /**
@@ -103,7 +103,7 @@ class EphemeralHardwareTokenSplitter {
       throw new HsmAdapterError('IDENTITY_PROOF_EXPIRED', 'token has expired');
     }
 
-    const expected = this._derive(tenantId, token.issuedAt, token.counter || this._counter);
+    const expected = this._derive(tenantId, token.issuedAt, this._counter);
     const ok = expected.equals(token.value);
     this._audit('TOKEN_VERIFIED', { tenantId: id, ok });
     return ok;

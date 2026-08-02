@@ -50,23 +50,17 @@ const DEFAULT_POLICY = {
     hybridMode: true,
     allowedCurves: ['P-256', 'P-384', 'P-521'],
   },
-  zkp: {
-    tokenExpiryMs: 300000,
-    maxProofs: 100,
-    allowedPrimes: [],
-  },
   time: {
     maxDriftMs: 60000,
     minQuorum: 3,
     requireEpochChain: true,
   },
-  fips: {
-    enabled: false,
-    level: 3,
-    allowedCurves: ['P-256', 'P-384'],
-    allowedKemLevels: [768, 1024],
-    graceTokenExpiryMs: 0,
-    allowBlinding: false,
+  escrow: {
+    requireDualConsent: true,
+    minAuthorizationQuorum: 2,
+    maxEscrowLifetimeMs: 86400000,
+    declassificationTokenExpiryMs: 300000,
+    allowedEscrowAlgorithms: ['aes-kw', 'rsa-oaep'],
   },
 };
 
@@ -77,13 +71,8 @@ function _isObject(value) {
 function _mergeWithDefault(tenantPolicy) {
   // Shallow merge: tenant explicitly provided values win; missing values
   // fall back to the built-in default for a deny-by-default posture.
-  // NOTE: ...tenantPolicy is spread FIRST so the explicit nested-merge
-  // keys below always win. Spreading it last (a prior bug) clobbered the
-  // deep-merged zkp/threshold/ratchet/etc. blocks with whatever the
-  // tenant provided (often {} or undefined), causing defaults to vanish.
   return {
     ...DEFAULT_POLICY,
-    ...tenantPolicy,
     allowedAlgorithms: {
       aes: { ...DEFAULT_POLICY.allowedAlgorithms.aes, ...(tenantPolicy.allowedAlgorithms && tenantPolicy.allowedAlgorithms.aes) },
       rsa: { ...DEFAULT_POLICY.allowedAlgorithms.rsa, ...(tenantPolicy.allowedAlgorithms && tenantPolicy.allowedAlgorithms.rsa) },
@@ -118,6 +107,11 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.time,
       ...(tenantPolicy.time || {}),
     },
+    escrow: {
+      ...DEFAULT_POLICY.escrow,
+      ...(tenantPolicy.escrow || {}),
+    },
+    ...tenantPolicy,
   };
 }
 
@@ -298,6 +292,28 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateEscrow(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.escrow, ...(tenantPolicy.escrow || {}) };
+    if (config.sourceTenantId === config.destTenantId) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'source and destination tenant must be different');
+    }
+    if (typeof config.consentCount === 'number' && config.consentCount < policy.minAuthorizationQuorum) {
+      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', `only ${config.consentCount} consent signatures, require ${policy.minAuthorizationQuorum}`);
+    }
+    if (policy.requireDualConsent && typeof config.consentCount === 'number' && config.consentCount < 2) {
+      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', 'dual consent is required');
+    }
+    if (typeof config.escrowLifetimeMs === 'number' && config.escrowLifetimeMs > policy.maxEscrowLifetimeMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `escrow lifetime ${config.escrowLifetimeMs}ms exceeds policy ${policy.maxEscrowLifetimeMs}ms`);
+    }
+    if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.declassificationTokenExpiryMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `token expiry ${config.tokenExpiryMs}ms exceeds policy ${policy.declassificationTokenExpiryMs}ms`);
+    }
+    if (typeof config.algorithm === 'string' && policy.allowedEscrowAlgorithms.length > 0 && !policy.allowedEscrowAlgorithms.includes(config.algorithm)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `escrow algorithm ${config.algorithm} is not allowed`);
+    }
+  }
+
   _validateHomomorphic(tenantPolicy, config) {
     const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
     if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
@@ -330,7 +346,7 @@ class CryptoPolicyEngine {
       throw new HsmAdapterError('INVALID_THRESHOLD', 'threshold and total must be numbers');
     }
     if (threshold < 1 || total < 1 || threshold > total) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 Γëñ threshold Γëñ total (${total})`);
+      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 ≤ threshold ≤ total (${total})`);
     }
     if (threshold < policy.minThreshold) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `threshold ${threshold} is below policy minimum ${policy.minThreshold}`);
@@ -405,6 +421,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'time') {
       this._validateTime(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'escrow') {
+      this._validateEscrow(tenantPolicy, config);
       return true;
     }
 
