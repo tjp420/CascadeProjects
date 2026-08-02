@@ -1,34 +1,40 @@
-# Software Health Report — Track 40 Route Integration
+# Software Health Report — Dashboard UI Integration
 
 **Date:** 2026-08-02
-**Branch:** `feature/track40-route-integration`
+**Branch:** `feature/dashboard-ui-integration`
 
 ## Summary
-Mounted DistributedConsensusCoordinator into hsm-vault-routes.cjs with 9 REST endpoints. Added coordinator registry to base-adapter.cjs.
+Wired CoreReplicationTelemetryDashboard and DropTelemetryDashboard into AdminPanelView. Fixed placeholder service/component files. Created drop telemetry service and component for the dashboard path.
 
-## Change Set (5 files)
-- base-adapter.cjs - coordinator registry
-- hsm-vault-routes.cjs - 9 endpoints
-- hsm-vault-consensus-coordinator-routes.test.cjs - 38 tests (New)
+## Change Set (8 files)
+- replicationTelemetryService.js - Fixed (was placeholder)
+- CoreReplicationTelemetryDashboard.js - Fixed (was placeholder)
+- dropTelemetryService.js - New
+- DropTelemetryDashboard.js - New
+- AdminPanelView.js - Added imports + telemetry section + mountTelemetryDashboards()
+- components.css - Added .admin-telemetry-grid CSS
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
 ## Level 1 - Deterministic
 | Check | Result |
 |-------|--------|
-| node -c all files | PASS |
-| New tests (38) | PASS |
-| Existing tests (78) | PASS |
+| node -c all 5 JS files | PASS |
+| Existing tests (92) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
-All 38 endpoint tests pass covering all 9 endpoints with happy paths, error cases, and authorization checks.
+| Check | Result |
+|------|--------|
+| AdminPanelView imports both dashboards | PASS |
+| Telemetry section in render | PASS |
+| mountTelemetryDashboards() works | PASS |
+| CSS grid layout | PASS |
 
 ## Level 3 - Security
 | Check | Result |
 |-------|--------|
-| admin:all on all endpoints | PASS |
-| No secrets in responses | PASS |
+| No secrets exposed | PASS |
 | No scope creep | Confirmed |
 | No regression | Confirmed |
 
@@ -36,4 +42,4 @@ All 38 endpoint tests pass covering all 9 endpoints with happy paths, error case
 None.
 
 ## Unimplemented
-- Dashboard component for coordinator telemetry
+- Consensus Coordinator dashboard component (for Track 40 coordinator telemetry)
