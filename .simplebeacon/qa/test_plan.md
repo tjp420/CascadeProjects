@@ -1,41 +1,53 @@
-# Test Plan — Phase Closeout: Tracks 34-39 + Recovery Telemetry
+# Test Plan — Firefox Stale File Drag-and-Drop Fix
 
-**Branch:** `feature/phase-closeout-tracks34-39`
+**Branch:** `fix/firefox-stale-file-drag-drop`
 **Date:** 2026-08-02
-**Status:** Final
+**Status:** Active
 
 ## Objective
 
-Freeze the active workspace branch and document the unified social recovery deployment topologies delivered across Tracks 34-39 plus the Recovery Telemetry Exposure task.
+Fix `DOMException: An attempt was made to use an object that is not, or is no longer, usable` error during drag-and-drop file traversal in Firefox. The root cause is that `File` objects obtained from `FileSystemEntry.file()` become stale after the drop event yields, causing `worker.postMessage()` to fail during structured clone serialization.
+
+## Root Cause
+
+1. `captureDropEntries()` captures `FileSystemEntry` objects synchronously during the drop event
+2. `collectFilesFromDrop()` traverses entries asynchronously, calling `fileEntry.file()` to get `File` objects
+3. In Firefox, `File` objects become stale after the drop event's `DataTransfer` is invalidated
+4. `worker.postMessage()` tries to serialize stale `File` objects via structured clone → DOMException
+
+## Fix Approach
+
+Pre-read file contents immediately in the `fileEntry.file()` callback (while `File` is still valid), then send text to the worker instead of `File` objects when pre-read text is available.
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| `.simplebeacon/qa/phase-closeout-tracks34-39.md` | **New** — Comprehensive phase closeout report |
-| `.simplebeacon/qa/software_health_report.md` | Updated with phase summary |
-| `.simplebeacon/qa/test_plan.md` | Updated with closeout checklist |
+| `coming-soon/public/app/src/services/dropFolderTraversal.ts` | Add `preReadContent` option to `collectFilesFromDrop` |
+| `coming-soon/public/app/js-es2018/services/localScanService.js` | Detect Firefox, use pre-read text for drag-and-drop files |
+| `coming-soon/public/app/js-es2018/workers/scan-worker.js` | Handle pre-read text in `resolveFile` and `analyzeWithTextPatterns` |
+| `coming-soon/public/app/assets/scan-worker.js` | Sync with js-es2018 worker fix |
 
 ## Check Items
 
 ### Level 1 — Deterministic
 
-- [x] L1.1 All 7 PRs merged to `main` — Confirmed
-- [x] L1.2 All syntax checks pass — Confirmed
-- [x] L1.3 No new dependencies added — Confirmed
-- [x] L1.4 No secrets committed — Confirmed
+- [ ] L1.1 `node -c` on all changed JS files — PASS
+- [ ] L1.2 TypeScript compiles without errors
+- [ ] L1.3 No new dependencies added
+- [ ] L1.4 No secrets committed
 
-### Level 2 — Functional Operations
+### Level 2 — Behavioral
 
-- [x] L2.1 All 7 test suites pass individually (327 total assertions) — Confirmed
-- [x] L2.2 Policy engine test suite passes (no regression) — Confirmed
-- [x] L2.3 Existing vault metrics route tests pass (no regression) — Confirmed
-- [x] L2.4 Recovery telemetry endpoint returns correct counters — Confirmed
+- [ ] L2.01 Firefox drag-and-drop of a single file works (pre-read text sent to worker)
+- [ ] L2.02 Firefox drag-and-drop of a folder works (pre-read text for all files)
+- [ ] L2.03 Chrome/Edge drag-and-drop still works (File objects sent as before)
+- [ ] L2.04 File picker still works in all browsers (not affected by change)
+- [ ] L2.05 Worker correctly uses pre-read text when available, falls back to File.text() otherwise
 
 ### Level 3 — Self-review / Drift
 
-- [x] L3.1 No scope creep (except noted Track 38 `retry-with-timeout.cjs`) — Confirmed
-- [x] L3.2 No ghost files or hallucinated API paths — Confirmed
-- [x] L3.3 All state machines have terminal states — Confirmed
-- [x] L3.4 All endpoints require `admin:all` authorization — Confirmed
-- [x] L3.5 Bug fixes documented (3 falsy-zero / missing-field bugs) — Confirmed
+- [ ] L3.01 No scope creep — only fix files touched
+- [ ] L3.02 No ghost files or hallucinated API paths
+- [ ] L3.03 Pre-read is opt-in (only for Firefox drag-and-drop), doesn't affect Chrome/Edge
+- [ ] L3.04 Error handling for pre-read failures (file too large, binary, etc.)

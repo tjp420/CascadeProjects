@@ -6,14 +6,18 @@
 
 export type VirtualFile = File & {
   _virtualPath?: string;
+  _preReadText?: string;
+  _preReadSize?: number;
 };
 
 type TraversalState = {
   errors: number;
   maxFiles: number;
+  preReadContent: boolean;
 };
 
 const DEFAULT_MAX_FILES = 100_000;
+const PRE_READ_MAX_SIZE = 2 * 1024 * 1024; // 2 MB — skip pre-reading very large files
 
 /** Capture FileSystemEntry objects synchronously during the drop event. */
 export function captureDropEntries(items: DataTransferItemList | null | undefined): FileSystemEntry[] {
@@ -54,7 +58,7 @@ async function traverseFileSystemEntry(
       await new Promise<void>((resolve) => {
         try {
           fileEntry.file(
-            (file) => {
+            async (file) => {
               const virtualFile = file as VirtualFile;
               try {
                 Object.defineProperty(virtualFile, 'webkitRelativePath', {
@@ -65,6 +69,14 @@ async function traverseFileSystemEntry(
                 /* ignore */
               }
               virtualFile._virtualPath = currentPath.replace(/\\/g, '/');
+              if (state.preReadContent && file.size <= PRE_READ_MAX_SIZE) {
+                try {
+                  virtualFile._preReadText = await file.text();
+                  virtualFile._preReadSize = file.size;
+                } catch {
+                  /* File may already be stale or unreadable — skip pre-read */
+                }
+              }
               files.push(virtualFile);
               resolve();
             },
@@ -146,11 +158,12 @@ function appendFlatDataTransferFiles(dataTransfer: DataTransfer, files: VirtualF
 export async function collectFilesFromDrop(
   dataTransfer: DataTransfer | undefined,
   preCapturedEntries?: FileSystemEntry[],
-  options: { maxFiles?: number } = {}
+  options: { maxFiles?: number; preReadContent?: boolean } = {}
 ): Promise<{ files: VirtualFile[]; rootName: string; traverseErrors: number }> {
   const state: TraversalState = {
     errors: 0,
     maxFiles: options.maxFiles ?? DEFAULT_MAX_FILES,
+    preReadContent: options.preReadContent ?? false,
   };
   const files: VirtualFile[] = [];
   const entries = preCapturedEntries ?? (dataTransfer ? captureDropEntries(dataTransfer.items) : []);
