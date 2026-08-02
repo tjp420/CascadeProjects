@@ -502,6 +502,26 @@ class BaseHsmAdapter {
     }
   }
 
+  // ── Track 30 identity ratchet telemetry hooks ──────────────────────
+
+  /**
+   * Emit an identity ratchet step event into the audit pipeline.
+   * @param {object} info
+   */
+  emitIdentityRatchetStepped(info = {}) {
+    this._ensureInitialized();
+    this._audit('IDENTITY_RATCHET_STEPPED', info);
+  }
+
+  /**
+   * Emit an MFA token authenticated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitMfaTokenAuthenticated(info = {}) {
+    this._ensureInitialized();
+    this._audit('MFA_TOKEN_AUTHENTICATED', info);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {
