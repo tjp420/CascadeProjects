@@ -26,6 +26,7 @@ const {
   deserialize,
   KeyringValidationError,
 } = require('../keyring-serializer.cjs');
+const { FipsSelfTestRunner } = require('./fips-self-test-runner.cjs');
 
 const WRAPPED_BLOB_VERSION = 1;
 
@@ -78,6 +79,9 @@ class BaseHsmAdapter {
    */
   async initialize() {
     if (this._initialized) return;
+    if (this._policyEngine && this._policyEngine.getPolicy('default').fips && this._policyEngine.getPolicy('default').fips.enabled) {
+      FipsSelfTestRunner.executePowerOnSelfTests();
+    }
     await this._initialize();
     this._initialized = true;
     this._log('info', `HSM adapter initialized: ${this.providerName}`);

@@ -118,6 +118,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.time,
       ...(tenantPolicy.time || {}),
     },
+    fips: {
+      ...DEFAULT_POLICY.fips,
+      ...(tenantPolicy.fips || {}),
+    },
   };
 }
 
@@ -204,6 +208,40 @@ class CryptoPolicyEngine {
         'POLICY_VIOLATION_BLOCKED',
         `${label} ${kekBits} is below the tenant minimum of ${min}`
       );
+    }
+  }
+
+  _validateFips(tenantPolicy, config) {
+    const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
+    if (!policy.enabled) return;
+
+    if (config.algorithm === 'ecdh') {
+      const curve = typeof config.keySize === 'number' ? `P-${config.keySize}` : config.keySize;
+      if (typeof curve === 'string' && !policy.allowedCurves.includes(curve)) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: ECDH curve ${curve} is not approved; permitted: ${policy.allowedCurves.join(', ')}`);
+      }
+    }
+
+    if (config.algorithm === 'pqc' || config.algorithm === 'hybrid-kem') {
+      const kemLevel = config.kemLevel;
+      if (typeof kemLevel === 'number' && !policy.allowedKemLevels.includes(kemLevel)) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: KEM level ${kemLevel} is not approved; permitted: ${policy.allowedKemLevels.join(', ')}`);
+      }
+    }
+
+    if (config.algorithm === 'homomorphic' || config.algorithm === 'blinding') {
+      if (config.allowBlinding && !policy.allowBlinding) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'FIPS mode: homomorphic blinding is not approved');
+      }
+      if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.graceTokenExpiryMs) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: token expiry grace window ${config.tokenExpiryMs}ms exceeds approved ${policy.graceTokenExpiryMs}ms`);
+      }
+    }
+
+    if (config.algorithm === 'zkp') {
+      if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.graceTokenExpiryMs) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: ZKP token grace window ${config.tokenExpiryMs}ms exceeds approved ${policy.graceTokenExpiryMs}ms`);
+      }
     }
   }
 
@@ -377,6 +415,8 @@ class CryptoPolicyEngine {
     }
 
     const tenantPolicy = this._getTenantPolicy(tenantId);
+
+    this._validateFips(tenantPolicy, config);
 
     if (operation === 'threshold') {
       this._validateThreshold(tenantPolicy, config.threshold, config.total);
