@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Master test suite wrapper for Tracks 26–41.
+ * Master test suite wrapper for Tracks 26–42.
  *
  * Runs the full suite of track-level Jest tests and prints
  * a consolidated summary.
@@ -31,6 +31,7 @@ const SUITES = [
   'threshold-account-recovery',
   'distributed-consensus',
   'hardware-enclave',
+  'dynamic-resharding',
 ];
 
 function runSuite(pattern) {
