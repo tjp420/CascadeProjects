@@ -369,6 +369,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderProofs: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqIdentityRevocation: {
+    minRevocationCommitteeQuorum: 3,
+    maxRevocationListCapacity: 100000,
+    maxProofExpirationSeconds: 3600,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requirePublisherAttestation: true,
+    requireVerifierAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedNonMembershipProofs: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -587,6 +598,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqcHomomorphicIdentityBridge: {
       ...DEFAULT_POLICY.pqcHomomorphicIdentityBridge,
       ...(tenantPolicy.pqcHomomorphicIdentityBridge || {}),
+    },
+    pqIdentityRevocation: {
+      ...DEFAULT_POLICY.pqIdentityRevocation,
+      ...(tenantPolicy.pqIdentityRevocation || {}),
     },
   };
 }
@@ -1422,6 +1437,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqIdentityRevocation(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqIdentityRevocation, ...(tenantPolicy.pqIdentityRevocation || {}) };
+    if (typeof config.revocationCommitteeQuorum === 'number' && config.revocationCommitteeQuorum < policy.minRevocationCommitteeQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `revocation committee quorum ${config.revocationCommitteeQuorum} below minimum ${policy.minRevocationCommitteeQuorum}`);
+    }
+    if (typeof config.revocationListCapacity === 'number' && config.revocationListCapacity > policy.maxRevocationListCapacity) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `revocation list capacity ${config.revocationListCapacity} exceeds maximum ${policy.maxRevocationListCapacity}`);
+    }
+    if (typeof config.proofExpirationSeconds === 'number' && config.proofExpirationSeconds > policy.maxProofExpirationSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `proof expiration ${config.proofExpirationSeconds}s exceeds maximum ${policy.maxProofExpirationSeconds}s`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requirePublisherAttestation && config.publisherAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'publisher attestation is required');
+    }
+    if (policy.requireVerifierAttestation && config.verifierAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'verifier attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedNonMembershipProofs === 'boolean' && policy.banMalformedNonMembershipProofs && !config.banMalformedNonMembershipProofs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed non-membership proofs must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1886,6 +1932,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqcHomomorphicIdentityBridge') {
       this._validatePqcHomomorphicIdentityBridge(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqIdentityRevocation') {
+      this._validatePqIdentityRevocation(tenantPolicy, config);
       return true;
     }
 
