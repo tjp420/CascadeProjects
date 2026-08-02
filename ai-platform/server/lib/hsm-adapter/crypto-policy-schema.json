@@ -450,6 +450,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderHealthClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqEducationGating": {
+      "minAccreditationQuorum": 3,
+      "maxTranscriptExpirationSeconds": 31536000,
+      "maxAcademicCredentialDepth": 24,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireInstitutionInitializerAttestation": true,
+      "requireClearingCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderCredentialClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
