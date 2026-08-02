@@ -50,6 +50,7 @@ const SUITES = [
   'pqc-vesting-locks',
   'pqc-cross-chain-governance',
   'pqc-homomorphic-identity-bridge',
+  'pq-identity-revocation',
 ];
 
 function runSuite(pattern) {

@@ -1035,6 +1035,26 @@ class BaseHsmAdapter {
     this._audit('MPC_CROSS_CHAIN_CONSENSUS_FINALIZED', info);
   }
 
+  // ── Track 61 PQ identity revocation telemetry hooks ──────────────
+
+  /**
+   * Emit an identity revocation published event into the audit pipeline.
+   * @param {object} info
+   */
+  emitIdentityRevocationPublished(info = {}) {
+    this._ensureInitialized();
+    this._audit('IDENTITY_REVOCATION_PUBLISHED', info);
+  }
+
+  /**
+   * Emit a ZK revocation proof authenticated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkRevocationProofAuthenticated(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_REVOCATION_PROOF_AUTHENTICATED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
