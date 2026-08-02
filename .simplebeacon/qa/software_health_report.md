@@ -1,15 +1,15 @@
-# Software Health Report — Track 56 Oblivious RAM and Secure Side-Channel Memory Attenuation
+# Software Health Report — Track 57 zk-SNARK Enclave Verifiers
 
 **Date:** 2026-08-02
-**Branch:** `feature/track56-oram`
+**Branch:** `feature/track57-zk-snark-verifiers`
 
 ## Summary
-Implemented Oblivious RAM (ORAM) and secure side-channel memory attenuation engine. Created OramEngine class implementing Path ORAM with binary tree storage, position map for block-to-leaf mapping, stash buffer for path eviction, dummy access generation for pattern obfuscation, constant-time comparison for timing side-channel prevention, stash overflow eviction, and tamper-evident access log with hash chain integrity. Added 8 telemetry counters.
+Implemented zk-SNARK Enclave Verifier engine. Created ZkSnarkVerifierEngine class with arithmetic circuit compilation (R1CS constraints), trusted setup generation (proving and verification keys with toxic waste zeroization), witness generation from public and private inputs, zero-knowledge proof generation using witness commitments, constant-time proof verification, proof aggregation for multiple verified proofs, enclave attestation binding, and trusted setup destruction for toxic waste cleanup. Added 9 telemetry counters.
 
 ## Change Set (5 files)
-- oram-engine.cjs - New, OramEngine class (588 lines)
-- hsm-metrics.cjs - Added 8 Track 56 counters
-- oram-engine.test.cjs - New, 31 tests
+- zk-snark-verifier-engine.cjs - New, ZkSnarkVerifierEngine class (792 lines)
+- hsm-metrics.cjs - Added 9 Track 57 counters
+- zk-snark-verifier-engine.test.cjs - New, 44 tests
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
@@ -17,27 +17,29 @@ Implemented Oblivious RAM (ORAM) and secure side-channel memory attenuation engi
 | Check | Result |
 |-------|--------|
 | node -c all modified JS files | PASS |
-| 31 new Track 56 tests | PASS |
-| 513 existing tests (no regression) | PASS |
+| 44 new Track 57 tests | PASS |
+| 544 existing tests (no regression) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
 | Check | Result |
 |------|--------|
-| Write (6 tests) | PASS |
-| Read (6 tests) | PASS |
-| Delete (3 tests) | PASS |
-| Has (3 tests) | PASS |
-| Block info (2 tests) | PASS |
-| Block IDs (1 test) | PASS |
-| Stash size (1 test) | PASS |
-| Access log (1 test) | PASS |
-| Log integrity (1 test) | PASS |
+| Circuit compilation (7 tests) | PASS |
+| Trusted setup (3 tests) | PASS |
+| Proof generation (10 tests) | PASS |
+| Proof verification (3 tests) | PASS |
+| Proof aggregation (4 tests) | PASS |
+| Aggregated verification (2 tests) | PASS |
+| Setup destruction (2 tests) | PASS |
+| Circuit queries (2 tests) | PASS |
+| Circuit list (1 test) | PASS |
+| Proof queries (2 tests) | PASS |
+| Setup queries (2 tests) | PASS |
+| Completed proofs (1 test) | PASS |
+| Aggregated proof queries (2 tests) | PASS |
 | Stats (1 test) | PASS |
-| Stash eviction (2 tests) | PASS |
 | Reset (1 test) | PASS |
-| Oblivious patterns (2 tests) | PASS |
-| Full ORAM flow (1 test) | PASS |
+| Full zk-SNARK flow (1 test) | PASS |
 
 ## Level 3 - Security
 | Check | Result |
@@ -49,10 +51,13 @@ Implemented Oblivious RAM (ORAM) and secure side-channel memory attenuation engi
 ## Defects
 None.
 
+## Bugs Fixed During Development
+1. **Proof verification failure**: Initial proof data generation used the full witness vector, making verification impossible without private inputs. Fixed by using a witness commitment (hash) instead, allowing verification to recompute the expected proof data from the stored commitment.
+
 ## Unimplemented
-- REST routes for Track 56 ORAM operations (next phase)
-- Dashboard card for Track 56 telemetry
-- Recursive ORAM for position map (currently in-memory Map)
-- Integration with Track 51 HeMeshTopology for distributed ORAM
-- Integration with Track 54 ThresholdDecryptionCircuit for encrypted ORAM
-- Real constant-time implementation (currently simulated)
+- REST routes for Track 57 zk-SNARK operations (next phase)
+- Dashboard card for Track 57 telemetry
+- Real Groth16/PLONK proof system (currently hash-based simulation)
+- Recursive zk-SNARK composition (proof of proof)
+- Integration with Track 26 DkgSnarkEngine for DKG-based circuit compilation
+- Integration with Track 56 OramEngine for oblivious circuit evaluation
