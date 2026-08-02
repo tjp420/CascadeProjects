@@ -317,6 +317,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderProofs": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqIdentityRevocation": {
+      "minRevocationCommitteeQuorum": 3,
+      "maxRevocationListCapacity": 100000,
+      "maxProofExpirationSeconds": 3600,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requirePublisherAttestation": true,
+      "requireVerifierAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedNonMembershipProofs": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
