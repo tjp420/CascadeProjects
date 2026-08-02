@@ -36,6 +36,11 @@ const counters = {
   hsm_consensus_log_replicated_total: 0,
   hsm_consensus_log_committed_total: 0,
   hsm_consensus_heartbeats_sent_total: 0,
+  // Track 34 Stage 3: Byzantine hardening counters
+  hsm_consensus_rpc_signed_total: 0,
+  hsm_consensus_rpc_verified_total: 0,
+  hsm_consensus_signature_invalid_total: 0,
+  hsm_consensus_peer_key_unknown_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -72,6 +77,10 @@ const META = {
   hsm_consensus_log_replicated_total: { help: 'Total log entries replicated to followers.', type: 'counter' },
   hsm_consensus_log_committed_total: { help: 'Total log entries committed via quorum.', type: 'counter' },
   hsm_consensus_heartbeats_sent_total: { help: 'Total leader heartbeats sent to followers.', type: 'counter' },
+  hsm_consensus_rpc_signed_total: { help: 'Total outbound RPC frames signed with Ed25519.', type: 'counter' },
+  hsm_consensus_rpc_verified_total: { help: 'Total inbound RPC frames successfully verified.', type: 'counter' },
+  hsm_consensus_signature_invalid_total: { help: 'Total inbound RPC frames with invalid signatures.', type: 'counter' },
+  hsm_consensus_peer_key_unknown_total: { help: 'Total inbound RPC frames from peers with no registered public key.', type: 'counter' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
