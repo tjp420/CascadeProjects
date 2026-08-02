@@ -897,6 +897,26 @@ class BaseHsmAdapter {
     this._audit('MPC_DECRYPTION_GATE_UNLOCKED', info);
   }
 
+  // ── Track 55 Encrypted storage deduplication telemetry hooks ──────
+
+  /**
+   * Emit a ciphertext tag matched event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCiphertextTagMatched(info = {}) {
+    this._ensureInitialized();
+    this._audit('CIPHERTEXT_TAG_MATCHED', info);
+  }
+
+  /**
+   * Emit a duplicate block reconciled event into the audit pipeline.
+   * @param {object} info
+   */
+  emitDuplicateBlockReconciled(info = {}) {
+    this._ensureInitialized();
+    this._audit('DUPLICATE_BLOCK_RECONCILED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
