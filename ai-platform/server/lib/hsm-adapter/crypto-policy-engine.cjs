@@ -591,6 +591,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderDerivativeClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqClinicalTrialGating: {
+    minTrialOversightQuorum: 3,
+    maxTrialDurationSeconds: 94608000,
+    maxCohortMetricDepth: 24,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireTrialOversightInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderTrialClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -944,6 +955,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqDerivativeGating: {
       ...DEFAULT_POLICY.pqDerivativeGating,
       ...(tenantPolicy.pqDerivativeGating || {}),
+    },
+    pqClinicalTrialGating: {
+      ...DEFAULT_POLICY.pqClinicalTrialGating,
+      ...(tenantPolicy.pqClinicalTrialGating || {}),
     },
   };
 }
@@ -2368,6 +2383,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqClinicalTrialGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqClinicalTrialGating, ...(tenantPolicy.pqClinicalTrialGating || {}) };
+    if (typeof config.trialOversightQuorum === 'number' && config.trialOversightQuorum < policy.minTrialOversightQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `trial oversight quorum ${config.trialOversightQuorum} below minimum ${policy.minTrialOversightQuorum}`);
+    }
+    if (typeof config.trialDurationSeconds === 'number' && config.trialDurationSeconds > policy.maxTrialDurationSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `trial duration seconds ${config.trialDurationSeconds} exceeds maximum ${policy.maxTrialDurationSeconds}`);
+    }
+    if (typeof config.cohortMetricDepth === 'number' && config.cohortMetricDepth > policy.maxCohortMetricDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `cohort metric depth ${config.cohortMetricDepth} exceeds maximum ${policy.maxCohortMetricDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireTrialOversightInitializerAttestation && config.trialOversightInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'trial oversight initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderTrialClaims === 'boolean' && policy.banMalformedOrOutOfOrderTrialClaims && !config.banMalformedOrOutOfOrderTrialClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order trial claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2927,6 +2973,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqDerivativeGating') {
       this._validatePqDerivativeGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqClinicalTrialGating') {
+      this._validatePqClinicalTrialGating(tenantPolicy, config);
       return true;
     }
 
