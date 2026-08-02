@@ -1463,6 +1463,35 @@ class BaseHsmAdapter {
     this._audit('PATENT_LICENSE_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 75 PQ energy certificate gating telemetry hooks ──────────────
+
+  /**
+   * Emit an energy gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitEnergyGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('ENERGY_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK energy claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkEnergyClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_ENERGY_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a certificate trading accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCertificateTradingAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('CERTIFICATE_TRADING_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
