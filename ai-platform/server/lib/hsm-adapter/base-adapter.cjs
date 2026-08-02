@@ -174,6 +174,7 @@ class BaseHsmAdapter {
     if (!Buffer.isBuffer(wrapped)) {
       throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
     }
+    this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, kekId);
     return this._unwrap(tenantId, kekId, wrapped);
   }
@@ -191,6 +192,7 @@ class BaseHsmAdapter {
   async rotateKEK(tenantId, oldKekId) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
+    this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, oldKekId);
     const newKekId = await this._rotateKEK(tenantId, oldKekId);
     this._evictionEngine?.register(tenantId, newKekId, async (id, reason) => {
@@ -419,6 +421,7 @@ class BaseHsmAdapter {
    */
   async exportKeyring(keyringData, masterKek) {
     this._ensureInitialized();
+    this._checkTemporalGuard();
     try {
       // Direct pass-through to the unified binary pipeline
       return serialize(keyringData, masterKek);
