@@ -336,6 +336,17 @@ const DEFAULT_POLICY = {
     banMalformedMembershipPeers: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqcVestingLocks: {
+    minVestingEpochSeconds: 3600,
+    minReleaseSignatureQuorum: 3,
+    maxAssetValueCap: 1000000,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireClaimantAttestation: true,
+    requireCommitteeRelayAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banExpiredOrDuplicateClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -504,6 +515,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqIdentityAccumulator: {
       ...DEFAULT_POLICY.pqIdentityAccumulator,
       ...(tenantPolicy.pqIdentityAccumulator || {}),
+    },
+    pqcVestingLocks: {
+      ...DEFAULT_POLICY.pqcVestingLocks,
+      ...(tenantPolicy.pqcVestingLocks || {}),
     },
   };
 }
@@ -1246,6 +1261,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqcVestingLocks(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqcVestingLocks, ...(tenantPolicy.pqcVestingLocks || {}) };
+    if (typeof config.vestingEpochSeconds === 'number' && config.vestingEpochSeconds < policy.minVestingEpochSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `vesting epoch ${config.vestingEpochSeconds}s below minimum ${policy.minVestingEpochSeconds}s`);
+    }
+    if (typeof config.releaseSignatureQuorum === 'number' && config.releaseSignatureQuorum < policy.minReleaseSignatureQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `release signature quorum ${config.releaseSignatureQuorum} below minimum ${policy.minReleaseSignatureQuorum}`);
+    }
+    if (typeof config.assetValue === 'number' && config.assetValue > policy.maxAssetValueCap) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `asset value ${config.assetValue} exceeds maximum cap ${policy.maxAssetValueCap}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireClaimantAttestation && config.claimantAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'claimant attestation is required');
+    }
+    if (policy.requireCommitteeRelayAttestation && config.committeeRelayAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'committee relay attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banExpiredOrDuplicateClaims === 'boolean' && policy.banExpiredOrDuplicateClaims && !config.banExpiredOrDuplicateClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban expired or duplicate claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1695,6 +1741,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqIdentityAccumulator') {
       this._validatePqIdentityAccumulator(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqcVestingLocks') {
+      this._validatePqcVestingLocks(tenantPolicy, config);
       return true;
     }
 
