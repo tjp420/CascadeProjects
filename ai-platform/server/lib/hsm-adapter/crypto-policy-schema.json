@@ -187,6 +187,12 @@
       "allowedNodeAuthorities": ["mock-authority"],
       "requireEqualityProof": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "dkg": {
+      "minQuorumThreshold": 3,
+      "maxNodes": 10,
+      "commitmentGroup": "P-256",
+      "requireZkValidation": true
     }
   },
   "tenants": {}
