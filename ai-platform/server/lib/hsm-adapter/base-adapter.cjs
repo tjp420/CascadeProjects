@@ -877,6 +877,26 @@ class BaseHsmAdapter {
     this._audit('CROSS_PLATFORM_COMBINER_VERIFIED', info);
   }
 
+  // ── Track 54 MPC gated decryption telemetry hooks ─────────────────
+
+  /**
+   * Emit an MPC circuit evaluation initiated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitMpcCircuitEvaluationInitiated(info = {}) {
+    this._ensureInitialized();
+    this._audit('MPC_CIRCUIT_EVALUATION_INITIATED', info);
+  }
+
+  /**
+   * Emit an MPC decryption gate unlocked event into the audit pipeline.
+   * @param {object} info
+   */
+  emitMpcDecryptionGateUnlocked(info = {}) {
+    this._ensureInitialized();
+    this._audit('MPC_DECRYPTION_GATE_UNLOCKED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
