@@ -527,6 +527,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderTrialClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqSortitionGating": {
+      "minSortitionQuorum": 3,
+      "maxSortitionEpochSeconds": 2592000,
+      "maxEntropyDepth": 16,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireSortitionAuthorityInitializerAttestation": true,
+      "requireAuditCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderSortitionClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

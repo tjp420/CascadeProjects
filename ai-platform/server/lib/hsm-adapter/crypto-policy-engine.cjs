@@ -602,6 +602,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderTrialClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqSortitionGating: {
+    minSortitionQuorum: 3,
+    maxSortitionEpochSeconds: 2592000,
+    maxEntropyDepth: 16,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireSortitionAuthorityInitializerAttestation: true,
+    requireAuditCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderSortitionClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -959,6 +970,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqClinicalTrialGating: {
       ...DEFAULT_POLICY.pqClinicalTrialGating,
       ...(tenantPolicy.pqClinicalTrialGating || {}),
+    },
+    pqSortitionGating: {
+      ...DEFAULT_POLICY.pqSortitionGating,
+      ...(tenantPolicy.pqSortitionGating || {}),
     },
   };
 }
@@ -2414,6 +2429,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqSortitionGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqSortitionGating, ...(tenantPolicy.pqSortitionGating || {}) };
+    if (typeof config.sortitionQuorum === 'number' && config.sortitionQuorum < policy.minSortitionQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `sortition quorum ${config.sortitionQuorum} below minimum ${policy.minSortitionQuorum}`);
+    }
+    if (typeof config.sortitionEpochSeconds === 'number' && config.sortitionEpochSeconds > policy.maxSortitionEpochSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `sortition epoch seconds ${config.sortitionEpochSeconds} exceeds maximum ${policy.maxSortitionEpochSeconds}`);
+    }
+    if (typeof config.entropyDepth === 'number' && config.entropyDepth > policy.maxEntropyDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `entropy depth ${config.entropyDepth} exceeds maximum ${policy.maxEntropyDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireSortitionAuthorityInitializerAttestation && config.sortitionAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'sortition authority initializer attestation is required');
+    }
+    if (policy.requireAuditCommitteeAttestation && config.auditCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'audit committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderSortitionClaims === 'boolean' && policy.banMalformedOrOutOfOrderSortitionClaims && !config.banMalformedOrOutOfOrderSortitionClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order sortition claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2978,6 +3024,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqClinicalTrialGating') {
       this._validatePqClinicalTrialGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqSortitionGating') {
+      this._validatePqSortitionGating(tenantPolicy, config);
       return true;
     }
 

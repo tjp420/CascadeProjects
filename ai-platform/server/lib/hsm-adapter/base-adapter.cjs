@@ -1608,6 +1608,35 @@ class BaseHsmAdapter {
     this._audit('COHORT_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 80 PQ VRF audit sortition gating telemetry hooks ──────────────
+
+  /**
+   * Emit a sortition gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitSortitionGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('SORTITION_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK sortition claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkSortitionClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_SORTITION_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a validator accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitValidatorAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('VALIDATOR_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
