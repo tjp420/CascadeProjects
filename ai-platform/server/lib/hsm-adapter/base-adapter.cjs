@@ -1521,6 +1521,35 @@ class BaseHsmAdapter {
     this._audit('COMPONENT_LINEAGE_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 77 PQ biometric verification gating telemetry hooks ──────────────
+
+  /**
+   * Emit a biometric gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitBiometricGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('BIOMETRIC_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK biometric claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkBiometricClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_BIOMETRIC_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a liveness attestation accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitLivenessAttestationAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('LIVENESS_ATTESTATION_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
