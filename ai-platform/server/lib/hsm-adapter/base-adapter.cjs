@@ -703,6 +703,26 @@ class BaseHsmAdapter {
     this._audit('ZK_RANGE_PROOF_VERIFIED', info);
   }
 
+  // ── Track 47 hardware root rotation telemetry hooks ────────────────
+
+  /**
+   * Emit an enclave root rotation initiated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitEnclaveRootRotationInitiated(info = {}) {
+    this._ensureInitialized();
+    this._audit('ENCLAVE_ROOT_ROTATION_INITIATED', info);
+  }
+
+  /**
+   * Emit a hardware seed committed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitHardwareSeedCommitted(info = {}) {
+    this._ensureInitialized();
+    this._audit('HARDWARE_SEED_COMMITTED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
