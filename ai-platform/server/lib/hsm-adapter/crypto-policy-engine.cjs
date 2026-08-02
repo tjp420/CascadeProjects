@@ -414,6 +414,15 @@ const DEFAULT_POLICY = {
     allowMultiTenantProofs: true,
     maxTenantsPerProof: 64,
   },
+  multipartyReKeying: {
+    minQuorumNodes: 3,
+    maxReKeyingEpochs: 1000,
+    requireQuorumCommit: true,
+    requireAntiRollback: true,
+    requireShareZeroization: true,
+    allowThresholdAdjustment: true,
+    maxShareholders: 32,
+  },
 };
 
 function _isObject(value) {
@@ -590,6 +599,10 @@ function _mergeWithDefault(tenantPolicy) {
     zkProofOfAssets: {
       ...DEFAULT_POLICY.zkProofOfAssets,
       ...(tenantPolicy.zkProofOfAssets || {}),
+    },
+    multipartyReKeying: {
+      ...DEFAULT_POLICY.multipartyReKeying,
+      ...(tenantPolicy.multipartyReKeying || {}),
     },
     encryptedSearchRouting: {
       ...DEFAULT_POLICY.encryptedSearchRouting,

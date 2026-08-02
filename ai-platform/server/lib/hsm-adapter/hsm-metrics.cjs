@@ -114,6 +114,14 @@ const counters = {
   hsm_poa_double_count_blocked_total: 0,
   hsm_poa_quorum_signatures_total: 0,
   hsm_poa_active_proofs: 0,
+  // Track 37: Multiparty Re-Keying counters
+  hsm_rekey_proposed_total: 0,
+  hsm_rekey_resharing_submitted_total: 0,
+  hsm_rekey_verified_total: 0,
+  hsm_rekey_committed_total: 0,
+  hsm_rekey_aborted_total: 0,
+  hsm_rekey_rollback_blocked_total: 0,
+  hsm_rekey_active: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -216,6 +224,13 @@ const META = {
   hsm_poa_double_count_blocked_total: { help: 'Total asset double-counting attempts blocked.', type: 'counter' },
   hsm_poa_quorum_signatures_total: { help: 'Total quorum signatures collected on proofs.', type: 'counter' },
   hsm_poa_active_proofs: { help: 'Current number of active (non-terminal) proofs.', type: 'gauge' },
+  hsm_rekey_proposed_total: { help: 'Total re-keying rounds proposed.', type: 'counter' },
+  hsm_rekey_resharing_submitted_total: { help: 'Total shareholder resharings submitted.', type: 'counter' },
+  hsm_rekey_verified_total: { help: 'Total re-keying rounds verified.', type: 'counter' },
+  hsm_rekey_committed_total: { help: 'Total re-keying rounds committed via quorum.', type: 'counter' },
+  hsm_rekey_aborted_total: { help: 'Total re-keying rounds aborted.', type: 'counter' },
+  hsm_rekey_rollback_blocked_total: { help: 'Total re-keying epoch rollback attempts blocked.', type: 'counter' },
+  hsm_rekey_active: { help: 'Current number of active (in-progress) re-keying rounds.', type: 'gauge' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
