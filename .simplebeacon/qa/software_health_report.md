@@ -1,15 +1,15 @@
-# Software Health Report — Track 44 Distributed Sharding and Cross-Enclave State Sync
+# Software Health Report — Track 45 Enclave Key Rotation and Cryptographic Heartbeats
 
 **Date:** 2026-08-02
-**Branch:** `feature/track44-cross-enclave-state-sync`
+**Branch:** `feature/track45-key-rotation-heartbeats`
 
 ## Summary
-Implemented multi-enclave architecture with shard distribution, cross-enclave state synchronization, and conflict resolution. Created CrossEnclaveStateSync class with enclave registry, shard assignment (consistent-hash and round-robin), vector-clock-based state sync, last-writer-wins conflict resolution, stale enclave detection, and automatic shard reassignment. Added 13 telemetry counters.
+Implemented rolling key schedules with epoch-based advancement and cryptographic heartbeat protocol for enclave liveness verification. Created EnclaveKeyRotationEngine class with key epoch management, HMAC-SHA256 challenge-response heartbeats, automatic quarantine on missed heartbeats, key revocation with zeroization, and enclave recovery via forced rotation. Added 13 telemetry counters.
 
 ## Change Set (5 files)
-- cross-enclave-state-sync.cjs - New, CrossEnclaveStateSync class (488 lines)
-- hsm-metrics.cjs - Added 13 Track 44 counters
-- cross-enclave-state-sync.test.cjs - New, 37 tests
+- enclave-key-rotation-heartbeat.cjs - New, EnclaveKeyRotationEngine class (506 lines)
+- hsm-metrics.cjs - Added 13 Track 45 counters
+- enclave-key-rotation-heartbeat.test.cjs - New, 40 tests
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
@@ -17,25 +17,28 @@ Implemented multi-enclave architecture with shard distribution, cross-enclave st
 | Check | Result |
 |-------|--------|
 | node -c all modified JS files | PASS |
-| 37 new Track 44 tests | PASS |
-| 110 existing tests (no regression) | PASS |
+| 40 new Track 45 tests | PASS |
+| 115 existing tests (no regression) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
 | Check | Result |
 |------|--------|
-| Enclave management (8 tests) | PASS |
-| Shard creation (5 tests) | PASS |
-| State read/write (7 tests) | PASS |
-| State sync (6 tests) | PASS |
-| Stale detection (2 tests) | PASS |
-| Shard queries (3 tests) | PASS |
-| Sync log (1 test) | PASS |
+| Enclave registration (4 tests) | PASS |
+| Enclave unregistration (3 tests) | PASS |
+| Heartbeat challenge-response (7 tests) | PASS |
+| Timeout and quarantine (3 tests) | PASS |
+| Key rotation (5 tests) | PASS |
+| Scheduled rotation (3 tests) | PASS |
+| Key revocation (3 tests) | PASS |
+| Enclave recovery (2 tests) | PASS |
+| State queries (4 tests) | PASS |
+| Enclave list (1 test) | PASS |
+| Pending challenges (1 test) | PASS |
 | Stats (1 test) | PASS |
 | Reset (1 test) | PASS |
-| Round-robin (1 test) | PASS |
-| Conflict resolution (1 test) | PASS |
-| Vector clock merge (1 test) | PASS |
+| Max epochs (1 test) | PASS |
+| Zeroization (1 test) | PASS |
 
 ## Level 3 - Security
 | Check | Result |
@@ -48,7 +51,6 @@ Implemented multi-enclave architecture with shard distribution, cross-enclave st
 None.
 
 ## Unimplemented
-- REST routes for Track 44 state sync operations (next phase)
-- Dashboard card for Track 44 telemetry
-- Persistence layer for shard state
-- Quorum-merge conflict resolution strategy (currently stub)
+- REST routes for Track 45 key rotation operations (next phase)
+- Dashboard card for Track 45 telemetry
+- Timer-based automatic rotation scheduling (currently checkAndRotate is manual)
