@@ -339,6 +339,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banPrematureOrMalformedProofs": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqBlindOptionPools": {
+      "minCollateralRatio": 150,
+      "minExecutionSignatureQuorum": 3,
+      "maxContractLifetimeSeconds": 2592000,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireInitializerAttestation": true,
+      "requireClearingCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrSubCollateralProofs": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

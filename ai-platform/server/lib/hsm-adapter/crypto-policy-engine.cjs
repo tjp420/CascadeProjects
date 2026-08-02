@@ -391,6 +391,17 @@ const DEFAULT_POLICY = {
     banPrematureOrMalformedProofs: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqBlindOptionPools: {
+    minCollateralRatio: 150,
+    minExecutionSignatureQuorum: 3,
+    maxContractLifetimeSeconds: 2592000,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrSubCollateralProofs: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -629,6 +640,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqTimeLockedMatrix: {
       ...DEFAULT_POLICY.pqTimeLockedMatrix,
       ...(tenantPolicy.pqTimeLockedMatrix || {}),
+    },
+    pqBlindOptionPools: {
+      ...DEFAULT_POLICY.pqBlindOptionPools,
+      ...(tenantPolicy.pqBlindOptionPools || {}),
     },
   };
 }
@@ -1526,6 +1541,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqBlindOptionPools(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqBlindOptionPools, ...(tenantPolicy.pqBlindOptionPools || {}) };
+    if (typeof config.collateralRatio === 'number' && config.collateralRatio < policy.minCollateralRatio) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `collateral ratio ${config.collateralRatio}% below minimum ${policy.minCollateralRatio}%`);
+    }
+    if (typeof config.executionSignatureQuorum === 'number' && config.executionSignatureQuorum < policy.minExecutionSignatureQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `execution signature quorum ${config.executionSignatureQuorum} below minimum ${policy.minExecutionSignatureQuorum}`);
+    }
+    if (typeof config.contractLifetimeSeconds === 'number' && config.contractLifetimeSeconds > policy.maxContractLifetimeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `contract lifetime ${config.contractLifetimeSeconds}s exceeds maximum ${policy.maxContractLifetimeSeconds}s`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireInitializerAttestation && config.initializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrSubCollateralProofs === 'boolean' && policy.banMalformedOrSubCollateralProofs && !config.banMalformedOrSubCollateralProofs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or sub-collateral proofs must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2000,6 +2046,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqTimeLockedMatrix') {
       this._validatePqTimeLockedMatrix(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqBlindOptionPools') {
+      this._validatePqBlindOptionPools(tenantPolicy, config);
       return true;
     }
 
