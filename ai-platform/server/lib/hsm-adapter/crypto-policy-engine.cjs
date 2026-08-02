@@ -402,6 +402,18 @@ const DEFAULT_POLICY = {
     banMalformedOrSubCollateralProofs: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqPredictionMarkets: {
+    minReporterQuorum: 3,
+    maxDisputeResolutionEpochs: 5,
+    maxContractLifetimeSeconds: 2592000,
+    maxAssetWeightCap: 1000000,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireMarketInitializerAttestation: true,
+    requireReporterRelayAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderResolutionClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -669,6 +681,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqBlindOptionPools: {
       ...DEFAULT_POLICY.pqBlindOptionPools,
       ...(tenantPolicy.pqBlindOptionPools || {}),
+    },
+    pqPredictionMarkets: {
+      ...DEFAULT_POLICY.pqPredictionMarkets,
+      ...(tenantPolicy.pqPredictionMarkets || {}),
     },
   };
 }
@@ -1597,6 +1613,40 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqPredictionMarkets(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqPredictionMarkets, ...(tenantPolicy.pqPredictionMarkets || {}) };
+    if (typeof config.reporterQuorum === 'number' && config.reporterQuorum < policy.minReporterQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `reporter quorum ${config.reporterQuorum} below minimum ${policy.minReporterQuorum}`);
+    }
+    if (typeof config.disputeResolutionEpochs === 'number' && config.disputeResolutionEpochs > policy.maxDisputeResolutionEpochs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `dispute resolution epochs ${config.disputeResolutionEpochs} exceeds maximum ${policy.maxDisputeResolutionEpochs}`);
+    }
+    if (typeof config.contractLifetimeSeconds === 'number' && config.contractLifetimeSeconds > policy.maxContractLifetimeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `contract lifetime ${config.contractLifetimeSeconds}s exceeds maximum ${policy.maxContractLifetimeSeconds}s`);
+    }
+    if (typeof config.assetWeightCap === 'number' && config.assetWeightCap > policy.maxAssetWeightCap) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `asset weight cap ${config.assetWeightCap} exceeds maximum ${policy.maxAssetWeightCap}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireMarketInitializerAttestation && config.marketInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'market initializer attestation is required');
+    }
+    if (policy.requireReporterRelayAttestation && config.reporterRelayAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'reporter relay attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderResolutionClaims === 'boolean' && policy.banMalformedOrOutOfOrderResolutionClaims && !config.banMalformedOrOutOfOrderResolutionClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order resolution claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2076,6 +2126,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqBlindOptionPools') {
       this._validatePqBlindOptionPools(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqPredictionMarkets') {
+      this._validatePqPredictionMarkets(tenantPolicy, config);
       return true;
     }
 

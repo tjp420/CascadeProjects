@@ -53,6 +53,7 @@ const SUITES = [
   'pq-identity-revocation',
   'pq-time-locked-matrix',
   'pq-blind-option-pools',
+  'pq-prediction-markets',
 ];
 
 function runSuite(pattern) {
