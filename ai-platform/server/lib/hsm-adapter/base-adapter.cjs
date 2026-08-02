@@ -748,6 +748,35 @@ class BaseHsmAdapter {
     this._audit('HARDWARE_SEED_COMMITTED', info);
   }
 
+  // ── Track 48 PQC asset bridge telemetry hooks ─────────────────────
+
+  /**
+   * Emit a bridge transfer initiated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitBridgeTransferInitiated(info = {}) {
+    this._ensureInitialized();
+    this._audit('BRIDGE_TRANSFER_INITIATED', info);
+  }
+
+  /**
+   * Emit a cross-chain claim validated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCrossChainClaimValidated(info = {}) {
+    this._ensureInitialized();
+    this._audit('CROSS_CHAIN_CLAIM_VALIDATED', info);
+  }
+
+  /**
+   * Emit an escrow release finalized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitEscrowReleaseFinalized(info = {}) {
+    this._ensureInitialized();
+    this._audit('ESCROW_RELEASE_FINALIZED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

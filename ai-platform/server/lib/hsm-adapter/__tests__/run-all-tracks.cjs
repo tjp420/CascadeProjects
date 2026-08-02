@@ -37,6 +37,7 @@ const SUITES = [
   'cross-tenant-audit',
   'homomorphic-computation',
   'hardware-root-rotation',
+  'pqc-asset-bridge',
 ];
 
 function runSuite(pattern) {
