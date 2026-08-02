@@ -203,6 +203,17 @@ const DEFAULT_POLICY = {
     maxRotationEpochIntervalSeconds: 86400,
     requireCanonicalPayloadLayout: true,
   },
+  assetBridge: {
+    minCommitteeQuorum: 3,
+    maxAssetTransactionValue: 1000000,
+    minLockEpochDuration: 60,
+    maxClaimExpirationEpochs: 10,
+    requireSourceAttestation: true,
+    requireTargetAttestation: true,
+    allowedBridgeAuthorities: ['mock-authority'],
+    requireTimeLockEscrow: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -319,6 +330,10 @@ function _mergeWithDefault(tenantPolicy) {
     hardwareRootRotation: {
       ...DEFAULT_POLICY.hardwareRootRotation,
       ...(tenantPolicy.hardwareRootRotation || {}),
+    },
+    assetBridge: {
+      ...DEFAULT_POLICY.assetBridge,
+      ...(tenantPolicy.assetBridge || {}),
     },
   };
 }
@@ -697,6 +712,37 @@ class CryptoPolicyEngine {
     }
     if (typeof config.rotationEpochIntervalSeconds === 'number' && config.rotationEpochIntervalSeconds < policy.maxRotationEpochIntervalSeconds) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `rotation epoch interval ${config.rotationEpochIntervalSeconds}s below minimum ${policy.maxRotationEpochIntervalSeconds}s`);
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validateAssetBridge(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.assetBridge, ...(tenantPolicy.assetBridge || {}) };
+    if (typeof config.committeeQuorum === 'number' && config.committeeQuorum < policy.minCommitteeQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `committee quorum ${config.committeeQuorum} below minimum ${policy.minCommitteeQuorum}`);
+    }
+    if (typeof config.assetTransactionValue === 'number' && config.assetTransactionValue > policy.maxAssetTransactionValue) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `asset transaction value ${config.assetTransactionValue} exceeds maximum ${policy.maxAssetTransactionValue}`);
+    }
+    if (typeof config.lockEpochDuration === 'number' && config.lockEpochDuration < policy.minLockEpochDuration) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `lock epoch duration ${config.lockEpochDuration} below minimum ${policy.minLockEpochDuration}`);
+    }
+    if (typeof config.claimExpirationEpochs === 'number' && config.claimExpirationEpochs > policy.maxClaimExpirationEpochs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `claim expiration ${config.claimExpirationEpochs} exceeds maximum ${policy.maxClaimExpirationEpochs}`);
+    }
+    if (policy.requireSourceAttestation && config.sourceAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'source attestation is required');
+    }
+    if (policy.requireTargetAttestation && config.targetAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'target attestation is required');
+    }
+    if (typeof config.bridgeAuthority === 'string' && !policy.allowedBridgeAuthorities.includes(config.bridgeAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `bridge authority ${config.bridgeAuthority} is not allowed; permitted: ${policy.allowedBridgeAuthorities.join(', ')}`);
+    }
+    if (policy.requireTimeLockEscrow && config.timeLockEscrow === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'time-lock escrow is required');
     }
     if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
@@ -1087,6 +1133,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'hardwareRootRotation') {
       this._validateHardwareRootRotation(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'assetBridge') {
+      this._validateAssetBridge(tenantPolicy, config);
       return true;
     }
 

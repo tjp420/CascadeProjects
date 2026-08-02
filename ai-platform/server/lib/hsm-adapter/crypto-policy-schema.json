@@ -156,6 +156,17 @@
       "requirePreviousSeedZeroization": true,
       "maxRotationEpochIntervalSeconds": 86400,
       "requireCanonicalPayloadLayout": true
+    },
+    "assetBridge": {
+      "minCommitteeQuorum": 3,
+      "maxAssetTransactionValue": 1000000,
+      "minLockEpochDuration": 60,
+      "maxClaimExpirationEpochs": 10,
+      "requireSourceAttestation": true,
+      "requireTargetAttestation": true,
+      "allowedBridgeAuthorities": ["mock-authority"],
+      "requireTimeLockEscrow": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
