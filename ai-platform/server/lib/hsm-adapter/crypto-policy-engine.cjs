@@ -434,6 +434,14 @@ const DEFAULT_POLICY = {
     allowThresholdAdjustment: true,
     maxShareholders: 32,
   },
+  encryptedP2PRouting: {
+    maxHopCount: 16,
+    replayWindowMs: 30000,
+    requireAntiReplay: true,
+    requireOnionEncryption: true,
+    allowRelayNodes: true,
+    maxPeers: 128,
+  },
 };
 
 function _isObject(value) {
@@ -614,6 +622,10 @@ function _mergeWithDefault(tenantPolicy) {
     multipartyReKeying: {
       ...DEFAULT_POLICY.multipartyReKeying,
       ...(tenantPolicy.multipartyReKeying || {}),
+    },
+    encryptedP2PRouting: {
+      ...DEFAULT_POLICY.encryptedP2PRouting,
+      ...(tenantPolicy.encryptedP2PRouting || {}),
     },
     encryptedSearchRouting: {
       ...DEFAULT_POLICY.encryptedSearchRouting,

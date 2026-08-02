@@ -122,6 +122,14 @@ const counters = {
   hsm_rekey_aborted_total: 0,
   hsm_rekey_rollback_blocked_total: 0,
   hsm_rekey_active: 0,
+  // Track 38: Encrypted P2P Routing counters
+  hsm_p2p_route_discovered_total: 0,
+  hsm_p2p_message_encrypted_total: 0,
+  hsm_p2p_message_relayed_total: 0,
+  hsm_p2p_message_delivered_total: 0,
+  hsm_p2p_route_revoked_total: 0,
+  hsm_p2p_replay_blocked_total: 0,
+  hsm_p2p_active_routes: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -231,6 +239,13 @@ const META = {
   hsm_rekey_aborted_total: { help: 'Total re-keying rounds aborted.', type: 'counter' },
   hsm_rekey_rollback_blocked_total: { help: 'Total re-keying epoch rollback attempts blocked.', type: 'counter' },
   hsm_rekey_active: { help: 'Current number of active (in-progress) re-keying rounds.', type: 'gauge' },
+  hsm_p2p_route_discovered_total: { help: 'Total P2P routes discovered via BFS.', type: 'counter' },
+  hsm_p2p_message_encrypted_total: { help: 'Total P2P messages encrypted with onion layers.', type: 'counter' },
+  hsm_p2p_message_relayed_total: { help: 'Total P2P messages relayed through hops.', type: 'counter' },
+  hsm_p2p_message_delivered_total: { help: 'Total P2P messages successfully delivered.', type: 'counter' },
+  hsm_p2p_route_revoked_total: { help: 'Total P2P routes revoked.', type: 'counter' },
+  hsm_p2p_replay_blocked_total: { help: 'Total P2P replay attacks blocked.', type: 'counter' },
+  hsm_p2p_active_routes: { help: 'Current number of active P2P routes.', type: 'gauge' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
