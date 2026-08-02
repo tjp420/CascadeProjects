@@ -73,6 +73,15 @@ const counters = {
   hsm_pqc_threshold_partial_rejected_total: 0,
   hsm_pqc_threshold_verify_total: 0,
   hsm_pqc_threshold_verify_failures_total: 0,
+  // Track 28: Confidential Computing Sandboxing counters
+  hsm_sandbox_created_total: 0,
+  hsm_sandbox_destroyed_total: 0,
+  hsm_sandbox_attested_total: 0,
+  hsm_sandbox_attestation_failed_total: 0,
+  hsm_sandbox_execute_total: 0,
+  hsm_sandbox_execute_failures_total: 0,
+  hsm_sandbox_zeroized_total: 0,
+  hsm_sandbox_active: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -139,6 +148,14 @@ const META = {
   hsm_pqc_threshold_partial_rejected_total: { help: 'Total PQC partial signatures that failed verification.', type: 'counter' },
   hsm_pqc_threshold_verify_total: { help: 'Total PQC threshold signature verification operations.', type: 'counter' },
   hsm_pqc_threshold_verify_failures_total: { help: 'Total PQC threshold signature verifications that failed.', type: 'counter' },
+  hsm_sandbox_created_total: { help: 'Total confidential sandboxes created.', type: 'counter' },
+  hsm_sandbox_destroyed_total: { help: 'Total confidential sandboxes destroyed.', type: 'counter' },
+  hsm_sandbox_attested_total: { help: 'Total sandbox attestations that passed.', type: 'counter' },
+  hsm_sandbox_attestation_failed_total: { help: 'Total sandbox attestations that failed.', type: 'counter' },
+  hsm_sandbox_execute_total: { help: 'Total sandbox execute operations.', type: 'counter' },
+  hsm_sandbox_execute_failures_total: { help: 'Total sandbox execute operations that failed.', type: 'counter' },
+  hsm_sandbox_zeroized_total: { help: 'Total sandbox zeroization operations.', type: 'counter' },
+  hsm_sandbox_active: { help: 'Current number of active sandboxes.', type: 'gauge' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
