@@ -1405,6 +1405,35 @@ class BaseHsmAdapter {
     this._audit('HEALTH_RECORD_GATING_COMPLETED', info);
   }
 
+  // ── Track 73 PQ education credential gating telemetry hooks ──────────────
+
+  /**
+   * Emit an education gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitEducationGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('EDUCATION_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK academic claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkAcademicClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_ACADEMIC_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a credential accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCredentialAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('CREDENTIAL_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

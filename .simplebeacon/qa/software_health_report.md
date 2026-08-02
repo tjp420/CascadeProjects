@@ -1,44 +1,39 @@
-# Software Health Report — Track 41 Hardware Enclave Route Integration
+# Software Health Report — Dashboard UI Integration
 
 **Date:** 2026-08-02
-**Branch:** `feature/track41-hardware-enclave-isolation`
+**Branch:** `feature/dashboard-ui-integration`
 
 ## Summary
-Mounted the existing HardwareEnclaveAdapter (Track 41) into hsm-vault-routes.cjs, exposing 7 REST endpoints for enclave operations. Added a registry in base-adapter.cjs following the established consensus engine/coordinator pattern. Added 10 enclave telemetry counters to hsm-metrics.cjs.
+Wired CoreReplicationTelemetryDashboard and DropTelemetryDashboard into AdminPanelView. Fixed placeholder service/component files. Created drop telemetry service and component for the dashboard path.
 
-## Change Set (6 files)
-- base-adapter.cjs - Added registerHardwareEnclaveAdapter/getHardwareEnclaveAdapter registry + exports
-- hsm-metrics.cjs - Added 10 enclave counters (bootstrap, seal, unseal, key provision, attestation)
-- hsm-vault-routes.cjs - Added 7 REST endpoints
-- hsm-vault-enclave-routes.test.cjs - New, 32 tests
+## Change Set (8 files)
+- replicationTelemetryService.js - Fixed (was placeholder)
+- CoreReplicationTelemetryDashboard.js - Fixed (was placeholder)
+- dropTelemetryService.js - New
+- DropTelemetryDashboard.js - New
+- AdminPanelView.js - Added imports + telemetry section + mountTelemetryDashboards()
+- components.css - Added .admin-telemetry-grid CSS
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
 ## Level 1 - Deterministic
 | Check | Result |
 |-------|--------|
-| node -c all modified JS files | PASS |
-| 32 new enclave route tests | PASS |
-| 61 existing tests (no regression) | PASS |
+| node -c all 5 JS files | PASS |
+| Existing tests (92) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
 | Check | Result |
 |------|--------|
-| GET /enclave/status | PASS |
-| POST /enclave/initialize | PASS |
-| POST /enclave/seal | PASS |
-| POST /enclave/unseal | PASS |
-| POST /enclave/provision-key | PASS |
-| GET /enclave/attestation/verify | PASS |
-| POST /enclave/attestation/clear-cache | PASS |
-| 503 when no adapter | PASS |
-| 403 for non-admin | PASS |
+| AdminPanelView imports both dashboards | PASS |
+| Telemetry section in render | PASS |
+| mountTelemetryDashboards() works | PASS |
+| CSS grid layout | PASS |
 
 ## Level 3 - Security
 | Check | Result |
 |-------|--------|
-| All endpoints admin:all gated | PASS |
 | No secrets exposed | PASS |
 | No scope creep | Confirmed |
 | No regression | Confirmed |
@@ -47,4 +42,4 @@ Mounted the existing HardwareEnclaveAdapter (Track 41) into hsm-vault-routes.cjs
 None.
 
 ## Unimplemented
-- Enclave dashboard component (for Track 41 enclave telemetry visualization)
+- Consensus Coordinator dashboard component (for Track 40 coordinator telemetry)
