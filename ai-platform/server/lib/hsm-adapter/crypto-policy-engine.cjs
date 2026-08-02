@@ -126,6 +126,15 @@ const DEFAULT_POLICY = {
     requireLeaderHeartbeat: true,
     allowedConsensusModes: ['raft', 'bft'],
   },
+  enclave: {
+    allowedEnclaveTypes: ['mock', 'intel-sgx', 'aws-nitro'],
+    requiredMRENCLAVEHashes: [],
+    allowedAttestationAuthorities: ['mock-authority'],
+    requireRemoteAttestation: true,
+    minAttestationTtlSeconds: 300,
+    maxAttestationAgeSeconds: 60,
+    allowedEnclaveCiphers: ['aes-256-gcm'],
+  },
 };
 
 function _isObject(value) {
@@ -214,6 +223,10 @@ function _mergeWithDefault(tenantPolicy) {
     consensus: {
       ...DEFAULT_POLICY.consensus,
       ...(tenantPolicy.consensus || {}),
+    },
+    enclave: {
+      ...DEFAULT_POLICY.enclave,
+      ...(tenantPolicy.enclave || {}),
     },
   };
 }
@@ -380,6 +393,28 @@ class CryptoPolicyEngine {
     }
     if (policy.requireLeaderHeartbeat && config.requireLeaderHeartbeat === false) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'leader heartbeat is required');
+    }
+  }
+
+  _validateEnclave(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.enclave, ...(tenantPolicy.enclave || {}) };
+    if (typeof config.enclaveType === 'string' && !policy.allowedEnclaveTypes.includes(config.enclaveType)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `enclave type ${config.enclaveType} is not allowed; permitted: ${policy.allowedEnclaveTypes.join(', ')}`);
+    }
+    if (typeof config.mrenclave === 'string' && policy.requiredMRENCLAVEHashes.length > 0 && !policy.requiredMRENCLAVEHashes.includes(config.mrenclave)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `MRENCLAVE ${config.mrenclave} is not in the allowed list`);
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (policy.requireRemoteAttestation && config.requireRemoteAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'remote attestation is required');
+    }
+    if (typeof config.attestationAgeSeconds === 'number' && config.attestationAgeSeconds > policy.maxAttestationAgeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation age ${config.attestationAgeSeconds}s exceeds maximum ${policy.maxAttestationAgeSeconds}s`);
+    }
+    if (typeof config.enclaveCipher === 'string' && !policy.allowedEnclaveCiphers.includes(config.enclaveCipher)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `enclave cipher ${config.enclaveCipher} is not allowed; permitted: ${policy.allowedEnclaveCiphers.join(', ')}`);
     }
   }
 
@@ -732,6 +767,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'consensus') {
       this._validateConsensus(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'enclave') {
+      this._validateEnclave(tenantPolicy, config);
       return true;
     }
 
