@@ -56,6 +56,15 @@ const counters = {
   // Track 34 Phase 7: Implicit outbound signing counters
   hsm_consensus_outbound_signed_total: 0,
   hsm_consensus_outbound_sign_failed_total: 0,
+  // Track 26: DKG & zk-SNARKs counters
+  hsm_dkg_rounds_started_total: 0,
+  hsm_dkg_rounds_completed_total: 0,
+  hsm_dkg_shares_verified_total: 0,
+  hsm_dkg_shares_rejected_total: 0,
+  hsm_dkg_complaints_filed_total: 0,
+  hsm_dkg_nodes_disqualified_total: 0,
+  hsm_dkg_zk_proofs_generated_total: 0,
+  hsm_dkg_zk_proofs_invalid_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -107,6 +116,14 @@ const META = {
   hsm_consensus_snapshot_rejected_total: { help: 'Total snapshots rejected (stale, invalid signature, etc.).', type: 'counter' },
   hsm_consensus_outbound_signed_total: { help: 'Total outbound RPC frames auto-signed by the engine.', type: 'counter' },
   hsm_consensus_outbound_sign_failed_total: { help: 'Total outbound RPC frames that failed auto-signing.', type: 'counter' },
+  hsm_dkg_rounds_started_total: { help: 'Total DKG protocol rounds initiated.', type: 'counter' },
+  hsm_dkg_rounds_completed_total: { help: 'Total DKG protocol rounds that completed successfully.', type: 'counter' },
+  hsm_dkg_shares_verified_total: { help: 'Total DKG shares that passed commitment verification.', type: 'counter' },
+  hsm_dkg_shares_rejected_total: { help: 'Total DKG shares that failed commitment verification.', type: 'counter' },
+  hsm_dkg_complaints_filed_total: { help: 'Total DKG complaints filed by nodes against peers.', type: 'counter' },
+  hsm_dkg_nodes_disqualified_total: { help: 'Total DKG nodes disqualified due to verified complaints.', type: 'counter' },
+  hsm_dkg_zk_proofs_generated_total: { help: 'Total zk-SNARK validation parameters generated.', type: 'counter' },
+  hsm_dkg_zk_proofs_invalid_total: { help: 'Total zk-SNARK validation parameters rejected as invalid or forged.', type: 'counter' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },
