@@ -2054,6 +2054,50 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
   gap: var(--space-4);
 }
 
+.metric-chip-ok {
+  border-color: var(--success, #22c55e);
+}
+
+.metric-chip-warning {
+  border-color: var(--warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.metric-chip-danger {
+  border-color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.metric-chip-neutral {
+  opacity: 0.7;
+}
+
+.enclave-state-banner {
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.enclave-state-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.enclave-state-item {
+  color: var(--text-muted, #6b7280);
+}
+
+.enclave-init-ok {
+  color: var(--success, #22c55e);
+  font-weight: 600;
+}
+
+.enclave-init-pending {
+  color: var(--warning, #f59e0b);
+}
+
 .tool-action-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

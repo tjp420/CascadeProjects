@@ -4,6 +4,7 @@ import { authService, apiBase } from '../services/authService.js?v=20260722bridg
 import { escapeHtml, showToast, downloadJson, setHtml } from '../utils.js?v=20260720adminfix1';
 import { renderCoreReplicationTelemetryDashboard, cleanupCoreReplicationTelemetryDashboard } from '../components/CoreReplicationTelemetryDashboard.js';
 import { renderDropTelemetryDashboard, cleanupDropTelemetryDashboard } from '../components/DropTelemetryDashboard.js';
+import { renderEnclaveTelemetryDashboard, cleanupEnclaveTelemetryDashboard } from '../components/EnclaveTelemetryDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -957,6 +958,7 @@ export class AdminPanelView {
         // Clean up any previously mounted dashboards
         cleanupCoreReplicationTelemetryDashboard();
         cleanupDropTelemetryDashboard();
+        cleanupEnclaveTelemetryDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
@@ -971,6 +973,13 @@ export class AdminPanelView {
             grid.appendChild(dropDashboard);
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount drop telemetry dashboard:', e);
+        }
+        // Mount Enclave Telemetry (Track 41, 10 counters + enclave state banner)
+        try {
+            const enclaveDashboard = renderEnclaveTelemetryDashboard();
+            grid.appendChild(enclaveDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount enclave telemetry dashboard:', e);
         }
     }
 
