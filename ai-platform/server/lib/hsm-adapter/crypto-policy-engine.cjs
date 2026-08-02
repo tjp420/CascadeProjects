@@ -306,6 +306,15 @@ const DEFAULT_POLICY = {
     banMalformedChunkPeers: true,
     requireCanonicalPayloadLayout: true,
   },
+  confidentialSandbox: {
+    maxExecutionTimeSeconds: 30,
+    maxConcurrentSandboxes: 100,
+    allowedOperations: ['sign', 'verify', 'encrypt', 'decrypt', 'derive', 'hash'],
+    requireAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    requireZeroization: true,
+    sandboxMemoryLimitBytes: 1048576,
+  },
 };
 
 function _isObject(value) {
@@ -462,6 +471,10 @@ function _mergeWithDefault(tenantPolicy) {
     encryptedDeduplication: {
       ...DEFAULT_POLICY.encryptedDeduplication,
       ...(tenantPolicy.encryptedDeduplication || {}),
+    },
+    confidentialSandbox: {
+      ...DEFAULT_POLICY.confidentialSandbox,
+      ...(tenantPolicy.confidentialSandbox || {}),
     },
   };
 }
