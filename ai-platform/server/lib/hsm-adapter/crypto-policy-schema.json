@@ -43,7 +43,15 @@
       "minKemLevel": 512,
       "maxKemLevel": 1024,
       "hybridMode": true,
-      "allowedCurves": ["P-256", "P-384", "P-521"]
+      "allowedCurves": ["P-256", "P-384", "P-521"],
+      "thresholdSignature": {
+        "allowedSchemes": ["ml-dsa-65", "ml-dsa-87", "fn-dsa-512", "sphincs+-sha256-128s"],
+        "minThreshold": 2,
+        "minSignatureSizeBytes": 2048,
+        "maxPartialShares": 21,
+        "requireShareVerification": true,
+        "requireGroupPublicKeyAttestation": true
+      }
     },
     "zkp": {
       "tokenExpiryMs": 300000,
