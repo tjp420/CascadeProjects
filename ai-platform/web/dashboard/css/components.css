@@ -2048,6 +2048,12 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
   font-size: var(--font-size-sm);
 }
 
+.admin-telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
 .tool-action-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
