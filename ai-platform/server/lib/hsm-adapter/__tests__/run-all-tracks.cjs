@@ -57,6 +57,7 @@ const SUITES = [
   'pq-fractional-custody',
   'pq-lending-pools',
   'pq-insurance-underwriting',
+  'pq-supply-chain-escrow',
 ];
 
 function runSuite(pattern) {

@@ -1220,6 +1220,35 @@ class BaseHsmAdapter {
     this._audit('UNDERWRITING_POOL_LIQUIDATED', info);
   }
 
+  // ── Track 68 PQ supply chain escrow telemetry hooks ──────────────
+
+  /**
+   * Emit a supply chain order initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitSupplyChainOrderInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('SUPPLY_CHAIN_ORDER_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK delivery milestone verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkDeliveryMilestoneVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_DELIVERY_MILESTONE_VERIFIED', info);
+  }
+
+  /**
+   * Emit a procurement escrow released event into the audit pipeline.
+   * @param {object} info
+   */
+  emitProcurementEscrowReleased(info = {}) {
+    this._ensureInitialized();
+    this._audit('PROCUREMENT_ESCROW_RELEASED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
