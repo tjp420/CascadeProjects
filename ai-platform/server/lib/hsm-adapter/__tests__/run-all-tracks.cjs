@@ -45,6 +45,7 @@ const SUITES = [
   'homomorphic-key-sharding',
   'mpc-gated-decryption',
   'encrypted-deduplication',
+  'encrypted-search-routing',
 ];
 
 function runSuite(pattern) {
