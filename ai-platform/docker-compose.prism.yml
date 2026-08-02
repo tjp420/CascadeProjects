@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  prism-mock:
+    image: stoplight/prism:4
+    container_name: prism-mock
+    volumes:
+      - ./api/openapi.yaml:/spec/openapi.yaml:ro
+    command: ["mock", "/spec/openapi.yaml", "-h", "0.0.0.0", "-p", "4010"]
+    ports:
+      - "4010:4010"
+    environment:
+      - PRISM_LOG=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4010/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
