@@ -1492,6 +1492,35 @@ class BaseHsmAdapter {
     this._audit('CERTIFICATE_TRADING_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 76 PQ supply chain provenance gating telemetry hooks ──────────────
+
+  /**
+   * Emit a supply chain gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitSupplyChainGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('SUPPLY_CHAIN_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK provenance claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkProvenanceClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_PROVENANCE_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a component lineage accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitComponentLineageAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('COMPONENT_LINEAGE_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
