@@ -147,7 +147,13 @@ export async function runLocalScan(options = {}) {
   if (files.length === 0) {
     throw new Error(`No files were found in "${projectName}". The folder may be empty, permission was denied, or all files were excluded. Try selecting the folder again or use the local agent.`);
   }
-  const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
+  const workerFiles = files.map((f) => {
+    const handle = f.handle;
+    if (handle && handle._preReadText !== undefined) {
+      return { path: f.path, fileObj: null, preReadText: handle._preReadText, preReadSize: handle._preReadSize || 0 };
+    }
+    return { path: f.path, fileObj: handle };
+  });
 
   return new Promise((resolve, reject) => {
     const worker = new Worker(WORKER_URL, { type: 'module' });

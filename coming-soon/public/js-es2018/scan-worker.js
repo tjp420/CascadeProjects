@@ -199,12 +199,17 @@ async function scanFiles(files, deepScan) {
         if (shouldSkipFile(file.path, deepScan))
             continue;
         try {
-            const fileObj = file.fileObj || file;
-            if (typeof fileObj.text !== 'function') {
-                textErrors++;
-                continue;
+            let text;
+            if (file.preReadText !== undefined && file.preReadText !== null) {
+                text = file.preReadText;
+            } else {
+                const fileObj = file.fileObj || file;
+                if (typeof fileObj.text !== 'function') {
+                    textErrors++;
+                    continue;
+                }
+                text = await fileObj.text();
             }
-            const text = await fileObj.text();
             const hash = await simpleHash(text);
             const fileLang = detectFileLanguage(file.path);
             if (!fileLang) {
