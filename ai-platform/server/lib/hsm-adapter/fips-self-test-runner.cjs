@@ -19,15 +19,15 @@ class FipsSelfTestRunner {
     AES_KW: {
       key: Buffer.from('000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f', 'hex'),
       plaintext: Buffer.from('00112233445566778899aabbccddeeff', 'hex'),
-      ciphertext: Buffer.from('28c9f404c4b810f4cbccb4d939afa8d659dd04c3298e3b33', 'hex')
+      ciphertext: Buffer.from('64e8c3f9ce0f5ba263e9777905818a2a93c8191e7d6e8ae7', 'hex')
     },
     // RFC 5869: HKDF-SHA256
     HKDF: {
       ikm: Buffer.from('0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b', 'hex'),
-      salt: Buffer.from('000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f', 'hex'),
+      salt: Buffer.from('000102030405060708090a0b0c', 'hex'),
       info: Buffer.from('f0f1f2f3f4f5f6f7f8f9', 'hex'),
       length: 42,
-      okm: Buffer.from('3cb25f151b60726b5557b4099f85632d4815a97330fd5e275422b8ad7c2c441a0d521d2db2d4c6f174c9', 'hex')
+      okm: Buffer.from('3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865', 'hex')
     }
   };
 
@@ -63,16 +63,16 @@ class FipsSelfTestRunner {
 
   static #runAesKwTest() {
     const { key, plaintext, ciphertext } = this.VECTORS.AES_KW;
+    const iv = Buffer.from('a6a6a6a6a6a6a6a6', 'hex');
 
-    // Cipher initialization for Key Wrap
-    const cipher = crypto.createCipheriv('aes-256-wrap', key, Buffer.alloc(0));
+    const cipher = crypto.createCipheriv('id-aes256-wrap', key, iv);
     const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
 
     if (!encrypted.equals(ciphertext)) {
       throw new Error('AES-KW Known Answer Test mismatch.');
     }
 
-    const decipher = crypto.createDecipheriv('aes-256-wrap', key, Buffer.alloc(0));
+    const decipher = crypto.createDecipheriv('id-aes256-wrap', key, iv);
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
     if (!decrypted.equals(plaintext)) {

@@ -26,6 +26,7 @@ const {
   deserialize,
   KeyringValidationError,
 } = require('../keyring-serializer.cjs');
+const { FipsSelfTestRunner } = require('./fips-self-test-runner.cjs');
 
 const WRAPPED_BLOB_VERSION = 1;
 
@@ -55,7 +56,6 @@ class BaseHsmAdapter {
    * @param {CryptoPolicyEngine} [options.policyEngine] - optional policy enforcement engine
    * @param {VolatileEvictionEngine} [options.volatileEvictionEngine] - optional eviction engine
    * @param {ProvenanceTracker} [options.provenanceTracker] - optional provenance ledger
-   * @param {EscrowBroker} [options.escrowBroker] - optional cross-tenant key escrow broker
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -67,7 +67,6 @@ class BaseHsmAdapter {
     this._evictionEngine = options.volatileEvictionEngine || null;
     this._provenanceTracker = options.provenanceTracker || null;
     this._timeAnchor = options.timeAnchor || null;
-    this._escrowBroker = options.escrowBroker || null;
     this._initialized = false;
   }
 
@@ -80,6 +79,9 @@ class BaseHsmAdapter {
    */
   async initialize() {
     if (this._initialized) return;
+    if (this._policyEngine && this._policyEngine.getPolicy('default').fips && this._policyEngine.getPolicy('default').fips.enabled) {
+      FipsSelfTestRunner.executePowerOnSelfTests();
+    }
     await this._initialize();
     this._initialized = true;
     this._log('info', `HSM adapter initialized: ${this.providerName}`);
@@ -168,21 +170,17 @@ class BaseHsmAdapter {
    * @param {string} tenantId
    * @param {string} kekId
    * @param {Buffer} wrapped
-   * @param {DeclassificationProof|object} [token] - optional cross-tenant declassification proof
    * @returns {Promise<Buffer>} plaintext
    */
-  async unwrap(tenantId, kekId, wrapped, token = null) {
+  async unwrap(tenantId, kekId, wrapped) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
     if (!Buffer.isBuffer(wrapped)) {
       throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
     }
-
-    const escrow = this._escrowBroker ? this._escrowBroker.requireToken(kekId, tenantId, token) : null;
-    const effectiveTenantId = escrow ? escrow.sourceTenantId : tenantId;
-
-    this._evictionEngine?.touch(effectiveTenantId, kekId);
-    return this._unwrap(effectiveTenantId, kekId, wrapped);
+    this._checkTemporalGuard();
+    this._evictionEngine?.touch(tenantId, kekId);
+    return this._unwrap(tenantId, kekId, wrapped);
   }
 
   async _unwrap(_tenantId, _kekId, _wrapped) {
@@ -198,6 +196,7 @@ class BaseHsmAdapter {
   async rotateKEK(tenantId, oldKekId) {
     this._ensureInitialized();
     this._ensureTenant(tenantId);
+    this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, oldKekId);
     const newKekId = await this._rotateKEK(tenantId, oldKekId);
     this._evictionEngine?.register(tenantId, newKekId, async (id, reason) => {
@@ -418,6 +417,50 @@ class BaseHsmAdapter {
   }
   // ── High-level keyring export / import ─────────────────────────────
 
+  // ── Temporal guard (Track 22) ───────────────────────────────────
+
+  /**
+   * Check that the local clock is within the time anchor's drift window.
+   * No-op when no time anchor is configured.
+   * @private
+   */
+  _checkTemporalGuard() {
+    if (!this._timeAnchor) return;
+    const consensus = this._timeAnchor.consensusTimestamp();
+    const local = Date.now();
+    const drift = Math.abs(local - consensus);
+    if (drift > this._timeAnchor.maxDriftMs) {
+      this._audit('TEMPORAL_DRIFT_BLOCKED', { drift, maxDriftMs: this._timeAnchor.maxDriftMs, consensus, local });
+      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `local clock drift ${drift}ms exceeds ${this._timeAnchor.maxDriftMs}ms`);
+    }
+  }
+
+  /**
+   * Return the current anchored epoch timestamp.
+   * @returns {number|null}
+   */
+  currentEpoch() {
+    return this._timeAnchor ? this._timeAnchor.currentEpoch() : null;
+  }
+
+  /**
+   * Verify that a local timestamp is within the temporal guard's tolerance.
+   * @param {string} tenantId
+   * @param {number} localTimestamp
+   * @param {number} [toleranceMs] - override the anchor's maxDriftMs
+   */
+  verifyTemporalGuard(tenantId, localTimestamp, toleranceMs) {
+    this._ensureTenant(tenantId);
+    if (!this._timeAnchor) return;
+    const consensus = this._timeAnchor.consensusTimestamp();
+    const max = typeof toleranceMs === 'number' ? toleranceMs : this._timeAnchor.maxDriftMs;
+    const drift = Math.abs(localTimestamp - consensus);
+    this._audit('TEMPORAL_DRIFT_BLOCKED', { tenantId, drift, max, consensus, localTimestamp, ok: drift <= max });
+    if (drift > max) {
+      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `temporal drift ${drift}ms exceeds ${max}ms`);
+    }
+  }
+
   /**
    * Dispatches and serializes internal keyrings via a Master KEK context.
    * @param {object} keyringData - keyring object for serialize()
@@ -426,6 +469,7 @@ class BaseHsmAdapter {
    */
   async exportKeyring(keyringData, masterKek) {
     this._ensureInitialized();
+    this._checkTemporalGuard();
     try {
       // Direct pass-through to the unified binary pipeline
       return serialize(keyringData, masterKek);

@@ -50,32 +50,23 @@ const DEFAULT_POLICY = {
     hybridMode: true,
     allowedCurves: ['P-256', 'P-384', 'P-521'],
   },
+  zkp: {
+    tokenExpiryMs: 300000,
+    maxProofs: 100,
+    allowedPrimes: [],
+  },
   time: {
     maxDriftMs: 60000,
     minQuorum: 3,
     requireEpochChain: true,
   },
-  escrow: {
-    requireDualConsent: true,
-    minAuthorizationQuorum: 2,
-    maxEscrowLifetimeMs: 86400000,
-    declassificationTokenExpiryMs: 300000,
-    allowedEscrowAlgorithms: ['aes-kw', 'rsa-oaep'],
-  },
-  privacy: {
-    blindSignature: {
-      publicExponent: 65537,
-      allowedPublicExponents: [65537],
-      minModulusBits: 2048,
-      allowedHashFunctions: ['sha256'],
-      requireFullDomainHash: true,
-    },
-    pir: {
-      maxRows: 10000,
-      maxDimensions: 2,
-      maxQuerySizeBytes: 1048576,
-      allowedHomomorphicSchemes: ['paillier', 'bfv'],
-    },
+  fips: {
+    enabled: false,
+    level: 3,
+    allowedCurves: ['P-256', 'P-384'],
+    allowedKemLevels: [768, 1024],
+    graceTokenExpiryMs: 0,
+    allowBlinding: false,
   },
 };
 
@@ -86,8 +77,13 @@ function _isObject(value) {
 function _mergeWithDefault(tenantPolicy) {
   // Shallow merge: tenant explicitly provided values win; missing values
   // fall back to the built-in default for a deny-by-default posture.
+  // NOTE: ...tenantPolicy is spread FIRST so the explicit nested-merge
+  // keys below always win. Spreading it last (a prior bug) clobbered the
+  // deep-merged zkp/threshold/ratchet/etc. blocks with whatever the
+  // tenant provided (often {} or undefined), causing defaults to vanish.
   return {
     ...DEFAULT_POLICY,
+    ...tenantPolicy,
     allowedAlgorithms: {
       aes: { ...DEFAULT_POLICY.allowedAlgorithms.aes, ...(tenantPolicy.allowedAlgorithms && tenantPolicy.allowedAlgorithms.aes) },
       rsa: { ...DEFAULT_POLICY.allowedAlgorithms.rsa, ...(tenantPolicy.allowedAlgorithms && tenantPolicy.allowedAlgorithms.rsa) },
@@ -122,22 +118,10 @@ function _mergeWithDefault(tenantPolicy) {
       ...DEFAULT_POLICY.time,
       ...(tenantPolicy.time || {}),
     },
-    escrow: {
-      ...DEFAULT_POLICY.escrow,
-      ...(tenantPolicy.escrow || {}),
+    fips: {
+      ...DEFAULT_POLICY.fips,
+      ...(tenantPolicy.fips || {}),
     },
-    privacy: {
-      ...DEFAULT_POLICY.privacy,
-      blindSignature: {
-        ...DEFAULT_POLICY.privacy.blindSignature,
-        ...(tenantPolicy.privacy && tenantPolicy.privacy.blindSignature) || {},
-      },
-      pir: {
-        ...DEFAULT_POLICY.privacy.pir,
-        ...(tenantPolicy.privacy && tenantPolicy.privacy.pir) || {},
-      },
-    },
-    ...tenantPolicy,
   };
 }
 
@@ -224,6 +208,40 @@ class CryptoPolicyEngine {
         'POLICY_VIOLATION_BLOCKED',
         `${label} ${kekBits} is below the tenant minimum of ${min}`
       );
+    }
+  }
+
+  _validateFips(tenantPolicy, config) {
+    const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
+    if (!policy.enabled) return;
+
+    if (config.algorithm === 'ecdh') {
+      const curve = typeof config.keySize === 'number' ? `P-${config.keySize}` : config.keySize;
+      if (typeof curve === 'string' && !policy.allowedCurves.includes(curve)) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: ECDH curve ${curve} is not approved; permitted: ${policy.allowedCurves.join(', ')}`);
+      }
+    }
+
+    if (config.algorithm === 'pqc' || config.algorithm === 'hybrid-kem') {
+      const kemLevel = config.kemLevel;
+      if (typeof kemLevel === 'number' && !policy.allowedKemLevels.includes(kemLevel)) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: KEM level ${kemLevel} is not approved; permitted: ${policy.allowedKemLevels.join(', ')}`);
+      }
+    }
+
+    if (config.algorithm === 'homomorphic' || config.algorithm === 'blinding') {
+      if (config.allowBlinding && !policy.allowBlinding) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'FIPS mode: homomorphic blinding is not approved');
+      }
+      if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.graceTokenExpiryMs) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: token expiry grace window ${config.tokenExpiryMs}ms exceeds approved ${policy.graceTokenExpiryMs}ms`);
+      }
+    }
+
+    if (config.algorithm === 'zkp') {
+      if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.graceTokenExpiryMs) {
+        throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `FIPS mode: ZKP token grace window ${config.tokenExpiryMs}ms exceeds approved ${policy.graceTokenExpiryMs}ms`);
+      }
     }
   }
 
@@ -318,57 +336,6 @@ class CryptoPolicyEngine {
     }
   }
 
-  _validateEscrow(tenantPolicy, config) {
-    const policy = { ...DEFAULT_POLICY.escrow, ...(tenantPolicy.escrow || {}) };
-    if (config.sourceTenantId === config.destTenantId) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'source and destination tenant must be different');
-    }
-    if (typeof config.consentCount === 'number' && config.consentCount < policy.minAuthorizationQuorum) {
-      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', `only ${config.consentCount} consent signatures, require ${policy.minAuthorizationQuorum}`);
-    }
-    if (policy.requireDualConsent && typeof config.consentCount === 'number' && config.consentCount < 2) {
-      throw new HsmAdapterError('ESCROW_CONSENT_MISSING', 'dual consent is required');
-    }
-    if (typeof config.escrowLifetimeMs === 'number' && config.escrowLifetimeMs > policy.maxEscrowLifetimeMs) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `escrow lifetime ${config.escrowLifetimeMs}ms exceeds policy ${policy.maxEscrowLifetimeMs}ms`);
-    }
-    if (typeof config.tokenExpiryMs === 'number' && config.tokenExpiryMs > policy.declassificationTokenExpiryMs) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `token expiry ${config.tokenExpiryMs}ms exceeds policy ${policy.declassificationTokenExpiryMs}ms`);
-    }
-    if (typeof config.algorithm === 'string' && policy.allowedEscrowAlgorithms.length > 0 && !policy.allowedEscrowAlgorithms.includes(config.algorithm)) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `escrow algorithm ${config.algorithm} is not allowed`);
-    }
-  }
-
-  _validateBlind(tenantPolicy, config) {
-    const policy = { ...DEFAULT_POLICY.privacy.blindSignature, ...(tenantPolicy.privacy && tenantPolicy.privacy.blindSignature) || {} };
-    if (typeof config.publicExponent === 'number' && policy.allowedPublicExponents.length > 0 && !policy.allowedPublicExponents.includes(config.publicExponent)) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `public exponent ${config.publicExponent} is not allowed for blind signatures`);
-    }
-    if (typeof config.modulusBits === 'number' && config.modulusBits < policy.minModulusBits) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `modulus bits ${config.modulusBits} below policy minimum ${policy.minModulusBits}`);
-    }
-    if (typeof config.hashFunction === 'string' && policy.allowedHashFunctions.length > 0 && !policy.allowedHashFunctions.includes(config.hashFunction)) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `hash function ${config.hashFunction} is not allowed for blind signatures`);
-    }
-  }
-
-  _validatePir(tenantPolicy, config) {
-    const policy = { ...DEFAULT_POLICY.privacy.pir, ...(tenantPolicy.privacy && tenantPolicy.privacy.pir) || {} };
-    if (typeof config.rows === 'number' && config.rows > policy.maxRows) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pir rows ${config.rows} exceed policy ${policy.maxRows}`);
-    }
-    if (typeof config.columns === 'number' && config.columns > policy.maxDimensions) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pir dimensions ${config.columns} exceed policy ${policy.maxDimensions}`);
-    }
-    if (typeof config.querySizeBytes === 'number' && config.querySizeBytes > policy.maxQuerySizeBytes) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pir query size ${config.querySizeBytes} bytes exceeds policy ${policy.maxQuerySizeBytes} bytes`);
-    }
-    if (typeof config.scheme === 'string' && policy.allowedHomomorphicSchemes.length > 0 && !policy.allowedHomomorphicSchemes.includes(config.scheme)) {
-      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `pir homomorphic scheme ${config.scheme} is not allowed`);
-    }
-  }
-
   _validateHomomorphic(tenantPolicy, config) {
     const policy = tenantPolicy.homomorphic || DEFAULT_POLICY.homomorphic;
     if (typeof config.maxModulusBits === 'number' && config.maxModulusBits > policy.maxModulusBits) {
@@ -401,7 +368,7 @@ class CryptoPolicyEngine {
       throw new HsmAdapterError('INVALID_THRESHOLD', 'threshold and total must be numbers');
     }
     if (threshold < 1 || total < 1 || threshold > total) {
-      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 ≤ threshold ≤ total (${total})`);
+      throw new HsmAdapterError('INVALID_THRESHOLD', `threshold (${threshold}) must satisfy 1 Γëñ threshold Γëñ total (${total})`);
     }
     if (threshold < policy.minThreshold) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `threshold ${threshold} is below policy minimum ${policy.minThreshold}`);
@@ -449,6 +416,8 @@ class CryptoPolicyEngine {
 
     const tenantPolicy = this._getTenantPolicy(tenantId);
 
+    this._validateFips(tenantPolicy, config);
+
     if (operation === 'threshold') {
       this._validateThreshold(tenantPolicy, config.threshold, config.total);
       return true;
@@ -476,21 +445,6 @@ class CryptoPolicyEngine {
 
     if (operation === 'time') {
       this._validateTime(tenantPolicy, config);
-      return true;
-    }
-
-    if (operation === 'escrow') {
-      this._validateEscrow(tenantPolicy, config);
-      return true;
-    }
-
-    if (operation === 'blind') {
-      this._validateBlind(tenantPolicy, config);
-      return true;
-    }
-
-    if (operation === 'pir') {
-      this._validatePir(tenantPolicy, config);
       return true;
     }
 
