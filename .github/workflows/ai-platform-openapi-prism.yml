@@ -1,0 +1,61 @@
+name: ai-platform — OpenAPI lint, Prism mock, tests
+
+on:
+  pull_request:
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/ai-platform-openapi-prism.yml'
+  push:
+    branches:
+      - 'feature/**'
+  workflow_dispatch: {}
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Spectral (no-global)
+        run: |
+          npm ci --no-audit --no-fund || true
+          npx --yes @stoplight/spectral-cli@6 lint ai-platform/api/openapi.yaml --verbose || true
+
+      - name: Spectral lint (fail on errors)
+        run: |
+          npx --yes @stoplight/spectral-cli@6 lint ai-platform/api/openapi.yaml --fail-severity error
+
+      - name: Start Prism mock (Docker)
+        run: |
+          docker run -d --rm --name prism-mock -p 4010:4010 -v $GITHUB_WORKSPACE/ai-platform/api/openapi.yaml:/spec/openapi.yaml:ro stoplight/prism:4 mock /spec/openapi.yaml -h 0.0.0.0 -p 4010
+
+      - name: Wait for Prism readiness
+        run: |
+          echo 'Waiting for Prism at http://localhost:4010/ ...'
+          for i in {1..60}; do
+            if curl -fsS http://localhost:4010/ >/dev/null 2>&1; then
+              echo 'Prism is ready'; exit 0
+            fi
+            sleep 1
+          done
+          echo 'Prism did not become ready in time'; docker logs prism-mock || true; exit 1
+
+      - name: Run ai-platform tests
+        env:
+          CI: true
+        run: |
+          npx jest --config=ai-platform/jest.config.cjs --runInBand
+
+      - name: Collect mock logs
+        if: failure()
+        run: docker logs prism-mock || true
+
+      - name: Stop Prism mock
+        if: always()
+        run: docker rm -f prism-mock || true
