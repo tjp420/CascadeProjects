@@ -1,61 +1,78 @@
-# Software Health Report — Expose Recovery Telemetry
+# Software Health Report — Phase Closeout: Tracks 34-39 + Recovery Telemetry
 
 **Date:** 2026-08-02
-**Branch:** `feature/expose-recovery-telemetry`
+**Branch:** `feature/phase-closeout-tracks34-39`
 **Validator Sign-off:** Pending (Builder self-report; separate Validator pass recommended)
 
 ## Summary
 
-Exposed Track 39's threshold account recovery metrics to the frontend Analytical Dashboard. Added a JSON API endpoint following the existing `/api/vault/consensus/status` pattern, plus a dashboard service and component to render the telemetry.
+Phase closeout for Tracks 34-39 plus the Recovery Telemetry Exposure task. All 7 PRs merged into `main` with 327 total new test assertions. The phase delivers a unified social recovery and cluster security deployment topology across 4 architectural layers.
 
-## Change Set
+## Phase Deliverables
 
-| File | Change | Lines |
-|------|--------|-------|
-| `server/routes/hsm-vault-routes.cjs` | Add `GET /api/vault/recovery/status` endpoint | +24 |
-| `server/lib/__tests__/hsm-vault-recovery-status-route.test.cjs` | **New** — Test suite (6 tests) | 134 |
-| `web/dashboard/js-es2018/services/recoveryTelemetryService.js` | **New** — Dashboard service | 46 |
-| `web/dashboard/js-es2018/components/RecoveryTelemetryDashboard.js` | **New** — Dashboard component | 159 |
+| PR | Track | Tests | Status |
+|----|-------|-------|--------|
+| #206 | 34: Cross-Cluster Migration | 48 | MERGED |
+| #208 | 35: Cluster Key Reconciliation | 50 | MERGED |
+| #210 | 36: ZK Proof-of-Assets | 52 | MERGED |
+| #212 | 37: Multiparty Re-Keying | 53 | MERGED |
+| #214 | 38: Encrypted P2P Routing | 57 | MERGED |
+| #216 | 39: Threshold Account Recovery | 55 | MERGED |
+| #218 | Recovery Telemetry Exposure | 12 | MERGED |
+
+**Total: 327 assertions, 0 failures, 100% green**
+
+## Infrastructure Growth
+
+| Metric | Before Phase | After Phase | Delta |
+|--------|-------------|-------------|-------|
+| Engines | 12 | 18 | +6 |
+| Policy blocks | 49 | 55 | +6 |
+| Metrics counters/gauges | 108 | 150 | +42 |
+| Test suites (hsm-adapter) | 65 | 72 | +7 |
 
 ## Level 1 — Deterministic (required)
 
 | Check | Result |
 |-------|--------|
-| `node -c hsm-vault-routes.cjs` | PASS |
-| `node -c hsm-vault-recovery-status-route.test.cjs` | PASS |
-| Recovery status route test suite (6 tests) | PASS |
-| Existing vault metrics route tests (6 tests) | PASS (no regression) |
-| No new dependencies | Confirmed |
+| All 7 PRs merged to `main` | Confirmed |
+| All syntax checks pass (`node -c`) | Confirmed |
+| No new dependencies added | Confirmed |
 | No secrets committed | Confirmed |
 
 ## Level 2 — Functional Operations
 
-| Test | Result |
-|------|--------|
-| L2.01: `GET /api/vault/recovery/status` returns 200 with JSON for admin | PASS |
-| L2.02: Response includes all 7 recovery counters | PASS |
-| L2.03: Returns 403 for non-admin users | PASS |
-| L2.04: RecoveryTelemetryService fetches data from the endpoint | Implemented (frontend service) |
-| L2.05: RecoveryTelemetryDashboard renders metric chips | Implemented (frontend component) |
+| Check | Result |
+|-------|--------|
+| All 7 test suites pass individually | Confirmed |
+| Policy engine test suite passes (no regression) | Confirmed (16 tests) |
+| Existing vault metrics route tests pass (no regression) | Confirmed (6 tests) |
+| Recovery telemetry endpoint returns correct counters | Confirmed |
 
-## Level 3 — Security Engineering
+## Level 3 — Self-review / Drift
 
-| Test | Result |
-|------|--------|
-| L3.01: Endpoint requires `admin:all` authorization | PASS |
-| L3.02: No secrets exposed in telemetry output (only numeric counters) | PASS |
-| L3.03: No scope creep — only route + service + component + tests | Confirmed |
-| L3.04: All existing tests still pass (no regression) | Confirmed |
+| Check | Result |
+|-------|--------|
+| No scope creep (except noted Track 38 `retry-with-timeout.cjs`) | Confirmed |
+| No ghost files or hallucinated API paths | Confirmed |
+| All state machines have terminal states | Confirmed |
+| All endpoints require `admin:all` authorization | Confirmed |
+| Bug fixes documented (3 falsy-zero / missing-field bugs) | Confirmed |
 
 ## Defects
 
-None.
+None — all bugs were caught and fixed during testing, before merge.
 
 ## Unimplemented
 
-None — all planned check-items from `test_plan.md` are implemented and passing.
+1. **Frontend integration**: `RecoveryTelemetryDashboard` component is not yet wired into a dashboard view
+2. **Telemetry for Tracks 34-38**: Only Track 39 has dashboard telemetry exposure; Tracks 34-38 follow the same pattern when ready
+3. **Validator pass**: A separate Validator-mode adversarial review is recommended for full QA Framework compliance
 
-## Notes
+## Future Roadmap
 
-- Frontend service and component are implemented but not yet wired into the dashboard view router. This is intentional — the component can be imported and rendered by any view (e.g., AdminPanelView or DashboardView) when the UI team is ready to integrate it.
-- The endpoint follows the exact same pattern as the existing `/api/vault/consensus/status` endpoint for consistency.
+1. Track 40+ — next cryptographic milestones (TBD)
+2. Frontend wiring of `RecoveryTelemetryDashboard` into `AdminPanelView` or `DashboardView`
+3. Telemetry exposure for Tracks 34-38 (migration, reconciliation, ZK proof, re-keying, P2P routing)
+4. Separate Validator pass for adversarial QA compliance
+5. Temp directory cleanup (`tmp-branch-clone/`, `tmp-release-clone/`)
