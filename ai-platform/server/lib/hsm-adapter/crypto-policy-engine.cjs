@@ -109,6 +109,14 @@ const DEFAULT_POLICY = {
     requirePqcBlindingFactor: true,
     maxChildDerivationDepth: 10,
   },
+  recoverySync: {
+    maxCatchUpBatchSize: 64,
+    reSyncRetryLimit: 5,
+    backoffBaseIntervalMs: 1000,
+    maxBackOffMs: 60000,
+    requireBftCatchUpAck: true,
+    allowedCatchUpModes: ['sliding-window', 'checkpoint'],
+  },
 };
 
 function _isObject(value) {
@@ -189,6 +197,10 @@ function _mergeWithDefault(tenantPolicy) {
     governance: {
       ...DEFAULT_POLICY.governance,
       ...(tenantPolicy.governance || {}),
+    },
+    recoverySync: {
+      ...DEFAULT_POLICY.recoverySync,
+      ...(tenantPolicy.recoverySync || {}),
     },
   };
 }
@@ -314,6 +326,25 @@ class CryptoPolicyEngine {
     }
     if (typeof config.minAdminQuorum === 'number' && config.minAdminQuorum < policy.minAdminQuorum) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `admin quorum ${config.minAdminQuorum} below policy minimum ${policy.minAdminQuorum}`);
+    }
+  }
+
+  _validateRecoverySync(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.recoverySync, ...(tenantPolicy.recoverySync || {}) };
+    if (typeof config.maxCatchUpBatchSize === 'number' && config.maxCatchUpBatchSize > policy.maxCatchUpBatchSize) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `catch-up batch size ${config.maxCatchUpBatchSize} exceeds policy ${policy.maxCatchUpBatchSize}`);
+    }
+    if (typeof config.reSyncRetryLimit === 'number' && config.reSyncRetryLimit > policy.reSyncRetryLimit) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `retry limit ${config.reSyncRetryLimit} exceeds policy ${policy.reSyncRetryLimit}`);
+    }
+    if (typeof config.backoffBaseIntervalMs === 'number' && config.backoffBaseIntervalMs > policy.maxBackOffMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `back-off base interval ${config.backoffBaseIntervalMs} exceeds policy max ${policy.maxBackOffMs}`);
+    }
+    if (typeof config.catchUpMode === 'string' && !policy.allowedCatchUpModes.includes(config.catchUpMode)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `catch-up mode ${config.catchUpMode} is not allowed; permitted: ${policy.allowedCatchUpModes.join(', ')}`);
+    }
+    if (policy.requireBftCatchUpAck && config.bftAck === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'BFT catch-up ack is required');
     }
   }
 
@@ -656,6 +687,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'identity') {
       this._validateIdentity(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'recoverySync') {
+      this._validateRecoverySync(tenantPolicy, config);
       return true;
     }
 
