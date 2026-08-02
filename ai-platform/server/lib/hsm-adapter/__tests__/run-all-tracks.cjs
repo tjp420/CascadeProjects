@@ -54,6 +54,7 @@ const SUITES = [
   'pq-time-locked-matrix',
   'pq-blind-option-pools',
   'pq-prediction-markets',
+  'pq-fractional-custody',
 ];
 
 function runSuite(pattern) {
