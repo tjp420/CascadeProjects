@@ -80,7 +80,15 @@ class EphemeralShareRatchet {
     const info = Buffer.from(String(destinationEpochId) + '::' + String(shareToken.sequence));
     const maskRaw = require('crypto').hkdfSync('sha256', this.seed, salt, info, 32);
     const maskBuf = Buffer.isBuffer(maskRaw) ? maskRaw : Buffer.from(maskRaw);
-    const maskBig = BigInt('0x' + maskBuf.toString('hex'));
+    // convert buffer to BigInt without intermediate hex string to reduce transient string allocations
+    const bufferToBigInt = (b) => {
+      let v = 0n;
+      for (let i = 0; i < b.length; i += 1) {
+        v = (v << 8n) + BigInt(b[i]);
+      }
+      return v;
+    };
+    let maskBig = bufferToBigInt(maskBuf);
 
     const valueBig = typeof shareToken.value === 'bigint' ? shareToken.value : BigInt(shareToken.value || 0);
     const newValue = (valueBig + maskBig);
@@ -91,6 +99,15 @@ class EphemeralShareRatchet {
       else if (Buffer.isBuffer(shareToken.value)) shareToken.value.fill(0);
       else if (typeof shareToken.value === 'number') shareToken.value = 0;
       else shareToken.value = null;
+    } catch (e) {}
+
+    // zeroize temporary buffers immediately
+    try {
+      if (Buffer.isBuffer(maskBuf)) maskBuf.fill(0);
+      if (Buffer.isBuffer(salt)) salt.fill(0);
+      if (Buffer.isBuffer(info)) info.fill(0);
+      // overwrite maskBig local binding
+      maskBig = 0n;
     } catch (e) {}
 
     return { nodeIndex: shareToken.nodeIndex, sequence: shareToken.sequence + 1, value: newValue, ratchet: { derivedAt: Date.now(), epoch: destinationEpochId } };

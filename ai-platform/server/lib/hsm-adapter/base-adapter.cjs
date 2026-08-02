@@ -30,6 +30,27 @@ const { FipsSelfTestRunner } = require('./fips-self-test-runner.cjs');
 
 const WRAPPED_BLOB_VERSION = 1;
 
+// Track 34 Phase 8: Module-level registry for the active consensus engine instance.
+// Set by adapters that receive a consensusEngine option, so the REST endpoint
+// can introspect engine state without holding a direct reference.
+let _activeConsensusEngine = null;
+
+/**
+ * Register the active consensus engine instance for telemetry introspection.
+ * @param {object} engine - ClusterConsensusEngine instance (or null to clear)
+ */
+function registerConsensusEngine(engine) {
+  _activeConsensusEngine = engine;
+}
+
+/**
+ * Get the registered consensus engine instance (if any).
+ * @returns {object|null}
+ */
+function getConsensusEngine() {
+  return _activeConsensusEngine;
+}
+
 /**
  * Error class for HSM adapter failures.
  */
@@ -71,6 +92,10 @@ class BaseHsmAdapter {
     this._timeAnchor = options.timeAnchor || null;
     this._escrowBroker = options.escrowBroker || null;
     this._consensusEngine = options.consensusEngine || null;
+    // Track 34 Phase 8: Auto-register consensus engine for telemetry
+    if (this._consensusEngine) {
+      registerConsensusEngine(this._consensusEngine);
+    }
     this._initialized = false;
   }
 
@@ -711,4 +736,6 @@ module.exports = {
   BaseHsmAdapter,
   HsmAdapterError,
   WRAPPED_BLOB_VERSION,
+  registerConsensusEngine,
+  getConsensusEngine,
 };
