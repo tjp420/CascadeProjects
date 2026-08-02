@@ -256,6 +256,8 @@ describe('HSM Metrics', () => {
       'hsm_create_kek_total', 'hsm_create_kek_failures_total',
       'hsm_rotate_kek_total', 'hsm_zeroize_total',
       'hsm_circuit_opened_total', 'hsm_circuit_closed_total', 'hsm_circuit_half_open_total',
+      'hsm_recovery_started_total', 'hsm_recovery_synced_total',
+      'hsm_recovery_failures_total', 'hsm_recovery_catchup_batches_total',
     ];
     for (const name of expectedCounters) {
       expect(m[name]).toBeDefined();
@@ -273,5 +275,40 @@ describe('HSM Metrics', () => {
       expect(m[`${name}_count`]).toBeDefined();
       expect(m[`${name}_sum`]).toBeDefined();
     }
+  });
+
+  // ── Track 33 recovery sync metrics ──────────────────────────────
+
+  test('renderPrometheus includes recovery sync counters', () => {
+    metrics.incrementCounter('hsm_recovery_started_total');
+    metrics.incrementCounter('hsm_recovery_synced_total');
+    metrics.incrementCounter('hsm_recovery_failures_total');
+    metrics.incrementCounter('hsm_recovery_catchup_batches_total', 3);
+
+    const output = metrics.renderPrometheus();
+    expect(output).toContain('# HELP hsm_recovery_started_total');
+    expect(output).toContain('# TYPE hsm_recovery_started_total counter');
+    expect(output).toContain('hsm_recovery_started_total 1');
+    expect(output).toContain('hsm_recovery_synced_total 1');
+    expect(output).toContain('hsm_recovery_failures_total 1');
+    expect(output).toContain('hsm_recovery_catchup_batches_total 3');
+  });
+
+  test('recovery sync counters start at zero after reset', () => {
+    metrics.incrementCounter('hsm_recovery_started_total', 5);
+    metrics.reset();
+    const m = metrics.getMetrics();
+    expect(m.hsm_recovery_started_total).toBe(0);
+    expect(m.hsm_recovery_synced_total).toBe(0);
+    expect(m.hsm_recovery_failures_total).toBe(0);
+    expect(m.hsm_recovery_catchup_batches_total).toBe(0);
+  });
+
+  test('recovery catchup batches counter accumulates multiple increments', () => {
+    metrics.incrementCounter('hsm_recovery_catchup_batches_total', 3);
+    metrics.incrementCounter('hsm_recovery_catchup_batches_total', 2);
+    metrics.incrementCounter('hsm_recovery_catchup_batches_total');
+    const m = metrics.getMetrics();
+    expect(m.hsm_recovery_catchup_batches_total).toBe(6);
   });
 });

@@ -24,6 +24,11 @@ const counters = {
   hsm_circuit_opened_total: 0,
   hsm_circuit_closed_total: 0,
   hsm_circuit_half_open_total: 0,
+  // Track 33: Recovery sync counters
+  hsm_recovery_started_total: 0,
+  hsm_recovery_synced_total: 0,
+  hsm_recovery_failures_total: 0,
+  hsm_recovery_catchup_batches_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -50,6 +55,10 @@ const META = {
   hsm_circuit_opened_total: { help: 'Total times the HSM circuit breaker transitioned to OPEN state.', type: 'counter' },
   hsm_circuit_closed_total: { help: 'Total times the HSM circuit breaker transitioned to CLOSED state.', type: 'counter' },
   hsm_circuit_half_open_total: { help: 'Total times the HSM circuit breaker transitioned to HALF-OPEN state.', type: 'counter' },
+  hsm_recovery_started_total: { help: 'Total cluster node recovery sessions started.', type: 'counter' },
+  hsm_recovery_synced_total: { help: 'Total cluster node recovery sessions that reached synced state.', type: 'counter' },
+  hsm_recovery_failures_total: { help: 'Total cluster node recovery sessions that failed.', type: 'counter' },
+  hsm_recovery_catchup_batches_total: { help: 'Total catch-up batches applied during recovery sync.', type: 'counter' },
   hsm_wrap_duration_ms: { help: 'Latency of HSM wrapKey operations in milliseconds.', type: 'histogram' },
   hsm_unwrap_duration_ms: { help: 'Latency of HSM unwrapKey operations in milliseconds.', type: 'histogram' },
   hsm_create_kek_duration_ms: { help: 'Latency of KEK creation operations in milliseconds.', type: 'histogram' },

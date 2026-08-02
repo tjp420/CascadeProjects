@@ -551,6 +551,10 @@ class BaseHsmAdapter {
   emitNodeRecoveryStarted(info = {}) {
     this._ensureInitialized();
     this._audit('NODE_RECOVERY_STARTED', info);
+    try {
+      const metrics = require('./hsm-metrics.cjs');
+      metrics.incrementCounter('hsm_recovery_started_total');
+    } catch { /* metrics module optional */ }
   }
 
   /**
@@ -560,6 +564,13 @@ class BaseHsmAdapter {
   emitNodeRecoverySynced(info = {}) {
     this._ensureInitialized();
     this._audit('NODE_RECOVERY_SYNCED', info);
+    try {
+      const metrics = require('./hsm-metrics.cjs');
+      metrics.incrementCounter('hsm_recovery_synced_total');
+      if (typeof info.batchesApplied === 'number') {
+        metrics.incrementCounter('hsm_recovery_catchup_batches_total', info.batchesApplied);
+      }
+    } catch { /* metrics module optional */ }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────
