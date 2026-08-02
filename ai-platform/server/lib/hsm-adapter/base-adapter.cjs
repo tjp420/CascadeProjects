@@ -51,6 +51,26 @@ function getConsensusEngine() {
   return _activeConsensusEngine;
 }
 
+// Track 40: Module-level registry for the active DistributedConsensusCoordinator.
+// Follows the same pattern as the consensus engine registry above.
+let _activeConsensusCoordinator = null;
+
+/**
+ * Register the active DistributedConsensusCoordinator instance for REST introspection.
+ * @param {object} coordinator - DistributedConsensusCoordinator instance (or null to clear)
+ */
+function registerConsensusCoordinator(coordinator) {
+  _activeConsensusCoordinator = coordinator;
+}
+
+/**
+ * Get the registered DistributedConsensusCoordinator instance (if any).
+ * @returns {object|null}
+ */
+function getConsensusCoordinator() {
+  return _activeConsensusCoordinator;
+}
+
 /**
  * Error class for HSM adapter failures.
  */
@@ -1357,4 +1377,6 @@ module.exports = {
   WRAPPED_BLOB_VERSION,
   registerConsensusEngine,
   getConsensusEngine,
+  registerConsensusCoordinator,
+  getConsensusCoordinator,
 };
