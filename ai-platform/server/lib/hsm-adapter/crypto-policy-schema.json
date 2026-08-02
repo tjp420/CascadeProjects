@@ -81,6 +81,14 @@
       "allowedKemPrimitives": ["ml-kem-768", "ml-kem-1024"],
       "requirePqcBlindingFactor": true,
       "maxChildDerivationDepth": 10
+    },
+    "recoverySync": {
+      "maxCatchUpBatchSize": 64,
+      "reSyncRetryLimit": 5,
+      "backoffBaseIntervalMs": 1000,
+      "maxBackOffMs": 60000,
+      "requireBftCatchUpAck": true,
+      "allowedCatchUpModes": ["sliding-window", "checkpoint"]
     }
   },
   "tenants": {}
