@@ -777,6 +777,26 @@ class BaseHsmAdapter {
     this._audit('ESCROW_RELEASE_FINALIZED', info);
   }
 
+  // ── Track 49 homomorphic DB lookup telemetry hooks ─────────────────
+
+  /**
+   * Emit a homomorphic DB query initiated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitHomomorphicDbQueryInitiated(info = {}) {
+    this._ensureInitialized();
+    this._audit('HOMOMORPHIC_DB_QUERY_INITIATED', info);
+  }
+
+  /**
+   * Emit a zk lookup match verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkLookupMatchVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_LOOKUP_MATCH_VERIFIED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

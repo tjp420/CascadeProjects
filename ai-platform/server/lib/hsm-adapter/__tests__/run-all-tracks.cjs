@@ -38,6 +38,7 @@ const SUITES = [
   'homomorphic-computation',
   'hardware-root-rotation',
   'pqc-asset-bridge',
+  'homomorphic-db-lookup',
 ];
 
 function runSuite(pattern) {
