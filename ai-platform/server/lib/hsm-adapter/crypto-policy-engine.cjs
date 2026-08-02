@@ -613,6 +613,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderSortitionClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqLogisticsGating: {
+    minCustomsQuorum: 3,
+    maxTransitWindowSeconds: 7776000,
+    maxManifestDepth: 32,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireCustomsAuthorityInitializerAttestation: true,
+    requireTradeCorridorCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderManifestClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -974,6 +985,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqSortitionGating: {
       ...DEFAULT_POLICY.pqSortitionGating,
       ...(tenantPolicy.pqSortitionGating || {}),
+    },
+    pqLogisticsGating: {
+      ...DEFAULT_POLICY.pqLogisticsGating,
+      ...(tenantPolicy.pqLogisticsGating || {}),
     },
   };
 }
@@ -2460,6 +2475,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqLogisticsGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqLogisticsGating, ...(tenantPolicy.pqLogisticsGating || {}) };
+    if (typeof config.customsQuorum === 'number' && config.customsQuorum < policy.minCustomsQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `customs quorum ${config.customsQuorum} below minimum ${policy.minCustomsQuorum}`);
+    }
+    if (typeof config.transitWindowSeconds === 'number' && config.transitWindowSeconds > policy.maxTransitWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `transit window seconds ${config.transitWindowSeconds} exceeds maximum ${policy.maxTransitWindowSeconds}`);
+    }
+    if (typeof config.manifestDepth === 'number' && config.manifestDepth > policy.maxManifestDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `manifest depth ${config.manifestDepth} exceeds maximum ${policy.maxManifestDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireCustomsAuthorityInitializerAttestation && config.customsAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'customs authority initializer attestation is required');
+    }
+    if (policy.requireTradeCorridorCommitteeAttestation && config.tradeCorridorCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'trade corridor committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderManifestClaims === 'boolean' && policy.banMalformedOrOutOfOrderManifestClaims && !config.banMalformedOrOutOfOrderManifestClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order manifest claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3029,6 +3075,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSortitionGating') {
       this._validatePqSortitionGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqLogisticsGating') {
+      this._validatePqLogisticsGating(tenantPolicy, config);
       return true;
     }
 

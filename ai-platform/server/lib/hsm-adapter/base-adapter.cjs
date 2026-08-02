@@ -1637,6 +1637,35 @@ class BaseHsmAdapter {
     this._audit('VALIDATOR_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 81 PQ cross-border logistics gating telemetry hooks ──────────────
+
+  /**
+   * Emit a logistics gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitLogisticsGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('LOGISTICS_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK manifest claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkManifestClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_MANIFEST_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a carrier accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCarrierAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('CARRIER_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
