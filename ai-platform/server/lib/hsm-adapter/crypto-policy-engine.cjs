@@ -315,6 +315,17 @@ const DEFAULT_POLICY = {
     requireZeroization: true,
     sandboxMemoryLimitBytes: 1048576,
   },
+  encryptedSearchRouting: {
+    maxKeywordsPerQuery: 32,
+    maxIndexTraversalDepth: 16,
+    allowedBlindingCurves: ['P-256', 'P-384', 'P-521'],
+    requireSubmitterAttestation: true,
+    requireIndexNodeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    minVerificationQuorum: 3,
+    isolateLowQuorumIndexNodes: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -475,6 +486,10 @@ function _mergeWithDefault(tenantPolicy) {
     confidentialSandbox: {
       ...DEFAULT_POLICY.confidentialSandbox,
       ...(tenantPolicy.confidentialSandbox || {}),
+    },
+    encryptedSearchRouting: {
+      ...DEFAULT_POLICY.encryptedSearchRouting,
+      ...(tenantPolicy.encryptedSearchRouting || {}),
     },
   };
 }
@@ -1158,6 +1173,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateEncryptedSearchRouting(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.encryptedSearchRouting, ...(tenantPolicy.encryptedSearchRouting || {}) };
+    if (typeof config.keywordsPerQuery === 'number' && config.keywordsPerQuery > policy.maxKeywordsPerQuery) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `keywords per query ${config.keywordsPerQuery} exceeds maximum ${policy.maxKeywordsPerQuery}`);
+    }
+    if (typeof config.indexTraversalDepth === 'number' && config.indexTraversalDepth > policy.maxIndexTraversalDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `index traversal depth ${config.indexTraversalDepth} exceeds maximum ${policy.maxIndexTraversalDepth}`);
+    }
+    if (typeof config.blindingCurve === 'string' && !policy.allowedBlindingCurves.includes(config.blindingCurve)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `blinding curve ${config.blindingCurve} is not permitted; allowed: ${policy.allowedBlindingCurves.join(', ')}`);
+    }
+    if (policy.requireSubmitterAttestation && config.submitterAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'submitter attestation is required');
+    }
+    if (policy.requireIndexNodeAttestation && config.indexNodeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'index node attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.verificationQuorum === 'number' && config.verificationQuorum < policy.minVerificationQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `verification quorum ${config.verificationQuorum} below minimum ${policy.minVerificationQuorum}`);
+    }
+    if (typeof config.isolateLowQuorumIndexNodes === 'boolean' && policy.isolateLowQuorumIndexNodes && !config.isolateLowQuorumIndexNodes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'isolate low quorum index nodes must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1597,6 +1643,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'confidentialSandbox') {
       this._validateConfidentialSandbox(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'encryptedSearchRouting') {
+      this._validateEncryptedSearchRouting(tenantPolicy, config);
       return true;
     }
 

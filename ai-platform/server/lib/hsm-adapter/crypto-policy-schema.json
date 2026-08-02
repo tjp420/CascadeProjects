@@ -263,6 +263,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "requireZeroization": true,
       "sandboxMemoryLimitBytes": 1048576
+    },
+    "encryptedSearchRouting": {
+      "maxKeywordsPerQuery": 32,
+      "maxIndexTraversalDepth": 16,
+      "allowedBlindingCurves": ["P-256", "P-384", "P-521"],
+      "requireSubmitterAttestation": true,
+      "requireIndexNodeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "minVerificationQuorum": 3,
+      "isolateLowQuorumIndexNodes": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
