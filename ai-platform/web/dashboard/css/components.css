@@ -2098,6 +2098,20 @@ html[data-ide-preview="true"][data-auth-page="1"] #app-main {
   color: var(--warning, #f59e0b);
 }
 
+.sparkline {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: var(--space-2);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.metric-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .tool-action-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Dashboard code — all findings are false positives
-import { fetchDropTelemetry, resetDropTelemetry } from '../services/dropTelemetryService.js';
+import { fetchDropTelemetry, resetDropTelemetry, getDropHistory } from '../services/dropTelemetryService.js';
+import { renderSparkline } from '../utils/sparkline.js';
 
 let refreshInterval = null;
 let isRefreshing = false;
@@ -85,13 +86,13 @@ async function loadDropTelemetryData(container, isInitial) {
         statusBadge.textContent = 'Live';
 
         const metrics = [
-            { label: 'Total Drops', value: counters.totalDrops || 0 },
-            { label: 'Files Dropped', value: counters.filesDropped || 0 },
-            { label: 'Pre-Read OK', value: counters.preReadSuccesses || 0 },
-            { label: 'Pre-Read Skips', value: counters.preReadSkips || 0 },
-            { label: 'Pre-Read Fails', value: counters.preReadFailures || 0 },
-            { label: 'Firefox Bypass', value: counters.firefoxBypass || 0 },
-            { label: 'Traversal Errors', value: counters.traversalErrors || 0 },
+            { key: 'totalDrops', label: 'Total Drops', value: counters.totalDrops || 0 },
+            { key: 'filesDropped', label: 'Files Dropped', value: counters.filesDropped || 0 },
+            { key: 'preReadSuccesses', label: 'Pre-Read OK', value: counters.preReadSuccesses || 0 },
+            { key: 'preReadSkips', label: 'Pre-Read Skips', value: counters.preReadSkips || 0 },
+            { key: 'preReadFailures', label: 'Pre-Read Fails', value: counters.preReadFailures || 0 },
+            { key: 'firefoxBypass', label: 'Firefox Bypass', value: counters.firefoxBypass || 0 },
+            { key: 'traversalErrors', label: 'Traversal Errors', value: counters.traversalErrors || 0 },
         ];
 
         content.innerHTML = '';
@@ -101,7 +102,12 @@ async function loadDropTelemetryData(container, isInitial) {
         for (const m of metrics) {
             const chip = document.createElement('div');
             chip.className = 'metric-chip';
-            chip.innerHTML = '<strong>' + m.value + '</strong> ' + m.label;
+            const history = getDropHistory(m.key);
+            const sparkline = renderSparkline(history);
+            if (sparkline) chip.appendChild(sparkline);
+            const labelSpan = document.createElement('span');
+            labelSpan.innerHTML = '<strong>' + m.value + '</strong> ' + m.label;
+            chip.appendChild(labelSpan);
             metricsRow.appendChild(chip);
         }
 

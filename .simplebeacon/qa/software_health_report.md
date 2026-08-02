@@ -1,35 +1,39 @@
-# Software Health Report — Enclave Telemetry Card Integration
+# Software Health Report — Sparkline Ring-Buffer Refinement
 
 **Date:** 2026-08-02
-**Branch:** `feature/enclave-telemetry-card`
+**Branch:** `feature/sparkline-ring-buffer`
 
 ## Summary
-Wired EnclaveTelemetryDashboard into AdminPanelView, completing the end-to-end observability loop for Track 41 hardware enclave isolation. Created enclaveTelemetryService.js to fetch from GET /api/vault/enclave/status (exposed by PR #238). Created EnclaveTelemetryDashboard.js with 10 color-coded counter chips and an enclave state banner showing backend, MRENCLAVE, and initialization status.
+Added client-side ring-buffer accumulation and inline SVG sparkline rendering to all 3 telemetry dashboards. Created sparkline.js utility with createRingBuffer() and renderSparkline() functions. Updated all 3 services to accumulate snapshots in ring buffers (MAX_SAMPLES=60). Updated all 3 dashboard components to render sparklines inside metric chips. No backend changes, no new dependencies.
 
-## Change Set (6 files)
-- enclaveTelemetryService.js - New, fetches /api/vault/enclave/status
-- EnclaveTelemetryDashboard.js - New, renders 10 counters + state banner, 15s auto-refresh
-- AdminPanelView.js - Added import + mount in mountTelemetryDashboards()
-- components.css - Added severity chip + enclave state banner CSS
+## Change Set (10 files)
+- sparkline.js - New, ring buffer + SVG sparkline utility
+- replicationTelemetryService.js - Added ring buffer + getReplicationHistory()
+- dropTelemetryService.js - Added ring buffer + getDropHistory()
+- enclaveTelemetryService.js - Added ring buffer + getEnclaveHistory()
+- CoreReplicationTelemetryDashboard.js - Sparkline in each metric chip
+- DropTelemetryDashboard.js - Sparkline in each metric chip
+- EnclaveTelemetryDashboard.js - Sparkline in each metric chip
+- components.css - Added .sparkline CSS
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
 ## Level 1 - Deterministic
 | Check | Result |
 |-------|--------|
-| node -c all 3 JS files | PASS |
-| 79 existing tests (no regression) | PASS |
+| node -c all 7 JS files | PASS |
+| 87 existing tests (no regression) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
 | Check | Result |
 |------|--------|
-| Service fetches enclave status | PASS |
-| 10 counter chips with severity colors | PASS |
-| Enclave state banner | PASS |
-| 15s auto-refresh | PASS |
-| Graceful error handling | PASS |
-| AdminPanelView integration | PASS |
+| createRingBuffer() + renderSparkline() | PASS |
+| Ring buffer accumulates on fetch | PASS |
+| Sparkline renders when >= 2 samples | PASS |
+| Graceful degradation < 2 samples | PASS |
+| All 3 dashboards show sparklines | PASS |
+| SVG area fill + line + dot | PASS |
 
 ## Level 3 - Security
 | Check | Result |
@@ -42,4 +46,5 @@ Wired EnclaveTelemetryDashboard into AdminPanelView, completing the end-to-end o
 None.
 
 ## Unimplemented
-- Sparkline ring-buffer for all telemetry dashboards (next phase)
+- localStorage persistence for ring buffers (v2 enhancement)
+- Configurable sparkline colors per severity

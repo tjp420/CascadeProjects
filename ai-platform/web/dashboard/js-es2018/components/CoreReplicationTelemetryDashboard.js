@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Dashboard code — all findings are false positives
-import { fetchReplicationTelemetry } from '../services/replicationTelemetryService.js';
+import { fetchReplicationTelemetry, getReplicationHistory } from '../services/replicationTelemetryService.js';
+import { renderSparkline } from '../utils/sparkline.js';
 
 let refreshInterval = null;
 let isRefreshing = false;
@@ -188,7 +189,12 @@ async function loadCoreReplicationData(container, isInitial) {
                 const chip = document.createElement('div');
                 chip.className = 'metric-chip';
                 const value = groupCounters[def.key] !== undefined ? groupCounters[def.key] : 0;
-                chip.innerHTML = '<strong>' + value + '</strong> ' + def.label;
+                const history = getReplicationHistory(trackDef.groupKey, def.key);
+                const sparkline = renderSparkline(history);
+                if (sparkline) chip.appendChild(sparkline);
+                const labelSpan = document.createElement('span');
+                labelSpan.innerHTML = '<strong>' + value + '</strong> ' + def.label;
+                chip.appendChild(labelSpan);
                 metricsRow.appendChild(chip);
             }
 

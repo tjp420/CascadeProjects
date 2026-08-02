@@ -1,5 +1,6 @@
 // simplebeacon-ignore: Dashboard code — all findings are false positives
-import { fetchEnclaveTelemetry } from '../services/enclaveTelemetryService.js';
+import { fetchEnclaveTelemetry, getEnclaveHistory } from '../services/enclaveTelemetryService.js';
+import { renderSparkline } from '../utils/sparkline.js';
 
 let refreshInterval = null;
 let isRefreshing = false;
@@ -147,7 +148,12 @@ async function loadEnclaveTelemetryData(container, isInitial) {
             const value = counters[def.key] !== undefined ? counters[def.key] : 0;
             const chip = document.createElement('div');
             chip.className = 'metric-chip ' + getSeverityClass(def, value);
-            chip.innerHTML = '<strong>' + value + '</strong> ' + def.label;
+            const history = getEnclaveHistory(def.key);
+            const sparkline = renderSparkline(history);
+            if (sparkline) chip.appendChild(sparkline);
+            const labelSpan = document.createElement('span');
+            labelSpan.innerHTML = '<strong>' + value + '</strong> ' + def.label;
+            chip.appendChild(labelSpan);
             metricsRow.appendChild(chip);
         }
 

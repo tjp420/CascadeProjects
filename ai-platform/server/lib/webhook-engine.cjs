@@ -13,9 +13,43 @@ const logger = require('../lib/app-logger.cjs');
 const integrationStore = require('./integration-config-store.cjs');
 const signingStore = require('./webhook-signing-store.cjs');
 
+// Configurable timeouts and retry/backoff for external webhook deliveries
+const DEFAULT_WEBHOOK_TIMEOUT_MS = process.env.WEBHOOK_REQUEST_TIMEOUT_MS ? parseInt(process.env.WEBHOOK_REQUEST_TIMEOUT_MS, 10) : 15000;
+const WEBHOOK_RETRY_BASE_MS = process.env.WEBHOOK_RETRY_BASE_MS ? parseInt(process.env.WEBHOOK_RETRY_BASE_MS, 10) : 200;
+const WEBHOOK_RETRY_MAX_ATTEMPTS = process.env.WEBHOOK_RETRY_MAX_ATTEMPTS ? parseInt(process.env.WEBHOOK_RETRY_MAX_ATTEMPTS, 10) : 3;
+
+function delay(ms) { return new Promise((res) => setTimeout(res, ms)); }
+
+async function retryWithBackoff(fn, maxAttempts = WEBHOOK_RETRY_MAX_ATTEMPTS, baseMs = WEBHOOK_RETRY_BASE_MS, context = {}) {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn({ attempt });
+    } catch (err) {
+      attempt++;
+      if (attempt >= maxAttempts) throw err;
+      const jitter = Math.floor(Math.random() * baseMs);
+      const backoffMs = baseMs * Math.pow(2, attempt - 1) + jitter;
+      try {
+        signingStore.recordDelivery({
+          url: context.url || null,
+          orgId: context.orgId || null,
+          event: context.event || null,
+          keyId: null,
+          signed: false,
+          attempt: attempt,
+          status: 'retrying',
+          error: err.message,
+        });
+      } catch (e) {}
+      await delay(backoffMs);
+    }
+  }
+}
+
 // ── HTTP helpers ────────────────────────────────────────────────────────────
 
-function httpsPostJson(url, body, headers = {}, context = {}) {
+function httpsPostJsonOnce(url, body, headers = {}, context = {}) {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     const postData = JSON.stringify(body);
@@ -43,6 +77,7 @@ function httpsPostJson(url, body, headers = {}, context = {}) {
       },
     };
     const startMs = Date.now();
+    const timeoutMs = context.timeoutMs || DEFAULT_WEBHOOK_TIMEOUT_MS;
     const req = https.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
@@ -72,62 +107,111 @@ function httpsPostJson(url, body, headers = {}, context = {}) {
       } catch {}
       reject(err);
     });
+    // socket timeout handling
+    req.setTimeout(timeoutMs, () => {
+      try { req.abort(); } catch (e) {}
+      var latencyMs = Date.now() - startMs;
+      try {
+        signingStore.recordDelivery({
+          url: url, orgId: context.orgId || null, event: context.event || null,
+          keyId: signHeaders['X-Beacon-Key-Id'] || null, signed: signed,
+          attempt: context.attempt || 0, status: 'failed', statusCode: null,
+          latencyMs: latencyMs, error: 'timeout', retried: (context.attempt || 0) > 0,
+        });
+      } catch {}
+      reject(new Error('Request timed out'));
+    });
     req.write(postData);
     req.end();
   });
 }
 
-function httpsPostForm(url, formData, headers = {}) {
-  return new Promise((resolve, reject) => {
-    const parsed = new URL(url);
-    const { URLSearchParams } = require('url');
-    const postData = new URLSearchParams(formData).toString();
-    const options = {
-      hostname: parsed.hostname,
-      port: parsed.port || 443,
-      path: parsed.pathname + parsed.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(postData),
-        ...headers,
-      },
-    };
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
-        catch { resolve({ status: res.statusCode, data }); }
-      });
-    });
-    req.on('error', reject);
-    req.write(postData);
-    req.end();
-  });
+function httpsPostJson(url, body, headers = {}, context = {}) {
+  const wrapper = (ctx) => httpsPostJsonOnce(url, body, headers, Object.assign({}, context, { attempt: ctx.attempt, url }));
+  return retryWithBackoff(wrapper, WEBHOOK_RETRY_MAX_ATTEMPTS, WEBHOOK_RETRY_BASE_MS, { url, orgId: context.orgId, event: context.event });
 }
 
-function httpsGetJson(url, headers = {}) {
-  return new Promise((resolve, reject) => {
-    const parsed = new URL(url);
-    const options = {
-      hostname: parsed.hostname,
-      port: parsed.port || 443,
-      path: parsed.pathname + parsed.search,
-      method: 'GET',
-      headers: { 'Accept': 'application/json', ...headers },
-    };
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
-        catch { resolve({ status: res.statusCode, data }); }
+// Form POST with timeout + retry
+  function httpsPostFormOnce(url, formData, headers = {}, context = {}) {
+    return new Promise((resolve, reject) => {
+      const parsed = new URL(url);
+      const { URLSearchParams } = require('url');
+      const postData = new URLSearchParams(formData).toString();
+      const options = {
+        hostname: parsed.hostname,
+        port: parsed.port || 443,
+        path: parsed.pathname + parsed.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData),
+          ...headers,
+        },
+      };
+      const startMs = Date.now();
+      const timeoutMs = context.timeoutMs || DEFAULT_WEBHOOK_TIMEOUT_MS;
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          var latencyMs = Date.now() - startMs;
+          try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: res.statusCode >= 200 && res.statusCode < 300 ? 'success' : 'failed', statusCode: res.statusCode, latencyMs }); } catch (e) {}
+          try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
+          catch { resolve({ status: res.statusCode, data }); }
+        });
       });
+      req.on('error', (err) => {
+        var latencyMs = Date.now() - startMs;
+        try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: 'failed', error: err.message, latencyMs }); } catch (e) {}
+        reject(err);
+      });
+      req.setTimeout(timeoutMs, () => { try { req.abort(); } catch (e) {} ; reject(new Error('Request timed out')); });
+      req.write(postData);
+      req.end();
     });
-    req.on('error', reject);
-    req.end();
-  });
+  }
+
+  function httpsPostForm(url, formData, headers = {}, context = {}) {
+    const wrapper = (ctx) => httpsPostFormOnce(url, formData, headers, Object.assign({}, context, { attempt: ctx.attempt, url }));
+    return retryWithBackoff(wrapper, WEBHOOK_RETRY_MAX_ATTEMPTS, WEBHOOK_RETRY_BASE_MS, { url, orgId: context && context.orgId, event: context && context.event });
+  }
+
+// GET JSON with timeout + retry
+  function httpsGetJsonOnce(url, headers = {}, context = {}) {
+    return new Promise((resolve, reject) => {
+      const parsed = new URL(url);
+      const options = {
+        hostname: parsed.hostname,
+        port: parsed.port || 443,
+        path: parsed.pathname + parsed.search,
+        method: 'GET',
+        headers: { 'Accept': 'application/json', ...headers },
+      };
+      const startMs = Date.now();
+      const timeoutMs = context.timeoutMs || DEFAULT_WEBHOOK_TIMEOUT_MS;
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          var latencyMs = Date.now() - startMs;
+          try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: res.statusCode >= 200 && res.statusCode < 300 ? 'success' : 'failed', statusCode: res.statusCode, latencyMs }); } catch (e) {}
+          try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
+          catch { resolve({ status: res.statusCode, data }); }
+        });
+      });
+      req.on('error', (err) => {
+        var latencyMs = Date.now() - startMs;
+        try { signingStore.recordDelivery({ url, orgId: context.orgId || null, event: context.event || null, attempt: context.attempt || 0, status: 'failed', error: err.message, latencyMs }); } catch (e) {}
+        reject(err);
+      });
+      req.setTimeout(timeoutMs, () => { try { req.abort(); } catch (e) {} ; reject(new Error('Request timed out')); });
+      req.end();
+    });
+  }
+
+function httpsGetJson(url, headers = {}, context = {}) {
+  const wrapper = (ctx) => httpsGetJsonOnce(url, headers, Object.assign({}, context, { attempt: ctx.attempt, url }));
+  return retryWithBackoff(wrapper, WEBHOOK_RETRY_MAX_ATTEMPTS, WEBHOOK_RETRY_BASE_MS, { url, orgId: context && context.orgId, event: context && context.event });
 }
 
 // ── Event payload builder ───────────────────────────────────────────────────
