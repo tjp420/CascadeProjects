@@ -326,6 +326,16 @@ const DEFAULT_POLICY = {
     isolateLowQuorumIndexNodes: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqIdentityAccumulator: {
+    maxTreeDepth: 20,
+    allowedMembershipProofSystems: ['groth16', 'plonk', 'marlin'],
+    mandatoryUpdateEpochSeconds: 3600,
+    requireRootUpdateAttestation: true,
+    requireMembershipProofAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedMembershipPeers: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -490,6 +500,10 @@ function _mergeWithDefault(tenantPolicy) {
     encryptedSearchRouting: {
       ...DEFAULT_POLICY.encryptedSearchRouting,
       ...(tenantPolicy.encryptedSearchRouting || {}),
+    },
+    pqIdentityAccumulator: {
+      ...DEFAULT_POLICY.pqIdentityAccumulator,
+      ...(tenantPolicy.pqIdentityAccumulator || {}),
     },
   };
 }
@@ -1204,6 +1218,34 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqIdentityAccumulator(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqIdentityAccumulator, ...(tenantPolicy.pqIdentityAccumulator || {}) };
+    if (typeof config.treeDepth === 'number' && config.treeDepth > policy.maxTreeDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `tree depth ${config.treeDepth} exceeds maximum ${policy.maxTreeDepth}`);
+    }
+    if (typeof config.membershipProofSystem === 'string' && !policy.allowedMembershipProofSystems.includes(config.membershipProofSystem)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `membership proof system ${config.membershipProofSystem} is not permitted; allowed: ${policy.allowedMembershipProofSystems.join(', ')}`);
+    }
+    if (typeof config.updateEpochSeconds === 'number' && config.updateEpochSeconds < policy.mandatoryUpdateEpochSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `update epoch ${config.updateEpochSeconds}s below mandatory minimum ${policy.mandatoryUpdateEpochSeconds}s`);
+    }
+    if (policy.requireRootUpdateAttestation && config.rootUpdateAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'root update attestation is required');
+    }
+    if (policy.requireMembershipProofAttestation && config.membershipProofAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'membership proof attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedMembershipPeers === 'boolean' && policy.banMalformedMembershipPeers && !config.banMalformedMembershipPeers) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed membership peers must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1648,6 +1690,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'encryptedSearchRouting') {
       this._validateEncryptedSearchRouting(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqIdentityAccumulator') {
+      this._validatePqIdentityAccumulator(tenantPolicy, config);
       return true;
     }
 
