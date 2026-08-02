@@ -164,6 +164,17 @@ const DEFAULT_POLICY = {
     requireByzantineFaultProofs: true,
     minSurvivingRegions: 2,
   },
+  confidentialIssuance: {
+    minTokenBitLength: 256,
+    allowedBlindingSchemes: ['pedersen', 'hash-to-curve'],
+    requireMintingAttestation: true,
+    allowedMintingAuthorities: ['mock-authority'],
+    requireZkSnarkProof: true,
+    minProofAgeSeconds: 0,
+    maxProofAgeSeconds: 60,
+    allowedCommitmentCurves: ['secp256k1', 'bn254'],
+    minIssuanceQuorum: 2,
+  },
 };
 
 function _isObject(value) {
@@ -264,6 +275,10 @@ function _mergeWithDefault(tenantPolicy) {
     disasterRecovery: {
       ...DEFAULT_POLICY.disasterRecovery,
       ...(tenantPolicy.disasterRecovery || {}),
+    },
+    confidentialIssuance: {
+      ...DEFAULT_POLICY.confidentialIssuance,
+      ...(tenantPolicy.confidentialIssuance || {}),
     },
   };
 }
@@ -545,6 +560,34 @@ class CryptoPolicyEngine {
     }
     if (policy.requireByzantineFaultProofs && config.byantineFaultProofs === false) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'byzantine fault proofs are required');
+    }
+  }
+
+  _validateConfidentialIssuance(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.confidentialIssuance, ...(tenantPolicy.confidentialIssuance || {}) };
+    if (typeof config.tokenBitLength === 'number' && config.tokenBitLength < policy.minTokenBitLength) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `token bit length ${config.tokenBitLength} below minimum ${policy.minTokenBitLength}`);
+    }
+    if (typeof config.blindingScheme === 'string' && !policy.allowedBlindingSchemes.includes(config.blindingScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `blinding scheme ${config.blindingScheme} is not allowed; permitted: ${policy.allowedBlindingSchemes.join(', ')}`);
+    }
+    if (policy.requireMintingAttestation && config.mintingAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'minting attestation is required');
+    }
+    if (typeof config.mintingAuthority === 'string' && !policy.allowedMintingAuthorities.includes(config.mintingAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `minting authority ${config.mintingAuthority} is not allowed; permitted: ${policy.allowedMintingAuthorities.join(', ')}`);
+    }
+    if (policy.requireZkSnarkProof && config.zkSnarkProof === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'zk-snark proof is required');
+    }
+    if (typeof config.proofAgeSeconds === 'number' && config.proofAgeSeconds > policy.maxProofAgeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `proof age ${config.proofAgeSeconds}s exceeds maximum ${policy.maxProofAgeSeconds}s`);
+    }
+    if (typeof config.commitmentCurve === 'string' && !policy.allowedCommitmentCurves.includes(config.commitmentCurve)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `commitment curve ${config.commitmentCurve} is not allowed; permitted: ${policy.allowedCommitmentCurves.join(', ')}`);
+    }
+    if (typeof config.issuanceQuorum === 'number' && config.issuanceQuorum < policy.minIssuanceQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `issuance quorum ${config.issuanceQuorum} below minimum ${policy.minIssuanceQuorum}`);
     }
   }
 
@@ -912,6 +955,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'disasterRecovery') {
       this._validateDisasterRecovery(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'confidentialIssuance') {
+      this._validateConfidentialIssuance(tenantPolicy, config);
       return true;
     }
 
