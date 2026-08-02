@@ -358,12 +358,12 @@ class ZkRangeProofSolvency {
     };
     this._audits.set(config.auditId, audit);
     this._appendLog('SOLVENCY_AUDIT_INITIATED', {
-      auditId,
+      auditId: config.auditId,
       assetProofs: config.assetProofs.length,
       liabilityProofs: config.liabilityProofs.length,
     });
     return {
-      auditId,
+      auditId: config.auditId,
       status: audit.status,
       verifiedAssets: assetCount,
       verifiedLiabilities: liabilityCount,
