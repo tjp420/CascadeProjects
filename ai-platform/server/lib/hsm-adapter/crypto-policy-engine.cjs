@@ -132,6 +132,9 @@ const DEFAULT_POLICY = {
     replayWindowMs: 5000,
     enablePeerKeyRotation: true,
     maxPeerKeyRotationRateMs: 1000,
+    enableSnapshotCompaction: true,
+    snapshotThresholdMin: 10,
+    snapshotThresholdMax: 10000,
   },
   enclave: {
     allowedEnclaveTypes: ['mock', 'intel-sgx', 'aws-nitro'],
@@ -455,6 +458,15 @@ class CryptoPolicyEngine {
     }
     if (typeof config.maxPeerKeyRotationRateMs === 'number' && config.maxPeerKeyRotationRateMs < policy.maxPeerKeyRotationRateMs) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `peer key rotation rate ${config.maxPeerKeyRotationRateMs}ms is below policy minimum ${policy.maxPeerKeyRotationRateMs}ms`);
+    }
+    if (policy.enableSnapshotCompaction && config.enableSnapshotCompaction === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'snapshot compaction is required and cannot be disabled');
+    }
+    if (typeof config.snapshotThreshold === 'number' && config.snapshotThreshold < policy.snapshotThresholdMin) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `snapshot threshold ${config.snapshotThreshold} is below policy minimum ${policy.snapshotThresholdMin}`);
+    }
+    if (typeof config.snapshotThreshold === 'number' && config.snapshotThreshold > policy.snapshotThresholdMax) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `snapshot threshold ${config.snapshotThreshold} exceeds policy maximum ${policy.snapshotThresholdMax}`);
     }
   }
 
