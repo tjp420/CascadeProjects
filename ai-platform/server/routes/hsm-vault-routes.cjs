@@ -200,4 +200,232 @@ router.get('/replication/status', authorize('admin:all'), function (req, res) {
   }
 });
 
+// ── Track 40: Distributed Consensus Coordinator endpoints ─────────────────────
+// All endpoints require admin:all authorization (enforced by router.use(authBeforeThrottle) above).
+
+/**
+ * Helper: get the registered DistributedConsensusCoordinator instance.
+ * Returns null if no coordinator is registered.
+ */
+function getCoordinator() {
+  const baseAdapter = require('../lib/hsm-adapter/base-adapter.cjs');
+  if (baseAdapter.getConsensusCoordinator && typeof baseAdapter.getConsensusCoordinator === 'function') {
+    return baseAdapter.getConsensusCoordinator();
+  }
+  return null;
+}
+
+/**
+ * Helper: require a coordinator or send a 503 error.
+ * @returns {object|null} the coordinator, or null if response was sent
+ */
+function requireCoordinator(res) {
+  const coordinator = getCoordinator();
+  if (!coordinator) {
+    sendError(res, 503, 'coordinator_not_registered', {
+      message: 'No DistributedConsensusCoordinator instance is registered.',
+    });
+    return null;
+  }
+  return coordinator;
+}
+
+// GET /api/vault/consensus/coordinator/status — aggregated coordinator state + telemetry counters
+router.get('/consensus/coordinator/status', authorize('admin:all'), function (req, res) {
+  try {
+    const coordinator = requireCoordinator(res);
+    if (!coordinator) return;
+
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const coordCounters = {};
+    for (const [key, value] of Object.entries(allMetrics)) {
+      if (key.startsWith('hsm_consensus_coord_') && typeof value === 'number') {
+        coordCounters[key] = value;
+      }
+    }
+
+    res.json({
+      success: true,
+      timestamp: Date.now(),
+      state: coordinator.getAggregatedState(),
+      counters: coordCounters,
+    });
+  } catch (err) {
+    sendError(res, 500, 'coordinator_status_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/consensus/groups — list all consensus groups
+router.get('/consensus/groups', authorize('admin:all'), function (req, res) {
+  try {
+    const coordinator = requireCoordinator(res);
+    if (!coordinator) return;
+
+    const groupIds = coordinator.listGroups();
+    const groups = groupIds.map(id => coordinator.getGroup(id));
+
+    res.json({ success: true, timestamp: Date.now(), groups, total: groups.length });
+  } catch (err) {
+    sendError(res, 500, 'consensus_groups_list_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/consensus/groups/:groupId — get a specific group's state
+router.get('/consensus/groups/:groupId', authorize('admin:all'), function (req, res) {
+  try {
+    const coordinator = requireCoordinator(res);
+    if (!coordinator) return;
+
+    const group = coordinator.getGroup(req.params.groupId);
+    if (!group) {
+      return sendError(res, 404, 'group_not_found', { groupId: req.params.groupId });
+    }
+
+    res.json({ success: true, timestamp: Date.now(), group });
+  } catch (err) {
+    sendError(res, 500, 'consensus_group_get_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/consensus/groups — create a new consensus group
+router.post('/consensus/groups', authorize('admin:all'), function (req, res) {
+  try {
+    const coordinator = requireCoordinator(res);
+    if (!coordinator) return;
+
+    const { groupId, clusterNodes, topic, keyRange } = req.body || {};
+    if (!groupId) {
+      return sendError(res, 400, 'missing_group_id', { message: 'groupId is required' });
+    }
+    if (!Array.isArray(clusterNodes) || clusterNodes.length === 0) {
+      return sendError(res, 400, 'missing_cluster_nodes', { message: 'clusterNodes must be a non-empty array' });
+    }
+
+    const result = coordinator.createGroup({ groupId, clusterNodes, topic, keyRange });
+    res.status(201).json({ success: true, timestamp: Date.now(), group: result });
+  } catch (err) {
+    // Distinguish "already exists" from other errors
+    if (err.code === 'GROUP_EXISTS') {
+      return sendError(res, 409, 'group_already_exists', { message: err.message });
+    }
+    if (err.code === 'MAX_GROUPS_EXCEEDED') {
+      return sendError(res, 507, 'max_groups_exceeded', { message: err.message });
+    }
+    if (err.code === 'INVALID_INPUT') {
+      return sendError(res, 400, 'invalid_input', { message: err.message });
+    }
+    sendError(res, 500, 'consensus_group_create_failed', { message: err.message });
+  }
+});
+
+// DELETE /api/vault/consensus/groups/:groupId — destroy a consensus group
+router.delete('/consensus/groups/:groupId', authorize('admin:all'), function (req, res) {
+  try {
+    const coordinator = requireCoordinator(res);
+    if (!coordinator) return;
+
+    coordinator.destroyGroup(req.params.groupId);
+    res.json({ success: true, timestamp: Date.now(), groupId: req.params.groupId, destroyed: true });
+  } catch (err) {
+    if (err.code === 'GROUP_NOT_FOUND') {
+      return sendError(res, 404, 'group_not_found', { groupId: req.params.groupId });
+    }
+    sendError(res, 500, 'consensus_group_destroy_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/consensus/proposals — route a proposal to the appropriate group
+router.post('/consensus/proposals', authorize('admin:all'), function (req, res) {
+  try {
+    const coordinator = requireCoordinator(res);
+    if (!coordinator) return;
+
+    const proposal = req.body || {};
+    if (!proposal.groupId && !proposal.topic && !proposal.key) {
+      return sendError(res, 400, 'no_routing_key', { message: 'Proposal must specify groupId, topic, or key' });
+    }
+
+    const result = coordinator.routeProposal(proposal);
+    if (result.accepted) {
+      res.json({ success: true, timestamp: Date.now(), ...result });
+    } else {
+      const status = result.reason === 'group_not_found' ? 404
+        : result.reason === 'quorum_not_met' ? 503
+        : 400;
+      res.status(status).json({ success: false, timestamp: Date.now(), ...result });
+    }
+  } catch (err) {
+    sendError(res, 500, 'consensus_proposal_route_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/consensus/heartbeat — record a heartbeat from a node
+router.post('/consensus/heartbeat', authorize('admin:all'), function (req, res) {
+  try {
+    const coordinator = requireCoordinator(res);
+    if (!coordinator) return;
+
+    const { nodeId, groupId, leaderId } = req.body || {};
+    if (!nodeId || !groupId) {
+      return sendError(res, 400, 'missing_params', { message: 'nodeId and groupId are required' });
+    }
+
+    coordinator.recordHeartbeat(nodeId, groupId, { leaderId });
+    res.json({ success: true, timestamp: Date.now(), nodeId, groupId });
+  } catch (err) {
+    if (err.code === 'GROUP_NOT_FOUND' || err.code === 'NODE_NOT_IN_GROUP') {
+      return sendError(res, 404, err.code.toLowerCase(), { message: err.message });
+    }
+    sendError(res, 500, 'consensus_heartbeat_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/consensus/view-change — initiate a view change
+router.post('/consensus/view-change', authorize('admin:all'), function (req, res) {
+  try {
+    const coordinator = requireCoordinator(res);
+    if (!coordinator) return;
+
+    const { groupId, failedLeaderId, candidateId } = req.body || {};
+    if (!groupId || !failedLeaderId || !candidateId) {
+      return sendError(res, 400, 'missing_params', { message: 'groupId, failedLeaderId, and candidateId are required' });
+    }
+
+    const result = coordinator.initiateViewChange(groupId, failedLeaderId, candidateId);
+    if (result.accepted) {
+      res.json({ success: true, timestamp: Date.now(), ...result });
+    } else {
+      res.status(409).json({ success: false, timestamp: Date.now(), ...result });
+    }
+  } catch (err) {
+    if (err.code === 'GROUP_NOT_FOUND') {
+      return sendError(res, 404, 'group_not_found', { message: err.message });
+    }
+    sendError(res, 500, 'consensus_view_change_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/consensus/view-change/vote — cast a vote for an ongoing view change
+router.post('/consensus/view-change/vote', authorize('admin:all'), function (req, res) {
+  try {
+    const coordinator = requireCoordinator(res);
+    if (!coordinator) return;
+
+    const { groupId, voterId, candidateId } = req.body || {};
+    if (!groupId || !voterId || !candidateId) {
+      return sendError(res, 400, 'missing_params', { message: 'groupId, voterId, and candidateId are required' });
+    }
+
+    const result = coordinator.castViewChangeVote(groupId, voterId, candidateId);
+    if (result.accepted) {
+      res.json({ success: true, timestamp: Date.now(), ...result });
+    } else {
+      res.status(409).json({ success: false, timestamp: Date.now(), ...result });
+    }
+  } catch (err) {
+    sendError(res, 500, 'consensus_view_change_vote_failed', { message: err.message });
+  }
+});
+
 module.exports = router;

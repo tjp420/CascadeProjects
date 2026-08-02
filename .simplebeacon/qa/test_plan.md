@@ -1,40 +1,68 @@
-# Test Plan — Phase Closeout: Replication Telemetry Mesh + Track 40
+# Test Plan — Track 40 Route Integration
 
-**Branch:** `docs/phase-closeout-track40`
+**Branch:** `feature/track40-route-integration`
 **Date:** 2026-08-02
 **Status:** Active
 
 ## Objective
 
-Freeze the active working branch and generate a formal architectural deployment log documenting the 4 merged PRs from this cycle: Firefox stale-file fix (PR #222), drag-and-drop telemetry (PR #224), core replication telemetry mesh (PR #227), and Track 40 Distributed Consensus Coordinator (PR #229).
+Mount the Track 40 DistributedConsensusCoordinator into `hsm-vault-routes.cjs` to expose live consensus group management, proposal routing, view change coordination, and fault detection telemetry via REST endpoints.
+
+## Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/vault/consensus/groups` | List all consensus groups |
+| GET | `/api/vault/consensus/groups/:groupId` | Get a specific group's state |
+| POST | `/api/vault/consensus/groups` | Create a new consensus group |
+| DELETE | `/api/vault/consensus/groups/:groupId` | Destroy a consensus group |
+| POST | `/api/vault/consensus/proposals` | Route a proposal to the appropriate group |
+| POST | `/api/vault/consensus/heartbeat` | Record a heartbeat from a node |
+| POST | `/api/vault/consensus/view-change` | Initiate a view change |
+| POST | `/api/vault/consensus/view-change/vote` | Cast a vote for an ongoing view change |
+| GET | `/api/vault/consensus/coordinator/status` | Get aggregated coordinator state + telemetry counters |
 
 ## Change Set
 
 | File | Change |
 |------|--------|
-| `.simplebeacon/docs/phase-closeout-replication-telemetry-track40.md` | **New** — Formal architectural deployment log (242 lines) |
-| `.simplebeacon/qa/test_plan.md` | Updated for closeout |
-| `.simplebeacon/qa/software_health_report.md` | Updated for closeout |
+| `server/lib/hsm-adapter/base-adapter.cjs` | Add coordinator registry (register/get) |
+| `server/routes/hsm-vault-routes.cjs` | Add 9 consensus coordinator endpoints |
+| `server/lib/__tests__/hsm-vault-consensus-coordinator-routes.test.cjs` | **New** — Test suite |
 
 ## Check Items
 
 ### Level 1 — Deterministic
 
-- [x] L1.1 No code changes (documentation only) — no syntax checks needed
-- [x] L1.2 All 4 PRs merged to main cleanly (no conflicts)
-- [x] L1.3 All 250 tests pass on main (60 new + 190 existing)
-- [x] L1.4 No new dependencies added across the cycle
+- [ ] L1.1 `node -c base-adapter.cjs` — PASS
+- [ ] L1.2 `node -c hsm-vault-routes.cjs` — PASS
+- [ ] L1.3 `node -c hsm-vault-consensus-coordinator-routes.test.cjs` — PASS
+- [ ] L1.4 All new tests pass
+- [ ] L1.5 All existing tests pass (no regression)
+- [ ] L1.6 No new dependencies added
 
 ### Level 2 — Functional Operations
 
-- [x] L2.01 PR #222: Firefox stale-file fix verified — pre-read bridge suppresses DOMException
-- [x] L2.02 PR #224: Drag-and-drop telemetry dashboard renders 7 metric chips
-- [x] L2.03 PR #227: `/api/vault/replication/status` returns 200 with 5 groups × 7 counters
-- [x] L2.04 PR #229: Distributed Consensus Coordinator creates/routes/destroys groups, detects faults, coordinates view changes
+- [ ] L2.01 GET `/consensus/groups` returns 200 with group list
+- [ ] L2.02 GET `/consensus/groups/:groupId` returns 200 with group state
+- [ ] L2.03 GET `/consensus/groups/:groupId` returns 404 for non-existent group
+- [ ] L2.04 POST `/consensus/groups` creates a group and returns 201
+- [ ] L2.05 POST `/consensus/groups` returns 400 for missing groupId
+- [ ] L2.06 POST `/consensus/groups` returns 409 for duplicate groupId
+- [ ] L2.07 DELETE `/consensus/groups/:groupId` destroys a group and returns 200
+- [ ] L2.08 DELETE `/consensus/groups/:groupId` returns 404 for non-existent group
+- [ ] L2.09 POST `/consensus/proposals` routes a proposal and returns 200
+- [ ] L2.10 POST `/consensus/proposals` returns 400 for invalid proposal
+- [ ] L2.11 POST `/consensus/heartbeat` records a heartbeat and returns 200
+- [ ] L2.12 POST `/consensus/view-change` initiates a view change and returns 200
+- [ ] L2.13 POST `/consensus/view-change/vote` casts a vote and returns 200
+- [ ] L2.14 GET `/consensus/coordinator/status` returns 200 with aggregated state + counters
+- [ ] L2.15 All endpoints require admin:all authorization (403 for non-admin)
 
-### Level 3 — Self-review / Drift
+### Level 3 — Security Engineering
 
-- [x] L3.01 Deployment log accurately reflects merged PRs (verified via `git show --stat`)
-- [x] L3.02 No ghost files or hallucinated API paths in the deployment log
-- [x] L3.03 Test counts match actual Jest output (250 total)
-- [x] L3.04 Unimplemented items clearly documented for future roadmap
+- [ ] L3.01 All endpoints gated behind admin:all authorization
+- [ ] L3.02 No secrets exposed in any response
+- [ ] L3.03 Coordinator registry follows existing consensus engine pattern
+- [ ] L3.04 No scope creep — only routes + registry + tests
+- [ ] L3.05 All existing tests still pass (no regression)

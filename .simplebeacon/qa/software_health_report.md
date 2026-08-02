@@ -1,49 +1,71 @@
-# Software Health Report — Phase Closeout: Replication Telemetry Mesh + Track 40
+# Software Health Report — Track 40 Route Integration
 
 **Date:** 2026-08-02
-**Branch:** `docs/phase-closeout-track40`
-**Base commit:** `4e4b1f176` (main)
+**Branch:** `feature/track40-route-integration`
 **Validator sign-off:** Pending (Builder self-report; separate Validator pass recommended)
 
 ## Summary
 
-Phase closeout for the cycle covering PRs #222, #224, #227, #229. Delivered Firefox stale-file fix, drag-and-drop telemetry, 35-counter replication telemetry mesh, and Track 40 Distributed Consensus Coordinator. Generated formal architectural deployment log at `.simplebeacon/docs/phase-closeout-replication-telemetry-track40.md`.
+Mounted the Track 40 DistributedConsensusCoordinator into `hsm-vault-routes.cjs`, exposing 9 REST endpoints for consensus group management, proposal routing, heartbeat recording, view change coordination, and aggregated telemetry. Added a coordinator registry to `base-adapter.cjs` following the existing consensus engine registry pattern.
 
-## Change Set (3 files)
+## Change Set (5 files)
 
 | File | Change |
 |------|--------|
-| `.simplebeacon/docs/phase-closeout-replication-telemetry-track40.md` | **New** — Formal architectural deployment log (242 lines) |
-| `.simplebeacon/qa/test_plan.md` | Updated for closeout |
-| `.simplebeacon/qa/software_health_report.md` | Updated for closeout |
+| `server/lib/hsm-adapter/base-adapter.cjs` | Add coordinator registry (register/get) |
+| `server/routes/hsm-vault-routes.cjs` | Add 9 consensus coordinator endpoints |
+| `server/lib/__tests__/hsm-vault-consensus-coordinator-routes.test.cjs` | **New** — 38 tests |
+| `.simplebeacon/qa/test_plan.md` | Updated |
+| `.simplebeacon/qa/software_health_report.md` | Updated |
 
-## Level 1 — Deterministic (required)
+## Level 1 — Deterministic
 
 | Check | Result |
 |-------|--------|
-| No code changes (documentation only) | Confirmed |
-| All 4 PRs merged to main cleanly | Confirmed |
-| All 250 tests pass on main (60 new + 190 existing) | PASS |
-| No new dependencies added across the cycle | Confirmed |
-| No secrets committed | Confirmed |
+| `node -c base-adapter.cjs` | PASS |
+| `node -c hsm-vault-routes.cjs` | PASS |
+| `node -c hsm-vault-consensus-coordinator-routes.test.cjs` | PASS |
+| New test suite (38 tests) | PASS |
+| Existing route tests (40 tests) | PASS (no regression) |
+| Coordinator unit tests (46 tests) | PASS (no regression) |
+| No new dependencies | Confirmed |
 
 ## Level 2 — Functional Operations
 
 | Check | Result |
 |------|--------|
-| L2.01 PR #222: Firefox stale-file fix verified | PASS |
-| L2.02 PR #224: Drag-and-drop telemetry dashboard renders | PASS |
-| L2.03 PR #227: `/api/vault/replication/status` returns 200 with 35 counters | PASS |
-| L2.04 PR #229: Distributed Consensus Coordinator fully tested (46 tests) | PASS |
+| GET /consensus/coordinator/status returns 200 with state + counters | PASS |
+| GET /consensus/groups returns 200 with group list | PASS |
+| GET /consensus/groups/:groupId returns 200 with group state | PASS |
+| GET /consensus/groups/:groupId returns 404 for non-existent | PASS |
+| POST /consensus/groups creates group and returns 201 | PASS |
+| POST /consensus/groups returns 400 for missing params | PASS |
+| POST /consensus/groups returns 409 for duplicate | PASS |
+| DELETE /consensus/groups/:groupId destroys and returns 200 | PASS |
+| DELETE /consensus/groups/:groupId returns 404 for non-existent | PASS |
+| POST /consensus/proposals routes by groupId | PASS |
+| POST /consensus/proposals routes by topic | PASS |
+| POST /consensus/proposals returns 400 for no routing key | PASS |
+| POST /consensus/proposals returns 404 for unknown group | PASS |
+| POST /consensus/heartbeat records and returns 200 | PASS |
+| POST /consensus/heartbeat returns 400 for missing params | PASS |
+| POST /consensus/heartbeat returns 404 for unknown group | PASS |
+| POST /consensus/view-change initiates and returns 200 | PASS |
+| POST /consensus/view-change returns 409 when already in progress | PASS |
+| POST /consensus/view-change/vote casts vote and returns 200 | PASS |
+| POST /consensus/view-change/vote completes when quorum reached | PASS |
+| All endpoints return 403 for non-admin | PASS |
+| Returns 503 when no coordinator registered | PASS |
 
-## Level 3 — Self-review / Drift
+## Level 3 — Security Engineering
 
 | Check | Result |
 |-------|--------|
-| Deployment log accurately reflects merged PRs | Confirmed via `git show --stat` |
-| No ghost files or hallucinated API paths | Confirmed |
-| Test counts match actual Jest output (250 total) | Confirmed |
-| Unimplemented items clearly documented | Confirmed |
+| All endpoints gated behind admin:all | PASS |
+| No secrets exposed in responses | PASS |
+| Coordinator registry follows existing pattern | PASS |
+| No scope creep — only routes + registry + tests | Confirmed |
+| All existing tests still pass | Confirmed |
 
 ## Defects
 
@@ -51,20 +73,5 @@ None.
 
 ## Unimplemented
 
-1. Wire coordinator into vault routes (`/api/vault/consensus/groups`)
-2. Merge `feature/track40-groundwork` branch (engine primitives)
-3. Production redeploy of `simplebeacon.ai` to include Firefox pre-read fix
-4. Integration with ClusterRecoveryCoordinator (Track 33)
-5. Track 41+ (hardware enclave isolation, quantum-safe resharding, etc.)
-
-## Enhancements
-
-- The deployment log could be augmented with sequence diagrams for the view change protocol
-- The replication telemetry dashboard could add historical trend graphs (currently point-in-time only)
-
-## Future Roadmap
-
-- Track 41: Hardware Enclave Isolation (SGX/Nitro TEE)
-- Track 42: Quantum-Safe Dynamic Resharding
-- Track 43B: Decentralized Disaster Recovery
-- Track 44-46: Confidential token issuance, cross-tenant auditing, homomorphic computation contracts
+- Dashboard component for consensus coordinator telemetry (currently API-only)
+- Integration with the consensus engine registry (for combined status views)
