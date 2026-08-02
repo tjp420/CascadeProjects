@@ -90,6 +90,17 @@ const DEFAULT_POLICY = {
     graceTokenExpiryMs: 0,
     allowBlinding: false,
   },
+  identity: {
+    maxSkipped: 1000,
+    sessionExpiryMs: 86400000,
+    pqcKemLevel: 768,
+    allowedPqcKemLevels: [512, 768, 1024],
+    requireMfaBinding: true,
+    mfaTokenExpiryMs: 300000,
+    minMfaSignatures: 2,
+    requirePqcHybridRatchet: true,
+    allowedRatchetSchemes: ['ml-kem-768', 'ml-kem-1024'],
+  },
 };
 
 function _isObject(value) {
@@ -162,6 +173,10 @@ function _mergeWithDefault(tenantPolicy) {
     fips: {
       ...DEFAULT_POLICY.fips,
       ...(tenantPolicy.fips || {}),
+    },
+    identity: {
+      ...DEFAULT_POLICY.identity,
+      ...(tenantPolicy.identity || {}),
     },
   };
 }
@@ -249,6 +264,25 @@ class CryptoPolicyEngine {
         'POLICY_VIOLATION_BLOCKED',
         `${label} ${kekBits} is below the tenant minimum of ${min}`
       );
+    }
+  }
+
+  _validateIdentity(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.identity, ...(tenantPolicy.identity || {}) };
+    if (typeof config.kemLevel === 'number' && !policy.allowedPqcKemLevels.includes(config.kemLevel)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `identity KEM level ${config.kemLevel} is not allowed; permitted: ${policy.allowedPqcKemLevels.join(', ')}`);
+    }
+    if (typeof config.scheme === 'string' && !policy.allowedRatchetSchemes.includes(config.scheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `identity ratchet scheme ${config.scheme} is not allowed; permitted: ${policy.allowedRatchetSchemes.join(', ')}`);
+    }
+    if (typeof config.skipped === 'number' && config.skipped > policy.maxSkipped) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `identity skipped count ${config.skipped} exceeds policy ${policy.maxSkipped}`);
+    }
+    if (policy.requireMfaBinding && !config.mfaBinding) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'identity MFA binding is required');
+    }
+    if (typeof config.mfaSignatures === 'number' && config.mfaSignatures < policy.minMfaSignatures) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `MFA signatures ${config.mfaSignatures} below policy minimum ${policy.minMfaSignatures}`);
     }
   }
 
@@ -581,6 +615,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'zkp') {
       this._validateZkp(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'identity') {
+      this._validateIdentity(tenantPolicy, config);
       return true;
     }
 
