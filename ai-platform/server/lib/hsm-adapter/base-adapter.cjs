@@ -857,6 +857,26 @@ class BaseHsmAdapter {
     this._audit('ATTESTATION_CONTRACT_VERIFIED', info);
   }
 
+  // ── Track 53 Homomorphic key sharding telemetry hooks ─────────────
+
+  /**
+   * Emit a homomorphic shard dispersed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitHomomorphicShardDispersed(info = {}) {
+    this._ensureInitialized();
+    this._audit('HOMOMORPHIC_SHARD_DISPERSED', info);
+  }
+
+  /**
+   * Emit a cross-platform combiner verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCrossPlatformCombinerVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('CROSS_PLATFORM_COMBINER_VERIFIED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

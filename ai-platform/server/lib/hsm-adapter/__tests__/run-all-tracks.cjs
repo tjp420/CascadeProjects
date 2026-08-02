@@ -42,6 +42,7 @@ const SUITES = [
   'zk-cross-chain-settlement',
   'pqc-identity-hub',
   'zk-access-token-attestation',
+  'homomorphic-key-sharding',
 ];
 
 function runSuite(pattern) {
