@@ -26,6 +26,7 @@ const {
   deserialize,
   KeyringValidationError,
 } = require('../keyring-serializer.cjs');
+const { emitAuditEvent, ACTIONS } = require('./audit.cjs');
 
 const WRAPPED_BLOB_VERSION = 1;
 
@@ -52,9 +53,15 @@ class BaseHsmAdapter {
    * @param {object} options
    * @param {string} options.providerName - human-readable provider name
    * @param {object} [options.logger] - logger with info/warn/error methods
+<<<<<<< HEAD
    * @param {CryptoPolicyEngine} [options.policyEngine] - optional policy enforcement engine
    * @param {VolatileEvictionEngine} [options.volatileEvictionEngine] - optional eviction engine
    * @param {ProvenanceTracker} [options.provenanceTracker] - optional provenance ledger
+=======
+   * @param {string} [options.orgId] - tenant org ID for audit events
+   * @param {string} [options.nodeId] - node identifier for audit events
+   * @param {boolean} [options.auditEnabled=true] - enable audit trail
+>>>>>>> 32981d5de (feat(hsm-audit): restore HSM adapter audit trail on isolated branch)
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -62,9 +69,15 @@ class BaseHsmAdapter {
     }
     this.providerName = options.providerName || 'base';
     this.logger = options.logger || null;
+<<<<<<< HEAD
     this._policyEngine = options.policyEngine || null;
     this._evictionEngine = options.volatileEvictionEngine || null;
     this._provenanceTracker = options.provenanceTracker || null;
+=======
+    this.orgId = options.orgId || 'default';
+    this.nodeId = options.nodeId || null;
+    this.auditEnabled = options.auditEnabled !== false;
+>>>>>>> 32981d5de (feat(hsm-audit): restore HSM adapter audit trail on isolated branch)
     this._initialized = false;
   }
 
@@ -101,6 +114,7 @@ class BaseHsmAdapter {
   }
 
   /**
+<<<<<<< HEAD
    * Validate a tenant identifier.
    * @param {string} tenantId
    * @private
@@ -109,6 +123,23 @@ class BaseHsmAdapter {
     if (typeof tenantId !== 'string' || tenantId.length === 0) {
       throw new HsmAdapterError('UNAUTHORIZED_KEY_ACCESS', 'tenantId must be a non-empty string');
     }
+=======
+   * Emit an audit event for an HSM operation. Non-secret metadata only.
+   * Audit failures are silently swallowed — they must never break crypto.
+   * @param {string} action - one of the ACTIONS constants
+   * @param {object} [extra] - additional non-secret metadata
+   * @private
+   */
+  _audit(action, extra = {}) {
+    if (!this.auditEnabled) return;
+    emitAuditEvent({
+      action,
+      orgId: this.orgId,
+      nodeId: this.nodeId,
+      provider: this.providerName,
+      ...extra,
+    });
+>>>>>>> 32981d5de (feat(hsm-audit): restore HSM adapter audit trail on isolated branch)
   }
 
   // ── Low-level KEK lifecycle (subclasses MUST implement) ───────────
@@ -121,6 +152,7 @@ class BaseHsmAdapter {
    */
   async createKEK(tenantId, meta = {}) {
     this._ensureInitialized();
+<<<<<<< HEAD
     this._ensureTenant(tenantId);
     const kekId = await this._createKEK(tenantId, meta);
     this._evictionEngine?.register(tenantId, kekId, async (id, reason) => {
@@ -131,6 +163,16 @@ class BaseHsmAdapter {
       }
     });
     return kekId;
+=======
+    try {
+      const kekId = await this._createKEK(meta);
+      this._audit(ACTIONS.KEK_CREATE, { kekId, result: 'success' });
+      return kekId;
+    } catch (err) {
+      this._audit(ACTIONS.KEK_CREATE, { result: 'failure', errorCode: err.code || 'UNKNOWN' });
+      throw err;
+    }
+>>>>>>> 32981d5de (feat(hsm-audit): restore HSM adapter audit trail on isolated branch)
   }
 
   async _createKEK(_tenantId, _meta) {
@@ -146,12 +188,28 @@ class BaseHsmAdapter {
    */
   async wrap(tenantId, kekId, plaintext) {
     this._ensureInitialized();
+<<<<<<< HEAD
     this._ensureTenant(tenantId);
     if (!Buffer.isBuffer(plaintext)) {
       throw new HsmAdapterError('INVALID_INPUT', 'plaintext must be a Buffer');
     }
+    this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, kekId);
     return this._wrap(tenantId, kekId, plaintext);
+=======
+    try {
+      const result = await this._wrap(kekId, plaintext);
+      this._audit(ACTIONS.WRAP, {
+        kekId,
+        payloadSize: Buffer.isBuffer(plaintext) ? plaintext.length : 0,
+        result: 'success',
+      });
+      return result;
+    } catch (err) {
+      this._audit(ACTIONS.WRAP, { kekId, result: 'failure', errorCode: err.code || 'UNKNOWN' });
+      throw err;
+    }
+>>>>>>> 32981d5de (feat(hsm-audit): restore HSM adapter audit trail on isolated branch)
   }
 
   async _wrap(_tenantId, _kekId, _plaintext) {
@@ -167,12 +225,28 @@ class BaseHsmAdapter {
    */
   async unwrap(tenantId, kekId, wrapped) {
     this._ensureInitialized();
+<<<<<<< HEAD
     this._ensureTenant(tenantId);
     if (!Buffer.isBuffer(wrapped)) {
       throw new HsmAdapterError('INVALID_INPUT', 'wrapped must be a Buffer');
     }
+    this._checkTemporalGuard();
     this._evictionEngine?.touch(tenantId, kekId);
     return this._unwrap(tenantId, kekId, wrapped);
+=======
+    try {
+      const result = await this._unwrap(kekId, wrapped);
+      this._audit(ACTIONS.UNWRAP, {
+        kekId,
+        payloadSize: Buffer.isBuffer(wrapped) ? wrapped.length : 0,
+        result: 'success',
+      });
+      return result;
+    } catch (err) {
+      this._audit(ACTIONS.UNWRAP, { kekId, result: 'failure', errorCode: err.code || 'UNKNOWN' });
+      throw err;
+    }
+>>>>>>> 32981d5de (feat(hsm-audit): restore HSM adapter audit trail on isolated branch)
   }
 
   async _unwrap(_tenantId, _kekId, _wrapped) {
@@ -187,6 +261,7 @@ class BaseHsmAdapter {
    */
   async rotateKEK(tenantId, oldKekId) {
     this._ensureInitialized();
+<<<<<<< HEAD
     this._ensureTenant(tenantId);
     this._evictionEngine?.touch(tenantId, oldKekId);
     const newKekId = await this._rotateKEK(tenantId, oldKekId);
@@ -198,6 +273,24 @@ class BaseHsmAdapter {
       }
     });
     return newKekId;
+=======
+    try {
+      const newKekId = await this._rotateKEK(oldKekId);
+      this._audit(ACTIONS.KEK_ROTATE, {
+        kekId: oldKekId,
+        extra: { newKekId },
+        result: 'success',
+      });
+      return newKekId;
+    } catch (err) {
+      this._audit(ACTIONS.KEK_ROTATE, {
+        kekId: oldKekId,
+        result: 'failure',
+        errorCode: err.code || 'UNKNOWN',
+      });
+      throw err;
+    }
+>>>>>>> 32981d5de (feat(hsm-audit): restore HSM adapter audit trail on isolated branch)
   }
 
   async _rotateKEK(_tenantId, _oldKekId) {
@@ -211,8 +304,22 @@ class BaseHsmAdapter {
    */
   async listKEKs(tenantId) {
     this._ensureInitialized();
+<<<<<<< HEAD
     this._ensureTenant(tenantId);
     return this._listKEKs(tenantId);
+=======
+    try {
+      const list = await this._listKEKs();
+      this._audit(ACTIONS.KEK_LIST, {
+        extra: { count: list.length },
+        result: 'success',
+      });
+      return list;
+    } catch (err) {
+      this._audit(ACTIONS.KEK_LIST, { result: 'failure', errorCode: err.code || 'UNKNOWN' });
+      throw err;
+    }
+>>>>>>> 32981d5de (feat(hsm-audit): restore HSM adapter audit trail on isolated branch)
   }
 
   async _listKEKs(_tenantId) {
@@ -327,6 +434,50 @@ class BaseHsmAdapter {
 
   // ── High-level keyring export / import ─────────────────────────────
 
+  // ── Temporal guard (Track 22) ───────────────────────────────────
+
+  /**
+   * Check that the local clock is within the time anchor's drift window.
+   * No-op when no time anchor is configured.
+   * @private
+   */
+  _checkTemporalGuard() {
+    if (!this._timeAnchor) return;
+    const consensus = this._timeAnchor.consensusTimestamp();
+    const local = Date.now();
+    const drift = Math.abs(local - consensus);
+    if (drift > this._timeAnchor.maxDriftMs) {
+      this._audit('TEMPORAL_DRIFT_BLOCKED', { drift, maxDriftMs: this._timeAnchor.maxDriftMs, consensus, local });
+      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `local clock drift ${drift}ms exceeds ${this._timeAnchor.maxDriftMs}ms`);
+    }
+  }
+
+  /**
+   * Return the current anchored epoch timestamp.
+   * @returns {number|null}
+   */
+  currentEpoch() {
+    return this._timeAnchor ? this._timeAnchor.currentEpoch() : null;
+  }
+
+  /**
+   * Verify that a local timestamp is within the temporal guard's tolerance.
+   * @param {string} tenantId
+   * @param {number} localTimestamp
+   * @param {number} [toleranceMs] - override the anchor's maxDriftMs
+   */
+  verifyTemporalGuard(tenantId, localTimestamp, toleranceMs) {
+    this._ensureTenant(tenantId);
+    if (!this._timeAnchor) return;
+    const consensus = this._timeAnchor.consensusTimestamp();
+    const max = typeof toleranceMs === 'number' ? toleranceMs : this._timeAnchor.maxDriftMs;
+    const drift = Math.abs(localTimestamp - consensus);
+    this._audit('TEMPORAL_DRIFT_BLOCKED', { tenantId, drift, max, consensus, localTimestamp, ok: drift <= max });
+    if (drift > max) {
+      throw new HsmAdapterError('TEMPORAL_DRIFT_BLOCKED', `temporal drift ${drift}ms exceeds ${max}ms`);
+    }
+  }
+
   /**
    * Dispatches and serializes internal keyrings via a Master KEK context.
    * @param {object} keyringData - keyring object for serialize()
@@ -335,11 +486,18 @@ class BaseHsmAdapter {
    */
   async exportKeyring(keyringData, masterKek) {
     this._ensureInitialized();
+    this._checkTemporalGuard();
     try {
-      // Direct pass-through to the unified binary pipeline
-      return serialize(keyringData, masterKek);
+      const result = serialize(keyringData, masterKek);
+      this._audit(ACTIONS.EXPORT_KEYRING, {
+        algorithm: keyringData && keyringData.algorithm,
+        payloadSize: Buffer.isBuffer(result) ? result.length : 0,
+        result: 'success',
+      });
+      return result;
     } catch (error) {
       const code = error instanceof KeyringValidationError ? error.code : 'EXPORT_FAILED';
+      this._audit(ACTIONS.EXPORT_KEYRING, { result: 'failure', errorCode: code });
       throw new HsmAdapterError(code, `HSM Export pipeline failure: ${error.message}`);
     }
   }
@@ -353,10 +511,20 @@ class BaseHsmAdapter {
   async importKeyring(binaryEnvelope, masterKek) {
     this._ensureInitialized();
     try {
-      // Integrity check is handled implicitly inside unwrapPad
-      return deserialize(binaryEnvelope, masterKek);
+      const result = deserialize(binaryEnvelope, masterKek);
+      this._audit(ACTIONS.IMPORT_KEYRING, {
+        algorithm: result && result.algorithm,
+        payloadSize: Buffer.isBuffer(binaryEnvelope) ? binaryEnvelope.length : 0,
+        result: 'success',
+      });
+      return result;
     } catch (error) {
       const code = error instanceof KeyringValidationError ? error.code : 'IMPORT_FAILED';
+      this._audit(ACTIONS.IMPORT_KEYRING, {
+        payloadSize: Buffer.isBuffer(binaryEnvelope) ? binaryEnvelope.length : 0,
+        result: 'failure',
+        errorCode: code,
+      });
       throw new HsmAdapterError(code, `HSM Import pipeline failure: ${error.message}`);
     }
   }
