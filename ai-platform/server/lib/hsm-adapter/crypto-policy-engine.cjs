@@ -518,6 +518,15 @@ const DEFAULT_POLICY = {
     allowGuardianManagement: true,
     maxActiveRecoveries: 100,
   },
+  distributedConsensusCoordinator: {
+    maxGroups: 64,
+    faultTimeoutMs: 3000,
+    faultCheckIntervalMs: 1000,
+    viewChangeTimeoutMs: 5000,
+    requireQuorumForProposals: true,
+    allowDynamicGroupCreation: true,
+    allowCrossGroupRouting: true,
+  },
 };
 
 function _isObject(value) {
@@ -706,6 +715,10 @@ function _mergeWithDefault(tenantPolicy) {
     thresholdAccountRecovery: {
       ...DEFAULT_POLICY.thresholdAccountRecovery,
       ...(tenantPolicy.thresholdAccountRecovery || {}),
+    },
+    distributedConsensusCoordinator: {
+      ...DEFAULT_POLICY.distributedConsensusCoordinator,
+      ...(tenantPolicy.distributedConsensusCoordinator || {}),
     },
     encryptedSearchRouting: {
       ...DEFAULT_POLICY.encryptedSearchRouting,
