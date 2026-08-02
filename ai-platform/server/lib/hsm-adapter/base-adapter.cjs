@@ -1133,6 +1133,35 @@ class BaseHsmAdapter {
     this._audit('PREDICTION_MARKET_FINALIZED', info);
   }
 
+  // ── Track 65 PQ fractional custody telemetry hooks ──────────────
+
+  /**
+   * Emit a fractional vault initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitFractionalVaultInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('FRACTIONAL_VAULT_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a fractional release signed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitFractionalReleaseSigned(info = {}) {
+    this._ensureInitialized();
+    this._audit('FRACTIONAL_RELEASE_SIGNED', info);
+  }
+
+  /**
+   * Emit a custody vault liquidated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCustodyVaultLiquidated(info = {}) {
+    this._ensureInitialized();
+    this._audit('CUSTODY_VAULT_LIQUIDATED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
