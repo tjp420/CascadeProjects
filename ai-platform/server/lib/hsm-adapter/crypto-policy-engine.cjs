@@ -306,6 +306,15 @@ const DEFAULT_POLICY = {
     banMalformedChunkPeers: true,
     requireCanonicalPayloadLayout: true,
   },
+  confidentialSandbox: {
+    maxExecutionTimeSeconds: 30,
+    maxConcurrentSandboxes: 100,
+    allowedOperations: ['sign', 'verify', 'encrypt', 'decrypt', 'derive', 'hash'],
+    requireAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    requireZeroization: true,
+    sandboxMemoryLimitBytes: 1048576,
+  },
 };
 
 function _isObject(value) {
@@ -462,6 +471,10 @@ function _mergeWithDefault(tenantPolicy) {
     encryptedDeduplication: {
       ...DEFAULT_POLICY.encryptedDeduplication,
       ...(tenantPolicy.encryptedDeduplication || {}),
+    },
+    confidentialSandbox: {
+      ...DEFAULT_POLICY.confidentialSandbox,
+      ...(tenantPolicy.confidentialSandbox || {}),
     },
   };
 }
@@ -1120,6 +1133,31 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateConfidentialSandbox(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.confidentialSandbox, ...(tenantPolicy.confidentialSandbox || {}) };
+    if (typeof config.executionTimeSeconds === 'number' && config.executionTimeSeconds > policy.maxExecutionTimeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `execution time ${config.executionTimeSeconds}s exceeds maximum ${policy.maxExecutionTimeSeconds}s`);
+    }
+    if (typeof config.concurrentSandboxes === 'number' && config.concurrentSandboxes > policy.maxConcurrentSandboxes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `concurrent sandboxes ${config.concurrentSandboxes} exceeds maximum ${policy.maxConcurrentSandboxes}`);
+    }
+    if (typeof config.operation === 'string' && !policy.allowedOperations.includes(config.operation)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `operation ${config.operation} is not allowed; permitted: ${policy.allowedOperations.join(', ')}`);
+    }
+    if (policy.requireAttestation && config.attestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (policy.requireZeroization && config.zeroization === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'zeroization is required');
+    }
+    if (typeof config.memoryLimitBytes === 'number' && config.memoryLimitBytes > policy.sandboxMemoryLimitBytes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `memory limit ${config.memoryLimitBytes} bytes exceeds maximum ${policy.sandboxMemoryLimitBytes} bytes`);
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1554,6 +1592,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'encryptedDeduplication') {
       this._validateEncryptedDeduplication(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'confidentialSandbox') {
+      this._validateConfidentialSandbox(tenantPolicy, config);
       return true;
     }
 
