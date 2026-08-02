@@ -142,4 +142,28 @@ router.post('/rotate', authorize('admin:all'), runAsync(async (req, res) => {
   res.json({ success: true, ...result });
 }));
 
+// GET /api/vault/recovery/status — expose threshold account recovery telemetry
+router.get('/recovery/status', authorize('admin:all'), function (req, res) {
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+
+    // Extract recovery-specific counters
+    const recoveryCounters = {};
+    for (const [key, value] of Object.entries(allMetrics)) {
+      if (key.startsWith('hsm_recovery_') && typeof value === 'number') {
+        recoveryCounters[key] = value;
+      }
+    }
+
+    res.json({
+      success: true,
+      timestamp: Date.now(),
+      counters: recoveryCounters,
+    });
+  } catch (err) {
+    sendError(res, 500, 'recovery_status_failed', { message: err.message });
+  }
+});
+
 module.exports = router;
