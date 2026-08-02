@@ -635,6 +635,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderTrainingClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqResearchGating: {
+    minPeerReviewQuorum: 3,
+    maxReplicationWindowSeconds: 15768000,
+    maxCitationDepth: 48,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireResearchAuthorityInitializerAttestation: true,
+    requireIntegrityCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderReplicationClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1004,6 +1015,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqTrainingGating: {
       ...DEFAULT_POLICY.pqTrainingGating,
       ...(tenantPolicy.pqTrainingGating || {}),
+    },
+    pqResearchGating: {
+      ...DEFAULT_POLICY.pqResearchGating,
+      ...(tenantPolicy.pqResearchGating || {}),
     },
   };
 }
@@ -2552,6 +2567,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqResearchGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqResearchGating, ...(tenantPolicy.pqResearchGating || {}) };
+    if (typeof config.peerReviewQuorum === 'number' && config.peerReviewQuorum < policy.minPeerReviewQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `peer review quorum ${config.peerReviewQuorum} below minimum ${policy.minPeerReviewQuorum}`);
+    }
+    if (typeof config.replicationWindowSeconds === 'number' && config.replicationWindowSeconds > policy.maxReplicationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `replication window seconds ${config.replicationWindowSeconds} exceeds maximum ${policy.maxReplicationWindowSeconds}`);
+    }
+    if (typeof config.citationDepth === 'number' && config.citationDepth > policy.maxCitationDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `citation depth ${config.citationDepth} exceeds maximum ${policy.maxCitationDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireResearchAuthorityInitializerAttestation && config.researchAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'research authority initializer attestation is required');
+    }
+    if (policy.requireIntegrityCommitteeAttestation && config.integrityCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'integrity committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderReplicationClaims === 'boolean' && policy.banMalformedOrOutOfOrderReplicationClaims && !config.banMalformedOrOutOfOrderReplicationClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order replication claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3131,6 +3177,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqTrainingGating') {
       this._validatePqTrainingGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqResearchGating') {
+      this._validatePqResearchGating(tenantPolicy, config);
       return true;
     }
 

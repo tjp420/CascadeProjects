@@ -1695,6 +1695,35 @@ class BaseHsmAdapter {
     this._audit('MODEL_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 83 PQ scientific reproducibility gating telemetry hooks ──────────────
+
+  /**
+   * Emit a research gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitResearchGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('RESEARCH_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK replication claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkReplicationClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_REPLICATION_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a peer review accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPeerReviewAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('PEER_REVIEW_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

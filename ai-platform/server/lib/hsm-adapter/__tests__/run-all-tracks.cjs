@@ -72,6 +72,7 @@ const SUITES = [
   'pq-vrf-audit-sortition-gating',
   'pq-cross-border-logistics-gating',
   'pq-ai-model-training-gating',
+  'pq-scientific-reproducibility-gating',
 ];
 
 function runSuite(pattern) {
