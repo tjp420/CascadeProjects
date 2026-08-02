@@ -219,6 +219,8 @@ class SoftHsmAdapter {
 
       // Try both C_Decrypt invocation styles: with a preallocated output buffer
       // or with a single-arg call returning the result.
+      // eslint-disable-next-line no-useless-catch
+      // eslint-disable-next-line no-useless-catch
       try {
         // Preferred: call and return Buffer result
         const plain = this.pkcs11.C_Decrypt(this.session, fullCipher);
