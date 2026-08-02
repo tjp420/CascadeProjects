@@ -61,6 +61,21 @@
       "maxEscrowLifetimeMs": 86400000,
       "declassificationTokenExpiryMs": 300000,
       "allowedEscrowAlgorithms": ["aes-kw", "rsa-oaep"]
+    },
+    "privacy": {
+      "blindSignature": {
+        "publicExponent": 65537,
+        "allowedPublicExponents": [65537],
+        "minModulusBits": 2048,
+        "allowedHashFunctions": ["sha256"],
+        "requireFullDomainHash": true
+      },
+      "pir": {
+        "maxRows": 10000,
+        "maxDimensions": 2,
+        "maxQuerySizeBytes": 1048576,
+        "allowedHomomorphicSchemes": ["paillier", "bfv"]
+      }
     }
   },
   "tenants": {}
