@@ -1,0 +1,43 @@
+# Alertmanager routing rules for HSM / Enclave persistence alerts
+# Place this file under your Alertmanager config directory or include it
+# into your main `/etc/alertmanager/alertmanager.yml` via YAML merge.
+
+route:
+  receiver: 'default-ops-pager'
+  group_by: ['alertname', 'cluster', 'tier']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+
+  routes:
+    # Route Hardware Key and Enclave Rotation Failures to Critical Security Teams
+    - match:
+        tier: "hardware-security"
+        severity: "critical"
+      receiver: 'hsm-critical-security-pager'
+      continue: true
+
+    # Route Non-Blocking Background Scheduler Drift to Standard Triage Channels
+    - match:
+        tier: "hardware-security"
+        severity: "warning"
+      receiver: 'hsm-warning-ops-triage'
+
+# Receivers (placeholders) — configure these to match your Alertmanager secrets/integrations
+receivers:
+  - name: 'default-ops-pager'
+    pagerduty_configs:
+      - service_key: '<REPLACE_WITH_DEFAULT_PAGERDUTY_SERVICE_KEY>'
+
+  - name: 'hsm-critical-security-pager'
+    pagerduty_configs:
+      - service_key: '<REPLACE_WITH_HSM_CRITICAL_PAGERDUTY_KEY>'
+
+  - name: 'hsm-warning-ops-triage'
+    email_configs:
+      - to: 'ops@example.com'
+        send_resolved: true
+
+# Notes:
+# - Replace placeholder keys and receivers with your production integrations (PagerDuty, OpsGenie, Slack, email, etc.).
+# - This file is intentionally minimal; include into the main alertmanager.yml or use as a managed overlay.
