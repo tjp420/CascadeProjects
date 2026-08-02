@@ -469,6 +469,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderTitleDeedAssertions: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqCarbonTokenization: {
+    minRetirementQuorum: 3,
+    maxVintageAgeSeconds: 63072000,
+    maxCarbonTonnageCap: 1000000000,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireAssetInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderRetirementAssertions: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -786,6 +797,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqRealEstateTokenization: {
       ...DEFAULT_POLICY.pqRealEstateTokenization,
       ...(tenantPolicy.pqRealEstateTokenization || {}),
+    },
+    pqCarbonTokenization: {
+      ...DEFAULT_POLICY.pqCarbonTokenization,
+      ...(tenantPolicy.pqCarbonTokenization || {}),
     },
   };
 }
@@ -1903,6 +1918,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqCarbonTokenization(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqCarbonTokenization, ...(tenantPolicy.pqCarbonTokenization || {}) };
+    if (typeof config.retirementQuorum === 'number' && config.retirementQuorum < policy.minRetirementQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `retirement quorum ${config.retirementQuorum} below minimum ${policy.minRetirementQuorum}`);
+    }
+    if (typeof config.vintageAgeSeconds === 'number' && config.vintageAgeSeconds > policy.maxVintageAgeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `vintage age seconds ${config.vintageAgeSeconds} exceeds maximum ${policy.maxVintageAgeSeconds}`);
+    }
+    if (typeof config.carbonTonnageCap === 'number' && config.carbonTonnageCap > policy.maxCarbonTonnageCap) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `carbon tonnage cap ${config.carbonTonnageCap} exceeds maximum ${policy.maxCarbonTonnageCap}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireAssetInitializerAttestation && config.assetInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'asset initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderRetirementAssertions === 'boolean' && policy.banMalformedOrOutOfOrderRetirementAssertions && !config.banMalformedOrOutOfOrderRetirementAssertions) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order retirement assertions must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2412,6 +2458,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqRealEstateTokenization') {
       this._validatePqRealEstateTokenization(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqCarbonTokenization') {
+      this._validatePqCarbonTokenization(tenantPolicy, config);
       return true;
     }
 

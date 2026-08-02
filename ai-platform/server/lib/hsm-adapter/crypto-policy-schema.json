@@ -417,6 +417,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderTitleDeedAssertions": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqCarbonTokenization": {
+      "minRetirementQuorum": 3,
+      "maxVintageAgeSeconds": 63072000,
+      "maxCarbonTonnageCap": 1000000000,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireAssetInitializerAttestation": true,
+      "requireClearingCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderRetirementAssertions": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
