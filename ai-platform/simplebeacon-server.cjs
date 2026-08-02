@@ -807,7 +807,7 @@ if (landingRootExists) {
   // Serve remaining landing assets whenever landing pages are available
   // (not just when landing is at root), so /audit.html and similar pages can load scripts
   if (landingRootExists) {
-    app.use(express.static(landingRoot));
+    app.use('/', express.static(landingRoot, { index: false, dotfiles: 'deny', redirect: false }));
   }
 
   const waitlistRateLimiter = rateLimit({
