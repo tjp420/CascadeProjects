@@ -204,6 +204,17 @@
       "maxIdentityAgeSeconds": 86400,
       "banUnattestedPeers": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "zkTokenAttestation": {
+      "minSignatureQuorum": 3,
+      "maxTokenLifetimeSeconds": 3600,
+      "permittedCurves": ["P-256", "P-384", "P-521"],
+      "requireBrokerAttestation": true,
+      "requireVerifierAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banExpiredProofNodes": true,
+      "maxScopesPerToken": 8,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

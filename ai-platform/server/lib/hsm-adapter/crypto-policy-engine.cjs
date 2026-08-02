@@ -251,6 +251,17 @@ const DEFAULT_POLICY = {
     banUnattestedPeers: true,
     requireCanonicalPayloadLayout: true,
   },
+  zkTokenAttestation: {
+    minSignatureQuorum: 3,
+    maxTokenLifetimeSeconds: 3600,
+    permittedCurves: ['P-256', 'P-384', 'P-521'],
+    requireBrokerAttestation: true,
+    requireVerifierAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banExpiredProofNodes: true,
+    maxScopesPerToken: 8,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -387,6 +398,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqcIdentityHub: {
       ...DEFAULT_POLICY.pqcIdentityHub,
       ...(tenantPolicy.pqcIdentityHub || {}),
+    },
+    zkTokenAttestation: {
+      ...DEFAULT_POLICY.zkTokenAttestation,
+      ...(tenantPolicy.zkTokenAttestation || {}),
     },
   };
 }
@@ -905,6 +920,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateZkTokenAttestation(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.zkTokenAttestation, ...(tenantPolicy.zkTokenAttestation || {}) };
+    if (typeof config.signatureQuorum === 'number' && config.signatureQuorum < policy.minSignatureQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `signature quorum ${config.signatureQuorum} below minimum ${policy.minSignatureQuorum}`);
+    }
+    if (typeof config.tokenLifetimeSeconds === 'number' && config.tokenLifetimeSeconds > policy.maxTokenLifetimeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `token lifetime ${config.tokenLifetimeSeconds}s exceeds maximum ${policy.maxTokenLifetimeSeconds}s`);
+    }
+    if (typeof config.curve === 'string' && !policy.permittedCurves.includes(config.curve)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `curve ${config.curve} is not permitted; allowed: ${policy.permittedCurves.join(', ')}`);
+    }
+    if (policy.requireBrokerAttestation && config.brokerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'broker attestation is required');
+    }
+    if (policy.requireVerifierAttestation && config.verifierAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'verifier attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.scopesPerToken === 'number' && config.scopesPerToken > policy.maxScopesPerToken) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `scopes per token ${config.scopesPerToken} exceeds maximum ${policy.maxScopesPerToken}`);
+    }
+    if (typeof config.banExpiredProofNodes === 'boolean' && policy.banExpiredProofNodes && !config.banExpiredProofNodes) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban expired proof nodes must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1314,6 +1360,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqcIdentityHub') {
       this._validatePqcIdentityHub(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'zkTokenAttestation') {
+      this._validateZkTokenAttestation(tenantPolicy, config);
       return true;
     }
 
