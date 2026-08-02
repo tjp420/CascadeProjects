@@ -46,6 +46,7 @@ const SUITES = [
   'mpc-gated-decryption',
   'encrypted-deduplication',
   'encrypted-search-routing',
+  'pq-identity-accumulator',
 ];
 
 function runSuite(pattern) {
