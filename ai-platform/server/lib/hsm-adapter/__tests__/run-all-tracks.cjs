@@ -39,6 +39,7 @@ const SUITES = [
   'hardware-root-rotation',
   'pqc-asset-bridge',
   'homomorphic-db-lookup',
+  'zk-cross-chain-settlement',
 ];
 
 function runSuite(pattern) {

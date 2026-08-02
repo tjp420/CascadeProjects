@@ -224,6 +224,16 @@ const DEFAULT_POLICY = {
     allowCrossTenantTables: true,
     requireCanonicalPayloadLayout: true,
   },
+  zkSettlement: {
+    minClearingNodeQuorum: 3,
+    maxSettlementTimeoutSeconds: 300,
+    minAssetBitWidth: 8,
+    maxAssetBitWidth: 256,
+    requireNodeAttestation: true,
+    allowedNodeAuthorities: ['mock-authority'],
+    requireEqualityProof: true,
+    requireCanonicalPayloadLayout: true,
+  },
 };
 
 function _isObject(value) {
@@ -348,6 +358,10 @@ function _mergeWithDefault(tenantPolicy) {
     homomorphicDbLookup: {
       ...DEFAULT_POLICY.homomorphicDbLookup,
       ...(tenantPolicy.homomorphicDbLookup || {}),
+    },
+    zkSettlement: {
+      ...DEFAULT_POLICY.zkSettlement,
+      ...(tenantPolicy.zkSettlement || {}),
     },
   };
 }
@@ -791,6 +805,31 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validateZkSettlement(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.zkSettlement, ...(tenantPolicy.zkSettlement || {}) };
+    if (typeof config.clearingNodeQuorum === 'number' && config.clearingNodeQuorum < policy.minClearingNodeQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `clearing node quorum ${config.clearingNodeQuorum} below minimum ${policy.minClearingNodeQuorum}`);
+    }
+    if (typeof config.settlementTimeoutSeconds === 'number' && config.settlementTimeoutSeconds > policy.maxSettlementTimeoutSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `settlement timeout ${config.settlementTimeoutSeconds}s exceeds maximum ${policy.maxSettlementTimeoutSeconds}s`);
+    }
+    if (typeof config.assetBitWidth === 'number' && (config.assetBitWidth < policy.minAssetBitWidth || config.assetBitWidth > policy.maxAssetBitWidth)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `asset bit width ${config.assetBitWidth} outside allowed [${policy.minAssetBitWidth}, ${policy.maxAssetBitWidth}]`);
+    }
+    if (policy.requireNodeAttestation && config.nodeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'node attestation is required');
+    }
+    if (typeof config.nodeAuthority === 'string' && !policy.allowedNodeAuthorities.includes(config.nodeAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `node authority ${config.nodeAuthority} is not allowed; permitted: ${policy.allowedNodeAuthorities.join(', ')}`);
+    }
+    if (policy.requireEqualityProof && config.equalityProof === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'equality proof is required');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -1185,6 +1224,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'homomorphicDbLookup') {
       this._validateHomomorphicDbLookup(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'zkSettlement') {
+      this._validateZkSettlement(tenantPolicy, config);
       return true;
     }
 

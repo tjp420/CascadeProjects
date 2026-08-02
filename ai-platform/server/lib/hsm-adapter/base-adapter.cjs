@@ -797,6 +797,26 @@ class BaseHsmAdapter {
     this._audit('ZK_LOOKUP_MATCH_VERIFIED', info);
   }
 
+  // ── Track 50 ZK cross-chain settlement telemetry hooks ─────────────
+
+  /**
+   * Emit a cross-chain settlement initiated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCrossChainSettlementInitiated(info = {}) {
+    this._ensureInitialized();
+    this._audit('CROSS_CHAIN_SETTLEMENT_INITIATED', info);
+  }
+
+  /**
+   * Emit a zk settlement finalized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkSettlementFinalized(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_SETTLEMENT_FINALIZED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

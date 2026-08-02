@@ -177,6 +177,16 @@
       "requireZkMatchAttestation": true,
       "allowCrossTenantTables": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "zkSettlement": {
+      "minClearingNodeQuorum": 3,
+      "maxSettlementTimeoutSeconds": 300,
+      "minAssetBitWidth": 8,
+      "maxAssetBitWidth": 256,
+      "requireNodeAttestation": true,
+      "allowedNodeAuthorities": ["mock-authority"],
+      "requireEqualityProof": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
