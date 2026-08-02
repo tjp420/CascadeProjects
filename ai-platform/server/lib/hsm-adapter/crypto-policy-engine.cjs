@@ -125,6 +125,9 @@ const DEFAULT_POLICY = {
     maxLogBatchSize: 32,
     requireLeaderHeartbeat: true,
     allowedConsensusModes: ['raft', 'bft'],
+    requireAsymmetricRpcSigning: false,
+    allowedClusterPeerKeys: [],
+    signatureAlgorithm: 'ed25519',
   },
 };
 
@@ -380,6 +383,19 @@ class CryptoPolicyEngine {
     }
     if (policy.requireLeaderHeartbeat && config.requireLeaderHeartbeat === false) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'leader heartbeat is required');
+    }
+    if (policy.requireAsymmetricRpcSigning && config.requireAsymmetricRpcSigning === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'asymmetric RPC signing is required');
+    }
+    if (typeof config.signatureAlgorithm === 'string' && config.signatureAlgorithm !== policy.signatureAlgorithm) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `signature algorithm ${config.signatureAlgorithm} is not allowed; permitted: ${policy.signatureAlgorithm}`);
+    }
+    if (Array.isArray(config.allowedClusterPeerKeys) && policy.allowedClusterPeerKeys.length > 0) {
+      for (const key of config.allowedClusterPeerKeys) {
+        if (!policy.allowedClusterPeerKeys.includes(key)) {
+          throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `peer key ${key} is not in the allowed cluster peer keys list`);
+        }
+      }
     }
   }
 
