@@ -71,6 +71,26 @@ function getConsensusCoordinator() {
   return _activeConsensusCoordinator;
 }
 
+// Track 41: Module-level registry for the active HardwareEnclaveAdapter.
+// Follows the same pattern as the consensus engine/coordinator registries above.
+let _activeHardwareEnclaveAdapter = null;
+
+/**
+ * Register the active HardwareEnclaveAdapter instance for REST introspection.
+ * @param {object} adapter - HardwareEnclaveAdapter instance (or null to clear)
+ */
+function registerHardwareEnclaveAdapter(adapter) {
+  _activeHardwareEnclaveAdapter = adapter;
+}
+
+/**
+ * Get the registered HardwareEnclaveAdapter instance (if any).
+ * @returns {object|null}
+ */
+function getHardwareEnclaveAdapter() {
+  return _activeHardwareEnclaveAdapter;
+}
+
 /**
  * Error class for HSM adapter failures.
  */
@@ -1437,4 +1457,6 @@ module.exports = {
   getConsensusEngine,
   registerConsensusCoordinator,
   getConsensusCoordinator,
+  registerHardwareEnclaveAdapter,
+  getHardwareEnclaveAdapter,
 };
