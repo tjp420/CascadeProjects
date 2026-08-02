@@ -89,6 +89,15 @@
       "maxBackOffMs": 60000,
       "requireBftCatchUpAck": true,
       "allowedCatchUpModes": ["sliding-window", "checkpoint"]
+    },
+    "enclave": {
+      "allowedEnclaveTypes": ["mock", "intel-sgx", "aws-nitro"],
+      "requiredMRENCLAVEHashes": ["MOCK_MRENCLAVE_00000000000000000000000000000000"],
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "requireRemoteAttestation": true,
+      "minAttestationTtlSeconds": 300,
+      "maxAttestationAgeSeconds": 60,
+      "allowedEnclaveCiphers": ["aes-256-gcm"]
     }
   },
   "tenants": {}

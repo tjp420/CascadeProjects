@@ -11,6 +11,7 @@
  * @module hsm-adapter/cluster-consensus-engine
  */
 
+const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 
 // ── Consensus states ─────────────────────────────────────────────
@@ -32,6 +33,10 @@ const CONSENSUS_EVENT = {
   VOTE_GRANTED: 'VOTE_GRANTED',
   VOTE_REJECTED: 'VOTE_REJECTED',
   TERM_ADVANCED: 'TERM_ADVANCED',
+  SIGNATURE_INVALID: 'CONSENSUS_SIGNATURE_INVALID',
+  PEER_KEY_UNKNOWN: 'CONSENSUS_PEER_KEY_UNKNOWN',
+  RPC_SIGNED: 'CONSENSUS_RPC_SIGNED',
+  RPC_VERIFIED: 'CONSENSUS_RPC_VERIFIED',
 };
 
 class ClusterConsensusEngine {
@@ -47,6 +52,9 @@ class ClusterConsensusEngine {
    * @param {Function} [options.sendHeartbeat] - async (targetNodeId, term, logIndex) => boolean
    * @param {Function} [options.requestVote] - async (targetNodeId, term, candidateId, lastLogIndex) => boolean
    * @param {Function} [options.replicateLog] - async (targetNodeId, entries, leaderCommit) => boolean
+   * @param {object} [options.signingKeyPair] - Ed25519 key pair for RPC signing { privateKey: KeyObject, publicKey: KeyObject }
+   * @param {Map<string, KeyObject>} [options.peerPublicKeys] - nodeId -> publicKey map for verifying inbound RPCs
+   * @param {boolean} [options.requireRpcSigning=false] - if true, reject unsigned/tampered inbound RPCs
    */
   constructor(options = {}) {
     if (!options.nodeId) {
@@ -70,6 +78,11 @@ class ClusterConsensusEngine {
     this._sendHeartbeat = options.sendHeartbeat || null;
     this._requestVote = options.requestVote || null;
     this._replicateLog = options.replicateLog || null;
+
+    // Byzantine hardening: Ed25519 RPC signing
+    this._signingKeyPair = options.signingKeyPair || null;
+    this._peerPublicKeys = options.peerPublicKeys || new Map();
+    this._requireRpcSigning = options.requireRpcSigning || false;
 
     // Raft state
     this._state = NODE_STATE.FOLLOWER;
@@ -155,6 +168,12 @@ class ClusterConsensusEngine {
       throw new HsmAdapterError('UNKNOWN_LEADER', `leader ${heartbeat.leaderId} not in cluster`);
     }
 
+    // Byzantine hardening: verify heartbeat signature
+    const payload = this._extractSignablePayload(heartbeat);
+    if (!this.verifyRpcFrame(payload, heartbeat.leaderId, heartbeat.signature)) {
+      return { accepted: false, reason: 'signature_invalid', currentTerm: this._currentTerm };
+    }
+
     // Stale leader — reject
     if (heartbeat.term < this._currentTerm) {
       return { accepted: false, reason: 'stale_term', currentTerm: this._currentTerm };
@@ -213,6 +232,12 @@ class ClusterConsensusEngine {
     }
     if (!this.clusterNodes.has(request.candidateId)) {
       throw new HsmAdapterError('UNKNOWN_CANDIDATE', `candidate ${request.candidateId} not in cluster`);
+    }
+
+    // Byzantine hardening: verify RPC signature
+    const payload = this._extractSignablePayload(request);
+    if (!this.verifyRpcFrame(payload, request.candidateId, request.signature)) {
+      return { voteGranted: false, term: this._currentTerm, reason: 'signature_invalid' };
     }
 
     // Stale term — reject
@@ -430,6 +455,12 @@ class ClusterConsensusEngine {
       throw new HsmAdapterError('UNKNOWN_LEADER', `leader ${request.leaderId} not in cluster`);
     }
 
+    // Byzantine hardening: verify RPC signature
+    const payload = this._extractSignablePayload(request);
+    if (!this.verifyRpcFrame(payload, request.leaderId, request.signature)) {
+      return { success: false, term: this._currentTerm, matchIndex: this._matchIndexFor(this.nodeId), reason: 'signature_invalid' };
+    }
+
     // Stale term — reject
     if (request.term < this._currentTerm) {
       return { success: false, term: this._currentTerm, matchIndex: this._matchIndexFor(this.nodeId) };
@@ -584,6 +615,88 @@ class ClusterConsensusEngine {
     return this._matchIndex.get(nodeId) || 0;
   }
 
+  // ── Byzantine hardening: RPC frame signing/verification ─────────
+
+  /**
+   * Sign an RPC frame payload with this node's Ed25519 private key.
+   * @param {object} payload - the RPC payload to sign
+   * @returns {string} base64 signature, or null if no signing key configured
+   */
+  signRpcFrame(payload) {
+    if (!this._signingKeyPair?.privateKey) return null;
+    const data = Buffer.from(JSON.stringify(payload), 'utf8');
+    const sig = crypto.sign(null, data, this._signingKeyPair.privateKey);
+    this._emitAudit(CONSENSUS_EVENT.RPC_SIGNED, {
+      nodeId: this.nodeId,
+      payloadSize: data.length,
+    });
+    return sig.toString('base64');
+  }
+
+  /**
+   * Verify an inbound RPC frame's signature against the sender's public key.
+   * @param {object} payload - the RPC payload (without signature)
+   * @param {string} senderId - the claimed sender node ID
+   * @param {string} signature - base64 signature to verify
+   * @returns {boolean} true if signature is valid
+   */
+  verifyRpcFrame(payload, senderId, signature) {
+    if (!signature) {
+      if (this._requireRpcSigning) {
+        this._emitAudit(CONSENSUS_EVENT.SIGNATURE_INVALID, {
+          nodeId: this.nodeId,
+          senderId,
+          reason: 'missing_signature',
+        });
+        return false;
+      }
+      return true; // signing not required — accept unsigned
+    }
+
+    const publicKey = this._peerPublicKeys.get(senderId);
+    if (!publicKey) {
+      this._emitAudit(CONSENSUS_EVENT.PEER_KEY_UNKNOWN, {
+        nodeId: this.nodeId,
+        senderId,
+        reason: 'no_public_key_for_sender',
+      });
+      return false;
+    }
+
+    const data = Buffer.from(JSON.stringify(payload), 'utf8');
+    const sigBuf = Buffer.from(signature, 'base64');
+    try {
+      const valid = crypto.verify(null, data, publicKey, sigBuf);
+      if (!valid) {
+        this._emitAudit(CONSENSUS_EVENT.SIGNATURE_INVALID, {
+          nodeId: this.nodeId,
+          senderId,
+          reason: 'signature_mismatch',
+        });
+      }
+      return valid;
+    } catch (err) {
+      this._emitAudit(CONSENSUS_EVENT.SIGNATURE_INVALID, {
+        nodeId: this.nodeId,
+        senderId,
+        reason: 'verification_error',
+        error: err.message,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Extract the signable payload from an RPC request (excluding the signature field).
+   * @param {object} request - full RPC request with optional signature
+   * @returns {object} payload without signature
+   * @private
+   */
+  _extractSignablePayload(request) {
+    const { signature, ...payload } = request;
+    return payload;
+  }
+
   _emitAudit(event, info) {
     if (this._audit) this._audit(event, { timestamp: Date.now(), ...info });
     // Lazy-require metrics module to avoid circular deps
@@ -607,6 +720,18 @@ class ClusterConsensusEngine {
           break;
         case CONSENSUS_EVENT.HEARTBEAT_SENT:
           metrics.incrementCounter('hsm_consensus_heartbeats_sent_total');
+          break;
+        case CONSENSUS_EVENT.RPC_SIGNED:
+          metrics.incrementCounter('hsm_consensus_rpc_signed_total');
+          break;
+        case CONSENSUS_EVENT.RPC_VERIFIED:
+          metrics.incrementCounter('hsm_consensus_rpc_verified_total');
+          break;
+        case CONSENSUS_EVENT.SIGNATURE_INVALID:
+          metrics.incrementCounter('hsm_consensus_signature_invalid_total');
+          break;
+        case CONSENSUS_EVENT.PEER_KEY_UNKNOWN:
+          metrics.incrementCounter('hsm_consensus_peer_key_unknown_total');
           break;
       }
     } catch { /* metrics module optional */ }
