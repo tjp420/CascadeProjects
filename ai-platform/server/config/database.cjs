@@ -10,8 +10,10 @@ const logger = require('../lib/app-logger.cjs');
 const constants = require('./constants.cjs');
 
 const DEFAULT_PG_PORT = constants.POSTGRES_PORT;
-const DEFAULT_POOL_MAX = 20;
-const DEFAULT_CONNECT_TIMEOUT_MS = constants.TIMEOUT_2S;
+// Hardened defaults (can be overridden via env):
+const DEFAULT_POOL_MAX = Number.isFinite(Number(process.env.DB_POOL_MAX)) ? Number(process.env.DB_POOL_MAX) : 15;
+const DEFAULT_CONNECT_TIMEOUT_MS = Number.isFinite(Number(process.env.DB_CONNECT_TIMEOUT_MS)) ? Number(process.env.DB_CONNECT_TIMEOUT_MS) : 5000; // 5s
+const DEFAULT_IDLE_TIMEOUT_MS = Number.isFinite(Number(process.env.DB_IDLE_TIMEOUT_MS)) ? Number(process.env.DB_IDLE_TIMEOUT_MS) : constants.TIMEOUT_30S;
 
 // simplebeacon-ignore secret-in-comments — database URL parsing utility documentation
 /**
@@ -69,8 +71,8 @@ function getDatabaseConfig(overrides = {}) {
     const fromUrl = parseDatabaseUrl(process.env.DATABASE_URL);
     const rawPort = overrides.port || fromUrl?.port || process.env.DB_PORT || DEFAULT_PG_PORT;
     const rawMax = process.env.DB_POOL_MAX || overrides.max || DEFAULT_POOL_MAX;
-    const rawIdle = process.env.DB_IDLE_TIMEOUT_MS || constants.TIMEOUT_30S;
-    const rawConnect = process.env.DB_CONNECT_TIMEOUT_MS || DEFAULT_CONNECT_TIMEOUT_MS;
+    const rawIdle = process.env.DB_IDLE_TIMEOUT_MS || overrides.idleTimeoutMillis || DEFAULT_IDLE_TIMEOUT_MS;
+    const rawConnect = process.env.DB_CONNECT_TIMEOUT_MS || overrides.connectionTimeoutMillis || DEFAULT_CONNECT_TIMEOUT_MS;
     return {
         host: overrides.host || fromUrl?.host || process.env.DB_HOST || 'localhost',
         port: Number.isFinite(Number(rawPort)) ? Number(rawPort) : DEFAULT_PG_PORT,
@@ -81,6 +83,24 @@ function getDatabaseConfig(overrides = {}) {
         idleTimeoutMillis: Number.isFinite(Number(rawIdle)) ? Number(rawIdle) : constants.TIMEOUT_30S,
         connectionTimeoutMillis: Number.isFinite(Number(rawConnect)) ? Number(rawConnect) : DEFAULT_CONNECT_TIMEOUT_MS
     };
+}
+
+// Cluster sizing safety check — warn if projected instance footprint would exhaust DB connections
+try {
+    const PROJECTED_INSTANCES = Number.isFinite(Number(process.env.PROJECTED_INSTANCE_COUNT)) ? Number(process.env.PROJECTED_INSTANCE_COUNT) : 1;
+    const configuredPoolMax = Number.isFinite(Number(process.env.DB_POOL_MAX)) ? Number(process.env.DB_POOL_MAX) : DEFAULT_POOL_MAX;
+    const EXPECTED_MAX_CONNECTIONS = PROJECTED_INSTANCES * configuredPoolMax;
+    const DB_HARD_CEILING = Number.isFinite(Number(process.env.DB_SERVER_MAX_CONNECTIONS)) ? Number(process.env.DB_SERVER_MAX_CONNECTIONS) : 100;
+    const SAFETY_MARGIN = 15; // keep some reserved connections for maintenance/admin
+    if (EXPECTED_MAX_CONNECTIONS > (DB_HARD_CEILING - SAFETY_MARGIN)) {
+        logger.warn(
+            `[CLUSTER WARNING] Projected app footprint (${PROJECTED_INSTANCES} instances * max ${configuredPoolMax} pools) ` +
+            `requires up to ${EXPECTED_MAX_CONNECTIONS} connections. This encroaches upon the database hard ceiling of ${DB_HARD_CEILING}. ` +
+            `Consider implementing an external PgBouncer connection pooler or reducing per-process DB_POOL_MAX.`
+        );
+    }
+} catch (e) {
+    // Non-fatal — do not disrupt startup
 }
 
 /**
