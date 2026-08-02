@@ -439,6 +439,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderIdentityClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqHealthDataGating": {
+      "minVerificationQuorum": 3,
+      "maxRecordExpirationLifetimeSeconds": 7776000,
+      "maxDiagnosticObservationDepth": 32,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireRecordInitializerAttestation": true,
+      "requireClearingCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderHealthClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

@@ -491,6 +491,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderIdentityClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqHealthDataGating: {
+    minVerificationQuorum: 3,
+    maxRecordExpirationLifetimeSeconds: 7776000,
+    maxDiagnosticObservationDepth: 32,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireRecordInitializerAttestation: true,
+    requireClearingCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderHealthClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -816,6 +827,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqIdentityGating: {
       ...DEFAULT_POLICY.pqIdentityGating,
       ...(tenantPolicy.pqIdentityGating || {}),
+    },
+    pqHealthDataGating: {
+      ...DEFAULT_POLICY.pqHealthDataGating,
+      ...(tenantPolicy.pqHealthDataGating || {}),
     },
   };
 }
@@ -1995,6 +2010,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqHealthDataGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqHealthDataGating, ...(tenantPolicy.pqHealthDataGating || {}) };
+    if (typeof config.verificationQuorum === 'number' && config.verificationQuorum < policy.minVerificationQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `verification quorum ${config.verificationQuorum} below minimum ${policy.minVerificationQuorum}`);
+    }
+    if (typeof config.recordExpirationLifetimeSeconds === 'number' && config.recordExpirationLifetimeSeconds > policy.maxRecordExpirationLifetimeSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `record expiration lifetime seconds ${config.recordExpirationLifetimeSeconds} exceeds maximum ${policy.maxRecordExpirationLifetimeSeconds}`);
+    }
+    if (typeof config.diagnosticObservationDepth === 'number' && config.diagnosticObservationDepth > policy.maxDiagnosticObservationDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `diagnostic observation depth ${config.diagnosticObservationDepth} exceeds maximum ${policy.maxDiagnosticObservationDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireRecordInitializerAttestation && config.recordInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'record initializer attestation is required');
+    }
+    if (policy.requireClearingCommitteeAttestation && config.clearingCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'clearing committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderHealthClaims === 'boolean' && policy.banMalformedOrOutOfOrderHealthClaims && !config.banMalformedOrOutOfOrderHealthClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order health claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -2514,6 +2560,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqIdentityGating') {
       this._validatePqIdentityGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqHealthDataGating') {
+      this._validatePqHealthDataGating(tenantPolicy, config);
       return true;
     }
 
