@@ -109,6 +109,14 @@ const DEFAULT_POLICY = {
     requirePqcBlindingFactor: true,
     maxChildDerivationDepth: 10,
   },
+  shardSync: {
+    minClusterQuorum: 3,
+    maxAllowedDriftMs: 300000,
+    maxSyncRetryAttempts: 5,
+    requireBftValidation: true,
+    allowedConsensusModes: ['pbft', 'hotstuff'],
+    maxInFlightProposals: 100,
+  },
 };
 
 function _isObject(value) {
@@ -189,6 +197,10 @@ function _mergeWithDefault(tenantPolicy) {
     governance: {
       ...DEFAULT_POLICY.governance,
       ...(tenantPolicy.governance || {}),
+    },
+    shardSync: {
+      ...DEFAULT_POLICY.shardSync,
+      ...(tenantPolicy.shardSync || {}),
     },
   };
 }
@@ -314,6 +326,25 @@ class CryptoPolicyEngine {
     }
     if (typeof config.minAdminQuorum === 'number' && config.minAdminQuorum < policy.minAdminQuorum) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `admin quorum ${config.minAdminQuorum} below policy minimum ${policy.minAdminQuorum}`);
+    }
+  }
+
+  _validateShardSync(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.shardSync, ...(tenantPolicy.shardSync || {}) };
+    if (typeof config.minClusterQuorum === 'number' && config.minClusterQuorum < policy.minClusterQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `cluster quorum ${config.minClusterQuorum} below policy minimum ${policy.minClusterQuorum}`);
+    }
+    if (typeof config.maxAllowedDriftMs === 'number' && config.maxAllowedDriftMs > policy.maxAllowedDriftMs) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `max allowed drift ${config.maxAllowedDriftMs} exceeds policy ${policy.maxAllowedDriftMs}`);
+    }
+    if (typeof config.consensusMode === 'string' && !policy.allowedConsensusModes.includes(config.consensusMode)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `consensus mode ${config.consensusMode} is not allowed; permitted: ${policy.allowedConsensusModes.join(', ')}`);
+    }
+    if (typeof config.maxInFlightProposals === 'number' && config.maxInFlightProposals > policy.maxInFlightProposals) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `max in-flight ${config.maxInFlightProposals} exceeds policy ${policy.maxInFlightProposals}`);
+    }
+    if (policy.requireBftValidation && config.bft === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'BFT validation is required');
     }
   }
 
@@ -646,6 +677,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'zkp') {
       this._validateZkp(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'shardSync') {
+      this._validateShardSync(tenantPolicy, config);
       return true;
     }
 

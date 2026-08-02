@@ -542,6 +542,26 @@ class BaseHsmAdapter {
     this._audit('POLICY_CONSENSUS_COMMITTED', info);
   }
 
+  // ── Track 32 shard sync telemetry hooks ────────────────────────────
+
+  /**
+   * Emit a shard sync initiated event into the audit pipeline.
+   * @param {object} info
+   */
+  emitShardSyncInitiated(info = {}) {
+    this._ensureInitialized();
+    this._audit('SHARD_SYNC_INITIATED', info);
+  }
+
+  /**
+   * Emit a node consensus committed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitNodeConsensusCommitted(info = {}) {
+    this._ensureInitialized();
+    this._audit('NODE_CONSENSUS_COMMITTED', info);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {
