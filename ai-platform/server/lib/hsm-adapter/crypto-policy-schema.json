@@ -81,6 +81,14 @@
       "allowedKemPrimitives": ["ml-kem-768", "ml-kem-1024"],
       "requirePqcBlindingFactor": true,
       "maxChildDerivationDepth": 10
+    },
+    "shardSync": {
+      "minClusterQuorum": 3,
+      "maxAllowedDriftMs": 300000,
+      "maxSyncRetryAttempts": 5,
+      "requireBftValidation": true,
+      "allowedConsensusModes": ["pbft", "hotstuff"],
+      "maxInFlightProposals": 100
     }
   },
   "tenants": {}
