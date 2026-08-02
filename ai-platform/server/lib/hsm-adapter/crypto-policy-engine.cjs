@@ -101,6 +101,14 @@ const DEFAULT_POLICY = {
     requirePqcHybridRatchet: true,
     allowedRatchetSchemes: ['ml-kem-768', 'ml-kem-1024'],
   },
+  governance: {
+    minAdminQuorum: 2,
+    proposalExpiryMs: 86400000,
+    allowedDerivationCurves: ['P-256', 'P-384', 'P-521'],
+    allowedKemPrimitives: ['ml-kem-768', 'ml-kem-1024'],
+    requirePqcBlindingFactor: true,
+    maxChildDerivationDepth: 10,
+  },
 };
 
 function _isObject(value) {
@@ -177,6 +185,10 @@ function _mergeWithDefault(tenantPolicy) {
     identity: {
       ...DEFAULT_POLICY.identity,
       ...(tenantPolicy.identity || {}),
+    },
+    governance: {
+      ...DEFAULT_POLICY.governance,
+      ...(tenantPolicy.governance || {}),
     },
   };
 }
@@ -283,6 +295,25 @@ class CryptoPolicyEngine {
     }
     if (typeof config.mfaSignatures === 'number' && config.mfaSignatures < policy.minMfaSignatures) {
       throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `MFA signatures ${config.mfaSignatures} below policy minimum ${policy.minMfaSignatures}`);
+    }
+  }
+
+  _validateGovernance(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.governance, ...(tenantPolicy.governance || {}) };
+    if (typeof config.depth === 'number' && config.depth > policy.maxChildDerivationDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `derivation depth ${config.depth} exceeds max ${policy.maxChildDerivationDepth}`);
+    }
+    if (typeof config.curve === 'string' && !policy.allowedDerivationCurves.includes(config.curve)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `derivation curve ${config.curve} is not allowed; permitted: ${policy.allowedDerivationCurves.join(', ')}`);
+    }
+    if (typeof config.kemPrimitive === 'string' && !policy.allowedKemPrimitives.includes(config.kemPrimitive)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `KEM primitive ${config.kemPrimitive} is not allowed; permitted: ${policy.allowedKemPrimitives.join(', ')}`);
+    }
+    if (policy.requirePqcBlindingFactor && config.requirePqcBlindingFactor === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'PQC blinding factor is required for governance derivation');
+    }
+    if (typeof config.minAdminQuorum === 'number' && config.minAdminQuorum < policy.minAdminQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `admin quorum ${config.minAdminQuorum} below policy minimum ${policy.minAdminQuorum}`);
     }
   }
 
@@ -615,6 +646,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'zkp') {
       this._validateZkp(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'governance') {
+      this._validateGovernance(tenantPolicy, config);
       return true;
     }
 
