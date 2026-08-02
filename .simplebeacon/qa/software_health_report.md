@@ -1,15 +1,15 @@
-# Software Health Report — Track 48 Enclave Fault Injection and Byzantine Chaos Testing
+# Software Health Report — Track 49 Dynamic Enclave Rescaling and Predictive Load Balancing
 
 **Date:** 2026-08-02
-**Branch:** `feature/track48-enclave-fault-injection`
+**Branch:** `feature/track49-dynamic-rescaling`
 
 ## Summary
-Implemented enclave fault injection and byzantine chaos testing framework. Created EnclaveFaultInjection class with 8 fault types (byzantine equivocation/omission, network partition, crash, key corruption, timing attack, heartbeat loss, state divergence), chaos scheduling with configurable probability, deterministic PRNG for reproducible tests, multi-step scenario runner, and recovery validation. Added 12 telemetry counters.
+Implemented dynamic enclave rescaling and predictive load balancing engine. Created DynamicEnclaveRescaler class with load monitoring (sliding window), predictive forecasting (moving average and linear trend), threshold-based scaling decisions with cooldown, shard rebalancing, chaos-triggered rescaling, and capacity planning. Added 9 telemetry counters.
 
 ## Change Set (5 files)
-- enclave-fault-injection.cjs - New, EnclaveFaultInjection class (544 lines)
-- hsm-metrics.cjs - Added 12 Track 48 counters
-- enclave-fault-injection.test.cjs - New, 40 tests
+- dynamic-enclave-rescaling.cjs - New, DynamicEnclaveRescaler class (570 lines)
+- hsm-metrics.cjs - Added 9 Track 49 counters
+- dynamic-enclave-rescaling.test.cjs - New, 43 tests
 - test_plan.md - Updated
 - software_health_report.md - Updated
 
@@ -17,28 +17,28 @@ Implemented enclave fault injection and byzantine chaos testing framework. Creat
 | Check | Result |
 |-------|--------|
 | node -c all modified JS files | PASS |
-| 40 new Track 48 tests | PASS |
-| 160 existing tests (no regression) | PASS |
+| 43 new Track 49 tests | PASS |
+| 200 existing tests (no regression) | PASS |
 | No new deps | Confirmed |
 
 ## Level 2 - Functional
 | Check | Result |
 |------|--------|
-| Fault injection (12 tests) | PASS |
-| Cancel fault (2 tests) | PASS |
-| Resolve fault (2 tests) | PASS |
-| Expiration (2 tests) | PASS |
-| Chaos step (4 tests) | PASS |
-| Scenario runner (3 tests) | PASS |
-| Recovery validation (3 tests) | PASS |
-| Fault queries (3 tests) | PASS |
-| Active faults (1 test) | PASS |
-| History (1 test) | PASS |
-| Scenario query (2 tests) | PASS |
+| Enclave registration (5 tests) | PASS |
+| Enclave unregistration (2 tests) | PASS |
+| Load recording (4 tests) | PASS |
+| Average load (2 tests) | PASS |
+| Max load (1 test) | PASS |
+| Load forecasting (3 tests) | PASS |
+| Imbalance calculation (3 tests) | PASS |
+| Scaling evaluation (8 tests) | PASS |
+| Scaling execution (5 tests) | PASS |
+| Shard registration (3 tests) | PASS |
+| Chaos event handling (3 tests) | PASS |
+| Enclave queries (1 test) | PASS |
+| Action history (1 test) | PASS |
 | Stats (1 test) | PASS |
 | Reset (1 test) | PASS |
-| Recovery actions (2 tests) | PASS |
-| Deterministic mode (1 test) | PASS |
 
 ## Level 3 - Security
 | Check | Result |
@@ -51,7 +51,7 @@ Implemented enclave fault injection and byzantine chaos testing framework. Creat
 None.
 
 ## Unimplemented
-- REST routes for Track 48 fault injection operations (next phase)
-- Dashboard card for Track 48 telemetry
-- Integration with Track 44 CrossEnclaveStateSync for automatic fault-triggered reassignment
-- Integration with Track 45 EnclaveKeyRotationEngine for key corruption recovery
+- REST routes for Track 49 rescaling operations (next phase)
+- Dashboard card for Track 49 telemetry
+- Timer-based automatic load sampling (currently manual recordLoad)
+- Integration with Track 44 CrossEnclaveStateSync for automatic shard migration
