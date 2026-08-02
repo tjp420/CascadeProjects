@@ -167,6 +167,16 @@
       "allowedBridgeAuthorities": ["mock-authority"],
       "requireTimeLockEscrow": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "homomorphicDbLookup": {
+      "maxEncryptedColumnsPerQuery": 8,
+      "allowedBlindingTypes": ["pedersen", "exponential-elgamal"],
+      "requireQueryAttestation": true,
+      "allowedQueryAuthorities": ["mock-authority"],
+      "maxQueryAgeSeconds": 60,
+      "requireZkMatchAttestation": true,
+      "allowCrossTenantTables": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
