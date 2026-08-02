@@ -387,6 +387,14 @@ const DEFAULT_POLICY = {
     requireRollbackOnFailure: true,
     maxShardsPerMigration: 32,
   },
+  clusterKeyReconciliation: {
+    minQuorumNodes: 3,
+    maxEpochRollbackAttempts: 3,
+    requireQuorumPromotion: true,
+    requireAntiRollback: true,
+    quarantineOnCriticalDivergence: true,
+    maxTrackedKeys: 256,
+  },
 };
 
 function _isObject(value) {
@@ -555,6 +563,10 @@ function _mergeWithDefault(tenantPolicy) {
     crossClusterMigration: {
       ...DEFAULT_POLICY.crossClusterMigration,
       ...(tenantPolicy.crossClusterMigration || {}),
+    },
+    clusterKeyReconciliation: {
+      ...DEFAULT_POLICY.clusterKeyReconciliation,
+      ...(tenantPolicy.clusterKeyReconciliation || {}),
     },
     encryptedSearchRouting: {
       ...DEFAULT_POLICY.encryptedSearchRouting,
