@@ -15,6 +15,13 @@ const KEY_TTL_MS = 24 * 60 * 60 * 1000;
 let redisClient = null;
 let usingRedis = false;
 let _redisReady = false;
+// Allow tests or ops to disable Redis usage explicitly. This avoids background
+// connection attempts during `NODE_ENV=test` runs or CI diagnostics when the
+// environment cannot reach a Redis instance.
+const _disableRedis = (process.env.ADMIN_THROTTLE_DISABLE_REDIS && process.env.ADMIN_THROTTLE_DISABLE_REDIS !== 'false');
+if (_disableRedis) {
+  logger.info('Admin throttle: Redis disabled via ADMIN_THROTTLE_DISABLE_REDIS');
+} else {
 try {
   const IORedis = require('ioredis');
   const url = process.env.REDIS_URL || process.env.REDIS || 'redis://127.0.0.1:6379';
@@ -86,8 +93,9 @@ try {
   redisClient.on('close', () => {
     _redisReady = false;
   });
-} catch (e) {
-  usingRedis = false;
+  } catch (e) {
+    usingRedis = false;
+  }
 }
 
 const inMemoryBuckets = new Map();
