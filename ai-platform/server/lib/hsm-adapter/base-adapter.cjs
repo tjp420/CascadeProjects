@@ -502,6 +502,26 @@ class BaseHsmAdapter {
     }
   }
 
+  // ── Track 27 PQC threshold telemetry hooks ───────────────────────────
+
+  /**
+   * Emit a PQC partial signature verification event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPqcSignatureShareVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('PQC_SIGNATURE_SHARE_VERIFIED', info);
+  }
+
+  /**
+   * Emit a finalized PQC group signature event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPqcGroupSignatureFinalized(info = {}) {
+    this._ensureInitialized();
+    this._audit('PQC_GROUP_SIGNATURE_FINALIZED', info);
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────
 
   _log(level, message, extra = {}) {

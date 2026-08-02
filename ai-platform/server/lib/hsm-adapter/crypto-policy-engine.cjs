@@ -49,6 +49,14 @@ const DEFAULT_POLICY = {
     maxKemLevel: 1024,
     hybridMode: true,
     allowedCurves: ['P-256', 'P-384', 'P-521'],
+    thresholdSignature: {
+      allowedSchemes: ['ml-dsa-65', 'ml-dsa-87', 'fn-dsa-512', 'sphincs+-sha256-128s'],
+      minThreshold: 2,
+      minSignatureSizeBytes: 2048,
+      maxPartialShares: 21,
+      requireShareVerification: true,
+      requireGroupPublicKeyAttestation: true,
+    },
   },
   zkp: {
     tokenExpiryMs: 300000,
@@ -131,6 +139,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqc: {
       ...DEFAULT_POLICY.pqc,
       ...(tenantPolicy.pqc || {}),
+      thresholdSignature: {
+        ...DEFAULT_POLICY.pqc.thresholdSignature,
+        ...((tenantPolicy.pqc && tenantPolicy.pqc.thresholdSignature) || {}),
+      },
     },
     zkp: {
       ...DEFAULT_POLICY.zkp,
@@ -384,6 +396,25 @@ class CryptoPolicyEngine {
     throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `Algorithm ${algorithm} is not recognized by policy`);
   }
 
+  _validatePqcThresholdSignature(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqc.thresholdSignature, ...((tenantPolicy.pqc && tenantPolicy.pqc.thresholdSignature) || {}) };
+    if (typeof config.scheme === 'string' && !policy.allowedSchemes.includes(config.scheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC threshold scheme ${config.scheme} is not allowed; permitted: ${policy.allowedSchemes.join(', ')}`);
+    }
+    if (typeof config.threshold === 'number' && config.threshold < policy.minThreshold) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC threshold ${config.threshold} is below minimum ${policy.minThreshold}`);
+    }
+    if (typeof config.partialCount === 'number' && config.partialCount > policy.maxPartialShares) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC partial share count ${config.partialCount} exceeds maximum ${policy.maxPartialShares}`);
+    }
+    if (policy.requireShareVerification && config.verifyPartial === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'PQC threshold share verification is required');
+    }
+    if (policy.requireGroupPublicKeyAttestation && !config.groupPublicKeyAttestation) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'PQC group public key attestation is required');
+    }
+  }
+
   _validatePqc(tenantPolicy, config) {
     const policy = tenantPolicy.pqc || DEFAULT_POLICY.pqc;
     const kemLevel = config.kemLevel;
@@ -533,6 +564,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'homomorphic') {
       this._validateHomomorphic(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqc-threshold') {
+      this._validatePqcThresholdSignature(tenantPolicy, config);
       return true;
     }
 
