@@ -701,6 +701,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderWaterClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqNuclearGating: {
+    minSafeguardsQuorum: 6,
+    maxInspectionWindowSeconds: 7776000,
+    maxTelemetryChainDepth: 12,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireSafeguardsAuthorityInitializerAttestation: true,
+    requireNuclearOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderSafeguardsClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1094,6 +1105,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqWaterGating: {
       ...DEFAULT_POLICY.pqWaterGating,
       ...(tenantPolicy.pqWaterGating || {}),
+    },
+    pqNuclearGating: {
+      ...DEFAULT_POLICY.pqNuclearGating,
+      ...(tenantPolicy.pqNuclearGating || {}),
     },
   };
 }
@@ -2828,6 +2843,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqNuclearGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqNuclearGating, ...(tenantPolicy.pqNuclearGating || {}) };
+    if (typeof config.safeguardsQuorum === 'number' && config.safeguardsQuorum < policy.minSafeguardsQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `safeguards quorum ${config.safeguardsQuorum} below minimum ${policy.minSafeguardsQuorum}`);
+    }
+    if (typeof config.inspectionWindowSeconds === 'number' && config.inspectionWindowSeconds > policy.maxInspectionWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `inspection window seconds ${config.inspectionWindowSeconds} exceeds maximum ${policy.maxInspectionWindowSeconds}`);
+    }
+    if (typeof config.telemetryChainDepth === 'number' && config.telemetryChainDepth > policy.maxTelemetryChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `telemetry chain depth ${config.telemetryChainDepth} exceeds maximum ${policy.maxTelemetryChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireSafeguardsAuthorityInitializerAttestation && config.safeguardsAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'safeguards authority initializer attestation is required');
+    }
+    if (policy.requireNuclearOversightCommitteeAttestation && config.nuclearOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'nuclear oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderSafeguardsClaims === 'boolean' && policy.banMalformedOrOutOfOrderSafeguardsClaims && !config.banMalformedOrOutOfOrderSafeguardsClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order safeguards claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3437,6 +3483,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqWaterGating') {
       this._validatePqWaterGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqNuclearGating') {
+      this._validatePqNuclearGating(tenantPolicy, config);
       return true;
     }
 

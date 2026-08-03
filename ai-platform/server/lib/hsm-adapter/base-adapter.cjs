@@ -1869,6 +1869,35 @@ class BaseHsmAdapter {
     this._audit('WATERSHED_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 89 PQ nuclear safeguards monitoring gating telemetry hooks ─
+
+  /**
+   * Emit a nuclear gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitNuclearGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('NUCLEAR_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK safeguards claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkSafeguardsClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_SAFEGUARDS_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a nuclear accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitNuclearAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('NUCLEAR_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
