@@ -11,6 +11,11 @@
  * @module hsm-adapter/__tests__/dkg-snark.test
  */
 
+const crypto = require('crypto');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
 const {
   DkgSnarkEngine,
   DkgNodeContribution,
@@ -171,6 +176,92 @@ describe('DkgSnarkEngine — Track 26 DKG & zk-SNARKs', () => {
       const masterKey = engine.computeMasterPublicKey();
       expect(typeof masterKey).toBe('bigint');
       expect(masterKey).toBeGreaterThan(1n);
+    });
+
+    test('objective complaint evidence model disqualifies broadcaster on verified invalid share', () => {
+      const nodeIds = ['a', 'b', 'c'];
+      const engine = new DkgSnarkEngine({
+        totalNodes: 3,
+        threshold: 2,
+        nodeIds,
+        requireComplaintEvidence: true,
+      });
+
+      for (const nodeId of nodeIds) {
+        engine.generateContribution(nodeId);
+      }
+
+      const contribution = engine._contributions.get('a');
+      const originalShare = contribution.shares.get('b');
+      const tamperedShare = (originalShare + 1n) % FIELD_PRIME;
+      contribution.shares.set('b', tamperedShare);
+
+      engine.fileComplaint('b', 'a', 'share verification failed', {
+        recipientId: 'b',
+        share: tamperedShare,
+        commitmentIndex: 0,
+        expectedCommitmentHex: contribution.commitments[0].toString(16),
+        reasonCode: 'VSS_COMMITMENT_MISMATCH',
+      });
+
+      const disqualified = engine.processComplaints();
+      expect(disqualified).toContain('a');
+    });
+
+    test('objective evidence recipient mismatch throws DKG_COMPLAINT_EVIDENCE_INVALID', () => {
+      const nodeIds = ['a', 'b', 'c'];
+      const engine = new DkgSnarkEngine({
+        totalNodes: 3,
+        threshold: 2,
+        nodeIds,
+        requireComplaintEvidence: true,
+      });
+
+      for (const nodeId of nodeIds) {
+        engine.generateContribution(nodeId);
+      }
+
+      const contribution = engine._contributions.get('a');
+      const share = contribution.shares.get('b');
+      expect(() => engine.fileComplaint('b', 'a', 'bad evidence', {
+        recipientId: 'c',
+        share,
+        commitmentIndex: 0,
+        expectedCommitmentHex: contribution.commitments[0].toString(16),
+      })).toThrow(HsmAdapterError);
+
+      try {
+        engine.fileComplaint('b', 'a', 'bad evidence', {
+          recipientId: 'c',
+          share,
+          commitmentIndex: 0,
+          expectedCommitmentHex: contribution.commitments[0].toString(16),
+        });
+      } catch (e) {
+        expect(e.code).toBe('DKG_COMPLAINT_EVIDENCE_INVALID');
+      }
+    });
+
+    test('per-sender complaint spam is rate-limited', () => {
+      const nodeIds = ['a', 'b', 'c'];
+      const engine = new DkgSnarkEngine({
+        totalNodes: 3,
+        threshold: 2,
+        nodeIds,
+        complaintRateLimitCount: 2,
+        complaintRateLimitWindowMs: 10000,
+      });
+
+      const t0 = Date.now();
+      engine.fileComplaint('b', 'a', 'c1', undefined, t0);
+      engine.fileComplaint('b', 'a', 'c2', undefined, t0 + 1);
+
+      expect(() => engine.fileComplaint('b', 'a', 'c3', undefined, t0 + 2)).toThrow(HsmAdapterError);
+      try {
+        engine.fileComplaint('b', 'a', 'c3', undefined, t0 + 2);
+      } catch (e) {
+        expect(e.code).toBe('DKG_COMPLAINT_RATE_LIMIT');
+      }
     });
   });
 
@@ -406,6 +497,96 @@ describe('DkgSnarkEngine — Track 26 DKG & zk-SNARKs', () => {
       // Commitments should NOT be zeroized (they're public)
       expect(commitments[0]).toBe(789n);
     });
+
+    test('invokes pluggable zeroization hook before software zeroization', () => {
+      const nodeIds = ['a', 'b', 'c'];
+      const calls = [];
+      const engine = new DkgSnarkEngine({
+        totalNodes: 3,
+        threshold: 2,
+        nodeIds,
+        zeroizationHook: (ctx) => {
+          calls.push({
+            nodeId: ctx.nodeId,
+            phase: ctx.phase,
+            polynomialBytes: ctx.polynomialBuffer.length,
+            shareBytes: ctx.shareBuffer.length,
+            polyAllZero: ctx.polynomialBuffer.every((b) => b === 0),
+            shareAllZero: ctx.shareBuffer.every((b) => b === 0),
+          });
+        },
+      });
+
+      for (const nodeId of nodeIds) {
+        engine.generateContribution(nodeId);
+      }
+
+      engine.zeroizeAllEphemeralData();
+
+      expect(calls.length).toBe(nodeIds.length);
+      expect(calls.every((c) => c.phase === 'dkg_ephemeral_cleanup')).toBe(true);
+      expect(calls.every((c) => c.polynomialBytes > 0)).toBe(true);
+      expect(calls.every((c) => c.shareBytes > 0)).toBe(true);
+      expect(calls.every((c) => c.polyAllZero === false)).toBe(true);
+      expect(calls.every((c) => c.shareAllZero === false)).toBe(true);
+
+      for (const contribution of engine._contributions.values()) {
+        expect(contribution.polynomial.every((c) => c === 0n)).toBe(true);
+        expect([...contribution.shares.values()].every((s) => s === 0n)).toBe(true);
+      }
+
+      const state = engine.getState();
+      expect(state.zeroizationHookEnabled).toBe(true);
+      expect(state.requireZeroizationHook).toBe(false);
+    });
+
+    test('falls back to software zeroization when hook throws in best-effort mode', () => {
+      const nodeIds = ['a', 'b', 'c'];
+      const engine = new DkgSnarkEngine({
+        totalNodes: 3,
+        threshold: 2,
+        nodeIds,
+        zeroizationHook: () => {
+          throw new Error('simulated enclave failure');
+        },
+      });
+
+      for (const nodeId of nodeIds) {
+        engine.generateContribution(nodeId);
+      }
+
+      expect(() => engine.zeroizeAllEphemeralData()).not.toThrow();
+      for (const contribution of engine._contributions.values()) {
+        expect(contribution.polynomial.every((c) => c === 0n)).toBe(true);
+        expect([...contribution.shares.values()].every((s) => s === 0n)).toBe(true);
+      }
+    });
+
+    test('throws DKG_ZEROIZATION_HOOK_FAILED when hook is required and fails', () => {
+      const nodeIds = ['a', 'b', 'c'];
+      const engine = new DkgSnarkEngine({
+        totalNodes: 3,
+        threshold: 2,
+        nodeIds,
+        zeroizationHook: () => {
+          throw new Error('simulated required-hook failure');
+        },
+        requireZeroizationHook: true,
+      });
+
+      for (const nodeId of nodeIds) {
+        engine.generateContribution(nodeId);
+      }
+
+      expect(() => engine.zeroizeAllEphemeralData()).toThrow(HsmAdapterError);
+      try {
+        engine.zeroizeAllEphemeralData();
+      } catch (e) {
+        expect(e.code).toBe('DKG_ZEROIZATION_HOOK_FAILED');
+      }
+      const state = engine.getState();
+      expect(state.requireZeroizationHook).toBe(true);
+    });
   });
 
   // ── L2.08/L2.09: Policy validation ──────────────────────────────
@@ -534,6 +715,56 @@ describe('DkgSnarkEngine — Track 26 DKG & zk-SNARKs', () => {
 
       expect(() => engine.fileComplaint('a', 'unknown', 'test'))
         .toThrow(HsmAdapterError);
+    });
+  });
+
+  // ── L3.11: durable signed transcript export ────────────────────
+
+  describe('L3.11: durable signed transcript export', () => {
+    test('exports complaint lifecycle transcript into .audit-compatible path with verifiable HMAC', () => {
+      const nodeIds = ['a', 'b', 'c'];
+      const auditDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dkg-audit-'));
+      const secret = 'test-transcript-secret';
+      const engine = new DkgSnarkEngine({
+        totalNodes: 3,
+        threshold: 2,
+        nodeIds,
+        auditDirectory: auditDir,
+        transcriptSigningSecret: secret,
+      });
+
+      for (const nodeId of nodeIds) {
+        engine.generateContribution(nodeId);
+      }
+
+      const contribution = engine._contributions.get('a');
+      const originalShare = contribution.shares.get('b');
+      const tamperedShare = (originalShare + 1n) % FIELD_PRIME;
+      contribution.shares.set('b', tamperedShare);
+      engine.fileComplaint('b', 'a', 'share verification failed');
+      engine.processComplaints();
+      engine.zeroizeAllEphemeralData();
+
+      const exported = engine.exportSignedTranscript();
+      expect(exported.signatureType).toBe('hmac-sha256');
+      expect(fs.existsSync(exported.filePath)).toBe(true);
+
+      const raw = fs.readFileSync(exported.filePath, 'utf8');
+      const parsed = JSON.parse(raw);
+      expect(parsed.meta.signatureType).toBe('hmac-sha256');
+      expect(parsed.meta.digestHex).toBe(exported.digestHex);
+      expect(Array.isArray(parsed.payload.events)).toBe(true);
+      expect(parsed.payload.events.some((e) => e.eventType === 'complaint_filed')).toBe(true);
+      expect(parsed.payload.events.some((e) => e.eventType === 'complaints_processed')).toBe(true);
+
+      const canonical = engine._canonicalizeJson(parsed.payload);
+      const expectedHmac = crypto
+        .createHmac('sha256', secret)
+        .update(Buffer.from(canonical, 'utf8'))
+        .digest('base64');
+      expect(parsed.signature).toBe(expectedHmac);
+
+      fs.rmSync(auditDir, { recursive: true, force: true });
     });
   });
 });

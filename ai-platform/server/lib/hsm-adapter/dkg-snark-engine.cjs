@@ -23,6 +23,8 @@
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 
 // 256-bit prime: 2^256 - 189 (same field as threshold-secret-splitter).
@@ -138,6 +140,31 @@ function _zeroizeBigIntArray(arr) {
 }
 
 /**
+ * Materialize BigInt values into mutable buffers for hardware scrubbing hooks.
+ * @param {bigint[]} values
+ * @returns {Buffer}
+ */
+function _bigIntArrayToBuffer(values) {
+  const parts = [];
+  for (const value of values) {
+    const normalized = value < 0n ? -value : value;
+    const hex = normalized.toString(16);
+    const padded = hex.length % 2 === 0 ? hex : `0${hex}`;
+    parts.push(Buffer.from(padded, 'hex'));
+  }
+  return parts.length > 0 ? Buffer.concat(parts) : Buffer.alloc(0);
+}
+
+/**
+ * Deterministically wipe a buffer in place.
+ * @param {Buffer} buf
+ */
+function _wipeBuffer(buf) {
+  if (!Buffer.isBuffer(buf)) return;
+  buf.fill(0);
+}
+
+/**
  * Represents a single node's contribution in the DKG protocol.
  * Each node generates a random polynomial, computes public commitments,
  * and distributes private shares to all peers.
@@ -223,14 +250,245 @@ class DkgSnarkEngine {
     this._threshold = options.threshold;
     this._nodeIds = [...options.nodeIds];
     this._requireZkValidation = options.requireZkValidation !== false;
+    this._requireComplaintEvidence = options.requireComplaintEvidence === true;
+    this._complaintRateLimitCount = Number.isInteger(options.complaintRateLimitCount)
+      ? Math.max(1, options.complaintRateLimitCount)
+      : 20;
+    this._complaintRateLimitWindowMs = Number.isInteger(options.complaintRateLimitWindowMs)
+      ? Math.max(1000, options.complaintRateLimitWindowMs)
+      : 60000;
 
     this._contributions = new Map(); // nodeId -> DkgNodeContribution
-    this._complaints = []; // { from, against, reason }
+    this._complaints = []; // { from, against, reason, timestamp, evidence? }
+    this._complaintSenderWindows = new Map(); // nodeId -> { windowStartMs, count }
+    this._zeroizationHook = typeof options.zeroizationHook === 'function'
+      ? options.zeroizationHook
+      : null;
+    this._requireZeroizationHook = options.requireZeroizationHook === true;
+    this._auditDirectory = typeof options.auditDirectory === 'string' && options.auditDirectory
+      ? options.auditDirectory
+      : path.resolve(process.cwd(), '.audit');
+    this._transcriptSigningSecret = typeof options.transcriptSigningSecret === 'string'
+      ? options.transcriptSigningSecret
+      : (process.env.DKG_TRANSCRIPT_HMAC_KEY || null);
+    this._transcriptSigningPrivateKey = typeof options.transcriptSigningPrivateKey === 'string'
+      ? options.transcriptSigningPrivateKey
+      : (process.env.DKG_TRANSCRIPT_PRIVATE_KEY || null);
+    this._transcriptMaxEvents = Number.isInteger(options.transcriptMaxEvents)
+      ? Math.max(100, options.transcriptMaxEvents)
+      : 5000;
+    this._transcriptEvents = [];
+    this._transcriptCounter = 0;
     this._disqualified = new Set();
     this._qualifiedNodes = [];
     this._masterPublicKey = null;
     this._zkParameters = null;
     this._completed = false;
+
+    this._recordTranscriptEvent('engine_initialized', {
+      totalNodes: this._totalNodes,
+      threshold: this._threshold,
+      requireZkValidation: this._requireZkValidation,
+      requireComplaintEvidence: this._requireComplaintEvidence,
+    });
+  }
+
+  /**
+   * Convert non-JSON-native values into transcript-safe primitives.
+   * @param {any} value
+   * @returns {any}
+   * @private
+   */
+  _sanitizeTranscriptValue(value) {
+    if (value === undefined) return undefined;
+    if (typeof value === 'bigint') return `0x${value.toString(16)}`;
+    if (Array.isArray(value)) return value.map((v) => this._sanitizeTranscriptValue(v));
+    if (value && typeof value === 'object') {
+      const out = {};
+      for (const [k, v] of Object.entries(value)) {
+        const sanitized = this._sanitizeTranscriptValue(v);
+        if (sanitized !== undefined) {
+          out[k] = sanitized;
+        }
+      }
+      return out;
+    }
+    return value;
+  }
+
+  /**
+   * Canonical JSON serializer (sorted keys) for transcript signing.
+   * @param {any} value
+   * @returns {string}
+   * @private
+   */
+  _canonicalizeJson(value) {
+    if (value === null) return 'null';
+    const t = typeof value;
+    if (t === 'boolean') return value ? 'true' : 'false';
+    if (t === 'number') return JSON.stringify(value);
+    if (t === 'string') return JSON.stringify(value);
+    if (Array.isArray(value)) {
+      return `[${value.map((v) => this._canonicalizeJson(v)).join(',')}]`;
+    }
+    if (t === 'object') {
+      const keys = Object.keys(value).sort();
+      return `{${keys.map((k) => `${JSON.stringify(k)}:${this._canonicalizeJson(value[k])}`).join(',')}}`;
+    }
+    throw new HsmAdapterError('DKG_TRANSCRIPT_SERIALIZATION_INVALID', `unsupported transcript value type: ${t}`);
+  }
+
+  /**
+   * Append an event to the in-memory transcript ledger.
+   * @param {string} eventType
+   * @param {object} [details]
+   * @private
+   */
+  _recordTranscriptEvent(eventType, details = {}) {
+    this._transcriptCounter += 1;
+    const event = {
+      eventId: this._transcriptCounter,
+      eventType,
+      timestampMs: Date.now(),
+      details: this._sanitizeTranscriptValue(details),
+    };
+    this._transcriptEvents.push(event);
+    if (this._transcriptEvents.length > this._transcriptMaxEvents) {
+      this._transcriptEvents.shift();
+    }
+  }
+
+  /**
+   * Compute transcript signature over canonical payload.
+   * @param {string} canonicalPayload
+   * @returns {{ type: string, value: string }}
+   * @private
+   */
+  _signTranscriptPayload(canonicalPayload) {
+    const data = Buffer.from(canonicalPayload, 'utf8');
+    if (this._transcriptSigningPrivateKey) {
+      try {
+        const sig = crypto.sign('sha256', data, this._transcriptSigningPrivateKey);
+        return { type: 'asymmetric-sha256', value: sig.toString('base64') };
+      } catch {
+        const sig = crypto.sign(null, data, this._transcriptSigningPrivateKey);
+        return { type: 'asymmetric-raw', value: sig.toString('base64') };
+      }
+    }
+    if (this._transcriptSigningSecret) {
+      const sig = crypto
+        .createHmac('sha256', this._transcriptSigningSecret)
+        .update(data)
+        .digest('base64');
+      return { type: 'hmac-sha256', value: sig };
+    }
+    const digest = crypto.createHash('sha256').update(data).digest('base64');
+    return { type: 'sha256-digest', value: digest };
+  }
+
+  /**
+   * Enforce per-sender complaint rate limits.
+   * @param {string} fromNode
+   * @param {number} nowMs
+   * @private
+   */
+  _enforceComplaintRateLimit(fromNode, nowMs) {
+    const state = this._complaintSenderWindows.get(fromNode) || {
+      windowStartMs: nowMs,
+      count: 0,
+    };
+
+    if (nowMs - state.windowStartMs >= this._complaintRateLimitWindowMs) {
+      state.windowStartMs = nowMs;
+      state.count = 0;
+    }
+
+    if (state.count >= this._complaintRateLimitCount) {
+      throw new HsmAdapterError(
+        'DKG_COMPLAINT_RATE_LIMIT',
+        `complaint rate exceeded for node ${fromNode} (${this._complaintRateLimitCount}/${this._complaintRateLimitWindowMs}ms)`,
+      );
+    }
+
+    state.count += 1;
+    this._complaintSenderWindows.set(fromNode, state);
+  }
+
+  /**
+   * Parse complaint evidence share into a field element.
+   * @param {bigint|string} raw
+   * @returns {bigint}
+   * @private
+   */
+  _parseComplaintShare(raw) {
+    if (typeof raw === 'bigint') return raw;
+    if (typeof raw === 'string') {
+      if (/^0x[0-9a-f]+$/i.test(raw)) return BigInt(raw);
+      if (/^[0-9]+$/.test(raw)) return BigInt(raw);
+    }
+    throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_INVALID', 'evidence share must be bigint, hex, or decimal string');
+  }
+
+  /**
+   * Validate objective complaint evidence.
+   * @param {string} fromNode
+   * @param {string} againstNode
+   * @param {object} evidence
+   * @returns {{ recipientId: string, share: bigint, commitmentIndex?: number, expectedCommitmentHex?: string, reasonCode?: string }}
+   * @private
+   */
+  _validateComplaintEvidence(fromNode, againstNode, evidence) {
+    if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) {
+      throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_INVALID', 'complaint evidence must be an object');
+    }
+
+    if (typeof evidence.recipientId !== 'string' || !evidence.recipientId) {
+      throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_INVALID', 'evidence.recipientId must be a non-empty string');
+    }
+    if (evidence.recipientId !== fromNode) {
+      throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_INVALID', 'evidence.recipientId must match complaining node');
+    }
+
+    const shareRaw = Object.prototype.hasOwnProperty.call(evidence, 'share')
+      ? evidence.share
+      : evidence.shareHex;
+    const parsedShare = this._parseComplaintShare(shareRaw);
+    if (parsedShare < 0n || parsedShare >= this._fieldPrime) {
+      throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_INVALID', 'evidence share must be within field range');
+    }
+
+    if (evidence.commitmentIndex !== undefined) {
+      if (!Number.isInteger(evidence.commitmentIndex) || evidence.commitmentIndex < 0 || evidence.commitmentIndex >= this._threshold) {
+        throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_INVALID', 'evidence.commitmentIndex out of range');
+      }
+    }
+
+    if (evidence.expectedCommitmentHex !== undefined) {
+      if (typeof evidence.expectedCommitmentHex !== 'string' || !/^[0-9a-f]+$/i.test(evidence.expectedCommitmentHex)) {
+        throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_INVALID', 'evidence.expectedCommitmentHex must be a hex string without 0x prefix');
+      }
+      const contribution = this._contributions.get(againstNode);
+      if (contribution && evidence.commitmentIndex !== undefined) {
+        const expected = contribution.commitments[evidence.commitmentIndex].toString(16);
+        if (expected.toLowerCase() !== evidence.expectedCommitmentHex.toLowerCase()) {
+          throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_INVALID', 'evidence commitment binding mismatch');
+        }
+      }
+    }
+
+    if (evidence.reasonCode !== undefined) {
+      if (typeof evidence.reasonCode !== 'string' || !evidence.reasonCode) {
+        throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_INVALID', 'evidence.reasonCode must be a non-empty string when provided');
+      }
+    }
+
+    return {
+      recipientId: evidence.recipientId,
+      share: parsedShare,
+      commitmentIndex: evidence.commitmentIndex,
+      expectedCommitmentHex: evidence.expectedCommitmentHex,
+      reasonCode: evidence.reasonCode,
+    };
   }
 
   /**
@@ -268,6 +526,11 @@ class DkgSnarkEngine {
 
     const contribution = new DkgNodeContribution(nodeId, polynomial, commitments, shares);
     this._contributions.set(nodeId, contribution);
+    this._recordTranscriptEvent('contribution_generated', {
+      nodeId,
+      threshold: this._threshold,
+      shareRecipients: this._nodeIds.length,
+    });
     return contribution;
   }
 
@@ -324,14 +587,37 @@ class DkgSnarkEngine {
    * @param {string} againstNode - the accused node
    * @param {string} reason - complaint reason
    */
-  fileComplaint(fromNode, againstNode, reason) {
+  fileComplaint(fromNode, againstNode, reason, evidence, nowMs = Date.now()) {
     if (!this._nodeIds.includes(fromNode)) {
       throw new HsmAdapterError('UNKNOWN_NODE', `complaining node ${fromNode} is not a participant`);
     }
     if (!this._nodeIds.includes(againstNode)) {
       throw new HsmAdapterError('UNKNOWN_NODE', `accused node ${againstNode} is not a participant`);
     }
-    this._complaints.push({ from: fromNode, against: againstNode, reason, timestamp: Date.now() });
+
+    this._enforceComplaintRateLimit(fromNode, nowMs);
+
+    const normalizedEvidence = evidence === undefined
+      ? undefined
+      : this._validateComplaintEvidence(fromNode, againstNode, evidence);
+    if (this._requireComplaintEvidence && normalizedEvidence === undefined) {
+      throw new HsmAdapterError('DKG_COMPLAINT_EVIDENCE_REQUIRED', 'complaint evidence is required by policy');
+    }
+
+    this._complaints.push({
+      from: fromNode,
+      against: againstNode,
+      reason,
+      timestamp: nowMs,
+      evidence: normalizedEvidence,
+    });
+    this._recordTranscriptEvent('complaint_filed', {
+      from: fromNode,
+      against: againstNode,
+      reason,
+      hasEvidence: normalizedEvidence !== undefined,
+      reasonCode: normalizedEvidence ? normalizedEvidence.reasonCode : undefined,
+    });
   }
 
   /**
@@ -346,17 +632,35 @@ class DkgSnarkEngine {
       if (!contribution) continue;
 
       // Re-verify the share that triggered the complaint
-      const share = contribution.shares.get(complaint.from);
+      const share = complaint.evidence && typeof complaint.evidence.share === 'bigint'
+        ? complaint.evidence.share
+        : contribution.shares.get(complaint.from);
       if (share === undefined) continue;
 
       const valid = this.verifyShare(complaint.against, complaint.from, share);
       if (!valid) {
         this._disqualified.add(complaint.against);
+        this._recordTranscriptEvent('complaint_sustained', {
+          against: complaint.against,
+          from: complaint.from,
+          reason: complaint.reason,
+        });
+      } else {
+        this._recordTranscriptEvent('complaint_rejected', {
+          against: complaint.against,
+          from: complaint.from,
+          reason: complaint.reason,
+        });
       }
     }
 
     // Qualified nodes are all participants minus disqualified
     this._qualifiedNodes = this._nodeIds.filter((id) => !this._disqualified.has(id));
+    this._recordTranscriptEvent('complaints_processed', {
+      complaintCount: this._complaints.length,
+      disqualifiedCount: this._disqualified.size,
+      qualifiedCount: this._qualifiedNodes.length,
+    });
     return [...this._disqualified];
   }
 
@@ -536,9 +840,107 @@ class DkgSnarkEngine {
    * residual coefficient recovery from heap inspection.
    */
   zeroizeAllEphemeralData() {
+    const hookEnabled = Boolean(this._zeroizationHook);
     for (const contribution of this._contributions.values()) {
+      const polynomialBuffer = _bigIntArrayToBuffer(contribution.polynomial);
+      const shareBuffer = _bigIntArrayToBuffer([...contribution.shares.values()]);
+
+      if (hookEnabled) {
+        try {
+          this._zeroizationHook({
+            nodeId: contribution.nodeId,
+            polynomialBuffer,
+            shareBuffer,
+            phase: 'dkg_ephemeral_cleanup',
+          });
+          this._recordTranscriptEvent('zeroization_hook_applied', {
+            nodeId: contribution.nodeId,
+            polynomialBytes: polynomialBuffer.length,
+            shareBytes: shareBuffer.length,
+          });
+        } catch (err) {
+          this._recordTranscriptEvent('zeroization_hook_failed', {
+            nodeId: contribution.nodeId,
+            error: err && err.message ? err.message : String(err),
+          });
+          _wipeBuffer(polynomialBuffer);
+          _wipeBuffer(shareBuffer);
+          contribution.zeroize();
+          if (this._requireZeroizationHook) {
+            throw new HsmAdapterError(
+              'DKG_ZEROIZATION_HOOK_FAILED',
+              `zeroization hook failed for node ${contribution.nodeId}`,
+            );
+          }
+          continue;
+        }
+      }
+
+      _wipeBuffer(polynomialBuffer);
+      _wipeBuffer(shareBuffer);
       contribution.zeroize();
     }
+    this._recordTranscriptEvent('ephemeral_data_zeroized', {
+      contributionCount: this._contributions.size,
+      hookEnabled,
+      hookRequired: this._requireZeroizationHook,
+    });
+  }
+
+  /**
+   * Export durable signed transcript into audit directory.
+   * @param {object} [options]
+   * @param {string} [options.filePath]
+   * @returns {{ filePath: string, signatureType: string, eventCount: number, digestHex: string }}
+   */
+  exportSignedTranscript(options = {}) {
+    fs.mkdirSync(this._auditDirectory, { recursive: true });
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[:.]/g, '-');
+    const defaultFile = path.join(this._auditDirectory, `dkg-transcript-${stamp}.json`);
+    const targetFile = typeof options.filePath === 'string' && options.filePath
+      ? options.filePath
+      : defaultFile;
+
+    const payload = {
+      schemaVersion: 'dkg-transcript-v1',
+      generatedAt: now.toISOString(),
+      state: {
+        totalNodes: this._totalNodes,
+        threshold: this._threshold,
+        disqualified: [...this._disqualified],
+        qualifiedNodes: [...this._qualifiedNodes],
+      },
+      events: [...this._transcriptEvents],
+    };
+
+    const canonicalPayload = this._canonicalizeJson(payload);
+    const digestHex = crypto.createHash('sha256').update(canonicalPayload).digest('hex');
+    const signature = this._signTranscriptPayload(canonicalPayload);
+
+    const document = {
+      meta: {
+        digestAlgorithm: 'sha256',
+        digestHex,
+        signatureType: signature.type,
+      },
+      signature: signature.value,
+      payload,
+    };
+
+    fs.writeFileSync(targetFile, `${JSON.stringify(document, null, 2)}\n`, 'utf8');
+    this._recordTranscriptEvent('transcript_exported', {
+      filePath: targetFile,
+      signatureType: signature.type,
+      digestHex,
+    });
+
+    return {
+      filePath: targetFile,
+      signatureType: signature.type,
+      eventCount: payload.events.length,
+      digestHex,
+    };
   }
 
   /**
@@ -557,6 +959,13 @@ class DkgSnarkEngine {
       masterPublicKey: this._masterPublicKey ? this._masterPublicKey.toString(16) : null,
       hasZkParameters: this._zkParameters !== null,
       requireZkValidation: this._requireZkValidation,
+      requireComplaintEvidence: this._requireComplaintEvidence,
+      complaintRateLimitCount: this._complaintRateLimitCount,
+      complaintRateLimitWindowMs: this._complaintRateLimitWindowMs,
+      transcriptEventCount: this._transcriptEvents.length,
+      auditDirectory: this._auditDirectory,
+      zeroizationHookEnabled: Boolean(this._zeroizationHook),
+      requireZeroizationHook: this._requireZeroizationHook,
     };
   }
 
