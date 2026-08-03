@@ -6,6 +6,7 @@
 const crypto = require('crypto');
 const { JcsCanonicalizer } = require('./jcs.cjs');
 const Ajv = require('ajv');
+const auditLogger = require('../../audit-logger.cjs');
 
 const jcs = new JcsCanonicalizer();
 
@@ -93,14 +94,23 @@ class PartialShareProofManager {
     if (validateProof) {
       const ok = validateProof(proof);
       if (!ok) {
-        return { ok: false, reason: 'schema', message: 'schema validation failed', details: validateProof.errors };
+        const details = sanitizeAjvErrors(validateProof.errors);
+        // central audit log for schema failures
+        try {
+          auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'schema', message: 'schema validation failed', errors: details } });
+        } catch (e) {
+          // non-fatal
+        }
+        return { ok: false, reason: 'schema', message: 'schema validation failed', details };
       }
     } else {
       // Fallback structural checks
       if (!proof.proof_material || !proof.proof_material.detached_signature || !proof.proof_material.evidence_id) {
+        try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'structural', message: 'missing proof_material or required fields' } }); } catch (e) {}
         return { ok: false, reason: 'structural', message: 'missing proof_material or required fields' };
       }
       if (!proof.envelope || typeof proof.envelope !== 'object') {
+        try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'structural', message: 'missing or invalid envelope' } }); } catch (e) {}
         return { ok: false, reason: 'structural', message: 'missing or invalid envelope' };
       }
     }
@@ -111,12 +121,15 @@ class PartialShareProofManager {
     try {
       canonicalStr = this.canonicalize(envelope);
     } catch (e) {
+      const msg = e && e.message ? e.message : String(e);
+      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'canonicalization', message: msg } }); } catch (er) {}
       // Canonicalization failed (e.g., refused marker) — return structured error
-      return { ok: false, reason: 'canonicalization', message: e && e.message ? e.message : String(e) };
+      return { ok: false, reason: 'canonicalization', message: msg };
     }
 
     const expectedId = crypto.createHash('sha256').update(canonicalStr).digest('hex');
     if (proof_material.evidence_id !== expectedId) {
+      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'evidence_mismatch', message: 'evidence_id does not match canonicalized envelope', expected: expectedId, provided: proof_material.evidence_id } }); } catch (e) {}
       return { ok: false, reason: 'evidence_mismatch', message: 'evidence_id does not match canonicalized envelope' };
     }
 
@@ -128,9 +141,21 @@ class PartialShareProofManager {
       if (!valid) return { ok: false, reason: 'signature_invalid', message: 'detached signature did not verify' };
       return { ok: true };
     } catch (err) {
-      return { ok: false, reason: 'signature_error', message: err && err.message ? err.message : String(err) };
+      const msg = err && err.message ? err.message : String(err);
+      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'signature_error', message: msg } }); } catch (e) {}
+      return { ok: false, reason: 'signature_error', message: msg };
     }
   }
+
+  /**
+   * Compact AJV errors for audit logs to avoid recording excessively verbose
+   * schema objects. We keep: keyword, instancePath, schemaPath, message.
+   */
+}
+
+function sanitizeAjvErrors(errors) {
+  if (!errors) return null;
+  return errors.map((e) => ({ keyword: e.keyword, instancePath: e.instancePath, schemaPath: e.schemaPath, message: e.message }));
 }
 
 module.exports = { PartialShareProofManager };
