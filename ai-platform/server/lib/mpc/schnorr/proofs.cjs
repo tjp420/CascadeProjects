@@ -128,8 +128,9 @@ class PartialShareProofManager {
     }
 
     const expectedId = crypto.createHash('sha256').update(canonicalStr).digest('hex');
+    const payloadHash = crypto.createHash('sha256').update(canonicalStr).digest('hex');
     if (proof_material.evidence_id !== expectedId) {
-      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'evidence_mismatch', message: 'evidence_id does not match canonicalized envelope', expected: expectedId, provided: proof_material.evidence_id } }); } catch (e) {}
+      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'evidence_mismatch', message: 'evidence_id does not match canonicalized envelope', expected: expectedId, provided: proof_material.evidence_id, payloadHash } }); } catch (e) {}
       return { ok: false, reason: 'evidence_mismatch', message: 'evidence_id does not match canonicalized envelope' };
     }
 
@@ -138,11 +139,14 @@ class PartialShareProofManager {
     verifier.end();
     try {
       const valid = verifier.verify(publicKey, proof_material.detached_signature, 'base64');
-      if (!valid) return { ok: false, reason: 'signature_invalid', message: 'detached signature did not verify' };
+      if (!valid) {
+        try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'signature_invalid', message: 'detached signature did not verify', payloadHash } }); } catch (e) {}
+        return { ok: false, reason: 'signature_invalid', message: 'detached signature did not verify' };
+      }
       return { ok: true };
     } catch (err) {
       const msg = err && err.message ? err.message : String(err);
-      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'signature_error', message: msg } }); } catch (e) {}
+      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'signature_error', message: msg, payloadHash } }); } catch (e) {}
       return { ok: false, reason: 'signature_error', message: msg };
     }
   }
