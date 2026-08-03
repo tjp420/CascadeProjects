@@ -1090,6 +1090,74 @@ router.post('/zk-decentralized-storage/policy/validate', authorize('admin:all'),
   }
 });
 
+// Track 112: Bio-Digital Interface Neural-Telemetry Gating (unavailable — 503 guarded)
+// When the bio-digital neural telemetry gating hub is registered, flip BIO_DIGITAL_NEURAL_TELEMETRY_GATING_ENABLED to true.
+const BIO_DIGITAL_NEURAL_TELEMETRY_GATING_ENABLED = true;
+
+function requireBioDigitalNeuralTelemetryGating(res) {
+  if (!BIO_DIGITAL_NEURAL_TELEMETRY_GATING_ENABLED) {
+    sendError(res, 503, 'bio_digital_neural_telemetry_gating_unavailable', {
+      message: 'Track 112 Bio-Digital Interface Neural-Telemetry Gating is not yet available.',
+    });
+    return false;
+  }
+  return true;
+}
+
+// GET /api/vault/bio-digital-neural-telemetry/policy — expose active Track 112 policy defaults and bounds
+router.get('/bio-digital-neural-telemetry/policy', authorize('admin:all'), function (req, res) {
+  if (!requireBioDigitalNeuralTelemetryGating(res)) return;
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.pqBioDigitalInterfaceNeuralTelemetryGating,
+    });
+  } catch (err) {
+    sendError(res, 500, 'bio_digital_neural_telemetry_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/bio-digital-neural-telemetry/policy/validate — validate a proposed Track 112 configuration
+router.post('/bio-digital-neural-telemetry/policy/validate', authorize('admin:all'), function (req, res) {
+  if (!requireBioDigitalNeuralTelemetryGating(res)) return;
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'pqBioDigitalInterfaceNeuralTelemetryGating', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'bio_digital_neural_telemetry_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/bio-digital-neural-telemetry/telemetry — expose Track 112 telemetry counters
+router.get('/bio-digital-neural-telemetry/telemetry', authorize('admin:all'), function (req, res) {
+  if (!requireBioDigitalNeuralTelemetryGating(res)) return;
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_neurogate_pool_initialized_total: allMetrics.hsm_neurogate_pool_initialized_total || 0,
+      hsm_zk_neural_telemetry_verified_total: allMetrics.hsm_zk_neural_telemetry_verified_total || 0,
+      hsm_synapse_accreditation_completed_total: allMetrics.hsm_synapse_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'bio_digital_neural_telemetry_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 // GET /api/vault/zk-decentralized-storage/telemetry — expose Track 111 telemetry counters
 router.get('/zk-decentralized-storage/telemetry', authorize('admin:all'), function (req, res) {
   if (!requireZkDecentralizedStorageGating(res)) return;

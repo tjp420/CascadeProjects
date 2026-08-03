@@ -1026,6 +1026,17 @@
       "banMalformedOrOutOfOrderStorageClaims": true,
       "requireCanonicalPayloadLayout": true
     },
+    "pqBioDigitalInterfaceNeuralTelemetryGating": {
+      "minNeuralQuorum": 24,
+      "maxNeuralTelemetryWindowSeconds": 2,
+      "maxSynapseChainDepth": 64,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireNeuroTelemetryAuthorityInitializerAttestation": true,
+      "requireBioEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderNeuralTelemetryClaims": true,
+      "requireCanonicalPayloadLayout": true
+    },
     "clusterKeyringPrimitiveAuthorization": {
       "minAuthorizationQuorum": 3,
       "maxSyncWindowSeconds": 300,

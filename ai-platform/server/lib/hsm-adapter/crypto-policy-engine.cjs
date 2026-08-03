@@ -967,6 +967,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderStorageClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqBioDigitalInterfaceNeuralTelemetryGating: {
+    minNeuralQuorum: 24,
+    maxNeuralTelemetryWindowSeconds: 2,
+    maxSynapseChainDepth: 64,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireNeuroTelemetryAuthorityInitializerAttestation: true,
+    requireBioEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderNeuralTelemetryClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   clusterKeyringPrimitiveAuthorization: {
     minAuthorizationQuorum: 3,
     maxSyncWindowSeconds: 300,
@@ -1467,6 +1478,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqZkDecentralizedStorageAttestationGating: {
       ...DEFAULT_POLICY.pqZkDecentralizedStorageAttestationGating,
       ...(tenantPolicy.pqZkDecentralizedStorageAttestationGating || {}),
+    },
+    pqBioDigitalInterfaceNeuralTelemetryGating: {
+      ...DEFAULT_POLICY.pqBioDigitalInterfaceNeuralTelemetryGating,
+      ...(tenantPolicy.pqBioDigitalInterfaceNeuralTelemetryGating || {}),
     },
     clusterKeyringPrimitiveAuthorization: {
       ...DEFAULT_POLICY.clusterKeyringPrimitiveAuthorization,
@@ -3952,6 +3967,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqBioDigitalInterfaceNeuralTelemetryGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqBioDigitalInterfaceNeuralTelemetryGating, ...(tenantPolicy.pqBioDigitalInterfaceNeuralTelemetryGating || {}) };
+    if (typeof config.neuralQuorum === 'number' && config.neuralQuorum < policy.minNeuralQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `neural quorum ${config.neuralQuorum} below minimum ${policy.minNeuralQuorum}`);
+    }
+    if (typeof config.neuralTelemetryWindowSeconds === 'number' && config.neuralTelemetryWindowSeconds > policy.maxNeuralTelemetryWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `neural telemetry window seconds ${config.neuralTelemetryWindowSeconds} exceeds maximum ${policy.maxNeuralTelemetryWindowSeconds}`);
+    }
+    if (typeof config.synapseChainDepth === 'number' && config.synapseChainDepth > policy.maxSynapseChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `synapse chain depth ${config.synapseChainDepth} exceeds maximum ${policy.maxSynapseChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireNeuroTelemetryAuthorityInitializerAttestation && config.neuroTelemetryAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'neuro telemetry authority initializer attestation is required');
+    }
+    if (policy.requireBioEthicsOversightCommitteeAttestation && config.bioEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'bio ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderNeuralTelemetryClaims === 'boolean' && policy.banMalformedOrOutOfOrderNeuralTelemetryClaims && !config.banMalformedOrOutOfOrderNeuralTelemetryClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order neural telemetry claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateClusterKeyringPrimitiveAuthorization(tenantPolicy, config) {
     const policy = { ...DEFAULT_POLICY.clusterKeyringPrimitiveAuthorization, ...(tenantPolicy.clusterKeyringPrimitiveAuthorization || {}) };
     if (typeof config.authorizationQuorum === 'number' && config.authorizationQuorum < policy.minAuthorizationQuorum) {
@@ -4712,6 +4758,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqZkDecentralizedStorageAttestationGating') {
       this._validatePqZkDecentralizedStorageAttestationGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqBioDigitalInterfaceNeuralTelemetryGating') {
+      this._validatePqBioDigitalInterfaceNeuralTelemetryGating(tenantPolicy, config);
       return true;
     }
 
