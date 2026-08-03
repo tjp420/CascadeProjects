@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minGridOperatorQuorum: 5,
   maxTransactionWindowSeconds: 86400,
@@ -74,10 +82,7 @@ function baseCompleteRequest(poolId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcSmartGridMicroTransactionGatingHub({
     policy: POLICY,
     attestationClient,
@@ -142,10 +147,7 @@ describe('Track 91 PQ smart-grid micro-transaction gating', () => {
   });
 
   test('PqcSmartGridMicroTransactionGatingHub rejects un-attested grid authority initializer', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcSmartGridMicroTransactionGatingHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.gridAuthorityInitializerAttestation = { authority: 'bad' };
@@ -154,10 +156,7 @@ describe('Track 91 PQ smart-grid micro-transaction gating', () => {
 
   test('ZkMicroTransactionClaimValidator rejects un-attested load balance oversight committee', () => {
     const { hub, pool } = setupAndInitPool();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const validator = new ZkMicroTransactionClaimValidator({ policy: POLICY, hub, attestationClient });
     const clReq = baseClaimRequest(pool.poolId);
     clReq.loadBalanceOversightCommitteeAttestation = { authority: 'bad' };

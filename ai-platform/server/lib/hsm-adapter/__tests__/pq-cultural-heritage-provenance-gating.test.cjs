@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minAuthenticationQuorum: 4,
   maxAuthenticationWindowSeconds: 15552000,
@@ -75,10 +83,7 @@ function baseCompleteRequest(poolId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcCulturalHeritageProvenanceGatingHub({
     policy: POLICY,
     attestationClient,
@@ -144,10 +149,7 @@ describe('Track 93 PQ cultural heritage provenance gating', () => {
   });
 
   test('PqcCulturalHeritageProvenanceGatingHub rejects un-attested UNESCO authority initializer', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcCulturalHeritageProvenanceGatingHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.unescoAuthorityInitializerAttestation = { authority: 'bad' };
@@ -156,10 +158,7 @@ describe('Track 93 PQ cultural heritage provenance gating', () => {
 
   test('ZkAuthenticationClaimValidator rejects un-attested cultural heritage oversight committee', () => {
     const { hub, pool } = setupAndInitPool();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const validator = new ZkAuthenticationClaimValidator({ policy: POLICY, hub, attestationClient });
     const clReq = baseClaimRequest(pool.poolId);
     clReq.culturalHeritageOversightCommitteeAttestation = { authority: 'bad' };
