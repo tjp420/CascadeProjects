@@ -66,24 +66,79 @@ fn canonicalize(v: &Value) -> String {
 }
 
 fn format_number(n: &serde_json::Number) -> String {
+    // Prefer integer representations when possible
     if let Some(i) = n.as_i64() {
         return i.to_string();
     }
     if let Some(u) = n.as_u64() {
         return u.to_string();
     }
+
     if let Some(f) = n.as_f64() {
+        // Non-finite -> null
         if !f.is_finite() {
             return "null".to_string();
         }
+
+        // Treat -0 as 0
         if f == 0.0 {
             return "0".to_string();
         }
-        // Use ryu to produce a compact, deterministic representation
-        let s = ryu::Buffer::new().format_finite(f).to_string();
-        // ryu already uses lowercase 'e' and omits unnecessary plus sign
-        return s;
+
+        let neg = f.is_sign_negative();
+        let absf = f.abs();
+        let precision: i32 = 21;
+
+        // Compute base-10 exponent for absf
+        let exp = absf.log10().floor() as i32;
+
+        // Helper to trim trailing fractional zeros and trailing dot
+        fn trim_frac(mut s: String) -> String {
+            if s.contains('.') {
+                while s.ends_with('0') {
+                    s.pop();
+                }
+                if s.ends_with('.') {
+                    s.pop();
+                }
+            }
+            s
+        }
+
+        let out = if exp >= 0 && exp < precision {
+            // Use fixed notation with (precision - (exp+1)) fractional digits
+            let frac_digits = (precision - exp - 1) as usize;
+            let s = format!("{:.*}", frac_digits, absf);
+            trim_frac(s)
+        } else {
+            // Use scientific notation with one digit before decimal
+            let s = format!("{:.*e}", (precision - 1) as usize, absf);
+            // normalize to lowercase e and split
+            let s = s.replace('E', "e");
+            if let Some(pos) = s.find('e') {
+                let mant = &s[..pos];
+                let exp_part = &s[pos + 1..];
+                // exp_part like +03 or -03 or 003
+                let sign = if exp_part.starts_with('+') || exp_part.starts_with('-') {
+                    &exp_part[..1]
+                } else {
+                    ""
+                };
+                let num = if sign.is_empty() { exp_part } else { &exp_part[1..] };
+                let num_trim = num.trim_start_matches('0');
+                let num_trim = if num_trim.is_empty() { "0" } else { num_trim };
+                let exp_formatted = if sign.is_empty() { format!("{}", num_trim) } else { format!("{}{}", sign, num_trim) };
+                let mant_trim = trim_frac(mant.to_string());
+                format!("{}e{}", mant_trim, exp_formatted)
+            } else {
+                // fallback
+                s
+            }
+        };
+
+        if neg { format!("-{}", out) } else { out }
+    } else {
+        // Fallback to original textual number
+        n.to_string()
     }
-    // Fallback
-    n.to_string()
 }
