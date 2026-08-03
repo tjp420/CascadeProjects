@@ -14,6 +14,7 @@ import { renderSupplyChainProvenanceGatingDashboard, cleanupSupplyChainProvenanc
 import { renderZkDecentralizedStorageAttestationGatingDashboard, cleanupZkDecentralizedStorageAttestationGatingDashboard } from '../components/ZkDecentralizedStorageAttestationGatingDashboard.js';
 import { renderBioDigitalInterfaceNeuralTelemetryDashboard, cleanupBioDigitalInterfaceNeuralTelemetryDashboard } from '../components/ZkBioDigitalInterfaceNeuralTelemetryDashboard.js';
 import { renderSwarmRoboticsKineticAssemblyDashboard, cleanupSwarmRoboticsKineticAssemblyDashboard } from '../components/ZkSwarmRoboticsKineticAssemblyDashboard.js';
+import { renderMultiEnclaveConfidentialMeshStateReconciliationDashboard, cleanupMultiEnclaveConfidentialMeshStateReconciliationDashboard } from '../components/ZkMultiEnclaveConfidentialMeshStateReconciliationDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -977,6 +978,7 @@ export class AdminPanelView {
         cleanupZkDecentralizedStorageAttestationGatingDashboard();
         cleanupBioDigitalInterfaceNeuralTelemetryDashboard();
         cleanupSwarmRoboticsKineticAssemblyDashboard();
+        cleanupMultiEnclaveConfidentialMeshStateReconciliationDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
@@ -1061,6 +1063,13 @@ export class AdminPanelView {
             grid.appendChild(kineticDashboard);
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount swarm robotics kinetic assembly gating dashboard:', e);
+        }
+        // Mount Multi-Enclave Confidential Mesh State-Reconciliation Gating (Track 115, policy + telemetry)
+        try {
+            const meshReconciliationDashboard = renderMultiEnclaveConfidentialMeshStateReconciliationDashboard();
+            grid.appendChild(meshReconciliationDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount multi-enclave confidential mesh state-reconciliation gating dashboard:', e);
         }
     }
 

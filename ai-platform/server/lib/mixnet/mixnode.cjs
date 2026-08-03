@@ -10,6 +10,7 @@ class MixNode {
     this.jitterMs = Number.isInteger(opts.jitterMs) && opts.jitterMs >= 0 ? opts.jitterMs : 200;
     if (this.jitterMs > this.epochMs) this.jitterMs = Math.min(this.jitterMs, this.epochMs);
     this.buffer = [];
+    this._pendingBatches = []; // tracks in-flight async flush batches
     this.drbg = createDRBG(opts.seed || `mixnode-${this.id}`);
     this.next = opts.next || null; // callback or next MixNode
     this.timer = null;
@@ -30,7 +31,14 @@ class MixNode {
     // pkt is expected to be an object {id, payload}
     this.buffer.push(pkt);
     this.metrics.totalPackets += 1;
-    if (this.buffer.length >= this.threshold) return this.flush();
+    if (this.buffer.length >= this.threshold) {
+      // Schedule flush asynchronously so submitPacket stays low-latency
+      if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+      setImmediate(() => {
+        this.flush().catch(err => console.error('mixnode: async flush error', err));
+      });
+      return Promise.resolve();
+    }
     if (!this.timer) this._startTimer();
     return Promise.resolve();
   }
@@ -66,26 +74,59 @@ class MixNode {
     this.metrics.flushCount += 1;
     this.metrics.lastFlushAt = Date.now();
 
+    // track in-flight batch so flushSync can drain it if called before jitter completes
+    this._pendingBatches.push(processed);
+
     if (jitter > 0) {
       await new Promise(resolve => setTimeout(resolve, jitter));
     }
 
     // forward to next if provided
     if (this.next) {
-      if (typeof this.next.submitBatch === 'function') {
-        await this.next.submitBatch(processed);
-      } else if (typeof this.next === 'function') {
-        await this.next(processed);
-      } else if (Array.isArray(this.next.buffer)) {
-        for (const p of processed) this.next.buffer.push(p);
-      }
+      // Forward to next node asynchronously to avoid synchronous cascade
+      // that blocks the submitter. Use setImmediate to schedule forwarding
+      // on the next event-loop tick and surface errors to console.
+      const next = this.next;
+      setImmediate(() => {
+        try {
+          if (typeof next.submitBatch === 'function') {
+            // fire-and-forget promise
+            const r = next.submitBatch(processed);
+            if (r && typeof r.catch === 'function') r.catch(err => console.error('mixnode: forward submitBatch error', err));
+          } else if (typeof next === 'function') {
+            const r = next(processed);
+            if (r && typeof r.catch === 'function') r.catch(err => console.error('mixnode: forward function error', err));
+          } else if (Array.isArray(next.buffer)) {
+            for (const p of processed) next.buffer.push(p);
+          }
+        } catch (err) {
+          console.error('mixnode: forward error', err);
+        }
+      });
     }
+    const idx = this._pendingBatches.indexOf(processed);
+    if (idx >= 0) this._pendingBatches.splice(idx, 1);
     return processed;
   }
 
   // synchronous flush helper used in tests
   flushSync() {
     if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+
+    // drain any in-flight async flush batches so packets are not lost
+    if (this._pendingBatches.length > 0) {
+      const pending = this._pendingBatches.splice(0, this._pendingBatches.length);
+      for (const batch of pending) {
+        if (this.next) {
+          if (Array.isArray(this.next.buffer)) {
+            for (const p of batch) this.next.buffer.push(p);
+          } else if (typeof this.next === 'function') {
+            this.next(batch);
+          }
+        }
+      }
+    }
+
     if (this.buffer.length === 0) return [];
     const batch = this.buffer.splice(0, this.buffer.length);
     this.drbg.shuffle(batch);
@@ -110,7 +151,13 @@ class MixNode {
   async submitBatch(batch) {
     // accept an incoming batch (already partially decrypted), re-buffer and flush downstream
     for (const p of batch) this.buffer.push(p);
-    if (this.buffer.length >= this.threshold) return this.flush();
+    if (this.buffer.length >= this.threshold) {
+      if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+      setImmediate(() => {
+        this.flush().catch(err => console.error('mixnode: async flush error', err));
+      });
+      return Promise.resolve();
+    }
     if (!this.timer) this._startTimer();
     return Promise.resolve();
   }

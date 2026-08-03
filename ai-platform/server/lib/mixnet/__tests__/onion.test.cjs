@@ -14,7 +14,7 @@ test('onion wraps and successfully traverses mixnet', () => {
   const found = out.find(p => p.id === 'o1');
   expect(found).toBeDefined();
   expect(found.payload.length).toBeGreaterThan(0);
-  const recovered = found.payload.toString('utf8').replace(/\0+$/, '');
+  const recovered = found.payload.slice(4, 4 + found.payload.readUInt32BE(0)).toString('utf8');
   expect(recovered).toBe(plaintext);
 });
 
