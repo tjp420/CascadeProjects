@@ -2456,6 +2456,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_calibration_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 101 neural network inference integrity gating telemetry hooks
+
+  /**
+   * Emit a neural inference pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitNeuralInferencePoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('NEURAL_INFERENCE_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_neurgo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK neural claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkNeuralClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_NEURAL_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_neural_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit an inference accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitInferenceAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('INFERENCE_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_inference_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

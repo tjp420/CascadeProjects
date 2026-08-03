@@ -92,6 +92,7 @@ const SUITES = [
   'pq-orbital-debris-tracking-gating',
   'pq-genomic-privacy-compliance-gating',
   'pq-quantum-sensor-calibration-gating',
+  'pq-neural-network-inference-integrity-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',

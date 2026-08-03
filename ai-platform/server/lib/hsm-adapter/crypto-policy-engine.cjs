@@ -833,6 +833,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderQuantumClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqNeuralNetworkInferenceIntegrityGating: {
+    minNeuralQuorum: 8,
+    maxInferenceWindowSeconds: 604800,
+    maxInferenceChainDepth: 24,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireNeuralNetworkAuthorityInitializerAttestation: true,
+    requireNeuralEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderNeuralClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1274,6 +1285,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqQuantumSensorCalibrationGating: {
       ...DEFAULT_POLICY.pqQuantumSensorCalibrationGating,
       ...(tenantPolicy.pqQuantumSensorCalibrationGating || {}),
+    },
+    pqNeuralNetworkInferenceIntegrityGating: {
+      ...DEFAULT_POLICY.pqNeuralNetworkInferenceIntegrityGating,
+      ...(tenantPolicy.pqNeuralNetworkInferenceIntegrityGating || {}),
     },
   };
 }
@@ -3380,6 +3395,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqNeuralNetworkInferenceIntegrityGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqNeuralNetworkInferenceIntegrityGating, ...(tenantPolicy.pqNeuralNetworkInferenceIntegrityGating || {}) };
+    if (typeof config.neuralQuorum === 'number' && config.neuralQuorum < policy.minNeuralQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `neural quorum ${config.neuralQuorum} below minimum ${policy.minNeuralQuorum}`);
+    }
+    if (typeof config.inferenceWindowSeconds === 'number' && config.inferenceWindowSeconds > policy.maxInferenceWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `inference window seconds ${config.inferenceWindowSeconds} exceeds maximum ${policy.maxInferenceWindowSeconds}`);
+    }
+    if (typeof config.inferenceChainDepth === 'number' && config.inferenceChainDepth > policy.maxInferenceChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `inference chain depth ${config.inferenceChainDepth} exceeds maximum ${policy.maxInferenceChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireNeuralNetworkAuthorityInitializerAttestation && config.neuralNetworkAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'neural network authority initializer attestation is required');
+    }
+    if (policy.requireNeuralEthicsOversightCommitteeAttestation && config.neuralEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'neural ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderNeuralClaims === 'boolean' && policy.banMalformedOrOutOfOrderNeuralClaims && !config.banMalformedOrOutOfOrderNeuralClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order neural claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -4049,6 +4095,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqQuantumSensorCalibrationGating') {
       this._validatePqQuantumSensorCalibrationGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqNeuralNetworkInferenceIntegrityGating') {
+      this._validatePqNeuralNetworkInferenceIntegrityGating(tenantPolicy, config);
       return true;
     }
 

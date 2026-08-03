@@ -784,6 +784,10 @@ const counters = {
   hsm_quantgo_pool_initialized_total: 0,
   hsm_zk_quantum_claim_verified_total: 0,
   hsm_calibration_accreditation_completed_total: 0,
+  // Track 101: PQC Neural Network Inference Integrity Gating counters
+  hsm_neurgo_pool_initialized_total: 0,
+  hsm_zk_neural_claim_verified_total: 0,
+  hsm_inference_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1441,6 +1445,9 @@ const META = {
   hsm_quantgo_pool_initialized_total: { help: 'Total quantum sensor calibration gating pools initialized.', type: 'counter' },
   hsm_zk_quantum_claim_verified_total: { help: 'Total ZK quantum sensor calibration claims verified.', type: 'counter' },
   hsm_calibration_accreditation_completed_total: { help: 'Total calibration accreditation completions finalized.', type: 'counter' },
+  hsm_neurgo_pool_initialized_total: { help: 'Total neural network inference integrity gating pools initialized.', type: 'counter' },
+  hsm_zk_neural_claim_verified_total: { help: 'Total ZK neural network inference claims verified.', type: 'counter' },
+  hsm_inference_accreditation_completed_total: { help: 'Total inference accreditation completions finalized.', type: 'counter' },
 };
 
 /**
