@@ -83,6 +83,7 @@ const SUITES = [
   'pq-smart-grid-micro-transaction-gating',
   'pq-global-health-epidemiological-surveillance-gating',
   'pq-cultural-heritage-provenance-gating',
+  'pq-ocean-fisheries-allocation-gating',
 ];
 
 function runSuite(pattern) {
