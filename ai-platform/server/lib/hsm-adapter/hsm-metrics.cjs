@@ -461,6 +461,21 @@ const counters = {
   hsm_hgate_hw_snark_proofs_generated_total: 0,
   hsm_hgate_hw_snark_proofs_verified_total: 0,
   hsm_hgate_banned_peers: 0,
+  // Track 73: PQC Education Credential Gating & ZK Academic Credential Validators
+  hsm_edugate_pools_initialized_total: 0,
+  hsm_edugate_pools_accredited_total: 0,
+  hsm_edugate_pools_settled_total: 0,
+  hsm_edugate_pools_cancelled_total: 0,
+  hsm_edugate_pools_active: 0,
+  hsm_edugate_rebalances_total: 0,
+  hsm_edugate_batch_inits_total: 0,
+  hsm_edugate_committee_signatures_aggregated_total: 0,
+  hsm_edugate_claims_verified_total: 0,
+  hsm_edugate_claims_slashed_total: 0,
+  hsm_edugate_batch_verifications_total: 0,
+  hsm_edugate_hw_snark_proofs_generated_total: 0,
+  hsm_edugate_hw_snark_proofs_verified_total: 0,
+  hsm_edugate_banned_peers: 0,
   // Track 26: DKG & zk-SNARKs counters
   hsm_dkg_rounds_started_total: 0,
   hsm_dkg_rounds_completed_total: 0,
@@ -543,6 +558,94 @@ const counters = {
   hsm_recovery_replay_blocked_total: 0,
   hsm_recovery_time_lock_blocked_total: 0,
   hsm_recovery_active: 0,
+  // Track 73: PQC Education Credential Gating counters
+  hsm_education_gating_pool_initialized_total: 0,
+  hsm_zk_academic_claim_verified_total: 0,
+  hsm_credential_accreditation_completed_total: 0,
+  // Track 74: PQC Patent Verification Gating counters
+  hsm_patent_gating_pool_initialized_total: 0,
+  hsm_zk_patent_claim_verified_total: 0,
+  hsm_patent_license_accreditation_completed_total: 0,
+  // Track 75: PQC Energy Certificate Gating counters
+  hsm_energy_gating_pool_initialized_total: 0,
+  hsm_zk_energy_claim_verified_total: 0,
+  hsm_certificate_trading_accreditation_completed_total: 0,
+  // Track 76: PQC Supply Chain Provenance Gating counters
+  hsm_supply_chain_gating_pool_initialized_total: 0,
+  hsm_zk_provenance_claim_verified_total: 0,
+  hsm_component_lineage_accreditation_completed_total: 0,
+  // Track 77: PQC Biometric Verification Gating counters
+  hsm_biometric_gating_pool_initialized_total: 0,
+  hsm_zk_biometric_claim_verified_total: 0,
+  hsm_liveness_attestation_accreditation_completed_total: 0,
+  // Track 78: PQC Financial Derivatives Gating counters
+  hsm_derivative_gating_pool_initialized_total: 0,
+  hsm_zk_derivative_claim_verified_total: 0,
+  hsm_counterparty_risk_accreditation_completed_total: 0,
+  // Track 79: PQC Clinical Trial Verification Gating counters
+  hsm_clinical_trial_gating_pool_initialized_total: 0,
+  hsm_zk_trial_claim_verified_total: 0,
+  hsm_cohort_accreditation_completed_total: 0,
+  // Track 80: PQC VRF Audit Sortition Gating counters
+  hsm_sortition_gating_pool_initialized_total: 0,
+  hsm_zk_sortition_claim_verified_total: 0,
+  hsm_validator_accreditation_completed_total: 0,
+  // Track 81: PQC Cross-Border Logistics Gating counters
+  hsm_logistics_gating_pool_initialized_total: 0,
+  hsm_zk_manifest_claim_verified_total: 0,
+  hsm_carrier_accreditation_completed_total: 0,
+  // Track 82: PQC AI Model Training Gating counters
+  hsm_training_gating_pool_initialized_total: 0,
+  hsm_zk_training_claim_verified_total: 0,
+  hsm_model_accreditation_completed_total: 0,
+  // Track 83: PQC Scientific Reproducibility Gating counters
+  hsm_research_gating_pool_initialized_total: 0,
+  hsm_zk_replication_claim_verified_total: 0,
+  hsm_peer_review_accreditation_completed_total: 0,
+  // Track 84: PQC DAO Treasury Management Gating counters
+  hsm_treasury_gating_pool_initialized_total: 0,
+  hsm_zk_proposal_claim_verified_total: 0,
+  hsm_voter_accreditation_completed_total: 0,
+  // Track 85: PQC Telecom Routing Gating counters
+  hsm_telecom_routing_pool_initialized_total: 0,
+  hsm_zk_bandwidth_claim_verified_total: 0,
+  hsm_routing_accreditation_completed_total: 0,
+  // Track 86: PQC Health Insurance Claim Auditing Gating counters
+  hsm_insurance_gating_pool_initialized_total: 0,
+  hsm_zk_claim_audit_verified_total: 0,
+  hsm_actuarial_accreditation_completed_total: 0,
+  // Track 87: PQC Space-Asset Telemetry Gating counters
+  hsm_orbital_gating_pool_initialized_total: 0,
+  hsm_zk_telemetry_claim_verified_total: 0,
+  hsm_orbital_accreditation_completed_total: 0,
+  // Track 88: PQC Water Rights Allocation Gating counters
+  hsm_water_gating_pool_initialized_total: 0,
+  hsm_zk_water_claim_verified_total: 0,
+  hsm_watershed_accreditation_completed_total: 0,
+  // Track 89: PQC Nuclear Safeguards Monitoring Gating counters
+  hsm_nuclear_gating_pool_initialized_total: 0,
+  hsm_zk_safeguards_claim_verified_total: 0,
+  hsm_nuclear_accreditation_completed_total: 0,
+  // Track 90: PQC Wildlife Conservation Tracking Gating counters
+  hsm_wildlife_gating_pool_initialized_total: 0,
+  hsm_zk_conservation_claim_verified_total: 0,
+  hsm_biodiversity_accreditation_completed_total: 0,
+  // Track 91: PQC Smart-Grid Micro-Transaction Gating counters
+  hsm_smartgrid_gating_pool_initialized_total: 0,
+  hsm_zk_micro_transaction_claim_verified_total: 0,
+  hsm_load_balance_accreditation_completed_total: 0,
+  // Track 92: PQC Global Health Epidemiological Surveillance Gating counters
+  hsm_epidemiology_gating_pool_initialized_total: 0,
+  hsm_zk_epidemiological_claim_verified_total: 0,
+  hsm_outbreak_accreditation_completed_total: 0,
+  // Track 93: PQC Cultural Heritage Provenance Gating counters
+  hsm_heritage_gating_pool_initialized_total: 0,
+  hsm_zk_authentication_claim_verified_total: 0,
+  hsm_provenance_accreditation_completed_total: 0,
+  // Track 94: PQC Ocean Fisheries Allocation Gating counters
+  hsm_fisheries_gating_pool_initialized_total: 0,
+  hsm_zk_catch_claim_verified_total: 0,
+  hsm_quota_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -999,6 +1102,21 @@ const META = {
   hsm_hgate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for health claims.', type: 'counter' },
   hsm_hgate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for health claims.', type: 'counter' },
   hsm_hgate_banned_peers: { help: 'Number of banned peers in health data gating hub.', type: 'gauge' },
+  // Track 73: PQC Education Credential Gating & ZK Academic Credential Validators
+  hsm_edugate_pools_initialized_total: { help: 'Total education credential gating pools initialized.', type: 'counter' },
+  hsm_edugate_pools_accredited_total: { help: 'Total credential accreditation completions finalized.', type: 'counter' },
+  hsm_edugate_pools_settled_total: { help: 'Total education credential gating pools settled cross-chain.', type: 'counter' },
+  hsm_edugate_pools_cancelled_total: { help: 'Total education credential gating pools cancelled.', type: 'counter' },
+  hsm_edugate_pools_active: { help: 'Number of active education credential gating pools.', type: 'gauge' },
+  hsm_edugate_rebalances_total: { help: 'Total credential depth rebalances performed.', type: 'counter' },
+  hsm_edugate_batch_inits_total: { help: 'Total batch pool initializations for education credential gating.', type: 'counter' },
+  hsm_edugate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for education gating pools.', type: 'counter' },
+  hsm_edugate_claims_verified_total: { help: 'Total ZK academic claim proofs verified.', type: 'counter' },
+  hsm_edugate_claims_slashed_total: { help: 'Total ZK academic claim proofs slashed.', type: 'counter' },
+  hsm_edugate_batch_verifications_total: { help: 'Total batch academic claim verifications performed.', type: 'counter' },
+  hsm_edugate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for academic claims.', type: 'counter' },
+  hsm_edugate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for academic claims.', type: 'counter' },
+  hsm_edugate_banned_peers: { help: 'Number of banned peers in education credential gating hub.', type: 'gauge' },
   hsm_dkg_rounds_started_total: { help: 'Total DKG protocol rounds initiated.', type: 'counter' },
   hsm_dkg_rounds_completed_total: { help: 'Total DKG protocol rounds that completed successfully.', type: 'counter' },
   hsm_dkg_shares_verified_total: { help: 'Total DKG shares that passed commitment verification.', type: 'counter' },
