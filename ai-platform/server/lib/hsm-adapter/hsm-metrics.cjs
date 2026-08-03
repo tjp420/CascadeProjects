@@ -676,6 +676,10 @@ const counters = {
   hsm_fisheries_gating_pool_initialized_total: 0,
   hsm_zk_catch_claim_verified_total: 0,
   hsm_quota_accreditation_completed_total: 0,
+  // Track 95: PQC Deep-Sea Mineral Rights Gating counters
+  hsm_seabed_gating_pool_initialized_total: 0,
+  hsm_zk_extraction_claim_verified_total: 0,
+  hsm_lease_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────

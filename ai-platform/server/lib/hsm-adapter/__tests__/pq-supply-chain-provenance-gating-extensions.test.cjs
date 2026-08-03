@@ -1,39 +1,39 @@
 'use strict';
 
 /**
- * Track 74: PQC Patent Verification Gating & ZK Patent Claim
- * Validators — extension tests.
+ * Track 76: PQC Supply Chain Provenance Gating & ZK Provenance
+ * Claim Validators — extension tests.
  *
- * Tests the new batch pool initialization, claim scope depth
+ * Tests the new batch pool initialization, component lineage depth
  * rebalancing, committee signature aggregation, pool
  * cancellation, cross-chain settlement, HW-SNARK proof
- * generation, batch patent claim verification, slashing
+ * generation, batch provenance claim verification, slashing
  * window validation, partial signature aggregation, slash
  * event recording with reason codes, and summary statistics.
  */
 const {
-  PqcPatentVerificationGatingHub,
+  PqcSupplyChainProvenanceGatingHub,
   POOL_STATUS,
   REBALANCE_DIRECTION,
-} = require('../pqc-patent-verification-gating-hub.cjs');
+} = require('../pqc-supply-chain-provenance-gating-hub.cjs');
 const {
-  ZkPatentClaimValidator,
+  ZkProvenanceClaimValidator,
   CLAIM_STATUS,
   SLASH_REASON,
   HW_ACCEL_TYPES,
-} = require('../zk-patent-claim-validator.cjs');
+} = require('../zk-provenance-claim-validator.cjs');
 const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
 const POLICY = {
-  minLicensingQuorum: 3,
-  maxPatentExpirationSeconds: 47304000,
-  maxClaimScopeDepth: 32,
+  minSupplierCheckpointQuorum: 3,
+  maxTranscriptExpirationSeconds: 7776000,
+  maxComponentLineageDepth: 24,
   allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
-  requirePatentOfficeInitializerAttestation: true,
+  requireFactoryEndpointInitializerAttestation: true,
   requireClearingCommitteeAttestation: true,
   allowedAttestationAuthorities: ['mock-authority'],
-  banMalformedOrOutOfOrderPatentClaims: true,
+  banMalformedOrOutOfOrderProvenanceClaims: true,
   requireCanonicalPayloadLayout: true,
 };
 
@@ -54,13 +54,13 @@ function baseInitRequest() {
   return {
     sourceTenantId: 'tenant-a',
     targetChainId: 'chain-b',
-    blindedPatentClaimCommitment: 'pedersen-patent-001',
-    blindedLicensingMetricCommitment: 'pedersen-lic-001',
-    blindedInventorHashCommitment: 'pedersen-inventor-001',
-    patentExpirationSeconds: 23652000,
-    claimScopeDepth: 16,
+    blindedLineageCommitment: 'pedersen-lineage-001',
+    blindedManufacturingMetricCommitment: 'pedersen-mfg-001',
+    blindedSupplierHashCommitment: 'pedersen-supplier-001',
+    transitExpirationSeconds: 3888000,
+    componentLineageDepth: 12,
     pqcSignatureScheme: 'ML-DSA-65',
-    patentOfficeInitializerAttestation: mockAttestation(),
+    factoryEndpointInitializerAttestation: mockAttestation(),
     attestationAuthority: 'mock-authority',
   };
 }
@@ -68,14 +68,14 @@ function baseInitRequest() {
 function baseClaimRequest(poolId) {
   return {
     poolId: poolId || 'pool-001',
-    blindedLicensingMetricCommitment: 'pedersen-lic-001',
+    blindedManufacturingMetricCommitment: 'pedersen-mfg-001',
     blindedClaimValueCommitment: 'pedersen-claimval-001',
-    zkPatentRangeProofHash: 'zk-patent-proof-001',
+    zkProvenanceRangeProofHash: 'zk-provenance-proof-001',
     clearingCommitteeAttestation: mockAttestation(),
     clearingCommitteeAttestationHash: 'committee-hash-001',
     attestationAuthority: 'mock-authority',
     partialSignature: 'partial-sig-001',
-    patentExpirationSeconds: 23652000,
+    transitExpirationSeconds: 3888000,
   };
 }
 
@@ -94,12 +94,12 @@ function setupHubAndValidator() {
     allowedAuthorities: ['mock-authority'],
     allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
   });
-  const hub = new PqcPatentVerificationGatingHub({
+  const hub = new PqcSupplyChainProvenanceGatingHub({
     policy: POLICY,
     attestationClient,
     audit: (event, info) => events.push({ event, info }),
   });
-  const validator = new ZkPatentClaimValidator({
+  const validator = new ZkProvenanceClaimValidator({
     policy: POLICY,
     hub,
     attestationClient,
@@ -116,27 +116,27 @@ function setupAndInitPool() {
 
 function setupInitAndClaim() {
   const ctx = setupAndInitPool();
-  const claim = ctx.validator.verifyPatentClaim(baseClaimRequest(ctx.pool.poolId));
+  const claim = ctx.validator.verifyProvenanceClaim(baseClaimRequest(ctx.pool.poolId));
   return { ...ctx, claim };
 }
 
-describe('Track 74 PQC Patent Verification Gating extensions', () => {
-  describe('PqcPatentVerificationGatingHub — claim scope depth rebalancing', () => {
-    test('rebalances claim scope depth with increase direction', () => {
+describe('Track 76 PQC Supply Chain Provenance Gating extensions', () => {
+  describe('PqcSupplyChainProvenanceGatingHub — component lineage depth rebalancing', () => {
+    test('rebalances component lineage depth with increase direction', () => {
       const ctx = setupAndInitPool();
-      const rebalance = ctx.hub.rebalanceClaimScopeDepth({
+      const rebalance = ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
         direction: REBALANCE_DIRECTION.INCREASE,
-        rebalanceAmount: 4,
+        rebalanceAmount: 3,
       });
       expect(rebalance.rebalanceId).toBeDefined();
       expect(rebalance.direction).toBe(REBALANCE_DIRECTION.INCREASE);
       expect(rebalance.rebalanceEpoch).toBe(1);
     });
 
-    test('rebalances claim scope depth with decrease direction', () => {
+    test('rebalances component lineage depth with decrease direction', () => {
       const ctx = setupAndInitPool();
-      const rebalance = ctx.hub.rebalanceClaimScopeDepth({
+      const rebalance = ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
         direction: REBALANCE_DIRECTION.DECREASE,
         rebalanceAmount: 2,
@@ -144,31 +144,31 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
       expect(rebalance.direction).toBe(REBALANCE_DIRECTION.DECREASE);
     });
 
-    test('updates claimScopeDepth on rebalance when newClaimScopeDepth provided', () => {
+    test('updates componentLineageDepth on rebalance when newComponentLineageDepth provided', () => {
       const ctx = setupAndInitPool();
-      ctx.hub.rebalanceClaimScopeDepth({
+      ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
         direction: REBALANCE_DIRECTION.INCREASE,
-        rebalanceAmount: 4,
-        newClaimScopeDepth: 24,
+        rebalanceAmount: 3,
+        newComponentLineageDepth: 18,
       });
       const pool = ctx.hub.getPool(ctx.pool.poolId);
-      expect(pool.claimScopeDepth).toBe(24);
+      expect(pool.componentLineageDepth).toBe(18);
       expect(pool.rebalanceEpoch).toBe(1);
     });
 
     test('rejects rebalance with invalid direction', () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.hub.rebalanceClaimScopeDepth({
+      expect(() => ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
         direction: 'invalid',
-        rebalanceAmount: 4,
+        rebalanceAmount: 3,
       })).toThrow(HsmAdapterError);
     });
 
     test('rejects rebalance with non-positive amount', () => {
       const ctx = setupAndInitPool();
-      expect(() => ctx.hub.rebalanceClaimScopeDepth({
+      expect(() => ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
         direction: REBALANCE_DIRECTION.INCREASE,
         rebalanceAmount: 0,
@@ -177,25 +177,25 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
 
     test('rejects rebalance with missing poolId', () => {
       const { hub } = setupHubAndValidator();
-      expect(() => hub.rebalanceClaimScopeDepth({})).toThrow(HsmAdapterError);
+      expect(() => hub.rebalanceComponentLineageDepth({})).toThrow(HsmAdapterError);
     });
 
     test('rejects rebalance on accredited pool', () => {
       const ctx = setupInitAndClaim();
       ctx.hub.completeAccreditation(baseCompleteRequest(ctx.pool.poolId));
-      expect(() => ctx.hub.rebalanceClaimScopeDepth({
+      expect(() => ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
         direction: REBALANCE_DIRECTION.INCREASE,
-        rebalanceAmount: 4,
+        rebalanceAmount: 3,
       })).toThrow(HsmAdapterError);
     });
 
     test('returns rebalance record via getRebalance', () => {
       const ctx = setupAndInitPool();
-      const rebalance = ctx.hub.rebalanceClaimScopeDepth({
+      const rebalance = ctx.hub.rebalanceComponentLineageDepth({
         poolId: ctx.pool.poolId,
         direction: REBALANCE_DIRECTION.INCREASE,
-        rebalanceAmount: 4,
+        rebalanceAmount: 3,
       });
       const retrieved = ctx.hub.getRebalance(rebalance.rebalanceId);
       expect(retrieved).not.toBeNull();
@@ -213,7 +213,7 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     });
   });
 
-  describe('PqcPatentVerificationGatingHub — batch initialization', () => {
+  describe('PqcSupplyChainProvenanceGatingHub — batch initialization', () => {
     test('batch initializes multiple pools', () => {
       const { hub } = setupHubAndValidator();
       const reqs = [];
@@ -235,7 +235,7 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
       r2.poolId = 'pool-ok';
       const r3 = baseInitRequest();
       r3.poolId = 'pool-ok2';
-      r3.claimScopeDepth = 999;
+      r3.componentLineageDepth = 999;
       const result = hub.batchInitializePools([r1, r2, r3]);
       expect(result.successCount).toBe(1);
       expect(result.failedCount).toBe(2);
@@ -253,7 +253,7 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     });
   });
 
-  describe('PqcPatentVerificationGatingHub — cross-chain settlement', () => {
+  describe('PqcSupplyChainProvenanceGatingHub — cross-chain settlement', () => {
     test('settles an accredited pool cross-chain', () => {
       const ctx = setupInitAndClaim();
       ctx.hub.completeAccreditation(baseCompleteRequest(ctx.pool.poolId));
@@ -308,7 +308,7 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     });
   });
 
-  describe('PqcPatentVerificationGatingHub — committee aggregation', () => {
+  describe('PqcSupplyChainProvenanceGatingHub — committee aggregation', () => {
     test('aggregates committee signatures', () => {
       const ctx = setupAndInitPool();
       const result = ctx.hub.aggregateCommitteeSignatures(ctx.pool.poolId, [
@@ -343,7 +343,7 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     });
   });
 
-  describe('PqcPatentVerificationGatingHub — cancellation', () => {
+  describe('PqcSupplyChainProvenanceGatingHub — cancellation', () => {
     test('cancels an open pool', () => {
       const ctx = setupAndInitPool();
       const result = ctx.hub.cancelPool(ctx.pool.poolId);
@@ -372,7 +372,7 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     });
   });
 
-  describe('PqcPatentVerificationGatingHub — queries and stats', () => {
+  describe('PqcSupplyChainProvenanceGatingHub — queries and stats', () => {
     test('returns pools list', () => {
       const ctx = setupAndInitPool();
       expect(ctx.hub.getPools().length).toBe(1);
@@ -387,22 +387,22 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     });
   });
 
-  describe('ZkPatentClaimValidator — HW-SNARK proof generation', () => {
+  describe('ZkProvenanceClaimValidator — HW-SNARK proof generation', () => {
     test('generates a hardware-accelerated SNARK proof', () => {
       const ctx = setupAndInitPool();
       const proof = ctx.validator.generateHwSnarkProof({
         poolId: ctx.pool.poolId,
-        licensingMetric: 500,
+        manufacturingMetric: 500,
         claimValue: 450,
       });
-      expect(proof.zkPatentRangeProofHash).toBeDefined();
+      expect(proof.zkProvenanceRangeProofHash).toBeDefined();
       expect(proof.hwAccelType).toBeDefined();
       expect(proof.proofSystem).toBe('groth16');
     });
 
     test('rejects proof generation with missing poolId', () => {
       const { validator } = setupHubAndValidator();
-      expect(() => validator.generateHwSnarkProof({ licensingMetric: 100, claimValue: 50 }))
+      expect(() => validator.generateHwSnarkProof({ manufacturingMetric: 100, claimValue: 50 }))
         .toThrow(HsmAdapterError);
     });
 
@@ -416,14 +416,14 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
       const { validator } = setupHubAndValidator();
       expect(() => validator.generateHwSnarkProof({
         poolId: 'unknown',
-        licensingMetric: 100,
+        manufacturingMetric: 100,
         claimValue: 50,
       })).toThrow(HsmAdapterError);
     });
   });
 
-  describe('ZkPatentClaimValidator — batch patent claim verification', () => {
-    test('batch verifies multiple patent claims', () => {
+  describe('ZkProvenanceClaimValidator — batch provenance claim verification', () => {
+    test('batch verifies multiple provenance claims', () => {
       const ctx = setupHubAndValidator();
       const pools = [];
       for (let i = 0; i < 3; i++) {
@@ -437,7 +437,7 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
         r.peerId = `peer-bv-${i}`;
         return r;
       });
-      const result = ctx.validator.batchVerifyPatentClaims(batch);
+      const result = ctx.validator.batchVerifyProvenanceClaims(batch);
       expect(result.verifiedCount).toBe(3);
       expect(result.failedCount).toBe(0);
     });
@@ -452,20 +452,20 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
         (() => { const r = baseClaimRequest('pool-mix'); r.peerId = 'p2'; return r; })(),
         (() => { const r = baseClaimRequest('unknown-pool'); r.peerId = 'p3'; return r; })(),
       ];
-      const result = ctx.validator.batchVerifyPatentClaims(batch);
+      const result = ctx.validator.batchVerifyProvenanceClaims(batch);
       expect(result.verifiedCount).toBe(2);
       expect(result.failedCount).toBe(1);
     });
 
     test('rejects empty batch', () => {
       const { validator } = setupHubAndValidator();
-      expect(() => validator.batchVerifyPatentClaims([])).toThrow(HsmAdapterError);
+      expect(() => validator.batchVerifyProvenanceClaims([])).toThrow(HsmAdapterError);
     });
 
     test('rejects batch exceeding max size', () => {
       const { validator } = setupHubAndValidator();
       const bigBatch = Array.from({ length: 101 }, () => baseClaimRequest('x'));
-      expect(() => validator.batchVerifyPatentClaims(bigBatch)).toThrow(HsmAdapterError);
+      expect(() => validator.batchVerifyProvenanceClaims(bigBatch)).toThrow(HsmAdapterError);
     });
 
     test('records batch history', () => {
@@ -475,12 +475,12 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
       ctx.hub.initializePool(req);
       const r = baseClaimRequest('pool-bh');
       r.peerId = 'p-bh';
-      ctx.validator.batchVerifyPatentClaims([r]);
+      ctx.validator.batchVerifyProvenanceClaims([r]);
       expect(ctx.validator.getBatchHistory().length).toBe(1);
     });
   });
 
-  describe('ZkPatentClaimValidator — partial signature aggregation', () => {
+  describe('ZkProvenanceClaimValidator — partial signature aggregation', () => {
     test('aggregates partial signatures', () => {
       const ctx = setupAndInitPool();
       const result = ctx.validator.aggregatePartialSignatures(ctx.pool.poolId, [
@@ -495,9 +495,9 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     test('rejects aggregation with banned peer', () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
-      cReq.zkPatentRangeProofHash = null;
+      cReq.zkProvenanceRangeProofHash = null;
       cReq.peerId = 'bad-peer';
-      try { ctx.validator.verifyPatentClaim(cReq); } catch (e) { /* expected */ }
+      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
       expect(ctx.validator.isPeerBanned('bad-peer')).toBe(true);
       expect(() => ctx.validator.aggregatePartialSignatures(ctx.pool.poolId, [
         { peerId: 'bad-peer', signature: 'sig-1' },
@@ -521,7 +521,7 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     });
   });
 
-  describe('ZkPatentClaimValidator — slashing window validation', () => {
+  describe('ZkProvenanceClaimValidator — slashing window validation', () => {
     test('validates claim within slashing window', () => {
       const ctx = setupAndInitPool();
       const claimTs = Math.floor(Date.now() / 1000);
@@ -555,23 +555,23 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     });
   });
 
-  describe('ZkPatentClaimValidator — slashing and stats', () => {
+  describe('ZkProvenanceClaimValidator — slashing and stats', () => {
     test('records slashes for malformed claims', () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
-      cReq.zkPatentRangeProofHash = null;
+      cReq.zkProvenanceRangeProofHash = null;
       cReq.peerId = 'peer-slash';
-      try { ctx.validator.verifyPatentClaim(cReq); } catch (e) { /* expected */ }
+      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
       const stats = ctx.validator.getSlashingStats();
       expect(stats.totalSlashes).toBeGreaterThan(0);
     });
 
-    test('records slashes for out-of-bounds patent expiration', () => {
+    test('records slashes for out-of-bounds transcript expiration', () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
       cReq.peerId = 'peer-oob';
-      cReq.patentExpirationSeconds = 999999999;
-      try { ctx.validator.verifyPatentClaim(cReq); } catch (e) { /* expected */ }
+      cReq.transitExpirationSeconds = 999999999;
+      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
       const stats = ctx.validator.getSlashingStats();
       expect(stats.totalSlashes).toBeGreaterThan(0);
     });
@@ -580,8 +580,8 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
       cReq.peerId = 'peer-dup';
-      ctx.validator.verifyPatentClaim(cReq);
-      try { ctx.validator.verifyPatentClaim(cReq); } catch (e) { /* expected */ }
+      ctx.validator.verifyProvenanceClaim(cReq);
+      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
       const stats = ctx.validator.getSlashingStats();
       expect(stats.totalSlashes).toBeGreaterThan(0);
     });
@@ -589,9 +589,9 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     test('returns slashed claims list', () => {
       const ctx = setupAndInitPool();
       const cReq = baseClaimRequest(ctx.pool.poolId);
-      cReq.zkPatentRangeProofHash = null;
+      cReq.zkProvenanceRangeProofHash = null;
       cReq.peerId = 'peer-slash-2';
-      try { ctx.validator.verifyPatentClaim(cReq); } catch (e) { /* expected */ }
+      try { ctx.validator.verifyProvenanceClaim(cReq); } catch (e) { /* expected */ }
       expect(ctx.validator.getSlashedClaims().length).toBeGreaterThan(0);
     });
 
@@ -607,7 +607,7 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
       expect(CLAIM_STATUS.SLASHED).toBe('slashed');
       expect(SLASH_REASON.MALFORMED).toBe('malformed_claim');
       expect(SLASH_REASON.DUPLICATE).toBe('duplicate_claim');
-      expect(SLASH_REASON.PATENT_EXPIRATION_OUT_OF_BOUNDS).toBe('patent_expiration_out_of_bounds');
+      expect(SLASH_REASON.TRANSIT_EXPIRATION_OUT_OF_BOUNDS).toBe('transit_expiration_out_of_bounds');
       expect(SLASH_REASON.POOL_NOT_FOUND).toBe('pool_not_found');
       expect(SLASH_REASON.BANNED_PEER).toBe('banned_peer');
       expect(SLASH_REASON.OUT_OF_WINDOW).toBe('out_of_window');
@@ -618,30 +618,30 @@ describe('Track 74 PQC Patent Verification Gating extensions', () => {
     });
   });
 
-  describe('full Track 74 extended flow', () => {
+  describe('full Track 76 extended flow', () => {
     test('complete init → rebalance → claim → accredit → settle flow', () => {
       const ctx = setupHubAndValidator();
       const req = baseInitRequest();
       req.poolId = 'pool-full-flow';
       const pool = ctx.hub.initializePool(req);
       expect(pool.poolId).toBe('pool-full-flow');
-      const rebalance = ctx.hub.rebalanceClaimScopeDepth({
+      const rebalance = ctx.hub.rebalanceComponentLineageDepth({
         poolId: pool.poolId,
         direction: REBALANCE_DIRECTION.INCREASE,
-        rebalanceAmount: 4,
-        newClaimScopeDepth: 24,
+        rebalanceAmount: 3,
+        newComponentLineageDepth: 18,
       });
       expect(rebalance.rebalanceEpoch).toBe(1);
       const snarkProof = ctx.validator.generateHwSnarkProof({
         poolId: pool.poolId,
-        licensingMetric: 500,
+        manufacturingMetric: 500,
         claimValue: 450,
       });
-      expect(snarkProof.zkPatentRangeProofHash).toBeDefined();
+      expect(snarkProof.zkProvenanceRangeProofHash).toBeDefined();
       const cReq = baseClaimRequest(pool.poolId);
       cReq.peerId = 'peer-claim';
-      cReq.zkPatentRangeProofHash = snarkProof.zkPatentRangeProofHash;
-      const claim = ctx.validator.verifyPatentClaim(cReq);
+      cReq.zkProvenanceRangeProofHash = snarkProof.zkProvenanceRangeProofHash;
+      const claim = ctx.validator.verifyProvenanceClaim(cReq);
       expect(claim.status).toBe(CLAIM_STATUS.VERIFIED);
       const sigResult = ctx.hub.aggregateCommitteeSignatures(pool.poolId, [
         { peerId: 'peer-0', signature: 'sig-0' },

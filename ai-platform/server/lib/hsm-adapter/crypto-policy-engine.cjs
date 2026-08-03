@@ -767,6 +767,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderCatchClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqSeabedGating: {
+    minSovereignQuorum: 6,
+    maxLeaseWindowSeconds: 31536000,
+    maxExtractionChainDepth: 15,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireIsaAuthorityInitializerAttestation: true,
+    requireSeabedOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderExtractionClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1184,6 +1195,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqFisheriesGating: {
       ...DEFAULT_POLICY.pqFisheriesGating,
       ...(tenantPolicy.pqFisheriesGating || {}),
+    },
+    pqSeabedGating: {
+      ...DEFAULT_POLICY.pqSeabedGating,
+      ...(tenantPolicy.pqSeabedGating || {}),
     },
   };
 }
@@ -3104,6 +3119,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqSeabedGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqSeabedGating, ...(tenantPolicy.pqSeabedGating || {}) };
+    if (typeof config.sovereignQuorum === 'number' && config.sovereignQuorum < policy.minSovereignQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `sovereign quorum ${config.sovereignQuorum} below minimum ${policy.minSovereignQuorum}`);
+    }
+    if (typeof config.leaseWindowSeconds === 'number' && config.leaseWindowSeconds > policy.maxLeaseWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `lease window seconds ${config.leaseWindowSeconds} exceeds maximum ${policy.maxLeaseWindowSeconds}`);
+    }
+    if (typeof config.extractionChainDepth === 'number' && config.extractionChainDepth > policy.maxExtractionChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `extraction chain depth ${config.extractionChainDepth} exceeds maximum ${policy.maxExtractionChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireIsaAuthorityInitializerAttestation && config.isaAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ISA authority initializer attestation is required');
+    }
+    if (policy.requireSeabedOversightCommitteeAttestation && config.seabedOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'seabed oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderExtractionClaims === 'boolean' && policy.banMalformedOrOutOfOrderExtractionClaims && !config.banMalformedOrOutOfOrderExtractionClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order extraction claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3743,6 +3789,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqFisheriesGating') {
       this._validatePqFisheriesGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqSeabedGating') {
+      this._validatePqSeabedGating(tenantPolicy, config);
       return true;
     }
 
