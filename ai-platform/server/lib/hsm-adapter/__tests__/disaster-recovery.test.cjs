@@ -78,7 +78,7 @@ describe('Track 43B disaster recovery', () => {
     expect(events.some((e) => e.event === 'REGIONAL_FAILOVER_INITIATED')).toBe(true);
   });
 
-  test('CrossRegionStateReconstructor provisions attested standby cluster', () => {
+  test('CrossRegionStateReconstructor provisions attested standby cluster from reconciliation digest', () => {
     const events = [];
     const attestationClient = new MockAttestationClient();
     attestationClient.verify({
@@ -106,14 +106,101 @@ describe('Track 43B disaster recovery', () => {
       authority: 'mock-authority',
       signature: 'mock-signature-placeholder',
     };
+    const reconciliationDigest = {
+      keyId: 'kek-001',
+      severity: 'none',
+      divergentNodes: [],
+      quorumEpoch: 7,
+      majorityFingerprint: 'abcdef1234567890',
+      majorityCount: 2,
+      fingerprintGroups: 1,
+      ageSeconds: 0,
+    };
     const result = reconstructor.reconstruct(
       ['eu-west', 'ap-south'],
       ['standby-1'],
-      [{ index: 1, value: 101n, ageSeconds: 0 }, { index: 2, value: 202n, ageSeconds: 0 }],
+      reconciliationDigest,
       { 'standby-1': attestationDoc },
     );
     expect(result.reconstructed).toBe(true);
+    expect(result.keyRing).toBe('kek-ring-abcdef1234567890-7');
+    expect(result.keyId).toBe('kek-001');
+    expect(result.quorumEpoch).toBe(7);
     expect(events.some((e) => e.event === 'STANDBY_CLUSTER_PROVISIONED')).toBe(true);
+  });
+
+  test('CrossRegionStateReconstructor provisions attested standby cluster from live cluster reconciler', () => {
+    const events = [];
+    const attestationClient = new MockAttestationClient();
+    const { ClusterKeyReconciliationEngine } = require('../cluster-key-reconciliation-engine.cjs');
+    const clusterReconciler = new ClusterKeyReconciliationEngine({
+      clusterNodes: ['eu-west', 'ap-south'],
+      minQuorumNodes: 2,
+      audit: () => {},
+    });
+    clusterReconciler.registerKey('kek-001', 'eu-west', 7, 'shared-key-material');
+    clusterReconciler.registerKey('kek-001', 'ap-south', 7, 'shared-key-material');
+    clusterReconciler.scan();
+    const reconstructor = new CrossRegionStateReconstructor({
+      policy: POLICY,
+      attestationClient,
+      clusterReconciler,
+      audit: (event, info) => events.push({ event, info }),
+    });
+    const attestationDoc = {
+      version: 1,
+      enclaveType: 'mock',
+      measurement: 'MOCK_MEASUREMENT_00000000000000000000000000000000',
+      mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
+      timestamp: Math.floor(Date.now() / 1000),
+      attestationAgeSeconds: 0,
+      authority: 'mock-authority',
+      signature: 'mock-signature-placeholder',
+    };
+    const result = reconstructor.reconstruct(
+      ['eu-west', 'ap-south'],
+      ['standby-1'],
+      'kek-001',
+      { 'standby-1': attestationDoc },
+    );
+    expect(result.reconstructed).toBe(true);
+    expect(result.keyId).toBe('kek-001');
+    expect(result.keyRing.startsWith('kek-ring-')).toBe(true);
+    expect(events.some((e) => e.event === 'STANDBY_CLUSTER_PROVISIONED')).toBe(true);
+  });
+
+  test('CrossRegionStateReconstructor rejects critical divergence digest', () => {
+    const attestationClient = new MockAttestationClient();
+    const reconstructor = new CrossRegionStateReconstructor({
+      policy: POLICY,
+      attestationClient,
+    });
+    const attestationDoc = {
+      version: 1,
+      enclaveType: 'mock',
+      measurement: 'MOCK_MEASUREMENT_00000000000000000000000000000000',
+      mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
+      timestamp: Math.floor(Date.now() / 1000),
+      attestationAgeSeconds: 0,
+      authority: 'mock-authority',
+      signature: 'mock-signature-placeholder',
+    };
+    const reconciliationDigest = {
+      keyId: 'kek-001',
+      severity: 'critical',
+      divergentNodes: [{ nodeId: 'eu-west', epoch: 5, fingerprint: 'a' }, { nodeId: 'ap-south', epoch: 6, fingerprint: 'b' }],
+      quorumEpoch: 5,
+      majorityFingerprint: 'a',
+      majorityCount: 1,
+      fingerprintGroups: 2,
+      ageSeconds: 0,
+    };
+    expect(() => reconstructor.reconstruct(
+      ['eu-west', 'ap-south'],
+      ['standby-1'],
+      reconciliationDigest,
+      { 'standby-1': attestationDoc },
+    )).toThrow(HsmAdapterError);
   });
 
   test('CrossRegionStateReconstructor rejects un-attested standby', () => {
