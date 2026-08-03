@@ -750,6 +750,10 @@ const counters = {
   hsm_sgate_hw_snark_proofs_generated_total: 0,
   hsm_sgate_hw_snark_proofs_verified_total: 0,
   hsm_sgate_banned_peers: 0,
+  // Track 96: PQC Polar Research Data Gating counters
+  hsm_polar_research_pool_initialized_total: 0,
+  hsm_zk_research_claim_verified_total: 0,
+  hsm_data_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────

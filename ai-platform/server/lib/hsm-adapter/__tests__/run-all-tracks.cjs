@@ -85,6 +85,19 @@ const SUITES = [
   'pq-cultural-heritage-provenance-gating',
   'pq-ocean-fisheries-allocation-gating',
   'pq-deep-sea-mineral-rights-gating',
+  'pq-polar-research-data-gating',
+  'confidential-federated-learning',
+  'he-mesh-topology',
+  'secure-inner-product-search',
+  'zk-range-proof-solvency',
+  'threshold-decryption-circuit',
+  'vss-pss-engine',
+  'oram-engine',
+  'zk-snark-verifier-engine',
+  'multi-key-fhe-relinearization-engine',
+  'vdf-time-lock-engine',
+  'mixnet-blind-transaction-engine',
+  'recursive-proof-aggregation-engine',
 ];
 
 function runSuite(pattern) {

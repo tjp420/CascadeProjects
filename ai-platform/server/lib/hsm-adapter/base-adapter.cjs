@@ -91,6 +91,138 @@ function getHardwareEnclaveAdapter() {
   return _activeHardwareEnclaveAdapter;
 }
 
+// Track 49: Module-level registry for the active EnclaveRescaler instance.
+let _activeEnclaveRescaler = null;
+
+function registerEnclaveRescaler(enclaveRescaler) {
+  _activeEnclaveRescaler = enclaveRescaler;
+}
+
+function getEnclaveRescaler() {
+  return _activeEnclaveRescaler;
+}
+
+// Track 51: Module-level registry for the active HeMeshTopology instance.
+let _activeHeMeshTopology = null;
+
+function registerHeMeshTopology(heMeshTopology) {
+  _activeHeMeshTopology = heMeshTopology;
+}
+
+function getHeMeshTopology() {
+  return _activeHeMeshTopology;
+}
+
+// Track 52: Module-level registry for the active SecureInnerProductSearch instance.
+let _activeSecureInnerProductSearch = null;
+
+function registerSecureInnerProductSearch(secureInnerProductSearch) {
+  _activeSecureInnerProductSearch = secureInnerProductSearch;
+}
+
+function getSecureInnerProductSearch() {
+  return _activeSecureInnerProductSearch;
+}
+
+// Track 53: Module-level registry for the active ZkRangeProofSolvency instance.
+let _activeZkRangeProofSolvency = null;
+
+function registerZkRangeProofSolvency(zkRangeProofSolvency) {
+  _activeZkRangeProofSolvency = zkRangeProofSolvency;
+}
+
+function getZkRangeProofSolvency() {
+  return _activeZkRangeProofSolvency;
+}
+
+// Track 54: Module-level registry for the active ThresholdDecryptionCircuit instance.
+let _activeThresholdDecryptionCircuit = null;
+
+function registerThresholdDecryptionCircuit(thresholdDecryptionCircuit) {
+  _activeThresholdDecryptionCircuit = thresholdDecryptionCircuit;
+}
+
+function getThresholdDecryptionCircuit() {
+  return _activeThresholdDecryptionCircuit;
+}
+
+// Track 55: Module-level registry for the active VssPssEngine instance.
+let _activeVssPssEngine = null;
+
+function registerVssPssEngine(vssPssEngine) {
+  _activeVssPssEngine = vssPssEngine;
+}
+
+function getVssPssEngine() {
+  return _activeVssPssEngine;
+}
+
+// Track 56: Module-level registry for the active OramEngine instance.
+let _activeOramEngine = null;
+
+function registerOramEngine(oramEngine) {
+  _activeOramEngine = oramEngine;
+}
+
+function getOramEngine() {
+  return _activeOramEngine;
+}
+
+// Track 57: Module-level registry for the active ZkSnarkVerifierEngine instance.
+let _activeZkSnarkVerifierEngine = null;
+
+function registerZkSnarkVerifierEngine(zkSnarkVerifierEngine) {
+  _activeZkSnarkVerifierEngine = zkSnarkVerifierEngine;
+}
+
+function getZkSnarkVerifierEngine() {
+  return _activeZkSnarkVerifierEngine;
+}
+
+// Track 58: Module-level registry for the active MultiKeyFheRelinearizationEngine instance.
+let _activeMultiKeyFheRelinearizationEngine = null;
+
+function registerMultiKeyFheRelinearizationEngine(multiKeyFheRelinearizationEngine) {
+  _activeMultiKeyFheRelinearizationEngine = multiKeyFheRelinearizationEngine;
+}
+
+function getMultiKeyFheRelinearizationEngine() {
+  return _activeMultiKeyFheRelinearizationEngine;
+}
+
+// Track 59: Module-level registry for the active VdfTimeLockEngine instance.
+let _activeVdfTimeLockEngine = null;
+
+function registerVdfTimeLockEngine(vdfTimeLockEngine) {
+  _activeVdfTimeLockEngine = vdfTimeLockEngine;
+}
+
+function getVdfTimeLockEngine() {
+  return _activeVdfTimeLockEngine;
+}
+
+// Track 60: Module-level registry for the active MixnetBlindTransactionEngine instance.
+let _activeMixnetBlindTransactionEngine = null;
+
+function registerMixnetBlindTransactionEngine(mixnetBlindTransactionEngine) {
+  _activeMixnetBlindTransactionEngine = mixnetBlindTransactionEngine;
+}
+
+function getMixnetBlindTransactionEngine() {
+  return _activeMixnetBlindTransactionEngine;
+}
+
+// Track 61: Module-level registry for the active RecursiveProofAggregationEngine instance.
+let _activeRecursiveProofAggregationEngine = null;
+
+function registerRecursiveProofAggregationEngine(recursiveProofAggregationEngine) {
+  _activeRecursiveProofAggregationEngine = recursiveProofAggregationEngine;
+}
+
+function getRecursiveProofAggregationEngine() {
+  return _activeRecursiveProofAggregationEngine;
+}
+
 /**
  * Error class for HSM adapter failures.
  */
@@ -119,6 +251,18 @@ class BaseHsmAdapter {
    * @param {ProvenanceTracker} [options.provenanceTracker] - optional provenance ledger
    * @param {EscrowBroker} [options.escrowBroker] - optional cross-tenant key escrow broker
    * @param {ClusterConsensusEngine} [options.consensusEngine] - optional consensus engine for distributed commit gating
+   * @param {EnclaveRescaler} [options.enclaveRescaler] - optional EnclaveRescaler for predictive load balancing (Track 49)
+   * @param {HeMeshTopology} [options.heMeshTopology] - optional HeMeshTopology for encrypted query routing (Track 51)
+   * @param {SecureInnerProductSearch} [options.secureInnerProductSearch] - optional SecureInnerProductSearch for secure inner product search (Track 52)
+   * @param {ZkRangeProofSolvency} [options.zkRangeProofSolvency] - optional ZkRangeProofSolvency for ZK range proof and solvency audit (Track 53)
+   * @param {ThresholdDecryptionCircuit} [options.thresholdDecryptionCircuit] - optional ThresholdDecryptionCircuit for threshold decryption circuit (Track 54)
+   * @param {VssPssEngine} [options.vssPssEngine] - optional VssPssEngine for verifiable and proactive secret sharing (Track 55)
+   * @param {OramEngine} [options.oramEngine] - optional OramEngine for oblivious memory access (Track 56)
+   * @param {ZkSnarkVerifierEngine} [options.zkSnarkVerifierEngine] - optional ZkSnarkVerifierEngine for succinct proof verification (Track 57)
+   * @param {MultiKeyFheRelinearizationEngine} [options.multiKeyFheRelinearizationEngine] - optional MultiKeyFheRelinearizationEngine for multi-key FHE relinearization (Track 58)
+   * @param {VdfTimeLockEngine} [options.vdfTimeLockEngine] - optional VdfTimeLockEngine for VDF and time-lock puzzle (Track 59)
+   * @param {MixnetBlindTransactionEngine} [options.mixnetBlindTransactionEngine] - optional MixnetBlindTransactionEngine for mixnet blind transaction (Track 60)
+   * @param {RecursiveProofAggregationEngine} [options.recursiveProofAggregationEngine] - optional RecursiveProofAggregationEngine for recursive proof aggregation (Track 61)
    */
   constructor(options = {}) {
     if (this.constructor === BaseHsmAdapter) {
@@ -135,6 +279,54 @@ class BaseHsmAdapter {
     // Track 34 Phase 8: Auto-register consensus engine for telemetry
     if (this._consensusEngine) {
       registerConsensusEngine(this._consensusEngine);
+    }
+    this._enclaveRescaler = options.enclaveRescaler || null;
+    if (this._enclaveRescaler) {
+      registerEnclaveRescaler(this._enclaveRescaler);
+    }
+    this._heMeshTopology = options.heMeshTopology || null;
+    if (this._heMeshTopology) {
+      registerHeMeshTopology(this._heMeshTopology);
+    }
+    this._secureInnerProductSearch = options.secureInnerProductSearch || null;
+    if (this._secureInnerProductSearch) {
+      registerSecureInnerProductSearch(this._secureInnerProductSearch);
+    }
+    this._zkRangeProofSolvency = options.zkRangeProofSolvency || null;
+    if (this._zkRangeProofSolvency) {
+      registerZkRangeProofSolvency(this._zkRangeProofSolvency);
+    }
+    this._thresholdDecryptionCircuit = options.thresholdDecryptionCircuit || null;
+    if (this._thresholdDecryptionCircuit) {
+      registerThresholdDecryptionCircuit(this._thresholdDecryptionCircuit);
+    }
+    this._vssPssEngine = options.vssPssEngine || null;
+    if (this._vssPssEngine) {
+      registerVssPssEngine(this._vssPssEngine);
+    }
+    this._oramEngine = options.oramEngine || null;
+    if (this._oramEngine) {
+      registerOramEngine(this._oramEngine);
+    }
+    this._zkSnarkVerifierEngine = options.zkSnarkVerifierEngine || null;
+    if (this._zkSnarkVerifierEngine) {
+      registerZkSnarkVerifierEngine(this._zkSnarkVerifierEngine);
+    }
+    this._multiKeyFheRelinearizationEngine = options.multiKeyFheRelinearizationEngine || null;
+    if (this._multiKeyFheRelinearizationEngine) {
+      registerMultiKeyFheRelinearizationEngine(this._multiKeyFheRelinearizationEngine);
+    }
+    this._vdfTimeLockEngine = options.vdfTimeLockEngine || null;
+    if (this._vdfTimeLockEngine) {
+      registerVdfTimeLockEngine(this._vdfTimeLockEngine);
+    }
+    this._mixnetBlindTransactionEngine = options.mixnetBlindTransactionEngine || null;
+    if (this._mixnetBlindTransactionEngine) {
+      registerMixnetBlindTransactionEngine(this._mixnetBlindTransactionEngine);
+    }
+    this._recursiveProofAggregationEngine = options.recursiveProofAggregationEngine || null;
+    if (this._recursiveProofAggregationEngine) {
+      registerRecursiveProofAggregationEngine(this._recursiveProofAggregationEngine);
     }
     this._initialized = false;
   }
@@ -2104,6 +2296,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_lease_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 96 PQ polar research data gating telemetry hooks ──
+
+  /**
+   * Emit a polar research pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitPolarResearchPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('POLAR_RESEARCH_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_polar_research_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK research claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkResearchClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_RESEARCH_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_research_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a data accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitDataAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('DATA_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_data_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
@@ -2158,4 +2382,28 @@ module.exports = {
   getConsensusCoordinator,
   registerHardwareEnclaveAdapter,
   getHardwareEnclaveAdapter,
+  registerEnclaveRescaler,
+  getEnclaveRescaler,
+  registerHeMeshTopology,
+  getHeMeshTopology,
+  registerSecureInnerProductSearch,
+  getSecureInnerProductSearch,
+  registerZkRangeProofSolvency,
+  getZkRangeProofSolvency,
+  registerThresholdDecryptionCircuit,
+  getThresholdDecryptionCircuit,
+  registerVssPssEngine,
+  getVssPssEngine,
+  registerOramEngine,
+  getOramEngine,
+  registerZkSnarkVerifierEngine,
+  getZkSnarkVerifierEngine,
+  registerMultiKeyFheRelinearizationEngine,
+  getMultiKeyFheRelinearizationEngine,
+  registerVdfTimeLockEngine,
+  getVdfTimeLockEngine,
+  registerMixnetBlindTransactionEngine,
+  getMixnetBlindTransactionEngine,
+  registerRecursiveProofAggregationEngine,
+  getRecursiveProofAggregationEngine,
 };

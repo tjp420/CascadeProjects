@@ -778,6 +778,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderExtractionClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqPolarResearchGating: {
+    minPolarQuorum: 5,
+    maxDataRetentionWindowSeconds: 7776000,
+    maxResearchChainDepth: 14,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireAntarcticTreatySecretariatInitializerAttestation: true,
+    requirePolarResearchOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderResearchClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1199,6 +1210,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqSeabedGating: {
       ...DEFAULT_POLICY.pqSeabedGating,
       ...(tenantPolicy.pqSeabedGating || {}),
+    },
+    pqPolarResearchGating: {
+      ...DEFAULT_POLICY.pqPolarResearchGating,
+      ...(tenantPolicy.pqPolarResearchGating || {}),
     },
   };
 }
@@ -3150,6 +3165,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqPolarResearchGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqPolarResearchGating, ...(tenantPolicy.pqPolarResearchGating || {}) };
+    if (typeof config.polarQuorum === 'number' && config.polarQuorum < policy.minPolarQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `polar quorum ${config.polarQuorum} below minimum ${policy.minPolarQuorum}`);
+    }
+    if (typeof config.dataRetentionWindowSeconds === 'number' && config.dataRetentionWindowSeconds > policy.maxDataRetentionWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `data retention window seconds ${config.dataRetentionWindowSeconds} exceeds maximum ${policy.maxDataRetentionWindowSeconds}`);
+    }
+    if (typeof config.researchChainDepth === 'number' && config.researchChainDepth > policy.maxResearchChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `research chain depth ${config.researchChainDepth} exceeds maximum ${policy.maxResearchChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireAntarcticTreatySecretariatInitializerAttestation && config.antarcticTreatySecretariatInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'Antarctic Treaty Secretariat initializer attestation is required');
+    }
+    if (policy.requirePolarResearchOversightCommitteeAttestation && config.polarResearchOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'polar research oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderResearchClaims === 'boolean' && policy.banMalformedOrOutOfOrderResearchClaims && !config.banMalformedOrOutOfOrderResearchClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order research claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3794,6 +3840,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSeabedGating') {
       this._validatePqSeabedGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqPolarResearchGating') {
+      this._validatePqPolarResearchGating(tenantPolicy, config);
       return true;
     }
 
