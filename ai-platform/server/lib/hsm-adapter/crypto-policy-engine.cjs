@@ -978,6 +978,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderNeuralTelemetryClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqAutonomousDroneSwarmMeshRoutingGating: {
+    minSwarmQuorum: 32,
+    maxTrajectoryValidationWindowSeconds: 5,
+    maxSwarmTopologicalChainDepth: 72,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireDroneMeshAuthorityInitializerAttestation: true,
+    requireSwarmEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderDroneMeshClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   clusterKeyringPrimitiveAuthorization: {
     minAuthorizationQuorum: 3,
     maxSyncWindowSeconds: 300,
@@ -1482,6 +1493,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqBioDigitalInterfaceNeuralTelemetryGating: {
       ...DEFAULT_POLICY.pqBioDigitalInterfaceNeuralTelemetryGating,
       ...(tenantPolicy.pqBioDigitalInterfaceNeuralTelemetryGating || {}),
+    },
+    pqAutonomousDroneSwarmMeshRoutingGating: {
+      ...DEFAULT_POLICY.pqAutonomousDroneSwarmMeshRoutingGating,
+      ...(tenantPolicy.pqAutonomousDroneSwarmMeshRoutingGating || {}),
     },
     clusterKeyringPrimitiveAuthorization: {
       ...DEFAULT_POLICY.clusterKeyringPrimitiveAuthorization,
@@ -3998,6 +4013,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqAutonomousDroneSwarmMeshRoutingGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqAutonomousDroneSwarmMeshRoutingGating, ...(tenantPolicy.pqAutonomousDroneSwarmMeshRoutingGating || {}) };
+    if (typeof config.swarmQuorum === 'number' && config.swarmQuorum < policy.minSwarmQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `swarm quorum ${config.swarmQuorum} below minimum ${policy.minSwarmQuorum}`);
+    }
+    if (typeof config.trajectoryValidationWindowSeconds === 'number' && config.trajectoryValidationWindowSeconds > policy.maxTrajectoryValidationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `trajectory validation window seconds ${config.trajectoryValidationWindowSeconds} exceeds maximum ${policy.maxTrajectoryValidationWindowSeconds}`);
+    }
+    if (typeof config.swarmTopologicalChainDepth === 'number' && config.swarmTopologicalChainDepth > policy.maxSwarmTopologicalChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `swarm topological chain depth ${config.swarmTopologicalChainDepth} exceeds maximum ${policy.maxSwarmTopologicalChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireDroneMeshAuthorityInitializerAttestation && config.droneMeshAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'drone mesh authority initializer attestation is required');
+    }
+    if (policy.requireSwarmEthicsOversightCommitteeAttestation && config.swarmEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'swarm ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderDroneMeshClaims === 'boolean' && policy.banMalformedOrOutOfOrderDroneMeshClaims && !config.banMalformedOrOutOfOrderDroneMeshClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order drone mesh claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateClusterKeyringPrimitiveAuthorization(tenantPolicy, config) {
     const policy = { ...DEFAULT_POLICY.clusterKeyringPrimitiveAuthorization, ...(tenantPolicy.clusterKeyringPrimitiveAuthorization || {}) };
     if (typeof config.authorizationQuorum === 'number' && config.authorizationQuorum < policy.minAuthorizationQuorum) {
@@ -4763,6 +4809,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqBioDigitalInterfaceNeuralTelemetryGating') {
       this._validatePqBioDigitalInterfaceNeuralTelemetryGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqAutonomousDroneSwarmMeshRoutingGating') {
+      this._validatePqAutonomousDroneSwarmMeshRoutingGating(tenantPolicy, config);
       return true;
     }
 

@@ -1158,6 +1158,74 @@ router.get('/bio-digital-neural-telemetry/telemetry', authorize('admin:all'), fu
   }
 });
 
+// Track 113: Autonomous Drone Swarm Mesh-Routing Gating (unavailable — 503 guarded)
+// When the drone swarm mesh-routing gating hub is registered, flip DRONE_SWARM_MESH_ROUTING_GATING_ENABLED to true.
+const DRONE_SWARM_MESH_ROUTING_GATING_ENABLED = false;
+
+function requireAutonomousDroneSwarmMeshRoutingGating(res) {
+  if (!DRONE_SWARM_MESH_ROUTING_GATING_ENABLED) {
+    sendError(res, 503, 'autonomous_drone_swarm_mesh_routing_gating_unavailable', {
+      message: 'Track 113 Autonomous Drone Swarm Mesh-Routing Gating is not yet available.',
+    });
+    return false;
+  }
+  return true;
+}
+
+// GET /api/vault/autonomous-drone-swarm-mesh-routing/policy — expose active Track 113 policy defaults and bounds
+router.get('/autonomous-drone-swarm-mesh-routing/policy', authorize('admin:all'), function (req, res) {
+  if (!requireAutonomousDroneSwarmMeshRoutingGating(res)) return;
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.pqAutonomousDroneSwarmMeshRoutingGating,
+    });
+  } catch (err) {
+    sendError(res, 500, 'autonomous_drone_swarm_mesh_routing_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/autonomous-drone-swarm-mesh-routing/policy/validate — validate a proposed Track 113 configuration
+router.post('/autonomous-drone-swarm-mesh-routing/policy/validate', authorize('admin:all'), function (req, res) {
+  if (!requireAutonomousDroneSwarmMeshRoutingGating(res)) return;
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'pqAutonomousDroneSwarmMeshRoutingGating', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'autonomous_drone_swarm_mesh_routing_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/autonomous-drone-swarm-mesh-routing/telemetry — expose Track 113 telemetry counters
+router.get('/autonomous-drone-swarm-mesh-routing/telemetry', authorize('admin:all'), function (req, res) {
+  if (!requireAutonomousDroneSwarmMeshRoutingGating(res)) return;
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_dronegate_pool_initialized_total: allMetrics.hsm_dronegate_pool_initialized_total || 0,
+      hsm_zk_swarm_routing_verified_total: allMetrics.hsm_zk_swarm_routing_verified_total || 0,
+      hsm_topology_accreditation_completed_total: allMetrics.hsm_topology_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'autonomous_drone_swarm_mesh_routing_telemetry_fetch_failed', { message: err.message });
+  }
+});
+
 // GET /api/vault/zk-decentralized-storage/telemetry — expose Track 111 telemetry counters
 router.get('/zk-decentralized-storage/telemetry', authorize('admin:all'), function (req, res) {
   if (!requireZkDecentralizedStorageGating(res)) return;

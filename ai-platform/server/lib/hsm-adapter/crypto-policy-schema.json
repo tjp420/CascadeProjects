@@ -1037,6 +1037,17 @@
       "banMalformedOrOutOfOrderNeuralTelemetryClaims": true,
       "requireCanonicalPayloadLayout": true
     },
+    "pqAutonomousDroneSwarmMeshRoutingGating": {
+      "minSwarmQuorum": 32,
+      "maxTrajectoryValidationWindowSeconds": 5,
+      "maxSwarmTopologicalChainDepth": 72,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireDroneMeshAuthorityInitializerAttestation": true,
+      "requireSwarmEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderDroneMeshClaims": true,
+      "requireCanonicalPayloadLayout": true
+    },
     "clusterKeyringPrimitiveAuthorization": {
       "minAuthorizationQuorum": 3,
       "maxSyncWindowSeconds": 300,
