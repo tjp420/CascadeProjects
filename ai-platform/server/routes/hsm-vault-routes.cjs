@@ -1295,7 +1295,7 @@ router.get('/swarm-robotics-kinetic-assembly/telemetry', authorize('admin:all'),
 });
 
 // Track 115: Multi-Enclave Confidential Mesh State-Reconciliation Gating (unavailable — 503 guarded)
-const MULTI_ENCLAVE_CONFIDENTIAL_MESH_STATE_RECONCILIATION_GATING_ENABLED = false;
+const MULTI_ENCLAVE_CONFIDENTIAL_MESH_STATE_RECONCILIATION_GATING_ENABLED = true;
 
 function requireMultiEnclaveConfidentialMeshStateReconciliationGating(res) {
   if (!MULTI_ENCLAVE_CONFIDENTIAL_MESH_STATE_RECONCILIATION_GATING_ENABLED) {
