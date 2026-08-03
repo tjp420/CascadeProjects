@@ -83,7 +83,11 @@ class PartialShareProofManager {
     // Make a JSON-safe copy of the envelope where BigInts -> hex strings
     function cloneSerializable(obj) {
       if (obj === null) return null;
-      if (typeof obj === 'bigint') return obj.toString(16);
+      if (typeof obj === 'bigint') {
+        // Serialize BigInt as hex with 0x prefix so numeric parsing is unambiguous
+        if (obj < 0n) return '-0x' + (-obj).toString(16);
+        return '0x' + obj.toString(16);
+      }
       if (Buffer.isBuffer(obj)) return obj.toString('hex');
       if (Array.isArray(obj)) return obj.map(cloneSerializable);
       if (obj && typeof obj === 'object') {

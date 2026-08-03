@@ -44,6 +44,25 @@ describe('PartialShareProof validation', () => {
     const resBad4 = mgr.verifyPartialShareProof(bad4, publicKey);
     assert(resBad4 && resBad4.ok === false && resBad4.reason === 'numeric_oversize', 'oversized numeric value should be rejected');
   });
+
+  test('rejects values exceeding secp256k1 (257-bit) via env override', () => {
+    const mgr = new PartialShareProofManager();
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+
+    // Force policy to 256 bits via env override, so 257-bit values should be rejected
+    const prev = process.env.PROOF_MAX_FIELD_BITS;
+    process.env.PROOF_MAX_FIELD_BITS = '256';
+    try {
+      // Create a 257-bit value: (1 << 256) + 1
+      const big257 = (1n << 256n) + 1n;
+      const envelope = { sender: 'node-1', round: 1, share: { x: big257 } };
+      const proof = mgr.createPartialShareProof(envelope, privateKey);
+      const res = mgr.verifyPartialShareProof(proof, publicKey);
+      assert(res && res.ok === false && res.reason === 'numeric_oversize', '257-bit value should be rejected under 256-bit policy');
+    } finally {
+      if (typeof prev === 'undefined') delete process.env.PROOF_MAX_FIELD_BITS; else process.env.PROOF_MAX_FIELD_BITS = prev;
+    }
+  });
 });
 }
 

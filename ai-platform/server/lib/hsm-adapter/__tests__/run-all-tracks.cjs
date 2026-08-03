@@ -126,7 +126,7 @@ function resolveBaseTestFile(pattern) {
 function runSuite(pattern) {
   const target = resolveBaseTestFile(pattern);
   try {
-    const output = execSync(`npx jest ${target} --silent`, {
+    const output = execSync(`npx jest ${target} --silent --coverage=false`, {
       cwd: __dirname + '/../../..',
       stdio: ['pipe', 'pipe', 'pipe'],
       encoding: 'utf8',
