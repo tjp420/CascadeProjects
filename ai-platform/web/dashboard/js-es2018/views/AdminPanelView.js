@@ -1035,6 +1035,13 @@ export class AdminPanelView {
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount supply chain provenance gating dashboard:', e);
         }
+        // Mount ZK Decentralized Storage Attestation Gating (Track 111, policy + telemetry)
+        try {
+            const zkStorageDashboard = renderZkDecentralizedStorageAttestationGatingDashboard();
+            grid.appendChild(zkStorageDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount ZK decentralized storage gating dashboard:', e);
+        }
     }
 
     renderStats(onlineCount, tierCounts = {}, statusCounts = {}) {
