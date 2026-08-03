@@ -667,4 +667,5 @@ module.exports = {
   SESSION_KEY_LEN,
   PFS_SALT,
   PFS_INFO,
+  _sendMessage,
 };
