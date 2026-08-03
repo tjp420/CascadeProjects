@@ -690,6 +690,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderOrbitalClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqWaterGating: {
+    minWatershedQuorum: 4,
+    maxAllocationWindowSeconds: 31536000,
+    maxFlowChainDepth: 20,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireWaterAuthorityInitializerAttestation: true,
+    requireWatershedOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderWaterClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1079,6 +1090,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqSpaceGating: {
       ...DEFAULT_POLICY.pqSpaceGating,
       ...(tenantPolicy.pqSpaceGating || {}),
+    },
+    pqWaterGating: {
+      ...DEFAULT_POLICY.pqWaterGating,
+      ...(tenantPolicy.pqWaterGating || {}),
     },
   };
 }
@@ -2782,6 +2797,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqWaterGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqWaterGating, ...(tenantPolicy.pqWaterGating || {}) };
+    if (typeof config.watershedQuorum === 'number' && config.watershedQuorum < policy.minWatershedQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `watershed quorum ${config.watershedQuorum} below minimum ${policy.minWatershedQuorum}`);
+    }
+    if (typeof config.allocationWindowSeconds === 'number' && config.allocationWindowSeconds > policy.maxAllocationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `allocation window seconds ${config.allocationWindowSeconds} exceeds maximum ${policy.maxAllocationWindowSeconds}`);
+    }
+    if (typeof config.flowChainDepth === 'number' && config.flowChainDepth > policy.maxFlowChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `flow chain depth ${config.flowChainDepth} exceeds maximum ${policy.maxFlowChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireWaterAuthorityInitializerAttestation && config.waterAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'water authority initializer attestation is required');
+    }
+    if (policy.requireWatershedOversightCommitteeAttestation && config.watershedOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'watershed oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderWaterClaims === 'boolean' && policy.banMalformedOrOutOfOrderWaterClaims && !config.banMalformedOrOutOfOrderWaterClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order water claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3386,6 +3432,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSpaceGating') {
       this._validatePqSpaceGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqWaterGating') {
+      this._validatePqWaterGating(tenantPolicy, config);
       return true;
     }
 
