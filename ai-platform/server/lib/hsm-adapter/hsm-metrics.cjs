@@ -758,6 +758,20 @@ const counters = {
   hsm_strato_pool_initialized_total: 0,
   hsm_zk_aerosol_claim_verified_total: 0,
   hsm_deployment_accreditation_completed_total: 0,
+  hsm_sagate_pools_initialized_total: 0,
+  hsm_sagate_pools_accredited_total: 0,
+  hsm_sagate_pools_settled_total: 0,
+  hsm_sagate_pools_cancelled_total: 0,
+  hsm_sagate_pools_active: 0,
+  hsm_sagate_rebalances_total: 0,
+  hsm_sagate_batch_inits_total: 0,
+  hsm_sagate_committee_signatures_aggregated_total: 0,
+  hsm_sagate_claims_verified_total: 0,
+  hsm_sagate_claims_slashed_total: 0,
+  hsm_sagate_batch_verifications_total: 0,
+  hsm_sagate_hw_snark_proofs_generated_total: 0,
+  hsm_sagate_hw_snark_proofs_verified_total: 0,
+  hsm_sagate_banned_peers: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1392,6 +1406,20 @@ const META = {
   hsm_strato_pool_initialized_total: { help: 'Total stratospheric aerosol monitoring gating pools initialized.', type: 'counter' },
   hsm_zk_aerosol_claim_verified_total: { help: 'Total ZK aerosol monitoring claims verified.', type: 'counter' },
   hsm_deployment_accreditation_completed_total: { help: 'Total deployment accreditation completions finalized.', type: 'counter' },
+  hsm_sagate_pools_initialized_total: { help: 'Total stratospheric aerosol monitoring gating pools initialized.', type: 'counter' },
+  hsm_sagate_pools_accredited_total: { help: 'Total deployment accreditation completions finalized.', type: 'counter' },
+  hsm_sagate_pools_settled_total: { help: 'Total stratospheric aerosol monitoring gating pools settled cross-chain.', type: 'counter' },
+  hsm_sagate_pools_cancelled_total: { help: 'Total stratospheric aerosol monitoring gating pools cancelled.', type: 'counter' },
+  hsm_sagate_pools_active: { help: 'Number of active stratospheric aerosol monitoring gating pools.', type: 'gauge' },
+  hsm_sagate_rebalances_total: { help: 'Total monitoring chain depth rebalances performed.', type: 'counter' },
+  hsm_sagate_batch_inits_total: { help: 'Total batch pool initializations for stratospheric aerosol monitoring gating.', type: 'counter' },
+  hsm_sagate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for stratospheric aerosol monitoring gating pools.', type: 'counter' },
+  hsm_sagate_claims_verified_total: { help: 'Total ZK aerosol claim proofs verified.', type: 'counter' },
+  hsm_sagate_claims_slashed_total: { help: 'Total ZK aerosol claim proofs slashed.', type: 'counter' },
+  hsm_sagate_batch_verifications_total: { help: 'Total batch aerosol claim verifications performed.', type: 'counter' },
+  hsm_sagate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for aerosol claims.', type: 'counter' },
+  hsm_sagate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for aerosol claims.', type: 'counter' },
+  hsm_sagate_banned_peers: { help: 'Number of banned peers in stratospheric aerosol monitoring gating hub.', type: 'gauge' },
 };
 
 /**
