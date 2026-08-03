@@ -788,6 +788,18 @@ const counters = {
   hsm_execgate_pool_initialized_total: 0,
   hsm_zk_execution_claim_verified_total: 0,
   hsm_execution_accreditation_completed_total: 0,
+  hsm_didgate_pool_initialized_total: 0,
+  hsm_zk_identity_claim_verified_total: 0,
+  hsm_revocation_accreditation_completed_total: 0,
+  hsm_teleportgate_pool_initialized_total: 0,
+  hsm_zk_teleport_claim_verified_total: 0,
+  hsm_finality_accreditation_completed_total: 0,
+  hsm_gridgate_pool_initialized_total: 0,
+  hsm_zk_energy_grid_claim_verified_total: 0,
+  hsm_balancing_accreditation_completed_total: 0,
+  hsm_lasergate_pool_initialized_total: 0,
+  hsm_zk_laser_mesh_claim_verified_total: 0,
+  hsm_handoff_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1448,6 +1460,18 @@ const META = {
   hsm_execgate_pool_initialized_total: { help: 'Total smart-contract verifiable execution gating pools initialized.', type: 'counter' },
   hsm_zk_execution_claim_verified_total: { help: 'Total ZK smart-contract verifiable execution claims verified.', type: 'counter' },
   hsm_execution_accreditation_completed_total: { help: 'Total execution accreditation completions finalized.', type: 'counter' },
+  hsm_didgate_pool_initialized_total: { help: 'Total decentralized identity proof gating pools initialized.', type: 'counter' },
+  hsm_zk_identity_claim_verified_total: { help: 'Total ZK decentralized identity claims verified.', type: 'counter' },
+  hsm_revocation_accreditation_completed_total: { help: 'Total decentralized identity revocation accreditation completions finalized.', type: 'counter' },
+  hsm_teleportgate_pool_initialized_total: { help: 'Total cross-shard asset teleportation gating pools initialized.', type: 'counter' },
+  hsm_zk_teleport_claim_verified_total: { help: 'Total ZK cross-shard teleport claims verified.', type: 'counter' },
+  hsm_finality_accreditation_completed_total: { help: 'Total cross-shard finality accreditation completions finalized.', type: 'counter' },
+  hsm_gridgate_pool_initialized_total: { help: 'Total decentralized energy grid balancing gating pools initialized.', type: 'counter' },
+  hsm_zk_energy_grid_claim_verified_total: { help: 'Total ZK decentralized energy grid claims verified.', type: 'counter' },
+  hsm_balancing_accreditation_completed_total: { help: 'Total decentralized energy grid balancing accreditation completions finalized.', type: 'counter' },
+  hsm_lasergate_pool_initialized_total: { help: 'Total space-based laser communication mesh gating pools initialized.', type: 'counter' },
+  hsm_zk_laser_mesh_claim_verified_total: { help: 'Total ZK space-based laser mesh claims verified.', type: 'counter' },
+  hsm_handoff_accreditation_completed_total: { help: 'Total space-based laser mesh handoff accreditation completions finalized.', type: 'counter' },
 };
 
 /**

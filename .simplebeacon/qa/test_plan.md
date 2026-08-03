@@ -1,59 +1,81 @@
-# Test Plan — Track 61 Recursive Proof Aggregation Engine
+# test_plan.md — Track 105: Decentralized Identity Proof Gating UI
 
-**Branch:** `feature/track61-recursive-zk-vdf`
-**Date:** 2026-08-02
-**Status:** Active
+## Metadata
 
-## Objective
+| Field | Value |
+|-------|-------|
+| Feature / change | Add dashboard UI and REST endpoints for `pqDecentralizedIdentityProofGating` policy administration and telemetry |
+| Author (Builder) | Devin |
+| Date | 2026-08-03 |
+| Branch | `feat/track105-decentralized-identity-gating-ui` |
+| Packages touched | ai-platform |
 
-Compress multi-hop mixnet states and VDF proofs using recursive SNARK composition. A "proof of proofs" that folds multiple proofs into a single succinct proof, enabling O(log N) verification of arbitrarily long computation chains.
+## Scope
 
-## Change Set
+### Files in scope
 
-| File | Change |
-|------|--------|
-| server/lib/hsm-adapter/recursive-proof-aggregation-engine.cjs | New — RecursiveProofAggregationEngine class (604 lines) |
-| server/lib/hsm-adapter/hsm-metrics.cjs | Added 8 Track 61 counters |
-| server/lib/hsm-adapter/__tests__/recursive-proof-aggregation-engine.test.cjs | New — 41 tests |
-| .simplebeacon/qa/test_plan.md | Updated |
-| .simplebeacon/qa/software_health_report.md | Updated |
+- `ai-platform/server/routes/hsm-vault-routes.cjs`
+- `ai-platform/web/dashboard/js-es2018/components/DecentralizedIdentityGatingDashboard.js` (new)
+- `ai-platform/web/dashboard/js-es2018/views/AdminPanelView.js`
+- `ai-platform/server/lib/__tests__/hsm-vault-decentralized-identity-routes.test.cjs` (new)
 
-## Architecture
+### APIs / routes
 
-- **RecursiveProofFolder**: Folds two proofs into one via recursion
-- **ProofChainBuilder**: Builds chains of recursively composed proofs
-- **VdfRecursiveAggregator**: Aggregates VDF proofs recursively
-- **MixnetStateCompressor**: Compresses multi-hop mixnet states
-- **SuccinctVerifier**: Verifies recursive proofs in constant time
-- **ProofTreeBuilder**: Builds tree-structured proof aggregation
-- **RecursiveCircuitCompiler**: Compiles recursion circuits
-- **AggregationScheduler**: Schedules batch aggregation rounds
+- `GET  /api/hsm/vault/decentralized-identity/policy`
+- `POST /api/hsm/vault/decentralized-identity/policy/validate`
+- `GET  /api/hsm/vault/decentralized-identity/telemetry`
 
-## Check Items
+### UI / IDE surfaces
 
-### Level 1 - Deterministic
-- [x] L1.1 node -c all modified JS files - PASS
-- [x] L1.2 41 new Track 61 tests pass
-- [x] L1.3 741 existing tests pass (no regression)
-- [x] L1.4 No new dependencies
+- HSM dashboard admin panel telemetry grid (`#admin-telemetry-grid`)
+- New `DecentralizedIdentityGatingDashboard` card with policy form and telemetry counters
 
-### Level 2 - Functional
-- [x] L2.01 submitProof (7 tests)
-- [x] L2.02 foldProofs (5 tests)
-- [x] L2.03 aggregateChain (4 tests)
-- [x] L2.04 aggregateTree (4 tests)
-- [x] L2.05 aggregateVdfProofs (3 tests)
-- [x] L2.06 compressMixnetState (3 tests)
-- [x] L2.07 verifyAggregation (4 tests)
-- [x] L2.08 getProof (2 tests)
-- [x] L2.09 getAggregation (2 tests)
-- [x] L2.10 getAggregations (1 test)
-- [x] L2.11 getCompletedAggregations (1 test)
-- [x] L2.12 getStats (1 test)
-- [x] L2.13 reset (1 test)
-- [x] L2.14 full recursive aggregation flow (3 tests)
+---
 
-### Level 3 - Security
-- [x] L3.01 No secrets exposed
-- [x] L3.02 No scope creep
-- [x] L3.03 No regression
+## Level 1 — Deterministic
+
+| ID | Check | Command / method | Pass |
+|----|-------|------------------|------|
+| L1-01 | Syntax on new/changed `.cjs` | `node -c <file>` | [ ] |
+| L1-02 | New route tests | `cd ai-platform && npx jest hsm-vault-decentralized-identity-routes` | [ ] |
+| L1-03 | Existing HSM route tests still pass | `cd ai-platform && npx jest hsm-vault` | [ ] |
+| L1-04 | SimpleBeacon gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
+
+---
+
+## Level 2 — Behavioral
+
+| ID | Scenario | Steps | Expected | Pass |
+|----|----------|-------|----------|------|
+| L2-01 | GET policy returns defaults | `GET /api/hsm/vault/decentralized-identity/policy` | JSON with all Track 105 policy fields and bounds | [ ] |
+| L2-02 | POST valid policy returns 200 | `POST .../policy/validate` with valid fields | `{ valid: true }` | [ ] |
+| L2-03 | POST invalid `identityQuorum` returns 400 | `POST .../policy/validate` with `identityQuorum: 5` | `400 Bad Request` with `POLICY_VIOLATION_BLOCKED` | [ ] |
+| L2-04 | POST invalid `pqcSignatureScheme` returns 400 | `POST .../policy/validate` with `pqcSignatureScheme: 'falcon-512'` | `400 Bad Request` with `POLICY_VIOLATION_BLOCKED` | [ ] |
+| L2-05 | GET telemetry returns counters | `GET /api/hsm/vault/decentralized-identity/telemetry` | JSON with `hsm_didgate_*` values | [ ] |
+| L2-06 | Dashboard card renders | Open `/dashboard/admin` grid | Card with form and telemetry tiles visible | [ ] |
+| L2-07 | Form validation reflects backend | Submit invalid form values | Error message from `POLICY_VIOLATION_BLOCKED` shown | [ ] |
+
+---
+
+## Level 3 — Edge cases & regression
+
+| ID | Case | Expected | Pass |
+|----|------|----------|------|
+| L3-01 | Missing `majorityFingerprint` — not applicable (policy-only) | N/A | [ ] |
+| L3-02 | Admin panel still mounts other telemetry cards | Other dashboard cards load | [ ] |
+| L3-03 | Form field names match `crypto-policy-schema.json` | `identityQuorum`, `revocationWindowSeconds`, etc. | [ ] |
+
+---
+
+## Security
+
+| ID | Requirement | Pass |
+|----|-------------|------|
+| S-01 | No secrets in form defaults or mock payloads | [ ] |
+| S-02 | Only admin-authenticated requests served (existing auth middleware) | [ ] |
+
+---
+
+## Approval
+
+- [x] User approved this plan (prior message)
