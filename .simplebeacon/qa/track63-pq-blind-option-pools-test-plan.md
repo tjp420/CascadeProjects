@@ -90,15 +90,82 @@ OPTEXEC:<execId>:<poolId>:<executionSignatureCount>:<clearingCommitteeAttestatio
 - **L2 Behavioral**: Simulate a three-node clearing committee with attested initializer and clearing committee relay, verify margin adequacy proof authentication and option contract execution.
 - **L3 Reflection**: Spec alignment, minimal file count, no ghost modules.
 
-## Files expected to change
+## Extension scope (Track 63 Phase 2)
 
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json`
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs`
-- `ai-platform/server/lib/hsm-adapter/pqc-blind-option-pool-hub.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/zk-margin-adequacy-processor.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/base-adapter.cjs`
-- `ai-platform/server/lib/hsm-adapter/__tests__/pq-blind-option-pools.test.cjs` *(new)*
+### New capabilities added
+
+- **VDF-locked execution windows** — each pool now carries Wesolowski VDF parameters (difficulty, seed, proof hash, unlock timestamp). Enforcement is opt-in via `enforceVdfLock` flag.
+- **Cross-chain settlement coordination** — settle executed contracts on the target chain with settlement proof hashes.
+- **Batch pool initialization** — initialize multiple pools in a single batch call with per-pool results.
+- **Committee signature aggregation** — BLS-style aggregate signature from partial committee signatures.
+- **Pool cancellation** — cancel open pools (rejects if already executed/settled).
+- **Pool expiration** — explicitly expire pools past their useful window.
+- **Hardware-accelerated SNARK proof generation** — generate Groth16 SNARK proofs with configurable HW acceleration (GPU CUDA, FPGA, ASIC, simulated).
+- **Batch margin verification** — verify multiple margin adequacy proofs in a single batch call.
+- **Partial signature aggregation** — aggregate partial signatures from clearing committee members with banned-peer rejection.
+- **Slashing window validation** — validate proof timestamps within configurable slashing window.
+- **Slashing event recording** — record slash events with reason codes (sub-collateral, collateral below strike, malformed, duplicate, banned peer).
+- **Summary statistics** — both hub and processor expose `getStats()` methods.
+
+### Extension test checklist
+
+#### Positive paths
+
+- [x] Pool initialization includes VDF lock parameters.
+- [x] VDF lock is not enforced by default (backward compatible).
+- [x] VDF lock is enforced when `enforceVdfLock` is true.
+- [x] Cross-chain settlement works for executed contracts.
+- [x] Batch initialization creates multiple pools.
+- [x] Committee signatures can be aggregated.
+- [x] Pools can be cancelled.
+- [x] Pools can be expired.
+- [x] HW-SNARK proof generation produces Groth16 proofs.
+- [x] Batch margin verification processes multiple proofs.
+- [x] Partial signatures can be aggregated.
+- [x] Slashing window validation works for in-window proofs.
+- [x] Full init → HW-SNARK → margin → aggregate → execute → settle flow works end-to-end.
+
+#### Security / edge cases
+
+- [x] Reject VDF difficulty below minimum.
+- [x] Reject VDF difficulty above maximum.
+- [x] Reject execution when VDF lock is enforced and not yet unlocked.
+- [x] Reject settlement of non-executed pool.
+- [x] Reject settlement with mismatched chain.
+- [x] Reject settlement with missing poolId.
+- [x] Reject settlement with missing targetChainId.
+- [x] Reject batch init with empty array.
+- [x] Reject batch init exceeding max size.
+- [x] Reject committee aggregation with insufficient signatures.
+- [x] Reject committee aggregation with no signatures.
+- [x] Reject committee aggregation for unknown pool.
+- [x] Reject cancelling executed pool.
+- [x] Reject double cancellation.
+- [x] Reject double expiration.
+- [x] Reject cancelling unknown pool.
+- [x] Reject expiring unknown pool.
+- [x] Reject HW-SNARK proof generation with missing poolId.
+- [x] Reject HW-SNARK proof generation with missing values.
+- [x] Reject HW-SNARK proof generation for unknown pool.
+- [x] Reject empty batch verification.
+- [x] Reject batch verification exceeding max size.
+- [x] Reject partial signature aggregation with banned peer.
+- [x] Reject partial signature aggregation with insufficient signatures.
+- [x] Reject partial signature aggregation with missing poolId.
+- [x] Detect proof outside slashing window.
+- [x] Reject slashing window validation for unknown pool.
+- [x] Reject slashing window validation with invalid timestamp.
+- [x] Record slashes for sub-collateral proofs.
+- [x] PROOF_STATUS, SLASH_REASON, HW_ACCEL_TYPES, POOL_STATUS, VDF_PARAMS constants exported.
+
+## Files changed (Phase 2 extension)
+
+- `ai-platform/server/lib/hsm-adapter/pqc-blind-option-pool-hub.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/zk-margin-adequacy-processor.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(14 new counters)*
+- `ai-platform/server/lib/hsm-adapter/__tests__/pq-blind-option-pools-extensions.test.cjs` *(new, 53 tests)*
 
 ## Approval
 
-Pending Validator review.
+Phase 1: Approved and merged (15 tests).
+Phase 2: Pending Validator review.
