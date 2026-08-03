@@ -76,6 +76,7 @@ const SUITES = [
   'pq-dao-treasury-management-gating',
   'pq-telecom-routing-gating',
   'pq-health-insurance-claim-auditing-gating',
+  'pq-space-asset-telemetry-gating',
 ];
 
 function runSuite(pattern) {
