@@ -734,6 +734,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderMicroTransactionClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqEpidemiologyGating: {
+    minEpidemiologyQuorum: 5,
+    maxSurveillanceWindowSeconds: 604800,
+    maxGenomicChainDepth: 16,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireWhoAuthorityInitializerAttestation: true,
+    requireEpidemiologyOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderEpidemiologicalClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1139,6 +1150,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqSmartGridGating: {
       ...DEFAULT_POLICY.pqSmartGridGating,
       ...(tenantPolicy.pqSmartGridGating || {}),
+    },
+    pqEpidemiologyGating: {
+      ...DEFAULT_POLICY.pqEpidemiologyGating,
+      ...(tenantPolicy.pqEpidemiologyGating || {}),
     },
   };
 }
@@ -2966,6 +2981,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqEpidemiologyGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqEpidemiologyGating, ...(tenantPolicy.pqEpidemiologyGating || {}) };
+    if (typeof config.epidemiologyQuorum === 'number' && config.epidemiologyQuorum < policy.minEpidemiologyQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `epidemiology quorum ${config.epidemiologyQuorum} below minimum ${policy.minEpidemiologyQuorum}`);
+    }
+    if (typeof config.surveillanceWindowSeconds === 'number' && config.surveillanceWindowSeconds > policy.maxSurveillanceWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `surveillance window seconds ${config.surveillanceWindowSeconds} exceeds maximum ${policy.maxSurveillanceWindowSeconds}`);
+    }
+    if (typeof config.genomicChainDepth === 'number' && config.genomicChainDepth > policy.maxGenomicChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `genomic chain depth ${config.genomicChainDepth} exceeds maximum ${policy.maxGenomicChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireWhoAuthorityInitializerAttestation && config.whoAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'WHO authority initializer attestation is required');
+    }
+    if (policy.requireEpidemiologyOversightCommitteeAttestation && config.epidemiologyOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'epidemiology oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderEpidemiologicalClaims === 'boolean' && policy.banMalformedOrOutOfOrderEpidemiologicalClaims && !config.banMalformedOrOutOfOrderEpidemiologicalClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order epidemiological claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3590,6 +3636,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSmartGridGating') {
       this._validatePqSmartGridGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqEpidemiologyGating') {
+      this._validatePqEpidemiologyGating(tenantPolicy, config);
       return true;
     }
 
