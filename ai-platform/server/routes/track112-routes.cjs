@@ -8,6 +8,7 @@
 const express = require('express');
 const { authorize } = require('../middleware/authorize.cjs');
 const { sendError } = require('../lib/response-helpers.cjs');
+const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
 
 const router = express.Router();
 
@@ -31,6 +32,8 @@ router.post('/ingest', runAsync(async (req, res) => {
   if (size > MAX_INGEST_BYTES) return sendError(res, 413, 'payload_too_large');
   // Normally enqueue for async processing — here we accept and return an id
   const jobId = `track112-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+  // Increment ingest counter
+  try { hsmMetrics.incrementCounter('hsm_track112_ingest_total'); } catch (e) {}
   res.json({ success: true, jobId, size });
 }));
 
@@ -38,6 +41,8 @@ router.post('/ingest', runAsync(async (req, res) => {
 router.post('/scan', authorize('admin:all'), runAsync(async (req, res) => {
   // In production this would schedule an async job and return job id
   const jobId = `scan-${Date.now()}`;
+  // Record that a scan was initiated
+  try { hsmMetrics.incrementCounter('hsm_track112_scans_initiated_total'); } catch (e) {}
   res.json({ success: true, jobId });
 }));
 
@@ -46,12 +51,22 @@ router.post('/proof', authorize('admin:all'), runAsync(async (req, res) => {
   const proof = req.body && req.body.proof;
   if (!proof) return sendError(res, 400, 'missing_proof');
   // Validate/stash proof (placeholder)
+  try { hsmMetrics.incrementCounter('hsm_track112_proofs_verified_total'); } catch (e) {}
   res.json({ success: true, stored: true });
 }));
 
 // Metrics: admin-only, exposes a JSON snapshot for now
 router.get('/metrics', authorize('admin:all'), runAsync(async (req, res) => {
-  const metrics = { ingested: 0, scansQueued: 0 };
+  const accept = (req.get('accept') || '').toLowerCase();
+  if (accept.includes('text/plain')) {
+    res.type('text/plain').send(hsmMetrics.renderPrometheus());
+    return;
+  }
+  const all = hsmMetrics.getMetrics();
+  const metrics = {};
+  for (const [k, v] of Object.entries(all)) {
+    if (k.startsWith('hsm_track112_')) metrics[k] = v;
+  }
   res.json({ success: true, metrics, timestamp: Date.now() });
 }));
 

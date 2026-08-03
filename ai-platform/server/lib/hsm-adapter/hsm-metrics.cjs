@@ -836,6 +836,10 @@ const counters = {
   hsm_zk_kinetic_posture_verified_total: 0,
   hsm_assembly_accreditation_completed_total: 0,
   hsm_kineticgate_challenge_issued_total: 0,
+  hsm_meshgate_pool_initialized_total: 0,
+  hsm_zk_mesh_state_reconciled_total: 0,
+  hsm_epoch_finality_completed_total: 0,
+  hsm_meshgate_challenge_issued_total: 0,
   hsm_supplygate_pool_initialized_total: 0,
   hsm_zk_provenance_claim_verified_total: 0,
   hsm_lineage_accreditation_completed_total: 0,
@@ -846,6 +850,10 @@ const counters = {
   hsm_primitive_pool_authorized_total: 0,
   hsm_primitive_pool_synced_total: 0,
   hsm_primitive_authorization_revoked_total: 0,
+  // Track 112: Structural reconnaissance telemetry
+  hsm_track112_ingest_total: 0,
+  hsm_track112_scans_initiated_total: 0,
+  hsm_track112_proofs_verified_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -934,6 +942,10 @@ const META = {
   // Track 43: Multiparty Auditing and Remote Attestation Logs
   hsm_audit_entry_appended_total: { help: 'Total audit entries appended to the multiparty log.', type: 'counter' },
   hsm_audit_entry_committed_total: { help: 'Total audit entries committed (reached min verifier signatures).', type: 'counter' },
+  // Track 112: Structural reconnaissance telemetry
+  hsm_track112_ingest_total: { help: 'Total payloads ingested for Track112 structural reconnaissance.', type: 'counter' },
+  hsm_track112_scans_initiated_total: { help: 'Total structural scans initiated for Track112.', type: 'counter' },
+  hsm_track112_proofs_verified_total: { help: 'Total proofs verified for Track112.', type: 'counter' },
   hsm_audit_entry_pending: { help: 'Number of audit entries currently pending verification.', type: 'gauge' },
   hsm_audit_signature_added_total: { help: 'Total verifier signatures added to audit entries.', type: 'counter' },
   hsm_audit_verification_timeout_total: { help: 'Total audit entries that timed out before reaching quorum.', type: 'counter' },
