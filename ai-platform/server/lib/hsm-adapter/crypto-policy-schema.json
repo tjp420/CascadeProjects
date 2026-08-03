@@ -859,6 +859,17 @@
       "aggregationTimeoutMs": 30000,
       "requireEnclaveAttestation": true,
       "allowedAttestationAuthorities": ["mock-authority"]
+    },
+    "pqStratosphericAerosolGating": {
+      "minClimateQuorum": 4,
+      "maxDeploymentWindowSeconds": 31536000,
+      "maxMonitoringChainDepth": 16,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireClimateAuthorityInitializerAttestation": true,
+      "requireStratosphericOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderAerosolClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

@@ -86,6 +86,7 @@ const SUITES = [
   'pq-ocean-fisheries-allocation-gating',
   'pq-deep-sea-mineral-rights-gating',
   'pq-polar-research-data-gating',
+  'pq-stratospheric-aerosol-monitoring-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',

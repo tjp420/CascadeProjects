@@ -2328,6 +2328,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_data_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 97 stratospheric aerosol monitoring gating telemetry hooks ──
+
+  /**
+   * Emit a stratospheric monitoring pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitStratosphericMonitoringPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('STRATOSPHERIC_MONITORING_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_strato_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK aerosol claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkAerosolClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_AEROSOL_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_aerosol_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a deployment accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitDeploymentAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('DEPLOYMENT_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_deployment_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
