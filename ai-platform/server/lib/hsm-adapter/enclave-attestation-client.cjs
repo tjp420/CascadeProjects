@@ -75,7 +75,18 @@ class EnclaveAttestationClient {
       return { valid: false, reason: 'attestation signature invalid' };
     }
 
+    this._cache.set(attestation.mrenclave || attestation.measurement, true);
     return { valid: true, mrenclave: attestation.mrenclave, authority: attestation.authority };
+  }
+
+  /**
+   * Check whether a measurement or id has already been verified.
+   * @param {string} id
+   * @returns {boolean}
+   */
+  isVerified(id) {
+    if (!id) return false;
+    return this._cache.has(id);
   }
 
   _verifySignature(attestation) {

@@ -15,6 +15,9 @@ class MockAttestationClient {
     if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
     return { verified: true };
   }
+  isVerified(id) {
+    return typeof id === 'string' && id.startsWith('n') && id !== 'n4';
+  }
 }
 
 const POLICY = {
