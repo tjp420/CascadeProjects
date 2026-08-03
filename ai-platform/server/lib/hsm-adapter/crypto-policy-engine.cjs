@@ -800,6 +800,61 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderAerosolClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqOrbitalDebrisTrackingGating: {
+    minOrbitalQuorum: 5,
+    maxCollisionWindowSeconds: 15768000,
+    maxTrackingChainDepth: 18,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireSpaceSurveillanceAuthorityInitializerAttestation: true,
+    requireOrbitalDebrisOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderDebrisClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  pqGenomicPrivacyComplianceGating: {
+    minGenomicQuorum: 6,
+    maxConsentWindowSeconds: 31536000,
+    maxComplianceChainDepth: 20,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireGenomicPrivacyAuthorityInitializerAttestation: true,
+    requireGenomicEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderGenomicClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  pqQuantumSensorCalibrationGating: {
+    minQuantumQuorum: 7,
+    maxCalibrationWindowSeconds: 7776000,
+    maxCalibrationChainDepth: 22,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireQuantumMetrologyAuthorityInitializerAttestation: true,
+    requireQuantumStandardsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderQuantumClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  pqNeuralNetworkInferenceIntegrityGating: {
+    minNeuralQuorum: 8,
+    maxInferenceWindowSeconds: 604800,
+    maxInferenceChainDepth: 24,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireNeuralNetworkAuthorityInitializerAttestation: true,
+    requireNeuralEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderNeuralClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  pqAutonomousVehicleFleetCoordinationGating: {
+    minAutonomousQuorum: 9,
+    maxCoordinationWindowSeconds: 86400,
+    maxCoordinationChainDepth: 26,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireAutonomousMobilityAuthorityInitializerAttestation: true,
+    requireAutonomousEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderAutonomousClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1229,6 +1284,26 @@ function _mergeWithDefault(tenantPolicy) {
     pqStratosphericAerosolGating: {
       ...DEFAULT_POLICY.pqStratosphericAerosolGating,
       ...(tenantPolicy.pqStratosphericAerosolGating || {}),
+    },
+    pqOrbitalDebrisTrackingGating: {
+      ...DEFAULT_POLICY.pqOrbitalDebrisTrackingGating,
+      ...(tenantPolicy.pqOrbitalDebrisTrackingGating || {}),
+    },
+    pqGenomicPrivacyComplianceGating: {
+      ...DEFAULT_POLICY.pqGenomicPrivacyComplianceGating,
+      ...(tenantPolicy.pqGenomicPrivacyComplianceGating || {}),
+    },
+    pqQuantumSensorCalibrationGating: {
+      ...DEFAULT_POLICY.pqQuantumSensorCalibrationGating,
+      ...(tenantPolicy.pqQuantumSensorCalibrationGating || {}),
+    },
+    pqNeuralNetworkInferenceIntegrityGating: {
+      ...DEFAULT_POLICY.pqNeuralNetworkInferenceIntegrityGating,
+      ...(tenantPolicy.pqNeuralNetworkInferenceIntegrityGating || {}),
+    },
+    pqAutonomousVehicleFleetCoordinationGating: {
+      ...DEFAULT_POLICY.pqAutonomousVehicleFleetCoordinationGating,
+      ...(tenantPolicy.pqAutonomousVehicleFleetCoordinationGating || {}),
     },
   };
 }
@@ -3242,6 +3317,161 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqOrbitalDebrisTrackingGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqOrbitalDebrisTrackingGating, ...(tenantPolicy.pqOrbitalDebrisTrackingGating || {}) };
+    if (typeof config.orbitalQuorum === 'number' && config.orbitalQuorum < policy.minOrbitalQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `orbital quorum ${config.orbitalQuorum} below minimum ${policy.minOrbitalQuorum}`);
+    }
+    if (typeof config.collisionWindowSeconds === 'number' && config.collisionWindowSeconds > policy.maxCollisionWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `collision window seconds ${config.collisionWindowSeconds} exceeds maximum ${policy.maxCollisionWindowSeconds}`);
+    }
+    if (typeof config.trackingChainDepth === 'number' && config.trackingChainDepth > policy.maxTrackingChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `tracking chain depth ${config.trackingChainDepth} exceeds maximum ${policy.maxTrackingChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireSpaceSurveillanceAuthorityInitializerAttestation && config.spaceSurveillanceAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'space surveillance authority initializer attestation is required');
+    }
+    if (policy.requireOrbitalDebrisOversightCommitteeAttestation && config.orbitalDebrisOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'orbital debris oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderDebrisClaims === 'boolean' && policy.banMalformedOrOutOfOrderDebrisClaims && !config.banMalformedOrOutOfOrderDebrisClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order debris claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validatePqGenomicPrivacyComplianceGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqGenomicPrivacyComplianceGating, ...(tenantPolicy.pqGenomicPrivacyComplianceGating || {}) };
+    if (typeof config.genomicQuorum === 'number' && config.genomicQuorum < policy.minGenomicQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `genomic quorum ${config.genomicQuorum} below minimum ${policy.minGenomicQuorum}`);
+    }
+    if (typeof config.consentWindowSeconds === 'number' && config.consentWindowSeconds > policy.maxConsentWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `consent window seconds ${config.consentWindowSeconds} exceeds maximum ${policy.maxConsentWindowSeconds}`);
+    }
+    if (typeof config.complianceChainDepth === 'number' && config.complianceChainDepth > policy.maxComplianceChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `compliance chain depth ${config.complianceChainDepth} exceeds maximum ${policy.maxComplianceChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireGenomicPrivacyAuthorityInitializerAttestation && config.genomicPrivacyAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'genomic privacy authority initializer attestation is required');
+    }
+    if (policy.requireGenomicEthicsOversightCommitteeAttestation && config.genomicEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'genomic ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderGenomicClaims === 'boolean' && policy.banMalformedOrOutOfOrderGenomicClaims && !config.banMalformedOrOutOfOrderGenomicClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order genomic claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validatePqQuantumSensorCalibrationGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqQuantumSensorCalibrationGating, ...(tenantPolicy.pqQuantumSensorCalibrationGating || {}) };
+    if (typeof config.quantumQuorum === 'number' && config.quantumQuorum < policy.minQuantumQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `quantum quorum ${config.quantumQuorum} below minimum ${policy.minQuantumQuorum}`);
+    }
+    if (typeof config.calibrationWindowSeconds === 'number' && config.calibrationWindowSeconds > policy.maxCalibrationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `calibration window seconds ${config.calibrationWindowSeconds} exceeds maximum ${policy.maxCalibrationWindowSeconds}`);
+    }
+    if (typeof config.calibrationChainDepth === 'number' && config.calibrationChainDepth > policy.maxCalibrationChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `calibration chain depth ${config.calibrationChainDepth} exceeds maximum ${policy.maxCalibrationChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireQuantumMetrologyAuthorityInitializerAttestation && config.quantumMetrologyAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'quantum metrology authority initializer attestation is required');
+    }
+    if (policy.requireQuantumStandardsOversightCommitteeAttestation && config.quantumStandardsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'quantum standards oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderQuantumClaims === 'boolean' && policy.banMalformedOrOutOfOrderQuantumClaims && !config.banMalformedOrOutOfOrderQuantumClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order quantum claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validatePqNeuralNetworkInferenceIntegrityGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqNeuralNetworkInferenceIntegrityGating, ...(tenantPolicy.pqNeuralNetworkInferenceIntegrityGating || {}) };
+    if (typeof config.neuralQuorum === 'number' && config.neuralQuorum < policy.minNeuralQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `neural quorum ${config.neuralQuorum} below minimum ${policy.minNeuralQuorum}`);
+    }
+    if (typeof config.inferenceWindowSeconds === 'number' && config.inferenceWindowSeconds > policy.maxInferenceWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `inference window seconds ${config.inferenceWindowSeconds} exceeds maximum ${policy.maxInferenceWindowSeconds}`);
+    }
+    if (typeof config.inferenceChainDepth === 'number' && config.inferenceChainDepth > policy.maxInferenceChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `inference chain depth ${config.inferenceChainDepth} exceeds maximum ${policy.maxInferenceChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireNeuralNetworkAuthorityInitializerAttestation && config.neuralNetworkAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'neural network authority initializer attestation is required');
+    }
+    if (policy.requireNeuralEthicsOversightCommitteeAttestation && config.neuralEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'neural ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderNeuralClaims === 'boolean' && policy.banMalformedOrOutOfOrderNeuralClaims && !config.banMalformedOrOutOfOrderNeuralClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order neural claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validatePqAutonomousVehicleFleetCoordinationGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqAutonomousVehicleFleetCoordinationGating, ...(tenantPolicy.pqAutonomousVehicleFleetCoordinationGating || {}) };
+    if (typeof config.autonomousQuorum === 'number' && config.autonomousQuorum < policy.minAutonomousQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `autonomous quorum ${config.autonomousQuorum} below minimum ${policy.minAutonomousQuorum}`);
+    }
+    if (typeof config.coordinationWindowSeconds === 'number' && config.coordinationWindowSeconds > policy.maxCoordinationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `coordination window seconds ${config.coordinationWindowSeconds} exceeds maximum ${policy.maxCoordinationWindowSeconds}`);
+    }
+    if (typeof config.coordinationChainDepth === 'number' && config.coordinationChainDepth > policy.maxCoordinationChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `coordination chain depth ${config.coordinationChainDepth} exceeds maximum ${policy.maxCoordinationChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireAutonomousMobilityAuthorityInitializerAttestation && config.autonomousMobilityAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'autonomous mobility authority initializer attestation is required');
+    }
+    if (policy.requireAutonomousEthicsOversightCommitteeAttestation && config.autonomousEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'autonomous ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderAutonomousClaims === 'boolean' && policy.banMalformedOrOutOfOrderAutonomousClaims && !config.banMalformedOrOutOfOrderAutonomousClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order autonomous claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3896,6 +4126,31 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqStratosphericAerosolGating') {
       this._validatePqStratosphericAerosolGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqOrbitalDebrisTrackingGating') {
+      this._validatePqOrbitalDebrisTrackingGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqGenomicPrivacyComplianceGating') {
+      this._validatePqGenomicPrivacyComplianceGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqQuantumSensorCalibrationGating') {
+      this._validatePqQuantumSensorCalibrationGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqNeuralNetworkInferenceIntegrityGating') {
+      this._validatePqNeuralNetworkInferenceIntegrityGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqAutonomousVehicleFleetCoordinationGating') {
+      this._validatePqAutonomousVehicleFleetCoordinationGating(tenantPolicy, config);
       return true;
     }
 

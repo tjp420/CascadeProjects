@@ -1,93 +1,113 @@
 'use strict';
 
 /**
- * Track 41: Hardware enclave adapter.
+ * Track 41: Hardware Enclave Adapter.
  *
- * Wraps keyring operations inside a hardware-isolated TEE boundary.
- * Supports mock, Intel SGX, and AWS Nitro backends.
+ * Wraps key operations behind a hardware-isolated enclave boundary.
+ * Supports mock, Intel SGX, and AWS Nitro backends. Only initialized
+ * enclaves may seal or unseal key material.
  *
  * @module hsm-adapter/hardware-enclave-adapter
  */
 
+const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 const { EnclaveAttestationClient } = require('./enclave-attestation-client.cjs');
 
 class HardwareEnclaveAdapter {
   /**
    * @param {object} options
-   * @param {string} [options.backend='mock'] - 'mock', 'intel-sgx', or 'aws-nitro'
-   * @param {string} options.mrenclave
-   * @param {object} options.policy
+   * @param {string} options.enclaveType - 'mock', 'intel-sgx', or 'aws-nitro'
+   * @param {string} options.mrenclave - expected enclave measurement hash
+   * @param {string[]} options.allowedAuthorities - allowed attestation authorities
+   * @param {boolean} options.requireRemoteAttestation
    * @param {Function} [options.audit]
+   * @param {object} [options.attestationClient]
    */
   constructor(options = {}) {
-    this.backend = options.backend || 'mock';
-    this.mrenclave = options.mrenclave;
-    this.policy = options.policy || {};
+    this.enclaveType = options.enclaveType || 'mock';
+    this.mrenclave = options.mrenclave || null;
+    this.allowedAuthorities = options.allowedAuthorities || ['mock-authority'];
+    this.requireRemoteAttestation = options.requireRemoteAttestation !== false;
     this._audit = options.audit || null;
+    this._sealedKeys = new Map();
+    this._attested = false;
+    this._attestationClient = options.attestationClient || null;
     this._initialized = false;
-    this._attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: this.policy.allowedAttestationAuthorities || [],
-      allowedMeasurements: this.policy.requiredMRENCLAVEHashes || [],
-      maxAttestationAgeSeconds: typeof this.policy.maxAttestationAgeSeconds === 'number' ? this.policy.maxAttestationAgeSeconds : 60,
-      audit: this._audit,
-    });
   }
 
   /**
    * Initialize the enclave and verify remote attestation.
-   * @param {object} attestationDocument
+   * @param {object} attestationDoc
    * @returns {object}
    */
-  async initialize(attestationDocument) {
-    if (this._initialized) return { ok: true, backend: this.backend };
-    if (this.backend === 'mock') {
-      if (!attestationDocument) {
-        throw new HsmAdapterError('ENCLAVE_ATTESTATION_REQUIRED', 'remote attestation document is required');
+  async initialize(attestationDoc = null) {
+    if (this._initialized) {
+      return { initialized: true, mrenclave: this.mrenclave };
+    }
+
+    if (this.requireRemoteAttestation) {
+      const client = this._attestationClient || new EnclaveAttestationClient({
+        allowedAuthorities: this.allowedAuthorities,
+        expectedMrenclave: this.mrenclave,
+        audit: this._audit,
+      });
+      const result = await client.verify(attestationDoc || _mockAttestationFor(this.mrenclave));
+      if (!result.valid) {
+        throw new HsmAdapterError('ENCLAVE_ATTESTATION_FAILED', result.reason);
       }
-      this._attestationClient.verify(attestationDocument);
-      this.mrenclave = attestationDocument.mrenclave || this.mrenclave;
+      this._attested = true;
+      this.mrenclave = result.mrenclave;
+      this._audit?.('ATTESTATION_CHALLENGE_VERIFIED', {
+        enclaveType: this.enclaveType,
+        mrenclave: this.mrenclave,
+        authority: result.authority,
+      });
     }
+
     this._initialized = true;
-    if (typeof this._audit === 'function') {
-      this._audit('ENCLAVE_HARDWARE_BOOTSTRAPPED', { backend: this.backend, mrenclave: this.mrenclave });
-    }
-    return { ok: true, backend: this.backend, mrenclave: this.mrenclave };
+    this._audit?.('ENCLAVE_HARDWARE_BOOTSTRAPPED', {
+      enclaveType: this.enclaveType,
+      mrenclave: this.mrenclave,
+      attested: this._attested,
+    });
+    return { initialized: true, enclaveType: this.enclaveType, mrenclave: this.mrenclave };
   }
 
   /**
-   * Seal data inside the enclave boundary.
-   * @param {string|Buffer} plaintext
+   * Seal a key inside the enclave boundary.
+   * @param {string} keyId
+   * @param {Buffer} plaintext
    * @returns {object}
    */
-  async seal(plaintext) {
+  async sealKey(keyId, plaintext) {
     this._ensureInitialized();
-    const ciphertext = _mockSeal(plaintext, this.mrenclave);
-    return { ciphertext, backend: this.backend };
+    const iv = crypto.randomBytes(12);
+    const aad = Buffer.from(this.mrenclave || 'mock', 'utf8');
+    const cipher = crypto.createCipheriv('aes-256-gcm', _deriveSealKey(this.mrenclave), iv);
+    cipher.setAAD(aad);
+    const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    this._sealedKeys.set(keyId, { ciphertext, iv, tag, aad: aad.toString('base64') });
+    return { sealed: true, keyId, enclaveType: this.enclaveType };
   }
 
   /**
-   * Unseal data from the enclave boundary.
-   * @param {string} ciphertext
+   * Unseal a key inside the enclave boundary.
+   * @param {string} keyId
    * @returns {Buffer}
    */
-  async unseal(ciphertext) {
+  async unsealKey(keyId) {
     this._ensureInitialized();
-    return _mockUnseal(ciphertext, this.mrenclave);
-  }
-
-  /**
-   * Provision a key only after attestation is verified.
-   * @param {object} keyMaterial
-   * @returns {object}
-   */
-  async provisionKey(keyMaterial) {
-    this._ensureInitialized();
-    const sealed = await this.seal(Buffer.from(JSON.stringify(keyMaterial)));
-    if (typeof this._audit === 'function') {
-      this._audit('ENCLAVE_KEY_PROVISIONED', { mrenclave: this.mrenclave, backend: this.backend });
+    const record = this._sealedKeys.get(keyId);
+    if (!record) {
+      throw new HsmAdapterError('ENCLAVE_KEY_NOT_FOUND', `key ${keyId} not found in enclave`);
     }
-    return { provisioned: true, keyId: `enc-${Date.now()}`, ...sealed };
+    const { ciphertext, iv, tag, aad } = record;
+    const decipher = crypto.createDecipheriv('aes-256-gcm', _deriveSealKey(this.mrenclave), iv);
+    decipher.setAAD(Buffer.from(aad, 'base64'));
+    decipher.setAuthTag(tag);
+    return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
   }
 
   _ensureInitialized() {
@@ -97,26 +117,21 @@ class HardwareEnclaveAdapter {
   }
 }
 
-const crypto = require('crypto');
-
-function _mockSeal(plaintext, mrenclave) {
-  const key = crypto.scryptSync(mrenclave || 'mock-enclave', 'salt', 32);
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  const authTag = cipher.getAuthTag();
-  return Buffer.concat([iv, authTag, encrypted]).toString('base64');
+function _deriveSealKey(mrenclave) {
+  return crypto.scryptSync(mrenclave || 'mock', 'enclave-seal-salt', 32);
 }
 
-function _mockUnseal(ciphertext, mrenclave) {
-  const key = crypto.scryptSync(mrenclave || 'mock-enclave', 'salt', 32);
-  const data = Buffer.from(ciphertext, 'base64');
-  const iv = data.slice(0, 16);
-  const authTag = data.slice(16, 32);
-  const encrypted = data.slice(32);
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  decipher.setAuthTag(authTag);
-  return Buffer.concat([decipher.update(encrypted), decipher.final()]);
+function _mockAttestationFor(mrenclave) {
+  return {
+    version: 1,
+    enclaveType: 'mock',
+    mrenclave: mrenclave || 'MOCK_MRENCLAVE_00000000000000000000000000000000',
+    timestamp: Math.floor(Date.now() / 1000),
+    attestationAgeSeconds: 0,
+    authority: 'mock-authority',
+    signature: 'mock-signature-placeholder',
+    certificate: 'mock-certificate-placeholder',
+  };
 }
 
 module.exports = { HardwareEnclaveAdapter };

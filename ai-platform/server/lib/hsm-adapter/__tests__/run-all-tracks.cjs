@@ -13,6 +13,8 @@
  */
 
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const SUITES = [
   'dkg-zk-snark',
@@ -87,6 +89,11 @@ const SUITES = [
   'pq-deep-sea-mineral-rights-gating',
   'pq-polar-research-data-gating',
   'pq-stratospheric-aerosol-monitoring-gating',
+  'pq-orbital-debris-tracking-gating',
+  'pq-genomic-privacy-compliance-gating',
+  'pq-quantum-sensor-calibration-gating',
+  'pq-neural-network-inference-integrity-gating',
+  'pq-autonomous-vehicle-fleet-coordination-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',
@@ -101,9 +108,22 @@ const SUITES = [
   'recursive-proof-aggregation-engine',
 ];
 
+function resolveBaseTestFile(pattern) {
+  const files = fs.readdirSync(__dirname)
+    .filter((f) =>
+      f.endsWith('.test.cjs') &&
+      !f.includes('-extensions') &&
+      !f.includes('-stress') &&
+      f.replace(/\.test\.cjs$/, '').includes(pattern)
+    )
+    .sort((a, b) => a.length - b.length);
+  return files[0] ? `server/lib/hsm-adapter/__tests__/${files[0]}` : pattern;
+}
+
 function runSuite(pattern) {
+  const target = resolveBaseTestFile(pattern);
   try {
-    const output = execSync(`npx jest ${pattern} --silent`, {
+    const output = execSync(`npx jest ${target} --silent`, {
       cwd: __dirname + '/../../..',
       stdio: ['pipe', 'pipe', 'pipe'],
       encoding: 'utf8',

@@ -2360,6 +2360,166 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_deployment_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 98 orbital debris tracking gating telemetry hooks ────────
+
+  /**
+   * Emit an orbital debris pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitOrbitalDebrisPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('ORBITAL_DEBRIS_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_orbigo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK debris claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkDebrisClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_DEBRIS_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_debris_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a collision accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCollisionAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('COLLISION_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_collision_accreditation_completed_total'); } catch { }
+  }
+
+  // ── Track 99 genomic privacy compliance gating telemetry hooks ────
+
+  /**
+   * Emit a genomic compliance pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitGenomicCompliancePoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('GENOMIC_COMPLIANCE_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_genogo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK genomic claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkGenomicClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_GENOMIC_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_genomic_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a consent accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitConsentAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('CONSENT_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_consent_accreditation_completed_total'); } catch { }
+  }
+
+  // ── Track 100 quantum sensor calibration gating telemetry hooks ───
+
+  /**
+   * Emit a quantum calibration pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitQuantumCalibrationPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('QUANTUM_CALIBRATION_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_quantgo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK quantum claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkQuantumClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_QUANTUM_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_quantum_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a calibration accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCalibrationAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('CALIBRATION_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_calibration_accreditation_completed_total'); } catch { }
+  }
+
+  // ── Track 101 neural network inference integrity gating telemetry hooks
+
+  /**
+   * Emit a neural inference pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitNeuralInferencePoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('NEURAL_INFERENCE_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_neurgo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK neural claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkNeuralClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_NEURAL_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_neural_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit an inference accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitInferenceAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('INFERENCE_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_inference_accreditation_completed_total'); } catch { }
+  }
+
+  // ── Track 102 autonomous vehicle fleet coordination gating telemetry hooks
+
+  /**
+   * Emit an autonomous coordination pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitAutonomousCoordinationPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('AUTONOMOUS_COORDINATION_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_autogo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK autonomous claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkAutonomousClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_AUTONOMOUS_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_autonomous_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a coordination accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCoordinationAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('COORDINATION_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_coordination_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
