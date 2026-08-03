@@ -121,7 +121,7 @@ class PartialShareProofManager {
     // oversized numeric values from reaching arithmetic layers and causing
     // unexpected behavior.
     const maxBits = Number(process.env.PROOF_MAX_FIELD_BITS || 521);
-    const oversizeReason = numericOversizeCheck(envelope, maxBits);
+    const oversizeReason = numericOversizeCheck(proof && proof.envelope, maxBits);
     if (oversizeReason) {
       try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'numeric_oversize', message: oversizeReason } }); } catch (e) {}
       return { ok: false, reason: 'numeric_oversize', message: oversizeReason };

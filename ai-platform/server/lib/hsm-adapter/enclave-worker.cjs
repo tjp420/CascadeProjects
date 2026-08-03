@@ -3,7 +3,7 @@ class EnclaveWorker {
     this.manager = manager;
     this.flushIntervalSec = options.flushIntervalSec || 30;
     this.rotateIntervalSec = options.rotateIntervalSec || 24 * 60 * 60;
-    this.jitterSec = options.jitterSec || 5;
+    this.jitterSec = typeof options.jitterSec === 'number' ? options.jitterSec : 5;
     this._flushTimer = null;
     this._rotateTimer = null;
     this._running = false;
