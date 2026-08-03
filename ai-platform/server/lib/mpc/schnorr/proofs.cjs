@@ -4,31 +4,22 @@
  */
 
 const crypto = require('crypto');
+const { JcsCanonicalizer } = require('./jcs.cjs');
 
-function _serialize(value) {
-  if (typeof value === 'bigint') return JSON.stringify(value.toString(16));
-  if (Buffer.isBuffer(value)) return JSON.stringify(value.toString('hex'));
-  if (Array.isArray(value)) return '[' + value.map(_serialize).join(',') + ']';
-  if (value && typeof value === 'object') {
-    const keys = Object.keys(value).sort();
-    return '{' + keys.map(k => JSON.stringify(k) + ':' + _serialize(value[k])).join(',') + '}';
-  }
-  return JSON.stringify(value);
-}
+const jcs = new JcsCanonicalizer();
 
 class PartialShareProofManager {
   /**
-   * Produce a deterministic, key-sorted canonical string for an envelope.
-   * Handles BigInt and Buffer values deterministically (BigInt -> hex string).
-   * Returns a JSON-like string that is stable across runtimes.
+   * Delegate canonicalization to the RFC 8785 JCS canonicalizer for
+   * cross-language deterministic serialization.
    */
   canonicalize(envelope) {
     if (!envelope || typeof envelope !== 'object') throw new TypeError('envelope must be an object');
-    return _serialize(envelope);
+    return jcs.canonicalize(envelope);
   }
 
   /**
-   * Create a PartialShareProof: canonicalize envelope, compute evidence_id,
+   * Create a PartialShareProof: canonicalize envelope using JCS, compute evidence_id,
    * and attach a detached signature produced by `privateKey` (PEM or KeyObject).
    * The returned `envelope` is a shallow-serialized copy where BigInts are
    * converted to hex strings to make the proof JSON-serializable.
