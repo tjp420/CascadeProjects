@@ -2424,6 +2424,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_consent_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 100 quantum sensor calibration gating telemetry hooks ───
+
+  /**
+   * Emit a quantum calibration pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitQuantumCalibrationPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('QUANTUM_CALIBRATION_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_quantgo_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK quantum claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkQuantumClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_QUANTUM_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_quantum_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a calibration accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitCalibrationAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('CALIBRATION_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_calibration_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
