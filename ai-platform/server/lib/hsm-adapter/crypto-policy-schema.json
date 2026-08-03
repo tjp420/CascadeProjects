@@ -1048,6 +1048,17 @@
       "banMalformedOrOutOfOrderDroneMeshClaims": true,
       "requireCanonicalPayloadLayout": true
     },
+    "pqSwarmRoboticsKineticAssemblyGating": {
+      "minRoboticQuorum": 40,
+      "maxKineticValidationWindowSeconds": 1,
+      "maxKineticAssemblyChainDepth": 80,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireKineticAssemblyAuthorityInitializerAttestation": true,
+      "requireAssemblyEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderKineticAssemblyClaims": true,
+      "requireCanonicalPayloadLayout": true
+    },
     "clusterKeyringPrimitiveAuthorization": {
       "minAuthorizationQuorum": 3,
       "maxSyncWindowSeconds": 300,
