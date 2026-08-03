@@ -1898,6 +1898,35 @@ class BaseHsmAdapter {
     this._audit('NUCLEAR_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 90 PQ wildlife conservation tracking gating telemetry hooks ─
+
+  /**
+   * Emit a wildlife gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitWildlifeGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('WILDLIFE_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK conservation claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkConservationClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_CONSERVATION_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a biodiversity accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitBiodiversityAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('BIODIVERSITY_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

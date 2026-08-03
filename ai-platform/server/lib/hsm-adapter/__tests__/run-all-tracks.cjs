@@ -79,6 +79,7 @@ const SUITES = [
   'pq-space-asset-telemetry-gating',
   'pq-water-rights-allocation-gating',
   'pq-nuclear-safeguards-monitoring-gating',
+  'pq-wildlife-conservation-tracking-gating',
 ];
 
 function runSuite(pattern) {

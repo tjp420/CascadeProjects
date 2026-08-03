@@ -712,6 +712,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderSafeguardsClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqWildlifeGating: {
+    minConservationQuorum: 4,
+    maxMonitoringWindowSeconds: 2592000,
+    maxTelemetryChainDepth: 14,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireConservationAuthorityInitializerAttestation: true,
+    requireBiodiversityOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderConservationClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1109,6 +1120,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqNuclearGating: {
       ...DEFAULT_POLICY.pqNuclearGating,
       ...(tenantPolicy.pqNuclearGating || {}),
+    },
+    pqWildlifeGating: {
+      ...DEFAULT_POLICY.pqWildlifeGating,
+      ...(tenantPolicy.pqWildlifeGating || {}),
     },
   };
 }
@@ -2874,6 +2889,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqWildlifeGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqWildlifeGating, ...(tenantPolicy.pqWildlifeGating || {}) };
+    if (typeof config.conservationQuorum === 'number' && config.conservationQuorum < policy.minConservationQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `conservation quorum ${config.conservationQuorum} below minimum ${policy.minConservationQuorum}`);
+    }
+    if (typeof config.monitoringWindowSeconds === 'number' && config.monitoringWindowSeconds > policy.maxMonitoringWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `monitoring window seconds ${config.monitoringWindowSeconds} exceeds maximum ${policy.maxMonitoringWindowSeconds}`);
+    }
+    if (typeof config.telemetryChainDepth === 'number' && config.telemetryChainDepth > policy.maxTelemetryChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `telemetry chain depth ${config.telemetryChainDepth} exceeds maximum ${policy.maxTelemetryChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireConservationAuthorityInitializerAttestation && config.conservationAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'conservation authority initializer attestation is required');
+    }
+    if (policy.requireBiodiversityOversightCommitteeAttestation && config.biodiversityOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'biodiversity oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderConservationClaims === 'boolean' && policy.banMalformedOrOutOfOrderConservationClaims && !config.banMalformedOrOutOfOrderConservationClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order conservation claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3488,6 +3534,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqNuclearGating') {
       this._validatePqNuclearGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqWildlifeGating') {
+      this._validatePqWildlifeGating(tenantPolicy, config);
       return true;
     }
 
