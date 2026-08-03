@@ -34,6 +34,7 @@ class EnclaveAttestationClient {
     this._tokenTtlMs = typeof options.tokenTtlMs === 'number' ? options.tokenTtlMs : 5 * 60 * 1000;
     this._seenNonces = new Map();
     this._issuedTokens = new Map();
+    this._cache = this._cache || new Map();
   }
 
   /**
@@ -75,7 +76,28 @@ class EnclaveAttestationClient {
       return { valid: false, reason: 'attestation signature invalid' };
     }
 
+    // Cache verified measurement for fast lookup in verification endpoints
+    try {
+      if (attestation.mrenclave) this._cache.set(attestation.mrenclave, { verifiedAt: Date.now() });
+    } catch (e) {
+      // ignore cache errors
+    }
+
     return { valid: true, mrenclave: attestation.mrenclave, authority: attestation.authority };
+  }
+
+  /**
+   * Return true if a measurement has been previously verified and cached.
+   */
+  isVerified(measurement) {
+    return Boolean(this._cache.get(measurement));
+  }
+
+  /**
+   * Clear the attestation cache.
+   */
+  clearCache() {
+    this._cache.clear();
   }
 
   _verifySignature(attestation) {

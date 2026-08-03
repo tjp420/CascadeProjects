@@ -60,8 +60,10 @@ const POLICY = {
   allowedEnclaveCiphers: ['aes-256-gcm'],
 };
 
+const { _signMock } = require('../../lib/hsm-adapter/enclave-attestation-client.cjs');
+
 function makeAttestation(overrides) {
-  return {
+  const base = {
     version: 1,
     enclaveType: 'mock',
     measurement: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
@@ -71,10 +73,12 @@ function makeAttestation(overrides) {
     pcrs: { 0: 'PCR_0', 1: 'PCR_1' },
     reportData: 'mock',
     authority: 'mock-authority',
-    signature: 'mock-signature-placeholder',
     certificate: 'mock',
-    ...overrides,
   };
+  const att = Object.assign({}, base, overrides || {});
+  // compute signature consistent with EnclaveAttestationClient._verifySignature mock HMAC
+  att.signature = _signMock(att);
+  return att;
 }
 
 describe('Track 41: Hardware Enclave Routes', () => {

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Master test suite wrapper for Tracks 26–42.
+ * Master test suite wrapper for Tracks 26–110.
  *
  * Runs the full suite of track-level Jest tests and prints
  * a consolidated summary.
@@ -10,6 +10,8 @@
  *   cd ai-platform && npx jest --testPathPattern="__tests__/run-all-tracks"
  *   or
  *   node ai-platform/server/lib/hsm-adapter/__tests__/run-all-tracks.cjs
+ *   or (parallel mode)
+ *   node ai-platform/server/lib/hsm-adapter/__tests__/run-all-tracks.cjs --parallel
  */
 
 const { execSync } = require('child_process');
@@ -142,15 +144,30 @@ function runSuite(pattern) {
   }
 }
 
-const results = SUITES.map((pattern) => runSuite(pattern));
+const useParallel = process.argv.includes('--parallel');
 
-let passed = 0;
-let failed = 0;
-for (const r of results) {
-  if (r.status === 'PASS') passed += 1;
-  else failed += 1;
-  console.log(`${r.status}: ${r.pattern}`);
+if (useParallel) {
+  const { runSuitesParallel } = require('./parallel-track-runner.cjs');
+  runSuitesParallel(SUITES, { progress: true }).then(({ results, totalMs, passed, failed, throughput }) => {
+    for (const r of results) {
+      console.log(`${r.status}: ${r.pattern} (${r.durationMs}ms)`);
+    }
+    const seconds = (totalMs / 1000).toFixed(1);
+    const tps = throughput.toFixed(1);
+    console.log(`\nTotal: ${SUITES.length} | Passed: ${passed} | Failed: ${failed} | Time: ${seconds}s | Throughput: ${tps} suites/s`);
+    process.exit(failed > 0 ? 1 : 0);
+  });
+} else {
+  const results = SUITES.map((pattern) => runSuite(pattern));
+
+  let passed = 0;
+  let failed = 0;
+  for (const r of results) {
+    if (r.status === 'PASS') passed += 1;
+    else failed += 1;
+    console.log(`${r.status}: ${r.pattern}`);
+  }
+
+  console.log(`\nTotal: ${SUITES.length} | Passed: ${passed} | Failed: ${failed}`);
+  process.exit(failed > 0 ? 1 : 0);
 }
-
-console.log(`\nTotal: ${SUITES.length} | Passed: ${passed} | Failed: ${failed}`);
-process.exit(failed > 0 ? 1 : 0);
