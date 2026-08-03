@@ -82,6 +82,7 @@ const SUITES = [
   'pq-wildlife-conservation-tracking-gating',
   'pq-smart-grid-micro-transaction-gating',
   'pq-global-health-epidemiological-surveillance-gating',
+  'pq-cultural-heritage-provenance-gating',
 ];
 
 function runSuite(pattern) {
