@@ -55,13 +55,30 @@ function unwrapLayer(buf, nodeKey) {
   const tag = ct.slice(ct.length - 16);
   const realCt = ct.slice(0, ct.length - 16);
 
+  // Fixed dummy workload to reduce timing variance between failure and success paths.
+  const DUMMY_LOOPS = 2000;
+  function dummyWork() {
+    // perform repeated HMACs to emulate cryptographic effort
+    let acc = Buffer.alloc(0);
+    for (let i = 0; i < DUMMY_LOOPS; i++) {
+      const h = crypto.createHmac('sha256', nodeKey);
+      h.update(acc);
+      h.update(Buffer.from(String(i)));
+      acc = h.digest();
+    }
+    return acc;
+  }
+
   try {
     const decipher = crypto.createDecipheriv('chacha20-poly1305', aeadKey, nonce, { authTagLength: 16 });
     decipher.setAuthTag(tag);
     const pt = Buffer.concat([decipher.update(realCt), decipher.final()]);
-    // pt layout: payload bytes (padded) — in PoC we expect inner payload to be full onion layer
+    // run dummy work to equalize timing
+    dummyWork();
     return { ok: true, next: nextBuf.toString('utf8'), payload: pt };
   } catch (err) {
+    // on failure still run dummy work to keep timing similar
+    dummyWork();
     return { ok: false };
   }
 }
