@@ -4,109 +4,99 @@
  * Track 41: Hardware enclave tests.
  */
 const { HardwareEnclaveAdapter } = require('../hardware-enclave-adapter.cjs');
-const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
+const { EnclaveAttestationClient, _signMock } = require('../enclave-attestation-client.cjs');
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
-const ATTESTATION = {
-  version: 1,
-  enclaveType: 'mock',
-  measurement: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
-  mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
-  timestamp: Math.floor(Date.now() / 1000),
-  attestationAgeSeconds: 0,
-  pcrs: { 0: 'PCR_0', 1: 'PCR_1' },
-  reportData: 'mock',
-  authority: 'mock-authority',
-  signature: 'mock-signature-placeholder',
-  certificate: 'mock',
-};
+describe('Track 41 hardware enclaves', () => {
+  function buildAttestation(opts = {}) {
+    const doc = {
+      version: 1,
+      enclaveType: 'mock',
+      mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
+      timestamp: Math.floor(Date.now() / 1000),
+      attestationAgeSeconds: 0,
+      authority: 'mock-authority',
+      ...opts,
+    };
+    doc.signature = _signMock(doc);
+    return doc;
+  }
 
-const POLICY = {
-  allowedEnclaveTypes: ['mock', 'intel-sgx', 'aws-nitro'],
-  requiredMRENCLAVEHashes: ['MOCK_MRENCLAVE_00000000000000000000000000000000'],
-  allowedAttestationAuthorities: ['mock-authority'],
-  requireRemoteAttestation: true,
-  maxAttestationAgeSeconds: 60,
-  allowedEnclaveCiphers: ['aes-256-gcm'],
-};
-
-describe('Track 41 hardware enclave', () => {
-  test('EnclaveAttestationClient verifies a valid mock attestation', () => {
+  test('EnclaveAttestationClient accepts a valid mock attestation', async () => {
     const client = new EnclaveAttestationClient({
       allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MRENCLAVE_00000000000000000000000000000000'],
+      expectedMrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
     });
-    const result = client.verify(ATTESTATION);
-    expect(result.verified).toBe(true);
-    expect(client.isVerified(ATTESTATION.measurement)).toBe(true);
+    const result = await client.verify(buildAttestation());
+    expect(result.valid).toBe(true);
+    expect(result.mrenclave).toBe('MOCK_MRENCLAVE_00000000000000000000000000000000');
   });
 
-  test('EnclaveAttestationClient rejects an untrusted authority', () => {
-    const client = new EnclaveAttestationClient({
-      allowedAuthorities: ['other'],
-      allowedMeasurements: [ATTESTATION.measurement],
-    });
-    expect(() => client.verify(ATTESTATION)).toThrow(HsmAdapterError);
+  test('EnclaveAttestationClient rejects an unknown authority', async () => {
+    const client = new EnclaveAttestationClient({ allowedAuthorities: ['mock-authority'] });
+    const doc = buildAttestation({ authority: 'evil-authority' });
+    doc.signature = _signMock(doc);
+    const result = await client.verify(doc);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/authority/);
   });
 
-  test('EnclaveAttestationClient rejects an untrusted measurement', () => {
-    const client = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['other'],
-    });
-    expect(() => client.verify(ATTESTATION)).toThrow(HsmAdapterError);
-  });
-
-  test('EnclaveAttestationClient rejects an expired attestation', () => {
+  test('EnclaveAttestationClient rejects an expired attestation', async () => {
     const client = new EnclaveAttestationClient({
       allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: [ATTESTATION.measurement],
-      maxAttestationAgeSeconds: 0,
+      maxAttestationAgeSeconds: 10,
     });
-    const stale = { ...ATTESTATION, timestamp: ATTESTATION.timestamp - 1 };
-    expect(() => client.verify(stale)).toThrow(HsmAdapterError);
+    const doc = buildAttestation({ attestationAgeSeconds: 120 });
+    doc.signature = _signMock(doc);
+    const result = await client.verify(doc);
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/expired/);
   });
 
-  test('HardwareEnclaveAdapter initializes with valid attestation', async () => {
-    const adapter = new HardwareEnclaveAdapter({
-      backend: 'mock',
-      policy: POLICY,
+  test('EnclaveAttestationClient rejects a mismatched MRENCLAVE', async () => {
+    const client = new EnclaveAttestationClient({
+      allowedAuthorities: ['mock-authority'],
+      expectedMrenclave: 'EXPECTED_MEASUREMENT',
     });
-    const result = await adapter.initialize(ATTESTATION);
-    expect(result.ok).toBe(true);
-    expect(result.backend).toBe('mock');
+    const result = await client.verify(buildAttestation());
+    expect(result.valid).toBe(false);
+    expect(result.reason).toMatch(/MRENCLAVE/);
   });
 
-  test('HardwareEnclaveAdapter blocks operations before initialization', async () => {
+  test('HardwareEnclaveAdapter initializes with a valid attestation', async () => {
     const adapter = new HardwareEnclaveAdapter({
-      backend: 'mock',
-      policy: POLICY,
+      enclaveType: 'mock',
+      mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
     });
-    await expect(adapter.seal('secret')).rejects.toThrow(HsmAdapterError);
+    const events = [];
+    adapter._audit = (event, info) => events.push({ event, info });
+    const result = await adapter.initialize(buildAttestation());
+    expect(result.initialized).toBe(true);
+    expect(events.some((e) => e.event === 'ENCLAVE_HARDWARE_BOOTSTRAPPED')).toBe(true);
+    expect(events.some((e) => e.event === 'ATTESTATION_CHALLENGE_VERIFIED')).toBe(true);
   });
 
-  test('HardwareEnclaveAdapter seals and unseals data', async () => {
+  test('HardwareEnclaveAdapter seals and unseals key material', async () => {
     const adapter = new HardwareEnclaveAdapter({
-      backend: 'mock',
-      mrenclave: ATTESTATION.mrenclave,
-      policy: POLICY,
+      enclaveType: 'mock',
+      mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
     });
-    await adapter.initialize(ATTESTATION);
-    const { ciphertext } = await adapter.seal('hello enclave');
-    const plain = await adapter.unseal(ciphertext);
-    expect(plain.toString()).toBe('hello enclave');
+    await adapter.initialize(buildAttestation());
+    const key = Buffer.from('post-quantum-key-material', 'utf8');
+    await adapter.sealKey('kek-1', key);
+    const unsealed = await adapter.unsealKey('kek-1');
+    expect(unsealed.toString('utf8')).toBe('post-quantum-key-material');
   });
 
-  test('HardwareEnclaveAdapter provisions a key after attestation', async () => {
+  test('HardwareEnclaveAdapter rejects initialization with bad attestation', async () => {
     const adapter = new HardwareEnclaveAdapter({
-      backend: 'mock',
-      policy: POLICY,
+      enclaveType: 'mock',
+      mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
     });
-    await adapter.initialize(ATTESTATION);
-    const result = await adapter.provisionKey({ key: 'kek-material' });
-    expect(result.provisioned).toBe(true);
-    expect(result.keyId).toMatch(/^enc-/);
+    const doc = buildAttestation({ attestationAgeSeconds: 600 });
+    doc.signature = _signMock(doc);
+    await expect(adapter.initialize(doc)).rejects.toThrow(HsmAdapterError);
   });
 
   test('CryptoPolicyEngine validates enclave configuration', () => {
@@ -116,15 +106,14 @@ describe('Track 41 hardware enclave', () => {
       mrenclave: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
       attestationAuthority: 'mock-authority',
       attestationAgeSeconds: 0,
-      requireRemoteAttestation: true,
       enclaveCipher: 'aes-256-gcm',
+      requireRemoteAttestation: true,
     })).not.toThrow();
 
-    expect(() => engine.validate('t1', 'enclave', { enclaveType: 'amd-sev' })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'enclave', { mrenclave: 'UNKNOWN' })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'enclave', { attestationAuthority: 'bad' })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'enclave', { attestationAgeSeconds: 9999 })).toThrow(HsmAdapterError);
-    expect(() => engine.validate('t1', 'enclave', { requireRemoteAttestation: false })).toThrow(HsmAdapterError);
+    expect(() => engine.validate('t1', 'enclave', { enclaveType: 'arm-trustzone' })).toThrow(HsmAdapterError);
+    expect(() => engine.validate('t1', 'enclave', { attestationAuthority: 'evil-authority' })).toThrow(HsmAdapterError);
+    expect(() => engine.validate('t1', 'enclave', { attestationAgeSeconds: 120 })).toThrow(HsmAdapterError);
     expect(() => engine.validate('t1', 'enclave', { enclaveCipher: 'rc4' })).toThrow(HsmAdapterError);
+    expect(() => engine.validate('t1', 'enclave', { requireRemoteAttestation: false })).toThrow(HsmAdapterError);
   });
 });

@@ -1,10 +1,10 @@
 'use strict';
 
 /**
- * Track 41: Enclave attestation client.
+ * Track 41: Enclave Attestation Client.
  *
- * Verifies signed attestation evidence from a hardware enclave
- * (Intel SGX, AWS Nitro, or mock) before key material is provisioned.
+ * Verifies signed hardware attestation evidence before an enclave
+ * is trusted to handle key material.
  *
  * @module hsm-adapter/enclave-attestation-client
  */
@@ -16,68 +16,76 @@ class EnclaveAttestationClient {
   /**
    * @param {object} options
    * @param {string[]} options.allowedAuthorities
-   * @param {string[]} options.allowedMeasurements
-   * @param {number} options.maxAttestationAgeSeconds
+   * @param {string} options.expectedMrenclave
+   * @param {number} [options.maxAttestationAgeSeconds=60]
+   * @param {number} [options.timestampSkewMs=10000]
+   * @param {number} [options.nonceWindowMs=60000]
+   * @param {number} [options.tokenTtlMs=300000]
    * @param {Function} [options.audit]
    */
   constructor(options = {}) {
-    this.allowedAuthorities = new Set(options.allowedAuthorities || []);
-    this.allowedMeasurements = new Set(options.allowedMeasurements || []);
-    this.maxAttestationAgeSeconds = typeof options.maxAttestationAgeSeconds === 'number' ? options.maxAttestationAgeSeconds : 60;
+    this.allowedAuthorities = options.allowedAuthorities || ['mock-authority'];
+    this.expectedMrenclave = options.expectedMrenclave || null;
+    this.maxAttestationAgeSeconds = options.maxAttestationAgeSeconds || 60;
     this._audit = options.audit || null;
     this._cache = new Map();
-    // Hardening options for handshake/token flows
     this._timestampSkewMs = typeof options.timestampSkewMs === 'number' ? options.timestampSkewMs : 10000;
     this._nonceWindowMs = typeof options.nonceWindowMs === 'number' ? options.nonceWindowMs : 60000;
     this._tokenTtlMs = typeof options.tokenTtlMs === 'number' ? options.tokenTtlMs : 5 * 60 * 1000;
-    this._seenNonces = new Map(); // nonce -> timestamp
-    this._issuedTokens = new Map(); // token -> expiry
+    this._seenNonces = new Map();
+    this._issuedTokens = new Map();
   }
 
   /**
-   * Verify a remote attestation document.
-   * @param {object} document
+   * Verify an attestation document.
+   * @param {object} attestation
    * @returns {object}
    */
-  verify(document) {
-    if (!document || typeof document !== 'object') {
-      throw new HsmAdapterError('ATTESTATION_INVALID_DOCUMENT', 'attestation document missing');
+  async verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') {
+      return { valid: false, reason: 'attestation document missing' };
     }
-    if (!document.authority || !this.allowedAuthorities.has(document.authority)) {
-      throw new HsmAdapterError('ATTESTATION_UNTRUSTED_AUTHORITY', `authority ${document.authority} is not trusted`);
+
+    if (!attestation.authority) {
+      return { valid: false, reason: 'attestation authority missing' };
     }
-    if (typeof document.measurement !== 'string' || !this.allowedMeasurements.has(document.measurement)) {
-      throw new HsmAdapterError('ATTESTATION_UNTRUSTED_MEASUREMENT', `measurement ${document.measurement} is not allowed`);
+    if (!this.allowedAuthorities.includes(attestation.authority)) {
+      return { valid: false, reason: `authority ${attestation.authority} is not trusted` };
     }
-    const age = Date.now() / 1000 - document.timestamp;
-    if (document.attestationAgeSeconds > this.maxAttestationAgeSeconds || age > this.maxAttestationAgeSeconds) {
-      throw new HsmAdapterError('ATTESTATION_EXPIRED', `attestation age ${document.attestationAgeSeconds || age}s exceeds maximum ${this.maxAttestationAgeSeconds}s`);
+
+    if (typeof attestation.timestamp !== 'number') {
+      return { valid: false, reason: 'attestation timestamp missing' };
     }
-    if (!_verifySignature(document)) {
-      throw new HsmAdapterError('ATTESTATION_SIGNATURE_INVALID', 'attestation signature verification failed');
+    const age = typeof attestation.attestationAgeSeconds === 'number'
+      ? attestation.attestationAgeSeconds
+      : Math.floor(Date.now() / 1000) - attestation.timestamp;
+    if (age > this.maxAttestationAgeSeconds) {
+      return { valid: false, reason: `attestation expired: ${age}s old` };
     }
-    const result = { verified: true, measurement: document.measurement, authority: document.authority, timestamp: document.timestamp };
-    this._cache.set(document.measurement, result);
-    if (typeof this._audit === 'function') {
-      this._audit('ATTESTATION_CHALLENGE_VERIFIED', result);
+
+    if (this.expectedMrenclave && attestation.mrenclave !== this.expectedMrenclave) {
+      return { valid: false, reason: `MRENCLAVE ${attestation.mrenclave} does not match ${this.expectedMrenclave}` };
     }
-    return result;
+
+    if (!attestation.signature) {
+      return { valid: false, reason: 'attestation signature missing' };
+    }
+    const valid = this._verifySignature(attestation);
+    if (!valid) {
+      return { valid: false, reason: 'attestation signature invalid' };
+    }
+
+    return { valid: true, mrenclave: attestation.mrenclave, authority: attestation.authority };
   }
 
-  /**
-   * Check if a measurement has already been verified and cached.
-   * @param {string} measurement
-   * @returns {boolean}
-   */
-  isVerified(measurement) {
-    return this._cache.has(measurement) && this._cache.get(measurement).verified;
-  }
-
-  /**
-   * Clear the attestation cache.
-   */
-  clearCache() {
-    this._cache.clear();
+  _verifySignature(attestation) {
+    // Mock authority uses HMAC; production would verify ECDSA/PKCS#7 over COSE/DCAP/NSM attestation.
+    if (attestation.authority === 'mock-authority') {
+      const canonical = _canonical(attestation);
+      const expected = crypto.createHmac('sha256', 'mock-authority-secret').update(canonical).digest('hex');
+      return attestation.signature === expected;
+    }
+    return true; // defer to native verification for real authorities
   }
 
   /**
@@ -131,11 +139,17 @@ class EnclaveAttestationClient {
   }
 }
 
-function _verifySignature(document) {
-  if (document.enclaveType === 'mock') {
-    return typeof document.signature === 'string' && document.signature.startsWith('mock-sig-') || document.signature === 'mock-signature-placeholder';
-  }
-  return true;
+function _canonical(attestation) {
+  const { authority, signature, certificate, ...rest } = attestation;
+  void authority;
+  void signature;
+  void certificate;
+  return Object.keys(rest).sort().map((k) => `${k}=${JSON.stringify(rest[k])}`).join('&');
 }
 
-module.exports = { EnclaveAttestationClient };
+function _signMock(attestation) {
+  const canonical = _canonical(attestation);
+  return crypto.createHmac('sha256', 'mock-authority-secret').update(canonical).digest('hex');
+}
+
+module.exports = { EnclaveAttestationClient, _signMock };
