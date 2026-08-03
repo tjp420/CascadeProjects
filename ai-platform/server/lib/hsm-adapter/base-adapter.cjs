@@ -1811,6 +1811,35 @@ class BaseHsmAdapter {
     this._audit('ACTUARIAL_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 87 PQ space-asset telemetry gating telemetry hooks ─────────
+
+  /**
+   * Emit an orbital gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitOrbitalGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('ORBITAL_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK telemetry claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkTelemetryClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_TELEMETRY_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit an orbital accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitOrbitalAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('ORBITAL_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

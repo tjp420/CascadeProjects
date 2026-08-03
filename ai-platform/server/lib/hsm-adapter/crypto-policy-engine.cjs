@@ -679,6 +679,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqSpaceGating: {
+    minOrbitalSlotQuorum: 5,
+    maxSlotAllocationWindowSeconds: 31536000,
+    maxTelemetryChainDepth: 16,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireSpaceAuthorityInitializerAttestation: true,
+    requireOrbitalOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderOrbitalClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1064,6 +1075,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqInsuranceGating: {
       ...DEFAULT_POLICY.pqInsuranceGating,
       ...(tenantPolicy.pqInsuranceGating || {}),
+    },
+    pqSpaceGating: {
+      ...DEFAULT_POLICY.pqSpaceGating,
+      ...(tenantPolicy.pqSpaceGating || {}),
     },
   };
 }
@@ -2736,6 +2751,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqSpaceGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqSpaceGating, ...(tenantPolicy.pqSpaceGating || {}) };
+    if (typeof config.orbitalSlotQuorum === 'number' && config.orbitalSlotQuorum < policy.minOrbitalSlotQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `orbital slot quorum ${config.orbitalSlotQuorum} below minimum ${policy.minOrbitalSlotQuorum}`);
+    }
+    if (typeof config.slotAllocationWindowSeconds === 'number' && config.slotAllocationWindowSeconds > policy.maxSlotAllocationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `slot allocation window seconds ${config.slotAllocationWindowSeconds} exceeds maximum ${policy.maxSlotAllocationWindowSeconds}`);
+    }
+    if (typeof config.telemetryChainDepth === 'number' && config.telemetryChainDepth > policy.maxTelemetryChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `telemetry chain depth ${config.telemetryChainDepth} exceeds maximum ${policy.maxTelemetryChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireSpaceAuthorityInitializerAttestation && config.spaceAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'space authority initializer attestation is required');
+    }
+    if (policy.requireOrbitalOversightCommitteeAttestation && config.orbitalOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'orbital oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderOrbitalClaims === 'boolean' && policy.banMalformedOrOutOfOrderOrbitalClaims && !config.banMalformedOrOutOfOrderOrbitalClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order orbital claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3335,6 +3381,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqInsuranceGating') {
       this._validatePqInsuranceGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqSpaceGating') {
+      this._validatePqSpaceGating(tenantPolicy, config);
       return true;
     }
 

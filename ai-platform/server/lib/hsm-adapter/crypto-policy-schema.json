@@ -604,6 +604,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqSpaceGating": {
+      "minOrbitalSlotQuorum": 5,
+      "maxSlotAllocationWindowSeconds": 31536000,
+      "maxTelemetryChainDepth": 16,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireSpaceAuthorityInitializerAttestation": true,
+      "requireOrbitalOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderOrbitalClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
