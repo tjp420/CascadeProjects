@@ -51,8 +51,8 @@ jobs:
           retry 3 npx --yes @stoplight/spectral-cli@6 --version
 
           # Run lint (allow initial soft failure for diagnostics, then enforce)
-          npx --yes @stoplight/spectral-cli@6 lint ai-platform/api/openapi.yaml --verbose || true
-          retry 3 npx --yes @stoplight/spectral-cli@6 lint ai-platform/api/openapi.yaml --fail-severity error
+          npx --yes @stoplight/spectral-cli@6 lint ai-platform/api/openapi.yaml --ruleset .spectral.yaml --verbose || true
+          retry 3 npx --yes @stoplight/spectral-cli@6 lint ai-platform/api/openapi.yaml --ruleset .spectral.yaml --fail-severity error
 
       - name: Start Prism mock (Docker) with retry
         run: |
