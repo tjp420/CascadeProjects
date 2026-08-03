@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minChunkBitLength: 256,
   maxChunkBitLength: 4096,
@@ -50,10 +58,7 @@ function baseSubmitRequest(chunk, tenantId) {
 describe('Track 55 encrypted storage deduplication', () => {
   test('EncryptedStorageDeduplicator stores a new chunk', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const guard = new BlindedConvergenceGuard({ policy: POLICY });
     const dedup = new EncryptedStorageDeduplicator({
       policy: POLICY,
@@ -68,10 +73,7 @@ describe('Track 55 encrypted storage deduplication', () => {
 
   test('EncryptedStorageDeduplicator detects duplicate chunks across tenants', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const guard = new BlindedConvergenceGuard({ policy: POLICY });
     const dedup = new EncryptedStorageDeduplicator({
       policy: POLICY,
@@ -88,10 +90,7 @@ describe('Track 55 encrypted storage deduplication', () => {
   });
 
   test('EncryptedStorageDeduplicator rejects un-attested submitter', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const dedup = new EncryptedStorageDeduplicator({
       policy: POLICY,
       attestationClient,

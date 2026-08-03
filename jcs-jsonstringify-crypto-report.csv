@@ -1,0 +1,17 @@
+file,line,code_snippet,category
+ai-platform/server/lib/__tests__/agentic-orchestration.jest.test.cjs,105,"const fingerprint = 'sha256:' + require('crypto').createHash('sha256').update(JSON.stringify(canonical)).digest('hex');",hash
+ai-platform/server/lib/__tests__/agentic-orchestration.test.cjs,153,"const fingerprint = 'sha256:' + require('crypto').createHash('sha256').update(JSON.stringify(canonical)).digest('hex');",hash
+ai-platform/server/lib/hsm-adapter/confidential-federated-learning.cjs,294,".update(JSON.stringify(gradient.encryptedGradient))",hash
+ai-platform/server/lib/hsm-adapter/oram-engine.cjs,310,".update(JSON.stringify(prev)).digest('hex');",hash
+ai-platform/server/lib/hsm-adapter/oram-engine.cjs,569,"crypto.createHash('sha256').update(JSON.stringify(this._accessLog[this._accessLog.length - 1])).digest('hex')",hash
+ai-platform/server/lib/hsm-adapter/zk-debris-claim-validator.cjs,63,"const claimHash = crypto.createHash('sha256').update(JSON.stringify({",hash
+ai-platform/server/lib/hsm-adapter/zk-genomic-claim-validator.cjs,51,"const claimHash = crypto.createHash('sha256').update(JSON.stringify({",hash
+ai-platform/server/lib/hsm-adapter/zk-quantum-claim-validator.cjs,51,"const claimHash = crypto.createHash('sha256').update(JSON.stringify({",hash
+ai-platform/server/lib/hsm-adapter/zk-range-proof-solvency.cjs,527,".update(JSON.stringify(prev))",hash
+ai-platform/server/lib/hsm-adapter/zk-range-proof-solvency.cjs,574,"crypto.createHash('sha256').update(JSON.stringify(this._auditLog[this._auditLog.length - 1])).digest('hex')",hash
+ai-platform/server/lib/hsm-adapter/zk-research-claim-validator.cjs,62,"const claimHash = crypto.createHash('sha256').update(JSON.stringify({",hash
+ai-platform/server/lib/hsm-adapter/zk-rollup-accumulator.cjs,104,"return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');",hash
+ai-platform/server/lib/trust-verification-payload.cjs,118,".update(JSON.stringify({",hash
+ai-platform/server/routes/agentic-orchestration-routes.cjs,135,"const hash = crypto.createHash('sha256').update(JSON.stringify(canonicalBody)).digest('hex');",hash
+packages/simplebeacon-cli/tests/module-integrity.test.js,89,"let encrypted = cipher.update(JSON.stringify({ nodeVersion: '24.9.0' }), 'utf8', 'hex');",cipher
+sales/support/simulate-registration-flow.js,83,"let encrypted = cipher.update(JSON.stringify({ test: true }), 'utf8', 'hex');",cipher

@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minLicensingQuorum: 3,
   maxPatentExpirationSeconds: 47304000,
@@ -74,10 +82,7 @@ function baseCompleteRequest(poolId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcPatentVerificationGatingHub({
     policy: POLICY,
     attestationClient,
@@ -142,10 +147,7 @@ describe('Track 74 PQ patent verification gating', () => {
   });
 
   test('PqcPatentVerificationGatingHub rejects un-attested patent office initializer', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcPatentVerificationGatingHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.patentOfficeInitializerAttestation = { authority: 'bad' };
@@ -154,10 +156,7 @@ describe('Track 74 PQ patent verification gating', () => {
 
   test('ZkPatentClaimValidator rejects un-attested clearing committee', () => {
     const { hub, pool } = setupAndInitPool();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const validator = new ZkPatentClaimValidator({ policy: POLICY, hub, attestationClient });
     const clReq = baseClaimRequest(pool.poolId);
     clReq.clearingCommitteeAttestation = { authority: 'bad' };

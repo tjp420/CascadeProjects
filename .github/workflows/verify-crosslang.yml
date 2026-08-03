@@ -1,0 +1,42 @@
+name: Cross-language JCS verification
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  verify-crosslang:
+    name: Verify JCS parity (JS ↔ Go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            $HOME/go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Go reference runner
+        working-directory: ai-platform/server/lib/mpc/schnorr/reference-runner-go
+        run: |
+          go build -o reference-runner-go
+
+      - name: Run cross-language verifier
+        run: |
+          node ai-platform/server/lib/mpc/schnorr/verify_crosslang.cjs

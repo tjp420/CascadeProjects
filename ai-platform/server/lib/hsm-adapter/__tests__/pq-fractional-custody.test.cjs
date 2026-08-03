@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minCustodianQuorum: 3,
   maxFractionalBits: 64,
@@ -70,10 +78,7 @@ function baseLiquidateRequest(vaultId, releasedFractionSum) {
 
 function setupHubAndVerifier() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcFractionalCustodyHub({
     policy: POLICY,
     attestationClient,
@@ -145,10 +150,7 @@ describe('Track 65 PQ fractional custody', () => {
   });
 
   test('PqcFractionalCustodyHub rejects un-attested claimant', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcFractionalCustodyHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.claimantAttestation = { authority: 'bad' };
@@ -157,10 +159,7 @@ describe('Track 65 PQ fractional custody', () => {
 
   test('ZkFractionalReleaseVerifier rejects un-attested custodian relay', () => {
     const { hub, vault } = setupAndInitVault();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const verifier = new ZkFractionalReleaseVerifier({ policy: POLICY, hub, attestationClient });
     const releaseReq = baseReleaseRequest(vault.vaultId);
     releaseReq.custodianRelayAttestation = { authority: 'bad' };

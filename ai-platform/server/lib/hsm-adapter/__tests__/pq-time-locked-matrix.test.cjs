@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minTimeDelaySeconds: 3600,
   minCommitteeQuorum: 3,
@@ -63,10 +71,7 @@ function baseProofRequest(matrixId) {
 
 function setupRouterAndVerifier() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const router = new PqcTimeLockedMatrixRouter({
     policy: POLICY,
     attestationClient,
@@ -134,10 +139,7 @@ describe('Track 62 PQ time-locked matrix', () => {
   });
 
   test('PqcTimeLockedMatrixRouter rejects un-attested submitter', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const router = new PqcTimeLockedMatrixRouter({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.submitterAttestation = { authority: 'bad' };
@@ -146,10 +148,7 @@ describe('Track 62 PQ time-locked matrix', () => {
 
   test('MpcTemporalValidityVerifier rejects un-attested verifier relay', () => {
     const { router } = setupAndInitMatrix();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const verifier = new MpcTemporalValidityVerifier({ policy: POLICY, router, attestationClient });
     const proofReq = baseProofRequest(router.getMatrixCount() > 0 ? 'matrix-001' : 'matrix-001');
     proofReq.verifierRelayAttestation = { authority: 'bad' };

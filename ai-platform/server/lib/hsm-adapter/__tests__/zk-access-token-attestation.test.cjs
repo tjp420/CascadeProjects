@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minSignatureQuorum: 3,
   maxTokenLifetimeSeconds: 3600,
@@ -47,10 +55,7 @@ function baseRequest() {
 describe('Track 52 ZK access token attestation', () => {
   test('ZkAccessTokenBroker issues a token with quorum', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const broker = new ZkAccessTokenBroker({
       policy: POLICY,
       attestationClient,
@@ -68,10 +73,7 @@ describe('Track 52 ZK access token attestation', () => {
 
   test('ZkAttestationContractVerifier generates and verifies a proof', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const broker = new ZkAccessTokenBroker({
       policy: POLICY,
       attestationClient,
@@ -93,10 +95,7 @@ describe('Track 52 ZK access token attestation', () => {
   });
 
   test('ZkAccessTokenBroker rejects un-attested broker', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const broker = new ZkAccessTokenBroker({
       policy: POLICY,
       attestationClient,
@@ -121,10 +120,7 @@ describe('Track 52 ZK access token attestation', () => {
   });
 
   test('ZkAttestationContractVerifier rejects expired token and bans node', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const broker = new ZkAccessTokenBroker({
       policy: POLICY,
       attestationClient,

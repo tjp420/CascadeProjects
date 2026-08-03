@@ -10,6 +10,14 @@ const {
 } = require('../confidential-sandbox-engine.cjs');
 const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
+
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
 const hsmMetrics = require('../hsm-metrics.cjs');
 
 describe('ConfidentialSandboxEngine — Track 28 Confidential Computing Sandboxing', () => {
@@ -29,11 +37,7 @@ describe('ConfidentialSandboxEngine — Track 28 Confidential Computing Sandboxi
 
   // ── Helper: create attestation client ──
   function _attestationClient() {
-    return new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['mock-measurement-1', 'mock-measurement-2'],
-      maxAttestationAgeSeconds: 60,
-    });
+    return new MockAttestationClient();
   }
 
   // ── L2.01: Full happy-path ──

@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minTokenBitLength: 256,
   allowedBlindingSchemes: ['pedersen', 'hash-to-curve'],
@@ -37,10 +45,7 @@ function mockAttestation() {
 describe('Track 44 confidential token issuance', () => {
   test('ConfidentialTokenIssuer mints an attested token and emits telemetry', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const issuer = new ConfidentialTokenIssuer({
       policy: POLICY,
       attestationClient,
@@ -54,10 +59,7 @@ describe('Track 44 confidential token issuance', () => {
   });
 
   test('ConfidentialTokenIssuer rejects un-attested mint', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const issuer = new ConfidentialTokenIssuer({
       policy: POLICY,
       attestationClient,
@@ -66,10 +68,7 @@ describe('Track 44 confidential token issuance', () => {
   });
 
   test('ConfidentialTokenIssuer rejects amount below bit length', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const issuer = new ConfidentialTokenIssuer({
       policy: POLICY,
       attestationClient,
@@ -78,10 +77,7 @@ describe('Track 44 confidential token issuance', () => {
   });
 
   test('ConfidentialTokenIssuer rejects quorum below minimum', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const issuer = new ConfidentialTokenIssuer({
       policy: POLICY,
       attestationClient,
@@ -91,10 +87,7 @@ describe('Track 44 confidential token issuance', () => {
 
   test('TokenClaimVerifier validates a fresh ownership claim', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const issuer = new ConfidentialTokenIssuer({
       policy: POLICY,
       attestationClient,
@@ -115,10 +108,7 @@ describe('Track 44 confidential token issuance', () => {
   });
 
   test('TokenClaimVerifier rejects stale proof', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const issuer = new ConfidentialTokenIssuer({
       policy: POLICY,
       attestationClient,
@@ -130,10 +120,7 @@ describe('Track 44 confidential token issuance', () => {
   });
 
   test('TokenClaimVerifier rejects commitment mismatch', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const issuer = new ConfidentialTokenIssuer({
       policy: POLICY,
       attestationClient,

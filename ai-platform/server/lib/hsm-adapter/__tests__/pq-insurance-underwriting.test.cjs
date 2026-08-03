@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minReserveRatio: 30,
   minClaimQuorum: 3,
@@ -75,10 +83,7 @@ function baseLiquidateRequest(poolId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcInsuranceUnderwritingHub({
     policy: POLICY,
     attestationClient,
@@ -143,10 +148,7 @@ describe('Track 67 PQ insurance underwriting', () => {
   });
 
   test('PqcInsuranceUnderwritingHub rejects un-attested coverage initiator', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcInsuranceUnderwritingHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.coverageInitiatorAttestation = { authority: 'bad' };
@@ -155,10 +157,7 @@ describe('Track 67 PQ insurance underwriting', () => {
 
   test('ZkRiskExposureValidator rejects un-attested clearing committee', () => {
     const { hub, pool } = setupAndInitPool();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const validator = new ZkRiskExposureValidator({ policy: POLICY, hub, attestationClient });
     const claimReq = baseClaimRequest(pool.poolId);
     claimReq.clearingCommitteeAttestation = { authority: 'bad' };

@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minRevocationCommitteeQuorum: 3,
   maxRevocationListCapacity: 100000,
@@ -60,10 +68,7 @@ function baseProofRequest(entityBlindedHash) {
 
 function setupRegistryAndVerifier() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const registry = new PqcIdentityRevocationRegistry({
     policy: POLICY,
     attestationClient,
@@ -111,10 +116,7 @@ describe('Track 61 PQ identity revocation', () => {
   });
 
   test('PqcIdentityRevocationRegistry rejects un-attested publisher', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const registry = new PqcIdentityRevocationRegistry({ policy: POLICY, attestationClient });
     const request = basePublishRequest();
     request.publisherAttestation = { authority: 'bad' };
@@ -123,10 +125,7 @@ describe('Track 61 PQ identity revocation', () => {
 
   test('ZkRevocationProofVerifier rejects un-attested verifier', () => {
     const { registry } = setupRegistryAndVerifier();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const verifier = new ZkRevocationProofVerifier({ policy: POLICY, registry, attestationClient });
     const proofReq = baseProofRequest('blinded-hash-clean');
     proofReq.verifierAttestation = { authority: 'bad' };

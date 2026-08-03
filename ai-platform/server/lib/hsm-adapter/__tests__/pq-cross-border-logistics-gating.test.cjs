@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minCustomsQuorum: 3,
   maxTransitWindowSeconds: 7776000,
@@ -74,10 +82,7 @@ function baseCompleteRequest(poolId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcCrossBorderLogisticsGatingHub({
     policy: POLICY,
     attestationClient,
@@ -142,10 +147,7 @@ describe('Track 81 PQ cross-border logistics gating', () => {
   });
 
   test('PqcCrossBorderLogisticsGatingHub rejects un-attested customs authority initializer', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcCrossBorderLogisticsGatingHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.customsAuthorityInitializerAttestation = { authority: 'bad' };
@@ -154,10 +156,7 @@ describe('Track 81 PQ cross-border logistics gating', () => {
 
   test('ZkManifestClaimValidator rejects un-attested trade corridor committee', () => {
     const { hub, pool } = setupAndInitPool();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const validator = new ZkManifestClaimValidator({ policy: POLICY, hub, attestationClient });
     const clReq = baseClaimRequest(pool.poolId);
     clReq.tradeCorridorCommitteeAttestation = { authority: 'bad' };

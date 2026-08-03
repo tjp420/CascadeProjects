@@ -1,0 +1,40 @@
+/**
+ * @fileoverview RFC 8785 JSON Canonicalization Scheme (JCS) Compliant Engine.
+ * Enforces key-sorting and structural constraints for cross-language signatures.
+ */
+
+class JcsCanonicalizer {
+  /**
+   * Deterministically stringifies an object following RFC 8785 rules.
+   * @param {*} obj - Element to canonicalize.
+   * @returns {string} Whitespace-free, key-sorted string representation.
+   */
+  canonicalize(obj) {
+    if (obj === null) return 'null';
+    const t = typeof obj;
+    if (t === 'boolean') return obj ? 'true' : 'false';
+    if (t === 'number') return Number.isFinite(obj) ? JSON.stringify(obj) : 'null';
+    if (t === 'string') return JSON.stringify(obj);
+    if (t === 'bigint') return JSON.stringify(obj.toString(16)); // hex string
+
+    if (Array.isArray(obj)) {
+      const items = obj.map(item => this.canonicalize(item));
+      return `[${items.join(',')}]`;
+    }
+
+    if (t === 'object') {
+      const keys = Object.keys(obj).sort();
+      const kv = [];
+      for (const k of keys) {
+        const v = obj[k];
+        if (v === undefined) continue; // prune undefined
+        kv.push(`${JSON.stringify(k)}:${this.canonicalize(v)}`);
+      }
+      return `{${kv.join(',')}}`;
+    }
+
+    return 'null';
+  }
+}
+
+module.exports = { JcsCanonicalizer };

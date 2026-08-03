@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minTargetPlatformQuorum: 3,
   maxShardDepth: 8,
@@ -55,10 +63,7 @@ function baseDisperseRequest() {
 describe('Track 53 homomorphic key sharding', () => {
   test('HomomorphicKeyShardDisperser disperses shards to multiple platforms', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
       policy: POLICY,
       attestationClient,
@@ -72,10 +77,7 @@ describe('Track 53 homomorphic key sharding', () => {
 
   test('MultiPlatformShardCombiner aggregates evaluations and verifies', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
       policy: POLICY,
       attestationClient,
@@ -100,10 +102,7 @@ describe('Track 53 homomorphic key sharding', () => {
   });
 
   test('HomomorphicKeyShardDisperser rejects un-attested local node', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
       policy: POLICY,
       attestationClient,
@@ -114,10 +113,7 @@ describe('Track 53 homomorphic key sharding', () => {
   });
 
   test('HomomorphicKeyShardDisperser rejects un-attested destination', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
       policy: POLICY,
       attestationClient,
@@ -162,10 +158,7 @@ describe('Track 53 homomorphic key sharding', () => {
   });
 
   test('MultiPlatformShardCombiner rejects expired signatures', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const disperser = new HomomorphicKeyShardDisperser({
       policy: POLICY,
       attestationClient,

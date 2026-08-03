@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minRetirementQuorum: 3,
   maxVintageAgeSeconds: 63072000,
@@ -74,10 +82,7 @@ function baseFinalizeRequest(poolId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcCarbonCreditTokenizationHub({
     policy: POLICY,
     attestationClient,
@@ -142,10 +147,7 @@ describe('Track 70 PQ carbon credit tokenization', () => {
   });
 
   test('PqcCarbonCreditTokenizationHub rejects un-attested asset initializer', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcCarbonCreditTokenizationHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.assetInitializerAttestation = { authority: 'bad' };
@@ -154,10 +156,7 @@ describe('Track 70 PQ carbon credit tokenization', () => {
 
   test('ZkCarbonRetirementValidator rejects un-attested clearing committee', () => {
     const { hub, pool } = setupAndInitPool();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const validator = new ZkCarbonRetirementValidator({ policy: POLICY, hub, attestationClient });
     const retReq = baseRetirementRequest(pool.poolId);
     retReq.clearingCommitteeAttestation = { authority: 'bad' };

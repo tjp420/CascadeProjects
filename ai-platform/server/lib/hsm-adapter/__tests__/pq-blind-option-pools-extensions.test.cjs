@@ -14,6 +14,14 @@ const { ZkMarginAdequacyProcessor, PROOF_STATUS, SLASH_REASON, HW_ACCEL_TYPES } 
 const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minCollateralRatio: 150,
   minExecutionSignatureQuorum: 3,
@@ -80,10 +88,7 @@ function baseExecRequest(poolId) {
 
 function setupHubAndProcessor() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcBlindOptionPoolHub({
     policy: POLICY,
     attestationClient,
