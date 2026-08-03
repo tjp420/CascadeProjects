@@ -1260,6 +1260,9 @@ app.use('/api/token-throttle', tokenThrottleRoutes);
 // HSM Vault — multi-region key custody handshake and decrypt
 app.use('/api/vault', hsmVaultRoutes);
 
+// Track 112: Structural reconnaissance API
+app.use('/api/track112', require('./routes/track112-routes.cjs'));
+
 // Static file serving for saved scan data exports
 app.use('/data', express.static(path.join(__dirname, '../web/data'), { index: false }));
 
