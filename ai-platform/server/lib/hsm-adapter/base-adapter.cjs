@@ -1753,6 +1753,35 @@ class BaseHsmAdapter {
     this._audit('VOTER_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 85 PQ telecom routing gating telemetry hooks ──────────────
+
+  /**
+   * Emit a telecom routing pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitTelecomRoutingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('TELECOM_ROUTING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK bandwidth claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkBandwidthClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_BANDWIDTH_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a routing accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitRoutingAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('ROUTING_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

@@ -74,6 +74,7 @@ const SUITES = [
   'pq-ai-model-training-gating',
   'pq-scientific-reproducibility-gating',
   'pq-dao-treasury-management-gating',
+  'pq-telecom-routing-gating',
 ];
 
 function runSuite(pattern) {
