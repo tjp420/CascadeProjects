@@ -99,6 +99,82 @@ PATENTCOMPLETE:<completionId>:<poolId>:<claimSignatureCount>:<pqcSignatureScheme
 - `ai-platform/server/lib/hsm-adapter/base-adapter.cjs`
 - `ai-platform/server/lib/hsm-adapter/__tests__/pq-patent-verification-gating.test.cjs` *(new)*
 
+## Extension scope (Track 74 Phase 2)
+
+### New capabilities added
+
+- **Claim scope depth rebalancing** — rebalance claim scope depth with increase/decrease directions, epoch tracking, and optional new claim scope depth updates.
+- **Batch pool initialization** — initialize multiple patent verification gating pools in a single batch call with per-pool results.
+- **Committee signature aggregation** — BLS-style aggregate signature from partial committee signatures.
+- **Pool cancellation** — cancel open pools (rejects if accredited/settled).
+- **Cross-chain settlement coordination** — settle accredited pools on the target chain with settlement proof hashes.
+- **Hardware-accelerated SNARK proof generation** — generate Groth16 SNARK proofs with configurable HW acceleration (GPU CUDA, FPGA, ASIC, simulated).
+- **Batch patent claim verification** — verify multiple patent claims in a single batch call with per-claim results.
+- **Partial signature aggregation** — aggregate partial signatures from clearing committee members with banned-peer rejection.
+- **Slashing window validation** — validate claim timestamps within configurable slashing window.
+- **Slashing event recording** — record slash events with reason codes (malformed_claim, duplicate_claim, patent_expiration_out_of_bounds, pool_not_found, banned_peer, out_of_window).
+- **Summary statistics** — both hub and validator expose `getStats()` methods.
+
+### Extension test checklist
+
+#### Positive paths
+
+- [x] Claim scope depth rebalance with increase direction.
+- [x] Claim scope depth rebalance with decrease direction.
+- [x] Claim scope depth updates on rebalance.
+- [x] Batch initialization creates multiple pools.
+- [x] Cross-chain settlement works for accredited pools.
+- [x] Committee signatures can be aggregated.
+- [x] Pools can be cancelled.
+- [x] HW-SNARK proof generation produces Groth16 proofs.
+- [x] Batch patent claim verification processes multiple proofs.
+- [x] Partial signatures can be aggregated.
+- [x] Slashing window validation works for in-window claims.
+- [x] Full init → rebalance → claim → accredit → settle flow works end-to-end.
+
+#### Security / edge cases
+
+- [x] Reject rebalance with invalid direction.
+- [x] Reject rebalance with non-positive amount.
+- [x] Reject rebalance with missing poolId.
+- [x] Reject rebalance on accredited pool.
+- [x] Reject batch init with empty array.
+- [x] Reject batch init exceeding max size.
+- [x] Reject settlement of non-accredited pool.
+- [x] Reject settlement with mismatched chain.
+- [x] Reject settlement with missing poolId.
+- [x] Reject settlement with missing targetChainId.
+- [x] Reject committee aggregation with insufficient signatures.
+- [x] Reject committee aggregation with no signatures.
+- [x] Reject committee aggregation for unknown pool.
+- [x] Reject cancelling accredited pool.
+- [x] Reject double cancellation.
+- [x] Reject cancelling unknown pool.
+- [x] Reject HW-SNARK proof generation with missing poolId.
+- [x] Reject HW-SNARK proof generation with missing values.
+- [x] Reject HW-SNARK proof generation for unknown pool.
+- [x] Reject empty batch patent claim verification.
+- [x] Reject batch patent claim verification exceeding max size.
+- [x] Reject partial signature aggregation with banned peer.
+- [x] Reject partial signature aggregation with insufficient signatures.
+- [x] Reject partial signature aggregation with missing poolId.
+- [x] Detect claim outside slashing window.
+- [x] Reject slashing window validation for unknown pool.
+- [x] Reject slashing window validation with invalid timestamp.
+- [x] Reject slashing window validation with missing poolId.
+- [x] Record slashes for malformed claims.
+- [x] Record slashes for out-of-bounds patent expiration.
+- [x] Record slashes for duplicate claims.
+- [x] CLAIM_STATUS, SLASH_REASON, HW_ACCEL_TYPES, POOL_STATUS, REBALANCE_DIRECTION constants exported.
+
+## Files changed (Phase 2 extension)
+
+- `ai-platform/server/lib/hsm-adapter/pqc-patent-verification-gating-hub.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/zk-patent-claim-validator.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(14 new counters)*
+- `ai-platform/server/lib/hsm-adapter/__tests__/pq-patent-verification-gating-extensions.test.cjs` *(new, 54 tests)*
+
 ## Approval
 
-Pending Validator review.
+Phase 1: Approved and merged (15 tests).
+Phase 2: Pending Validator review.
