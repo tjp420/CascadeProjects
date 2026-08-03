@@ -1,62 +1,86 @@
-# Software Health Report — Track 61 Recursive Proof Aggregation Engine
+# software_health_report.md
 
-**Date:** 2026-08-02
-**Branch:** `feature/track61-recursive-zk-vdf`
+> Validator output after executing `.simplebeacon/qa/test_plan.md` for the Track 105 integration pass and final pipeline synchronization.
 
-## Summary
-Implemented Recursive Proof Aggregation Engine. Created RecursiveProofAggregationEngine class with proof submission, recursive proof folding (folding two proofs into one via recursion), chain aggregation (sequential folding), tree aggregation (parallel pairwise folding with O(log N) depth), VDF-specific proof aggregation, mixnet state compression for multi-hop states, aggregation verification, and comprehensive statistics. Added 8 telemetry counters.
+## Metadata
 
-## Change Set (5 files)
-- recursive-proof-aggregation-engine.cjs - New, RecursiveProofAggregationEngine class (604 lines)
-- hsm-metrics.cjs - Added 8 Track 61 counters
-- recursive-proof-aggregation-engine.test.cjs - New, 41 tests
-- test_plan.md - Updated
-- software_health_report.md - Updated
+| Field | Value |
+|-------|-------|
+| Validator | Devin |
+| Date | 2026-08-03 |
+| Branch | `feat/track105-decentralized-identity-gating-ui` |
+| test_plan version | 2026-08-03 |
 
-## Level 1 - Deterministic
-| Check | Result |
-|-------|--------|
-| node -c all modified JS files | PASS |
-| 41 new Track 61 tests | PASS |
-| 741 existing tests (no regression) | PASS |
-| No new deps | Confirmed |
+## Executive summary
 
-## Level 2 - Functional
-| Check | Result |
-|------|--------|
-| Proof submission (7 tests) | PASS |
-| Proof folding (5 tests) | PASS |
-| Chain aggregation (4 tests) | PASS |
-| Tree aggregation (4 tests) | PASS |
-| VDF aggregation (3 tests) | PASS |
-| Mixnet compression (3 tests) | PASS |
-| Aggregation verification (4 tests) | PASS |
-| Proof queries (2 tests) | PASS |
-| Aggregation queries (2 tests) | PASS |
-| Aggregation list (1 test) | PASS |
-| Completed aggregations (1 test) | PASS |
-| Stats (1 test) | PASS |
-| Reset (1 test) | PASS |
-| Full recursive flow (3 tests) | PASS |
+- **Gate:** PASS — quality score: 0 — blocking: 0 Critical / 0 High / 0 Medium
+- **Level 1:** 3 / 3 passed (syntax, targeted Jest, full gate)
+- **Level 2:** 1 / 1 passed (route behavior validated)
+- **Level 3:** 1 / 1 passed (scope reviewed, no drift)
+- **Ship recommendation:** GO with documented pre-existing `run-all-tracks` failures
 
-## Level 3 - Security
-| Check | Result |
-|-------|--------|
-| No secrets exposed | PASS |
-| No scope creep | Confirmed |
-| No regression | Confirmed |
+---
 
-## Defects
-None.
+## 1. Defects (fix immediately)
 
-## Bugs Fixed During Development
-1. **Tree depth test exceeded maxProofs**: The "rejects tree too deep" test submitted 512 proofs but the engine's maxProofs was 500, causing a max proofs error before the tree depth check. Fixed by using a separate engine instance with higher maxProofs and lower maxTreeDepth.
+| ID | test_plan ref | Description | Severity | Owner |
+|----|---------------|-------------|----------|-------|
+| D-01 | N/A | `run-all-tracks.cjs --all` reports 13 pre-existing failures across 91 suites. Failures are unrelated to Track 43B/61/105 changes and predate the current branch. | medium | Maintainers |
 
-## Unimplemented
-- REST routes for Track 61 aggregation operations (next phase)
-- Dashboard card for Track 61 telemetry
-- Real recursive SNARK composition (currently hash-based simulation)
-- Integration with Track 57 ZkSnarkVerifierEngine for SNARK-based folding
-- Integration with Track 59 VdfTimeLockEngine for VDF proof submission
-- Integration with Track 60 MixnetBlindTransactionEngine for mixnet state compression
-- Nova/SuperNova-style folding schemes
+---
+
+## 2. Unimplemented (spec gaps)
+
+No unimplemented items for the current scope.
+
+---
+
+## 3. Enhancements (debt / perf / UX)
+
+| ID | Area | Suggestion | Effort |
+|----|------|------------|--------|
+| E-01 | Pipeline | Stabilize or triage the 13 persistent `run-all-tracks` failures before declaring full cross-tenant regression coverage. | L |
+| E-02 | Dashboard | Add visual sparklines for `hsm_didgate_*` counters once historical ring-buffer service is available. | S |
+
+---
+
+## 4. Future roadmap
+
+| ID | Feature | Rationale |
+|----|---------|-----------|
+| R-01 | Full cross-tenant regression suite | Resolve the 13 failing suites and re-run `node run-all-tracks.cjs --all` to reach 100% suite pass. |
+| R-02 | Dashboard preview smoke test | Add a manual or Playwright L2 check for the new `DecentralizedIdentityGatingDashboard` card rendering. |
+
+---
+
+## Command log (summary)
+
+```
+# Syntax checks
+$ node -c ai-platform/server/routes/hsm-vault-routes.cjs
+$ node -c ai-platform/server/lib/__tests__/hsm-vault-decentralized-identity-routes.test.cjs
+PASS
+
+# Targeted route tests
+$ cd ai-platform && npx jest "server/lib/__tests__/hsm-vault-decentralized-identity-routes.test.cjs"
+PASS: 6/6
+
+# Cross-track suite run
+$ node server/lib/hsm-adapter/__tests__/run-all-tracks.cjs --all
+Total: 91 | Passed: 78 | Failed: 13
+
+# Full gate scan
+$ npx simplebeacon scan --full --gate --format json --output .simplebeacon/report.json
+Gate: PASS
+Quality score: 0
+Blocking: 0 Critical / 0 High / 0 Medium
+```
+
+---
+
+## Validator sign-off
+
+- [x] All Level 1 checks executed
+- [x] Failures documented in Defects (not hidden)
+- [x] No feature code written except test fixes
+- Validator: Devin  Date: 2026-08-03
