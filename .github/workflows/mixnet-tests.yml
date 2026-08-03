@@ -1,0 +1,41 @@
+name: Mixnet Tests
+
+on:
+  pull_request:
+    branches:
+      - feature/track67-governance-hubs
+  push:
+    branches:
+      - feature/track67-governance-hubs
+
+jobs:
+  test:
+    name: Run Mixnet tests
+    runs-on: ubuntu-latest
+    env:
+      MAX_JITTER_MS: 150
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Mixnet Jest tests
+        run: npx jest "ai-platform/server/lib/mixnet/__tests__/*.test.cjs" --runInBand --colors
+
+      - name: Run jitter acceptance check
+        id: jitter
+        run: node ai-platform/server/lib/mixnet/ci/check_jitter.cjs
+
+      - name: Upload jitter metrics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mixnet-jitter-metrics
+          path: ai-platform/server/lib/mixnet/ci/jitter_metrics.json

@@ -90,15 +90,79 @@ UNDERWRITINGLIQ:<liquidationId>:<poolId>:<claimSignatureCount>:<pqcSignatureSche
 - **L2 Behavioral**: Simulate a three-node clearing committee with attested coverage initiator and clearing committee relay, verify claim eligibility authentication and underwriting pool liquidation after quorum.
 - **L3 Reflection**: Spec alignment, minimal file count, no ghost modules.
 
-## Files expected to change
+## Extension scope (Track 67 Phase 2)
 
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json`
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs`
-- `ai-platform/server/lib/hsm-adapter/pqc-insurance-underwriting-hub.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/zk-risk-exposure-validator.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/base-adapter.cjs`
-- `ai-platform/server/lib/hsm-adapter/__tests__/pq-insurance-underwriting.test.cjs` *(new)*
+### New capabilities added
+
+- **Risk rebalancing** — rebalance risk exposure with increase/decrease directions, epoch tracking, and optional reserve ratio updates.
+- **Batch pool initialization** — initialize multiple insurance underwriting pools in a single batch call with per-pool results.
+- **Committee signature aggregation** — BLS-style aggregate signature from partial committee signatures.
+- **Pool cancellation** — cancel open pools (rejects if liquidated/settled).
+- **Cross-chain settlement coordination** — settle liquidated pools on the target chain with settlement proof hashes.
+- **Hardware-accelerated SNARK proof generation** — generate Groth16 SNARK proofs with configurable HW acceleration (GPU CUDA, FPGA, ASIC, simulated).
+- **Batch claim verification** — verify multiple claim eligibility proofs in a single batch call with per-claim results.
+- **Partial signature aggregation** — aggregate partial signatures from clearing committee members with banned-peer rejection.
+- **Slashing window validation** — validate claim timestamps within configurable slashing window.
+- **Slashing event recording** — record slash events with reason codes (malformed, duplicate, sub_reserve, pool_not_open, banned_peer, out_of_order).
+- **Summary statistics** — both hub and validator expose `getStats()` methods.
+
+### Extension test checklist
+
+#### Positive paths
+
+- [x] Risk rebalance with increase direction.
+- [x] Risk rebalance with decrease direction.
+- [x] Reserve ratio updates on rebalance.
+- [x] Batch initialization creates multiple pools.
+- [x] Cross-chain settlement works for liquidated pools.
+- [x] Committee signatures can be aggregated.
+- [x] Pools can be cancelled.
+- [x] HW-SNARK proof generation produces Groth16 proofs.
+- [x] Batch claim verification processes multiple proofs.
+- [x] Partial signatures can be aggregated.
+- [x] Slashing window validation works for in-window claims.
+- [x] Full init → rebalance → claim → liquidate → settle flow works end-to-end.
+
+#### Security / edge cases
+
+- [x] Reject rebalance with invalid direction.
+- [x] Reject rebalance with non-positive amount.
+- [x] Reject rebalance with missing poolId.
+- [x] Reject rebalance on liquidated pool.
+- [x] Reject batch init with empty array.
+- [x] Reject batch init exceeding max size.
+- [x] Reject settlement of non-liquidated pool.
+- [x] Reject settlement with mismatched chain.
+- [x] Reject settlement with missing poolId.
+- [x] Reject committee aggregation with insufficient signatures.
+- [x] Reject committee aggregation with no signatures.
+- [x] Reject committee aggregation for unknown pool.
+- [x] Reject cancelling liquidated pool.
+- [x] Reject double cancellation.
+- [x] Reject cancelling unknown pool.
+- [x] Reject HW-SNARK proof generation with missing poolId.
+- [x] Reject HW-SNARK proof generation with missing values.
+- [x] Reject HW-SNARK proof generation for unknown pool.
+- [x] Reject empty batch claim verification.
+- [x] Reject batch claim verification exceeding max size.
+- [x] Reject partial signature aggregation with banned peer.
+- [x] Reject partial signature aggregation with insufficient signatures.
+- [x] Reject partial signature aggregation with missing poolId.
+- [x] Detect claim outside slashing window.
+- [x] Reject slashing window validation for unknown pool.
+- [x] Reject slashing window validation with invalid timestamp.
+- [x] Record slashes for malformed claims.
+- [x] Record slashes for sub-reserve claims.
+- [x] CLAIM_STATUS, SLASH_REASON, HW_ACCEL_TYPES, POOL_STATUS, REBALANCE_DIRECTION constants exported.
+
+## Files changed (Phase 2 extension)
+
+- `ai-platform/server/lib/hsm-adapter/pqc-insurance-underwriting-hub.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/zk-risk-exposure-validator.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(15 new counters)*
+- `ai-platform/server/lib/hsm-adapter/__tests__/pq-insurance-underwriting-extensions.test.cjs` *(new, 51 tests)*
 
 ## Approval
 
-Pending Validator review.
+Phase 1: Approved and merged (15 tests).
+Phase 2: Pending Validator review.
