@@ -754,6 +754,10 @@ const counters = {
   hsm_polar_research_pool_initialized_total: 0,
   hsm_zk_research_claim_verified_total: 0,
   hsm_data_accreditation_completed_total: 0,
+  // Track 97: PQC Stratospheric Aerosol Monitoring Gating counters
+  hsm_strato_pool_initialized_total: 0,
+  hsm_zk_aerosol_claim_verified_total: 0,
+  hsm_deployment_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1385,6 +1389,9 @@ const META = {
   hsm_igate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for claim audits.', type: 'counter' },
   hsm_igate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for claim audits.', type: 'counter' },
   hsm_igate_banned_peers: { help: 'Number of banned peers in health insurance claim auditing gating hub.', type: 'gauge' },
+  hsm_strato_pool_initialized_total: { help: 'Total stratospheric aerosol monitoring gating pools initialized.', type: 'counter' },
+  hsm_zk_aerosol_claim_verified_total: { help: 'Total ZK aerosol monitoring claims verified.', type: 'counter' },
+  hsm_deployment_accreditation_completed_total: { help: 'Total deployment accreditation completions finalized.', type: 'counter' },
 };
 
 /**
