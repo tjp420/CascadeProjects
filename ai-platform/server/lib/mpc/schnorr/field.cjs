@@ -69,13 +69,14 @@ function normalizeToBigInt(v) {
       const vBig = BigInt((neg ? '-' : '') + core);
       return vBig;
     }
-    if (/^0x[0-9a-fA-F]+$/i.test(core)) {
-      // normalize to lower-case 0x prefix; BigInt does not accept 0X
-      return BigInt((neg ? '-' : '') + '0x' + core.slice(2).toLowerCase());
+    if (/^0[xX][0-9a-fA-F]+$/.test(core)) {
+      const v = BigInt(core);
+      return neg ? -v : v;
     }
     if (/^[0-9a-fA-F]+$/.test(core)) {
       // hex without 0x prefix -> interpret as hex
-      return BigInt((neg ? '-' : '') + '0x' + core);
+      const v = BigInt('0x' + core);
+      return neg ? -v : v;
     }
     throw new TypeError('invalid numeric string format');
   }
