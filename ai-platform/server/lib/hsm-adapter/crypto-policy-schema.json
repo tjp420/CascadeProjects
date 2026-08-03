@@ -892,6 +892,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderGenomicClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqQuantumSensorCalibrationGating": {
+      "minQuantumQuorum": 7,
+      "maxCalibrationWindowSeconds": 7776000,
+      "maxCalibrationChainDepth": 22,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireQuantumMetrologyAuthorityInitializerAttestation": true,
+      "requireQuantumStandardsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderQuantumClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

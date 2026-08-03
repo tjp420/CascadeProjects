@@ -822,6 +822,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderGenomicClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqQuantumSensorCalibrationGating: {
+    minQuantumQuorum: 7,
+    maxCalibrationWindowSeconds: 7776000,
+    maxCalibrationChainDepth: 22,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireQuantumMetrologyAuthorityInitializerAttestation: true,
+    requireQuantumStandardsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderQuantumClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1259,6 +1270,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqGenomicPrivacyComplianceGating: {
       ...DEFAULT_POLICY.pqGenomicPrivacyComplianceGating,
       ...(tenantPolicy.pqGenomicPrivacyComplianceGating || {}),
+    },
+    pqQuantumSensorCalibrationGating: {
+      ...DEFAULT_POLICY.pqQuantumSensorCalibrationGating,
+      ...(tenantPolicy.pqQuantumSensorCalibrationGating || {}),
     },
   };
 }
@@ -3334,6 +3349,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqQuantumSensorCalibrationGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqQuantumSensorCalibrationGating, ...(tenantPolicy.pqQuantumSensorCalibrationGating || {}) };
+    if (typeof config.quantumQuorum === 'number' && config.quantumQuorum < policy.minQuantumQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `quantum quorum ${config.quantumQuorum} below minimum ${policy.minQuantumQuorum}`);
+    }
+    if (typeof config.calibrationWindowSeconds === 'number' && config.calibrationWindowSeconds > policy.maxCalibrationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `calibration window seconds ${config.calibrationWindowSeconds} exceeds maximum ${policy.maxCalibrationWindowSeconds}`);
+    }
+    if (typeof config.calibrationChainDepth === 'number' && config.calibrationChainDepth > policy.maxCalibrationChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `calibration chain depth ${config.calibrationChainDepth} exceeds maximum ${policy.maxCalibrationChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireQuantumMetrologyAuthorityInitializerAttestation && config.quantumMetrologyAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'quantum metrology authority initializer attestation is required');
+    }
+    if (policy.requireQuantumStandardsOversightCommitteeAttestation && config.quantumStandardsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'quantum standards oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderQuantumClaims === 'boolean' && policy.banMalformedOrOutOfOrderQuantumClaims && !config.banMalformedOrOutOfOrderQuantumClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order quantum claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3998,6 +4044,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqGenomicPrivacyComplianceGating') {
       this._validatePqGenomicPrivacyComplianceGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqQuantumSensorCalibrationGating') {
+      this._validatePqQuantumSensorCalibrationGating(tenantPolicy, config);
       return true;
     }
 

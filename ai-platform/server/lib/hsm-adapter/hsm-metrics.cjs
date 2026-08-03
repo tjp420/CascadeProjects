@@ -780,6 +780,10 @@ const counters = {
   hsm_genogo_pool_initialized_total: 0,
   hsm_zk_genomic_claim_verified_total: 0,
   hsm_consent_accreditation_completed_total: 0,
+  // Track 100: PQC Quantum Sensor Calibration Gating counters
+  hsm_quantgo_pool_initialized_total: 0,
+  hsm_zk_quantum_claim_verified_total: 0,
+  hsm_calibration_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1434,6 +1438,9 @@ const META = {
   hsm_genogo_pool_initialized_total: { help: 'Total genomic privacy compliance gating pools initialized.', type: 'counter' },
   hsm_zk_genomic_claim_verified_total: { help: 'Total ZK genomic privacy compliance claims verified.', type: 'counter' },
   hsm_consent_accreditation_completed_total: { help: 'Total consent accreditation completions finalized.', type: 'counter' },
+  hsm_quantgo_pool_initialized_total: { help: 'Total quantum sensor calibration gating pools initialized.', type: 'counter' },
+  hsm_zk_quantum_claim_verified_total: { help: 'Total ZK quantum sensor calibration claims verified.', type: 'counter' },
+  hsm_calibration_accreditation_completed_total: { help: 'Total calibration accreditation completions finalized.', type: 'counter' },
 };
 
 /**
