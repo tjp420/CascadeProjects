@@ -991,6 +991,28 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderLaserMeshClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqQuantumKeyDistributionLinkSwitchGating": {
+      "minQkdQuorum": 18,
+      "maxEntanglementWindowSeconds": 60,
+      "maxQkdSwitchChainDepth": 42,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireQkdLinkAuthorityInitializerAttestation": true,
+      "requireQkdEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderQkdLinkClaims": true,
+      "requireCanonicalPayloadLayout": true
+    },
+    "pqHolographicStorageContentAddressableGating": {
+      "minHolographicQuorum": 20,
+      "maxPhaseValidationWindowSeconds": 10,
+      "maxVolumetricChainDepth": 50,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireHolographicStorageAuthorityInitializerAttestation": true,
+      "requireHolographicEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderHolographicClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

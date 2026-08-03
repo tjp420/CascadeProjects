@@ -2664,6 +2664,46 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_handoff_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 109 quantum key distribution link-switch gating telemetry hooks
+
+  emitQkdLinkPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('QKD_LINK_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_qkdswitchgate_pool_initialized_total'); } catch { }
+  }
+
+  emitZkQkdLinkClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_QKD_LINK_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_qkd_link_claim_verified_total'); } catch { }
+  }
+
+  emitEntanglementAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('ENTANGLEMENT_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_entanglement_accreditation_completed_total'); } catch { }
+  }
+
+  // ── Track 110 holographic storage content-addressable gating telemetry hooks
+
+  emitHolographicPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('HOLOGRAPHIC_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_hologate_pool_initialized_total'); } catch { }
+  }
+
+  emitZkHolographicClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_HOLOGRAPHIC_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_holographic_claim_verified_total'); } catch { }
+  }
+
+  emitPhaseAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('PHASE_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_phase_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

@@ -812,6 +812,12 @@ const counters = {
   hsm_lasergate_pool_initialized_total: 0,
   hsm_zk_laser_mesh_claim_verified_total: 0,
   hsm_handoff_accreditation_completed_total: 0,
+  hsm_qkdswitchgate_pool_initialized_total: 0,
+  hsm_zk_qkd_link_claim_verified_total: 0,
+  hsm_entanglement_accreditation_completed_total: 0,
+  hsm_hologate_pool_initialized_total: 0,
+  hsm_zk_holographic_claim_verified_total: 0,
+  hsm_phase_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1496,6 +1502,12 @@ const META = {
   hsm_lasergate_pool_initialized_total: { help: 'Total space-based laser communication mesh gating pools initialized.', type: 'counter' },
   hsm_zk_laser_mesh_claim_verified_total: { help: 'Total ZK space-based laser mesh claims verified.', type: 'counter' },
   hsm_handoff_accreditation_completed_total: { help: 'Total space-based laser mesh handoff accreditation completions finalized.', type: 'counter' },
+  hsm_qkdswitchgate_pool_initialized_total: { help: 'Total quantum key distribution link-switch gating pools initialized.', type: 'counter' },
+  hsm_zk_qkd_link_claim_verified_total: { help: 'Total ZK quantum key distribution link claims verified.', type: 'counter' },
+  hsm_entanglement_accreditation_completed_total: { help: 'Total quantum key distribution entanglement accreditation completions finalized.', type: 'counter' },
+  hsm_hologate_pool_initialized_total: { help: 'Total holographic storage content-addressable gating pools initialized.', type: 'counter' },
+  hsm_zk_holographic_claim_verified_total: { help: 'Total ZK holographic storage claims verified.', type: 'counter' },
+  hsm_phase_accreditation_completed_total: { help: 'Total holographic storage phase accreditation completions finalized.', type: 'counter' },
 };
 
 /**

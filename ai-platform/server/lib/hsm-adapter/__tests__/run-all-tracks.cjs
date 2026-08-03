@@ -96,6 +96,10 @@ const SUITES = [
   'pq-autonomous-vehicle-fleet-coordination-gating',
   'pq-supply-chain-resilience-integrity-gating',
   'pq-smart-contract-verifiable-execution-gating',
+  'pq-decentralized-identity-proof-gating',
+  'pq-cross-shard-asset-teleportation-gating',
+  'pq-decentralized-energy-grid-balancing-gating',
+  'pq-space-based-laser-communication-mesh-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',
@@ -125,7 +129,7 @@ function resolveBaseTestFile(pattern) {
 function runSuite(pattern) {
   const target = resolveBaseTestFile(pattern);
   try {
-    const output = execSync(`npx jest ${target} --silent`, {
+    const output = execSync(`npx jest ${target} --silent --coverage=false`, {
       cwd: __dirname + '/../../..',
       stdio: ['pipe', 'pipe', 'pipe'],
       encoding: 'utf8',
