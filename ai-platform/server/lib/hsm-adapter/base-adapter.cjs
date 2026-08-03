@@ -2014,6 +2014,35 @@ class BaseHsmAdapter {
     this._audit('PROVENANCE_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 94 PQ ocean fisheries allocation gating telemetry hooks ──
+
+  /**
+   * Emit a fisheries gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitFisheriesGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('FISHERIES_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK catch claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkCatchClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_CATCH_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a quota accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitQuotaAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('QUOTA_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

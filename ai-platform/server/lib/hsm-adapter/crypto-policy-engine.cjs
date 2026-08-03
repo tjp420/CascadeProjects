@@ -756,6 +756,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderAuthenticationClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqFisheriesGating: {
+    minMaritimeQuorum: 5,
+    maxCatchTrackingWindowSeconds: 2592000,
+    maxVesselTelemetryChainDepth: 12,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireRfmoAuthorityInitializerAttestation: true,
+    requireMarineSanctuaryOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderCatchClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1169,6 +1180,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqHeritageGating: {
       ...DEFAULT_POLICY.pqHeritageGating,
       ...(tenantPolicy.pqHeritageGating || {}),
+    },
+    pqFisheriesGating: {
+      ...DEFAULT_POLICY.pqFisheriesGating,
+      ...(tenantPolicy.pqFisheriesGating || {}),
     },
   };
 }
@@ -3058,6 +3073,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqFisheriesGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqFisheriesGating, ...(tenantPolicy.pqFisheriesGating || {}) };
+    if (typeof config.maritimeQuorum === 'number' && config.maritimeQuorum < policy.minMaritimeQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `maritime quorum ${config.maritimeQuorum} below minimum ${policy.minMaritimeQuorum}`);
+    }
+    if (typeof config.catchTrackingWindowSeconds === 'number' && config.catchTrackingWindowSeconds > policy.maxCatchTrackingWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `catch tracking window seconds ${config.catchTrackingWindowSeconds} exceeds maximum ${policy.maxCatchTrackingWindowSeconds}`);
+    }
+    if (typeof config.vesselTelemetryChainDepth === 'number' && config.vesselTelemetryChainDepth > policy.maxVesselTelemetryChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `vessel telemetry chain depth ${config.vesselTelemetryChainDepth} exceeds maximum ${policy.maxVesselTelemetryChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireRfmoAuthorityInitializerAttestation && config.rfmoAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'RFMO authority initializer attestation is required');
+    }
+    if (policy.requireMarineSanctuaryOversightCommitteeAttestation && config.marineSanctuaryOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'marine sanctuary oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderCatchClaims === 'boolean' && policy.banMalformedOrOutOfOrderCatchClaims && !config.banMalformedOrOutOfOrderCatchClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order catch claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3692,6 +3738,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqHeritageGating') {
       this._validatePqHeritageGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqFisheriesGating') {
+      this._validatePqFisheriesGating(tenantPolicy, config);
       return true;
     }
 
