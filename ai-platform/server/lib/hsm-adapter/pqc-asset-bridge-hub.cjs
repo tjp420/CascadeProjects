@@ -3,9 +3,10 @@
 /**
  * Track 48: PQC asset bridge hub.
  *
- * Orchestrates cross-platform asset locks and releases using
- * post-quantum ML-DSA/Dilithium threshold committee signatures
- * and time-locked escrows.
+ * Orchestrates cross-system asset locks and releases using
+ * post-quantum ML-DSA/Dilithium threshold signatures from the
+ * Track 27 committee. Validates attestation on both source and
+ * target endpoints before broadcasting a transfer.
  *
  * @module hsm-adapter/pqc-asset-bridge-hub
  */
@@ -29,129 +30,124 @@ class PqcAssetBridgeHub {
   }
 
   /**
-   * Initiate a cross-platform asset transfer.
-   * @param {object} request
+   * Initiate a bridge transfer.
+   * @param {object} transfer
    * @returns {object}
    */
-  initiate(request) {
-    _validateInitiate(this.policy, request);
-    _validateAttestation(this._attestationClient, request.sourceAttestation);
-    const payload = _canonicalPayload(request);
-    const transfer = {
-      ...request,
-      payload,
-      status: 'initiated',
-      committeeSignatures: [],
-    };
+  initiate(transfer) {
+    _validateTransfer(this.policy, this._attestationClient, transfer);
+    if (this._escrow) {
+      this._escrow.lock(transfer.transferId, transfer.amount, transfer.lockEpoch, transfer.releaseEpoch);
+    }
+    const payload = _canonicalPayload(transfer, []);
     if (this._audit) {
       this._audit('BRIDGE_TRANSFER_INITIATED', {
-        sourcePlatform: request.sourcePlatform,
-        targetPlatform: request.targetPlatform,
-        assetId: request.assetId,
-        amount: request.amount,
-        recipient: request.recipient,
-        lockEpoch: request.lockEpoch,
-        releaseEpoch: request.releaseEpoch,
+        transferId: transfer.transferId,
+        sourcePlatform: transfer.sourcePlatform,
+        targetPlatform: transfer.targetPlatform,
+        assetId: transfer.assetId,
+        amount: transfer.amount,
+        timestamp: Math.floor(Date.now() / 1000),
       });
     }
-    return transfer;
+    return { initiated: true, transferId: transfer.transferId, payload };
   }
 
   /**
-   * Add a committee signature and validate the transfer.
-   * @param {object} transfer
+   * Add a committee signature and release escrow when quorum is reached.
+   * @param {string} transferId
    * @param {string} committeeMemberId
    * @param {object} attestation
    * @param {string} signature
    * @returns {object}
    */
-  sign(transfer, committeeMemberId, attestation, signature) {
-    if (this._attestationClient) {
+  signAndRelease(transferId, committeeMemberId, attestation, signature) {
+    if (this.policy.requireSourceAttestation && this._attestationClient) {
       const result = this._attestationClient.verify(attestation);
       if (!result.verified) {
         throw new HsmAdapterError('BRIDGE_COMMITTEE_UNATTESTED', `committee member ${committeeMemberId} attestation invalid`);
       }
     }
-    if (!signature || typeof signature !== 'string') {
-      throw new HsmAdapterError('BRIDGE_SIGNATURE_MISSING', 'committee signature is required');
-    }
-    if (!transfer.committeeSignatures) transfer.committeeSignatures = [];
-    transfer.committeeSignatures.push(`${committeeMemberId}=${signature}`);
-    if (transfer.committeeSignatures.length >= (this.policy.minCommitteeQuorum || 3)) {
-      transfer.status = 'validated';
-      if (this._audit) {
-        this._audit('CROSS_CHAIN_CLAIM_VALIDATED', {
-          sourcePlatform: transfer.sourcePlatform,
-          targetPlatform: transfer.targetPlatform,
-          assetId: transfer.assetId,
-          amount: transfer.amount,
-        });
+    if (this._escrow) {
+      const escrowResult = this._escrow.validateClaim(transferId);
+      if (!escrowResult.valid) {
+        throw new HsmAdapterError('BRIDGE_CLAIM_INVALID', escrowResult.reason);
       }
+      this._escrow.addCommitteeSignature(transferId, signature);
+      const release = this._escrow.attemptRelease(transferId, this.policy.minCommitteeQuorum || 3);
+      if (release.released) {
+        if (this._audit) {
+          this._audit('ESCROW_RELEASE_FINALIZED', { transferId, timestamp: Math.floor(Date.now() / 1000) });
+        }
+      }
+      return { transferId, signatures: release.signatures, released: release.released };
     }
-    return transfer;
+    return { transferId, signatures: 1, released: false };
   }
 
   /**
-   * Release the escrowed assets on the target side.
-   * @param {object} transfer
-   * @param {number} currentEpoch
+   * Validate a cross-chain claim.
+   * @param {object} claim
    * @returns {object}
    */
-  finalize(transfer, currentEpoch) {
-    if (transfer.status !== 'validated') {
-      throw new HsmAdapterError('BRIDGE_NOT_VALIDATED', 'transfer has not reached committee quorum');
-    }
-    _validateAttestation(this._attestationClient, transfer.targetAttestation);
-    if (currentEpoch < transfer.releaseEpoch) {
-      throw new HsmAdapterError('BRIDGE_TIME_LOCK_ACTIVE', `release not allowed before epoch ${transfer.releaseEpoch}`);
-    }
-    if (this._escrow) {
-      this._escrow.release(transfer, currentEpoch);
-    }
-    transfer.status = 'released';
+  validateClaim(claim) {
+    _validateClaim(this.policy, this._attestationClient, claim);
     if (this._audit) {
-      this._audit('ESCROW_RELEASE_FINALIZED', {
-        sourcePlatform: transfer.sourcePlatform,
-        targetPlatform: transfer.targetPlatform,
-        assetId: transfer.assetId,
-        amount: transfer.amount,
-        recipient: transfer.recipient,
-        releaseEpoch: currentEpoch,
+      this._audit('CROSS_CHAIN_CLAIM_VALIDATED', {
+        transferId: claim.transferId,
+        targetPlatform: claim.targetPlatform,
+        timestamp: Math.floor(Date.now() / 1000),
       });
     }
-    return transfer;
+    return { valid: true, transferId: claim.transferId };
   }
 }
 
-function _validateInitiate(policy, request) {
-  if (typeof request.amount === 'number' && request.amount > policy.maxAssetTransactionValue) {
-    throw new HsmAdapterError('BRIDGE_VALUE_EXCEEDED', `asset value ${request.amount} exceeds maximum ${policy.maxAssetTransactionValue}`);
+function _validateTransfer(policy, attestationClient, transfer) {
+  if (typeof transfer.amount !== 'number' || transfer.amount > (policy.maxAssetTransactionValue || 1000000)) {
+    throw new HsmAdapterError('BRIDGE_VALUE_EXCEEDED', `asset transaction value ${transfer.amount} exceeds maximum ${policy.maxAssetTransactionValue}`);
   }
-  if (typeof request.lockEpoch === 'number' && typeof request.releaseEpoch === 'number' && (request.releaseEpoch - request.lockEpoch) < policy.minLockEpochDuration) {
-    throw new HsmAdapterError('BRIDGE_LOCK_TOO_SHORT', `lock duration ${request.releaseEpoch - request.lockEpoch} below minimum ${policy.minLockEpochDuration}`);
+  if (typeof transfer.lockEpoch !== 'number' || typeof transfer.releaseEpoch !== 'number') {
+    throw new HsmAdapterError('BRIDGE_EPOCHS_INVALID', 'lock and release epochs are required');
   }
-  if (policy.requireSourceAttestation && !request.sourceAttestation) {
-    throw new HsmAdapterError('BRIDGE_SOURCE_ATTESTATION_MISSING', 'source attestation is required');
+  if (transfer.releaseEpoch - transfer.lockEpoch < (policy.minLockEpochDuration || 60)) {
+    throw new HsmAdapterError('BRIDGE_LOCK_TOO_SHORT', `lock duration ${transfer.releaseEpoch - transfer.lockEpoch} below minimum ${policy.minLockEpochDuration}`);
   }
-  if (policy.requireTargetAttestation && !request.targetAttestation) {
-    throw new HsmAdapterError('BRIDGE_TARGET_ATTESTATION_MISSING', 'target attestation is required');
+  if (policy.requireSourceAttestation && attestationClient) {
+    const result = attestationClient.verify(transfer.sourceAttestation);
+    if (!result.verified) {
+      throw new HsmAdapterError('BRIDGE_SOURCE_UNATTESTED', 'source platform attestation invalid');
+    }
   }
-  if (!request.sourcePlatform || !request.targetPlatform || !request.assetId || !request.recipient) {
-    throw new HsmAdapterError('BRIDGE_FIELDS_MISSING', 'source, target, asset, and recipient are required');
+  if (policy.requireTargetAttestation && attestationClient) {
+    const result = attestationClient.verify(transfer.targetAttestation);
+    if (!result.verified) {
+      throw new HsmAdapterError('BRIDGE_TARGET_UNATTESTED', 'target platform attestation invalid');
+    }
+  }
+  if (typeof transfer.bridgeAuthority === 'string' && !policy.allowedBridgeAuthorities.includes(transfer.bridgeAuthority)) {
+    throw new HsmAdapterError('BRIDGE_AUTHORITY_BLOCKED', `bridge authority ${transfer.bridgeAuthority} is not allowed; permitted: ${policy.allowedBridgeAuthorities.join(', ')}`);
   }
 }
 
-function _validateAttestation(attestationClient, attestation) {
-  if (!attestationClient || !attestation) return;
-  const result = attestationClient.verify(attestation);
-  if (!result.verified) {
-    throw new HsmAdapterError('BRIDGE_ATTESTATION_INVALID', 'platform attestation is not valid');
+function _validateClaim(policy, attestationClient, claim) {
+  if (typeof claim.claimedAtEpoch !== 'number' || typeof claim.lockedAtEpoch !== 'number') {
+    throw new HsmAdapterError('BRIDGE_CLAIM_EPOCHS_INVALID', 'claim epochs are required');
+  }
+  if (claim.claimedAtEpoch - claim.lockedAtEpoch > (policy.maxClaimExpirationEpochs || 10)) {
+    throw new HsmAdapterError('BRIDGE_CLAIM_EXPIRED', `claim expiration ${claim.claimedAtEpoch - claim.lockedAtEpoch} exceeds maximum ${policy.maxClaimExpirationEpochs}`);
+  }
+  if (policy.requireTargetAttestation && attestationClient) {
+    const result = attestationClient.verify(claim.targetAttestation);
+    if (!result.verified) {
+      throw new HsmAdapterError('BRIDGE_TARGET_UNATTESTED', 'claim target attestation invalid');
+    }
   }
 }
 
-function _canonicalPayload(request) {
-  const { sourcePlatform, targetPlatform, assetId, amount, recipient, lockEpoch, releaseEpoch } = request;
-  return `BRIDGE:${sourcePlatform}:${targetPlatform}:${assetId}:${amount}:${recipient}:${lockEpoch}:${releaseEpoch}:`;
+function _canonicalPayload(transfer, signatures) {
+  const sigs = signatures.join(':');
+  return `BRIDGE:${transfer.sourcePlatform}:${transfer.targetPlatform}:${transfer.assetId}:${transfer.amount}:${transfer.recipient}:${transfer.lockEpoch}:${transfer.releaseEpoch}:${sigs}`;
 }
 
 module.exports = { PqcAssetBridgeHub };
