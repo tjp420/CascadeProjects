@@ -7,6 +7,17 @@ const MAX_SIGNIFICANT = 21; // bound significant digits for numeric normalizatio
 
 class JcsCanonicalizer {
   /**
+   * @param {object} [options]
+   * @param {boolean} [options.allowBigIntMarker=false] - set to true to allow the
+   *        internal `{"__bigint_hex":"..."}` marker. By default this is
+   *        disabled to reject the marker on untrusted external inputs.
+   */
+  constructor(options) {
+    options = options || {};
+    this.allowBigIntMarker = Boolean(options.allowBigIntMarker) || (process && process.env && process.env.ALLOW_BIGINT_MARKER === '1');
+  }
+
+  /**
    * Deterministically stringifies an object following RFC 8785 rules.
    * Includes numeric normalization to ensure cross-language deterministic
    * representations (handles -0, bounded significant digits, exponent
@@ -50,6 +61,19 @@ class JcsCanonicalizer {
     }
 
     if (t === 'object') {
+      // Reject BigInt marker on untrusted inputs unless explicitly allowed.
+      const ownKeys = Object.keys(obj);
+      if (ownKeys.length === 1 && ownKeys[0] === '__bigint_hex') {
+        const val = obj['__bigint_hex'];
+        if (!this.allowBigIntMarker) {
+          throw new Error('Refusing __bigint_hex marker from untrusted input');
+        }
+        if (typeof val !== 'string') {
+          throw new Error('Invalid __bigint_hex marker: expected string');
+        }
+        return JSON.stringify(val);
+      }
+
       // sort keys by NFC-normalized Unicode codepoint order
       const keys = Object.keys(obj).slice();
       const codepointCompare = (A, B) => {
