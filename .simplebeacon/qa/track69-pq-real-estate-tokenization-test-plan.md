@@ -99,6 +99,82 @@ TITLETRANSFER:<transferId>:<poolId>:<coSignerSignatureCount>:<pqcSignatureScheme
 - `ai-platform/server/lib/hsm-adapter/base-adapter.cjs`
 - `ai-platform/server/lib/hsm-adapter/__tests__/pq-real-estate-tokenization.test.cjs` *(new)*
 
+## Extension scope (Track 69 Phase 2)
+
+### New capabilities added
+
+- **Valuation rebalancing** — rebalance asset valuation caps with increase/decrease directions, epoch tracking, and optional new valuation cap updates.
+- **Batch pool initialization** — initialize multiple real-estate tokenization pools in a single batch call with per-pool results.
+- **Committee signature aggregation** — BLS-style aggregate signature from partial committee signatures.
+- **Pool cancellation** — cancel open pools (rejects if finalized/settled).
+- **Cross-chain settlement coordination** — settle finalized pools on the target chain with settlement proof hashes.
+- **Hardware-accelerated SNARK proof generation** — generate Groth16 SNARK proofs with configurable HW acceleration (GPU CUDA, FPGA, ASIC, simulated).
+- **Batch clearance verification** — verify multiple encumbrance clearance proofs in a single batch call with per-clearance results.
+- **Partial signature aggregation** — aggregate partial signatures from clearing committee members with banned-peer rejection.
+- **Slashing window validation** — validate clearance timestamps within configurable slashing window.
+- **Slashing event recording** — record slash events with reason codes (malformed_clearance, duplicate_clearance, dispute_window_out_of_bounds, pool_not_found, banned_peer, out_of_window).
+- **Summary statistics** — both hub and validator expose `getStats()` methods.
+
+### Extension test checklist
+
+#### Positive paths
+
+- [x] Valuation rebalance with increase direction.
+- [x] Valuation rebalance with decrease direction.
+- [x] Asset valuation cap updates on rebalance.
+- [x] Batch initialization creates multiple pools.
+- [x] Cross-chain settlement works for finalized pools.
+- [x] Committee signatures can be aggregated.
+- [x] Pools can be cancelled.
+- [x] HW-SNARK proof generation produces Groth16 proofs.
+- [x] Batch clearance verification processes multiple proofs.
+- [x] Partial signatures can be aggregated.
+- [x] Slashing window validation works for in-window clearances.
+- [x] Full init → rebalance → clearance → transfer → settle flow works end-to-end.
+
+#### Security / edge cases
+
+- [x] Reject rebalance with invalid direction.
+- [x] Reject rebalance with non-positive amount.
+- [x] Reject rebalance with missing poolId.
+- [x] Reject rebalance on finalized pool.
+- [x] Reject batch init with empty array.
+- [x] Reject batch init exceeding max size.
+- [x] Reject settlement of non-finalized pool.
+- [x] Reject settlement with mismatched chain.
+- [x] Reject settlement with missing poolId.
+- [x] Reject settlement with missing targetChainId.
+- [x] Reject committee aggregation with insufficient signatures.
+- [x] Reject committee aggregation with no signatures.
+- [x] Reject committee aggregation for unknown pool.
+- [x] Reject cancelling finalized pool.
+- [x] Reject double cancellation.
+- [x] Reject cancelling unknown pool.
+- [x] Reject HW-SNARK proof generation with missing poolId.
+- [x] Reject HW-SNARK proof generation with missing values.
+- [x] Reject HW-SNARK proof generation for unknown pool.
+- [x] Reject empty batch clearance verification.
+- [x] Reject batch clearance verification exceeding max size.
+- [x] Reject partial signature aggregation with banned peer.
+- [x] Reject partial signature aggregation with insufficient signatures.
+- [x] Reject partial signature aggregation with missing poolId.
+- [x] Detect clearance outside slashing window.
+- [x] Reject slashing window validation for unknown pool.
+- [x] Reject slashing window validation with invalid timestamp.
+- [x] Reject slashing window validation with missing poolId.
+- [x] Record slashes for malformed clearances.
+- [x] Record slashes for out-of-bounds dispute window.
+- [x] Record slashes for duplicate clearances.
+- [x] CLEARANCE_STATUS, SLASH_REASON, HW_ACCEL_TYPES, POOL_STATUS, REBALANCE_DIRECTION constants exported.
+
+## Files changed (Phase 2 extension)
+
+- `ai-platform/server/lib/hsm-adapter/pqc-real-estate-tokenization-hub.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/zk-title-deed-milestone-validator.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(14 new counters + 14 missing Track 68 counters)*
+- `ai-platform/server/lib/hsm-adapter/__tests__/pq-real-estate-tokenization-extensions.test.cjs` *(new, 54 tests)*
+
 ## Approval
 
-Pending Validator review.
+Phase 1: Approved and merged (15 tests).
+Phase 2: Pending Validator review.
