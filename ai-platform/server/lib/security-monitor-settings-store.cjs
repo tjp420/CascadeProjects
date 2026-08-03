@@ -79,9 +79,15 @@ function readStore() {
 function writeStore(store) {
   const dir = path.dirname(SETTINGS_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const tmp = SETTINGS_PATH + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
-  fs.renameSync(tmp, SETTINGS_PATH);
+  try {
+    fs.writeFileSync(SETTINGS_PATH, JSON.stringify(store, null, 2), 'utf8');
+  } catch (e) {
+    // Fallback: write to temp then rename (atomic write pattern)
+    const tmp = SETTINGS_PATH + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(store, null, 2), 'utf8');
+    try { fs.unlinkSync(SETTINGS_PATH); } catch (_) {}
+    fs.renameSync(tmp, SETTINGS_PATH);
+  }
   _cache = store;
   _cacheDirty = false;
 }
