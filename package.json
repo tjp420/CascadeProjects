@@ -43,6 +43,7 @@
   "prepare": "husky install",
   "dependencies": {
     "@swc/core": "^1.15.46",
+    "ajv": "^8.20.0",
     "archiver": "^7.0.1",
     "dompurify": "^3.4.12",
     "esbuild": "^0.28.1",

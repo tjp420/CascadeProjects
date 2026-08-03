@@ -5,8 +5,20 @@
 
 const crypto = require('crypto');
 const { JcsCanonicalizer } = require('./jcs.cjs');
+const Ajv = require('ajv');
 
 const jcs = new JcsCanonicalizer();
+
+// Load and compile JSON Schema for incoming proofs
+let validateProof = null;
+try {
+  const schema = require('./schemas/partial_share_proof.schema.json');
+  const ajv = new Ajv({ allErrors: true, strict: false });
+  validateProof = ajv.compile(schema);
+} catch (e) {
+  // If schema/ajv is not available, leave validateProof null and rely on JCS-level checks
+  validateProof = null;
+}
 
 class PartialShareProofManager {
   /**
@@ -69,10 +81,27 @@ class PartialShareProofManager {
    */
   verifyPartialShareProof(proof, publicKey) {
     if (!proof || typeof proof !== 'object') return false;
+    // Schema-based structural validation (defense-in-depth)
+    if (validateProof) {
+      const ok = validateProof(proof);
+      if (!ok) {
+        // validation failed: reject the proof
+        return false;
+      }
+    } else {
+      // Fallback structural checks
+      if (!proof.proof_material || !proof.proof_material.detached_signature || !proof.proof_material.evidence_id) return false;
+      if (!proof.envelope || typeof proof.envelope !== 'object') return false;
+    }
     const { envelope, proof_material } = proof;
-    if (!envelope || !proof_material || !proof_material.detached_signature || !proof_material.evidence_id) return false;
 
-    const canonicalStr = this.canonicalize(envelope);
+    let canonicalStr;
+    try {
+      canonicalStr = this.canonicalize(envelope);
+    } catch (e) {
+      // Canonicalization failed (e.g., refused marker) — treat as invalid proof
+      return false;
+    }
     const expectedId = crypto.createHash('sha256').update(canonicalStr).digest('hex');
     if (proof_material.evidence_id !== expectedId) return false;
 

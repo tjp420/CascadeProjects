@@ -1,0 +1,26 @@
+{
+  "$id": "https://example.com/schemas/partial_share_proof.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PartialShareProof",
+  "type": "object",
+  "required": ["envelope", "proof_material"],
+  "properties": {
+    "envelope": {
+      "type": "object",
+      "description": "Canonicalizable envelope object. Additional properties allowed but must be an object.",
+      "additionalProperties": true
+    },
+    "proof_material": {
+      "type": "object",
+      "required": ["detached_signature", "evidence_id"],
+      "properties": {
+        "detached_signature": { "type": "string" },
+        "evidence_id": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+        "signature_scheme": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
