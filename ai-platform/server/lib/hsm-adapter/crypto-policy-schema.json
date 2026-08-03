@@ -936,6 +936,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderResilienceClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqSmartContractVerifiableExecutionGating": {
+      "minExecutionQuorum": 10,
+      "maxExecutionWindowSeconds": 172800,
+      "maxExecutionChainDepth": 30,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireExecutionAuthorityInitializerAttestation": true,
+      "requireExecutionEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderExecutionClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
