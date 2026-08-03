@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const { JcsCanonicalizer } = require('./jcs.cjs');
 const Ajv = require('ajv');
 const auditLogger = require('../../audit-logger.cjs');
+const { normalizeToBigInt } = require('./field.cjs');
 
 const jcs = new JcsCanonicalizer();
 
@@ -115,6 +116,17 @@ class PartialShareProofManager {
       }
     }
 
+    // Ingestion-side numeric size checks: reject any numeric field that exceeds
+    // the configured max bit length for the cryptographic curve. This prevents
+    // oversized numeric values from reaching arithmetic layers and causing
+    // unexpected behavior.
+    const maxBits = Number(process.env.PROOF_MAX_FIELD_BITS || 521);
+    const oversizeReason = numericOversizeCheck(envelope, maxBits);
+    if (oversizeReason) {
+      try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'numeric_oversize', message: oversizeReason } }); } catch (e) {}
+      return { ok: false, reason: 'numeric_oversize', message: oversizeReason };
+    }
+
     const { envelope, proof_material } = proof;
 
     let canonicalStr;
@@ -160,6 +172,37 @@ class PartialShareProofManager {
 function sanitizeAjvErrors(errors) {
   if (!errors) return null;
   return errors.map((e) => ({ keyword: e.keyword, instancePath: e.instancePath, schemaPath: e.schemaPath, message: e.message }));
+}
+
+function numericOversizeCheck(obj, maxBits, path = '') {
+  if (obj === null || typeof obj === 'undefined') return null;
+  if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'bigint') {
+    // try to normalize to BigInt; if not a numeric string, skip
+    try {
+      const v = normalizeToBigInt(obj);
+      const absV = v < 0n ? -v : v;
+      const bits = absV === 0n ? 1 : BigInt(absV).toString(2).length;
+      if (bits > maxBits) return `${path || '(root)'} numeric value exceeds ${maxBits} bits (${bits} bits)`;
+    } catch (e) {
+      // not a numeric value we care about — ignore
+    }
+    return null;
+  }
+  if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) {
+      const res = numericOversizeCheck(obj[i], maxBits, `${path}[${i}]`);
+      if (res) return res;
+    }
+    return null;
+  }
+  if (typeof obj === 'object') {
+    for (const k of Object.keys(obj)) {
+      const res = numericOversizeCheck(obj[k], maxBits, path ? `${path}.${k}` : k);
+      if (res) return res;
+    }
+    return null;
+  }
+  return null;
 }
 
 module.exports = { PartialShareProofManager };

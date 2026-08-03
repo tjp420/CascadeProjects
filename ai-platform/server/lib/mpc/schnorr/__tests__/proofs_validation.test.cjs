@@ -34,5 +34,13 @@ describe('PartialShareProof validation', () => {
     bad3.envelope = { __bigint_hex: 'deadbeef' };
     const resBad3 = mgr.verifyPartialShareProof(bad3, publicKey);
     assert(resBad3 && resBad3.ok === false && resBad3.reason === 'canonicalization', '__bigint_hex injected envelope should fail with canonicalization error');
+
+    // Negative: oversized numeric value should be rejected by ingestion pre-validation
+    const huge = '0x' + 'f'.repeat(200); // 800-bit hex value
+    const bad4Env = { sender: 'node-1', round: 1, share: { x: huge } };
+    const bad4 = mgr.createPartialShareProof(bad4Env, privateKey);
+    // createPartialShareProof returns a serializable envelope; but verify should detect oversize
+    const resBad4 = mgr.verifyPartialShareProof(bad4, publicKey);
+    assert(resBad4 && resBad4.ok === false && resBad4.reason === 'numeric_oversize', 'oversized numeric value should be rejected');
   });
 });
