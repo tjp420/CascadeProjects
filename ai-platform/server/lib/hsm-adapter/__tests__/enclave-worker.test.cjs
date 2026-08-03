@@ -1,12 +1,6 @@
 const { EnclaveWorker } = require('../enclave-worker.cjs');
 
 describe('EnclaveWorker', () => {
-  let worker;
-
-  afterEach(() => {
-    if (worker) { worker.stop(); worker = null; }
-  });
-
   test('schedules flush and rotate with intervals and calls manager methods', async () => {
     const manager = {
       flushPendingReplications: jest.fn(async () => {}),
@@ -15,18 +9,35 @@ describe('EnclaveWorker', () => {
 
     const generateNewWrapFn = jest.fn(async () => async () => Buffer.from('newwrap'));
 
-    // Use real timers with very short intervals to avoid fake timer OOM
-    worker = new EnclaveWorker(manager, { flushIntervalSec: 0.01, rotateIntervalSec: 0.05, jitterSec: 0, generateNewWrapFn });
-    worker.start();
+    // Capture setInterval callbacks to invoke them directly
+    const callbacks = [];
+    const origSetInterval = global.setInterval;
+    global.setInterval = function(fn, ms, ...args) {
+      callbacks.push({ fn, ms, args });
+      return { unref: () => {}, ref: () => {}, hasRef: () => false };
+    };
 
-    // Wait long enough for flush to fire multiple times and rotate to fire once
-    await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      const worker = new EnclaveWorker(manager, {
+        flushIntervalSec: 1,
+        rotateIntervalSec: 5,
+        jitterSec: 0,
+        generateNewWrapFn,
+      });
+      worker.start();
 
-    expect(manager.flushPendingReplications).toHaveBeenCalled();
-    expect(generateNewWrapFn).toHaveBeenCalled();
-    expect(manager.rotateKek).toHaveBeenCalled();
+      expect(callbacks.length).toBe(2);
 
-    worker.stop();
-    worker = null;
+      await callbacks[0].fn();
+      expect(manager.flushPendingReplications).toHaveBeenCalled();
+
+      await callbacks[1].fn();
+      expect(generateNewWrapFn).toHaveBeenCalled();
+      expect(manager.rotateKek).toHaveBeenCalled();
+
+      worker.stop();
+    } finally {
+      global.setInterval = origSetInterval;
+    }
   });
 });

@@ -215,6 +215,14 @@ class ConfidentialSandboxEngine {
       );
     }
 
+    // Check attestation age before verification
+    if (attestation && typeof attestation === 'object' && typeof attestation.attestationAgeSeconds === 'number') {
+      const maxAgeSec = this._options && this._options.maxAttestationAgeSeconds ? this._options.maxAttestationAgeSeconds : 60;
+      if (attestation.attestationAgeSeconds > maxAgeSec) {
+        throw new HsmAdapterError('ATTESTATION_EXPIRED', `attestation age ${attestation.attestationAgeSeconds}s exceeds maximum ${maxAgeSec}s`);
+      }
+    }
+
     if (this._attestationClient) {
       const result = this._attestationClient.verify(attestation);
       if (result && result.verified === false) {
