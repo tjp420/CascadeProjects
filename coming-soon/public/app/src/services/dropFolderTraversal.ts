@@ -17,6 +17,18 @@ type TraversalState = {
 };
 
 const DEFAULT_MAX_FILES = 100_000;
+// Browser-local scan cap — prevents tab memory exhaustion when traversing
+// massive root directories (e.g. C:\Windows with 100k+ files). Configurable
+// via the SB_BROWSER_LOCAL_SCAN_MAX_FILES env var in the build pipeline.
+const BROWSER_LOCAL_SCAN_MAX_FILES = (() => {
+  try {
+    // @ts-ignore — injected by Vite/esbuild define at build time
+    const v = typeof __SB_BROWSER_LOCAL_SCAN_MAX_FILES__ !== 'undefined'
+      ? __SB_BROWSER_LOCAL_SCAN_MAX_FILES__ : null;
+    if (v) return parseInt(String(v), 10) || 10_000;
+  } catch { /* not injected — use default */ }
+  return 10_000;
+})();
 const PRE_READ_MAX_SIZE = 2 * 1024 * 1024; // 2 MB — skip pre-reading very large files
 
 // ── Drop Telemetry Counters ─────────────────────────────────────
@@ -213,7 +225,7 @@ export async function collectFilesFromDrop(
 ): Promise<{ files: VirtualFile[]; rootName: string; traverseErrors: number }> {
   const state: TraversalState = {
     errors: 0,
-    maxFiles: options.maxFiles ?? DEFAULT_MAX_FILES,
+    maxFiles: options.maxFiles ?? BROWSER_LOCAL_SCAN_MAX_FILES,
     preReadContent: options.preReadContent ?? false,
   };
   const files: VirtualFile[] = [];

@@ -11,7 +11,7 @@ import {
   loadIgnorePatternsFromDirHandle
 } from '../utils-lib/simplebeaconignore.browser.js?v=20260726ignorefix1';
 const WORKER_URL = new URL('../workers/scan-worker.js?v=2026072701', import.meta.url);
-const MAX_FILES = 100000;
+const MAX_FILES = 10000; // SB_BROWSER_LOCAL_SCAN_MAX_FILES — capped for browser memory safety
 const SCAN_BATCH_SIZE = 400;
 const BATCH_TIMEOUT_MS = 10 * 60 * 1000;
 const WORKER_START_TIMEOUT_MS = 15000;

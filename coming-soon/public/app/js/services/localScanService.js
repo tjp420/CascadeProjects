@@ -4,7 +4,7 @@ import { canUseDirectoryPicker, filePickerBlockedMessage } from '../utils-lib/do
 
 const WORKER_URL = new URL('../workers/scan-worker.js?v=20260716cachefix1', import.meta.url);
 
-const MAX_FILES = 50000;
+const MAX_FILES = 10000; // SB_BROWSER_LOCAL_SCAN_MAX_FILES — capped for browser memory safety
 const SKIP_DIRS = /(^|[\\/])(node_modules|\.git|\.github|\.husky|dist|build|\.next|out|coverage|frontend-build|\.github-sync|github-cache|\.simplebeacon|\.cursor|\.windsurf|deployments|backups|\.vscode-test|\.vsix-patch-temp|logs|cache|\.cache|tmp|temp)([\\/]|$)/i;
 
 /**
