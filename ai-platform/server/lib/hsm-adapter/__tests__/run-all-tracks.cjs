@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Master test suite wrapper for Tracks 26–110.
+ * Master test suite wrapper for Tracks 26–111.
  *
  * Runs the full suite of track-level Jest tests and prints
  * a consolidated summary.
@@ -104,6 +104,7 @@ const SUITES = [
   'pq-space-based-laser-communication-mesh-gating',
   'pq-quantum-key-distribution-link-switch-gating',
   'pq-holographic-storage-content-addressable-gating',
+  'pq-zk-decentralized-storage-attestation-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',
