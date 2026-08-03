@@ -42,6 +42,11 @@ async function runCheck() {
 
   console.log(`global max jitter=${maxJ}ms (configured jitterMs=${JITTER_MS})`);
   const allowed = Number(process.env.MAX_JITTER_MS || JITTER_MS);
+
+  const report = { nodeCount: metrics.length, totalSamples, maxJitterObserved: maxJ, allowedJitter: allowed, perNode: metrics };
+  const outPath = require('path').join(__dirname, 'jitter_metrics.json');
+  require('fs').writeFileSync(outPath, JSON.stringify(report, null, 2));
+
   if (maxJ > allowed) {
     console.error(`JITTER VIOLATION: max ${maxJ} > allowed ${allowed}`);
     process.exit(2);
