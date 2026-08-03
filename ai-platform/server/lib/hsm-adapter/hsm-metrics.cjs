@@ -600,6 +600,21 @@ const counters = {
   hsm_energy_gating_pool_initialized_total: 0,
   hsm_zk_energy_claim_verified_total: 0,
   hsm_certificate_trading_accreditation_completed_total: 0,
+  // Track 75 Phase 2: PQC Energy Certificate Gating & ZK Energy Claim Validators
+  hsm_egate_pools_initialized_total: 0,
+  hsm_egate_pools_accredited_total: 0,
+  hsm_egate_pools_settled_total: 0,
+  hsm_egate_pools_cancelled_total: 0,
+  hsm_egate_pools_active: 0,
+  hsm_egate_rebalances_total: 0,
+  hsm_egate_batch_inits_total: 0,
+  hsm_egate_committee_signatures_aggregated_total: 0,
+  hsm_egate_claims_verified_total: 0,
+  hsm_egate_claims_slashed_total: 0,
+  hsm_egate_batch_verifications_total: 0,
+  hsm_egate_hw_snark_proofs_generated_total: 0,
+  hsm_egate_hw_snark_proofs_verified_total: 0,
+  hsm_egate_banned_peers: 0,
   // Track 76: PQC Supply Chain Provenance Gating counters
   hsm_supply_chain_gating_pool_initialized_total: 0,
   hsm_zk_provenance_claim_verified_total: 0,
@@ -676,6 +691,10 @@ const counters = {
   hsm_fisheries_gating_pool_initialized_total: 0,
   hsm_zk_catch_claim_verified_total: 0,
   hsm_quota_accreditation_completed_total: 0,
+  // Track 95: PQC Deep-Sea Mineral Rights Gating counters
+  hsm_seabed_gating_pool_initialized_total: 0,
+  hsm_zk_extraction_claim_verified_total: 0,
+  hsm_lease_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1147,6 +1166,21 @@ const META = {
   hsm_edugate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for academic claims.', type: 'counter' },
   hsm_edugate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for academic claims.', type: 'counter' },
   hsm_edugate_banned_peers: { help: 'Number of banned peers in education credential gating hub.', type: 'gauge' },
+  // Track 75 Phase 2: PQC Energy Certificate Gating & ZK Energy Claim Validators
+  hsm_egate_pools_initialized_total: { help: 'Total energy certificate gating pools initialized.', type: 'counter' },
+  hsm_egate_pools_accredited_total: { help: 'Total certificate trading accreditation completions finalized.', type: 'counter' },
+  hsm_egate_pools_settled_total: { help: 'Total energy certificate gating pools settled cross-chain.', type: 'counter' },
+  hsm_egate_pools_cancelled_total: { help: 'Total energy certificate gating pools cancelled.', type: 'counter' },
+  hsm_egate_pools_active: { help: 'Number of active energy certificate gating pools.', type: 'gauge' },
+  hsm_egate_rebalances_total: { help: 'Total production metric depth rebalances performed.', type: 'counter' },
+  hsm_egate_batch_inits_total: { help: 'Total batch pool initializations for energy certificate gating.', type: 'counter' },
+  hsm_egate_committee_signatures_aggregated_total: { help: 'Total committee signature aggregations for energy gating pools.', type: 'counter' },
+  hsm_egate_claims_verified_total: { help: 'Total ZK energy claim proofs verified.', type: 'counter' },
+  hsm_egate_claims_slashed_total: { help: 'Total ZK energy claim proofs slashed.', type: 'counter' },
+  hsm_egate_batch_verifications_total: { help: 'Total batch energy claim verifications performed.', type: 'counter' },
+  hsm_egate_hw_snark_proofs_generated_total: { help: 'Total hardware-accelerated SNARK proofs generated for energy claims.', type: 'counter' },
+  hsm_egate_hw_snark_proofs_verified_total: { help: 'Total hardware-accelerated SNARK proofs verified for energy claims.', type: 'counter' },
+  hsm_egate_banned_peers: { help: 'Number of banned peers in energy certificate gating hub.', type: 'gauge' },
   // Track 74 Phase 2: PQC Patent Verification Gating & ZK Patent Claim Validators
   hsm_pgate_pools_initialized_total: { help: 'Total patent verification gating pools initialized.', type: 'counter' },
   hsm_pgate_pools_accredited_total: { help: 'Total patent license accreditation completions finalized.', type: 'counter' },
