@@ -92,15 +92,85 @@ PREDMKT_FINAL:<finalId>:<marketId>:<resolutionEpoch>:<reporterSignatureCount>:<p
 - **L2 Behavioral**: Simulate a three-node reporter committee with attested market initializer and reporter relay, verify resolution vote authentication and market finalization after quorum.
 - **L3 Reflection**: Spec alignment, minimal file count, no ghost modules.
 
-## Files expected to change
+## Extension scope (Track 64 Phase 2)
 
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json`
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs`
-- `ai-platform/server/lib/hsm-adapter/pqc-prediction-market-hub.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/zk-market-resolution-validator.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/base-adapter.cjs`
-- `ai-platform/server/lib/hsm-adapter/__tests__/pq-prediction-markets.test.cjs` *(new)*
+### New capabilities added
+
+- **Multi-asset privacy pool support** — markets can carry multi-asset pool parameters (asset IDs, blinded asset values, shielded pool type, Merkle root) with validation.
+- **Batch market initialization** — initialize multiple markets in a single batch call with per-market results.
+- **Dispute resolution escalation** — escalate markets to dispute status with epoch tracking and max epoch enforcement.
+- **Cross-chain settlement coordination** — settle finalized markets on the target chain with settlement proof hashes.
+- **Committee signature aggregation** — BLS-style aggregate signature from partial committee signatures.
+- **Market cancellation/expiration** — cancel open markets, explicitly expire markets past their window.
+- **Hardware-accelerated SNARK proof generation** — generate Groth16 SNARK proofs with configurable HW acceleration (GPU CUDA, FPGA, ASIC, simulated).
+- **Batch vote recording** — record multiple resolution votes in a single batch call with per-vote results.
+- **Partial signature aggregation** — aggregate partial signatures from reporter committee members with banned-peer rejection.
+- **Slashing window validation** — validate vote timestamps within configurable slashing window.
+- **Slashing event recording** — record slash events with reason codes (malformed, duplicate, market not open, banned peer, out of order).
+- **Summary statistics** — both hub and validator expose `getStats()` methods.
+
+### Extension test checklist
+
+#### Positive paths
+
+- [x] Market initialization with multi-asset pool parameters.
+- [x] Batch initialization creates multiple markets.
+- [x] Dispute resolution escalation works.
+- [x] Cross-chain settlement works for finalized markets.
+- [x] Committee signatures can be aggregated.
+- [x] Markets can be cancelled.
+- [x] Markets can be expired.
+- [x] HW-SNARK proof generation produces Groth16 proofs.
+- [x] Batch vote recording processes multiple votes.
+- [x] Partial signatures can be aggregated.
+- [x] Slashing window validation works for in-window votes.
+- [x] Full init → vote → dispute → finalize → settle flow works end-to-end.
+
+#### Security / edge cases
+
+- [x] Reject multi-asset pool with no asset IDs.
+- [x] Reject multi-asset pool with too many assets (>100).
+- [x] Reject invalid multi-asset pool object.
+- [x] Reject batch init with empty array.
+- [x] Reject batch init exceeding max size.
+- [x] Reject dispute escalation on finalized market.
+- [x] Reject dispute escalation on cancelled market.
+- [x] Reject dispute escalation exceeding max epochs.
+- [x] Reject dispute with missing marketId.
+- [x] Reject settlement of non-finalized market.
+- [x] Reject settlement with mismatched chain.
+- [x] Reject settlement with missing marketId.
+- [x] Reject settlement with missing targetChainId.
+- [x] Reject committee aggregation with insufficient signatures.
+- [x] Reject committee aggregation with no signatures.
+- [x] Reject committee aggregation for unknown market.
+- [x] Reject cancelling finalized market.
+- [x] Reject double cancellation.
+- [x] Reject double expiration.
+- [x] Reject cancelling unknown market.
+- [x] Reject expiring unknown market.
+- [x] Reject HW-SNARK proof generation with missing marketId.
+- [x] Reject HW-SNARK proof generation with missing outcome.
+- [x] Reject HW-SNARK proof generation for unknown market.
+- [x] Reject empty batch vote recording.
+- [x] Reject batch vote recording exceeding max size.
+- [x] Reject partial signature aggregation with banned peer.
+- [x] Reject partial signature aggregation with insufficient signatures.
+- [x] Reject partial signature aggregation with missing marketId.
+- [x] Detect vote outside slashing window.
+- [x] Reject slashing window validation for unknown market.
+- [x] Reject slashing window validation with invalid timestamp.
+- [x] Record slashes for malformed votes.
+- [x] VOTE_STATUS, SLASH_REASON, HW_ACCEL_TYPES, MARKET_STATUS, MARKET_TYPE constants exported.
+
+## Files changed (Phase 2 extension)
+
+- `ai-platform/server/lib/hsm-adapter/pqc-prediction-market-hub.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/zk-market-resolution-validator.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(16 new counters)*
+- `ai-platform/server/lib/hsm-adapter/__tests__/pq-prediction-markets-extensions.test.cjs` *(new, 56 tests)*
 
 ## Approval
 
-Pending Validator review.
+Phase 1: Approved and merged (15 tests).
+Phase 2: Pending Validator review.
