@@ -1045,7 +1045,7 @@ router.get('/supply-chain-provenance/telemetry', authorize('admin:all'), functio
 
 // Track 111: Zero-Knowledge Decentralized Storage Attestation Gating (unavailable — 503 guarded)
 // When the ZK decentralized storage gating hub is registered, flip ZK_DECENTRALIZED_STORAGE_GATING_ENABLED to true.
-const ZK_DECENTRALIZED_STORAGE_GATING_ENABLED = false;
+const ZK_DECENTRALIZED_STORAGE_GATING_ENABLED = true;
 
 function requireZkDecentralizedStorageGating(res) {
   if (!ZK_DECENTRALIZED_STORAGE_GATING_ENABLED) {
@@ -1097,9 +1097,12 @@ router.get('/zk-decentralized-storage/telemetry', authorize('admin:all'), functi
     const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
     const allMetrics = hsmMetrics.getMetrics();
     const telemetry = {
-      hsm_zkstoragegate_pool_initialized_total: allMetrics.hsm_zkstoragegate_pool_initialized_total || 0,
-      hsm_zk_decentralized_storage_claim_verified_total: allMetrics.hsm_zk_decentralized_storage_claim_verified_total || 0,
-      hsm_storage_attestation_accreditation_completed_total: allMetrics.hsm_storage_attestation_accreditation_completed_total || 0,
+      hsm_zkstorage_pool_initialized_total: allMetrics.hsm_zkstorage_pool_initialized_total || 0,
+      hsm_zk_storage_proof_verified_total: allMetrics.hsm_zk_storage_proof_verified_total || 0,
+      hsm_zkstorage_replication_accreditation_completed_total: allMetrics.hsm_zkstorage_replication_accreditation_completed_total || 0,
+      hsm_zkstorage_dispersal_completed_total: allMetrics.hsm_zkstorage_dispersal_completed_total || 0,
+      hsm_zkstorage_slash_recorded_total: allMetrics.hsm_zkstorage_slash_recorded_total || 0,
+      hsm_zkstorage_challenge_issued_total: allMetrics.hsm_zkstorage_challenge_issued_total || 0,
     };
     res.json({
       success: true,
