@@ -33,8 +33,8 @@ describe('PartialShareProofManager', () => {
     expect(proof).toHaveProperty('proof_material');
     expect(proof.proof_material.evidence_id).toHaveLength(64);
 
-    const ok = mgr.verifyPartialShareProof(proof, publicKeyPem);
-    expect(ok).toBe(true);
+    const res = mgr.verifyPartialShareProof(proof, publicKeyPem);
+    expect(res && res.ok === true).toBe(true);
   });
 
   test('detects tampering with the envelope', () => {
@@ -51,7 +51,7 @@ describe('PartialShareProofManager', () => {
     // Mutate the stored envelope (as would happen if an attacker altered stored evidence)
     proof.envelope.partial_share = (BigInt(42) + BigInt(1)).toString(16);
 
-    const ok = mgr.verifyPartialShareProof(proof, publicKeyPem);
-    expect(ok).toBe(false);
+    const res = mgr.verifyPartialShareProof(proof, publicKeyPem);
+    expect(res && res.ok === false).toBe(true);
   });
 });
