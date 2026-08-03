@@ -1368,7 +1368,7 @@ export function AnalyzeView() {
         }
       } catch (traverseErr: any) {
         appendLog(`[SimpleBeacon] Drop traversal failed: ${traverseErr?.message || traverseErr}`);
-        console.warn('[SimpleBeacon] Drop traversal error:', traverseErr);
+        console.debug('[SimpleBeacon] Drop traversal error (handled — showing manual Select Folder fallback):', traverseErr);
         setRequiresManualTrigger(true);
         setScanState('idle');
         setProgress(0);

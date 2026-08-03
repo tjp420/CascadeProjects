@@ -9,7 +9,10 @@ const { logInferenceEvent } = require('../lib/ai-inference-audit-logger.cjs');
 
 const DEFAULT_OLLAMA_URL = process.env.OLLAMA_BASE_URL || `http://127.0.0.1:${constants.OLLAMA_PORT}`;
 const DEFAULT_TIMEOUT_MS = constants.TIMEOUT_2M;
-const LIST_TIMEOUT_MS = constants.TIMEOUT_5S;
+// Auxiliary probe / lookup routes should use a short timeout to avoid
+// blocking inference pipelines when the local Ollama daemon is slow or hung.
+const AUX_TIMEOUT_MS = constants.TIMEOUT_5S;
+const LIST_TIMEOUT_MS = AUX_TIMEOUT_MS;
 const DEFAULT_RETRY_ATTEMPTS = 1;
 const DEFAULT_TAGS_CACHE_TTL_MS = constants.TIMEOUT_5S + constants.TIMEOUT_2S;
 const RETRYABLE_HTTP_CODES = new Set([408, 429, 500, 502, 503, 504]);
@@ -309,10 +312,45 @@ async function ollamaChat(baseUrl, model, messages, options = {}) {
     }
 }
 
+/**
+ * Lightweight health probe for Ollama daemon. Tries common info endpoints
+ * with a short timeout so callers can fall back quickly when local Ollama
+ * is unresponsive.
+ * @param {string} baseUrl
+ * @param {Object} options
+ */
+async function ollamaHealth(baseUrl, options = {}) {
+    const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
+    const probes = ['/api/status', '/api/info', '/api/health'];
+    const timeoutMs = asPositiveInt(options.timeoutMs, AUX_TIMEOUT_MS);
+
+    for (const p of probes) {
+        const url = `${normalizedBaseUrl}${p}`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const res = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeout);
+            if (res && res.ok) return { ok: true, endpoint: p, status: res.status };
+        } catch (err) {
+            clearTimeout(timeout);
+            if (isAbortError(err)) {
+                // timed out for this probe; try next
+                continue;
+            }
+            // non-timeout errors are logged but we continue to next probe
+            logger.debug('[Ollama Client] probe error', { url, err: err && err.message });
+        }
+    }
+    return { ok: false };
+}
+
 module.exports = {
     ollamaGenerate,
     ollamaChat,
     ollamaListModels,
+    // Lightweight probe for monitoring/health checks and auxiliary lookups
+    ollamaHealth,
     extractJsonObject,
     DEFAULT_OLLAMA_URL
 };

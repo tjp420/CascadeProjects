@@ -578,7 +578,15 @@ export async function runLocalScan(options = {}) {
         showToast(`Scanning ${files.length.toLocaleString()} files locally — this may take a few minutes.`, 'info', { duration: 6000 });
     }
     if (onFilePrepProgress) onFilePrepProgress(files.length, files.length, `Starting scan of ${files.length.toLocaleString()} files...`);
-    const workerFiles = files.map((f) => ({ path: f.path, fileObj: f.handle }));
+    const workerFiles = files.map((f) => {
+        const handle = f.handle;
+        // If the file has pre-read text (Firefox drag-and-drop), send the text instead
+        // of the stale File object to avoid DOMException during postMessage serialization.
+        if (handle && handle._preReadText !== undefined) {
+            return { path: f.path, fileObj: null, preReadText: handle._preReadText, preReadSize: handle._preReadSize || 0 };
+        }
+        return { path: f.path, fileObj: handle };
+    });
     if (options.onProgress) {
         options.onProgress(0, workerFiles.length, { currentFile: 'Initializing scanner worker...' });
     }

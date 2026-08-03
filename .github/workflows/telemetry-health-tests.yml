@@ -1,0 +1,57 @@
+name: Telemetry & Health Probe CI
+
+on:
+  push:
+    branches: [ main, 'feature/*' ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-telemetry:
+    name: Execute Hardened Health Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Tree
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Initialize Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          # point cache to the ai-platform package manifest so dependency caching works
+          cache-dependency-path: ai-platform/package.json
+
+      - name: Install Scoped Dependencies
+        run: |
+          cd ai-platform
+          npm ci
+          npm install prom-client supertest --save-dev
+
+      - name: Run Isolated Jest Verification
+        run: |
+          npx jest --config=ai-platform/jest.cjs --runInBand --rootDir=ai-platform
+
+  compile-staging:
+    name: Execute Staging Build Compression
+    needs: validate-telemetry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Tree
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Initialize Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Compile and Bundle Production Assets
+        run: |
+          cd ai-platform
+          npm ci
+          npm run build --if-present

@@ -1324,7 +1324,11 @@ export function AnalyzeView() {
 
     if (capturedEntries.length > 0) {
       try {
-        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries);
+        // Firefox invalidates File objects from DataTransfer after the drop event yields,
+        // causing DOMException when postMessage serializes them for the worker.
+        // Pre-read file contents while the File is still valid to avoid this.
+        const isFirefox = typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('firefox');
+        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries, { preReadContent: isFirefox });
         if (files.length > 0) {
           if (traverseErrors > 0) {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);

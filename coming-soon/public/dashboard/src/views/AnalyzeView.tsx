@@ -1324,7 +1324,8 @@ export function AnalyzeView() {
 
     if (capturedEntries.length > 0) {
       try {
-        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries);
+        const isFirefox = typeof navigator !== 'undefined' && navigator.userAgent.toLowerCase().includes('firefox');
+        const { files, rootName, traverseErrors } = await collectFilesFromDrop(undefined, capturedEntries, { preReadContent: isFirefox });
         if (files.length > 0) {
           if (traverseErrors > 0) {
             appendLog(`[SimpleBeacon] Warning: ${traverseErrors} file(s) unreadable during drop traversal.`);
