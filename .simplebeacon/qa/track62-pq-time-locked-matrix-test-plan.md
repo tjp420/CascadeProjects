@@ -82,15 +82,75 @@ TIMEPROOF:<proofId>:<matrixId>:<elapsedDurationSeconds>:<timeAnchorTick>:<zkProo
 - **L2 Behavioral**: Simulate a three-node committee with attested submitter and verifier relay, verify temporal decryption proof authentication after time anchor tick.
 - **L3 Reflection**: Spec alignment, minimal file count, no ghost modules.
 
-## Files expected to change
+## Extension scope (Track 62 Phase 2)
 
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-schema.json`
-- `ai-platform/server/lib/hsm-adapter/crypto-policy-engine.cjs`
-- `ai-platform/server/lib/hsm-adapter/pqc-time-locked-matrix-router.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/mpc-temporal-validity-verifier.cjs` *(new)*
-- `ai-platform/server/lib/hsm-adapter/base-adapter.cjs`
-- `ai-platform/server/lib/hsm-adapter/__tests__/pq-time-locked-matrix.test.cjs` *(new)*
+### New capabilities added
+
+- **Lattice-based time-lock parameters** — each matrix now carries LWE-style lattice parameters (dimension, modulus, error bound, seed, lattice hash) for post-quantum time-lock difficulty.
+- **ML-KEM encapsulation envelopes** — each matrix now carries an ML-KEM-768 encapsulated key and ciphertext, simulating post-quantum key encapsulation.
+- **Matrix routing across time-lock nodes** — register routing nodes, route matrices through 3-node paths (auto-selected or explicit), track relay counts.
+- **Committee signature aggregation** — BLS-style aggregate signature from partial committee signatures.
+- **Lattice key pair generation** — generate and store lattice key pairs for ML-KEM operations.
+- **Matrix expiration** — expire matrices that have passed their useful window.
+- **Batch temporal verification** — verify multiple temporal proofs in a single batch call, with per-proof results and batch history tracking.
+- **Partial signature aggregation** — aggregate partial signatures from committee members, with banned-peer rejection.
+- **Slashing window validation** — validate that a proof timestamp falls within the slashing window (release timestamp + configurable window).
+- **Slashing event recording** — record slash events with reason codes (premature, malformed, duplicate, insufficient duration).
+- **Summary statistics** — both router and verifier expose `getStats()` methods.
+
+### Extension test checklist
+
+#### Positive paths
+
+- [x] Matrix initialization includes lattice time-lock parameters.
+- [x] Matrix initialization includes ML-KEM encapsulation envelope.
+- [x] MATRIX_STATUS constants are exported.
+- [x] Routing nodes can be registered.
+- [x] Matrices can be routed through time-lock nodes (auto-selected path).
+- [x] Matrices can be routed with explicit node path.
+- [x] Committee signatures can be aggregated.
+- [x] Lattice key pairs can be generated.
+- [x] Matrices can be expired.
+- [x] Batch verification processes multiple proofs.
+- [x] Batch verification handles mixed valid/invalid proofs.
+- [x] Partial signatures can be aggregated.
+- [x] Slashing window validation works for in-window proofs.
+- [x] Full init → route → aggregate → verify → batch flow works end-to-end.
+
+#### Security / edge cases
+
+- [x] Reject routing node with missing nodeId.
+- [x] Reject duplicate routing node.
+- [x] Reject routing node with missing enclaveId.
+- [x] Reject routing unknown matrix.
+- [x] Reject routing with insufficient nodes (< 2).
+- [x] Reject routing with unavailable explicit node.
+- [x] Reject routing already-routed matrix.
+- [x] Reject signature aggregation with insufficient signatures.
+- [x] Reject signature aggregation with no signatures.
+- [x] Reject signature aggregation for unknown matrix.
+- [x] Reject duplicate lattice key.
+- [x] Reject expiring unknown matrix.
+- [x] Reject double-expiring a matrix.
+- [x] Reject empty batch.
+- [x] Reject batch exceeding max size.
+- [x] Reject partial signature aggregation with banned peer.
+- [x] Reject partial signature aggregation with no signatures.
+- [x] Reject partial signature aggregation with missing matrixId.
+- [x] Detect proof outside slashing window.
+- [x] Reject slashing window validation for unknown matrix.
+- [x] Reject slashing window validation with invalid timestamp.
+- [x] Record slashes for premature proofs.
+- [x] PROOF_STATUS and SLASH_REASON constants are exported.
+
+## Files changed (Phase 2 extension)
+
+- `ai-platform/server/lib/hsm-adapter/pqc-time-locked-matrix-router.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/mpc-temporal-validity-verifier.cjs` *(extended)*
+- `ai-platform/server/lib/hsm-adapter/hsm-metrics.cjs` *(12 new counters)*
+- `ai-platform/server/lib/hsm-adapter/__tests__/pqc-time-locked-matrix-extensions.test.cjs` *(new, 46 tests)*
 
 ## Approval
 
-Pending Validator review.
+Phase 1: Approved and merged (15 tests).
+Phase 2: Pending Validator review.
