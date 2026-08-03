@@ -106,6 +106,7 @@ const SUITES = [
   'pq-holographic-storage-content-addressable-gating',
   'pq-zk-decentralized-storage-attestation-gating',
   'pq-bio-digital-interface-neural-telemetry-gating',
+  'pq-autonomous-drone-swarm-mesh-routing-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',
