@@ -19,3 +19,15 @@ Reference runners
 - `reference-runner-rust/main.rs` — placeholder Rust runner (TBD).
 
 If you'd like, I can add minimal working reference implementations in Go or Rust that compute the canonicalized digests for the existing vectors.
+
+BigInt marker policy
+--------------------
+
+The canonicalizer implements a defensive policy for the internal BigInt marker `{"__bigint_hex":"..."}`:
+
+- By default, the marker is rejected when seen in input and will cause the canonicalizer to throw an error. This prevents untrusted inputs from injecting pre-serialized BigInt values.
+- To permit the marker for internal test suites only, you can either:
+   - Construct the canonicalizer with `new JcsCanonicalizer({ allowBigIntMarker: true })`, or
+   - Set the environment variable `ALLOW_BIGINT_MARKER=1` when running test/CI processes. This acts as a global override for internal runners.
+
+Recommendation: Keep the default rejection behavior in production code paths and enable the marker only within tightly-scoped test harnesses or CI jobs.
