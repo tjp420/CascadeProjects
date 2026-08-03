@@ -30,12 +30,15 @@ export class LocalRemediationCodeActionProvider implements vscode.CodeActionProv
         }
       }
 
-      const ollamaAction = new vscode.CodeAction('Send finding to local Ollama remediation', vscode.CodeActionKind.QuickFix);
+      const ollamaAction = new vscode.CodeAction(
+        'Send finding to local Ollama remediation',
+        vscode.CodeActionKind.QuickFix
+      );
       ollamaAction.diagnostics = [diagnostic];
       ollamaAction.command = {
         title: 'Send finding to local Ollama remediation',
         command: 'simplebeacon.remediateDiagnostic',
-        arguments: [document.uri, diagnostic.range, diagnosticCode, diagnostic.message, snippet]
+        arguments: [document.uri, diagnostic.range, diagnosticCode, diagnostic.message, snippet],
       };
       actions.push(ollamaAction);
 
@@ -43,7 +46,7 @@ export class LocalRemediationCodeActionProvider implements vscode.CodeActionProv
       guideAction.diagnostics = [diagnostic];
       guideAction.command = {
         title: 'Open SimpleBeacon remediation guide',
-        command: 'simplebeacon.showRemediationGuide'
+        command: 'simplebeacon.showRemediationGuide',
       };
       actions.push(guideAction);
     }

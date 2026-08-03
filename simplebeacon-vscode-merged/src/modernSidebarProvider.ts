@@ -7,8 +7,29 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
-import { getDataServerPort, getBrowserSessionToken, setBrowserSessionToken, clearBrowserSessionToken, recordBrowserSignOut, isTokenSignedOut, getTheme, setTheme } from './dataServer';
-import { registerSidebarView, postSidebarMessage as _postSidebarMessage, openTeamDashboardPanel as _openTeamDashboardPanel, openWebsiteDashboardPanel, postWebsiteDashboardMessage, navigateWebsiteDashboardPanel, isWebsiteDashboardPanelOpen, buildDashboardUrl, appendDashboardEmbedParams, getDashboardUrlBarStyles, getDashboardUrlBarHtml } from './sidebarMessenger';
+import {
+  getDataServerPort,
+  getBrowserSessionToken,
+  setBrowserSessionToken,
+  clearBrowserSessionToken,
+  recordBrowserSignOut,
+  isTokenSignedOut,
+  getTheme,
+  setTheme,
+} from './dataServer';
+import {
+  registerSidebarView,
+  postSidebarMessage as _postSidebarMessage,
+  openTeamDashboardPanel as _openTeamDashboardPanel,
+  openWebsiteDashboardPanel,
+  postWebsiteDashboardMessage,
+  navigateWebsiteDashboardPanel,
+  isWebsiteDashboardPanelOpen,
+  buildDashboardUrl,
+  appendDashboardEmbedParams,
+  getDashboardUrlBarStyles,
+  getDashboardUrlBarHtml,
+} from './sidebarMessenger';
 import { getAuthManager } from './auth/authContext';
 import type { AuthManager } from './auth/authManager';
 import { showQuietMessage, getSbConfig, normalizeApiServerUrl } from './utils/vscode';
@@ -18,7 +39,7 @@ import { validateLicenseLocally } from './licenseManager';
 import { PUBLIC_KEY_PEM } from './realtimeMonitor';
 import { AccountTracker } from './accountTracker';
 
-type WelcomeDashboardType = typeof import('./welcomeDashboard')['WelcomeDashboard'];
+type WelcomeDashboardType = (typeof import('./welcomeDashboard'))['WelcomeDashboard'];
 let _WelcomeDashboard: WelcomeDashboardType | null = null;
 function getWelcomeDashboard(): WelcomeDashboardType {
   if (!_WelcomeDashboard) {
@@ -65,7 +86,9 @@ function buildSidebarThemeStyles(theme: 'dark' | 'light'): string {
     '--vscode-focusBorder': '#007acc',
   };
   const palette = theme === 'dark' ? dark : light;
-  const vars = Object.entries(palette).map(([k, v]) => `${k}:${v}`).join(';');
+  const vars = Object.entries(palette)
+    .map(([k, v]) => `${k}:${v}`)
+    .join(';');
   return `
 html[data-theme="${theme}"] { color-scheme: ${theme}; ${vars}; }
 html[data-theme="${theme}"], html[data-theme="${theme}"] body {
@@ -140,8 +163,12 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   public static getDashboardMode(): 'website' | 'localhost' {
     return ModernSidebarProvider._dashboardMode || 'localhost';
   }
-  public static getCachedTier(): string { return ModernSidebarProvider._cachedTier; }
-  public static getCachedIsAdmin(): boolean { return ModernSidebarProvider._cachedIsAdmin; }
+  public static getCachedTier(): string {
+    return ModernSidebarProvider._cachedTier;
+  }
+  public static getCachedIsAdmin(): boolean {
+    return ModernSidebarProvider._cachedIsAdmin;
+  }
   private static _tracker?: AccountTracker;
 
   public static setAccountTracker(tracker: AccountTracker) {
@@ -166,7 +193,9 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   private static openInBrowserIfRemote(route: string): boolean {
     const host = ModernSidebarProvider.resolveDashboardHost();
     if (!host && !ModernSidebarProvider.isRemoteMode()) return false;
-    const isRemote = host ? !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(host) : ModernSidebarProvider.isRemoteMode();
+    const isRemote = host
+      ? !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(host)
+      : ModernSidebarProvider.isRemoteMode();
     if (!isRemote) return false;
     ModernSidebarProvider._openRemoteRouteInBrowserAsync(route, host).catch(() => {});
     return true;
@@ -202,7 +231,13 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       openWebsiteDashboardPanel(url, 'Team Dashboard');
       return;
     }
-    _openTeamDashboardPanel(ModernSidebarProvider._extensionUri!, normalizedRoute, 'Team Dashboard', base, apiBaseQuery);
+    _openTeamDashboardPanel(
+      ModernSidebarProvider._extensionUri!,
+      normalizedRoute,
+      'Team Dashboard',
+      base,
+      apiBaseQuery
+    );
   }
 
   /** Safely read the current auth token from AuthManager. */
@@ -212,7 +247,9 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       if (authManager && typeof authManager.getToken === 'function') {
         return await authManager.getToken();
       }
-    } catch { /* auth manager may not be initialized */ }
+    } catch {
+      /* auth manager may not be initialized */
+    }
     return undefined;
   }
 
@@ -261,7 +298,8 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     const configuredHost = ModernSidebarProvider.resolveDashboardHost();
     // Default to local IDE dashboard; remote is used only when website mode is explicitly selected.
     const baseUrl = configuredHost || localBaseUrl;
-    const isRemote = Boolean(configuredHost) && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(configuredHost || '');
+    const isRemote =
+      Boolean(configuredHost) && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(configuredHost || '');
     // Auth relay only goes through the local data server in localhost mode. Website mode uses the remote API.
     // Do NOT inject the auth token into remote URLs; it leaks in the address bar.
     const apiBaseQuery = !isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1` : '';
@@ -288,7 +326,13 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       openWebsiteDashboardPanel(navigateUrl, 'Team Dashboard');
       return;
     }
-    _openTeamDashboardPanel(extUri || ModernSidebarProvider._extensionUri!, normalizedRoute, 'Team Dashboard', baseUrl, apiBaseQuery);
+    _openTeamDashboardPanel(
+      extUri || ModernSidebarProvider._extensionUri!,
+      normalizedRoute,
+      'Team Dashboard',
+      baseUrl,
+      apiBaseQuery
+    );
   }
 
   public static getSidebarReport(): Record<string, unknown> | null {
@@ -309,17 +353,22 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     if (ModernSidebarProvider._authRefreshTimer) {
       return;
     }
-    ModernSidebarProvider._authRefreshTimer = setTimeout(() => {
-      ModernSidebarProvider._authRefreshTimer = undefined;
-      const pendingSource = ModernSidebarProvider._authRefreshPendingSource;
-      ModernSidebarProvider._authRefreshPendingSource = undefined;
-      ModernSidebarProvider._refreshAuthStateNow(pendingSource).catch(() => {});
-    }, force ? 0 : 150);
+    ModernSidebarProvider._authRefreshTimer = setTimeout(
+      () => {
+        ModernSidebarProvider._authRefreshTimer = undefined;
+        const pendingSource = ModernSidebarProvider._authRefreshPendingSource;
+        ModernSidebarProvider._authRefreshPendingSource = undefined;
+        ModernSidebarProvider._refreshAuthStateNow(pendingSource).catch(() => {});
+      },
+      force ? 0 : 150
+    );
   }
 
   private static async _refreshAuthStateNow(source?: string) {
     const inst = ModernSidebarProvider._instance;
-    if (!inst || !inst._view) { return; }
+    if (!inst || !inst._view) {
+      return;
+    }
     ModernSidebarProvider._lastAuthRefreshAt = Date.now();
     // Prefer cached auth state from webview (set via setSidebarAuthState) over the stub AuthManager
     let signedIn = ModernSidebarProvider._cachedSignedIn;
@@ -328,20 +377,33 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
     let isAdmin = ModernSidebarProvider._cachedIsAdmin;
     try {
       let authManager: AuthManager | null = null;
-      try { authManager = getAuthManager(); } catch { authManager = null; }
+      try {
+        authManager = getAuthManager();
+      } catch {
+        authManager = null;
+      }
       // Only override cached state if authManager actually has a valid token
       if (!signedIn && authManager && typeof authManager.isSignedIn === 'function') {
         signedIn = await authManager.isSignedIn();
       }
       if (signedIn && authManager && typeof authManager.getToken === 'function') {
         const mgrToken = await authManager.getToken();
-        if (mgrToken) { token = mgrToken; }
+        if (mgrToken) {
+          token = mgrToken;
+        }
       }
       // If the extension has no token, check if the browser dashboard signed in recently
       if (!signedIn && !token) {
         const browserToken = getBrowserSessionToken();
         const signedOut = !!(browserToken && browserToken.length > 10 && isTokenSignedOut(browserToken));
-        ModernSidebarProvider.logRelay('refreshAuthState browserToken=' + (browserToken ? 'present(' + browserToken.length + ')' : 'none') + ' signedOut=' + signedOut + ' signedIn=' + signedIn);
+        ModernSidebarProvider.logRelay(
+          'refreshAuthState browserToken=' +
+            (browserToken ? 'present(' + browserToken.length + ')' : 'none') +
+            ' signedOut=' +
+            signedOut +
+            ' signedIn=' +
+            signedIn
+        );
         if (browserToken && !signedOut && authManager && typeof authManager.setToken === 'function') {
           await authManager.setToken(browserToken);
           signedIn = true;
@@ -359,38 +421,86 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
           }
         }
       }
-      ModernSidebarProvider.logRelay('refreshAuthState setAuthState signedIn=' + signedIn + ' tier=' + tier + ' isAdmin=' + isAdmin + ' source=' + (source || ''));
+      ModernSidebarProvider.logRelay(
+        'refreshAuthState setAuthState signedIn=' +
+          signedIn +
+          ' tier=' +
+          tier +
+          ' isAdmin=' +
+          isAdmin +
+          ' source=' +
+          (source || '')
+      );
       ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, source, isAdmin);
     } catch (e) {
       ModernSidebarProvider.logRelay('refreshAuthState error: ' + (e instanceof Error ? e.message : String(e)));
-      ModernSidebarProvider.setSidebarAuthState(ModernSidebarProvider._cachedSignedIn, ModernSidebarProvider._cachedTier, '', source, ModernSidebarProvider._cachedIsAdmin);
+      ModernSidebarProvider.setSidebarAuthState(
+        ModernSidebarProvider._cachedSignedIn,
+        ModernSidebarProvider._cachedTier,
+        '',
+        source,
+        ModernSidebarProvider._cachedIsAdmin
+      );
     }
   }
 
   private static _isWebsiteSource(source?: string): boolean {
-    return typeof source === 'string' && (source === 'websitePanel' || source === 'website' || source.startsWith('website'));
+    return (
+      typeof source === 'string' && (source === 'websitePanel' || source === 'website' || source.startsWith('website'))
+    );
   }
 
-  public static setSidebarAuthState(signedIn: boolean, tier?: string, token?: string, source?: string, isAdmin?: boolean) {
+  public static setSidebarAuthState(
+    signedIn: boolean,
+    tier?: string,
+    token?: string,
+    source?: string,
+    isAdmin?: boolean
+  ) {
     const newTier = tier !== undefined ? resolveTier(tier) : ModernSidebarProvider._cachedTier;
     // Preserve the existing token when a caller confirms sign-in without passing the token again.
     const newToken = token || (signedIn ? ModernSidebarProvider._cachedToken : '');
     const newIsAdmin = !!isAdmin;
     // Avoid re-posting the same state to the webviews on every auth poll.
-    if (source !== 'signOut' && signedIn === ModernSidebarProvider._cachedSignedIn && newTier === ModernSidebarProvider._cachedTier && newToken === ModernSidebarProvider._cachedToken && newIsAdmin === ModernSidebarProvider._cachedIsAdmin) {
+    if (
+      source !== 'signOut' &&
+      signedIn === ModernSidebarProvider._cachedSignedIn &&
+      newTier === ModernSidebarProvider._cachedTier &&
+      newToken === ModernSidebarProvider._cachedToken &&
+      newIsAdmin === ModernSidebarProvider._cachedIsAdmin
+    ) {
       return;
     }
     ModernSidebarProvider._cachedSignedIn = signedIn;
-    if (tier !== undefined) { ModernSidebarProvider._cachedTier = newTier; }
+    if (tier !== undefined) {
+      ModernSidebarProvider._cachedTier = newTier;
+    }
     ModernSidebarProvider._cachedToken = newToken;
-    if (typeof isAdmin === 'boolean') { ModernSidebarProvider._cachedIsAdmin = newIsAdmin; }
-    if (signedIn && token) { setBrowserSessionToken(token); }
-    if (!signedIn) { clearBrowserSessionToken(); }
+    if (typeof isAdmin === 'boolean') {
+      ModernSidebarProvider._cachedIsAdmin = newIsAdmin;
+    }
+    if (signedIn && token) {
+      setBrowserSessionToken(token);
+    }
+    if (!signedIn) {
+      clearBrowserSessionToken();
+    }
     const inst = ModernSidebarProvider._instance;
-    const msg: any = { command: 'setAuthState', signedIn, tier: ModernSidebarProvider._cachedTier, isAdmin: ModernSidebarProvider._cachedIsAdmin };
-    if (token) { msg.token = token; }
-    if (source) { msg.source = source; }
-    if (inst?._view) { inst._view.webview.postMessage(msg); }
+    const msg: any = {
+      command: 'setAuthState',
+      signedIn,
+      tier: ModernSidebarProvider._cachedTier,
+      isAdmin: ModernSidebarProvider._cachedIsAdmin,
+    };
+    if (token) {
+      msg.token = token;
+    }
+    if (source) {
+      msg.source = source;
+    }
+    if (inst?._view) {
+      inst._view.webview.postMessage(msg);
+    }
     // Only echo sign-outs to the website dashboard when they are explicit. Otherwise the
     // extension's periodic no-token refresh could wipe a website sign-in that it doesn't know about.
     if (!ModernSidebarProvider._isWebsiteSource(source) && (signedIn || source === 'signOut')) {
@@ -399,8 +509,14 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private static _safePost(target: { webview: vscode.Webview } | undefined, message: unknown) {
-    if (!target) { return; }
-    try { target.webview.postMessage(message); } catch { /* target disposed */ }
+    if (!target) {
+      return;
+    }
+    try {
+      target.webview.postMessage(message);
+    } catch {
+      /* target disposed */
+    }
   }
 
   public static postThemeToTeamDashboard(theme: string) {
@@ -415,7 +531,9 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   public static showDashboardInSidebar() {
     const inst = ModernSidebarProvider._instance;
-    if (!inst || !inst._view) { return; }
+    if (!inst || !inst._view) {
+      return;
+    }
     inst._view.webview.postMessage({ command: 'showDashboard' });
     // Also push current report data if available
     if (inst._currentReport) {
@@ -425,7 +543,9 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
 
   public static updateSidebarReport(report: Record<string, unknown> | null) {
     const inst = ModernSidebarProvider._instance;
-    if (inst) { inst.updateReport(report); }
+    if (inst) {
+      inst.updateReport(report);
+    }
   }
 
   public static openSigninPanel() {
@@ -448,7 +568,7 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
       `sb_notify_base=${encodeURIComponent(notifyBase)}`,
       `sb_api_base=${encodeURIComponent(notifyBase)}`,
       'force=1',
-      `_${Date.now()}`
+      `_${Date.now()}`,
     ];
     let authUrl = buildDashboardUrl(dashboardBase, route, extraParts.join('&'));
     authUrl = appendDashboardEmbedParams(authUrl, notifyBase, websiteMode);
@@ -492,9 +612,21 @@ export class ModernSidebarProvider implements vscode.WebviewViewProvider {
         switch (msg.command) {
           case 'registerTokenDetails': {
             const { email, username, password } = msg;
-            if (email) { try { await authManager.setUserEmail(email); } catch {} }
-            if (username) { try { await authManager.setUserName(username); } catch {} }
-            if (password) { try { await authManager.setPassword(password); } catch {} }
+            if (email) {
+              try {
+                await authManager.setUserEmail(email);
+              } catch {}
+            }
+            if (username) {
+              try {
+                await authManager.setUserName(username);
+              } catch {}
+            }
+            if (password) {
+              try {
+                await authManager.setPassword(password);
+              } catch {}
+            }
             // Register token with server
             try {
               const port = getDataServerPort();
@@ -631,11 +763,20 @@ $('saveUsbBtn').addEventListener('click', () => {
         switch (msg.command) {
           case 'replaceToken': {
             const newToken = msg.token ? String(msg.token).trim() : '';
-            if (!newToken) { vscode.window.showErrorMessage('No token provided.'); return; }
+            if (!newToken) {
+              vscode.window.showErrorMessage('No token provided.');
+              return;
+            }
             const parts = newToken.split('.');
-            if (parts.length !== 2 && parts.length !== 3) { vscode.window.showErrorMessage('Token must be a JWT (3 dots) or license key (1 dot).'); return; }
+            if (parts.length !== 2 && parts.length !== 3) {
+              vscode.window.showErrorMessage('Token must be a JWT (3 dots) or license key (1 dot).');
+              return;
+            }
             // Prevent replacing with the same token
-            if (newToken === currentToken) { vscode.window.showErrorMessage('New token is identical to the current one.'); return; }
+            if (newToken === currentToken) {
+              vscode.window.showErrorMessage('New token is identical to the current one.');
+              return;
+            }
             // Check server registration
             try {
               const port = getDataServerPort();
@@ -645,7 +786,7 @@ $('saveUsbBtn').addEventListener('click', () => {
                 body: JSON.stringify({ token: newToken }),
               });
               if (res.ok) {
-                const data = await res.json() as { registered?: boolean };
+                const data = (await res.json()) as { registered?: boolean };
                 if (data.registered) {
                   vscode.window.showErrorMessage('This token is already registered. Use a different token.');
                   return;
@@ -751,9 +892,7 @@ $('cancelBtn').addEventListener('click', () => {
   public static openSidebarInBrowserStatic(path = '/') {
     if (ModernSidebarProvider.openInBrowserIfRemote(path)) return;
     const port = getDataServerPort();
-    const safePath = path && path !== '/'
-      ? (path.startsWith('/') ? path : '/' + path)
-      : '/dashboard';
+    const safePath = path && path !== '/' ? (path.startsWith('/') ? path : '/' + path) : '/dashboard';
     const url = `http://127.0.0.1:${port}${safePath}`;
     const browserMode = getSbConfig().get<string>('browserOpenMode', 'externalBrowser');
     if (browserMode === 'preview') {
@@ -790,13 +929,16 @@ $('cancelBtn').addEventListener('click', () => {
   public static async rehydrateWebviewSession(webview: vscode.Webview) {
     try {
       const authManager = getAuthManager();
-      const storedToken = authManager && typeof authManager.getToken === 'function' ? await authManager.getToken() : undefined;
+      const storedToken =
+        authManager && typeof authManager.getToken === 'function' ? await authManager.getToken() : undefined;
       if (storedToken) {
         ModernSidebarProvider._safePost({ webview }, { command: 'rehydrateCachedSession', token: storedToken });
       }
       // Signed-out state is reconciled once via refreshAuthState; avoid spamming setAuthState on boot.
     } catch (err) {
-      ModernSidebarProvider.logRelay('Failed to rehydrate panel session tokens: ' + (err instanceof Error ? err.message : String(err)));
+      ModernSidebarProvider.logRelay(
+        'Failed to rehydrate panel session tokens: ' + (err instanceof Error ? err.message : String(err))
+      );
     }
   }
 
@@ -809,7 +951,10 @@ $('cancelBtn').addEventListener('click', () => {
     ModernSidebarProvider._extensionUri = _extensionUri;
     // Sync data-server theme with VS Code: theme on startup and on changes
     const syncServerTheme = (theme: vscode.ColorTheme) => {
-      const kind = theme.kind === vscode.ColorThemeKind.Dark || theme.kind === vscode.ColorThemeKind.HighContrast ? 'dark' : 'light';
+      const kind =
+        theme.kind === vscode.ColorThemeKind.Dark || theme.kind === vscode.ColorThemeKind.HighContrast
+          ? 'dark'
+          : 'light';
       setTheme(kind);
       ModernSidebarProvider.postThemeToTeamDashboard(kind);
     };
@@ -828,14 +973,27 @@ $('cancelBtn').addEventListener('click', () => {
 
   private static relayCommand(cmd: string) {
     const relayPort = ModernSidebarProvider._relayPort;
-    if (!relayPort) { return; }
+    if (!relayPort) {
+      return;
+    }
     try {
       const payload = JSON.stringify({ command: cmd, source: 'ide' });
-      const req = http.request({ hostname: '127.0.0.1', port: relayPort, path: '/api/command', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
+      const req = http.request(
+        {
+          hostname: '127.0.0.1',
+          port: relayPort,
+          path: '/api/command',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+        },
+        () => {}
+      );
       req.on('error', () => {});
       req.write(payload);
       req.end();
-    } catch (e) { ModernSidebarProvider.logRelay('Relay command error: ' + (e instanceof Error ? e.message : String(e))); }
+    } catch (e) {
+      ModernSidebarProvider.logRelay('Relay command error: ' + (e instanceof Error ? e.message : String(e)));
+    }
   }
 
   public static openWelcomeDashboardRoute(extUri: vscode.Uri, route: string) {
@@ -847,7 +1005,11 @@ $('cancelBtn').addEventListener('click', () => {
     ModernSidebarProvider.openWelcomeDashboardRoute(extUri, route);
   }
 
-  public static async openTeamDashboardPanel(_extUri: vscode.Uri, route = '/dashboard', _panelTitle = 'Team Dashboard') {
+  public static async openTeamDashboardPanel(
+    _extUri: vscode.Uri,
+    route = '/dashboard',
+    _panelTitle = 'Team Dashboard'
+  ) {
     ModernSidebarProvider.openEmbeddedDashboardRoute(route);
   }
 
@@ -878,9 +1040,9 @@ $('cancelBtn').addEventListener('click', () => {
       return null;
     }
     const safeSuffix = name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const matches = fs.readdirSync(downloadsDir).filter((f) =>
-      f === name || f.endsWith(`-${name}`) || f.endsWith(`-${safeSuffix}`) || f.includes(safeSuffix)
-    );
+    const matches = fs
+      .readdirSync(downloadsDir)
+      .filter((f) => f === name || f.endsWith(`-${name}`) || f.endsWith(`-${safeSuffix}`) || f.includes(safeSuffix));
     if (matches.length === 0) {
       return null;
     }
@@ -902,15 +1064,17 @@ $('cancelBtn').addEventListener('click', () => {
       );
       return;
     }
-    Promise.resolve(vscode.workspace.openTextDocument(resolved)).then((doc) => {
-      vscode.window.showTextDocument(doc, {
-        preview: true,
-        selection: new vscode.Range(line - 1, 0, line - 1, 0)
+    Promise.resolve(vscode.workspace.openTextDocument(resolved))
+      .then((doc) => {
+        vscode.window.showTextDocument(doc, {
+          preview: true,
+          selection: new vscode.Range(line - 1, 0, line - 1, 0),
+        });
+      })
+      .catch((err: unknown) => {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage('Unable to open file: ' + errMsg);
       });
-    }).catch((err: unknown) => {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      vscode.window.showErrorMessage('Unable to open file: ' + errMsg);
-    });
   }
 
   /**
@@ -1000,7 +1164,7 @@ $('cancelBtn').addEventListener('click', () => {
         name: dl.name,
         path: ModernSidebarProvider._displayDownloadPath(dl.path),
         fullPath: dl.path,
-        time: dl.time
+        time: dl.time,
       });
     });
 
@@ -1018,7 +1182,11 @@ $('cancelBtn').addEventListener('click', () => {
 
     // Auto-open main window panel on activation (welcome vs dashboard tab depends on showWelcomeOnLoad)
     setTimeout(() => {
-      try { getWelcomeDashboard().createOrShow(this._extensionUri, true); } catch(e) { ModernSidebarProvider.logRelay('Auto open dashboard error: ' + (e instanceof Error ? e.message : String(e))); }
+      try {
+        getWelcomeDashboard().createOrShow(this._extensionUri, true);
+      } catch (e) {
+        ModernSidebarProvider.logRelay('Auto open dashboard error: ' + (e instanceof Error ? e.message : String(e)));
+      }
     }, 50);
 
     // Cache browser-ready sidebar HTML so external browser preview and diagnose can report it as loaded
@@ -1034,7 +1202,9 @@ $('cancelBtn').addEventListener('click', () => {
         try {
           this.openSidebarInBrowser(false);
         } catch (e) {
-          ModernSidebarProvider.logRelay('Auto-start relay server failed: ' + (e instanceof Error ? e.message : String(e)));
+          ModernSidebarProvider.logRelay(
+            'Auto-start relay server failed: ' + (e instanceof Error ? e.message : String(e))
+          );
         }
       }
     }, 100);
@@ -1048,10 +1218,19 @@ $('cancelBtn').addEventListener('click', () => {
       if (relayPort) {
         try {
           ModernSidebarProvider.logRelay(`Sidebar POST command="${message.command}" to port=${relayPort}`);
-          const payload = JSON.stringify({command: message.command, source: 'ide'});
-          const req = http.request({hostname: '127.0.0.1', port: relayPort, path: '/api/command', method: 'POST', headers: {'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload)}}, (res: http.IncomingMessage) => {
-            ModernSidebarProvider.logRelay(`Sidebar POST response status=${res.statusCode}`);
-          });
+          const payload = JSON.stringify({ command: message.command, source: 'ide' });
+          const req = http.request(
+            {
+              hostname: '127.0.0.1',
+              port: relayPort,
+              path: '/api/command',
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+            },
+            (res: http.IncomingMessage) => {
+              ModernSidebarProvider.logRelay(`Sidebar POST response status=${res.statusCode}`);
+            }
+          );
           req.on('error', (err: NodeJS.ErrnoException) => {
             ModernSidebarProvider.logRelay(`Sidebar POST error: ${err.message}`);
           });
@@ -1064,7 +1243,9 @@ $('cancelBtn').addEventListener('click', () => {
       }
       try {
         if (!this._extensionUri) {
-          vscode.window.showErrorMessage('SimpleBeacon sidebar not ready — extension URI unavailable. Please reload the window.');
+          vscode.window.showErrorMessage(
+            'SimpleBeacon sidebar not ready — extension URI unavailable. Please reload the window.'
+          );
           return;
         }
         switch (message.command) {
@@ -1075,13 +1256,16 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'scan':
           case 'scanWorkspace': {
-            const isWorkspaceScan = message.command === 'scanWorkspace' || message.mode === 'workspace' || !message.mode;
+            const isWorkspaceScan =
+              message.command === 'scanWorkspace' || message.mode === 'workspace' || !message.mode;
             if (isWorkspaceScan) {
               const ws = vscode.workspace.workspaceFolders;
               if (ws && ws.length > 0) {
                 // Prefer the active editor's workspace folder over workspaceFolders[0]
                 const activeEditor = vscode.window.activeTextEditor;
-                const activeWs = activeEditor ? vscode.workspace.getWorkspaceFolder(activeEditor.document.uri) : undefined;
+                const activeWs = activeEditor
+                  ? vscode.workspace.getWorkspaceFolder(activeEditor.document.uri)
+                  : undefined;
                 const targetPath = activeWs?.uri?.fsPath ?? ws[0]?.uri?.fsPath;
                 if (targetPath) {
                   vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: targetPath });
@@ -1099,7 +1283,12 @@ $('cancelBtn').addEventListener('click', () => {
             break;
           }
           case 'browseSidebarScanPath': {
-            const uris = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: 'Select Project Folder' });
+            const uris = await vscode.window.showOpenDialog({
+              canSelectFiles: false,
+              canSelectFolders: true,
+              canSelectMany: false,
+              openLabel: 'Select Project Folder',
+            });
             if (uris && uris.length > 0) {
               const correctedPath = this.normalizeScanPath(uris[0].fsPath);
               webviewView.webview.postMessage({ command: 'setSidebarScanPath', path: correctedPath });
@@ -1118,13 +1307,19 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'storeActiveLicenseToken': {
             const { token } = message;
-            if (!token) { break; }
+            if (!token) {
+              break;
+            }
             try {
               await vscode.commands.executeCommand('simplebeacon.storeLicenseToken', token);
               ModernSidebarProvider.setSidebarAuthState(true);
               webviewView.webview.postMessage({ command: 'licenseTokenStored', success: true });
             } catch (error) {
-              webviewView.webview.postMessage({ command: 'licenseTokenStored', success: false, error: (error as Error).message });
+              webviewView.webview.postMessage({
+                command: 'licenseTokenStored',
+                success: false,
+                error: (error as Error).message,
+              });
             }
             break;
           }
@@ -1185,7 +1380,9 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'setDashboardMode': {
             const mode = message.mode === 'website' || message.mode === 'localhost' ? message.mode : null;
-            if (!mode) { break; }
+            if (!mode) {
+              break;
+            }
             ModernSidebarProvider._dashboardMode = mode;
             _postSidebarMessage({ command: 'dashboardModeChanged', mode });
             postWebsiteDashboardMessage({ command: 'dashboardModeChanged', mode });
@@ -1210,7 +1407,7 @@ $('cancelBtn').addEventListener('click', () => {
             vscode.commands.executeCommand('simplebeacon.enhancedAnalysis', {
               path: message.path,
               selectedModules: message.analyzers,
-              minSeverity: message.minSeverity
+              minSeverity: message.minSeverity,
             });
             ModernSidebarProvider.relayCommand('enhancedAnalysis');
             break;
@@ -1300,8 +1497,12 @@ $('cancelBtn').addEventListener('click', () => {
                   headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
                 },
                 (res: http.IncomingMessage) => {
-                  res.on('data', () => { /* drain response */ });
-                  res.on('end', () => { /* data server callback will focus AI Coding Agent panel */ });
+                  res.on('data', () => {
+                    /* drain response */
+                  });
+                  res.on('end', () => {
+                    /* data server callback will focus AI Coding Agent panel */
+                  });
                 }
               );
               req.on('error', (err) => {
@@ -1322,7 +1523,9 @@ $('cancelBtn').addEventListener('click', () => {
           case 'openFile': {
             const targetPath = (message.file || message.path || '') as string;
             const fileName = typeof message.name === 'string' ? message.name : undefined;
-            if (!targetPath && !fileName) { break; }
+            if (!targetPath && !fileName) {
+              break;
+            }
             if (/^(https?:\/\/|blob:)/.test(targetPath)) {
               vscode.env.openExternal(vscode.Uri.parse(targetPath));
             } else {
@@ -1346,11 +1549,14 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'openFolder': {
             const folderTarget = message.file || message.path;
-            if (!folderTarget) { break; }
+            if (!folderTarget) {
+              break;
+            }
             const resolvedFolder = this.resolveWorkspacePath(folderTarget);
-            const dirPath = fs.existsSync(resolvedFolder) && fs.statSync(resolvedFolder).isFile()
-              ? path.dirname(resolvedFolder)
-              : resolvedFolder;
+            const dirPath =
+              fs.existsSync(resolvedFolder) && fs.statSync(resolvedFolder).isFile()
+                ? path.dirname(resolvedFolder)
+                : resolvedFolder;
             if (fs.existsSync(dirPath)) {
               vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(dirPath));
             } else {
@@ -1366,7 +1572,9 @@ $('cancelBtn').addEventListener('click', () => {
           case 'loadReportFile': {
             const reportPath = (message.path || '') as string;
             const reportName = typeof message.name === 'string' ? message.name : undefined;
-            if (!reportPath && !reportName) { break; }
+            if (!reportPath && !reportName) {
+              break;
+            }
             const resolvedPath = this.resolveDownloadedFilePath(reportPath, reportName);
             if (!resolvedPath) {
               vscode.window.showWarningMessage('Report file not found: ' + (reportName || reportPath));
@@ -1386,7 +1594,9 @@ $('cancelBtn').addEventListener('click', () => {
                 if (browserPanel && browserPanel.webview) {
                   browserPanel.webview.postMessage({ command: 'updateReport', report });
                 }
-              } catch (_) { /* preview panel may not be available */ }
+              } catch (_) {
+                /* preview panel may not be available */
+              }
               showQuietMessage(`Loaded report: ${path.basename(resolvedPath)}`);
             } catch (err) {
               const errMsg = err instanceof Error ? err.message : String(err);
@@ -1411,7 +1621,7 @@ $('cancelBtn').addEventListener('click', () => {
               updateShowWelcome: { key: 'showWelcomeOnLoad', msgCmd: 'setShowWelcome', msgField: 'value' },
               updateAutoScan: { key: 'autoScanOnOpen', msgCmd: 'setAutoScan', msgField: 'value' },
               updateApiUrl: { key: 'apiServerUrl', msgCmd: 'updateServerUrl', msgField: 'url' },
-              updateBrowserMode: { key: 'browserMode', msgCmd: 'setBrowserMode', msgField: 'value' }
+              updateBrowserMode: { key: 'browserMode', msgCmd: 'setBrowserMode', msgField: 'value' },
             };
             const meta = settingMap[message.command];
             if (meta) {
@@ -1435,20 +1645,24 @@ $('cancelBtn').addEventListener('click', () => {
           case 'updateNotifyGate': {
             const keyMap: Record<string, string> = {
               updateNotifyScan: 'notifyOnScanComplete',
-              updateNotifyGate: 'notifyOnGateFailure'
+              updateNotifyGate: 'notifyOnGateFailure',
             };
             const key = keyMap[message.command];
-            if (key) { getSbConfig().update(key, message.value, true); }
+            if (key) {
+              getSbConfig().update(key, message.value, true);
+            }
             break;
           }
           case 'testConnection': {
             const cfg = getSbConfig();
             const url = normalizeApiServerUrl(cfg.get<string>('apiServerUrl') || 'http://127.0.0.1:55000');
-            fetch(url + '/api/health').then(() => {
-              showQuietMessage('Connection successful: ' + url);
-            }).catch(() => {
-              vscode.window.showErrorMessage('Connection failed: ' + url);
-            });
+            fetch(url + '/api/health')
+              .then(() => {
+                showQuietMessage('Connection successful: ' + url);
+              })
+              .catch(() => {
+                vscode.window.showErrorMessage('Connection failed: ' + url);
+              });
             break;
           }
           case 'toggleTheme': {
@@ -1472,10 +1686,19 @@ $('cancelBtn').addEventListener('click', () => {
             ModernSidebarProvider.logRelay('sidebar signOut received, handling directly');
             try {
               let authManager: AuthManager | null = null;
-              try { authManager = getAuthManager(); } catch { authManager = null; }
-              const existing = authManager && typeof authManager.getToken === 'function' ? await authManager.getToken() : undefined;
-              if (authManager && typeof authManager.clearToken === 'function') { await authManager.clearToken(); }
-              if (authManager && typeof authManager.clearPassword === 'function') { await authManager.clearPassword(); }
+              try {
+                authManager = getAuthManager();
+              } catch {
+                authManager = null;
+              }
+              const existing =
+                authManager && typeof authManager.getToken === 'function' ? await authManager.getToken() : undefined;
+              if (authManager && typeof authManager.clearToken === 'function') {
+                await authManager.clearToken();
+              }
+              if (authManager && typeof authManager.clearPassword === 'function') {
+                await authManager.clearPassword();
+              }
               const browserToken = getBrowserSessionToken();
               clearBrowserSessionToken();
               recordBrowserSignOut(existing);
@@ -1485,13 +1708,15 @@ $('cancelBtn').addEventListener('click', () => {
                 const signoutPort = getDataServerPort();
                 await fetch(`http://127.0.0.1:${signoutPort}/api/auth/signout`, {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' }
+                  headers: { 'Content-Type': 'application/json' },
                 });
               } catch (e) {}
               if (existing) {
                 try {
                   const tracker = ModernSidebarProvider._tracker;
-                  if (tracker) { await tracker.recordLogout(existing, 'webview', 'sidebarSignOut'); }
+                  if (tracker) {
+                    await tracker.recordLogout(existing, 'webview', 'sidebarSignOut');
+                  }
                 } catch {}
               }
               ModernSidebarProvider._cachedSignedIn = false;
@@ -1507,7 +1732,7 @@ $('cancelBtn').addEventListener('click', () => {
           }
           case 'openTokenReplacementPanel': {
             const authManager = getAuthManager();
-            const token = await authManager.getToken() || '';
+            const token = (await authManager.getToken()) || '';
             const tier = ModernSidebarProvider._cachedTier || '';
             ModernSidebarProvider.openTokenReplacementPanel(this._extensionUri, token, tier);
             break;
@@ -1518,9 +1743,13 @@ $('cancelBtn').addEventListener('click', () => {
             const event = message.event || 'login';
             if (tracker && token) {
               if (event === 'login' || event === 'tokenStored') {
-                try { tracker.recordLogin(token, 'webview', 'webviewLogin'); } catch {}
+                try {
+                  tracker.recordLogin(token, 'webview', 'webviewLogin');
+                } catch {}
               } else if (event === 'logout' || event === 'tokenCleared') {
-                try { tracker.recordLogout(token, 'webview', 'webviewLogout'); } catch {}
+                try {
+                  tracker.recordLogout(token, 'webview', 'webviewLogout');
+                } catch {}
               }
             }
             break;
@@ -1541,16 +1770,27 @@ $('cancelBtn').addEventListener('click', () => {
               const authManager = getAuthManager();
               if (signedIn && token) {
                 await authManager.setToken(token);
-                if (typeof msg.userEmail === 'string') { await authManager.setUserEmail(msg.userEmail); }
-                if (typeof msg.userName === 'string') { await authManager.setUserName(msg.userName); }
+                if (typeof msg.userEmail === 'string') {
+                  await authManager.setUserEmail(msg.userEmail);
+                }
+                if (typeof msg.userName === 'string') {
+                  await authManager.setUserName(msg.userName);
+                }
               }
-            } catch { /* auth manager may not be initialized */ }
+            } catch {
+              /* auth manager may not be initialized */
+            }
             ModernSidebarProvider.setSidebarAuthState(signedIn, tier, token, undefined, isAdmin);
             setTimeout(() => ModernSidebarProvider.refreshAuthState(), 50);
             break;
           }
           case 'sidebarError':
-            console.error('[Sidebar Webview Error]', message.message, `(${message.file}:${message.line}:${message.col})`, message.stack || '');
+            console.error(
+              '[Sidebar Webview Error]',
+              message.message,
+              `(${message.file}:${message.line}:${message.col})`,
+              message.stack || ''
+            );
             ModernSidebarProvider.logRelay('[Sidebar] ' + String(message.message || ''));
             break;
           case 'toggleOffline': {
@@ -1576,7 +1816,9 @@ $('cancelBtn').addEventListener('click', () => {
             if (message.url) {
               try {
                 const parsed = new URL(message.url);
-                ['sb_parent_urlbar', 'sb_notify_base', 'sb_api_base', 'sb_website_mode'].forEach((k) => parsed.searchParams.delete(k));
+                ['sb_parent_urlbar', 'sb_notify_base', 'sb_api_base', 'sb_website_mode'].forEach((k) =>
+                  parsed.searchParams.delete(k)
+                );
                 vscode.env.openExternal(vscode.Uri.parse(parsed.toString()));
               } catch {
                 vscode.env.openExternal(vscode.Uri.parse(message.url));
@@ -1624,9 +1866,7 @@ $('cancelBtn').addEventListener('click', () => {
               const isRemote = !!host && !/^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(host);
               const localBaseUrl = `http://127.0.0.1:${getDataServerPort()}`;
               const apiBaseQuery = !isRemote ? `sb_api_base=${encodeURIComponent(localBaseUrl + '/api')}&force=1` : '';
-              let url = isRemote
-                ? `${base}${message.path}`
-                : buildDashboardUrl(base, message.path, apiBaseQuery);
+              let url = isRemote ? `${base}${message.path}` : buildDashboardUrl(base, message.path, apiBaseQuery);
               if (isRemote) {
                 url = appendDashboardEmbedParams(url, `${localBaseUrl}/api`, true);
               }
@@ -1650,15 +1890,25 @@ $('cancelBtn').addEventListener('click', () => {
           case 'diagnose': {
             const results: string[] = [];
             // Show "Running..." immediately
-            webviewView.webview.postMessage({ command: 'diagnoseResult', lines: ['Running diagnostics...'], text: 'Running diagnostics...' });
+            webviewView.webview.postMessage({
+              command: 'diagnoseResult',
+              lines: ['Running diagnostics...'],
+              text: 'Running diagnostics...',
+            });
 
             const relayPort = ModernSidebarProvider._relayPort;
             results.push(`Relay port: ${relayPort || 'NOT STARTED'}`);
             const dataPort = getDataServerPort();
             results.push(`Data server: http://127.0.0.1:${dataPort}`);
-            results.push(`Dashboard HTML: ${ModernSidebarProvider._dashboardHtml ? 'LOADED (' + ModernSidebarProvider._dashboardHtml.length + ' chars)' : 'SERVED FROM DATA SERVER'}`);
-            results.push(`Sidebar HTML: ${ModernSidebarProvider._sidebarHtml ? 'LOADED (' + ModernSidebarProvider._sidebarHtml.length + ' chars)' : 'MISSING'}`);
-            results.push(`Current report: ${this._currentReport ? 'PRESENT (' + Object.keys(this._currentReport).length + ' keys)' : 'NONE'}`);
+            results.push(
+              `Dashboard HTML: ${ModernSidebarProvider._dashboardHtml ? 'LOADED (' + ModernSidebarProvider._dashboardHtml.length + ' chars)' : 'SERVED FROM DATA SERVER'}`
+            );
+            results.push(
+              `Sidebar HTML: ${ModernSidebarProvider._sidebarHtml ? 'LOADED (' + ModernSidebarProvider._sidebarHtml.length + ' chars)' : 'MISSING'}`
+            );
+            results.push(
+              `Current report: ${this._currentReport ? 'PRESENT (' + Object.keys(this._currentReport).length + ' keys)' : 'NONE'}`
+            );
             results.push(`Webview view: ${this._view ? 'ACTIVE' : 'NOT SET'}`);
 
             // Dashboard health checks
@@ -1688,10 +1938,19 @@ $('cancelBtn').addEventListener('click', () => {
             results.push(`API URL: ${actualApiUrl}`);
 
             // Test API connectivity to actual data server
-            const req = http.request({ hostname: '127.0.0.1', port: String(dataPort), path: '/api/simplebeacon/status', method: 'GET', timeout: 3000 }, (res: http.IncomingMessage) => {
-              results.push(`API status: HTTP ${res.statusCode}`);
-              webviewView.webview.postMessage({ command: 'diagnoseResult', lines: results });
-            });
+            const req = http.request(
+              {
+                hostname: '127.0.0.1',
+                port: String(dataPort),
+                path: '/api/simplebeacon/status',
+                method: 'GET',
+                timeout: 3000,
+              },
+              (res: http.IncomingMessage) => {
+                results.push(`API status: HTTP ${res.statusCode}`);
+                webviewView.webview.postMessage({ command: 'diagnoseResult', lines: results });
+              }
+            );
             req.on('error', (err: NodeJS.ErrnoException) => {
               results.push(`API status: UNREACHABLE (${err.message})`);
               webviewView.webview.postMessage({ command: 'diagnoseResult', lines: results });
@@ -1778,7 +2037,7 @@ $('cancelBtn').addEventListener('click', () => {
               openAnalytics: 'showAnalyticsPane',
               openTeam: 'showTeamPane',
               openScan: 'showScanPane',
-              openTools: 'showSettingsPane'
+              openTools: 'showSettingsPane',
             };
             const routeMap: Record<string, string> = {
               openAnalyze: '/analyze',
@@ -1800,7 +2059,7 @@ $('cancelBtn').addEventListener('click', () => {
               openAnalytics: '/analytics',
               openTeam: '/team',
               openScan: '/scan',
-              openTools: '/tools'
+              openTools: '/tools',
             };
             const panel = getWelcomeDashboard().createOrShow(this._extensionUri, true);
             if (panel) {
@@ -1828,10 +2087,12 @@ $('cancelBtn').addEventListener('click', () => {
               openCertificateHtml: 'simplebeacon.openCertificateHtml',
               generateCodeMap: 'simplebeacon.generateCodeMap',
               openCodeMapHtml: 'simplebeacon.openCodeMapHtml',
-              exportCodeMap: 'simplebeacon.exportCodeMap'
+              exportCodeMap: 'simplebeacon.exportCodeMap',
             };
             const cmd = cmdMap[message.command];
-            if (cmd) { vscode.commands.executeCommand(cmd); }
+            if (cmd) {
+              vscode.commands.executeCommand(cmd);
+            }
             break;
           }
           case 'openCodeMap':
@@ -1852,7 +2113,7 @@ $('cancelBtn').addEventListener('click', () => {
                 openRoadmapUrl: 'Roadmap',
                 openAuditUrl: 'Audit',
                 openPricingUrl: 'Pricing',
-                openTeamDashboardUrl: 'Team Dashboard'
+                openTeamDashboardUrl: 'Team Dashboard',
               };
               let url = message.url;
               // Canonicalize legacy /coming-soon/*.html URLs to live marketing routes.
@@ -1865,7 +2126,7 @@ $('cancelBtn').addEventListener('click', () => {
                 'https://simplebeacon.ai/coming-soon/pricing.html': 'https://simplebeacon.ai/pricing',
                 'https://simplebeacon.ai/dashboard/roadmap': 'https://simplebeacon.ai/roadmap',
                 'https://simplebeacon.ai/dashboard/audit': 'https://simplebeacon.ai/audit',
-                'https://simplebeacon.ai/dashboard/pricing': 'https://simplebeacon.ai/pricing'
+                'https://simplebeacon.ai/dashboard/pricing': 'https://simplebeacon.ai/pricing',
               };
               if (legacyMap[url]) {
                 url = legacyMap[url];
@@ -1883,7 +2144,9 @@ $('cancelBtn').addEventListener('click', () => {
                   ModernSidebarProvider.openEmbeddedDashboardRoute(route);
                   break;
                 }
-              } catch { /* not a dashboard URL — fall through to preview */ }
+              } catch {
+                /* not a dashboard URL — fall through to preview */
+              }
               const host = ModernSidebarProvider.resolveDashboardHost();
               const websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
               const isLocalHost = !host || /^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?\/?$/i.test(host || '');
@@ -1894,7 +2157,7 @@ $('cancelBtn').addEventListener('click', () => {
                   'https://simplebeacon.ai/audit': `${localBase}/coming-soon/audit.html`,
                   'https://simplebeacon.ai/pricing': `${localBase}/coming-soon/pricing.html`,
                   'https://simplebeacon.ai/dashboard': `${localBase}/dashboard`,
-                  'https://simplebeacon.ai/dashboard/': `${localBase}/dashboard`
+                  'https://simplebeacon.ai/dashboard/': `${localBase}/dashboard`,
                 };
                 const normalized = url.replace(/\/$/, '');
                 url = localMap[url] || localMap[normalized] || localMap[normalized + '/'] || url;
@@ -1934,21 +2197,29 @@ $('cancelBtn').addEventListener('click', () => {
             getWelcomeDashboard().createOrShow(this._extensionUri, true)?.showCompliancePane();
             break;
           case 'bridgeFetch': {
-            const bfMsg = message as SidebarMessage & { url?: string; requestId?: string; init?: { method?: string; headers?: Record<string, string>; body?: string } };
+            const bfMsg = message as SidebarMessage & {
+              url?: string;
+              requestId?: string;
+              init?: { method?: string; headers?: Record<string, string>; body?: string };
+            };
             const bfUrl = bfMsg.url || '';
             const bfReqId = bfMsg.requestId || '';
             if (!bfUrl || !bfReqId) break;
             try {
               const parsed = new URL(bfUrl);
               if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') {
-                webviewView.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: 'Only localhost URLs allowed' });
+                webviewView.webview.postMessage({
+                  command: 'bridgeFetchResponse',
+                  requestId: bfReqId,
+                  error: 'Only localhost URLs allowed',
+                });
                 break;
               }
               const reqOpts: http.RequestOptions = {
                 hostname: parsed.hostname,
                 port: parsed.port || '80',
                 path: parsed.pathname + parsed.search,
-                method: (bfMsg.init?.method) || 'GET',
+                method: bfMsg.init?.method || 'GET',
                 headers: bfMsg.init?.headers || {},
                 timeout: 20000,
               };
@@ -1968,18 +2239,30 @@ $('cancelBtn').addEventListener('click', () => {
                 });
               });
               req.on('error', (err: NodeJS.ErrnoException) => {
-                webviewView.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: err.message });
+                webviewView.webview.postMessage({
+                  command: 'bridgeFetchResponse',
+                  requestId: bfReqId,
+                  error: err.message,
+                });
               });
               req.on('timeout', () => {
                 req.destroy();
-                webviewView.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: 'Request timeout' });
+                webviewView.webview.postMessage({
+                  command: 'bridgeFetchResponse',
+                  requestId: bfReqId,
+                  error: 'Request timeout',
+                });
               });
               if (bfMsg.init?.body) {
                 req.write(bfMsg.init.body);
               }
               req.end();
             } catch (err: unknown) {
-              webviewView.webview.postMessage({ command: 'bridgeFetchResponse', requestId: bfReqId, error: (err as Error).message });
+              webviewView.webview.postMessage({
+                command: 'bridgeFetchResponse',
+                requestId: bfReqId,
+                error: (err as Error).message,
+              });
             }
             break;
           }
@@ -1999,15 +2282,19 @@ $('cancelBtn').addEventListener('click', () => {
               openRealtimeAnalysis: 'simplebeacon.realtimeAnalysis',
               openPatternDetection: 'simplebeacon.patternDetection',
               openModelHealth: 'simplebeacon.modelHealth',
-              openScanWorkspace: 'simplebeacon.scanWorkspace'
+              openScanWorkspace: 'simplebeacon.scanWorkspace',
             };
             const cmd = cmdMap[message.command];
-            if (cmd) { vscode.commands.executeCommand(cmd); }
+            if (cmd) {
+              vscode.commands.executeCommand(cmd);
+            }
             break;
           }
         }
       } catch (err) {
-        vscode.window.showErrorMessage('SimpleBeacon sidebar error: ' + (err instanceof Error ? err.message : String(err)));
+        vscode.window.showErrorMessage(
+          'SimpleBeacon sidebar error: ' + (err instanceof Error ? err.message : String(err))
+        );
       }
     });
   }
@@ -2036,7 +2323,9 @@ $('cancelBtn').addEventListener('click', () => {
     const isWorkspaceMode = savedScanMode === 'workspace';
     const dataServerUrl = `http://127.0.0.1:${getDataServerPort()}`;
     const ideTheme = getIdeThemeKind();
-    const apiUrlScript = apiUrl ? `<script nonce="${nonce}">window.__SB_API_URL__=${JSON.stringify(apiUrl)};</script>` : '';
+    const apiUrlScript = apiUrl
+      ? `<script nonce="${nonce}">window.__SB_API_URL__=${JSON.stringify(apiUrl)};</script>`
+      : '';
     const dataServerUrlScript = `<script nonce="${nonce}">window.__SB_DATA_SERVER_URL__=${JSON.stringify(dataServerUrl)};</script>`;
     return `<!DOCTYPE html>
 <html lang="en" data-theme="${ideTheme}">
@@ -5047,30 +5336,45 @@ ${sidebarMainJsContent}
 </script>
 </body>
 </html>`;
-    }
+  }
 
   public updateReport(report: Record<string, unknown> | null) {
     this._currentReport = report;
     try {
       this._view?.webview.postMessage({ command: 'updateReport', report });
-    } catch { /* webview disposed */ }
+    } catch {
+      /* webview disposed */
+    }
     // Push report data to relay so browser dashboard can display it
     const relayPort = ModernSidebarProvider._relayPort;
     if (relayPort && report) {
       try {
         const payload = JSON.stringify({ ...report, title: report.title || 'Scan Report' });
-        const req = http.request({ hostname: '127.0.0.1', port: relayPort, path: '/api/data', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
+        const req = http.request(
+          {
+            hostname: '127.0.0.1',
+            port: relayPort,
+            path: '/api/data',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+          },
+          () => {}
+        );
         req.on('error', () => {});
         req.write(payload);
         req.end();
-      } catch (e) { ModernSidebarProvider.logRelay('Relay data push error: ' + (e instanceof Error ? e.message : String(e))); }
+      } catch (e) {
+        ModernSidebarProvider.logRelay('Relay data push error: ' + (e instanceof Error ? e.message : String(e)));
+      }
     }
   }
 
   public updateAnalyticsPane(data: Record<string, unknown>) {
     try {
       this._view?.webview.postMessage({ command: 'updateAnalytics', ...data });
-    } catch { /* webview disposed */ }
+    } catch {
+      /* webview disposed */
+    }
   }
 
   public updateScanProgress(percentage: number) {
@@ -5084,11 +5388,22 @@ ${sidebarMainJsContent}
     if (relayPort) {
       try {
         const payload = JSON.stringify({ status, text, title: 'Status Update' });
-        const req = http.request({ hostname: '127.0.0.1', port: relayPort, path: '/api/data', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
+        const req = http.request(
+          {
+            hostname: '127.0.0.1',
+            port: relayPort,
+            path: '/api/data',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) },
+          },
+          () => {}
+        );
         req.on('error', () => {});
         req.write(payload);
         req.end();
-      } catch (e) { ModernSidebarProvider.logRelay('Relay status push error: ' + (e instanceof Error ? e.message : String(e))); }
+      } catch (e) {
+        ModernSidebarProvider.logRelay('Relay status push error: ' + (e instanceof Error ? e.message : String(e)));
+      }
     }
   }
 
@@ -5105,12 +5420,17 @@ ${sidebarMainJsContent}
     const langsRaw = data.languages;
     let languages: Array<{ name: string; count: number }> = [];
     if (Array.isArray(langsRaw)) {
-      languages = langsRaw.map((entry: any) => ({
-        name: String(entry?.name || entry?.extension || entry?.ext || ''),
-        count: Number(entry?.count || 0),
-      })).filter((entry) => entry.name);
+      languages = langsRaw
+        .map((entry: any) => ({
+          name: String(entry?.name || entry?.extension || entry?.ext || ''),
+          count: Number(entry?.count || 0),
+        }))
+        .filter((entry) => entry.name);
     } else if (typeof langsRaw === 'string' && langsRaw.trim()) {
-      languages = langsRaw.split(',').map((name) => ({ name: name.trim(), count: 0 })).filter((entry) => entry.name);
+      languages = langsRaw
+        .split(',')
+        .map((name) => ({ name: name.trim(), count: 0 }))
+        .filter((entry) => entry.name);
     }
     return {
       totalFiles: files,
@@ -5129,9 +5449,13 @@ ${sidebarMainJsContent}
 
   private static loadCodeMapPayloadFromDisk(): Record<string, unknown> | null {
     const folders = vscode.workspace.workspaceFolders;
-    if (!folders?.length) { return null; }
+    if (!folders?.length) {
+      return null;
+    }
     const mapPath = path.join(folders[0].uri.fsPath, '.simplebeacon', 'codemap.json');
-    if (!fs.existsSync(mapPath)) { return null; }
+    if (!fs.existsSync(mapPath)) {
+      return null;
+    }
     try {
       const raw = JSON.parse(fs.readFileSync(mapPath, 'utf8')) as {
         totalFiles?: number;
@@ -5141,10 +5465,12 @@ ${sidebarMainJsContent}
         dependencyGraph?: { nodes?: unknown[] };
       };
       const languages = Array.isArray(raw.languages)
-        ? raw.languages.map((entry) => ({
-          name: String(entry.extension || entry.name || ''),
-          count: Number(entry.count || 0),
-        })).filter((entry) => entry.name)
+        ? raw.languages
+            .map((entry) => ({
+              name: String(entry.extension || entry.name || ''),
+              count: Number(entry.count || 0),
+            }))
+            .filter((entry) => entry.name)
         : [];
       const moduleCount = Array.isArray(raw.dependencyGraph?.nodes) ? raw.dependencyGraph!.nodes!.length : 0;
       const generatedAt = raw.generatedAt ? new Date(raw.generatedAt).toLocaleString() : new Date().toLocaleString();
@@ -5188,7 +5514,9 @@ ${sidebarMainJsContent}
 
   public static pushCodeMapToSidebar(webview?: vscode.Webview) {
     const payload = ModernSidebarProvider.resolveCodeMapPayload();
-    if (!payload) { return; }
+    if (!payload) {
+      return;
+    }
     ModernSidebarProvider._lastCodeMapData = payload;
     webview?.postMessage({ command: 'updateCodeMap', ...payload });
   }
@@ -5228,7 +5556,7 @@ ${sidebarMainJsContent}
       name: dl.name,
       path: ModernSidebarProvider._displayDownloadPath(dl.path),
       fullPath: dl.path,
-      time: dl.time
+      time: dl.time,
     });
   }
 
@@ -5264,7 +5592,10 @@ ${sidebarMainJsContent}
       `try { window.vscode = acquireVsCodeApi(); } catch (e) { /* silent — expected in non-webview contexts */ }`
     );
     // Remove leftover reference to the removed vscodeApi variable
-    browserHtml = browserHtml.replace(new RegExp('v'+'ar'+' _isRealVsCode = !!vscodeApi;\\s*'), 'const _isRealVsCode = false;');
+    browserHtml = browserHtml.replace(
+      new RegExp('v' + 'ar' + ' _isRealVsCode = !!vscodeApi;\\s*'),
+      'const _isRealVsCode = false;'
+    );
     getWelcomeDashboard().createOrShow(this._extensionUri, true);
   }
 
@@ -5281,7 +5612,10 @@ ${sidebarMainJsContent}
     let standaloneHtml = html;
     if (fs.existsSync(sidebarJsPath)) {
       const sidebarJs = fs.readFileSync(sidebarJsPath, 'utf8');
-      standaloneHtml = html.replace(/<script(?:\s+[^>]*)?\s+src="[^"]*sidebar-main\.js[^"]*"[^>]*><\/script>/, '<script>\n' + sidebarJs + '\n</script>');
+      standaloneHtml = html.replace(
+        /<script(?:\s+[^>]*)?\s+src="[^"]*sidebar-main\.js[^"]*"[^>]*><\/script>/,
+        '<script>\n' + sidebarJs + '\n</script>'
+      );
     }
     standaloneHtml = standaloneHtml.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
     // Keep real acquireVsCodeApi() for panel message passing
@@ -5290,7 +5624,11 @@ ${sidebarMainJsContent}
     standaloneHtml = standaloneHtml.replace('</head>', vscodeVars + '</head>');
     // Inject API URL
     const sbConfig = getSbConfig();
-    const apiUrl = String(sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000');
+    const apiUrl = String(
+      sbConfig.get<string>('apiServerUrl') ||
+        sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') ||
+        'http://127.0.0.1:55000'
+    );
     const apiScript = `<script>window.__SB_API_URL__=${JSON.stringify(apiUrl)};</script>`;
     standaloneHtml = standaloneHtml.replace('</head>', apiScript + '</head>');
     // Inject initial report data if available
@@ -5316,7 +5654,9 @@ ${sidebarMainJsContent}
       );
       ModernSidebarProvider.browserPanel = panel;
       panel.webview.html = standaloneHtml;
-      panel.onDidDispose(() => { ModernSidebarProvider.browserPanel = undefined; });
+      panel.onDidDispose(() => {
+        ModernSidebarProvider.browserPanel = undefined;
+      });
     }
     // Handle messages from the standalone panel the same way as the sidebar view
     panel.webview.onDidReceiveMessage((message: any) => {
@@ -5344,7 +5684,9 @@ ${sidebarMainJsContent}
           vscode.commands.executeCommand('simplebeacon.openSettings');
           break;
         case 'openInIde':
-          if (apiUrl) { vscode.commands.executeCommand('simpleBrowser.show', apiUrl); }
+          if (apiUrl) {
+            vscode.commands.executeCommand('simpleBrowser.show', apiUrl);
+          }
           break;
         case 'openCloudInBrowser':
         case 'openCloudInPreview':
@@ -5388,7 +5730,11 @@ ${sidebarMainJsContent}
         case 'navHelp':
         case 'navChatbot':
         case 'navAbout': {
-          const route = ModernSidebarProvider.teamNavRoute(message.command.startsWith('nav') ? message.command : 'nav' + message.command.charAt(0).toUpperCase() + message.command.slice(1));
+          const route = ModernSidebarProvider.teamNavRoute(
+            message.command.startsWith('nav')
+              ? message.command
+              : 'nav' + message.command.charAt(0).toUpperCase() + message.command.slice(1)
+          );
           if (route) {
             ModernSidebarProvider.openEmbeddedDashboardRoute(route);
           } else if (message.command === 'dashboard') {
@@ -5429,8 +5775,12 @@ ${sidebarMainJsContent}
                 headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
               },
               (res: http.IncomingMessage) => {
-                res.on('data', () => { /* drain response */ });
-                res.on('end', () => { /* data server callback will focus AI Coding Agent panel */ });
+                res.on('data', () => {
+                  /* drain response */
+                });
+                res.on('end', () => {
+                  /* data server callback will focus AI Coding Agent panel */
+                });
               }
             );
             req.on('error', (err) => {
@@ -5443,7 +5793,9 @@ ${sidebarMainJsContent}
         case 'openFile': {
           const targetPath = (message.file || message.path || '') as string;
           const fileName = typeof message.name === 'string' ? message.name : undefined;
-          if (!targetPath && !fileName) { break; }
+          if (!targetPath && !fileName) {
+            break;
+          }
           if (/^(https?:\/\/|blob:)/.test(targetPath)) {
             vscode.env.openExternal(vscode.Uri.parse(targetPath));
           } else {
@@ -5465,7 +5817,7 @@ ${sidebarMainJsContent}
               certificate: 'simplebeacon.generateCertificate',
               codeMap: 'simplebeacon.showCodeMap',
               aiContext: 'simplebeacon.openAiContext',
-              preview: 'simplebeacon.openInPreview'
+              preview: 'simplebeacon.openInPreview',
             };
             const cmd = pageMap[message.page];
             if (cmd) vscode.commands.executeCommand(cmd);
@@ -5491,16 +5843,23 @@ ${sidebarMainJsContent}
     // Guard: if sidebar view was never resolved, generate HTML with a fallback webview
     const html = this._view
       ? this._getHtmlForWebview(this._view.webview)
-      : this._getHtmlForWebview(new class {
-          cspSource = '';
-          asWebviewUri(uri: vscode.Uri) { return uri; }
-        } as unknown as vscode.Webview);
+      : this._getHtmlForWebview(
+          new (class {
+            cspSource = '';
+            asWebviewUri(uri: vscode.Uri) {
+              return uri;
+            }
+          })() as unknown as vscode.Webview
+        );
     // Inline sidebar-main.js so it loads in the browser panel (webview URIs are panel-specific)
     const sidebarJsPath = path.join(extUri.fsPath, 'media', 'sidebar-main.js');
     let browserHtml = html;
     if (fs.existsSync(sidebarJsPath)) {
       const sidebarJs = fs.readFileSync(sidebarJsPath, 'utf8');
-      browserHtml = html.replace(/<script(?:\s+[^>]*)?\s+src="[^"]*sidebar-main\.js[^"]*"[^>]*><\/script>/, '<script>\n' + sidebarJs + '\n</script>');
+      browserHtml = html.replace(
+        /<script(?:\s+[^>]*)?\s+src="[^"]*sidebar-main\.js[^"]*"[^>]*><\/script>/,
+        '<script>\n' + sidebarJs + '\n</script>'
+      );
     }
     const tmpFile = path.join(os.tmpdir(), 'simplebeacon-sidebar-preview.html');
     browserHtml = browserHtml.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
@@ -5524,7 +5883,10 @@ ${sidebarMainJsContent}
       };`
     );
     // Remove leftover reference to the removed vscodeApi variable
-    browserHtml = browserHtml.replace(new RegExp('v'+'ar'+' _isRealVsCode = !!vscodeApi;\\s*'), 'const _isRealVsCode = false;');
+    browserHtml = browserHtml.replace(
+      new RegExp('v' + 'ar' + ' _isRealVsCode = !!vscodeApi;\\s*'),
+      'const _isRealVsCode = false;'
+    );
     // Also replace inline onclick acquireVsCodeApi calls
     browserHtml = browserHtml.replace(
       /onclick="try\{acquireVsCodeApi\(\)\.postMessage/g,
@@ -5536,10 +5898,7 @@ ${sidebarMainJsContent}
       `onclick="parent.postMessage({command:'$1'},'*')"`
     );
     // Replace hidePage() back button with browser history back
-    browserHtml = browserHtml.replace(
-      /onclick="hidePage\(\)"/g,
-      `onclick="history.back()"`
-    );
+    browserHtml = browserHtml.replace(/onclick="hidePage\(\)"/g, `onclick="history.back()"`);
     // In browser context, change Preview button to IDE button
     browserHtml = browserHtml.replace(
       /<button type="button" class="btn btn-action btn-small" id="previewBtn">\s*<span class="btn-icon">[🌐\&#x1F310;]<\/span>\s*<span>Preview<\/span>\s*<\/button>/g,
@@ -5574,7 +5933,11 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
     // Inject VS Code dark theme CSS variables and API URL so sidebar renders correctly outside VS Code
     const vscodeVars = `<style>:root{--vscode-editor-background:#1e1e1e;--vscode-sidebar-background:#252526;--vscode-foreground:#cccccc;--vscode-panel-background:#252526;--vscode-panel-border:#3c3c3c;--vscode-button-secondaryBackground:#2d2d30;--vscode-button-secondaryForeground:#cccccc;--vscode-button-hoverBackground:#3c3c3c;--vscode-descriptionForeground:#858585;--vscode-activityBar-background:#333333;--vscode-activityBar-foreground:#ffffff;--vscode-activityBar-inactiveForeground:#858585;--vscode-focusBorder:#007acc;--vscode-list-hoverBackground:#2a2d2e;--vscode-charts-green:#89d185;--vscode-charts-red:#f48771;--vscode-charts-orange:#d18616;--vscode-charts-blue:#75beff;--vscode-font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}</style>`;
     const sbConfig = getSbConfig();
-    const apiUrl = String(sbConfig.get<string>('apiServerUrl') || sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') || 'http://127.0.0.1:55000');
+    const apiUrl = String(
+      sbConfig.get<string>('apiServerUrl') ||
+        sbConfig.get<string>('apiUrl', 'http://127.0.0.1:55000') ||
+        'http://127.0.0.1:55000'
+    );
     const relayPort = ModernSidebarProvider._relayPort || sbConfig.get<number>('relayPort', 55444);
     const dashboardUrl = `http://127.0.0.1:${getDataServerPort()}`;
     const injectScript = `<script nonce="${panelNonce}">window.__SB_DASHBOARD_URL__=${JSON.stringify(String(dashboardUrl))};window.__SB_API_URL__=${JSON.stringify(apiUrl)};window._relayPort=${relayPort};</script>`;
@@ -5604,7 +5967,9 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
       try {
         existingServer.close();
       } catch (e) {
-        ModernSidebarProvider.logRelay('Failed to close existing relay server: ' + (e instanceof Error ? e.message : String(e)));
+        ModernSidebarProvider.logRelay(
+          'Failed to close existing relay server: ' + (e instanceof Error ? e.message : String(e))
+        );
       }
       ModernSidebarProvider._relayServer = undefined;
       ModernSidebarProvider._relayPort = undefined;
@@ -5629,19 +5994,21 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
     const localDashboardBase = `http://127.0.0.1:${getDataServerPort()}`;
     const websiteMode = ModernSidebarProvider.getDashboardMode() === 'website';
     const dashboardBaseUrl = websiteMode ? 'https://simplebeacon.pages.dev' : localDashboardBase;
-    const initialDashboardSrc = websiteMode
-      ? `${dashboardBaseUrl}/dashboard`
-      : `${localDashboardBase}/dashboard`;
+    const initialDashboardSrc = websiteMode ? `${dashboardBaseUrl}/dashboard` : `${localDashboardBase}/dashboard`;
 
     // Generate the same browser-ready sidebar HTML used by the IDE preview
     let browserHtml = '';
     try {
       browserHtml = this.openDebugPreview(true);
     } catch (e) {
-      ModernSidebarProvider.logRelay('Failed to generate browser sidebar HTML: ' + (e instanceof Error ? e.message : String(e)));
+      ModernSidebarProvider.logRelay(
+        'Failed to generate browser sidebar HTML: ' + (e instanceof Error ? e.message : String(e))
+      );
     }
     if (!browserHtml) {
-      vscode.window.showErrorMessage('Browser sidebar HTML could not be generated. Open the SimpleBeacon sidebar in VS Code first.');
+      vscode.window.showErrorMessage(
+        'Browser sidebar HTML could not be generated. Open the SimpleBeacon sidebar in VS Code first.'
+      );
       return;
     }
 
@@ -5651,16 +6018,24 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
     // Generate welcome window browser HTML for the relay preview
     try {
       if (typeof getWelcomeDashboard().buildBrowserHtml === 'function') {
-        ModernSidebarProvider._welcomeBrowserHtml = getWelcomeDashboard().buildBrowserHtml(this._currentReport || undefined);
+        ModernSidebarProvider._welcomeBrowserHtml = getWelcomeDashboard().buildBrowserHtml(
+          this._currentReport || undefined
+        );
       }
     } catch (e) {
-      ModernSidebarProvider.logRelay('Failed to build welcome browser HTML: ' + (e instanceof Error ? e.message : String(e)));
+      ModernSidebarProvider.logRelay(
+        'Failed to build welcome browser HTML: ' + (e instanceof Error ? e.message : String(e))
+      );
     }
 
     // Write to temp file so standalone relay-server.js can serve it
     const tempFile = path.join(os.tmpdir(), 'simplebeacon-sidebar-browser.html');
-    try { fs.writeFileSync(tempFile, browserHtml, 'utf8'); } catch (e) {
-      ModernSidebarProvider.logRelay('Failed to write temp sidebar file: ' + (e instanceof Error ? e.message : String(e)));
+    try {
+      fs.writeFileSync(tempFile, browserHtml, 'utf8');
+    } catch (e) {
+      ModernSidebarProvider.logRelay(
+        'Failed to write temp sidebar file: ' + (e instanceof Error ? e.message : String(e))
+      );
     }
 
     // Start minimal relay server if not already running
@@ -5687,10 +6062,14 @@ if (!window.vscode || typeof window.vscode.postMessage !== 'function') {
         const codeMapPath = path.join(extUri.fsPath, 'media', 'codeMapTemplate.html');
         if (fs.existsSync(codeMapPath)) {
           let html = fs.readFileSync(codeMapPath, 'utf8');
-          return html.replace(/NONCE/g, 'browser-' + Date.now()).replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
+          return html
+            .replace(/NONCE/g, 'browser-' + Date.now())
+            .replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i, '');
         }
       } catch (e) {
-        ModernSidebarProvider.logRelay('Failed to read codeMapTemplate.html: ' + (e instanceof Error ? e.message : String(e)));
+        ModernSidebarProvider.logRelay(
+          'Failed to read codeMapTemplate.html: ' + (e instanceof Error ? e.message : String(e))
+        );
       }
       return '<h1>Code Map</h1><p>Template not found</p>';
     };
@@ -6265,8 +6644,17 @@ body.tabs-open #browserTabBar{display:flex !important;}
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-      if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
-      const htmlCacheHeaders = { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0' };
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      const htmlCacheHeaders = {
+        'Content-Type': 'text/html',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      };
       if (req.url === '/') {
         res.writeHead(200, htmlCacheHeaders);
         res.end(buildIdeHtml());
@@ -6293,7 +6681,9 @@ body.tabs-open #browserTabBar{display:flex !important;}
             return;
           }
         } catch (e) {
-          ModernSidebarProvider.logRelay('Failed to build welcome browser HTML: ' + (e instanceof Error ? e.message : String(e)));
+          ModernSidebarProvider.logRelay(
+            'Failed to build welcome browser HTML: ' + (e instanceof Error ? e.message : String(e))
+          );
         }
       }
       if (req.url === '/codemap') {
@@ -6304,7 +6694,9 @@ body.tabs-open #browserTabBar{display:flex !important;}
       // Execute VS Code: commands coming from browser preview
       if (req.url === '/api/command') {
         let body = '';
-        req.on('data', (chunk: any) => { body += chunk; });
+        req.on('data', (chunk: any) => {
+          body += chunk;
+        });
         req.on('end', () => {
           try {
             const data = JSON.parse(body);
@@ -6314,7 +6706,8 @@ body.tabs-open #browserTabBar{display:flex !important;}
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true }));
           } catch {
-            res.writeHead(400); res.end('Bad request');
+            res.writeHead(400);
+            res.end('Bad request');
           }
         });
         return;
@@ -6329,7 +6722,13 @@ body.tabs-open #browserTabBar{display:flex !important;}
       if (req.url && req.url.startsWith('/api/')) {
         const dataPort = getDataServerPort();
         const proxyReq = http.request(
-          { hostname: '127.0.0.1', port: dataPort, path: req.url, method: req.method, headers: { ...req.headers, host: `127.0.0.1:${dataPort}` } },
+          {
+            hostname: '127.0.0.1',
+            port: dataPort,
+            path: req.url,
+            method: req.method,
+            headers: { ...req.headers, host: `127.0.0.1:${dataPort}` },
+          },
           (proxyRes: any) => {
             res.writeHead(proxyRes.statusCode, proxyRes.headers);
             proxyRes.pipe(res);
@@ -6337,12 +6736,14 @@ body.tabs-open #browserTabBar{display:flex !important;}
         );
         proxyReq.on('error', (err: any) => {
           ModernSidebarProvider.logRelay('API proxy error: ' + err.message);
-          res.writeHead(502); res.end('API proxy error: ' + err.message);
+          res.writeHead(502);
+          res.end('API proxy error: ' + err.message);
         });
         req.pipe(proxyReq);
         return;
       }
-      res.writeHead(404); res.end('Not found');
+      res.writeHead(404);
+      res.end('Not found');
     });
 
     const tryListen = (port: number) => {
@@ -6368,20 +6769,24 @@ body.tabs-open #browserTabBar{display:flex !important;}
           ModernSidebarProvider._relayPollInterval = setInterval(() => {
             const rp = ModernSidebarProvider._relayPort;
             if (!rp) return;
-            http.get(`http://127.0.0.1:${rp}/api/pending-commands`, (res) => {
-              let body = '';
-              res.on('data', (chunk: any) => { body += chunk; });
-              res.on('end', () => {
-                try {
-                  const commands = JSON.parse(body);
-                  commands.forEach((cmd: any) => {
-                    if (cmd && cmd.command) {
-                      vscode.commands.executeCommand(cmd.command).then(undefined, () => {});
-                    }
-                  });
-                } catch {}
-              });
-            }).on('error', () => {});
+            http
+              .get(`http://127.0.0.1:${rp}/api/pending-commands`, (res) => {
+                let body = '';
+                res.on('data', (chunk: any) => {
+                  body += chunk;
+                });
+                res.on('end', () => {
+                  try {
+                    const commands = JSON.parse(body);
+                    commands.forEach((cmd: any) => {
+                      if (cmd && cmd.command) {
+                        vscode.commands.executeCommand(cmd.command).then(undefined, () => {});
+                      }
+                    });
+                  } catch {}
+                });
+              })
+              .on('error', () => {});
           }, 3000);
         }
         const url = `http://127.0.0.1:${actualPort}${urlPath}`;
@@ -6589,4 +6994,3 @@ setInterval(load,5000);
 </html>`;
   }
 }
-

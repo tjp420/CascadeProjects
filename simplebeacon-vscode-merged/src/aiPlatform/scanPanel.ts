@@ -118,13 +118,19 @@ export class ScanPanel {
           case 'openIssue':
             if (message.issue && message.issue.filePath && message.issue.line) {
               const docUri = vscode.Uri.file(message.issue.filePath);
-              vscode.workspace.openTextDocument(docUri).then((doc) => {
-                vscode.window.showTextDocument(doc).then((editor) => {
-                  const position = new vscode.Position(message.issue.line - 1, message.issue.column || 0);
-                  editor.selection = new vscode.Selection(position, position);
-                  editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
-                }, () => {});
-              }, () => {});
+              vscode.workspace.openTextDocument(docUri).then(
+                (doc) => {
+                  vscode.window.showTextDocument(doc).then(
+                    (editor) => {
+                      const position = new vscode.Position(message.issue.line - 1, message.issue.column || 0);
+                      editor.selection = new vscode.Selection(position, position);
+                      editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+                    },
+                    () => {}
+                  );
+                },
+                () => {}
+              );
             }
             return;
         }
@@ -147,7 +153,10 @@ export class ScanPanel {
     const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const apiKey = config.get<string>('apiKey', '');
     if (!apiUrl) {
-      this._panel.webview.postMessage({ command: 'error', message: 'API URL not configured. Run "Set API Server URL" command first.' });
+      this._panel.webview.postMessage({
+        command: 'error',
+        message: 'API URL not configured. Run "Set API Server URL" command first.',
+      });
       return;
     }
 
@@ -260,7 +269,7 @@ export class ScanPanel {
     const nonce = getNonce();
     const config = getSbConfig();
     const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
-    const connectSrc = apiUrl ? `connect-src ${apiUrl};` : "";
+    const connectSrc = apiUrl ? `connect-src ${apiUrl};` : '';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -727,7 +736,6 @@ export class ScanPanel {
     }
   }
 }
-
 
 function postJson(url: string, payload: Record<string, unknown>, apiKey?: string): Promise<unknown> {
   return new Promise((resolve, reject) => {

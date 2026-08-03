@@ -11,7 +11,9 @@ import { RawIssue } from './scanProvider';
 function getNested<T>(obj: unknown, ...keys: string[]): T | undefined {
   let current: unknown = obj;
   for (const key of keys) {
-    if (current == null || typeof current !== 'object') { return undefined; }
+    if (current == null || typeof current !== 'object') {
+      return undefined;
+    }
     current = (current as Record<string, unknown>)[key];
   }
   return current as T | undefined;
@@ -69,7 +71,13 @@ export class Dashboard20 {
     this.panel = panel;
     this.extUri = extUri;
     this.report = report;
-    this.panel.onDidDispose(() => { Dashboard20.currentPanel = undefined; }, null, []);
+    this.panel.onDidDispose(
+      () => {
+        Dashboard20.currentPanel = undefined;
+      },
+      null,
+      []
+    );
     this.panel.webview.onDidReceiveMessage((msg) => this.handleMessage(msg));
     this.render();
   }
@@ -84,10 +92,10 @@ export class Dashboard20 {
       case 'openFile': {
         if (!msg.file) break;
         const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        const resolved = path.isAbsolute(msg.file) ? msg.file : (workspace ? path.join(workspace, msg.file) : msg.file);
+        const resolved = path.isAbsolute(msg.file) ? msg.file : workspace ? path.join(workspace, msg.file) : msg.file;
         if (fs.existsSync(resolved)) {
           vscode.window.showTextDocument(vscode.Uri.file(resolved), {
-            selection: new vscode.Range((msg.line || 1) - 1, 0, (msg.line || 1) - 1, 0)
+            selection: new vscode.Range((msg.line || 1) - 1, 0, (msg.line || 1) - 1, 0),
           });
         } else {
           vscode.window.showWarningMessage('File not found: ' + msg.file);
@@ -149,25 +157,45 @@ export class Dashboard20 {
     const totalFindings = allFindings.length || categories.reduce((s, c) => s + c.count, 0);
 
     const catColorMap: Record<string, string> = {
-      Blocking: '#ef4444', Secrets: '#ef4444', 'AI Indicators': '#f59e0b', 'EU AI Act': '#f59e0b',
-      Vulnerabilities: '#ef4444', 'Debug Markers': '#3b82f6', 'AI Residue': '#f59e0b',
-      Performance: '#f59e0b', 'Type Safety': '#3b82f6', 'Test Coverage': '#10b981',
-      Accessibility: '#3b82f6', i18n: '#3b82f6', 'Sensitive Data': '#ef4444', 'Config Drift': '#f59e0b',
-      'Security Headers': '#ef4444', 'Database Patterns': '#ef4444', 'Framework Practices': '#f59e0b',
-      'Workspace Health': '#3b82f6', 'Unused Deps': '#10b981', 'API Contract': '#3b82f6',
-      Complexity: '#f59e0b', 'LLM Slop': '#3b82f6', 'Token Bleed': '#3b82f6', 'Production Leak': '#ef4444',
-      'Fiction KPI': '#f59e0b', Security: '#ef4444', Quality: '#f59e0b', Maintainability: '#3b82f6',
+      Blocking: '#ef4444',
+      Secrets: '#ef4444',
+      'AI Indicators': '#f59e0b',
+      'EU AI Act': '#f59e0b',
+      Vulnerabilities: '#ef4444',
+      'Debug Markers': '#3b82f6',
+      'AI Residue': '#f59e0b',
+      Performance: '#f59e0b',
+      'Type Safety': '#3b82f6',
+      'Test Coverage': '#10b981',
+      Accessibility: '#3b82f6',
+      i18n: '#3b82f6',
+      'Sensitive Data': '#ef4444',
+      'Config Drift': '#f59e0b',
+      'Security Headers': '#ef4444',
+      'Database Patterns': '#ef4444',
+      'Framework Practices': '#f59e0b',
+      'Workspace Health': '#3b82f6',
+      'Unused Deps': '#10b981',
+      'API Contract': '#3b82f6',
+      Complexity: '#f59e0b',
+      'LLM Slop': '#3b82f6',
+      'Token Bleed': '#3b82f6',
+      'Production Leak': '#ef4444',
+      'Fiction KPI': '#f59e0b',
+      Security: '#ef4444',
+      Quality: '#f59e0b',
+      Maintainability: '#3b82f6',
     };
 
-    const findingsJson = JSON.stringify(allFindings.map((f) => ({ ...f, desc: this.escapeHtml(f.desc), file: this.escapeHtml(f.file) })));
+    const findingsJson = JSON.stringify(
+      allFindings.map((f) => ({ ...f, desc: this.escapeHtml(f.desc), file: this.escapeHtml(f.file) }))
+    );
     const catOptions = categories.map((c) => `<option value="${c.label}">${c.label}</option>`).join('');
     const catColorJson = JSON.stringify(catColorMap);
     const failingFiles = this.buildFailingFiles(r);
 
     const templatePath = path.join(this.extUri.fsPath, 'media', 'dashboard2_0.html');
-    let html = fs.existsSync(templatePath)
-      ? fs.readFileSync(templatePath, 'utf8')
-      : this.fallbackTemplate();
+    let html = fs.existsSync(templatePath) ? fs.readFileSync(templatePath, 'utf8') : this.fallbackTemplate();
 
     return html
       .replace(/\{\{CSP\}\}/g, csp)
@@ -197,7 +225,8 @@ export class Dashboard20 {
     const cats: { label: string; count: number; severity: string }[] = [];
     if (report.categories && typeof report.categories === 'object' && !Array.isArray(report.categories)) {
       const keys = Object.keys(report.categories);
-      for (let i = 0; i < keys.length; i++) { // simplebeacon-ignore memory-leak — short-lived report data aggregation
+      for (let i = 0; i < keys.length; i++) {
+        // simplebeacon-ignore memory-leak — short-lived report data aggregation
         const cat = keys[i];
         const items = report.categories[cat];
         if (Array.isArray(items) && items.length > 0) {
@@ -233,7 +262,11 @@ export class Dashboard20 {
     if (cats.length === 0 && getNested<unknown[]>(report, 'detectedIssues')?.length) {
       for (const di of getNested<unknown[]>(report, 'detectedIssues') || []) {
         const typedDi = di as Record<string, unknown>;
-        cats.push({ label: (typedDi.type as string) || 'Finding', count: (typedDi.count as number) || 0, severity: (typedDi.severity as string) || 'medium' });
+        cats.push({
+          label: (typedDi.type as string) || 'Finding',
+          count: (typedDi.count as number) || 0,
+          severity: (typedDi.severity as string) || 'medium',
+        });
       }
     }
     if (cats.length === 0 && report.rawIssues?.length) {
@@ -255,47 +288,94 @@ export class Dashboard20 {
   }
 
   private resolveFilePath(issue: RawIssue): string {
-    if (issue.filePath) { return issue.filePath; }
-    if (issue.file) { return issue.file; }
+    if (issue.filePath) {
+      return issue.filePath;
+    }
+    if (issue.file) {
+      return issue.file;
+    }
     const desc = issue.description || '';
-    const m = desc.match(/^['\"]?([^:]+?\.(?:json|js|ts|html|css|cjs|mjs|md|txt|jsx|tsx|vue|py|go|rs|java|rb|php|cs|cpp|c|h|swift|kt|scala|xml|yaml|yml|toml|sh|ps1|bat|cmd|ini|cfg|conf|log))['\"]?(\s*[:;]|$)/i);
+    const m = desc.match(
+      /^['\"]?([^:]+?\.(?:json|js|ts|html|css|cjs|mjs|md|txt|jsx|tsx|vue|py|go|rs|java|rb|php|cs|cpp|c|h|swift|kt|scala|xml|yaml|yml|toml|sh|ps1|bat|cmd|ini|cfg|conf|log))['\"]?(\s*[:;]|$)/i
+    );
     return m ? m[1].trim() : '';
   }
 
-  private extractAllFindings(report: Dashboard20Report): { cat: string; sev: string; desc: string; file: string; line: number | ''; patternId?: string }[] {
+  private extractAllFindings(
+    report: Dashboard20Report
+  ): { cat: string; sev: string; desc: string; file: string; line: number | ''; patternId?: string }[] {
     const all: { cat: string; sev: string; desc: string; file: string; line: number | ''; patternId?: string }[] = [];
     if (report.categories && typeof report.categories === 'object' && !Array.isArray(report.categories)) {
       const keys = Object.keys(report.categories);
-      for (let i = 0; i < keys.length; i++) { // simplebeacon-ignore memory-leak — short-lived report data aggregation
+      for (let i = 0; i < keys.length; i++) {
+        // simplebeacon-ignore memory-leak — short-lived report data aggregation
         const cat = keys[i];
         const items = report.categories[cat];
         if (!Array.isArray(items)) continue;
-        for (let j = 0; j < items.length; j++) { // simplebeacon-ignore memory-leak — short-lived report data iteration
+        for (let j = 0; j < items.length; j++) {
+          // simplebeacon-ignore memory-leak — short-lived report data iteration
           const it = items[j];
-          all.push({ cat, sev: it.severity || 'medium', desc: it.message || it.type || 'Finding', file: it.file || '', line: it.line ?? '', patternId: it.patternId || '' });
+          all.push({
+            cat,
+            sev: it.severity || 'medium',
+            desc: it.message || it.type || 'Finding',
+            file: it.file || '',
+            line: it.line ?? '',
+            patternId: it.patternId || '',
+          });
         }
       }
       return all;
     }
     const push = (cat: string, sev: string, items?: RawIssue[]) => {
-      items?.forEach((it) => all.push({ cat, sev: it.severity || sev, desc: it.description || it.message || it.type || 'Finding', file: this.resolveFilePath(it), line: it.line || '', patternId: it.patternId || '' }));
+      items?.forEach((it) =>
+        all.push({
+          cat,
+          sev: it.severity || sev,
+          desc: it.description || it.message || it.type || 'Finding',
+          file: this.resolveFilePath(it),
+          line: it.line || '',
+          patternId: it.patternId || '',
+        })
+      );
     };
     const detectedIssues = getNested<unknown[]>(report, 'detectedIssues');
     if (detectedIssues?.length) {
-      for (const di of detectedIssues) { // simplebeacon-ignore memory-leak — short-lived report data iteration
+      for (const di of detectedIssues) {
+        // simplebeacon-ignore memory-leak — short-lived report data iteration
         const typedDi = di as Record<string, unknown>;
         const findings = (typedDi.findings as unknown[]) || [];
-        for (const f of findings) { // simplebeacon-ignore memory-leak — short-lived report data iteration
+        for (const f of findings) {
+          // simplebeacon-ignore memory-leak — short-lived report data iteration
           const typedF = f as Record<string, unknown>;
           const matches = (typedF.matches as unknown[]) || [];
           const firstMatch = (matches[0] as Record<string, unknown>) || {};
-          all.push({ cat: (typedDi.type as string) || 'Finding', sev: (firstMatch.dynamicSeverity as string) || (firstMatch.baseSeverity as string) || (typedDi.severity as string) || 'medium', desc: (typedF.type as string) || (typedDi.type as string) || 'Finding', file: (typedF.file as string) || '', line: (firstMatch.line as number) || '', patternId: (typedDi.rule as string) || '' });
+          all.push({
+            cat: (typedDi.type as string) || 'Finding',
+            sev:
+              (firstMatch.dynamicSeverity as string) ||
+              (firstMatch.baseSeverity as string) ||
+              (typedDi.severity as string) ||
+              'medium',
+            desc: (typedF.type as string) || (typedDi.type as string) || 'Finding',
+            file: (typedF.file as string) || '',
+            line: (firstMatch.line as number) || '',
+            patternId: (typedDi.rule as string) || '',
+          });
         }
       }
       return all;
     }
     if (report.rawIssues?.length) {
-      report.rawIssues.forEach((it) => all.push({ cat: it.type || 'Finding', sev: it.severity || 'medium', desc: it.description || it.type || 'Finding', file: this.resolveFilePath(it), line: it.line || '' }));
+      report.rawIssues.forEach((it) =>
+        all.push({
+          cat: it.type || 'Finding',
+          sev: it.severity || 'medium',
+          desc: it.description || it.type || 'Finding',
+          file: this.resolveFilePath(it),
+          line: it.line || '',
+        })
+      );
       return all;
     }
     push('Blocking', 'high', report.gate?.blockingIssues);
@@ -326,27 +406,44 @@ export class Dashboard20 {
     for (const issue of issues) {
       const fp = this.resolveFilePath(issue) || 'Unknown';
       if (!fileMap.has(fp)) fileMap.set(fp, []);
-      fileMap.get(fp)!.push({ severity: issue.severity || 'medium', desc: issue.description || issue.type || 'Issue', line: issue.line || 1 });
+      fileMap.get(fp)!.push({
+        severity: issue.severity || 'medium',
+        desc: issue.description || issue.type || 'Issue',
+        line: issue.line || 1,
+      });
     }
     const sorted = Array.from(fileMap.entries())
       .map(([file, iss]) => ({ file, issues: iss }))
       .sort((a, b) => b.issues.length - a.issues.length)
       .slice(0, 20);
     if (!sorted.length) return '<tr><td colspan="4" style="text-align:center;padding:2rem">No issues found</td></tr>';
-    return sorted.map((f) => {
-      const counts = f.issues.reduce((acc, i) => { acc[i.severity] = (acc[i.severity] || 0) + 1; return acc; }, {} as Record<string, number>);
-      const badges = Object.entries(counts).map(([sev, c]) => {
-        const color = sev === 'high' || sev === 'critical' ? '#ef4444' : sev === 'medium' ? '#f59e0b' : '#3b82f6';
-        return `<span style="background:${color}12;color:${color};padding:2px 6px;border-radius:4px;font-size:11px;margin-right:4px">${sev}: ${c}</span>`;
-      }).join('');
-      const safeFile = this.escapeHtml(f.file);
-      const name = f.file.split(/[/\\]/).pop() || f.file;
-      return `<tr><td><span class="file-link failing-file-link" data-file="${safeFile}">${this.escapeHtml(name)}</span></td><td>${f.issues.length}</td><td>${badges}</td><td><button class="btn" data-cmd="openFile" data-file="${safeFile}" style="padding:4px 8px;font-size:12px">Open</button></td></tr>`;
-    }).join('');
+    return sorted
+      .map((f) => {
+        const counts = f.issues.reduce(
+          (acc, i) => {
+            acc[i.severity] = (acc[i.severity] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>
+        );
+        const badges = Object.entries(counts)
+          .map(([sev, c]) => {
+            const color = sev === 'high' || sev === 'critical' ? '#ef4444' : sev === 'medium' ? '#f59e0b' : '#3b82f6';
+            return `<span style="background:${color}12;color:${color};padding:2px 6px;border-radius:4px;font-size:11px;margin-right:4px">${sev}: ${c}</span>`;
+          })
+          .join('');
+        const safeFile = this.escapeHtml(f.file);
+        const name = f.file.split(/[/\\]/).pop() || f.file;
+        return `<tr><td><span class="file-link failing-file-link" data-file="${safeFile}">${this.escapeHtml(name)}</span></td><td>${f.issues.length}</td><td>${badges}</td><td><button class="btn" data-cmd="openFile" data-file="${safeFile}" style="padding:4px 8px;font-size:12px">Open</button></td></tr>`;
+      })
+      .join('');
   }
 
   private escapeHtml(text: string): string {
-    return text.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m] || m));
+    return text.replace(
+      /[&<>"']/g,
+      (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m] || m
+    );
   }
 
   private fallbackTemplate(): string {

@@ -5,6 +5,7 @@ import { escapeHtml, showToast, downloadJson, setHtml } from '../utils.js?v=2026
 import { renderCoreReplicationTelemetryDashboard, cleanupCoreReplicationTelemetryDashboard } from '../components/CoreReplicationTelemetryDashboard.js';
 import { renderDropTelemetryDashboard, cleanupDropTelemetryDashboard } from '../components/DropTelemetryDashboard.js';
 import { renderEnclaveTelemetryDashboard, cleanupEnclaveTelemetryDashboard } from '../components/EnclaveTelemetryDashboard.js';
+import { renderRecursiveProofAggregationDashboard, cleanupRecursiveProofAggregationDashboard } from '../components/RecursiveProofAggregationDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -959,6 +960,7 @@ export class AdminPanelView {
         cleanupCoreReplicationTelemetryDashboard();
         cleanupDropTelemetryDashboard();
         cleanupEnclaveTelemetryDashboard();
+        cleanupRecursiveProofAggregationDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
@@ -980,6 +982,13 @@ export class AdminPanelView {
             grid.appendChild(enclaveDashboard);
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount enclave telemetry dashboard:', e);
+        }
+        // Mount Recursive Proof Aggregation Telemetry (Track 61)
+        try {
+            const recursiveDashboard = renderRecursiveProofAggregationDashboard();
+            grid.appendChild(recursiveDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount recursive proof aggregation dashboard:', e);
         }
     }
 

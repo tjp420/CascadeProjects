@@ -110,7 +110,9 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
     const config = getSbConfig();
     const apiUrl = (config.get<string>('apiServerUrl') || config.get<string>('apiUrl', '')).trim();
     const apiKey = config.get<string>('apiKey', '');
-    if (!apiUrl) { return; }
+    if (!apiUrl) {
+      return;
+    }
 
     const poll = async () => {
       const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -131,7 +133,7 @@ export class DashboardPanel implements vscode.WebviewViewProvider {
           serverOnline = true;
 
           // Only update from server if local data is older than 2 minutes
-          const localDataFresh = this._lastLocalReportTime && (Date.now() - this._lastLocalReportTime) < 120000;
+          const localDataFresh = this._lastLocalReportTime && Date.now() - this._lastLocalReportTime < 120000;
           if (!localDataFresh) {
             this.updateStats({
               issues: issues.length,

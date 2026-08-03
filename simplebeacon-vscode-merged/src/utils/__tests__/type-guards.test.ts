@@ -1,5 +1,22 @@
 import {
-  isDefined, isString, isNumber, isBoolean, isFunction, isArray, isObject, isDate, isRegExp, isPromise, isError, isNull, isUndefined, isNil, isSymbol, isMap, isSet, isPlainObject
+  isDefined,
+  isString,
+  isNumber,
+  isBoolean,
+  isFunction,
+  isArray,
+  isObject,
+  isDate,
+  isRegExp,
+  isPromise,
+  isError,
+  isNull,
+  isUndefined,
+  isNil,
+  isSymbol,
+  isMap,
+  isSet,
+  isPlainObject,
 } from '../type-guards';
 
 describe('type guards', () => {

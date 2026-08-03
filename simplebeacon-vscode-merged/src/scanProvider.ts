@@ -49,7 +49,14 @@ export interface FindingItem {
 export interface ScanReport {
   [key: string]: unknown;
   gate?: { pass?: boolean; blockingIssues?: RawIssue[]; blockingCount?: number; warningCount?: number };
-  scan_summary?: { status?: string; low_severity_count?: number; medium_severity_count?: number; high_severity_count?: number; total_risks_found?: number; block_merge?: boolean };
+  scan_summary?: {
+    status?: string;
+    low_severity_count?: number;
+    medium_severity_count?: number;
+    high_severity_count?: number;
+    total_risks_found?: number;
+    block_merge?: boolean;
+  };
   qualityScore?: number;
   totalFiles?: number;
   filesAnalyzed?: number;
@@ -88,16 +95,22 @@ export interface ScanReport {
 }
 
 export function normalizeScanReport(report: ScanReport): ScanReport {
-  const source = Array.isArray(report.rawIssues) && report.rawIssues.length
-    ? report.rawIssues
-    : Array.isArray(report.detectedIssues) && report.detectedIssues.length
-      ? report.detectedIssues
-      : Array.isArray(report.findings) ? report.findings : [];
+  const source =
+    Array.isArray(report.rawIssues) && report.rawIssues.length
+      ? report.rawIssues
+      : Array.isArray(report.detectedIssues) && report.detectedIssues.length
+        ? report.detectedIssues
+        : Array.isArray(report.findings)
+          ? report.findings
+          : [];
   const summary = report.scan_summary || {};
   const severityCounts = report.severityCounts || {};
-  const counted = (severity: string) => source.reduce((total, finding) => (
-    String(finding.severity || '').toLowerCase() === severity ? total + (finding.count || 1) : total
-  ), 0);
+  const counted = (severity: string) =>
+    source.reduce(
+      (total, finding) =>
+        String(finding.severity || '').toLowerCase() === severity ? total + (finding.count || 1) : total,
+      0
+    );
   const normalizedSeverityCounts = {
     critical: severityCounts.critical ?? counted('critical'),
     high: severityCounts.high ?? summary.high_severity_count ?? counted('high'),
@@ -207,15 +220,16 @@ export class ScanPhaseProvider implements vscode.TreeDataProvider<TreeNode> {
 
     const gatePass = r.gate?.pass;
     nodes.push(
-      new StatusNode(`Gate: ${gatePass ? 'PASS' : 'FAIL'}`, gatePass ? 'pass' : 'fail', `Score: ${r.qualityScore ?? 0}/100`)
+      new StatusNode(
+        `Gate: ${gatePass ? 'PASS' : 'FAIL'}`,
+        gatePass ? 'pass' : 'fail',
+        `Score: ${r.qualityScore ?? 0}/100`
+      )
     );
 
     const qualityScore = r.qualityScore ?? 0;
     nodes.push(
-      new StatusNode(
-        `Quality: ${qualityScore}/100`,
-        qualityScore >= 80 ? 'pass' : qualityScore >= 50 ? 'warn' : 'fail'
-      )
+      new StatusNode(`Quality: ${qualityScore}/100`, qualityScore >= 80 ? 'pass' : qualityScore >= 50 ? 'warn' : 'fail')
     );
 
     const categories = this.extractCategories(r);
@@ -237,35 +251,39 @@ export class ScanPhaseProvider implements vscode.TreeDataProvider<TreeNode> {
   }
 
   /** Category definitions for consistent ordering and severity mapping. */
-  private static readonly CATEGORY_MAP: { label: string; severity: string; getter: (r: ScanReport) => RawIssue[] | null | undefined }[] = [
-    { label: 'Blocking Issues', severity: 'fail', getter: r => r.gate?.blockingIssues },
-    { label: 'Secrets', severity: 'fail', getter: r => r.credentialHygiene?.secrets },
-    { label: 'AI Indicators', severity: 'warn', getter: r => r.aiIndicators?.findings },
-    { label: 'EU AI Act', severity: 'warn', getter: r => r.euAiAct?.findings },
-    { label: 'Vulnerabilities', severity: 'fail', getter: r => r.dependencyAudit?.vulnerabilities },
-    { label: 'Debug Markers', severity: 'info', getter: r => r.cleanup?.debugMarkers },
-    { label: 'AI Residue', severity: 'warn', getter: r => r.aiResidue?.aiResidueFindings },
-    { label: 'Performance', severity: 'warn', getter: r => r.performance?.performanceFindings },
-    { label: 'Type Safety', severity: 'info', getter: r => r.typeSafety?.typeSafetyFindings },
-    { label: 'Test Coverage', severity: 'info', getter: r => r.testCoverage?.testCoverageFindings },
-    { label: 'Accessibility', severity: 'info', getter: r => r.accessibility?.accessibilityFindings },
-    { label: 'i18n', severity: 'info', getter: r => r.i18n?.i18nFindings },
-    { label: 'Sensitive Data', severity: 'fail', getter: r => r.sensitiveData?.sensitiveDataFindings },
-    { label: 'Config Drift', severity: 'warn', getter: r => r.configDrift?.configDriftFindings },
-    { label: 'Security Headers', severity: 'fail', getter: r => r.securityHeaders?.securityHeaderFindings },
-    { label: 'Database Patterns', severity: 'fail', getter: r => r.databasePatterns?.dbPatternFindings },
-    { label: 'Framework Practices', severity: 'warn', getter: r => r.frameworkPractices?.frameworkFindings },
-    { label: 'Workspace Health', severity: 'info', getter: r => r.workspaceHealth?.workspaceFindings },
-    { label: 'Unused Deps', severity: 'info', getter: r => r.unusedDeps?.unusedDepFindings },
-    { label: 'API Contract', severity: 'info', getter: r => r.apiContract?.apiContractFindings },
-    { label: 'Complexity', severity: 'warn', getter: r => r.complexity?.complexityFindings },
-    { label: 'LLM Slop', severity: 'warn', getter: r => r.llmSlop?.llmSlopFindings },
-    { label: 'Token Bleed', severity: 'warn', getter: r => r.tokenBleed?.tokenBleedFindings },
-    { label: 'Production Leak', severity: 'fail', getter: r => r.productionLeak?.productionLeakFindings },
-    { label: 'Fiction KPI', severity: 'warn', getter: r => r.fictionKpi?.fictionKpiFindings },
-    { label: 'Security', severity: 'fail', getter: r => r.security?.securityFindings },
-    { label: 'Quality', severity: 'warn', getter: r => r.quality?.qualityFindings },
-    { label: 'Maintainability', severity: 'info', getter: r => r.maintainability?.maintainabilityFindings },
+  private static readonly CATEGORY_MAP: {
+    label: string;
+    severity: string;
+    getter: (r: ScanReport) => RawIssue[] | null | undefined;
+  }[] = [
+    { label: 'Blocking Issues', severity: 'fail', getter: (r) => r.gate?.blockingIssues },
+    { label: 'Secrets', severity: 'fail', getter: (r) => r.credentialHygiene?.secrets },
+    { label: 'AI Indicators', severity: 'warn', getter: (r) => r.aiIndicators?.findings },
+    { label: 'EU AI Act', severity: 'warn', getter: (r) => r.euAiAct?.findings },
+    { label: 'Vulnerabilities', severity: 'fail', getter: (r) => r.dependencyAudit?.vulnerabilities },
+    { label: 'Debug Markers', severity: 'info', getter: (r) => r.cleanup?.debugMarkers },
+    { label: 'AI Residue', severity: 'warn', getter: (r) => r.aiResidue?.aiResidueFindings },
+    { label: 'Performance', severity: 'warn', getter: (r) => r.performance?.performanceFindings },
+    { label: 'Type Safety', severity: 'info', getter: (r) => r.typeSafety?.typeSafetyFindings },
+    { label: 'Test Coverage', severity: 'info', getter: (r) => r.testCoverage?.testCoverageFindings },
+    { label: 'Accessibility', severity: 'info', getter: (r) => r.accessibility?.accessibilityFindings },
+    { label: 'i18n', severity: 'info', getter: (r) => r.i18n?.i18nFindings },
+    { label: 'Sensitive Data', severity: 'fail', getter: (r) => r.sensitiveData?.sensitiveDataFindings },
+    { label: 'Config Drift', severity: 'warn', getter: (r) => r.configDrift?.configDriftFindings },
+    { label: 'Security Headers', severity: 'fail', getter: (r) => r.securityHeaders?.securityHeaderFindings },
+    { label: 'Database Patterns', severity: 'fail', getter: (r) => r.databasePatterns?.dbPatternFindings },
+    { label: 'Framework Practices', severity: 'warn', getter: (r) => r.frameworkPractices?.frameworkFindings },
+    { label: 'Workspace Health', severity: 'info', getter: (r) => r.workspaceHealth?.workspaceFindings },
+    { label: 'Unused Deps', severity: 'info', getter: (r) => r.unusedDeps?.unusedDepFindings },
+    { label: 'API Contract', severity: 'info', getter: (r) => r.apiContract?.apiContractFindings },
+    { label: 'Complexity', severity: 'warn', getter: (r) => r.complexity?.complexityFindings },
+    { label: 'LLM Slop', severity: 'warn', getter: (r) => r.llmSlop?.llmSlopFindings },
+    { label: 'Token Bleed', severity: 'warn', getter: (r) => r.tokenBleed?.tokenBleedFindings },
+    { label: 'Production Leak', severity: 'fail', getter: (r) => r.productionLeak?.productionLeakFindings },
+    { label: 'Fiction KPI', severity: 'warn', getter: (r) => r.fictionKpi?.fictionKpiFindings },
+    { label: 'Security', severity: 'fail', getter: (r) => r.security?.securityFindings },
+    { label: 'Quality', severity: 'warn', getter: (r) => r.quality?.qualityFindings },
+    { label: 'Maintainability', severity: 'info', getter: (r) => r.maintainability?.maintainabilityFindings },
   ];
 
   /** Extract non-empty categories from a scan report. */

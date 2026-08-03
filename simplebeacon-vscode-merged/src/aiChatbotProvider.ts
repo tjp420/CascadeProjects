@@ -33,18 +33,35 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
       } else if (message.command === 'requestContext') {
         const port = getDataServerPort();
         if (!port) {
-          this._view?.webview.postMessage({ command: 'setContext', context: null, content: '', error: 'Data server is not running' });
+          this._view?.webview.postMessage({
+            command: 'setContext',
+            context: null,
+            content: '',
+            error: 'Data server is not running',
+          });
           return;
         }
         const req = http.get(`http://127.0.0.1:${port}/api/ai-context`, (res) => {
           let body = '';
-          res.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+          res.on('data', (chunk: Buffer) => {
+            body += chunk.toString();
+          });
           res.on('end', () => {
             try {
               const data = JSON.parse(body);
-              this._view?.webview.postMessage({ command: 'setContext', context: data.context, content: data.content, error: data.success ? undefined : data.error });
+              this._view?.webview.postMessage({
+                command: 'setContext',
+                context: data.context,
+                content: data.content,
+                error: data.success ? undefined : data.error,
+              });
             } catch (e) {
-              this._view?.webview.postMessage({ command: 'setContext', context: null, content: '', error: 'Invalid response from data server' });
+              this._view?.webview.postMessage({
+                command: 'setContext',
+                context: null,
+                content: '',
+                error: 'Invalid response from data server',
+              });
             }
           });
         });
@@ -53,7 +70,12 @@ export class AiChatbotProvider implements vscode.WebviewViewProvider {
         });
         req.setTimeout(5000, () => {
           req.destroy();
-          this._view?.webview.postMessage({ command: 'setContext', context: null, content: '', error: 'Request timed out' });
+          this._view?.webview.postMessage({
+            command: 'setContext',
+            context: null,
+            content: '',
+            error: 'Request timed out',
+          });
         });
       }
     });

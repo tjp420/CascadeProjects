@@ -10,8 +10,12 @@ import * as crypto from 'crypto';
  */
 export function assertNever(x: never, message = 'Unhandled case'): never {
   const display = (() => {
-    try { return JSON.stringify(x); } catch {}
-    try { return String(x); } catch {}
+    try {
+      return JSON.stringify(x);
+    } catch {}
+    try {
+      return String(x);
+    } catch {}
     return '[unstringable value]';
   })();
   throw new Error(`${message}: ${display}`);
@@ -21,7 +25,9 @@ export function assertNever(x: never, message = 'Unhandled case'): never {
  * No-op function. Useful as a default for optional callbacks.
  * @returns {void}
  */
-export function noop(): void { /* intentionally empty */ }
+export function noop(): void {
+  /* intentionally empty */
+}
 
 /**
  * True when the value is null, undefined, or a whitespace-only string.
@@ -53,7 +59,10 @@ export function hash(str: string): number {
  * @param {any[]} args Arguments to pass to the function.
  * @returns {{ ok: true; value: T } | { ok: false; error: Error }}
  */
-export function tryFn<T>(fn: (...args: any[]) => T, ...args: any[]): { ok: true; value: T } | { ok: false; error: Error } {
+export function tryFn<T>(
+  fn: (...args: any[]) => T,
+  ...args: any[]
+): { ok: true; value: T } | { ok: false; error: Error } {
   try {
     return { ok: true, value: fn(...args) };
   } catch (err) {

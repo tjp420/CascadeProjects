@@ -17,8 +17,12 @@ export interface DiagnosticRemediationRequest {
 function getOllamaConfig(): { url: string; model: string } {
   const config = getSbConfig();
   return {
-    url: config.get<string>('ollamaUrl') || process.env.OLLAMA_BASE_URL || process.env.LOCAL_AI_URL || 'http://localhost:11434',
-    model: config.get<string>('ollamaModel') || process.env.AGENT_MODEL || 'llama3.2:latest'
+    url:
+      config.get<string>('ollamaUrl') ||
+      process.env.OLLAMA_BASE_URL ||
+      process.env.LOCAL_AI_URL ||
+      'http://localhost:11434',
+    model: config.get<string>('ollamaModel') || process.env.AGENT_MODEL || 'llama3.2:latest',
   };
 }
 
@@ -41,7 +45,9 @@ export async function remediateDiagnosticWithLocalOllama(request: DiagnosticReme
   const prompt = buildRemediationPrompt(request);
 
   outputChannel.show(true);
-  outputChannel.appendLine(`[SimpleBeacon] Sending ${request.diagnosticCode} from ${path.basename(request.uri.fsPath || request.uri.path || 'untitled')} to local Ollama (${model})...`);
+  outputChannel.appendLine(
+    `[SimpleBeacon] Sending ${request.diagnosticCode} from ${path.basename(request.uri.fsPath || request.uri.path || 'untitled')} to local Ollama (${model})...`
+  );
 
   const response = await fetch(`${url.replace(/\/$/, '')}/api/generate`, {
     method: 'POST',
@@ -50,15 +56,15 @@ export async function remediateDiagnosticWithLocalOllama(request: DiagnosticReme
       model,
       prompt,
       stream: false,
-      options: { temperature: 0.0 }
-    })
+      options: { temperature: 0.0 },
+    }),
   });
 
   if (!response.ok) {
     throw new Error(`Ollama HTTP ${response.status}: ${response.statusText}`);
   }
 
-  const data = await response.json() as { response?: string };
+  const data = (await response.json()) as { response?: string };
   const output = String(data.response || '').trim();
 
   outputChannel.appendLine('');

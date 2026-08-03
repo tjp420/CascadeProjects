@@ -260,8 +260,13 @@ export class RealtimeMonitor {
               this.outputChannel.appendLine(
                 `📋 Large paste detected (AI score: ${Math.round(pasteScore * 100)}%) — ${text.length} chars`
               );
-              Promise.resolve(vscode.window
-                .showWarningMessage('Large AI-like paste detected. Review before committing.', 'Review', 'Ignore'))
+              Promise.resolve(
+                vscode.window.showWarningMessage(
+                  'Large AI-like paste detected. Review before committing.',
+                  'Review',
+                  'Ignore'
+                )
+              )
                 .then((choice) => {
                   if (choice === 'Review') {
                     vscode.commands.executeCommand('workbench.action.toggleDevTools');
@@ -410,11 +415,22 @@ export class RealtimeMonitor {
   }
 
   private isInsideStringLiteral(line: string, index: number): boolean {
-    let inDouble = false, inSingle = false, inTemplate = false, inRegex = false, inCharClass = false, escaped = false;
+    let inDouble = false,
+      inSingle = false,
+      inTemplate = false,
+      inRegex = false,
+      inCharClass = false,
+      escaped = false;
     for (let i = 0; i < index; i++) {
       const ch = line[i];
-      if (escaped) { escaped = false; continue; }
-      if (ch === '\\') { escaped = true; continue; }
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escaped = true;
+        continue;
+      }
       if (inRegex) {
         if (inCharClass) {
           if (ch === ']') inCharClass = false;
@@ -447,7 +463,10 @@ export class RealtimeMonitor {
     // Same-line suppression
     const match = lowerLine.match(/(?:\/\/|<!--|#)\s*simplebeacon-ignore\s+([a-z0-9,_\-\s]+)/);
     if (!match) return false;
-    const tags = match[1].split(/[,\s]+/).map((t) => t.trim()).filter(Boolean);
+    const tags = match[1]
+      .split(/[,\s]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
     const lowerType = type.toLowerCase();
     if (tags.includes('all') || tags.includes(lowerType)) return true;
     if (lowerType.startsWith('hardcoded-') || lowerType.includes('sensitive') || lowerType.includes('credential')) {
@@ -467,7 +486,10 @@ export class RealtimeMonitor {
     if (/all findings are false positives/.test(rest)) return true;
     if (/(scanner definitions|test fixtures|dashboard code|build scripts)/.test(rest)) return true;
     // Also honor specific/all tags in the header comment
-    const tags = rest.split(/[,\s]+/).map((t) => t.trim()).filter(Boolean);
+    const tags = rest
+      .split(/[,\s]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
     const lowerType = type.toLowerCase();
     if (tags.includes('all') || tags.includes(lowerType)) return true;
     if (lowerType.startsWith('hardcoded-') || lowerType.includes('sensitive') || lowerType.includes('credential')) {
@@ -500,7 +522,10 @@ export class RealtimeMonitor {
             if (this.isInsideStringLiteral(line, match.index || 0)) continue;
           }
           // Respect simplebeacon-ignore / slop-cop-disable-next-line suppression
-          if (this.isSuppressed(line, lines[lineNumber - 2], pattern.type) || this.hasFileLevelSuppression(lines[0], pattern.type)) {
+          if (
+            this.isSuppressed(line, lines[lineNumber - 2], pattern.type) ||
+            this.hasFileLevelSuppression(lines[0], pattern.type)
+          ) {
             continue;
           }
           const column = match.index ? match.index + 1 : 1;

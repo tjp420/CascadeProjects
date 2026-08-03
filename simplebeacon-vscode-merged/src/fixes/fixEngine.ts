@@ -35,7 +35,7 @@ interface FixPlanPayload {
 export class SimpleBeaconFixEngine {
   constructor(
     private readonly outputChannel: vscode.OutputChannel,
-    private readonly resolveCli: CliResolver,
+    private readonly resolveCli: CliResolver
   ) {}
 
   async executeFixWorkflow(isDryRun: boolean, targetFile?: string): Promise<void> {
@@ -52,7 +52,7 @@ export class SimpleBeaconFixEngine {
       const confirm = await vscode.window.showWarningMessage(
         'SimpleBeacon will apply remediation recipes to your workspace. Continue?',
         'Apply Fixes',
-        'Cancel',
+        'Cancel'
       );
       if (confirm !== 'Apply Fixes') {
         return;
@@ -62,7 +62,7 @@ export class SimpleBeaconFixEngine {
         'No scan report found. Run a scan first, or run a live fix dry-run (slower)?',
         'Scan Now',
         'Run Live Dry-Run',
-        'Cancel',
+        'Cancel'
       );
       if (choice === 'Scan Now') {
         await vscode.commands.executeCommand('simplebeacon.scanWorkspace');
@@ -82,7 +82,7 @@ export class SimpleBeaconFixEngine {
           return;
         }
         await this.runCliFix(rootPath, isDryRun, targetFile);
-      },
+      }
     );
   }
 
@@ -103,7 +103,11 @@ export class SimpleBeaconFixEngine {
     return null;
   }
 
-  private spawnCollect(cmd: string, args: string[], cwd: string): Promise<{ stdout: string; stderr: string; code: number }> {
+  private spawnCollect(
+    cmd: string,
+    args: string[],
+    cwd: string
+  ): Promise<{ stdout: string; stderr: string; code: number }> {
     return new Promise((resolve, reject) => {
       const useShell = process.platform === 'win32' && (cmd.endsWith('.cmd') || cmd.endsWith('.bat'));
       const child = spawn(cmd, args, {
@@ -113,8 +117,12 @@ export class SimpleBeaconFixEngine {
       });
       let stdout = '';
       let stderr = '';
-      child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
-      child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+      child.stdout.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
+      child.stderr.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
       child.on('error', reject);
       child.on('close', (code) => resolve({ stdout, stderr, code: code ?? 1 }));
     });
@@ -176,9 +184,7 @@ export class SimpleBeaconFixEngine {
       return;
     }
 
-    const targetPath = targetFile
-      ? path.relative(rootPath, targetFile).replace(/\\/g, '/')
-      : '.';
+    const targetPath = targetFile ? path.relative(rootPath, targetFile).replace(/\\/g, '/') : '.';
 
     const args = [...cli.args, 'fix', targetPath, '--offline', '--quiet'];
     if (isDryRun) {
@@ -186,7 +192,7 @@ export class SimpleBeaconFixEngine {
     }
 
     this.outputChannel.appendLine(
-      `[INFO] [${new Date().toLocaleTimeString()}] Executing: ${cli.cmd} ${args.join(' ')}`,
+      `[INFO] [${new Date().toLocaleTimeString()}] Executing: ${cli.cmd} ${args.join(' ')}`
     );
     if (isDryRun) {
       this.outputChannel.appendLine(`[INFO] Analyzing remediation recipes for ${targetPath}…`);
@@ -221,7 +227,7 @@ export class SimpleBeaconFixEngine {
   private renderFixPlan(plan: FixPlanPayload, isDryRun: boolean): void {
     const fixes = Array.isArray(plan.fixes) ? plan.fixes : [];
     const blocking = fixes.filter(
-      (row) => row.severity === 'critical' || row.severity === 'high' || row.blocksGate || row.fixSpec?.blocksGate,
+      (row) => row.severity === 'critical' || row.severity === 'high' || row.blocksGate || row.fixSpec?.blocksGate
     ).length;
 
     this.outputChannel.appendLine('');
@@ -254,7 +260,7 @@ export class SimpleBeaconFixEngine {
       vscode.window.showInformationMessage('SimpleBeacon: Dry-run fix plan complete — no issues found.');
     } else {
       vscode.window.showInformationMessage(
-        `SimpleBeacon: Dry-run fix plan — ${fixes.length} fix(es) (${blocking} blocking). See output channel.`,
+        `SimpleBeacon: Dry-run fix plan — ${fixes.length} fix(es) (${blocking} blocking). See output channel.`
       );
     }
   }

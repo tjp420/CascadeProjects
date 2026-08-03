@@ -83,7 +83,9 @@ function request(
     };
     const req = http.request(opts, (res) => {
       let body = '';
-      res.on('data', (chunk) => { body += chunk; });
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
       res.on('end', () => resolve({ status: res.statusCode || 0, body }));
     });
     req.on('error', reject);

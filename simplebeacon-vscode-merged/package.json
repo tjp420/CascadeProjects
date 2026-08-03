@@ -1,7 +1,7 @@
 {
   "name": "simplebeacon-vscode",
   "displayName": "SimpleBeacon AI Slop Cop",
-  "description": "Offline AI code audit ?Çö 38 analyzer engines, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
+  "description": "Offline AI code audit ?Ã‡Ã¶ 38 analyzer engines, zero source-code upload, board-ready compliance reports for AI slop, credential leaks, and EU AI Act / SOC 2 gaps.",
   "homepage": "https://simplebeacon.ai",
   "repository": {
     "type": "git",
@@ -688,9 +688,9 @@
             "low-noise"
           ],
           "enumDescriptions": [
-            "Default sensitivity ?Çö all realtime rule engines enabled",
-            "AI slop patterns only ?Çö suppress security/code-quality noise",
-            "High-confidence only ?Çö suppress stylistic and low-confidence matches"
+            "Default sensitivity ?Ã‡Ã¶ all realtime rule engines enabled",
+            "AI slop patterns only ?Ã‡Ã¶ suppress security/code-quality noise",
+            "High-confidence only ?Ã‡Ã¶ suppress stylistic and low-confidence matches"
           ],
           "description": "Select the scanning sensitivity rule preset."
         },
@@ -703,9 +703,9 @@
             "high"
           ],
           "enumDescriptions": [
-            "0.4 floor ?Çö include exploratory/low-confidence matches",
-            "0.6 floor ?Çö balanced noise/accuracy (default)",
-            "0.85 floor ?Çö only explicit, high-confidence signatures"
+            "0.4 floor ?Ã‡Ã¶ include exploratory/low-confidence matches",
+            "0.6 floor ?Ã‡Ã¶ balanced noise/accuracy (default)",
+            "0.85 floor ?Ã‡Ã¶ only explicit, high-confidence signatures"
           ],
           "description": "Minimum confidence level required to report an AI slop finding."
         },
@@ -870,7 +870,7 @@
         "simplebeacon.deepScan": {
           "type": "boolean",
           "default": false,
-          "description": "Deep scan mode ?Çö bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)"
+          "description": "Deep scan mode ?Ã‡Ã¶ bypass docs/vendor/cache filters (only .simplebeaconignore + 500MB limit applies)"
         },
         "simplebeacon.includeDeps": {
           "type": "boolean",
@@ -886,9 +886,9 @@
             "quick"
           ],
           "enumDescriptions": [
-            "Full scan ?Çö all rule engines, full directory walk",
-            "Gate scan ?Çö production paths only, fast quality gate check",
-            "Quick scan ?Çö skip heavy AST engines, fastest feedback"
+            "Full scan ?Ã‡Ã¶ all rule engines, full directory walk",
+            "Gate scan ?Ã‡Ã¶ production paths only, fast quality gate check",
+            "Quick scan ?Ã‡Ã¶ skip heavy AST engines, fastest feedback"
           ],
           "description": "Scan mode controlling depth and rule coverage"
         },

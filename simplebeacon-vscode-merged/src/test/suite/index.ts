@@ -16,14 +16,12 @@ export function run(): Promise<void> {
 
   return new Promise((resolve, reject) => {
     glob('**/*.test.js', { cwd: testsRoot })
-      .then(files => {
-        // eslint-disable-next-line no-console
+      .then((files) => {
         console.log('[SB Test] Found test files:', files);
-        files.forEach(f => mocha.addFile(path.resolve(testsRoot, f)));
+        files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
 
         try {
           const runner = mocha.run((failures: number) => {
-            // eslint-disable-next-line no-console
             console.log(`[SB Test] Mocha finished. Failures: ${failures}`);
             if (failures > 0) {
               reject(new Error(`${failures} tests failed.`));
@@ -33,23 +31,22 @@ export function run(): Promise<void> {
           });
 
           runner.on('start', () => {
-            // eslint-disable-next-line no-console
-            console.log(`[SB Test] Mocha started. Suite count: ${runner.suite.suites.length}, Test count: ${runner.suite.tests.length}`);
+            console.log(
+              `[SB Test] Mocha started. Suite count: ${runner.suite.suites.length}, Test count: ${runner.suite.tests.length}`
+            );
           });
 
           runner.on('fail', (test: any, err: Error) => {
-            // eslint-disable-next-line no-console
             console.error('[SB Test] Test failed:', test.title, err.message);
           });
 
           runner.on('end', () => {
-            // eslint-disable-next-line no-console
             console.log('[SB Test] Mocha runner ended.');
           });
         } catch (err) {
           reject(err);
         }
       })
-      .catch(err => reject(err));
+      .catch((err) => reject(err));
   });
 }

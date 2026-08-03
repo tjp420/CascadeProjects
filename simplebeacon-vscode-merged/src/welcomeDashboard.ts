@@ -64,7 +64,9 @@ export class WelcomeDashboard {
     }
     const workspace = vscode.workspace.workspaceFolders?.[0];
     const localRoots: vscode.Uri[] = [vscode.Uri.joinPath(extUri, 'media')];
-    if (workspace) { localRoots.push(vscode.Uri.joinPath(workspace.uri, '.simplebeacon')); }
+    if (workspace) {
+      localRoots.push(vscode.Uri.joinPath(workspace.uri, '.simplebeacon'));
+    }
     const panel = vscode.window.createWebviewPanel(
       'simplebeaconWelcomeV2',
       'SimpleBeacon AI Slop Cop',
@@ -72,7 +74,7 @@ export class WelcomeDashboard {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        localResourceRoots: localRoots
+        localResourceRoots: localRoots,
       }
     );
     WelcomeDashboard.currentPanel = new WelcomeDashboard(panel, extUri);
@@ -99,33 +101,179 @@ export class WelcomeDashboard {
 
   private static _lastDashboardData: { files?: string; gate?: string; issues?: string; score?: string } | null = null;
   private static _lastAnalyzeData: { lastAnalysis?: string; findings?: string } | null = null;
-  private static _lastReportData: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any; filesList?: any; lastAnalysis?: string } | null = null;
-  private static _lastRoadmapData: { open?: string; risk?: string; done?: string; target?: string; status?: string; findings?: any } | null = null;
-  private static _lastSecurityData: { critical?: string; high?: string; medium?: string; score?: string; status?: string; findings?: any } | null = null;
-  private static _lastTrustData: { trustScore?: string; verified?: string; warnings?: string; lastAudit?: string; status?: string; quality?: string; security?: string; compliance?: string; dependencies?: string; severity?: any; factors?: any[]; badges?: any[]; gate?: string } | null = null;
-  private static _lastQualityData: { qualityScore?: string; issues?: string; coverage?: string; files?: string; status?: string; maintainability?: string; reliability?: string; complexity?: string; duplication?: string } | null = null;
-  private static _lastComplianceData: { passed?: string; failed?: string; progress?: string; total?: string; status?: string; rules?: any[] } | null = null;
-  private static _lastAnalyticsData: { scans?: string; issues?: string; avgScore?: string; lastScan?: string; trend?: string; issueTrend?: string; status?: string } | null = null;
-  private static _lastTeamData: { members?: string; scans?: string; resolved?: string; score?: string; status?: string; membersList?: any[] } | null = null;
-  private static _lastRepoHealthData: { score?: string; qualityScore?: string; gate?: string; issues?: string; files?: string; status?: string; critical?: string; high?: string; medium?: string; low?: string; maintainability?: string; reliability?: string; complexity?: string; duplication?: string; findings?: any[]; recommendations?: any[] } | null = null;
-  private static _lastScanData: { total?: string; issues?: string; fixed?: string; score?: string; qualityScore?: string; status?: string; scanning?: boolean; hasResults?: boolean; progress?: string; critical?: string; high?: string; medium?: string; low?: string; results?: any[]; history?: any[]; gate?: string } | null = null;
-  private static _lastCodeMapData: { status?: string; files?: string; languages?: string; modules?: string; arch?: string; repoFiles?: string; totalLines?: string; lastScan?: string; codeMapUri?: string; graph?: { nodes: any[]; edges: any[] }; tree?: any[]; list?: any[]; severity?: any; cycles?: any[]; entryPoints?: string[]; leafModules?: string[]; mostConnected?: { name: string; count: number }[] } | null = null;
+  private static _lastReportData: {
+    files?: string;
+    gate?: string;
+    issues?: string;
+    score?: string;
+    severity?: any;
+    findings?: any;
+    filesList?: any;
+    lastAnalysis?: string;
+  } | null = null;
+  private static _lastRoadmapData: {
+    open?: string;
+    risk?: string;
+    done?: string;
+    target?: string;
+    status?: string;
+    findings?: any;
+  } | null = null;
+  private static _lastSecurityData: {
+    critical?: string;
+    high?: string;
+    medium?: string;
+    score?: string;
+    status?: string;
+    findings?: any;
+  } | null = null;
+  private static _lastTrustData: {
+    trustScore?: string;
+    verified?: string;
+    warnings?: string;
+    lastAudit?: string;
+    status?: string;
+    quality?: string;
+    security?: string;
+    compliance?: string;
+    dependencies?: string;
+    severity?: any;
+    factors?: any[];
+    badges?: any[];
+    gate?: string;
+  } | null = null;
+  private static _lastQualityData: {
+    qualityScore?: string;
+    issues?: string;
+    coverage?: string;
+    files?: string;
+    status?: string;
+    maintainability?: string;
+    reliability?: string;
+    complexity?: string;
+    duplication?: string;
+  } | null = null;
+  private static _lastComplianceData: {
+    passed?: string;
+    failed?: string;
+    progress?: string;
+    total?: string;
+    status?: string;
+    rules?: any[];
+  } | null = null;
+  private static _lastAnalyticsData: {
+    scans?: string;
+    issues?: string;
+    avgScore?: string;
+    lastScan?: string;
+    trend?: string;
+    issueTrend?: string;
+    status?: string;
+  } | null = null;
+  private static _lastTeamData: {
+    members?: string;
+    scans?: string;
+    resolved?: string;
+    score?: string;
+    status?: string;
+    membersList?: any[];
+  } | null = null;
+  private static _lastRepoHealthData: {
+    score?: string;
+    qualityScore?: string;
+    gate?: string;
+    issues?: string;
+    files?: string;
+    status?: string;
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    maintainability?: string;
+    reliability?: string;
+    complexity?: string;
+    duplication?: string;
+    findings?: any[];
+    recommendations?: any[];
+  } | null = null;
+  private static _lastScanData: {
+    total?: string;
+    issues?: string;
+    fixed?: string;
+    score?: string;
+    qualityScore?: string;
+    status?: string;
+    scanning?: boolean;
+    hasResults?: boolean;
+    progress?: string;
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    results?: any[];
+    history?: any[];
+    gate?: string;
+  } | null = null;
+  private static _lastCodeMapData: {
+    status?: string;
+    files?: string;
+    languages?: string;
+    modules?: string;
+    arch?: string;
+    repoFiles?: string;
+    totalLines?: string;
+    lastScan?: string;
+    codeMapUri?: string;
+    graph?: { nodes: any[]; edges: any[] };
+    tree?: any[];
+    list?: any[];
+    severity?: any;
+    cycles?: any[];
+    entryPoints?: string[];
+    leafModules?: string[];
+    mostConnected?: { name: string; count: number }[];
+  } | null = null;
 
-  static updateDashboardIfOpen(data: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any[] }) {
+  static updateDashboardIfOpen(data: {
+    files?: string;
+    gate?: string;
+    issues?: string;
+    score?: string;
+    severity?: any;
+    findings?: any[];
+  }) {
     WelcomeDashboard._lastDashboardData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateDashboard(data);
     }
   }
 
-  static updateAnalyzePaneIfOpen(data: { lastAnalysis?: string; findings?: any; score?: string; gate?: string; issues?: string; files?: string; severity?: any; }) {
+  static updateAnalyzePaneIfOpen(data: {
+    lastAnalysis?: string;
+    findings?: any;
+    score?: string;
+    gate?: string;
+    issues?: string;
+    files?: string;
+    severity?: any;
+  }) {
     WelcomeDashboard._lastAnalyzeData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateAnalyzePane(data);
     }
   }
 
-  static updateReportPaneIfOpen(data: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any; filesList?: any; totalScans?: string; lastAnalysis?: string }) {
+  static updateReportPaneIfOpen(data: {
+    files?: string;
+    gate?: string;
+    issues?: string;
+    score?: string;
+    severity?: any;
+    findings?: any;
+    filesList?: any;
+    totalScans?: string;
+    lastAnalysis?: string;
+  }) {
     WelcomeDashboard._lastReportData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateReportPane(data);
@@ -142,35 +290,89 @@ export class WelcomeDashboard {
     let r = (route || '').replace(/^#\//, '').replace(/^\/+/, '').replace(/-/g, '').toLowerCase();
     r = r.split('/').filter(Boolean).pop() || 'dashboard';
     switch (r) {
-      case 'dashboard': panel.showDashboardPane(); break;
-      case 'analyze': panel.showAnalyzePane(); break;
+      case 'dashboard':
+        panel.showDashboardPane();
+        break;
+      case 'analyze':
+        panel.showAnalyzePane();
+        break;
       case 'results':
-      case 'report': panel.showReportPane(); break;
-      case 'security': panel.showSecurityPane(); break;
-      case 'settings': panel.showSettingsPane(); break;
-      case 'audit': panel.showAuditPane(); break;
-      case 'trust': panel.showTrustPane(); break;
-      case 'quality': panel.showQualityPane(); break;
-      case 'assessments': panel.showAssessmentsPane(); break;
-      case 'platform': panel.showPlatformPane(); break;
-      case 'profile': panel.showProfilePane(); break;
-      case 'compliance': panel.showCompliancePane(); break;
-      case 'repositoryhealth': panel.showRepoHealthPane(); break;
-      case 'analytics': panel.showAnalyticsPane(); break;
-      case 'team': panel.showTeamPane(); break;
-      case 'scan': panel.showScanPane(); break;
-      case 'certificate': panel.showCertificatePane(); break;
-      case 'codemap': panel.showCodeMapPane(); break;
+      case 'report':
+        panel.showReportPane();
+        break;
+      case 'security':
+        panel.showSecurityPane();
+        break;
+      case 'settings':
+        panel.showSettingsPane();
+        break;
+      case 'audit':
+        panel.showAuditPane();
+        break;
+      case 'trust':
+        panel.showTrustPane();
+        break;
+      case 'quality':
+        panel.showQualityPane();
+        break;
+      case 'assessments':
+        panel.showAssessmentsPane();
+        break;
+      case 'platform':
+        panel.showPlatformPane();
+        break;
+      case 'profile':
+        panel.showProfilePane();
+        break;
+      case 'compliance':
+        panel.showCompliancePane();
+        break;
+      case 'repositoryhealth':
+        panel.showRepoHealthPane();
+        break;
+      case 'analytics':
+        panel.showAnalyticsPane();
+        break;
+      case 'team':
+        panel.showTeamPane();
+        break;
+      case 'scan':
+        panel.showScanPane();
+        break;
+      case 'certificate':
+        panel.showCertificatePane();
+        break;
+      case 'codemap':
+        panel.showCodeMapPane();
+        break;
       case 'roadmap':
-      case 'remediation': panel.showRoadmapPane(); break;
-      case 'aicontext': panel.showAiContextPane(); break;
-      case 'upload': panel.showUploadPane(); break;
-      case 'signin': panel.showSigninPane(); break;
-      case 'tools': panel.showDashboardPane(); break;
-      case 'help': panel.showDashboardPane(); break;
-      case 'chatbot': panel.showDashboardPane(); break;
-      case 'about': panel.showDashboardPane(); break;
-      default: panel.showDashboardPane(); break;
+      case 'remediation':
+        panel.showRoadmapPane();
+        break;
+      case 'aicontext':
+        panel.showAiContextPane();
+        break;
+      case 'upload':
+        panel.showUploadPane();
+        break;
+      case 'signin':
+        panel.showSigninPane();
+        break;
+      case 'tools':
+        panel.showDashboardPane();
+        break;
+      case 'help':
+        panel.showDashboardPane();
+        break;
+      case 'chatbot':
+        panel.showDashboardPane();
+        break;
+      case 'about':
+        panel.showDashboardPane();
+        break;
+      default:
+        panel.showDashboardPane();
+        break;
     }
   }
 
@@ -194,7 +396,7 @@ export class WelcomeDashboard {
       severity: data?.severity || {},
       qualityScore: data?.qualityScore || '--',
       issues: data?.issues || '--',
-      gate: data?.gate || '--'
+      gate: data?.gate || '--',
     });
   }
 
@@ -256,9 +458,15 @@ export class WelcomeDashboard {
     const report = serverState.currentReport as any;
     const roots: string[] = [];
     const workspace = vscode.workspace.workspaceFolders?.[0];
-    if (workspace) { roots.push(workspace.uri.fsPath); }
-    if (report?.projectRoot) { roots.push(report.projectRoot); }
-    if (report?.projectPath) { roots.push(report.projectPath); }
+    if (workspace) {
+      roots.push(workspace.uri.fsPath);
+    }
+    if (report?.projectRoot) {
+      roots.push(report.projectRoot);
+    }
+    if (report?.projectPath) {
+      roots.push(report.projectPath);
+    }
 
     let chosenRoot: string | undefined;
     let raw: any;
@@ -270,7 +478,9 @@ export class WelcomeDashboard {
           raw = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
           chosenRoot = root;
           break;
-        } catch { /* try next root */ }
+        } catch {
+          /* try next root */
+        }
       }
     }
 
@@ -284,7 +494,10 @@ export class WelcomeDashboard {
 
     try {
       const languages = Array.isArray(raw.languages)
-        ? raw.languages.map((l: any) => l.extension || l.lang || l.name || '').filter(Boolean).join(', ')
+        ? raw.languages
+            .map((l: any) => l.extension || l.lang || l.name || '')
+            .filter(Boolean)
+            .join(', ')
         : '--';
       const graph = raw.dependencyGraph || { nodes: [], edges: [] };
 
@@ -295,7 +508,9 @@ export class WelcomeDashboard {
         try {
           const treeRaw = JSON.parse(fs.readFileSync(treePath, 'utf8'));
           tree = Array.isArray(treeRaw.tree) ? treeRaw.tree : [];
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
 
       // Build a synthetic file list so the language bar chart can render.
@@ -327,7 +542,7 @@ export class WelcomeDashboard {
         cycles: raw.cycles || [],
         entryPoints: raw.entryPoints || [],
         leafModules: raw.leafModules || [],
-        mostConnected: raw.mostConnected || []
+        mostConnected: raw.mostConnected || [],
       };
 
       let codeMapUri: string | undefined;
@@ -335,11 +550,11 @@ export class WelcomeDashboard {
       if (fs.existsSync(mapHtmlPath)) {
         const sbUri = vscode.Uri.file(path.join(chosenRoot, '.simplebeacon'));
         const currentRoots = this.panel.webview.options.localResourceRoots || [];
-        const alreadyAllowed = currentRoots.some(r => r.fsPath === sbUri.fsPath);
+        const alreadyAllowed = currentRoots.some((r) => r.fsPath === sbUri.fsPath);
         if (!alreadyAllowed) {
           this.panel.webview.options = {
             ...this.panel.webview.options,
-            localResourceRoots: [...currentRoots, sbUri]
+            localResourceRoots: [...currentRoots, sbUri],
           };
         }
         codeMapUri = this.panel.webview.asWebviewUri(vscode.Uri.file(mapHtmlPath)).toString();
@@ -431,7 +646,7 @@ export class WelcomeDashboard {
       node: process.version,
       ext: this.version,
       workspace: workspace,
-      badge: 'Online'
+      badge: 'Online',
     });
   }
 
@@ -445,7 +660,7 @@ export class WelcomeDashboard {
       name: config.get('profileName', '') || '',
       email: config.get('profileEmail', '') || '',
       role: config.get('profileRole', '') || '',
-      org: config.get('profileOrg', '') || ''
+      org: config.get('profileOrg', '') || '',
     });
   }
 
@@ -498,29 +713,91 @@ export class WelcomeDashboard {
     this.panel.reveal(column);
   }
 
-  public updateDashboard(data: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any[] }) {
+  public updateDashboard(data: {
+    files?: string;
+    gate?: string;
+    issues?: string;
+    score?: string;
+    severity?: any;
+    findings?: any[];
+  }) {
     this.panel.webview.postMessage({ command: 'updateDashboard', ...data });
   }
 
-  public updateAnalyzePane(data: { lastAnalysis?: string; findings?: any; score?: string; gate?: string; issues?: string; files?: string; severity?: any; }) {
+  public updateAnalyzePane(data: {
+    lastAnalysis?: string;
+    findings?: any;
+    score?: string;
+    gate?: string;
+    issues?: string;
+    files?: string;
+    severity?: any;
+  }) {
     this.panel.webview.postMessage({ command: 'updateAnalyzePane', ...data });
   }
 
-  public updateReportPane(data: { files?: string; gate?: string; issues?: string; score?: string; severity?: any; findings?: any; filesList?: any; totalScans?: string; lastAnalysis?: string }) {
+  public updateReportPane(data: {
+    files?: string;
+    gate?: string;
+    issues?: string;
+    score?: string;
+    severity?: any;
+    findings?: any;
+    filesList?: any;
+    totalScans?: string;
+    lastAnalysis?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateReportPane', ...data });
   }
 
-  public updateCertificatePane(data: { status?: string; score?: string; modules?: string; date?: string; expiry?: string; gate?: string; severity?: any; requirements?: any[]; previewText?: string }) {
+  public updateCertificatePane(data: {
+    status?: string;
+    score?: string;
+    modules?: string;
+    date?: string;
+    expiry?: string;
+    gate?: string;
+    severity?: any;
+    requirements?: any[];
+    previewText?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateCertificatePane', ...data });
   }
 
-  static updateCertificatePaneIfOpen(data: { status?: string; score?: string; modules?: string; date?: string; expiry?: string; gate?: string; severity?: any; requirements?: any[]; previewText?: string }) {
+  static updateCertificatePaneIfOpen(data: {
+    status?: string;
+    score?: string;
+    modules?: string;
+    date?: string;
+    expiry?: string;
+    gate?: string;
+    severity?: any;
+    requirements?: any[];
+    previewText?: string;
+  }) {
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateCertificatePane(data);
     }
   }
 
-  public updateCodeMapPane(data: { status?: string; files?: string; languages?: string; modules?: string; arch?: string; graph?: { nodes: any[]; edges: any[] }; tree?: any[]; list?: any[]; severity?: any; repoFiles?: string; totalLines?: string; lastScan?: string; cycles?: any[]; entryPoints?: string[]; leafModules?: string[]; mostConnected?: { name: string; count: number }[] }) {
+  public updateCodeMapPane(data: {
+    status?: string;
+    files?: string;
+    languages?: string;
+    modules?: string;
+    arch?: string;
+    graph?: { nodes: any[]; edges: any[] };
+    tree?: any[];
+    list?: any[];
+    severity?: any;
+    repoFiles?: string;
+    totalLines?: string;
+    lastScan?: string;
+    cycles?: any[];
+    entryPoints?: string[];
+    leafModules?: string[];
+    mostConnected?: { name: string; count: number }[];
+  }) {
     const workspace = vscode.workspace.workspaceFolders?.[0];
     let codeMapUri: string | undefined;
     if (workspace) {
@@ -528,11 +805,11 @@ export class WelcomeDashboard {
       if (fs.existsSync(mapHtmlPath)) {
         const sbUri = vscode.Uri.joinPath(workspace.uri, '.simplebeacon');
         const currentRoots = this.panel.webview.options.localResourceRoots || [];
-        const alreadyAllowed = currentRoots.some(r => r.fsPath === sbUri.fsPath);
+        const alreadyAllowed = currentRoots.some((r) => r.fsPath === sbUri.fsPath);
         if (!alreadyAllowed) {
           this.panel.webview.options = {
             ...this.panel.webview.options,
-            localResourceRoots: [...currentRoots, sbUri]
+            localResourceRoots: [...currentRoots, sbUri],
           };
         }
         codeMapUri = this.panel.webview.asWebviewUri(vscode.Uri.file(mapHtmlPath)).toString();
@@ -542,7 +819,24 @@ export class WelcomeDashboard {
     this.panel.webview.postMessage({ command: 'updateCodeMapPane', ...data, codeMapUri });
   }
 
-  static updateCodeMapPaneIfOpen(data: { status?: string; files?: string; languages?: string; modules?: string; arch?: string; graph?: { nodes: any[]; edges: any[] }; tree?: any[]; list?: any[]; severity?: any; repoFiles?: string; totalLines?: string; lastScan?: string; cycles?: any[]; entryPoints?: string[]; leafModules?: string[]; mostConnected?: { name: string; count: number }[] }) {
+  static updateCodeMapPaneIfOpen(data: {
+    status?: string;
+    files?: string;
+    languages?: string;
+    modules?: string;
+    arch?: string;
+    graph?: { nodes: any[]; edges: any[] };
+    tree?: any[];
+    list?: any[];
+    severity?: any;
+    repoFiles?: string;
+    totalLines?: string;
+    lastScan?: string;
+    cycles?: any[];
+    entryPoints?: string[];
+    leafModules?: string[];
+    mostConnected?: { name: string; count: number }[];
+  }) {
     // Always cache the data so showCodeMapPane can display it even if panel was closed during generation
     WelcomeDashboard._lastCodeMapData = { ...WelcomeDashboard._lastCodeMapData, ...data };
     if (WelcomeDashboard.currentPanel) {
@@ -554,22 +848,56 @@ export class WelcomeDashboard {
     return WelcomeDashboard._lastCodeMapData;
   }
 
-  public updateRoadmapPane(data: { open?: string; risk?: string; done?: string; target?: string; status?: string; severity?: any; findings?: Array<{ title?: string; severity?: string; type?: string; file?: string; line?: number }> }) {
+  public updateRoadmapPane(data: {
+    open?: string;
+    risk?: string;
+    done?: string;
+    target?: string;
+    status?: string;
+    severity?: any;
+    findings?: Array<{ title?: string; severity?: string; type?: string; file?: string; line?: number }>;
+  }) {
     this.panel.webview.postMessage({ command: 'updateRoadmapPane', ...data });
   }
 
-  static updateRoadmapPaneIfOpen(data: { open?: string; risk?: string; done?: string; target?: string; status?: string; severity?: any; findings?: Array<{ title?: string; severity?: string; type?: string; file?: string; line?: number }> }) {
+  static updateRoadmapPaneIfOpen(data: {
+    open?: string;
+    risk?: string;
+    done?: string;
+    target?: string;
+    status?: string;
+    severity?: any;
+    findings?: Array<{ title?: string; severity?: string; type?: string; file?: string; line?: number }>;
+  }) {
     WelcomeDashboard._lastRoadmapData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateRoadmapPane(data);
     }
   }
 
-  public updateAiContextPane(data: { files?: string; issues?: string; score?: string; severity?: any; status?: string; models?: string; aiFindings?: any[]; aiModels?: any[] }) {
+  public updateAiContextPane(data: {
+    files?: string;
+    issues?: string;
+    score?: string;
+    severity?: any;
+    status?: string;
+    models?: string;
+    aiFindings?: any[];
+    aiModels?: any[];
+  }) {
     this.panel.webview.postMessage({ command: 'updateAiContextPane', ...data });
   }
 
-  static updateAiContextPaneIfOpen(data: { files?: string; issues?: string; score?: string; severity?: any; status?: string; models?: string; aiFindings?: any[]; aiModels?: any[] }) {
+  static updateAiContextPaneIfOpen(data: {
+    files?: string;
+    issues?: string;
+    score?: string;
+    severity?: any;
+    status?: string;
+    models?: string;
+    aiFindings?: any[];
+    aiModels?: any[];
+  }) {
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateAiContextPane(data);
     }
@@ -585,32 +913,118 @@ export class WelcomeDashboard {
     }
   }
 
-  public updateAuditPane(data: { vulnerabilities?: string; secrets?: string; passed?: string; score?: string; status?: string; critical?: string; high?: string; medium?: string; low?: string; catSecrets?: string; catVulns?: string; catSmells?: string; catCompliance?: string; findings?: any[]; recommendations?: any[]; gate?: string }) {
+  public updateAuditPane(data: {
+    vulnerabilities?: string;
+    secrets?: string;
+    passed?: string;
+    score?: string;
+    status?: string;
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    catSecrets?: string;
+    catVulns?: string;
+    catSmells?: string;
+    catCompliance?: string;
+    findings?: any[];
+    recommendations?: any[];
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateAuditPane', ...data });
   }
 
-  static updateAuditPaneIfOpen(data: { vulnerabilities?: string; secrets?: string; passed?: string; score?: string; status?: string; critical?: string; high?: string; medium?: string; low?: string; catSecrets?: string; catVulns?: string; catSmells?: string; catCompliance?: string; findings?: any[]; recommendations?: any[]; gate?: string }) {
+  static updateAuditPaneIfOpen(data: {
+    vulnerabilities?: string;
+    secrets?: string;
+    passed?: string;
+    score?: string;
+    status?: string;
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    catSecrets?: string;
+    catVulns?: string;
+    catSmells?: string;
+    catCompliance?: string;
+    findings?: any[];
+    recommendations?: any[];
+    gate?: string;
+  }) {
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateAuditPane(data);
     }
   }
 
-  public updateSecurityPane(data: { critical?: string; high?: string; medium?: string; low?: string; score?: string; status?: string; findings?: any[]; gate?: string; repoFiles?: string; gateChecked?: string; lastScan?: string }) {
+  public updateSecurityPane(data: {
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    score?: string;
+    status?: string;
+    findings?: any[];
+    gate?: string;
+    repoFiles?: string;
+    gateChecked?: string;
+    lastScan?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateSecurityPane', ...data });
   }
 
-  static updateSecurityPaneIfOpen(data: { critical?: string; high?: string; medium?: string; low?: string; score?: string; status?: string; findings?: any[]; gate?: string; repoFiles?: string; gateChecked?: string; lastScan?: string }) {
+  static updateSecurityPaneIfOpen(data: {
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    score?: string;
+    status?: string;
+    findings?: any[];
+    gate?: string;
+    repoFiles?: string;
+    gateChecked?: string;
+    lastScan?: string;
+  }) {
     WelcomeDashboard._lastSecurityData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateSecurityPane(data);
     }
   }
 
-  public updateTrustPane(data: { trustScore?: string; verified?: string; warnings?: string; lastAudit?: string; status?: string; quality?: string; security?: string; compliance?: string; dependencies?: string; severity?: any; factors?: any[]; badges?: any[]; gate?: string }) {
+  public updateTrustPane(data: {
+    trustScore?: string;
+    verified?: string;
+    warnings?: string;
+    lastAudit?: string;
+    status?: string;
+    quality?: string;
+    security?: string;
+    compliance?: string;
+    dependencies?: string;
+    severity?: any;
+    factors?: any[];
+    badges?: any[];
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateTrustPane', ...data });
   }
 
-  static updateTrustPaneIfOpen(data: { trustScore?: string; verified?: string; warnings?: string; lastAudit?: string; status?: string; quality?: string; security?: string; compliance?: string; dependencies?: string; severity?: any; factors?: any[]; badges?: any[]; gate?: string }) {
+  static updateTrustPaneIfOpen(data: {
+    trustScore?: string;
+    verified?: string;
+    warnings?: string;
+    lastAudit?: string;
+    status?: string;
+    quality?: string;
+    security?: string;
+    compliance?: string;
+    dependencies?: string;
+    severity?: any;
+    factors?: any[];
+    badges?: any[];
+    gate?: string;
+  }) {
     WelcomeDashboard._lastTrustData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateTrustPane(data);
@@ -621,96 +1035,342 @@ export class WelcomeDashboard {
     return WelcomeDashboard._lastTrustData;
   }
 
-  public updateQualityPane(data: { qualityScore?: string; issues?: string; coverage?: string; files?: string; status?: string; maintainability?: string; reliability?: string; complexity?: string; duplication?: string; gate?: string }) {
+  public updateQualityPane(data: {
+    qualityScore?: string;
+    issues?: string;
+    coverage?: string;
+    files?: string;
+    status?: string;
+    maintainability?: string;
+    reliability?: string;
+    complexity?: string;
+    duplication?: string;
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateQualityPane', ...data });
   }
 
-  static updateQualityPaneIfOpen(data: { qualityScore?: string; issues?: string; coverage?: string; files?: string; status?: string; maintainability?: string; reliability?: string; complexity?: string; duplication?: string; gate?: string }) {
+  static updateQualityPaneIfOpen(data: {
+    qualityScore?: string;
+    issues?: string;
+    coverage?: string;
+    files?: string;
+    status?: string;
+    maintainability?: string;
+    reliability?: string;
+    complexity?: string;
+    duplication?: string;
+    gate?: string;
+  }) {
     WelcomeDashboard._lastQualityData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateQualityPane(data);
     }
   }
 
-  public updateAssessmentsPane(data: { completed?: string; pending?: string; progress?: string; total?: string; status?: string; security?: string; quality?: string; compliance?: string; documentation?: string; severity?: any; checklist?: any[]; qualityScore?: string; issues?: string; gate?: string }) {
+  public updateAssessmentsPane(data: {
+    completed?: string;
+    pending?: string;
+    progress?: string;
+    total?: string;
+    status?: string;
+    security?: string;
+    quality?: string;
+    compliance?: string;
+    documentation?: string;
+    severity?: any;
+    checklist?: any[];
+    qualityScore?: string;
+    issues?: string;
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateAssessmentsPane', ...data });
   }
 
-  static updateAssessmentsPaneIfOpen(data: { completed?: string; pending?: string; progress?: string; total?: string; status?: string; security?: string; quality?: string; compliance?: string; documentation?: string; severity?: any; checklist?: any[]; qualityScore?: string; issues?: string; gate?: string }) {
+  static updateAssessmentsPaneIfOpen(data: {
+    completed?: string;
+    pending?: string;
+    progress?: string;
+    total?: string;
+    status?: string;
+    security?: string;
+    quality?: string;
+    compliance?: string;
+    documentation?: string;
+    severity?: any;
+    checklist?: any[];
+    qualityScore?: string;
+    issues?: string;
+    gate?: string;
+  }) {
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateAssessmentsPane(data);
     }
   }
 
-  public updatePlatformPane(data: { version?: string; engine?: string; uptime?: string; status?: string; os?: string; node?: string; ext?: string; workspace?: string; badge?: string; severity?: any; qualityScore?: string; issues?: string; gate?: string }) {
+  public updatePlatformPane(data: {
+    version?: string;
+    engine?: string;
+    uptime?: string;
+    status?: string;
+    os?: string;
+    node?: string;
+    ext?: string;
+    workspace?: string;
+    badge?: string;
+    severity?: any;
+    qualityScore?: string;
+    issues?: string;
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updatePlatformPane', ...data });
   }
 
-  static updatePlatformPaneIfOpen(data: { version?: string; engine?: string; uptime?: string; status?: string; os?: string; node?: string; ext?: string; workspace?: string; badge?: string; severity?: any; qualityScore?: string; issues?: string; gate?: string }) {
+  static updatePlatformPaneIfOpen(data: {
+    version?: string;
+    engine?: string;
+    uptime?: string;
+    status?: string;
+    os?: string;
+    node?: string;
+    ext?: string;
+    workspace?: string;
+    badge?: string;
+    severity?: any;
+    qualityScore?: string;
+    issues?: string;
+    gate?: string;
+  }) {
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updatePlatformPane(data);
     }
   }
 
-  public updateProfilePane(data: { name?: string; email?: string; role?: string; org?: string; scans?: string; reports?: string; issues?: string; avgScore?: string; qualityScore?: string; autoScan?: boolean; notifications?: boolean; darkMode?: boolean; severity?: any; activity?: any[]; gate?: string }) {
+  public updateProfilePane(data: {
+    name?: string;
+    email?: string;
+    role?: string;
+    org?: string;
+    scans?: string;
+    reports?: string;
+    issues?: string;
+    avgScore?: string;
+    qualityScore?: string;
+    autoScan?: boolean;
+    notifications?: boolean;
+    darkMode?: boolean;
+    severity?: any;
+    activity?: any[];
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateProfilePane', ...data });
   }
 
-  static updateProfilePaneIfOpen(data: { name?: string; email?: string; role?: string; org?: string; scans?: string; reports?: string; issues?: string; avgScore?: string; qualityScore?: string; autoScan?: boolean; notifications?: boolean; darkMode?: boolean; severity?: any; activity?: any[]; gate?: string }) {
+  static updateProfilePaneIfOpen(data: {
+    name?: string;
+    email?: string;
+    role?: string;
+    org?: string;
+    scans?: string;
+    reports?: string;
+    issues?: string;
+    avgScore?: string;
+    qualityScore?: string;
+    autoScan?: boolean;
+    notifications?: boolean;
+    darkMode?: boolean;
+    severity?: any;
+    activity?: any[];
+    gate?: string;
+  }) {
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateProfilePane(data);
     }
   }
 
-  public updateCompliancePane(data: { passed?: string; failed?: string; progress?: string; total?: string; status?: string; rules?: any[]; severity?: any; qualityScore?: string; issues?: string; gate?: string }) {
+  public updateCompliancePane(data: {
+    passed?: string;
+    failed?: string;
+    progress?: string;
+    total?: string;
+    status?: string;
+    rules?: any[];
+    severity?: any;
+    qualityScore?: string;
+    issues?: string;
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateCompliancePane', ...data });
   }
 
-  static updateCompliancePaneIfOpen(data: { passed?: string; failed?: string; progress?: string; total?: string; status?: string; rules?: any[]; severity?: any; qualityScore?: string; issues?: string; gate?: string }) {
+  static updateCompliancePaneIfOpen(data: {
+    passed?: string;
+    failed?: string;
+    progress?: string;
+    total?: string;
+    status?: string;
+    rules?: any[];
+    severity?: any;
+    qualityScore?: string;
+    issues?: string;
+    gate?: string;
+  }) {
     WelcomeDashboard._lastComplianceData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateCompliancePane(data);
     }
   }
 
-  public updateRepoHealthPane(data: { score?: string; qualityScore?: string; gate?: string; issues?: string; files?: string; status?: string; critical?: string; high?: string; medium?: string; low?: string; maintainability?: string; reliability?: string; complexity?: string; duplication?: string; findings?: any[]; recommendations?: any[] }) {
+  public updateRepoHealthPane(data: {
+    score?: string;
+    qualityScore?: string;
+    gate?: string;
+    issues?: string;
+    files?: string;
+    status?: string;
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    maintainability?: string;
+    reliability?: string;
+    complexity?: string;
+    duplication?: string;
+    findings?: any[];
+    recommendations?: any[];
+  }) {
     this.panel.webview.postMessage({ command: 'updateRepoHealthPane', ...data });
   }
 
-  static updateRepoHealthPaneIfOpen(data: { score?: string; qualityScore?: string; gate?: string; issues?: string; files?: string; status?: string; critical?: string; high?: string; medium?: string; low?: string; maintainability?: string; reliability?: string; complexity?: string; duplication?: string; findings?: any[]; recommendations?: any[] }) {
+  static updateRepoHealthPaneIfOpen(data: {
+    score?: string;
+    qualityScore?: string;
+    gate?: string;
+    issues?: string;
+    files?: string;
+    status?: string;
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    maintainability?: string;
+    reliability?: string;
+    complexity?: string;
+    duplication?: string;
+    findings?: any[];
+    recommendations?: any[];
+  }) {
     WelcomeDashboard._lastRepoHealthData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateRepoHealthPane(data);
     }
   }
 
-  public updateAnalyticsPane(data: { scans?: string; issues?: string; avgScore?: string; lastScan?: string; trend?: string; issueTrend?: string; status?: string; severity?: any; qualityScore?: string; gate?: string }) {
+  public updateAnalyticsPane(data: {
+    scans?: string;
+    issues?: string;
+    avgScore?: string;
+    lastScan?: string;
+    trend?: string;
+    issueTrend?: string;
+    status?: string;
+    severity?: any;
+    qualityScore?: string;
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateAnalyticsPane', ...data });
   }
 
-  static updateAnalyticsPaneIfOpen(data: { scans?: string; issues?: string; avgScore?: string; lastScan?: string; trend?: string; issueTrend?: string; status?: string; severity?: any; qualityScore?: string; gate?: string }) {
+  static updateAnalyticsPaneIfOpen(data: {
+    scans?: string;
+    issues?: string;
+    avgScore?: string;
+    lastScan?: string;
+    trend?: string;
+    issueTrend?: string;
+    status?: string;
+    severity?: any;
+    qualityScore?: string;
+    gate?: string;
+  }) {
     WelcomeDashboard._lastAnalyticsData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateAnalyticsPane(data);
     }
   }
 
-  public updateTeamPane(data: { members?: string; scans?: string; resolved?: string; score?: string; status?: string; membersList?: any[]; severity?: any; qualityScore?: string; issues?: string; gate?: string }) {
+  public updateTeamPane(data: {
+    members?: string;
+    scans?: string;
+    resolved?: string;
+    score?: string;
+    status?: string;
+    membersList?: any[];
+    severity?: any;
+    qualityScore?: string;
+    issues?: string;
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateTeamPane', ...data });
   }
 
-  static updateTeamPaneIfOpen(data: { members?: string; scans?: string; resolved?: string; score?: string; status?: string; membersList?: any[]; severity?: any; qualityScore?: string; issues?: string; gate?: string }) {
+  static updateTeamPaneIfOpen(data: {
+    members?: string;
+    scans?: string;
+    resolved?: string;
+    score?: string;
+    status?: string;
+    membersList?: any[];
+    severity?: any;
+    qualityScore?: string;
+    issues?: string;
+    gate?: string;
+  }) {
     WelcomeDashboard._lastTeamData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateTeamPane(data);
     }
   }
 
-  public updateScanPane(data: { total?: string; issues?: string; fixed?: string; score?: string; qualityScore?: string; status?: string; scanning?: boolean; hasResults?: boolean; progress?: string; critical?: string; high?: string; medium?: string; low?: string; results?: any[]; history?: any[]; gate?: string }) {
+  public updateScanPane(data: {
+    total?: string;
+    issues?: string;
+    fixed?: string;
+    score?: string;
+    qualityScore?: string;
+    status?: string;
+    scanning?: boolean;
+    hasResults?: boolean;
+    progress?: string;
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    results?: any[];
+    history?: any[];
+    gate?: string;
+  }) {
     this.panel.webview.postMessage({ command: 'updateScanPane', ...data });
   }
 
-  static updateScanPaneIfOpen(data: { total?: string; issues?: string; fixed?: string; score?: string; qualityScore?: string; status?: string; scanning?: boolean; hasResults?: boolean; progress?: string; critical?: string; high?: string; medium?: string; low?: string; results?: any[]; history?: any[]; gate?: string }) {
+  static updateScanPaneIfOpen(data: {
+    total?: string;
+    issues?: string;
+    fixed?: string;
+    score?: string;
+    qualityScore?: string;
+    status?: string;
+    scanning?: boolean;
+    hasResults?: boolean;
+    progress?: string;
+    critical?: string;
+    high?: string;
+    medium?: string;
+    low?: string;
+    results?: any[];
+    history?: any[];
+    gate?: string;
+  }) {
     WelcomeDashboard._lastScanData = data;
     if (WelcomeDashboard.currentPanel) {
       WelcomeDashboard.currentPanel.updateScanPane(data);
@@ -723,53 +1383,113 @@ export class WelcomeDashboard {
   private static _hasAutoOpenedDashboard = false;
 
   static hasLoadedScanGate(): boolean {
-    const gate = String(WelcomeDashboard._lastDashboardData?.gate || '').trim().toUpperCase();
+    const gate = String(WelcomeDashboard._lastDashboardData?.gate || '')
+      .trim()
+      .toUpperCase();
     return gate !== '' && gate !== 'PENDING' && gate !== '--';
   }
 
   static buildCachedPanesPayload(): Record<string, Record<string, unknown>> {
     const panes: Record<string, Record<string, unknown>> = {};
-    if (WelcomeDashboard._lastDashboardData) { panes.dashboard = WelcomeDashboard._lastDashboardData; }
-    if (WelcomeDashboard._lastAnalyzeData) { panes.analyze = WelcomeDashboard._lastAnalyzeData; }
-    if (WelcomeDashboard._lastReportData) { panes.report = WelcomeDashboard._lastReportData; }
-    if (WelcomeDashboard._lastRoadmapData) { panes.roadmap = WelcomeDashboard._lastRoadmapData; }
-    if (WelcomeDashboard._lastSecurityData) { panes.security = WelcomeDashboard._lastSecurityData; }
-    if (WelcomeDashboard._lastTrustData) { panes.trust = WelcomeDashboard._lastTrustData; }
-    if (WelcomeDashboard._lastQualityData) { panes.quality = WelcomeDashboard._lastQualityData; }
-    if (WelcomeDashboard._lastComplianceData) { panes.compliance = WelcomeDashboard._lastComplianceData; }
-    if (WelcomeDashboard._lastAnalyticsData) { panes.analytics = WelcomeDashboard._lastAnalyticsData; }
-    if (WelcomeDashboard._lastTeamData) { panes.team = WelcomeDashboard._lastTeamData; }
-    if (WelcomeDashboard._lastRepoHealthData) { panes.repoHealth = WelcomeDashboard._lastRepoHealthData; }
-    if (WelcomeDashboard._lastScanData) { panes.scan = WelcomeDashboard._lastScanData; }
-    if (WelcomeDashboard._lastCodeMapData) { panes.codemap = WelcomeDashboard._lastCodeMapData as Record<string, unknown>; }
+    if (WelcomeDashboard._lastDashboardData) {
+      panes.dashboard = WelcomeDashboard._lastDashboardData;
+    }
+    if (WelcomeDashboard._lastAnalyzeData) {
+      panes.analyze = WelcomeDashboard._lastAnalyzeData;
+    }
+    if (WelcomeDashboard._lastReportData) {
+      panes.report = WelcomeDashboard._lastReportData;
+    }
+    if (WelcomeDashboard._lastRoadmapData) {
+      panes.roadmap = WelcomeDashboard._lastRoadmapData;
+    }
+    if (WelcomeDashboard._lastSecurityData) {
+      panes.security = WelcomeDashboard._lastSecurityData;
+    }
+    if (WelcomeDashboard._lastTrustData) {
+      panes.trust = WelcomeDashboard._lastTrustData;
+    }
+    if (WelcomeDashboard._lastQualityData) {
+      panes.quality = WelcomeDashboard._lastQualityData;
+    }
+    if (WelcomeDashboard._lastComplianceData) {
+      panes.compliance = WelcomeDashboard._lastComplianceData;
+    }
+    if (WelcomeDashboard._lastAnalyticsData) {
+      panes.analytics = WelcomeDashboard._lastAnalyticsData;
+    }
+    if (WelcomeDashboard._lastTeamData) {
+      panes.team = WelcomeDashboard._lastTeamData;
+    }
+    if (WelcomeDashboard._lastRepoHealthData) {
+      panes.repoHealth = WelcomeDashboard._lastRepoHealthData;
+    }
+    if (WelcomeDashboard._lastScanData) {
+      panes.scan = WelcomeDashboard._lastScanData;
+    }
+    if (WelcomeDashboard._lastCodeMapData) {
+      panes.codemap = WelcomeDashboard._lastCodeMapData as Record<string, unknown>;
+    }
     return panes;
   }
 
   static maybeAutoOpenDashboard(panel?: WelcomeDashboard) {
     const active = panel || WelcomeDashboard.currentPanel;
-    if (!active || WelcomeDashboard._hasAutoOpenedDashboard) { return; }
+    if (!active || WelcomeDashboard._hasAutoOpenedDashboard) {
+      return;
+    }
     const showWelcome = getSbConfig().get<boolean>('showWelcomeOnLoad', true);
-    if (showWelcome || !WelcomeDashboard.hasLoadedScanGate()) { return; }
+    if (showWelcome || !WelcomeDashboard.hasLoadedScanGate()) {
+      return;
+    }
     WelcomeDashboard._hasAutoOpenedDashboard = true;
     active.showDashboardPane();
   }
 
   static batchUpdatePanesIfOpen(panes: Record<string, Record<string, unknown>>) {
-    if (panes.dashboard) { WelcomeDashboard._lastDashboardData = panes.dashboard as typeof WelcomeDashboard._lastDashboardData; }
-    if (panes.report) { WelcomeDashboard._lastReportData = panes.report as typeof WelcomeDashboard._lastReportData; }
-    if (panes.roadmap) { WelcomeDashboard._lastRoadmapData = panes.roadmap as typeof WelcomeDashboard._lastRoadmapData; }
-    if (panes.security) { WelcomeDashboard._lastSecurityData = panes.security as typeof WelcomeDashboard._lastSecurityData; }
-    if (panes.trust) { WelcomeDashboard._lastTrustData = panes.trust as typeof WelcomeDashboard._lastTrustData; }
-    if (panes.quality) { WelcomeDashboard._lastQualityData = panes.quality as typeof WelcomeDashboard._lastQualityData; }
-    if (panes.compliance) { WelcomeDashboard._lastComplianceData = panes.compliance as typeof WelcomeDashboard._lastComplianceData; }
-    if (panes.repoHealth) { WelcomeDashboard._lastRepoHealthData = panes.repoHealth as typeof WelcomeDashboard._lastRepoHealthData; }
-    if (panes.team) { WelcomeDashboard._lastTeamData = panes.team as typeof WelcomeDashboard._lastTeamData; }
-    if (panes.scan) { WelcomeDashboard._lastScanData = panes.scan as typeof WelcomeDashboard._lastScanData; }
-    if (panes.analytics) { WelcomeDashboard._lastAnalyticsData = panes.analytics as typeof WelcomeDashboard._lastAnalyticsData; }
-    if (panes.analyze) { WelcomeDashboard._lastAnalyzeData = panes.analyze as typeof WelcomeDashboard._lastAnalyzeData; }
-    if (panes.codemap) { WelcomeDashboard._lastCodeMapData = panes.codemap as typeof WelcomeDashboard._lastCodeMapData; }
+    if (panes.dashboard) {
+      WelcomeDashboard._lastDashboardData = panes.dashboard as typeof WelcomeDashboard._lastDashboardData;
+    }
+    if (panes.report) {
+      WelcomeDashboard._lastReportData = panes.report as typeof WelcomeDashboard._lastReportData;
+    }
+    if (panes.roadmap) {
+      WelcomeDashboard._lastRoadmapData = panes.roadmap as typeof WelcomeDashboard._lastRoadmapData;
+    }
+    if (panes.security) {
+      WelcomeDashboard._lastSecurityData = panes.security as typeof WelcomeDashboard._lastSecurityData;
+    }
+    if (panes.trust) {
+      WelcomeDashboard._lastTrustData = panes.trust as typeof WelcomeDashboard._lastTrustData;
+    }
+    if (panes.quality) {
+      WelcomeDashboard._lastQualityData = panes.quality as typeof WelcomeDashboard._lastQualityData;
+    }
+    if (panes.compliance) {
+      WelcomeDashboard._lastComplianceData = panes.compliance as typeof WelcomeDashboard._lastComplianceData;
+    }
+    if (panes.repoHealth) {
+      WelcomeDashboard._lastRepoHealthData = panes.repoHealth as typeof WelcomeDashboard._lastRepoHealthData;
+    }
+    if (panes.team) {
+      WelcomeDashboard._lastTeamData = panes.team as typeof WelcomeDashboard._lastTeamData;
+    }
+    if (panes.scan) {
+      WelcomeDashboard._lastScanData = panes.scan as typeof WelcomeDashboard._lastScanData;
+    }
+    if (panes.analytics) {
+      WelcomeDashboard._lastAnalyticsData = panes.analytics as typeof WelcomeDashboard._lastAnalyticsData;
+    }
+    if (panes.analyze) {
+      WelcomeDashboard._lastAnalyzeData = panes.analyze as typeof WelcomeDashboard._lastAnalyzeData;
+    }
+    if (panes.codemap) {
+      WelcomeDashboard._lastCodeMapData = panes.codemap as typeof WelcomeDashboard._lastCodeMapData;
+    }
     const panel = WelcomeDashboard.currentPanel;
-    if (!panel || Object.keys(panes).length === 0) { return; }
+    if (!panel || Object.keys(panes).length === 0) {
+      return;
+    }
     WelcomeDashboard._pendingBatchPanes = { ...WelcomeDashboard._pendingBatchPanes, ...panes };
     if (WelcomeDashboard._batchFlushTimer) {
       clearTimeout(WelcomeDashboard._batchFlushTimer);
@@ -779,7 +1499,9 @@ export class WelcomeDashboard {
       const merged = WelcomeDashboard._pendingBatchPanes;
       WelcomeDashboard._pendingBatchPanes = {};
       const active = WelcomeDashboard.currentPanel;
-      if (!active || Object.keys(merged).length === 0) { return; }
+      if (!active || Object.keys(merged).length === 0) {
+        return;
+      }
       active.queueOrPostMessage({ command: 'updateAllPanes', panes: merged });
       WelcomeDashboard.maybeAutoOpenDashboard(active);
     }, 400);
@@ -806,14 +1528,18 @@ export class WelcomeDashboard {
   }
 
   private queueOrPostMessage(msg: { command: string; [key: string]: unknown }) {
-    if (!this.panel?.webview) { return; }
+    if (!this.panel?.webview) {
+      return;
+    }
     if (this.messageQueue.length > 48) {
       this.messageQueue = this.messageQueue.slice(-24);
     }
     if (this.isReady) {
       try {
         void this.panel.webview.postMessage(msg);
-      } catch { /* panel disposed */ }
+      } catch {
+        /* panel disposed */
+      }
     } else {
       this.messageQueue.push(msg);
     }
@@ -823,7 +1549,10 @@ export class WelcomeDashboard {
     this.panel = panel;
     this.extUri = extUri;
     this.version = getVersionFromExtUri(extUri);
-    this.authManager = new AuthManager({ secrets: { get: ()=>Promise.resolve(''), store: ()=>Promise.resolve(), delete: ()=>Promise.resolve() }, globalState: { get: ()=>undefined, update: ()=>Promise.resolve() } } as any);
+    this.authManager = new AuthManager({
+      secrets: { get: () => Promise.resolve(''), store: () => Promise.resolve(), delete: () => Promise.resolve() },
+      globalState: { get: () => undefined, update: () => Promise.resolve() },
+    } as any);
     this.panel.onDidDispose(
       () => {
         WelcomeDashboard.currentPanel = undefined;
@@ -845,7 +1574,10 @@ export class WelcomeDashboard {
                 const raw = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
                 const graph = raw.dependencyGraph || { nodes: [], edges: [] };
                 const languages = Array.isArray(raw.languages)
-                  ? raw.languages.map((l: any) => l.extension || l.lang || l.name || '').filter(Boolean).join(', ')
+                  ? raw.languages
+                      .map((l: any) => l.extension || l.lang || l.name || '')
+                      .filter(Boolean)
+                      .join(', ')
                   : '--';
                 WelcomeDashboard._lastCodeMapData = {
                   status: 'Generated',
@@ -863,7 +1595,7 @@ export class WelcomeDashboard {
                   cycles: raw.cycles || [],
                   entryPoints: raw.entryPoints || [],
                   leafModules: raw.leafModules || [],
-                  mostConnected: raw.mostConnected || []
+                  mostConnected: raw.mostConnected || [],
                 };
                 cached.codemap = WelcomeDashboard._lastCodeMapData as Record<string, unknown>;
               }
@@ -931,14 +1663,17 @@ export class WelcomeDashboard {
           if (extUrl) {
             try {
               const parsed = new URL(extUrl);
-              const isSimpleBeaconDashboard = /simplebeacon\.ai/i.test(parsed.hostname) && parsed.pathname.startsWith('/dashboard/');
+              const isSimpleBeaconDashboard =
+                /simplebeacon\.ai/i.test(parsed.hostname) && parsed.pathname.startsWith('/dashboard/');
               if (isSimpleBeaconDashboard) {
                 const baseUrl = `${parsed.protocol}//${parsed.host}`;
                 const extraQuery = parsed.search ? parsed.search.slice(1) : '';
                 openTeamDashboardPanel(this.extUri, parsed.pathname, 'SimpleBeacon Dashboard', baseUrl, extraQuery);
                 break;
               }
-            } catch { /* ignore invalid URL; fall through to simpleBrowser */ }
+            } catch {
+              /* ignore invalid URL; fall through to simpleBrowser */
+            }
             const resolved = extUrl.startsWith('http')
               ? extUrl
               : `http://127.0.0.1:${getDataServerPort()}${extUrl.startsWith('/') ? extUrl : '/' + extUrl}`;
@@ -1052,12 +1787,17 @@ export class WelcomeDashboard {
             path: analyzePath,
             profile: (msg.analyzeType || msg.profile || 'complete') as ScanProfile,
             selectedModules: msg.analyzers,
-            minSeverity: msg.minSeverity
+            minSeverity: msg.minSeverity,
           });
           break;
         }
         case 'browseAnalyzePath': {
-          const uris = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: 'Select Project Folder' });
+          const uris = await vscode.window.showOpenDialog({
+            canSelectFiles: false,
+            canSelectFolders: true,
+            canSelectMany: false,
+            openLabel: 'Select Project Folder',
+          });
           if (uris && uris.length > 0) {
             this.panel.webview.postMessage({ command: 'setAnalyzePath', path: uris[0].fsPath });
           }
@@ -1075,7 +1815,32 @@ export class WelcomeDashboard {
           let resolvedPath = '';
           // Scan active drive mounts dynamically for the dropped folder name
           if (folderName) {
-            const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+            const driveLetters = [
+              'C',
+              'D',
+              'E',
+              'F',
+              'G',
+              'H',
+              'I',
+              'J',
+              'K',
+              'L',
+              'M',
+              'N',
+              'O',
+              'P',
+              'Q',
+              'R',
+              'S',
+              'T',
+              'U',
+              'V',
+              'W',
+              'X',
+              'Y',
+              'Z',
+            ];
             for (const letter of driveLetters) {
               const checkPath = `${letter}:\\${folderName}`;
               const cascadePath = `${letter}:\\Users\\Trevor\\CascadeProjects\\${folderName}`;
@@ -1090,7 +1855,12 @@ export class WelcomeDashboard {
           }
           // Layer 3: fallback picker if auto-resolve misses
           if (!resolvedPath && folderName) {
-            const pickerUri = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: `Select "${folderName}" location` });
+            const pickerUri = await vscode.window.showOpenDialog({
+              canSelectFiles: false,
+              canSelectFolders: true,
+              canSelectMany: false,
+              openLabel: `Select "${folderName}" location`,
+            });
             if (pickerUri && pickerUri[0]) {
               resolvedPath = pickerUri[0].fsPath;
             }
@@ -1171,8 +1941,12 @@ export class WelcomeDashboard {
                 headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
               },
               (res: http.IncomingMessage) => {
-                res.on('data', () => { /* drain response */ });
-                res.on('end', () => { /* data server callback will focus AI Coding Agent panel */ });
+                res.on('data', () => {
+                  /* drain response */
+                });
+                res.on('end', () => {
+                  /* data server callback will focus AI Coding Agent panel */
+                });
               }
             );
             req.on('error', (err) => {
@@ -1189,7 +1963,9 @@ export class WelcomeDashboard {
           showQuietMessage(msg.text || 'Info');
           break;
         case 'validateUpload':
-          showQuietMessage(msg.fileCount ? `Validated ${msg.fileCount} uploaded file(s)` : 'Validating uploaded files...');
+          showQuietMessage(
+            msg.fileCount ? `Validated ${msg.fileCount} uploaded file(s)` : 'Validating uploaded files...'
+          );
           break;
         case 'scanUploadFiles':
           {
@@ -1205,9 +1981,15 @@ export class WelcomeDashboard {
                 const safeName = path.basename(f.name).replace(/[^a-zA-Z0-9._-]/g, '_');
                 fs.writeFileSync(path.join(tmpDir, safeName), f.content || '', 'utf-8');
               }
-              vscode.commands.executeCommand('simplebeacon.scanWorkspace', { projectPath: tmpDir, mode: 'full', fullDirectory: true });
+              vscode.commands.executeCommand('simplebeacon.scanWorkspace', {
+                projectPath: tmpDir,
+                mode: 'full',
+                fullDirectory: true,
+              });
             } catch (e) {
-              vscode.window.showErrorMessage('Failed to prepare uploaded files for scan: ' + (e instanceof Error ? e.message : String(e)));
+              vscode.window.showErrorMessage(
+                'Failed to prepare uploaded files for scan: ' + (e instanceof Error ? e.message : String(e))
+              );
             }
           }
           break;
@@ -1238,7 +2020,12 @@ export class WelcomeDashboard {
           break;
         case 'browseQualityPath':
           {
-            const uris = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, canSelectMany: false, openLabel: 'Select project folder' });
+            const uris = await vscode.window.showOpenDialog({
+              canSelectFiles: false,
+              canSelectFolders: true,
+              canSelectMany: false,
+              openLabel: 'Select project folder',
+            });
             if (uris && uris.length > 0) {
               this.panel.webview.postMessage({ command: 'setQualityPath', path: uris[0].fsPath });
             }
@@ -1267,7 +2054,7 @@ export class WelcomeDashboard {
               path: targetPath,
               profile,
               selectedModules: undefined,
-              minSeverity: 'low'
+              minSeverity: 'low',
             });
           }
           break;
@@ -1354,7 +2141,7 @@ export class WelcomeDashboard {
           break;
         case 'testApiConnection':
           {
-            const base = normalizeApiServerUrl(msg.value || config.get('apiServerUrl', DEFAULT_API_URL) as string);
+            const base = normalizeApiServerUrl(msg.value || (config.get('apiServerUrl', DEFAULT_API_URL) as string));
             try {
               const resApi = await fetch(base + '/api/health');
               if (resApi.ok) {
@@ -1380,7 +2167,11 @@ export class WelcomeDashboard {
           showQuietMessage('Settings reset to defaults');
           break;
         case 'updateApiToken':
-          if (msg.value) { await this.authManager.setToken(String(msg.value)); } else { await this.authManager.clearToken(); }
+          if (msg.value) {
+            await this.authManager.setToken(String(msg.value));
+          } else {
+            await this.authManager.clearToken();
+          }
           break;
         case 'scanWorkspace':
           vscode.commands.executeCommand('simplebeacon.scanWorkspace');
@@ -1406,7 +2197,10 @@ export class WelcomeDashboard {
           }
           try {
             const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
-            const editor = await vscode.window.showTextDocument(doc, { preview: true, viewColumn: vscode.ViewColumn.One });
+            const editor = await vscode.window.showTextDocument(doc, {
+              preview: true,
+              viewColumn: vscode.ViewColumn.One,
+            });
             const position = new vscode.Position(lineNum, 0);
             editor.selection = new vscode.Selection(position, position);
             editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
@@ -1422,10 +2216,18 @@ export class WelcomeDashboard {
         case 'setAuthState':
           // Store token in AuthManager so refreshAuthState can verify and forward it
           if (msg.token && msg.signedIn) {
-            try { await this.authManager.setToken(String(msg.token)); } catch {}
+            try {
+              await this.authManager.setToken(String(msg.token));
+            } catch {}
           }
           // Forward auth state from dashboard to sidebar
-          setSidebarAuthState(msg.signedIn === true, msg.tier || '', msg.token ? String(msg.token) : undefined, undefined, msg.isAdmin === true);
+          setSidebarAuthState(
+            msg.signedIn === true,
+            msg.tier || '',
+            msg.token ? String(msg.token) : undefined,
+            undefined,
+            msg.isAdmin === true
+          );
           break;
         case 'storeActiveLicenseToken':
           if (msg.token) {
@@ -1445,7 +2247,7 @@ export class WelcomeDashboard {
       cspSource: this.panel.webview.cspSource,
       version: this.version,
       nonce,
-      showWelcome: config.get('showWelcomeOnLoad', true)
+      showWelcome: config.get('showWelcomeOnLoad', true),
     });
   }
 
@@ -1459,10 +2261,9 @@ export class WelcomeDashboard {
         cspSource: "'self'",
         version: 'browser',
         nonce,
-        showWelcome: true
+        showWelcome: true,
       });
     }
     return html;
   }
-
 }

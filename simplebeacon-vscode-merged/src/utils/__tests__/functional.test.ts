@@ -1,14 +1,4 @@
-import {
-  compose,
-  pipe,
-  zipWith,
-  curry,
-  partial,
-  tap,
-  flip,
-  assert,
-  tryCatch
-} from '../functional';
+import { compose, pipe, zipWith, curry, partial, tap, flip, assert, tryCatch } from '../functional';
 
 describe('functional helpers', () => {
   test('compose identity', () => {
@@ -60,7 +50,10 @@ describe('functional helpers', () => {
 
   test('tap returns original value after side effect', () => {
     let called = false;
-    const result = tap(5, (value) => { called = true; expect(value).toBe(5); });
+    const result = tap(5, (value) => {
+      called = true;
+      expect(value).toBe(5);
+    });
     expect(result).toBe(5);
     expect(called).toBe(true);
   });
@@ -88,7 +81,9 @@ describe('functional helpers', () => {
   });
 
   test('tryCatch returns error result', () => {
-    const result = tryCatch(() => { throw new Error('boom'); });
+    const result = tryCatch(() => {
+      throw new Error('boom');
+    });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toBeInstanceOf(Error);

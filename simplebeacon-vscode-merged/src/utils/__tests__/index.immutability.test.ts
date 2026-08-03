@@ -27,7 +27,9 @@ describe('Utils namespace immutability', () => {
   test('mutating frozen Utils throws in strict mode', () => {
     const originalKeys = Object.keys(Utils);
     // mutation should throw at runtime in strict mode
-    expect(() => { (Utils as any).newProp = 'should-not-stick'; }).toThrow();
+    expect(() => {
+      (Utils as any).newProp = 'should-not-stick';
+    }).toThrow();
     expect(Object.keys(Utils)).toEqual(originalKeys);
     expect((Utils as any).newProp).toBeUndefined();
   });

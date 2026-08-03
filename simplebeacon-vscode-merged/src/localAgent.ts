@@ -48,7 +48,9 @@ export function getAgentPort(): number {
 export function getAgentDownloadUrl(): string {
   const config = getSbConfig();
   const configured = config.get<string>('localAgent.downloadUrl', '');
-  if (configured) { return configured; }
+  if (configured) {
+    return configured;
+  }
   const apiUrl = config.get<string>('apiServerUrl', '') || config.get<string>('apiUrl', '');
   if (apiUrl) {
     const base = apiUrl.replace(/\/$/, '');
@@ -65,14 +67,16 @@ export async function probeLocalAgent(port?: number): Promise<AgentStatus> {
   return new Promise((resolve) => {
     const req = http.get(`http://127.0.0.1:${agentPort}/health`, { timeout: 3000 }, (res) => {
       let data = '';
-      res.on('data', (chunk) => { data += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
           resolve({
             available: true,
             scannerAvailable: Boolean(json.scannerAvailable),
-            version: json.version
+            version: json.version,
           });
         } catch {
           resolve({ available: true, scannerAvailable: false });
@@ -124,7 +128,10 @@ export function isLocalAgentInstalled(installDir?: string): boolean {
 /**
  * Download the agent zip to a temp file.
  */
-export async function downloadAgentZip(url: string, progress?: vscode.Progress<{ increment?: number; message?: string }>): Promise<string> {
+export async function downloadAgentZip(
+  url: string,
+  progress?: vscode.Progress<{ increment?: number; message?: string }>
+): Promise<string> {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'simplebeacon-agent-'));
   const zipPath = path.join(tempDir, 'simplebeacon-local-agent-portable.zip');
   const uri = new URL(url);
@@ -148,7 +155,10 @@ export async function downloadAgentZip(url: string, progress?: vscode.Progress<{
       res.on('data', (chunk) => {
         downloaded += chunk.length;
         if (total > 0 && progress) {
-          progress.report({ increment: (chunk.length / total) * 100, message: `Downloaded ${Math.round((downloaded / total) * 100)}%` });
+          progress.report({
+            increment: (chunk.length / total) * 100,
+            message: `Downloaded ${Math.round((downloaded / total) * 100)}%`,
+          });
         }
       });
       out.on('finish', () => resolve(zipPath));
@@ -165,7 +175,11 @@ export async function downloadAgentZip(url: string, progress?: vscode.Progress<{
 /**
  * Extract the agent zip to the install directory.
  */
-export async function extractAgentZip(zipPath: string, installDir: string, progress?: vscode.Progress<{ increment?: number; message?: string }>): Promise<void> {
+export async function extractAgentZip(
+  zipPath: string,
+  installDir: string,
+  progress?: vscode.Progress<{ increment?: number; message?: string }>
+): Promise<void> {
   fs.mkdirSync(installDir, { recursive: true });
   if (process.platform === 'win32') {
     const psCmd = `Expand-Archive -Path '${zipPath}' -DestinationPath '${installDir}' -Force`;
@@ -173,7 +187,9 @@ export async function extractAgentZip(zipPath: string, installDir: string, progr
   } else {
     await execFileAsync('unzip', ['-o', zipPath, '-d', installDir]);
   }
-  if (progress) { progress.report({ message: 'Extraction complete' }); }
+  if (progress) {
+    progress.report({ message: 'Extraction complete' });
+  }
 }
 
 /**
@@ -199,20 +215,23 @@ export async function runBundledInstaller(installDir: string): Promise<void> {
 export async function installLocalAgent(): Promise<void> {
   const installDir = getLocalAgentInstallDir();
   const url = getAgentDownloadUrl();
-  await vscode.window.withProgress({
-    location: vscode.ProgressLocation.Notification,
-    title: 'Installing SimpleBeacon Local Agent',
-    cancellable: false
-  }, async (progress) => {
-    progress.report({ message: `Downloading from ${url}` });
-    const zipPath = await downloadAgentZip(url, progress);
-    progress.report({ message: `Extracting to ${installDir}` });
-    await extractAgentZip(zipPath, installDir, progress);
-    progress.report({ message: 'Running installer' });
-    await runBundledInstaller(installDir);
-    progress.report({ message: 'Starting agent' });
-    startLocalAgent(installDir);
-  });
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'Installing SimpleBeacon Local Agent',
+      cancellable: false,
+    },
+    async (progress) => {
+      progress.report({ message: `Downloading from ${url}` });
+      const zipPath = await downloadAgentZip(url, progress);
+      progress.report({ message: `Extracting to ${installDir}` });
+      await extractAgentZip(zipPath, installDir, progress);
+      progress.report({ message: 'Running installer' });
+      await runBundledInstaller(installDir);
+      progress.report({ message: 'Starting agent' });
+      startLocalAgent(installDir);
+    }
+  );
 }
 
 /**
@@ -223,32 +242,37 @@ export async function scanViaLocalAgent(options: AgentScanOptions, port?: number
   const projectPath = options.projectPath;
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({ projectPath, fullDirectoryScan: Boolean(options.fullDirectory) });
-    const req = http.request({
-      hostname: '127.0.0.1',
-      port: agentPort,
-      path: '/scan',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload)
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: agentPort,
+        path: '/scan',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+        timeout: 600000,
       },
-      timeout: 600000
-    }, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (!json.success) {
-            reject(new Error(json.error || 'Agent scan failed'));
-          } else {
-            resolve(json.report);
+      (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (!json.success) {
+              reject(new Error(json.error || 'Agent scan failed'));
+            } else {
+              resolve(json.report);
+            }
+          } catch {
+            reject(new Error(`Invalid JSON response from agent: ${data.slice(0, 200)}`));
           }
-        } catch {
-          reject(new Error(`Invalid JSON response from agent: ${data.slice(0, 200)}`));
-        }
-      });
-    });
+        });
+      }
+    );
     req.on('error', reject);
     req.on('timeout', () => {
       req.destroy();

@@ -154,7 +154,9 @@ export function formatPercent(value: number | string | null | undefined, fractio
   if (str.endsWith('%')) return str;
   const num = Number(str);
   if (!Number.isFinite(num)) return '—';
-  const digits = Number.isFinite(fractionDigits) ? Math.max(0, Math.min(20, Math.floor(Number(fractionDigits) || 0))) : 1;
+  const digits = Number.isFinite(fractionDigits)
+    ? Math.max(0, Math.min(20, Math.floor(Number(fractionDigits) || 0)))
+    : 1;
   return `${num.toFixed(digits)}%`;
 }
 
@@ -168,7 +170,7 @@ export function formatDate(date: string | number | Date | null | undefined, opts
   if (date == null || date === '' || typeof date === 'symbol') return '—';
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return '—';
-  const { time = false } = (opts && typeof opts === 'object' && !Array.isArray(opts)) ? opts : {};
+  const { time = false } = opts && typeof opts === 'object' && !Array.isArray(opts) ? opts : {};
   const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   if (!time) return dateStr;
   const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -249,7 +251,10 @@ export function titleCase(str: string | null | undefined): string {
  * @returns {string}
  */
 export function reverse(str: string | null | undefined): string {
-  return String(str ?? '').split('').reverse().join('');
+  return String(str ?? '')
+    .split('')
+    .reverse()
+    .join('');
 }
 
 /**

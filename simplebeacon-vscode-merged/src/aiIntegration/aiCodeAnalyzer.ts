@@ -156,7 +156,14 @@ export class AICodeAnalyzer {
 
     return {
       issues,
-      metrics: { totalIssues: 0, criticalIssues: 0, autoFixableIssues: 0, codeQuality: 0, securityScore: 0, maintainability: 0 },
+      metrics: {
+        totalIssues: 0,
+        criticalIssues: 0,
+        autoFixableIssues: 0,
+        codeQuality: 0,
+        securityScore: 0,
+        maintainability: 0,
+      },
       recommendations: [],
       patterns: [],
     };
