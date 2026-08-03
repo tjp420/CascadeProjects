@@ -11,11 +11,16 @@ describe('Dashboard auth routing', () => {
     process.env.SIMPLEBEACON_INTERNAL_DASHBOARD = 'true';
     // Ensure no vault cookie present and no vault password
     delete process.env.DASHBOARD_VAULT_PASSWORD;
+    // Prevent startServer from opening TCP listeners during tests
+    jest.doMock('../../lib/server-startup.cjs', () => ({
+      createStartupManager: () => ({ startServer: () => {} }),
+    }));
     supertest = require('supertest');
   });
 
   afterAll(() => {
     delete process.env.SIMPLEBEACON_INTERNAL_DASHBOARD;
+    jest.dontMock('../../lib/server-startup.cjs');
   });
 
   test('GET /app redirects to /signin when unauthenticated', async () => {

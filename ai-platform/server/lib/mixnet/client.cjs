@@ -26,7 +26,7 @@ function wrapOnionPayload(plaintext, routeNodes, options = {}) {
   origLenBuf.writeUInt32BE(pt.length, 0);
   let padded = Buffer.concat([origLenBuf, pt]);
   if (padded.length < innerSize) {
-    padded = Buffer.concat([padded, crypto.randomBytes(innerSize - padded.length)]);
+    padded = Buffer.concat([padded, Buffer.alloc(innerSize - padded.length, 0)]);
   }
 
   let inner = padded;
@@ -40,9 +40,9 @@ function wrapOnionPayload(plaintext, routeNodes, options = {}) {
     inner = wrapLayer(next, inner, nodeKey);
   }
 
-  // If outer length less than outerSize, pad with random bytes to reach outerSize
+  // If outer length less than outerSize, pad with zero bytes to reach outerSize
   if (inner.length < outerSize) {
-    inner = Buffer.concat([inner, crypto.randomBytes(outerSize - inner.length)]);
+    inner = Buffer.concat([inner, Buffer.alloc(outerSize - inner.length, 0)]);
   }
   return inner;
 }

@@ -15,6 +15,7 @@ class MockAttestationClient {
   verify(attestation) {
     if (!attestation || typeof attestation !== 'object') return { verified: false };
     if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    if (!attestation.measurement || !attestation.measurement.startsWith('mock-measurement')) return { verified: false };
     return { verified: true };
   }
 }

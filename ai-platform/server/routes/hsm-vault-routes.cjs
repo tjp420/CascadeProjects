@@ -1228,7 +1228,7 @@ router.get('/autonomous-drone-swarm-mesh-routing/telemetry', authorize('admin:al
 
 // Track 114: Swarm Robotics Kinetic Assembly Gating (unavailable — 503 guarded)
 // When the swarm robotics kinetic assembly gating hub is registered, flip SWARM_ROBOTICS_KINETIC_ASSEMBLY_GATING_ENABLED to true.
-const SWARM_ROBOTICS_KINETIC_ASSEMBLY_GATING_ENABLED = false;
+const SWARM_ROBOTICS_KINETIC_ASSEMBLY_GATING_ENABLED = true;
 
 function requireSwarmRoboticsKineticAssemblyGating(res) {
   if (!SWARM_ROBOTICS_KINETIC_ASSEMBLY_GATING_ENABLED) {

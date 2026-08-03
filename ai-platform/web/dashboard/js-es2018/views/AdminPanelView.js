@@ -13,6 +13,7 @@ import { renderHolographicStorageContentAddressableGatingDashboard, cleanupHolog
 import { renderSupplyChainProvenanceGatingDashboard, cleanupSupplyChainProvenanceGatingDashboard } from '../components/SupplyChainProvenanceGatingDashboard.js';
 import { renderZkDecentralizedStorageAttestationGatingDashboard, cleanupZkDecentralizedStorageAttestationGatingDashboard } from '../components/ZkDecentralizedStorageAttestationGatingDashboard.js';
 import { renderBioDigitalInterfaceNeuralTelemetryDashboard, cleanupBioDigitalInterfaceNeuralTelemetryDashboard } from '../components/ZkBioDigitalInterfaceNeuralTelemetryDashboard.js';
+import { renderSwarmRoboticsKineticAssemblyDashboard, cleanupSwarmRoboticsKineticAssemblyDashboard } from '../components/ZkSwarmRoboticsKineticAssemblyDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -975,6 +976,7 @@ export class AdminPanelView {
         cleanupSupplyChainProvenanceGatingDashboard();
         cleanupZkDecentralizedStorageAttestationGatingDashboard();
         cleanupBioDigitalInterfaceNeuralTelemetryDashboard();
+        cleanupSwarmRoboticsKineticAssemblyDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
@@ -1052,6 +1054,13 @@ export class AdminPanelView {
             grid.appendChild(neuroDashboard);
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount bio-digital neural telemetry gating dashboard:', e);
+        }
+        // Mount Swarm Robotics Kinetic Assembly Gating (Track 114, policy + telemetry)
+        try {
+            const kineticDashboard = renderSwarmRoboticsKineticAssemblyDashboard();
+            grid.appendChild(kineticDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount swarm robotics kinetic assembly gating dashboard:', e);
         }
     }
 

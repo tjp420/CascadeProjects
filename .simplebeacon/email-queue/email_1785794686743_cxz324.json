@@ -1,0 +1,8 @@
+{
+  "id": "email_1785794686743_cxz324",
+  "to": "customer@example.com",
+  "subject": "Test: queue dir creation",
+  "text": "Should create queue dir and write file.",
+  "attachments": [],
+  "queuedAt": "2026-08-03T22:04:46.744Z"
+}
