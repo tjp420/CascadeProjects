@@ -32,35 +32,4 @@ jobs:
         run: |
           cd ai-platform
           npm run test:vc-latency
-name: VC Latency Profiling
 
-on:
-  workflow_dispatch: {}
-  push:
-    branches:
-      - main
-    paths:
-      - 'ai-platform/**'
-
-jobs:
-  vc-latency:
-    name: Execute Verifiable Credentials Latency Profiling
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: |
-          cd ai-platform
-          npm ci
-
-      - name: Execute Verifiable Credentials Latency Profiling
-        run: |
-          cd ai-platform
-          npm run test:vc-latency
