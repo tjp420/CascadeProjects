@@ -1985,6 +1985,35 @@ class BaseHsmAdapter {
     this._audit('OUTBREAK_ACCREDITATION_COMPLETED', info);
   }
 
+  // ── Track 93 PQ cultural heritage provenance gating telemetry hooks ─
+
+  /**
+   * Emit a heritage gating pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitHeritageGatingPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('HERITAGE_GATING_POOL_INITIALIZED', info);
+  }
+
+  /**
+   * Emit a ZK authentication claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkAuthenticationClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_AUTHENTICATION_CLAIM_VERIFIED', info);
+  }
+
+  /**
+   * Emit a provenance accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitProvenanceAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('PROVENANCE_ACCREDITATION_COMPLETED', info);
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

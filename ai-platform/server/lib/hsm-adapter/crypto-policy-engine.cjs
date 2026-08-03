@@ -745,6 +745,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderEpidemiologicalClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqHeritageGating: {
+    minAuthenticationQuorum: 4,
+    maxAuthenticationWindowSeconds: 15552000,
+    maxProvenanceChainDepth: 20,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireUnescoAuthorityInitializerAttestation: true,
+    requireCulturalHeritageOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderAuthenticationClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1154,6 +1165,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqEpidemiologyGating: {
       ...DEFAULT_POLICY.pqEpidemiologyGating,
       ...(tenantPolicy.pqEpidemiologyGating || {}),
+    },
+    pqHeritageGating: {
+      ...DEFAULT_POLICY.pqHeritageGating,
+      ...(tenantPolicy.pqHeritageGating || {}),
     },
   };
 }
@@ -3012,6 +3027,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqHeritageGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqHeritageGating, ...(tenantPolicy.pqHeritageGating || {}) };
+    if (typeof config.authenticationQuorum === 'number' && config.authenticationQuorum < policy.minAuthenticationQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `authentication quorum ${config.authenticationQuorum} below minimum ${policy.minAuthenticationQuorum}`);
+    }
+    if (typeof config.authenticationWindowSeconds === 'number' && config.authenticationWindowSeconds > policy.maxAuthenticationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `authentication window seconds ${config.authenticationWindowSeconds} exceeds maximum ${policy.maxAuthenticationWindowSeconds}`);
+    }
+    if (typeof config.provenanceChainDepth === 'number' && config.provenanceChainDepth > policy.maxProvenanceChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `provenance chain depth ${config.provenanceChainDepth} exceeds maximum ${policy.maxProvenanceChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireUnescoAuthorityInitializerAttestation && config.unescoAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'UNESCO authority initializer attestation is required');
+    }
+    if (policy.requireCulturalHeritageOversightCommitteeAttestation && config.culturalHeritageOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'cultural heritage oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderAuthenticationClaims === 'boolean' && policy.banMalformedOrOutOfOrderAuthenticationClaims && !config.banMalformedOrOutOfOrderAuthenticationClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order authentication claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -3641,6 +3687,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqEpidemiologyGating') {
       this._validatePqEpidemiologyGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqHeritageGating') {
+      this._validatePqHeritageGating(tenantPolicy, config);
       return true;
     }
 

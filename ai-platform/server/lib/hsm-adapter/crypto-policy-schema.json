@@ -670,6 +670,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderEpidemiologicalClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqHeritageGating": {
+      "minAuthenticationQuorum": 4,
+      "maxAuthenticationWindowSeconds": 15552000,
+      "maxProvenanceChainDepth": 20,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireUnescoAuthorityInitializerAttestation": true,
+      "requireCulturalHeritageOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderAuthenticationClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
