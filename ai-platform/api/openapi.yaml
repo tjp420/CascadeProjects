@@ -1,0 +1,430 @@
+openapi: 3.1.0
+info:
+  title: SimpleBeacon Track79 Crypto API
+  version: 1.0.0
+  description: |
+    OpenAPI specification exposing Policy, Key Lifecycle, and VRF execution endpoints for the Track79 PQ-ThVRF engine.
+servers:
+  - url: https://api.simplebeacon.local/v1
+    description: Local development server (mTLS enforced in production)
+
+security:
+  - oauth2: ["policy:write", "vrf:execute"]
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.simplebeacon.local/oauth/token
+          scopes:
+            policy:write: Create and update crypto policies
+            policy:read: Read crypto policies
+            vrf:execute: Execute VRF evaluations
+    mutualTLS:
+      type: mutualTLS
+      description: Client TLS certificate is required for low-level node-to-node operations (DKG/MPCCoordinator). Use in production server-to-server endpoints.
+
+  schemas:
+    CryptoPolicyEngine:
+      type: object
+      required: [policyId, version, latticeParams, thresholdParams, participants]
+      properties:
+        policyId:
+          type: string
+          description: Unique policy identifier
+        version:
+          type: string
+        description:
+          type: string
+        latticeParams:
+          $ref: '#/components/schemas/LatticeParameters'
+        thresholdParams:
+          $ref: '#/components/schemas/ThresholdParameters'
+        zkProofs:
+          $ref: '#/components/schemas/ZKProofParameters'
+        allowedAlgorithms:
+          type: array
+          items:
+            type: string
+        keyLifecycle:
+          $ref: '#/components/schemas/KeyLifecycleParameters'
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+
+    LatticeParameters:
+      type: object
+      required: [scheme, n, q, sigma]
+      properties:
+        scheme:
+          type: string
+        n:
+          type: integer
+        q:
+          type: integer
+        sigma:
+          type: number
+
+    ThresholdParameters:
+      type: object
+      required: [nShares, threshold]
+      properties:
+        nShares:
+          type: integer
+        threshold:
+          type: integer
+        shareEncoding:
+          type: string
+
+    ZKProofParameters:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        scheme:
+          type: string
+        securityLevel:
+          type: integer
+
+    KeyLifecycleParameters:
+      type: object
+      properties:
+        rotationIntervalDays:
+          type: integer
+        epochDurationMs:
+          type: integer
+        nonceWindowMs:
+          type: integer
+
+    Participant:
+      type: object
+      required: [id, role, endpoint, pubKeyFingerprint]
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+        endpoint:
+          type: string
+          format: uri
+        pubKeyFingerprint:
+          type: string
+
+    CreatePolicyRequest:
+      $ref: '#/components/schemas/CryptoPolicyEngine'
+
+    CreatePolicyResponse:
+      type: object
+      properties:
+        policy_id:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      examples:
+        created:
+          value:
+            policy_id: clinical-trial-oncology-v1-alpha
+            status: created
+            created_at: '2026-08-02T16:00:00Z'
+
+    GenerateThresholdKeysResponse:
+      type: object
+      properties:
+        operation_id:
+          type: string
+        composite_public_key_fingerprint:
+          type: string
+        status:
+          type: string
+      examples:
+        op:
+          value:
+            operation_id: op-20260802-0001
+            composite_public_key_fingerprint: sha256:abcd...0123
+            status: pending
+
+    VRFEvaluateRequest:
+      type: object
+      properties:
+        policy_id:
+          type: string
+        evaluation_context:
+          type: string
+          format: byte
+        client_nonce:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    VRFEvaluateResponse:
+      type: object
+      properties:
+        vrf_output:
+          type: string
+          description: base64-encoded output
+        proof_bundle:
+          type: string
+          description: base64-encoded NIZK proof bundle
+        epoch_id:
+          type: string
+        signed_audit_token:
+          type: string
+      examples:
+        sample:
+          value:
+            vrf_output: "VGhpcyBpcyBhIHNhbXBsZSB2cmYgb3V0cHV0"
+            proof_bundle: "UE9NIFBST09GLVRIQU4gVEhJRkZfUFJBV0Q="
+            epoch_id: epoch-2026-08-02-04
+            signed_audit_token: "sha256:abcd1234..."
+
+    VRFVerifyRequest:
+      type: object
+      properties:
+        policy_id:
+          type: string
+        evaluation_context:
+          type: string
+          format: byte
+        vrf_output:
+          type: string
+        proof_bundle:
+          type: string
+
+    VRFVerifyResponse:
+      type: object
+      properties:
+        is_valid:
+          type: boolean
+        error_context:
+          type: string
+
+    NIZKGenerateRequest:
+      type: object
+      properties:
+        policy_id:
+          type: string
+        public_inputs:
+          type: object
+        secret_inputs:
+          type: object
+        scheme:
+          type: string
+      required: [policy_id]
+
+    NIZKGenerateResponse:
+      type: object
+      properties:
+        proof_bundle:
+          type: string
+          description: base64-encoded mock NIZK proof bundle
+        proof_size:
+          type: integer
+        meta:
+          type: object
+
+    NIZKVerifyRequest:
+      type: object
+      properties:
+        policy_id:
+          type: string
+        public_inputs:
+          type: object
+        proof_bundle:
+          type: string
+      required: [policy_id, proof_bundle]
+
+    NIZKVerifyResponse:
+      type: object
+      properties:
+        is_valid:
+          type: boolean
+        error_context:
+          type: string
+
+paths:
+  /policies:
+    post:
+      summary: Create a new Crypto Policy
+      tags: [PolicyService]
+      security:
+        - oauth2: [policy:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePolicyRequest'
+      responses:
+        '201':
+          description: Policy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePolicyResponse'
+
+  /policies/{policy_id}:
+    get:
+      summary: Get a policy
+      tags: [PolicyService]
+      security:
+        - oauth2: [policy:read]
+      parameters:
+        - name: policy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Policy retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CryptoPolicyEngine'
+
+  /policies/{policy_id}/generate-keys:
+    post:
+      summary: Trigger distributed key generation for a policy
+      tags: [KeyLifecycleService]
+      security:
+        - oauth2: [policy:write]
+      parameters:
+        - name: policy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: DKG initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateThresholdKeysResponse'
+
+  /keys/{policy_id}/proactive-refresh:
+    post:
+      summary: Trigger proactive share refresh for a policy
+      tags: [KeyLifecycleService]
+      security:
+        - oauth2: [policy:write]
+      parameters:
+        - name: policy_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proactive share refresh scheduled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  epoch_id:
+                    type: string
+                  refreshed_at:
+                    type: string
+                    format: date-time
+
+  /vrf/evaluate:
+    post:
+      summary: Evaluate a threshold VRF for an input context
+      tags: [VRFExecutionService]
+      security:
+        - oauth2: [vrf:execute]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VRFEvaluateRequest'
+      responses:
+        '200':
+          description: VRF evaluation result with proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VRFEvaluateResponse'
+
+  /vrf/verify:
+    post:
+      summary: Verify a VRF output and proof for a policy
+      tags: [VRFExecutionService]
+      security:
+        - oauth2: [vrf:execute]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VRFVerifyRequest'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VRFVerifyResponse'
+
+  /nizk/generate:
+    post:
+      summary: Generate a NIZK proof bundle for a policy context (stub)
+      tags: [NIZKService]
+      security:
+        - oauth2: [vrf:execute]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NIZKGenerateRequest'
+      responses:
+        '200':
+          description: Generated mock proof bundle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIZKGenerateResponse'
+
+  /nizk/verify:
+    post:
+      summary: Verify a NIZK proof bundle (stub)
+      tags: [NIZKService]
+      security:
+        - oauth2: [vrf:execute]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NIZKVerifyRequest'
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NIZKVerifyResponse'
+
+tags:
+  - name: PolicyService
+    description: Manage cryptographic policy definitions
+  - name: KeyLifecycleService
+    description: Key management and DKG lifecycle operations
+  - name: VRFExecutionService
+    description: VRF evaluation and verification APIs
+  - name: NIZKService
+    description: NIZK proof generation and verification (stubs for testing)
+
+x-implementation-notes: |
+  - Production deployments should enforce mTLS between node operators for DKG and partial-evaluation endpoints.
+  - OAuth2 client credentials are recommended for external application integration.

@@ -1,0 +1,6 @@
+{
+  "policyId": "malformed-policy",
+  "thresholdParams": { "nShares": 3, "threshold": 2 },
+  "participants": [ { "id": "a", "role": "signer" }, { "id": "b", "role": "signer" }, { "id": "c", "role": "signer" } ],
+  "immutable": true
+}

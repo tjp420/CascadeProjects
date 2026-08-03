@@ -1,0 +1,115 @@
+name: ai-platform — OpenAPI lint, Prism mock, tests
+
+on:
+  pull_request:
+    paths:
+      - 'ai-platform/**'
+      - '.github/workflows/ai-platform-openapi-prism.yml'
+  push:
+    branches:
+      - 'feature/**'
+  workflow_dispatch: {}
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+
+      - name: Install Spectral and run lint (with retries)
+        run: |
+          set -euo pipefail
+          retry() {
+            local -r max_attempts=${1:-3}
+            shift || true
+            local -r cmd=("$@")
+            local attempt=1
+            local delay=5
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt: ${cmd[*]}"
+              if "${cmd[@]}"; then
+                return 0
+              fi
+              echo "Command failed. Sleeping ${delay}s before retry..."
+              sleep $delay
+              attempt=$((attempt+1))
+              delay=$((delay*3))
+              if [ $delay -gt 30 ]; then delay=30; fi
+            done
+            echo "All $max_attempts attempts failed for: ${cmd[*]}" >&2
+            return 1
+          }
+
+          # Install spectral (using npx to avoid global install) with retries
+          retry 3 npx --yes @stoplight/spectral-cli@6 --version
+
+          # Run lint (allow initial soft failure for diagnostics, then enforce)
+          npx --yes @stoplight/spectral-cli@6 lint ai-platform/api/openapi.yaml --ruleset .spectral.yaml --verbose || true
+          retry 3 npx --yes @stoplight/spectral-cli@6 lint ai-platform/api/openapi.yaml --ruleset .spectral.yaml --fail-severity error
+
+      - name: Start Prism mock (Docker) with retry
+        run: |
+          set -euo pipefail
+          retry_cmd() {
+            local -r max_attempts=${1:-3}
+            shift || true
+            local -r cmd=("$@")
+            local attempt=1
+            local delay=5
+            while [ $attempt -le $max_attempts ]; do
+              echo "Attempt $attempt: ${cmd[*]}"
+              if "${cmd[@]}"; then
+                return 0
+              fi
+              echo "Command failed. Sleeping ${delay}s before retry..."
+              sleep $delay
+              attempt=$((attempt+1))
+              delay=$((delay*3))
+              if [ $delay -gt 30 ]; then delay=30; fi
+            done
+            echo "All $max_attempts attempts failed for: ${cmd[*]}" >&2
+            return 1
+          }
+
+          retry_cmd 3 docker pull stoplight/prism:4
+          retry_cmd 3 docker run -d --rm --name prism-mock -p 4010:4010 -v $GITHUB_WORKSPACE/ai-platform/api/openapi.yaml:/spec/openapi.yaml:ro stoplight/prism:4 mock /spec/openapi.yaml -h 0.0.0.0 -p 4010 || true
+
+      - name: Wait for Prism readiness
+        run: |
+          echo 'Waiting for Prism at http://localhost:4010/ ...'
+          for i in {1..60}; do
+            if curl -fsS http://localhost:4010/ >/dev/null 2>&1; then
+              echo 'Prism is ready'; exit 0
+            fi
+            sleep 1
+          done
+          echo 'Prism did not become ready in time'; docker logs prism-mock || true; exit 1
+
+      - name: Run ai-platform tests
+        env:
+          CI: true
+        run: |
+          npx jest --config=ai-platform/jest.config.cjs --runInBand
+
+      - name: Run integration tests against Prism mock
+        env:
+          CI: true
+          PRISM_BASE: http://localhost:4010
+        run: |
+          echo 'Running integration tests against Prism mock...'
+          npx jest --config=ai-platform/jest.config.cjs ai-platform/tests/integration --runInBand
+
+      - name: Collect mock logs
+        if: failure()
+        run: docker logs prism-mock || true
+
+      - name: Stop Prism mock
+        if: always()
+        run: docker rm -f prism-mock || true

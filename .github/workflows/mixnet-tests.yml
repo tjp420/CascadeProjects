@@ -1,0 +1,73 @@
+name: Mixnet Tests
+
+on:
+  pull_request:
+    branches:
+      - feature/track67-governance-hubs
+  push:
+    branches:
+      - feature/track67-governance-hubs
+
+jobs:
+  test:
+    name: Run Mixnet tests
+    runs-on: ubuntu-latest
+    env:
+      MAX_JITTER_MS: 150
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3 make g++ build-essential
+
+      - name: Cache npm and node-gyp
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/node-gyp
+          key: ${{ runner.os }}-node-18-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-18-
+
+      - name: Build native shuffle addon (strict)
+        run: |
+          set -euo pipefail
+          cd ai-platform/server/lib/mixnet/native
+          # install node-addon-api locally for headers
+          npm install node-addon-api --no-audit --no-fund --no-save
+          # build using node-gyp; fail the job immediately on compilation errors
+          npx node-gyp configure build
+
+      - name: Run native benchmark
+        run: |
+          node ai-platform/server/lib/mixnet/bench/benchmark-native.cjs
+
+      - name: Run Mixnet Jest tests (with native addon present)
+        run: |
+          # Run only the mixnet tests to verify native addon integration
+          npx jest ai-platform/server/lib/mixnet --color --runInBand --maxWorkers=2
+
+      - name: Run Mixnet Jest tests
+        run: npx jest "ai-platform/server/lib/mixnet/__tests__/*.test.cjs" --runInBand --colors
+
+      - name: Run jitter acceptance check
+        id: jitter
+        run: node ai-platform/server/lib/mixnet/ci/check_jitter.cjs
+
+      - name: Upload jitter metrics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mixnet-jitter-metrics
+          path: ai-platform/server/lib/mixnet/ci/jitter_metrics.json

@@ -2,6 +2,9 @@
 // simplebeacon-ignore: Scanner pattern definitions, test fixtures, dashboard code, security — all findings are false positives
 import { authService, apiBase } from '../services/authService.js?v=20260722bridgefix1';
 import { escapeHtml, showToast, downloadJson, setHtml } from '../utils.js?v=20260720adminfix1';
+import { renderCoreReplicationTelemetryDashboard, cleanupCoreReplicationTelemetryDashboard } from '../components/CoreReplicationTelemetryDashboard.js';
+import { renderDropTelemetryDashboard, cleanupDropTelemetryDashboard } from '../components/DropTelemetryDashboard.js';
+import { renderEnclaveTelemetryDashboard, cleanupEnclaveTelemetryDashboard } from '../components/EnclaveTelemetryDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -881,6 +884,9 @@ export class AdminPanelView {
             </div>
             ${this.error ? `<div class="card notice-card mb-4"><p class="text-danger">${escapeHtml(this.error)}</p></div>` : ''}
             ${this.renderStats(onlineCount, tierCounts, statusCounts)}
+            <div class="admin-telemetry-section mb-4" id="admin-telemetry-section">
+                <div class="admin-telemetry-grid" id="admin-telemetry-grid"></div>
+            </div>
             <div class="admin-layout">
                 <aside class="admin-sidebar card">
                     <h2 class="admin-sidebar-title">Filters</h2>
@@ -943,6 +949,38 @@ export class AdminPanelView {
             </div>
         `);
         this.bindEvents();
+        this.mountTelemetryDashboards();
+    }
+
+    mountTelemetryDashboards() {
+        const grid = this.container.querySelector('#admin-telemetry-grid');
+        if (!grid) return;
+        // Clean up any previously mounted dashboards
+        cleanupCoreReplicationTelemetryDashboard();
+        cleanupDropTelemetryDashboard();
+        cleanupEnclaveTelemetryDashboard();
+        grid.innerHTML = '';
+        // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
+        try {
+            const replDashboard = renderCoreReplicationTelemetryDashboard();
+            grid.appendChild(replDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount replication telemetry dashboard:', e);
+        }
+        // Mount Drop Telemetry (client-side drag-and-drop counters)
+        try {
+            const dropDashboard = renderDropTelemetryDashboard();
+            grid.appendChild(dropDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount drop telemetry dashboard:', e);
+        }
+        // Mount Enclave Telemetry (Track 41, 10 counters + enclave state banner)
+        try {
+            const enclaveDashboard = renderEnclaveTelemetryDashboard();
+            grid.appendChild(enclaveDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount enclave telemetry dashboard:', e);
+        }
     }
 
     renderStats(onlineCount, tierCounts = {}, statusCounts = {}) {

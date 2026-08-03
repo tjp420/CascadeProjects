@@ -1,0 +1,11 @@
+{
+  "policyId": "policy-invalid-ntt-q-00001",
+  "latticeParams": { "scheme": "ModuleLWE", "n": 512, "q": 1030, "sigma": 3.2 },
+  "thresholdParams": { "nShares": 3, "threshold": 2 },
+  "participants": [
+    { "id": "a", "role": "signer" },
+    { "id": "b", "role": "signer" },
+    { "id": "c", "role": "signer" }
+  ],
+  "immutable": true
+}

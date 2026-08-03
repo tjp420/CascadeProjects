@@ -1,0 +1,12 @@
+{
+  "policyId": "invalid-participants-count",
+  "latticeParams": { "scheme": "ModuleLWE", "n": 1024, "q": 4194305, "sigma": 3.2 },
+  "thresholdParams": { "nShares": 5, "threshold": 4 },
+  "participants": [
+    { "id": "a", "role": "signer" },
+    { "id": "b", "role": "signer" },
+    { "id": "c", "role": "signer" },
+    { "id": "d", "role": "signer" }
+  ],
+  "immutable": true
+}

@@ -817,7 +817,7 @@ async function callOpenAI(prompt, options = {}) {
     const startedAt = Date.now();
     const requestId = options.requestId || `sb-${startedAt}-${Math.random().toString(36).slice(2, 8)}`;
 
-    const response = await fetchWithTimeout(`${cfg.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+    const response = await retryWithBackoff(() => fetchWithTimeout(`${cfg.baseUrl.replace(/\/$/, '')}/chat/completions`, {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${apiKey}`,
@@ -833,7 +833,7 @@ async function callOpenAI(prompt, options = {}) {
             temperature: 0.3,
             max_tokens: 2000
         })
-    }, timeoutMs);
+    }, 2, constants.ONE_SECOND_MS), timeoutMs);
 
     if (!response.ok) {
         let errorBody = '';
@@ -883,7 +883,7 @@ async function callAnthropic(prompt, options = {}) {
     const systemMessage = messages.find(m => m.role === 'system')?.content || '';
     const filteredMessages = messages.filter(m => m.role !== 'system');
 
-    const response = await fetchWithTimeout(`${cfg.baseUrl.replace(/\/$/, '')}/messages`, {
+    const response = await retryWithBackoff(() => fetchWithTimeout(`${cfg.baseUrl.replace(/\/$/, '')}/messages`, {
         method: 'POST',
         headers: {
             'x-api-key': apiKey,
@@ -900,7 +900,7 @@ async function callAnthropic(prompt, options = {}) {
             system: systemMessage,
             messages: filteredMessages
         })
-    }, timeoutMs);
+    }, 2, constants.ONE_SECOND_MS), timeoutMs);
 
     if (!response.ok) {
         let errorBody = '';
@@ -951,10 +951,10 @@ async function callOllama(prompt, options = {}) {
     const timeoutMs = options.timeoutMs || DEFAULTS.ollama.timeoutMs;
 
     // Use chat API for better conversation handling (system prompts, message history)
-    const generated = await ollamaChat(baseUrl, model, messages, {
+    const generated = await retryWithBackoff(() => ollamaChat(baseUrl, model, messages, {
         timeoutMs: timeoutMs,
         includeMeta: true
-    });
+    }), 2, constants.ONE_SECOND_MS);
     if (generated?.timing) {
         options._ollamaTiming = options._ollamaTiming || {};
         options._ollamaTiming.generate = generated.timing;

@@ -1,0 +1,48 @@
+{
+  "policyId": "clinical-trial-oncology-v1-alpha",
+  "version": "v1.0.0",
+  "description": "Cryptographic policy governing randomized clinical treatment allocation across multi-site oncology nodes. Employs a post-quantum 5-of-7 threshold configuration.",
+  "createdBy": "sec-ops@clinical-analytics.org",
+  "createdAt": "2026-08-02T16:00:00Z",
+  "latticeParams": {
+    "scheme": "ModuleLWE",
+    "n": 1024,
+    "q": 4194305,
+    "sigma": 3.2,
+    "polyType": "cyclotomic",
+    "hashToRing": "shake256-ctr-to-ring"
+  },
+  "thresholdParams": {
+    "nShares": 7,
+    "threshold": 5,
+    "shareEncoding": "verifiable-secret-sharing-packed"
+  },
+  "zkProofs": {
+    "enabled": true,
+    "scheme": "Fiat-Shamir-Lattice-NIZK",
+    "securityLevel": 256
+  },
+  "allowedAlgorithms": [
+    "lattice-vrf-mlwe",
+    "shake256",
+    "hmac-sha256"
+  ],
+  "keyLifecycle": {
+    "rotationIntervalDays": 90,
+    "epochDurationMs": 86400000,
+    "nonceWindowMs": 300000,
+    "shareRefreshIntervalMs": 14400000
+  },
+  "participants": [
+    { "id": "node-site-01-toronto", "role": "signer" },
+    { "id": "node-site-02-vancouver", "role": "signer" },
+    { "id": "node-site-03-montreal", "role": "signer" },
+    { "id": "node-site-04-chicago", "role": "signer" },
+    { "id": "node-site-05-boston", "role": "signer" },
+    { "id": "node-site-06-london", "role": "signer" },
+    { "id": "node-site-07-paris", "role": "signer" }
+  ],
+  "proactiveRefresh": true,
+  "immutable": true,
+  "auditEnabled": true
+}
