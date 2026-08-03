@@ -7,6 +7,7 @@ import { renderDropTelemetryDashboard, cleanupDropTelemetryDashboard } from '../
 import { renderEnclaveTelemetryDashboard, cleanupEnclaveTelemetryDashboard } from '../components/EnclaveTelemetryDashboard.js';
 import { renderRecursiveProofAggregationDashboard, cleanupRecursiveProofAggregationDashboard } from '../components/RecursiveProofAggregationDashboard.js';
 import { renderDecentralizedIdentityGatingDashboard, cleanupDecentralizedIdentityGatingDashboard } from '../components/DecentralizedIdentityGatingDashboard.js';
+import { renderSpaceBasedLaserCommunicationMeshGatingDashboard, cleanupSpaceBasedLaserCommunicationMeshGatingDashboard } from '../components/SpaceBasedLaserCommunicationMeshGatingDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -963,6 +964,7 @@ export class AdminPanelView {
         cleanupEnclaveTelemetryDashboard();
         cleanupRecursiveProofAggregationDashboard();
         cleanupDecentralizedIdentityGatingDashboard();
+        cleanupSpaceBasedLaserCommunicationMeshGatingDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
@@ -998,6 +1000,13 @@ export class AdminPanelView {
             grid.appendChild(didDashboard);
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount decentralized identity gating dashboard:', e);
+        }
+        // Mount Space-Based Laser Communication Mesh Gating (Track 108, policy + telemetry)
+        try {
+            const laserDashboard = renderSpaceBasedLaserCommunicationMeshGatingDashboard();
+            grid.appendChild(laserDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount space-based laser mesh gating dashboard:', e);
         }
     }
 
