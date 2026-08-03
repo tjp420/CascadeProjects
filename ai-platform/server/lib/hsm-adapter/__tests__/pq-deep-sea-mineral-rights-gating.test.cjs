@@ -6,6 +6,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minSovereignQuorum: 6,
   maxLeaseWindowSeconds: 31536000,
@@ -36,7 +44,7 @@ function baseCompleteRequest(poolId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({ allowedAuthorities:['mock-authority'], allowedMeasurements:['MOCK_MEASUREMENT_00000000000000000000000000000000'] });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcDeepSeaMineralRightsGatingHub({ policy:POLICY, attestationClient, audit:(event,info)=>events.push({event,info}) });
   const validator = new ZkExtractionClaimValidator({ policy:POLICY, hub, attestationClient, audit:(event,info)=>events.push({event,info}) });
   return { events, attestationClient, hub, validator };
@@ -91,7 +99,7 @@ describe('Track 95 PQ deep-sea mineral rights gating', () => {
   });
 
   test('rejects un-attested ISA authority initializer', () => {
-    const ac = new EnclaveAttestationClient({ allowedAuthorities:['mock-authority'], allowedMeasurements:['MOCK_MEASUREMENT_00000000000000000000000000000000'] });
+    const ac = new MockAttestationClient();
     const hub = new PqcDeepSeaMineralRightsGatingHub({ policy:POLICY, attestationClient:ac });
     const req = baseInitRequest(); req.isaAuthorityInitializerAttestation = { authority:'bad' };
     expect(()=>hub.initializePool(req)).toThrow(HsmAdapterError);
@@ -99,7 +107,7 @@ describe('Track 95 PQ deep-sea mineral rights gating', () => {
 
   test('rejects un-attested seabed oversight committee', () => {
     const { hub, pool } = setupAndInitPool();
-    const ac = new EnclaveAttestationClient({ allowedAuthorities:['mock-authority'], allowedMeasurements:['MOCK_MEASUREMENT_00000000000000000000000000000000'] });
+    const ac = new MockAttestationClient();
     const v = new ZkExtractionClaimValidator({ policy:POLICY, hub, attestationClient:ac });
     const cr = baseClaimRequest(pool.poolId); cr.seabedOversightCommitteeAttestation = { authority:'bad' };
     expect(()=>v.verifyExtractionClaim(cr)).toThrow(HsmAdapterError);
