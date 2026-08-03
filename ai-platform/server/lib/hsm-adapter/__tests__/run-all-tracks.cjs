@@ -96,6 +96,7 @@ const SUITES = [
   'pq-autonomous-vehicle-fleet-coordination-gating',
   'pq-supply-chain-resilience-integrity-gating',
   'pq-smart-contract-verifiable-execution-gating',
+  'pq-decentralized-identity-proof-gating',
   'confidential-federated-learning',
   'he-mesh-topology',
   'secure-inner-product-search',

@@ -40,6 +40,35 @@ const GENERATOR = 0x400000000n; // 2^34 = 17179869184
 // The polynomial field prime (same as PRIME for coefficient arithmetic).
 const FIELD_PRIME = PRIME;
 
+// Determine allowed max field bits for DKG persistence/ingestion checks.
+// Order of precedence: DKG_MAX_FIELD_BITS env override, crypto-policy-engine
+// DEFAULT_POLICY.dkg.commitmentGroup mapping, otherwise derive from field prime.
+function resolveDkgMaxFieldBits(fieldPrime) {
+  const env = process.env.DKG_MAX_FIELD_BITS;
+  if (env) {
+    const n = Number(env);
+    if (Number.isFinite(n) && n > 0) return Math.floor(n);
+  }
+  try {
+    const { DEFAULT_POLICY } = require('./crypto-policy-engine.cjs');
+    const group = DEFAULT_POLICY && DEFAULT_POLICY.dkg && DEFAULT_POLICY.dkg.commitmentGroup;
+    if (group && typeof group === 'string') {
+      const nm = group.trim();
+      const map = { 'P-256': 256, 'P-384': 384, 'P-521': 521, 'secp256k1': 256, 'secp256r1': 256 };
+      if (map[nm]) return map[nm];
+    }
+  } catch (e) {
+    // ignore and fallback to deriving from prime
+  }
+  // derive from provided fieldPrime (BigInt)
+  try {
+    const fp = BigInt(fieldPrime);
+    return fp === 0n ? 1 : fp.toString(2).length;
+  } catch (e) {
+    return 256; // safe conservative default
+  }
+}
+
 /**
  * Convert a Buffer to a BigInt (big-endian).
  * @param {Buffer} buf
@@ -224,6 +253,9 @@ class DkgSnarkEngine {
     this._nodeIds = [...options.nodeIds];
     this._requireZkValidation = options.requireZkValidation !== false;
 
+    // Determine numeric guard for polynomial coefficients and shares
+    this._maxFieldBits = resolveDkgMaxFieldBits(options.prime || this._fieldPrime);
+
     this._contributions = new Map(); // nodeId -> DkgNodeContribution
     this._complaints = []; // { from, against, reason }
     this._disqualified = new Set();
@@ -264,6 +296,25 @@ class DkgSnarkEngine {
     for (const peerId of this._nodeIds) {
       const k = BigInt(this._nodeIdToIndex(peerId) + 1);
       shares.set(peerId, _evaluatePolynomial(polynomial, k));
+    }
+
+    // Persistence guard: ensure polynomial coefficients and shares fit within
+    // the allowed field bit-width to avoid storing oversized numeric values.
+    const maxBits = this._maxFieldBits || resolveDkgMaxFieldBits(this._fieldPrime);
+    for (let j = 0; j < polynomial.length; j++) {
+      const coeff = polynomial[j];
+      const absC = coeff < 0n ? -coeff : coeff;
+      const bits = absC === 0n ? 1 : absC.toString(2).length;
+      if (bits > maxBits) {
+        throw new HsmAdapterError('NUMERIC_OVERSIZE', `polynomial coefficient ${j} exceeds ${maxBits} bits (${bits} bits)`);
+      }
+    }
+    for (const [peerId, s] of shares.entries()) {
+      const absS = s < 0n ? -s : s;
+      const bits = absS === 0n ? 1 : absS.toString(2).length;
+      if (bits > maxBits) {
+        throw new HsmAdapterError('NUMERIC_OVERSIZE', `share for ${peerId} exceeds ${maxBits} bits (${bits} bits)`);
+      }
     }
 
     const contribution = new DkgNodeContribution(nodeId, polynomial, commitments, shares);

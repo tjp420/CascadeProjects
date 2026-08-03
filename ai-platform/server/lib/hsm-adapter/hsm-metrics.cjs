@@ -788,6 +788,9 @@ const counters = {
   hsm_execgate_pool_initialized_total: 0,
   hsm_zk_execution_claim_verified_total: 0,
   hsm_execution_accreditation_completed_total: 0,
+  hsm_didgate_pool_initialized_total: 0,
+  hsm_zk_identity_claim_verified_total: 0,
+  hsm_revocation_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1448,6 +1451,9 @@ const META = {
   hsm_execgate_pool_initialized_total: { help: 'Total smart-contract verifiable execution gating pools initialized.', type: 'counter' },
   hsm_zk_execution_claim_verified_total: { help: 'Total ZK smart-contract verifiable execution claims verified.', type: 'counter' },
   hsm_execution_accreditation_completed_total: { help: 'Total execution accreditation completions finalized.', type: 'counter' },
+  hsm_didgate_pool_initialized_total: { help: 'Total decentralized identity proof gating pools initialized.', type: 'counter' },
+  hsm_zk_identity_claim_verified_total: { help: 'Total ZK decentralized identity claims verified.', type: 'counter' },
+  hsm_revocation_accreditation_completed_total: { help: 'Total decentralized identity revocation accreditation completions finalized.', type: 'counter' },
 };
 
 /**

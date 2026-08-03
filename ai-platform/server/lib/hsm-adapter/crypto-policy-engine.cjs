@@ -877,6 +877,17 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderExecutionClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqDecentralizedIdentityProofGating: {
+    minIdentityQuorum: 12,
+    maxRevocationWindowSeconds: 86400,
+    maxIdentityChainDepth: 32,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireIdentityAuthorityInitializerAttestation: true,
+    requireIdentityEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderIdentityClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1334,6 +1345,10 @@ function _mergeWithDefault(tenantPolicy) {
     pqSmartContractVerifiableExecutionGating: {
       ...DEFAULT_POLICY.pqSmartContractVerifiableExecutionGating,
       ...(tenantPolicy.pqSmartContractVerifiableExecutionGating || {}),
+    },
+    pqDecentralizedIdentityProofGating: {
+      ...DEFAULT_POLICY.pqDecentralizedIdentityProofGating,
+      ...(tenantPolicy.pqDecentralizedIdentityProofGating || {}),
     },
   };
 }
@@ -3564,6 +3579,37 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqDecentralizedIdentityProofGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqDecentralizedIdentityProofGating, ...(tenantPolicy.pqDecentralizedIdentityProofGating || {}) };
+    if (typeof config.identityQuorum === 'number' && config.identityQuorum < policy.minIdentityQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `identity quorum ${config.identityQuorum} below minimum ${policy.minIdentityQuorum}`);
+    }
+    if (typeof config.revocationWindowSeconds === 'number' && config.revocationWindowSeconds > policy.maxRevocationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `revocation window seconds ${config.revocationWindowSeconds} exceeds maximum ${policy.maxRevocationWindowSeconds}`);
+    }
+    if (typeof config.identityChainDepth === 'number' && config.identityChainDepth > policy.maxIdentityChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `identity chain depth ${config.identityChainDepth} exceeds maximum ${policy.maxIdentityChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireIdentityAuthorityInitializerAttestation && config.identityAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'identity authority initializer attestation is required');
+    }
+    if (policy.requireIdentityEthicsOversightCommitteeAttestation && config.identityEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'identity ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderIdentityClaims === 'boolean' && policy.banMalformedOrOutOfOrderIdentityClaims && !config.banMalformedOrOutOfOrderIdentityClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order identity claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -4253,6 +4299,11 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSmartContractVerifiableExecutionGating') {
       this._validatePqSmartContractVerifiableExecutionGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqDecentralizedIdentityProofGating') {
+      this._validatePqDecentralizedIdentityProofGating(tenantPolicy, config);
       return true;
     }
 

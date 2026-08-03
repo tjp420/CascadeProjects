@@ -11,6 +11,30 @@ const { normalizeToBigInt } = require('./field.cjs');
 
 const jcs = new JcsCanonicalizer();
 
+// Resolve allowed max field bits for ingestion checks. Order of precedence:
+// 1. `PROOF_MAX_FIELD_BITS` env override (numeric)
+// 2. crypto-policy-engine DEFAULT_POLICY.dkg.commitmentGroup mapping
+// 3. fallback default (521 bits)
+function resolveMaxFieldBits() {
+  const env = process.env.PROOF_MAX_FIELD_BITS;
+  if (env) {
+    const n = Number(env);
+    if (Number.isFinite(n) && n > 0) return Math.floor(n);
+  }
+  try {
+    const { DEFAULT_POLICY } = require('../../hsm-adapter/crypto-policy-engine.cjs');
+    const group = DEFAULT_POLICY && DEFAULT_POLICY.dkg && DEFAULT_POLICY.dkg.commitmentGroup;
+    if (group && typeof group === 'string') {
+      const nm = group.trim();
+      const map = { 'P-256': 256, 'P-384': 384, 'P-521': 521, 'secp256k1': 256, 'secp256r1': 256 };
+      if (map[nm]) return map[nm];
+    }
+  } catch (e) {
+    // ignore and fallback
+  }
+  return 521;
+}
+
 // Load and compile JSON Schema for incoming proofs
 let validateProof = null;
 try {
@@ -120,7 +144,7 @@ class PartialShareProofManager {
     // the configured max bit length for the cryptographic curve. This prevents
     // oversized numeric values from reaching arithmetic layers and causing
     // unexpected behavior.
-    const maxBits = Number(process.env.PROOF_MAX_FIELD_BITS || 521);
+    const maxBits = resolveMaxFieldBits();
     const oversizeReason = numericOversizeCheck(proof && proof.envelope, maxBits);
     if (oversizeReason) {
       try { auditLogger.log({ action: 'PROOF_VERIFY_FAILED', entity: 'partial_share_proof', entityId: proof && proof.proof_material && proof.proof_material.evidence_id, metadata: { reason: 'numeric_oversize', message: oversizeReason } }); } catch (e) {}

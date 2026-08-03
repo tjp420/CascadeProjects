@@ -1,0 +1,272 @@
+{
+  "entries": {
+    "default::audit-1a110681d987": {
+      "id": "audit-1a110681d987",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:16:48.913Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "",
+      "changes": [],
+      "metadata": {
+        "reason": "schema",
+        "message": "schema validation failed",
+        "errors": [
+          {
+            "keyword": "required",
+            "instancePath": "",
+            "schemaPath": "#/required",
+            "message": "must have required property 'proof_material'"
+          }
+        ]
+      },
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "73c60949f5345b73561a7c7ed4804749cabc9748498d5e1b9c33a84b666a5f03"
+    },
+    "default::audit-d24b64fcadeb": {
+      "id": "audit-d24b64fcadeb",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:16:48.922Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "4a1bfd71c3d545821fe8e9a629d6fdc8688ce1a63077a154bf6333e7d3eb75e9",
+      "changes": [],
+      "metadata": {
+        "reason": "schema",
+        "message": "schema validation failed",
+        "errors": [
+          {
+            "keyword": "type",
+            "instancePath": "/proof_material/detached_signature",
+            "schemaPath": "#/properties/proof_material/properties/detached_signature/type",
+            "message": "must be string"
+          }
+        ]
+      },
+      "prevHash": "73c60949f5345b73561a7c7ed4804749cabc9748498d5e1b9c33a84b666a5f03",
+      "hash": "5d5868f6114344b296d98cea8a76995f3f6afa83c27b4973d8a2a8bd3512247c"
+    },
+    "default::audit-2536d1b8ca9f": {
+      "id": "audit-2536d1b8ca9f",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:16:48.933Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "4a1bfd71c3d545821fe8e9a629d6fdc8688ce1a63077a154bf6333e7d3eb75e9",
+      "changes": [],
+      "metadata": {
+        "reason": "canonicalization",
+        "message": "Refusing __bigint_hex marker from untrusted input"
+      },
+      "prevHash": "5d5868f6114344b296d98cea8a76995f3f6afa83c27b4973d8a2a8bd3512247c",
+      "hash": "dfb966a9dfb157eddaa54d56acc9ca2fa077a8e7bf867bd5dedfdb80de107c5d"
+    },
+    "default::audit-4703eaa0dba1": {
+      "id": "audit-4703eaa0dba1",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:18:29.399Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "",
+      "changes": [],
+      "metadata": {
+        "reason": "schema",
+        "message": "schema validation failed",
+        "errors": [
+          {
+            "keyword": "required",
+            "instancePath": "",
+            "schemaPath": "#/required",
+            "message": "must have required property 'proof_material'"
+          }
+        ]
+      },
+      "prevHash": "dfb966a9dfb157eddaa54d56acc9ca2fa077a8e7bf867bd5dedfdb80de107c5d",
+      "hash": "11a2fbcc2ef6122f23f16c979f6161d812ad1aa2b66bb8d0b696654068885e8c"
+    },
+    "default::audit-11fe24651ef5": {
+      "id": "audit-11fe24651ef5",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:18:29.418Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "4a1bfd71c3d545821fe8e9a629d6fdc8688ce1a63077a154bf6333e7d3eb75e9",
+      "changes": [],
+      "metadata": {
+        "reason": "schema",
+        "message": "schema validation failed",
+        "errors": [
+          {
+            "keyword": "type",
+            "instancePath": "/proof_material/detached_signature",
+            "schemaPath": "#/properties/proof_material/properties/detached_signature/type",
+            "message": "must be string"
+          }
+        ]
+      },
+      "prevHash": "11a2fbcc2ef6122f23f16c979f6161d812ad1aa2b66bb8d0b696654068885e8c",
+      "hash": "fd8b2858bc1d7d946c0e11be7618a60c3d290025cfa066c5d5c0657e578e6d3f"
+    },
+    "default::audit-ffc98527ab0e": {
+      "id": "audit-ffc98527ab0e",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:18:29.422Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "4a1bfd71c3d545821fe8e9a629d6fdc8688ce1a63077a154bf6333e7d3eb75e9",
+      "changes": [],
+      "metadata": {
+        "reason": "canonicalization",
+        "message": "Refusing __bigint_hex marker from untrusted input"
+      },
+      "prevHash": "fd8b2858bc1d7d946c0e11be7618a60c3d290025cfa066c5d5c0657e578e6d3f",
+      "hash": "9373566f3f9b8d8a0c8f828738e921f078eddc8cc4c18e120cee16125167f4af"
+    },
+    "default::audit-4953f4a55b07": {
+      "id": "audit-4953f4a55b07",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:23:35.087Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "",
+      "changes": [],
+      "metadata": {
+        "reason": "schema",
+        "message": "schema validation failed",
+        "errors": [
+          {
+            "keyword": "required",
+            "instancePath": "",
+            "schemaPath": "#/required",
+            "message": "must have required property 'proof_material'"
+          }
+        ]
+      },
+      "prevHash": "9373566f3f9b8d8a0c8f828738e921f078eddc8cc4c18e120cee16125167f4af",
+      "hash": "a7f359f38d3d3ea4cbf4fbde8acc2525cddb1999ab71f0bd30d09f9e0a94e8ef"
+    },
+    "default::audit-fc6d96f1abff": {
+      "id": "audit-fc6d96f1abff",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:23:35.104Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "4a1bfd71c3d545821fe8e9a629d6fdc8688ce1a63077a154bf6333e7d3eb75e9",
+      "changes": [],
+      "metadata": {
+        "reason": "schema",
+        "message": "schema validation failed",
+        "errors": [
+          {
+            "keyword": "type",
+            "instancePath": "/proof_material/detached_signature",
+            "schemaPath": "#/properties/proof_material/properties/detached_signature/type",
+            "message": "must be string"
+          }
+        ]
+      },
+      "prevHash": "a7f359f38d3d3ea4cbf4fbde8acc2525cddb1999ab71f0bd30d09f9e0a94e8ef",
+      "hash": "2fb0b2e014e6863b9420b71aa917e72a30e3c6b1020647b834679e4400500887"
+    },
+    "default::audit-56421cb9dcc3": {
+      "id": "audit-56421cb9dcc3",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:23:35.109Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "4a1bfd71c3d545821fe8e9a629d6fdc8688ce1a63077a154bf6333e7d3eb75e9",
+      "changes": [],
+      "metadata": {
+        "reason": "canonicalization",
+        "message": "Refusing __bigint_hex marker from untrusted input"
+      },
+      "prevHash": "2fb0b2e014e6863b9420b71aa917e72a30e3c6b1020647b834679e4400500887",
+      "hash": "7e4a5cb0845d155306c1bd8730e0521628f03bcf4de99887c7fa498b9b0c4a35"
+    },
+    "default::audit-5a4e06a96a9c": {
+      "id": "audit-5a4e06a96a9c",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:25:20.767Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "",
+      "changes": [],
+      "metadata": {
+        "reason": "schema",
+        "message": "schema validation failed",
+        "errors": [
+          {
+            "keyword": "required",
+            "instancePath": "",
+            "schemaPath": "#/required",
+            "message": "must have required property 'proof_material'"
+          }
+        ]
+      },
+      "prevHash": "7e4a5cb0845d155306c1bd8730e0521628f03bcf4de99887c7fa498b9b0c4a35",
+      "hash": "8a1e896e38aaf945dc4bd908a6cf406053ffc4fd2fb5718a969b37fbfad05e85"
+    },
+    "default::audit-db68c7025645": {
+      "id": "audit-db68c7025645",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:25:20.788Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "4a1bfd71c3d545821fe8e9a629d6fdc8688ce1a63077a154bf6333e7d3eb75e9",
+      "changes": [],
+      "metadata": {
+        "reason": "schema",
+        "message": "schema validation failed",
+        "errors": [
+          {
+            "keyword": "type",
+            "instancePath": "/proof_material/detached_signature",
+            "schemaPath": "#/properties/proof_material/properties/detached_signature/type",
+            "message": "must be string"
+          }
+        ]
+      },
+      "prevHash": "8a1e896e38aaf945dc4bd908a6cf406053ffc4fd2fb5718a969b37fbfad05e85",
+      "hash": "8e9a76ae2eaa32595050eaeb10ce923f322d55426b99a614bfdfb86f8cf15fa0"
+    },
+    "default::audit-2387286fa6ee": {
+      "id": "audit-2387286fa6ee",
+      "orgId": "default",
+      "timestamp": "2026-08-03T18:25:20.794Z",
+      "actorId": "unknown",
+      "actorEmail": "unknown",
+      "action": "PROOF_VERIFY_FAILED",
+      "entity": "partial_share_proof",
+      "entityId": "4a1bfd71c3d545821fe8e9a629d6fdc8688ce1a63077a154bf6333e7d3eb75e9",
+      "changes": [],
+      "metadata": {
+        "reason": "canonicalization",
+        "message": "Refusing __bigint_hex marker from untrusted input"
+      },
+      "prevHash": "8e9a76ae2eaa32595050eaeb10ce923f322d55426b99a614bfdfb86f8cf15fa0",
+      "hash": "e70e9a933fe97f0fba98504658b1b7303258dd025b85ddf9801c6654fa9a8b8e"
+    }
+  }
+}

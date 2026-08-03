@@ -947,6 +947,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderExecutionClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqDecentralizedIdentityProofGating": {
+      "minIdentityQuorum": 12,
+      "maxRevocationWindowSeconds": 86400,
+      "maxIdentityChainDepth": 32,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireIdentityAuthorityInitializerAttestation": true,
+      "requireIdentityEthicsOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderIdentityClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}

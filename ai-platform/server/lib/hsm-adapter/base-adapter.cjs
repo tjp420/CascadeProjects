@@ -2584,6 +2584,38 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_execution_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 105 decentralized identity proof gating telemetry hooks
+
+  /**
+   * Emit an identity pool initialized event into the audit pipeline.
+   * @param {object} info
+   */
+  emitIdentityPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('IDENTITY_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_didgate_pool_initialized_total'); } catch { }
+  }
+
+  /**
+   * Emit a ZK identity claim verified event into the audit pipeline.
+   * @param {object} info
+   */
+  emitZkIdentityClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_IDENTITY_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_identity_claim_verified_total'); } catch { }
+  }
+
+  /**
+   * Emit a revocation accreditation completed event into the audit pipeline.
+   * @param {object} info
+   */
+  emitRevocationAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('REVOCATION_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_revocation_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**
