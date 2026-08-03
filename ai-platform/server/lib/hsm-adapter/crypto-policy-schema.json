@@ -637,6 +637,17 @@
       "allowedAttestationAuthorities": ["mock-authority"],
       "banMalformedOrOutOfOrderSafeguardsClaims": true,
       "requireCanonicalPayloadLayout": true
+    },
+    "pqWildlifeGating": {
+      "minConservationQuorum": 4,
+      "maxMonitoringWindowSeconds": 2592000,
+      "maxTelemetryChainDepth": 14,
+      "allowedPqcSignatureSchemes": ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
+      "requireConservationAuthorityInitializerAttestation": true,
+      "requireBiodiversityOversightCommitteeAttestation": true,
+      "allowedAttestationAuthorities": ["mock-authority"],
+      "banMalformedOrOutOfOrderConservationClaims": true,
+      "requireCanonicalPayloadLayout": true
     }
   },
   "tenants": {}
