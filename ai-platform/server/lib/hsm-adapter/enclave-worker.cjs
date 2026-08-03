@@ -19,36 +19,52 @@ class EnclaveWorker {
   start() {
     if (this._running) return;
     this._running = true;
+    this._scheduleFlush();
+    this._scheduleRotate();
+  }
 
-    const flushMs = this._withJitter(this.flushIntervalSec);
-    this._flushTimer = setInterval(async () => {
-      try {
-        if (typeof this.manager.flushPendingReplications === 'function') {
-          await this.manager.flushPendingReplications();
-        }
-      } catch (e) {
-        // transient errors are swallowed; manager retains pending state
-      }
-    }, flushMs);
-    if (this._flushTimer && typeof this._flushTimer.unref === 'function') this._flushTimer.unref();
+  _scheduleFlush() {
+    if (!this._running) return;
+    const delay = this._withJitter(this.flushIntervalSec);
+    this._flushTimer = setTimeout(() => {
+      this._doFlush().finally(() => this._scheduleFlush());
+    }, delay);
 
-    const rotateMs = this._withJitter(this.rotateIntervalSec);
-    this._rotateTimer = setInterval(async () => {
-      try {
-        if (this.generateNewWrapFn && typeof this.manager.rotateKek === 'function') {
-          const newWrapFn = await this.generateNewWrapFn();
-          await this.manager.rotateKek(newWrapFn);
-        }
-      } catch (e) {
-        // rotation failures are logged by manager; continue
+  }
+
+  async _doFlush() {
+    try {
+      if (typeof this.manager.flushPendingReplications === 'function') {
+        await this.manager.flushPendingReplications();
       }
-    }, rotateMs);
-    if (this._rotateTimer && typeof this._rotateTimer.unref === 'function') this._rotateTimer.unref();
+    } catch (e) {
+      // transient errors are swallowed; manager retains pending state
+    }
+  }
+
+  _scheduleRotate() {
+    if (!this._running) return;
+    const delay = this._withJitter(this.rotateIntervalSec);
+    this._rotateTimer = setTimeout(() => {
+      this._doRotate().finally(() => this._scheduleRotate());
+    }, delay);
+
+  }
+
+  async _doRotate() {
+    try {
+      if (this.generateNewWrapFn && typeof this.manager.rotateKek === 'function') {
+        const newWrapFn = await this.generateNewWrapFn();
+        await this.manager.rotateKek(newWrapFn);
+      }
+    } catch (e) {
+      // rotation failures are logged by manager; continue
+    }
   }
 
   stop() {
-    if (this._flushTimer) { clearInterval(this._flushTimer); this._flushTimer = null; }
-    if (this._rotateTimer) { clearInterval(this._rotateTimer); this._rotateTimer = null; }
+    if (this._flushTimer) { clearTimeout(this._flushTimer); this._flushTimer = null; }
+    if (this._rotateTimer) { clearTimeout(this._rotateTimer); this._rotateTimer = null; }
     this._running = false;
   }
 }

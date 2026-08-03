@@ -217,6 +217,9 @@ class ConfidentialSandboxEngine {
 
     if (this._attestationClient) {
       const result = this._attestationClient.verify(attestation);
+      if (!result.verified && !result.valid) {
+        throw new HsmAdapterError('ATTESTATION_REJECTED', result.reason || 'attestation verification failed');
+      }
       sandbox._attestation = result;
     } else {
       // No attestation client configured — accept mock attestation
