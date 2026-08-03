@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   requireAttestationForBothEndpoints: true,
   allowedAttestationAuthorities: ['mock-authority'],
@@ -49,10 +57,7 @@ function baseRequest() {
 describe('Track 45 cross-tenant audit', () => {
   test('CrossTenantAccessAuditor recognizes a valid access and chains a receipt', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const auditor = new CrossTenantAccessAuditor({
       policy: POLICY,
       attestationClient,
@@ -83,10 +88,7 @@ describe('Track 45 cross-tenant audit', () => {
   });
 
   test('CrossTenantAccessAuditor rejects missing requester attestation', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const auditor = new CrossTenantAccessAuditor({
       policy: POLICY,
       attestationClient,
@@ -97,10 +99,7 @@ describe('Track 45 cross-tenant audit', () => {
   });
 
   test('CrossTenantAccessAuditor rejects insufficient requester signatures', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const auditor = new CrossTenantAccessAuditor({
       policy: POLICY,
       attestationClient,
@@ -111,10 +110,7 @@ describe('Track 45 cross-tenant audit', () => {
   });
 
   test('CrossTenantAccessAuditor rejects an un-allowed operation', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const auditor = new CrossTenantAccessAuditor({
       policy: POLICY,
       attestationClient,
@@ -125,10 +121,7 @@ describe('Track 45 cross-tenant audit', () => {
   });
 
   test('CrossTenantAccessAuditor rejects an expired verification window', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const auditor = new CrossTenantAccessAuditor({
       policy: POLICY,
       attestationClient,

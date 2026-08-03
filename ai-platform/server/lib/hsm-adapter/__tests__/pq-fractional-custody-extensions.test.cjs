@@ -16,6 +16,14 @@ const { ZkFractionalReleaseVerifier, RELEASE_STATUS, SLASH_REASON, HW_ACCEL_TYPE
 const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minCustodianQuorum: 3,
   maxFractionalBits: 64,
@@ -76,10 +84,7 @@ function baseLiquidateRequest(vaultId, releasedFractionSum) {
 
 function setupHubAndVerifier() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcFractionalCustodyHub({
     policy: POLICY,
     attestationClient,

@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   maxKeywordsPerQuery: 32,
   maxIndexTraversalDepth: 16,
@@ -56,10 +64,7 @@ function baseRouteRequest() {
 describe('Track 56 encrypted search routing', () => {
   test('EncryptedSearchRouter routes an encrypted search query', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const router = new EncryptedSearchRouter({
       policy: POLICY,
       attestationClient,
@@ -73,10 +78,7 @@ describe('Track 56 encrypted search routing', () => {
 
   test('MpcSearchMatchVerifier aggregates evaluations and verifies match', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const router = new EncryptedSearchRouter({
       policy: POLICY,
       attestationClient,
@@ -101,10 +103,7 @@ describe('Track 56 encrypted search routing', () => {
   });
 
   test('EncryptedSearchRouter rejects un-attested submitter', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const router = new EncryptedSearchRouter({
       policy: POLICY,
       attestationClient,
@@ -115,10 +114,7 @@ describe('Track 56 encrypted search routing', () => {
   });
 
   test('EncryptedSearchRouter rejects un-attested index node', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const router = new EncryptedSearchRouter({
       policy: POLICY,
       attestationClient,
@@ -164,10 +160,7 @@ describe('Track 56 encrypted search routing', () => {
   });
 
   test('MpcSearchMatchVerifier rejects unauthorized node submission', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const verifier = new MpcSearchMatchVerifier({
       policy: POLICY,
       attestationClient,

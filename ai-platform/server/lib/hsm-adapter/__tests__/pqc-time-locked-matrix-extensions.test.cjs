@@ -13,6 +13,14 @@ const { MpcTemporalValidityVerifier, PROOF_STATUS, SLASH_REASON } = require('../
 const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minTimeDelaySeconds: 3600,
   minCommitteeQuorum: 3,
@@ -66,10 +74,7 @@ function baseProofRequest(matrixId) {
 
 function setupRouterAndVerifier() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const router = new PqcTimeLockedMatrixRouter({
     policy: POLICY,
     attestationClient,

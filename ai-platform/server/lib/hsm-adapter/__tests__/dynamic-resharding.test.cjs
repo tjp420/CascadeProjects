@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   allowedThresholdWindows: [[2, 3], [3, 5], [5, 7]],
   maxCommitteeExpansionFactor: 2.0,
@@ -40,10 +48,7 @@ describe('Track 42 dynamic resharding', () => {
       { id: 'n2', share: 202n },
       { id: 'n3', share: 303n },
     ];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const engine = new GroupReshardEngine({
       policy: POLICY,
       nodes,

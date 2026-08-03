@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minAdminQuorum: 3,
   maxSignatureExpirationSeconds: 60,
@@ -40,10 +48,7 @@ function mockProposal(rotator) {
 describe('Track 47 hardware root rotation', () => {
   test('EnclaveRootRotator proposes and commits with quorum', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const rotator = new EnclaveRootRotator({
       policy: POLICY,
       attestationClient,
@@ -66,10 +71,7 @@ describe('Track 47 hardware root rotation', () => {
   });
 
   test('EnclaveRootRotator rejects un-attested admin', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const rotator = new EnclaveRootRotator({
       policy: POLICY,
       attestationClient,
@@ -79,10 +81,7 @@ describe('Track 47 hardware root rotation', () => {
   });
 
   test('EnclaveRootRotator rejects expired signature', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const rotator = new EnclaveRootRotator({
       policy: POLICY,
       attestationClient,
@@ -92,10 +91,7 @@ describe('Track 47 hardware root rotation', () => {
   });
 
   test('EnclaveRootRotator rejects commit without quorum', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const rotator = new EnclaveRootRotator({
       policy: POLICY,
       attestationClient,

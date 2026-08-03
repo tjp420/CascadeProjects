@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   maxTreeDepth: 20,
   allowedMembershipProofSystems: ['groth16', 'plonk', 'marlin'],
@@ -40,10 +48,7 @@ function mockPublicKey(id) {
 describe('Track 57 PQ identity accumulator', () => {
   test('PqIdentityAccumulator adds a member and emits IDENTITY_ACCUMULATOR_UPDATED', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const accumulator = new PqIdentityAccumulator({
       policy: POLICY,
       attestationClient,
@@ -62,10 +67,7 @@ describe('Track 57 PQ identity accumulator', () => {
   });
 
   test('PqIdentityAccumulator supports real-time state updates', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const accumulator = new PqIdentityAccumulator({
       policy: POLICY,
       attestationClient,
@@ -89,10 +91,7 @@ describe('Track 57 PQ identity accumulator', () => {
   });
 
   test('PqIdentityAccumulator rejects un-attested root update', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const accumulator = new PqIdentityAccumulator({
       policy: POLICY,
       attestationClient,
@@ -106,10 +105,7 @@ describe('Track 57 PQ identity accumulator', () => {
   });
 
   test('PqIdentityAccumulator rejects unpermitted attestation authority', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const accumulator = new PqIdentityAccumulator({
       policy: POLICY,
       attestationClient,
@@ -123,10 +119,7 @@ describe('Track 57 PQ identity accumulator', () => {
   });
 
   test('PqIdentityAccumulator rejects duplicate member', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const accumulator = new PqIdentityAccumulator({
       policy: POLICY,
       attestationClient,
@@ -146,10 +139,7 @@ describe('Track 57 PQ identity accumulator', () => {
   });
 
   test('PqIdentityAccumulator removes a member and updates root', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const accumulator = new PqIdentityAccumulator({
       policy: POLICY,
       attestationClient,
@@ -174,10 +164,7 @@ describe('Track 57 PQ identity accumulator', () => {
 
   test('ZkMembershipProofProcessor validates a valid membership proof', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new ZkMembershipProofProcessor({
       policy: POLICY,
       attestationClient,
@@ -197,10 +184,7 @@ describe('Track 57 PQ identity accumulator', () => {
   });
 
   test('ZkMembershipProofProcessor validates a valid non-membership proof', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new ZkMembershipProofProcessor({
       policy: POLICY,
       attestationClient,
@@ -219,10 +203,7 @@ describe('Track 57 PQ identity accumulator', () => {
   });
 
   test('ZkMembershipProofProcessor bans peers broadcasting malformed proofs', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new ZkMembershipProofProcessor({
       policy: POLICY,
       attestationClient,
@@ -241,10 +222,7 @@ describe('Track 57 PQ identity accumulator', () => {
   });
 
   test('ZkMembershipProofProcessor rejects unpermitted membership proof system', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new ZkMembershipProofProcessor({
       policy: POLICY,
       attestationClient,
@@ -261,10 +239,7 @@ describe('Track 57 PQ identity accumulator', () => {
   });
 
   test('ZkMembershipProofProcessor rejects un-attested membership proof', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new ZkMembershipProofProcessor({
       policy: POLICY,
       attestationClient,

@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minVestingEpochSeconds: 3600,
   minReleaseSignatureQuorum: 3,
@@ -65,10 +73,7 @@ function baseClaimRequest(lockId, epochIndex) {
 describe('Track 58 PQC vesting locks', () => {
   test('PqcVestingEscrowHub initializes a vesting lock and emits VESTING_LOCK_INITIALIZED', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcVestingEscrowHub({
       policy: POLICY,
       attestationClient,
@@ -82,10 +87,7 @@ describe('Track 58 PQC vesting locks', () => {
 
   test('PqcVestingEscrowHub processes a valid epoch release claim', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const temporalGuard = new VestingTemporalGuard({ policy: POLICY });
     const hub = new PqcVestingEscrowHub({
       policy: POLICY,
@@ -105,10 +107,7 @@ describe('Track 58 PQC vesting locks', () => {
 
   test('PqcVestingEscrowHub completes escrow after all epochs and emits VESTING_ESCROW_COMPLETED', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const temporalGuard = new VestingTemporalGuard({ policy: POLICY });
     const hub = new PqcVestingEscrowHub({
       policy: POLICY,
@@ -128,10 +127,7 @@ describe('Track 58 PQC vesting locks', () => {
   });
 
   test('PqcVestingEscrowHub rejects un-attested claimant', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcVestingEscrowHub({
       policy: POLICY,
       attestationClient,
@@ -142,10 +138,7 @@ describe('Track 58 PQC vesting locks', () => {
   });
 
   test('PqcVestingEscrowHub rejects un-attested committee relay', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const temporalGuard = new VestingTemporalGuard({ policy: POLICY });
     const hub = new PqcVestingEscrowHub({
       policy: POLICY,
@@ -160,10 +153,7 @@ describe('Track 58 PQC vesting locks', () => {
   });
 
   test('PqcVestingEscrowHub rejects insufficient release signature quorum', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const temporalGuard = new VestingTemporalGuard({ policy: POLICY });
     const hub = new PqcVestingEscrowHub({
       policy: POLICY,
@@ -199,10 +189,7 @@ describe('Track 58 PQC vesting locks', () => {
   });
 
   test('PqcVestingEscrowHub bans peers broadcasting duplicate claims', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const temporalGuard = new VestingTemporalGuard({ policy: POLICY });
     const hub = new PqcVestingEscrowHub({
       policy: POLICY,

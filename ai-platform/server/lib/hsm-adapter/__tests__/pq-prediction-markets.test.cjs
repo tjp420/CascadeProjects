@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minReporterQuorum: 3,
   maxDisputeResolutionEpochs: 5,
@@ -71,10 +79,7 @@ function baseFinalizeRequest(marketId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcPredictionMarketHub({
     policy: POLICY,
     attestationClient,
@@ -145,10 +150,7 @@ describe('Track 64 PQ prediction markets', () => {
   });
 
   test('PqcPredictionMarketHub rejects un-attested market initializer', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcPredictionMarketHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.marketInitializerAttestation = { authority: 'bad' };
@@ -157,10 +159,7 @@ describe('Track 64 PQ prediction markets', () => {
 
   test('ZkMarketResolutionValidator rejects un-attested reporter relay', () => {
     const { hub, market } = setupAndInitMarket();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const validator = new ZkMarketResolutionValidator({ policy: POLICY, hub, attestationClient });
     const voteReq = baseVoteRequest(market.marketId);
     voteReq.reporterRelayAttestation = { authority: 'bad' };

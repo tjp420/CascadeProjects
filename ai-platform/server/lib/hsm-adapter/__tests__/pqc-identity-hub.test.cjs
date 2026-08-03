@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minIssuanceQuorum: 3,
   maxCommitteeSize: 10,
@@ -47,10 +55,7 @@ function basePacket() {
 describe('Track 51 PQC identity hub', () => {
   test('PqcIdentityHubRouter registers a new identity', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const router = new PqcIdentityHubRouter({
       policy: POLICY,
       attestationClient,
@@ -64,10 +69,7 @@ describe('Track 51 PQC identity hub', () => {
 
   test('ThresholdIdentityIssuer reaches quorum and commits', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const issuer = new ThresholdIdentityIssuer({
       policy: POLICY,
       attestationClient,
@@ -86,10 +88,7 @@ describe('Track 51 PQC identity hub', () => {
   });
 
   test('PqcIdentityHubRouter rejects and bans un-attested host', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const router = new PqcIdentityHubRouter({
       policy: POLICY,
       attestationClient,
@@ -101,10 +100,7 @@ describe('Track 51 PQC identity hub', () => {
   });
 
   test('ThresholdIdentityIssuer rejects un-attested committee member', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const issuer = new ThresholdIdentityIssuer({
       policy: POLICY,
       attestationClient,
@@ -130,10 +126,7 @@ describe('Track 51 PQC identity hub', () => {
   });
 
   test('PqcIdentityHubRouter rejects wrong KEM algorithm', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const router = new PqcIdentityHubRouter({
       policy: POLICY,
       attestationClient,

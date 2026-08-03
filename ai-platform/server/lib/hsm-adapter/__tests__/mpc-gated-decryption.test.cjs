@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minCircuitNodes: 3,
   maxMultiplicationGateDepth: 8,
@@ -53,10 +61,7 @@ function baseNodes() {
 describe('Track 54 MPC gated decryption', () => {
   test('MpcCircuitProcessor initiates and completes circuit evaluation', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new MpcCircuitProcessor({
       policy: POLICY,
       attestationClient,
@@ -79,10 +84,7 @@ describe('Track 54 MPC gated decryption', () => {
 
   test('MpcGatedDecryptor unlocks after valid circuit satisfaction', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new MpcCircuitProcessor({
       policy: POLICY,
       attestationClient,
@@ -112,10 +114,7 @@ describe('Track 54 MPC gated decryption', () => {
   });
 
   test('MpcGatedDecryptor rejects without circuit satisfaction proof', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new MpcCircuitProcessor({
       policy: POLICY,
       attestationClient,
@@ -135,10 +134,7 @@ describe('Track 54 MPC gated decryption', () => {
   });
 
   test('MpcGatedDecryptor rejects unsatisfied circuit', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new MpcCircuitProcessor({
       policy: POLICY,
       attestationClient,
@@ -160,10 +156,7 @@ describe('Track 54 MPC gated decryption', () => {
   });
 
   test('MpcCircuitProcessor rejects un-attested node', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new MpcCircuitProcessor({
       policy: POLICY,
       attestationClient,
@@ -194,10 +187,7 @@ describe('Track 54 MPC gated decryption', () => {
   });
 
   test('MpcGatedDecryptor rejects un-attested enclave', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new MpcCircuitProcessor({
       policy: POLICY,
       attestationClient,

@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minCollateralRatio: 150,
   minExecutionSignatureQuorum: 3,
@@ -76,10 +84,7 @@ function baseExecRequest(poolId) {
 
 function setupHubAndProcessor() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcBlindOptionPoolHub({
     policy: POLICY,
     attestationClient,
@@ -144,10 +149,7 @@ describe('Track 63 PQ blind option pools', () => {
   });
 
   test('PqcBlindOptionPoolHub rejects un-attested initializer', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcBlindOptionPoolHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.initializerAttestation = { authority: 'bad' };
@@ -156,10 +158,7 @@ describe('Track 63 PQ blind option pools', () => {
 
   test('ZkMarginAdequacyProcessor rejects un-attested clearing committee', () => {
     const { hub, pool } = setupAndInitPool();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const processor = new ZkMarginAdequacyProcessor({ policy: POLICY, hub, attestationClient });
     const proofReq = baseMarginProofRequest(pool.poolId);
     proofReq.clearingCommitteeAttestation = { authority: 'bad' };

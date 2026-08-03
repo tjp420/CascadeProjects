@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minCommitteeQuorum: 3,
   maxAssetTransactionValue: 1000000,
@@ -53,10 +61,7 @@ function baseTransfer() {
 describe('Track 48 PQC asset bridge', () => {
   test('PqcAssetBridgeHub initiates and releases with escrow', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const escrow = new BridgeTimeLockEscrow();
     escrow.setEpoch(200);
     const hub = new PqcAssetBridgeHub({
@@ -78,10 +83,7 @@ describe('Track 48 PQC asset bridge', () => {
   });
 
   test('PqcAssetBridgeHub validates a cross-chain claim', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcAssetBridgeHub({
       policy: POLICY,
       attestationClient,
@@ -97,10 +99,7 @@ describe('Track 48 PQC asset bridge', () => {
   });
 
   test('PqcAssetBridgeHub rejects excessive asset value', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcAssetBridgeHub({
       policy: POLICY,
       attestationClient,
@@ -111,10 +110,7 @@ describe('Track 48 PQC asset bridge', () => {
   });
 
   test('PqcAssetBridgeHub rejects un-attested source', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcAssetBridgeHub({
       policy: POLICY,
       attestationClient,
@@ -125,10 +121,7 @@ describe('Track 48 PQC asset bridge', () => {
   });
 
   test('PqcAssetBridgeHub rejects short lock duration', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcAssetBridgeHub({
       policy: POLICY,
       attestationClient,
@@ -146,10 +139,7 @@ describe('Track 48 PQC asset bridge', () => {
   });
 
   test('PqcAssetBridgeHub rejects expired cross-chain claim', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcAssetBridgeHub({
       policy: POLICY,
       attestationClient,

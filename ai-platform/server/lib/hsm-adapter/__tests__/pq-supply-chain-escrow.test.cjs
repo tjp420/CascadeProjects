@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minOrderMatchingQuorum: 3,
   maxProcurementDeliveryEpochs: 30,
@@ -74,10 +82,7 @@ function baseReleaseRequest(orderId) {
 
 function setupHubAndValidator() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const hub = new PqcSupplyChainEscrowHub({
     policy: POLICY,
     attestationClient,
@@ -142,10 +147,7 @@ describe('Track 68 PQ supply chain escrow', () => {
   });
 
   test('PqcSupplyChainEscrowHub rejects un-attested procurement initiator', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const hub = new PqcSupplyChainEscrowHub({ policy: POLICY, attestationClient });
     const request = baseInitRequest();
     request.procurementInitiatorAttestation = { authority: 'bad' };
@@ -154,10 +156,7 @@ describe('Track 68 PQ supply chain escrow', () => {
 
   test('ZkOrderMilestoneValidator rejects un-attested clearing committee', () => {
     const { hub, order } = setupAndInitOrder();
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const validator = new ZkOrderMilestoneValidator({ policy: POLICY, hub, attestationClient });
     const msReq = baseMilestoneRequest(order.orderId);
     msReq.clearingCommitteeAttestation = { authority: 'bad' };

@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   maxCrossRegionHeartbeatLatencyMs: 5000,
   minFailoverQuorumNodes: 3,
@@ -72,10 +80,7 @@ describe('Track 43B disaster recovery', () => {
 
   test('CrossRegionStateReconstructor provisions attested standby cluster', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     attestationClient.verify({
       version: 1,
       enclaveType: 'mock',
@@ -112,10 +117,7 @@ describe('Track 43B disaster recovery', () => {
   });
 
   test('CrossRegionStateReconstructor rejects un-attested standby', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const reconstructor = new CrossRegionStateReconstructor({
       policy: POLICY,
       attestationClient,

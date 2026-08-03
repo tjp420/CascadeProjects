@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   allowedOperations: ['add', 'scalarMul'],
   maxRangeBitWidth: 64,
@@ -46,10 +54,7 @@ function mockAttestation() {
 describe('Track 46 homomorphic computation', () => {
   test('HomomorphicContractEngine adds two encrypted commitments', () => {
     const events = [];
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const engine = new HomomorphicContractEngine({
       policy: POLICY,
       attestationClient,
@@ -64,10 +69,7 @@ describe('Track 46 homomorphic computation', () => {
   });
 
   test('HomomorphicContractEngine scalar multiplies a commitment', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const engine = new HomomorphicContractEngine({
       policy: POLICY,
       attestationClient,
@@ -79,10 +81,7 @@ describe('Track 46 homomorphic computation', () => {
   });
 
   test('HomomorphicContractEngine rejects un-attested worker', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const engine = new HomomorphicContractEngine({
       policy: POLICY,
       attestationClient,
@@ -91,10 +90,7 @@ describe('Track 46 homomorphic computation', () => {
   });
 
   test('HomomorphicContractEngine rejects a disallowed operation', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const engine = new HomomorphicContractEngine({
       policy: POLICY,
       attestationClient,

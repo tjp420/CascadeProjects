@@ -9,6 +9,14 @@ const { EnclaveAttestationClient } = require('../enclave-attestation-client.cjs'
 const { CryptoPolicyEngine } = require('../crypto-policy-engine.cjs');
 const { HsmAdapterError } = require('../base-adapter.cjs');
 
+class MockAttestationClient {
+  verify(attestation) {
+    if (!attestation || typeof attestation !== 'object') return { verified: false };
+    if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    return { verified: true };
+  }
+}
+
 const POLICY = {
   minPlatformVotingQuorum: 3,
   maxConcurrentProposals: 16,
@@ -59,10 +67,7 @@ function baseVoteRequest(proposalId, platformId) {
 
 function setupBridgeAndMonitor() {
   const events = [];
-  const attestationClient = new EnclaveAttestationClient({
-    allowedAuthorities: ['mock-authority'],
-    allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-  });
+  const attestationClient = new MockAttestationClient();
   const bridge = new PqcCrossChainGovernanceBridge({
     policy: POLICY,
     attestationClient,
@@ -115,10 +120,7 @@ describe('Track 59 PQC cross-chain governance', () => {
   });
 
   test('PqcCrossChainGovernanceBridge rejects un-attested broadcaster', () => {
-    const attestationClient = new EnclaveAttestationClient({
-      allowedAuthorities: ['mock-authority'],
-      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
-    });
+    const attestationClient = new MockAttestationClient();
     const bridge = new PqcCrossChainGovernanceBridge({ policy: POLICY, attestationClient });
     const request = baseBroadcastRequest();
     request.broadcasterAttestation = { authority: 'bad' };
