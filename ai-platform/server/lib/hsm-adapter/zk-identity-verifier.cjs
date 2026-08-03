@@ -157,7 +157,7 @@ class ZkIdentityVerifier {
     const sBuf = _bigIntToBytes(s, 32);
 
     this._audit('IDENTITY_PROOF_GENERATED', { publicKeyPrefix: publicKey.toString('hex').slice(0, 16) });
-    return { t: tBuf, s: sBuf };
+    return { t: tBuf, s: sBuf, context };
   }
 
   /**
@@ -172,6 +172,15 @@ class ZkIdentityVerifier {
     const y = _bytesToBigInt(publicKey);
     const t = _bytesToBigInt(proof.t);
     const s = _bytesToBigInt(proof.s);
+
+    if (challenge === null && proof.context !== undefined) {
+      const proofContext = typeof proof.context === 'string' ? proof.context : proof.context.toString('utf8');
+      const verifyContext = typeof context === 'string' ? context : context.toString('utf8');
+      if (proofContext !== verifyContext) {
+        this._audit('ZERO_KNOWLEDGE_VERIFIED', { result: false, publicKeyPrefix: publicKey.toString('hex').slice(0, 16) });
+        return false;
+      }
+    }
 
     const contextBuf = Buffer.isBuffer(context) ? context : Buffer.from(context, 'utf8');
     const c = challenge !== null ? _bytesToBigInt(challenge) % this._q : this._hashChallenge(publicKey, proof.t, contextBuf);

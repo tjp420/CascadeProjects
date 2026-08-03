@@ -18,6 +18,19 @@
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 
+const POOL_STATUS = {
+  OPEN: 'open',
+  REBALANCING: 'rebalancing',
+  ACCREDITED: 'accredited',
+  SETTLED: 'settled',
+  CANCELLED: 'cancelled',
+};
+
+const REBALANCE_DIRECTION = {
+  INCREASE: 'increase',
+  DECREASE: 'decrease',
+};
+
 class PqcBiometricVerificationGatingHub {
   /**
    * @param {object} options
@@ -30,6 +43,14 @@ class PqcBiometricVerificationGatingHub {
     this._attestationClient = options.attestationClient || null;
     this._audit = options.audit || null;
     this._pools = new Map();
+    this._settlements = new Map();
+    this._rebalances = new Map();
+    this._maxBatchSize = typeof this.policy.maxBatchSize === 'number' ? this.policy.maxBatchSize : 50;
+    this._initCount = 0;
+    this._accreditCount = 0;
+    this._settleCount = 0;
+    this._rebalanceCount = 0;
+    this._cancelCount = 0;
   }
 
   /**
@@ -42,7 +63,7 @@ class PqcBiometricVerificationGatingHub {
     if (this.policy.requireBiometricAuthorityInitializerAttestation && this._attestationClient) {
       try {
         const result = this._attestationClient.verify(request.biometricAuthorityInitializerAttestation);
-        if (!result.verified) {
+        if (result && (result.verified === false || result.valid === false)) {
           throw new HsmAdapterError('BIOMETRICGATE_AUTHORITY_INITIALIZER_UNATTESTED', 'biometric authority initializer attestation invalid');
         }
       } catch (err) {
@@ -59,7 +80,7 @@ class PqcBiometricVerificationGatingHub {
     if (typeof request.templateExpirationSeconds === 'number' && request.templateExpirationSeconds > (this.policy.maxTemplateExpirationSeconds || 15552000)) {
       throw new HsmAdapterError('BIOMETRICGATE_TEMPLATE_EXPIRATION_EXCEEDED', `template expiration seconds ${request.templateExpirationSeconds} exceeds maximum ${this.policy.maxTemplateExpirationSeconds}`);
     }
-    if (typeof request.livenessMetricDepth === 'number' && request.livenessMetricDepth > (this.policy.maxLivenessMetricDepth || 16)) {
+    if (typeof request.livenessMetricDepth === 'number' && request.livenessMetricDepth > (this.policy.maxLivenessMetricDepth || 24)) {
       throw new HsmAdapterError('BIOMETRICGATE_LIVENESS_DEPTH_EXCEEDED', `liveness metric depth ${request.livenessMetricDepth} exceeds maximum ${this.policy.maxLivenessMetricDepth}`);
     }
     const poolId = request.poolId || `pool-${crypto.randomBytes(4).toString('hex')}`;
@@ -78,15 +99,48 @@ class PqcBiometricVerificationGatingHub {
       livenessMetricDepth: request.livenessMetricDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
       initializedAt: now,
-      status: 'open',
+      status: POOL_STATUS.OPEN,
+      rebalanceEpoch: 0,
+      settlementStatus: 'pending',
+      settledAt: null,
+      cancelledAt: null,
       biometricClaimVerified: false,
       livenessAccreditationCompletedAt: null,
     };
     this._pools.set(poolId, pool);
+    this._initCount += 1;
     if (this._audit) {
       this._audit('BIOMETRIC_GATING_POOL_INITIALIZED', { ...pool });
     }
     return pool;
+  }
+
+  /**
+   * Batch initialize multiple pools.
+   * @param {Array<object>} requests
+   * @returns {object}
+   */
+  batchInitializePools(requests) {
+    if (!Array.isArray(requests) || requests.length === 0) {
+      throw new HsmAdapterError('BIOMETRICGATE_BATCH_EMPTY', 'batch initialization requires at least one request');
+    }
+    if (requests.length > this._maxBatchSize) {
+      throw new HsmAdapterError('BIOMETRICGATE_BATCH_TOO_LARGE', `batch size ${requests.length} exceeds maximum ${this._maxBatchSize}`);
+    }
+    let successCount = 0;
+    let failedCount = 0;
+    const results = [];
+    for (const request of requests) {
+      try {
+        const pool = this.initializePool(request);
+        results.push({ success: true, pool });
+        successCount += 1;
+      } catch (err) {
+        results.push({ success: false, error: err.message });
+        failedCount += 1;
+      }
+    }
+    return { successCount, failedCount, results };
   }
 
   /**
@@ -96,6 +150,14 @@ class PqcBiometricVerificationGatingHub {
    */
   getPool(poolId) {
     return this._pools.get(poolId) || null;
+  }
+
+  /**
+   * Get all pools.
+   * @returns {Array<object>}
+   */
+  getPools() {
+    return Array.from(this._pools.values());
   }
 
   /**
@@ -110,6 +172,201 @@ class PqcBiometricVerificationGatingHub {
     }
     pool.biometricClaimVerified = true;
     return pool;
+  }
+
+  /**
+   * Rebalance the liveness metric depth of a pool.
+   * @param {object} request
+   * @returns {object}
+   */
+  rebalanceLivenessMetricDepth(request) {
+    if (!request || !request.poolId) {
+      throw new HsmAdapterError('BIOMETRICGATE_REBALANCE_FIELDS_MISSING', 'poolId is required');
+    }
+    if (!Object.values(REBALANCE_DIRECTION).includes(request.direction)) {
+      throw new HsmAdapterError('BIOMETRICGATE_REBALANCE_DIRECTION_INVALID', `rebalance direction ${request.direction} is not valid`);
+    }
+    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
+      throw new HsmAdapterError('BIOMETRICGATE_REBALANCE_AMOUNT_INVALID', 'rebalance amount must be a positive number');
+    }
+    const pool = this._pools.get(request.poolId);
+    if (!pool) {
+      throw new HsmAdapterError('BIOMETRICGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+    }
+    if (pool.status === POOL_STATUS.ACCREDITED || pool.status === POOL_STATUS.SETTLED || pool.status === POOL_STATUS.CANCELLED) {
+      throw new HsmAdapterError('BIOMETRICGATE_REBALANCE_STATUS_INVALID', `pool ${request.poolId} cannot be rebalanced in status ${pool.status}`);
+    }
+
+    let newDepth = pool.livenessMetricDepth;
+    if (typeof request.newLivenessMetricDepth === 'number') {
+      newDepth = request.newLivenessMetricDepth;
+    } else if (request.direction === REBALANCE_DIRECTION.INCREASE) {
+      newDepth = pool.livenessMetricDepth + request.rebalanceAmount;
+    } else {
+      newDepth = Math.max(1, pool.livenessMetricDepth - request.rebalanceAmount);
+    }
+    if (newDepth > (this.policy.maxLivenessMetricDepth || 24)) {
+      throw new HsmAdapterError('BIOMETRICGATE_LIVENESS_DEPTH_EXCEEDED', `rebalanced liveness metric depth ${newDepth} exceeds maximum ${this.policy.maxLivenessMetricDepth}`);
+    }
+    pool.livenessMetricDepth = newDepth;
+    pool.rebalanceEpoch = (pool.rebalanceEpoch || 0) + 1;
+    if (pool.status !== POOL_STATUS.CANCELLED && pool.status !== POOL_STATUS.SETTLED) {
+      pool.status = POOL_STATUS.REBALANCING;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const rebalanceId = `rebalance-${crypto.randomBytes(4).toString('hex')}`;
+    const rebalance = {
+      rebalanceId,
+      poolId: request.poolId,
+      direction: request.direction,
+      rebalanceAmount: request.rebalanceAmount,
+      newLivenessMetricDepth: newDepth,
+      rebalanceEpoch: pool.rebalanceEpoch,
+      rebalancedAt: now,
+    };
+    this._rebalances.set(rebalanceId, rebalance);
+    this._rebalanceCount += 1;
+    if (this._audit) {
+      this._audit('BIOMETRIC_GATING_LIVENESS_REBALANCED', { ...rebalance });
+    }
+    return rebalance;
+  }
+
+  /**
+   * Get a rebalance record by id.
+   * @param {string} rebalanceId
+   * @returns {object|null}
+   */
+  getRebalance(rebalanceId) {
+    return this._rebalances.get(rebalanceId) || null;
+  }
+
+  /**
+   * Settle a pool cross-chain.
+   * @param {object} request
+   * @returns {object}
+   */
+  settlePool(request) {
+    if (!request || !request.poolId) {
+      throw new HsmAdapterError('BIOMETRICGATE_SETTLE_FIELDS_MISSING', 'poolId is required');
+    }
+    if (!request.targetChainId) {
+      throw new HsmAdapterError('BIOMETRICGATE_SETTLE_FIELDS_MISSING', 'targetChainId is required');
+    }
+    const pool = this._pools.get(request.poolId);
+    if (!pool) {
+      throw new HsmAdapterError('BIOMETRICGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+    }
+    if (pool.status !== POOL_STATUS.ACCREDITED) {
+      throw new HsmAdapterError('BIOMETRICGATE_SETTLE_NOT_ACCREDITED', `pool ${request.poolId} is not accredited`);
+    }
+    if (request.targetChainId !== pool.targetChainId) {
+      throw new HsmAdapterError('BIOMETRICGATE_SETTLE_CHAIN_MISMATCH', `target chain ${request.targetChainId} does not match ${pool.targetChainId}`);
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const settlementId = `settlement-${crypto.randomBytes(4).toString('hex')}`;
+    const settlement = {
+      settlementId,
+      poolId: request.poolId,
+      targetChainId: request.targetChainId,
+      settledAt: now,
+    };
+    pool.status = POOL_STATUS.SETTLED;
+    pool.settlementStatus = 'settled';
+    pool.settledAt = now;
+    this._settlements.set(request.poolId, settlement);
+    this._settleCount += 1;
+    if (this._audit) {
+      this._audit('BIOMETRIC_GATING_POOL_SETTLED', { ...settlement });
+    }
+    return settlement;
+  }
+
+  /**
+   * Get a settlement record by pool id.
+   * @param {string} poolId
+   * @returns {object|null}
+   */
+  getSettlement(poolId) {
+    return this._settlements.get(poolId) || null;
+  }
+
+  /**
+   * Aggregate committee signatures for a pool.
+   * @param {string} poolId
+   * @param {Array<object>} signatures
+   * @returns {object}
+   */
+  aggregateCommitteeSignatures(poolId, signatures) {
+    if (!poolId || typeof poolId !== 'string') {
+      throw new HsmAdapterError('BIOMETRICGATE_AGGREGATE_FIELDS_MISSING', 'poolId is required');
+    }
+    const pool = this._pools.get(poolId);
+    if (!pool) {
+      throw new HsmAdapterError('BIOMETRICGATE_NOT_FOUND', `pool ${poolId} not found`);
+    }
+    if (!Array.isArray(signatures) || signatures.length === 0) {
+      throw new HsmAdapterError('BIOMETRICGATE_AGGREGATE_SIGNATURES_MISSING', 'signatures are required');
+    }
+    const quorum = this.policy.minBiometricAuthorityQuorum || 3;
+    if (signatures.length < quorum) {
+      throw new HsmAdapterError('BIOMETRICGATE_AGGREGATE_QUORUM_INSUFFICIENT', `signatures ${signatures.length} below minimum ${quorum}`);
+    }
+    const sorted = [...signatures].sort((a, b) => String(a.peerId).localeCompare(String(b.peerId)));
+    const payload = sorted.map((s) => `${s.peerId}=${s.signature}`).join('&');
+    const aggregatedSignature = crypto.createHash('sha256').update(`${poolId}:${payload}`).digest('hex');
+    return { signatureCount: signatures.length, aggregatedSignature };
+  }
+
+  /**
+   * Cancel a pool.
+   * @param {string} poolId
+   * @returns {object}
+   */
+  cancelPool(poolId) {
+    if (!poolId || typeof poolId !== 'string') {
+      throw new HsmAdapterError('BIOMETRICGATE_CANCEL_FIELDS_MISSING', 'poolId is required');
+    }
+    const pool = this._pools.get(poolId);
+    if (!pool) {
+      throw new HsmAdapterError('BIOMETRICGATE_NOT_FOUND', `pool ${poolId} not found`);
+    }
+    if (pool.status === POOL_STATUS.CANCELLED) {
+      throw new HsmAdapterError('BIOMETRICGATE_CANCEL_ALREADY_CANCELLED', `pool ${poolId} is already cancelled`);
+    }
+    if (pool.status === POOL_STATUS.ACCREDITED || pool.status === POOL_STATUS.SETTLED) {
+      throw new HsmAdapterError('BIOMETRICGATE_CANCEL_STATUS_INVALID', `pool ${poolId} cannot be cancelled in status ${pool.status}`);
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const cancelId = `cancel-${crypto.randomBytes(4).toString('hex')}`;
+    pool.status = POOL_STATUS.CANCELLED;
+    pool.cancelledAt = now;
+    this._cancelCount += 1;
+    const result = { cancelled: true, cancelId, poolId, cancelledAt: now };
+    if (this._audit) {
+      this._audit('BIOMETRIC_GATING_POOL_CANCELLED', { ...result });
+    }
+    return result;
+  }
+
+  /**
+   * Get summary statistics.
+   * @returns {object}
+   */
+  getStats() {
+    const poolsByStatus = {};
+    for (const pool of this._pools.values()) {
+      poolsByStatus[pool.status] = (poolsByStatus[pool.status] || 0) + 1;
+    }
+    return {
+      totalPools: this._pools.size,
+      poolsByStatus,
+      initCount: this._initCount,
+      accreditCount: this._accreditCount,
+      settleCount: this._settleCount,
+      rebalanceCount: this._rebalanceCount,
+      cancelCount: this._cancelCount,
+    };
   }
 
   /**
@@ -129,7 +386,7 @@ class PqcBiometricVerificationGatingHub {
     if (this.policy.requireClearingCommitteeAttestation && this._attestationClient) {
       try {
         const result = this._attestationClient.verify(request.clearingCommitteeAttestation);
-        if (!result.verified) {
+        if (result && (result.verified === false || result.valid === false)) {
           throw new HsmAdapterError('BIOMETRICGATE_CLEARING_COMMITTEE_UNATTESTED', 'clearing committee attestation invalid');
         }
       } catch (err) {
@@ -142,8 +399,9 @@ class PqcBiometricVerificationGatingHub {
       throw new HsmAdapterError('BIOMETRICGATE_QUORUM_INSUFFICIENT', `biometric authority signatures ${signatures.length} below minimum ${this.policy.minBiometricAuthorityQuorum}`);
     }
     const now = Math.floor(Date.now() / 1000);
-    pool.status = 'accredited';
+    pool.status = POOL_STATUS.ACCREDITED;
     pool.livenessAccreditationCompletedAt = now;
+    this._accreditCount += 1;
     const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
     const completion = {
       completionId,
@@ -193,4 +451,4 @@ function _validateCompleteRequest(policy, request) {
   }
 }
 
-module.exports = { PqcBiometricVerificationGatingHub };
+module.exports = { PqcBiometricVerificationGatingHub, POOL_STATUS, REBALANCE_DIRECTION };

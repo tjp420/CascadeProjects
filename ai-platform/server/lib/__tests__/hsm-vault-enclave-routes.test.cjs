@@ -38,6 +38,7 @@ jest.mock('../../lib/hsm-vault.cjs', () => ({
 const hsmMetrics = require('../../lib/hsm-adapter/hsm-metrics.cjs');
 const baseAdapter = require('../../lib/hsm-adapter/base-adapter.cjs');
 const { HardwareEnclaveAdapter } = require('../../lib/hsm-adapter/hardware-enclave-adapter.cjs');
+const { _signMock } = require('../../lib/hsm-adapter/enclave-attestation-client.cjs');
 
 function buildApp(user) {
   const app = express();
@@ -61,7 +62,7 @@ const POLICY = {
 };
 
 function makeAttestation(overrides) {
-  return {
+  const att = {
     version: 1,
     enclaveType: 'mock',
     measurement: 'MOCK_MRENCLAVE_00000000000000000000000000000000',
@@ -75,6 +76,8 @@ function makeAttestation(overrides) {
     certificate: 'mock',
     ...overrides,
   };
+  att.signature = _signMock(att);
+  return att;
 }
 
 describe('Track 41: Hardware Enclave Routes', () => {

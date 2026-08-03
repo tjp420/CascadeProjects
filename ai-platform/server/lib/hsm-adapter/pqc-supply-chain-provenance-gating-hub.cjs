@@ -18,6 +18,19 @@
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
 
+const POOL_STATUS = {
+  OPEN: 'open',
+  REBALANCING: 'rebalancing',
+  ACCREDITED: 'accredited',
+  SETTLED: 'settled',
+  CANCELLED: 'cancelled',
+};
+
+const REBALANCE_DIRECTION = {
+  INCREASE: 'increase',
+  DECREASE: 'decrease',
+};
+
 class PqcSupplyChainProvenanceGatingHub {
   /**
    * @param {object} options
@@ -30,6 +43,14 @@ class PqcSupplyChainProvenanceGatingHub {
     this._attestationClient = options.attestationClient || null;
     this._audit = options.audit || null;
     this._pools = new Map();
+    this._settlements = new Map();
+    this._rebalances = new Map();
+    this._maxBatchSize = 50;
+    this._initCount = 0;
+    this._accreditCount = 0;
+    this._settleCount = 0;
+    this._rebalanceCount = 0;
+    this._cancelCount = 0;
   }
 
   /**
@@ -78,15 +99,49 @@ class PqcSupplyChainProvenanceGatingHub {
       componentLineageDepth: request.componentLineageDepth,
       pqcSignatureScheme: request.pqcSignatureScheme,
       initializedAt: now,
-      status: 'open',
+      status: POOL_STATUS.OPEN,
       provenanceClaimVerified: false,
       lineageAccreditationCompletedAt: null,
+      rebalanceEpoch: 0,
+      settlementStatus: null,
+      settledAt: null,
+      cancelledAt: null,
     };
     this._pools.set(poolId, pool);
+    this._initCount++;
     if (this._audit) {
       this._audit('SUPPLY_CHAIN_GATING_POOL_INITIALIZED', { ...pool });
     }
     return pool;
+  }
+
+  /**
+   * Batch initialize multiple supply chain provenance gating pools.
+   * @param {Array<object>} requests
+   * @returns {object}
+   */
+  batchInitializePools(requests) {
+    if (!Array.isArray(requests) || requests.length === 0) {
+      throw new HsmAdapterError('SUPPLYGATE_BATCH_EMPTY', 'batch initialization request must not be empty');
+    }
+    if (requests.length > this._maxBatchSize) {
+      throw new HsmAdapterError('SUPPLYGATE_BATCH_TOO_LARGE', `batch size ${requests.length} exceeds maximum ${this._maxBatchSize}`);
+    }
+    const result = {
+      successCount: 0,
+      failedCount: 0,
+      initializedIds: [],
+    };
+    for (const request of requests) {
+      try {
+        const pool = this.initializePool(request);
+        result.successCount++;
+        result.initializedIds.push(pool.poolId);
+      } catch (err) {
+        result.failedCount++;
+      }
+    }
+    return result;
   }
 
   /**
@@ -96,6 +151,14 @@ class PqcSupplyChainProvenanceGatingHub {
    */
   getPool(poolId) {
     return this._pools.get(poolId) || null;
+  }
+
+  /**
+   * Get all pools.
+   * @returns {Array}
+   */
+  getPools() {
+    return Array.from(this._pools.values());
   }
 
   /**
@@ -110,6 +173,93 @@ class PqcSupplyChainProvenanceGatingHub {
     }
     pool.provenanceClaimVerified = true;
     return pool;
+  }
+
+  /**
+   * Rebalance component lineage depth for a pool.
+   * @param {object} request
+   * @returns {object}
+   */
+  rebalanceComponentLineageDepth(request) {
+    if (!request || !request.poolId) {
+      throw new HsmAdapterError('SUPPLYGATE_REBALANCE_FIELDS_MISSING', 'poolId is required');
+    }
+    if (!Object.values(REBALANCE_DIRECTION).includes(request.direction)) {
+      throw new HsmAdapterError('SUPPLYGATE_REBALANCE_DIRECTION_INVALID', 'rebalance direction must be increase or decrease');
+    }
+    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
+      throw new HsmAdapterError('SUPPLYGATE_REBALANCE_AMOUNT_INVALID', 'rebalanceAmount must be a positive number');
+    }
+    const pool = this._pools.get(request.poolId);
+    if (!pool) {
+      throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+    }
+    if (pool.status === POOL_STATUS.ACCREDITED) {
+      throw new HsmAdapterError('SUPPLYGATE_REBALANCE_ACCREDITED_BLOCKED', 'cannot rebalance an accredited pool');
+    }
+    const now = Math.floor(Date.now() / 1000);
+    if (typeof request.newComponentLineageDepth === 'number') {
+      pool.componentLineageDepth = request.newComponentLineageDepth;
+    }
+    pool.rebalanceEpoch = (pool.rebalanceEpoch || 0) + 1;
+    if (pool.status !== POOL_STATUS.CANCELLED) {
+      pool.status = POOL_STATUS.REBALANCING;
+    }
+    const rebalanceId = `rebalance-${crypto.randomBytes(4).toString('hex')}`;
+    const record = {
+      rebalanceId,
+      poolId: request.poolId,
+      direction: request.direction,
+      rebalanceAmount: request.rebalanceAmount,
+      newComponentLineageDepth: request.newComponentLineageDepth,
+      rebalanceEpoch: pool.rebalanceEpoch,
+      createdAt: now,
+    };
+    this._rebalances.set(rebalanceId, record);
+    this._rebalanceCount++;
+    if (this._audit) {
+      this._audit('SUPPLY_CHAIN_GATING_POOL_REBALANCED', { ...record });
+    }
+    return record;
+  }
+
+  /**
+   * Get a rebalance record by id.
+   * @param {string} rebalanceId
+   * @returns {object|null}
+   */
+  getRebalance(rebalanceId) {
+    return this._rebalances.get(rebalanceId) || null;
+  }
+
+  /**
+   * Aggregate committee signatures for a pool.
+   * @param {string} poolId
+   * @param {Array<object>} signatures
+   * @returns {object}
+   */
+  aggregateCommitteeSignatures(poolId, signatures) {
+    if (!poolId) {
+      throw new HsmAdapterError('SUPPLYGATE_AGGREGATION_FIELDS_MISSING', 'poolId is required');
+    }
+    const pool = this._pools.get(poolId);
+    if (!pool) {
+      throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${poolId} not found`);
+    }
+    const min = this.policy.minSupplierCheckpointQuorum || 3;
+    if (!Array.isArray(signatures) || signatures.length < min) {
+      throw new HsmAdapterError('SUPPLYGATE_AGGREGATION_QUORUM_INSUFFICIENT', `signatures ${signatures ? signatures.length : 0} below minimum ${min}`);
+    }
+    const aggregatedSignature = `agg-committee-${crypto.randomBytes(4).toString('hex')}`;
+    const result = {
+      poolId,
+      signatureCount: signatures.length,
+      aggregatedSignature,
+    };
+    if (this._audit) {
+      this._audit('SUPPLY_CHAIN_GATING_COMMITTEE_SIGNATURES_AGGREGATED', { ...result });
+    }
+    return result;
   }
 
   /**
@@ -142,8 +292,9 @@ class PqcSupplyChainProvenanceGatingHub {
       throw new HsmAdapterError('SUPPLYGATE_QUORUM_INSUFFICIENT', `supplier checkpoint signatures ${signatures.length} below minimum ${this.policy.minSupplierCheckpointQuorum}`);
     }
     const now = Math.floor(Date.now() / 1000);
-    pool.status = 'accredited';
+    pool.status = POOL_STATUS.ACCREDITED;
     pool.lineageAccreditationCompletedAt = now;
+    this._accreditCount++;
     const completionId = request.completionId || `completion-${crypto.randomBytes(4).toString('hex')}`;
     const completion = {
       completionId,
@@ -158,11 +309,112 @@ class PqcSupplyChainProvenanceGatingHub {
   }
 
   /**
+   * Settle an accredited pool cross-chain.
+   * @param {object} request
+   * @returns {object}
+   */
+  settlePool(request) {
+    if (!request || !request.poolId || !request.targetChainId) {
+      throw new HsmAdapterError('SUPPLYGATE_SETTLE_FIELDS_MISSING', 'poolId and targetChainId are required');
+    }
+    const pool = this._pools.get(request.poolId);
+    if (!pool) {
+      throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${request.poolId} not found`);
+    }
+    if (pool.status !== POOL_STATUS.ACCREDITED) {
+      throw new HsmAdapterError('SUPPLYGATE_SETTLE_NOT_ACCREDITED', 'pool must be accredited before settlement');
+    }
+    if (pool.targetChainId !== request.targetChainId) {
+      throw new HsmAdapterError('SUPPLYGATE_SETTLE_CHAIN_MISMATCH', `target chain ${request.targetChainId} does not match pool target chain ${pool.targetChainId}`);
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const settlementId = `settlement-${crypto.randomBytes(4).toString('hex')}`;
+    const record = {
+      settlementId,
+      poolId: request.poolId,
+      targetChainId: request.targetChainId,
+      settledAt: now,
+    };
+    this._settlements.set(request.poolId, record);
+    pool.status = POOL_STATUS.SETTLED;
+    pool.settlementStatus = 'settled';
+    pool.settledAt = now;
+    this._settleCount++;
+    if (this._audit) {
+      this._audit('SUPPLY_CHAIN_GATING_POOL_SETTLED', { ...record });
+    }
+    return record;
+  }
+
+  /**
+   * Get a settlement record by pool id.
+   * @param {string} poolId
+   * @returns {object|null}
+   */
+  getSettlement(poolId) {
+    return this._settlements.get(poolId) || null;
+  }
+
+  /**
+   * Cancel an open pool.
+   * @param {string} poolId
+   * @returns {object}
+   */
+  cancelPool(poolId) {
+    if (!poolId) {
+      throw new HsmAdapterError('SUPPLYGATE_CANCEL_FIELDS_MISSING', 'poolId is required');
+    }
+    const pool = this._pools.get(poolId);
+    if (!pool) {
+      throw new HsmAdapterError('SUPPLYGATE_NOT_FOUND', `pool ${poolId} not found`);
+    }
+    if (pool.status === POOL_STATUS.ACCREDITED) {
+      throw new HsmAdapterError('SUPPLYGATE_CANCEL_ACCREDITED_BLOCKED', 'cannot cancel an accredited pool');
+    }
+    if (pool.status === POOL_STATUS.CANCELLED) {
+      throw new HsmAdapterError('SUPPLYGATE_CANCEL_ALREADY_CANCELLED', `pool ${poolId} is already cancelled`);
+    }
+    const now = Math.floor(Date.now() / 1000);
+    pool.status = POOL_STATUS.CANCELLED;
+    pool.cancelledAt = now;
+    this._cancelCount++;
+    const result = {
+      cancelled: true,
+      poolId,
+      cancelledAt: now,
+    };
+    if (this._audit) {
+      this._audit('SUPPLY_CHAIN_GATING_POOL_CANCELLED', { ...result });
+    }
+    return result;
+  }
+
+  /**
    * Get the current pool count.
    * @returns {number}
    */
   getPoolCount() {
     return this._pools.size;
+  }
+
+  /**
+   * Get summary statistics.
+   * @returns {object}
+   */
+  getStats() {
+    const poolsByStatus = {};
+    for (const pool of this._pools.values()) {
+      poolsByStatus[pool.status] = (poolsByStatus[pool.status] || 0) + 1;
+    }
+    return {
+      totalPools: this._pools.size,
+      poolsByStatus,
+      initCount: this._initCount,
+      accreditCount: this._accreditCount,
+      settleCount: this._settleCount,
+      rebalanceCount: this._rebalanceCount,
+      cancelCount: this._cancelCount,
+    };
   }
 }
 
@@ -193,4 +445,8 @@ function _validateCompleteRequest(policy, request) {
   }
 }
 
-module.exports = { PqcSupplyChainProvenanceGatingHub };
+module.exports = {
+  PqcSupplyChainProvenanceGatingHub,
+  POOL_STATUS,
+  REBALANCE_DIRECTION,
+};

@@ -15,6 +15,10 @@ class MockAttestationClient {
   verify(attestation) {
     if (!attestation || typeof attestation !== 'object') return { verified: false };
     if (!attestation.authority || attestation.authority !== 'mock-authority') return { verified: false };
+    if (attestation.measurement === 'unknown-measurement') return { verified: false, reason: 'MRENCLAVE unknown-measurement does not match' };
+    if (typeof attestation.attestationAgeSeconds === 'number' && attestation.attestationAgeSeconds > 60) {
+      return { verified: false, reason: 'attestation expired' };
+    }
     return { verified: true };
   }
 }
