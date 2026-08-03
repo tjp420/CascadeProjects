@@ -877,6 +877,50 @@ const DEFAULT_POLICY = {
     banMalformedOrOutOfOrderExecutionClaims: true,
     requireCanonicalPayloadLayout: true,
   },
+  pqDecentralizedIdentityProofGating: {
+    minIdentityQuorum: 12,
+    maxRevocationWindowSeconds: 86400,
+    maxIdentityChainDepth: 32,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireIdentityAuthorityInitializerAttestation: true,
+    requireIdentityEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderIdentityClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  pqCrossShardAssetTeleportationGating: {
+    minTeleportationQuorum: 14,
+    maxFinalityWindowSeconds: 3600,
+    maxTeleportationChainDepth: 36,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireTeleportationAuthorityInitializerAttestation: true,
+    requireTeleportationEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderTeleportClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  pqDecentralizedEnergyGridBalancingGating: {
+    minGridQuorum: 15,
+    maxBalancingWindowSeconds: 1800,
+    maxGridBalancingChainDepth: 38,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireEnergyGridAuthorityInitializerAttestation: true,
+    requireGridEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderEnergyGridClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
+  pqSpaceBasedLaserCommunicationMeshGating: {
+    minLaserMeshQuorum: 16,
+    maxHandoffWindowSeconds: 300,
+    maxLaserMeshChainDepth: 40,
+    allowedPqcSignatureSchemes: ['ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87'],
+    requireLaserMeshAuthorityInitializerAttestation: true,
+    requireLaserEthicsOversightCommitteeAttestation: true,
+    allowedAttestationAuthorities: ['mock-authority'],
+    banMalformedOrOutOfOrderLaserMeshClaims: true,
+    requireCanonicalPayloadLayout: true,
+  },
   bftShardSync: {
     minQuorumNodes: 3,
     maxCatchUpBatchSize: 64,
@@ -1334,6 +1378,22 @@ function _mergeWithDefault(tenantPolicy) {
     pqSmartContractVerifiableExecutionGating: {
       ...DEFAULT_POLICY.pqSmartContractVerifiableExecutionGating,
       ...(tenantPolicy.pqSmartContractVerifiableExecutionGating || {}),
+    },
+    pqDecentralizedIdentityProofGating: {
+      ...DEFAULT_POLICY.pqDecentralizedIdentityProofGating,
+      ...(tenantPolicy.pqDecentralizedIdentityProofGating || {}),
+    },
+    pqCrossShardAssetTeleportationGating: {
+      ...DEFAULT_POLICY.pqCrossShardAssetTeleportationGating,
+      ...(tenantPolicy.pqCrossShardAssetTeleportationGating || {}),
+    },
+    pqDecentralizedEnergyGridBalancingGating: {
+      ...DEFAULT_POLICY.pqDecentralizedEnergyGridBalancingGating,
+      ...(tenantPolicy.pqDecentralizedEnergyGridBalancingGating || {}),
+    },
+    pqSpaceBasedLaserCommunicationMeshGating: {
+      ...DEFAULT_POLICY.pqSpaceBasedLaserCommunicationMeshGating,
+      ...(tenantPolicy.pqSpaceBasedLaserCommunicationMeshGating || {}),
     },
   };
 }
@@ -3564,6 +3624,130 @@ class CryptoPolicyEngine {
     }
   }
 
+  _validatePqDecentralizedIdentityProofGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqDecentralizedIdentityProofGating, ...(tenantPolicy.pqDecentralizedIdentityProofGating || {}) };
+    if (typeof config.identityQuorum === 'number' && config.identityQuorum < policy.minIdentityQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `identity quorum ${config.identityQuorum} below minimum ${policy.minIdentityQuorum}`);
+    }
+    if (typeof config.revocationWindowSeconds === 'number' && config.revocationWindowSeconds > policy.maxRevocationWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `revocation window seconds ${config.revocationWindowSeconds} exceeds maximum ${policy.maxRevocationWindowSeconds}`);
+    }
+    if (typeof config.identityChainDepth === 'number' && config.identityChainDepth > policy.maxIdentityChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `identity chain depth ${config.identityChainDepth} exceeds maximum ${policy.maxIdentityChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireIdentityAuthorityInitializerAttestation && config.identityAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'identity authority initializer attestation is required');
+    }
+    if (policy.requireIdentityEthicsOversightCommitteeAttestation && config.identityEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'identity ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderIdentityClaims === 'boolean' && policy.banMalformedOrOutOfOrderIdentityClaims && !config.banMalformedOrOutOfOrderIdentityClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order identity claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validatePqCrossShardAssetTeleportationGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqCrossShardAssetTeleportationGating, ...(tenantPolicy.pqCrossShardAssetTeleportationGating || {}) };
+    if (typeof config.teleportationQuorum === 'number' && config.teleportationQuorum < policy.minTeleportationQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `teleportation quorum ${config.teleportationQuorum} below minimum ${policy.minTeleportationQuorum}`);
+    }
+    if (typeof config.finalityWindowSeconds === 'number' && config.finalityWindowSeconds > policy.maxFinalityWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `finality window seconds ${config.finalityWindowSeconds} exceeds maximum ${policy.maxFinalityWindowSeconds}`);
+    }
+    if (typeof config.teleportationChainDepth === 'number' && config.teleportationChainDepth > policy.maxTeleportationChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `teleportation chain depth ${config.teleportationChainDepth} exceeds maximum ${policy.maxTeleportationChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireTeleportationAuthorityInitializerAttestation && config.teleportationAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'teleportation authority initializer attestation is required');
+    }
+    if (policy.requireTeleportationEthicsOversightCommitteeAttestation && config.teleportationEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'teleportation ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderTeleportClaims === 'boolean' && policy.banMalformedOrOutOfOrderTeleportClaims && !config.banMalformedOrOutOfOrderTeleportClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order teleport claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validatePqDecentralizedEnergyGridBalancingGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqDecentralizedEnergyGridBalancingGating, ...(tenantPolicy.pqDecentralizedEnergyGridBalancingGating || {}) };
+    if (typeof config.gridQuorum === 'number' && config.gridQuorum < policy.minGridQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `grid quorum ${config.gridQuorum} below minimum ${policy.minGridQuorum}`);
+    }
+    if (typeof config.balancingWindowSeconds === 'number' && config.balancingWindowSeconds > policy.maxBalancingWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `balancing window seconds ${config.balancingWindowSeconds} exceeds maximum ${policy.maxBalancingWindowSeconds}`);
+    }
+    if (typeof config.gridBalancingChainDepth === 'number' && config.gridBalancingChainDepth > policy.maxGridBalancingChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `grid balancing chain depth ${config.gridBalancingChainDepth} exceeds maximum ${policy.maxGridBalancingChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireEnergyGridAuthorityInitializerAttestation && config.energyGridAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'energy grid authority initializer attestation is required');
+    }
+    if (policy.requireGridEthicsOversightCommitteeAttestation && config.gridEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'grid ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderEnergyGridClaims === 'boolean' && policy.banMalformedOrOutOfOrderEnergyGridClaims && !config.banMalformedOrOutOfOrderEnergyGridClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order energy grid claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
+  _validatePqSpaceBasedLaserCommunicationMeshGating(tenantPolicy, config) {
+    const policy = { ...DEFAULT_POLICY.pqSpaceBasedLaserCommunicationMeshGating, ...(tenantPolicy.pqSpaceBasedLaserCommunicationMeshGating || {}) };
+    if (typeof config.laserMeshQuorum === 'number' && config.laserMeshQuorum < policy.minLaserMeshQuorum) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `laser mesh quorum ${config.laserMeshQuorum} below minimum ${policy.minLaserMeshQuorum}`);
+    }
+    if (typeof config.handoffWindowSeconds === 'number' && config.handoffWindowSeconds > policy.maxHandoffWindowSeconds) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `handoff window seconds ${config.handoffWindowSeconds} exceeds maximum ${policy.maxHandoffWindowSeconds}`);
+    }
+    if (typeof config.laserMeshChainDepth === 'number' && config.laserMeshChainDepth > policy.maxLaserMeshChainDepth) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `laser mesh chain depth ${config.laserMeshChainDepth} exceeds maximum ${policy.maxLaserMeshChainDepth}`);
+    }
+    if (typeof config.pqcSignatureScheme === 'string' && !policy.allowedPqcSignatureSchemes.includes(config.pqcSignatureScheme)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `PQC signature scheme ${config.pqcSignatureScheme} is not permitted; allowed: ${policy.allowedPqcSignatureSchemes.join(', ')}`);
+    }
+    if (policy.requireLaserMeshAuthorityInitializerAttestation && config.laserMeshAuthorityInitializerAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'laser mesh authority initializer attestation is required');
+    }
+    if (policy.requireLaserEthicsOversightCommitteeAttestation && config.laserEthicsOversightCommitteeAttestation === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'laser ethics oversight committee attestation is required');
+    }
+    if (typeof config.attestationAuthority === 'string' && !policy.allowedAttestationAuthorities.includes(config.attestationAuthority)) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', `attestation authority ${config.attestationAuthority} is not allowed; permitted: ${policy.allowedAttestationAuthorities.join(', ')}`);
+    }
+    if (typeof config.banMalformedOrOutOfOrderLaserMeshClaims === 'boolean' && policy.banMalformedOrOutOfOrderLaserMeshClaims && !config.banMalformedOrOutOfOrderLaserMeshClaims) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'ban malformed or out-of-order laser mesh claims must remain enabled');
+    }
+    if (policy.requireCanonicalPayloadLayout && config.canonicalPayloadLayout === false) {
+      throw new HsmAdapterError('POLICY_VIOLATION_BLOCKED', 'canonical payload layout is required');
+    }
+  }
+
   _validateFips(tenantPolicy, config) {
     const policy = tenantPolicy.fips || DEFAULT_POLICY.fips;
     if (!policy.enabled) return;
@@ -4253,6 +4437,26 @@ class CryptoPolicyEngine {
 
     if (operation === 'pqSmartContractVerifiableExecutionGating') {
       this._validatePqSmartContractVerifiableExecutionGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqDecentralizedIdentityProofGating') {
+      this._validatePqDecentralizedIdentityProofGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqCrossShardAssetTeleportationGating') {
+      this._validatePqCrossShardAssetTeleportationGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqDecentralizedEnergyGridBalancingGating') {
+      this._validatePqDecentralizedEnergyGridBalancingGating(tenantPolicy, config);
+      return true;
+    }
+
+    if (operation === 'pqSpaceBasedLaserCommunicationMeshGating') {
+      this._validatePqSpaceBasedLaserCommunicationMeshGating(tenantPolicy, config);
       return true;
     }
 

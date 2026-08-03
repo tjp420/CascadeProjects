@@ -1,31 +1,34 @@
-# test_plan.md — Track 43B: Cross-Region State Reconstruction using real ClusterKeyReconciliationEngine digests
+# test_plan.md — Track 105: Decentralized Identity Proof Gating UI
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
-| Feature / change | Refactor CrossRegionStateReconstructor to consume Track 35 `reconciliationDigest` payloads instead of mock `shareFragments` |
+| Feature / change | Add dashboard UI and REST endpoints for `pqDecentralizedIdentityProofGating` policy administration and telemetry |
 | Author (Builder) | Devin |
 | Date | 2026-08-03 |
-| Branch | `feat/track43b-state-reconstruction-realism` |
+| Branch | `feat/track105-decentralized-identity-gating-ui` |
 | Packages touched | ai-platform |
 
 ## Scope
 
 ### Files in scope
 
-- `ai-platform/server/lib/hsm-adapter/cross-region-state-reconstructor.cjs`
-- `ai-platform/server/lib/hsm-adapter/__tests__/disaster-recovery.test.cjs`
-- `ai-platform/server/lib/hsm-adapter/cluster-key-reconciliation-engine.cjs` *(read-only, for interface reference)*
+- `ai-platform/server/routes/hsm-vault-routes.cjs`
+- `ai-platform/web/dashboard/js-es2018/components/DecentralizedIdentityGatingDashboard.js` (new)
+- `ai-platform/web/dashboard/js-es2018/views/AdminPanelView.js`
+- `ai-platform/server/lib/__tests__/hsm-vault-decentralized-identity-routes.test.cjs` (new)
 
 ### APIs / routes
 
-- `CrossRegionStateReconstructor.reconstruct(survivingRegions, standbyNodes, reconciliationDigest, standbyAttestations)`
-- New constructor option `clusterReconciler` for live digest retrieval by `keyId`
+- `GET  /api/hsm/vault/decentralized-identity/policy`
+- `POST /api/hsm/vault/decentralized-identity/policy/validate`
+- `GET  /api/hsm/vault/decentralized-identity/telemetry`
 
 ### UI / IDE surfaces
 
-- [ ] Not applicable
+- HSM dashboard admin panel telemetry grid (`#admin-telemetry-grid`)
+- New `DecentralizedIdentityGatingDashboard` card with policy form and telemetry counters
 
 ---
 
@@ -33,10 +36,10 @@
 
 | ID | Check | Command / method | Pass |
 |----|-------|------------------|------|
-| L1-01 | Syntax on changed JS/CJS | `node -c <file>` | [ ] |
-| L1-02 | ai-platform tests | `cd ai-platform && npx jest disaster-recovery` | [ ] |
-| L1-03 | SimpleBeacon gate (full) | `npx simplebeacon scan --full --gate --format json` | [ ] |
-| L1-04 | No secrets in diff | Manual / gate token rules | [ ] |
+| L1-01 | Syntax on new/changed `.cjs` | `node -c <file>` | [ ] |
+| L1-02 | New route tests | `cd ai-platform && npx jest hsm-vault-decentralized-identity-routes` | [ ] |
+| L1-03 | Existing HSM route tests still pass | `cd ai-platform && npx jest hsm-vault` | [ ] |
+| L1-04 | SimpleBeacon gate | `npx simplebeacon scan --full --gate --format json` | [ ] |
 
 ---
 
@@ -44,14 +47,13 @@
 
 | ID | Scenario | Steps | Expected | Pass |
 |----|----------|-------|----------|------|
-| L2-01 | Reconstruct with valid digest | `reconstruct(['us-east','eu-west'], ['standby-1'], digest, attestations)` | returns `reconstructed: true` and `keyRing` based on `majorityFingerprint` and `quorumEpoch` | [ ] |
-| L2-02 | Missing attestation | standby present without attestation when `requireStandbyAttestation: true` | throws `DR_STANDBY_ATTESTATION_MISSING` | [ ] |
-| L2-03 | Unattested standby | attestation verification fails | throws `DR_STANDBY_UNATTESTED` | [ ] |
-| L2-04 | Insufficient surviving regions | only one region with `minSurvivingRegions: 2` | throws `DR_SURVIVING_REGIONS_INSUFFICIENT` | [ ] |
-| L2-05 | Critical divergence | `reconciliationDigest.severity === 'critical'` | throws `DR_DIVERGENCE_CRITICAL` | [ ] |
-| L2-06 | Quorum below minQuorumNodes | `majorityCount < minQuorumNodes` | throws `DR_QUORUM_INSUFFICIENT` | [ ] |
-| L2-07 | State too old | `reconciliationDigest.ageSeconds` > `maxStateReconstructionAgeSeconds` | throws `DR_STATE_TOO_OLD` | [ ] |
-| L2-08 | Live reconciler integration | pass `ClusterKeyReconciliationEngine` as `clusterReconciler` and a `keyId` | digest pulled from engine and reconstruct succeeds | [ ] |
+| L2-01 | GET policy returns defaults | `GET /api/hsm/vault/decentralized-identity/policy` | JSON with all Track 105 policy fields and bounds | [ ] |
+| L2-02 | POST valid policy returns 200 | `POST .../policy/validate` with valid fields | `{ valid: true }` | [ ] |
+| L2-03 | POST invalid `identityQuorum` returns 400 | `POST .../policy/validate` with `identityQuorum: 5` | `400 Bad Request` with `POLICY_VIOLATION_BLOCKED` | [ ] |
+| L2-04 | POST invalid `pqcSignatureScheme` returns 400 | `POST .../policy/validate` with `pqcSignatureScheme: 'falcon-512'` | `400 Bad Request` with `POLICY_VIOLATION_BLOCKED` | [ ] |
+| L2-05 | GET telemetry returns counters | `GET /api/hsm/vault/decentralized-identity/telemetry` | JSON with `hsm_didgate_*` values | [ ] |
+| L2-06 | Dashboard card renders | Open `/dashboard/admin` grid | Card with form and telemetry tiles visible | [ ] |
+| L2-07 | Form validation reflects backend | Submit invalid form values | Error message from `POLICY_VIOLATION_BLOCKED` shown | [ ] |
 
 ---
 
@@ -59,9 +61,9 @@
 
 | ID | Case | Expected | Pass |
 |----|------|----------|------|
-| L3-01 | Backward-compatible `shareFragments` | method still accepts legacy array for existing tests | succeeds or warns | [ ] |
-| L3-02 | Empty `divergentNodes` | `severity === 'none'`, `majorityCount` matches cluster size | succeeds | [ ] |
-| L3-03 | Missing `reconciliationDigest.majorityFingerprint` | throws `DR_DIGEST_INVALID` | [ ] |
+| L3-01 | Missing `majorityFingerprint` — not applicable (policy-only) | N/A | [ ] |
+| L3-02 | Admin panel still mounts other telemetry cards | Other dashboard cards load | [ ] |
+| L3-03 | Form field names match `crypto-policy-schema.json` | `identityQuorum`, `revocationWindowSeconds`, etc. | [ ] |
 
 ---
 
@@ -69,8 +71,8 @@
 
 | ID | Requirement | Pass |
 |----|-------------|------|
-| S-01 | No credentials / PII in logs or commits | [ ] |
-| S-02 | Attestation still required before reconstructing key ring | [ ] |
+| S-01 | No secrets in form defaults or mock payloads | [ ] |
+| S-02 | Only admin-authenticated requests served (existing auth middleware) | [ ] |
 
 ---
 

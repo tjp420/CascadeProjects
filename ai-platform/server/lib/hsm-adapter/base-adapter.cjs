@@ -2584,6 +2584,86 @@ class BaseHsmAdapter {
     try { require('./hsm-metrics.cjs').incrementCounter('hsm_execution_accreditation_completed_total'); } catch { }
   }
 
+  // ── Track 105 decentralized identity proof gating telemetry hooks
+
+  emitIdentityPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('IDENTITY_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_didgate_pool_initialized_total'); } catch { }
+  }
+
+  emitZkIdentityClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_IDENTITY_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_identity_claim_verified_total'); } catch { }
+  }
+
+  emitRevocationAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('REVOCATION_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_revocation_accreditation_completed_total'); } catch { }
+  }
+
+  // ── Track 106 cross-shard asset teleportation gating telemetry hooks
+
+  emitTeleportationPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('TELEPORTATION_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_teleportgate_pool_initialized_total'); } catch { }
+  }
+
+  emitZkTeleportClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_TELEPORT_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_teleport_claim_verified_total'); } catch { }
+  }
+
+  emitFinalityAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('FINALITY_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_finality_accreditation_completed_total'); } catch { }
+  }
+
+  // ── Track 107 decentralized energy grid balancing gating telemetry hooks
+
+  emitEnergyGridPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('ENERGY_GRID_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_gridgate_pool_initialized_total'); } catch { }
+  }
+
+  emitZkEnergyGridClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_ENERGY_GRID_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_energy_grid_claim_verified_total'); } catch { }
+  }
+
+  emitBalancingAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('BALANCING_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_balancing_accreditation_completed_total'); } catch { }
+  }
+
+  // ── Track 108 space-based laser communication mesh gating telemetry hooks
+
+  emitLaserMeshPoolInitialized(info = {}) {
+    this._ensureInitialized();
+    this._audit('LASER_MESH_POOL_INITIALIZED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_lasergate_pool_initialized_total'); } catch { }
+  }
+
+  emitZkLaserMeshClaimVerified(info = {}) {
+    this._ensureInitialized();
+    this._audit('ZK_LASER_MESH_CLAIM_VERIFIED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_zk_laser_mesh_claim_verified_total'); } catch { }
+  }
+
+  emitHandoffAccreditationCompleted(info = {}) {
+    this._ensureInitialized();
+    this._audit('HANDOFF_ACCREDITATION_COMPLETED', info);
+    try { require('./hsm-metrics.cjs').incrementCounter('hsm_handoff_accreditation_completed_total'); } catch { }
+  }
+
   // ── Track 33 recovery sync telemetry hooks ─────────────────────────
 
   /**

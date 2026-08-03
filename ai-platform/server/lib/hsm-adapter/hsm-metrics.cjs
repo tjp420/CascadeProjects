@@ -805,6 +805,13 @@ const counters = {
   hsm_recursive_aggregations_failed_total: 0,
   hsm_recursive_proofs_active: 0,
   hsm_recursive_aggregations_active: 0,
+  // Tracks 107/108: Grid and laser mesh gating counters
+  hsm_gridgate_pool_initialized_total: 0,
+  hsm_zk_energy_grid_claim_verified_total: 0,
+  hsm_balancing_accreditation_completed_total: 0,
+  hsm_lasergate_pool_initialized_total: 0,
+  hsm_zk_laser_mesh_claim_verified_total: 0,
+  hsm_handoff_accreditation_completed_total: 0,
 };
 
 // ── Histograms (bucketed) ───────────────────────────────────────
@@ -1482,6 +1489,13 @@ const META = {
   hsm_recursive_aggregations_failed_total: { help: 'Total failed recursive aggregation operations.', type: 'counter' },
   hsm_recursive_proofs_active: { help: 'Number of active recursive proofs.', type: 'gauge' },
   hsm_recursive_aggregations_active: { help: 'Number of active recursive aggregations.', type: 'gauge' },
+  // Tracks 107/108: Grid and laser mesh gating metadata
+  hsm_gridgate_pool_initialized_total: { help: 'Total decentralized energy grid balancing gating pools initialized.', type: 'counter' },
+  hsm_zk_energy_grid_claim_verified_total: { help: 'Total ZK decentralized energy grid claims verified.', type: 'counter' },
+  hsm_balancing_accreditation_completed_total: { help: 'Total decentralized energy grid balancing accreditation completions finalized.', type: 'counter' },
+  hsm_lasergate_pool_initialized_total: { help: 'Total space-based laser communication mesh gating pools initialized.', type: 'counter' },
+  hsm_zk_laser_mesh_claim_verified_total: { help: 'Total ZK space-based laser mesh claims verified.', type: 'counter' },
+  hsm_handoff_accreditation_completed_total: { help: 'Total space-based laser mesh handoff accreditation completions finalized.', type: 'counter' },
 };
 
 /**

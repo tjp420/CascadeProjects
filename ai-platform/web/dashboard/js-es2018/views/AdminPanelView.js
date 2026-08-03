@@ -6,6 +6,7 @@ import { renderCoreReplicationTelemetryDashboard, cleanupCoreReplicationTelemetr
 import { renderDropTelemetryDashboard, cleanupDropTelemetryDashboard } from '../components/DropTelemetryDashboard.js';
 import { renderEnclaveTelemetryDashboard, cleanupEnclaveTelemetryDashboard } from '../components/EnclaveTelemetryDashboard.js';
 import { renderRecursiveProofAggregationDashboard, cleanupRecursiveProofAggregationDashboard } from '../components/RecursiveProofAggregationDashboard.js';
+import { renderDecentralizedIdentityGatingDashboard, cleanupDecentralizedIdentityGatingDashboard } from '../components/DecentralizedIdentityGatingDashboard.js';
 
 function normalizeTrustLevel(value) {
     const raw = String(value || 'bronze').toLowerCase();
@@ -961,6 +962,7 @@ export class AdminPanelView {
         cleanupDropTelemetryDashboard();
         cleanupEnclaveTelemetryDashboard();
         cleanupRecursiveProofAggregationDashboard();
+        cleanupDecentralizedIdentityGatingDashboard();
         grid.innerHTML = '';
         // Mount Core Replication Telemetry (admin-only, 35 counters across Tracks 34-38)
         try {
@@ -989,6 +991,13 @@ export class AdminPanelView {
             grid.appendChild(recursiveDashboard);
         } catch (e) {
             window["console"]["error"]('[AdminPanelView] Failed to mount recursive proof aggregation dashboard:', e);
+        }
+        // Mount Decentralized Identity Proof Gating (Track 105, policy + telemetry)
+        try {
+            const didDashboard = renderDecentralizedIdentityGatingDashboard();
+            grid.appendChild(didDashboard);
+        } catch (e) {
+            window["console"]["error"]('[AdminPanelView] Failed to mount decentralized identity gating dashboard:', e);
         }
     }
 

@@ -593,6 +593,7 @@ router.post('/enclave/attestation/clear-cache', authorize('admin:all'), function
   }
 });
 
+
 // ── Track 61: Recursive Proof Aggregation endpoints ────────────────────────────
 
 function getRecursiveProofEngine() {
@@ -769,6 +770,60 @@ router.get('/recursive-aggregation/status', authorize('admin:all'), function (re
     res.json({ success: true, timestamp: Date.now(), counters, stats: engine.getStats() });
   } catch (err) {
     handleHsmError(res, err);
+  }
+});
+
+
+// Track 105: Decentralized Identity Proof Gating policy administration and telemetry
+
+// GET /api/vault/decentralized-identity/policy — expose active Track 105 policy defaults and bounds
+router.get('/decentralized-identity/policy', authorize('admin:all'), function (req, res) {
+  try {
+    const { DEFAULT_POLICY } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      policy: DEFAULT_POLICY.pqDecentralizedIdentityProofGating,
+    });
+  } catch (err) {
+    sendError(res, 500, 'decentralized_identity_policy_fetch_failed', { message: err.message });
+  }
+});
+
+// POST /api/vault/decentralized-identity/policy/validate — validate a proposed Track 105 configuration
+router.post('/decentralized-identity/policy/validate', authorize('admin:all'), function (req, res) {
+  try {
+    const { CryptoPolicyEngine } = require('../lib/hsm-adapter/crypto-policy-engine.cjs');
+    const engine = new CryptoPolicyEngine({ default: {} });
+    const tenantId = resolveOrgId(req);
+    const config = req.body || {};
+    engine.validate(tenantId, 'pqDecentralizedIdentityProofGating', config);
+    res.json({ success: true, valid: true });
+  } catch (err) {
+    if (err.code === 'POLICY_VIOLATION_BLOCKED') {
+      return sendError(res, 400, 'POLICY_VIOLATION_BLOCKED', { message: err.message });
+    }
+    sendError(res, 500, 'decentralized_identity_policy_validate_failed', { message: err.message });
+  }
+});
+
+// GET /api/vault/decentralized-identity/telemetry — expose Track 105 telemetry counters
+router.get('/decentralized-identity/telemetry', authorize('admin:all'), function (req, res) {
+  try {
+    const hsmMetrics = require('../lib/hsm-adapter/hsm-metrics.cjs');
+    const allMetrics = hsmMetrics.getMetrics();
+    const telemetry = {
+      hsm_didgate_pool_initialized_total: allMetrics.hsm_didgate_pool_initialized_total || 0,
+      hsm_zk_identity_claim_verified_total: allMetrics.hsm_zk_identity_claim_verified_total || 0,
+      hsm_revocation_accreditation_completed_total: allMetrics.hsm_revocation_accreditation_completed_total || 0,
+    };
+    res.json({
+      success: true,
+      orgId: resolveOrgId(req),
+      telemetry,
+    });
+  } catch (err) {
+    sendError(res, 500, 'decentralized_identity_telemetry_fetch_failed', { message: err.message });
   }
 });
 
