@@ -25,7 +25,8 @@ function runBinary(path, input) {
 }
 
 function run() {
-  const goPath = './ai-platform/server/lib/mpc/schnorr/reference-runner-go/reference-runner-go';
+  // Use `go run` to ensure the source in the repo is executed (avoids stale binaries)
+  const goPath = 'go';
   const rustPath = './ai-platform/server/lib/mpc/schnorr/reference-runner-rust/target/release/reference-runner-rust';
 
   for (const s of samples) {
@@ -33,7 +34,11 @@ function run() {
 
     let goCanon = null;
     try {
-      goCanon = runBinary(goPath, s);
+      // run 'go run main.go' in the Go runner directory
+      const proc = spawnSync(goPath, ['run', 'ai-platform/server/lib/mpc/schnorr/reference-runner-go/main.go'], { input: JSON.stringify(s), encoding: 'utf8' });
+      if (proc.error) throw proc.error;
+      if (proc.status !== 0) throw new Error(`exit ${proc.status}: ${proc.stderr}`);
+      goCanon = (proc.stdout || '').trim().split(/\r?\n/)[0] || '';
     } catch (e) {
       console.error(e.message);
       process.exitCode = 2;
