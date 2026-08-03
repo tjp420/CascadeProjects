@@ -34,86 +34,142 @@ function mockAttestation() {
   };
 }
 
-function baseRequest() {
+function baseTransfer() {
   return {
+    transferId: 'bridge-1',
     sourcePlatform: 'platform-a',
     targetPlatform: 'platform-b',
-    assetId: 'asset-123',
-    amount: 10000,
+    assetId: 'asset-xyz',
+    amount: 100000,
     recipient: 'recipient-1',
     lockEpoch: 100,
     releaseEpoch: 200,
     sourceAttestation: mockAttestation(),
     targetAttestation: mockAttestation(),
+    bridgeAuthority: 'mock-authority',
   };
 }
 
 describe('Track 48 PQC asset bridge', () => {
-  test('PqcAssetBridgeHub initiates and finalizes a transfer', () => {
+  test('PqcAssetBridgeHub initiates and releases with escrow', () => {
     const events = [];
     const attestationClient = new EnclaveAttestationClient({
       allowedAuthorities: ['mock-authority'],
       allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
     });
-    const escrow = new BridgeTimeLockEscrow({ policy: POLICY });
+    const escrow = new BridgeTimeLockEscrow();
+    escrow.setEpoch(200);
     const hub = new PqcAssetBridgeHub({
       policy: POLICY,
       attestationClient,
       escrow,
       audit: (event, info) => events.push({ event, info }),
     });
-    let transfer = hub.initiate(baseRequest());
-    expect(transfer.status).toBe('initiated');
-    expect(transfer.payload).toMatch(/^BRIDGE:/);
+    const result = hub.initiate(baseTransfer());
+    expect(result.initiated).toBe(true);
+    expect(result.payload).toMatch(/^BRIDGE:/);
     expect(events.some((e) => e.event === 'BRIDGE_TRANSFER_INITIATED')).toBe(true);
 
-    transfer = hub.sign(transfer, 'c-1', mockAttestation(), 'sig-1');
-    transfer = hub.sign(transfer, 'c-2', mockAttestation(), 'sig-2');
-    transfer = hub.sign(transfer, 'c-3', mockAttestation(), 'sig-3');
-    expect(transfer.status).toBe('validated');
-    expect(events.some((e) => e.event === 'CROSS_CHAIN_CLAIM_VALIDATED')).toBe(true);
-
-    escrow.lock(transfer);
-    transfer = hub.finalize(transfer, 200);
-    expect(transfer.status).toBe('released');
+    hub.signAndRelease('bridge-1', 'cm-1', mockAttestation(), 'sig-1');
+    hub.signAndRelease('bridge-1', 'cm-2', mockAttestation(), 'sig-2');
+    const release = hub.signAndRelease('bridge-1', 'cm-3', mockAttestation(), 'sig-3');
+    expect(release.released).toBe(true);
     expect(events.some((e) => e.event === 'ESCROW_RELEASE_FINALIZED')).toBe(true);
   });
 
-  test('PqcAssetBridgeHub rejects value above maximum', () => {
-    const hub = new PqcAssetBridgeHub({ policy: POLICY });
-    const request = baseRequest();
-    request.amount = 2000000;
-    expect(() => hub.initiate(request)).toThrow(HsmAdapterError);
+  test('PqcAssetBridgeHub validates a cross-chain claim', () => {
+    const attestationClient = new EnclaveAttestationClient({
+      allowedAuthorities: ['mock-authority'],
+      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
+    });
+    const hub = new PqcAssetBridgeHub({
+      policy: POLICY,
+      attestationClient,
+    });
+    const result = hub.validateClaim({
+      transferId: 'bridge-1',
+      targetPlatform: 'platform-b',
+      lockedAtEpoch: 100,
+      claimedAtEpoch: 105,
+      targetAttestation: mockAttestation(),
+    });
+    expect(result.valid).toBe(true);
   });
 
-  test('PqcAssetBridgeHub rejects lock duration too short', () => {
-    const hub = new PqcAssetBridgeHub({ policy: POLICY });
-    const request = baseRequest();
-    request.releaseEpoch = 110;
-    expect(() => hub.initiate(request)).toThrow(HsmAdapterError);
+  test('PqcAssetBridgeHub rejects excessive asset value', () => {
+    const attestationClient = new EnclaveAttestationClient({
+      allowedAuthorities: ['mock-authority'],
+      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
+    });
+    const hub = new PqcAssetBridgeHub({
+      policy: POLICY,
+      attestationClient,
+    });
+    const transfer = baseTransfer();
+    transfer.amount = 2000000;
+    expect(() => hub.initiate(transfer)).toThrow(HsmAdapterError);
   });
 
-  test('BridgeTimeLockEscrow rejects early release', () => {
-    const escrow = new BridgeTimeLockEscrow({ policy: POLICY });
-    const request = baseRequest();
-    escrow.lock(request);
-    expect(() => escrow.release(request, 150)).toThrow(HsmAdapterError);
+  test('PqcAssetBridgeHub rejects un-attested source', () => {
+    const attestationClient = new EnclaveAttestationClient({
+      allowedAuthorities: ['mock-authority'],
+      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
+    });
+    const hub = new PqcAssetBridgeHub({
+      policy: POLICY,
+      attestationClient,
+    });
+    const transfer = baseTransfer();
+    transfer.sourceAttestation = { authority: 'bad' };
+    expect(() => hub.initiate(transfer)).toThrow(HsmAdapterError);
   });
 
-  test('BridgeTimeLockEscrow rejects expired claim', () => {
-    const escrow = new BridgeTimeLockEscrow({ policy: POLICY });
-    const request = baseRequest();
-    escrow.lock(request);
-    expect(() => escrow.release(request, 220)).toThrow(HsmAdapterError);
+  test('PqcAssetBridgeHub rejects short lock duration', () => {
+    const attestationClient = new EnclaveAttestationClient({
+      allowedAuthorities: ['mock-authority'],
+      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
+    });
+    const hub = new PqcAssetBridgeHub({
+      policy: POLICY,
+      attestationClient,
+    });
+    const transfer = baseTransfer();
+    transfer.releaseEpoch = 130;
+    expect(() => hub.initiate(transfer)).toThrow(HsmAdapterError);
+  });
+
+  test('BridgeTimeLockEscrow rejects release before time-lock', () => {
+    const escrow = new BridgeTimeLockEscrow();
+    escrow.setEpoch(150);
+    escrow.lock('bridge-1', 100000, 100, 200);
+    expect(escrow.validateClaim('bridge-1').valid).toBe(false);
+  });
+
+  test('PqcAssetBridgeHub rejects expired cross-chain claim', () => {
+    const attestationClient = new EnclaveAttestationClient({
+      allowedAuthorities: ['mock-authority'],
+      allowedMeasurements: ['MOCK_MEASUREMENT_00000000000000000000000000000000'],
+    });
+    const hub = new PqcAssetBridgeHub({
+      policy: POLICY,
+      attestationClient,
+    });
+    expect(() => hub.validateClaim({
+      transferId: 'bridge-1',
+      targetPlatform: 'platform-b',
+      lockedAtEpoch: 100,
+      claimedAtEpoch: 120,
+      targetAttestation: mockAttestation(),
+    })).toThrow(HsmAdapterError);
   });
 
   test('CryptoPolicyEngine validates asset bridge configuration', () => {
     const engine = new CryptoPolicyEngine({ default: {} });
     expect(() => engine.validate('t1', 'assetBridge', {
       committeeQuorum: 3,
-      assetTransactionValue: 1000000,
-      lockEpochDuration: 60,
-      claimExpirationEpochs: 10,
+      assetTransactionValue: 500000,
+      lockEpochDuration: 100,
+      claimExpirationEpochs: 5,
       sourceAttestation: true,
       targetAttestation: true,
       bridgeAuthority: 'mock-authority',
