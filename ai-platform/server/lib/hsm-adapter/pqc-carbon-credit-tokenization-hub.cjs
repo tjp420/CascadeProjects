@@ -11,11 +11,29 @@
  * maxCarbonTonnageCap, and tracks state transitions
  * alongside the minRetirementQuorum boundary.
  *
+ * Extended with batch pool initialization, tonnage
+ * rebalancing, committee signature aggregation, pool
+ * cancellation, cross-chain settlement, and summary
+ * statistics.
+ *
  * @module hsm-adapter/pqc-carbon-credit-tokenization-hub
  */
 
 const crypto = require('crypto');
 const { HsmAdapterError } = require('./base-adapter.cjs');
+
+const POOL_STATUS = {
+  OPEN: 'open',
+  REBALANCING: 'rebalancing',
+  RETIRED: 'retired',
+  SETTLED: 'settled',
+  CANCELLED: 'cancelled',
+};
+
+const REBALANCE_DIRECTION = {
+  INCREASE: 'increase',
+  DECREASE: 'decrease',
+};
 
 class PqcCarbonCreditTokenizationHub {
   /**
@@ -29,6 +47,15 @@ class PqcCarbonCreditTokenizationHub {
     this._attestationClient = options.attestationClient || null;
     this._audit = options.audit || null;
     this._pools = new Map();
+    this._settlements = new Map();
+    this._rebalances = new Map();
+    this._maxPools = options.maxPools || 1000;
+    this._maxBatchSize = options.maxBatchSize || 50;
+    this._initCount = 0;
+    this._retireCount = 0;
+    this._settleCount = 0;
+    this._rebalanceCount = 0;
+    this._cancelCount = 0;
   }
 
   /**
@@ -38,6 +65,10 @@ class PqcCarbonCreditTokenizationHub {
    */
   initializePool(request) {
     _validateInitRequest(this.policy, request);
+    if (this._pools.size >= this._maxPools) {
+      throw new HsmAdapterError('CARBONPOOL_MAX_POOLS',
+        `maximum ${this._maxPools} pools reached`);
+    }
     if (this.policy.requireAssetInitializerAttestation && this._attestationClient) {
       try {
         const result = this._attestationClient.verify(request.assetInitializerAttestation);
@@ -77,15 +108,56 @@ class PqcCarbonCreditTokenizationHub {
       carbonTonnageCap: request.carbonTonnageCap || 0,
       pqcSignatureScheme: request.pqcSignatureScheme,
       initializedAt: now,
-      status: 'open',
+      status: POOL_STATUS.OPEN,
       retirementProofVerified: false,
       retirementFinalizedAt: null,
+      rebalanceEpoch: 0,
+      settlementStatus: null,
+      settledAt: null,
+      cancelledAt: null,
     };
     this._pools.set(poolId, pool);
+    this._initCount++;
     if (this._audit) {
       this._audit('CARBON_POOL_INITIALIZED', { ...pool });
     }
     return pool;
+  }
+
+  /**
+   * Batch initialize multiple carbon credit tokenization pools.
+   * @param {object[]} requests
+   * @returns {object}
+   */
+  batchInitializePools(requests) {
+    if (!Array.isArray(requests) || requests.length === 0) {
+      throw new HsmAdapterError('CARBONPOOL_BATCH_EMPTY', 'batch requests array is required');
+    }
+    if (requests.length > this._maxBatchSize) {
+      throw new HsmAdapterError('CARBONPOOL_BATCH_TOO_LARGE',
+        `${requests.length} exceeds max batch size ${this._maxBatchSize}`);
+    }
+    const results = [];
+    let successCount = 0;
+    let failedCount = 0;
+    for (const req of requests) {
+      try {
+        const pool = this.initializePool(req);
+        results.push({ poolId: pool.poolId, initialized: true });
+        successCount++;
+      } catch (err) {
+        results.push({
+          poolId: req.poolId || 'auto',
+          initialized: false,
+          error: err.code || 'CARBONPOOL_BATCH_ERROR',
+        });
+        failedCount++;
+      }
+    }
+    if (this._audit) {
+      this._audit('CARBONPOOL_BATCH_INITIALIZED', { successCount, failedCount, batchSize: requests.length });
+    }
+    return { totalRequests: requests.length, successCount, failedCount, results };
   }
 
   /**
@@ -109,6 +181,65 @@ class PqcCarbonCreditTokenizationHub {
     }
     pool.retirementProofVerified = true;
     return pool;
+  }
+
+  /**
+   * Rebalance carbon tonnage for a pool.
+   * @param {object} request
+   * @returns {object}
+   */
+  rebalanceTonnage(request) {
+    if (!request || !request.poolId) {
+      throw new HsmAdapterError('CARBONPOOL_REBALANCE_FIELDS_MISSING', 'poolId is required');
+    }
+    const pool = this._pools.get(request.poolId);
+    if (!pool) {
+      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${request.poolId} not found`);
+    }
+    if (pool.status !== POOL_STATUS.OPEN && pool.status !== POOL_STATUS.REBALANCING) {
+      throw new HsmAdapterError('CARBONPOOL_NOT_REBALANCEABLE',
+        `pool ${request.poolId} status is ${pool.status}, expected open or rebalancing`);
+    }
+    const direction = request.direction || REBALANCE_DIRECTION.INCREASE;
+    if (!Object.values(REBALANCE_DIRECTION).includes(direction)) {
+      throw new HsmAdapterError('CARBONPOOL_REBALANCE_DIRECTION_INVALID',
+        `direction ${direction} is not valid; allowed: ${Object.values(REBALANCE_DIRECTION).join(', ')}`);
+    }
+    if (typeof request.rebalanceAmount !== 'number' || request.rebalanceAmount <= 0) {
+      throw new HsmAdapterError('CARBONPOOL_REBALANCE_AMOUNT_INVALID',
+        'rebalanceAmount must be a positive number');
+    }
+    const newEpoch = pool.rebalanceEpoch + 1;
+    pool.rebalanceEpoch = newEpoch;
+    pool.status = POOL_STATUS.REBALANCING;
+    const rebalanceId = request.rebalanceId || `rebal-${crypto.randomBytes(4).toString('hex')}`;
+    const rebalance = {
+      rebalanceId,
+      poolId: request.poolId,
+      direction,
+      rebalanceAmount: request.rebalanceAmount,
+      rebalanceEpoch: newEpoch,
+      newCarbonTonnageCap: request.newCarbonTonnageCap || pool.carbonTonnageCap,
+      rebalancedAt: Math.floor(Date.now() / 1000),
+    };
+    this._rebalances.set(rebalanceId, rebalance);
+    this._rebalanceCount++;
+    if (request.newCarbonTonnageCap !== undefined) {
+      pool.carbonTonnageCap = request.newCarbonTonnageCap;
+    }
+    if (this._audit) {
+      this._audit('CARBONPOOL_TONNAGE_REBALANCED', { ...rebalance });
+    }
+    return rebalance;
+  }
+
+  /**
+   * Get a rebalance record by id.
+   * @param {string} rebalanceId
+   * @returns {object|null}
+   */
+  getRebalance(rebalanceId) {
+    return this._rebalances.get(rebalanceId) || null;
   }
 
   /**
@@ -141,7 +272,7 @@ class PqcCarbonCreditTokenizationHub {
       throw new HsmAdapterError('CARBONPOOL_RETIREMENT_QUORUM_INSUFFICIENT', `retirement signatures ${signatures.length} below minimum ${this.policy.minRetirementQuorum}`);
     }
     const now = Math.floor(Date.now() / 1000);
-    pool.status = 'retired';
+    pool.status = POOL_STATUS.RETIRED;
     pool.retirementFinalizedAt = now;
     const finalizationId = request.finalizationId || `finalize-${crypto.randomBytes(4).toString('hex')}`;
     const finalization = {
@@ -150,10 +281,143 @@ class PqcCarbonCreditTokenizationHub {
       retirementSignatureCount: signatures.length,
       finalizedAt: now,
     };
+    this._retireCount++;
     if (this._audit) {
       this._audit('CARBON_CREDIT_RETIREMENT_FINALIZED', { ...finalization });
     }
     return finalization;
+  }
+
+  /**
+   * Settle a retired pool cross-chain.
+   * @param {object} request
+   * @returns {object}
+   */
+  settlePool(request) {
+    if (!request || !request.poolId) {
+      throw new HsmAdapterError('CARBONPOOL_SETTLE_FIELDS_MISSING', 'poolId is required');
+    }
+    const pool = this._pools.get(request.poolId);
+    if (!pool) {
+      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${request.poolId} not found`);
+    }
+    if (pool.status !== POOL_STATUS.RETIRED) {
+      throw new HsmAdapterError('CARBONPOOL_NOT_RETIRED',
+        `pool ${request.poolId} status is ${pool.status}, expected retired`);
+    }
+    if (!request.targetChainId || typeof request.targetChainId !== 'string') {
+      throw new HsmAdapterError('CARBONPOOL_SETTLE_CHAIN_MISSING', 'targetChainId is required for settlement');
+    }
+    if (request.targetChainId !== pool.targetChainId) {
+      throw new HsmAdapterError('CARBONPOOL_SETTLE_CHAIN_MISMATCH',
+        `settlement chain ${request.targetChainId} does not match pool target ${pool.targetChainId}`);
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const settlementId = request.settlementId || `settle-${crypto.randomBytes(4).toString('hex')}`;
+    const settlement = {
+      settlementId,
+      poolId: request.poolId,
+      targetChainId: request.targetChainId,
+      settlementProofHash: request.settlementProofHash || crypto.createHash('sha256')
+        .update(`${request.poolId}:${request.targetChainId}:${now}`)
+        .digest('hex'),
+      settledAt: now,
+    };
+    pool.status = POOL_STATUS.SETTLED;
+    pool.settlementStatus = 'settled';
+    pool.settledAt = now;
+    this._settlements.set(request.poolId, settlement);
+    this._settleCount++;
+    if (this._audit) {
+      this._audit('CARBONPOOL_SETTLED', { ...settlement });
+    }
+    return settlement;
+  }
+
+  /**
+   * Aggregate committee signatures for retirement finalization.
+   * @param {string} poolId
+   * @param {object[]} partialSignatures - Array of {peerId, signature}
+   * @returns {object}
+   */
+  aggregateCommitteeSignatures(poolId, partialSignatures) {
+    const pool = this._pools.get(poolId);
+    if (!pool) {
+      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${poolId} not found`);
+    }
+    if (!Array.isArray(partialSignatures) || partialSignatures.length === 0) {
+      throw new HsmAdapterError('CARBONPOOL_NO_SIGNATURES', 'partialSignatures array is required');
+    }
+    if (partialSignatures.length < (this.policy.minRetirementQuorum || 3)) {
+      throw new HsmAdapterError('CARBONPOOL_RETIREMENT_QUORUM_INSUFFICIENT',
+        `${partialSignatures.length} signatures below minimum ${this.policy.minRetirementQuorum || 3}`);
+    }
+    const aggregatedSig = crypto.createHash('sha256')
+      .update(partialSignatures.map(s => s.signature).join(':'))
+      .digest('hex');
+    const result = {
+      poolId,
+      signatureCount: partialSignatures.length,
+      aggregatedSignature: aggregatedSig,
+      participantIds: partialSignatures.map(s => s.peerId || 'anonymous'),
+      aggregatedAt: Math.floor(Date.now() / 1000),
+    };
+    if (this._audit) {
+      this._audit('CARBONPOOL_SIGNATURES_AGGREGATED', { poolId, count: partialSignatures.length });
+    }
+    return result;
+  }
+
+  /**
+   * Cancel a pool (only if not yet retired).
+   * @param {string} poolId
+   * @returns {object}
+   */
+  cancelPool(poolId) {
+    const pool = this._pools.get(poolId);
+    if (!pool) {
+      throw new HsmAdapterError('CARBONPOOL_NOT_FOUND', `pool ${poolId} not found`);
+    }
+    if (pool.status === POOL_STATUS.RETIRED || pool.status === POOL_STATUS.SETTLED) {
+      throw new HsmAdapterError('CARBONPOOL_ALREADY_RETIRED',
+        `pool ${poolId} has been retired/settled and cannot be cancelled`);
+    }
+    if (pool.status === POOL_STATUS.CANCELLED) {
+      throw new HsmAdapterError('CARBONPOOL_ALREADY_CANCELLED',
+        `pool ${poolId} is already cancelled`);
+    }
+    pool.status = POOL_STATUS.CANCELLED;
+    pool.cancelledAt = Math.floor(Date.now() / 1000);
+    this._cancelCount++;
+    if (this._audit) {
+      this._audit('CARBONPOOL_CANCELLED', { poolId });
+    }
+    return { poolId, cancelled: true };
+  }
+
+  /**
+   * Get a settlement record by pool id.
+   * @param {string} poolId
+   * @returns {object|null}
+   */
+  getSettlement(poolId) {
+    return this._settlements.get(poolId) || null;
+  }
+
+  /**
+   * Get all pools (metadata only).
+   * @returns {object[]}
+   */
+  getPools() {
+    return Array.from(this._pools.values()).map(p => ({
+      poolId: p.poolId,
+      sourceTenantId: p.sourceTenantId,
+      targetChainId: p.targetChainId,
+      status: p.status,
+      vintageAgeSeconds: p.vintageAgeSeconds,
+      carbonTonnageCap: p.carbonTonnageCap,
+      retirementProofVerified: p.retirementProofVerified,
+    }));
   }
 
   /**
@@ -162,6 +426,28 @@ class PqcCarbonCreditTokenizationHub {
    */
   getPoolCount() {
     return this._pools.size;
+  }
+
+  /**
+   * Get summary statistics.
+   * @returns {object}
+   */
+  getStats() {
+    const poolsByStatus = {};
+    for (const p of this._pools.values()) {
+      poolsByStatus[p.status] = (poolsByStatus[p.status] || 0) + 1;
+    }
+    return {
+      totalPools: this._pools.size,
+      totalSettlements: this._settlements.size,
+      totalRebalances: this._rebalances.size,
+      poolsByStatus,
+      initCount: this._initCount,
+      retireCount: this._retireCount,
+      settleCount: this._settleCount,
+      rebalanceCount: this._rebalanceCount,
+      cancelCount: this._cancelCount,
+    };
   }
 }
 
@@ -189,4 +475,8 @@ function _validateFinalizeRequest(policy, request) {
   }
 }
 
-module.exports = { PqcCarbonCreditTokenizationHub };
+module.exports = {
+  PqcCarbonCreditTokenizationHub,
+  POOL_STATUS,
+  REBALANCE_DIRECTION,
+};
