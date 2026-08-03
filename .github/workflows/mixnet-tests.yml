@@ -53,6 +53,11 @@ jobs:
         run: |
           node ai-platform/server/lib/mixnet/bench/benchmark-native.cjs
 
+      - name: Run Mixnet Jest tests (with native addon present)
+        run: |
+          # Run only the mixnet tests to verify native addon integration
+          npx jest ai-platform/server/lib/mixnet --color --runInBand --maxWorkers=2
+
       - name: Run Mixnet Jest tests
         run: npx jest "ai-platform/server/lib/mixnet/__tests__/*.test.cjs" --runInBand --colors
 
